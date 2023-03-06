@@ -131,6 +131,10 @@ namespace engine
          BOOLEAN needWaitForLock() const { return _waitLock ; }
 
          void setGetRawData( BOOLEAN rawData ) { _getRawData = rawData ; }
+         void setSchemaContext( dmsSchemaContext *pSchemaContext )
+         {
+            _pSchemaContext = pSchemaContext ;
+         }
 
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
@@ -163,6 +167,7 @@ namespace engine
          dmsRecordID             _advancedRecordID ;
          IDmsOprHandler         *_opHandler ;
          BOOLEAN                 _getRawData ;
+         dmsSchemaContext       *_pSchemaContext ;
    } ;
    typedef _dmsScanner dmsScanner ;
 

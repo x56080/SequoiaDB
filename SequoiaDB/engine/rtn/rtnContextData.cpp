@@ -1380,16 +1380,38 @@ namespace engine
          IXM_FIELD_NAME_SET selectSet ;
          try
          {
-            if( TRUE == pmdGetOptionCB()->isIndexCoverOn() )
-            {
-               rc = _selector.loadPattern ( selector, isStictType, &selectSet ) ;
-            }
-            else
-            {
-               rc = _selector.loadPattern ( selector, isStictType, NULL ) ;
-            }
+            rc = _selector.loadPattern ( selector, isStictType, &selectSet ) ;
             PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for select: "
                          "%s, rc: %d", selector.toString().c_str(), rc ) ;
+
+            if ( !selectSet.empty() )
+            {
+               IXM_FIELD_NAME_SET &setFiels = _schemaContext.getQueryFields() ;
+               setFiels = selectSet ;
+               if ( _planRuntime.getMatchTree() )
+               {
+                  rc = _planRuntime.getMatchTree()->getName( setFiels ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     setFiels.clear() ;
+                  }
+               }
+
+               if ( !setFiels.empty() && _planRuntime.getPlan() )
+               {
+                  BSONObjIterator itr( _planRuntime.getPlan()->getKey().getOrderBy() ) ;
+                  while( itr.more() )
+                  {
+                     BSONElement ele = itr.next() ;
+                     setFiels.insert( ele.fieldName() ) ;
+                  }
+               }
+            }
+
+            if( TRUE != pmdGetOptionCB()->isIndexCoverOn() )
+            {
+               selectSet.clear() ;
+            }
          }
          catch ( std::exception &e )
          {
@@ -1794,6 +1816,7 @@ namespace engine
          PD_LOG( PDERROR, "Failed to create extent scanner" ) ;
          goto error ;
       }
+      extScanner->setSchemaContext( &_schemaContext ) ;
 
       while ( numRecords() == startNumRecords )
       {
@@ -2018,6 +2041,8 @@ namespace engine
          {
             secScanner.enableCountMode() ;
          }
+
+         secScanner.setSchemaContext( &_schemaContext ) ;
 
          while ( SDB_OK == ( rc = secScanner.advance( recordID, generator,
                                                       cb, &mthContext ) ) )

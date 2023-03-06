@@ -142,7 +142,8 @@ namespace engine
                                  dmsRecordData &recordData,
                                  BOOLEAN needIncDataRead = TRUE,
                                  BOOLEAN decodeRecord = TRUE,
-                                 BOOLEAN getPrimalData = FALSE ) ;
+                                 BOOLEAN getPrimalData = FALSE,
+                                 dmsSchemaContext *pSchemaCtx = NULL ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 

@@ -328,6 +328,67 @@ namespace engine
    } ;
    typedef _dmsSchemaHash dmsSchemaHash ;
 
+   /*
+      _dmsSchemaContextItem define
+   */
+   struct _dmsSchemaContextItem
+   {
+      _utilBitmap       _readBitmap ;
+      BOOLEAN           _hitName ;
+
+      _dmsSchemaContextItem()
+      : _readBitmap( 0 ), _hitName( FALSE )
+      {
+      }
+   } ;
+   typedef _dmsSchemaContextItem dmsSchemaContextItem ;
+
+   /*
+      _dmsSchemaContext define
+   */
+   class _dmsSchemaContext : public SDBObject
+   {
+      typedef ossPoolMap< UINT32, dmsSchemaContextItem >       MAP_CTX_ITEM ;
+
+      public:
+         _dmsSchemaContext() ;
+         ~_dmsSchemaContext() ;
+
+         const SET_CHARSTRING&  getQueryFields() const { return _setQueryFields ; }
+         SET_CHARSTRING& getQueryFields() { return _setQueryFields ; }
+         BOOLEAN  hasSetQuery() const { return _hasSetQuery ; }
+
+      public:
+
+         BOOLEAN  validateCheck( UINT32 curSchemaVersion ) ;
+
+         void     prune( UINT32 recordVersion,
+                         UINT8 recordAttr,
+                         _utilBitmapBase &readBitmap,
+                         BOOLEAN &hitName,
+                         BOOLEAN &found ) ;
+
+         void     pushItem( UINT32 recordVersion,
+                            UINT8 recordAttr,
+                            const _utilBitmapBase &readBitmap,
+                            BOOLEAN hitName ) ;
+         
+         void     pushQueryBitmap( const _utilBitmapBase &readBitmap ) ;
+         void     setQueryWirld() ;
+
+      protected:
+         void     _clearBitInfo() ;
+
+      protected:
+         MAP_CTX_ITEM                  _mapHisItem ;
+         _utilBitmap                   _queryBitmap ;
+         BOOLEAN                       _isWirld ;
+         BOOLEAN                       _hasSetQuery ;
+         SET_CHARSTRING                _setQueryFields ;
+         UINT32                        _curSchemaVersion ;
+
+   } ;
+   typedef _dmsSchemaContext dmsSchemaContext ;
 
    #define DMS_SCHEMA_ENCODE_FILL_SZ         ( 4 )
    /*
@@ -335,16 +396,8 @@ namespace engine
    */
    class _dmsInternalSchema : public SDBObject
    {
-      struct name_cmp
-      {
-         BOOLEAN operator()( const CHAR *left, const CHAR *right )
-         {
-            return ossStrcmp( left, right ) < 0 ;
-         }
-      } ;
-
-      typedef ossPoolMap< const CHAR *, UINT16, name_cmp >  NAME_INFO_MAP ;
-      typedef NAME_INFO_MAP::iterator                       NAME_INFO_MAP_ITR ;
+      typedef ossPoolMap< const CHAR *, UINT16, _ossCharStringCmp >     NAME_INFO_MAP ;
+      typedef NAME_INFO_MAP::iterator                                   NAME_INFO_MAP_ITR ;
 
       public:
          _dmsInternalSchema() ;
@@ -390,6 +443,7 @@ namespace engine
                                 const CHAR *data,
                                 UINT32 dataSize,
                                 BSONObj &objRecord,
+                                dmsSchemaContext *pContext = NULL,
                                 BOOLEAN getPrimalData = FALSE ) ;
 
          // Rebuild a record which is not encoded by the internal schema. Possible actions
@@ -401,6 +455,7 @@ namespace engine
          INT32    rebuildRecord( _pmdEDUCB *cb,
                                  const BSONObj &record,
                                  BSONObj &outRecord,
+                                 dmsSchemaContext *pContext = NULL,
                                  BOOLEAN getPrimalData = FALSE ) ;
 
          // Dump the internal schema information. All columns are included.
@@ -435,6 +490,7 @@ namespace engine
 
          INT32    _parseRecord( utilBSONRawBuilder &encodeBuilder,
                                 _utilBitmapBase &writeBitmap,
+                                _utilBitmapBase &allBitmap,
                                 const BSONObj &record,
                                 BOOLEAN &hasNewCol ) ;
 
@@ -442,7 +498,8 @@ namespace engine
          INT32    _appendPrimalColumns( _pmdEDUCB *cb,
                                         const BSONObj& originalRecord,
                                         const _utilBitmapBase &writeBitmap,
-                                        UINT8 encodeFlag,
+                                        _utilBitmapBase &allBitmap,
+                                        UINT8 encodeType,
                                         utilBSONRawBuilder &encodeBuilder,
                                         dmsRecordData &recordData,
                                         BOOLEAN &memAlloc ) ;
@@ -450,7 +507,17 @@ namespace engine
          INT32    _checkOrgRecord( const BSONObj &record,
                                    _utilBitmapBase &colBitmap,
                                    BOOLEAN &hitName,
-                                   BOOLEAN &hitDefault ) ;
+                                   BOOLEAN &hitDefault,
+                                   BOOLEAN *pHitNew = NULL,
+                                   _utilBitmapBase *pAllBitmap = NULL ) ;
+
+         INT32    _rebuildRecord( _pmdEDUCB *cb,
+                                  const BSONObj &record,
+                                  BSONObj &outRecord,
+                                  _utilBitmapBase &readBitmap,
+                                  BOOLEAN &hitName,
+                                  BOOLEAN hasFound,
+                                  BOOLEAN getPrimalData ) ;
 
          INT32    _appendColWithReadDefault( const _utilBitmapBase &readBitmap,
                                              utilBSONRawBuilder &builder ) ;
@@ -465,6 +532,8 @@ namespace engine
 
          void     _clearBitmapInfo() ;
 
+         void     _makeSchemaContextQuery( dmsSchemaContext &context ) ;
+
       private:
          BOOLEAN                _enabled ;
          BOOLEAN                _forceEncode ;
@@ -473,6 +542,7 @@ namespace engine
          dmsSchemaContainer     _schemaContainer ;
          dmsSchemaHash          _schemaHash ;
 
+         dmsSchemaBitmap        _colBitmap ;
          dmsSchemaBitmap        _readColBitmap ;
          dmsSchemaBitmap        _writeColBitmap ;
          NAME_INFO_MAP          _decodeWatchNames ;

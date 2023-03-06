@@ -114,6 +114,7 @@ namespace engine
       }
 
       _opHandler = opHandler ;
+      _pSchemaContext = NULL ;
       _getRawData = FALSE ;
    }
 
@@ -810,7 +811,7 @@ namespace engine
             recordID = _curRID ;
 
             rc = _pSu->extractData( _context, _recordRW, cb, recordData, TRUE,
-                                    !_getRawData, _getPrimalData ) ;
+                                    !_getRawData, _getPrimalData, _pSchemaContext ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
@@ -1403,6 +1404,7 @@ namespace engine
       }
 
       _extScanner->setGetRawData( _getRawData ) ;
+      _extScanner->setSchemaContext( _pSchemaContext ) ;
 
    done:
       return rc ;
@@ -2519,7 +2521,7 @@ namespace engine
 
          recordID = _curRID ;
          rc = _pSu->extractData( _context, _recordRW, cb, recordData, !pRecord,
-                                 TRUE, _getPrimalData ) ;
+                                 TRUE, _getPrimalData, _pSchemaContext ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
@@ -2805,6 +2807,9 @@ namespace engine
                                  _mthMatchTreeContext *mthContext )
    {
       INT32 rc = SDB_OK ;
+
+      _secScanner.setGetRawData( _getRawData ) ;
+      _secScanner.setSchemaContext( _pSchemaContext ) ;
 
       while ( !_eof )
       {

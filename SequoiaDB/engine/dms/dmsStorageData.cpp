@@ -1412,7 +1412,8 @@ namespace engine
                                        dmsRecordData &recordData,
                                        BOOLEAN needIncDataRead,
                                        BOOLEAN decodeRecord,
-                                       BOOLEAN getPrimalData )
+                                       BOOLEAN getPrimalData,
+                                       dmsSchemaContext *pSchemaCtx )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_EXTRACTDATA ) ;
@@ -1507,13 +1508,13 @@ namespace engine
          if ( pRecord->isEncodedBySchema() )
          {
             rc = schema->decodeRecord( cb, recordData.data(), recordData.len(),
-                                       objDecode, getPrimalData ) ;
+                                       objDecode, pSchemaCtx, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Decode record by schema failed, rc: %d", rc ) ;
          }
          else
          {
             BSONObj record( recordData.data() ) ;
-            rc = schema->rebuildRecord( cb, record, objDecode, getPrimalData ) ;
+            rc = schema->rebuildRecord( cb, record, objDecode, pSchemaCtx, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Rebuild record with internal schema failed, rc: %d", rc ) ;
          }
 

@@ -371,6 +371,8 @@ namespace engine
 
          ossPoolList< rtnAdvanceSection > _advanceSectionList ;
          ossPoolList< rtnAdvanceSection >::iterator _nextAdvanceSecIt ;
+
+         dmsSchemaContext           _schemaContext ;
    } ;
 
    typedef _rtnContextData rtnContextData ;

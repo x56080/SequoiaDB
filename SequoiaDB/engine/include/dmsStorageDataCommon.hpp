@@ -1279,7 +1279,8 @@ namespace engine
                                     dmsRecordData &recordData,
                                     BOOLEAN needIncDataRead = TRUE,
                                     BOOLEAN decodeRecord = TRUE,
-                                    BOOLEAN getPrimalData = FALSE ) = 0 ;
+                                    BOOLEAN getPrimalData = FALSE,
+                                    dmsSchemaContext *pSchemaCtx = NULL ) = 0 ;
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,

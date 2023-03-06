@@ -57,17 +57,8 @@ namespace engine
    class _ixmIndexKeyGen ;
    class _ixmKeyGenBase ;
 
-   class _ixmIndexFieldCmp
-   {
-   public:
-      bool operator()(const CHAR* l, const CHAR* r )
-      {
-         return ossStrcmp( l, r ) < 0 ;
-      }
-   } ;
-
-   typedef ossPoolSet< const CHAR*, _ixmIndexFieldCmp >        IXM_FIELD_NAME_SET ;
-   typedef ossPoolMap< const CHAR*, INT32, _ixmIndexFieldCmp > IXM_INDEX_FIELD_MAP ;
+   typedef SET_CHARSTRING                                      IXM_FIELD_NAME_SET ;
+   typedef ossPoolMap< const CHAR*, INT32, _ossCharStringCmp > IXM_INDEX_FIELD_MAP ;
    typedef _utilArray< const CHAR* >                           IXM_ELE_RAWDATA_ARRAY ;
    /*
       IXM get undefined key object

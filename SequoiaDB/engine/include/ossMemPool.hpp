@@ -74,6 +74,18 @@ struct ossPoolAllocator {
 };
 
 /*
+   _ossCharStringCmp define
+*/
+class _ossCharStringCmp
+{
+public:
+   bool operator()(const CHAR* l, const CHAR* r )
+   {
+      return ossStrcmp( l, r ) < 0 ;
+   }
+} ;
+
+/*
  * Containers that utilize the pool allocator. Currently only has map/list/set,
  * as these are the most commonly used containers. Will add other containers in
  * the future.
@@ -127,6 +139,8 @@ class ossPoolMultiSet : public std::multiset<K, Compare, typename ossPoolAllocat
 
 typedef ossPoolSet<UINT64>             SET_UINT64 ;
 typedef ossPoolSet<UINT32>             SET_UINT32 ;
+
+typedef ossPoolSet<const CHAR*, _ossCharStringCmp>  SET_CHARSTRING ;
 
 /*
  * List utilizing memory pool
@@ -186,6 +200,8 @@ typedef ossPoolVector<INT64>              VEC_INT64 ;
 typedef ossPoolVector<BOOLEAN>            VEC_BOOLEAN ;
 typedef ossPoolVector<std::string>        VEC_STRING ;
 typedef ossPoolVector<ossPoolString>      VEC_POOLSTR ;
+typedef ossPoolVector<const CHAR*>        VEC_POOLCHARSTR ;
+
 
 /*
  * Deque

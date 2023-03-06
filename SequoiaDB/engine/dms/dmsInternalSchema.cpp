@@ -49,6 +49,55 @@ using namespace bson ;
 namespace engine
 {
    /*
+      Encode object format:
+      |  ...          | 1 Byte |    3 Byte    |
+      |  Data         |  Flag  |    Version   |
+
+      Data has two format:
+      1. Orignal format, ex: { a:1, b:1, c:1 }
+      2. Hex format,     ex: { 0:1, 1:1, 2:1 }
+   */
+
+   /*
+      Flag define
+
+      |   4 bit   |    4 bit   |
+      |   Attr    |    Type    |
+   */
+   #define DMS_SCHEMA_ENCODE_ORG             0x01
+   #define DMS_SCHEMA_ENCODE_HEX             0x02
+
+   #define DMS_SCHEMA_ATTR_VER_STRICT        0x80
+
+   #define DMS_SCHEMA_ENCODE_POSIXPTR(pData)       (((CHAR*)(pData)) + *(UINT32*)(pData) )
+   #define DMS_SCHEMA_ENCODE_DATAPTR(pData)        ((CHAR*)(pData))
+
+   #define DMS_SCHEMA_GET_ENCODE_FLAG(pData)       \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) >> 24)
+
+   #define DMS_SCHEMA_GET_ENCODE_TYPE(pData)       \
+      (((UINT8)DMS_SCHEMA_GET_ENCODE_FLAG(pData)) & 0x0F )
+
+   #define DMS_SCHEMA_GET_ENCODE_ATTR(pData)       \
+      (((UINT8)DMS_SCHEMA_GET_ENCODE_FLAG(pData)) & 0xF0 )
+
+   #define DMS_SCHEMA_SET_ENCODE_FLAG(pData,flag)  \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
+      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0x00FFFFFF) |\
+      (((UINT32)((UINT8)flag)) << 24 )))
+
+   #define DMS_SCHEMA_SET_ENCODE_FLAG2(pData,attr,type)  \
+      DMS_SCHEMA_SET_ENCODE_FLAG(pData, (((UINT8)(attr))&0xF0)|(((UINT8)(type))&0x0F) )
+
+   #define DMS_SCHEMA_GET_VERSION(pData)           \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) & 0x00FFFFFF)
+
+   #define DMS_SCHEMA_SET_VERSION(pData,version)   \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
+      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0xFF000000) |\
+      (((UINT32)version)&0x00FFFFFF )))
+
+   /*
       _dmsSchemaContainer implement
    */
    _dmsSchemaContainer::_dmsSchemaContainer()
@@ -667,40 +716,141 @@ namespace engine
       return columnID ;
    }
 
-   /*
-      Encode object format:
-      |  ...          | 1 Byte |    3 Byte    |
-      |  Data         |  Flag  |    Version   |
-
-      Data has two format:
-      1. Orignal format, ex: { a:1, b:1, c:1 }
-      2. Hex format,     ex: { 0:1, 1:1, 2:1 }
-   */
+   #define DMS_SCHEMA_CONTEXT_ITEM_SZ           ( 32 )
 
    /*
-      Flag define
+      _dmsSchemaContext implement
    */
-   #define DMS_SCHEMA_ENCODE_ORG             0x01
-   #define DMS_SCHEMA_ENCODE_HEX             0x02
+   _dmsSchemaContext::_dmsSchemaContext()
+   :_queryBitmap( 0 )
+   {
+      _isWirld = TRUE ;
+      _hasSetQuery = FALSE ;
+      _curSchemaVersion = DMS_SCHEMA_INVALID_VERSION ;
+   }
 
-   #define DMS_SCHEMA_ENCODE_POSIXPTR(pData)       (((CHAR*)(pData)) + *(UINT32*)(pData) )
-   #define DMS_SCHEMA_ENCODE_DATAPTR(pData)        ((CHAR*)(pData))
+   _dmsSchemaContext::~_dmsSchemaContext()
+   {
+   }
 
-   #define DMS_SCHEMA_GET_ENCODE_FLAG(pData)       \
-      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) >> 24)
+   BOOLEAN _dmsSchemaContext::validateCheck( UINT32 curSchemaVersion )
+   {
+      if ( _curSchemaVersion != curSchemaVersion )
+      {
+         _clearBitInfo() ;
+         _curSchemaVersion = curSchemaVersion ;
+         return FALSE ;
+      }
+      return TRUE ;
+   }
 
-   #define DMS_SCHEMA_SET_ENCODE_FLAG(pData,flag)  \
-      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
-      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0x00FFFFFF) |\
-      (((UINT32)((UINT8)flag)) << 24 )))
+   void _dmsSchemaContext::_clearBitInfo()
+   {
+      _mapHisItem.clear() ;
+      _queryBitmap.resetBitmap() ;
+      _isWirld = TRUE ;
+      _hasSetQuery = FALSE ;
+   }
 
-   #define DMS_SCHEMA_GET_VERSION(pData)           \
-      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) & 0x00FFFFFF)
+   void _dmsSchemaContext::prune( UINT32 recordVersion,
+                                  UINT8 recordAttr,
+                                  _utilBitmapBase &readBitmap,
+                                  BOOLEAN &hitName,
+                                  BOOLEAN &found )
+   {
+      MAP_CTX_ITEM::iterator it ;
 
-   #define DMS_SCHEMA_SET_VERSION(pData,version)   \
-      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
-      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0xFF000000) |\
-      (((UINT32)version)&0x00FFFFFF )))
+      found = FALSE ;
+
+      if ( recordVersion != DMS_SCHEMA_INVALID_VERSION &&
+           recordVersion != _curSchemaVersion &&
+           OSS_BIT_TEST( recordAttr, DMS_SCHEMA_ATTR_VER_STRICT ) )
+      {
+         it = _mapHisItem.find( recordVersion ) ;
+         if ( it != _mapHisItem.end() )
+         {
+            const dmsSchemaContextItem &tmpItem = it->second ;
+
+            hitName = tmpItem._hitName ;
+            if ( !readBitmap.isEmpty() )
+            {
+               readBitmap.setBitmap( tmpItem._readBitmap ) ;
+            }
+
+            found = TRUE ;
+         }
+      }
+
+      /// when has query bitmap
+      if ( _hasSetQuery && !_isWirld && !readBitmap.isEmpty() && !found )
+      {
+         INT32 pos = 0 ;
+         while( !readBitmap.isEmpty() )
+         {
+            pos = readBitmap.nextSetBitPos( pos ) ;
+            if ( -1 == pos )
+            {
+               break ;
+            }
+            else if ( !_queryBitmap.testBit( pos ) )
+            {
+               readBitmap.clearBit( pos ) ;
+            }
+            ++pos ;
+         }
+      }
+   }
+
+   void _dmsSchemaContext::pushItem( UINT32 recordVersion,
+                                     UINT8 recordAttr,
+                                     const _utilBitmapBase &readBitmap,
+                                     BOOLEAN hitName )
+   {
+      if ( recordVersion != DMS_SCHEMA_INVALID_VERSION &&
+           recordVersion != _curSchemaVersion &&
+           OSS_BIT_TEST( recordAttr, DMS_SCHEMA_ATTR_VER_STRICT ) &&
+           _mapHisItem.size() <= DMS_SCHEMA_CONTEXT_ITEM_SZ )
+      {
+         try
+         {
+            dmsSchemaContextItem &tmpItem = _mapHisItem[ recordVersion ] ;
+            if ( tmpItem._readBitmap.getSize() < readBitmap.getSize() )
+            {
+               if ( SDB_OK != tmpItem._readBitmap.resize( readBitmap.getSize() ) )
+               {
+                  goto done ;
+               }
+            }
+            tmpItem._readBitmap.setBitmap( readBitmap ) ;
+            tmpItem._hitName = hitName ;
+         }
+         catch( std::exception & )
+         {
+         }
+      }
+
+   done:
+      return ;
+   }
+
+   void _dmsSchemaContext::pushQueryBitmap( const _utilBitmapBase &readBitmap )
+   {
+      if ( _queryBitmap.getSize() < readBitmap.getSize() )
+      {
+         if ( SDB_OK == _queryBitmap.resize( readBitmap.getSize() ) )
+         {
+            _queryBitmap.setBitmap( readBitmap ) ;
+            _hasSetQuery = TRUE ;
+            _isWirld = FALSE ;
+         }
+      }
+   }
+
+   void _dmsSchemaContext::setQueryWirld()
+   {
+      _hasSetQuery = TRUE ;
+      _isWirld = TRUE ;
+   }
 
    /*
       _dmsInternalSchema implement
@@ -710,6 +860,7 @@ namespace engine
      _forceEncode( FALSE ),
      _schemaVersion( DMS_SCHEMA_INVALID_VERSION ),
      _schemaInnerVersion( DMS_SCHEMA_INVALID_VERSION ),
+     _colBitmap( 0 ),
      _readColBitmap( 0 ),
      _writeColBitmap( 0 ),
      _defaultReadMaxSize( 0 ),
@@ -791,6 +942,7 @@ namespace engine
 
    void _dmsInternalSchema::_clearBitmapInfo()
    {
+      _colBitmap.release() ;
       _readColBitmap.release() ;
       _writeColBitmap.release() ;
       _decodeWatchNames.clear() ;
@@ -814,7 +966,8 @@ namespace engine
       CHAR *encodeRecord = NULL ;
       INT32 estimateSize = 0 ;
       BOOLEAN isEmpty = FALSE ;
-      UINT8 encodeFlag = DMS_SCHEMA_ENCODE_HEX ;
+      UINT8 encodeType = DMS_SCHEMA_ENCODE_HEX ;
+      UINT8 encodeAttr = 0 ;
       const BSONObj *pBaseObj = NULL ;
       ISession *session = cb->getSession() ;
 
@@ -822,6 +975,7 @@ namespace engine
       UINT32 orgDataLen    = recordData.len() ;
 
       dmsThreadSchemaBitmap writeBitmap( _schemaContainer.columnNum() ) ;
+      dmsThreadSchemaBitmap colBitmap( _schemaContainer.columnNum() ) ;
       utilBSONRawBuilder encodeBuilder ;
 
       BOOLEAN isPrimalData = FALSE ;
@@ -848,12 +1002,19 @@ namespace engine
       rc = writeBitmap.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init write bitmap failed, rc: %d", rc ) ;
 
+      rc = colBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init column bitmap failed, rc: %d", rc ) ;
+
       /// when Primal data don't set write bitmap
       if ( session && session->isBusinessSession() && !cb->isInTransRollback() )
       {
-         isPrimalData = TRUE ;
          writeBitmap.setBitmap( _writeColBitmap ) ;
       }
+      else
+      {
+         isPrimalData = TRUE ;
+      }
+      colBitmap.setBitmap( _colBitmap ) ;
 
    retry:
       try
@@ -861,11 +1022,11 @@ namespace engine
          pBaseObj = NULL ;
          BSONObj record( recordData.data() ) ;
 
-         if ( !_forceEncode )
+         if ( !_forceEncode && _decodeWatchNames.empty() )
          {
             if ( hasRetry )
             {
-               if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
+               if ( DMS_SCHEMA_ENCODE_ORG == encodeType )
                {
                   pBaseObj = &record ;
                }
@@ -875,12 +1036,18 @@ namespace engine
                BOOLEAN hitName = FALSE ;
                BOOLEAN hitDefault = FALSE ;
 
-               rc = _checkOrgRecord( record, writeBitmap, hitName, hitDefault ) ;
+               rc = _checkOrgRecord( record, writeBitmap, hitName, hitDefault,
+                                     &hasNewCol, &colBitmap ) ;
                PD_RC_CHECK( rc, PDERROR, "Check record for encode failed, rc: %d", rc ) ;
 
-               if ( !hitName )
+               if ( hasNewCol )
                {
-                  encodeFlag = DMS_SCHEMA_ENCODE_ORG ;
+                  /// need update the internal schema outside and retry
+                  goto done ;
+               }
+               else if ( !hitName )
+               {
+                  encodeType = DMS_SCHEMA_ENCODE_ORG ;
                   pBaseObj = &record ;
                }
             }
@@ -905,9 +1072,9 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
 
          /// when encode by org, don't parse and build
-         if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
+         if ( DMS_SCHEMA_ENCODE_HEX == encodeType )
          {
-            rc = _parseRecord( encodeBuilder, writeBitmap, record, hasNewCol ) ;
+            rc = _parseRecord( encodeBuilder, writeBitmap, colBitmap, record, hasNewCol ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Parse record by internal schema failed, rc: %d", rc ) ;
@@ -923,7 +1090,7 @@ namespace engine
          /// add write default columns
          if ( writeBitmap.validBitSize() > 0 )
          {
-            rc = _appendPrimalColumns( cb, record, writeBitmap, encodeFlag,
+            rc = _appendPrimalColumns( cb, record, writeBitmap, colBitmap, encodeType,
                                        encodeBuilder, recordData, memAlloc ) ;
             PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
          }
@@ -940,8 +1107,14 @@ namespace engine
             goto error ;
          }
 
-         DMS_SCHEMA_SET_ENCODE_FLAG( encodeRecord, encodeFlag ) ;
-         DMS_SCHEMA_SET_VERSION( encodeRecord, _schemaVersion ) ;
+         if ( colBitmap.isEmpty() )
+         {
+            /// all columns include in record
+            OSS_BIT_SET( encodeAttr, DMS_SCHEMA_ATTR_VER_STRICT ) ;
+         }
+
+         DMS_SCHEMA_SET_ENCODE_FLAG2( encodeRecord, encodeAttr, encodeType ) ;
+         DMS_SCHEMA_SET_VERSION( encodeRecord, _schemaInnerVersion ) ;
 
          encodeData.setData( (const CHAR *)encodeRecord, totalSize,
                              UTIL_COMPRESSOR_INVALID, TRUE, TRUE ) ;
@@ -984,6 +1157,7 @@ namespace engine
                                            const CHAR *data,
                                            UINT32 dataSize,
                                            BSONObj &objRecord,
+                                           dmsSchemaContext *pContext,
                                            BOOLEAN getPrimalData )
    {
       INT32 rc = SDB_OK ;
@@ -995,8 +1169,13 @@ namespace engine
       const CHAR *columnName = NULL ;
       INT32 nameLen = 0 ;
       BOOLEAN colIsDeleted = FALSE ;
-      UINT8 encodeFlag = DMS_SCHEMA_GET_ENCODE_FLAG( data ) ;
+      BOOLEAN colHasOrgName = FALSE ;
+      UINT8 encodeType = DMS_SCHEMA_GET_ENCODE_TYPE( data ) ;
+      UINT8 encodeAttr = DMS_SCHEMA_GET_ENCODE_ATTR( data ) ;
       UINT32 version = DMS_SCHEMA_GET_VERSION( data ) ;
+
+      BOOLEAN hitName = FALSE ;
+      BOOLEAN hasFound = FALSE ;
 
       dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
       utilBSONRawBuilder builder ;
@@ -1018,9 +1197,16 @@ namespace engine
       }
 
       /// copy read bitmap
-      if ( !getPrimalData && version != _schemaVersion )
+      if ( !getPrimalData && version != _schemaInnerVersion )
       {
          readBitmap.setBitmap( _readColBitmap ) ;
+      }
+
+      if ( pContext )
+      {
+         pContext->validateCheck( _schemaInnerVersion ) ;
+         _makeSchemaContextQuery( *pContext ) ;
+         pContext->prune( version, encodeAttr, readBitmap, hitName, hasFound ) ;
       }
 
    retry:
@@ -1029,17 +1215,24 @@ namespace engine
          BSONObj encodedRecord( DMS_SCHEMA_ENCODE_DATAPTR( data ) ) ;
 
          /// when encode format is ORG, and newest version
-         if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
+         if ( DMS_SCHEMA_ENCODE_ORG == encodeType )
          {
-            if ( version == _schemaVersion )
+            if ( version == _schemaInnerVersion )
             {
                objRecord = encodedRecord ;
             }
             else
             {
                /// rebuild record by the orignal record
-               rc = rebuildRecord( cb, encodedRecord, objRecord, getPrimalData ) ;
+               rc = _rebuildRecord( cb, encodedRecord, objRecord, readBitmap, hitName,
+                                    hasFound, getPrimalData ) ;
                PD_RC_CHECK( rc, PDERROR, "Rebuild record failed, rc: %d", rc ) ;
+
+               /// save to context
+               if ( pContext && !getPrimalData && !hasFound )
+               {
+                  pContext->pushItem( version, encodeAttr, readBitmap, hitName ) ;
+               }
             }
             goto done ;
          }
@@ -1077,7 +1270,9 @@ namespace engine
             readBitmap.clearBit( columnID ) ;
             /// get column from schema
             rc = _schemaContainer.getColumnBasicInfo( columnID, &columnName,
-                                                      &nameLen, &colIsDeleted ) ;
+                                                      &nameLen, &colIsDeleted,
+                                                      NULL, NULL, NULL,
+                                                      &colHasOrgName ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Get column[%s,%u] from schema failed, rc: %d",
@@ -1088,6 +1283,11 @@ namespace engine
             {
                // Ignore columns which has been marked as delete.
                continue ;
+            }
+
+            if ( !hitName && ( colIsDeleted || colHasOrgName ) )
+            {
+               hitName = TRUE ;
             }
 
             rc = builder.appendElement( ele.type(), columnName, nameLen,
@@ -1110,6 +1310,12 @@ namespace engine
 
          /// set return object
          objRecord = BSONObj( decodeBuffer ) ;
+
+         /// save to context
+         if ( pContext && !getPrimalData && !hasFound )
+         {
+            pContext->pushItem( version, encodeAttr, readBitmap, hitName ) ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -1132,18 +1338,20 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, "_dmsInternalSchema::rebuildRecord" )
-   INT32 _dmsInternalSchema::rebuildRecord( _pmdEDUCB *cb,
-                                            const BSONObj &record,
-                                            BSONObj &outRecord,
-                                            BOOLEAN getPrimalData )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__REBUILDRECORD, "_dmsInternalSchema::_rebuildRecord" )
+   INT32 _dmsInternalSchema::_rebuildRecord( _pmdEDUCB *cb,
+                                             const BSONObj &record,
+                                             BSONObj &outRecord,
+                                             _utilBitmapBase &readBitmap,
+                                             BOOLEAN &hitName,
+                                             BOOLEAN hasFound,
+                                             BOOLEAN getPrimalData )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_REBUILDRECORD ) ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__REBUILDRECORD ) ;
 
       UINT32 hitCount = 0 ;
       BOOLEAN isEmpty = FALSE ;
-      BOOLEAN hitName = FALSE ;
       BOOLEAN hitDefault = FALSE ;
       utilBSONRawBuilder builder ;
       INT32 buffSize = 0 ;
@@ -1157,34 +1365,21 @@ namespace engine
       BOOLEAN isDeleted          = FALSE ;
       BOOLEAN hasOrigName        = FALSE ;
 
-      dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
-
-      /// check is load
-      if ( !_hasLoad )
-      {
-         ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
-         if ( !_hasLoad )
-         {
-            rc = _postLoad() ;
-            PD_RC_CHECK( rc, PDERROR, "Load schema info failed, rc: %d", rc ) ;
-         }
-      }
-
       if ( getPrimalData && _decodeWatchNames.empty() )
       {
          outRecord = record ;
          goto done ;
       }
 
-      rc = readBitmap.init() ;
-      PD_RC_CHECK( rc, PDERROR, "Init read bitmap failed, rc: %d", rc ) ;
-      if ( !getPrimalData )
+      if ( !hasFound )
       {
-         readBitmap.setBitmap( _readColBitmap ) ;
+         rc = _checkOrgRecord( record, readBitmap, hitName, hitDefault ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check record need rebuild failed, rc: %d", rc ) ;
       }
-
-      rc = _checkOrgRecord( record, readBitmap, hitName, hitDefault ) ;
-      PD_RC_CHECK( rc, PDERROR, "Check record need rebuild failed, rc: %d", rc ) ;
+      else if ( !readBitmap.isEmpty() )
+      {
+         hitDefault = TRUE ;
+      }
 
       if ( !hitName && !hitDefault )
       {
@@ -1322,7 +1517,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA__REBUILDRECORD, rc ) ;
       return rc ;
    error:
       if ( builder.isOutOfBuff() )
@@ -1332,6 +1527,66 @@ namespace engine
          hasRetry = TRUE ;
          goto retry ;
       }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, "_dmsInternalSchema::rebuildRecord" )
+   INT32 _dmsInternalSchema::rebuildRecord( _pmdEDUCB *cb,
+                                            const BSONObj &record,
+                                            BSONObj &outRecord,
+                                            dmsSchemaContext *pContext,
+                                            BOOLEAN getPrimalData )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_REBUILDRECORD ) ;
+
+      BOOLEAN hitName = FALSE ;
+      BOOLEAN hasFound = FALSE ;
+
+      dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
+
+      /// check is load
+      if ( !_hasLoad )
+      {
+         ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
+         if ( !_hasLoad )
+         {
+            rc = _postLoad() ;
+            PD_RC_CHECK( rc, PDERROR, "Load schema info failed, rc: %d", rc ) ;
+         }
+      }
+
+      if ( getPrimalData && _decodeWatchNames.empty() )
+      {
+         outRecord = record ;
+         goto done ;
+      }
+
+      rc = readBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init read bitmap failed, rc: %d", rc ) ;
+      if ( !getPrimalData )
+      {
+         readBitmap.setBitmap( _readColBitmap ) ;
+      }
+
+      if ( pContext )
+      {
+         pContext->validateCheck( _schemaInnerVersion ) ;
+         _makeSchemaContextQuery( *pContext ) ;
+         pContext->prune( DMS_SCHEMA_INVALID_VERSION, 0, readBitmap, hitName, hasFound ) ;
+      }
+
+      rc = _rebuildRecord( cb, record, outRecord, readBitmap,
+                           hitName, hasFound, getPrimalData ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, rc ) ;
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -1461,6 +1716,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__PARSERECORD, "_dmsInternalSchema::_parseRecord" )
    INT32 _dmsInternalSchema::_parseRecord( utilBSONRawBuilder &encodeBuilder,
                                            _utilBitmapBase &writeBitmap,
+                                           _utilBitmapBase &allBitmap,
                                            const BSONObj &record,
                                            BOOLEAN &hasNewCol )
    {
@@ -1499,6 +1755,7 @@ namespace engine
                          ele.fieldName(), rc ) ;
 
             writeBitmap.clearBit( columnID ) ;
+            allBitmap.clearBit( columnID ) ;
          }
       }
       catch ( std::exception &e )
@@ -1519,7 +1776,8 @@ namespace engine
    INT32 _dmsInternalSchema::_appendPrimalColumns( _pmdEDUCB *cb,
                                                    const BSONObj& originalRecord,
                                                    const _utilBitmapBase &writeBitmap,
-                                                   UINT8 encodeFlag,
+                                                   _utilBitmapBase &allBitmap,
+                                                   UINT8 encodeType,
                                                    utilBSONRawBuilder &encodeBuilder,
                                                    dmsRecordData &recordData,
                                                    BOOLEAN &memAlloc )
@@ -1587,7 +1845,7 @@ namespace engine
             goto error ;
          }
 
-         if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
+         if ( DMS_SCHEMA_ENCODE_HEX == encodeType )
          {
             /// build hex name
             colNameLength = utilIntToLowerHexStr( setBitPos, columnName, sizeof( columnName ) ) ;
@@ -1617,6 +1875,8 @@ namespace engine
          rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
          PD_RC_CHECK( rc, PDERROR, "Append info for column[%s] into record failed, rc: %d",
                       name, rc ) ;
+
+         allBitmap.clearBit( setBitPos ) ;
 
          ++setBitPos ;
       }
@@ -1651,7 +1911,9 @@ namespace engine
    INT32 _dmsInternalSchema::_checkOrgRecord( const BSONObj &record,
                                               _utilBitmapBase &colBitmap,
                                               BOOLEAN &hitName,
-                                              BOOLEAN &hitDefault )
+                                              BOOLEAN &hitDefault,
+                                              BOOLEAN *pHitNew,
+                                              _utilBitmapBase *pAllBitmap )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__CHECKORGRECORD ) ;
@@ -1661,6 +1923,10 @@ namespace engine
 
       hitName = FALSE ;
       hitDefault = FALSE ;
+      if ( pHitNew )
+      {
+         *pHitNew = FALSE ;
+      }
 
       try
       {
@@ -1678,7 +1944,7 @@ namespace engine
                   goto done ;
                }
             }
-            else if ( colBitmap.isEmpty() )
+            else if ( colBitmap.isEmpty() && !pHitNew )
             {
                goto done ;
             }
@@ -1687,6 +1953,15 @@ namespace engine
             if ( DMS_SCHEMA_INVALID_COLUMNID != colID )
             {
                colBitmap.clearBit( colID ) ;
+               if ( pAllBitmap )
+               {
+                  pAllBitmap->clearBit( colID ) ;
+               }
+            }
+            else if ( pHitNew )
+            {
+               *pHitNew = TRUE ;
+               goto done ;
             }
          }
       }
@@ -1767,6 +2042,8 @@ namespace engine
       /// clear bitmap information
       _clearBitmapInfo() ;
 
+      rc = _colBitmap.resize( _schemaContainer.columnNum() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Resize column bitmap failed, rc: %d", rc ) ;
       rc = _readColBitmap.resize( _schemaContainer.columnNum() ) ;
       PD_RC_CHECK( rc, PDERROR, "Resize read column bitmap failed, rc: %d", rc ) ;
       rc = _writeColBitmap.resize( _schemaContainer.columnNum() ) ;
@@ -1781,6 +2058,8 @@ namespace engine
 
          if ( !isDeleted )
          {
+            _colBitmap.setBit( colID ) ;
+
             if ( hasReadDefault )
             {
                _readColBitmap.setBit( colID ) ;
@@ -1818,11 +2097,11 @@ namespace engine
             if ( hasOrigName )
             {
                const CHAR *origName = _schemaContainer.getOrigName( colID ) ;
-               _decodeWatchNames[ origName ] = colID ;
+               _decodeWatchNames.insert( NAME_INFO_MAP::value_type( origName, colID ) ) ;
             }
             else if ( isDeleted )
             {
-               _decodeWatchNames[ name ] = colID ;
+               _decodeWatchNames.insert( NAME_INFO_MAP::value_type( name, colID ) ) ;
             }
          }
          catch( std::exception &e )
@@ -1868,7 +2147,8 @@ namespace engine
                                                  BOOLEAN isPrimalData )
    {
       INT32 rc = SDB_OK ;
-      UINT8 encodeFlag = DMS_SCHEMA_GET_ENCODE_FLAG( encodedData.data() ) ;
+      UINT8 encodeType = DMS_SCHEMA_GET_ENCODE_TYPE( encodedData.data() ) ;
+      UINT8 encodeAttr = DMS_SCHEMA_GET_ENCODE_ATTR( encodedData.data() ) ;
       UINT32 version = DMS_SCHEMA_GET_VERSION( encodedData.data() ) ;
       INT32 colID = 0 ;
       BOOLEAN isDeleted = FALSE ;
@@ -1889,20 +2169,20 @@ namespace engine
       }
 
       /// check version
-      if ( version != _schemaVersion )
+      if ( version != _schemaInnerVersion )
       {
          SDB_ASSERT( FALSE, "The encoded version is invalid" ) ;
          PD_LOG( PDERROR, "The encoded version[%d] is not the same with current[%d]",
-                 version, _schemaVersion ) ;
+                 version, _schemaInnerVersion ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       /// check flag
-      if ( encodeFlag != DMS_SCHEMA_ENCODE_HEX && encodeFlag != DMS_SCHEMA_ENCODE_ORG )
+      if ( encodeType != DMS_SCHEMA_ENCODE_HEX && encodeType != DMS_SCHEMA_ENCODE_ORG )
       {
          SDB_ASSERT( FALSE, "The encoded flag is invalid" ) ;
-         PD_LOG( PDERROR, "The encode flag[%d] is invalid", encodeFlag ) ;
+         PD_LOG( PDERROR, "The encode flag[%d] is invalid", encodeType ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1923,7 +2203,7 @@ namespace engine
          {
             BSONElement ele = itr.next() ;
 
-            if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
+            if ( DMS_SCHEMA_ENCODE_HEX == encodeType )
             {
                colID = utilHexStrToInt( ele.fieldName() ) ;
 
@@ -1963,7 +2243,7 @@ namespace engine
                   goto error ;
                }
             }
-            else if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
+            else if ( DMS_SCHEMA_ENCODE_ORG == encodeType )
             {
                /// can't find in namemap
                itrInfo = _decodeWatchNames.find( ele.fieldName() ) ;
@@ -1997,6 +2277,20 @@ namespace engine
                }
             }
          }
+
+         if ( OSS_BIT_TEST( encodeAttr, DMS_SCHEMA_ATTR_VER_STRICT ) )
+         {
+            if ( colBitmap.validBitSize() !=  _colBitmap.validBitSize() ||
+                 !colBitmap.isEqual( _colBitmap ) )
+            {
+               rc = SDB_SYS ;
+               SDB_ASSERT( FALSE, "Has some field not include in record" ) ;
+               PD_LOG( PDERROR, "Has some field not include in record, record field size: %u, "
+                       "schema field size: %u", colBitmap.validBitSize(),
+                       _colBitmap.validBitSize() ) ;
+               goto error ;
+            }
+         }
       }
       catch ( std::exception &e )
       {
@@ -2009,6 +2303,69 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _dmsInternalSchema::_makeSchemaContextQuery( dmsSchemaContext &context )
+   {
+      if ( !context.hasSetQuery() )
+      {
+         const SET_CHARSTRING& setFields = context.getQueryFields() ;
+         if ( setFields.empty() )
+         {
+            context.setQueryWirld() ;
+         }
+         else
+         {
+            dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
+            const CHAR *pName = NULL ;
+            const CHAR *pDot = NULL ;
+            ossPoolString tmp ;
+            UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID ;
+            SET_CHARSTRING::const_iterator cit ;
+
+            if ( SDB_OK != readBitmap.init() )
+            {
+               goto done ;
+            }
+
+            for ( cit = setFields.begin() ; cit != setFields.end() ; ++cit )
+            {
+               pName = *cit ;
+
+               if ( !pName || !*pName )
+               {
+                  context.setQueryWirld() ;
+                  goto done ;
+               }
+
+               pDot = ossStrchr( pName, '.' ) ;
+               if ( pDot )
+               {
+                  try
+                  {
+                     tmp.assign( pName, pDot - pName ) ;
+                     pName = tmp.c_str() ;
+                  }
+                  catch( std::exception & )
+                  {
+                     goto done ;
+                  }
+               }
+
+               colID = _schemaHash.getColumnIDByName( pName ) ;
+               if ( DMS_SCHEMA_INVALID_COLUMNID != colID )
+               {
+                  readBitmap.setBit( colID ) ;
+               }
+            }
+
+            /// set query bit
+            context.pushQueryBitmap( readBitmap ) ;
+         }
+      }
+
+   done:
+      return ;
    }
 
 }
