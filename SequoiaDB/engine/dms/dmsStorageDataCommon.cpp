@@ -4371,11 +4371,12 @@ namespace engine
                                     compressRatio ) ;
                   // Compression is valid and ratio is less the threshold
                   if ( SDB_OK == rc &&
-                       (UINT32)compressedDataSize < storeData.orgLen() &&
+                       (UINT32)compressedDataSize + sizeof(UINT32) <
+                       storeData.orgLen() &&
                        compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
                   {
-                     // compressed record
-                     dmsRecordSize = compressedDataSize ;
+                     // 4 bytes len (for compress type and compressed length) + compressed record
+                     dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
                      PD_TRACE2 ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD,
                                  PD_PACK_STRING ( "size after compress" ),
                                  PD_PACK_UINT ( dmsRecordSize ) ) ;

@@ -1361,12 +1361,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__FINALRECORDSIZE ) ;
 
-      // need 4 bytes for compressed type and compressed length
-      if ( recordData.isCompressed() )
-      {
-         size += 4 ;
-      }
-
       _overflowSize( size ) ;
 
       size += DMS_RECORD_METADATA_SZ ;
