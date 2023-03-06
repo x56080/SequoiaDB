@@ -434,6 +434,7 @@ namespace engine
          _utilBitmap& operator=( const _utilBitmap &right )
          {
             setBitmap( right ) ;
+            return *this ;
          }
 
          ~_utilBitmap ()
