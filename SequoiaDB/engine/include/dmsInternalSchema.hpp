@@ -333,11 +333,12 @@ namespace engine
    */
    struct _dmsSchemaContextItem
    {
-      _utilBitmap       _readBitmap ;
-      BOOLEAN           _hitName ;
+      dmsThreadSchemaBitmap   _readBitmap ;
+      BOOLEAN                 _hitName ;
+      UINT64                  _useID ;
 
       _dmsSchemaContextItem()
-      : _readBitmap( 0 ), _hitName( FALSE )
+      : _readBitmap( 0 ), _hitName( FALSE ), _useID( 0 )
       {
       }
    } ;
@@ -378,8 +379,10 @@ namespace engine
 
       protected:
          void     _clearBitInfo() ;
+         BOOLEAN  _kickOutHisItem() ;
 
       protected:
+         UINT64                        _hwUseID ;
          MAP_CTX_ITEM                  _mapHisItem ;
          _utilBitmap                   _queryBitmap ;
          BOOLEAN                       _isWirld ;

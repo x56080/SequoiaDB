@@ -717,12 +717,13 @@ namespace engine
    }
 
    #define DMS_SCHEMA_CONTEXT_ITEM_SZ           ( 32 )
+   #define DMS_SCHEMA_KICKOUT_THRESHOLD         ( DMS_SCHEMA_CONTEXT_ITEM_SZ * 20 )
 
    /*
       _dmsSchemaContext implement
    */
    _dmsSchemaContext::_dmsSchemaContext()
-   :_queryBitmap( 0 )
+   :_hwUseID(0), _queryBitmap( 0 )
    {
       _isWirld = TRUE ;
       _hasSetQuery = FALSE ;
@@ -750,6 +751,21 @@ namespace engine
       _queryBitmap.resetBitmap() ;
       _isWirld = TRUE ;
       _hasSetQuery = FALSE ;
+      _hwUseID = 0 ;
+   }
+
+   BOOLEAN _dmsSchemaContext::_kickOutHisItem()
+   {
+      MAP_CTX_ITEM::iterator it = _mapHisItem.begin() ;
+      while ( it != _mapHisItem.end() )
+      {
+         const dmsSchemaContextItem &item = it->second ;
+         if ( item._useID + DMS_SCHEMA_KICKOUT_THRESHOLD < _hwUseID )
+         {
+            _mapHisItem.erase( it ) ;
+            return TRUE ;
+         }
+      }
    }
 
    void _dmsSchemaContext::prune( UINT32 recordVersion,
@@ -766,10 +782,13 @@ namespace engine
            recordVersion != _curSchemaVersion &&
            OSS_BIT_TEST( recordAttr, DMS_SCHEMA_ATTR_VER_STRICT ) )
       {
+         ++_hwUseID ;
+
          it = _mapHisItem.find( recordVersion ) ;
          if ( it != _mapHisItem.end() )
          {
-            const dmsSchemaContextItem &tmpItem = it->second ;
+            dmsSchemaContextItem &tmpItem = it->second ;
+            tmpItem._useID = _hwUseID ;
 
             hitName = tmpItem._hitName ;
             if ( !readBitmap.isEmpty() )
@@ -809,7 +828,8 @@ namespace engine
       if ( recordVersion != DMS_SCHEMA_INVALID_VERSION &&
            recordVersion != _curSchemaVersion &&
            OSS_BIT_TEST( recordAttr, DMS_SCHEMA_ATTR_VER_STRICT ) &&
-           _mapHisItem.size() <= DMS_SCHEMA_CONTEXT_ITEM_SZ )
+           ( _mapHisItem.size() <= DMS_SCHEMA_CONTEXT_ITEM_SZ ||
+             _kickOutHisItem() ) )
       {
          try
          {
@@ -823,6 +843,7 @@ namespace engine
             }
             tmpItem._readBitmap.setBitmap( readBitmap ) ;
             tmpItem._hitName = hitName ;
+            tmpItem._useID = ++_hwUseID ;
          }
          catch( std::exception & )
          {
@@ -933,7 +954,7 @@ namespace engine
 
       _clearBitmapInfo() ;
 
-      _enabled = FALSE ;
+      // _enabled = FALSE ; Don't set enable, because call enabled() when in reloading
       _schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
       _schemaInnerVersion = DMS_SCHEMA_INVALID_VERSION ;
 
@@ -1710,6 +1731,7 @@ namespace engine
    done:
       return rc ;
    error:
+      _enabled = FALSE ;
       goto done ;
    }
 
