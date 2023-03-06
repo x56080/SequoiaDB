@@ -55,7 +55,7 @@ namespace engine
    #define UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ( 0x00000010 )
    #define UTIL_SCHEMA_ATTR_MASK_COL_WDEF   ( 0x00000020 )
    #define UTIL_SCHEMA_ATTR_MASK_COL_RDEF   ( 0x00000040 )
-   #define UTIL_SCHEMA_ATTR_MASK_COL        ( 0x0000FFFF )
+   #define UTIL_SCHEMA_ATTR_MASK_COL_ALL    ( 0x0000FFFF )
    #define UTIL_SCHEMA_ATTR_MASK_NAME       ( 0x00010000 )
    #define UTIL_SCHEMA_ATTR_MASK_VERSION    ( 0x00020000 )
    #define UTIL_SCHEMA_ATTR_MASK_COLLECTION ( 0x00040000 )
@@ -190,6 +190,8 @@ namespace engine
                    BOOLEAN fromUser,
                    BOOLEAN isNewAdded,
                    UINT32 &parsedMask ) ;
+      INT32 toBSON( bson::BSONObjBuilder &builder,
+                    UINT32 mask = UTIL_SCHEMA_ATTR_MASK_COL_ALL ) const ;
 
       const CHAR *getTypeName() const ;
       const CHAR *getWriteDefaultTypeName() const ;
@@ -295,6 +297,8 @@ namespace engine
       INT32 parse( const bson::BSONObj &boOptions,
                    BOOLEAN fromUser,
                    UINT32 &parsedMask ) ;
+      INT32 toBSON( bson::BSONObjBuilder &builder,
+                    UINT32 mask ) const ;
 
    protected:
       void _reset()
@@ -477,6 +481,9 @@ namespace engine
       }
 
       INT32 parse( const bson::BSONObj &boAction ) ;
+      INT32 toBSON( bson::BSONObj &boAction ) const ;
+      INT32 toBSON( bson::BSONObjBuilder &builder ) const ;
+
       INT32 checkSchema( const utilSchema &schema ) const ;
       INT32 applySchema( utilSchema &schema ) const ;
 
@@ -494,6 +501,13 @@ namespace engine
       INT32 _parseRenameColumn( const bson::BSONObj &options ) ;
       INT32 _parseDropDefault( const bson::BSONObj &options ) ;
       INT32 _parseSetAttributes( const bson::BSONObj &options ) ;
+
+      INT32 _toBSONAddColumn( bson::BSONObjBuilder &optionBuilder ) const ;
+      INT32 _toBSONDropColumn( bson::BSONObjBuilder &optionBuilder ) const ;
+      INT32 _toBSONAlterColumn( bson::BSONObjBuilder &optionBuilder ) const ;
+      INT32 _toBSONRenameColumn( bson::BSONObjBuilder &optionBuilder ) const ;
+      INT32 _toBSONDropDefault( bson::BSONObjBuilder &optionBuilder ) const ;
+      INT32 _toBSONSetAttributes( bson::BSONObjBuilder &optionBuilder ) const ;
 
    protected:
       const CHAR *               _schemaName ;

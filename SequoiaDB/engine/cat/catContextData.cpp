@@ -3047,6 +3047,9 @@ namespace engine
                                subCLName.c_str(), rc ) ;
                }
 
+               rc = subCLTask->copySchema( catTask->getSchema() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to copy schema, rc: %d", rc ) ;
+
                rc = subCLTask->checkTask( cb, lockMgr ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check "
                             "alter task [%s] on collection [%s], rc: %d",

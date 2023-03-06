@@ -103,6 +103,11 @@ namespace engine
             return _schema ;
          }
 
+         INT32 copySchema( const utilSchema &schema )
+         {
+            return _schema.parse( schema.getDefine(), FALSE, TRUE ) ;
+         }
+
       protected :
          virtual INT32 _checkInternal ( _pmdEDUCB * cb,
                                         catCtxLockMgr & lockMgr ) ;

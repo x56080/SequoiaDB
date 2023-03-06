@@ -1299,6 +1299,7 @@ namespace engine
       ossPoolVector<BSONObj> indexList ;
       ossPoolVector<BSONObj>::iterator itIdx ;
       ossPoolString schemaName ;
+      utilSchema *pCurSchema = NULL ;
       utilSchema tmpSchema ;
 
       /// update collection's catalog info
@@ -1364,6 +1365,21 @@ namespace engine
 
       _pCatAgent->release_r() ;
 
+      if ( NULL == pSchema && !schemaName.empty() )
+      {
+         rc = _getSchemaFromCatalog( schemaName.c_str(), tmpSchema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                      schemaName.c_str(), rc ) ;
+         pCurSchema = &tmpSchema ;
+      }
+      else if ( NULL != pSchema )
+      {
+         rc = tmpSchema.parse( pSchema->getDefine(), FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+
+         pCurSchema = &tmpSchema ;
+      }
+
       /// update collection's index info
       if ( !isMainCL )
       {
@@ -1386,14 +1402,6 @@ namespace engine
                break ;
             }
          }
-
-         if ( NULL == pSchema && !schemaName.empty() )
-         {
-            rc = _getSchemaFromCatalog( schemaName.c_str(), tmpSchema ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
-                         schemaName.c_str(), rc ) ;
-            pSchema = &tmpSchema ;
-         }
       }
 
       /// create collection
@@ -1402,7 +1410,7 @@ namespace engine
          CLS_SUBCL_LIST_IT iter = subCLList.begin() ;
          while ( iter != subCLList.end() )
          {
-            rc = _createCLByCatalog( (*iter).c_str(), clFullName, FALSE ) ;
+            rc = _createCLByCatalog( (*iter).c_str(), clFullName, FALSE, pCurSchema ) ;
             if ( rc )
             {
                break ;
@@ -1435,7 +1443,7 @@ namespace engine
                                           _pEDUCB, _pDmsCB, _pDpsCB, clUniqueID,
                                           compType, 0, FALSE, &extOptions,
                                           hasFoundIdx ? &idIdxDef : NULL,
-                                          FALSE, pSchema ) ;
+                                          FALSE, pCurSchema ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;

@@ -114,7 +114,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _utilCheckColumnName( const CHAR *columnName )
+   static INT32 _utilCheckColumnName( const CHAR *columnName )
    {
       INT32 rc = SDB_OK ;
 
@@ -132,6 +132,48 @@ namespace engine
                         SDB_INVALIDARG, error, PDERROR,
                         "Failed to check column name [%s], should not "
                         "contain \'.\' in column name", columnName ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   static INT32 _utilCheckKeyPattern( const BSONObj &keyPattern,
+                                      const CHAR *columnName,
+                                      BOOLEAN &hasColumn )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != columnName, "column is invalid" ) ;
+
+      UINT32 colNameLen = ossStrlen( columnName ) ;
+      hasColumn = FALSE ;
+
+      try
+      {
+         BSONObjIterator iter( keyPattern ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            const CHAR *keyName = ele.fieldName() ;
+            if ( ( 0 == ossStrncmp( keyName, columnName, colNameLen ) ) &&
+                 ( ( '\0' == keyName[ colNameLen ] ) ||
+                   ( '.' == keyName[ colNameLen ] ) ) )
+            {
+               hasColumn = TRUE ;
+               break ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to check column, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -331,6 +373,62 @@ namespace engine
       goto done ;
    }
 
+   INT32 _utilSchemaColAttr::toBSON( BSONObjBuilder &builder,
+                                     UINT32 mask ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         CHAR restrictDescString[ 128 ] = { 0 } ;
+
+         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) &&
+              EOO != _type )
+         {
+            const CHAR *typeName = bsonTypeToColumnTypeName( _type ) ;
+            if ( '\0' != typeName[ 0 ] )
+            {
+               builder.append( FIELD_NAME_TYPE, typeName ) ;
+            }
+         }
+
+         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) &&
+              !_readDefault.eoo() )
+         {
+            builder.appendAs( _readDefault, FIELD_NAME_READDEFAULT ) ;
+         }
+
+         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) &&
+              !_writeDefault.eoo() )
+         {
+            builder.appendAs( _writeDefault, FIELD_NAME_WRITEDEFAULT ) ;
+         }
+
+         if ( OSS_BIT_TEST( mask,
+                            ( UTIL_SCHEMA_ATTR_MASK_COL_NNULL |
+                              UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ) )
+         {
+            builder.append( FIELD_NAME_RESTRICT, _restrictFlags ) ;
+            builder.append( FIELD_NAME_RESTRICT_DESC,
+                            _utilRestrict2RestrictDesc( _restrictFlags,
+                                                        restrictDescString ) ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for column attr, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    const CHAR *_utilSchemaColAttr::getTypeName() const
    {
       return bsonTypeToColumnTypeName( _type ) ;
@@ -418,34 +516,10 @@ namespace engine
 
       try
       {
-         CHAR restrictDescString[ 128 ] = { 0 } ;
-
          BSONObjBuilder subBuilder( builder.subobjStart( _name ) ) ;
-
-         if ( EOO != _type )
-         {
-            const CHAR *typeName = bsonTypeToColumnTypeName( _type ) ;
-            if ( '\0' != typeName[ 0 ] )
-            {
-               subBuilder.append( FIELD_NAME_TYPE, typeName ) ;
-            }
-         }
-
-         if ( !_readDefault.eoo() )
-         {
-            subBuilder.appendAs( _readDefault, FIELD_NAME_READDEFAULT ) ;
-         }
-
-         if ( !_writeDefault.eoo() )
-         {
-            subBuilder.appendAs( _writeDefault, FIELD_NAME_WRITEDEFAULT ) ;
-         }
-
-         subBuilder.append( FIELD_NAME_RESTRICT, _restrictFlags ) ;
-         subBuilder.append( FIELD_NAME_RESTRICT_DESC,
-                            _utilRestrict2RestrictDesc( _restrictFlags,
-                                                        restrictDescString ) ) ;
-
+         rc = _utilSchemaColAttr::toBSON( subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for attributes, "
+                      "rc: %d", rc ) ;
          subBuilder.doneFast() ;
       }
       catch ( exception &e )
@@ -545,6 +619,37 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__UTILSCHEMAATTR_PARSE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAATTR_TOBSON, "_utilSchemaAttr::toBSON" )
+   INT32 _utilSchemaAttr::toBSON( BSONObjBuilder &builder,
+                                  UINT32 mask ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAATTR_TOBSON ) ;
+
+      try
+      {
+         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_STRICTMODE ) )
+         {
+            builder.appendBool( FIELD_NAME_STRICTMODE, _strictMode ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAATTR_TOBSON, rc ) ;
       return rc ;
 
    error:
@@ -745,12 +850,11 @@ namespace engine
             builder.append( FIELD_NAME_COLLECTION, _collection ) ;
          }
 
-         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_STRICTMODE ) )
-         {
-            builder.appendBool( FIELD_NAME_STRICTMODE, _strictMode ) ;
-         }
+         rc = _utilSchemaAttr::toBSON( builder, mask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema attr, "
+                      "rc: %d", rc ) ;
 
-         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL ) )
+         if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL_ALL ) )
          {
             rc = _columnsToBSON( builder ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for columns, "
@@ -1478,7 +1582,7 @@ namespace engine
                    "should be only one column" ) ;
 
          _colName = options.firstElementFieldName() ;
-         OSS_BIT_SET( _alterMask, UTIL_SCHEMA_ATTR_MASK_COL ) ;
+         OSS_BIT_SET( _alterMask, UTIL_SCHEMA_ATTR_MASK_COL_ALL ) ;
       }
       catch ( exception &e )
       {
@@ -1645,6 +1749,296 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_TOBSON, "_utilSchemaAlterAction::toBSON" )
+   INT32 _utilSchemaAlterAction::toBSON( BSONObj &boAction ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_TOBSON ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         rc = toBSON( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for alter "
+                      "schema action, rc: %d", rc ) ;
+         boAction = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for alter schema action, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_TOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_TOBSON_BLD, "_utilSchemaAlterAction::toBSON" )
+   INT32 _utilSchemaAlterAction::toBSON( BSONObjBuilder &builder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_TOBSON ) ;
+
+      try
+      {
+         builder.append( FIELD_NAME_NAME,
+                         _schemaName ) ;
+         builder.append( FIELD_NAME_ACTION,
+                         _utilGetSchemaAlterActionName( _action ) ) ;
+
+         BSONObjBuilder optionBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+
+         switch ( _action )
+         {
+            case UTIL_SCHEMA_ADD_COLUMN :
+            {
+               rc = _toBSONAddColumn( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "add column action, rc: %d", rc ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_DROP_COLUMN :
+            {
+               rc = _toBSONDropColumn( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "drop column action, rc: %d", rc ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_ALTER_COLUMN :
+            {
+               rc = _toBSONAlterColumn( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "alter column action, rc: %d", rc ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_RENAME_COLUMN :
+            {
+               rc = _toBSONRenameColumn( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "rename column action, rc: %d", rc ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_DROP_DEFAULT :
+            {
+               rc = _toBSONDropDefault( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "drop default action, rc: %d", rc ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_SET_ATTRIBUTES :
+            {
+               rc = _toBSONSetAttributes( optionBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "set attributes action, rc: %d", rc ) ;
+               break ;
+            }
+            default:
+            {
+               PD_LOG( PDERROR, "Failed to build BSON for alter action, "
+                       "unknown action type [%d]", _action ) ;
+               SDB_ASSERT( FALSE, "invalid action type" ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+         optionBuilder.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for action, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_TOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONADDCOL, "_utilSchemaAlterAction::_toBSONAddColumn" )
+   INT32 _utilSchemaAlterAction::_toBSONAddColumn( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONADDCOL ) ;
+
+      try
+      {
+         BSONObjBuilder builder( optionBuilder.subobjStart( _colName ) ) ;
+
+         rc = _newColAttr.toBSON( builder, _alterMask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for attr, "
+                      "rc: %d", rc ) ;
+
+         builder.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONADDCOL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONDROPCOL, "_utilSchemaAlterAction::_toBSONDropColumn" )
+   INT32 _utilSchemaAlterAction::_toBSONDropColumn( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONDROPCOL ) ;
+
+      try
+      {
+         optionBuilder.append( _colName, 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONDROPCOL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONALTERCOL, "_utilSchemaAlterAction::_toBSONAlterColumn" )
+   INT32 _utilSchemaAlterAction::_toBSONAlterColumn( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONALTERCOL ) ;
+
+      try
+      {
+         BSONObjBuilder builder( optionBuilder.subobjStart( _colName ) ) ;
+
+         rc = _newColAttr.toBSON( builder, _alterMask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for attr, "
+                      "rc: %d", rc ) ;
+
+         builder.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONALTERCOL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONRENAMECOL, "_utilSchemaAlterAction::_toBSONRenameColumn" )
+   INT32 _utilSchemaAlterAction::_toBSONRenameColumn( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONRENAMECOL ) ;
+
+      try
+      {
+         optionBuilder.append( _colName, _newColAttr.getName() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONRENAMECOL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONDROPDEF, "_utilSchemaAlterAction::_toBSONDropDefault" )
+   INT32 _utilSchemaAlterAction::_toBSONDropDefault( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONDROPDEF ) ;
+
+      try
+      {
+         optionBuilder.append( _colName, 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONDROPDEF, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION__TOBSONSETATTR, "_utilSchemaAlterAction::_toBSONSetAttributes" )
+   INT32 _utilSchemaAlterAction::_toBSONSetAttributes( BSONObjBuilder &optionBuilder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION__TOBSONSETATTR ) ;
+
+      try
+      {
+         rc = _newSchemaAttr.toBSON( optionBuilder, _alterMask ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONSETATTR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_CHKSCHEMA, "_utilSchemaAlterAction::checkSchema" )
    INT32 _utilSchemaAlterAction::checkSchema( const utilSchema &schema ) const
@@ -1880,40 +2274,14 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME, "_utilSchemaAlterAction::checkKeyPattern" )
    INT32 _utilSchemaAlterAction::checkKeyPattern( const BSONObj &keyPattern,
                                                   const CHAR *columnName,
-                                                  BOOLEAN &hasColumn  ) const
+                                                  BOOLEAN &hasColumn ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME ) ;
 
-      SDB_ASSERT( NULL != columnName, "column is invalid" ) ;
-
-      UINT32 colNameLen = ossStrlen( columnName ) ;
-      hasColumn = FALSE ;
-
-      try
-      {
-         BSONObjIterator iter( keyPattern ) ;
-         while ( iter.more() )
-         {
-            BSONElement ele = iter.next() ;
-            const CHAR *keyName = ele.fieldName() ;
-            if ( ( 0 == ossStrncmp( keyName, columnName, colNameLen ) ) &&
-                 ( ( '\0' == keyName[ colNameLen ] ) ||
-                   ( '.' == keyName[ colNameLen ] ) ) )
-            {
-               hasColumn = TRUE ;
-               break ;
-            }
-         }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to check column, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
+      rc = _utilCheckKeyPattern( keyPattern, columnName, hasColumn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME, rc ) ;
