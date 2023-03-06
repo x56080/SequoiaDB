@@ -158,6 +158,7 @@ namespace engine
                                         UINT32 options,
                                         dmsExtentID &nextExtent,
                                         dmsCompressorEntry *compressorEntry,
+                                        dmsInternalSchema *schema,
                                         set<dmsRecordID> *ridList = NULL,
                                         BOOLEAN dumpRecord = FALSE,
                                         BOOLEAN capped = FALSE ) ;
@@ -186,6 +187,16 @@ namespace engine
                                                CHAR * outBuf,
                                                UINT32 outSize ) ;
 
+         static UINT32 dumpSchemaExtentHeader( void *inBuf,
+                                               UINT32 inSize,
+                                               CHAR *outBuf,
+                                               UINT32 outSize ) ;
+
+         static UINT32 dumpSchemaHashExtentHeader( void *inBuf,
+                                                   UINT32 inSize,
+                                                   CHAR *outBuf,
+                                                   UINT32 outSize ) ;
+
          static UINT32 dumpDataRecord ( pmdEDUCB *cb,
                                         CHAR * inBuf,
                                         UINT32 inSize,
@@ -193,6 +204,7 @@ namespace engine
                                         UINT32 outSize,
                                         dmsOffset &nextRecord,
                                         dmsCompressorEntry *compressorEntry,
+                                        dmsInternalSchema *schema,
                                         set<dmsRecordID> *ridList = NULL ) ;
 
          static UINT32 dumpCappedDataRecord( pmdEDUCB *cb,
@@ -254,6 +266,23 @@ namespace engine
                                         CHAR * addrPrefix,
                                         UINT32 options,
                                         UINT32 pageSize);
+
+         static UINT32 dumpSchemaExtent( void *inBuf,
+                                         UINT32 inSize,
+                                         CHAR *outBuf,
+                                         UINT32 outSize,
+                                         CHAR * addrPrefix,
+                                         UINT32 options,
+                                         dmsExtentID extID ) ;
+
+         static UINT32 dumpSchemaHashExtent( void *inBuf,
+                                             UINT32 inSize,
+                                             CHAR *outBuf,
+                                             UINT32 outSize,
+                                             CHAR * addrPrefix,
+                                             UINT32 options,
+                                             dmsExtentID extID ) ;
+
       private:
          static UINT32 _dumpExtentHeaderComm( const dmsExtent *extent,
                                               CHAR *outBuf, UINT32 outSize ) ;
@@ -268,6 +297,7 @@ namespace engine
          static UINT32 _dumpNormalExtent( CHAR *inBuf, UINT32 inSize,
                                           CHAR *outBuf, UINT32 outSize,
                                           dmsCompressorEntry *compressorEntry,
+                                          dmsInternalSchema *schema,
                                           set< dmsRecordID > *ridList,
                                           pmdEDUCB *cb ) ;
 

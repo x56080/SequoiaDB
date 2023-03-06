@@ -578,6 +578,33 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
+#define DMS_RECORD_EXTRACTDATA_WITH_SCHEMA( pRecord, recordObj, compressorEntry, internalSchema )  \
+   do                                                                                              \
+   {                                                                                               \
+      ossValuePtr retPtr = 0;                                                                      \
+      INT32 uncompLen = 0;                                                                         \
+      UINT8 compressType = pRecord->getCompressType();                                             \
+      if ( !pRecord->isCompressed() )                                                              \
+      {                                                                                            \
+         ( retPtr ) = (ossValuePtr)pRecord->getData();                                             \
+         uncompLen = pRecord->getDataLength();                                                     \
+      }                                                                                            \
+      else                                                                                         \
+      {                                                                                            \
+         rc = dmsUncompress( cb, compressorEntry, compressType, pRecord->getData(),                \
+                             pRecord->getDataLength(), (const CHAR **)&( retPtr ), &uncompLen );   \
+         PD_RC_CHECK( rc, PDERROR, "Failed to uncompress record, rc = %d", rc );                   \
+         PD_CHECK( uncompLen == *(INT32 *)( retPtr ), SDB_CORRUPTED_RECORD, error, PDERROR,        \
+                   "uncompressed length %d does not match real "                                   \
+                   "len %d",                                                                       \
+                   uncompLen, *(INT32 *)( retPtr ) );                                              \
+      }                                                                                            \
+      if ( pRecord->isEncodedBySchema() )                                                          \
+      {                                                                                            \
+         internalSchema->decodeRecord( cb, (const CHAR *)retPtr, uncompLen, recordObj, FALSE );     \
+      }                                                                                            \
+   } while ( FALSE )
+
    // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
    {

@@ -923,6 +923,7 @@ namespace engine
                                     CHAR *addrPrefix, UINT32 options,
                                     dmsExtentID &nextExtent,
                                     dmsCompressorEntry *compressorEntry,
+                                    dmsInternalSchema *schema,
                                     set< dmsRecordID > *ridList,
                                     BOOLEAN dumpRecord,
                                     BOOLEAN capped )
@@ -1006,7 +1007,7 @@ namespace engine
             else
             {
                len += _dumpNormalExtent( inBuf, inSize, outBuf + len,
-                                         outSize - len, compressorEntry,
+                                         outSize - len, compressorEntry, schema,
                                          ridList, cb ) ;
             }
          }
@@ -1067,6 +1068,16 @@ namespace engine
                 DMS_OPT_EXTENT_EYECATCHER1 == extent->_eyeCatcher[1] )
       {
          return dumpExtOptExtentHeader( inBuf, inSize, outBuf, outSize ) ;
+      }
+      else if ( DMS_SCHEMA_EXTENT_EYECATCHER0 == extent->_eyeCatcher[0] &&
+                DMS_SCHEMA_EXTENT_EYECATCHER1 == extent->_eyeCatcher[1])
+      {
+         return dumpSchemaExtentHeader( inBuf, inSize, outBuf, outSize ) ;
+      }
+      else if ( DMS_SCHEMA_HASH_EXTENT_EYECATCHER0 == extent->_eyeCatcher[0] &&
+                DMS_SCHEMA_HASH_EXTENT_EYECATCHER1 == extent->_eyeCatcher[1])
+      {
+         return dumpSchemaHashExtentHeader( inBuf, inSize, outBuf, outSize ) ;
       }
       else
       {
@@ -1260,9 +1271,89 @@ namespace engine
       return len ;
    }
 
+   UINT32 _dmsDump::dumpSchemaExtentHeader( void *inBuf,
+                                            UINT32 inSize,
+                                            CHAR *outBuf,
+                                            UINT32 outSize )
+   {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+      UINT32 len = 0 ;
+      dmsSchemaExtent *extent = (dmsSchemaExtent *)inBuf ;
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < DMS_DICTEXTENT_HEADER_SZ)
+      {
+         len = ossSnprintf( outBuf, outSize,
+                            "Error: dumpSchemaExtentHeader input size (%d) "
+                            "is too small"OSS_NEWLINE, inSize ) ;
+         goto exit ;
+      }
+      len += ossSnprintf( outBuf + len, outSize - len, "    Eye Catcher       : %c%c" OSS_NEWLINE,
+                          extent->_eyeCatcher[ 0 ], extent->_eyeCatcher[ 1 ] ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    Extent Size       : %u" OSS_NEWLINE,
+                          extent->_blockSize ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    CollectionID      : %u" OSS_NEWLINE,
+                          extent->_mbID ) ;
+      len += ossSnprintf( outBuf + len, outSize - len,
+                          "    Flag              : 0x%02x (%s)" OSS_NEWLINE, extent->_flag,
+                          extent->_flag == DMS_EXTENT_FLAG_INUSE ? "InUse" : "Free" ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    Version           : %d" OSS_NEWLINE,
+                          extent->_version ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    SchemaVersion     : %u" OSS_NEWLINE,
+                          extent->_schemaVersion ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    SchemaInnerVersion: %u" OSS_NEWLINE,
+                          extent->_schemaInnerVersion, extent->_schemaInnerVersion ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    ItemNum           : %u" OSS_NEWLINE,
+                          extent->_itemNum ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    Value Offset      : %u" OSS_NEWLINE,
+                          extent->_valueOffset ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    Free Space        : %u" OSS_NEWLINE,
+                          extent->_freeSpace ) ;
+   exit:
+      return len ;
+   }
+
+   UINT32 _dmsDump::dumpSchemaHashExtentHeader( void *inBuf,
+                                                UINT32 inSize,
+                                                CHAR *outBuf,
+                                                UINT32 outSize )
+   {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+      UINT32 len = 0 ;
+      dmsSchemaHashExtent *extent = (dmsSchemaHashExtent *)inBuf ;
+      if ( NULL == outBuf )
+      {
+         goto exit ;
+      }
+
+      if ( NULL == inBuf || inSize < DMS_DICTEXTENT_HEADER_SZ)
+      {
+         len = ossSnprintf( outBuf, outSize,
+                            "Error: dumpSchemaExtentHeader input size (%d) "
+                            "is too small"OSS_NEWLINE, inSize ) ;
+         goto exit ;
+      }
+      len += ossSnprintf( outBuf + len, outSize - len, "    Eye Catcher  : %c%c" OSS_NEWLINE,
+                          extent->_eyeCatcher[ 0 ], extent->_eyeCatcher[ 1 ] ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    Extent Size  : %u" OSS_NEWLINE,
+                          extent->_blockSize ) ;
+      len += ossSnprintf( outBuf + len, outSize - len, "    CollectionID : %u" OSS_NEWLINE,
+                          extent->_mbID ) ;
+      len +=
+         ossSnprintf( outBuf + len, outSize - len, "    Flag         : 0x%02x (%s)" OSS_NEWLINE,
+                      extent->_flag, extent->_flag == DMS_EXTENT_FLAG_INUSE ? "InUse" : "Free" ) ;
+
+   exit:
+      return len ;
+   }
+
    UINT32 _dmsDump::_dumpNormalExtent( CHAR *inBuf, UINT32 inSize,
                                        CHAR *outBuf, UINT32 outSize,
                                        dmsCompressorEntry *compressorEntry,
+                                       dmsInternalSchema *schema,
                                        set< dmsRecordID > *ridList,
                                        pmdEDUCB *cb )
    {
@@ -1297,8 +1388,8 @@ namespace engine
          len += dumpDataRecord ( cb, ((CHAR*)extent)+nextRecord,
                                  inSize - nextRecord,
                                  outBuf + len, outSize - len,
-                                 nextRecord, compressorEntry,
-                                 ridList) ;
+                                 nextRecord, compressorEntry, 
+                                 schema, ridList) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
          ++recordCount ;
@@ -1427,6 +1518,7 @@ namespace engine
                                     CHAR *outBuf, UINT32 outSize,
                                     dmsOffset &nextRecord,
                                     dmsCompressorEntry *compressorEntry,
+                                    dmsInternalSchema *schema,
                                     set< dmsRecordID > *ridList )
    {
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -1549,10 +1641,8 @@ namespace engine
          // for normal and ovfto types, let's dump data
          try
          {
-            ossValuePtr recordPtr = 0 ;
-            DMS_RECORD_EXTRACTDATA ( record, recordPtr,
-                                     compressorEntry ) ;
-            BSONObj obj ( (CHAR*)recordPtr ) ;
+            BSONObj obj ;
+            DMS_RECORD_EXTRACTDATA_WITH_SCHEMA(record, obj, compressorEntry, schema) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "       Record: %s"OSS_NEWLINE,
                                  obj.toString( FALSE, TRUE ).c_str() ) ;
@@ -2081,64 +2171,64 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
 
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
-      dmsLobMeta *lobMeta = (dmsLobMeta*)inBuf;
-      const char *tag = NULL;
+      dmsLobMeta *lobMeta = (dmsLobMeta*)inBuf ;
+      const char *tag = NULL ;
       len += ossSnprintf(outBuf + len, outSize -len, "Lobd Meta:"OSS_NEWLINE) ;
 
       len += ossSnprintf(outBuf + len, outSize - len,
                                     " Lob Len        :%lld"OSS_NEWLINE,
-                                    lobMeta->_lobLen);
+                                    lobMeta->_lobLen) ;
 
       CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-      ossTimestamp tm(lobMeta->_createTime);
+      ossTimestamp tm(lobMeta->_createTime) ;
       ossTimestampToString(tm , strTime ) ;
       len += ossSnprintf(outBuf + len, outSize - len,
                                     " Create Time    :%s (%llu)"OSS_NEWLINE,
                                     strTime, lobMeta->_createTime) ;
 
-      tag = lobMeta->isDone()? "DMS_LOB_COMPLETE":"DMS_LOB_UNCOMPLETE";
+      tag = lobMeta->isDone()? "DMS_LOB_COMPLETE":"DMS_LOB_UNCOMPLETE" ;
       len += ossSnprintf(outBuf + len, outSize - len,
                                     " Status         :%s (%u)"OSS_NEWLINE,
-                                    tag, lobMeta->_status);
+                                    tag, lobMeta->_status) ;
 
       tag = (lobMeta->_version == DMS_LOB_META_CURRENT_VERSION )
                           ? "DMS_LOB_META_CURRENT_VERSION"
-                          : NULL;
+                          : NULL ;
 
       len += ossSnprintf(outBuf + len, outSize - len,
                                     " Version        :%s (%u)"OSS_NEWLINE,
                                     tag, lobMeta->_version) ;
 
-      tm = lobMeta->_createTime;
+      tm = lobMeta->_createTime ;
       ossTimestampToString(tm , strTime ) ;
       len += ossSnprintf(outBuf + len, outSize - len,
                                     " Mod Time       :%s (%llu)"OSS_NEWLINE,
-                                    strTime, lobMeta->_modificationTime);
+                                    strTime, lobMeta->_modificationTime) ;
 
       tag = lobMeta->hasPiecesInfo()
                        ? "DMS_LOB_META_FLAG_PIECESINFO_INSIDE"
-                       : "NO PIECESINFO";
+                       : "NO PIECESINFO" ;
 
-      len += ossSnprintf(outBuf + len, outSize - len, " Flag           :%s (%u)"OSS_NEWLINE, tag, lobMeta->_flag);
+      len += ossSnprintf(outBuf + len, outSize - len, " Flag           :%s (%u)"OSS_NEWLINE, tag, lobMeta->_flag) ;
 
       len += ossSnprintf(outBuf + len,
                                    outSize - len,
                                    " PiecesInfo Num :%d"OSS_NEWLINE,
-                                   lobMeta->_piecesInfoNum);
+                                   lobMeta->_piecesInfoNum) ;
 
       if ( (lobMeta->_piecesInfoNum <=  0) ||
             (lobMeta->_piecesInfoNum > (INT32)(DMS_LOB_META_LENGTH /sizeof( _rtnLobPieces ) )) )
-         goto exit;
+         goto exit ;
 
-      len += ossSnprintf(outBuf + len, outSize - len, " Pieces:");
+      len += ossSnprintf(outBuf + len, outSize - len, " Pieces:") ;
       _rtnLobPieces* piecesInfoBuf = (_rtnLobPieces*)(inBuf + DMS_LOB_META_LENGTH
-                               - sizeof( _rtnLobPieces ) * lobMeta->_piecesInfoNum);
+                               - sizeof( _rtnLobPieces ) * lobMeta->_piecesInfoNum) ;
       for(INT32 i = 0; i < lobMeta->_piecesInfoNum; i ++)
       {
          len += ossSnprintf ( outBuf+len, outSize-len,
                                           "      { first:%u; last:%u }"OSS_NEWLINE,
                                           piecesInfoBuf[i].first,
-                                          piecesInfoBuf[i].last);
+                                          piecesInfoBuf[i].last) ;
       }
    }
 
@@ -2220,30 +2310,160 @@ UINT32 _dmsDump::dumpDmsLobDataMapBlk(dmsLobDataMapBlk *blk, CHAR * outBuf,
 
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
-      const char *tag = NULL;
-      len += ossSnprintf(outBuf + len, outSize -len, "Lobm dmsLobDataMapBlk:"OSS_NEWLINE);
-      bson::OID oid;
-      ossMemcpy(&oid, blk->_oid, DMS_LOB_OID_LEN);
-      len += ossSnprintf(outBuf + len, outSize -len,  " Oid            :%s"OSS_NEWLINE, oid.str().c_str());
-      len += ossSnprintf(outBuf + len, outSize - len, " Sequence       :%u"OSS_NEWLINE, blk->_sequence);
-      len += ossSnprintf(outBuf + len, outSize - len, " Data Len       :%u"OSS_NEWLINE, blk->_dataLen);
-      len += ossSnprintf(outBuf + len, outSize - len, " Prev PageId    :%d"OSS_NEWLINE, blk->_prevPageInBucket);
-      len += ossSnprintf(outBuf + len, outSize - len, " Next PageId    :%d"OSS_NEWLINE, blk->_nextPageInBucket);
-      len += ossSnprintf(outBuf + len, outSize - len, " CL LogicId     :%u"OSS_NEWLINE, blk->_clLogicalID);
-      len += ossSnprintf(outBuf + len, outSize - len, " MB Id          :%u"OSS_NEWLINE, blk->_mbID);
+      const char *tag = NULL ;
+      len += ossSnprintf(outBuf + len, outSize -len, "Lobm dmsLobDataMapBlk:"OSS_NEWLINE) ;
+      bson::OID oid ;
+      ossMemcpy(&oid, blk->_oid, DMS_LOB_OID_LEN) ;
+      len += ossSnprintf(outBuf + len, outSize -len,  " Oid            :%s"OSS_NEWLINE, oid.str().c_str()) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " Sequence       :%u"OSS_NEWLINE, blk->_sequence) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " Data Len       :%u"OSS_NEWLINE, blk->_dataLen) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " Prev PageId    :%d"OSS_NEWLINE, blk->_prevPageInBucket) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " Next PageId    :%d"OSS_NEWLINE, blk->_nextPageInBucket) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " CL LogicId     :%u"OSS_NEWLINE, blk->_clLogicalID) ;
+      len += ossSnprintf(outBuf + len, outSize - len, " MB Id          :%u"OSS_NEWLINE, blk->_mbID) ;
 
-      tag = blk->isNormal()? "DMS_LOB_PAGE_NORMAL":"DMS_LOB_PAGE_REMOVED";
-      len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)"OSS_NEWLINE,tag, blk->_status);
+      tag = blk->isNormal()? "DMS_LOB_PAGE_NORMAL":"DMS_LOB_PAGE_REMOVED" ;
+      len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)"OSS_NEWLINE,tag, blk->_status) ;
 
-      tag = blk->isNew()? "DMS_LOB_PAGE_NEW":"DMS_LOB_PAGE_OLD";
-      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)"OSS_NEWLINE,tag, blk->_newFlag);
+      tag = blk->isNew()? "DMS_LOB_PAGE_NEW":"DMS_LOB_PAGE_OLD" ;
+      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)"OSS_NEWLINE,tag, blk->_newFlag) ;
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
    return len ;
 }
 
+UINT32 _dmsDump::dumpSchemaExtent( void *inBuf,
+                                   UINT32 inSize,
+                                   CHAR *outBuf,
+                                   UINT32 outSize,
+                                   CHAR * addrPrefix,
+                                   UINT32 options,
+                                   dmsExtentID extID )
+{
+   SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+   UINT32 len = 0 ;
+   UINT32 hexDumpOption = 0 ;
+   dmsSchemaExtent *extent = (dmsSchemaExtent*)inBuf ;
 
+   if ( NULL == outBuf )
+   {
+      goto exit ;
+   }
+
+   if ( NULL == inBuf || inSize < sizeof( dmsSchemaExtent ) || inSize % DMS_PAGE_SIZE4K != 0 )
+   {
+      len = ossSnprintf( outBuf, outSize,
+                         "Error: dumpSchemaExtent input size (%d) is too "
+                         "small or not aligned with 4K" OSS_NEWLINE,
+                         inSize ) ;
+      goto exit ;
+   }
+
+   if ( extent->_eyeCatcher[ 0 ] != DMS_SCHEMA_EXTENT_EYECATCHER0 ||
+        extent->_eyeCatcher[ 1 ] != DMS_SCHEMA_EXTENT_EYECATCHER1 )
+   {
+      len +=
+         ossSnprintf( outBuf + len, outSize - len, "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
+                      extent->_eyeCatcher[ 0 ], extent->_eyeCatcher[ 1 ] ) ;
+      goto exit ;
+   }
+
+   len += ossSnprintf( outBuf + len, outSize - len, " ExtentId: 0x%08x (%d)" OSS_NEWLINE, extID,
+                       extID ) ;
+   if ( DMS_SU_DMP_OPT_HEX & options )
+   {
+      if ( DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR & options )
+      {
+         hexDumpOption |= OSS_HEXDUMP_PREFIX_AS_ADDR ;
+      }
+      if ( !( DMS_SU_DMP_OPT_HEX_WITH_ASCII & options ) )
+      {
+         hexDumpOption |= OSS_HEXDUMP_RAW_HEX_ONLY ;
+      }
+      len +=
+         ossHexDumpBuffer( inBuf, inSize, outBuf + len, outSize - len, addrPrefix, hexDumpOption ) ;
+   }
+   if ( DMS_SU_DMP_OPT_FORMATTED & options )
+   {
+      len += ossSnprintf( outBuf + len, outSize - len, " Schema Extent Header:" OSS_NEWLINE ) ;
+      len += dumpExtentHeader( inBuf, inSize, outBuf + len, outSize - len ) ;
+      if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
+      {
+         len +=
+            ossSnprintf( outBuf + len, outSize - len, "Error: Extent is not in use" OSS_NEWLINE ) ;
+         goto exit ;
+      }
+   }
+   len += ossSnprintf( outBuf + len, outSize - len, OSS_NEWLINE ) ;
+   exit:
+      return len ;
 }
 
+UINT32 _dmsDump::dumpSchemaHashExtent( void *inBuf,
+                                       UINT32 inSize,
+                                       CHAR *outBuf,
+                                       UINT32 outSize,
+                                       CHAR * addrPrefix,
+                                       UINT32 options,
+                                       dmsExtentID extID )
+{
+   SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+   UINT32 len = 0 ;
+   UINT32 hexDumpOption = 0 ;
+   dmsSchemaHashExtent *extent = (dmsSchemaHashExtent*)inBuf ;
 
+   if ( NULL == outBuf )
+   {
+      goto exit ;
+   }
+
+   if ( NULL == inBuf || inSize < sizeof( dmsSchemaHashExtent ) || inSize % DMS_PAGE_SIZE4K != 0 )
+   {
+      len = ossSnprintf( outBuf, outSize,
+                         "Error: dumpSchemaHashExtent input size (%d) is too "
+                         "small or not aligned with 4K" OSS_NEWLINE,
+                         inSize ) ;
+      goto exit ;
+   }
+
+   if ( extent->_eyeCatcher[ 0 ] != DMS_SCHEMA_HASH_EXTENT_EYECATCHER0 ||
+        extent->_eyeCatcher[ 1 ] != DMS_SCHEMA_HASH_EXTENT_EYECATCHER1 )
+   {
+      len +=
+         ossSnprintf( outBuf + len, outSize - len, "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
+                      extent->_eyeCatcher[ 0 ], extent->_eyeCatcher[ 1 ] ) ;
+      goto exit ;
+   }
+
+   len += ossSnprintf( outBuf + len, outSize - len, " ExtentId: 0x%08x (%d)" OSS_NEWLINE, extID,
+                       extID ) ;
+   if ( DMS_SU_DMP_OPT_HEX & options )
+   {
+      if ( DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR & options )
+      {
+         hexDumpOption |= OSS_HEXDUMP_PREFIX_AS_ADDR ;
+      }
+      if ( !( DMS_SU_DMP_OPT_HEX_WITH_ASCII & options ) )
+      {
+         hexDumpOption |= OSS_HEXDUMP_RAW_HEX_ONLY ;
+      }
+      len +=
+         ossHexDumpBuffer( inBuf, inSize, outBuf + len, outSize - len, addrPrefix, hexDumpOption ) ;
+   }
+   if ( DMS_SU_DMP_OPT_FORMATTED & options )
+   {
+      len += ossSnprintf( outBuf + len, outSize - len, " Schema Hash Extent Header:" OSS_NEWLINE ) ;
+      len += dumpExtentHeader( inBuf, inSize, outBuf + len, outSize - len ) ;
+      if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
+      {
+         len +=
+            ossSnprintf( outBuf + len, outSize - len, "Error: Extent is not in use" OSS_NEWLINE ) ;
+         goto exit ;
+      }
+   }
+   len += ossSnprintf( outBuf + len, outSize - len, OSS_NEWLINE ) ;
+   exit:
+      return len ;
+}
+}

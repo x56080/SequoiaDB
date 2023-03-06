@@ -67,7 +67,9 @@ namespace exprt
       // write options to configure-file which specified by option '--genconf'
       INT32   writeToConf( const expCLSet &clSet ) ;
       void    printHelpInfo() const ;
+      void    printHelpfullInfo() const ;
       BOOLEAN hasHelp() const ;
+      BOOLEAN hasHelpfull() const ;
       BOOLEAN hasVersion() const ;
       BOOLEAN hasConf() const ;
       BOOLEAN hasGenConf() const ;

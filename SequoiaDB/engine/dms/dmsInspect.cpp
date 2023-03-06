@@ -730,7 +730,8 @@ namespace engine
                                    DMS_MB_ATTR_NOIDINDEX |
                                    DMS_MB_ATTR_CAPPED |
                                    DMS_MB_ATTR_STRICTDATAMODE |
-                                   DMS_MB_ATTR_NOTRANS ) )
+                                   DMS_MB_ATTR_NOTRANS |
+                                   DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
          {
             mbAttr2String ( mb->_attributes, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -855,6 +856,7 @@ namespace engine
                                           set< dmsRecordID > *ridList,
                                           SINT32 &err,
                                           dmsCompressorEntry *compressorEntry,
+                                          dmsInternalSchema *schema,
                                           UINT64 &recordNum,
                                           UINT64 &compressedNum,
                                           UINT64 &deletingNum,
@@ -908,7 +910,7 @@ namespace engine
       else
       {
          len += inspectNormalExtent( inBuf, inSize, outBuf + len, outSize - len,
-                                     collectionID, compressorEntry, recordNum,
+                                     collectionID, compressorEntry, schema, recordNum,
                                      compressedNum, deletingNum, localErr, ridList, cb ) ;
       }
 
@@ -934,6 +936,7 @@ namespace engine
                                           set< dmsRecordID > *ridList,
                                           SINT32 &err,
                                           dmsCompressorEntry *compressorEntry,
+                                          dmsInternalSchema *schema,
                                           BOOLEAN &isCompressed,
                                           BOOLEAN *pIsDeleting,
                                           BOOLEAN *pIsOvf )
@@ -1046,10 +1049,8 @@ namespace engine
             /// first to inc error
             ++err ;
 
-            ossValuePtr recordPtr = 0 ;
-            DMS_RECORD_EXTRACTDATA ( record, recordPtr,
-                                     compressorEntry ) ;
-            BSONObj obj ( (CHAR*)recordPtr ) ;
+            BSONObj obj ;
+            DMS_RECORD_EXTRACTDATA_WITH_SCHEMA(record, obj, compressorEntry, schema);
             if ( !obj.isValid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1648,6 +1649,7 @@ namespace engine
                                            CHAR *outBuf, UINT32 outSize,
                                            UINT16 collectionID,
                                            dmsCompressorEntry *compressorEntry,
+                                           dmsInternalSchema *schema,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
                                            UINT64 &deletingNum,
@@ -1700,6 +1702,7 @@ namespace engine
                                     recordCount, nextRecord,
                                     ridList, localErr,
                                     compressorEntry,
+                                    schema,
                                     isCompressed,
                                     &isDeleting,
                                     &isOvf ) ;

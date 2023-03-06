@@ -67,6 +67,11 @@ int main( int argc, char* argv[] )
          options.printHelpInfo() ;
          goto done ;
       }
+      if ( options.hasHelpfull() )
+      {
+         options.printHelpfullInfo() ;
+         goto done ;
+      }
       if ( options.hasVersion() )
       {
          ossPrintVersion("sdbexport") ;

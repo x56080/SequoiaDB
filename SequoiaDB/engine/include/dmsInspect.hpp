@@ -121,6 +121,7 @@ namespace engine
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
                                            dmsCompressorEntry *compressorEntry,
+                                           dmsInternalSchema *schema,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
                                            UINT64 &deletingNum,
@@ -136,6 +137,7 @@ namespace engine
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
                                            dmsCompressorEntry *compressorEntry,
+                                           dmsInternalSchema *schema,
                                            BOOLEAN &isCompressed,
                                            BOOLEAN *pIsDeleting = NULL,
                                            BOOLEAN *pIsOvf = NULL ) ;
@@ -206,6 +208,7 @@ namespace engine
                                            CHAR *outBuf, UINT32 outSize,
                                            UINT16 collectionID,
                                            dmsCompressorEntry *compressorEntry,
+                                           dmsInternalSchema *schema,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
                                            UINT64 &deletingNum,

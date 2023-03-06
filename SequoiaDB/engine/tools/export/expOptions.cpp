@@ -101,6 +101,9 @@ namespace exprt
    #define OPTION_GENCONF           "genconf"
    #define OPTION_GENFIELDS         "genfields"
 
+   // hidden
+   #define OPTION_HELPFULL          "helpfull"
+   #define OPTION_PRIMAL            "primal"
 
    // general
    #define EXPLAIN_HELP             "help information"
@@ -126,8 +129,6 @@ namespace exprt
    #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
                                     "format %[+][.precision](f|e|E|g|G) ( float only )"
    #define EXPLAIN_REPLACE          "whether to overwrite the output file"
-
-   #define EXPLAIN_PRIMAL           "used in query to read primal data"
 
    //json
    #define EXPLAIN_STRICT           "strict export of data types, default: false"
@@ -163,6 +164,10 @@ namespace exprt
    #define EXPLAIN_GENCONF          "the name of configure file to generate"
    #define EXPLAIN_GENFIELDS        "whether to generate option \"fields\" for each collection, default: true"
 
+   // hidden
+   #define EXPLAIN_HELPFULL         "print all options"
+   #define EXPLAIN_PRIMAL           "used in query to read primal data"
+
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
    #define DEFAULT_HOST             "localhost:11810"
@@ -196,7 +201,6 @@ namespace exprt
       ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
       ( OPTION_FLOATFMT,               _TYPE(string),    EXPLAIN_FLOATFMT ) \
       ( OPTION_REPLACE,                /* no arg */      EXPLAIN_REPLACE ) \
-      ( OPTION_PRIMAL,                 _IMPLICIT_TYPE(bool, true), EXPLAIN_PRIMAL)
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
       ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
@@ -230,6 +234,10 @@ namespace exprt
       ( OPTION_CONF,                   _TYPE(string),    EXPLAIN_CONF ) \
       ( OPTION_GENCONF,                _TYPE(string),    EXPLAIN_GENCONF ) \
       ( OPTION_GENFIELDS,              _TYPE(bool),      EXPLAIN_GENFIELDS )
+
+   #define EXP_HELPFULL_OPTIONS \
+      ( OPTION_HELPFULL,               /* no arg */      EXPLAIN_HELPFULL ) \
+      ( OPTION_PRIMAL,                 _IMPLICIT_TYPE(bool, true), EXPLAIN_PRIMAL)
 
    #define WRITE_STR_OPTION( buf, option, value, has ) \
       if ( has ) \
@@ -368,6 +376,11 @@ namespace exprt
       return _cmdHas(OPTION_HELP) ;
    }
 
+   BOOLEAN expOptions::hasHelpfull() const
+   {
+      return _cmdHas(OPTION_HELPFULL) ;
+   }
+
    BOOLEAN expOptions::hasVersion() const
    {
       return _cmdHas(OPTION_VERSION) ;
@@ -409,6 +422,14 @@ namespace exprt
       cout << conf << endl ;
    }
 
+   void expOptions::printHelpfullInfo() const
+   {
+      printHelpInfo() ;
+      po::options_description full("Helpfull Options") ;
+      full.add_options()EXP_HELPFULL_OPTIONS ;
+      cout << full << endl ;
+   }
+
    INT32 expOptions::writeToConf( const expCLSet &clSet )
    {
       INT32 rc = SDB_OK ;
@@ -441,7 +462,7 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, _has(OPTION_WITHID) ) ;
-      WRITE_BOOL_OPTION( writeBuf, OPTION_PRIMAL, _primal, _has(OPTION_PRIMAL) ) ;
+
 
       // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
@@ -470,6 +491,10 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_CSCL, _cscl, _has(OPTION_CSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_EXCLUDECSCL, _excludeCscl, _has(OPTION_EXCLUDECSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_DIRNAME, _dir,_has(OPTION_DIRNAME) ) ;
+
+      // hidden options
+      WRITE_BOOL_OPTION( writeBuf, OPTION_PRIMAL, _primal, _has(OPTION_PRIMAL) ) ;
+
       // fields
       if ( _genFields )
       {
@@ -517,7 +542,8 @@ namespace exprt
          EXP_MULTI_COLLECTION_OPTIONS
          EXP_JSON_OPTIONS
          EXP_CSV_OPTIONS
-         EXP_CONF_OPTIONS ;
+         EXP_CONF_OPTIONS
+         EXP_HELPFULL_OPTIONS ;
 
       rc = utilReadCommandLine( argc, argv, _cmdDesc, _cmdVm, FALSE ) ;
       if ( SDB_OK != rc )
@@ -527,7 +553,7 @@ namespace exprt
       }
       _cmdParsed = TRUE ;
 
-      if ( _cmdHas(OPTION_HELP) || _cmdHas(OPTION_VERSION) )
+      if ( _cmdHas(OPTION_HELP) || _cmdHas(OPTION_VERSION) || _cmdHas(OPTION_HELPFULL) )
       {
          goto done ;
       }
@@ -574,7 +600,8 @@ namespace exprt
          EXP_MULTI_COLLECTION_OPTIONS
          EXP_JSON_OPTIONS
          EXP_CSV_OPTIONS
-         EXP_CONF_OPTIONS ;
+         EXP_CONF_OPTIONS
+         EXP_HELPFULL_OPTIONS ;
 
       rc = utilReadConfigureFile( fileName, _confDesc, _confVm ) ;
       if ( SDB_OK != rc )
