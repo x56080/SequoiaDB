@@ -296,12 +296,23 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
 
-      // Mark the column as deleted.
-      OSS_BIT_SET( attr, DMS_SCHEMA_COL_DELETED ) ;
+      if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_DELETED ) )
+      {
+         if ( inMemory )
+         {
+            // The column has been dropped already in the change round.
+            goto done ;
+         }
+      }
+      else
+      {
+         // Mark the column as deleted.
+         OSS_BIT_SET( attr, DMS_SCHEMA_COL_DELETED ) ;
+      }
 
       // Need to ignore the default values. They will not be stored in the column info any more.
-      if ( _hasBaseSchema && ( _baseSchemaContainer.hasReadDefault( columnID ) ||
-                               _baseSchemaContainer.hasWriteDefault( columnID ) ) )
+      if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ||
+           OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
       {
          dmsSchemaColRecBuilder builder ;
          const CHAR *origName = oldColRecord->getOrigName() ;
