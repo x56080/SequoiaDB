@@ -61,37 +61,41 @@ namespace engine
    INT32 _dmsSchemaColInfoMem::setData( UINT8 attr, const dmsSchemaColRecord *record )
    {
       INT32 rc = SDB_OK ;
-      UINT32 colRecordLen = 0 ;
 
-      SDB_ASSERT( record, "Column info record is invalid" ) ;
-      if ( !record )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Column info is invalid, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      colRecordLen = record->getLength() ;
-      if ( colRecordLen < DMS_SCHEMA_COLREC_HEAD_SZ )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Column record info is invalid, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      SAFE_OSS_FREE( _colRecord ) ;
-
-      _colRecord = (dmsSchemaColRecord *)SDB_OSS_MALLOC( colRecordLen ) ;
-      if ( !_colRecord )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate memory of size [%u] to build schema column info record failed, "
-                 "rc: %d", rc ) ;
-         goto error ;
-      }
-
-      ossMemcpy( _colRecord, record, colRecordLen ) ;
       _attr = attr ;
+
+      if ( record )
+      {
+         UINT32 colRecordLen = 0 ;
+         dmsSchemaColRecord *newMem = NULL ;
+         SDB_ASSERT( record != _colRecord, "Record if reference to this info obj" ) ;
+
+         colRecordLen = record->getLength() ;
+         if ( colRecordLen < DMS_SCHEMA_COLREC_HEAD_SZ )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Column record info is invalid, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         newMem = (dmsSchemaColRecord *)SDB_OSS_MALLOC( colRecordLen ) ;
+         if ( !newMem )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory of size [%u] to build schema column info record "
+                    "failed, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         ossMemcpy( newMem, record, colRecordLen ) ;
+
+         if ( _colRecord )
+         {
+            SDB_OSS_FREE( _colRecord ) ;
+         }
+
+         _colRecord = newMem ;
+      }
 
    done:
       return rc ;
@@ -111,10 +115,12 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_INIT, "_dmsSchemaWriter::init" )
    INT32 _dmsSchemaWriter::init( const dmsSchemaExtent *baseSchemaExt,
                                  UINT32 extentSize, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_INIT ) ;
 
       if ( baseSchemaExt )
       {
@@ -139,6 +145,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -188,14 +195,14 @@ namespace engine
 
       columnID = _nextColumnID ;
 
-      rc = _addNewColumnInfo( columnID, attr, builder.getRecord(), FALSE ) ;
+      rc = _addOrUpdateColumnInfo( columnID, attr, builder.getRecord() ) ;
       PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                    "rc: %d", rc ) ;
 
       // Only increase these data members at the end when everything is done.
       ++_nextColumnID ;
 
-      _updateTotalSize( builder.getRecord(), NULL ) ;
+      _updateTotalSize( builder.getRecord()->getLength(), 0 ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_ADDCOLUMN, rc ) ;
@@ -214,18 +221,20 @@ namespace engine
 
       BSONElement ele ;
       UINT8 attr = 0  ;
-      BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const CHAR *name = NULL ;
       BOOLEAN changed = FALSE ;
+      UINT32 oldColSize = 0 ;
+      UINT32 newColSize = 0 ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
       const dmsSchemaColRecord *newColRecord = NULL ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
 
       name = oldColRecord->getName() ;
+      oldColSize = oldColRecord->getLength() ;
       rc = builder.startRebuild( oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Build new column info for %s failed, rc: %d", name, rc ) ;
 
@@ -311,8 +320,9 @@ namespace engine
                       name, rc ) ;
 
          newColRecord = builder.getRecord() ;
+         newColSize = newColRecord->getLength() ;
 
-         rc = _addNewColumnInfo( columnID, attr, newColRecord, inMemory ) ;
+         rc = _addOrUpdateColumnInfo( columnID, attr, newColRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                       "rc: %d", rc ) ;
       }
@@ -323,7 +333,7 @@ namespace engine
          goto error ;
       }
 
-      _updateTotalSize( oldColRecord, newColRecord ) ;
+      _updateTotalSize( newColSize, oldColSize ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_ALTERCOLUMN , rc ) ;
@@ -332,17 +342,23 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_DROPCOLUMN, "_dmsSchemaWriter::dropColumn" )
    INT32 _dmsSchemaWriter::dropColumn( UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_DROPCOLUMN ) ;
       UINT8 attr = 0 ;
       BOOLEAN inMemory = FALSE ;
+      dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
       const dmsSchemaColRecord *newColRecord = NULL ;
+      UINT32 oldColSize = 0 ;
+      UINT32 newColSize = 0 ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, &inMemory ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
+      oldColSize = oldColRecord->getLength() ;
 
       if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_DELETED ) )
       {
@@ -362,7 +378,6 @@ namespace engine
       if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ||
            OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
       {
-         dmsSchemaColRecBuilder builder ;
          const CHAR *origName = oldColRecord->getOrigName() ;
 
          rc = builder.startBuild() ;
@@ -384,37 +399,45 @@ namespace engine
          OSS_BIT_CLEAR(  attr, DMS_SCHEMA_COL_READ_DEFAULT | DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
          newColRecord = builder.getRecord() ;
       }
-      else
+      else if ( !inMemory )
       {
          // Copy the original column record.
          newColRecord = oldColRecord ;
       }
 
-      rc = _addNewColumnInfo( columnID, attr, newColRecord, inMemory ) ;
-      PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
-                   "rc: %d", rc ) ;
+      if ( newColRecord )
+      {
+         newColSize = newColRecord->getLength() ;
+         rc = _addOrUpdateColumnInfo( columnID, attr, newColRecord ) ;
+         PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
+                      "rc: %d", rc ) ;
 
-      _updateTotalSize( newColRecord, oldColRecord ) ;
+         _updateTotalSize( newColSize, oldColSize ) ;
+      }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_DROPCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT, "_dmsSchemaWriter::dropColumnDefault" )
    INT32 _dmsSchemaWriter::dropColumnDefault( UINT16 columnID, BOOLEAN dropWrite,
                                               BOOLEAN dropRead )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT ) ;
       UINT8 attr = 0 ;
-      BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
       const dmsSchemaColRecord *newColRecord = NULL ;
+      UINT32 oldColSize = 0 ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
+      oldColSize = oldColRecord->getLength() ;
 
       if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_DELETED ) )
       {
@@ -452,18 +475,20 @@ namespace engine
 
       SDB_ASSERT( newColRecord->getLength() <= oldColRecord->getLength(), "Length is wrong" ) ;
 
-      rc = _addNewColumnInfo( columnID, attr, newColRecord, inMemory ) ;
+      rc = _addOrUpdateColumnInfo( columnID, attr, newColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                    "rc: %d", rc ) ;
 
-      _updateTotalSize( newColRecord, oldColRecord ) ;
+      _updateTotalSize( newColRecord->getLength(), oldColSize ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_RENAMECOLUMN, "_dmsSchemaWriter::renameColumn" )
    INT32 _dmsSchemaWriter::renameColumn( UINT16 columnID, const CHAR *newName )
    {
       // Keep the id of the column unchanged, just change the column information. The size of the
@@ -471,15 +496,17 @@ namespace engine
       // If the original space is enough, just do in-place update.
 
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_RENAMECOLUMN ) ;
       UINT8 attr = 0 ;
-      BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
       const dmsSchemaColRecord *newColRecord = NULL ;
+      UINT32 oldColSize = 0 ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
+      oldColSize = oldColRecord->getLength() ;
 
       if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_HAS_ORIGNAME ) )
       {
@@ -499,30 +526,36 @@ namespace engine
 
       newColRecord = builder.getRecord() ;
 
-      rc = _addNewColumnInfo( columnID, attr, newColRecord, inMemory ) ;
+      rc = _addOrUpdateColumnInfo( columnID, attr, newColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                    "rc: %d", rc ) ;
 
-      _updateTotalSize( newColRecord, oldColRecord ) ;
+      _updateTotalSize( newColRecord->getLength(), oldColSize ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_RENAMECOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER__GETCOLATTRANDRECORD, "_dmsSchemaWriter::_getColAttrAndRecord" )
    INT32 _dmsSchemaWriter::_getColAttrAndRecord( UINT16 columnID, UINT8 &attr,
                                                  const dmsSchemaColRecord *&record,
-                                                 BOOLEAN &inMemory )
+                                                 BOOLEAN *inMemory )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER__GETCOLATTRANDRECORD ) ;
 
       COL_INFO_MAP_ITR itr = _colInfoMap.find( columnID ) ;
       if ( _colInfoMap.end() != itr )
       {
          attr = itr->second.getAttr() ;
          record = itr->second.getColRecord() ;
-         inMemory = TRUE ;
+         if ( inMemory )
+         {
+            *inMemory = TRUE ;
+         }
          goto done ;
       }
       else if ( _hasBaseSchema )
@@ -537,7 +570,10 @@ namespace engine
             goto error ;
          }
          attr = _baseSchemaContainer._getColumnAttr( columnID ) ;
-         inMemory = FALSE ;
+         if ( inMemory )
+         {
+            *inMemory = FALSE ;
+         }
       }
       else
       {
@@ -547,29 +583,25 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER__GETCOLATTRANDRECORD, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _dmsSchemaWriter::_addNewColumnInfo( UINT16 columnID, UINT8 attr,
-                                              const dmsSchemaColRecord *record, BOOLEAN replace )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER__ADDORUPDATECOLUMNINFO, "_dmsSchemaWriter::_addOrUpdateColumnInfo" )
+   INT32 _dmsSchemaWriter::_addOrUpdateColumnInfo( UINT16 columnID, UINT8 attr,
+                                                   const dmsSchemaColRecord *record )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER__ADDORUPDATECOLUMNINFO ) ;
       BOOLEAN hasAdd = FALSE ;
-      dmsSchemaColInfoMem *colInfoMem = NULL ;
-
-      if ( replace )
-      {
-         // If the column is already in the map, replace it. If not, add it into the map.
-         _removeColumnInfo( columnID ) ;
-      }
 
       try
       {
-         colInfoMem = &_colInfoMap[columnID] ;
+         dmsSchemaColInfoMem &colInfoMem = _colInfoMap[columnID] ;
          hasAdd = TRUE ;
-         rc = colInfoMem->setData( attr, record ) ;
+         rc = colInfoMem.setData( attr, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema column info in memory failed, rc: %d",
                       rc ) ;
          if ( !_hasChanged )
@@ -585,6 +617,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER__ADDORUPDATECOLUMNINFO, rc ) ;
       return rc ;
    error:
       if ( hasAdd )
@@ -599,31 +632,32 @@ namespace engine
       _colInfoMap.erase( columnID ) ;
    }
 
-   void _dmsSchemaWriter::_updateTotalSize( const dmsSchemaColRecord *newRecord,
-                                            const dmsSchemaColRecord *oldRecord )
+   void _dmsSchemaWriter::_updateTotalSize( UINT32 newColSize, UINT32 oldColSize )
    {
-      if ( newRecord )
+      if ( newColSize > 0 )
       {
-         _totalSize += ossRoundUpToMultipleX( newRecord->getLength(), 4 ) +
+         _totalSize += ossRoundUpToMultipleX( newColSize, 4 ) +
                        DMS_SCHEMAEXTENT_SLOT_SZ ;
       }
 
-      if ( oldRecord )
+      if ( oldColSize > 0 )
       {
-         _totalSize -= ( ossRoundUpToMultipleX( oldRecord->getLength(), 4 ) +
+         _totalSize -= ( ossRoundUpToMultipleX( oldColSize, 4 ) +
                          DMS_SCHEMAEXTENT_SLOT_SZ ) ;
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_SETINDEXCOLUMN, "_dmsSchemaWriter::setIndexColumn" )
    INT32 _dmsSchemaWriter::setIndexColumn( UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_SETINDEXCOLUMN ) ;
       UINT8 attr = 0 ;
       BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, &inMemory ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
 
@@ -634,25 +668,28 @@ namespace engine
 
       OSS_BIT_SET( attr, DMS_SCHEMA_COL_IN_INDEX ) ;
 
-      rc = _addNewColumnInfo( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _addOrUpdateColumnInfo( columnID, attr, inMemory ? NULL : oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                    "rc: %d", rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_SETINDEXCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_UNSETINDEXCOLUMN, "_dmsSchemaWriter::unsetIndexColumn" )
    INT32 _dmsSchemaWriter::unsetIndexColumn( UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_UNSETINDEXCOLUMN ) ;
       UINT8 attr = 0 ;
       BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
 
-      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _getColAttrAndRecord( columnID, attr, oldColRecord, &inMemory ) ;
       PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
                    columnID, rc ) ;
 
@@ -663,20 +700,23 @@ namespace engine
 
       OSS_BIT_CLEAR( attr, DMS_SCHEMA_COL_IN_INDEX ) ;
 
-      rc = _addNewColumnInfo( columnID, attr, oldColRecord, inMemory ) ;
+      rc = _addOrUpdateColumnInfo( columnID, attr, inMemory ? NULL : oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Add new column info into internal schema update buffer failed, "
                    "rc: %d", rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_UNSETINDEXCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_SAVE, "_dmsSchemaWriter::save" )
    INT32 _dmsSchemaWriter::save( dmsSchemaExtent *extent, UINT32 extentSize,
                                  UINT16 pageNum, UINT16 mbID, BOOLEAN isInnerChange )
    {
       UINT8 attr = 0 ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_SAVE ) ;
       UINT16 recordLen = 0 ;
       const dmsSchemaColRecord *record = NULL ;
       dmsSchemaColSlot *colSlot = NULL ;
@@ -734,6 +774,7 @@ namespace engine
       extent->_freeSpace = extentSize - DMS_SCHEMAEXTENT_HEADER_SZ - _totalSize ;
       extent->_valueOffset = recordOffset ;
 
+      PD_TRACE_EXIT( SDB__DMSSCHEMAWRITER_SAVE ) ;
       return SDB_OK ;
    }
 
@@ -750,9 +791,11 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAHASHWRITER_INIT, "_dmsSchemaHashWriter::init" )
    INT32 _dmsSchemaHashWriter::init( const dmsSchemaContainer *schemaContainer )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAHASHWRITER_INIT ) ;
 
       if ( !schemaContainer )
       {
@@ -785,6 +828,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAHASHWRITER_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -828,9 +872,11 @@ namespace engine
       _nameIDMap.erase( name ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAHASHWRITER__ADDCOLUMNITEM, "_dmsSchemaHashWriter::_addColumnItem" )
    INT32 _dmsSchemaHashWriter::_addColumnItem( const CHAR *name, UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAHASHWRITER__ADDCOLUMNITEM ) ;
       UINT16 nextSlotID = DMS_SCHEMA_HASH_INVALID_SLOTID ;
       UINT32 bucketID = ossHash( name ) % DMS_SCHEMA_HASH_BUCKET_SIZE ;  // The bucket is also an item.
       dmsSchemaHashSlot* hashSlot = (dmsSchemaHashSlot *)_getHashBucketSlot( bucketID ) ;
@@ -877,15 +923,18 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAHASHWRITER__ADDCOLUMNITEM, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAHASHWRITER_SAVE, "_dmsSchemaHashWriter::save" )
    INT32 _dmsSchemaHashWriter::save( dmsSchemaHashExtent *extent, UINT32 extentSize,
                                      UINT16 numPages, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAHASHWRITER_SAVE ) ;
 
       rc = _prepare4Save( extent, extentSize, numPages, mbID ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare schema hash extent for saving new internal schema hash "
@@ -899,14 +948,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAHASHWRITER_SAVE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAHASHWRITER__PREPARE4SAVE, "_dmsSchemaHashWriter::_prepare4Save" )
    INT32 _dmsSchemaHashWriter::_prepare4Save( dmsSchemaHashExtent *extent, UINT32 extentSize,
                                               UINT16 numPages, UINT16 mbID )
    {
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAHASHWRITER__PREPARE4SAVE ) ;
       extent->init( numPages, mbID ) ;
       _bucketNum = extent->_bucketNum ;
       _extent = extent ;
@@ -928,6 +980,7 @@ namespace engine
          ((dmsSchemaHashSlot *)&_pListSlot[slotID])->reset() ;
       }
 
+      PD_TRACE_EXIT( SDB__DMSSCHEMAHASHWRITER__PREPARE4SAVE ) ;
       return SDB_OK ;
    }
 
@@ -1378,9 +1431,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMNDEFAULT, "_dmsInternalSchemaWriter::dropColumnDefault" )
    INT32 _dmsInternalSchemaWriter::dropColumnDefault( const CHAR *name )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMNDEFAULT ) ;
 
       UINT16 columnID = _schemaHashWriter.getColumnIDByName( name ) ;
 
@@ -1396,11 +1451,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Drop write default for column %s failed, rc: %d", name, rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMNDEFAULT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_ALTERCOLUMN, "_dmsInternalSchemaWriter::alterColumn" )
    INT32 _dmsInternalSchemaWriter::alterColumn( const CHAR *columnName, const BSONObj &columnDef )
    {
       // There are several scenarios:
@@ -1413,6 +1470,7 @@ namespace engine
       //    default can not be changed, but the write default can be changed.
 
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_ALTERCOLUMN ) ;
 
       UINT16 columnID = _schemaHashWriter.getColumnIDByName( columnName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
@@ -1433,14 +1491,17 @@ namespace engine
                    columnName, rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_ALTERCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_SETINDEXCOLUMN, "_dmsInternalSchemaWriter::setIndexColumn" )
    INT32 _dmsInternalSchemaWriter::setIndexColumn( const CHAR *columnName )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_SETINDEXCOLUMN ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       SDB_ASSERT( columnName, "Column name is invalid" ) ;
@@ -1458,13 +1519,17 @@ namespace engine
       PD_LOG( PDDEBUG, "Set index column flag for column [%s]", columnName ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_SETINDEXCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_UNSETINDEXCOLUMN, "_dmsInternalSchemaWriter::unsetIndexColumn" )
    INT32 _dmsInternalSchemaWriter::unsetIndexColumn( const CHAR *columnName )
    {
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_UNSETINDEXCOLUMN ) ;
+
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       SDB_ASSERT( columnName, "Column name is invalid" ) ;
@@ -1476,13 +1541,15 @@ namespace engine
          PD_LOG( PDDEBUG, "Remove index column flag for column %s", columnName ) ;
       }
       // If the column does not exist in the internal schema, just ignore.
-
+      PD_TRACE_EXIT( SDB__DMSINTERNALSCHEMAWRITER_UNSETINDEXCOLUMN ) ;
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_UPDATESCHEMABYRECORD, "_dmsInternalSchemaWriter::updateSchemaByRecord" )
    INT32 _dmsInternalSchemaWriter::updateSchemaByRecord( const BSONObj &record )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_UPDATESCHEMABYRECORD ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       try
@@ -1513,14 +1580,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_UPDATESCHEMABYRECORD, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER__MERGE2COLUMN, "_dmsInternalSchemaWriter::_merge2Column" )
    INT32 _dmsInternalSchemaWriter::_merge2Column( UINT16 columnID, const BSONObj &columnDef )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER__MERGE2COLUMN ) ;
 
       try
       {
@@ -1538,6 +1608,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER__MERGE2COLUMN, rc ) ;
       return rc ;
    error:
       goto done ;

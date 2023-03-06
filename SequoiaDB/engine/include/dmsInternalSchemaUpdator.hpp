@@ -118,16 +118,14 @@ namespace engine
       private:
          INT32    _getColAttrAndRecord( UINT16 columnID, UINT8 &attr,
                                         const dmsSchemaColRecord *&record,
-                                        BOOLEAN &inMemory ) ;
+                                        BOOLEAN *inMemory = NULL ) ;
 
-         INT32    _addNewColumnInfo( UINT16 columnID, UINT8 attr,
-                                     const dmsSchemaColRecord *record,
-                                     BOOLEAN replace ) ;
+         INT32    _addOrUpdateColumnInfo( UINT16 columnID, UINT8 attr,
+                                          const dmsSchemaColRecord *record ) ;
 
          void     _removeColumnInfo( UINT16 columnID ) ;
 
-         void     _updateTotalSize( const dmsSchemaColRecord *newRecord,
-                                    const dmsSchemaColRecord *oldRecord ) ;
+         void     _updateTotalSize( UINT32 newColSize, UINT32 oldColSize ) ;
 
       private:
          dmsSchemaContainer      _baseSchemaContainer ;
