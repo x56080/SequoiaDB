@@ -411,6 +411,31 @@ namespace engine
             }
          }
 
+         _utilBitmap( const _utilBitmap &right )
+         :_utilBitmapBase()
+         {
+            _initSize = right.getSize() ;
+            _buffSize = 0 ;
+
+            if ( _initSize > 0 )
+            {
+               if ( SDB_OK == _allocateBitmap( _initSize ) )
+               {
+                  setBitmap( right ) ;
+               }
+               else
+               {
+                  SDB_ASSERT( FALSE, "Alloc memrory failed" ) ;
+                  throw pdGeneralException( SDB_OOM, "Alloc memory failed" ) ;
+               }
+            }
+         }
+
+         _utilBitmap& operator=( const _utilBitmap &right )
+         {
+            setBitmap( right ) ;
+         }
+
          ~_utilBitmap ()
          {
             _freeBitmap() ;
@@ -551,21 +576,47 @@ namespace engine
    class _utilThreadBitmap : public _utilBitmapBase
    {
       public :
-         _utilThreadBitmap ( UINT32 size = SIZE )
+         _utilThreadBitmap ( UINT32 size = 0 )
          : _utilBitmapBase()
          {
             _initSize = size ;
-            _buffSize = 0 ;
+            _bitmap = &( _bitmapBuf[0] ) ;
+            _buffSize = sizeof( _bitmapBuf ) ;
 
-            if ( _initSize <= SIZE )
+            if ( _initSize > 0 && _initSize <= SIZE )
             {
                _size = _initSize ;
                _bitmapSize = ( _size + UTIL_BITMAP_UNIT_MODULO ) >>
                              UTIL_BITMAP_UNIT_LOG2SIZE ;
-               _bitmap = &( _bitmapBuf[0] ) ;
-               _buffSize = sizeof( _bitmapBuf ) ;
                resetBitmap() ;
             }
+         }
+
+         _utilThreadBitmap( const _utilThreadBitmap &right )
+         : _utilBitmapBase()
+         {
+            _initSize = right._initSize ;
+            _bitmap = &( _bitmapBuf[0] ) ;
+            _buffSize = sizeof( _bitmapBuf ) ;
+
+            if ( _initSize > 0 )
+            {
+               if ( SDB_OK == _allocateBitmap( _initSize ) )
+               {
+                  setBitmap( right ) ;
+               }
+               else
+               {
+                  SDB_ASSERT( FALSE, "Alloc memory failed" ) ;
+                  throw pdGeneralException( SDB_OOM, "Alloc memory failed" ) ;
+               }
+            }
+         }
+
+         _utilThreadBitmap& operator=( const _utilThreadBitmap &right )
+         {
+            setBitmap( right ) ;
+            return *this ;
          }
 
          ~_utilThreadBitmap()
