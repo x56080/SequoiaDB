@@ -182,7 +182,7 @@ namespace engine
 
          const dmsSchemaHashSlot* _getHashListSlot( UINT32 slotID ) const
          {
-            if ( _extent && slotID < _extent->_slotNum )
+            if ( _extent && slotID < _maxListSlotNum )
             {
                return &_pListSlot[ slotID ] ;
             }
