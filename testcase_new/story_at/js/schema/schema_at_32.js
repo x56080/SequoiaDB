@@ -53,6 +53,5 @@ function test(testPara) {
   expRecs.reverse();
   println(expRecs.length);
   var cursor = cl.find({ pos: { $mod: [10000, 0] } }).hint({ "": "index_pos" });
-  println(cursor.size());
   commCompareResults(cursor, expRecs);
 }
