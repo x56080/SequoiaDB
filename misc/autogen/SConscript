@@ -351,7 +351,10 @@ if not os.path.exists(boost_lib_dir):
     os.makedirs(boost_lib_dir)
 if not os.listdir(boost_lib_dir):
     print("Boost libraries of release version are not ready. Build them...")
-    shutil.rmtree(os.path.join(boost_dir, 'stage'))
+    # Remove stage when it exist
+    boost_stage_dir = os.path.join(boost_dir, 'stage')
+    if os.path.exists(boost_stage_dir):
+        shutil.rmtree(boost_stage_dir)
     boost_compiler = BoostCompiler(boost_dir)
     os.chdir(boost_dir)
     boost_compiler.init(guess_os, guess_arch, 'release')
