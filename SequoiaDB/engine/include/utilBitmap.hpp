@@ -581,14 +581,17 @@ namespace engine
          : _utilBitmapBase()
          {
             _initSize = size ;
-            _bitmap = &( _bitmapBuf[0] ) ;
-            _buffSize = sizeof( _bitmapBuf ) ;
+            _buffSize = 0 ;
+
+            ossMemset( _bitmapBuf, 0, sizeof( _bitmapBuf ) ) ;
 
             if ( _initSize > 0 && _initSize <= SIZE )
             {
                _size = _initSize ;
                _bitmapSize = ( _size + UTIL_BITMAP_UNIT_MODULO ) >>
                              UTIL_BITMAP_UNIT_LOG2SIZE ;
+               _bitmap = &( _bitmapBuf[0] ) ;
+               _buffSize = sizeof( _bitmapBuf ) ;
                resetBitmap() ;
             }
          }
@@ -597,8 +600,9 @@ namespace engine
          : _utilBitmapBase()
          {
             _initSize = right._initSize ;
-            _bitmap = &( _bitmapBuf[0] ) ;
-            _buffSize = sizeof( _bitmapBuf ) ;
+            _buffSize = 0 ;
+
+            ossMemset( _bitmapBuf, 0, sizeof( _bitmapBuf ) ) ;
 
             if ( _initSize > 0 )
             {
