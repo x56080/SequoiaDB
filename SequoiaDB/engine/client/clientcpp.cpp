@@ -58,6 +58,8 @@ using namespace bson ;
 #define SDB_MD5_VALUE_BUF_LEN  (SDB_MD5_DIGEST_LENGTH * 2 + 1)
 #define LOB_ALIGNED_LEN 524288
 #define CLIENT_SQL_MAX_LEN 127
+#define MAX_USERNAME_LENGTH 256
+#define MAX_PASSWORD_LENGTH 256
 
 namespace sdbclient
 {
@@ -10171,6 +10173,11 @@ do                                                            \
       CHAR md5[SDB_MD5_DIGEST_LENGTH*2+1] = { 0 } ;
 
       if ( NULL == pUsrName || NULL == pPasswd )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( MAX_USERNAME_LENGTH < ossStrlen( pUsrName ) || MAX_PASSWORD_LENGTH < ossStrlen( pPasswd ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;

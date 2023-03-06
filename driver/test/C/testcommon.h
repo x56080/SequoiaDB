@@ -176,6 +176,10 @@ INT32 gettid() ;
 
 INT32 bson_compare(const CHAR *pStr, const bson *b) ;
 
+CHAR* allocMemory( INT32 size ) ;
+
+void freeMemory( CHAR *p ) ;
+
 SDB_EXTERN_C_END
 
 #endif
