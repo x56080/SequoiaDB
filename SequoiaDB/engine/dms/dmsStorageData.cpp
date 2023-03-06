@@ -1595,7 +1595,6 @@ namespace engine
       UINT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
 
       schema = getSchema( context->mbID() ) ;
-      SDB_ASSERT( schema->enabled(), "Must be enabled" ) ;
 
    retry:
       /// first get version
