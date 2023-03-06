@@ -102,6 +102,7 @@ namespace engine
    _dmsSchemaWriter::_dmsSchemaWriter()
    : _totalSize( 0 ),
      _hasBaseSchema( FALSE ),
+     _hasChanged( FALSE ),
      _nextColumnID( 0 )
    {
    }
@@ -124,6 +125,13 @@ namespace engine
          _totalSize = extentSize - _baseSchemaContainer.getExtent()->_freeSpace -
                       DMS_SCHEMAEXTENT_HEADER_SZ ;
          _hasBaseSchema = TRUE ;
+
+   #ifdef _DEBUG
+         BSONObj baseSchemaInfo ;
+         _baseSchemaContainer.dump( baseSchemaInfo, TRUE ) ;
+         PD_LOG( PDDEBUG, "Init schema writer from existing schema: %s",
+                 baseSchemaInfo.toPoolString().c_str() ) ;
+   #endif /* _DEBUG */
       }
       else
       {
@@ -136,9 +144,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_ADDCOLUMN, "_dmsSchemaWriter::addColumn" )
    INT32 _dmsSchemaWriter::addColumn( const CHAR *name, const BSONObj *columnDef, UINT16 &columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_ADDCOLUMN ) ;
       UINT8 attr = 0 ;
       dmsSchemaColRecBuilder builder ;
 
@@ -188,14 +198,17 @@ namespace engine
       _updateTotalSize( builder.getRecord(), NULL ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_ADDCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_ALTERCOLUMN, "_dmsSchemaWriter::alterColumn" )
    INT32 _dmsSchemaWriter::alterColumn( UINT16 columnID, const BSONObj &columnInfo )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_ALTERCOLUMN ) ;
 
       SDB_ASSERT( DMS_SCHEMA_INVALID_COLUMNID != columnID, "Column id is invalid" ) ;
 
@@ -204,6 +217,7 @@ namespace engine
       BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const CHAR *name = NULL ;
+      BOOLEAN changed = FALSE ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
       const dmsSchemaColRecord *newColRecord = NULL ;
 
@@ -221,13 +235,14 @@ namespace engine
 
       try
       {
+         // Currently only read default and write default values can be changed.
          ele = columnInfo.getField( FIELD_NAME_READDEFAULT ) ;
          if ( !ele.eoo() )
          {
             // Read default can not be changed.
             if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) )
             {
-               PD_LOG( PDEVENT, "Skip the read default of column %s",
+               PD_LOG( PDEVENT, "Read default value can not be change for column [%s], skip",
                        name ) ;
             }
             else
@@ -236,19 +251,51 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Add read default for column %s to new column info "
                             "failed, rc: %d", name, rc ) ;
                OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
+               changed = TRUE ;
             }
          }
 
          ele = columnInfo.getField( FIELD_NAME_WRITEDEFAULT ) ;
          if ( !ele.eoo() )
          {
-            rc = builder.updateWriteDefault( ele.type(), ele.value(), ele.valuesize() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add write default for column %s to new column info "
-                         "failed, rc: %d", name, rc ) ;
-            if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
+            BSONType type ;
+            INT32 size = 0 ;
+            const CHAR *value = NULL ;
+            BOOLEAN same = FALSE ;
+            if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
             {
-               OSS_BIT_SET( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+               if ( !oldColRecord->getDefault( type, size, value, FALSE ) )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Get read default value of column [%s] failed, rc: %d",
+                          name, rc ) ;
+                  goto error ;
+               }
+
+               if ( ( ele.type() == type ) && ( ele.valuesize() == size ) &&
+                    ( 0 == ossMemcmp( ele.value(), value, size ) ) )
+               {
+                  same = TRUE ;
+                  PD_LOG( PDDEBUG, "New write default for column [%s] is the same with before, "
+                          "nothing will be changed", name ) ;
+               }
             }
+            if ( !same )
+            {
+               rc = builder.updateWriteDefault( ele.type(), ele.value(), ele.valuesize() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Add write default for column %s to new column info "
+                            "failed, rc: %d", name, rc ) ;
+               if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
+               {
+                  OSS_BIT_SET( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+               }
+               changed = TRUE ;
+            }
+         }
+
+         if ( !changed )
+         {
+            goto done ;
          }
 
          name = oldColRecord->getOrigName() ;
@@ -279,6 +326,7 @@ namespace engine
       _updateTotalSize( oldColRecord, newColRecord ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_ALTERCOLUMN , rc ) ;
       return rc ;
    error:
       goto done ;
@@ -524,6 +572,10 @@ namespace engine
          rc = colInfoMem->setData( attr, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema column info in memory failed, rc: %d",
                       rc ) ;
+         if ( !_hasChanged )
+         {
+            _hasChanged = true ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -622,13 +674,15 @@ namespace engine
    }
 
    INT32 _dmsSchemaWriter::save( dmsSchemaExtent *extent, UINT32 extentSize,
-                                 UINT16 pageNum, UINT16 mbID )
+                                 UINT16 pageNum, UINT16 mbID, BOOLEAN isInnerChange )
    {
       UINT8 attr = 0 ;
       UINT16 recordLen = 0 ;
       const dmsSchemaColRecord *record = NULL ;
       dmsSchemaColSlot *colSlot = NULL ;
       UINT32 recordOffset = extentSize ;
+      UINT32 currVersion = DMS_SCHEMA_INVALID_VERSION ;
+      UINT32 currInnerVersion = DMS_SCHEMA_INVALID_VERSION ;
       UINT32 baseSchemaColumnNum = _hasBaseSchema ? _baseSchemaContainer.columnNum() : 0 ;
 
       extent->init( pageNum, mbID, extentSize ) ;
@@ -662,11 +716,17 @@ namespace engine
 
       if ( _hasBaseSchema )
       {
-         extent->_schemaInnerVersion = _baseSchemaContainer.getExtent()->_schemaInnerVersion + 1 ;
-         extent->_schemaVersion = _baseSchemaContainer.getExtent()->_schemaVersion + 1 ;
+         currVersion = _baseSchemaContainer.getExtent()->_schemaVersion ;
+         currInnerVersion = _baseSchemaContainer.getExtent()->_schemaInnerVersion ;
+         if ( !isInnerChange )
+         {
+            extent->_schemaVersion = currVersion + 1 ;
+         }
+         extent->_schemaInnerVersion = currInnerVersion + 1 ;
       }
       else
       {
+         // Internal schema is just enabled. Set its version to 1.
          extent->_schemaInnerVersion = 1 ;
          extent->_schemaVersion = 1 ;
       }
@@ -873,7 +933,8 @@ namespace engine
 
    _dmsInternalSchemaWriter::_dmsInternalSchemaWriter( BOOLEAN createNew )
    : _su( NULL ),
-     _createNew( createNew )
+     _createNew( createNew ),
+     _isInnerChange( FALSE )
    {
    }
 
@@ -881,12 +942,14 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_INIT, "_dmsInternalSchemaWriter::init" )
    INT32 _dmsInternalSchemaWriter::init( const dmsInternalSchema *pSchema,
                                          dmsStorageDataCommon *su,
                                          dmsMBContext *context,
                                          pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_INIT ) ;
       const dmsSchemaExtent * baseSchemaExtent = NULL ;
       UINT32 extentSize = 0 ;
 
@@ -925,11 +988,13 @@ namespace engine
       _su = su ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_SAVE, "_dmsInternalSchemaWriter::save" )
    INT32 _dmsInternalSchemaWriter::save( dmsMBContext *context, pmdEDUCB *cb, BOOLEAN &hasChanged )
    {
       // If internal schema changes, update it by the following steps, to make sure everything is
@@ -939,8 +1004,8 @@ namespace engine
       // 2. Save the data in memory into these extents, and flush them to disk.
       // 3. Change the schema and hash extent id in collection mb, and flush metadata.
       // 4. Release the original extents, if any.
-
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_SAVE ) ;
       dmsExtentID oldSchemaExtID = DMS_INVALID_EXTENT ;
       dmsExtentID oldHashExtID = DMS_INVALID_EXTENT ;
       dmsExtentID newSchemaExtID = DMS_INVALID_EXTENT ;
@@ -951,8 +1016,12 @@ namespace engine
       UINT32 hashExtSize = 0 ;
       BOOLEAN extentChanged = TRUE ;
 
-      if ( 0 == _schemaWriter.totalSize() && !_createNew )
+      // If the schema has not changed, noting need to do. For creation, need to allocate two
+      // extents.
+      if ( !_schemaWriter.hasChanged() && !_createNew )
       {
+         PD_LOG( PDDEBUG, "Nothing changed for the internal schema of collection [%s]",
+                 context->mb()->_collectionName ) ;
          hasChanged = FALSE ;
          goto done ;
       }
@@ -1021,7 +1090,8 @@ namespace engine
             goto error ;
          }
 
-         rc = _schemaWriter.save( schemaExt, schemaExtSize, schemaExtPageNum, context->mbID() ) ;
+         rc = _schemaWriter.save( schemaExt, schemaExtSize, schemaExtPageNum,
+                                  context->mbID(), _isInnerChange ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema for collection [%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
 
@@ -1055,11 +1125,12 @@ namespace engine
             if ( schemaExtent )
             {
                _su->_releaseSpace( oldSchemaExtID, schemaExtent->_blockSize ) ;
-               PD_LOG( PDDEBUG, "Release old internal schema extent [%d]", oldSchemaExtID ) ;
+               PD_LOG( PDDEBUG, "Release old internal schema extent[ID: %d, size: %u]",
+                       oldSchemaExtID, schemaExtent->_blockSize << _su->pageSizeSquareRoot() ) ;
             }
             else
             {
-               PD_LOG( PDERROR, "Internal schema extent [ID:%d] is invalid", oldSchemaExtID ) ;
+               PD_LOG( PDERROR, "Internal schema extent[ID: %d] is invalid", oldSchemaExtID ) ;
             }
          }
          if ( DMS_INVALID_EXTENT != oldHashExtID )
@@ -1070,16 +1141,18 @@ namespace engine
             if ( hashExtent )
             {
                _su->_releaseSpace( oldHashExtID, hashExtent->_blockSize ) ;
-               PD_LOG( PDDEBUG, "Release old internal schema hash extent [%d]", oldHashExtID ) ;
+               PD_LOG( PDDEBUG, "Release old internal schema hash extent[ID: %d, size: %u]",
+                       oldHashExtID, hashExtent->_blockSize << _su->pageSizeSquareRoot() ) ;
             }
             else
             {
-               PD_LOG( PDERROR, "Internal schema hash extent [ID:%d] is invalid", oldHashExtID ) ;
+               PD_LOG( PDERROR, "Internal schema hash extent[ID: %d] is invalid", oldHashExtID ) ;
             }
          }
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_SAVE, rc ) ;
       return rc ;
    error:
       if ( extentChanged )
@@ -1093,23 +1166,25 @@ namespace engine
          rcTmp = _su->_freeExtent( newSchemaExtID, context->mbID() ) ;
          if ( rcTmp )
          {
-            PD_LOG( PDWARNING, "Free new schema extent [%d] of collection [%s] failed, rc: %d",
+            PD_LOG( PDWARNING, "Free new schema extent[ID: %d] of collection [%s] failed, rc: %d",
                     newSchemaExtID, context->mb()->_collectionName, rc ) ;
          }
          rcTmp = _su->_freeExtent( newHashExtID, context->mbID() ) ;
          if ( rcTmp )
          {
-            PD_LOG( PDWARNING, "Free new schema hash extent [%d] of collection [%s] failed, "
+            PD_LOG( PDWARNING, "Free new schema hash extent[ID: %d] of collection [%s] failed, "
                     "rc: %d", newHashExtID, context->mb()->_collectionName, rc ) ;
          }
       }
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_ADDCOLUMNS, "_dmsInternalSchemaWriter::addColumns" )
    INT32 _dmsInternalSchemaWriter::addColumns( const utilSchema &schema, _pmdEDUCB *cb,
                                                const ossPoolSet<ossPoolString> *pSetIdxFields )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_ADDCOLUMNS ) ;
 
       for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
             iter != schema.getColumns().end() ; ++ iter )
@@ -1135,6 +1210,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_ADDCOLUMNS, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1198,9 +1274,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMN, "_dmsInternalSchemaWriter::dropColumn" )
    INT32 _dmsInternalSchemaWriter::dropColumn( const CHAR *columnName )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMN ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       // Get ID of the column from the hash table.
@@ -1221,11 +1299,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Drop column information in internal schema failed, rc: %d", rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_DROPCOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMAWRITER_RENAMECOLUMN, "_dmsInternalSchemaWriter::renameColumn" )
    INT32 _dmsInternalSchemaWriter::renameColumn( const CHAR *oldName, const CHAR *newName )
    {
       // If the column has been renamed before, directly change the current name.
@@ -1250,6 +1330,7 @@ namespace engine
       //
 
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_RENAMECOLUMN ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       SDB_ASSERT( oldName && newName, "Name invalid" ) ;
@@ -1291,6 +1372,7 @@ namespace engine
                    "rc: %d", rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER_RENAMECOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1368,12 +1450,12 @@ namespace engine
       {
          // If the column does not exist in the internal schema, need to add it.
          rc = addColumn( columnName, NULL, &columnID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Add index column %s column name to internal schema failed, "
+         PD_RC_CHECK( rc, PDERROR, "Add index column [%s] name to internal schema failed, "
                       "rc: %d", columnName, rc ) ;
       }
 
       _schemaWriter.setIndexColumn( columnID ) ;
-      PD_LOG( PDDEBUG, "Set index column flag for column %s", columnName ) ;
+      PD_LOG( PDDEBUG, "Set index column flag for column [%s]", columnName ) ;
 
    done:
       return rc ;
@@ -1416,6 +1498,10 @@ namespace engine
                rc = addColumn( ele.fieldName(), NULL, &columnID ) ;
                PD_RC_CHECK( rc, PDERROR, "Add column %s into internal schema failed, rc: %d",
                             ele.fieldName(), rc ) ;
+               if ( !_isInnerChange )
+               {
+                  _isInnerChange = TRUE ;
+               }
             }
          }
       }

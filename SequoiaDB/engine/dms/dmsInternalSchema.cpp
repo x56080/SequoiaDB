@@ -2137,8 +2137,9 @@ namespace engine
       }
       else
       {
-         PD_LOG( PDEVENT, "Internal schema: column number %d"OSS_NEWLINE"%s",
-                 _schemaContainer.columnNum(),
+         PD_LOG( PDEVENT,
+                 "Internal schema[Version: %u. Inner version: %u. Column number %d]"OSS_NEWLINE"%s",
+                 _schemaVersion, _schemaInnerVersion, _schemaContainer.columnNum(),
                  schemaInfo.jsonString( bson::JS, TRUE ).c_str() ) ;
       }
    }

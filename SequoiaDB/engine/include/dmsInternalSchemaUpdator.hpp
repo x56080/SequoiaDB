@@ -96,7 +96,8 @@ namespace engine
 
          INT32 unsetIndexColumn( UINT16 columnID ) ;
 
-         INT32 save( dmsSchemaExtent *extent, UINT32 extentSize, UINT16 pageNum, UINT16 mbID ) ;
+         INT32 save( dmsSchemaExtent *extent, UINT32 extentSize, UINT16 pageNum,
+                     UINT16 mbID, BOOLEAN isInnerChange = FALSE ) ;
 
          const dmsSchemaContainer* getBaseSchemaContainer() const
          {
@@ -107,6 +108,11 @@ namespace engine
          UINT32 totalSize() const
          {
             return _totalSize ;
+         }
+
+         BOOLEAN  hasChanged() const
+         {
+            return _hasChanged ;
          }
 
       private:
@@ -128,6 +134,7 @@ namespace engine
          COL_INFO_MAP            _colInfoMap ;
          UINT32                  _totalSize ;
          BOOLEAN                 _hasBaseSchema ;
+         BOOLEAN                 _hasChanged ;
          UINT16                  _nextColumnID ;
    } ;
    typedef _dmsSchemaWriter dmsSchemaWriter ;
@@ -238,6 +245,7 @@ namespace engine
          dmsSchemaWriter               _schemaWriter ;
          dmsSchemaHashWriter           _schemaHashWriter ;
          BOOLEAN                       _createNew ;
+         BOOLEAN                       _isInnerChange ;
    } ;
    typedef _dmsInternalSchemaWriter dmsInternalSchemaWriter ;
 }

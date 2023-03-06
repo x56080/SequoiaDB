@@ -4912,7 +4912,7 @@ namespace engine
                    "collection [%s.%s], rc: %d",
                    schema.getName(), spaceName, collectionName, rc ) ;
 
-      PD_LOG( PDEVENT, "Add schema [%s] on collection [%s.%s]",
+      PD_LOG( PDEVENT, "Add schema [%s] on collection [%s.%s] successfully",
               schema.getName(), spaceName, collectionName ) ;
 
    done:
