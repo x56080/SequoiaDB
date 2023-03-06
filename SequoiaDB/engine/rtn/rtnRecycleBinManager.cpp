@@ -265,7 +265,7 @@ namespace engine
             _isEmptyFlag = FALSE ;
 
             // check if count is exceed maximum number of items
-            if ( checkLimit && count > (INT64)( conf.getMaxItemNum() ) )
+            if ( count > (INT64)( conf.getMaxItemNum() ) )
             {
                INT64 expectDropCount = count - conf.getMaxItemNum() ;
                rc = _getOldestItems( OSS_UINT64_MAX, expectDropCount, cb,

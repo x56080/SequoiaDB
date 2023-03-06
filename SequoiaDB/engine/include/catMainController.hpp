@@ -107,6 +107,8 @@ namespace engine
                                            CAT_MAX_DELAY_RETRY_TIMES ) ;
       BOOLEAN   isDelayed() const { return _isDelayed ; }
 
+      BOOLEAN   canDelayed( UINT32 maxRetryTimes = CAT_MAX_DELAY_RETRY_TIMES ) ;
+
       void addContext( const UINT32 &handle, UINT32 tid, INT64 contextID ) ;
       void delContextByID( INT64 contextID, BOOLEAN rtnDel ) ;
 

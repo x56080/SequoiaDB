@@ -243,6 +243,8 @@ namespace engine
                            pmdEDUCB *cb,
                            UTIL_RECY_ITEM_LIST &itemList ) ;
 
+      INT32 _checkDelayLockFailed( const utilRecycleBinConf &conf ) ;
+
    protected:
       // cache of recycle bin information
       // reserved recycle item counts during any contexts with recycle items
