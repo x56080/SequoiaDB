@@ -10,7 +10,7 @@ import( './conf.js' ) ;
 import( './lib/log.js' ) ;
 import( './lib/func.js' ) ;
 
-const _script_version         = 1 ;
+const _script_version         = 2 ;
 const _str_curr_ts            = getTSString( new Timestamp() ) ;
 const _write_file_batch_count = 100 ;
 const _diag_level             = typeof( DEBUG ) == "boolean" ? ( true == DEBUG ? 5 : 3 ) : 3 ;
@@ -129,6 +129,36 @@ function _getCataSnap( sdb, fullName ) {
    return snapObj ;
 }
 
+function _getTotalLobs( obj ) {
+   var retCnt = 0 ;
+   for ( var i = 0; i < obj.Details.length; i++ ) {
+      if ( obj.Details[i].TotalLobs ) {
+         retCnt += obj.Details[i].TotalLobs ;
+      }
+   }
+   return retCnt ;
+}
+
+function _hasLob( sdb, fullName ) {
+   var cursor = null ;
+   try {
+      cursor = sdb.snapshot( SDB_SNAP_COLLECTIONS, { Name:fullName, RawData: true } ) ;
+      while( null != cursor.next() ) {
+         var snapObj = cursor.current().toObj() ;
+         // when one of the node associated with current collection has lob,
+         // let's stop and return true
+         if ( _getTotalLobs( snapObj ) > 0 ) {
+            return true ;
+         }
+      }
+   } finally {
+      if ( undefined != cursor ) {
+         cursor.close() ;
+      }
+   }
+   return false ;
+} ;
+
 var MaxMinCount = function () {
    this.Max = -1 ;
    this.Min = -1 ;
@@ -146,7 +176,6 @@ var CLInfo = function () {
    this.ShardingType          = "" ;
    this.Partition             = -1 ;
    this.Groups                = -1 ;
-   this.Lobs                  = -1 ;
    this.GroupInfo             = [] ;
    // record count
    this.TotalRecords          = -1 ;
@@ -207,6 +236,11 @@ Param.prototype.init = function () {
    this.svcName        = coord_port ;
    this.user           = user ;
    this.passwd         = passwd ;
+
+   // disable repair mode
+   if ( typeof(ACTION) != TYPE_UNDEF && TOOL_ACTION_REPAIR == ACTION ) {
+      throw new Error( "'repair' mode has been disable" ) ;
+   }
 
    // init action
    if ( typeof(ACTION) == TYPE_UNDEF ||
@@ -273,9 +307,10 @@ var Initiator = function ( sdb, param ) {
    this.outputFd = null ;
    this.reportFd = null ;
    this.totalCLNum = 0 ; // total number of doubtful collection
-   this.lobCLNum = 0 ; // the number of doubtful collections which have lob
    this.totalRecordNum = 0 ; // total number of records in these collections 
    this.connObjs = new Object() ;
+   this.beginTime = null ;
+   this.endTime = null ;
 } ;
 
 Initiator.prototype.run = function() {
@@ -359,9 +394,6 @@ Initiator.prototype._run = function() {
          // update calculation info
          this.totalRecordNum += clInfo.TotalRecords ;
          this.totalCLNum += 1 ;
-         if ( clInfo.Lobs > 0 ) {
-            this.lobCLNum += 1 ;
-         }
 
          // write cl info to file by batch
          runCount++ ;
@@ -414,8 +446,6 @@ Initiator.prototype._getCLCountInfo = function( clInfo ) {
       // get total record count of cl
       var cl = this.sdb.getCS( csName ).getCL( clName ) ;
       clInfo.TotalRecords = cl.count().valueOf() ;
-      // get total lob count of cl
-      clInfo.Lobs = cl.listLobs().size() ;
       // get counts in groups
       var grpInfoLst = clInfo.GroupInfo ;
       for ( var idx = 0 ; idx < grpInfoLst.length ; ++idx ) {
@@ -462,11 +492,12 @@ Initiator.prototype._getMaxAndMinRecordCount = function( grpInfoLst ) {
 } ;
 
 Initiator.prototype._writeHeadInfo = function() {
+   this.beginTime = new Date() ;
    // write header info of report file
    var reportInfo = "Version: " + _script_version + ", action: " + this.param.action
                     + ", report at: " + _str_curr_ts ;
-   var headLine1  = "Name                                          ShardingKey             ShardingType   Groups   Lobs   TotalRecords   MaxRecordsInGroup   MinRecordsInGroup" ;
-   var headLine2  = "---------------------------------------------------------------------------------------------------------------------------------------------------------" ;
+   var headLine1  = "Name                                          ShardingKey             ShardingType   Groups   TotalRecords   MaxRecordsInGroup   MinRecordsInGroup" ;
+   var headLine2  = "--------------------------------------------------------------------------------------------------------------------------------------------------" ;
 
    this.reportFd.write( reportInfo + NEW_LINE ) ;
    this.reportFd.write( NEW_LINE ) ;
@@ -493,14 +524,12 @@ Initiator.prototype._formatInfo = function ( clInfo ) {
    content = _appendString( content, clInfo.ShardingType, 84 ) ;
    // Groups
    content = _appendString( content, clInfo.Groups, 93 ) ;
-   // Lobs
-   content = _appendString( content, clInfo.Lobs, 100 ) ;
    // TotalRecords
-   content = _appendString( content, clInfo.TotalRecords, 115 ) ;
+   content = _appendString( content, clInfo.TotalRecords, 108 ) ;
    // MaxRecordsInGroup
-   content = _appendString( content, clInfo.MaxRecordsInGroup, 135 ) ;
+   content = _appendString( content, clInfo.MaxRecordsInGroup, 128 ) ;
    // MinRecordsInGroup
-   content = _appendString( content, clInfo.MinRecordsInGroup, 155 ) ;
+   content = _appendString( content, clInfo.MinRecordsInGroup, 148 ) ;
    return content ;
 } ;
 
@@ -509,10 +538,13 @@ Initiator.prototype._writeSummary = function() {
    this.reportFd.write( NEW_LINE ) ;
    this.reportFd.write( "Summary:" + NEW_LINE ) ;
    var summary = "" ;
-   summary = "Total number of collections which sharding key have \"_id\" is: " +
-             this.totalCLNum + ", and the number of them which have lobs is: " + this.lobCLNum ;
+   summary = "Total number of collections which need to be checked is: " + this.totalCLNum ;
    this.reportFd.write( summary + NEW_LINE ) ;
    summary = "Total number of records: " + this.totalRecordNum ;
+   this.reportFd.write( summary + NEW_LINE ) ;
+   this.endTime = new Date() ;
+   var timeSpent = _getTimeSpent( this.beginTime, this.endTime ) ;
+   summary = "Total time spent: " + timeSpent + " seconds" ;
    this.reportFd.write( summary + NEW_LINE ) ;
 } ;
 
@@ -842,7 +874,7 @@ RepairContext.prototype.init = function () {
    }
 
    // check original cl has lob or not
-   if ( this._hasLob( cl ) ) {
+   if ( _hasLob( this.sdb, fullName ) ) {
       var err = new Error( "Not support to handle cl: " + fullName + " which has lob" )
       _logger.log( PDERROR, err ) ;
       throw err ;
@@ -1001,6 +1033,7 @@ RepairContext.prototype._checkOrigCLStat = function() {
       throw err ;
    }
    // check lob count
+   // these no lob at the beginning, so listLobs() will not cause large IO read here
    var lobCount = cl.listLobs().size() ;
    if ( 0 != lobCount ) {
       var err = new Error( "Lob count of cl: " + this.fullName +
@@ -1281,10 +1314,6 @@ RepairContext.prototype._getSubCLBound = function( mainCLName, subCLName ) {
       throw err ;
    }
    return boundObj ;
-} ;
-
-RepairContext.prototype._hasLob = function( cl ) {
-   return cl.listLobs().size() > 0 ? true : false ;
 } ;
 
 RepairContext.prototype._hasNotSupportOption = function( option ) {
