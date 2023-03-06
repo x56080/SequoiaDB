@@ -68,11 +68,21 @@ namespace engine
          detail = BSON( SPT_ERR << "Column name should be specified" ) ;
          goto error ;
       }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column name should be a string" ) ;
+         goto error ;
+      }
 
       rc = arg.getBsonobj( 1, columnDef ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
          detail = BSON( SPT_ERR << "Column definition should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column definition should be an object" ) ;
          goto error ;
       }
 
@@ -104,11 +114,21 @@ namespace engine
          detail = BSON( SPT_ERR << "Column name should be specified" ) ;
          goto error ;
       }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column name should be a string" ) ;
+         goto error ;
+      }
 
       rc = arg.getBsonobj( 1, columnOptions ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
          detail = BSON( SPT_ERR << "Column options should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column options should be an object" ) ;
          goto error ;
       }
 
@@ -140,11 +160,21 @@ namespace engine
          detail = BSON( SPT_ERR << "Column name should be specified" ) ;
          goto error ;
       }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column name should be a string" ) ;
+         goto error ;
+      }
 
       rc = arg.getString( 1, newColumnName ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
          detail = BSON( SPT_ERR << "New column name should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "New column name should be a string" ) ;
          goto error ;
       }
 
@@ -175,6 +205,11 @@ namespace engine
          detail = BSON( SPT_ERR << "Column name should be specified" ) ;
          goto error ;
       }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column name should be a string" ) ;
+         goto error ;
+      }
 
       rc = _schema.dropColumn( columnName.c_str() ) ;
       if ( SDB_OK != rc )
@@ -201,6 +236,11 @@ namespace engine
       if ( SDB_OUT_OF_BOUND == rc )
       {
          detail = BSON( SPT_ERR << "Column name should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Column name should be a string" ) ;
          goto error ;
       }
 
@@ -231,6 +271,11 @@ namespace engine
          detail = BSON( SPT_ERR << "Options should be specified" ) ;
          goto error ;
       }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options should be an object" ) ;
+         goto error ;
+      }
 
       rc = _schema.setAttributes( options ) ;
       if ( SDB_OK != rc )
@@ -257,6 +302,11 @@ namespace engine
       if ( SDB_OUT_OF_BOUND == rc )
       {
          detail = BSON( SPT_ERR << "Options should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options should be an object" ) ;
          goto error ;
       }
 
