@@ -945,6 +945,7 @@ namespace engine
    {
       ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
       _reset() ;
+      _enabled = FALSE ;
    }
 
    void _dmsInternalSchema::_reset()

@@ -476,6 +476,7 @@ namespace engine
                ossMemset( pBitmap + _buffSize, 0, buffSize - _buffSize ) ;
             }
 
+            _bitmap = pBitmap ;
             while ( size < _size )
             {
                clearBit( size ) ;
@@ -488,7 +489,6 @@ namespace engine
                _freeSize += ( size - _size ) ;
             }
             _size = size ;
-            _bitmap = pBitmap ;
             _bitmapSize = bitmapSize ;
             _buffSize = buffSize ;
 
@@ -555,6 +555,7 @@ namespace engine
          : _utilBitmapBase()
          {
             _initSize = size ;
+            _buffSize = 0 ;
 
             if ( _initSize <= SIZE )
             {
@@ -562,11 +563,42 @@ namespace engine
                _bitmapSize = ( _size + UTIL_BITMAP_UNIT_MODULO ) >>
                              UTIL_BITMAP_UNIT_LOG2SIZE ;
                _bitmap = &( _bitmapBuf[0] ) ;
+               _buffSize = sizeof( _bitmapBuf ) ;
                resetBitmap() ;
             }
          }
 
-         ~_utilThreadBitmap ()
+         ~_utilThreadBitmap()
+         {
+            _release() ;
+         }
+
+         void release()
+         {
+            _release() ;
+         }
+
+         OSS_INLINE INT32 init()
+         {
+            if (  _size != _initSize )
+            {
+               return _allocateBitmap( _initSize ) ;
+            }
+            return SDB_OK ;
+         }
+
+         OSS_INLINE INT32 resize( UINT32 size )
+         {
+            if ( size != _size )
+            {
+               _initSize = size ;
+               return _allocateBitmap( _initSize ) ;
+            }
+            return SDB_OK ;
+         }
+
+      protected:
+         void _release()
          {
             if ( _bitmap )
             {
@@ -579,27 +611,75 @@ namespace engine
             _bitmapSize = 0 ;
             _size = 0 ;
             _freeSize = 0 ;
+            _buffSize = 0 ;
          }
 
-         OSS_INLINE INT32 init()
+         OSS_INLINE INT32 _allocateBitmap ( UINT32 size )
          {
             INT32 rc = SDB_OK ;
+            UINT8 *pBitmap = NULL ;
+            UINT32 bitmapSize = ( size + UTIL_BITMAP_UNIT_MODULO ) /
+                                UTIL_BITMAP_UNIT_SIZE ;
+            UINT32 buffSize = bitmapSize ;
 
-            if ( !_bitmap )
+            if ( buffSize <= _buffSize )
             {
-               UINT32 bitmapSize = ( _initSize + UTIL_BITMAP_UNIT_MODULO ) >>
-                                     UTIL_BITMAP_UNIT_LOG2SIZE ;
-               _bitmap = (UINT8*)SDB_THREAD_ALLOC( bitmapSize ) ;
-               if ( !_bitmap )
-               {
-                  PD_LOG( PDERROR, "Allocate memory(%u) failed", bitmapSize ) ;
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               _size = _initSize ;
-               _bitmapSize = bitmapSize ;
-               resetBitmap() ;
+               buffSize = _buffSize ;
+               pBitmap = _bitmap ;
             }
+            else if ( !_bitmap )
+            {
+               if ( size <= SIZE )
+               {
+                  pBitmap = &( _bitmapBuf[0] ) ;
+                  buffSize = sizeof( _bitmapBuf ) ;
+               }
+               else
+               {
+                  pBitmap = (UINT8*)SDB_THREAD_ALLOC( buffSize ) ;
+               }
+            }
+            else if ( _bitmap != &( _bitmapBuf[0] ) )
+            {
+               pBitmap = (UINT8*)SDB_THREAD_REALLOC( _bitmap, buffSize ) ;
+            }
+            else
+            {
+               pBitmap = (UINT8*)SDB_THREAD_ALLOC( buffSize ) ;
+               if ( pBitmap )
+               {
+                  ossMemcpy( pBitmap, _bitmap, _bitmapSize ) ;
+               }
+            }
+
+            if ( !pBitmap )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory[%u] failed", bitmapSize ) ;
+               goto error ;
+            }
+
+            /// reset bitmap
+            if ( _buffSize < buffSize )
+            {
+               ossMemset( pBitmap + _buffSize, 0, buffSize - _buffSize ) ;
+            }
+
+            _bitmap = pBitmap ;
+            while ( size < _size )
+            {
+               clearBit( size ) ;
+               ++size ;
+            }
+
+            /// asign info
+            if ( _size < size )
+            {
+               _freeSize += ( size - _size ) ;
+            }
+            _size = size ;
+            _bitmapSize = bitmapSize ;
+            _buffSize = buffSize ;
 
          done:
             return rc ;
@@ -611,6 +691,7 @@ namespace engine
          UINT8    _bitmapBuf[ ( SIZE + UTIL_BITMAP_UNIT_MODULO ) >>
                               UTIL_BITMAP_UNIT_LOG2SIZE ] ;
          UINT32   _initSize ;
+         UINT32   _buffSize ;
    } ;
 
 

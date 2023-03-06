@@ -333,7 +333,7 @@ namespace engine
    */
    struct _dmsSchemaContextItem
    {
-      dmsSchemaBitmap         _readBitmap ;
+      dmsThreadSchemaBitmap   _readBitmap ;
       BOOLEAN                 _hitName ;
       UINT64                  _useID ;
 
