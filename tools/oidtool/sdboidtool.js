@@ -5,6 +5,10 @@
  * ./sdb -e ' var ACTION = "init"; ' -f sdboidtool.js
  * ./sdb -e ' var ACTION = "check"; ' -f sdboidtool.js
  * ./sdb -e ' var ACTION = "repair"; ' -f sdboidtool.js
+ *
+ * Changes:
+ * 2022/12/21 第一版本，初始化
+ * 2023/03/06 第二版本，init 阶段不检测 lob，暂时不开放 repair 功能
  */
 import( './conf.js' ) ;
 import( './lib/log.js' ) ;
