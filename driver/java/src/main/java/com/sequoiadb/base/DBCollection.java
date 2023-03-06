@@ -2985,4 +2985,29 @@ public class DBCollection {
         sequoiadb.throwIfError(response, newObj);
         sequoiadb.upsertCache(collectionFullName);
     }
+
+    /**
+     * Bind schema into collection.
+     *
+     * @param name the schema name.
+     * @throws BaseException If error happens.
+     */
+    public void addSchema(String name) {
+        if (name == null || name.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The schema name is empty or null");
+        }
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FILE_NAME_SCHEMA, name);
+
+        alterInternal(SdbConstants.SCHEMA_ADD_CL, obj, false);
+    }
+
+    /**
+     * Enable info schema ability
+     */
+    public void enableInfoSchema() {
+        BasicBSONObject opt = new BasicBSONObject();
+        opt.put("EnableInfoSchema", true);
+        alterCollection(opt);
+    }
 }

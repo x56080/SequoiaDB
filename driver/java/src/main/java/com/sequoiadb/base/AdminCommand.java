@@ -160,4 +160,10 @@ final class AdminCommand {
     final static String RETURN_RECYCLEBIN_ITEM_TO_NAME = PREFIX + "return recyclebin item to name";
     final static String DROP_RECYCLEBIN_ITEM = PREFIX + "drop recyclebin item";
     final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
+
+    final static String CREATE_SCHEMA = PREFIX + "create schema";
+    final static String ALTER_SCHEMA = PREFIX + "alter schema";
+    final static String DROP_SCHEMA = PREFIX + "drop schema";
+    final static String LIST_SCHEMAS = PREFIX + "list schemas";
+
 }

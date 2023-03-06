@@ -182,6 +182,7 @@ public class CollectionSpace {
      *               <li>IsMainCL : Main collection or not, default is false, which means it is not main collection
      *               <li>DataSource : The name of the date soure used
      *               <li>Mapping : The name of the collection to be mapped
+     *               <li>EnableInfoSchema: Whether enable info schema, default to be false.
      * @return the newly created object of collection.
      * @throws BaseException If error happens.
      */

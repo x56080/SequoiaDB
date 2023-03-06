@@ -180,6 +180,7 @@ public class Sequoiadb implements Closeable {
      * List of recycle bin
      */
     public final static int SDB_LIST_RECYCLEBIN = 27;
+    public final static int SDB_LIST_SCHEMAS = 28;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -2897,6 +2898,108 @@ public class Sequoiadb implements Closeable {
         return new DBRecycleBin(this);
     }
 
+    /**
+     * Create a schema.
+     *
+     * @param name The name of schema.
+     * @param columns The columns of schema.
+     * @return The schema object.
+     * @throws BaseException If error happens.
+     */
+    public DBSchema createSchema(String name, BSONObject columns) throws BaseException {
+        return createSchema(name, columns, null);
+    }
+
+    /**
+     * Create a schema.
+     *
+     * @param name The name of schema.
+     * @param columns The columns of schema.
+     * @param attribute The attribute of schema.
+     * @return The schema object.
+     * @throws BaseException If error happens.
+     */
+    public DBSchema createSchema(String name, BSONObject columns, BSONObject attribute) throws BaseException {
+        if (name == null || name.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The schema name is empty or null");
+        }
+        if (columns == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The columns is null");
+        }
+
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_NAME, name);
+        obj.put(SdbConstants.FIELD_NAME_COLUMNS, columns);
+        if ( attribute != null ) {
+            obj.putAllUnique(attribute);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_SCHEMA, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DBSchema(this, name);
+    }
+
+    /**
+     * Drop a schema.
+     *
+     * @param name The name of schema.
+     * @throws BaseException If error happens.
+     */
+    public void dropSchema(String name) throws BaseException {
+        if (name == null || name.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The schema name is empty or null");
+        }
+
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_NAME, name);
+
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_SCHEMA, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Get a schema Object
+     *
+     * @param name The name of schema.
+     * @throws BaseException If error happens.
+     */
+    public DBSchema getSchema(String name) {
+        if (name == null || name.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The schema name is empty or null");
+        }
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SdbConstants.FIELD_NAME_NAME, name);
+
+        DBSchema result = null;
+        try (DBCursor cursor = getList(SDB_LIST_SCHEMAS, matcher, null, null )){
+            if (cursor.hasNext()) {
+                result = new DBSchema(this, name);
+            }
+        }
+        if (result == null) {
+            throw new BaseException(SDBError.SDB_SCHEMA_NOT_EXIST, "The Schema '" + name + "' does not exist");
+        }
+        return result;
+    }
+
+    /**
+     * List schema.
+     *
+     * @param matcher  The matching rule, return all the records if null.
+     * @param selector The selective rule, return the whole records if null.
+     * @param orderBy  The ordered rule, never sort if null.
+     * @param hint  Reserved, please specify null.
+     * @return Cursor of schema.
+     * @throws BaseException If error happens.
+     */
+    public DBCursor listSchema(BSONObject matcher, BSONObject selector, BSONObject orderBy,
+                               BSONObject hint) throws BaseException {
+        return getList(SDB_LIST_SCHEMAS, matcher, selector, orderBy, hint, 0, -1);
+    }
+
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
@@ -2961,6 +3064,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
                 return AdminCommand.LIST_CS_IN_DOMAIN;
+            case SDB_LIST_SCHEMAS:
+                return AdminCommand.LIST_SCHEMAS;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid list type: %d", listType));

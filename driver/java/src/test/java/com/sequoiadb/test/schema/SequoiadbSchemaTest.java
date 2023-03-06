@@ -1,0 +1,70 @@
+package com.sequoiadb.test.schema;
+
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.DBSchema;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.test.common.Constants;
+import org.bson.BasicBSONObject;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+
+public class SequoiadbSchemaTest {
+
+    private static Sequoiadb sdb;
+    private static String schemaName = "schema_03";
+
+    @BeforeClass
+    public static void init() {
+        sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
+    }
+
+    @Test
+    public void test() {
+        createSchema();
+        getSchema();
+        listSchema();
+        dropSchema();
+    }
+
+    public void createSchema() {
+        BasicBSONObject col = new BasicBSONObject();
+        BasicBSONObject type = new BasicBSONObject();
+        type.put("Type", "string");
+        type.put("ReadDefault", "2.1");
+        type.put("WriteDefault", "3");
+        col.put("field", type);
+        sdb.createSchema(schemaName, col);
+    }
+
+    public void dropSchema() {
+        sdb.dropSchema(schemaName);
+        try {
+            sdb.getSchema(schemaName);
+            Assert.fail();
+        } catch (BaseException e) {
+            System.out.println();
+        }
+    }
+
+    public void getSchema() {
+        sdb.getSchema(schemaName);
+    }
+
+    public void listSchema() {
+        // find all
+        DBCursor dbCursor = sdb.listSchema(null, null, null, null);
+        while (dbCursor.hasNext()) {
+            System.out.println(dbCursor.getNext());
+        }
+        // find match
+        BasicBSONObject match = new BasicBSONObject();
+        match.put("Name", schemaName);
+        dbCursor = sdb.listSchema(match, null, null, null);
+        while (dbCursor.hasNext()) {
+            System.out.println(dbCursor.getNext());
+        }
+    }
+}

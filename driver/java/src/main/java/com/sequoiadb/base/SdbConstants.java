@@ -124,6 +124,9 @@ final class SdbConstants {
     final static String FIELD_NAME_RECYCLE_NAME = "RecycleName";
     final static String FIELD_NAME_RETURN_NAME = "ReturnName";
 
+    final static String FILE_NAME_SCHEMA = "Schema";
+    final static String FIELD_NAME_COLUMNS = "Columns";
+
     final static String IXM_NAME = "name";
     final static String IXM_KEY = "key";
     final static String IXM_UNIQUE = "Unique";
@@ -153,4 +156,14 @@ final class SdbConstants {
     final static String SEQ_OPT_SET_CURR_VALUE = "set current value";
     final static String SEQ_OPT_RENAME = "rename";
     final static String SEQ_OPT_RESTART = "restart";
+
+    final static String SCHEMA_ADD_COLUMN = "add column";
+    final static String SCHEMA_DROP_COLUMN = "drop column";
+    final static String SCHEMA_ALTER_COLUMN = "alter column";
+    final static String SCHEMA_RENAME_COLUMN = "rename column";
+    final static String SCHEMA_DROP_DEFAULT = "drop default";
+    final static String SCHEMA_SET_ATTRIBUTES = "set attributes";
+
+    final static String SCHEMA_ADD_CL = "add schema";
+    final static String SCHEMA_ALTER_CL = "alter schema";
 }
