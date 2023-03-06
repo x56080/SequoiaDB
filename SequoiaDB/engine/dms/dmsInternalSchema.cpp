@@ -766,6 +766,7 @@ namespace engine
             return TRUE ;
          }
       }
+      return FALSE ;
    }
 
    void _dmsSchemaContext::prune( UINT32 recordVersion,
