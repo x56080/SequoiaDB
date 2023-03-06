@@ -654,6 +654,11 @@ namespace engine
          extent->_schemaInnerVersion = _baseSchemaContainer.getExtent()->_schemaInnerVersion + 1 ;
          extent->_schemaVersion = _baseSchemaContainer.getExtent()->_schemaVersion + 1 ;
       }
+      else
+      {
+         extent->_schemaInnerVersion = 1 ;
+         extent->_schemaVersion = 1 ;
+      }
 
       extent->_freeSpace = extentSize - DMS_SCHEMAEXTENT_HEADER_SZ - _totalSize ;
       extent->_valueOffset = recordOffset ;
@@ -948,14 +953,28 @@ namespace engine
 
       schemaExtSize = ossRoundUpToMultipleX( _schemaWriter.totalSize() + DMS_SCHEMAEXTENT_HEADER_SZ,
                                              _su->pageSize() ) ;
+
+      if ( schemaExtSize > DMS_SCHEMA_EXTENT_MAX_SZ )
+      {
+         rc = SDB_OSS_UP_TO_LIMIT ;
+         PD_LOG( PDERROR, "Size of internal schema [%u] exceeds the limit[%u], rc: %d",
+                 schemaExtSize, DMS_SCHEMA_EXTENT_MAX_SZ, rc ) ;
+         goto error ;
+      }
+
       schemaExtPageNum = schemaExtSize >> _su->pageSizeSquareRoot() ;
       rc = _su->_findFreeSpace( schemaExtPageNum, newSchemaExtID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Allocate extent of [%u] pages for new internal schema failed, "
                    "rc: %d", schemaExtPageNum, rc ) ;
 
-      hashExtSize =
-         ossRoundUpToMultipleX( _schemaHashWriter.totalSize() + DMS_SCHEMAHASHEXTENT_HEADER_SZ,
-                                _su->pageSize() ) ;
+      // We don't know how many items will be in the conflict list slot area. Allocate for the
+      // worest case.
+      hashExtSize = DMS_SCHEMAHASHEXTENT_HEADER_SZ +
+                    ( DMS_SCHEMA_HASH_BUCKET_SIZE + _schemaHashWriter.totalSize() ) *
+                    DMS_HASHEXTENT_SLOT_SZ ;
+
+      hashExtSize = ossRoundUpToMultipleX( hashExtSize, _su->pageSize() ) ;
+
       hashExtPageNum = hashExtSize >> _su->pageSizeSquareRoot() ;
       rc = _su->_findFreeSpace( hashExtPageNum, newHashExtID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Allocate extent of [%u] pages for new internal schema hash table "
