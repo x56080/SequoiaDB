@@ -1,16 +1,23 @@
-sdbimprt 是 SequoiaDB 巨杉数据库的数据导入工具，用于将 JSON 或 CSV 格式的数据导入到 SequoiaDB 数据库中。
+[^_^]:
+     数据导入工具
 
-JSON
-----
+sdbimprt 是 SequoiaDB 巨杉数据库的数据导入工具，用于将 JSON 或 CSV 格式的数据导入至 SequoiaDB 中。该工具支持并发导入单个数据文件，也支持批量导入数据目录。
+
+##语法规则##
+
+**sdbimprt \<-c arg\> \<-l arg\> \<options\>**
+
+##导入说明##
+
+###JSON###
 
 JSON 格式的记录必须符合 JSON 的定义，以左右花括号作为记录的分界符，并且字符串类型的数据必须包含在两个双引号之间，转义字符为反斜杠“\\”。
 
-CSV
-----
+###CSV###
 
 CSV（Comma Separated Values）格式以逗号分隔数值。默认情况下记录以换行符分隔，字段以逗号分隔。用户能够指定字符串分隔符、字段分隔符以及记录分隔符。
 
-##分隔符##
+###分隔符###
 
 | 类型         | 默认值          |
 | ------------ | --------------- |
@@ -24,8 +31,11 @@ CSV（Comma Separated Values）格式以逗号分隔数值。默认情况下记�
 >*   可以使用多个字符作为分隔符；
 >*   可以使用 ASCII 码中的不可见字符作为分隔符，通过转义字符“\\”输入 ASCII 码的十进制数值（0~127），例如“\\30”。回车符、换行符、制表符、转义字符“\\”可以直接使用“\\r”，“\\n”，“\\t”，“\\\\”。
 
-CSV类型
-----
+###CSV 数据类型转换###
+
+在导入 CSV 格式的数据时，如果不指定每个字段的数据类型，工具将自动判断类型并执行导入。如果已指定字段的数据类型，工具将对数据进行类型转换后，再执行导入。
+
+**CSV 类型**
 
 | 类型          | 描述 |
 | ------------- | ---- |
@@ -55,8 +65,7 @@ CSV类型
 > * autodate 类型支持使用整数，表示自 1970-01-01-00.00.00.000000 以来的毫秒数, 取值范围为 int64 类型的范围。
 > * autotimestamp 类型支持使用整数，表示自 1970-01-01-00.00.00.000000 以来的毫秒数，取值范围为 -2147414400000~2147443199000。
 
-CSV类型自动判断
-----
+**CSV 类型自动判断**
 
 在不指定 CSV 字段类型时，导入工具会自动判断类型。其中 oid、date、timestamp、binary 和 regex 不支持自动类型判断，会被识别为 string 类型。整数超过 int64 的范围，浮点数超过 double 的范围，以及浮点数总位数超过 15 位或小数位超过 6 位时，类型判断为 decimal。例如：
 
@@ -81,8 +90,7 @@ CSV类型自动判断
 | "null"              | string   | "null"              |
 | null                | null     | null                |
 
-CSV类型转换
-----
+**CSV 类型转换**
 
 在指定 CSV 字段类型时，导入工具会将字段转换为指定的类型。如果字段的实际类型不是指定的类型，则转换可能失败。具体参考下表，最左边一列是指定的类型，Y 表示可以转换，N 表示不能转换。
 
@@ -108,10 +116,13 @@ CSV类型转换
 > * 指定类型为 int32 或 int64，实际类型为 boolean 时，true、t、yes 或 y 转为 1，false、f、no 或 n 转为 0；
 > * 参数 --cast 可以指定数值转换时是否允许精度损失或数值溢出。
 
-命令选项
-----
 
-###通用选项###
+
+##参数说明##
+
+###通用参数###
+
+任何类型的导入操作均可以指定如下参数：
 
 | 参数名      | 缩写 | 描述 |
 | ----------- | ---- | ---- |
@@ -129,7 +140,9 @@ CSV类型转换
 | --ssl       |      | 使用 SSL 连接，默认值为 false，不使用 SSL 连接 |
 | --verbose   | -v   | 显示详细的执行信息 |
 
-###输入选项###
+###输入参数###
+
+输入参数用于设置数据来源及解析规则，可以指定的参数如下：
 
 | 参数名         | 缩写 | 描述 |
 | -------------- | ---- | ---- |
@@ -146,7 +159,9 @@ CSV类型转换
 > * 使用 --file 参数指定文件或目录时，重复出现的文件会被忽略；
 > * 使用 --hosts 指定地址时，重复出现的地址会被忽略。
 
-###导入选项###
+###导入参数###
+
+导入参数用于设置数据导入的相关行为，可以指定的参数如下：
 
 | 参数名        | 缩写 | 描述 |
 | ------------- | ---- | ---- |
@@ -165,14 +180,18 @@ CSV类型转换
 >
 > 对于参数 --allowkeydup、--replacekeydup、--allowidkeydup 和 --replaceidkeydup，不支持同时设置为 true。当任意一个参数设置为 true 时，其余参数将默认为 false。
 
-###JSON选项###
+###JSON 参数###
+
+导入 JSON 格式的数据时，可以指定如下参数：
 
 | 参数名         | 缩写 | 描述 |
 | -------------- | ---- | ---- |
-| --unicode      |      | 是否转义unicode字符编码（\uXXXX），默认值为 true，自动转义 Unicode 字符编码|
+| --unicode      |      | 是否转义 unicode 字符编码（\uXXXX），默认值为 true，自动转义 Unicode 字符编码|
 | --decimalto    |      | decimal 类型强制转换，默认值为 ""<br>""：不转换，保留 decimal 类型 <br>double：强制转换成 double 类型，可能会发生精度丢失 <br>string：强制转换成 string 类型 |
 
-###CSV选项###
+###CSV 参数###
+
+导入 CSV 格式的数据时，可以指定如下参数：
 
 | 参数名         | 缩写 | 描述 |
 | -------------- | ---- | ---- |
@@ -236,9 +255,10 @@ CSV类型转换
 >       *   例如指定带时区的时间戳：``--timestampfmt="YYYY-MM-DD HH.mm.ssZ"``
 >       *   例如指定东八区时间戳： ``--timestampfmt="YYYY-MM-DD HH.mm.ss+0800"``
 
-##结果字段解析##
 
-导入操作完成后，将会输出如下结果字段：
+##返回值##
+
+导入操作完成后，将会返回如下字段：
 
 | 字段名 | 描述 |
 | ------ | ---- | 
@@ -254,134 +274,142 @@ CSV类型转换
 >
 > Sharding records 和 Sharding failure 仅在导入集合为分区集合且参数 --sharding 为 true 时统计。
 
-示例
-----
+##常见场景##
 
-- 数据文件 `test.csv` 存在如下记录：
+###导入单个文件###
 
-   ```lang-text
-   name string default "Anonymous", age int, country
-   "Jack",18,"China"
-   "Mike",20,"USA"
-   ```
+将文件 `test.csv` 中的数据通过协调节点导入至集合 sample.employee 中
 
-   将数据通过协调节点导入至集合 sample.employee 中
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --type csv --file test.csv -c sample -l employee --headerline true
+```
 
-    ```lang-bash
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c sample -l employee --headerline=true
-    ```
+###以数据文件首行作为字段定义###
 
-- 数据文件  `test.csv` 存在以下记录：
+文件 `test.csv` 中存在以下数据，其中文件首行为字段定义：
 
-    ```lang-text
-    "Jack",18,"China"
-    "Mike",20,"USA"
-    ```
+```lang-text
+id,name,age,identity,phone_number,email,country
+1,"Jack",18,"student","18921222226","jack@example.com","China"
+2,"Mike",20,"student","18923244255","mike@example.com","USA"
+3,"Woody",25,"worker","18945253245","woody@example.com","China"
+```
 
-   将数据导入到本地数据库 11810 中的集合 sample.employee
+将数据导入集合 sample.employee 中，并通过参数 --headerline 指定文件首行作为字段定义
 
-    ```lang-bash
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c sample -l employee --fields='name string default "Anonymous", age int, country'
-    ```
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --type csv -c sample -l employee --headerline true --file test.csv
+```
 
--  数据文件 `test.csv` 存在以下记录，其中文件第一行是字段定义，需要跳过：
+###命令行指定字段定义###
 
-    ```lang-text
-    name, age, country
-    "Jack",18,"China"
-    "Mike",20,"USA"
-    ```
+文件 `test.csv` 中存在如下数据：
 
-   将数据导入到本地数据库 11810 中的集合 sample.employee
+```lang-text
+1,"Jack",18,"student","18921222226","jack@example.com","China"
+2,"Mike",20,"student","18923244255","mike@example.com","USA"
+3,"Woody",25,"worker","18945253245","woody@example.com","China"
+```
 
-    ```lang-bash
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c sample -l employee --fields='name string default "Anonymous", age int, country' --headerline=true
-    ```
+将数据导入集合 sample.employee 中，并通过参数 --fields 指定字段定义
 
-- 将目录 `../data` 中的所有文件以 csv 格式导入至集合 sample.employee 
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --type csv -c sample -l employee --fields 'id long, name string default "Anonymous", age int, identity, phone_number, email, country' --file test.csv
+```
 
-    ```lang-bash
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=../data -c sample -l employee --fields='name string default "Anonymous", age int, country'
-    ```
+###导入数据目录###
 
-- 将目录 `../data` 中的所有文件以及 `./sample_employee_data.csv` 以 csv 格式导入至集合 sample.employee 中；有 11810 和 11910 两个协调节点，记录中时间戳类型的数据类似于“2015-10-01 T 12.31.15.123 T”，使用两个连接同时导入
+将目录 `../data` 中的所有文件以 CSV 格式导入至集合 sample.employee 
 
-    ```lang-bash
-    $ sdbimprt --type=csv --file=../data,./sample_employee_data.csv --fields='name, time timestamp' -c sample -l employee --timestampfmt="YYYY-MM-DD T HH.mm.ss.SSS T" --hosts=localhost:11810,localhost:11910 -j 2
-    ```
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --type csv --file ../data -c sample -l employee --fields 'name string default "Anonymous", age int, country'
+```
 
-- 通过管道从其它工具 other 获取数据，并以 json 格式导入至集合 sample.employee 中
+###同时导入多台主机###
 
-    ```lang-bash
-    $ other | sdbimprt --hosts=localhost:11810 --type=json -c sample -l employee 
-    ```
-- 导入多种时间戳格式，以系统时区是东八区为例，如下是导入文件的内容：
+将目录 `../data` 中的所有文件以及 `./sample_employee_data.csv` 以 CSV 格式导入至集合 sample.employee 中；有 11810 和 11910 两个协调节点，记录中时间戳类型的数据类似于“2015-10-01 T 12.31.15.123 T”，使用两个连接同时导入
 
-    ```lang-text
-    2014-01-01, 2001/01/01, 1990-01-01
-    2014-01-01Z, 2001/01/01Z, 1990-01-01Z
-    2014-01-01+0200, 2001/01/01+0200, 1990-01-01+0200
-    ```
+```lang-bash
+$ sdbimprt --type csv --file ../data,./sample_employee_data.csv --fields 'name, time timestamp' -c sample -l employee --timestampfmt "YYYY-MM-DD T HH.mm.ss.SSS T" --hosts "localhost:11810","localhost:11910" -j 2
+```
 
-   将导入文件以 csv 格式导入至集合 sample.employee 中
+###从其他工具中获取数据###
 
-    ```lang-bash
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c sample -l employee --fields='time1 timestamp("YYYY-MM-DD"), time2 timestamp("YYYY/MM/DDZ"), time3 timestamp("YYYY-MM-DD+0600")'
-    ```
+通过管道从其它工具 other 获取数据，并以 JSON 格式导入至集合 sample.employee 中
 
-   > **Note:**
-   >
-   > - time1没有指定时区，因此都用系统的时区。
-   > - time2指定时区字符Z，如果数据没有时区信息，则用系统的时区；如果数据有Z字符，则作为 UTC 时间。
-   > - time3指定+0600时区，如果数据没有时区信息，则用字段指定的+0600时区；如果数据有Z字符，则作为 UTC 时间。
+```lang-bash
+$ other | sdbimprt --hosts "localhost:11810" --type json -c sample -l employee 
+```
 
-    查询结果如下：
+###导入多种时间戳格式###
 
-    ```lang-bash
-    > db.sample.employee.find()
-    {
-       "_id": {
-          "$oid": "5ad5565f13f513e620000000"
-       },
-       "time1": {
-          "$timestamp": "2014-01-01-00.00.00.000000"
-       },
-       "time2": {
-          "$timestamp": "2001-01-01-00.00.00.000000"
-       },
-       "time3": {
-          "$timestamp": "1990-01-01-02.00.00.000000"
-       }
-    }
-    {
-       "_id": {
-          "$oid": "5ad5565f13f513e620000001"
-       },
-       "time1": {
-          "$timestamp": "2014-01-01-00.00.00.000000"
-       },
-       "time2": {
-          "$timestamp": "2001-01-01-08.00.00.000000"
-       },
-       "time3": {
-          "$timestamp": "1990-01-01-08.00.00.000000"
-       }
-    }
-    {
-       "_id": {
-          "$oid": "5ad5565f13f513e620000002"
-       },
-       "time1": {
-          "$timestamp": "2014-01-01-00.00.00.000000"
-       },
-       "time2": {
-          "$timestamp": "2001-01-01-06.00.00.000000"
-       },
-       "time3": {
-          "$timestamp": "1990-01-01-06.00.00.000000"
-       }
-    }
-    ```
+以系统时区是东八区为例，文件 `test.csv` 存在以下内容：
+
+```lang-text
+2014-01-01, 2001/01/01, 1990-01-01
+2014-01-01Z, 2001/01/01Z, 1990-01-01Z
+2014-01-01+0200, 2001/01/01+0200, 1990-01-01+0200
+```
+
+将文件以 CSV 格式导入至集合 sample.employee 中
+
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --type csv --file test.csv -c sample -l employee --fields 'time1 timestamp("YYYY-MM-DD"), time2 timestamp("YYYY/MM/DDZ"), time3 timestamp("YYYY-MM-DD+0600")'
+```
+
+> **Note:**
+>
+> - time1没有指定时区，因此都用系统的时区。
+> - time2指定时区字符Z，如果数据没有时区信息，则用系统的时区；如果数据有Z字符，则作为 UTC 时间。
+> - time3指定+0600时区，如果数据没有时区信息，则用字段指定的+0600时区；如果数据有Z字符，则作为 UTC 时间。
+
+查询结果如下：
+
+```lang-bash
+> db.sample.employee.find()
+{
+   "_id": {
+      "$oid": "5ad5565f13f513e620000000"
+   },
+   "time1": {
+      "$timestamp": "2014-01-01-00.00.00.000000"
+   },
+   "time2": {
+      "$timestamp": "2001-01-01-00.00.00.000000"
+   },
+   "time3": {
+      "$timestamp": "1990-01-01-02.00.00.000000"
+   }
+}
+{
+   "_id": {
+      "$oid": "5ad5565f13f513e620000001"
+   },
+   "time1": {
+      "$timestamp": "2014-01-01-00.00.00.000000"
+   },
+   "time2": {
+      "$timestamp": "2001-01-01-08.00.00.000000"
+   },
+   "time3": {
+      "$timestamp": "1990-01-01-08.00.00.000000"
+   }
+}
+{
+   "_id": {
+      "$oid": "5ad5565f13f513e620000002"
+   },
+   "time1": {
+      "$timestamp": "2014-01-01-00.00.00.000000"
+   },
+   "time2": {
+      "$timestamp": "2001-01-01-06.00.00.000000"
+   },
+   "time3": {
+      "$timestamp": "1990-01-01-06.00.00.000000"
+   }
+}
+```
 
 
 [^_^]:

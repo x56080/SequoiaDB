@@ -1788,15 +1788,9 @@
                      "contents": [
                         {
                            "id": 1599724389,
-                           "file": "csv_import",
-                           "cn": "CSV数据文件导入",
-                           "en": "CSV Import"
-                        },
-                        {
-                           "id": 1599725672,
-                           "file": "json_import",
-                           "cn": "JSON数据文件导入",
-                           "en": "JSON Import"
+                           "file": "import",
+                           "cn": "使用 sdbimprt 导入数据",
+                           "en": "Import"
                         },
                         {
                            "id": 1599725749,
@@ -1807,8 +1801,8 @@
                         {
                            "id": 1599725856,
                            "file": "export",
-                           "cn": "数据导出",
-                           "en": "Data Export"
+                           "cn": "使用 sdbexprt 导出数据",
+                           "en": "Export"
                         }
                      ]
                   },
