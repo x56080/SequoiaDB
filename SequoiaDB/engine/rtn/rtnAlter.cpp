@@ -493,7 +493,7 @@ namespace engine
       }
       */
 
-      rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+      //rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check add schema on indexes of "
                    "collection [%s], rc: %d", collection, rc ) ;
 
@@ -620,7 +620,7 @@ namespace engine
 
       if ( needCheckAdd )
       {
-         rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+         //rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes of "
                       "collection [%s], rc: %d", collection, rc ) ;
       }
