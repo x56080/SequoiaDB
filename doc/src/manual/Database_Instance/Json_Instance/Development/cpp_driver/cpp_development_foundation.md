@@ -1,6 +1,39 @@
-本文档主要介绍如何使用[ C++ 客户端驱动接口](api/cpp/html/index.html)编写使用 SequoiaDB 数据库的程序。完整的示例代码请参考 SequoiaDB 安装目录下的 `samples/CPP`
+本文档主要介绍使用 C++ 驱动的操作流程，以及通过 [C++ 客户端驱动接口][api]编写使用 SequoiaDB 巨杉数据库的程序。完整的示例代码可参考 SequoiaDB 安装目录下的 `samples/CPP`。
 
-##连接数据库##
+##操作流程##
+
+下述以操作协调节点为 11810、用户名为“sdbadmin”、密码为“sdbadmin”的本地数据库为例，介绍使用 C++ 驱动的操作流程。
+
+1. 编写操作 SequoiaDB 的代码 `connect.cpp`，用户可参考[代码示例][example]
+
+2. 编译 `connect.cpp` 并链接库文件，用户可选择的链接方式如下：
+
+    使用动态库 `libsdbcpp.so` 进行编译
+
+    ```lang-bash
+    $ g++ connect.cpp -o connect -I <PATH>/sdbdriver/include -L <PATH>/sdbdriver/lib -lsdbcpp
+    ```
+
+    使用静态库 `libstaticsdbcpp.a` 进行编译
+   
+    ```lang-bash
+    $ g++ connect.cpp -o connect -I <PATH>/sdbdriver/include -L <PATH>/sdbdriver/lib -lstaticsdbcpp -lm -lpthread -ldl
+    ```
+
+    >**Note:**
+    >
+    > - \<PATH\> 为驱动包的放置路径。
+    > - 当用户使用的 GCC 编译器版本小于 GCC 5.1 时，使用 CPP 驱动动态库或者静态库不需要添加 -D_GLIBCXX_USE_CXX11_ABI=0 编译选项。
+
+3. 执行 `connect`，并连接本地数据库
+
+    ```lang-bash
+    $ ./connect localhost 11810 "sdbadmin" "sdbadmin"
+    ```
+
+##代码示例##
+
+###连接数据库###
 
 * 连接 SequoiaDB 数据库，之后即可访问、操作数据库。如下为连接数据库的示例代码 `connect.cpp`。代码中需要包含 “client.hpp” 头文件及使用命名空间 sdbclient
 
@@ -58,20 +91,7 @@
      }
    ```
 
-   在 Linux 下，可以使用如下命令编译及链接动态链接库文件 `libsdbcpp.so`：
-
-  ```lang-bash
-  $ g++ -o connect connect.cpp -I <PATH>/sdbdriver/include -lsdbcpp -L <PATH>/sdbdriver/lib -D_GLIBCXX_USE_CXX11_ABI=0
-  $ ./connect localhost 11810 "" ""
-  ```
-
-  >**Note:**
-  >
-  > * 当用户使用的 GCC 编译器版本小于 GCC 5.1 时，使用 CPP 驱动动态库或者静态库不需要添加 -D_GLIBCXX_USE_CXX11_ABI=0 编译选项。
-  >
-  > * 本示例连接到本地数据库的 11810 端口，使用的是空的用户名和密码。用户可以实际情况配置参数。
-
-##数据库操作##
+###数据库操作###
 
 * 创建集合空间和集合
 
@@ -155,7 +175,7 @@
    cout<< "Delete result: " << result.toString() <<endl ;
    ```
 
-##集群操作##
+###集群操作###
 
 集群操作主要涉及复制组与节点。如下以创建复制组、获取节点为例
 
@@ -182,3 +202,8 @@
    // 获取主数据节点
    rg.getMaster( node ) ;
    ```
+
+[^_^]:
+     本文使用的所有引用和链接
+[api]:manual/Database_Instance/Json_Instance/Development/cpp_driver/cpp_api.md
+[example]:manual/Database_Instance/Json_Instance/Development/cpp_driver/cpp_development_foundation.md#代码示例
