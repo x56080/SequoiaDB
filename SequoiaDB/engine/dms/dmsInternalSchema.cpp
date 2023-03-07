@@ -2401,5 +2401,83 @@ namespace engine
       return ;
    }
 
+   BOOLEAN _dmsInternalSchema::_testColumn( const CHAR *pName,
+                                            const _utilBitmapBase &bitmap )
+   {
+      BOOLEAN hitColumn = FALSE ;
+
+      if ( pName && *pName )
+      {
+         UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID ;
+         const CHAR *pDot = ossStrchr( '.' ) ;
+         ossPoolString tmp ;
+
+         if ( pDot )
+         {
+            try
+            {
+               tmp.assign( pName, pDot - pName ) ;
+               pName = tmp.c_str() ;
+            }
+            catch( std::exception & )
+            {
+               goto done ;
+            }
+         }
+
+         colID = _schemaHash.getColumnIDByName( pName ) ;
+         if ( DMS_SCHEMA_INVALID_COLUMNID != colID &&
+              bitmap.testBit( colID ) )
+         {
+            hitColumn = TRUE ;
+         }
+      }
+
+   done:
+      return hitColumn ;
+   }
+
+   BOOLEAN _dmsInternalSchema::testReadDefault( const CHAR *pName )
+   {
+      ossScopedRWLock lock( &_loadRWMutex ) ;
+      return _testColumn( pName, _readColBitmap ) ;
+   }
+
+   BOOLEAN _dmsInternalSchema::testReadDefault( const SET_CHARSTRING &setNames )
+   {
+      ossScopedRWLock lock( &_loadRWMutex ) ;
+      SET_CHARSTRING::const_iterator cit ;
+
+      for ( cit = setNames.begin() ; cit != setNames.end() ; ++cit )
+      {
+         if ( _testColumn( *cit, _readColBitmap ) )
+         {
+            return TRUE ;
+         }
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN _dmsInternalSchema::testWriteDefault( const CHAR *pName )
+   {
+      ossScopedRWLock lock( &_loadRWMutex ) ;
+      return _testColumn( pName, _writeColBitmap ) ;
+   }
+
+   BOOLEAN _dmsInternalSchema::testWriteDefault( const SET_CHARSTRING &setNames )
+   {
+      ossScopedRWLock lock( &_loadRWMutex ) ;
+      SET_CHARSTRING::const_iterator cit ;
+
+      for ( cit = setNames.begin() ; cit != setNames.end() ; ++cit )
+      {
+         if ( _testColumn( *cit, _writeColBitmap ) )
+         {
+            return TRUE ;
+         }
+      }
+      return FALSE ;
+   }
+
 }
 

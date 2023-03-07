@@ -242,6 +242,20 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
+      if ( _pDecodeBuff )
+      {
+         releaseBuff( _pDecodeBuff ) ;
+         _pDecodeBuff = NULL ;
+      }
+      _decodeBuffLen = 0 ;
+
+      if ( _pEncodeBuff )
+      {
+         releaseBuff( _pEncodeBuff ) ;
+         _pEncodeBuff = NULL ;
+      }
+      _encodeBuffLen = 0 ;
+
       _curAutoTransCtxID = -1 ;
       if ( _pMemPool )
       {

@@ -468,6 +468,11 @@ namespace engine
          INT32    toSchemaObj( const CHAR *name,
                                BSONObj &boSchema ) ;
 
+         BOOLEAN  testReadDefault( const SET_CHARSTRING &setNames ) ;
+         BOOLEAN  testWriteDefault( const SET_CHARSTRING &setNames ) ;
+         BOOLEAN  testReadDefault( const CHAR *pName ) ;
+         BOOLEAN  testWriteDefault( const CHAR *pName ) ;
+
          const dmsSchemaContainer* getSchemaContainer() const
          {
             return &_schemaContainer ;
@@ -536,6 +541,9 @@ namespace engine
          void     _clearBitmapInfo() ;
 
          void     _makeSchemaContextQuery( dmsSchemaContext &context ) ;
+
+         BOOLEAN  _testColumn( const CHAR *pName,
+                               const _utilBitmapBase &bitmap ) ;
 
       private:
          BOOLEAN                _enabled ;
