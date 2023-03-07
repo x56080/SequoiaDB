@@ -1,8 +1,39 @@
 
-本文档主要介绍如何使用 [ C 客户端驱动接口][api]编写使用 SequoiaDB 数据库的程序。完整的示例代码请参考 SequoiaDB 安装目录下的 `samples/C`
+本文档主要介绍使用 C 驱动的操作流程，以及通过 [C 客户端驱动接口][api]编写使用 SequoiaDB 巨杉数据库的程序。完整的示例代码可参考 SequoiaDB 安装目录下的 `samples/C`。
 
+##操作流程##
 
-##连接数据库##
+下述以操作协调节点为 11810、用户名为“sdbadmin”、密码为“sdbadmin”的本地数据库为例，介绍使用 C 驱动的操作流程。
+
+1. 编写操作 SequoiaDB 的代码 `connect.c`，用户可参考[代码示例][example]
+
+2. 编译 `connect.c` 并链接库文件，用户可选择的链接方式如下：
+
+    使用动态库 `libsdbc.so` 进行编译
+
+    ```lang-bash
+    $ gcc connect.c -o connect -I <PATH>/sdbdriver/include -L <PATH>/sdbdriver/lib -lsdbc
+    ```
+
+    使用静态库 `libstaticsdbc.a` 进行编译
+   
+    ```lang-bash
+    $ gcc connect.c -o connect -I <PATH>/sdbdriver/include -L <PATH>/sdbdriver/lib -lstaticsdbc -lm -lpthread -ldl
+    ```
+
+    >**Note:**
+    >
+    > \<PATH\> 为驱动包的放置路径。
+
+3. 执行 `connect`，并连接本地数据库
+
+    ```lang-bash
+    $ ./connect localhost 11810 "sdbadmin" "sdbadmin"
+    ```
+
+##代码示例##
+
+###连接数据库###
 
 * 连接 SequoiaDB 数据库，之后即可访问、操作数据库。如下为连接数据库的示例代码 `connect.c`。代码中需要包含 “client.h” 头文件
 
@@ -61,17 +92,7 @@
    }
    ```
 
-   在 Linux 下，可以进行如下编译并链接动态链接库文件 `libsdbc.so`：
-
-   ```lang-bash
-   $ gcc -o connect connect.c -I /< PATH >/sdbdriver/include -lsdbc -L /< PATH >/sdbdriver/lib
-   $ ./connect localhost 11810 "" ""
-   ```
-
-   >**Note:**
-   >本示例连接到本地数据库的 11810 端口，使用的是空的用户名和密码。用户可根据实际情况配置参数
-
-##数据库操作##
+###数据库操作###
 
 * 创建集合空间和集合
 
@@ -233,7 +254,7 @@
    bson_destroy( &result );
    ```
 
-##集群操作##
+###集群操作###
 
 集群操作主要涉及复制组与节点。如下以创建复制组、获取节点为例
 
@@ -269,3 +290,4 @@
 [^_^]:
      本文使用的所有引用和链接
 [api]:manual/Database_Instance/Json_Instance/Development/c_driver/c_api.md
+[example]:manual/Database_Instance/Json_Instance/Development/c_driver/c_development_foundation.md#代码示例

@@ -1,50 +1,48 @@
-﻿本文档主要介绍如何获取驱动开发包和配置开发环境。
+本文档主要介绍如何获取驱动开发包和配置开发环境。
 
 ##获取驱动开发包##
 
-用户可以从 [SequoiaDB 巨杉数据库官网](http://download.sequoiadb.com/cn/driver)下载对应操作系统版本的 SequoiaDB 驱动开发包。
+用户可以从 [SequoiaDB 巨杉数据库官网][download]下载对应操作系统版本的 SequoiaDB 驱动开发包。
 
 ##配置开发环境##
 
-* Linux
+###Linux###
 
-   1. 解压下载的驱动开发包
+下述内容以在 SequoiaDB 的安装目录 `/opt/sequoiadb` 下配置 C++ 驱动为例，介绍具体操作步骤。
 
-   2. 将压缩包中的 `driver` 目录，拷贝到开发工程目录中（建议放在第三方库目录下），并命名为"sdbdriver"
+> **Note:**
+>
+> 需使用 root 用户权限配置开发环境。
 
-   3. 将 `sdbdriver/include` 目录加入到编译包含目录，并将 `sdbdriver/lib` 目录加入链接目录，链接方式如下：
+1. 解压下载的驱动开发包，以 `C&CPP-5.0.1-linux_x86_64.tar.gz` 为例
 
-     **动态链接：**
+    ```lang-bash
+    # tar -zxvf C\&CPP-5.0.1-linux_x86_64.tar.gz
+    ```
 
-     使用 `lib` 目录下的 libsdbcpp.so 动态库，g++ 编译参数形式如：
+2. 将解压的目录拷贝至 SequoiaDB 的安装目录下
 
-     ```lang-bash
-     $ g++ main.cpp -o test -I <PATH>/sdbdriver/include -L <PATH>/sdbdriver/lib -lsdbcpp
-     ```
+    ```lang-bash
+    # cp -r C\&CPP-5.0.1-linux_x86_64 /opt/sequoaidb
+    ```
 
-     PATH 为 sdbdriver 放置路径；运行程序时，用户需要将 LD_LIBRARY_PATH 路径指定为包含 libsdbcpp.so 动态库的路径。
+3. 将目录 `C&CPP-5.0.1-linux_x86_64` 重命名为 `sdbdriver`
 
-     ```lang-bash
-     $ export LD_LIBRARY_PATH=<PATH>/sdbdriver/lib
-     ```
-     >**Note:**
-     >
-     >如果运行程序时会出现错误提示：
-     >
-     >```lang-bash
-     >error while loading shared libraries: libsdbcpp.so: cannot open shared object file: No such file or directory
-     >```
-     >
-     > 表示没有正确设置 LD_LIBRARY_PATH 和 LD_LIBRARY_PATH 是环境变量，建议设置到 `/etc/profile` 或者应用程序的启动脚本中，避免每次新开终端都需要重新设置。
+    ```lang-bash
+    # mv /opt/sequoaidb/C\&CPP-5.0.1-linux_x86_64 /opt/sequoiadb/sdbdriver
+    ```
 
-     **静态链接：**
+4. 设置环境变量并使其生效
 
-     使用 `lib` 目录下的 `libstaticsdbc.a` 静态库，g++ 编译参数形式如：
+    ```lang-bash
+    # echo "export LD_LIBRARY_PATH=/opt/sequoiadb/sdbdriver/lib" >> /etc/profile
+    # source /etc/profile
+    ```
 
-     ```lang-bash
-     $ g++ main.cpp -o test -I &lt;path&gt;/sdbdriver/include -L &lt;path&gt;/sdbdriver/lib/ -lstaticsdbcpp -lm -lpthread -ldl
-     ```
+###Windows###
 
-* Windows
+暂未推出 Windows 驱动开发包
 
-  暂未推出 Windows 驱动开发包
+[^_^]:
+    本文使用的所有引用和链接
+[download]:http://download.sequoiadb.com/cn/driver
