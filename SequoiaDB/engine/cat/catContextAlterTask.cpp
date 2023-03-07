@@ -1384,7 +1384,7 @@ namespace engine
       // }
 
       rc = catCheckSchemaWithIndexes( collectionName, cataSet.getShardingKey(),
-                                      _schema, cb ) ;
+                                      _mainShardingKey, _schema, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
                    "schema [%s] to collection [%s], rc: %d",
                    _schema.getName(), collectionName, rc ) ;
@@ -2960,19 +2960,26 @@ namespace engine
                                                action.getColumnName(),
                                                hasColumn ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
-                               "old column [%s], rc: %d", action.getColumnName(),
+                               "new column [%s], rc: %d", action.getColumnName(),
                                rc ) ;
                   if ( hasColumn )
                   {
-                     BOOLEAN inShardingKey = FALSE ;
+                     BOOLEAN inShardingKey = FALSE, inMainShardingKey = FALSE ;
                      rc = action.checkKeyPattern( cataSet.getShardingKey(),
                                                   action.getColumnName(),
                                                   inShardingKey ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
-                                  "old column [%s], rc: %d", action.getColumnName(),
+                     PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key on "
+                                  "new column [%s], rc: %d", action.getColumnName(),
+                                  rc ) ;
+                     rc = action.checkKeyPattern( _mainShardingKey,
+                                                  action.getColumnName(),
+                                                  inMainShardingKey ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to check main sharding key on "
+                                  "new column [%s], rc: %d", action.getColumnName(),
                                   rc ) ;
                      PD_LOG_MSG_CHECK(
                            ( inShardingKey ) ||
+                           ( inMainShardingKey ) ||
                            ( !OSS_BIT_TEST( action.getAlterMask(),
                                             UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ),
                            SDB_OPERATION_INCOMPATIBLE, error, PDERROR,

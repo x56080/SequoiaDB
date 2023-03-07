@@ -1122,6 +1122,7 @@ namespace engine
                                         BOOLEAN checkReadDefault,
                                         const CHAR *&conflictColumnName,
                                         const bson::BSONObj *shardingKey,
+                                        const bson::BSONObj *mainShardingKey,
                                         const _utilSchema *oldSchema ) const
    {
       INT32 rc = SDB_OK ;
@@ -1138,6 +1139,11 @@ namespace engine
 
             if ( NULL != shardingKey &&
                  shardingKey->hasField( name ) )
+            {
+               continue ;
+            }
+            else if ( NULL != mainShardingKey &&
+                      mainShardingKey->hasField( name ) )
             {
                continue ;
             }

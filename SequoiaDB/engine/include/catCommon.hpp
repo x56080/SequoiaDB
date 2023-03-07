@@ -723,6 +723,7 @@ namespace engine
                           INT16 w ) ;
    INT32 catCheckSchemaWithIndexes( const CHAR *collectionName,
                                     const bson::BSONObj &shardingKey,
+                                    const bson::BSONObj &mainShardingKey,
                                     const utilSchema &schema,
                                     pmdEDUCB *cb ) ;
 

@@ -466,7 +466,8 @@ namespace engine
                             const rtnAlterTask * task,
                             catCtxAlterCLTask ** catTask,
                             BOOLEAN pushExec,
-                            BOOLEAN isSubCL ) ;
+                            BOOLEAN isSubCL,
+                            const bson::BSONObj &mainShardingKey ) ;
       INT32 _addAlterSubCLTask ( catCtxAlterCLTask * catTask,
                                  pmdEDUCB * cb,
                                  catCtxLockMgr & lockMgr,

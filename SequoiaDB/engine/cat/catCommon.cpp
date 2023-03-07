@@ -9825,6 +9825,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHKSCHEMAWITHINDEXES, "catCheckSchemaWithIndexes" )
    INT32 catCheckSchemaWithIndexes( const CHAR *collectionName,
                                     const BSONObj &shardingKey,
+                                    const BSONObj &mainShardingKey,
                                     const utilSchema &schema,
                                     pmdEDUCB *cb )
    {
@@ -9851,7 +9852,8 @@ namespace engine
             const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
             const CHAR *conflictColumn = NULL ;
             rc = schema.checkDefaultKeys( keyPattern, FALSE, TRUE,
-                                          conflictColumn, &shardingKey ) ;
+                                          conflictColumn, &shardingKey,
+                                          &mainShardingKey ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
                          "schema [%s] for index [%s] keys of collection [%s], "
                          "rc: %d", schemaName, indexName, collectionName, rc ) ;

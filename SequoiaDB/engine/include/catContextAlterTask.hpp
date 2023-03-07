@@ -88,9 +88,10 @@ namespace engine
          {
             return _postTasks ;
          }
-         OSS_INLINE void setSubCLFlag ()
+         OSS_INLINE void setSubCLFlag ( const bson::BSONObj &mainShardingKey )
          {
             _subCLOFMainCL = TRUE ;
+            _mainShardingKey = mainShardingKey.getOwned() ;
          }
          OSS_INLINE const ossPoolList<BSONObj>& getIndexes () const
          {
@@ -306,6 +307,7 @@ namespace engine
          rtnCLShardingArgument   _rollbackShardArgument ;
 
          BOOLEAN                 _subCLOFMainCL ;
+         bson::BSONObj           _mainShardingKey ;
          autoIncFieldsList       _rollbackAutoIncFields ;
 
          utilSchema              _schema ;

@@ -4105,7 +4105,7 @@ namespace engine
                    context->mb()->_indexExtent[indexID] ) ;
 
          rc = schema.checkDefaultKeys( indexCB.keyPattern(), FALSE, TRUE,
-                                       conflictColumn, NULL, &oldSchema ) ;
+                                       conflictColumn, NULL, NULL, &oldSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
                       "schema [%s] for index [%s] keys, rc: %d",
                       schema.getName(), indexCB.getName(), rc ) ;

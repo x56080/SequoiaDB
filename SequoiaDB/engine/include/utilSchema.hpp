@@ -389,6 +389,7 @@ namespace engine
                               BOOLEAN checkReadDefault,
                               const CHAR *&conflictColumnName,
                               const bson::BSONObj *shardingKey = NULL,
+                              const bson::BSONObj *mainShardingKey = NULL,
                               const _utilSchema *oldSchema = NULL ) const ;
 
    protected:

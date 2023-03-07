@@ -2812,7 +2812,7 @@ namespace engine
 
       // do not push task to _execTasks here, because we should push this task
       // after subcl's task
-      rc = _addAlterTask( _targetName, task, &catTask, FALSE, FALSE ) ;
+      rc = _addAlterTask( _targetName, task, &catTask, FALSE, FALSE, BSONObj() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add alter task [%s] on "
                    "collection [%s], rc: %d", task->getActionName(),
                    _targetName.c_str(), rc ) ;
@@ -2953,7 +2953,8 @@ namespace engine
                                          const rtnAlterTask * task,
                                          catCtxAlterCLTask ** catTask,
                                          BOOLEAN pushExec,
-                                         BOOLEAN isSubCL )
+                                         BOOLEAN isSubCL,
+                                         const BSONObj &mainShardingKey )
    {
       INT32 rc = SDB_OK ;
 
@@ -2970,7 +2971,7 @@ namespace engine
 
       if( isSubCL )
       {
-         tempTask->setSubCLFlag() ;
+         tempTask->setSubCLFlag( mainShardingKey ) ;
       }
 
       _addTask( tempTask, pushExec ) ;
@@ -3032,7 +3033,7 @@ namespace engine
                catCtxTaskBase * subCLAutoIncTask = NULL ;
 
                rc = _addAlterTask( subCLName, alterTask, &subCLTask,
-                                   TRUE, TRUE ) ;
+                                   TRUE, TRUE, cataSet.getShardingKey() ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to "
                             "add alter task [%s] on collection [%s], rc: %d",
                             alterTask->getActionName(), subCLName.c_str(), rc );
@@ -3562,6 +3563,7 @@ namespace engine
 
             rc = catCheckSchemaWithIndexes( _subCLName.c_str(),
                                             subCLSet.getShardingKey(),
+                                            mainCLSet.getShardingKey(),
                                             _schemaHandler.getSchema(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
                          "schema [%s] to sub-collection [%s], rc: %d",
