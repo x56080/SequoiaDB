@@ -868,23 +868,28 @@ namespace engine
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
                                     BOOLEAN *pAllUndefined,
+                                    BOOLEAN *pHasNull,
                                     ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_IXMINXKEYGEN_GETKEYS_OBJ ) ;
 
-      BOOLEAN allUndefined = FALSE ;
+      BOOLEAN allUndefined = FALSE, hasNull = FALSE ;
       ixmKeyObjGen keyGen( this, &obj, &keys, keepKeyName, ignoreUndefined,
                            pArrEle, pBuilder ) ;
 
-      rc = _getKeys( &keyGen, allUndefined ) ;
+      rc = _getKeys( &keyGen, allUndefined, hasNull ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get keys from object, "
                    "rc: %d", rc ) ;
 
       if ( NULL != pAllUndefined )
       {
          *pAllUndefined = allUndefined ;
+      }
+      if ( NULL != pHasNull )
+      {
+         *pHasNull = hasNull ;
       }
 
    done:
@@ -902,23 +907,28 @@ namespace engine
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
                                     BOOLEAN *pAllUndefined,
+                                    BOOLEAN *pHasNull,
                                     ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_IXMINXKEYGEN_GETKEYS_SET ) ;
 
-      BOOLEAN allUndefined = FALSE ;
+      BOOLEAN allUndefined = FALSE, hasNull = FALSE ;
       ixmKeySetGen keyGen( this, &obj, &keySet, keepKeyName, ignoreUndefined,
                            pArrEle, pBuilder ) ;
 
-      rc = _getKeys( &keyGen, allUndefined ) ;
+      rc = _getKeys( &keyGen, allUndefined, hasNull ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key set from object, "
                    "rc: %d", rc ) ;
 
       if ( NULL != pAllUndefined )
       {
          *pAllUndefined = allUndefined ;
+      }
+      if ( NULL != pHasNull )
+      {
+         *pHasNull = hasNull ;
       }
 
    done:
@@ -1074,7 +1084,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__GETKEYS, "_ixmIndexKeyGen::_getKeys" )
    INT32 _ixmIndexKeyGen::_getKeys( _ixmKeyGenBase *keyGen,
-                                    BOOLEAN &allUndefined )
+                                    BOOLEAN &allUndefined,
+                                    BOOLEAN &hasNull )
    {
       INT32 rc = SDB_OK ;
 
@@ -1095,7 +1106,7 @@ namespace engine
          INT32 arrElePos = -1 ;
 
          rc = _extractKeys( keyGen->getObject(), keyGen->getKeyCache(),
-                            allUndefined, arrEle, arrEleName, arrElePos ) ;
+                            allUndefined, hasNull, arrEle, arrEleName, arrElePos ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to extract keys from object, "
                       "rc: %d", rc ) ;
 
@@ -1118,7 +1129,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to prepare for "
                          "extract array key [%s], rc: %d",
                          arrEleName, rc ) ;
-            rc = _extractArrayKey( arrEle, arrEleName, keyGen ) ;
+            rc = _extractArrayKey( arrEle, arrEleName, keyGen, hasNull ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to extract keys with array "
                          "element [%s], rc: %d", arrEleName, rc ) ;
 
@@ -1157,6 +1168,7 @@ namespace engine
    INT32 _ixmIndexKeyGen::_extractKeys( const BSONObj &obj,
                                         IXM_KEY_ELEMENT_ARRAY &keyCache,
                                         BOOLEAN &allUndefined,
+                                        BOOLEAN &hasNull,
                                         BSONElement &arrEle,
                                         const CHAR *&arrEleName,
                                         INT32 &arrElePos )
@@ -1193,6 +1205,10 @@ namespace engine
             arrEle = e ;
             arrEleName = name ;
             arrElePos = i ;
+         }
+         else if ( jstNULL == e.type() )
+         {
+            hasNull = TRUE ;
          }
          // cache in key field, and will be generated in an output key object
          // later
@@ -1284,7 +1300,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__EXTARRKEY, "_ixmIndexKeyGen::_extractArrayKey" )
    INT32 _ixmIndexKeyGen::_extractArrayKey( const BSONElement &arrEle,
                                             const CHAR *arrEleName,
-                                            _ixmKeyGenBase *keyGen )
+                                            _ixmKeyGenBase *keyGen,
+                                            BOOLEAN &hasNull )
    {
       INT32 rc = SDB_OK ;
 
@@ -1314,6 +1331,10 @@ namespace engine
             BSONElement e = itr.next() ;
 
             // on found the array key
+            if ( jstNULL == e.type() )
+            {
+               hasNull = TRUE ;
+            }
             rc = keyGen->saveWithArrayKey( e ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to save array element "
                          "in array key field [%s], rc: %d",
@@ -1338,7 +1359,7 @@ namespace engine
                {
                   // still got an array, should recursively extract
                   // from sub-object with sub-fields
-                  rc = _extractArrayKey( subEle, curEleName, keyGen ) ;
+                  rc = _extractArrayKey( subEle, curEleName, keyGen, hasNull ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to extract key from array"
                                "element [%s], rc: %d",
                                keyGen->getArrKeyField()->getName(), rc ) ;
@@ -1351,6 +1372,10 @@ namespace engine
             // use the EOO element, which will build as undefined
 
             // on found the array key
+            if ( jstNULL == subEle.type() )
+            {
+               hasNull = TRUE ;
+            }
             rc = keyGen->saveWithArrayKey( subEle ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to save array element "
                          "in array key field [%s], rc: %d",

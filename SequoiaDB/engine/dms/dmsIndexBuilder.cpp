@@ -435,6 +435,7 @@ namespace engine
          rc = _pOprHandler->onInsertIndex( _mbContext, _indexCB,
                                            _indexCB->unique(),
                                            _indexCB->enforced(),
+                                           _indexCB->nullsDistinct(),
                                            key.toBson( &_bufBuilder ),
                                            rid, _eduCB, _pResult ) ;
          if ( SDB_OK != rc )

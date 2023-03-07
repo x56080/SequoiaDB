@@ -221,6 +221,8 @@ namespace engine
       #define SET_GLOB_INDEX_INITED()        ( _fieldInitedFlag |= 0x00008000 )
       #define UNIQUEID_IS_INITED()           ( _fieldInitedFlag &  0x00010000 )
       #define SET_UNIQUEID_INITED()          ( _fieldInitedFlag |= 0x00010000 )
+      #define NULLS_DISTINCT_IS_INITED()     ( _fieldInitedFlag &  0x00020000 )
+      #define SET_NULLS_DISTINCT_INITED()    ( _fieldInitedFlag |= 0x00020000 )
 
    private:
 #pragma pack(1)
@@ -271,6 +273,7 @@ namespace engine
       mutable const CHAR* _name ;
       mutable BOOLEAN _unique ;
       mutable BOOLEAN _enforced ;
+      mutable BOOLEAN _nullsDistinct ;
       mutable BOOLEAN _notNull ;
       mutable BOOLEAN _notArray ;
       mutable BOOLEAN _dropDups ;
@@ -402,6 +405,7 @@ namespace engine
       INT32 getKeysFromObject ( const BSONObj &obj,
                                 BSONObjSet &keys,
                                 BOOLEAN *pAllUndefined = NULL,
+                                BOOLEAN *pHasNull = NULL,
                                 BOOLEAN checkValid = FALSE,
                                 utilWriteResult *pResult = NULL ) const ;
 
@@ -738,6 +742,7 @@ namespace engine
          INT32 fieldCount = 0 ;
          BOOLEAN isUniq = FALSE ;
          BOOLEAN enforced = FALSE ;
+         BOOLEAN nullsDistinct = FALSE ;
          UINT16 type = 0 ;
          BSONObj indexKey ;
          const CHAR* indexName = NULL ;
@@ -830,6 +835,12 @@ namespace engine
             enforced = e.booleanSafe() ;
             fieldCount ++ ;
          }
+         if ( obj.hasField( IXM_NULLS_DISTINCT_FIELD ) )
+         {
+            BSONElement e = obj.getField( IXM_NULLS_DISTINCT_FIELD ) ;
+            nullsDistinct = e.booleanSafe() ;
+            fieldCount ++ ;
+         }
          if ( obj.hasField ( IXM_NOTNULL_FIELD ) )
          {
             fieldCount ++ ;
@@ -894,6 +905,13 @@ namespace engine
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Can't specify \"enforced\" as true in an"
                         " non-unique index" ) ;
+            goto error ;
+         }
+         if ( !isUniq && nullsDistinct )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Can't specify \"%s\" as true in an"
+                        " non-unique index", IXM_NULLS_DISTINCT_FIELD ) ;
             goto error ;
          }
 
@@ -1017,6 +1035,26 @@ namespace engine
             SET_ENFORCED_INITED() ;
          }
          return _enforced ;
+      }
+
+      BOOLEAN nullsDistinct() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         if( !NULLS_DISTINCT_IS_INITED() )
+         {
+            try
+            {
+               _nullsDistinct = _infoObj[ IXM_NULLS_DISTINCT_FIELD ].trueValue() ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract nulls distinct from "
+                       "index pattern: %s", e.what() ) ;
+            }
+            SET_NULLS_DISTINCT_INITED() ;
+         }
+         return _nullsDistinct ;
       }
 
       BOOLEAN notNull() const

@@ -2272,9 +2272,10 @@ namespace engine
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
       INT32 rc = SDB_OK ;
       BSONObjSet keySet ;
-      BOOLEAN allUndefined = FALSE ;
+      BOOLEAN allUndefined = FALSE, hasNull = FALSE ;
 
-      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE, pResult ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, &hasNull,
+                                        TRUE, pResult ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
       {
@@ -2289,6 +2290,7 @@ namespace engine
          {
             rc = pOprHandle->onInsertIndex( context, indexCB, !dupAllowed,
                                             indexCB->enforced(),
+                                            indexCB->nullsDistinct(),
                                             keySet, rid, cb,
                                             pResult ) ;
             if ( rc )
@@ -2323,7 +2325,8 @@ namespace engine
                  !hashSaved &&
                  indexCB->unique() &&
                  !indexCB->isIDIndex() &&
-                 ( !allUndefined || indexCB->enforced() ) )
+                 ( !allUndefined || indexCB->enforced() ) &&
+                 ( !hasNull || !( indexCB->nullsDistinct() ) ) )
             {
                pUnqIdxHashArray->saveKey( *it ) ;
                hashSaved = TRUE ;
@@ -2521,7 +2524,7 @@ namespace engine
             BSONObjSet::iterator it ;
             BSONObjSet keySet ;
 
-            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE, pResult ) ;
+            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, NULL, TRUE, pResult ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                           PD_SECURE_OBJ( inputObj ) ) ;
 
@@ -2672,6 +2675,7 @@ namespace engine
       BOOLEAN dupAllowed   = FALSE ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
+      BOOLEAN oriHasNull = FALSE, newHasNull = FALSE ;
 
       BSONObjSet::iterator itori ;
       BSONObjSet::iterator itnew ;
@@ -2698,7 +2702,8 @@ namespace engine
    update_p0:
       rc = indexCB->getKeysFromObject( originalObj,
                                        keySetOri,
-                                       &oriAllUndefined ) ;
+                                       &oriAllUndefined,
+                                       &oriHasNull ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from org object %s",
@@ -2711,6 +2716,7 @@ namespace engine
       rc = indexCB->getKeysFromObject ( newObj,
                                         keySetNew,
                                         &newAllUndefined,
+                                        &newHasNull,
                                         !isRollback,
                                         pResult ) ;
       if ( rc )
@@ -2730,9 +2736,10 @@ namespace engine
       if ( pOprHandle )
       {
          rc = pOprHandle->onUpdateIndex( context, indexCB, unique,
-                                         indexCB->enforced(), keySetOri,
-                                         keySetNew, rid, isRollback, cb,
-                                         pResult ) ;
+                                         indexCB->enforced(),
+                                         indexCB->nullsDistinct(),
+                                         keySetOri, keySetNew, rid, isRollback,
+                                         cb, pResult ) ;
          if ( rc )
          {
             goto error ;
@@ -2793,7 +2800,8 @@ namespace engine
                     !oldHashSaved &&
                     indexCB->unique() &&
                     !indexCB->isIDIndex() &&
-                    ( !oriAllUndefined || indexCB->enforced() ) )
+                    ( !oriAllUndefined || indexCB->enforced() ) &&
+                    ( !oriHasNull || !( indexCB->nullsDistinct() ) ) )
                {
                   pOldUnqIdxHashArray->saveKey( *itori ) ;
                   oldHashSaved = TRUE ;
@@ -2855,7 +2863,8 @@ namespace engine
                     !newHashSaved &&
                     indexCB->unique() &&
                     !indexCB->isIDIndex() &&
-                    ( !newAllUndefined || indexCB->enforced() ) )
+                    ( !newAllUndefined || indexCB->enforced() ) &&
+                    ( !newHasNull || ( !( indexCB->nullsDistinct() ) ) ) )
                {
                   pNewUnqIdxHashArray->saveKey( *itnew ) ;
                   newHashSaved = TRUE ;
@@ -2890,7 +2899,8 @@ namespace engine
                  !oldHashSaved &&
                  indexCB->unique() &&
                  !indexCB->isIDIndex() &&
-                 ( !oriAllUndefined || indexCB->enforced() ) )
+                 ( !oriAllUndefined || indexCB->enforced() ) &&
+                 ( !oriHasNull || !( indexCB->nullsDistinct() ) ) )
             {
                pOldUnqIdxHashArray->saveKey( *itori ) ;
                oldHashSaved = TRUE ;
@@ -2953,7 +2963,8 @@ namespace engine
                  !newHashSaved &&
                  indexCB->unique() &&
                  !indexCB->isIDIndex() &&
-                 ( !newAllUndefined || indexCB->enforced() ) )
+                 ( !newAllUndefined || indexCB->enforced() ) &&
+                 ( !newHasNull || !( indexCB->nullsDistinct() ) ) )
             {
                pNewUnqIdxHashArray->saveKey( *itnew ) ;
                newHashSaved = TRUE ;
@@ -3067,7 +3078,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from org object %s",
                          PD_SECURE_OBJ( originalObj ) ) ;
 
-            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback, pResult ) ;
+            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, NULL, !isRollback, pResult ) ;
             if ( SDB_OK != rc &&
                  NULL != pResult &&
                  pResult->getCurID().isEmpty() )
@@ -3271,7 +3282,7 @@ namespace engine
       BSONObjSet  keySet ;
       BOOLEAN     result      = FALSE ;
       monAppCB   *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
-      BOOLEAN     allUndefined = FALSE ;
+      BOOLEAN     allUndefined = FALSE, hasNull = FALSE ;
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
@@ -3282,7 +3293,7 @@ namespace engine
       UINT32 retryCount = 0 ;
 
    delete_p0:
-      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, &hasNull ) ;
       if ( rc )
       {
          if ( SDB_IXM_MULTIPLE_ARRAY == rc )
@@ -3339,7 +3350,8 @@ namespace engine
                  !hashSaved &&
                  indexCB->unique() &&
                  !indexCB->isIDIndex() &&
-                 ( !allUndefined || indexCB->enforced() ) )
+                 ( !allUndefined || indexCB->enforced() ) &&
+                 ( !hasNull || !( indexCB->nullsDistinct() ) ) )
             {
                pUnqIdxHashArray->saveKey( *it ) ;
                hashSaved = TRUE ;

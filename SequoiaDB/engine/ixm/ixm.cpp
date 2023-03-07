@@ -74,6 +74,7 @@ namespace engine
       _name = NULL ;
       _unique = FALSE ;
       _enforced = FALSE ;
+      _nullsDistinct = FALSE ;
       _notNull = FALSE ;
       _notArray = FALSE ;
       _dropDups = FALSE ;
@@ -108,6 +109,7 @@ namespace engine
       _name = NULL ;
       _unique = FALSE ;
       _enforced = FALSE ;
+      _nullsDistinct = FALSE ;
       _notNull = FALSE ;
       _notArray = FALSE ;
       _dropDups = FALSE ;
@@ -252,6 +254,7 @@ namespace engine
    INT32 _ixmIndexCB::getKeysFromObject ( const BSONObj &obj,
                                           BSONObjSet &keys,
                                           BOOLEAN *pAllUndefined,
+                                          BOOLEAN *pHasNull,
                                           BOOLEAN checkValid,
                                           utilWriteResult *pResult ) const
    {
@@ -261,7 +264,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMINXCB_GETKEY );
       BSONElement arrEle ;
       ixmIndexKeyGen keyGen(this) ;
-      rc = keyGen.getKeys ( obj, keys, &arrEle, FALSE, FALSE, pAllUndefined ) ;
+      rc = keyGen.getKeys ( obj, keys, &arrEle, FALSE, FALSE, pAllUndefined, pHasNull ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to generate key from object, rc: %d", rc ) ;

@@ -81,7 +81,7 @@ namespace engine
       clear();
       BSONObj keys ;
       BSONElement arrEle ;
-      rc = keyGen->getKeys( record, keys, &arrEle, FALSE, FALSE, NULL,
+      rc = keyGen->getKeys( record, keys, &arrEle, FALSE, FALSE, NULL, NULL,
                             &_keyBuilder ) ;
       PD_RC_CHECK( rc, PDERROR,
                   "failed to generate order-key(rc=%d)",

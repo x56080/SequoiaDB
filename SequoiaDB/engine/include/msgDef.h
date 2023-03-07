@@ -812,6 +812,7 @@
 #define IXM_FIELD_NAME_GLOBAL_OPTION         "GlobalOption"
 #define IXM_FIELD_NAME_STANDALONE            "Standalone"
 #define IXM_FIELD_NAME_UNIQUEID              "UniqueID"
+#define IXM_FIELD_NAME_NULLS_DISTINCT        "NullsDistinct"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"

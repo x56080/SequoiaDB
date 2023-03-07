@@ -1306,9 +1306,13 @@ namespace engine
          // may violate unique definition ). If we restricted this behavior,
          // user cannot insert records that does not contains the keys twice,
          // which is very violating "schemaless"
-         if ( indexCB->enforced() || !key.isUndefined() )
+         // case to check duplicated keys
+         // - enforced undefined
+         // - nulls not distinct
+         if ( ( indexCB->enforced() || !key.isUndefined() ) &&
+              ( !indexCB->nullsDistinct() || !key.hasNull() ) )
          {
-            if ( kn->isUsed() && ( indexCB->enforced() || !key.isUndefined () ) )
+            if ( kn->isUsed() )
             {
                // this error only returned when dupAllowed == FALSE
                // this error represent duplicate key is not allowed and

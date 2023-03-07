@@ -473,6 +473,7 @@ namespace engine
       // global index
       BOOLEAN         _isUnique ;
       BOOLEAN         _isEnforced ;
+      BOOLEAN         _isNullsDistinct ;
       BOOLEAN         _isGlobal ;
       CHAR            _globalIdxCSName[DMS_COLLECTION_SPACE_NAME_SZ+1] ;
       CHAR            _globalIdxCLName[DMS_COLLECTION_FULL_NAME_SZ+1] ;

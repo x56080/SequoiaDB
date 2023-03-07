@@ -243,6 +243,14 @@ namespace engine
             goto done ;
          }
 
+         lValue = defObj1.getBoolField( IXM_NULLS_DISTINCT_FIELD ) ;
+         rValue = defObj2.getBoolField( IXM_NULLS_DISTINCT_FIELD ) ;
+         if ( lValue != rValue )
+         {
+            rs = FALSE ;
+            goto done ;
+         }
+
          lValue = defObj1.getBoolField( IXM_NOTNULL_FIELD ) ;
          rValue = defObj2.getBoolField( IXM_NOTNULL_FIELD ) ;
          if ( lValue != rValue )

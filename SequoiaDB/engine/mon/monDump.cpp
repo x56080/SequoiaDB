@@ -4908,6 +4908,8 @@ namespace engine
                      indexDef.getBoolField( IXM_DROPDUP_FIELD ) ) ;
          sub.append( IXM_ENFORCED_FIELD,
                      indexDef.getBoolField( IXM_ENFORCED_FIELD ) ) ;
+         sub.append( IXM_NULLS_DISTINCT_FIELD,
+                     indexDef.getBoolField( IXM_NULLS_DISTINCT_FIELD ) ) ;
          sub.append( IXM_NOTNULL_FIELD,
                      indexDef.getBoolField( IXM_NOTNULL_FIELD ) ) ;
          if( 0 == ossStrcmp( indexDef.getStringField( IXM_NAME_FIELD ),

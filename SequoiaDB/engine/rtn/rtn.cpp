@@ -2710,6 +2710,7 @@ namespace engine
 
             if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) ||
+                 0 == ossStrcmp( e.fieldName(), IXM_NULLS_DISTINCT_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_NOTNULL_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) ||

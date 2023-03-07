@@ -420,6 +420,20 @@ namespace engine
       return TRUE ;
    }
 
+   static BOOLEAN _dmsKeyHasNull( const BSONObj &keyObj )
+   {
+      BSONObjIterator itr( keyObj ) ;
+      while ( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+         if ( jstNULL == e.type() )
+         {
+            return TRUE ;
+         }
+      }
+      return FALSE ;
+   }
+
    dmsTransLockCallback::dmsTransLockCallback( IDmsOprHandler *handler )
    {
       _transCB    = NULL ;
@@ -868,6 +882,7 @@ namespace engine
                                                   const ixmIndexCB *indexCB,
                                                   BOOLEAN isUnique,
                                                   BOOLEAN isEnforce,
+                                                  BOOLEAN isNullsDistinct,
                                                   const BSONObj &keyObj,
                                                   const dmsRecordID &rid,
                                                   _pmdEDUCB *cb,
@@ -921,6 +936,10 @@ namespace engine
                goto done ;
             }
             else if ( !isEnforce && _dmsIsKeyUndefined( keyObj ) )
+            {
+               goto done ;
+            }
+            else if ( isNullsDistinct && _dmsKeyHasNull( keyObj ) )
             {
                goto done ;
             }
@@ -1063,6 +1082,7 @@ namespace engine
                                               const ixmIndexCB *indexCB,
                                               BOOLEAN isUnique,
                                               BOOLEAN isEnforce,
+                                              BOOLEAN isNullsDistinct,
                                               const BSONObjSet &keySet,
                                               const dmsRecordID &rid,
                                               _pmdEDUCB *cb,
@@ -1075,7 +1095,8 @@ namespace engine
       if ( _opHandler )
       {
          rc = _opHandler->onInsertIndex( context, indexCB, isUnique, isEnforce,
-                                         keySet, rid, cb, pResult ) ;
+                                         isNullsDistinct, keySet, rid, cb,
+                                         pResult ) ;
          if ( rc )
          {
             goto error ;
@@ -1092,7 +1113,7 @@ namespace engine
             ++cit )
       {
          rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
-                                 isUnique, isEnforce, *cit,
+                                 isUnique, isEnforce, isNullsDistinct, *cit,
                                  rid, cb, TRUE, pResult ) ;
          if ( rc )
          {
@@ -1110,6 +1131,7 @@ namespace engine
                                               const ixmIndexCB *indexCB,
                                               BOOLEAN isUnique,
                                               BOOLEAN isEnforce,
+                                              BOOLEAN isNullsDistinct,
                                               const BSONObj &keyObj,
                                               const dmsRecordID &rid,
                                               _pmdEDUCB* cb,
@@ -1122,7 +1144,8 @@ namespace engine
       if ( _opHandler )
       {
          rc = _opHandler->onInsertIndex( context, indexCB, isUnique, isEnforce,
-                                         keyObj, rid, cb, pResult ) ;
+                                         isNullsDistinct, keyObj, rid, cb,
+                                         pResult ) ;
          if ( rc )
          {
             goto error ;
@@ -1136,7 +1159,7 @@ namespace engine
 
       /// create index, don't allow self duplicate
       rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
-                              isUnique, isEnforce, keyObj,
+                              isUnique, isEnforce, isNullsDistinct, keyObj,
                               rid, cb, FALSE, pResult ) ;
       if ( rc )
       {
@@ -1298,6 +1321,7 @@ namespace engine
                                               const ixmIndexCB *indexCB,
                                               BOOLEAN isUnique,
                                               BOOLEAN isEnforce,
+                                              BOOLEAN isNullsDistinct,
                                               const BSONObjSet &oldKeySet,
                                               const BSONObjSet &newKeySet,
                                               const dmsRecordID &rid,
@@ -1316,8 +1340,8 @@ namespace engine
       if ( _opHandler )
       {
          rc = _opHandler->onUpdateIndex( context, indexCB, isUnique, isEnforce,
-                                         oldKeySet, newKeySet, rid, isRollback,
-                                         cb, pResult ) ;
+                                         isNullsDistinct, oldKeySet, newKeySet,
+                                         rid, isRollback, cb, pResult ) ;
          if ( rc )
          {
             goto error ;
@@ -1363,8 +1387,8 @@ namespace engine
          {
             hasChanged = TRUE ;
             rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
-                                    isUnique, isEnforce, *itnew,
-                                    rid, cb, TRUE, pResult ) ;
+                                    isUnique, isEnforce, isNullsDistinct,
+                                    *itnew, rid, cb, TRUE, pResult ) ;
             if ( rc )
             {
                goto error ;
@@ -1377,7 +1401,7 @@ namespace engine
       while ( newKeySet.end() != itnew )
       {
          rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
-                                 isUnique, isEnforce, *itnew,
+                                 isUnique, isEnforce, isNullsDistinct, *itnew,
                                  rid, cb, TRUE, pResult ) ;
          if ( rc )
          {
@@ -1555,7 +1579,9 @@ namespace engine
                {
                   rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
                                           indexCB->unique(),
-                                          indexCB->enforced(), *cit,
+                                          indexCB->enforced(),
+                                          indexCB->nullsDistinct(),
+                                          *cit,
                                           oldVer->getRecordID(), cb,
                                           FALSE, pResult ) ;
                   if ( rc )

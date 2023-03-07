@@ -1296,6 +1296,7 @@ namespace engine
                  0 == ossStrcmp( IXM_FIELD_NAME_NAME, fieldName ) ||
                  0 == ossStrcmp( IXM_FIELD_NAME_UNIQUE, fieldName ) ||
                  0 == ossStrcmp( IXM_FIELD_NAME_ENFORCED, fieldName ) ||
+                 0 == ossStrcmp( IXM_FIELD_NAME_NULLS_DISTINCT, fieldName ) ||
                  0 == ossStrcmp( IXM_FIELD_NAME_DROPDUPS, fieldName ) ||
                  0 == ossStrcmp( IXM_FIELD_NAME_NOTNULL, fieldName ) ||
                  0 == ossStrcmp( IXM_FIELD_NAME_NOTARRAY, fieldName ) ||

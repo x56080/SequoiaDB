@@ -1855,6 +1855,7 @@ namespace engine
     _isPrepareStep( FALSE ),
     _isUnique( FALSE ),
     _isEnforced( FALSE ),
+    _isNullsDistinct( FALSE ),
     _isGlobal( FALSE ),
     _globalIdxCLUniqID( UTIL_UNIQUEID_NULL )
    {
@@ -1929,6 +1930,10 @@ namespace engine
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_ENFORCED ) == 0 )
             {
                _isEnforced = e.boolean() ;
+            }
+            else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NULLS_DISTINCT ) == 0 )
+            {
+               _isNullsDistinct = e.boolean() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_GLOBAL ) == 0 )
             {
@@ -2377,6 +2382,10 @@ namespace engine
 
       PD_CHECK( _isEnforced, SDB_INVALIDARG, error, PDERROR,
                 "Global index's enfored must be true:index=%s,rc=%d",
+                _boIdx.toString().c_str(), rc ) ;
+
+      PD_CHECK( !_isNullsDistinct, SDB_INVALIDARG, error, PDERROR,
+                "Global index's nuls distinct must be false:index=%s,rc=%d",
                 _boIdx.toString().c_str(), rc ) ;
 
       clUID = _pCataSet->clUniqueID() ;

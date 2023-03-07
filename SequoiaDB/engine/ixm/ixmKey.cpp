@@ -370,6 +370,84 @@ namespace engine
       return TRUE ;
    }
 
+   // check whether there is a null field
+   BOOLEAN _ixmKey::hasNull() const
+   {
+      BOOLEAN foundOut = FALSE ;
+
+      if ( _keyData == 0 )
+      {
+      }
+      else if ( !isCompactFormat() )
+      {
+         // if it's native bson type, we have to go through each element and
+         // check whether if it's null
+         BSONObjIterator it ( _bson() ) ;
+         while ( it.more() )
+         {
+            BSONElement ele = it.next() ;
+            if ( jstNULL == ele.type() )
+            {
+               foundOut = TRUE ;
+               break ;
+            }
+         }
+      }
+      else
+      {
+         // it is compact format, we need to loop through all types and
+         // check whether any field is cnull.
+         const UINT8 *p = _keyData ;
+         while ( TRUE )
+         {
+            UINT8 bits = *p++ ;
+            switch ( bits & cCANONTYPEMASK )
+            {
+               case cnull:
+                  foundOut = TRUE ;
+                  break ;
+               case cminkey:
+               case cundefined:
+               case cmaxkey:
+               case cfalse:
+               case ctrue:
+                  break ;
+               case cstring:
+               {
+                  UINT8 len = *p++ ;
+                  p += len ;
+                  break ;
+               }
+               case cbindata:
+               {
+                  INT32 len = binDataCodeToLength( *p++ ) ;
+                  p += len ;
+                  break ;
+               }
+               case coid:
+                  p += sizeof( OID ) ;
+                  break ;
+               case cdate:
+                  p += sizeof( Date_t ) ;
+                  break ;
+               case cdouble:
+                  p += sizeof( FLOAT64 ) ;
+                  break ;
+               default:
+                  PD_LOG( PDERROR, "Invalid key is accessed" ) ;
+                  throw pdGeneralException( "Invalid Key is accessed" ) ;
+            }
+
+            if ( foundOut || 0 == ( bits & cHASMORE ) )
+            {
+               break ;
+            }
+         }
+      }
+
+      return foundOut ;
+   }
+
    void _ixmKey::_toBson(BSONObjBuilder &b, BSONObjIterator *keyIter ) const
    {
       const CHAR *pFieldName = NULL ;

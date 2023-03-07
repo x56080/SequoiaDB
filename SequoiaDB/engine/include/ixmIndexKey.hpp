@@ -436,6 +436,7 @@ namespace engine
                       BOOLEAN keepKeyName = FALSE,
                       BOOLEAN ignoreUndefined = FALSE,
                       BOOLEAN *pAllUndefined = NULL,
+                      BOOLEAN *pHasNull = NULL,
                       ixmKeyBuilder *pBuilder = NULL ) ;
       // get key set from object
       // for array key, generate all possible values from array
@@ -445,6 +446,7 @@ namespace engine
                       BOOLEAN keepKeyName = FALSE,
                       BOOLEAN ignoreUndefined = FALSE,
                       BOOLEAN *pAllUndefined = NULL,
+                      BOOLEAN *pHasNull = NULL,
                       ixmKeyBuilder *pBuilder = NULL ) ;
 
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
@@ -458,12 +460,15 @@ namespace engine
       void _release() ;
 
       // implement of get keys
-      INT32 _getKeys( _ixmKeyGenBase *keyGen, BOOLEAN &allUndefined ) ;
+      INT32 _getKeys( _ixmKeyGenBase *keyGen,
+                      BOOLEAN &allUndefined,
+                      BOOLEAN &hasNull ) ;
 
       // extract keys from object
       INT32 _extractKeys( const BSONObj &obj,
                           IXM_KEY_ELEMENT_ARRAY &keyCache,
                           BOOLEAN &allUndefined,
+                          BOOLEAN &hasNull,
                           BSONElement &arrEle,
                           const CHAR *&arrEleName,
                           INT32 &arrElePos ) ;
@@ -477,7 +482,8 @@ namespace engine
       // extract key from array
       INT32 _extractArrayKey( const BSONElement &arrEle,
                               const CHAR *arrEleName,
-                              _ixmKeyGenBase *keyGen ) ;
+                              _ixmKeyGenBase *keyGen,
+                              BOOLEAN &hasNull ) ;
    } ;
    typedef class _ixmIndexKeyGen ixmIndexKeyGen ;
 

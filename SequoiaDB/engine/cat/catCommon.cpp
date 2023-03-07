@@ -4897,6 +4897,8 @@ namespace engine
                     indexDef.getBoolField( IXM_DROPDUP_FIELD ) ) ;
          ob.append( IXM_ENFORCED_FIELD,
                     indexDef.getBoolField( IXM_ENFORCED_FIELD ) ) ;
+         ob.append( IXM_NULLS_DISTINCT_FIELD,
+                    indexDef.getBoolField( IXM_NULLS_DISTINCT_FIELD ) ) ;
          ob.append( IXM_NOTNULL_FIELD,
                     indexDef.getBoolField( IXM_NOTNULL_FIELD ) ) ;
 

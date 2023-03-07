@@ -113,6 +113,7 @@ namespace engine
       BOOLEAN hasNullOrUndefined() const ;
 
       BOOLEAN isUndefined() const ;
+      BOOLEAN hasNull() const ;
 
       // get raw data
       OSS_INLINE const CHAR *data() const
