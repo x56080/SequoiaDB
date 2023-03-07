@@ -129,6 +129,8 @@ namespace engine
       BSONObj emptyObj ;
       mthModifier modifier ;
       vector<INT64> dollarList ;
+      SET_CHARSTRING setRenameFields ;
+      SET_CHARSTRING *pSetRenameFields = NULL ;
 
       optAccessPlanRuntime planRuntime ;
       monContextCB monCtxCB ;
@@ -176,6 +178,12 @@ namespace engine
          strictDataMode = TRUE ;
       }
 
+      if (OSS_BIT_TEST( mbContext->mb()->_attributes,
+                         DMS_MB_ATTR_ENABLE_INFOSCHEMA ))
+      {
+         pSetRenameFields = &setRenameFields;
+      }
+
       try
       {
          rc = modifier.loadPattern ( updator,
@@ -184,7 +192,8 @@ namespace engine
                                      shardingKey,
                                      strictDataMode,
                                      logWriteMode,
-                                     TRUE ) ;
+                                     TRUE,
+                                     pSetRenameFields ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
                       "%s", PD_SECURE_OBJ( updator ) ) ;
       }
@@ -194,6 +203,21 @@ namespace engine
                   PD_SECURE_OBJ( updator ), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
+      }
+
+      if ( !setRenameFields.empty() )
+      {
+         dmsInternalSchema *schema = su->data()->getSchema( mbContext->mbID() ) ;
+         if ( schema->testReadDefault( setRenameFields ) ||
+              schema->testWriteDefault( setRenameFields ) )
+         {
+            rc = SDB_OPERATION_DENIED ;
+            PD_LOG_MSG( PDERROR,
+                        "The fields to rename or unset have "
+                        "default in infomation schema, rc: %d",
+                        rc );
+            goto error ;
+         }
       }
 
       try

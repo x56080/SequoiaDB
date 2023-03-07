@@ -311,8 +311,13 @@ namespace engine
       // the original record. So we set it for each record.
       BSONObj        _sourceRecord ;
 
+      // In order to restrict $rename and $unset on collection with schema enabled, the set is used
+      // to store the field names of operations.
+      SET_CHARSTRING* _pSetRenameFields ;
+
       INT32 _addToKeepSet( const CHAR *fieldName ) ;
       INT32 _addToModifierVector( ModifierElement *element ) ;
+      INT32 _addToRenameSet( const CHAR *fieldName ) ;
       INT32 _addModifier ( const BSONElement &ele, ModType type ) ;
       INT32 _parseElement ( const BSONElement &ele ) ;
 
@@ -502,6 +507,7 @@ namespace engine
          _isReplaceID   = FALSE ;
          _shardingKeyGen = NULL ;
          _strictDataMode = FALSE ;
+         _pSetRenameFields = NULL ;
       }
       ~_mthModifier()
       {
@@ -522,7 +528,8 @@ namespace engine
                           const BSONObj* shardingKey = NULL,
                           BOOLEAN strictDataMode = FALSE,
                           UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT,
-                          BOOLEAN calcIdxHash = FALSE ) ;
+                          BOOLEAN calcIdxHash = FALSE,
+                          SET_CHARSTRING *pSetRenameFields = NULL ) ;
       void modifierSort() ;
       INT32 modify ( const BSONObj &source, BSONObj &target,
                      BSONObj *srcID = NULL,

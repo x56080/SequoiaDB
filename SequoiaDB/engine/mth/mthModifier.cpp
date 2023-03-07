@@ -270,6 +270,29 @@ namespace engine
       goto done ;
    }
 
+   INT32 _mthModifier::_addToRenameSet(const CHAR *fieldName)
+   {
+      INT32 rc = SDB_OK;
+      try
+      {
+         if ( _pSetRenameFields )
+         {
+            _pSetRenameFields->insert( fieldName ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add to modiferElements: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _mthModifier implement
       The parameter ele stands for the operands for the operator of type.
@@ -383,6 +406,13 @@ namespace engine
 
          rc = _addToModifierVector( me ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add modifier:rc=%d", rc ) ;
+      }
+
+      if ( RENAME == type || UNSET == type )
+      {
+         rc = _addToRenameSet( ele.fieldName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add field[%s] to rename set:rc=%d", ele.fieldName(),
+                      rc ) ;
       }
 
    done :
@@ -2418,7 +2448,8 @@ namespace engine
                                      const BSONObj* shardingKey,
                                      BOOLEAN strictDataMode,
                                      UINT32 logWriteMode,
-                                     BOOLEAN calcIdxHash )
+                                     BOOLEAN calcIdxHash,
+                                     SET_CHARSTRING *pSetRenameFields )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF_LDPTN );
@@ -2427,6 +2458,7 @@ namespace engine
       _dollarList = dollarList ;
       _ignoreTypeError = ignoreTypeError ;
       _fieldCompare.setDollarList( _dollarList ) ;
+      _pSetRenameFields = pSetRenameFields ;
 
       if ( DPS_LOG_WRITE_MODE_FULL == logWriteMode )
       {
