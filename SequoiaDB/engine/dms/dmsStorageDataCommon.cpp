@@ -4330,6 +4330,8 @@ namespace engine
                       "[position %lld, obj %s], rc: %d",
                       position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
+         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
+
       retry:
          if ( !markInsert )
          {
@@ -4419,9 +4421,6 @@ namespace engine
             _finalRecordSize( dmsRecordSize, storeData ) ;
          }
 
-         _clFullName( context->mb()->_collectionName, fullName,
-                      sizeof(fullName) ) ;
-
          // calc log reserve
          if ( dpscb )
          {
@@ -4506,7 +4505,8 @@ namespace engine
                }
                recordData.reset() ;
 
-               PD_LOG( PDINFO, "Schema changed during inserting record, retry" ) ;
+               PD_LOG( PDINFO, "Collection [%s] schema changed during inserting record, retry",
+                       fullName ) ;
                goto retry ;
             }
          }

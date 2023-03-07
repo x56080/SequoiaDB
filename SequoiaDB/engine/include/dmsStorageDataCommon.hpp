@@ -1674,10 +1674,7 @@ namespace engine
    {
       SDB_ASSERT( fullNameLen > DMS_COLLECTION_FULL_NAME_SZ,
                   "Collection full name len error" ) ;
-      ossStrncat( clFullName, getSuName(), DMS_COLLECTION_SPACE_NAME_SZ ) ;
-      ossStrncat( clFullName, ".", 1 ) ;
-      ossStrncat( clFullName, clName, DMS_COLLECTION_NAME_SZ ) ;
-      clFullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+      ossSnprintf( clFullName, fullNameLen, "%s.%s", getSuName(), clName ) ;
 
       return clFullName ;
    }
