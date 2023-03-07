@@ -1130,6 +1130,52 @@ TEST(sdb, sdbGetListAndSnapshot)
    sdbReleaseConnection ( db ) ;
 }
 
+TEST(sdb, sdbCreateUserOutOfRange)
+{
+   INT32 rc                       = SDB_OK ;
+   sdbConnectionHandle connection = 0 ;
+   CHAR *outOfRange               = NULL ;
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // max size 256, need 257 + 1 for \0
+   outOfRange = allocMemory( 258 ) ;
+   memset( outOfRange, 'a', 257 ) ;
+   rc = sdbCreateUsr( connection, USERDEF, outOfRange ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   rc = sdbCreateUsr( connection, outOfRange, PASSWDDEF ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   freeMemory( outOfRange ) ;
+   sdbDisconnect( connection ) ;
+   sdbReleaseConnection( connection ) ;
+}
+
+TEST(sdb, sdbCreateUserWithMaxSize)
+{
+   INT32 rc                       = SDB_OK ;
+   sdbConnectionHandle connection = 0 ;
+   CHAR *maxCharSize              = NULL ;
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   maxCharSize = allocMemory( 257 ) ;
+   memset( maxCharSize, 'a', 256 ) ;
+   rc = sdbCreateUsr( connection, maxCharSize, maxCharSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbRemoveUsr( connection, maxCharSize, maxCharSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   freeMemory( maxCharSize) ;
+   sdbDisconnect( connection ) ;
+   sdbReleaseConnection( connection ) ;
+}
 
 /*
 the follow APIs it waiting to add at this file :

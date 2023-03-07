@@ -215,6 +215,8 @@ if ( handle )                        \
 
 #define LOB_ALIGNED_LEN 524288
 #define CLIENT_SQL_MAX_LEN 127
+#define MAX_USERNAME_LENGTH 256
+#define MAX_PASSWORD_LENGTH 256
 
 static BOOLEAN _sdbIsSrand = FALSE ;
 static ERROR_ON_REPLY_FUNC _sdbErrorOnReplyCallback = NULL ;
@@ -2975,6 +2977,11 @@ SDB_EXPORT INT32 sdbCreateUsr( sdbConnectionHandle cHandle,
 
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION );
    if ( !pUsrName || !pPasswd )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   if ( MAX_USERNAME_LENGTH < ossStrlen( pUsrName ) || MAX_PASSWORD_LENGTH < ossStrlen( pPasswd ) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;

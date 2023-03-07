@@ -822,3 +822,24 @@ INT32 bson_compare(const CHAR *pStr, const bson *b)
    return rc == 0 ? 0 : ( rc > 0 ? 1 : -1 );
 }
 
+CHAR* allocMemory( INT32 size )
+{
+   CHAR *p = NULL ;
+   if ( 0 < size )
+   {
+      p = ( CHAR* ) malloc( size ) ;
+   }
+   if ( p )
+   {
+      memset( p, 0, size ) ;
+   }
+   return p ;
+}
+
+void freeMemory( CHAR *p )
+{
+   if ( p )
+   {
+      free( p ) ;
+   }
+}
