@@ -81,18 +81,36 @@ namespace engine
 
       // since _ixmKey itself never convert a real BSON into buffer, so it's
       // always refering from existing buffer or keys
-      _ixmKey() { _keyData = NULL ; }
+      _ixmKey()
+      : _keyData( NULL ),
+        _size( -1 ),
+        _isUndefined( -1 ),
+        _hasNull( -1 )
+      {
+      }
+
       _ixmKey ( const _ixmKey &r )
+      : _keyData( r._keyData ),
+        _size( r._size ),
+        _isUndefined( r._isUndefined ),
+        _hasNull( r._hasNull )
       {
-         this->_keyData = r._keyData ;
       }
+
       _ixmKey ( const CHAR *keyData )
+      : _keyData( (UINT8*)keyData ),
+        _size( -1 ),
+        _isUndefined( -1 ),
+        _hasNull( -1 )
       {
-         this->_keyData = (UINT8*)keyData ;
       }
+
       void assign(const _ixmKey &r )
       {
          this->_keyData = r._keyData ;
+         this->_size = r._size ;
+         this->_isUndefined = r._isUndefined ;
+         this->_hasNull = r._hasNull ;
       }
 
       // well ordered compare
@@ -133,6 +151,10 @@ namespace engine
       {
          return *_keyData != IsBSON ;
       }
+
+      mutable INT32 _size ;
+      mutable INT32 _isUndefined ;
+      mutable INT32 _hasNull ;
    } ;
    typedef class _ixmKey ixmKey ;
 

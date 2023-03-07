@@ -338,114 +338,132 @@ namespace engine
    // check whether all keys are undefined type
    BOOLEAN _ixmKey::isUndefined() const
    {
-      if ( _keyData == 0 )
-         return FALSE ;
-      if ( !isCompactFormat() )
+      if ( -1 == _isUndefined )
       {
-         // if it's native bson type, we have to go through each element and
-         // check whether if it's Undefined, if any element doesn't match, we
-         // return FALSE
-         BSONObjIterator it ( _bson() ) ;
-         while ( it.more() )
+         if ( _keyData == 0 )
          {
-            if ( it.next().type() != Undefined )
-               return FALSE ;
+            _isUndefined = 0 ;
+         }
+         else if ( !isCompactFormat() )
+         {
+            // if it's native bson type, we have to go through each element and
+            // check whether if it's Undefined, if any element doesn't match, we
+            // return FALSE
+            _isUndefined = 1 ;
+            BSONObjIterator it ( _bson() ) ;
+            while ( it.more() )
+            {
+               if ( it.next().type() != Undefined )
+               {
+                  _isUndefined = 0 ;
+                  break ;
+               }
+            }
+         }
+         else
+         {
+            // loop through all types and check whether we got cundefined for all
+            // fields
+            _isUndefined = 1 ;
+            const UINT8 *p = _keyData ;
+            while ( TRUE )
+            {
+               UINT8 bits = *p++ ;
+               if ( cundefined != ( bits & 0x3F ) )
+               {
+                  _isUndefined = 0 ;
+                  break ;
+               }
+               // break when we don't have any more fields
+               if ( (bits & cHASMORE) == 0 )
+                  break ;
+            }
          }
       }
-      else
-      {
-         // loop through all types and check whether we got cundefined for all
-         // fields
-         const UINT8 *p = _keyData ;
-         while ( TRUE )
-         {
-            UINT8 bits = *p++ ;
-            if ( cundefined != ( bits & 0x3F ) )
-               return FALSE ;
-            // break when we don't have any more fields
-            if ( (bits & cHASMORE) == 0 )
-               break ;
-         }
-      }
-      return TRUE ;
+      return 1 == _isUndefined ? TRUE : FALSE ;
    }
 
    // check whether there is a null field
    BOOLEAN _ixmKey::hasNull() const
    {
-      BOOLEAN foundOut = FALSE ;
+      if ( -1 == _hasNull )
+      {
 
-      if ( _keyData == 0 )
-      {
-      }
-      else if ( !isCompactFormat() )
-      {
-         // if it's native bson type, we have to go through each element and
-         // check whether if it's null
-         BSONObjIterator it ( _bson() ) ;
-         while ( it.more() )
+         if ( _keyData == 0 )
          {
-            BSONElement ele = it.next() ;
-            if ( jstNULL == ele.type() )
+            _hasNull = 0 ;
+         }
+         else if ( !isCompactFormat() )
+         {
+            _hasNull = 0 ;
+            // if it's native bson type, we have to go through each element and
+            // check whether if it's null
+            BSONObjIterator it ( _bson() ) ;
+            while ( it.more() )
             {
-               foundOut = TRUE ;
-               break ;
+               BSONElement ele = it.next() ;
+               if ( jstNULL == ele.type() )
+               {
+                  _hasNull = 1 ;
+                  break ;
+               }
+            }
+         }
+         else
+         {
+            _hasNull = 0 ;
+            // it is compact format, we need to loop through all types and
+            // check whether any field is cnull.
+            const UINT8 *p = _keyData ;
+            while ( TRUE )
+            {
+               UINT8 bits = *p++ ;
+               switch ( bits & cCANONTYPEMASK )
+               {
+                  case cnull:
+                     _hasNull = 1 ;
+                     break ;
+                  case cminkey:
+                  case cundefined:
+                  case cmaxkey:
+                  case cfalse:
+                  case ctrue:
+                     break ;
+                  case cstring:
+                  {
+                     UINT8 len = *p++ ;
+                     p += len ;
+                     break ;
+                  }
+                  case cbindata:
+                  {
+                     INT32 len = binDataCodeToLength( *p++ ) ;
+                     p += len ;
+                     break ;
+                  }
+                  case coid:
+                     p += sizeof( OID ) ;
+                     break ;
+                  case cdate:
+                     p += sizeof( Date_t ) ;
+                     break ;
+                  case cdouble:
+                     p += sizeof( FLOAT64 ) ;
+                     break ;
+                  default:
+                     PD_LOG( PDERROR, "Invalid key is accessed" ) ;
+                     throw pdGeneralException( "Invalid Key is accessed" ) ;
+               }
+
+               if ( 1 == _hasNull || 0 == ( bits & cHASMORE ) )
+               {
+                  break ;
+               }
             }
          }
       }
-      else
-      {
-         // it is compact format, we need to loop through all types and
-         // check whether any field is cnull.
-         const UINT8 *p = _keyData ;
-         while ( TRUE )
-         {
-            UINT8 bits = *p++ ;
-            switch ( bits & cCANONTYPEMASK )
-            {
-               case cnull:
-                  foundOut = TRUE ;
-                  break ;
-               case cminkey:
-               case cundefined:
-               case cmaxkey:
-               case cfalse:
-               case ctrue:
-                  break ;
-               case cstring:
-               {
-                  UINT8 len = *p++ ;
-                  p += len ;
-                  break ;
-               }
-               case cbindata:
-               {
-                  INT32 len = binDataCodeToLength( *p++ ) ;
-                  p += len ;
-                  break ;
-               }
-               case coid:
-                  p += sizeof( OID ) ;
-                  break ;
-               case cdate:
-                  p += sizeof( Date_t ) ;
-                  break ;
-               case cdouble:
-                  p += sizeof( FLOAT64 ) ;
-                  break ;
-               default:
-                  PD_LOG( PDERROR, "Invalid key is accessed" ) ;
-                  throw pdGeneralException( "Invalid Key is accessed" ) ;
-            }
 
-            if ( foundOut || 0 == ( bits & cHASMORE ) )
-            {
-               break ;
-            }
-         }
-      }
-
-      return foundOut ;
+      return 1 == _hasNull ? TRUE : FALSE ;
    }
 
    void _ixmKey::_toBson(BSONObjBuilder &b, BSONObjIterator *keyIter ) const
@@ -907,18 +925,25 @@ namespace engine
    // get the size of key
    INT32 _ixmKey::dataSize() const
    {
-      const UINT8 *p = _keyData;
-      if( !isCompactFormat() )
+      if ( -1 == _size )
       {
-         // bson length + 1 byte type
-         return _bson().objsize() + 1 ;
+         const UINT8 *p = _keyData;
+         if( !isCompactFormat() )
+         {
+            // bson length + 1 byte type
+            _size = _bson().objsize() + 1 ;
+         }
+         else
+         {
+            BOOLEAN more ;
+            do
+            {
+               more = ( *p & cHASMORE )!=0 ;
+               p += sizeOfElement(p) ;
+            } while ( more ) ;
+            _size = p - _keyData ;
+         }
       }
-      BOOLEAN more ;
-      do
-      {
-         more = ( *p & cHASMORE )!=0 ;
-         p += sizeOfElement(p) ;
-      } while ( more ) ;
-      return p - _keyData ;
+      return _size ;
    }
 }
