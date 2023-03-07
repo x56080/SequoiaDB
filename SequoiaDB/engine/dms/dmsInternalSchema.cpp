@@ -1824,6 +1824,7 @@ namespace engine
       CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
       INT32 colNameLength = 0 ;
 
+   retry:
       rc = cb->allocBuff( buffSize, &buff, NULL ) ;
       if ( rc )
       {
@@ -1927,6 +1928,13 @@ namespace engine
       {
          cb->releaseBuff( buff ) ;
          memAlloc = FALSE ;
+         buff = NULL ;
+      }
+      if ( builder.isOutOfBuff() )
+      {
+         builder.reset() ;
+         buffSize <<= 1 ;
+         goto retry ;
       }
       goto done ;
    }
