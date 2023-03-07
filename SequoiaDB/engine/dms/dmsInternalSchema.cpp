@@ -2409,7 +2409,7 @@ namespace engine
       if ( pName && *pName )
       {
          UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID ;
-         const CHAR *pDot = ossStrchr( '.' ) ;
+         const CHAR *pDot = ossStrchr( pName, '.' ) ;
          ossPoolString tmp ;
 
          if ( pDot )
@@ -2439,13 +2439,13 @@ namespace engine
 
    BOOLEAN _dmsInternalSchema::testReadDefault( const CHAR *pName )
    {
-      ossScopedRWLock lock( &_loadRWMutex ) ;
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
       return _testColumn( pName, _readColBitmap ) ;
    }
 
    BOOLEAN _dmsInternalSchema::testReadDefault( const SET_CHARSTRING &setNames )
    {
-      ossScopedRWLock lock( &_loadRWMutex ) ;
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
       SET_CHARSTRING::const_iterator cit ;
 
       for ( cit = setNames.begin() ; cit != setNames.end() ; ++cit )
@@ -2460,13 +2460,13 @@ namespace engine
 
    BOOLEAN _dmsInternalSchema::testWriteDefault( const CHAR *pName )
    {
-      ossScopedRWLock lock( &_loadRWMutex ) ;
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
       return _testColumn( pName, _writeColBitmap ) ;
    }
 
    BOOLEAN _dmsInternalSchema::testWriteDefault( const SET_CHARSTRING &setNames )
    {
-      ossScopedRWLock lock( &_loadRWMutex ) ;
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
       SET_CHARSTRING::const_iterator cit ;
 
       for ( cit = setNames.begin() ; cit != setNames.end() ; ++cit )
