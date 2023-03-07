@@ -77,6 +77,9 @@ public class Sequoiadb implements Closeable {
     private Map<String, Long> nameCache = new HashMap<String, Long>();
     private static ClientOptions globalClientConf = new ClientOptions();
 
+    private final int MAX_USERNAME_LENGTH = 256;
+    private final int MAX_PASSWORD_LENGTH = 256;
+
     private BSONObject attributeCache = null;
 
     private final static String DEFAULT_HOST = "127.0.0.1";
@@ -701,6 +704,9 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
+        if (username.length() > MAX_USERNAME_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Exceeds username or password maximum length");
+        }
         AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.CreateUser);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);

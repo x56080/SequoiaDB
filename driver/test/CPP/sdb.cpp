@@ -1269,3 +1269,60 @@ TEST(sdb, getAddressTest)
 
    conn.disconnect() ;
 }
+
+TEST(sdb, createUserOutOfRange)
+{
+   sdb connection ;
+
+   INT32 rc               = SDB_OK ;
+   const CHAR *pHostName  = HOST ;
+   const CHAR *pPort      = SERVER ;
+   const CHAR *pUsr       = USER ;
+   const CHAR *pPasswd    = PASSWD ;
+   CHAR *outOfRange       = NULL ;
+
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // max size 256, use 257 + 1 for \0
+   outOfRange = allocMemory( 258 ) ;
+   memset(outOfRange, 'a', 257 ) ;
+   rc = connection.createUsr( USERNAME, outOfRange ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc) ;
+   rc = connection.createUsr( outOfRange, PASSWD ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   freeMemory( outOfRange ) ;
+   connection.disconnect() ;
+}
+
+TEST(sdb, createUserWithMaxSize)
+{
+   sdb connection ;
+
+   INT32 rc               = SDB_OK ;
+   const CHAR *pHostName  = HOST ;
+   const CHAR *pPort      = SERVER ;
+   const CHAR *pUsr       = USER ;
+   const CHAR *pPasswd    = PASSWD ;
+   CHAR *maxCharSize      = NULL ;
+
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   maxCharSize = allocMemory( 257 ) ;
+   memset(maxCharSize, 'a', 256 ) ;
+   rc = connection.createUsr( maxCharSize, maxCharSize ) ;
+   ASSERT_EQ( SDB_OK, rc) ;
+   rc = connection.removeUsr( maxCharSize, maxCharSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   freeMemory( maxCharSize ) ;
+   connection.disconnect() ;
+}
