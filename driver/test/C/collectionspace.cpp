@@ -197,7 +197,8 @@ TEST( collectonspace, sdbCSListCollections )
 {
    sdbConnectionHandle connection = 0 ;
    sdbCSHandle collectionspace    = 0 ;
-   sdbCursorHandle cursor         = 0 ;
+   sdbCursorHandle cursor1        = 0 ;
+   sdbCursorHandle cursor2        = 0 ;
    INT32 rc                       = SDB_OK ;
    INT64 num                      = 0 ;
    CHAR pCSName[ NAME_LEN + 1 ]   = { 0 } ;
@@ -213,22 +214,23 @@ TEST( collectonspace, sdbCSListCollections )
    ASSERT_EQ( SDB_OK, rc ) ;
 
    // case 1: cs exists, cl exists
-   rc = sdbCSListCollections( collectionspace, &cursor ) ;
+   rc = sdbCSListCollections( collectionspace, &cursor1 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   num = getRecordNum( cursor ) ;
+   num = getRecordNum( cursor1 ) ;
    ASSERT_EQ( 1, num ) ;
 
    // case 2: cs exists, cl does not exist
    rc = sdbDropCollection( collectionspace, COLLECTION_NAME ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = sdbCSListCollections( collectionspace, &cursor ) ;
+   rc = sdbCSListCollections( collectionspace, &cursor2 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   num = getRecordNum( cursor ) ;
+   num = getRecordNum( cursor2 ) ;
    ASSERT_EQ( 0, num ) ;
    
    sdbDisconnect ( connection ) ; 
    sdbReleaseCS ( collectionspace ) ;
-   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCursor( cursor1 ) ;
+   sdbReleaseCursor( cursor2 ) ;
    sdbReleaseConnection ( connection ) ;
 }
 
@@ -265,7 +267,6 @@ TEST( collectonspace, sdbCSGetDomainName )
    bson_append_start_array( &domObj, "Groups" ) ;
    bson_append_string( &domObj, "0", GROUPNAME1 ) ;
    bson_append_string( &domObj, "1", GROUPNAME2 ) ;
-   bson_append_string( &domObj, "2", GROUPNAME3 ) ;
    bson_append_finish_array( &domObj ) ;
    bson_finish( &domObj ) ;
    rc = sdbCreateDomain( connection,  pDomain, &domObj, &dom ) ;
