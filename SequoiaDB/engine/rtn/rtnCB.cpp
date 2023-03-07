@@ -257,6 +257,8 @@ namespace engine
          _pLTMgr = NULL ;
       }
 
+      _unloadCSSet.clear() ;
+
       return SDB_OK ;
    }
 

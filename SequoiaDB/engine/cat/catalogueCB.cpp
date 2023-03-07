@@ -511,6 +511,8 @@ namespace engine
       _catGTSMgr.fini() ;
       _catMainCtrl.fini() ;
       _recycleBinMgr.fini() ;
+      _idLocMap.clear() ;
+      _locIdMap.clear() ;
 
       // unregister event handle
       pmdGetKRCB()->unregEventHandler( this ) ;
