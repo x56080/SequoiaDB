@@ -7,19 +7,21 @@
  * @Change Activity:
  * Date       Who         Description
  * ========== =========== =========================================================
- * 03/02/2023 Zhou Hongye Commit and rollback transaction on a collection bound to schema
+ * 03/02/2023 Zhou Hongye Check the tail data of the collection whose schema and compression enabled
  **************************************************************************************************/
 
 /*********************************************测试用例***********************************************
  * 环境准备：正常集群环境即可
  * 测试场景：
- *    1.
+ *    在绑定模式和开启数据压缩情况下，校验集合尾部数据
  *
  * 测试步骤：
- *    1.
+ *    1.创建集合，并开启数据压缩和内部模式，集合创建一个额外的索引用于反向查询
+ *    2.创建外部模式并绑定,，插入大于64MB的数据使其生成压缩字典
+ *    3.校验集合尾部的数据是否符合预期
  *
  * 期望结果：
- *
+ *    集合数据符合预期
  *
  **************************************************************************************************/
 testConf.clName = "schema_32";
@@ -51,7 +53,6 @@ function test(testPara) {
   }
   cl.insert(records);
   expRecs.reverse();
-  println(expRecs.length);
   var cursor = cl.find({ pos: { $mod: [10000, 0] } }).hint({ "": "index_pos" });
   commCompareResults(cursor, expRecs);
 }

@@ -2812,7 +2812,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      setBuilder.append( FIELD_NAME_SCHEMA, schemaName ) ;
+      if ( !_subCLOFMainCL )
+      {
+         setBuilder.append( FIELD_NAME_SCHEMA, schemaName ) ;
+      }
 
       return rc ;
    }
@@ -2821,7 +2824,10 @@ namespace engine
                                                        BSONObjBuilder & setBuilder,
                                                        BSONObjBuilder & unsetBuilder )
    {
-      unsetBuilder.append( FIELD_NAME_SCHEMA, 1 ) ;
+      if ( !_subCLOFMainCL )
+      {
+         unsetBuilder.append( FIELD_NAME_SCHEMA, 1 ) ;
+      }
 
       return SDB_OK ;
    }
