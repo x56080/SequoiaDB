@@ -423,8 +423,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT, "_dmsSchemaWriter::dropColumnDefault" )
-   INT32 _dmsSchemaWriter::dropColumnDefault( UINT16 columnID, BOOLEAN dropWrite,
-                                              BOOLEAN dropRead )
+   INT32 _dmsSchemaWriter::dropColumnDefault( UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT ) ;
@@ -445,8 +444,7 @@ namespace engine
          goto done ;
       }
 
-      if ( !( ( dropRead && !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT )  ) ||
-              ( dropWrite && !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ) ) )
+      if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
       {
          // If default value to be dropped does not exist, just ignore.
          goto done ;
@@ -455,18 +453,8 @@ namespace engine
       rc = builder.startRebuild( oldColRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Start building schema column info failed, rc: %d", rc ) ;
 
-      // Set the flag bits we want to clear.
-      if ( dropWrite && OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT )  )
-      {
-         OSS_BIT_CLEAR( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
-         builder.dropWriteDefault() ;
-      }
-
-      if ( dropRead && OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) )
-      {
-         OSS_BIT_CLEAR( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
-         builder.dropReadDefault() ;
-      }
+      OSS_BIT_CLEAR( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+      builder.dropWriteDefault() ;
 
       rc = builder.finishRebuild() ;
       PD_RC_CHECK( rc, PDERROR, "Build new column info when dropping default failed, rc: %d", rc ) ;
@@ -1447,7 +1435,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _schemaWriter.dropColumnDefault( columnID, TRUE ) ;
+      rc = _schemaWriter.dropColumnDefault( columnID ) ;
       PD_RC_CHECK( rc, PDERROR, "Drop write default for column %s failed, rc: %d", name, rc ) ;
 
    done:

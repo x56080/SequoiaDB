@@ -88,7 +88,7 @@ namespace engine
 
          INT32 dropColumn( UINT16 columnID ) ;
 
-         INT32 dropColumnDefault( UINT16 columnID, BOOLEAN dropWrite, BOOLEAN dropRead = FALSE ) ;
+         INT32 dropColumnDefault( UINT16 columnID ) ;
 
          INT32 renameColumn( UINT16 columnID, const CHAR *newName ) ;
 
