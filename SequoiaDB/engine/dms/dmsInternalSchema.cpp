@@ -223,6 +223,7 @@ namespace engine
                                                   BOOLEAN *hasWriteDefault,
                                                   BOOLEAN *isIndexColumn,
                                                   BOOLEAN *hasOrigName,
+                                                  BOOLEAN *isHidden,
                                                   UINT32 *defaultValInitVersion ) const
    {
       INT32 rc = SDB_OK ;
@@ -261,6 +262,10 @@ namespace engine
       if ( hasOrigName )
       {
          *hasOrigName = ( attr & DMS_SCHEMA_COL_HAS_ORIGNAME ) ? TRUE : FALSE ;
+      }
+      if ( isHidden )
+      {
+         *isHidden = ( attr & DMS_SCHEMA_COL_HIDDEN ) ? TRUE : FALSE ;
       }
       if ( defaultValInitVersion )
       {
@@ -580,6 +585,10 @@ namespace engine
             if ( isIndexColumn( columnID ) )
             {
                builder.appendBool( FIELD_NAME_INDEX_COL, TRUE ) ;
+            }
+            if ( isColumnHidden( columnID ) )
+            {
+               builder.appendBool( FIELD_NAME_HIDDEN, TRUE ) ;
             }
          }
       }

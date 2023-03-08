@@ -432,6 +432,32 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsSchemaWriter::hideColumn( UINT16 columnID )
+   {
+      INT32 rc = SDB_OK ;
+      UINT8 attr = 0 ;
+      BOOLEAN inMemory = FALSE ;
+      const dmsSchemaColRecord *record = NULL ;
+
+      rc = _getColAttrAndRecord( columnID, attr, record, &inMemory ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get column info with column id [%u] failed, rc: %d",
+                   columnID, rc ) ;
+      if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_HIDDEN ) )
+      {
+         goto done ;
+      }
+
+      OSS_BIT_SET( attr, DMS_SCHEMA_COL_HIDDEN ) ;
+
+      rc = _addOrUpdateColumnInfo( columnID, attr, inMemory ? NULL : record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Mark column of id [%u] as hidden failed, rc: %d", columnID, rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_DROPCOLUMNDEFAULT, "_dmsSchemaWriter::dropColumnDefault" )
    INT32 _dmsSchemaWriter::dropColumnDefault( UINT16 columnID )
    {
@@ -1389,18 +1415,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMAWRITER_RENAMECOLUMN ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
+      UINT16 conflictColID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       SDB_ASSERT( oldName && newName, "Name invalid" ) ;
-
-      // 1. Check if the column with the old name exists, and the column with the new name does not
-      //    exist.
-      if ( DMS_SCHEMA_INVALID_COLUMNID != _schemaHashWriter.getColumnIDByName( newName ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Can not rename [%s] to [%s] as the target name already exist, rc: %d",
-                 oldName, newName, rc ) ;
-         goto error ;
-      }
 
       columnID = _schemaHashWriter.getColumnIDByName( oldName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
@@ -1416,6 +1433,16 @@ namespace engine
       {
          // 2. Drop the entry in the hash table.
          _schemaHashWriter.dropColumnItemByName( oldName ) ;
+      }
+
+      // 1. Check if the column with the old name exists, and the column with the new name does not
+      //    exist.
+      conflictColID = _schemaHashWriter.getColumnIDByName( newName ) ;
+      if ( DMS_SCHEMA_INVALID_COLUMNID != conflictColID )
+      {
+         rc = _hideColumn( newName, conflictColID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Hide conflict target column name [%s] for renaming column [%s] "
+                      "failed, rc: %d", newName, oldName, rc ) ;
       }
 
       // 3. Rename the column and update the column information in schema extent.
@@ -1613,6 +1640,39 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMAWRITER__MERGE2COLUMN, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsInternalSchemaWriter::_hideColumn( const CHAR *columnName, UINT16 columnID )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( columnName, "Column name is null" ) ;
+
+      if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
+      {
+         columnID = _schemaHashWriter.getColumnIDByName( columnName ) ;
+         if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "The column [%s] to hide does not exist, rc: %d", columnName, rc ) ;
+            goto error ;
+         }
+      }
+
+      // Drop the entry of the column in the hash table.
+      _schemaHashWriter.dropColumnItemByName( columnName ) ;
+
+      rc = _schemaWriter.hideColumn( columnID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Hide column [Name: %s, ID: %u] in internal schema failed, rc: %d",
+                   columnName, columnID, rc) ;
+
+      PD_LOG( PDDEBUG, "Mark column [Name: %s, ID: %u] as hidden in internal schema successfully",
+              columnName, columnID ) ;
+
+   done:
       return rc ;
    error:
       goto done ;

@@ -88,6 +88,8 @@ namespace engine
 
          INT32 dropColumn( UINT16 columnID ) ;
 
+         INT32 hideColumn( UINT16 columnID ) ;
+
          INT32 dropColumnDefault( UINT16 columnID ) ;
 
          INT32 renameColumn( UINT16 columnID, const CHAR *newName ) ;
@@ -238,6 +240,8 @@ namespace engine
 
       private:
          INT32 _merge2Column( UINT16 columnID, const BSONObj &columnDef ) ;
+
+         INT32 _hideColumn( const CHAR *name, UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ) ;
 
       private:
          _dmsStorageDataCommon        *_su ;

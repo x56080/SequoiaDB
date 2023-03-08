@@ -574,21 +574,21 @@ namespace engine
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
-            BOOLEAN hasOld = FALSE ;
-            BOOLEAN hasNew = FALSE ;
+            // BOOLEAN hasOld = FALSE ;
+            // BOOLEAN hasNew = FALSE ;
 
-            hasOld = oldSchema.hasColumn( action.getColumnName() ) ;
-            hasNew = oldSchema.hasColumn( action.getNewColAttr().getName() ) ;
+            // hasOld = oldSchema.hasColumn( action.getColumnName() ) ;
+            // hasNew = oldSchema.hasColumn( action.getNewColAttr().getName() ) ;
             /// only old and new both exist, forbidden
-            if ( hasOld && hasNew )
-            {
-               rc = SDB_OPERATION_INCOMPATIBLE ;
-               PD_LOG( PDERROR, "Failed to check rename column from [%s] "
-                       "to [%s], [%s] already exists",
-                       action.getColumnName(), action.getNewColAttr().getName(),
-                       action.getNewColAttr().getName() ) ;
-               goto error ;
-            }
+            // if ( hasOld && hasNew )
+            // {
+            //    rc = SDB_OPERATION_INCOMPATIBLE ;
+            //    PD_LOG( PDERROR, "Failed to check rename column from [%s] "
+            //            "to [%s], [%s] already exists",
+            //            action.getColumnName(), action.getNewColAttr().getName(),
+            //            action.getNewColAttr().getName() ) ;
+            //    goto error ;
+            // }
 
             rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "

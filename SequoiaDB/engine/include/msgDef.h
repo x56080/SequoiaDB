@@ -784,6 +784,7 @@
 #define FIELD_NAME_READDEFAULT               "ReadDefault"
 #define FIELD_NAME_WRITEDEFAULT              "WriteDefault"
 #define FIELD_NAME_DELETED                   "Deleted"
+#define FIELD_NAME_HIDDEN                    "Hidden"
 #define FIELD_NAME_INDEX_COL                 "IndexColumn"
 #define FIELD_NAME_COLUMNS                   "Columns"
 #define FIELD_NAME_STRICTMODE                "StrictMode"

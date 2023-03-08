@@ -52,6 +52,7 @@
 #define DMS_SCHEMA_COL_READ_DEFAULT                0x20
 #define DMS_SCHEMA_COL_WRITE_DEFAULT               0x10
 #define DMS_SCHEMA_COL_HAS_ORIGNAME                0x08
+#define DMS_SCHEMA_COL_HIDDEN                      0x04
 
 #define DMS_SCHEMA_EXTENT_MAX_SZ                   ( 4 << 20 )
 
@@ -109,6 +110,13 @@ namespace engine
                    OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_IN_INDEX ) ;
          }
 
+         BOOLEAN isColumnHidden( UINT16 columnID ) const
+         {
+            SDB_ASSERT( columnID < _extent->_itemNum, "Column id is invalid" ) ;
+            return !isColumnDeleted( columnID ) &&
+                   OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_HIDDEN ) ;
+         }
+
          INT32 getColReadDefault( UINT16 columnID, const CHAR *&name, INT32 &nameLen,
                                   BSONType &type, const CHAR *&value, INT32 &valueLen ) const ;
 
@@ -120,7 +128,7 @@ namespace engine
          INT32 getColumnBasicInfo( UINT16 columnID, const CHAR **name, INT32 *nameLen,
                                    BOOLEAN *isDeleted = NULL, BOOLEAN *hasReadDefault = NULL,
                                    BOOLEAN *hasWriteDefault = NULL, BOOLEAN *isIndexColumn = NULL,
-                                   BOOLEAN *hasOrigName = NULL,
+                                   BOOLEAN *hasOrigName = NULL, BOOLEAN *isHidden = NULL,
                                    UINT32 *defaultValInitVersion = NULL ) const ;
 
          OSS_INLINE const CHAR *getColumnName( UINT16 columnID, INT32 *nameLen = NULL ) const ;
