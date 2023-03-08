@@ -421,7 +421,7 @@ namespace engine
 
          UINT16      getColID() const { return _colID ; }
          BOOLEAN     isDeleted() const { return _isDeleted ; }
-         BOOLEAN     hasOrgName() const { return _pOrgName ? TRUE : FALS ; }
+         BOOLEAN     hasOrgName() const { return _pOrgName ? TRUE : FALSE ; }
 
       private:
          UINT16         _colID ;
