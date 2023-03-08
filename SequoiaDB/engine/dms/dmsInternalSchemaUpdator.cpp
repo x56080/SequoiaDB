@@ -181,7 +181,6 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Add read default value of column into builder buffer "
                             "failed, rc: %d", rc ) ;
                OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
-               _initReadDefautlIDs.insert( columnID ) ;
             }
 
             ele = columnDef->getField( FIELD_NAME_WRITEDEFAULT ) ;
@@ -270,7 +269,6 @@ namespace engine
                             "failed, rc: %d", name, rc ) ;
                OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
                changed = TRUE ;
-               _initReadDefautlIDs.insert( columnID ) ;
             }
          }
 
@@ -432,9 +430,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAWRITER_HIDECOLUMN, "_dmsSchemaWriter::hideColumn" )
    INT32 _dmsSchemaWriter::hideColumn( UINT16 columnID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_HIDECOLUMN ) ;
       UINT8 attr = 0 ;
       BOOLEAN inMemory = FALSE ;
       const dmsSchemaColRecord *record = NULL ;
@@ -453,6 +453,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Mark column of id [%u] as hidden failed, rc: %d", columnID, rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSCHEMAWRITER_HIDECOLUMN, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -739,14 +740,16 @@ namespace engine
    INT32 _dmsSchemaWriter::save( dmsSchemaExtent *extent, UINT32 extentSize,
                                  UINT16 pageNum, UINT16 mbID, BOOLEAN isInnerChange )
    {
-      UINT8 attr = 0 ;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_SAVE ) ;
+      UINT8 attr = 0 ;
       UINT16 recordLen = 0 ;
       const dmsSchemaColRecord *record = NULL ;
       dmsSchemaColSlot *colSlot = NULL ;
       UINT32 recordOffset = extentSize ;
       UINT32 currVersion = DMS_SCHEMA_INVALID_VERSION ;
       UINT32 currInnerVersion = DMS_SCHEMA_INVALID_VERSION ;
+      UINT32 readDefaultInitVer = DMS_SCHEMA_INVALID_VERSION ;
       UINT32 baseSchemaColumnNum = _hasBaseSchema ? _baseSchemaContainer.columnNum() : 0 ;
 
       extent->init( pageNum, mbID, extentSize ) ;
@@ -773,6 +776,8 @@ namespace engine
 
       for ( UINT16 columnID = 0; columnID < _nextColumnID; ++columnID )
       {
+         BOOLEAN baseHasReadDefault = FALSE ;
+         readDefaultInitVer = extent->_schemaInnerVersion ;
          COL_INFO_MAP_CITR citr = _colInfoMap.find( columnID ) ;
          if ( _colInfoMap.end() != citr )
          {
@@ -784,6 +789,22 @@ namespace engine
          {
             record = _baseSchemaContainer._getColRecord( columnID ) ;
             attr = _baseSchemaContainer._getColumnAttr( columnID ) ;
+            baseHasReadDefault = OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
+         }
+
+         if ( columnID < baseSchemaColumnNum && baseHasReadDefault )
+         {
+            const dmsSchemaColSlot *tmpSlot = _baseSchemaContainer._getColSlot( columnID ) ;
+            if ( !tmpSlot )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Get slot in internal schema for column [ID: %u] failed, rc: %d",
+                       columnID, rc ) ;
+               goto error ;
+            }
+
+            readDefaultInitVer = tmpSlot->getDefaultInitVersion() ;
+            SDB_ASSERT( DMS_SCHEMA_INVALID_VERSION != readDefaultInitVer, "Version invalid" ) ;
          }
 
          recordLen = record->getLength() ;
@@ -791,11 +812,7 @@ namespace engine
          ossMemcpy( (CHAR *)extent + recordOffset, record, recordLen ) ;
          colSlot->setAttr( attr ) ;
          colSlot->setOffset( recordOffset ) ;
-
-         if ( _initReadDefautlIDs.end() != _initReadDefautlIDs.find( columnID ) )
-         {
-            colSlot->setDefaultInitVersion( extent->_schemaInnerVersion ) ;
-         }
+         colSlot->setDefaultInitVersion( readDefaultInitVer ) ;
 
          ++colSlot ;
          ++extent->_itemNum ;
@@ -804,8 +821,11 @@ namespace engine
       extent->_freeSpace = extentSize - DMS_SCHEMAEXTENT_HEADER_SZ - _totalSize ;
       extent->_valueOffset = recordOffset ;
 
+   done:
       PD_TRACE_EXIT( SDB__DMSSCHEMAWRITER_SAVE ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    _dmsSchemaHashWriter::_dmsSchemaHashWriter()
@@ -1419,6 +1439,8 @@ namespace engine
 
       SDB_ASSERT( oldName && newName, "Name invalid" ) ;
 
+      // 1. Check if the old name exists. If not, need to add the column information first.
+      //    If yes, drop the column entry in the hash table.
       columnID = _schemaHashWriter.getColumnIDByName( oldName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
       {
@@ -1431,12 +1453,10 @@ namespace engine
       }
       else
       {
-         // 2. Drop the entry in the hash table.
          _schemaHashWriter.dropColumnItemByName( oldName ) ;
       }
 
-      // 1. Check if the column with the old name exists, and the column with the new name does not
-      //    exist.
+      // 2. Check if column with the targe name exists. If yes, hide it.
       conflictColID = _schemaHashWriter.getColumnIDByName( newName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID != conflictColID )
       {

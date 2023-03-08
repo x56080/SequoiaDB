@@ -136,7 +136,6 @@ namespace engine
          BOOLEAN                 _hasBaseSchema ;
          BOOLEAN                 _hasChanged ;
          UINT16                  _nextColumnID ;
-         ossPoolSet<UINT16>      _initReadDefautlIDs ;
    } ;
    typedef _dmsSchemaWriter dmsSchemaWriter ;
 

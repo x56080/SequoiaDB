@@ -586,6 +586,9 @@ namespace engine
             builder.appendRawEle( type, StringData( FIELD_NAME_READDEFAULT,
                                                     sizeof(FIELD_NAME_READDEFAULT)-1),
                                   (const void *)value, valueSize ) ;
+            const dmsSchemaColSlot *slot = _getColSlot( columnID ) ;
+            UINT32 version = slot->getDefaultInitVersion() ;
+            builder.append( "ReadDefaultInitVersion", version ) ;
          }
 
          /// write default
