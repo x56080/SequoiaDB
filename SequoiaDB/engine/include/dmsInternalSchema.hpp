@@ -490,7 +490,8 @@ namespace engine
                                 dmsRecordData &recordData,
                                 BOOLEAN &memAlloc,
                                 dmsRecordData &encodeData,
-                                BOOLEAN &hasNewCol ) ;
+                                BOOLEAN &hasNewCol,
+                                BOOLEAN isPrimalData = FALSE ) ;
 
          // Decode a record which is encoded by the internal schema.
          INT32    decodeRecord( _pmdEDUCB *cb,

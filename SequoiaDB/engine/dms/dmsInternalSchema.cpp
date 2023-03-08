@@ -1113,7 +1113,8 @@ namespace engine
                                            dmsRecordData &recordData,
                                            BOOLEAN &memAlloc,
                                            dmsRecordData &encodeData,
-                                           BOOLEAN &hasNewCol )
+                                           BOOLEAN &hasNewCol,
+                                           BOOLEAN isPrimalData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_ENCODERECORD ) ;
@@ -1134,7 +1135,6 @@ namespace engine
       dmsThreadSchemaBitmap colBitmap( _schemaContainer.columnNum() ) ;
       utilBSONRawBuilder encodeBuilder ;
 
-      BOOLEAN isPrimalData = FALSE ;
       BOOLEAN hasRetry = FALSE ;
 
       /// check enbaled
@@ -1162,7 +1162,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Init column bitmap failed, rc: %d", rc ) ;
 
       /// when Primal data don't set write bitmap
-      if ( session && session->isBusinessSession() && !cb->isInTransRollback() )
+      if ( !isPrimalData && session && session->isBusinessSession() &&
+           !cb->isInTransRollback() )
       {
          writeBitmap.setBitmap( _writeColBitmap ) ;
       }
@@ -1326,6 +1327,7 @@ namespace engine
       INT32 nameLen = 0 ;
       BOOLEAN colIsDeleted = FALSE ;
       BOOLEAN colHasOrgName = FALSE ;
+      BOOLEAN colIsHidden = FALSE ;
       UINT8 encodeType = DMS_SCHEMA_GET_ENCODE_TYPE( data ) ;
       UINT8 encodeAttr = DMS_SCHEMA_GET_ENCODE_ATTR( data ) ;
       UINT32 version = DMS_SCHEMA_GET_VERSION( data ) ;
@@ -1422,18 +1424,25 @@ namespace engine
             BSONElement ele = itr.next() ;
             columnID = (UINT16)utilHexStrToInt( ele.fieldName() ) ;
 
+         retry_colid:
             /// clear read default bitmap
             readBitmap.clearBit( columnID ) ;
             /// get column from schema
             rc = _schemaContainer.getColumnBasicInfo( columnID, &columnName,
                                                       &nameLen, &colIsDeleted,
                                                       NULL, NULL, NULL,
-                                                      &colHasOrgName ) ;
+                                                      &colHasOrgName,
+                                                      &colIsHidden ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Get column[%s,%u] from schema failed, rc: %d",
                        ele.fieldName(), columnID, rc ) ;
                goto error ;
+            }
+            else if ( colIsHidden )
+            {
+               columnID = _schemaHash.getColumnIDByName( columnName ) ;
+               goto retry_colid ;
             }
             else if ( colIsDeleted )
             {

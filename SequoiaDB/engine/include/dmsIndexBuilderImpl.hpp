@@ -78,7 +78,7 @@ namespace engine
 
    private:
       INT32 _init() ;
-      INT32 _fillSorter() ;
+      INT32 _fillSorter( dmsSchemaContext *pContext ) ;
       INT32 _insertKeys( const Ordering& ordering ) ;
       INT32 _build() ;
 

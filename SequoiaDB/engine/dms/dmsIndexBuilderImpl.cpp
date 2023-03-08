@@ -39,6 +39,8 @@
 #include "pmdEDU.hpp"
 #include "dmsTrace.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    _dmsIndexOnlineBuilder::_dmsIndexOnlineBuilder( _dmsStorageIndex* indexSU,
@@ -63,6 +65,23 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
+      dmsSchemaContext schemaCtx ;
+
+      try
+      {
+         BSONObjIterator itr( _indexCB->keyPattern() ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            schemaCtx.getQueryFields().insert( ele.fieldName() ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         /// ignore error
+         schemaCtx.getQueryFields().clear() ;
+      }
 
       if ( _pIdxStatus )
       {
@@ -97,6 +116,7 @@ namespace engine
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr ;
 
+         extScanner.setSchemaContext( &schemaCtx ) ;
          while ( SDB_OK == ( rc = extScanner.advance( recordID, generator, _eduCB ) ) )
          {
             generator.getDataPtr( recordDataPtr ) ;
@@ -194,7 +214,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsIndexSortingBuilder::_fillSorter()
+   INT32 _dmsIndexSortingBuilder::_fillSorter( dmsSchemaContext *pContext )
    {
       INT32 rc = SDB_OK ;
 
@@ -241,6 +261,8 @@ namespace engine
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr ;
+
+         extScanner.setSchemaContext( pContext ) ;
 
          while ( SDB_OK == ( rc = extScanner.advance( recordID, generator, _eduCB ) ) )
          {
@@ -350,6 +372,23 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
+      dmsSchemaContext schemaCtx ;
+
+      try
+      {
+         BSONObjIterator itr( _indexCB->keyPattern() ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            schemaCtx.getQueryFields().insert( ele.fieldName() ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         /// ignore error
+         schemaCtx.getQueryFields().clear() ;
+      }
 
       rc = _init() ;
       if ( SDB_OK != rc )
@@ -381,7 +420,7 @@ namespace engine
             _pIdxStatus->setOpInfo( OPINFO_SCAN_DATA ) ;
          }
 
-         rc = _fillSorter() ;
+         rc = _fillSorter( &schemaCtx ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
