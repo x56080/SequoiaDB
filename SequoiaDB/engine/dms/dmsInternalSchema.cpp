@@ -222,7 +222,8 @@ namespace engine
                                                   BOOLEAN *hasReadDefault,
                                                   BOOLEAN *hasWriteDefault,
                                                   BOOLEAN *isIndexColumn,
-                                                  BOOLEAN *hasOrigName ) const
+                                                  BOOLEAN *hasOrigName,
+                                                  UINT32 *defaultValInitVersion ) const
    {
       INT32 rc = SDB_OK ;
       UINT8 attr = 0 ;
@@ -260,6 +261,18 @@ namespace engine
       if ( hasOrigName )
       {
          *hasOrigName = ( attr & DMS_SCHEMA_COL_HAS_ORIGNAME ) ? TRUE : FALSE ;
+      }
+      if ( defaultValInitVersion )
+      {
+         const dmsSchemaColSlot *slot = _getColSlot( columnID ) ;
+         if ( !slot )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Get schema column info slot of column ID [%u] failed, rc: %d",
+                    columnID, rc ) ;
+            goto error ;
+         }
+         *defaultValInitVersion = slot->getDefaultInitVersion() ;
       }
 
    done:

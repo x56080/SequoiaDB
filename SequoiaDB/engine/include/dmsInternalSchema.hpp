@@ -120,7 +120,8 @@ namespace engine
          INT32 getColumnBasicInfo( UINT16 columnID, const CHAR **name, INT32 *nameLen,
                                    BOOLEAN *isDeleted = NULL, BOOLEAN *hasReadDefault = NULL,
                                    BOOLEAN *hasWriteDefault = NULL, BOOLEAN *isIndexColumn = NULL,
-                                   BOOLEAN *hasOrigName = NULL ) const ;
+                                   BOOLEAN *hasOrigName = NULL,
+                                   UINT32 *defaultValInitVersion = NULL ) const ;
 
          OSS_INLINE const CHAR *getColumnName( UINT16 columnID, INT32 *nameLen = NULL ) const ;
 
@@ -373,7 +374,7 @@ namespace engine
                             UINT8 recordAttr,
                             const _utilBitmapBase &readBitmap,
                             BOOLEAN hitName ) ;
-         
+
          void     pushQueryBitmap( const _utilBitmapBase &readBitmap ) ;
          void     setQueryWirld() ;
 

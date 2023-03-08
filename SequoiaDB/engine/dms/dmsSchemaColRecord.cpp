@@ -57,7 +57,7 @@ namespace engine
       public:
          _dmsSchemaColAssist()
          {
-            SDB_ASSERT( DMS_SCHEMAEXTENT_SLOT_SZ == 4, "Slot size invalid" ) ;
+            SDB_ASSERT( DMS_SCHEMAEXTENT_SLOT_SZ == 8, "Slot size invalid" ) ;
             SDB_ASSERT( DMS_HASHEXTENT_SLOT_SZ == 4, "Hash slot size invalid" ) ;
 
             SDB_ASSERT( ossIsPowerOf2( DMS_SCHEMA_HASH_BUCKET_SIZE, NULL ),

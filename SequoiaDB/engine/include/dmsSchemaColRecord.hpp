@@ -37,8 +37,8 @@
 #define DMS_SCHEMARECORD_HPP__
 
 #include "oss.hpp"
-#include "dms.hpp"
 #include "utilBSON.hpp"
+#include "dmsExtent.hpp"
 
 namespace engine
 {
@@ -47,8 +47,12 @@ namespace engine
       _dmsSchemaColSlot define
 
       slot struct:
-      |  1 Byte  |  3 Byte  |
-      |   Attr   |  Offset  |
+      |  1 Byte  |  3 Bytes  |   4 Bytes   |
+      |   Attr   |  Offset   |   version   |
+
+      version: The schema inner version when the read default value of the column is defined.
+               The read default value only takes effect on records which were inserted before the
+               read default value is defined.
    */
    class _dmsSchemaColSlot : public SDBObject
    {
@@ -56,6 +60,7 @@ namespace engine
          _dmsSchemaColSlot()
          {
             _data = 0 ;
+            _defaultInitVersion = DMS_SCHEMA_INVALID_VERSION ;
          }
          ~_dmsSchemaColSlot() {}
 
@@ -87,9 +92,18 @@ namespace engine
          {
             _data = ( _data & 0xFF000000 ) | ( offset & 0x00FFFFFF ) ;
          }
+         void     setDefaultInitVersion( UINT32 version )
+         {
+            _defaultInitVersion = version ;
+         }
+         UINT32   getDefaultInitVersion() const
+         {
+            return _defaultInitVersion ;
+         }
 
       private:
          UINT32   _data ;
+         UINT32   _defaultInitVersion ;
    } ;
    typedef _dmsSchemaColSlot dmsSchemaColSlot ;
 

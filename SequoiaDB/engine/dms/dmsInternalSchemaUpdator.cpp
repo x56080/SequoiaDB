@@ -168,31 +168,40 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Add column name %s of internal schema into build buffer failed, "
                    "rc: %d", name, rc ) ;
 
-      // When the internal schema is evolved because of data inserting, the column definition is
-      // empty.
-      if ( columnDef && !columnDef->isEmpty() )
+      try
       {
-         BSONElement ele = columnDef->getField( FIELD_NAME_READDEFAULT ) ;
-         if ( !ele.eoo() )
+         // When the internal schema is evolved because of data inserting, the column definition is
+         // empty.
+         if ( columnDef && !columnDef->isEmpty() )
          {
-            rc = builder.addDefault( ele.type(), ele.value(), ele.valuesize() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add read default value of column into builder buffer "
-                         "failed, rc: %d", rc ) ;
-            OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
-         }
+            BSONElement ele = columnDef->getField( FIELD_NAME_READDEFAULT ) ;
+            if ( !ele.eoo() )
+            {
+               rc = builder.addDefault( ele.type(), ele.value(), ele.valuesize() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Add read default value of column into builder buffer "
+                            "failed, rc: %d", rc ) ;
+               OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
+               _initReadDefautlIDs.insert( columnID ) ;
+            }
 
-         ele = columnDef->getField( FIELD_NAME_WRITEDEFAULT ) ;
-         if ( !ele.eoo() )
-         {
-            rc = builder.addDefault( ele.type(), ele.value(), ele.valuesize(), TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add write default value of column into builder buffer "
-                         "failed, rc: %d", rc ) ;
-            OSS_BIT_SET( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+            ele = columnDef->getField( FIELD_NAME_WRITEDEFAULT ) ;
+            if ( !ele.eoo() )
+            {
+               rc = builder.addDefault( ele.type(), ele.value(), ele.valuesize(), TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Add write default value of column into builder buffer "
+                            "failed, rc: %d", rc ) ;
+               OSS_BIT_SET( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+            }
          }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
       builder.finishBuild() ;
-
       columnID = _nextColumnID ;
 
       rc = _addOrUpdateColumnInfo( columnID, attr, builder.getRecord() ) ;
@@ -261,6 +270,7 @@ namespace engine
                             "failed, rc: %d", name, rc ) ;
                OSS_BIT_SET( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
                changed = TRUE ;
+               _initReadDefautlIDs.insert( columnID ) ;
             }
          }
 
@@ -718,6 +728,23 @@ namespace engine
                   extentSize - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
       colSlot = (dmsSchemaColSlot *)( (CHAR *)extent + DMS_SCHEMAEXTENT_HEADER_SZ ) ;
 
+      if ( _hasBaseSchema )
+      {
+         currVersion = _baseSchemaContainer.getExtent()->_schemaVersion ;
+         currInnerVersion = _baseSchemaContainer.getExtent()->_schemaInnerVersion ;
+         if ( !isInnerChange )
+         {
+            extent->_schemaVersion = currVersion + 1 ;
+         }
+         extent->_schemaInnerVersion = currInnerVersion + 1 ;
+      }
+      else
+      {
+         // Internal schema is just enabled. Set its version to 1.
+         extent->_schemaInnerVersion = 1 ;
+         extent->_schemaVersion = 1 ;
+      }
+
       for ( UINT16 columnID = 0; columnID < _nextColumnID; ++columnID )
       {
          COL_INFO_MAP_CITR citr = _colInfoMap.find( columnID ) ;
@@ -738,25 +765,14 @@ namespace engine
          ossMemcpy( (CHAR *)extent + recordOffset, record, recordLen ) ;
          colSlot->setAttr( attr ) ;
          colSlot->setOffset( recordOffset ) ;
+
+         if ( _initReadDefautlIDs.end() != _initReadDefautlIDs.find( columnID ) )
+         {
+            colSlot->setDefaultInitVersion( extent->_schemaInnerVersion ) ;
+         }
+
          ++colSlot ;
          ++extent->_itemNum ;
-      }
-
-      if ( _hasBaseSchema )
-      {
-         currVersion = _baseSchemaContainer.getExtent()->_schemaVersion ;
-         currInnerVersion = _baseSchemaContainer.getExtent()->_schemaInnerVersion ;
-         if ( !isInnerChange )
-         {
-            extent->_schemaVersion = currVersion + 1 ;
-         }
-         extent->_schemaInnerVersion = currInnerVersion + 1 ;
-      }
-      else
-      {
-         // Internal schema is just enabled. Set its version to 1.
-         extent->_schemaInnerVersion = 1 ;
-         extent->_schemaVersion = 1 ;
       }
 
       extent->_freeSpace = extentSize - DMS_SCHEMAEXTENT_HEADER_SZ - _totalSize ;
