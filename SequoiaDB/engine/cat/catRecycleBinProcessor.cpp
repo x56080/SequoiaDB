@@ -2830,7 +2830,7 @@ namespace engine
             }
             else if ( 0 == ossStrcmp( FIELD_NAME_SCHEMA, fieldName ) )
             {
-               if ( _info.isOnSiteReturn() )
+               if ( _info.isOnSiteReturn() && !nameInfo.isRenamed() )
                {
                   builder.append( element ) ;
                }
