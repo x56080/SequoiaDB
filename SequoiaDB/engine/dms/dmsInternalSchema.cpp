@@ -903,8 +903,8 @@ namespace engine
       _orgNameLen = 0 ;
    }
 
-   INT32 _dmsDecodeWatchValue::setName( const CHAR *pName, UINT32 nameLen,
-                                        const CHAR *pOrgName, UINT32 orgNameLen )
+   INT32 _dmsDecodeWatchValue::setName( const CHAR *pName, INT32 nameLen,
+                                        const CHAR *pOrgName, INT32 orgNameLen )
    {
       INT32 rc = SDB_OK ;
 
@@ -1467,8 +1467,6 @@ namespace engine
 
       const CHAR *name           = NULL ;
       INT32 nameLen              = 0 ;
-      BOOLEAN isDeleted          = FALSE ;
-      BOOLEAN hasOrigName        = FALSE ;
 
       if ( getPrimalData && _decodeWatchNames.empty() )
       {

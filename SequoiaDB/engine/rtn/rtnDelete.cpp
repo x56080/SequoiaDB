@@ -119,6 +119,7 @@ namespace engine
       UINT64 numDeletedRecords            = 0 ;
       UINT32 scannerRetryTime             = 0 ;
 
+      dmsSchemaContext schemaCtx ;
       optAccessPlanRuntime planRuntime ;
 
       rc = dmsCB->writable( cb ) ;
@@ -211,6 +212,7 @@ retry:
                monCtxCB.recordStartTimestamp() ;
             }
 
+            pScanner->setSchemaContext( &schemaCtx ) ;
             startTime = krcb->getCurTime() ;
 
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,

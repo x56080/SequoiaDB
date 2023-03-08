@@ -131,6 +131,7 @@ namespace engine
       vector<INT64> dollarList ;
       SET_CHARSTRING setRenameFields ;
       SET_CHARSTRING *pSetRenameFields = NULL ;
+      dmsSchemaContext schemaCtx ;
 
       optAccessPlanRuntime planRuntime ;
       monContextCB monCtxCB ;
@@ -284,6 +285,7 @@ retry:
             startTime = krcb->getCurTime() ;
 
             mthContext.enableDollarList() ;
+            pScanner->setSchemaContext( &schemaCtx ) ;
 
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb, &mthContext ) ) )
