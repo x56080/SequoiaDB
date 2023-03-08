@@ -969,6 +969,7 @@ namespace engine
 
    _dmsInternalSchema::~_dmsInternalSchema()
    {
+      _reset() ;
    }
 
    INT32 _dmsInternalSchema::init( const dmsSchemaExtent *schemaExtent,
