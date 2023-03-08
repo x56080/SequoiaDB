@@ -505,9 +505,11 @@ namespace engine
       INT32 _buildTaskReply( bson::BSONObjBuilder &builder ) ;
       INT32 _buildIndexReply( bson::BSONObjBuilder &builder ) ;
       INT32 _buildSchemaReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _buildShardingKeyReply( bson::BSONObjBuilder &builder ) ;
 
    protected :
       rtnAlterJob _alterJob ;
+      BOOLEAN     _fromInternal ;
    } ;
 
    typedef class _catCtxAlterCL catCtxAlterCL ;

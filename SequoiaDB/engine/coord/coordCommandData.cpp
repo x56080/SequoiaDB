@@ -946,7 +946,12 @@ namespace engine
          // 2. schema info
          BSONElement idxEle = reply.getField( FIELD_NAME_INDEX ) ;
          BSONElement schemaEle = reply.getField( FIELD_NAME_SCHEMA ) ;
-         if ( idxEle.eoo() && schemaEle.eoo() )
+         BSONElement actionEle = reply.getField( FIELD_NAME_SCHEMA_ACTION ) ;
+         BSONElement shardingKeyEle = reply.getField( FIELD_NAME_SHARDINGKEY ) ;
+         if ( idxEle.eoo() &&
+              schemaEle.eoo() &&
+              actionEle.eoo() &&
+              shardingKeyEle.eoo() )
          {
             goto done ;
          }
@@ -960,6 +965,14 @@ namespace engine
             if ( !schemaEle.eoo() )
             {
                subBuilder.append( schemaEle ) ;
+            }
+            if ( !actionEle.eoo() )
+            {
+               subBuilder.append( actionEle ) ;
+            }
+            if ( !shardingKeyEle.eoo() )
+            {
+               subBuilder.append( shardingKeyEle ) ;
             }
             subBuilder.done() ;
          }

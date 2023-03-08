@@ -444,6 +444,47 @@ namespace engine
       return bsonTypeToColumnTypeName( getReadDefaultType() ) ;
    }
 
+   BOOLEAN _utilSchemaColAttr::adjustForOID()
+   {
+      BOOLEAN hasAdjust = FALSE ;
+
+      if ( EOO != _type )
+      {
+         _type = EOO ;
+         hasAdjust = TRUE ;
+      }
+      if ( 0 != _restrictFlags )
+      {
+         _restrictFlags = 0 ;
+         hasAdjust = TRUE ;
+      }
+      if ( !_writeDefault.eoo() )
+      {
+         _writeDefault = BSONElement() ;
+         hasAdjust = TRUE ;
+      }
+      if ( !_readDefault.eoo() )
+      {
+         _readDefault = BSONElement() ;
+         hasAdjust = TRUE ;
+      }
+
+      return hasAdjust ;
+   }
+
+   BOOLEAN _utilSchemaColAttr::adjustForShardingKey()
+   {
+      BOOLEAN hasAdjust = FALSE ;
+
+      if ( !_readDefault.eoo() )
+      {
+         _readDefault = BSONElement() ;
+         hasAdjust = TRUE ;
+      }
+
+      return hasAdjust ;
+   }
+
    /*
       _utilSchemaColumn implement
     */
@@ -877,6 +918,135 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA_COPY, "_utilSchema::copy" )
+   INT32 _utilSchema::copy( const _utilSchema &schema )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA_COPY ) ;
+
+      if ( schema.isValid() )
+      {
+         BSONObj boSchema ;
+
+         rc = schema.toBSON( boSchema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, "
+                      "rc: %d", rc ) ;
+
+         rc = parse( boSchema, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_COPY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA__REBUILD, "_utilSchema::_rebuild" )
+   INT32 _utilSchema::_rebuild()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA__REBUILD ) ;
+
+      BSONObj boDefine ;
+
+      rc = toBSON( boDefine ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build define, rc: %d", rc ) ;
+
+      rc = parse( boDefine, FALSE, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse rebuild schema, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA__REBUILD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA_ADJUSTOID, "_utilSchema::adjustOID" )
+   INT32 _utilSchema::adjustOID( BOOLEAN needRebuild )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA_ADJUSTOID ) ;
+
+      BOOLEAN hasAdjust = FALSE ;
+
+      utilSchemaColumn *column = getColumn( FIELD_NAME_RECORD_OID ) ;
+      if ( NULL != column )
+      {
+         column->adjustForOID() ;
+         hasAdjust = TRUE ;
+      }
+
+      if ( needRebuild && hasAdjust )
+      {
+         rc = _rebuild() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rebuild adjusted schema, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_ADJUSTOID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA_ADJUST_KEY, "_utilSchema::adjustShardingKey" )
+   INT32 _utilSchema::adjustShardingKey( const BSONObj &shardingKey,
+                                         BOOLEAN needRebuild )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA_ADJUST_KEY ) ;
+
+      BOOLEAN hasAdjust = FALSE ;
+
+      if ( !shardingKey.isEmpty() )
+      {
+         for ( UTIL_SCHEMA_COLUMN_MAP_IT iter = _columnMap.begin() ;
+               iter != _columnMap.end() ;
+               ++ iter )
+         {
+            BOOLEAN hasColumn = FALSE ;
+
+            rc = _utilCheckKeyPattern( shardingKey,
+                                       iter->first._pString,
+                                       hasColumn ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
+                         "rc: %d", rc ) ;
+
+            if ( hasColumn )
+            {
+               iter->second->adjustForShardingKey() ;
+               hasAdjust = TRUE ;
+            }
+         }
+      }
+
+      if ( needRebuild && hasAdjust )
+      {
+         rc = _rebuild() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rebuild adjusted schema, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_ADJUST_KEY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA__PARSECOLUMNS, "_utilSchema::_parseColumns" )
    INT32 _utilSchema::_parseColumns( const BSONObj &boColumns, BOOLEAN fromUser )
    {
@@ -1225,8 +1395,6 @@ namespace engine
                                         BOOLEAN checkWriteDefault,
                                         BOOLEAN checkReadDefault,
                                         const CHAR *&conflictColumnName,
-                                        const bson::BSONObj *shardingKey,
-                                        const bson::BSONObj *mainShardingKey,
                                         const _utilSchema *oldSchema ) const
    {
       INT32 rc = SDB_OK ;
@@ -1240,18 +1408,6 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
             const CHAR *name = ele.fieldName() ;
-
-            if ( NULL != shardingKey &&
-                 shardingKey->hasField( name ) )
-            {
-               continue ;
-            }
-            else if ( NULL != mainShardingKey &&
-                      mainShardingKey->hasField( name ) )
-            {
-               continue ;
-            }
-
             const CHAR *p = ossStrchr( name, '.' ) ;
             ossPoolString tmpName ;
             if ( NULL != p )
@@ -1664,7 +1820,7 @@ namespace engine
                    "Failed to parse rename column options, "
                    "should be only one column" ) ;
          oldColName = options.firstElementFieldName() ;
-         PD_LOG_MSG_CHECK( 0 != ossStrcmp( oldColName, "_id" ),
+         PD_LOG_MSG_CHECK( 0 != ossStrcmp( oldColName, FIELD_NAME_RECORD_OID ),
                            SDB_INVALIDARG, error, PDERROR,
                            "Can not rename \"_id\" column" ) ;
          _colName = oldColName ;
@@ -1673,7 +1829,7 @@ namespace engine
          PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to get new column name, it is not a string" ) ;
          newColName = ele.valuestr() ;
-         PD_LOG_MSG_CHECK( 0 != ossStrcmp( newColName, "_id" ),
+         PD_LOG_MSG_CHECK( 0 != ossStrcmp( newColName, FIELD_NAME_RECORD_OID ),
                            SDB_INVALIDARG, error, PDERROR,
                            "Can not rename to \"_id\" column" ) ;
          rc = _utilCheckColumnName( newColName ) ;
@@ -2034,6 +2190,74 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION__TOBSONSETATTR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_COPY, "_utilSchemaAlterAction::copy" )
+   INT32 _utilSchemaAlterAction::copy( const _utilSchemaAlterAction &action )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_COPY ) ;
+
+      if ( action.isValid() )
+      {
+         BSONObj boAction ;
+
+         rc = action.toBSON( boAction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for alter action, "
+                      "rc: %d", rc ) ;
+
+         rc = parse( boAction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse alter action, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_COPY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_ADJUST, "_utilSchemaAlterAction::adjust" )
+   INT32 _utilSchemaAlterAction::adjust( const bson::BSONObj &shardingKey )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_ADJUST ) ;
+
+      switch ( _action )
+      {
+         case UTIL_SCHEMA_ADD_COLUMN:
+         case UTIL_SCHEMA_ALTER_COLUMN:
+         {
+            if ( 0 == ossStrcmp( _colName, FIELD_NAME_RECORD_OID ) )
+            {
+               _newColAttr.adjustForOID() ;
+            }
+            if ( !shardingKey.isEmpty() )
+            {
+               BOOLEAN hasColumn = FALSE ;
+               rc = checkKeyPattern( shardingKey, _colName, hasColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key, "
+                            "rc: %d", rc ) ;
+               if ( hasColumn )
+               {
+                  _newColAttr.adjustForShardingKey() ;
+               }
+            }
+            break ;
+         }
+         default :
+            break ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_ADJUST, rc ) ;
       return rc ;
 
    error:

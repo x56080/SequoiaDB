@@ -171,23 +171,52 @@ namespace engine
 
          utilIdxUniqueID getIdxUniqueID( const CHAR* collection,
                                          const CHAR* indexName ) const ;
+         bson::BSONObj getShardingKey( const CHAR *collection ) const ;
 
-         const utilSchema &getSchame() const
+         const utilSchema &getSchama() const
          {
             return _schema ;
          }
 
+         const utilSchemaAlterAction &getSchemaAction() const
+         {
+            return _schemaAction ;
+         }
+
       protected :
+         INT32 _parseIndexes() ;
+         INT32 _parseSchema() ;
+         INT32 _parseSchemaAction() ;
+         INT32 _parseShardingKeys() ;
          INT32 _addIdxUniqueID( const CHAR* collection,
                                 const CHAR* indexName,
                                 utilIdxUniqueID indexUniqID ) ;
+         INT32 _addSchemaDef( const CHAR *collection,
+                              const bson::BSONObj &schemaDef ) ;
+         INT32 _addShardingKey( const CHAR *collection,
+                                const bson::BSONObj &shardingKey ) ;
+
+         INT32 _bindIdxByCL( const CHAR *collection,
+                             bson::BSONObjBuilder &builder ) const ;
+         INT32 _bindShardingKeyByCL( const CHAR *collection,
+                                     bson::BSONObjBuilder &builder,
+                                     bson::BSONObj &shardingKey ) const ;
 
       protected :
          BSONObj _obj ;
          // < collection name, <index name, index unique id> >
-         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str> _clMap ;
+         typedef ossPoolMap< const CHAR *, MAP_IDXNAME_ID, cmp_str > RTN_ALTER_CL_IDX_MAP ;
+         typedef RTN_ALTER_CL_IDX_MAP::iterator RTN_ALTER_CL_IDX_MAP_IT ;
+         typedef RTN_ALTER_CL_IDX_MAP::const_iterator RTN_ALTER_CL_IDX_MAP_CIT ;
+         RTN_ALTER_CL_IDX_MAP _clIdxMap ;
+
+         typedef ossPoolMap< const CHAR *, bson::BSONObj, cmp_str > RTN_ALTER_CL_KEY_MAP ;
+         typedef RTN_ALTER_CL_KEY_MAP::iterator RTN_ALTER_CL_KEY_MAP_IT ;
+         typedef RTN_ALTER_CL_KEY_MAP::const_iterator RTN_ALTER_CL_KEY_MAP_CIT ;
+         RTN_ALTER_CL_KEY_MAP _clShardingKeyMap ;
 
          utilSchema _schema ;
+         utilSchemaAlterAction _schemaAction ;
    } ;
 
    /*

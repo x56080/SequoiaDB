@@ -94,78 +94,100 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj cataReplyObj ;
+      BOOLEAN hasRewrite = FALSE ;
 
-      rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
-                                                  cataObjs, ppMsgBuf,
-                                                  pBufSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to generate alter schema message, "
-                   "rc: %d", rc ) ;
-
-      if ( cataObjs.empty() )
+      while ( TRUE )
       {
-         goto done ;
-      }
-
-      try
-      {
-         CHAR *pBuf = NULL ;
-         INT32 bufSize = 0 ;
-
-         const CHAR *collectionName = NULL ;
-         BSONObjBuilder commandBuilder ;
-         BSONObj boAction, newQuery ;
-
-         BSONObj boReply = cataObjs[ 0 ] ;
-
-         BSONElement ele = boReply.getField( FIELD_NAME_SCHEMA_ACTION ) ;
-         if ( ele.eoo() )
+         if ( cataObjs.empty() )
          {
-            goto done ;
+            break ;
          }
-         PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get field [%s] from reply, it is not an object",
-                   FIELD_NAME_SCHEMA_ACTION ) ;
-         boAction = ele.embeddedObject() ;
 
-         ele = boAction.getField( FIELD_NAME_NAME ) ;
-         PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get field [%s] from reply, it is not an string",
-                   FIELD_NAME_NAME ) ;
-         collectionName = ele.valuestrsafe() ;
+         try
+         {
+            CHAR *pBuf = NULL ;
+            INT32 bufSize = 0 ;
 
-         commandBuilder.appendElements( boAction ) ;
-         ele = boReply.getField( FIELD_NAME_SCHEMA ) ;
-         PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get field [%s] from reply, it is not an object",
-                   FIELD_NAME_SCHEMA_ACTION ) ;
-         BSONObjBuilder infoBuilder(
-               commandBuilder.subobjStart( FIELD_NAME_ALTER_INFO ) ) ;
-         infoBuilder.append( ele ) ;
-         infoBuilder.doneFast() ;
-         newQuery = commandBuilder.obj() ;
+            const CHAR *collectionName = NULL ;
+            BSONObjBuilder commandBuilder ;
+            BSONElement schemaEle, actionEle, shardkingKeyEle ;
+            BSONObj boCommand, newQuery ;
 
-         PD_LOG( PDDEBUG, "Got new alter collection command [%s]",
-                 newQuery.toPoolString().c_str() ) ;
+            BSONObj boReply = cataObjs[ 0 ] ;
 
-         rc = msgBuildQueryMsg( &pBuf, &bufSize,
-                                CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
-                                0, 0, 0, -1, &newQuery, NULL, NULL, NULL, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Build data message failed on command[%s], "
-                      "rc: %d", getName(), rc ) ;
+            BSONElement ele = boReply.getField( FIELD_NAME_ALTER_COMMAND ) ;
+            if ( ele.eoo() )
+            {
+               break ;
+            }
+            PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from reply, it is not an object",
+                      FIELD_NAME_ALTER_COMMAND ) ;
+            boCommand = ele.embeddedObject() ;
 
-         *ppMsgBuf = (CHAR *)pBuf ;
-         *pBufSize = bufSize ;
+            ele = boCommand.getField( FIELD_NAME_NAME ) ;
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from reply, it is not an string",
+                      FIELD_NAME_NAME ) ;
+            collectionName = ele.valuestrsafe() ;
 
-         pArgs->_targetName.assign( collectionName ) ;
-         _hasCollection = TRUE ;
+            commandBuilder.appendElements( boCommand ) ;
+            schemaEle = boReply.getField( FIELD_NAME_SCHEMA ) ;
+            actionEle = boReply.getField( FIELD_NAME_SCHEMA_ACTION ) ;
+            shardkingKeyEle = boReply.getField( FIELD_NAME_SHARDINGKEY ) ;
+            if ( !schemaEle.eoo() || !actionEle.eoo() || !shardkingKeyEle.eoo() )
+            {
+               BSONObjBuilder infoBuilder(
+                     commandBuilder.subobjStart( FIELD_NAME_ALTER_INFO ) ) ;
+               if ( !schemaEle.eoo() )
+               {
+                  infoBuilder.append( schemaEle ) ;
+               }
+               if ( !actionEle.eoo() )
+               {
+                  infoBuilder.append( actionEle ) ;
+               }
+               if ( !shardkingKeyEle.eoo() )
+               {
+                  infoBuilder.append( shardkingKeyEle ) ;
+               }
+               infoBuilder.doneFast() ;
+            }
+            newQuery = commandBuilder.obj() ;
+
+            PD_LOG( PDDEBUG, "Got new alter collection command [%s]",
+                    newQuery.toPoolString().c_str() ) ;
+
+            rc = msgBuildQueryMsg( &pBuf, &bufSize,
+                                   CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
+                                   0, 0, 0, -1, &newQuery, NULL, NULL, NULL, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Build data message failed on command[%s], "
+                         "rc: %d", getName(), rc ) ;
+
+            *ppMsgBuf = (CHAR *)pBuf ;
+            *pBufSize = bufSize ;
+
+            pArgs->_targetName.assign( collectionName ) ;
+            _hasCollection = TRUE ;
+            hasRewrite = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to generate data message, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+         break ;
       }
-      catch ( exception &e )
+
+      if ( !hasRewrite )
       {
-         PD_LOG( PDERROR, "Failed to generate data message, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
+         rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
+                                                     cataObjs, ppMsgBuf,
+                                                     pBufSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to generate alter schema message, "
+                      "rc: %d", rc ) ;
       }
 
    done:

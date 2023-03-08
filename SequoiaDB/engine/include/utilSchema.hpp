@@ -197,6 +197,9 @@ namespace engine
       const CHAR *getWriteDefaultTypeName() const ;
       const CHAR *getReadDefaultTypeName() const ;
 
+      BOOLEAN adjustForOID() ;
+      BOOLEAN adjustForShardingKey() ;
+
    protected:
       void _reset()
       {
@@ -392,13 +395,17 @@ namespace engine
                               BOOLEAN checkWriteDefault,
                               BOOLEAN checkReadDefault,
                               const CHAR *&conflictColumnName,
-                              const bson::BSONObj *shardingKey = NULL,
-                              const bson::BSONObj *mainShardingKey = NULL,
                               const _utilSchema *oldSchema = NULL ) const ;
+
+      INT32 copy( const _utilSchema &schema ) ;
+      INT32 adjustOID( BOOLEAN needRebuild ) ;
+      INT32 adjustShardingKey( const bson::BSONObj &shardingKey,
+                    BOOLEAN needRebuild ) ;
 
    protected:
       INT32 _parseColumns( const bson::BSONObj &boColumns, BOOLEAN fromUser ) ;
       INT32 _columnsToBSON( bson::BSONObjBuilder &builder ) const ;
+      INT32 _rebuild() ;
 
       void _reset()
       {
@@ -455,6 +462,11 @@ namespace engine
          return _action ;
       }
 
+      BOOLEAN isValid() const
+      {
+         return UTIL_SCHEMA_ACTION_UNKNOWN != _action ;
+      }
+
       UINT32 getAlterMask() const
       {
          return _alterMask ;
@@ -484,6 +496,8 @@ namespace engine
       INT32 toBSON( bson::BSONObj &boAction ) const ;
       INT32 toBSON( bson::BSONObjBuilder &builder ) const ;
 
+      INT32 copy( const _utilSchemaAlterAction &action ) ;
+      INT32 adjust( const bson::BSONObj &shardingKey ) ;
       INT32 checkSchema( const utilSchema &schema ) const ;
       INT32 applySchema( utilSchema &schema ) const ;
 

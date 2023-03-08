@@ -85,6 +85,8 @@ namespace engine
          rc = _schema.parse( boQuery, TRUE, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
 
+         rc = _schema.adjustOID( FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema, rc: %d", rc ) ;
       }
       catch ( exception &e )
       {

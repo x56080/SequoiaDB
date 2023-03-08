@@ -712,30 +712,22 @@ namespace engine
          }
          case RTN_ALTER_CL_ALTER_SCHEMA:
          {
-            const rtnCLAlterSchemaTask *localTask =
-                     dynamic_cast< const rtnCLAlterSchemaTask * >( _task ) ;
-            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
-                      "Failed to get task" ) ;
-            const utilSchemaAlterAction &action =
-                                          localTask->getSchemaAlterAction() ;
-
             if ( !_subCLOFMainCL )
             {
-               utilSchema schema ;
-               const CHAR *schemaName = action.getSchemaName() ;
+               const CHAR *schemaName = _schema.getName() ;
 
-               rc = action.applySchema( _schema ) ;
+               rc = _schemaAction.applySchema( _schema ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to apply alter action on "
                             "schema [%s], rc: %d", schemaName, rc ) ;
 
-               rc = catUpdateSchema( _schema, action.getAlterMask(), cb, w ) ;
+               rc = catUpdateSchema( _schema, _schemaAction.getAlterMask(), cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to update schema [%s], rc: %d",
                             schemaName, rc ) ;
             }
 
-            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            if ( UTIL_SCHEMA_RENAME_COLUMN == _schemaAction.getAction() )
             {
-               rc = _renameColumnForIdx( cataSet, action, FALSE, cb, w ) ;
+               rc = _renameColumnForIdx( cataSet, _schemaAction, FALSE, cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to update indexes for rename "
                             "column, rc: %d", rc ) ;
             }
@@ -784,16 +776,9 @@ namespace engine
          }
          case RTN_ALTER_CL_ALTER_SCHEMA:
          {
-            const rtnCLAlterSchemaTask *localTask =
-                     dynamic_cast< const rtnCLAlterSchemaTask * >( _task ) ;
-            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
-                      "Failed to get task" ) ;
-            const utilSchemaAlterAction &action =
-                                          localTask->getSchemaAlterAction() ;
-
-            if ( !_subCLOFMainCL )
+            if ( !_boOrigSchema.isEmpty() )
             {
-               rc = catUpdateSchema( _schema.getName(), _schema.getDefine(), cb, w ) ;
+               rc = catUpdateSchema( _schema.getName(), _boOrigSchema, cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to rollback schema [%s], rc: %d",
                             _schema.getName(), rc ) ;
                PD_LOG( PDDEBUG, "Rollback schema [%s] to [%s]",
@@ -801,9 +786,9 @@ namespace engine
                        _schema.getDefine().toPoolString().c_str() ) ;
             }
 
-            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            if ( UTIL_SCHEMA_RENAME_COLUMN == _schemaAction.getAction() )
             {
-               rc = _renameColumnForIdx( cataSet, action, TRUE, cb, w ) ;
+               rc = _renameColumnForIdx( cataSet, _schemaAction, TRUE, cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to update indexes for rename "
                             "column, rc: %d", rc ) ;
             }
@@ -1331,7 +1316,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA ) ;
 
       const CHAR *collectionName = cataSet.name() ;
-      ossPoolVector< BSONObj > indexList ;
 
       if ( !_schema.isValid() )
       {
@@ -1367,6 +1351,21 @@ namespace engine
                            cataSet.name() ) ;
       }
 
+      rc = _schema.adjustShardingKey( cataSet.getShardingKey(), FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema, rc: %d", rc ) ;
+
+      try
+      {
+         _shardingKey = cataSet.getShardingKey().copy() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to copy sharding key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
       // if ( cataSet.isSharding() )
       // {
       //    const CHAR *conflictColumn = NULL ;
@@ -1383,8 +1382,7 @@ namespace engine
       //                      conflictColumn ) ;
       // }
 
-      rc = catCheckSchemaWithIndexes( collectionName, cataSet.getShardingKey(),
-                                      _mainShardingKey, _schema, cb ) ;
+      rc = catCheckSchemaWithIndexes( collectionName, _schema, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
                    "schema [%s] to collection [%s], rc: %d",
                    _schema.getName(), collectionName, rc ) ;
@@ -1407,6 +1405,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMA ) ;
 
+      const BSONObj &shardingKey = cataSet.getShardingKey() ;
       const CHAR *schemaName = action.getSchemaName() ;
       const CHAR *collectionName = cataSet.name() ;
       const CHAR *bindSchemaName = cataSet.getSchemaName() ;
@@ -1424,13 +1423,37 @@ namespace engine
          rc = catGetSchema( schemaName, _schema, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
                       schemaName, rc ) ;
+         _boOrigSchema = _schema.getDefine() ;
+      }
+
+      if ( !_schemaAction.isValid() )
+      {
+         rc = _schemaAction.copy( action ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to copy schema action, "
+                      "rc: %d", rc ) ;
+      }
+
+      rc = _schemaAction.adjust( shardingKey ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to adjust alter action on "
+                   "schema [%s], rc: %d", schemaName, rc ) ;
+
+      try
+      {
+         _shardingKey = cataSet.getShardingKey().copy() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to copy sharding key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       if ( !_subCLOFMainCL )
       {
          const CHAR *bindCLName = _schema.getCollection() ;
 
-         rc = action.checkSchema( _schema ) ;
+         rc = _schemaAction.checkSchema( _schema ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check alter action on "
                       "schema [%s], rc: %d", schemaName, rc ) ;
 
@@ -1446,15 +1469,15 @@ namespace engine
                            schemaName, collectionName, bindCLName ) ;
       }
 
-      rc = _checkAlterSchemaForShardingKey( cataSet, action, cb ) ;
+      rc = _checkAlterSchemaForShardingKey( cataSet, _schemaAction, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on sharding key, "
                    "rc: %d", rc ) ;
 
-      rc = _checkAlterSchemaForIdx( cataSet, action, cb ) ;
+      rc = _checkAlterSchemaForIdx( cataSet, _schemaAction, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes, "
                    "rc: %d", rc ) ;
 
-      rc = _checkAlterSchemaForSeq( cataSet, action, cb ) ;
+      rc = _checkAlterSchemaForSeq( cataSet, _schemaAction, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on "
                    "auto-incremental fields, rc: %d", rc ) ;
 
@@ -1582,14 +1605,11 @@ namespace engine
          }
          case RTN_ALTER_CL_ALTER_SCHEMA:
          {
-            const rtnCLAlterSchemaTask * localTask =
-                  dynamic_cast< const rtnCLAlterSchemaTask *>( _task ) ;
-            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
-            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            if ( UTIL_SCHEMA_RENAME_COLUMN == _schemaAction.getAction() )
             {
                rc = _buildRenameColumnForSeq( cataSet,
-                                              action.getColumnName(),
-                                              action.getNewColAttr().getName(),
+                                              _schemaAction.getColumnName(),
+                                              _schemaAction.getNewColAttr().getName(),
                                               setBuilder,
                                               unsetBuilder ) ;
             }
@@ -1724,15 +1744,12 @@ namespace engine
          }
          case RTN_ALTER_CL_ALTER_SCHEMA:
          {
-            const rtnCLAlterSchemaTask * localTask =
-                  dynamic_cast< const rtnCLAlterSchemaTask *>( _task ) ;
-            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
-            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            if ( UTIL_SCHEMA_RENAME_COLUMN == _schemaAction.getAction() )
             {
                // rollback auto-inc fields
                rc = _buildRenameColumnForSeq( cataSet,
-                                              action.getNewColAttr().getName(),
-                                              action.getColumnName(),
+                                              _schemaAction.getNewColAttr().getName(),
+                                              _schemaAction.getColumnName(),
                                               setBuilder,
                                               unsetBuilder ) ;
             }
@@ -2964,22 +2981,7 @@ namespace engine
                                rc ) ;
                   if ( hasColumn )
                   {
-                     BOOLEAN inShardingKey = FALSE, inMainShardingKey = FALSE ;
-                     rc = action.checkKeyPattern( cataSet.getShardingKey(),
-                                                  action.getColumnName(),
-                                                  inShardingKey ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key on "
-                                  "new column [%s], rc: %d", action.getColumnName(),
-                                  rc ) ;
-                     rc = action.checkKeyPattern( _mainShardingKey,
-                                                  action.getColumnName(),
-                                                  inMainShardingKey ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Failed to check main sharding key on "
-                                  "new column [%s], rc: %d", action.getColumnName(),
-                                  rc ) ;
                      PD_LOG_MSG_CHECK(
-                           ( inShardingKey ) ||
-                           ( inMainShardingKey ) ||
                            ( !OSS_BIT_TEST( action.getAlterMask(),
                                             UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ),
                            SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
@@ -3161,7 +3163,7 @@ namespace engine
 
                rc = catUpdateIndex( collectionName, indexName, newKeyPattern, cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to update index [%s] with rename "
-                            "column, rc: %d", rc ) ;
+                            "column, rc: %d", indexName, rc ) ;
                PD_LOG( PDDEBUG, "Rename column for index [%s] "
                        "key from [%s] to [%s] on collection [%s]",
                        indexName, keyPattern.toPoolString().c_str(),

@@ -528,7 +528,8 @@
 #define FIELD_NAME_ATTRIBUTE                 "Attribute"
 #define FIELD_NAME_ATTRIBUTE_DESC            "AttributeDesc"
 #define FIELD_NAME_RCFLAG                    "Flag"
-#define FIELD_NAME_GROUPBY_ID                "_id"
+#define FIELD_NAME_RECORD_OID                "_id"
+#define FIELD_NAME_GROUPBY_ID                FIELD_NAME_RECORD_OID
 #define FIELD_NAME_FIELDS                    "fields"
 #define FIELD_NAME_HEADERLINE                "headerline"
 #define FIELD_NAME_LTYPE                     "type"
@@ -624,7 +625,7 @@
 #define FIELD_NAME_TEXT                      "$Text"
 #define FIELD_NAME_CONFIGS                   "Configs"
 #define FIELD_NAME_SEQUENCE_NAME             "Name"
-#define FIELD_NAME_SEQUENCE_OID              "_id"
+#define FIELD_NAME_SEQUENCE_OID              FIELD_NAME_RECORD_OID
 #define FIELD_NAME_SEQUENCE_ID               "ID"
 #define FIELD_NAME_CONTONDUP                 "ContOnDup"
 #define FIELD_NAME_CONTONDUP_ID              "ContOnDupID"
@@ -794,6 +795,7 @@
 #define FIELD_NAME_NOT_NULL                  "NotNull"
 #define FIELD_NAME_NOT_ARRAY                 "NotArray"
 #define FIELD_NAME_SCHEMA_ACTION             "SchemaAction"
+#define FIELD_NAME_ALTER_COMMAND             "AlterCommand"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"

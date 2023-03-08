@@ -2551,7 +2551,8 @@ namespace engine
                           "CAT_ALTER_CL" )
 
    _catCtxAlterCL::_catCtxAlterCL ( INT64 contextID, UINT64 eduID )
-   : _catCtxDataMultiTaskBase( contextID, eduID )
+   : _catCtxDataMultiTaskBase( contextID, eduID ),
+     _fromInternal( FALSE )
    {
       _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
@@ -2570,6 +2571,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCL_OPEN ) ;
+
+      _fromInternal = TRUE ;
 
       rc = _open( queryObject, MSG_CAT_ALTER_COLLECTION_REQ, buffObj, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open alter collection context, "
@@ -3050,6 +3053,10 @@ namespace engine
                rc = subCLTask->copySchema( catTask->getSchema() ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to copy schema, rc: %d", rc ) ;
 
+               rc = subCLTask->copySchemaAction( catTask->getSchemaAction() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to copy schema action, "
+                            "rc: %d", rc ) ;
+
                rc = subCLTask->checkTask( cb, lockMgr ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check "
                             "alter task [%s] on collection [%s], rc: %d",
@@ -3266,6 +3273,21 @@ namespace engine
       rc = _buildSchemaReply( builder ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build schema reply, rc: %d", rc ) ;
 
+      if ( _fromInternal )
+      {
+         try
+         {
+            builder.append( FIELD_NAME_ALTER_COMMAND, _boQuery ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build alter command, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
    done:
       return rc ;
 
@@ -3279,40 +3301,47 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDTASKREPLY ) ;
 
-      if ( _execTasks.size() > 0 )
+      if ( 0 == _execTasks.size() )
       {
-         try
-         {
-            // Generate task list
-            BSONArrayBuilder taskBuilder(
-                                    builder.subarrayStart( CAT_TASKID_NAME ) ) ;
-            for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
-            {
-               catCtxAlterCLTask * task =
-                              dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-               if( task )
-               {
-                  const ossPoolList< UINT64 > & postTasks = task->getPostTasks() ;
-                  for ( ossPoolList<UINT64>::const_iterator it = postTasks.begin();
-                        it != postTasks.end() ;
-                        it ++ )
-                  {
-                     taskBuilder.append( (INT64)( *it ) ) ;
-                  }
-               }
-            }
-            taskBuilder.done() ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to build task reply, "
-                    "occur exception %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
-         }
+         goto done ;
       }
 
+      try
+      {
+         // Generate task list
+         BSONArrayBuilder taskBuilder(
+                                 builder.subarrayStart( CAT_TASKID_NAME ) ) ;
+         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+         {
+            catCtxAlterCLTask * task =
+                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if( task )
+            {
+               const ossPoolList< UINT64 > & postTasks = task->getPostTasks() ;
+               for ( ossPoolList<UINT64>::const_iterator it = postTasks.begin();
+                     it != postTasks.end() ;
+                     it ++ )
+               {
+                  taskBuilder.append( (INT64)( *it ) ) ;
+               }
+            }
+         }
+         taskBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build task reply, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDTASKREPLY, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDINDEXREPLY, "_catCtxAlterCL::_buildIndexReply" )
@@ -3321,41 +3350,48 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDINDEXREPLY ) ;
 
-      if ( _execTasks.size() > 0 )
+      if ( 0 == _execTasks.size() )
       {
-         try
-         {
-            // Generate index list
-            BSONArrayBuilder idxBuilder(
-                                    builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
-            for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
-            {
-               catCtxAlterCLTask * task =
-                              dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-               if( task )
-               {
-                  const ossPoolList<BSONObj> & indexes = task->getIndexes() ;
-                  for ( ossPoolList<BSONObj>::const_iterator it = indexes.begin() ;
-                        it != indexes.end() ; it++ )
-                  {
-                     idxBuilder.append( BSON( FIELD_NAME_COLLECTION <<
-                                              task->getDataName().c_str() <<
-                                              IXM_FIELD_NAME_INDEX_DEF << *it ) ) ;
-                  }
-               }
-            }
-            idxBuilder.done() ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to build task reply, "
-                    "occur exception %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
-         }
+         goto done ;
       }
 
+      try
+      {
+         // Generate index list
+         BSONArrayBuilder idxBuilder(
+                                 builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+         {
+            catCtxAlterCLTask * task =
+                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if( task )
+            {
+               const ossPoolList<BSONObj> & indexes = task->getIndexes() ;
+               for ( ossPoolList<BSONObj>::const_iterator it = indexes.begin() ;
+                     it != indexes.end() ; it++ )
+               {
+                  idxBuilder.append( BSON( FIELD_NAME_COLLECTION <<
+                                           task->getDataName().c_str() <<
+                                           IXM_FIELD_NAME_INDEX_DEF << *it ) ) ;
+               }
+            }
+         }
+         idxBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build index reply, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDINDEXREPLY, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY, "_catCtxAlterCL::_buildSchemaReply" )
@@ -3365,51 +3401,94 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY ) ;
 
-      if ( _execTasks.size() > 0 )
+      if ( 0 == _execTasks.size() )
       {
-         try
-         {
-            BOOLEAN schemaAdded = FALSE ;
-            BOOLEAN schemaActionAdded = FALSE ;
+         goto done ;
+      }
 
-            for ( UINT32 i = 0; i < _execTasks.size(); ++i )
+      try
+      {
+         for ( UINT32 i = 0; i < _execTasks.size(); ++i )
+         {
+            catCtxAlterCLTask *task = dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if ( task && !task->isSubCLTask() )
             {
-               catCtxAlterCLTask *task = dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-               if ( task )
+               if ( task->getSchema().isValid() )
                {
-                  const rtnAlterTask *alterTask = task->getTask() ;
-                  RTN_ALTER_ACTION_TYPE type = alterTask->getActionType() ;
-                  if ( ( !schemaAdded ) &&
-                       ( task->getSchema().isValid() ) )
-                  {
-                     builder.append( FIELD_NAME_SCHEMA,
-                                     task->getSchema().getDefine() ) ;
-                     schemaAdded = TRUE ;
-                  }
-                  if ( ( !schemaActionAdded ) &&
-                       ( RTN_ALTER_CL_ALTER_SCHEMA == type ) )
-                  {
-                     builder.append( FIELD_NAME_SCHEMA_ACTION, _boQuery ) ;
-                     schemaActionAdded = TRUE ;
-                  }
+                  BSONObjBuilder subBuilder( builder.subobjStart( FIELD_NAME_SCHEMA ) ) ;
+                  rc = task->getSchema().toBSON( subBuilder ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, "
+                               "rc: %d", rc ) ;
+                  subBuilder.doneFast() ;
                }
-               if ( schemaAdded && schemaActionAdded )
+               if ( task->getSchemaAction().isValid() )
                {
-                  break ;
+                  BSONObjBuilder subBuilder( builder.subobjStart( FIELD_NAME_SCHEMA_ACTION ) ) ;
+                  rc = task->getSchemaAction().toBSON( subBuilder ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema action, "
+                               "rc: %d", rc ) ;
+                  subBuilder.doneFast() ;
                }
+               break ;
             }
          }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-            goto error ;
-         }
-
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDSHARDINGKEYREPLY, "_catCtxAlterCL::_buildShardingKeyReply" )
+   INT32 _catCtxAlterCL::_buildShardingKeyReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDSHARDINGKEYREPLY ) ;
+
+      if ( 0 == _execTasks.size() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         BSONArrayBuilder keyBuilder(
+                                 builder.subarrayStart( FIELD_NAME_SHARDINGKEY ) ) ;
+         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+         {
+            catCtxAlterCLTask * task =
+                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+            if( NULL != task && !( task->getShardingKey().isEmpty() ) )
+            {
+               BSONObjBuilder subBuilder(
+                           keyBuilder.subobjStart( FIELD_NAME_COLLECTION ) ) ;
+               subBuilder.append( FIELD_NAME_COLLECTION, task->getDataName().c_str() ) ;
+               subBuilder.append( FIELD_NAME_SHARDINGKEY, task->getShardingKey() ) ;
+               subBuilder.doneFast() ;
+            }
+         }
+         keyBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build sharding key reply, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDSHARDINGKEYREPLY, rc ) ;
       return rc ;
 
    error:
@@ -3564,9 +3643,17 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
                          mainCLSet.getSchemaName(), rc ) ;
 
+            rc = _schemaHandler.getSchema().adjustShardingKey( mainCLSet.getShardingKey(),
+                                                               FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to adjust sharding key "
+                         "of main-collection, rc: %d", rc ) ;
+
+            rc = _schemaHandler.getSchema().adjustShardingKey( subCLSet.getShardingKey(),
+                                                               FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to adjust sharding key "
+                         "of sub-collection, rc: %d", rc ) ;
+
             rc = catCheckSchemaWithIndexes( _subCLName.c_str(),
-                                            subCLSet.getShardingKey(),
-                                            mainCLSet.getShardingKey(),
                                             _schemaHandler.getSchema(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
                          "schema [%s] to sub-collection [%s], rc: %d",

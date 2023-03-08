@@ -1298,6 +1298,7 @@ namespace engine
       BSONObjBuilder builder ;
       ossPoolVector<BSONObj> indexList ;
       ossPoolVector<BSONObj>::iterator itIdx ;
+      BSONObj shardingKey ;
       ossPoolString schemaName ;
       utilSchema *pCurSchema = NULL ;
       utilSchema tmpSchema ;
@@ -1331,6 +1332,7 @@ namespace engine
          groupCount = set->groupCount() ;
          clUniqueID = set->clUniqueID() ;
          compType = set->getCompressType() ;
+         shardingKey = set->getShardingKey().copy() ;
          if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED ) )
          {
             builder.append( FIELD_NAME_SIZE, set->getMaxSize() ) ;
@@ -1374,10 +1376,16 @@ namespace engine
       }
       else if ( NULL != pSchema )
       {
-         rc = tmpSchema.parse( pSchema->getDefine(), FALSE, TRUE ) ;
+         rc = tmpSchema.copy( *pSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
 
          pCurSchema = &tmpSchema ;
+      }
+
+      if ( NULL != pCurSchema )
+      {
+         rc = pCurSchema->adjustShardingKey( shardingKey, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema, rc: %d", rc ) ;
       }
 
       /// update collection's index info

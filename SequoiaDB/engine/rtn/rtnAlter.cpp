@@ -493,7 +493,7 @@ namespace engine
       }
       */
 
-      //rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+      rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check add schema on indexes of "
                    "collection [%s], rc: %d", collection, rc ) ;
 
@@ -620,7 +620,7 @@ namespace engine
 
       if ( needCheckAdd )
       {
-         //rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+         rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes of "
                       "collection [%s], rc: %d", collection, rc ) ;
       }
@@ -1135,9 +1135,7 @@ namespace engine
          }
          case RTN_ALTER_CL_ADD_SCHEMA :
          {
-            const utilSchema &schema = alterInfo->getSchame() ;
-            SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
-
+            const utilSchema &schema = alterInfo->getSchama() ;
             rc = _rtnCollectionCheckAddSchema( collection, schema, mbContext, su ) ;
             break ;
          }
@@ -1147,9 +1145,12 @@ namespace engine
                   dynamic_cast<const rtnCLAlterSchemaTask *>( task ) ;
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get alter schema task" ) ;
-            const utilSchema &schema = alterInfo->getSchame() ;
+            const utilSchema &schema = alterInfo->getSchama() ;
             SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
-            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
+            const utilSchemaAlterAction &action =
+                                             alterInfo->getSchemaAction().isValid() ?
+                                             alterInfo->getSchemaAction() :
+                                             localTask->getSchemaAlterAction() ;
 
             rc = _rtnCollectionCheckAlterSchema( collection, schema, action,
                                                  mbContext, su ) ;
@@ -1330,7 +1331,7 @@ namespace engine
          }
          case RTN_ALTER_CL_ADD_SCHEMA :
          {
-            const utilSchema &schema = alterInfo->getSchame() ;
+            const utilSchema &schema = alterInfo->getSchama() ;
             SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
 
             OSS_BIT_SET( dpsType, DMS_FILE_DATA ) ;
@@ -1344,8 +1345,10 @@ namespace engine
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get alter schema task" ) ;
             const utilSchemaAlterAction &action =
-                                       localTask->getSchemaAlterAction() ;
-            const utilSchema &schema = alterInfo->getSchame() ;
+                                       alterInfo->getSchemaAction().isValid() ?
+                                             alterInfo->getSchemaAction() :
+                                             localTask->getSchemaAlterAction() ;
+            const utilSchema &schema = alterInfo->getSchama() ;
             SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
 
             OSS_BIT_SET( dpsType, DMS_FILE_DATA ) ;

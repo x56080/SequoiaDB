@@ -88,11 +88,23 @@ namespace engine
          {
             return _postTasks ;
          }
+
          OSS_INLINE void setSubCLFlag ( const bson::BSONObj &mainShardingKey )
          {
             _subCLOFMainCL = TRUE ;
             _mainShardingKey = mainShardingKey.getOwned() ;
          }
+
+         OSS_INLINE BOOLEAN isSubCLTask() const
+         {
+            return _subCLOFMainCL ;
+         }
+
+         OSS_INLINE const bson::BSONObj &getShardingKey() const
+         {
+            return _shardingKey ;
+         }
+
          OSS_INLINE const ossPoolList<BSONObj>& getIndexes () const
          {
             return _createIdxList ;
@@ -103,9 +115,19 @@ namespace engine
             return _schema ;
          }
 
+         OSS_INLINE const utilSchemaAlterAction &getSchemaAction() const
+         {
+            return _schemaAction ;
+         }
+
          INT32 copySchema( const utilSchema &schema )
          {
-            return _schema.parse( schema.getDefine(), FALSE, TRUE ) ;
+            return _schema.copy( schema ) ;
+         }
+
+         INT32 copySchemaAction( const utilSchemaAlterAction &action )
+         {
+            return _schemaAction.copy( action ) ;
          }
 
       protected :
@@ -313,9 +335,12 @@ namespace engine
 
          BOOLEAN                 _subCLOFMainCL ;
          bson::BSONObj           _mainShardingKey ;
+         bson::BSONObj           _shardingKey ;
          autoIncFieldsList       _rollbackAutoIncFields ;
 
+         bson::BSONObj           _boOrigSchema ;
          utilSchema              _schema ;
+         utilSchemaAlterAction   _schemaAction ;
    } ;
 
    typedef class _catCtxAlterCLTask catCtxAlterCLTask ;

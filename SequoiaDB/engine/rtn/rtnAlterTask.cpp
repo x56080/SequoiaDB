@@ -76,31 +76,49 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /*{ Index: [ { Collection: "foo.bar", IndexDef: xxx },
-      *            { Collection: "foo.bar", IndexDef: xxx },
-      *            { Collection: "foo.ba1", IndexDef: xxx }
-      *          ],
-      *   Schema : ...
-      * }
-      */
       try
       {
          _obj = obj.getOwned() ;
 
-         BSONElement ele = _obj.getField( FIELD_NAME_SCHEMA ) ;
-         if ( Object == ele.type() )
-         {
-            rc = _schema.parse( ele.embeddedObject(), FALSE, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
-         }
-         else
-         {
-            PD_CHECK( ele.eoo(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to get field [%s], it is an invalid type [%d]",
-                      FIELD_NAME_SCHEMA, ele.type() ) ;
-         }
+         rc = _parseIndexes() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse indexes, rc: %d", rc ) ;
 
-         ele = _obj.getField( FIELD_NAME_INDEX ) ;
+         rc = _parseSchema() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+
+         rc = _parseSchemaAction() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema action, rc: %d", rc ) ;
+
+         rc = _parseShardingKeys() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse sharding keys, rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to init, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_parseIndexes()
+   {
+      INT32 rc = SDB_OK ;
+
+      /*{ Index: [ { Collection: "foo.bar", IndexDef: xxx },
+      *            { Collection: "foo.bar", IndexDef: xxx },
+      *            { Collection: "foo.ba1", IndexDef: xxx }
+      *          ],
+      * }
+      */
+      try
+      {
+         BSONElement ele = _obj.getField( FIELD_NAME_INDEX ) ;
          if ( ele.eoo() )
          {
             goto done ;
@@ -154,14 +172,135 @@ namespace engine
                          rc ) ;
          }
       }
-      catch( std::exception &e )
+      catch ( exception &e )
       {
+         PD_LOG( PDERROR, "Failed to parse indexes, occur exception %s",
+                 e.what() ) ;
          rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
       }
 
    done:
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_parseSchema()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement ele = _obj.getField( FIELD_NAME_SCHEMA ) ;
+         if ( ele.eoo() )
+         {
+            goto done ;
+         }
+         rc = _schema.parse( ele.embeddedObject(), FALSE, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse schema, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_parseSchemaAction()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement ele = _obj.getField( FIELD_NAME_SCHEMA_ACTION ) ;
+         if ( ele.eoo() )
+         {
+            goto done ;
+         }
+         rc = _schemaAction.parse( ele.embeddedObject() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse schema action, rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse schema action, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_parseShardingKeys()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement ele = _obj.getField( FIELD_NAME_SHARDINGKEY ) ;
+         if ( ele.eoo() )
+         {
+            goto done ;
+         }
+
+         PD_CHECK( Array == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Invalid field[%s] type[%d]",
+                   FIELD_NAME_SHARDINGKEY, ele.type() ) ;
+
+         BSONObjIterator it( ele.embeddedObject() ) ;
+         while( it.more() )
+         {
+            BSONElement e = it.next() ;
+            const CHAR* collection = NULL ;
+            BSONObj shardingKey ;
+
+            PD_CHECK( Object == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid type[%d]", e.type() ) ;
+
+            BSONObj subObj = e.embeddedObject() ;
+
+            e = subObj.getField( FIELD_NAME_COLLECTION ) ;
+            PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      FIELD_NAME_COLLECTION, e.type() ) ;
+            collection = e.valuestrsafe() ;
+
+            e = subObj.getField( FIELD_NAME_SHARDINGKEY ) ;
+            PD_CHECK( Object == e.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid field[%s] type[%d]",
+                      FIELD_NAME_SHARDINGKEY, e.type() ) ;
+            shardingKey = e.embeddedObject() ;
+
+            rc = _addShardingKey( collection, shardingKey ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add sharding key, rc: %d",
+                         rc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse schema, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
    error:
       goto done ;
    }
@@ -174,9 +313,8 @@ namespace engine
    utilIdxUniqueID _rtnAlterInfo::getIdxUniqueID( const CHAR* collection,
                                                   const CHAR* indexName ) const
    {
-      ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::const_iterator it =
-                                                _clMap.find( collection ) ;
-      if ( it != _clMap.end() )
+      RTN_ALTER_CL_IDX_MAP_CIT it = _clIdxMap.find( collection ) ;
+      if ( it != _clIdxMap.end() )
       {
          const MAP_IDXNAME_ID& idxMap = it->second ;
          MAP_IDXNAME_ID::const_iterator i = idxMap.find( indexName ) ;
@@ -188,6 +326,16 @@ namespace engine
       return UTIL_UNIQUEID_NULL ;
    }
 
+   BSONObj _rtnAlterInfo::getShardingKey( const CHAR* collection ) const
+   {
+      RTN_ALTER_CL_KEY_MAP_CIT it = _clShardingKeyMap.find( collection ) ;
+      if ( it != _clShardingKeyMap.end() )
+      {
+         return it->second ;
+      }
+      return BSONObj() ;
+   }
+
    INT32 _rtnAlterInfo::bindInfoByCL( const CHAR* collection,
                                       BSONObj& newInfo ) const
    {
@@ -196,40 +344,63 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
-         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::const_iterator it =
-                                                   _clMap.find( collection ) ;
-         /* { Index: [ { Collection: "foo.bar", IndexDef: xxx },
-          *            { Collection: "foo.bar", IndexDef: xxx }, ...
-          *          ]
-          * }
-          */
-         if ( it != _clMap.end() )
-         {
-            BSONArrayBuilder sub( builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+         BSONObj shardingKey ;
 
-            const MAP_IDXNAME_ID& idxMap = it->second ;
-            for ( MAP_IDXNAME_ID::const_iterator i = idxMap.begin() ;
-                  i != idxMap.end() ; i++ )
-            {
-               sub.append( BSON( FIELD_NAME_COLLECTION << collection <<
-                                 IXM_FIELD_NAME_INDEX_DEF <<
-                                 BSON( IXM_FIELD_NAME_NAME << i->first <<
-                                       IXM_FIELD_NAME_UNIQUEID <<
-                                       (INT64)(i->second) ) ) ) ;
-            }
+         rc = _bindIdxByCL( collection, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to bind index, rc: %d", rc ) ;
 
-            sub.done() ;
-         }
+         rc = _bindShardingKeyByCL( collection, builder, shardingKey ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to bind sharding key, rc: %d", rc ) ;
 
          if ( _schema.isValid() )
          {
-            BSONObjBuilder subBuilder( builder.subobjStart( FIELD_NAME_SCHEMA ) ) ;
-            subBuilder.append( FIELD_NAME_COLLECTION, collection ) ;
-            subBuilder.appendElementsUnique( _schema.getDefine() ) ;
-            subBuilder.doneFast() ;
+            if ( shardingKey.isEmpty() )
+            {
+               builder.append( FIELD_NAME_SCHEMA, _schema.getDefine() ) ;
+            }
+            else
+            {
+               utilSchema schema ;
+               rc = schema.copy( _schema ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to copy schema, rc: %d", rc ) ;
+
+               rc = schema.adjustShardingKey( shardingKey, FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema, rc: %d", rc ) ;
+
+               BSONObjBuilder schemaBuilder( builder.subobjStart( FIELD_NAME_SCHEMA ) ) ;
+               rc = schema.toBSON( schemaBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, rc: %d", rc ) ;
+               schemaBuilder.doneFast() ;
+            }
+         }
+
+         if ( _schemaAction.isValid() )
+         {
+            if ( shardingKey.isEmpty() )
+            {
+               builder.append( FIELD_NAME_SCHEMA_ACTION,
+                               _schemaAction.getActionObject() ) ;
+            }
+            else
+            {
+               utilSchemaAlterAction schemaAction ;
+               rc = schemaAction.copy( _schemaAction ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to copy schema action, rc: %d", rc ) ;
+
+               rc = schemaAction.adjust( shardingKey ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema action, rc: %d", rc ) ;
+
+               BSONObjBuilder schemaBuilder( builder.subobjStart( FIELD_NAME_SCHEMA_ACTION ) ) ;
+               rc = schemaAction.toBSON( schemaBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema action, rc: %d", rc ) ;
+               schemaBuilder.doneFast() ;
+            }
          }
 
          newInfo = builder.obj() ;
+
+         PD_LOG( PDDEBUG, "Bind new alter info for collection [%s] : [%s]",
+                 collection, newInfo.toPoolString().c_str() ) ;
       }
       catch( std::exception &e )
       {
@@ -249,13 +420,12 @@ namespace engine
    {
       try
       {
-         ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::iterator it =
-                                             _clMap.find( collection ) ;
-         if ( it == _clMap.end() )
+         RTN_ALTER_CL_IDX_MAP_IT it = _clIdxMap.find( collection ) ;
+         if ( it == _clIdxMap.end() )
          {
             MAP_IDXNAME_ID idxMap ;
             idxMap[ indexName ] = indexUniqID ;
-            _clMap[ collection ] = idxMap ;
+            _clIdxMap[ collection ] = idxMap ;
          }
          else
          {
@@ -269,6 +439,112 @@ namespace engine
       }
 
       return SDB_OK ;
+   }
+
+   INT32 _rtnAlterInfo::_addShardingKey( const CHAR *collection,
+                                         const BSONObj &shardingKey )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _clShardingKeyMap[ collection ] = shardingKey ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add sharding key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_bindIdxByCL( const CHAR *collection,
+                                      BSONObjBuilder &builder ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         RTN_ALTER_CL_IDX_MAP_CIT itIdx = _clIdxMap.find( collection ) ;
+         /* { Index: [ { Collection: "foo.bar", IndexDef: xxx },
+          *            { Collection: "foo.bar", IndexDef: xxx }, ...
+          *          ]
+          * }
+          */
+         if ( itIdx != _clIdxMap.end() )
+         {
+            BSONArrayBuilder sub( builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+
+            const MAP_IDXNAME_ID& idxMap = itIdx->second ;
+            for ( MAP_IDXNAME_ID::const_iterator i = idxMap.begin() ;
+                  i != idxMap.end() ; i++ )
+            {
+               sub.append( BSON( FIELD_NAME_COLLECTION << collection <<
+                                 IXM_FIELD_NAME_INDEX_DEF <<
+                                 BSON( IXM_FIELD_NAME_NAME << i->first <<
+                                       IXM_FIELD_NAME_UNIQUEID <<
+                                       (INT64)(i->second) ) ) ) ;
+            }
+
+            sub.doneFast() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to bind indexes, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnAlterInfo::_bindShardingKeyByCL( const CHAR *collection,
+                                              BSONObjBuilder &builder,
+                                              bson::BSONObj &shardingKey ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         RTN_ALTER_CL_KEY_MAP_CIT it = _clShardingKeyMap.find( collection ) ;
+         if ( it != _clShardingKeyMap.end() )
+         {
+            shardingKey = it->second ;
+
+            BSONArrayBuilder sub( builder.subarrayStart( FIELD_NAME_SHARDINGKEY ) ) ;
+            BSONObjBuilder defBuilder( sub.subobjStart() ) ;
+            defBuilder.append( FIELD_NAME_COLLECTION, collection ) ;
+            defBuilder.append( FIELD_NAME_SHARDINGKEY, shardingKey ) ;
+            defBuilder.doneFast() ;
+            sub.doneFast() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to bind sharding key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -422,7 +698,8 @@ namespace engine
    _rtnAlterTask::_rtnAlterTask ( const rtnAlterTaskSchema & schema,
                                   const BSONObj & argument )
    : _rtnAlterTaskSchema( schema ),
-     _rtnAlterTaskArgument( argument )
+     _rtnAlterTaskArgument( argument ),
+     _taskSchema( NULL )
    {
    }
 
@@ -2496,7 +2773,9 @@ namespace engine
       _rtnDomainSetAttributeTask implement
     */
    _rtnDomainSetAttributeTask::_rtnDomainSetAttributeTask ()
-   : _rtnAlterDomainTask( rtnGetSetAttrTask( RTN_ALTER_DOMAIN ), BSONObj() )
+   : _rtnAlterDomainTask( rtnGetSetAttrTask( RTN_ALTER_DOMAIN ), BSONObj() ),
+     _autoSplit( FALSE ),
+     _autoRebalance( FALSE )
    {
    }
 

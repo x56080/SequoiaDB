@@ -389,7 +389,7 @@ namespace engine
 
       INT32 setSchema( const CHAR *schemaName, _pmdEDUCB *cb ) ;
 
-      const utilSchema &getSchema() const
+      utilSchema &getSchema()
       {
          return _schema ;
       }
