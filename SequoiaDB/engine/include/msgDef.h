@@ -783,6 +783,7 @@
 #define FIELD_NAME_DEFAULT                   "Default"
 #define FIELD_NAME_READDEFAULT               "ReadDefault"
 #define FIELD_NAME_WRITEDEFAULT              "WriteDefault"
+#define FIELD_NAME_READDEFAULT_INIT_VERSION  "ReadDefaultInitVersion"
 #define FIELD_NAME_DELETED                   "Deleted"
 #define FIELD_NAME_HIDDEN                    "Hidden"
 #define FIELD_NAME_INDEX_COL                 "IndexColumn"

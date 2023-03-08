@@ -587,8 +587,13 @@ namespace engine
                                                     sizeof(FIELD_NAME_READDEFAULT)-1),
                                   (const void *)value, valueSize ) ;
             const dmsSchemaColSlot *slot = _getColSlot( columnID ) ;
-            UINT32 version = slot->getDefaultInitVersion() ;
-            builder.append( "ReadDefaultInitVersion", version ) ;
+            if ( !slot )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Get column slot failed" ) ;
+               goto error ;
+            }
+            builder.append( FIELD_NAME_READDEFAULT_INIT_VERSION, slot->getDefaultInitVersion() ) ;
          }
 
          /// write default

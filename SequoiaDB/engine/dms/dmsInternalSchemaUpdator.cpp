@@ -776,7 +776,6 @@ namespace engine
 
       for ( UINT16 columnID = 0; columnID < _nextColumnID; ++columnID )
       {
-         BOOLEAN baseHasReadDefault = FALSE ;
          readDefaultInitVer = extent->_schemaInnerVersion ;
          COL_INFO_MAP_CITR citr = _colInfoMap.find( columnID ) ;
          if ( _colInfoMap.end() != citr )
@@ -789,10 +788,9 @@ namespace engine
          {
             record = _baseSchemaContainer._getColRecord( columnID ) ;
             attr = _baseSchemaContainer._getColumnAttr( columnID ) ;
-            baseHasReadDefault = OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) ;
          }
 
-         if ( columnID < baseSchemaColumnNum && baseHasReadDefault )
+         if ( columnID < baseSchemaColumnNum && OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) )
          {
             const dmsSchemaColSlot *tmpSlot = _baseSchemaContainer._getColSlot( columnID ) ;
             if ( !tmpSlot )
