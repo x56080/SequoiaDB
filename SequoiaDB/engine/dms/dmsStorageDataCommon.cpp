@@ -4330,8 +4330,6 @@ namespace engine
                       "[position %lld, obj %s], rc: %d",
                       position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
-         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
-
       retry:
          if ( !markInsert )
          {
@@ -4420,6 +4418,10 @@ namespace engine
             // reserved space, alignment, etc.
             _finalRecordSize( dmsRecordSize, storeData ) ;
          }
+
+         // Keep this inside the protection of mb latch. Because rename of the colleciton may happen
+         // outside of the latch.
+         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
 
          // calc log reserve
          if ( dpscb )
