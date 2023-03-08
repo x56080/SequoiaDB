@@ -406,7 +406,7 @@ namespace engine
          INT32       setName( const CHAR *pName, UINT32 nameLen,
                               const CHAR *pOrgName = NULL,
                               UINT32 orgNameLen = 0 ) ;
-         BOOLEAN     getName( const CHAR **ppName, UINT32 &nameLen )
+         BOOLEAN     getName( const CHAR **ppName, UINT32 &nameLen ) const
          {
             if ( _pName )
             {

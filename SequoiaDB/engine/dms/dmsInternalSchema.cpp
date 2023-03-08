@@ -2208,7 +2208,7 @@ namespace engine
          try
          {
             const CHAR *origName = NULL ;
-            UINT32 orgNameLen = 0 ;
+            INT32 orgNameLen = 0 ;
             const CHAR *pKeyName = 0 ;
 
             if ( hasOrigName )
