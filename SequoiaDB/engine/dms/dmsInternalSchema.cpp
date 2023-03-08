@@ -157,6 +157,26 @@ namespace engine
       _extentSize = 0 ;
    }
 
+   INT32 _dmsSchemaContainer::getColDefaultInitVersion( UINT16 columnID,
+                                                        UINT32 &initVersion ) const
+   {
+      INT32 rc = SDB_OK ;
+      const dmsSchemaColSlot *slot = _getColSlot( columnID ) ;
+      if ( !slot )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Get schema column info slot of column ID [%u] failed, rc: %d",
+                 columnID, rc ) ;
+         goto error ;
+      }
+      initVersion = slot->getDefaultInitVersion() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _dmsSchemaContainer::getColReadDefault( UINT16 columnID, const CHAR *&name,
                                                  INT32 &nameLen, BSONType &type,
                                                  const CHAR *&value, INT32 &valueLen ) const
@@ -1352,8 +1372,8 @@ namespace engine
             else
             {
                /// rebuild record by the orignal record
-               rc = _rebuildRecord( cb, encodedRecord, objRecord, readBitmap, hitName,
-                                    hasFound, getPrimalData ) ;
+               rc = _rebuildRecord( cb, encodedRecord, version, objRecord, readBitmap,
+                                    hitName, hasFound, getPrimalData ) ;
                PD_RC_CHECK( rc, PDERROR, "Rebuild record failed, rc: %d", rc ) ;
 
                /// save to context
@@ -1428,7 +1448,7 @@ namespace engine
          if ( readBitmap.validBitSize() > 0 )
          {
             // Append columns with default.
-            rc = _appendColWithReadDefault( readBitmap, builder ) ;
+            rc = _appendColWithReadDefault( readBitmap, builder, version ) ;
             PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
                         rc ) ;
          }
@@ -1469,6 +1489,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__REBUILDRECORD, "_dmsInternalSchema::_rebuildRecord" )
    INT32 _dmsInternalSchema::_rebuildRecord( _pmdEDUCB *cb,
                                              const BSONObj &record,
+                                             UINT32 recordVersion,
                                              BSONObj &outRecord,
                                              _utilBitmapBase &readBitmap,
                                              BOOLEAN &hitName,
@@ -1535,7 +1556,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Start rebuild record by internal schema failed, rc: %d",
                       rc ) ;
 
-         rc = _appendColWithReadDefault( readBitmap, builder ) ;
+         rc = _appendColWithReadDefault( readBitmap, builder, recordVersion ) ;
          PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
                      rc ) ;
 
@@ -1623,7 +1644,7 @@ namespace engine
 
          if ( !getPrimalData )
          {
-            rc = _appendColWithReadDefault( readBitmap, builder ) ;
+            rc = _appendColWithReadDefault( readBitmap, builder, recordVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
                         rc ) ;
          }
@@ -1700,7 +1721,7 @@ namespace engine
          pContext->prune( DMS_SCHEMA_INVALID_VERSION, 0, readBitmap, hitName, hasFound ) ;
       }
 
-      rc = _rebuildRecord( cb, record, outRecord, readBitmap,
+      rc = _rebuildRecord( cb, record, DMS_SCHEMA_INVALID_VERSION, outRecord, readBitmap,
                            hitName, hasFound, getPrimalData ) ;
       if ( rc )
       {
@@ -1954,17 +1975,9 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Get write default value of column %s failed, rc: %d",
                          name, rc ) ;
          }
-         else if ( _schemaContainer.hasReadDefault( (UINT16)setBitPos ) )
-         {
-            // No write value, it should be a column in index with read default.
-            rc = _schemaContainer.getColReadDefault( (UINT16)setBitPos, name, nameLen,
-                                                     type, value, valueLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get read default value of column %s failed, rc: %d",
-                         name, rc ) ;
-         }
          else
          {
-            SDB_ASSERT( FALSE, "Should have read or write default value" ) ;
+            SDB_ASSERT( FALSE, "Should have write default value" ) ;
             rc = SDB_SYS ;
             PD_LOG( PDERROR, "Get primal columns[%u] for record failed, rc: %d",
                     setBitPos, rc ) ;
@@ -2119,7 +2132,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__APPENDCOLWITHREADDFT, "_dmsInternalSchema::_appendColWithReadDefault" )
    INT32 _dmsInternalSchema::_appendColWithReadDefault( const _utilBitmapBase &readBitmap,
-                                                        utilBSONRawBuilder &builder )
+                                                        utilBSONRawBuilder &builder,
+                                                        UINT32 recordVersion )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__APPENDCOLWITHREADDFT ) ;
@@ -2130,6 +2144,7 @@ namespace engine
       const CHAR *value = NULL ;
       INT32 valueLen = 0 ;
       INT32 nextSetPos = 0 ;
+      UINT32 initDefaultVersion = DMS_SCHEMA_INVALID_VERSION ;
 
       while ( TRUE )
       {
@@ -2137,6 +2152,21 @@ namespace engine
          if ( -1 == nextSetPos )
          {
             break ;
+         }
+
+         if ( DMS_SCHEMA_INVALID_VERSION != recordVersion )
+         {
+            rc = _schemaContainer.getColDefaultInitVersion( (UINT16)nextSetPos,
+                                                            initDefaultVersion ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get column default version failed, rc: %d", rc ) ;
+
+            if ( DMS_SCHEMA_INVALID_VERSION != initDefaultVersion &&
+                 recordVersion >= initDefaultVersion )
+            {
+               /// don't add default
+               ++nextSetPos ;
+               continue ;
+            }
          }
 
          /// get read default value infor
@@ -2167,7 +2197,6 @@ namespace engine
       BOOLEAN isDeleted          = FALSE ;
       BOOLEAN hasReadDefault     = FALSE ;
       BOOLEAN hasWriteDefault    = FALSE ;
-      BOOLEAN isIndexColumn      = FALSE ;
       BOOLEAN hasOrigName        = FALSE ;
       UINT32 colReadEleSize      = 0 ;
       UINT32 colWriteEleSize     = 0 ;
@@ -2187,7 +2216,7 @@ namespace engine
       {
          rc = _schemaContainer.getColumnBasicInfo( colID, &name, &nameLen, &isDeleted,
                                                    &hasReadDefault, &hasWriteDefault,
-                                                   &isIndexColumn, &hasOrigName ) ;
+                                                   NULL, &hasOrigName ) ;
          PD_RC_CHECK( rc, PDERROR, "Get column info from internal schema failed, rc: %d", rc ) ;
 
          if ( !isDeleted )
@@ -2211,16 +2240,6 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Get column element size failed, rc: %d", rc ) ;
 
                _defaultWriteMaxSize += colWriteEleSize ;
-            }
-
-            if ( isIndexColumn && hasReadDefault )
-            {
-               /// add to write default
-               if ( !_writeColBitmap.testBit( colID ) )
-               {
-                  _writeColBitmap.setBit( colID ) ;
-                  _defaultWriteMaxSize += colReadEleSize ;
-               }
             }
 
             _totalValidNameSize += nameLen ;

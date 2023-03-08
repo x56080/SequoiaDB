@@ -117,6 +117,8 @@ namespace engine
                    OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_HIDDEN ) ;
          }
 
+         INT32 getColDefaultInitVersion( UINT16 columnID, UINT32 &initVersion ) const ;
+
          INT32 getColReadDefault( UINT16 columnID, const CHAR *&name, INT32 &nameLen,
                                   BSONType &type, const CHAR *&value, INT32 &valueLen ) const ;
 
@@ -570,6 +572,7 @@ namespace engine
 
          INT32    _rebuildRecord( _pmdEDUCB *cb,
                                   const BSONObj &record,
+                                  UINT32 recordVersion,
                                   BSONObj &outRecord,
                                   _utilBitmapBase &readBitmap,
                                   BOOLEAN &hitName,
@@ -577,7 +580,8 @@ namespace engine
                                   BOOLEAN getPrimalData ) ;
 
          INT32    _appendColWithReadDefault( const _utilBitmapBase &readBitmap,
-                                             utilBSONRawBuilder &builder ) ;
+                                             utilBSONRawBuilder &builder,
+                                             UINT32 recordVersion = DMS_SCHEMA_INVALID_VERSION ) ;
 
          INT32    _postLoad() ;
 
