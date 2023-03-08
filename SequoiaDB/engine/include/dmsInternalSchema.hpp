@@ -403,10 +403,10 @@ namespace engine
                                BOOLEAN isDeleted = FALSE ) ;
          ~_dmsDecodeWatchValue() ;
 
-         INT32       setName( const CHAR *pName, UINT32 nameLen,
+         INT32       setName( const CHAR *pName, INT32 nameLen,
                               const CHAR *pOrgName = NULL,
-                              UINT32 orgNameLen = 0 ) ;
-         BOOLEAN     getName( const CHAR **ppName, UINT32 &nameLen ) const
+                              INT32 orgNameLen = 0 ) ;
+         BOOLEAN     getName( const CHAR **ppName, INT32 &nameLen ) const
          {
             if ( _pName )
             {
@@ -427,9 +427,9 @@ namespace engine
          UINT16         _colID ;
          BOOLEAN        _isDeleted ;
          CHAR*          _pName ;
-         UINT32         _nameLen ;
+         INT32          _nameLen ;
          CHAR*          _pOrgName ;
-         UINT32         _orgNameLen ;
+         INT32          _orgNameLen ;
    } ;
    typedef _dmsDecodeWatchValue dmsDecodeWatchValue ;
 
