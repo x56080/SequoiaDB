@@ -1680,6 +1680,11 @@ namespace engine
 
       _cacheHolder.deleteAllSUCaches() ;
 
+      if ( _pHMMgr )
+      {
+         SDB_OSS_DEL _pHMMgr ;
+         _pHMMgr = NULL ;
+      }
       if ( _pIndexSu )
       {
          SDB_OSS_DEL _pIndexSu ;
