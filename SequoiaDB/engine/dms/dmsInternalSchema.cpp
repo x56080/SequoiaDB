@@ -875,6 +875,81 @@ namespace engine
    }
 
    /*
+      _dmsDecodeWatchValue implement
+   */
+   _dmsDecodeWatchValue::_dmsDecodeWatchValue( UINT16 colID, BOOLEAN isDeleted )
+   {
+      _colID = colID ;
+      _isDeleted = isDeleted ;
+      _pName = NULL ;
+      _nameLen = 0 ;
+      _pOrgName = NULL ;
+      _orgNameLen = 0 ;
+   }
+
+   _dmsDecodeWatchValue::~_dmsDecodeWatchValue()
+   {
+      if ( _pName )
+      {
+         SDB_THREAD_FREE( _pName ) ;
+         _pName = NULL ;
+      }
+      _nameLen = 0 ;
+      if ( _pOrgName )
+      {
+         SDB_THREAD_FREE( _pOrgName ) ;
+         _pOrgName = NULL ;
+      }
+      _orgNameLen = 0 ;
+   }
+
+   INT32 _dmsDecodeWatchValue::setName( const CHAR *pName, UINT32 nameLen,
+                                        const CHAR *pOrgName, UINT32 orgNameLen )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !pName || 0 == nameLen )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      _pName = ( CHAR* )SDB_THREAD_ALLOC( nameLen + 1 ) ;
+      if ( !_pName )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate memory[%u] failed", nameLen ) ;
+         goto error ;
+      }
+
+      /// copy
+      ossMemcpy( _pName, pName, nameLen ) ;
+      _pName[ nameLen ] = 0 ;
+      _nameLen = nameLen ;
+
+      if ( pOrgName && orgNameLen > 0 )
+      {
+         _pOrgName = ( CHAR* )SDB_THREAD_ALLOC( orgNameLen + 1 ) ;
+         if ( !_pOrgName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory[%u] failed", orgNameLen ) ;
+            goto error ;
+         }
+
+         /// copy
+         ossMemcpy( _pOrgName, pOrgName, orgNameLen ) ;
+         _pOrgName[ orgNameLen ] = 0 ;
+         _orgNameLen = orgNameLen ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
       _dmsInternalSchema implement
    */
    _dmsInternalSchema::_dmsInternalSchema()
@@ -968,6 +1043,13 @@ namespace engine
       _colBitmap.release() ;
       _readColBitmap.release() ;
       _writeColBitmap.release() ;
+
+      NAME_INFO_MAP_ITR itr = _decodeWatchNames.begin() ;
+      while( itr != _decodeWatchNames.end() )
+      {
+         SDB_OSS_DEL itr->second ;
+         ++itr ;
+      }
       _decodeWatchNames.clear() ;
 
       _totalValidNameSize = 0 ;
@@ -1482,20 +1564,18 @@ namespace engine
                itrInfo = _decodeWatchNames.find( ele.fieldName() ) ;
                if ( itrInfo != _decodeWatchNames.end() )
                {
-                  colID = itrInfo->second ;
+                  const dmsDecodeWatchValue *pItem = itrInfo->second ;
+                  colID = pItem->getColID() ;
                   ++hitCount ;
 
-                  rc = _schemaContainer.getColumnBasicInfo( colID, &name, &nameLen, &isDeleted,
-                                                            NULL, NULL, NULL, &hasOrigName ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Get column[%d] info failed, rc: %d", colID, rc ) ;
-
-                  if ( isDeleted )
+                  if ( pItem->isDeleted() )
                   {
                      /// ignore
                      continue ;
                   }
-                  else if ( hasOrigName )
+                  else if ( pItem->hasOrgName() )
                   {
+                     pItem->getName( &name, nameLen ) ;
                      rc = builder.appendElement( ele.type(), name, nameLen,
                                                  ele.value(), ele.valuesize() ) ;
                      PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
@@ -2070,6 +2150,7 @@ namespace engine
       BOOLEAN hasOrigName        = FALSE ;
       UINT32 colReadEleSize      = 0 ;
       UINT32 colWriteEleSize     = 0 ;
+      dmsDecodeWatchValue *pItem = NULL ;
 
       /// clear bitmap information
       _clearBitmapInfo() ;
@@ -2126,14 +2207,45 @@ namespace engine
 
          try
          {
+            const CHAR *origName = NULL ;
+            UINT32 orgNameLen = 0 ;
+            const CHAR *pKeyName = 0 ;
+
             if ( hasOrigName )
             {
-               const CHAR *origName = _schemaContainer.getOrigName( colID ) ;
-               _decodeWatchNames.insert( NAME_INFO_MAP::value_type( origName, colID ) ) ;
+               origName = _schemaContainer.getOrigName( colID, &orgNameLen ) ;
             }
-            else if ( isDeleted )
+
+            if ( isDeleted || hasOrigName )
             {
-               _decodeWatchNames.insert( NAME_INFO_MAP::value_type( name, colID ) ) ;
+               pItem = SDB_OSS_NEW dmsDecodeWatchValue( colID, isDeleted ) ;
+               if ( !pItem )
+               {
+                  PD_LOG( PDERROR, "Allocate decode watch value failed" ) ;
+                  rc = SDB_OOM ;
+                  goto error ;
+               }
+               /// set name
+               rc = pItem->setName( name, nameLen, origName, orgNameLen ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               /// set key name
+               pKeyName = pItem->hasOrgName() ? pItem->getOrgName() : pItem->getName() ;
+
+               /// insert to map
+               if ( _decodeWatchNames.insert( NAME_INFO_MAP::value_type( pKeyName,
+                                              pItem ) ).second )
+               {
+                  pItem = NULL ;
+               }
+               else
+               {
+                  /// when is exist, release pItem
+                  SDB_OSS_DEL pItem ;
+                  pItem = NULL ;
+               }
             }
          }
          catch( std::exception &e )
@@ -2152,6 +2264,11 @@ namespace engine
       _hasLoad = TRUE ;
 
    done:
+      if ( pItem )
+      {
+         SDB_OSS_DEL pItem ;
+         pItem = NULL ;
+      }
       return rc ;
    error:
       goto done ;

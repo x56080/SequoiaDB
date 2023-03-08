@@ -393,14 +393,54 @@ namespace engine
    } ;
    typedef _dmsSchemaContext dmsSchemaContext ;
 
+   /*
+      _dmsDecodeWatchKey define
+   */
+   class _dmsDecodeWatchValue : public utilPooledObject
+   {
+      public:
+         _dmsDecodeWatchValue( UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID,
+                               BOOLEAN isDeleted = FALSE ) ;
+         ~_dmsDecodeWatchValue() ;
+
+         INT32       setName( const CHAR *pName, UINT32 nameLen,
+                              const CHAR *pOrgName = NULL,
+                              UINT32 orgNameLen = 0 ) ;
+         BOOLEAN     getName( const CHAR **ppName, UINT32 &nameLen )
+         {
+            if ( _pName )
+            {
+               *ppName = _pName ;
+               nameLen = _nameLen ;
+               return TRUE ;
+            }
+            return FALSE ;
+         }
+         const CHAR* getName() const { return _pName ; }
+         const CHAR* getOrgName() const { return _pOrgName ; }
+
+         UINT16      getColID() const { return _colID ; }
+         BOOLEAN     isDeleted() const { return _isDeleted ; }
+         BOOLEAN     hasOrgName() const { return _pOrgName ? TRUE : FALS ; }
+
+      private:
+         UINT16         _colID ;
+         BOOLEAN        _isDeleted ;
+         CHAR*          _pName ;
+         UINT32         _nameLen ;
+         CHAR*          _pOrgName ;
+         UINT32         _orgNameLen ;
+   } ;
+   typedef _dmsDecodeWatchValue dmsDecodeWatchValue ;
+
    #define DMS_SCHEMA_ENCODE_FILL_SZ         ( 4 )
    /*
       _dmsInternalSchema define
    */
    class _dmsInternalSchema : public SDBObject
    {
-      typedef ossPoolMap< const CHAR *, UINT16, _ossCharStringCmp >     NAME_INFO_MAP ;
-      typedef NAME_INFO_MAP::iterator                                   NAME_INFO_MAP_ITR ;
+      typedef ossPoolMap< const CHAR *, dmsDecodeWatchValue*, _ossCharStringCmp > NAME_INFO_MAP ;
+      typedef NAME_INFO_MAP::iterator                                             NAME_INFO_MAP_ITR ;
 
       public:
          _dmsInternalSchema() ;
