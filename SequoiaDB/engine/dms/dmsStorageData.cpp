@@ -482,7 +482,8 @@ namespace engine
             BOOLEAN memAlloc = FALSE ;
             dmsRecordData encodeData ;
 
-            rc = _encodeRecordBySchema( context, cb, newRecordData, memAlloc, encodeData, NULL ) ;
+            rc = _encodeRecordBySchema( context, cb, newRecordData, memAlloc, encodeData,
+                                        NULL, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
 
             if ( memAlloc )
@@ -1584,7 +1585,8 @@ namespace engine
                                                  dmsRecordData &recordData,
                                                  BOOLEAN &memAlloc,
                                                  dmsRecordData &encodeData,
-                                                 INT32 *schemaVer )
+                                                 INT32 *schemaVer,
+                                                 BOOLEAN isPrimalData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA ) ;
@@ -1607,7 +1609,8 @@ namespace engine
       /// encode record with schema lock
       {
          ossScopedRWLock lock( schema->getRWMutex(), SHARED ) ;
-         rc = schema->encodeRecord( cb, recordData, memAlloc, encodeData, hasNewCol ) ;
+         rc = schema->encodeRecord( cb, recordData, memAlloc, encodeData,
+                                    hasNewCol, isPrimalData ) ;
          PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
       }
 

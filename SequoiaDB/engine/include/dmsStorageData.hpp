@@ -213,7 +213,8 @@ namespace engine
                                    dmsRecordData &recordData,
                                    BOOLEAN &memAlloc,
                                    dmsRecordData &encodeData,
-                                   INT32 *schemaVer ) ;
+                                   INT32 *schemaVer,
+                                   BOOLEAN isPrimalData = FALSE ) ;
 
    } ;
    typedef _dmsStorageData dmsStorageData ;
