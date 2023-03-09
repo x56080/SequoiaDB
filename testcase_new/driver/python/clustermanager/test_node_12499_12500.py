@@ -8,7 +8,8 @@ import unittest
 import time
 from lib import testlib
 from lib import sdbconfig
-from commlib import *
+from clustermanager import commlib
+from pysequoiadb import client
 from pysequoiadb.error import SDBBaseError
 
 class TestDataNode12499(testlib.SdbTestBase):
@@ -40,13 +41,13 @@ class TestDataNode12499(testlib.SdbTestBase):
       
       # rg start
       data_rg.start()
-      
-      check_rg_master( data_rg )
+
+      commlib.check_rg_master( data_rg )
       
       rg_master = data_rg.get_master()
       rg_slave = data_rg.get_slave()
-      master_data_connect_status = check_data_start_status(rg_master)
-      slave_data_connect_status = check_data_start_status(rg_slave)
+      master_data_connect_status = commlib.check_data_start_status(rg_master)
+      slave_data_connect_status = commlib.check_data_start_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       

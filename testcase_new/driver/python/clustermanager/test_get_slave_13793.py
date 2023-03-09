@@ -6,7 +6,7 @@
 import unittest
 from lib import testlib
 from lib import sdbconfig
-from commlib import *
+from clustermanager import commlib
 from pysequoiadb.error import SDBBaseError
 
 class TestGetSlave13793(testlib.SdbTestBase):
@@ -44,8 +44,8 @@ class TestGetSlave13793(testlib.SdbTestBase):
       more_node_data_rg.start()
       
       # check master node 
-      check_rg_master(one_node_data_rg)
-      check_rg_master(more_node_data_rg)
+      commlib.check_rg_master(one_node_data_rg)
+      commlib.check_rg_master(more_node_data_rg)
       
       # get slave
       slave_one_node = one_node_data_rg.get_slave()

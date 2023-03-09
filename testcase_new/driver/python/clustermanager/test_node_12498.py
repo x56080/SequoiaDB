@@ -19,7 +19,7 @@
 import unittest
 from lib import testlib
 from lib import sdbconfig
-from commlib import *
+from clustermanager import commlib
 from pysequoiadb.error import SDBBaseError
 
 class TestDataNode12498(testlib.SdbTestBase):
@@ -51,14 +51,14 @@ class TestDataNode12498(testlib.SdbTestBase):
       node2 = data_rg.get_nodebyname(data_hostname + ":" + service_name2)
       node1.start()
       node2.start()
-      
-      check_rg_master(data_rg)
+
+      commlib.check_rg_master(data_rg)
       
       rg_master = data_rg.get_master()
       rg_slave = data_rg.get_slave()
       
-      master_data_connect_status = check_data_start_status(rg_master)
-      slave_data_connect_status = check_data_start_status(rg_slave)
+      master_data_connect_status = commlib.check_data_start_status(rg_master)
+      slave_data_connect_status = commlib.check_data_start_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
@@ -66,8 +66,8 @@ class TestDataNode12498(testlib.SdbTestBase):
       node1.stop()
       node2.stop()
            
-      master_data_connect_status = check_data_stop_status(rg_master)
-      slave_data_connect_status = check_data_stop_status(rg_slave)
+      master_data_connect_status = commlib.check_data_stop_status(rg_master)
+      slave_data_connect_status = commlib.check_data_stop_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
@@ -100,13 +100,13 @@ class TestDataNode12498(testlib.SdbTestBase):
       #start node
       node1.start()
       node2.start()
-      
-      check_rg_master(data_rg)
+
+      commlib.check_rg_master(data_rg)
       
       rg_master = data_rg.get_master()
       rg_slave = data_rg.get_slave()
-      master_data_connect_status = check_data_start_status(rg_master)
-      slave_data_connect_status = check_data_start_status(rg_slave)
+      master_data_connect_status = commlib.check_data_start_status(rg_master)
+      slave_data_connect_status = commlib.check_data_start_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
@@ -122,8 +122,8 @@ class TestDataNode12498(testlib.SdbTestBase):
             self.fail("create and drop cs fail: " + str(e))
       
       # remove node
-      host_name = rg_slave.get_hostname();
-      svc_name = rg_slave.get_servicename();
+      host_name = rg_slave.get_hostname()
+      svc_name = rg_slave.get_servicename()
       data_rg.remove_node(host_name, svc_name)
       # check node
       try:
@@ -136,7 +136,7 @@ class TestDataNode12498(testlib.SdbTestBase):
       # remove group
       self.db.remove_replica_group(self.data_rg_name)
       # check use list_replica_groups
-      data_rgs = get_data_groups(self.db)
+      data_rgs = commlib.get_data_groups(self.db)
       if self.data_rg_name in data_rgs:
          self.fail("remove_rg_fail,data_rgs:" + str(data_rgs))
    
