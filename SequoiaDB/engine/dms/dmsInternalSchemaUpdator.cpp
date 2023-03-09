@@ -356,6 +356,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSCHEMAWRITER_DROPCOLUMN ) ;
       UINT8 attr = 0 ;
+      BOOLEAN attrChanged = FALSE ;
       BOOLEAN inMemory = FALSE ;
       dmsSchemaColRecBuilder builder ;
       const dmsSchemaColRecord *oldColRecord = NULL ;
@@ -380,6 +381,7 @@ namespace engine
       {
          // Mark the column as deleted.
          OSS_BIT_SET( attr, DMS_SCHEMA_COL_DELETED ) ;
+         attrChanged = TRUE ;
       }
 
       // Need to ignore the default values. They will not be stored in the column info any more.
@@ -406,6 +408,7 @@ namespace engine
 
          OSS_BIT_CLEAR(  attr, DMS_SCHEMA_COL_READ_DEFAULT | DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
          newColRecord = builder.getRecord() ;
+         attrChanged = TRUE ;
       }
       else if ( !inMemory )
       {
@@ -421,6 +424,12 @@ namespace engine
                       "rc: %d", rc ) ;
 
          _updateTotalSize( newColSize, oldColSize ) ;
+      }
+      else if ( attrChanged )
+      {
+         rc = _addOrUpdateColumnInfo( columnID, attr, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update column attribute in internal schema update buffer "
+                      "failed, rc: %d", rc ) ;
       }
 
    done:
