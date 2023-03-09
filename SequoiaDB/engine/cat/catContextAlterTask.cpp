@@ -2859,7 +2859,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMASHARDKEY ) ;
 
       if ( UTIL_SCHEMA_ADD_COLUMN != action.getAction() &&
-           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
+           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() &&
+           UTIL_SCHEMA_DROP_COLUMN != action.getAction() )
       {
          goto done ;
       }
@@ -2917,6 +2918,19 @@ namespace engine
                      action.getColumnName(),
                      action.getNewColAttr().getName(),
                      shardingKey.toPoolString().c_str() ) ;
+               break ;
+            }
+            case UTIL_SCHEMA_DROP_COLUMN:
+            {
+               BOOLEAN hasColumn = FALSE ;
+               rc = action.checkKeyPattern( shardingKey, action.getColumnName(), hasColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key on column [%s], rc: %d",
+                            action.getColumnName(), rc ) ;
+               PD_LOG_MSG_CHECK( !hasColumn, SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                                 "Failed to check alter schema [%s] on collection [%s], "
+                                 "can not drop column [%s] against sharding keys [%s]",
+                                 action.getSchemaName(), cataSet.name(), action.getColumnName(),
+                                 shardingKey.toPoolString().c_str() ) ;
                break ;
             }
             default:
