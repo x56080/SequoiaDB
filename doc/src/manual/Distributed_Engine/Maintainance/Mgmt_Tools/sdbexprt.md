@@ -1,15 +1,23 @@
+[^_^]:
+     数据导出工具
 
-sdbexprt 是 SequoiaDB 巨杉数据库的数据导出工具。用户可以通过 sdbexprt 将 SequoiaDB 中的集合以 JSON 或 CSV 格式导出到数据存储文件中。sdbexprt 支持将一个集合导出到一个文件，同时也支持将多个集合批量导出到指定目录下。
+sdbexprt 是 SequoiaDB 巨杉数据库的数据导出工具，用于将 SequoiaDB 中的集合数据以 JSON 或 CSV 格式导出到指定文件中。该工具支持将单集合数据导出至数据文件，也支持同时将多集合数据导出至数据目录。
 
-##JSON##
+##语法规则##
+
+**sdbexprt \<options\>**
+
+##导出说明##
+
+###JSON###
 
 JSON 导出格式中的 JSON 记录符合 JSON 的定义，以左右花括号作为 JSON 记录的分界符，并且字符串类型的数据必须包含在两个双引号之间，转义字符为反斜杠“\\”。默认情况下（SequoiaDB）记录以换行符分隔，用户能够指定记录分隔符。
 
-##CSV##
+###CSV###
 
 CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况下记录以换行符分隔，字段以逗号分隔。用户能够指定字符串分隔符、字段分隔符以及记录分隔符。
 
-##分隔符##
+###分隔符###
 
 | 类型         | 默认值          |
 | ------------ | --------------- |
@@ -23,9 +31,11 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 >* 可以使用多个字符作为分隔符；
 >* 可以使用 ASCII 码中的不可见字符作为分隔符，通过转义字符“\\”输入 ASCII 码的十进制数值（0~127），例如“\\30”。回车符、换行符、制表符、转义字符“\\”可以直接使用“\\r”、“\\n”、“\\t”、“\\\\”。
 
-##选项##
+##参数说明##
 
-###通用选项###
+###通用参数###
+
+任何类型的导出操作均可指定如下参数：
 
 | 参数名      | 缩写 | 描述 |
 | ----------- | ---- | ---- |
@@ -46,7 +56,9 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 | --ssl       |      | 指定是否使用 SSL 连接，默认 false，不使用 SSL 连接 |
 | --replace   |      | 覆盖导出数据文件 |
 
-###单集合选项###
+###单集合参数###
+
+导出单个集合时，可以指定如下参数：
 
 | 选项     | 缩写 | 说明 |
 | -------- | ---- | ---- |
@@ -63,7 +75,9 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 > 
 > 导出单集合时，--select 和 --fields 选项具有一样的作用，但 --select 选项更加灵活。
 
-###多集合选项###
+###多集合参数###
+
+同时导出多个集合时，可以指定如下参数：
 
 | 参数名        | 缩写 | 描述 |
 | ------------- | ---- | ---- |
@@ -76,13 +90,17 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 >* 导出工具支持单集合导出和多集合批量导出，单集合选项只能用于导出一个集合，但具有更灵活的导出条件选项，如过滤、排序。
 >* 当不指定导出任何集合或者集合空间，即 -c、-l、--cscl 都不指定，则导出数据库中所有的集合。
 
-###JSON 选项###
+###JSON 参数###
+
+导出类型为 JSON 时，可以指定如下参数：
 
 | 参数名          | 缩写 | 描述 |
 | --------------- | ---- | ---- |
 | --strict        |      | 是否严格按照数据类型导出，默认值为 false，不严格按照数据类型导出 |
 
-###CSV 选项###
+###CSV 参数###
+
+导出类型为 CSV 时，可以指定如下参数：
 
 | 参数名          | 缩写 | 描述 |
 | --------------- | ---- | ---- |
@@ -95,75 +113,99 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 | --kicknull      |      | 是否踢掉 null 值，默认为 false <br> true：输出空字符 <br> false：输出 null |
 | --checkdelimeter|      | 是否严格校验分隔符，默认为 true <br>true：禁止字符分隔符、字段分隔符、记录分隔符互相包含；<br>false：允许字符分隔符、字段分隔符、记录分隔符互相包含。|
 
-###配置文件选项###
+###配置文件参数###
+
+在导出多集合数据时，必须使用参数 --fields 对每一个集合指定导出字段，操作比较繁琐。为此，sdbexprt 工具提供生成配置文件的功能，可以根据各集合所包含的字段自动生成 fields 作为导出条件。用户使用参数 --genconf 生成配置文件后，可直接通过配置文件指定导出行为，便于多次执行相似的命令。
 
 | 参数名      | 缩写 | 描述 |
 | ----------- | ---- | ---- |
 | --genconf   |      | 指定一个配置文件名，将当前命令行中所指定的选项和值按照“键=值”的方式写入到配置文件，不执行导出工作 |
 | --genfields |      | 生成配置文件时，是否对每一个集合生成对应的 --fields 选项，默认值为 true，工具会对每一个集合生成对应的 --fields 选项 |
-| --conf      |      | 指定一个配置文件作为输入，如果命令中和配置文件中存在相同的选项，优先选择命令行中的值 |
+| --conf      |      | 指定一个配置文件作为输入   |
 
 > **Note:**
 >
->* 以 csv 格式导出多集合时，必须使用 --fields 选项对每一个集合指定字段，工具提供的 --genconf 选项将每一个集合的第一行记录的字段导出到配置文件中的 --fields 选项，可以比较方便地编辑每一个集合的字段。
->* --genconf 选项将当前命令行的选项写入到配置文件中，下次使用 --conf 选项指定配置文件执行即可，这提供一种多次执行相似命令的便捷方式，另外这种方式主要用于在多集合导出 csv 情况下，对每一个集合生成对应的 --fields 选项。
->* 当使用配置文件的选项和命令行选项一样时，优先选择命令行值。
+> 当使用配置文件的选项和命令行选项一样时，优先选择命令行值。
 
 ##返回值##
 
 用户执行相关命令后，返回 0 则表示执行成功，返回非 0 则表示执行失败。
 
-##示例##
+##常见场景##
 
-* 以 csv 格式导出集合 sample.employee，导出文件为 `sample.employee.csv`，指定字段“field1”、“fieldNotExist”和“field3”，其中字段“fieldNotExist”在集合中不存在
+###以 CSV 格式导出###
+
+* 将集合 sample.employee 的数据导出至 `sample.employee.csv` 文件中，并指定导出字段 name、fieldNotExist 和 age
 
     ```lang-bash
-    $ sdbexprt -s localhost -p 11810 --type csv --file sample.employee.csv --fields field1,fieldNotExist,field3 -c sample -l employee
+    $ sdbexprt --hosts "localhost:11810" --type csv --file sample.employee.csv --fields name,fieldNotExist,age -c sample -l employee
     ```
 
-    导出的 `sample.employee.csv` 内容如下：
+    由于集合中不存在字段 fieldNotExist，导出的 `sample.employee.csv` 内容如下：
 
     ```lang-text
-    field1, fieldNotExist, field3
-    "Jack",,"China"
-    "Mike",,"USA"
+    name,fieldNotExist,age
+    "Jack",,18
+    "Mike",,20
+    "Woody",,25
     ```
 
-* 以 json 格式导出数据库除集合空间 cs1 和集合 cs2.cla 以外的所有集合，导出文目录为 `exportpath`
+* 将集合空间 sample 中除 sample.employee 外的所有集合数据，强制导出至 `./exportpath` 目录中
 
     ```lang-bash
-    $ sdbexprt --type json --dir exportpath --excludecscl cs1,cs2.cla
+    $sdbexprt --hosts "localhost:11810" --cscl sample --excludecscl sample.employee --dir ./exportpath --force true
     ```
 
-* 以 csv 格式导出集合空间 cs2 中除 cs2.cla 外的所有集合和集合 cs1.cla；由于必须指定每一个集合的 --fields，使用 --force 选项强制导出
+* 将集合 company.manager 和集合空间 sample 包含的所有集合数据，强制导出至 `./exportpath` 目录中
 
     ```lang-bash
-    $ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --force true
+    $sdbexprt --hosts "localhost:11810" --cscl sample,company.manager --dir ./exportpath --force true
     ```
 
-* 导出条件同上例，要求配置文件中包含每一个所对应的 --fields 选项，根据需求生成配置文件之后，再执行导出。
+###以 JSON 格式导出###
 
-    生成配置文件
+- 将集合 sample.employee 的数据导出至 `sample.employee.json` 文件中
 
     ```lang-bash
-    $ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --genconf export.conf
+    $ sdbexprt --hosts "localhost:11810" --type json -c sample -l employee --file sample.employee.json
     ```
 
-    配置文件内容可能如下：
+    导出的 `sample.employee.json` 内容如下：
+
+    ```lang-text
+    { "_id": { "$oid": "61f13fd6f91cfd7250f8775c" }, "id": 1, "name": "Jack", "age": 18 }
+    { "_id": { "$oid": "61f13fd6f91cfd7250f8775d" }, "id": 2, "name": "Mike", "age": 20 }
+    { "_id": { "$oid": "61f13fd7f91cfd7250f8775e" }, "id": 3, "name": "Woody", "age": 25 }
+    ```
+
+- 将数据库中除集合空间 sample 和集合 company.manager 以外的所有集合数据，导出至 `./exportpath` 目录中
+
+    ```lang-bash
+    $ sdbexprt --hosts "localhost:11810" --type json --excludecscl sample,company.manager --dir ./exportpath
+    ```
+
+###使用配置文件导出###
+
+1. 根据指定的导出条件，生成配置文件 `export.conf`
+
+    ```lang-bash
+    $ sdbexprt --hosts "localhost:11810" --dir ./exportpath --cscl sample,company.manager --excludecscl sample.employee --genconf export.conf
+    ```
+
+    配置文件内容如下：
 
     ```lang-ini
-    hostname = localhost
+    hosts = localhost:11810
     ...
+    cscl = sample,company.manager
+    excludecscl = sample.employee
     dir = exportpath/
-    cscl = cs1.cla,cs2
-    excludecscl = cs2.cla
-    fields = cs1.cla: a1, a2, a3
-    fields = cs2.clb: b1, b2, b3
-    fields = cs2.clc: c1, c2
-    fields = cs2.cld: d1, d2, d3, d4
+    fields = sample.people:id,name,age
+    fields = sample.member:id,name,age
+    fields = company.manager:id,name,age
     ```
 
-    执行导出
+2. 通过该配置文件执行导出
 
     ```lang-bash
     $ sdbexprt --conf export.conf
