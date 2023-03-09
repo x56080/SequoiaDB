@@ -4264,7 +4264,8 @@ namespace engine
                                                BOOLEAN mustOID,
                                                BOOLEAN canUnLock,
                                                INT64 position,
-                                               utilInsertResult *insertResult )
+                                               utilInsertResult *insertResult,
+                                               BOOLEAN isPrimalData )
    {
       INT32 rc                      = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
@@ -4337,7 +4338,7 @@ namespace engine
             // encodeData holds the encoded record(encoded by internal schema) to be stored into
             // data file.
             rc = _prepareInsertData( context, record, mustOID, cb, recordData, encodeData,
-                                     newMem, position, &schemaVersion ) ;
+                                     newMem, position, &schemaVersion, isPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
             storeData = encodeData.isEmpty() ? recordData : encodeData ;

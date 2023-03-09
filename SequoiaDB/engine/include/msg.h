@@ -799,6 +799,8 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 // Update flag '0x00000080' is reserved for FLG_QUERY_FORCE_HINT, it
 // needs to be skipped when adding new update flag.
 #define FLG_UPDATE_FORCE_HINT FLG_QUERY_FORCE_HINT
+// If set, insert the data will don't add default value by schema
+#define FLG_UPSERT_WITH_PRIMALDATA 0x00000008
 
 // For Update, 3 BSON objects will be followed
 // Selector + Updator + Hint
@@ -831,6 +833,8 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 // If set, the error of the dup key will be ignored when the dup key is '_id',
 // and the original record will be replaced by new record.
 #define FLG_INSERT_REPLACEONDUP_ID 0x00000040
+// If set, insert the data will don't add default value by schema
+#define FLG_INSERT_WITH_PRIMALDATA 0x00000080
 
 // This flag indicates that a hint is sent in the insert message.
 #define FLG_INSERT_HASHINT      0x80000000

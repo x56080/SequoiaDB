@@ -548,7 +548,8 @@ namespace engine
                                  BOOLEAN canUnLock = TRUE,
                                  dmsMBContext *context = NULL,
                                  INT64 position = -1,
-                                 utilInsertResult *insertResult = NULL ) ;
+                                 utilInsertResult *insertResult = NULL,
+                                 BOOLEAN isPrimalData = FALSE ) ;
 
          INT32    updateRecords ( const CHAR *pName,
                                   _pmdEDUCB *cb,

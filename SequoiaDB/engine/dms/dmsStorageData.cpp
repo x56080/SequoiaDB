@@ -101,7 +101,8 @@ namespace engine
                                               dmsRecordData &encodeData,
                                               BOOLEAN &memReallocate,
                                               INT64 position,
-                                              INT32 *schemaVer )
+                                              INT32 *schemaVer,
+                                              BOOLEAN isPrimalData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA ) ;
@@ -168,7 +169,7 @@ namespace engine
             // 2. Columns with no write default values, but are index columns and have read
             //    default values.
             rc = _encodeRecordBySchema( context, cb, recordData, memAlloc,
-                                        encodeData, schemaVer ) ;
+                                        encodeData, schemaVer, isPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
 
             if ( memAlloc )

@@ -1218,7 +1218,8 @@ namespace engine
                               BOOLEAN mustOID = TRUE,
                               BOOLEAN canUnLock = TRUE,
                               INT64 position = -1,
-                              utilInsertResult *insertResult = NULL ) ;
+                              utilInsertResult *insertResult = NULL,
+                              BOOLEAN isPrimalData = FALSE ) ;
 
          // if deletedDataPtr = 0, will get from recordID
          // must hold mb exclusive lock
@@ -1337,7 +1338,8 @@ namespace engine
                                            dmsRecordData &encodeData,
                                            BOOLEAN &memReallocate,
                                            INT64 position,
-                                           INT32 *schemaVer ) = 0 ;
+                                           INT32 *schemaVer,
+                                           BOOLEAN isPrimalData = FALSE ) = 0 ;
 
          virtual INT32 _getRecordPosition( const dmsRecordID &rid,
                                            const dmsRecordData &recordData,

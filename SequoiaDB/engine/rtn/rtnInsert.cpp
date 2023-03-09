@@ -85,8 +85,14 @@ namespace engine
       SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
       SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
 
+      BOOLEAN isPrimalData = FALSE ;
       pdLogRCShield shield ;
       BOOLEAN hasRetry = FALSE ;
+
+      if ( OSS_BIT_TEST( flags, FLG_INSERT_WITH_PRIMALDATA ) )
+      {
+         isPrimalData = TRUE ;
+      }
 
 retry:
       if ( ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
@@ -97,7 +103,8 @@ retry:
       }
 
       rc = su->insertRecord( clShortName, record, cb, dpsCB, mustOID,
-                             canUnLock, context, position, insertResult ) ;
+                             canUnLock, context, position, insertResult,
+                             isPrimalData ) ;
 
       shield.clearRC() ;
 

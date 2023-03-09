@@ -2317,7 +2317,8 @@ namespace engine
                                          BOOLEAN canUnLock,
                                          dmsMBContext *context,
                                          INT64 position,
-                                         utilInsertResult *insertResult )
+                                         utilInsertResult *insertResult,
+                                         BOOLEAN isPrimalData )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -2338,7 +2339,8 @@ namespace engine
       }
 
       rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
-                                   canUnLock, position, insertResult ) ;
+                                   canUnLock, position, insertResult,
+                                   isPrimalData ) ;
       if ( rc )
       {
          goto error ;

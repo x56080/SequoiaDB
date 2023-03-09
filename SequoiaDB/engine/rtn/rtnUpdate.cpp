@@ -356,8 +356,14 @@ retry:
 
             BSONObj target ;
             ossTick execStartTime, execEndTime ;
+            BOOLEAN isUpsertPrimalData = FALSE ;
 
             execStartTime = krcb->getCurTime() ;
+
+            if ( options.testFlag( FLG_UPSERT_WITH_PRIMALDATA ) )
+            {
+               isUpsertPrimalData = TRUE ;
+            }
 
             // upsertor means generate a new record from empty source
             rc = modifier.modify ( source, target ) ;
@@ -380,7 +386,8 @@ retry:
             }
 
             rc = su->data()->insertRecord( mbContext, target, cb, dpsCB,
-                                           TRUE, TRUE, -1, pResult ) ;
+                                           TRUE, TRUE, -1, pResult,
+                                           isUpsertPrimalData ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to insert record %s\ninto "
