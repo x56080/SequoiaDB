@@ -189,7 +189,7 @@ CSV（Comma Separated Values）导出格式以逗号分隔数值。默认情况�
 1. 根据指定的导出条件，生成配置文件 `export.conf`
 
     ```lang-bash
-    $ sdbexprt --hosts "localhost:11810" --dir exportpath --cscl sample,company.manager --excludecscl sample.employee --genconf export.conf
+    $ sdbexprt --hosts "localhost:11810" --dir ./exportpath --cscl sample,company.manager --excludecscl sample.employee --genconf export.conf
     ```
 
     配置文件内容如下：
