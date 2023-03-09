@@ -57,7 +57,6 @@ namespace engine
       _catRecycleReturnInfo implement
     */
    _catRecycleReturnInfo::_catRecycleReturnInfo()
-   : _isOnSite( FALSE )
    {
    }
 
@@ -1700,6 +1699,33 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_LOCKDOMAINS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_ADDONSITERETURN, "_catRecycleReturnInfo::addOnSiteReturn" )
+   INT32 _catRecycleReturnInfo::addOnSiteReturn( utilCLUniqueID clUID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ADDONSITERETURN ) ;
+
+      try
+      {
+         _onSiteReturnSet.insert( clUID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add on-site return collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYRTRNINFO_ADDONSITERETURN, rc ) ;
       return rc ;
 
    error:

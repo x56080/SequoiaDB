@@ -285,16 +285,6 @@ namespace engine
       _catRecycleReturnInfo() ;
       ~_catRecycleReturnInfo() ;
 
-      BOOLEAN isOnSiteReturn() const
-      {
-         return _isOnSite ;
-      }
-
-      void setOnSiteReturn( BOOLEAN isOnSite )
-      {
-         _isOnSite = isOnSite ;
-      }
-
       BOOLEAN hasConflicts() const
       {
          return ( ( !( _conflictCSSet.empty() ) ) &&
@@ -410,8 +400,22 @@ namespace engine
       BOOLEAN isCSDomainChecked( utilCSUniqueID csUniqueID ) ;
       INT32 lockDomains( catCtxLockMgr &lockMgr ) ;
 
+      INT32 addOnSiteReturn( utilCLUniqueID clUID ) ;
+
+      BOOLEAN isOnSiteReturn( utilCLUniqueID clUID ) const
+      {
+         return _onSiteReturnSet.count( clUID ) > 0 ? TRUE : FALSE ;
+      }
+
+      BOOLEAN hasOnSiteReturn() const
+      {
+         return _onSiteReturnSet.size() > 0 ? TRUE : FALSE ;
+      }
+
+
    protected:
       typedef ossPoolSet< utilCSUniqueID > _CAT_UID_CS_SET ;
+      typedef ossPoolSet< utilCLUniqueID > _CAT_UID_CL_SET ;
       typedef ossPoolMap< ossPoolString, catCheckCLInfo > _CAT_NAME_CL_MAP ;
       typedef ossPoolMap< utilCLUniqueID, catCheckCLInfo > _CAT_UID_CL_MAP ;
       typedef ossPoolMap< ossPoolString, ossPoolString > _CAT_SUB_MAIN_MAP ;
@@ -446,10 +450,6 @@ namespace engine
                           const CHAR *subCLName ) const ;
 
    protected:
-      // indicates return in the origin place
-      // e.g. for truncated collection without version and data changes
-      BOOLEAN              _isOnSite ;
-
       // return info for collection spaces
       _CAT_UID_CS_SET      _checkCSSet ;
 
@@ -485,6 +485,9 @@ namespace engine
       _CAT_CS_GROUP_SET    _csDomainGroups ;
       // domain is missing
       UTIL_RETURN_NAME_SET _missingDomains ;
+
+      // collection to return on site
+      _CAT_UID_CL_SET      _onSiteReturnSet ;
    } ;
 
    typedef class _catRecycleReturnInfo catRecycleReturnInfo ;

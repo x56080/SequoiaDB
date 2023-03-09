@@ -1498,6 +1498,15 @@ namespace engine
                     recycleSet.getVersion() ) ;
             isConflict = TRUE ;
          }
+
+         if ( !isConflict )
+         {
+            // returning truncated collection, and no conflicts, we can use
+            // on site return, to return the collection in the origin place
+            rc = _info.addOnSiteReturn( recycleSet.clUniqueID() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add on site return "
+                         "collection, rc: %d", rc ) ;
+         }
       }
 
       if ( isConflict )
@@ -2362,7 +2371,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CATRTRNPROCESS__SAVEOBJ ) ;
 
       const CHAR *returnCollection = catGetRecycleBinMetaCL( _type ) ;
-      INT32 flags = _info.isOnSiteReturn() ? FLG_INSERT_REPLACEONDUP : 0 ;
+      INT32 flags = _info.hasOnSiteReturn() ? FLG_INSERT_REPLACEONDUP : 0 ;
       rc = rtnInsert( returnCollection, returnObject, 1, flags, cb, _dmsCB,
                       _dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert object to collection [%s], "
@@ -2830,7 +2839,7 @@ namespace engine
             }
             else if ( 0 == ossStrcmp( FIELD_NAME_SCHEMA, fieldName ) )
             {
-               if ( _info.isOnSiteReturn() && !nameInfo.isRenamed() )
+               if ( _info.isOnSiteReturn( uidInfo.getOriginUID() ) )
                {
                   builder.append( element ) ;
                }
