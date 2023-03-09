@@ -13,7 +13,7 @@
 import unittest
 from lib import testlib
 from lib import sdbconfig
-from commlib import *
+from clustermanager import commlib
 from pysequoiadb.error import SDBBaseError
 
 class TestDataRg12497(testlib.SdbTestBase):
@@ -28,7 +28,7 @@ class TestDataRg12497(testlib.SdbTestBase):
       data_rg = self.db.create_replica_group(self.data_rg_name)
       
       #check list_replica_groups
-      data_rgs = get_data_groups(self.db)
+      data_rgs = commlib.get_data_groups(self.db)
       if not self.data_rg_name in data_rgs:
          self.fail("create data group fail: " + str(data_rgs))
       
@@ -49,12 +49,12 @@ class TestDataRg12497(testlib.SdbTestBase):
       data_rg.start()
      
       # check master node 
-      check_rg_master(data_rg)
+      commlib.check_rg_master(data_rg)
       
       rg_master = data_rg.get_master()
       rg_slave = data_rg.get_slave()
-      master_data_connect_status = check_data_start_status(rg_master)
-      slave_data_connect_status = check_data_start_status(rg_slave)
+      master_data_connect_status = commlib.check_data_start_status(rg_master)
+      slave_data_connect_status = commlib.check_data_start_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
@@ -64,8 +64,8 @@ class TestDataRg12497(testlib.SdbTestBase):
       data_rg = self.db.get_replica_group_by_id(data_id)
       data_rg.stop()
       
-      master_data_connect_status = check_data_stop_status(rg_master)
-      slave_data_connect_status = check_data_stop_status(rg_slave)
+      master_data_connect_status = commlib.check_data_stop_status(rg_master)
+      slave_data_connect_status = commlib.check_data_stop_status(rg_slave)
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
