@@ -77,7 +77,7 @@ function test() {
   var expRecs = [];
   for (var i = 0; i < 10000; i++) {
     records.push({ rid: i });
-    expRecs.push({ rid: i, a: 5, b: 10.5 });
+    expRecs.push({ rid: i, b: 10.5 });
   }
   cl.insert(records);
   cl.enableSharding({ ShardingKey: { rid: 1 }, AutoSplit: true });

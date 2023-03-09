@@ -54,7 +54,7 @@ function test() {
   for ( i = 50 ; i < 100; ++i )
   {
     cl.insert( { _id: i } );
-    expRecs.push({ _id: i, c: "read default c", d: "write default d" });
+    expRecs.push({ _id: i, d: "write default d" });
     primalExpRecs.push({ _id: i, d: "write default d" });
   }
 

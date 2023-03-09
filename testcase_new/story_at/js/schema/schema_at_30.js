@@ -35,120 +35,104 @@
  *    数据变化符合预期，更新后记录变为贴源记录。更新后校验主备数据节点一致
  *
  **************************************************************************************************/
-testConf.clName = "schema_30";
-testConf.clOpt = { EnableInfoSchema: true };
 main(test);
 
 function test(testPara) {
-  var clName = testConf.clName;
-  var cl = testPara.testCL;
+  var clName = "schema_30";
+  function queryTest1(cl) {
+    var expRecs = [];
+    for (var i = 2; i >= 0; i--) {
+      expRecs.push({ rid: i, a: 5, b: i + 0.1 });
+    }
+    var cursor = cl.find({ rid: { $gte: 0, $lt: 3 } }).sort({ rid: -1 });
+    commCompareResults(cursor, expRecs);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, queryTest1);
 
-  var schemaName = clName + "_1";
+  function queryTest2(cl) {
+    var expRecs = [];
+    for (var i = 0; i < 3; i++) {
+      expRecs.push({ rid: i, a: 5, b: i + 0.1 });
+    }
+    var cursor = cl.find({ rid: { $gte: 0, $lt: 3 } }).sort({ a: 1 });
+    commCompareResults(cursor, expRecs.slice(0, 3));
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, queryTest2);
+
+  function queryTest3(cl) {
+    var expRecs = [];
+    for (var i = 0; i < 5; i++) {
+      expRecs.push({ rid: i, a: 5, b: i + 0.1 });
+    }
+    var cursor = cl.find({ a: 5 }).sort({ rid: 1 });
+    commCompareResults(cursor, expRecs);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, queryTest3);
+
+  function updateTest1(cl) {
+    cl.update({ $inc: { a: 1 } }, { a: 5 });
+    var expRecs = [];
+    for (var i = 0; i < 5; i++) {
+      expRecs.push({ rid: i, a: 6, b: i + 0.1 });
+    }
+    var cursor = cl.find({ a: 6 });
+    commCompareResults(cursor, expRecs);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, updateTest1);
+
+  function updateTest2(cl) {
+    cl.update({ $set: { b: 6.0 } }, { a: 5 });
+    var expRecs = [];
+    for (var i = 0; i < 5; i++) {
+      expRecs.push({ rid: i, a: 5, b: 6.0 });
+    }
+    var cursor = cl.find({ a: 5 });
+    commCompareResults(cursor, expRecs);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, updateTest2);
+
+  function updateTest3(cl) {
+    cl.update({ $set: { a: 6 } }, { rid: 0 });
+    var cursor = cl.find({ rid: 0 });
+    commCompareResults(cursor, [{ rid: 0, a: 6, b: 0.1 }]);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, updateTest3);
+
+  function updateTest4(cl) {
+    cl.update({ $set: { b: 0.5 } }, { rid: 0 });
+    var cursor = cl.find({ rid: 0 });
+    commCompareResults(cursor, [{ rid: 0, a: 5, b: 0.5 }]);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, updateTest4);
+
+  function removeTest1(cl) {
+    cl.remove({ a: 5 });
+    var cursor = cl.find({ a: 5 });
+    commCompareResults(cursor, []);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, removeTest1);
+
+  function removeTest2(cl) {
+    cl.remove({ rid: 0 });
+    var cursor = cl.find({ a: 0 });
+    commCompareResults(cursor, []);
+  }
+  createCLWithPrimalDataAndTest(db, COMMCSNAME, clName, removeTest2);
+}
+
+function createCLWithPrimalDataAndTest(db, csName, clName, func) {
+  var cl = commCreateCL(db, csName, clName, { EnableInfoSchema: true });
+  var schemaName = clName + "_schema";
   commClearLegacySchema(db, schemaName);
-  db.createSchema(schemaName, { rid: { Type: "int32" }, a: { Type: "int32", ReadDefault: 5 } });
+  db.createSchema(schemaName, {
+    rid: { Type: "int32" },
+    a: { Type: "int32", ReadDefault: 5 },
+    b: { Type: "double" },
+  });
+  for (var i = 0; i < 5; i++) {
+    cl.insert({ rid: i, b: i + 0.1 });
+  }
   cl.addSchema(schemaName);
-
-  var expRecs = [];
-  var i = 0;
-  for (; i < 5; i++) {
-    cl.insert({ rid: i });
-    expRecs.push({ rid: i, a: 5 });
-  }
-
-  var cursor = cl.find({ rid: { $gte: 0, $lt: 3 } }).sort({ rid: -1 });
-  commCompareResults(
-    cursor,
-    expRecs.slice(0, 3).sort(function (left, right) {
-      return -(left.rid - right.rid);
-    })
-  );
-
-  var cursor = cl.find({ rid: { $gte: 0, $lt: 3 } }).sort({ a: 1 });
-  commCompareResults(cursor, expRecs.slice(0, 3));
-
-  var cursor = cl.find({ a: 5 }).sort({ rid: -1 });
-  commCompareResults(
-    cursor,
-    expRecs.slice(0, 5).sort(function (left, right) {
-      return -(left.rid - right.rid);
-    })
-  );
-
-  cl.update({ $inc: { a: 1 } }, { a: 5 });
-  var cursor = cl.find().sort({ rid: 1 });
-  expRecs = expRecs.map(function (v) {
-    v.a += 1;
-    return v;
-  });
-  commCompareResults(cursor, expRecs);
-  checkConsistence(db, COMMCSNAME, clName, { rid: 1 }, expRecs, expRecs, {
-    rid: {},
-    a: { ReadDefault: 5 },
-  });
-
-  for (; i < 10; ++i) {
-    cl.insert({ rid: i });
-    expRecs.push({ rid: i + 1, a: 5 });
-  }
-  cl.update({ $inc: { rid: 1 } }, { a: 5 });
-  var cursor = cl.find({ a: 5 }).sort({ rid: 1 });
-  commCompareResults(
-    cursor,
-    expRecs.filter(function (v) {
-      return v.a == 5;
-    })
-  );
-  checkConsistence(db, COMMCSNAME, clName, { rid: 1 }, expRecs, expRecs, {
-    rid: {},
-    a: { ReadDefault: 5 },
-  });
-
-  for (; i < 15; ++i) {
-    cl.insert({ rid: i });
-    expRecs.push({ rid: i, a: 5 });
-  }
-  cl.update({ $set: { a: 6 } }, { rid: 14 });
-  expRecs[14].a = 6;
-  var cursor = cl.find().sort({ rid: 1 });
-  commCompareResults(cursor, expRecs);
-  expPrimalRecs = expRecs.concat();
-  for (var j = 10; j < 14; ++j) {
-    expPrimalRecs[j] = { rid: j };
-  }
-  checkConsistence(db, COMMCSNAME, clName, { rid: 1 }, expRecs, expPrimalRecs, {
-    rid: {},
-    a: { ReadDefault: 5 },
-  });
-
-  for (; i < 20; ++i) {
-    cl.insert({ rid: i });
-    expRecs.push({ rid: i, a: 5 });
-    expPrimalRecs.push({rid:i});
-  }
-  cl.update({ $set: { rid: 20 } }, { rid: 19 });
-  expRecs[19].rid = 20;
-  expPrimalRecs[19] = { rid: 20, a: 5 };
-  var cursor = cl.find().sort({ rid: 1 });
-  commCompareResults(cursor, expRecs);
-  checkConsistence(db, COMMCSNAME, clName, { rid: 1 }, expRecs, expPrimalRecs, {
-    rid: {},
-    a: { ReadDefault: 5 },
-  });
-
-  cl.truncate();
-  expRecs = [];
-  for (i = 0; i < 5; ++i) {
-    cl.insert({ rid: i });
-    expRecs.push({ rid: i, a: 5 });
-  }
-  cl.remove({ rid: { $gte: 0, $lt: 2 } });
-  expRecs = expRecs.slice(2, 5);
-  var cursor = cl.find().sort({ rid: 1 });
-  commCompareResults(cursor, expRecs);
-  cl.remove({ a: 5 });
-  expRecs = [];
-  var cursor = cl.find().sort({ rid: 1 });
-  commCompareResults(cursor, expRecs);
-
-  commDropCL(db, COMMCSNAME, clName);
+  func(cl);
+  commDropCL(db, csName, clName);
 }

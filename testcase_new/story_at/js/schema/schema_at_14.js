@@ -119,7 +119,7 @@ function testColumnChanges(cl, schemaName) {
   var expRecs = [];
   for (var i = 0; i < 5; i++) {
     records.push({ rid: i });
-    expRecs.push({ rid: i, a: 5, b: 10.5 });
+    expRecs.push({ rid: i, b: 10.5 });
   }
   cl.insert(records);
   var cursor = cl.find().sort({rid:1});
@@ -129,7 +129,7 @@ function testColumnChanges(cl, schemaName) {
   schema.addColumn("c", { Type: "string", ReadDefault: "read default" });
   var expRecs = [];
   for (var i = 0; i < 5; i++) {
-    expRecs.push({ rid: i, a: 5, b: 10.5, c: "read default" });
+    expRecs.push({ rid: i, b: 10.5, c: "read default" });
   }
   var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);

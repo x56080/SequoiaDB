@@ -31,7 +31,7 @@ main(test);
 
 function test(testPara) {
   // 设置隔离级别为rc
-  db.updateConf({transisolation: 1});
+  db.updateConf({ transisolation: 1 });
   var clName = testConf.clName;
   var cl = testPara.testCL;
 
@@ -84,24 +84,24 @@ function test(testPara) {
   var cursor = cl.find().flags(SDB_FLG_QUERY_PRIMAL_DATA);
   commCompareResults(cursor, [{ a: 1, c: 10.5 }]);
   var cursor = cl.find();
-  commCompareResults(cursor, [{ a: 1, b: 5, c: 10.5 }]);
+  commCompareResults(cursor, [{ a: 1, c: 10.5 }]);
 
   // 事务回滚更新非贴源记录
   cl.insert({ a: 2 });
   db.transBegin();
   cl.update({ $set: { c: 11.5 } }, { a: 2 });
-  var expRecord = { a: 2, b: 5, c: 11.5 };
+  var expRecord = { a: 2, c: 11.5 };
   var cursor = cl.find({ a: 2 });
   commCompareResults(cursor, [expRecord]);
   db.transRollback();
   var cursor = cl.find({ a: 2 });
-  commCompareResults(cursor, [{ a: 2, b: 5, c: 10.5 }]);
+  commCompareResults(cursor, [{ a: 2, c: 10.5 }]);
 
   // 事务提交更新非贴源记录
   cl.insert({ a: 3 });
   db.transBegin();
   cl.update({ $set: { c: 11.5 } }, { a: 3 });
-  var expRecord = { a: 3, b: 5, c: 11.5 };
+  var expRecord = { a: 3, c: 11.5 };
   var cursor = cl.find({ a: 3 });
   commCompareResults(cursor, [expRecord]);
   db.transCommit();
@@ -117,7 +117,7 @@ function test(testPara) {
   var cursor = cl.find({ a: 4 }).flags(SDB_FLG_QUERY_PRIMAL_DATA);
   commCompareResults(cursor, [{ a: 4, c: 10.5 }]);
   var cursor = cl.find({ a: 4 });
-  commCompareResults(cursor, [{ a: 4, b: 5, c: 10.5 }]);
+  commCompareResults(cursor, [{ a: 4, c: 10.5 }]);
 
   // 事务提交删除非贴源记录
   db.transBegin();
@@ -131,11 +131,11 @@ function test(testPara) {
   var cl1 = conn1.getCS(COMMCSNAME).getCL(clName);
   var cl2 = conn2.getCS(COMMCSNAME).getCL(clName);
   cl1.insert({ a: 5, c: 12.0 });
-  conn1.setSessionAttr({TransLockWait: false, TransUseRBS: true});
+  conn1.setSessionAttr({ TransLockWait: false, TransUseRBS: true });
   conn1.transBegin();
   conn2.transBegin();
   cl2.update({ $set: { b: 10, c: 13.0 } }, { a: 5 });
-  var cursor = cl1.find({a:5});
+  var cursor = cl1.find({ a: 5 });
   commCompareResults(cursor, [{ a: 5, b: 5, c: 12.0 }]);
   conn2.transCommit();
   conn1.transCommit();

@@ -81,7 +81,6 @@ function test() {
   var expRecord = record;
   expRecord.a = 10;
   expRecord.b = 10.5;
-  expRecord.c = 11.5;
   expRecs.push(expRecord);
 
   // 增加字段d
@@ -106,12 +105,19 @@ function test() {
 
   // 删除字段d
   schema.dropColumn("d");
-  checkInternalSchema(db, COMMCSNAME, clName, {
-    _id: {},
-    a: { ReadDefault: 5, WriteDefault: 10 },
-    b: { WriteDefault: 10.5 },
-    c: { ReadDefault: 11.5 },
-  });
+  checkInternalSchemaHasNoColumn(
+    db,
+    COMMCSNAME,
+    clName,
+    {
+      _id: {},
+      a: { ReadDefault: 5, WriteDefault: 10 },
+      b: { WriteDefault: 10.5 },
+      c: { ReadDefault: 11.5 },
+      d: {},
+    },
+    "d"
+  );
 
   var cursor = cl.find().sort({ _id: 1 });
   commCompareResults(cursor, expRecs, false);
@@ -119,7 +125,7 @@ function test() {
   for (var i = 0; i < 3; ++i) {
     var id = rid++;
     cl.insert({ _id: id, a: 10 + i, b: 10.5 + i, e: "e" + i });
-    expRecs.push({ _id: id, a: 10 + i, b: 10.5 + i, e: "e" + i, c: 11.5 });
+    expRecs.push({ _id: id, a: 10 + i, b: 10.5 + i, e: "e" + i });
   }
 
   checkInternalSchema(db, COMMCSNAME, clName, {

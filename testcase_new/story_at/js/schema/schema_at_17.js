@@ -44,14 +44,26 @@ function test() {
     cl.insert({ a: i });
     expRecs.push({ a: i, b: 3.5 });
     cl.insert({ b: i + 0.1 });
-    expRecs.push({ b: i + 0.1, a: 5 });
+    expRecs.push({ b: i + 0.1 });
   }
   var originExpRecs = expRecs.concat();
 
   var cursor = cl.find().hint({ "": "index1" });
-  expRecs.sort(function (left, right) {
-    return left.a - right.a;
-  });
+  var sortByA = function (left, right) {
+    var leftHasA = left.hasOwnProperty("a");
+    var rightHasA = right.hasOwnProperty("a");
+    if (leftHasA && rightHasA) {
+      return left.a - right.a;
+    }
+    if (!leftHasA && rightHasA) {
+      return -1;
+    } else if (leftHasA && !rightHasA) {
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+  expRecs.sort(sortByA);
   commCompareResults(cursor, expRecs);
 
   var cursor = cl.find().hint({ "": "index2" });
@@ -65,9 +77,7 @@ function test() {
   expRecs.sort(function (left, right) {
     return -(left.b - right.b);
   });
-  expRecs.sort(function (left, right) {
-    return left.a - right.a;
-  });
+  expRecs.sort(sortByA);
   commCompareResults(cursor, expRecs);
 
   cl.dropIndex("index1");
