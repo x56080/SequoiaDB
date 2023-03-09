@@ -637,18 +637,23 @@ namespace engine
 
       try
       {
-         BSONElement ele = boOptions.getField( FIELD_NAME_STRICTMODE ) ;
-         if ( EOO != ele.type() )
+         BSONObjIterator it( boOptions ) ;
+         while ( it.more() )
          {
-            PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to parse field [%s], it is not a boolean",
-                      FIELD_NAME_STRICTMODE ) ;
-            _strictMode = ele.boolean() ;
-            OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_STRICTMODE ) ;
-         }
-         else
-         {
-            _strictMode = FALSE ;
+            BSONElement ele = it.next() ;
+            if ( 0 == ossStrcmp( FIELD_NAME_STRICTMODE, ele.fieldName() ) )
+            {
+               PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Failed to parse field [%s], it is not a boolean", FIELD_NAME_STRICTMODE ) ;
+               _strictMode = ele.boolean() ;
+               OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_STRICTMODE ) ;
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Failed to parse field [%s], it is unknown", ele.fieldName() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
          }
       }
       catch ( exception &e )

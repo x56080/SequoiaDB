@@ -3620,6 +3620,9 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to set user obj" ) ;
          goto error ;
       }
+      rval.getReturnVal().setName( name ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SCHEMA_NAME_FIELD )->setValue( name ) ;
 
    done:
       return rc ;
@@ -3676,8 +3679,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string name ;
-      _sdbSchema *schema = NULL ;
-      sptDBSchema *sptSchema = NULL ;
 
       if ( 1 != arg.argc() )
       {
@@ -3697,26 +3698,10 @@ namespace engine
          goto error ;
       }
 
-      rc = _sptSdb.getSchema( name.c_str(), &schema ) ;
+      rc = _getSchemaAndSetProperty( name, rval, detail ) ;
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Failed to get info schema" ) ;
-         goto error ;
-      }
-
-      sptSchema = SDB_OSS_NEW sptDBSchema( schema ) ;
-      if ( !sptSchema )
-      {
-         rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to new sptInfoSchema object" ) ;
-         goto error ;
-      }
-
-      rc = rval.setUsrObjectVal< sptDBSchema >( sptSchema ) ;
-      if ( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
-         goto error ;
+         goto error;
       }
 
    done:
@@ -3821,6 +3806,47 @@ namespace engine
       return rc ;
    error:
       SAFE_OSS_DELETE( pRG ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::_getSchemaAndSetProperty( const string &schemaName,
+                                              _sptReturnVal &rval,
+                                              bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      _sdbSchema *schema = NULL ;
+      sptDBSchema *sptSchema = NULL ;
+      rc = _sptSdb.getSchema( schemaName.c_str(), &schema ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get info schema" ) ;
+         goto error ;
+      }
+
+      sptSchema = SDB_OSS_NEW sptDBSchema( schema ) ;
+      if ( !sptSchema )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptInfoSchema object" ) ;
+         goto error ;
+      }
+
+      rc = rval.setUsrObjectVal< sptDBSchema >( sptSchema ) ;
+      if ( SDB_OK != rc )
+      {
+         SAFE_OSS_DELETE( sptSchema ) ;
+         sptSchema = NULL ;
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      rval.getReturnVal().setName( schemaName ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SCHEMA_NAME_FIELD )->setValue( schemaName ) ;
+
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( sptSchema ) ;
       goto done ;
    }
 

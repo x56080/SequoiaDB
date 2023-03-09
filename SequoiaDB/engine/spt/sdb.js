@@ -2165,3 +2165,11 @@ SdbDataSource.prototype.help = function()
     println( '   --Instance methods for class "SdbDataSource"' ) ;
     println( '   alter(<options>)         - Alter data source options' ) ;
 }
+
+// start SdbSchema
+SdbSchema.prototype.toString = function()
+{
+   return this._name ;
+}
+
+// end SdbSchema

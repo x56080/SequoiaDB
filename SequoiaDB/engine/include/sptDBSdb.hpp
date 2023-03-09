@@ -353,6 +353,10 @@ namespace engine
       INT32 _getRGAndSetProperty( INT32 id, _sptReturnVal &rval,
                                   bson::BSONObj &detail ) ;
 
+      INT32 _getSchemaAndSetProperty( const string &schemaName,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail ) ;
+
    private:
       string   _user ;
       string   _passwd ;
