@@ -118,7 +118,7 @@ namespace engine
    #define PMD_MAX_METACACHE_LWM       (10240)
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
-   #define PMD_DFT_SPACESHRINK_TIMEOUT (15)    // 15 days
+   #define PMD_DFT_SPACESHRINK_TIMEOUT (0)    // close
    #define PMD_MAX_SPACESHRINK_TIMEOUT (365)
 
    /*
