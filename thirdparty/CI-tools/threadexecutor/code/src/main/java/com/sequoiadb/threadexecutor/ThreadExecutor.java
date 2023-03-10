@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class ThreadExecutor {
     // use contStep for map key
     private Map<Integer, MethodGroup> blockFinishStepMap = new HashMap<>();
     private Map<Object, Worker> object2Worker = new HashMap<>();
-    private volatile int runningStep = 0;
+    private static AtomicInteger runningStep = new AtomicInteger(0);
 
     private WorkingContext context;
     private long maxStepRunTime;
@@ -60,16 +61,14 @@ public class ThreadExecutor {
             for (Object o : object2Worker.keySet()) {
                 context.addExpectFinishMethod(new MethodInfo(o, 0, null, ""));
             }
-        }
-        else {
+        } else {
             MethodGroup omg = stepMap.get(step);
             for (MethodInfo m : omg.getMethod()) {
                 Object o = m.getObject();
                 context.addNeedNotifyWorker(object2Worker.get(o));
                 if (!m.isExpectBlock()) {
                     context.addExpectFinishMethod(m);
-                }
-                else {
+                } else {
                     context.addExpectBlockingMethd(m);
                 }
             }
@@ -153,11 +152,9 @@ public class ThreadExecutor {
 
             throw new SchException("wait worker timeout in step " + getRunningStep() + ":method="
                     + tmpMethod + ",timeout=" + waitTime);
-        }
-        catch (SchException e) {
+        } catch (SchException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new SchException("wait failed:", e);
         }
     }
@@ -167,8 +164,7 @@ public class ThreadExecutor {
             synchronized (this) {
                 this.notify();
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new SchException("wait failed:", e);
         }
     }
@@ -226,21 +222,18 @@ public class ThreadExecutor {
 
                 checkAllBlockingMethodIsRunning(entry.getKey(), methods);
             }
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             notifyAllWorkerQuit();
             logger.error("run schedule failed", t);
             throw t;
-        }
-        finally {
+        } finally {
             logger.info("shutting down all threads");
             executeService.shutdown();
             // wait all threads is really quit
             while (!executeService.isTerminated()) {
                 try {
                     Thread.sleep(1000);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                 }
             }
 
@@ -260,8 +253,7 @@ public class ThreadExecutor {
             // wait up all threads, let them have opportunity to check the
             // running flag
             notifyAllRelateWorkers(workers);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.warn("notify all workers failed", e);
         }
     }
@@ -306,8 +298,7 @@ public class ThreadExecutor {
                     blockAbleMethods.add(m);
                     if (null == lastBlockMethod) {
                         lastBlockMethod = m;
-                    }
-                    else {
+                    } else {
                         throw new SchException(
                                 "could not exist more one blocking method in same object "
                                         + "and step:method1=" + m.getSimpleInfo() + ",method2="
@@ -349,11 +340,11 @@ public class ThreadExecutor {
     }
 
     public int getRunningStep() {
-        return runningStep;
+        return runningStep.get();
     }
 
     private void setRunningStep(int step) {
-        this.runningStep = step;
+        this.runningStep.set(step);
     }
 
     public synchronized void errorStep(WorkerErrMsg error) {
