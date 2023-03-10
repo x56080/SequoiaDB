@@ -951,7 +951,7 @@ namespace engine
       {
          BSONObjBuilder builder ;
 
-         PD_CHECK( keys.nFields() == _nFields, SDB_SYS, error, PDERROR,
+         PD_CHECK( (UINT32)( keys.nFields() ) == _nFields, SDB_SYS, error, PDERROR,
                    "Failed to check undefined keys, number is different" ) ;
 
          BSONObjIterator iter( keys ) ;

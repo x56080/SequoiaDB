@@ -1080,7 +1080,7 @@ namespace engine
             else
             {
                utilSchemaColumn *column = getColumn( fieldName ) ;
-               if ( column->hasWriteDefault() )
+               if ( NULL != column && column->hasWriteDefault() )
                {
                   builder.appendAs( column->getWriteDefault(), fieldName ) ;
                }
