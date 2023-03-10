@@ -3012,23 +3012,4 @@
       <typeofweb>num</typeofweb>
    </opt>
 
-   <opt>
-      <name>PMD_OPTION_ENABLE_ASYNC_READ</name>
-      <long>enableasyncread</long>
-      <description>
-         <en>Specify the compare mode of query matcher. Enabled means use asynchronous read in queries (current just take effect at coord nodes). Default is true</en>
-         <cn>指定是否开启异步读取功能。开启后协调节点将提前对数据节点的数据进行异步读取（当前仅对协调节点生效）。默认是 true</cn>
-      </description>
-      <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
-      </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon next query</en>
-         <cn>下次查询生效</cn>
-      </reloadstrategy>
-      <default>true</default>
-      <hidden>true</hidden>
-   </opt>
-
 </optlist>

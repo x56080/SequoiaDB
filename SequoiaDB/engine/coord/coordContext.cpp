@@ -397,7 +397,7 @@ namespace engine
       _numToReturn = _options.getLimit() ;
       _numToSkip = _options.getSkip() ;
       _preRead = preRead ;
-      _asyncRead = preRead && pmdGetOptionCB()->isEnableAsyncRead() ;
+      _asyncRead = preRead && _options.testFlag( FLG_QUERY_ASYNC_READ ) ;
 
       _keyGen = SDB_OSS_NEW _ixmIndexKeyGen( _options.getOrderBy() ) ;
       PD_CHECK( _keyGen != NULL, SDB_OOM, error, PDERROR,

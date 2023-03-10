@@ -120,7 +120,6 @@ namespace engine
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
    #define PMD_DFT_SPACESHRINK_TIMEOUT (15)    // 15 days
    #define PMD_MAX_SPACESHRINK_TIMEOUT (365)
-   #define PMD_DFT_ENABLE_ASYNC_READ ( TRUE )
 
    /*
       _pmdCfgExchange implement
@@ -2039,7 +2038,6 @@ done:
       _spaceShrinkTimeout = PMD_DFT_SPACESHRINK_TIMEOUT ;
 
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
-      _enableAsyncRead = TRUE ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2622,10 +2620,6 @@ done:
       rdxUInt( pEX, PMD_OPTION_SPACESHRINK_TIMEOUT, _spaceShrinkTimeout, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_SPACESHRINK_TIMEOUT, FALSE ) ;
       rdvMinMax( pEX, _spaceShrinkTimeout, 0, PMD_MAX_SPACESHRINK_TIMEOUT, TRUE ) ;
-
-      // --enableasyncread
-      rdxBooleanS( pEX, PMD_OPTION_ENABLE_ASYNC_READ, _enableAsyncRead, FALSE,
-                   PMD_CFG_CHANGE_RUN, PMD_DFT_ENABLE_ASYNC_READ, TRUE ) ;
 
       // end map
 
