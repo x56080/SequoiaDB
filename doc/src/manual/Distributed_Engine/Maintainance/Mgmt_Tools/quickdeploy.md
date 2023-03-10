@@ -22,242 +22,133 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
 > - 当不指定参数 --sdb、--mysql 和 --pg 时，快速部署工具将根据本机的安装情况自动部署 SequoiaDB 集群和 SQL 实例。
 > - 快速部署工具不支持同时部署多个 MySQL 或 PostgreSQL 实例组件。如果本机安装了多个 MySQL 或 PostgreSQL 实例组件，需指定参数 --mysqlPath 或 --pgPath。
 
-默认部署
-----
+##常见场景##
 
-- **SequoiaDB** 
+快速部署工具常用于伪集群或集群部署。伪集群部署是指在单台机器上部署集群，而集群部署是指在多台机器上部署集群。部署完成后，用户可使用 [sdblist][sdblist] 工具查看当前集群的部署情况。
 
-   SequoiaDB 默认部署一个协调节点、一个编目节点、一个时间序列协议节点和三个数据组到本机上，数据组都为单副本。
+###伪集群部署###
 
-   ```lang-bash
-   $ cd /opt/sequoiadb
-   $ ./tools/deploy/quickDeploy.sh --sdb
-   ```
+快速部署工具默认在当前机器中部署一个三组单副本的伪集群，同时根据已安装的实例组件创建 SQL 实例。以 MySQL 实例组件为例，具体步骤如下：
 
-   输出信息如下：
+1. 切换至 SequoiaDB 安装目录
 
-   ```lang-text
-   Execute command: /opt/sequoiadb/./tools/deploy/../../bin/sdb -f /opt/sequoiadb/./tools/deploy/quickDeploy.js -e 'var sdb=true;'
-   
-   ************ Deploy SequoiaDB ************************
-   Create catalog: ubuntu-200-091:11800
-   Create coord:   ubuntu-200-091:11810
-   Create data:    ubuntu-200-091:11820
-   Create data:    ubuntu-200-091:11830
-   Create data:    ubuntu-200-091:11840
-   Create stp server: ubuntu-200-091:9622
-   ```
+    ```lang-bash
+    $ cd /opt/sequoiadb
+    ```
 
-   可以使用如下语句查看当前集群部署情况：
+2. 执行快速部署工具
 
-   ```lang-bash
-   $ ./bin/sdblist -l -t all
-   ```
+    ```lang-bash
+    $ ./tools/deploy/quickDeploy.sh
+    ```
 
-   输出结果如下：
+    输出如下信息则表示部署成功：
 
-   ```lang-text
-   Name       SvcName       Role        PID       GID    NID    PRY  GroupName            StartTime            DBPath
+    ```lang-text
+    ************ Deploy SequoiaDB ************************
+    Create catalog: sdbserver1:11800
+    Create coord:   sdbserver1:11810
+    Create data:    sdbserver1:11820
+    Create data:    sdbserver1:11830
+    Create data:    sdbserver1:11840
+    Create stp server: sdbserver1:9622
+    ************ Deploy SequoiaSQL-MySQL *****************
+    Create instance: [name: myinst, port: 3306]
+    ```
 
-   sdbcm      11790         cm          24402     -      -      Y    -                    2020-10-28-14.13.42  -
-   sequoiadb  11800         catalog     26329     1      1      Y    SYSCatalogGroup      2020-10-28-14.14.56  /opt/sequoiadb/database/catalog/11800/
-   sequoiadb  11810         coord       26416     2      2      Y    SYSCoord             2020-10-28-14.14.58  /opt/sequoiadb/database/coord/11810/
-   sequoiadb  11820         data        26480     1000   1000   Y    group1               2020-10-28-14.14.59  /opt/sequoiadb/database/data/11820/
-   sequoiadb  11830         data        26597     1001   1001   Y    group2               2020-10-28-14.15.02  /opt/sequoiadb/database/data/11830/
-   sequoiadb  11840         data        26703     1002   1002   Y    group3               2020-10-28-14.15.05  /opt/sequoiadb/database/data/11840/
-   stp        9622          stp         26822     -      -      Y    -                    2020-10-28-14.15.08  -
-   sdbcmd     -             -           24400     -      -      -    -                    -                    -
-   ```
+###集群部署###
 
-- **SequoiaSQL-MySQL**
+快速部署工具通过配置文件实现集群部署。用户可根据业务需求，修改配置文件以调整集群规模。
 
-   SequoiaSQL-MySQL 默认部署 myinst 实例，并连接到 `tools/deploy/sequoiadb.conf` 中的第一个协调节点。
+配置文件位于目录 `<INSTALL_DIR>\tools\deploy`，其中 `sequoiadb.conf` 用于配置 SequoiaDB 集群，`mysql.conf` 和 `postgresql.conf` 用于配置 SQL 实例。下述以三台机器为例，部署一个三组三副本的集群，并创建多个 MySQL 实例。
 
-   ```lang-bash
-   $ ./quickDeploy.sh --mysql
-   ```
+1. 切换至 SequoiaDB 安装目录
 
-   输出信息如下：
+    ```lang-bash
+    $ cd /opt/sequoiadb
+    ```
 
-   ```lang-text
-   Execute command: /opt/sequoiadb_yt/tools/deploy/./../../bin/sdb -f /opt/sequoiadb_yt/tools/deploy/./quickDeploy.js -e 'var mysql=true;'
-   
-   ************ Deploy SequoiaSQL-MySQL *****************
-   Create instance: [name: myinst, port: 3306]
-   ```
+2. 编辑配置文件 `sequoiadb.conf`
 
-- **SequoiaSQL-PostgreSQL**
+    ```lang-bash
+    $ vim tools/deploy/sequoiadb.conf
+    ```
 
-   SequoiaSQL-PostgreSQL 默认部署 myinst 实例，并连接到 `tools/deploy/sequoiadb.conf` 中的第一个协调节点。
+   修改内容如下：
 
-   ```lang-bash
-   $ ./quickDeploy.sh --pg
-   ```
+    ```lang-text
+    role,groupName,hostName,serviceName,dbPath
 
-   输出信息如下：
+    catalog,SYSCatalogGroup,sdbserver1,11800,[installPath]/database/catalog/11800
+    catalog,SYSCatalogGroup,sdbserver2,11800,[installPath]/database/catalog/11800
+    catalog,SYSCatalogGroup,sdbserver3,11800,[installPath]/database/catalog/11800
 
-   ```lang-text
-   Execute command: /opt/sequoiadb_yt/tools/deploy/./../../bin/sdb -f /opt/sequoiadb_yt/tools/deploy/./quickDeploy.js -e 'var pg=true;'
-   
-   ************ Deploy SequoiaSQL-PostgreSQL ************
-   Create instance: [name: myinst, port: 5432]
-   ```
+    coord,SYSCoord,sdbserver1,11810,[installPath]/database/coord/11810
+    coord,SYSCoord,sdbserver2,11810,[installPath]/database/coord/11810
+    coord,SYSCoord,sdbserver3,11810,[installPath]/database/coord/11810
 
-在多台机器上部署
-----
+    data,group1,sdbserver1,11820,[installPath]/database/data/11820
+    data,group1,sdbserver2,11820,[installPath]/database/data/11820
+    data,group1,sdbserver3,11820,[installPath]/database/data/11820
 
-以部署三机三组三节点的 SequoiaDB 集群为例：
+    data,group2,sdbserver1,11830,[installPath]/database/data/11830
+    data,group2,sdbserver2,11830,[installPath]/database/data/11830
+    data,group2,sdbserver3,11830,[installPath]/database/data/11830
 
-+ 部署到三台机器上，主机名分别为 sdbserver1/sdbserver2/sdbserver3，请确保这三台主机都安装了 SequoiaDB
-+ 每个机器分别部署一个时间序列协议节点
-+ 一个协调节点组，每台机器上有一个协调节点
-+ 一个编目节点组，每台机器上有一个编目节点
-+ 三个数据节点组，组名分别为 group1/group2/group3，每个数据组有三个数据节点
-+ 节点数据目录为安装路径下的 `database` 目录
+    data,group3,sdbserver1,11840,[installPath]/database/data/11840
+    data,group3,sdbserver2,11840,[installPath]/database/data/11840
+    data,group3,sdbserver3,11840,[installPath]/database/data/11840
 
-> **Note:**
-> 
-> * 用户需确保所有待部署机器满足[软硬件要求][env_requirement]。
-> * 所有待部署机器均需要参照 [Linux 推荐配置][linux_suggest_settings]修改系统内核参数。
+    server,stp,sdbserver1,9622,-
+    server,stp,sdbserver2,9622,-
+    server,stp,sdbserver3,9622,-
+    ```
 
-1.  修改配置文件 `tools/deploy/sequoiadb.conf` 
+3. 编辑配置文件 `mysql.conf`
 
-  ```lang-text
-  role,groupName,hostName,serviceName,dbPath
+    ```lang-bash
+    $ vim tools/deploy/mysql.conf 
+    ```
 
-  catalog,SYSCatalogGroup,sdbserver1,11800,[installPath]/database/catalog/11800
-  catalog,SYSCatalogGroup,sdbserver2,11800,[installPath]/database/catalog/11800
-  catalog,SYSCatalogGroup,sdbserver3,11800,[installPath]/database/catalog/11800
+    分别配置端口为 3306 和 3307 的实例，修改内容如下：
 
-  coord,SYSCoord,sdbserver1,11810,[installPath]/database/coord/11810
-  coord,SYSCoord,sdbserver2,11810,[installPath]/database/coord/11810
-  coord,SYSCoord,sdbserver3,11810,[installPath]/database/coord/11810
+    ```lang-text
+    instanceName,port,databaseDir,coordAddr
+    myinst1,3306,[installPath]/database/3306,-
+    myinst2,3307,[installPath]/database/3307,sdbserver1:11810
+    ```
 
-  data,group1,sdbserver1,11820,[installPath]/database/data/11820
-  data,group1,sdbserver2,11820,[installPath]/database/data/11820
-  data,group1,sdbserver3,11820,[installPath]/database/data/11820
+    >**Note:**
+    >
+    > - 符号“-”表示 `sequoiadb.conf` 中第一个协调节点的地址。
+    > - 如果需要指定多个协调地址，可使用逗号（,）间隔，例如 `[sdbserver1:11810,sdbserver2:11810]`。
 
-  data,group2,sdbserver1,11830,[installPath]/database/data/11830
-  data,group2,sdbserver2,11830,[installPath]/database/data/11830
-  data,group2,sdbserver3,11830,[installPath]/database/data/11830
-
-  data,group3,sdbserver1,11840,[installPath]/database/data/11840
-  data,group3,sdbserver2,11840,[installPath]/database/data/11840
-  data,group3,sdbserver3,11840,[installPath]/database/data/11840
-
-  server,stp,sdbserver1,9622,-
-  server,stp,sdbserver2,9622,-
-  server,stp,sdbserver3,9622,-
-  ```
-
-2.  部署 SequoiaDB
-
-  ```lang-bash
-  $ tools/deploy/quickDeploy.sh --sdb
-  ```
-
-  > **Note:**
-  > 
-  > 只需在其中一台安装了 SequoiaDB 的机器上执行该命令
-
-修改协调节点地址
----
-
-SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式，不同的配置参数以逗号分隔。配置文件中的 coordAddr 参数默认配置为 - ，会取 `tools/deploy/sequoiadb.conf` 中第一个 coord 的地址。
-
-- **SequoiaSQL-MySQL**
-
-  - 指定具体的 coordAddr，格式为 `localhost:50000`
-
-     ```lang-bash
-     $ vim tools/deploy/mysql.conf 
-     ```
-
-     修改配置为：
-
-     ```lang-text
-     instanceName,port,databaseDir,coordAddr
-     myinst,3306,[installPath]/database/3306,localhost:50000
-     ```
-
-  - 指定多个协调节点地址，格式为 `[localhost:50000,localhost:11810]`
-
-     ```lang-bash
-     $ vim tools/deploy/mysql.conf 
-     ```
-  
-     修改配置为：
-
-     ```lang-text
-     instanceName,port,databaseDir,coordAddr
-     myinst,3306,[installPath]/database/3306,[localhost:50000,localhost:11810]
-     ```
-
-- **SequoiaSQL-PostgreSQL**
-
-  - 指定具体的 coordAddr，格式为 `localhost:50000`
-
-     ```lang-bash
-     $ vim tools/deploy/postgresql.conf 
-     ```
-
-     修改配置为：
-
-     ```lang-text
-     instanceName,port,databaseDir,coordAddr
-     myinst,5432,[installPath]/database/5432,localhost:50000
-     ```
-
-  - 指定多个协调节点地址，格式为 `[localhost:50000,localhost:11810]`
-
-     ```lang-bash
-     $ vim tools/deploy/postgresql.conf 
-     ```
-
-     修改配置为：
- 
-     ```lang-text
-     instanceName,port,databaseDir,coordAddr
-     myinst,5432,[installPath]/database/5432,[localhost:50000,localhost:11810]
-     ```
-
-部署多个 SQL 实例
-----
-
-- **SequoiaSQL-MySQL**
-
-   配置两个实例 myinst/myinst1，端口号分别为 3306/3307
-
-   ```lang-bash
-   $ vim tools/deploy/mysql.conf 
-   ```
-
-   修改配置为：
- 
-   ```lang-text
-   instanceName,port,databaseDir,coordAddr
-   myinst,3306,[installPath]/database/3306,-
-   myinst1,3307,[installPath]/database/3307,-
-   ```
-
-- **SequoiaSQL-PostgreSQL**
-
-   配置两个实例 myinst/myinst1，端口号分别为 5432/5433
-
-   ```lang-bash
-   $ vim tools/deploy/postgresql.conf 
-   ```
-
-   修改配置为：
-
-   ```lang-text
-   instanceName,port,databaseDir,coordAddr
-   myinst,5432,[installPath]/database/5432,-
-   myinst1,5433,[installPath]/database/5433,-
-   ```
-
+4. 执行快速部署工具
+
+    ```lang-bash
+    $ ./tools/deploy/quickDeploy.sh
+    ```
+
+    输出如下内容则表示部署成功：
+
+    ```lang-text
+
+    ************ Deploy SequoiaDB ************************
+    Create catalog: sdbserver1:11800
+    Create catalog: sdbserver2:11800
+    Create catalog: sdbserver3:11800
+    ...
+    Create stp server: sdbserver1:9622
+    Create stp server: sdbserver2:9622
+    Create stp server: sdbserver3:9622
+    
+    ************ Deploy SequoiaSQL-MySQL *****************
+    Create instance: [name: myinst1, port: 3306]
+    Create instance: [name: myinst2, port: 3307]
+    ```
 
 [^_^]:
     本文使用的所有引用及链接
 [env_requirement]:manual/Deployment/env_requirement.md
 [linux_suggest_settings]:manual/Deployment/linux_suggestion.md
+[sdblist]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdblist.md
