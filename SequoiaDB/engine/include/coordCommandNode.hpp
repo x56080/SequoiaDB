@@ -671,6 +671,23 @@ namespace engine
    } ;
    typedef _coordCMDReelectLocation coordCMDReelectLocation ;
 
+   /*
+      _coordCMDAlterRG define
+   */
+   class _coordCMDAlterRG : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDAlterRG() ;
+         virtual ~_coordCMDAlterRG() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+   } ;
+   typedef _coordCMDAlterRG coordCMDAlterRG ;
+
 }
 
 #endif // COORD_COMMAND_NODE_HPP__

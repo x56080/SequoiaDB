@@ -71,7 +71,14 @@ namespace engine
                                utilWriteResult *pResult ) ;
 
    INT32 coordGetGroupsFromObj( const BSONObj &obj,
+                                CoordGroupList &groupLst,
+                                const CHAR* fieldName ) ;
+
+   INT32 coordGetGroupsFromObj( const BSONObj &obj,
                                 CoordGroupList &groupLst ) ;
+
+   INT32 coordGetFailedGroupsFromObj( const BSONObj &obj,
+                                      CoordGroupList &groupLst ) ;
 
    INT32 coordParseGroupList( coordResource *pResource,
                               _pmdEDUCB *cb,
@@ -115,6 +122,10 @@ namespace engine
                                coordResource *pResource,
                                BOOLEAN &isDataSourceCL,
                                BOOLEAN &isHighErrLevel ) ;
+
+   INT32 coordRemoveFailedGroup( CoordGroupList &groupLst,
+                                 BOOLEAN &hasFailedGroup,
+                                 const vector<BSONObj> &replyObjs ) ;
 
 }
 

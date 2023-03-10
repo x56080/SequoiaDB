@@ -162,6 +162,8 @@ namespace engine
    } ; */
    typedef MsgOpReply            MsgCatGroupRes ;
 
+   INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg, _clsCatGroupItem &groupItem ) ;
+
    INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
                               CLS_GROUP_VERSION &version,
                               string &groupName,
@@ -170,6 +172,8 @@ namespace engine
                               UINT32 *pSecID = NULL,
                               CLS_LOC_INFO_MAP *pLocationInfo = NULL ) ;
 
+   INT32 msgParseCatGroupObj( const CHAR* objdata, _clsCatGroupItem &groupItem ) ;
+
    INT32 msgParseCatGroupObj( const CHAR* objdata,
                               CLS_GROUP_VERSION &version,
                               UINT32 &groupID,
@@ -177,7 +181,8 @@ namespace engine
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL,
-                              CLS_LOC_INFO_MAP *pLocationInfo = NULL ) ;
+                              CLS_LOC_INFO_MAP *pLocationInfo = NULL,
+                              ossPoolString *pActiveLocation = NULL ) ;
 
    const CHAR* getServiceName ( const bson::BSONElement &beService,
                                 INT32 serviceType ) ;

@@ -161,6 +161,10 @@ namespace engine
                                     const CAT_GROUP_SET &groups,
                                     BOOLEAN ignoreErr = FALSE,
                                     BOOLEAN ignoreNonExist = FALSE ) ;
+         INT32       makeFailedGroupsObj( BSONObjBuilder &builder,
+                                          const CAT_GROUP_LIST &groups,
+                                          BOOLEAN ignoreErr = FALSE,
+                                          BOOLEAN ignoreNonExist = FALSE ) ;
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,

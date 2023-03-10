@@ -72,7 +72,6 @@ namespace engine
                                        CoordGroupList &groupLst,
                                        const CHAR *pAction,
                                        rtnContextBuf *buf ) ;
-
    } ;
    typedef _coordAlterDC coordAlterDC ;
 

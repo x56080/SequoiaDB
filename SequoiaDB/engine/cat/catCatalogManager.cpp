@@ -1518,7 +1518,7 @@ namespace engine
             rc = processCmdDropDomain ( pQuery ) ;
             break ;
          case MSG_CAT_ALTER_DOMAIN_REQ :
-            rc = processCmdAlterDomain ( pQuery ) ;
+            rc = processCmdAlterDomain ( pQuery, ctxBuff ) ;
             break ;
          default :
             rc = SDB_INVALIDARG ;
@@ -1838,7 +1838,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_ALTERDOMAIN, "catCatalogueManager::processCmdAlterDomain" )
-   INT32 catCatalogueManager::processCmdAlterDomain ( const CHAR *pQuery )
+   INT32 catCatalogueManager::processCmdAlterDomain ( const CHAR *pQuery, rtnContextBuf &ctxBuf )
    {
       INT32 rc = SDB_OK ;
 
@@ -1893,6 +1893,28 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to execute alter task [%s] on "
                          "domain [%s], rc: %d", task->getActionName(), domain,
                          rc ) ;
+
+            try
+            {
+               // Build return error group obj
+               if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == task->getActionType() )
+               {
+                  BSONObjBuilder retBuilder ;
+                  rc = catTask.buildDomainGroups( retBuilder, CAT_GROUP_NAME ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
+
+                  rc = _pCatCB->makeFailedGroupsObj( retBuilder, catTask.getFailedGroupList() ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+
+                  ctxBuf = rtnContextBuf( retBuilder.obj() ) ;
+               }
+            }
+            catch ( exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+               goto error ;
+            }
          }
       }
 

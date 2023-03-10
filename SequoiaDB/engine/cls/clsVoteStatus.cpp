@@ -258,29 +258,47 @@ namespace engine
          else
          {
             UINT8 shadowWeight = 0 ;
-            UINT8 weight = 0 ;
-            UINT8 peerWeight = 0;
+            UINT8 peerShadowWeight = 0 ;
+            _clsVoteMachine* vote = sdbGetReplCB()->voteMachine( isLocation() ) ;
 
-            shadowWeight = sdbGetReplCB()->voteMachine( isLocation() )->getShadowWeight() ;
-            weight = CLS_GET_WEIGHT( pmdGetOptionCB()->weight(), shadowWeight ) ;
+            // Get and compare electionWeight only if the peer beat version is greater than 1
+            // Here we just comapre electionWeight, if the twos are equal, compare the _shadowWeight
+            if ( CLS_BEAT_VERSION_2 <= itrInfo->second.beat.beatVersion )
+            {
+               UINT8 localElectionWeight = vote->getElectionWeight() ;
+               UINT8 peerElectionWeight = itrInfo->second.beat.getElectionWeight() ;
+
+               if ( localElectionWeight > peerElectionWeight )
+               {
+                  goto accepterr ;
+               }
+               else if ( localElectionWeight < peerElectionWeight )
+               {
+                  goto accept ;
+               }
+            }
+
+            // Get weight
+            shadowWeight = CLS_GET_WEIGHT( pmdGetOptionCB()->weight(), vote->getShadowWeight() ) ;
             if ( isLocation() )
             {
-               peerWeight = itrInfo->second.beat.getLocationWeight() ;
+               peerShadowWeight = itrInfo->second.beat.getLocationWeight() ;
             }
             else
             {
-               peerWeight = itrInfo->second.beat.weight ;
+               peerShadowWeight = itrInfo->second.beat.weight ;
             }
 
-            if ( weight < peerWeight )
+            // Compare weight
+            if ( shadowWeight < peerShadowWeight )
             {
                goto accept ;
             }
-            else if ( peerWeight < weight )
+            else if ( peerShadowWeight < shadowWeight )
             {
                goto accepterr ;
             }
-            else if ( peerWeight < pmdGetOptionCB()->weight() )
+            else if ( peerShadowWeight < pmdGetOptionCB()->weight() )
             {
                goto accepterr ;
             }

@@ -937,6 +937,15 @@ namespace sdbclient
 
       INT32 reelectLocation( const CHAR *pLocation,
                              const BSONObj &options = _sdbStaticObject ) ;
+
+      INT32 setActiveLocation ( const CHAR *pLocation ) ;
+
+      INT32 setAttributes ( const BSONObj & options = _sdbStaticObject ) ;
+
+   protected:
+      INT32 _innerAlter ( const CHAR * taskName,
+                          const BSONObj * pOptions,
+                          BOOLEAN allowNullArgs ) ;
    } ;
 
    typedef class _sdbReplicaGroupImpl sdbReplicaGroupImpl ;
@@ -1139,6 +1148,8 @@ namespace sdbclient
 
       INT32 removeGroups ( const bson::BSONObj & options ) ;
 
+      INT32 setActiveLocation ( const CHAR *pLocation ) ;
+
       INT32 setAttributes ( const bson::BSONObj & options ) ;
 
    protected :
@@ -1200,6 +1211,7 @@ namespace sdbclient
       INT32 disableImage() ;
       INT32 attachGroups( const bson::BSONObj &info ) ;
       INT32 detachGroups( const bson::BSONObj &info ) ;
+      INT32 setActiveLocation ( const CHAR *pLocation ) ;
 
    private :
       INT32 _innerAlter( const CHAR *pValue,

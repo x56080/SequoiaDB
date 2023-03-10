@@ -2597,5 +2597,105 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_SETACTLOC, "catNodeManager::setActiveLocation" )
+   INT32 catNodeManager::setActiveLocation( UINT32 groupID,
+                                            const ossPoolString &newActLoc )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_SETACTLOC ) ;
+
+      BSONObj updator, matcher ;
+      BSONObjBuilder updatorBuilder, matcherBuilder ;
+
+      try
+      {
+         // Build matcher
+         matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
+
+         // Build set updator
+         BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
+         setBuilder.append( CAT_ACTIVE_LOCATION_NAME, newActLoc.c_str() ) ;
+         setBuilder.doneFast() ;
+
+         // Build version increase updator
+         BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
+         incBuilder.append( CAT_VERSION_NAME, 1 ) ;
+         incBuilder.doneFast() ;
+
+         // Update group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                         0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
+                      "updator: %s, rc: %d", groupID, matcher.toPoolString().c_str(),
+                      updator.toPoolString().c_str(), rc ) ;
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_SETACTLOC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_REMOVEACTLOC, "catNodeManager::removeActiveLocation" )
+   INT32 catNodeManager::removeActiveLocation( UINT32 groupID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_REMOVEACTLOC ) ;
+
+      BSONObj updator, matcher ;
+      BSONObjBuilder updatorBuilder, matcherBuilder ;
+
+      try
+      {
+         // Build matcher
+         matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
+
+         // Build unset updator
+         BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+         unsetBuilder.append( CAT_ACTIVE_LOCATION_NAME, "" ) ;
+         unsetBuilder.doneFast() ;
+
+         // Build version increase updator
+         BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
+         incBuilder.append( CAT_VERSION_NAME, 1 ) ;
+         incBuilder.doneFast() ;
+
+         // Update group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                         0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
+                      "updator: %s, rc: %d", groupID, matcher.toPoolString().c_str(),
+                      updator.toPoolString().c_str(), rc ) ;
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_REMOVEACTLOC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 

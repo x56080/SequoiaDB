@@ -6002,6 +6002,127 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbReplicaGroupImpl::_innerAlter( const CHAR* taskName,
+                                            const BSONObj* pOptions,
+                                            BOOLEAN allowNullArgs )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *command = CMD_ADMIN_PREFIX CMD_NAME_ALTER_GROUP ;
+      BSONObj queryObj, hintObj ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder, hintBuilder ;
+
+         // Build Action and Options
+         queryBuilder.append( FIELD_NAME_ACTION, taskName ) ;
+
+         if ( NULL == pOptions )
+         {
+            if ( allowNullArgs )
+            {
+               queryBuilder.appendNull( FIELD_NAME_OPTIONS ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         else
+         {
+            queryBuilder.append( FIELD_NAME_OPTIONS, *pOptions ) ;
+         }
+
+         queryObj = queryBuilder.obj() ;
+
+         // Build GroupID
+         hintBuilder.append( FIELD_NAME_GROUPID, _replicaGroupID ) ;
+
+         hintObj = hintBuilder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      // check connection
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( command, &queryObj, NULL, NULL, &hintObj,
+                                     0, 0, 0, -1, NULL ) ;
+
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbReplicaGroupImpl::setActiveLocation( const CHAR* pLocation )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjBuilder builder ;
+      BSONObj option ;
+
+      if ( NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // build { ActiveLocation: pLocation }
+         builder.append( FIELD_NAME_GROUP_ACTIVE_LOCATION, pLocation ) ;
+         option = builder.obj() ;
+      }
+      catch( const std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( SDB_ALTER_GROUP_SET_ACTIVE_LOCATION, &option, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
+   INT32 _sdbReplicaGroupImpl::setAttributes ( const BSONObj & options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_GROUP_SET_ATTR, &options, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::_getRetVersion ()
    {
       INT32 version = CATALOG_INVALID_VERSION ;
@@ -7031,6 +7152,34 @@ do                                                            \
       return _alterInternal( SDB_ALTER_DOMAIN_REMOVE_GROUPS, &options, FALSE ) ;
    }
 
+   INT32 _sdbDomainImpl::setActiveLocation ( const CHAR* pLocation )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj option ;
+
+      try
+      {
+         // build { ActiveLocation: pLocation }
+         option = BSON( FIELD_NAME_GROUP_ACTIVE_LOCATION << pLocation ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alterInternal( SDB_ALTER_DOMAIN_SET_ACTIVE_LOCATION, &option, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _sdbDomainImpl::setAttributes ( const bson::BSONObj & options )
    {
       return _alterInternal( SDB_ALTER_DOMAIN_SET_ATTR, &options, FALSE ) ;
@@ -7268,6 +7417,43 @@ do                                                            \
    {
       INT32 rc = _innerAlter( CMD_VALUE_NAME_DETACH, &info ) ;
       return rc ;
+   }
+
+   INT32 _sdbDataCenterImpl::setActiveLocation( const CHAR *pLocation )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjBuilder builder ;
+      BSONObj option ;
+
+      if ( NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // build { ActiveLocation: pLocation }
+         builder.append( FIELD_NAME_GROUP_ACTIVE_LOCATION, pLocation ) ;
+         option = builder.obj() ;
+      }
+      catch( const std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, &option ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

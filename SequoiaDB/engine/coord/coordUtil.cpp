@@ -223,18 +223,19 @@ namespace engine
    }
 
    INT32 coordGetGroupsFromObj( const BSONObj &obj,
-                                CoordGroupList &groupLst )
+                                CoordGroupList &groupLst,
+                                const CHAR* fieldName )
    {
       INT32 rc = SDB_OK ;
 
       try
       {
-         BSONElement beGroupArr = obj.getField( CAT_GROUP_NAME ) ;
+         BSONElement beGroupArr = obj.getField( fieldName ) ;
          if ( beGroupArr.eoo() || beGroupArr.type() != Array )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "Failed to get the field(%s) from obj[%s]",
-                     CAT_GROUP_NAME, obj.toString().c_str() ) ;
+                     fieldName, obj.toString().c_str() ) ;
             goto error ;
          }
          BSONObjIterator i( beGroupArr.embeddedObject() ) ;
@@ -266,7 +267,7 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG ( PDERROR, "Parse catalog reply object occur exception: %s",
                   e.what() ) ;
          goto error ;
@@ -276,6 +277,18 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 coordGetGroupsFromObj( const BSONObj &obj,
+                                CoordGroupList &groupLst )
+   {
+      return coordGetGroupsFromObj( obj, groupLst, CAT_GROUP_NAME ) ;
+   }
+
+   INT32 coordGetFailedGroupsFromObj( const BSONObj &obj,
+                                      CoordGroupList &groupLst )
+   {
+      return coordGetGroupsFromObj( obj, groupLst, FIELD_NAME_FAILGROUP ) ;
    }
 
    INT32 coordParseGroupList( coordResource *pResource,
@@ -659,6 +672,62 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+
+   INT32 coordRemoveFailedGroup( CoordGroupList &groupLst,
+                                 BOOLEAN &hasFailedGroup,
+                                 const vector<BSONObj> &replyObjs )
+   {
+      INT32 rc = SDB_OK ;
+      CoordGroupList failedGroupLst ;
+
+      try
+      {
+         // The vector has only one obj
+         if ( ! replyObjs.empty() )
+         {
+            const BSONObj &replyObj = replyObjs[0] ;
+
+            rc = coordGetFailedGroupsFromObj( replyObj, failedGroupLst ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get groups from catalog "
+                         "reply [%s], rc: %d", replyObj.toPoolString().c_str(), rc ) ;
+
+            if ( 0 != failedGroupLst.size() )
+            {
+               hasFailedGroup = TRUE ;
+               ossPoolStringStream returnStr ;
+               returnStr << "Operation failed in the following groups: [" ;
+
+               CoordGroupList::const_iterator itr = failedGroupLst.begin() ;
+               while ( failedGroupLst.end() != itr )
+               {
+                  UINT32 groupID = ( itr++ )->second ;
+
+                  // Remove failed group
+                  groupLst.erase( groupID ) ;
+
+                  returnStr << " " << groupID ;
+                  if ( failedGroupLst.end() != itr )
+                  {
+                     returnStr << "," ;
+                  }
+               }
+               returnStr << " ]" ;
+               PD_LOG_MSG( PDERROR, returnStr.str().c_str() ) ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

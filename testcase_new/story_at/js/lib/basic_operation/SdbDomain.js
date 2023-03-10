@@ -8,6 +8,7 @@ if ( tmpSdbDomain == undefined )
       listCollections: SdbDomain.prototype.listCollections,
       listGroups: SdbDomain.prototype.listGroups,
       removeGroups: SdbDomain.prototype.removeGroups,
+      setActiveLocation: SdbDomain.prototype.setActiveLocation,
       setAttributes: SdbDomain.prototype.setAttributes,
       setGroups: SdbDomain.prototype.setGroups,
       toString: SdbDomain.prototype.toString
@@ -24,6 +25,7 @@ SdbDomain.prototype.listCollectionSpaces=function(){try{return tmpSdbDomain.list
 SdbDomain.prototype.listCollections=function(){try{return tmpSdbDomain.listCollections.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDomain.prototype.listGroups=function(){try{return tmpSdbDomain.listGroups.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDomain.prototype.removeGroups=function(){try{return tmpSdbDomain.removeGroups.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbDomain.prototype.setActiveLocation=function(){try{return tmpSdbDomain.setActiveLocation.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDomain.prototype.setAttributes=function(){try{return tmpSdbDomain.setAttributes.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDomain.prototype.setGroups=function(){try{return tmpSdbDomain.setGroups.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDomain.prototype.toString=function(){try{return tmpSdbDomain.toString.apply(this,arguments);}catch(e){throw new Error(e);}};

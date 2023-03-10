@@ -1193,6 +1193,7 @@ namespace engine
          }
 
          vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
+         vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
 
          /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
          if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
@@ -1333,6 +1334,7 @@ namespace engine
          }
 
          vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
+         vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
 
          /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
          if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )

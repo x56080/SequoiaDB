@@ -108,10 +108,11 @@ namespace engine
    :_agent( agent ),
     _current( NULL ),
     _groupInfo( info ),
-    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
     _shadowTimeout( 0 ),
     _shadowForReelect( TRUE ),
-    _forceMillis( 0 )
+    _forceMillis( 0 ),
+    _electionWeight( CLS_ELECTION_WEIGHT_DFT ),
+    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN )
    {
    }
 
@@ -200,6 +201,7 @@ namespace engine
             // if the shadow wight is not set for reelect,
             // it should be timeout to restore
             _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
+            resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
             _shadowForReelect = TRUE ;
          }
       }

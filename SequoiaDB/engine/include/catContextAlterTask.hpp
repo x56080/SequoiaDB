@@ -447,6 +447,20 @@ namespace engine
                                   const rtnAlterTask * task ) ;
          virtual ~_catCtxAlterDomainTask () ;
 
+      public:
+         OSS_INLINE const CAT_DOMAIN_GROUP_MAP& getGroupMap() const
+         {
+            return _groupMap ;
+         }
+
+         OSS_INLINE const CAT_GROUP_LIST& getFailedGroupList() const
+         {
+            return _failedGroupLst ;
+         }
+
+         virtual INT32 buildDomainGroups ( BSONObjBuilder & builder,
+                                           const CHAR* arrayName = CAT_GROUPS_NAME ) ;
+
       protected :
          virtual INT32 _checkInternal ( _pmdEDUCB * cb,
                                         catCtxLockMgr & lockMgr ) ;
@@ -474,10 +488,11 @@ namespace engine
                                        RTN_DOMAIN_GROUP_LIST & addingGroups,
                                        RTN_DOMAIN_GROUP_LIST & removingGroups ) ;
 
-         virtual INT32 _toDomainGroups ( BSONObjBuilder & builder ) ;
+         INT32 _executeSetActiveLocationTask( _pmdEDUCB * cb ) ;
 
       protected :
          CAT_DOMAIN_GROUP_MAP    _groupMap ;
+         CAT_GROUP_LIST          _failedGroupLst ;
    } ;
 
    typedef class _catCtxAlterDomainTask catCtxAlterDomainTask ;

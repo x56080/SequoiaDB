@@ -39,6 +39,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "rtn.hpp"
+#include "coordUtil.hpp"
 
 using namespace bson;
 
@@ -148,6 +149,45 @@ namespace engine
 
    _coordCMDAlterDomain::~_coordCMDAlterDomain ()
    {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERDOMAIN_DO_ON_CATA, "_coordCMDAlterDomain::_doOnDataGroup" )
+   INT32 _coordCMDAlterDomain::_doOnDataGroup ( MsgHeader *pMsg,
+                                                pmdEDUCB *cb,
+                                                rtnContextCoord::sharePtr *ppContext,
+                                                coordCMDArguments *pArgs,
+                                                const CoordGroupList &groupLst,
+                                                const vector<BSONObj> &cataObjs,
+                                                CoordGroupList &sucGroupLst,
+                                                vector<BSONObj> &dataObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERDOMAIN_DO_ON_CATA ) ;
+
+      if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _arguments.getTaskRunner()->getActionType() )
+      {
+         coordNodeCMDHelper helper ;
+         BOOLEAN hasFailedGroup = FALSE ;
+         CoordGroupList allGroups = groupLst ;
+
+         // Remove failed groups in allgropus
+         rc = coordRemoveFailedGroup( allGroups, hasFailedGroup, cataObjs ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to remove failed group list, rc: %d", rc ) ;
+         }
+         rc = hasFailedGroup ? SDB_COORD_NOT_ALL_DONE : SDB_OK ;
+
+         helper.notify2NodesByGroups( _pResource, allGroups, cb ) ;
+      }
+      else
+      {
+         rc = _coordDataCMDAlter::_doOnDataGroup( pMsg, cb, ppContext, pArgs, groupLst,
+                                                  cataObjs, sucGroupLst, dataObjs ) ;
+      }
+
+      PD_TRACE_EXITRC ( COORD_ALTERDOMAIN_DO_ON_CATA, rc ) ;
+      return rc ;
    }
 
 }

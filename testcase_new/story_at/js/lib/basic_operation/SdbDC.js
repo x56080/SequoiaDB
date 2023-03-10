@@ -13,6 +13,7 @@ if ( tmpSdbDC == undefined )
       getDetail: SdbDC.prototype.getDetail,
       help: SdbDC.prototype.help,
       removeImage: SdbDC.prototype.removeImage,
+      setActiveLocation: SdbDC.prototype.setActiveLocation,
       toString: SdbDC.prototype.toString
    };
 }
@@ -32,4 +33,5 @@ SdbDC.prototype.enableReadonly=function(){try{return tmpSdbDC.enableReadonly.app
 SdbDC.prototype.getDetail=function(){try{return tmpSdbDC.getDetail.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDC.prototype.help=function(){try{return tmpSdbDC.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDC.prototype.removeImage=function(){try{return tmpSdbDC.removeImage.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbDC.prototype.setActiveLocation=function(){try{return tmpSdbDC.setActiveLocation.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbDC.prototype.toString=function(){try{return tmpSdbDC.toString.apply(this,arguments);}catch(e){throw new Error(e);}};

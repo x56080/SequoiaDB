@@ -50,6 +50,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, getNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, reelect )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, reelectLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRG, setActiveLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRG, setAttributes )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, detachNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, attachNode )
 
@@ -65,6 +67,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getNode", getNode )
       JS_ADD_MEMBER_FUNC( "reelect", reelect )
       JS_ADD_MEMBER_FUNC( "reelectLocation", reelectLocation )
+      JS_ADD_MEMBER_FUNC( "setActiveLocation", setActiveLocation )
+      JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes )
       JS_ADD_MEMBER_FUNC( "detachNode", detachNode )
       JS_ADD_MEMBER_FUNC( "attachNode", attachNode )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBRG::cvtToBSON )
@@ -512,6 +516,72 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to reelect location master" ) ;
          goto error ;
       }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRG::setActiveLocation( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string locationName ;
+
+      rc = arg.getString( 0, locationName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Location name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Location name must be string" ) ;
+         goto error ;
+      }
+
+      rc = _rg.setActiveLocation( locationName.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set active location" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRG::setAttributes( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+
+      if ( arg.argc() == 0 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Options can't be null" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 0, options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _rg.setAttributes( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set attributes" ) ;
+         goto error ;
+      }
+
    done:
       return rc ;
    error:

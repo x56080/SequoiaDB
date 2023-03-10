@@ -2284,6 +2284,68 @@ namespace engine
    }
 
    /*
+      _rtnDomainSetActiveLocationTask implement
+    */
+   _rtnDomainSetActiveLocationTask::_rtnDomainSetActiveLocationTask ( const rtnAlterTaskSchema & schema,
+                                                              const BSONObj & argument )
+   : _rtnAlterDomainTask( schema, argument ), _pLocation( NULL )
+   {
+      SDB_ASSERT( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == schema.getActionType(),
+                  "schema is invalid" ) ;
+   }
+
+   _rtnDomainSetActiveLocationTask::~_rtnDomainSetActiveLocationTask ()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDOMAINSETACTIVELOCATIONTASK_PARSEARG, "_rtnDomainSetActiveLocationTask::parseArgument" )
+   INT32 _rtnDomainSetActiveLocationTask::parseArgument ()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNDOMAINSETACTIVELOCATIONTASK_PARSEARG ) ;
+
+      try
+      {
+         BSONElement optionEle ;
+
+         // Get new ActiveLocation, this field should not be empty
+         optionEle = _argument.getField( CAT_ACTIVE_LOCATION_NAME ) ;
+         if ( optionEle.eoo() || String != optionEle.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+            goto error ;
+         }
+         // optionEle.valuestrsize include the length of '\0'
+         if ( MSG_LOCATION_NAMESZ < optionEle.valuestrsize() - 1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+         _pLocation = optionEle.valuestrsafe() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse arguments for "
+                 "setActiveLocation task[%s], exception=%s",
+                 _argument.toPoolString().c_str(), e.what() ) ;
+         goto error ;
+      }
+
+      parsedArgumentMask( UTIL_DOMAIN_ACTIVE_LOCATION_FIELD ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__RTNDOMAINSETACTIVELOCATIONTASK_PARSEARG, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   /*
       _rtnDomainSetAttributeTask implement
     */
    _rtnDomainSetAttributeTask::_rtnDomainSetAttributeTask ()

@@ -89,6 +89,46 @@ namespace engine
 
    typedef class _catCMDAlterNode catCMDAlterNode ;
 
+   /*
+      _catCMDAlterRG define
+   */
+   class _catCMDAlterRG : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _catCMDAlterRG() ;
+      virtual ~_catCMDAlterRG() ;
+
+      INT32 init( const CHAR *pQuery,
+                  const CHAR *pSelector = NULL,
+                  const CHAR *pOrderBy = NULL,
+                  const CHAR *pHiant = NULL,
+                  INT32 flags = 0,
+                  INT64 numToSkip = 0,
+                  INT64 numToReturn = -1 ) ;
+
+      INT32 doit( _pmdEDUCB *cb,
+                  rtnContextBuf &ctxBuf,
+                  INT64 &contextID ) ;
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_ALTER_GROUP ;
+      }
+
+   private:
+      INT32 _setActiveLocation( const BSONObj &groupObj ) ;
+
+   private:
+      UINT32                 _groupID ;
+      ossPoolString          _actionName ;
+      BSONObj                _option ;
+      catNodeManager         *_pCatNodeMgr ;
+   } ;
+
+   typedef class _catCMDAlterRG catCMDAlterRG ;
+
 }
 
 #endif // CAT_COMMAND_NODE_HPP__

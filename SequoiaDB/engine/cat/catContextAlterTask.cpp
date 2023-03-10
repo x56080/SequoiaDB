@@ -41,6 +41,7 @@
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "ossMemPool.hpp"
+#include "catLocation.hpp"
 
 namespace engine
 {
@@ -3621,7 +3622,9 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_CHECK_INT ) ;
 
-      BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD ) ;
+      BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD | 
+                                                     UTIL_DOMAIN_ACTIVE_LOCATION_FIELD ) ;
+      OSS_LATCH_MODE groupLatch = SHARED ;
 
       rc = catGetAndLockDomain( _dataName, _boData,
                                 cb, &lockMgr, EXCLUSIVE ) ;
@@ -3657,6 +3660,11 @@ namespace engine
             rc = _checkSetGroupTask( cb ) ;
             break ;
          }
+         case RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION :
+         {
+            groupLatch = EXCLUSIVE ;
+            break ;
+         }
          case RTN_ALTER_DOMAIN_SET_ATTRIBUTES :
          {
             rc = _checkSetAttrTask( cb ) ;
@@ -3680,7 +3688,7 @@ namespace engine
                iterGroup != _groupMap.end() ;
                iterGroup ++ )
          {
-            PD_CHECK( lockMgr.tryLockGroup( iterGroup->first, SHARED ),
+            PD_CHECK( lockMgr.tryLockGroup( iterGroup->first, groupLatch ),
                       SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock group [%s]",
                       iterGroup->first.c_str() ) ;
@@ -3708,9 +3716,10 @@ namespace engine
       BSONObjBuilder builder ;
       rtnQueryOptions queryOptions ;
 
-      if ( _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD ) )
+      if ( _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD ) &&
+           RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION != _task->getActionType() )
       {
-         rc = _toDomainGroups( builder ) ;
+         rc = buildDomainGroups( builder ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate new group list of "
                       "domain [%s], rc: %d", _dataName.c_str(), rc ) ;
       }
@@ -3729,6 +3738,11 @@ namespace engine
             builder.appendBool( CAT_DOMAIN_AUTO_REBALANCE,
                                 localTask->isAutoRebalance() ) ;
          }
+      }
+      else if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _task->getActionType() )
+      {
+         _executeSetActiveLocationTask( cb ) ;
+         goto done ;
       }
 
       rc = catUpdateDomain( _dataName.c_str(), builder.obj(),
@@ -4076,14 +4090,15 @@ namespace engine
       PD_TRACE_EXIT( SDB_CATCTXALTERDOMAINTASK__EXTRAGRPS ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK__TODOMAINGRPS, "_catCtxAlterDomainTask::_toDomainGroups" )
-   INT32 _catCtxAlterDomainTask::_toDomainGroups ( BSONObjBuilder & builder )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK_TODOMAINGRPS, "_catCtxAlterDomainTask::buildDomainGroups" )
+   INT32 _catCtxAlterDomainTask::buildDomainGroups ( BSONObjBuilder & builder,
+                                                     const CHAR* arrayName )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK__TODOMAINGRPS ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_TODOMAINGRPS ) ;
 
-      BSONArrayBuilder groupInfoBuilder( builder.subarrayStart( CAT_GROUPS_NAME ) ) ;
+      BSONArrayBuilder groupInfoBuilder( builder.subarrayStart( arrayName ) ) ;
 
       for ( CAT_DOMAIN_GROUP_MAP::iterator iterGroup = _groupMap.begin() ;
             iterGroup != _groupMap.end() ;
@@ -4097,9 +4112,90 @@ namespace engine
 
       groupInfoBuilder.done() ;
 
-      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK__TODOMAINGRPS, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_TODOMAINGRPS, rc ) ;
 
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION, "_catCtxAlterDomainTask::_executeSetActiveLocationTask" )
+   INT32 _catCtxAlterDomainTask::_executeSetActiveLocationTask( _pmdEDUCB * cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION ) ;
+
+      sdbCatalogueCB * pCatCB = pmdGetKRCB()->getCATLOGUECB() ;
+      catNodeManager* pCatNodeMgr = pCatCB->getCatNodeMgr() ;
+      const _rtnDomainSetActiveLocationTask* task =
+            dynamic_cast< const _rtnDomainSetActiveLocationTask* >( _task ) ;
+
+      try
+      {
+         // Get ActiveLocation
+         ossPoolString newActLoc = task->getActiveLocation() ;
+
+         CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
+         while ( _groupMap.end() != itr )
+         {
+            BSONObj groupObj ;
+            ossPoolString oldActLoc ;
+            UINT32 groupID = ( itr++ )->second ;
+
+            // Get group obj by group id
+            rc = catGetGroupObj( groupID, groupObj, cb ) ;
+            if ( SDB_OK != rc )
+            {
+               _failedGroupLst.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Check and get active location
+            rc = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc ) ;
+            if ( SDB_OK != rc )
+            {
+               _failedGroupLst.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get and check active location, rc: %d", rc ) ;
+               continue ;
+            }
+
+            // Compare oldLocation and newLocation
+            if ( oldActLoc == newActLoc )
+            {
+               PD_LOG( PDDEBUG, "The old and new ActiveLocation are same, do nothing" ) ;
+               continue ;
+            }
+
+            // Set new ActiveLocation
+            if ( ! newActLoc.empty() )
+            {
+               rc = pCatNodeMgr->setActiveLocation( groupID, newActLoc ) ;
+            }
+            // Remove old ActiveLocation
+            else
+            {
+               rc = pCatNodeMgr->removeActiveLocation( groupID ) ;
+            }
+            if ( SDB_OK != rc )
+            {
+               _failedGroupLst.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to set active location, rc: %d", rc ) ;
+               continue ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
    }
 
 }

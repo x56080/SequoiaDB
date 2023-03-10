@@ -99,6 +99,7 @@ namespace engine
       RTN_ALTER_CL_CREATE_AUTOINC_FLD,
       RTN_ALTER_CL_DROP_AUTOINC_FLD,
       RTN_ALTER_CL_INC_VERSION,
+      RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION,
       RTN_ALTER_MAX_ACTION
    } ;
 
@@ -1086,6 +1087,29 @@ namespace engine
    } ;
 
    typedef class _rtnDomainSetGroupTask rtnDomainSetGroupTask ;
+
+   /*
+      _rtnDomainSetActiveLocationTask define
+    */
+   class _rtnDomainSetActiveLocationTask : public _rtnAlterDomainTask
+   {
+      public :
+         _rtnDomainSetActiveLocationTask ( const rtnAlterTaskSchema & schema,
+                                       const bson::BSONObj & argument ) ;
+         virtual ~_rtnDomainSetActiveLocationTask () ;
+
+         virtual INT32 parseArgument () ;
+
+         OSS_INLINE const CHAR * getActiveLocation() const
+         {
+            return _pLocation ;
+         }
+
+      protected:
+         const CHAR* _pLocation ;
+   } ;
+
+   typedef class _rtnDomainSetActiveLocationTask rtnDomainSetActiveLocationTask ;
 
    /*
       _rtnDomainSetAttributeTask define

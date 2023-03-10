@@ -7734,6 +7734,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATSETLOCATION ) ;
 
       BSONObj nodeListObj ;
+      ossPoolString activeLocation ;
       ossPoolSet<ossPoolString> locSet ;
 
       rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
@@ -7769,6 +7770,24 @@ namespace engine
                else
                {
                   locSet.insert( locationEle.valuestrsafe() ) ;
+               }
+            }
+         }
+
+         {
+            // Get and check active location
+            BSONElement ele = groupObj.getField( CAT_ACTIVE_LOCATION_NAME ) ;
+            if ( ! ele.eoo() )
+            {
+               if ( String != ele.type() )
+               {
+                  rc = SDB_CAT_CORRUPTION ;
+                  PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+                  goto error ;
+               }
+               else
+               {
+                  activeLocation = ele.valuestrsafe() ;
                }
             }
          }
@@ -7841,6 +7860,14 @@ namespace engine
                matcherBuilder.append(
                CAT_LOCATIONS_NAME ".$2." CAT_LOCATION_NAME, oldLocation.c_str() ) ;
             }
+
+            // Remove activeLocation in group if the last location in node was remove
+            if ( activeLocation == oldLocation && ! existOldLoc )
+            {
+               BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+               unsetBuilder.append( CAT_ACTIVE_LOCATION_NAME, "" ) ;
+               unsetBuilder.doneFast() ;
+            }
          }
       }
       catch( exception &e )
@@ -7872,6 +7899,7 @@ namespace engine
 
       BSONObj nodeListObj ;
       ossPoolString tmpOldLoc ;
+      ossPoolString activeLocation ;
       ossPoolSet<ossPoolString> locationSet ;
 
       rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
@@ -7911,6 +7939,24 @@ namespace engine
             }
          }
 
+         {
+            // Get and check active location
+            BSONElement ele = groupObj.getField( CAT_ACTIVE_LOCATION_NAME ) ;
+            if ( ! ele.eoo() )
+            {
+               if ( String != ele.type() )
+               {
+                  rc = SDB_CAT_CORRUPTION ;
+                  PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+                  goto error ;
+               }
+               else
+               {
+                  activeLocation = ele.valuestrsafe() ;
+               }
+            }
+         }
+
          // Build updator and matcher
          if ( ! isRemoveNode && ! tmpOldLoc.empty() )
          {
@@ -7936,6 +7982,14 @@ namespace engine
                locBuilder.append( CAT_LOCATION_NAME, tmpOldLoc.c_str() ) ;
                locBuilder.doneFast() ;
                pullBuilder.doneFast() ;
+
+               // Remove activeLocation in group if the last location in node was remove
+               if ( activeLocation == tmpOldLoc )
+               {
+                  BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+                  unsetBuilder.append( CAT_ACTIVE_LOCATION_NAME, "" ) ;
+                  unsetBuilder.doneFast() ;
+               }
             }
          }
 

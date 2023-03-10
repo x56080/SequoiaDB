@@ -329,6 +329,24 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2NODES_BY_GROUPS, "_coordNodeCMDHelper::notify2NodesByGroups" )
+   INT32 _coordNodeCMDHelper::notify2NodesByGroups( coordResource *pResource,
+                                                    const CoordGroupList &groupLst,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2NODES_BY_GROUPS ) ;
+
+      CoordGroupList::const_iterator itr = groupLst.begin() ;
+      while ( groupLst.end() != itr )
+      {
+         notify2GroupNodes( pResource, ( itr++ )->second, cb ) ;
+      }
+
+      PD_TRACE_EXITRC ( COORD_NODECMDHELPER_NOTIFY2NODES_BY_GROUPS, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2ALLNODES, "_coordNodeCMDHelper::notify2AllNodes" )
    INT32 _coordNodeCMDHelper::notify2AllNodes( coordResource *pResource,
                                                BOOLEAN exceptSelf,

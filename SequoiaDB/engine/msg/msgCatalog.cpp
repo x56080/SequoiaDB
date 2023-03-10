@@ -77,6 +77,29 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGPASCATGRPRES_GRPITEM, "msgParseCatGroupRes" )
+   INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
+                              _clsCatGroupItem &item )
+   {
+      SDB_ASSERT( NULL != msg, "data should not be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      MsgHeader *pHeader = (MsgHeader*)msg ;
+      PD_TRACE_ENTRY ( SDB_MSGPASCATGRPRES_GRPITEM );
+
+      rc = MSG_GET_INNER_REPLY_RC( pHeader ) ;
+      if ( SDB_OK == rc )
+      {
+         const CHAR *data = MSG_GET_INNER_REPLY_DATA( pHeader ) ;
+         rc = msgParseCatGroupObj( data, item.version, item.groupID, item.groupName,
+                                   item.groupInfo, &item.primary, &item.secID,
+                                   &item.locationInfo, &item.activeLocation ) ;
+      }
+
+      PD_TRACE_EXITRC ( SDB_MSGPASCATGRPRES_GRPITEM, rc );
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MSGPASNODESERV, "_msgParseNodeService" )
    static INT32 _msgParseNodeService ( const BSONObj & service,
                                        _netRouteNode & route )
@@ -230,6 +253,13 @@ namespace engine
       goto done ;
    }
 
+   INT32 msgParseCatGroupObj( const CHAR* objdata, _clsCatGroupItem &item )
+   {
+      return msgParseCatGroupObj( objdata, item.version, item.groupID, item.groupName,
+                                  item.groupInfo, &item.primary, &item.secID,
+                                  &item.locationInfo, &item.activeLocation ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGPASCATGRPOBJ, "msgParseCatGroupObj" )
    INT32 msgParseCatGroupObj( const CHAR* objdata,
                               CLS_GROUP_VERSION &version,
@@ -238,7 +268,8 @@ namespace engine
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
-                              CLS_LOC_INFO_MAP *pLocationInfo )
+                              CLS_LOC_INFO_MAP *pLocationInfo,
+                              ossPoolString *pActiveLocation )
    {
       INT32 rc = SDB_OK ;
 
@@ -409,6 +440,20 @@ namespace engine
                route._id.columns.groupID = groupID ;
                group.insert( make_pair( route._id.value,  route ) ) ;
             }
+         }
+
+         // Parse activeLocation
+         if ( NULL != pActiveLocation )
+         {
+            ele = obj.getField( CAT_ACTIVE_LOCATION_NAME ) ;
+            if ( ! ele.eoo() && String != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "Failed to parse [%s], type[%d] is not string",
+                       CAT_ACTIVE_LOCATION_NAME, ele.type() ) ;
+               goto error ;
+            }
+            *pActiveLocation = ele.valuestrsafe() ;
          }
 
       }

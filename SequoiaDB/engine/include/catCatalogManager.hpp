@@ -185,7 +185,7 @@ namespace engine
       INT32 processCmdRmProcedures( const CHAR *pMsg ) ;
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
-      INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
+      INT32 processCmdAlterDomain ( const CHAR *pQuery, rtnContextBuf &ctxBuf ) ;
 
    // tool functions
    protected:

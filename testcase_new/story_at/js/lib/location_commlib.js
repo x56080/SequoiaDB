@@ -201,7 +201,6 @@ function getLocationPrimary(db, groupName, location) {
 
 /******************************************************************************
  * @description: Create a data group with n nodes
- * @param {string} hostName
  * @param {string} groupName
  * @param {int} nodeNum
  ******************************************************************************/
@@ -218,6 +217,27 @@ function createADataGroupWithNNodes(db, groupName, nodeNum) {
 }
 
 /******************************************************************************
+ * @description: Create data groups with n nodes
+ * @param {list} groupNameLst
+ * @param {list} nodeNumLst
+ ******************************************************************************/
+function createDataGroupsWithNNodes(db, groupNameLst, nodeNumLst) {
+  assert.equal(groupNameLst.length, nodeNumLst.length);
+  var hostName = commGetGroups(db)[0][1].HostName;
+  for (var idx = 0; idx < nodeNumLst.length; idx++) {
+    var dataRG = db.createRG(groupNameLst[idx]);
+    var n = nodeNumLst[idx];
+    while (n > 0) {
+      var port = parseInt(RSRVPORTBEGIN) + idx * 100 + n * 10;
+      dataRG.createNode(hostName, port, RSRVNODEDIR + "/" + port, { diaglevel: 5 });
+      n--;
+    }
+    dataRG.start();
+    commCheckBusinessStatus(db);
+  }
+}
+
+/******************************************************************************
  * @description: Remove a data group
  * @param {string} groupName
  ******************************************************************************/
@@ -228,6 +248,24 @@ function removeDataGroup(db, groupName) {
     if (e != SDB_CLS_GRP_NOT_EXIST) {
       throw new Error(e);
     }
+  }
+}
+
+/******************************************************************************
+ * @description: Remove data groups
+ * @param {list} groupNameLst
+ ******************************************************************************/
+function removeDataGroups(db, groupNameLst) {
+  var n = groupNameLst.length;
+  while (n > 0) {
+    try {
+      db.removeRG(groupNameLst[n - 1]);
+    } catch (e) {
+      if (e != SDB_CLS_GRP_NOT_EXIST) {
+        throw new Error(e);
+      }
+    }
+    n--;
   }
 }
 
@@ -330,4 +368,34 @@ function checkPeerNodeID(db, node, expectNodeID) {
     }
   }
   assert.equal(selectOk, true);
+}
+
+/******************************************************************************
+ * @description: Get group's ActiveLocation
+ * @param {string} groupName
+ * @return {string} group's ActiveLocation  // if group has ActiveLocation, return ActiveLocation; else return ""
+ ******************************************************************************/
+function getActiveLocation(db, groupName) {
+  var activeLocation = db.getRG(groupName).getDetailObj().toObj().ActiveLocation;
+
+  if (activeLocation == undefined) {
+    return "";
+  } else {
+    return activeLocation;
+  }
+}
+
+/******************************************************************************
+ * @description: Check if the group's activeLocation is the same as given
+ * @param {string} groupName
+ * @param {string} activeLocation
+ ******************************************************************************/
+function checkActiveLocation(db, groupName, activeLocation) {
+  var _activeLocation = getActiveLocation(db, groupName);
+
+  assert.equal(
+    _activeLocation,
+    activeLocation,
+    "ActiveLocation[" + _activeLocation + "] in SYSCAT.SYSNODES is not equal to" + activeLocation
+  );
 }

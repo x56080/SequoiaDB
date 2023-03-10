@@ -147,6 +147,7 @@ namespace engine
       {
          // restore
          _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+         _vote->resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
          goto done ;
       }
 

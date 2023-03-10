@@ -797,7 +797,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETLOCINFO, "_clsReplicateSet::_setLocationInfo" )
    INT32 _clsReplicateSet::_setLocationInfo( const map<UINT64, _netRouteNode> &nodes,
-                                             CLS_LOC_INFO_MAP &locationInfoMap )
+                                             CLS_LOC_INFO_MAP &locationInfoMap,
+                                             const ossPoolString &activeLocation )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET__SETLOCINFO ) ;
@@ -886,6 +887,67 @@ namespace engine
 
             _locationActive = FALSE ;
             changedLocation = TRUE ;
+         }
+
+         // Handle activeLocation and affinitiveLocation flag
+         if ( ! activeLocation.empty() )
+         {
+            if ( _locationInfo.localLocation == activeLocation )
+            {
+               // Add new activeLocation flag
+               if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) )
+               {
+                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+                  _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+               }
+
+               // Add new affinitiveLocation flag
+               if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
+               {
+                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+                  _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+               }
+            }
+            else
+            {
+               // Remove old activeLocation flag
+               if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) )
+               {
+                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+                  _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+               }
+
+               if ( utilCalAffinity( _locationInfo.localLocation.c_str(), activeLocation.c_str() ) )
+               {
+                  // Add new affinitiveLocation flag
+                  if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
+                  {
+                     _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+                     _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+                  }
+               }
+               else
+               {
+                  // Remove old affinitiveLocation flag
+                  if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
+                  {
+                     _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+                     _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+                  }
+               }
+            }
+         }
+         else
+         {
+            // Remove old activeLocation and affinitiveLocation flag
+            if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
+                                       CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
+            {
+               _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
+                                       CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+               _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
+                                               CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+            }
          }
       }
 
@@ -1309,14 +1371,8 @@ namespace engine
       MsgHeader *pHeader = ( MsgHeader* )msg ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET__HNDGPRES );
 
-      CLS_GROUP_VERSION version ;
-      map<UINT64, _netRouteNode> group ;
-      string groupName ;
+      _clsCatGroupItem item ;
       BOOLEAN changeStatus = FALSE ;
-      UINT32 grpHashCode = 0 ;
-
-      // Set for location attribute
-      CLS_LOC_INFO_MAP locationInfoMap ;
 
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(pHeader) )
       {
@@ -1336,15 +1392,14 @@ namespace engine
          goto error ;
       }
 
-      rc = msgParseCatGroupRes( msg, version, groupName, group,
-                                NULL, &grpHashCode, &locationInfoMap ) ;
+      rc = msgParseCatGroupRes( msg, item ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "parse MsgCatGroupRes err, rc = %d", rc ) ;
          goto error ;
       }
 
-      rc = _checkGroupInfo( version, group ) ;
+      rc = _checkGroupInfo( item.version, item.groupInfo ) ;
       if ( SDB_REPL_REMOTE_G_V_EXPIRED == rc )
       {
          rc = SDB_OK ;
@@ -1356,22 +1411,24 @@ namespace engine
       }
       else
       {
-         _calLocationAffinity( group, locationInfoMap ) ;
-         rc = _setGroupSet( version, locationInfoMap, group, changeStatus ) ;
+         _calLocationAffinity( item.groupInfo, item.locationInfo ) ;
+
+         rc = _setGroupSet( item.version, item.locationInfo, item.groupInfo, changeStatus ) ;
          PD_RC_CHECK( rc, PDWARNING, "Set replica group info failed, rc = %d", rc ) ;
-         rc = _setLocationInfo( group, locationInfoMap ) ;
+
+         rc = _setLocationInfo( item.groupInfo, item.locationInfo, item.activeLocation ) ;
          PD_RC_CHECK( rc, PDWARNING, "Set location info failed, rc = %d", rc ) ;
       }
 
       /// set hash code
-      _info.setHashCode( grpHashCode ) ;
+      _info.setHashCode( item.secID ) ;
 
       if ( !changeStatus )
       {
          _cata.remove( &(msg->header), MSG_GET_INNER_REPLY_RC(pHeader) ) ;
       }
 
-      pmdGetKRCB()->setGroupName ( groupName.c_str() ) ;
+      pmdGetKRCB()->setGroupName ( item.groupName.c_str() ) ;
       if ( !_active )
       {
          PD_LOG( PDEVENT, "download group info successfully" ) ;
@@ -1431,6 +1488,7 @@ namespace engine
                                  CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
          shadowWeight = _locationVote.getShadowWeight() ;
          msg.beat.locationWeight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
+         msg.beat.electionWeight = _vote.getElectionWeight() ;
          if ( _pFTMgr->isStop() )
          {
             msg.beat.nodeRunStat = (UINT8)CLS_NODE_STOP ;
@@ -2282,6 +2340,7 @@ namespace engine
    void _clsReplicateSet::reelectionDone()
    {
       _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+      _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
       _reelection.signal() ;
    }
 
@@ -2316,6 +2375,7 @@ namespace engine
    void _clsReplicateSet::locationReelectionDone()
    {
       _locationVote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+      _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
       _locationReelection.signal() ;
    }
 

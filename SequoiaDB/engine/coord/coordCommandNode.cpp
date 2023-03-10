@@ -3269,5 +3269,90 @@ namespace engine
       goto done ;
    }
 
+   /* 
+      _coordCMDAlterRG implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAlterRG,
+                                      CMD_NAME_ALTER_GROUP,
+                                      FALSE ) ;
+   _coordCMDAlterRG::_coordCMDAlterRG()
+   {
+   }
+
+   _coordCMDAlterRG::~_coordCMDAlterRG()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_EXE, "_coordCMDAlterRG::execute" )
+   INT32 _coordCMDAlterRG::execute( MsgHeader *pMsg,
+                                    pmdEDUCB *cb,
+                                    INT64 &contextID,
+                                    rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_EXE ) ;
+
+      BSONObj hintObj ;
+      BSONElement ele ;
+      UINT32 groupID = INVALID_GROUPID ;
+      coordNodeCMDHelper helper ;
+
+      // Get groupID
+      const CHAR *pHint = NULL ;
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL,
+                            NULL, NULL, NULL, NULL, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse message, rc: %d", rc ) ;
+
+      try
+      {
+         hintObj.init( pHint ) ;
+
+         ele = hintObj.getField( FIELD_NAME_GROUPID ) ;
+         if ( ele.eoo() || ! ele.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from hint object: %s",
+                    FIELD_NAME_GROUPID, hintObj.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         groupID = ele.numberInt() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Parse hint object [%s] occur exception: %s", pHint, e.what() ) ;
+         goto error ;
+      }
+
+      // Send to cataGroup
+      rc = executeOnCataGroup( pMsg, cb, NULL, NULL, TRUE, NULL, buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute command [%s] on catalog, "
+                   "rc: %d", getName(), rc ) ;
+
+      if ( CATALOG_GROUPID == groupID ||
+           ( DATA_GROUP_ID_BEGIN <= groupID && DATA_GROUP_ID_END >= groupID ) )
+      {
+         // Notify all group nodes to update group info in clsReplicateSet
+         helper.notify2GroupNodes( _pResource, groupID, cb ) ;
+      }
+      else
+      {
+         // Only cata and data groupID are valid
+         PD_LOG( PDWARNING, "Failed to notify to group, got invalid groupID: %d", groupID ) ;
+      }
+
+      if ( CATALOG_GROUPID == groupID )
+      {
+         // Notify all group nodes to update group info in _clsShardMgr
+         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
+      }
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERRG_EXE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 

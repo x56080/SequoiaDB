@@ -88,6 +88,14 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail ) ;
 
+      INT32 setActiveLocation( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail ) ;
+
+      INT32 setAttributes( const _sptArguments &arg,
+                           _sptReturnVal &rval,
+                           bson::BSONObj &detail ) ;
+
       INT32 detachNode( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;

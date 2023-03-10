@@ -559,6 +559,7 @@
 #define FIELD_NAME_NODE_LOCATIONID           "LocationID"
 #define FIELD_NAME_IS_LOC_PRIMARY            "IsLocationPrimary"
 #define FIELD_NAME_CONSISTENCY_STRATEGY      "ConsistencyStrategy"
+#define FIELD_NAME_GROUP_ACTIVE_LOCATION     "ActiveLocation"
 
 #define FIELD_NAME_FREELOGSPACE              "freeLogSpace"
 #define FIELD_NAME_VSIZE                     "vsize"
@@ -1017,6 +1018,7 @@
 #define CMD_VALUE_NAME_DEACTIVATE            "deactivate"
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
+#define CMD_VALUE_NAME_SET_ACTIVE_LOCATION   "set active location"
 
 /*
    alter user
@@ -1189,6 +1191,7 @@ enum SDB_CONSISTENCY_STRATEGY
 
 #define SDB_CATALOG_DOMAIN_GROUPS "groups"
 #define SDB_CATALOG_NODE_LOCATION "location"
+#define SDB_CATALOG_GROUP_ACTIVE_LOCATION "active location"
 
 #define SDB_ALTER_ACTION_CREATE     "create"
 #define SDB_ALTER_ACTION_DROP       "drop"
@@ -1295,6 +1298,11 @@ enum SDB_CONSISTENCY_STRATEGY
                                        SDB_ALTER_DELIMITER \
                                        SDB_CATALOG_DOMAIN_GROUPS
 
+/// set active location
+#define SDB_ALTER_DOMAIN_SET_ACTIVE_LOCATION SDB_ALTER_ACTION_SET \
+                                             SDB_ALTER_DELIMITER \
+                                             SDB_CATALOG_GROUP_ACTIVE_LOCATION
+
 /// set attributes
 #define SDB_ALTER_DOMAIN_SET_ATTR      SDB_ALTER_ACTION_SET_ATTR
 
@@ -1308,5 +1316,16 @@ enum SDB_CONSISTENCY_STRATEGY
 
 /// set attributes
 #define SDB_ALTER_NODE_SET_ATTR        SDB_ALTER_ACTION_SET_ATTR
+
+/// alter group
+#define CMD_NAME_ALTER_GROUP                 "alter group"
+
+/// set location
+#define SDB_ALTER_GROUP_SET_ACTIVE_LOCATION  SDB_ALTER_ACTION_SET \
+                                             SDB_ALTER_DELIMITER \
+                                             SDB_CATALOG_GROUP_ACTIVE_LOCATION
+
+/// set attributes
+#define SDB_ALTER_GROUP_SET_ATTR             SDB_ALTER_ACTION_SET_ATTR
 
 #endif // MSGDEF_H__

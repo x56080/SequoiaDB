@@ -41,6 +41,7 @@
 #include "catDef.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "coordCMDEventHandler.hpp"
 
 using namespace bson ;
 
@@ -69,6 +70,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       CoordGroupList datagroups ;
       CoordGroupList allgroups ;
+      vector< BSONObj > replyObjs ;
       const CHAR *pAction = NULL ;
 
       // fill default-reply
@@ -108,22 +110,24 @@ namespace engine
       }
 
       // 1. execute on catalog
-      rc = executeOnCataGroup( pMsg, cb, &datagroups, NULL, TRUE,
-                               NULL, buf ) ;
-      if ( rc )
+      rc = executeOnCataGroup( pMsg, cb, &datagroups, &replyObjs, TRUE, NULL, buf ) ;
+      if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to execute %s:%s on catalog node, rc: %d",
                  getName(), pAction, rc ) ;
          goto error ;
       }
 
-      // update all groups
-      rc = _pResource->updateGroupList( allgroups, cb, NULL,
-                                        FALSE, TRUE, TRUE ) ;
-      if ( rc )
+      // Set active location command will return all groups, no need to update group again
+      if ( 0 != ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) )
       {
-         PD_LOG( PDWARNING, "Failed to update all group list, rc: %d", rc ) ;
-         rc = SDB_OK ;
+         // update all groups
+         rc = _pResource->updateGroupList( allgroups, cb, NULL, FALSE, TRUE, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to update all group list, rc: %d", rc ) ;
+            rc = SDB_OK ;
+         }
       }
 
       // 2. execute on the special groups or special nodes, ignore error
@@ -134,6 +138,21 @@ namespace engine
            0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) )
       {
          _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) )
+      {
+         coordNodeCMDHelper helper ;
+         BOOLEAN hasFailedGroup = FALSE ;
+
+         // Remove failed groups in allgropus
+         rc = coordRemoveFailedGroup( datagroups, hasFailedGroup, replyObjs ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to parse failed group list, rc: %d", rc ) ;
+         }
+         rc = hasFailedGroup ? SDB_COORD_NOT_ALL_DONE : SDB_OK ;
+
+         helper.notify2NodesByGroups( _pResource, allgroups, cb ) ;
       }
       else
       {

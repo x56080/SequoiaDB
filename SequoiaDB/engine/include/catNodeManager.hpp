@@ -140,6 +140,11 @@ namespace engine
       INT32 removeLocation( UINT16 nodeID,
                             UINT32 groupID ) ;
 
+      INT32 setActiveLocation( UINT32 groupID,
+                               const ossPoolString &newActLoc ) ;
+
+      INT32 removeActiveLocation( UINT32 groupID ) ;
+
    private:
       _SDB_DMSCB                 *_pDmsCB ;
       _dpsLogWrapper             *_pDpsCB ;

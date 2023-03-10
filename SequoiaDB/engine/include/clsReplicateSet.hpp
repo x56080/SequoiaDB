@@ -481,7 +481,8 @@ namespace engine
 
          INT32 _setLocationSet( const map<UINT64, _netRouteNode> &nodes ) ;
          INT32 _setLocationInfo( const map<UINT64, _netRouteNode> &nodes,
-                                 CLS_LOC_INFO_MAP &locationInfoMap ) ;
+                                 CLS_LOC_INFO_MAP &locationInfoMap,
+                                 const ossPoolString &activeLocation ) ;
 
          BOOLEAN _isUDPHandle( NET_HANDLE handle ) ;
 

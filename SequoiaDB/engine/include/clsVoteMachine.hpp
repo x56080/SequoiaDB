@@ -82,6 +82,26 @@ namespace engine
          _shadowForReelect = shadowForReelect ;
       }
 
+      OSS_INLINE UINT8 getElectionWeight() const
+      {
+         return _electionWeight ;
+      }
+
+      OSS_INLINE BOOLEAN hasElectionWeight( UINT8 electionWeight ) const
+      {
+         return OSS_BIT_TEST( _electionWeight, electionWeight ) ;
+      }
+
+      OSS_INLINE void setElectionWeight( UINT8 electionWeight )
+      {
+         OSS_BIT_SET( _electionWeight, electionWeight ) ;
+      }
+
+      OSS_INLINE void resetElectionWeight( UINT8 electionWeight )
+      {
+         OSS_BIT_CLEAR( _electionWeight, electionWeight ) ;
+      }
+
       OSS_INLINE BOOLEAN isInStepUp() const
       {
          return 0 < _forceMillis ;
@@ -117,10 +137,16 @@ namespace engine
       _netRouteAgent             *_agent ;
       _clsVoteStatus             *_current ;
       _clsGroupInfo              *_groupInfo ;
-      UINT8                      _shadowWeight ;
       UINT32                     _shadowTimeout ;  /// ms
       BOOLEAN                    _shadowForReelect ;
       UINT32                     _forceMillis ;
+
+      // The total election weight should be calculate as follow:
+      //   totalWeight = _electionWeight * 256 + _shadowWeight
+      // But for convenience, we can compare the total weight separately:
+      // compare _electionWeight first, then compare _shadowWeight.
+      UINT8                      _electionWeight ;
+      UINT8                      _shadowWeight ;
 
       ossSpinXLatch              _latch ;
    } ;

@@ -3119,6 +3119,11 @@ namespace sdbclient
       // reelect location primary node
       virtual INT32 reelectLocation( const CHAR* pLocation,
                                      const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+
+      // set active location in replica group
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
+
+      virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
    } ;
 
    /** \class sdbReplicaGroup
@@ -3543,6 +3548,45 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->reelectLocation( pLocation, options ) ;
+      }
+
+
+      /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation )
+          \brief Alter replica group to set active location.
+          \param [in] pActiveLocation The active location of replica group to be changed.
+
+              ActiveLocation     : The active location of replica group, if the parameter is "",
+                                   it means to remove the replica group's active location
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setActiveLocation ( const CHAR *pActiveLocation )
+      {
+         if ( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->setActiveLocation( pActiveLocation ) ;
+      }
+
+      /** \fn INT32 setAttributes ( const bson::BSONObj & options )
+          \brief Alter replica group.
+          \param [in] options The options of replica group to be changed
+                              e.g. { "ActiveLocation": "A" }.
+
+              ActiveLocation     : The active location of replica group
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setAttributes ( const bson::BSONObj & options )
+      {
+         if ( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->setAttributes( options ) ;
       }
    } ;
 
@@ -4050,6 +4094,8 @@ namespace sdbclient
 
       virtual INT32 setGroups ( const bson::BSONObj & options ) = 0 ;
 
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
+
       virtual INT32 removeGroups ( const bson::BSONObj & options ) = 0 ;
 
       virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
@@ -4167,6 +4213,26 @@ namespace sdbclient
          }
          return pDomain->setGroups( options ) ;
       }
+
+      /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation )
+          \brief Alter domain to set active location in all groups.
+          \param [in] pActiveLocation The active location of replica group to be changed.
+
+              ActiveLocation     : The active location of replica group, if the parameter is "",
+                                   it means to remove the replica group's active location
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setActiveLocation ( const CHAR *pActiveLocation )
+      {
+         if ( NULL == pDomain )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDomain->setActiveLocation( pActiveLocation ) ;
+      }
+
 
       /** \fn INT32 removeGroups( const bson::BSONObj &options ) ;
           \brief Remove groups from the current domain.
@@ -4321,6 +4387,7 @@ namespace sdbclient
       virtual INT32 disableImage() = 0 ;
       virtual INT32 attachGroups( const bson::BSONObj &info ) = 0 ;
       virtual INT32 detachGroups( const bson::BSONObj &info ) = 0 ;
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
 
    } ;
 
@@ -4518,6 +4585,25 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pDC->detachGroups( info ) ;
+      }
+
+      /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation )
+          \brief Alter replica group to set active location in data center.
+          \param [in] pActiveLocation The active location of replica group to be changed.
+
+              ActiveLocation     : The active location of replica group, if the parameter is "",
+                                   it means to remove the replica group's active location
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setActiveLocation ( const CHAR *pActiveLocation )
+      {
+         if ( NULL == pDC )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDC->setActiveLocation( pActiveLocation ) ;
       }
 
    };

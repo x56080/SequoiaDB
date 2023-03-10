@@ -79,16 +79,26 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
+   // Temporary weight, use for reelect / fault tolerant
    #define CLS_ELECTION_WEIGHT_MIN 0
+   #define CLS_ELECTION_WEIGHT_MAX 101
+
+   // Default weight
    #define CLS_ELECTION_WEIGHT_USR_MIN 1
    #define CLS_ELECTION_WEIGHT_USR_MAX 100
-   #define CLS_ELECTION_WEIGHT_MAX 101
 
    #define CLS_GET_WEIGHT( weight, shadowWeight )\
            (( CLS_ELECTION_WEIGHT_MIN == (shadowWeight) ) ?\
               (shadowWeight) :\
             ( (weight) < (shadowWeight) ?\
               (shadowWeight) : (weight) ))
+
+   // The weight should be the power of 2, and in range [0, 128]
+   // The macro can be use to represent election weight as well as election weight mask
+   #define CLS_ELECTION_WEIGHT_DFT                     0x00
+   #define CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE     0x80
+   #define CLS_ELECTION_WEIGHT_ACTIVE_LOCATION         0x08
+   #define CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION     0x04
 
    enum CLS_SYNC_STATUS
    {
@@ -166,7 +176,7 @@ namespace engine
       UINT8                   weight ;
       UINT8                   beatVersion ;
       UINT8                   nodeRunStat ;
-      CHAR                    pad[1] ;
+      UINT8                   electionWeight ;
       CHAR                    hashCode[4] ;
       CLS_GROUP_VERSION       version ;
       CLS_GROUP_ROLE          role ;         // self role
@@ -196,7 +206,7 @@ namespace engine
          weight = 0 ;
          beatVersion = CLS_BEAT_VERSION_2 ;
          nodeRunStat = (UINT8)CLS_NODE_RUNNING ;
-         pad[0] = 0 ;
+         electionWeight = CLS_ELECTION_WEIGHT_DFT ;
 
          ftConfirmStat = 0 ;
          indoubtErr = SDB_OK ;
@@ -204,6 +214,11 @@ namespace engine
          locationID = MSG_INVALID_LOCATIONID ;
          locationRole = CLS_GROUP_ROLE_SECONDARY ;
          locationWeight = 0 ;
+      }
+
+      UINT8 getElectionWeight() const
+      {
+         return beatVersion >= CLS_BEAT_VERSION_2 ? electionWeight : CLS_ELECTION_WEIGHT_DFT ;
       }
 
       UINT32 getLocationID() const
@@ -263,7 +278,6 @@ namespace engine
          beatID = rhs.beatID ;
          serviceStatus = rhs.serviceStatus ;
 
-         ossMemcpy( pad, rhs.pad, sizeof( pad ) ) ;
          ossMemcpy( hashCode, rhs.hashCode, sizeof( hashCode ) ) ;
 
          if ( rhs.beatVersion >= CLS_BEAT_VERSION_1 )
@@ -284,6 +298,7 @@ namespace engine
             locationID = rhs.locationID ;
             locationRole = rhs.locationRole ;
             locationWeight = rhs.locationWeight ;
+            electionWeight = rhs.electionWeight ;
          }
          else
          {
@@ -291,6 +306,7 @@ namespace engine
             locationID = MSG_INVALID_LOCATIONID ;
             locationRole = CLS_GROUP_ROLE_SECONDARY ;
             locationWeight = 0 ;
+            electionWeight = CLS_ELECTION_WEIGHT_DFT ;
          }
          return *this ;
       }
@@ -421,6 +437,31 @@ namespace engine
    } ;
    // locationID is key, location info is value
    typedef ossPoolMap< UINT32, _clsLocationInfoItem > CLS_LOC_INFO_MAP ;
+
+   /*
+      _clsCatGroupItem define
+   */
+   struct _clsCatGroupItem
+   {
+      _clsCatGroupItem()
+      {
+         groupID = 0 ;
+         primary = 0 ;
+         secID = 0 ;
+         version = 0 ;
+      }
+
+      string                     groupName ;
+      UINT32                     groupID ;
+      UINT32                     primary ;
+      UINT32                     secID ;
+      CLS_GROUP_VERSION          version ;
+      map<UINT64, _netRouteNode> groupInfo ;
+
+      ossPoolString              activeLocation ;
+      CLS_LOC_INFO_MAP           locationInfo ;
+   } ;
+   typedef _clsCatGroupItem      clsCatGroupItem ;
 
    #define CLS_NODE_KEEPALIVE_TIMEOUT              ( 6000 ) // ms
 
