@@ -367,6 +367,11 @@ namespace engine
          UINT32         getDataSourceID() const ;
          const string&  getMappingName() const ;
 
+         ixmIndexKeyGen *getKeyGen()
+         {
+            return _pKeyGen ;
+         }
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;

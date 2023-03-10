@@ -820,6 +820,7 @@ namespace engine
    // default constructor
    _ixmIndexKeyGen::_ixmIndexKeyGen()
    : _nFields( 0 ),
+     _hasDefault( FALSE ),
      _pKeyBuilder( NULL )
    {
    }
@@ -933,6 +934,45 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_IXMINXKEYGEN_GETKEYS_SET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_IXMINXKEYGEN_RESETUNDEFINEDKEYS, "ixmIndexKeyGen::resetUndefinedKeys" )
+   INT32 _ixmIndexKeyGen::resetUndefinedKeys( const BSONObj &keys )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_IXMINXKEYGEN_RESETUNDEFINEDKEYS ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         PD_CHECK( keys.nFields() == _nFields, SDB_SYS, error, PDERROR,
+                   "Failed to check undefined keys, number is different" ) ;
+
+         BSONObjIterator iter( keys ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            builder.appendAs( ele, "" ) ;
+         }
+
+         _undefinedKey = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to reset undefined keys, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_IXMINXKEYGEN_RESETUNDEFINEDKEYS, rc ) ;
       return rc ;
 
    error:
@@ -1248,19 +1288,29 @@ namespace engine
             const CHAR *keyName = "" ;
             UINT32 keyNameLen = 0 ;
             const BSONElement &keyEle = keyArray[ i ] ;
+            BSONElement defValue ;
             if ( keepKeyName )
             {
                const ixmKeyField &field = _keyFields[ i ] ;
                // keep key name
                keyName = field.getName() ;
                keyNameLen = field.getNameLen() ;
+               defValue = field.getDefault() ;
             }
             if ( keyEle.eoo() || Undefined == keyEle.type() )
             {
                if ( !ignoreUndefined )
                {
-                  builder.appendUndefined( StringData( keyName,
-                                                       keyNameLen ) ) ;
+                  if ( defValue.eoo() )
+                  {
+                     builder.appendUndefined( StringData( keyName,
+                                                          keyNameLen ) ) ;
+                  }
+                  else
+                  {
+                     builder.appendAs( defValue,
+                                       StringData( keyName, keyNameLen ) ) ;
+                  }
                }
             }
             else

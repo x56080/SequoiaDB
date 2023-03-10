@@ -314,6 +314,16 @@ namespace engine
          return _name ;
       }
 
+      OSS_INLINE void setDefault( const BSONElement &value )
+      {
+         _default = value ;
+      }
+
+      OSS_INLINE const BSONElement &getDefault() const
+      {
+         return _default ;
+      }
+
    protected:
       // order of key
       INT32          _order ;
@@ -321,6 +331,8 @@ namespace engine
       UINT32         _nameLen ;
       // field name of key
       const CHAR *   _name ;
+      // default value
+      BSONElement    _default ;
    } ;
 
    typedef class _ixmKeyField ixmKeyField ;
@@ -380,6 +392,9 @@ namespace engine
       UINT32               _nFields ;
       // list of parsed key fields
       IXM_KEY_FIELD_ARRAY  _keyFields ;
+
+      BOOLEAN              _hasDefault ;
+
       // undefined key contains specified number of elements
       // used to shortcut for generate undefined keys if the given
       // object matches no key pattern
@@ -448,6 +463,8 @@ namespace engine
                       BOOLEAN *pAllUndefined = NULL,
                       BOOLEAN *pHasNull = NULL,
                       ixmKeyBuilder *pBuilder = NULL ) ;
+
+      INT32 resetUndefinedKeys( const BSONObj &keys ) ;
 
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
 

@@ -789,6 +789,10 @@ namespace engine
          UINT32 roundLen = ossRoundUpToMultipleX( insertObj.objsize(), 4 ) ;
          UINT32 groupID = 0 ;
 
+         rc = _pResource->checkOrUpdateSchema( cataInfo, pmdGetThreadEDUCB() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check schema for collection [%s], "
+                      "rc: %d", cataInfo->getName(), rc ) ;
+
          rc = cataInfo->getGroupByRecord( insertObj, groupID ) ;
          if ( rc )
          {
@@ -1048,6 +1052,10 @@ namespace engine
          CoordCataInfoPtr subClCataInfo ;
          UINT32 roundLen = ossRoundUpToMultipleX( insertObj.objsize(), 4 ) ;
 
+         rc = _pResource->checkOrUpdateSchema( cataInfo, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check schema for collection [%s], "
+                      "rc: %d", cataInfo->getName(), rc ) ;
+
          rc = cataInfo->getSubCLNameByRecord( insertObj, subCLName ) ;
          if ( rc )
          {
@@ -1068,6 +1076,10 @@ namespace engine
                     "failed, rc: %d", subCLName.c_str(), rc ) ;
             goto error ;
          }
+
+         rc = _pResource->checkOrUpdateSchema( subClCataInfo, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check schema for collection [%s], "
+                      "rc: %d", subClCataInfo->getName(), rc ) ;
 
          rc = subClCataInfo->getGroupByRecord( insertObj, groupID ) ;
          if ( rc )

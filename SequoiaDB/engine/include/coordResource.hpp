@@ -203,6 +203,9 @@ namespace engine
                                           CoordCataInfoPtr &cataPtr,
                                           _pmdEDUCB *cb ) ;
 
+         INT32       checkOrUpdateSchema( CoordCataInfoPtr &cataPtr,
+                                          _pmdEDUCB *cb ) ;
+
          void        updateNodeStat( const MsgRouteID &nodeID, INT32 rc ) ;
 
       protected:
@@ -258,6 +261,13 @@ namespace engine
          INT32       _processCatalogReply( MsgHeader *pMsg,
                                            const CHAR *collectionName,
                                            CoordCataInfoPtr &cataPtr ) ;
+
+         INT32       _updateSchemaInfo( const CHAR *schemaName,
+                                        bson::BSONObj &boSchema,
+                                        _pmdEDUCB *cb ) ;
+
+         INT32       _processSchemaReply( MsgHeader *pMsg,
+                                          bson::BSONObj &boSchema ) ;
 
          BSONObj     _buildOmGroupInfo() ;
 

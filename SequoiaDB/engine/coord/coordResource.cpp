@@ -39,6 +39,7 @@
 #include "msgCatalog.hpp"
 #include "msgMessageFormat.hpp"
 #include "msgMessage.hpp"
+#include "catDef.hpp"
 #include "coordRemoteHandle.hpp"
 #include "coordRemoteSession.hpp"
 #include "coordCommon.hpp"
@@ -2387,6 +2388,206 @@ namespace engine
 
    done:
       return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordResource::_updateSchemaInfo( const CHAR *schemaName,
+                                            BSONObj &boSchema,
+                                            _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      coordGroupSession session ;
+      pmdSubSession *pSub = NULL ;
+      MsgHeader *pReply = NULL ;
+
+      BSONObj boQuery ;
+
+      CHAR *pBuffer = NULL ;
+      INT32 bufferSize = 0 ;
+
+      try
+      {
+         boQuery = BSON( FIELD_NAME_NAME << schemaName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Faield to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = session.init( this, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init coord remote session, "
+                   "rc: %d", rc ) ;
+
+      session.getGroupSel()->setPrimary( TRUE ) ;
+      session.getGroupSel()->setServiceType( MSG_ROUTE_CAT_SERVICE ) ;
+
+      rc = msgBuildQueryMsg ( &pBuffer, &bufferSize, CAT_SCHEMA_COLLECTION,
+                              ( FLG_QUERY_CLOSE_EOF_CTX |
+                                FLG_QUERY_WITH_RETURNDATA ), 0, 0, -1,
+                              &boQuery, NULL, NULL, NULL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build query message, rc: %d", rc ) ;
+
+   retry:
+      session.getSession()->clearSubSession() ;
+      rc = session.sendMsg( (MsgHeader*)pBuffer, CATALOG_GROUPID,
+                            NULL, &pSub ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      /// recv reply
+      rc = session.getSession()->waitReply1( TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Wait reply from catalog group failed, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+      /// process reply
+      pReply = pSub->getRspMsg() ;
+      rc = _processSchemaReply( pReply, boSchema ) ;
+      if ( rc )
+      {
+         coordGroupSessionCtrl *pGroupCtrl = session.getGroupCtrl() ;
+         UINT32 primaryID = ((MsgOpReply*)pReply)->startFrom ;
+
+         if ( pGroupCtrl->canRetry( rc, pReply->routeID,
+                                    primaryID, TRUE, TRUE ) )
+         {
+            pGroupCtrl->incRetry() ;
+            goto retry ;
+         }
+
+         PD_LOG( PDERROR, "Failed to process schema info reply, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( pBuffer )
+      {
+         cb->releaseBuff( pBuffer ) ;
+         bufferSize = 0 ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _coordResource::_processSchemaReply( MsgHeader *pMsg,
+                                              BSONObj &boSchema )
+   {
+      INT32 rc = SDB_OK ;
+      MsgOpReply *pReply = ( MsgOpReply* )pMsg ;
+      INT32 offset = 0 ;
+
+      SDB_ASSERT( -1 == pReply->contextID, "ContextID must be -1" ) ;
+
+      rc = pReply->flags ;
+      PD_RC_CHECK( rc, PDERROR, "Received unexpected reply for catalog info "
+                   "request from node[%s], flag: %d",
+                   routeID2String( pMsg->routeID ).c_str(), rc ) ;
+
+      offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+      while ( offset < pMsg->messageLength )
+      {
+         try
+         {
+            BSONObj obj( (CHAR*)pMsg + offset ) ;
+            offset += ossRoundUpToMultipleX ( obj.objsize(), 4 ) ;
+
+            boSchema = obj.getOwned() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse schema, occur exception: %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _coordResource::checkOrUpdateSchema( CoordCataInfoPtr &cataPtr,
+                                              _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( cataPtr->isSchemaChecked() )
+      {
+         goto done ;
+      }
+      else
+      {
+         clsCatalogSet *catSet = cataPtr->getCatalogSet() ;
+
+         if ( ( !catSet->hasSchema() ) &&
+              ( catSet->isMainCL() || !catSet->isSubCL() ) )
+         {
+            ossScopedLock lock( &_cataMutex, EXCLUSIVE ) ;
+            if ( !cataPtr->isSchemaChecked() )
+            {
+               cataPtr->setSchemaCheked( TRUE ) ;
+            }
+         }
+         else if ( catSet->hasSchema() )
+         {
+            BSONObj boSchema ;
+            rc = _updateSchemaInfo( catSet->getSchemaName(), boSchema, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                         catSet->name(), rc ) ;
+
+            ossScopedLock lock( &_cataMutex, EXCLUSIVE ) ;
+            rc = cataPtr->updateSchema( boSchema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update schema for collection [%s], rc: %d",
+                         catSet->getSchemaName(), rc ) ;
+         }
+         else if ( catSet->isSubCL() )
+         {
+            CoordCataInfoPtr mainInfoPtr ;
+
+            rc = getOrUpdateCataInfo( catSet->getMainCLName().c_str(), mainInfoPtr, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update main-collection [%s] "
+                         "info, rc: %d", catSet->getMainCLName().c_str(), rc ) ;
+
+            rc = checkOrUpdateSchema( mainInfoPtr, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get schema of main-collection [%s], "
+                         "rc: %d", mainInfoPtr->getName(), rc ) ;
+
+            if ( mainInfoPtr->getSchema().isValid() )
+            {
+               ossScopedLock lock( &_cataMutex, EXCLUSIVE ) ;
+               rc = cataPtr->updateSchema( mainInfoPtr->getSchema() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update schema of collection [%s], "
+                            "rc: %d", catSet->name(), rc ) ;
+            }
+            else
+            {
+               ossScopedLock lock( &_cataMutex, EXCLUSIVE ) ;
+               if ( !cataPtr->isSchemaChecked() )
+               {
+                  cataPtr->setSchemaCheked( TRUE ) ;
+               }
+            }
+         }
+      }
+
+   done:
+      return rc ;
+
    error:
       goto done ;
    }

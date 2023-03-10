@@ -41,6 +41,7 @@
 #include "ossMemPool.hpp"
 #include "pmdDef.hpp"
 #include "pmdEnv.hpp"
+#include "utilSchema.hpp"
 #include "../bson/bson.h"
 #include <vector>
 #include <queue>
@@ -118,7 +119,8 @@ namespace engine
       _CoordCataInfo( INT32 version,
                       const char *pCollectionName,
                       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL )
-      :_catlogSet ( pCollectionName, FALSE, clUniqueID )
+      :_catlogSet ( pCollectionName, FALSE, clUniqueID ),
+       _schemaChecked( FALSE )
       {
          _catlogSet.setSKSite( clsGetShardingKeySite() ) ;
          _createTime = pmdGetDBTick() ;
@@ -254,6 +256,59 @@ namespace engine
          return rc ;
       }
 
+      INT32 updateSchema( const BSONObj &boSchema )
+      {
+         INT32 rc = SDB_OK ;
+
+         if ( _schemaChecked )
+         {
+            goto done ;
+         }
+
+         if ( !boSchema.isEmpty() )
+         {
+            rc = _schema.parse( boSchema, FALSE, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+
+            rc = _updateSchema() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update schema, rc: %d", rc ) ;
+         }
+
+         _schemaChecked = TRUE ;
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 updateSchema( const utilSchema &schema )
+      {
+         INT32 rc = SDB_OK ;
+
+         if ( _schemaChecked )
+         {
+            goto done ;
+         }
+
+         if ( !schema.isValid() )
+         {
+            rc = _schema.copy( schema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to copy schema, rc: %d", rc ) ;
+
+            rc = _updateSchema() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update schema, rc: %d", rc ) ;
+         }
+
+         _schemaChecked = TRUE ;
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+
       void getShardingKey ( BSONObj &shardingKey ) const
       {
          shardingKey = _catlogSet.getShardingKey() ;
@@ -282,6 +337,21 @@ namespace engine
       clsCatalogSet* getCatalogSet()
       {
          return &_catlogSet ;
+      }
+
+      const utilSchema &getSchema() const
+      {
+         return _schema ;
+      }
+
+      BOOLEAN isSchemaChecked() const
+      {
+         return _schemaChecked ;
+      }
+
+      void setSchemaCheked( BOOLEAN isChecked )
+      {
+         _schemaChecked = TRUE ;
       }
 
       BSONObj toBSON()
@@ -390,8 +460,38 @@ namespace engine
 
       }
 
+      INT32 _updateSchema()
+      {
+         INT32 rc = SDB_OK ;
+
+         if ( _catlogSet.isSharding() && NULL != _catlogSet.getKeyGen() )
+         {
+            BSONObj defaultKeys ;
+
+            rc = _schema.adjustShardingKey( _catlogSet.getShardingKey(), TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to adjust schema, "
+                         "rc: %d", rc ) ;
+
+            rc = _schema.getDefaultKeys( _catlogSet.getShardingKey(), defaultKeys ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, "
+                         "rc: %d", rc ) ;
+
+            rc = _catlogSet.getKeyGen()->resetUndefinedKeys( defaultKeys ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to reset undefined keys, "
+                         "rc: %d", rc) ;
+         }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+
    private:
       clsCatalogSet        _catlogSet ;
+      BOOLEAN              _schemaChecked ;
+      utilSchema           _schema ;
       CoordGroupList       _groupLst ;
       UINT64               _lastAccessTime ;
       UINT64               _createTime ;

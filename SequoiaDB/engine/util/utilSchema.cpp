@@ -1047,6 +1047,63 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA_GETDEFAULTKEYS, "_utilSchema::getDefaultKeys" )
+   INT32 _utilSchema::getDefaultKeys( const BSONObj &keyPattern,
+                                      BSONObj &keys )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA_GETDEFAULTKEYS ) ;
+
+      try
+      {
+         if ( keyPattern.isEmpty() )
+         {
+            goto done ;
+         }
+
+         BSONObjBuilder builder ;
+         BSONObjIterator iter ( keyPattern ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            const CHAR *fieldName = ele.fieldName() ;
+            if ( NULL != ossStrchr( fieldName, '.' ) )
+            {
+               builder.appendUndefined( fieldName ) ;
+            }
+            else
+            {
+               utilSchemaColumn *column = getColumn( fieldName ) ;
+               if ( column->hasWriteDefault() )
+               {
+                  builder.appendAs( column->getWriteDefault(), fieldName ) ;
+               }
+               else
+               {
+                  builder.appendUndefined( fieldName ) ;
+               }
+            }
+         }
+
+         keys = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get default keys, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_GETDEFAULTKEYS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA__PARSECOLUMNS, "_utilSchema::_parseColumns" )
    INT32 _utilSchema::_parseColumns( const BSONObj &boColumns, BOOLEAN fromUser )
    {

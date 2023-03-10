@@ -400,7 +400,9 @@ namespace engine
       INT32 copy( const _utilSchema &schema ) ;
       INT32 adjustOID( BOOLEAN needRebuild ) ;
       INT32 adjustShardingKey( const bson::BSONObj &shardingKey,
-                    BOOLEAN needRebuild ) ;
+                               BOOLEAN needRebuild ) ;
+      INT32 getDefaultKeys( const bson::BSONObj &keyPattern,
+                            bson::BSONObj &keys ) ;
 
    protected:
       INT32 _parseColumns( const bson::BSONObj &boColumns, BOOLEAN fromUser ) ;
