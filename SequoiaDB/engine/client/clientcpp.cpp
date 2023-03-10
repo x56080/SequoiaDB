@@ -4444,6 +4444,52 @@ do                                                            \
 
    }
 
+   INT32 _sdbCollectionImpl::dropAutoIncrement( const std::vector<string> &fieldNames )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      BSONObjBuilder builder ;
+      BSONArrayBuilder autoincBuilder( builder.subarrayStart( FIELD_NAME_AUTOINC_FIELD ) ) ;
+
+      if( !fieldNames.size() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         for( UINT32 i = 0; i < fieldNames.size(); i++ )
+         {
+            const CHAR *fieldName = fieldNames[i].c_str() ;
+            if( 0 == ossStrlen( fieldName ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "The field[%d] name is empty", i ) ;
+               goto error ;
+            }
+            autoincBuilder.append( fieldName ) ;
+         }
+         autoincBuilder.done() ;
+         obj = builder.obj() ;
+         rc = _alterInternal( SDB_ALTER_CL_DROP_AUTOINC_FLD, &obj, FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _sdbCollectionImpl::enableSharding ( const bson::BSONObj & options )
    {
       return _alterInternal( SDB_ALTER_CL_ENABLE_SHARDING, &options, FALSE ) ;
