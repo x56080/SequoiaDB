@@ -12,7 +12,7 @@ sdblobtool 是 SequoiaDB 巨杉数据库的[大对象][lob]管理工具，用于
 
 ##语法规则##
 
-**sdblobtool <--operation arg> <--collection arg> [--hostname arg] [--svcname arg] [--usrname arg] [--passwd arg] [--file arg] [--dstcollection arg] [--dsthost arg] [--dstservice arg] [--dstusrname arg] [--dstpasswd arg] [--ignorefe] [--prefer arg] [--ssl] [--token arg] [--cipher arg] [--cipherfile arg]**
+**sdblobtool <--operation arg> <--collection arg> [--hostname arg] [--svcname arg] [--usrname arg] [--passwd arg] [--file arg] [--dstcollection arg] [--dsthost arg] [--dstservice arg] [--dstusrname arg] [--dstpasswd arg] [--ignorefe] [--prefer arg] [--ssl arg] [--token arg] [--cipher arg] [--cipherfile arg]**
 
 ##参数说明##
 
@@ -34,7 +34,7 @@ sdblobtool 是 SequoiaDB 巨杉数据库的[大对象][lob]管理工具，用于
 | --dstpasswd     | -    | 指定目标数据库的密码<br>该参数在 --operation 取值为 migration 时有效 | 否 |
 | --ignorefe      | -    | 忽略目标集合中重复的大对象<br>该参数在 --operation 取值为 import 或 migration 时有效 | 否 |
 | --prefer        | -    | 指定优先选择的实例，默认值为 M，取值如下：<br>● m 或 M：master<br>● s 或 S：slave<br>● a 或 A：anyone<br>● 1~7：node1~node7<br>该参数在 --operation 取值为 export 时有效 | 否 |
-| --ssl           | -    | 使用 SSL 连接 | 否 |
+| --ssl           | -    | 指定是否使用 SSL 连接，默认值为 false，表示不使用 SSL 连接 | 否 |
 | --token         | -    | 指定密文文件的加密令牌<br>如果创建密文文件时未指定参数 token，可忽略该参数 | 否 |
 | --cipher        | -    | 指定是否使用密文文件输入密码，默认值为 false，表示不使用密文文件 | 否 |
 | --cipherfile    | -    | 指定密文文件，默认值为 `~/sequoiadb/passwd`<br>该参数在 --cipher 取值为 true 时有效 | 否 |
