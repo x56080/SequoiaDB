@@ -23,13 +23,13 @@
 2. 将解压的目录拷贝至 SequoiaDB 的安装目录下
 
     ```lang-bash
-    # cp -r C\&CPP-5.0.1-linux_x86_64 /opt/sequoaidb
+    # cp -r C\&CPP-5.0.1-linux_x86_64 /opt/sequoiadb
     ```
 
 3. 将目录 `C&CPP-5.0.1-linux_x86_64` 重命名为 `sdbdriver`
 
     ```lang-bash
-    # mv /opt/sequoaidb/C\&CPP-5.0.1-linux_x86_64 /opt/sequoiadb/sdbdriver
+    # mv /opt/sequoiadb/C\&CPP-5.0.1-linux_x86_64 /opt/sequoiadb/sdbdriver
     ```
 
 4. 设置环境变量并使其生效
