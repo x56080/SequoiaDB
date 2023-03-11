@@ -1594,7 +1594,7 @@ namespace engine
          case UTIL_SCHEMA_RENAME_COLUMN :
             return CMD_VALUE_NAME_SCHEMA_RENAME_COLUMN ;
          case UTIL_SCHEMA_DROP_DEFAULT :
-            return CMD_VALUE_NAME_SCHEMA_DROP_COLUMN ;
+            return CMD_VALUE_NAME_SCHEMA_DROP_DEFAULT ;
          case UTIL_SCHEMA_SET_ATTRIBUTES :
             return CMD_VALUE_NAME_SCHEMA_SET_ATTRIBUTES ;
          default:
