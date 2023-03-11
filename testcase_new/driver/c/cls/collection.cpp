@@ -101,6 +101,45 @@ TEST_F( collectionTest,sdbCreateGetDropIndex_10405 )
    sdbReleaseCursor ( cursor ) ;
 }
 
+TEST_F( collectionTest,sdbCreateGetDropIndex_10405_2 )
+{
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+
+   bson obj ;
+   bson_init( &obj ) ;
+   // build a bson for index definition
+   bson_append_int( &obj, "name", 1 ) ;
+   bson_append_int( &obj, "age", -1 ) ;
+   bson_finish( &obj ) ;
+   // create index
+   bson options ;
+   bson_init( &options ) ;
+   bson_append_int( &options, "SortBufferSize", 1024 ) ;
+   bson_finish( &options ) ;
+   rc = sdbCreateIndex2 ( cl, &obj, INDEX_NAME, &options ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_destroy( &options ) ;
+   bson_destroy( &obj ) ;
+
+   // get the index
+   rc = sdbGetIndexes( cl, INDEX_NAME, &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // check result
+   bson_init( &obj ) ;
+   rc = sdbNext( cursor, &obj ) ;
+   bson_iterator it ;
+   bson_find( &it, &obj, "unique" ) ;
+   ASSERT_FALSE( bson_iterator_bool( &it ) ) ;
+   bson_destroy ( &obj ) ;
+
+   // drop index
+   rc = sdbDropIndex( cl, INDEX_NAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   sdbReleaseCursor ( cursor ) ;
+}
+
 TEST_F( collectionTest,sdbInsert_22028_16587 )
 {
    INT32 rc                       = SDB_OK ;
