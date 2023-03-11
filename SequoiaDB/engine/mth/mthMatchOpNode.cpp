@@ -319,6 +319,68 @@ namespace engine
       return MTH_FUNCTION_STR_FLOOR ;
    }
 
+   //************************_mthMatchFuncROUND********************************
+   _mthMatchFuncROUND::_mthMatchFuncROUND( _mthNodeAllocator *allocator )
+                      :_mthMatchFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncROUND::~_mthMatchFuncROUND()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncROUND::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      INT32 flag = 0 ;
+
+      rc = mthRound( _fieldName.getFieldName(), in, builder,
+                     _funcEle.numberInt(), flag ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRound failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncROUND::getType()
+   {
+      return EN_MATCH_FUNC_ROUND ;
+   }
+
+   const CHAR* _mthMatchFuncROUND::getName()
+   {
+      return MTH_FUNCTION_STR_ROUND ;
+   }
+
+   void _mthMatchFuncROUND::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncROUND::_init( const CHAR *fieldName,
+                                    const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "scale must be number:ele=%s",
+                 ele.toString().c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //************************_mthMatchFuncLOWER********************************
    _mthMatchFuncLOWER::_mthMatchFuncLOWER( _mthNodeAllocator *allocator )
                       :_mthMatchUnaryFunc( allocator )

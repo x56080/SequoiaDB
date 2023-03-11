@@ -23,7 +23,7 @@ SDB_EXTERN_C_START
 
 SDB_EXPORT void sdb_decimal_init( bson_decimal *decimal );
 SDB_EXPORT int  sdb_decimal_init1( bson_decimal *decimal,
-                                   int precision, 
+                                   int precision,
                                    int scale ) ;
 
 SDB_EXPORT void sdb_decimal_free( bson_decimal *decimal ) ;
@@ -44,14 +44,18 @@ SDB_EXPORT int  sdb_decimal_is_max( const bson_decimal *decimal ) ;
 
 SDB_EXPORT int  sdb_decimal_round( bson_decimal *decimal, int rscale ) ;
 
+int  sdb_decimal_round1( const bson_decimal *decimal,
+                         bson_decimal *result,
+                         int rscale ) ;
+
 SDB_EXPORT int     sdb_decimal_to_int( const bson_decimal *decimal ) ;
 SDB_EXPORT double  sdb_decimal_to_double( const bson_decimal *decimal ) ;
 SDB_EXPORT int64_t sdb_decimal_to_long( const bson_decimal *decimal ) ;
 
-SDB_EXPORT int     sdb_decimal_to_str_get_len( const bson_decimal *decimal, 
+SDB_EXPORT int     sdb_decimal_to_str_get_len( const bson_decimal *decimal,
                                                int *size ) ;
 SDB_EXPORT int     sdb_decimal_to_str( const bson_decimal *decimal,
-                                       char *value, 
+                                       char *value,
                                        int value_size ) ;
 
 // the caller is responsible for freeing this decimal( sdb_decimal_free )
@@ -67,50 +71,50 @@ SDB_EXPORT int  sdb_decimal_from_double( double value, bson_decimal *decimal ) ;
 SDB_EXPORT int  sdb_decimal_from_str( const char *value, bson_decimal *decimal ) ;
 
 SDB_EXPORT int  sdb_decimal_get_typemod( const bson_decimal *decimal,
-                                         int *precision, 
+                                         int *precision,
                                          int *scale ) ;
 SDB_EXPORT int  sdb_decimal_get_typemod2( const bson_decimal *decimal ) ;
-SDB_EXPORT int  sdb_decimal_copy( const bson_decimal *source, 
+SDB_EXPORT int  sdb_decimal_copy( const bson_decimal *source,
                                   bson_decimal *target ) ;
 
 int sdb_decimal_from_bsonvalue( const char *value, bson_decimal *decimal ) ;
 
 int sdb_decimal_to_jsonstr( const bson_decimal *decimal,
-                            char *value, 
+                            char *value,
                             int value_size ) ;
 
-int sdb_decimal_to_jsonstr_len( int sign, int weight, int dscale, 
+int sdb_decimal_to_jsonstr_len( int sign, int weight, int dscale,
                                 int typemod, int *size ) ;
 
-SDB_EXPORT int sdb_decimal_cmp( const bson_decimal *left, 
+SDB_EXPORT int sdb_decimal_cmp( const bson_decimal *left,
                                 const bson_decimal *right ) ;
 
-SDB_EXPORT int sdb_decimal_add( const bson_decimal *left, 
+SDB_EXPORT int sdb_decimal_add( const bson_decimal *left,
                                 const bson_decimal *right,
                                 bson_decimal *result ) ;
 
-SDB_EXPORT int sdb_decimal_sub( const bson_decimal *left, 
+SDB_EXPORT int sdb_decimal_sub( const bson_decimal *left,
                                 const bson_decimal *right,
                                 bson_decimal *result ) ;
 
-SDB_EXPORT int sdb_decimal_mul( const bson_decimal *left, 
+SDB_EXPORT int sdb_decimal_mul( const bson_decimal *left,
                                 const bson_decimal *right,
                                 bson_decimal *result ) ;
 
-SDB_EXPORT int sdb_decimal_div( const bson_decimal *left, 
+SDB_EXPORT int sdb_decimal_div( const bson_decimal *left,
                                 const bson_decimal *right,
                                 bson_decimal *result ) ;
 
 SDB_EXPORT int sdb_decimal_abs( bson_decimal *decimal ) ;
 
-SDB_EXPORT int sdb_decimal_ceil( const bson_decimal *decimal, 
+SDB_EXPORT int sdb_decimal_ceil( const bson_decimal *decimal,
                                  bson_decimal *result ) ;
 
-SDB_EXPORT int sdb_decimal_floor( const bson_decimal *decimal, 
+SDB_EXPORT int sdb_decimal_floor( const bson_decimal *decimal,
                                   bson_decimal *result ) ;
 
 SDB_EXPORT int sdb_decimal_mod( const bson_decimal *left,
-                                const bson_decimal *right, 
+                                const bson_decimal *right,
                                 bson_decimal *result ) ;
 
 int sdb_decimal_update_typemod( bson_decimal *decimal, int typemod ) ;

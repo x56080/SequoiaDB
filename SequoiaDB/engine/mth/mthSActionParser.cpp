@@ -213,6 +213,9 @@ namespace engine
       /// $floor
       MTH_ADD_PARSER( _mthFloorParser ) ;
 
+      /// $round
+      MTH_ADD_PARSER( _mthRoundParser ) ;
+
       /// $mod
       MTH_ADD_PARSER( _mthModParser ) ;
 

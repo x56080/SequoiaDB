@@ -605,6 +605,102 @@ namespace engine
       goto done ;
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHROUNDBUILD, "mthRoundBuild" )
+   INT32 mthRoundBuild( const CHAR *fieldName,
+                        const bson::BSONElement &e,
+                        _mthSAction *action,
+                        bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0 ;
+      PD_TRACE_ENTRY( SDB__MTHROUNDBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BOOLEAN strictDataMode = action->getStrictDataMode() ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+      INT32 scale = 0 ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid arg element:%s",
+                 arg.toString( TRUE, TRUE ).c_str() ) ;
+         goto error ;
+      }
+      scale = arg.numberInt() ;
+
+      rc = mthRound( fieldName, e, builder, scale, flag ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRound failed:rc=%d", rc ) ;
+         goto error ;
+      }
+      if ( strictDataMode && OSS_BIT_TEST( flag, MTH_OPERATION_FLAG_OVERFLOW ) )
+      {
+         rc = SDB_VALUE_OVERFLOW ;
+         PD_LOG( PDERROR, "overflow happened, field: %s, round(%s) by scale(%d), "
+                 "rc = %d", fieldName, e.toPoolString( FALSE ).c_str(), scale, rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHROUNDBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHROUNDGET, "mthRoundGet" )
+   INT32 mthRoundGet( const CHAR *fieldName,
+                      const bson::BSONElement &e,
+                      _mthSAction *action,
+                      bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0 ;
+      PD_TRACE_ENTRY( SDB__MTHROUNDGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BOOLEAN strictDataMode = action->getStrictDataMode() ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+      INT32 scale = 0 ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid arg element:%s",
+                 arg.toString( TRUE, TRUE ).c_str() ) ;
+         goto error ;
+      }
+      scale = arg.numberInt() ;
+
+      rc = mthRound( fieldName, e, builder, scale, flag ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthFloor failed:rc=%d", rc ) ;
+         goto error ;
+      }
+      if ( strictDataMode && OSS_BIT_TEST( flag, MTH_OPERATION_FLAG_OVERFLOW ) )
+      {
+         rc = SDB_VALUE_OVERFLOW ;
+         PD_LOG( PDERROR, "overflow happened, field: %s, round(%s) by scale(%d), "
+                 "rc = %d", fieldName, e.toPoolString( FALSE ).c_str(), scale, rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__MTHROUNDGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMODBUILD, "mthModBuild" )
    INT32 mthModBuild( const CHAR *fieldName,
                       const bson::BSONElement &e,

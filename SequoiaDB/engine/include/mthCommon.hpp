@@ -84,6 +84,10 @@ namespace engine
    INT32 mthFloor( const CHAR *name, const BSONElement &in,
                    BSONObjBuilder &outBuilder ) ;
 
+   INT32 mthRound( const CHAR * name, const BSONElement & in,
+                   BSONObjBuilder & outBuilder,
+                   INT32 scale, INT32 &flag ) ;
+
    INT32 mthMod( const CHAR *name, const BSONElement &in,
                  const BSONElement &modm, BSONObjBuilder &outBuilder ) ;
 

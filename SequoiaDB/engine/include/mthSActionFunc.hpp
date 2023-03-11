@@ -153,6 +153,16 @@ namespace engine
                       _mthSAction *,
                       bson::BSONElement & ) ;
 
+   INT32 mthRoundBuild( const CHAR *,
+                        const bson::BSONElement &,
+                        _mthSAction *,
+                        bson::BSONObjBuilder & ) ;
+
+   INT32 mthRoundGet( const CHAR *,
+                      const bson::BSONElement &,
+                      _mthSAction *,
+                      bson::BSONElement & ) ;
+
    INT32 mthModBuild( const CHAR *,
                       const bson::BSONElement &,
                       _mthSAction *,

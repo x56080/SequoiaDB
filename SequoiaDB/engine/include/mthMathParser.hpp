@@ -81,6 +81,20 @@ namespace engine
                             _mthSAction &action ) const ;
    } ;
 
+   class _mthRoundParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthRoundParser()
+      {
+         _name = MTH_S_ROUND ;
+      }
+      virtual ~_mthRoundParser() {}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                            _mthSAction &action ) const ;
+   } ;
+
    class _mthModParser : public _mthSActionParser::parser
    {
    public:

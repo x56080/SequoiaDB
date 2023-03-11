@@ -160,6 +160,23 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
+   class _mthMatchFuncROUND : public _mthMatchFunc
+   {
+      public:
+         _mthMatchFuncROUND( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncROUND() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+   } ;
+
    class _mthMatchFuncLOWER : public _mthMatchUnaryFunc
    {
       public:

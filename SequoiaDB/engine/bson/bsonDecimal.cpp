@@ -551,6 +551,19 @@ namespace bson {
       return sdb_decimal_update_typemod( &(result._decimal), -1 ) ;
    }
 
+
+   INT32 bsonDecimal::round( bsonDecimal &result, INT32 rscale )
+   {
+      INT32 rc = SDB_OK ;
+      rc = sdb_decimal_round1( &_decimal, &result._decimal, rscale ) ;
+      if ( SDB_OK != rc )
+      {
+         return rc ;
+      }
+
+      return sdb_decimal_update_typemod( &(result._decimal), -1 ) ;
+   }
+
    INT32 bsonDecimal::mod( bsonDecimal &right, bsonDecimal &result )
    {
       INT32 rc = SDB_OK ;

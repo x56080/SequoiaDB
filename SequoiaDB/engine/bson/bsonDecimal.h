@@ -101,6 +101,7 @@ namespace bson {
       INT32          abs() ;
       INT32          ceil( bsonDecimal &result ) ;
       INT32          floor( bsonDecimal &result ) ;
+      INT32          round( bsonDecimal &result, INT32 scale ) ;
       INT32          mod( bsonDecimal &right, bsonDecimal &result ) ;
       INT32          updateTypemod( INT32 typemod ) ;
 

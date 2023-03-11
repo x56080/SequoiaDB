@@ -1823,6 +1823,61 @@ error:
    goto done ;
 }
 
+int sdb_decimal_round1( const bson_decimal *decimal,
+                        bson_decimal *result,
+                        int rscale )
+{
+   int rc = 0 ;
+
+   if ( NULL == decimal || NULL == result )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+
+   if ( sdb_decimal_is_special( decimal ) )
+   {
+      // if decimal is special value, copy it to result and return
+      rc = sdb_decimal_copy( decimal, result ) ;
+      if ( 0 != rc )
+      {
+         goto error ;
+      }
+      else
+      {
+         goto done ;
+      }
+   }
+
+   rc = sdb_decimal_copy( decimal, result ) ;
+   if ( 0 != rc )
+   {
+      goto error ;
+   }
+
+   rc = sdb_decimal_round( result, rscale ) ;
+   if ( 0 != rc )
+   {
+      goto error ;
+   }
+
+   if ( rscale < 0 )
+   {
+      result->dscale = 0 ;
+   }
+
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 int sdb_decimal_to_int( const bson_decimal *decimal )
 {
    int64_t tmpVal ;

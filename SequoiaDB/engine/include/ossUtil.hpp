@@ -100,8 +100,30 @@ UINT32 ossDoubleToUINT32( FLOAT64 num );
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
 UINT64 ossNextPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
 
-OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d ) ;
-OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign = 0 ) ;
+OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d )
+{
+   return d != d ;
+}
+
+OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign = 0 )
+{
+   volatile FLOAT64 tmp = d ;
+
+   if ( ( tmp == d ) && ( ( tmp - d ) != 0.0 ) )
+   {
+      if ( sign )
+      {
+         *sign = ( d < 0.0 ? -1 : 1 ) ;
+      }
+      return TRUE ;
+   }
+   if ( sign )
+   {
+      *sign = 0 ;
+   }
+
+   return FALSE ;
+}
 
 #if defined (_WINDOWS)
 OSS_INLINE void ossSleepmillis ( UINT64 s )

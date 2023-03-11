@@ -108,6 +108,7 @@ namespace engine
       EN_MATCH_FUNC_TYPE               = 119,
       EN_MATCH_FUNC_STRLENBYTES        = 120,
       EN_MATCH_FUNC_STRLENCP           = 121,
+      EN_MATCH_FUNC_ROUND              = 122,
 
       EN_MATCH_FUNC_SUBSTRBYTES        = 123,
       EN_MATCH_FUNC_SUBSTRCP           = 124,
@@ -170,6 +171,7 @@ namespace engine
    #define MTH_FUNCTION_STR_TYPE                "$type"
    #define MTH_FUNCTION_STR_STRLENBYTES         "$strlenBytes"
    #define MTH_FUNCTION_STR_STRLENCP            "$strlenCP"
+   #define MTH_FUNCTION_STR_ROUND               "$round"
    #define MTH_FUNCTION_STR_SUBSTRBYTES         "$substrBytes"
    #define MTH_FUNCTION_STR_SUBSTRCP            "$substrCP"
    #define MTH_FUNCTION_STR_RIGHTBYTES          "$rightBytes"

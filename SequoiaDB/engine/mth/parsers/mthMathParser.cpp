@@ -133,6 +133,42 @@ namespace engine
       goto done ;
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHROUNDPARSER_PARSE, "_mthRoundParser::parse" )
+   INT32 _mthRoundParser::parse( const bson::BSONElement &e,
+                                 _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHROUNDPARSER_PARSE ) ;
+      BSONObjBuilder builder ;
+
+      if ( e.eoo() )
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !e.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid element:%s",
+                 e.toString( TRUE, TRUE ).c_str() ) ;
+         goto error ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthRoundBuild,
+                      &mthRoundGet ) ;
+      action.setName( _name.c_str() ) ;
+      builder.appendAs( e, "arg1" ) ;
+      action.setArg( builder.obj() ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHROUNDPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMODPARSER_PARSE, "_mthModParser::parse" )
    INT32 _mthModParser::parse( const bson::BSONElement &e,
                                 _mthSAction &action ) const
@@ -222,28 +258,28 @@ namespace engine
       goto done ;
    }
 
-    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMULTIPLYPARSER_PARSE, "_mthMultiplyParser::parse" )
-    INT32 _mthMultiplyParser::parse( const bson::BSONElement &e,
-                                     _mthSAction &action ) const
-    {
-       INT32 rc = SDB_OK ;
-       PD_TRACE_ENTRY( SDB__MTHSUBTRACTPARSER_PARSE ) ;
-       BSONObjBuilder builder ;
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMULTIPLYPARSER_PARSE, "_mthMultiplyParser::parse" )
+   INT32 _mthMultiplyParser::parse( const bson::BSONElement &e,
+                                    _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBTRACTPARSER_PARSE ) ;
+      BSONObjBuilder builder ;
 
-       if ( !e.isNumber() )
-       {
-          PD_LOG( PDERROR, "invalid element:%s",
-                  e.toString( TRUE, TRUE ).c_str() ) ;
-          rc = SDB_INVALIDARG ;
-          goto error ;
-       }
+      if ( !e.isNumber() )
+      {
+         PD_LOG( PDERROR, "invalid element:%s",
+                 e.toString( TRUE, TRUE ).c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
-       action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
-       action.setFunc( &mthMultiplyBuild,
-                       &mthMultiplyGet ) ;
-       action.setName( _name.c_str() ) ;
-       builder.appendAs( e, "arg1" ) ;
-       action.setArg( builder.obj() ) ;
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthMultiplyBuild,
+                      &mthMultiplyGet ) ;
+      action.setName( _name.c_str() ) ;
+      builder.appendAs( e, "arg1" ) ;
+      action.setArg( builder.obj() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__MTHSUBTRACTPARSER_PARSE, rc ) ;

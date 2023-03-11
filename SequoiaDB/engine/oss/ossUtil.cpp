@@ -1442,7 +1442,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
    availBytes = vfs.f_bsize * vfs.f_bavail ;
-   
+
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -2497,30 +2497,5 @@ INT32 ossException2RC( std::exception *pe )
       return SDB_OOM ;
    }
    return SDB_SYS ;
-}
-
-OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d )
-{
-   return d != d ;
-}
-
-OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign )
-{
-   volatile FLOAT64 tmp = d ;
-
-   if ( ( tmp == d ) && ( ( tmp - d ) != 0.0 ) )
-   {
-      if ( sign )
-      {
-         *sign = ( d < 0.0 ? -1 : 1 ) ;
-      }
-      return TRUE ;
-   }
-   if ( sign )
-   {
-      *sign = 0 ;
-   }
-
-   return FALSE ;
 }
 
