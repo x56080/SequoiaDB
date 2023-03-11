@@ -42,6 +42,8 @@ using namespace bson ;
 
 namespace engine
 {
+   #define UTIL_SCHEMA_COLUMN_NAME_SZ 127
+
    static void _utilAppendFlagString( CHAR *buffer,
                                       const CHAR *flagStr )
    {
@@ -132,6 +134,10 @@ namespace engine
                         SDB_INVALIDARG, error, PDERROR,
                         "Failed to check column name [%s], should not "
                         "contain \'.\' in column name", columnName ) ;
+      PD_LOG_MSG_CHECK( UTIL_SCHEMA_COLUMN_NAME_SZ >= ossStrlen( columnName ),
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to check column name [%s], whose size "
+                        "should not be greater than %d", columnName, UTIL_SCHEMA_COLUMN_NAME_SZ) ;
 
    done:
       return rc ;
