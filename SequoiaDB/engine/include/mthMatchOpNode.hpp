@@ -109,6 +109,21 @@ namespace engine
                               const BSONElement &ele ) ;
    } ;
 
+   class _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchSubStrBase () ;
+         virtual ~_mthMatchSubStrBase () ;
+
+      protected:
+         INT32 _parseInitArgs( const BSONElement &ele, BOOLEAN needTwoArgs,
+                               INT32 &begin, INT32 &limit ) ;
+
+      protected:
+         INT32 _begin ;
+         INT32 _limit ;
+   } ;
+
    class _mthMatchFuncABS : public _mthMatchUnaryFunc
    {
       public:
@@ -241,7 +256,7 @@ namespace engine
          virtual const CHAR* getName() ;
    } ;
 
-   class _mthMatchFuncSUBSTR : public _mthMatchFunc
+   class _mthMatchFuncSUBSTR : public _mthMatchFunc, public _mthMatchSubStrBase
    {
       public:
          _mthMatchFuncSUBSTR( _mthNodeAllocator *allocator ) ;
@@ -256,10 +271,114 @@ namespace engine
       protected:
          virtual INT32 _init( const CHAR *fieldName,
                               const BSONElement &ele ) ;
+   } ;
 
-      private:
-         INT32 _begin ;
-         INT32 _limit ;
+   class _mthMatchFuncSUBSTRCP : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncSUBSTRCP( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncSUBSTRCP() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+   } ;
+
+   class _mthMatchFuncSUBSTRBYTES : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncSUBSTRBYTES( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncSUBSTRBYTES() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+   } ;
+
+   class _mthMatchFuncRIGHTCP : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncRIGHTCP( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncRIGHTCP() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+   } ;
+
+   class _mthMatchFuncRIGHTBYTES : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncRIGHTBYTES( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncRIGHTBYTES() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+   } ;
+
+   class _mthMatchFuncLEFTCP : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncLEFTCP( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncLEFTCP() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+   } ;
+
+   class _mthMatchFuncLEFTBYTES : public _mthMatchFunc, public _mthMatchSubStrBase
+   {
+      public:
+         _mthMatchFuncLEFTBYTES( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncLEFTBYTES() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
    } ;
 
    class _mthMatchFuncMOD : public _mthMatchFunc

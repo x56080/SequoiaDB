@@ -819,6 +819,384 @@ namespace engine
       goto done ;
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRCPBUILD, "mthSubStrCPBuild" )
+   INT32 mthSubStrCPBuild( const CHAR *fieldName,
+                           const bson::BSONElement &e,
+                           _mthSAction *action,
+                           bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRCPBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      begin = action->getArg().getIntField( "arg1" ) ;
+      limit = action->getArg().getIntField( "arg2" ) ;
+      rc = mthSubStrCP( fieldName, e, begin, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStr failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRCPBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRCPGET, "mthSubStrCPGet" )
+   INT32 mthSubStrCPGet( const CHAR *fieldName,
+                         const bson::BSONElement &in,
+                         _mthSAction *action,
+                         bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRCPGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      begin = action->getArg().getIntField( "arg1" ) ;
+      limit = action->getArg().getIntField( "arg2" ) ;
+      rc = mthSubStrCP( fieldName, in, begin, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStrCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRCPGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRBYTESBUILD, "mthSubStrBytesBuild" )
+   INT32 mthSubStrBytesBuild( const CHAR *fieldName,
+                              const bson::BSONElement &e,
+                              _mthSAction *action,
+                              bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRBYTESBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      begin = action->getArg().getIntField( "arg1" ) ;
+      limit = action->getArg().getIntField( "arg2" ) ;
+      rc = mthSubStrBytes( fieldName, e, begin, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStrBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRBYTESBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRBYTESGET, "mthSubStrBytesGet" )
+   INT32 mthSubStrBytesGet( const CHAR *fieldName,
+                            const bson::BSONElement &in,
+                            _mthSAction *action,
+                            bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRBYTESGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      begin = action->getArg().getIntField( "arg1" ) ;
+      limit = action->getArg().getIntField( "arg2" ) ;
+      rc = mthSubStrBytes( fieldName, in, begin, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStrBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRBYTESGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTCPBUILD, "mthRightCPBuild" )
+   INT32 mthRightCPBuild( const CHAR *fieldName,
+                          const bson::BSONElement &e,
+                          _mthSAction *action,
+                          bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTCPBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthRightCP( fieldName, e, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHRIGHTCPBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTCPGET, "mthRightCPGet" )
+   INT32 mthRightCPGet( const CHAR *fieldName,
+                        const bson::BSONElement &in,
+                        _mthSAction *action,
+                        bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTCPGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthRightCP( fieldName, in, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHRIGHTCPGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTBYTESBUILD, "mthRightBytesBuild" )
+   INT32 mthRightBytesBuild( const CHAR *fieldName,
+                             const bson::BSONElement &e,
+                             _mthSAction *action,
+                             bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTBYTESBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthRightBytes( fieldName, e, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHRIGHTBYTESBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTBYTESGET, "mthRightBytesGet" )
+   INT32 mthRightBytesGet( const CHAR *fieldName,
+                           const bson::BSONElement &in,
+                           _mthSAction *action,
+                           bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTBYTESGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthRightBytes( fieldName, in, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHRIGHTBYTESGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTCPBUILD, "mthLeftCPBuild" )
+   INT32 mthLeftCPBuild( const CHAR *fieldName,
+                         const bson::BSONElement &e,
+                         _mthSAction *action,
+                         bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTCPBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthLeftCP( fieldName, e, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHLEFTCPBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTCPGET, "mthLeftCPGet" )
+   INT32 mthLeftCPGet( const CHAR *fieldName,
+                       const bson::BSONElement &in,
+                       _mthSAction *action,
+                       bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTCPGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthLeftCP( fieldName, in, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftCP failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHLEFTCPGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTBYTESBUILD, "mthLeftBytesBuild" )
+   INT32 mthLeftBytesBuild( const CHAR *fieldName,
+                            const bson::BSONElement &e,
+                            _mthSAction *action,
+                            bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTBYTESBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthLeftBytes( fieldName, e, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHLEFTBYTESBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTBYTESGET, "mthLeftBytesGet" )
+   INT32 mthLeftBytesGet( const CHAR *fieldName,
+                          const bson::BSONElement &in,
+                          _mthSAction *action,
+                          bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTBYTESGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      INT32 limit = -1 ;
+
+      limit = action->getArg().getIntField( "arg" ) ;
+      rc = mthLeftBytes( fieldName, in, limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftBytes failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHLEFTBYTESGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENBUILD, "mthStrLenBuild" )
    INT32 mthStrLenBuild( const CHAR *fieldName,
                          const bson::BSONElement &e,

@@ -64,6 +64,13 @@ namespace engine
    #define MTH_S_SIZE           MTH_S_PREFIX"size"
    #define MTH_S_STRLENBYTES    MTH_S_PREFIX"strlenBytes"
    #define MTH_S_STRLENCP       MTH_S_PREFIX"strlenCP"
+   #define MTH_S_SUBSTRCP       MTH_S_PREFIX"substrCP"
+   #define MTH_S_SUBSTRBYTES    MTH_S_PREFIX"substrBytes"
+   #define MTH_S_RIGHTCP        MTH_S_PREFIX"rightCP"
+   #define MTH_S_RIGHTBYTES     MTH_S_PREFIX"rightBytes"
+   #define MTH_S_LEFTCP         MTH_S_PREFIX"leftCP"
+   #define MTH_S_LEFTBYTES      MTH_S_PREFIX"leftBytes"
+
 
    typedef UINT32 MTH_S_ATTRIBUTE ;
 

@@ -92,9 +92,20 @@ namespace engine
                               BSONObjBuilder &outBuilder ) ;
    static INT32 _mthCastBasic( const CHAR *name, const BSONElement &in,
                                BSONType targetType, BSONObjBuilder &outBuilder ) ;
-   static INT32 _mthSubStrBasic( const CHAR *name, const BSONElement &in,
-                                 INT32 begin, INT32 limit,
-                                 BSONObjBuilder &outBuilder ) ;
+
+   static INT32 _mthSubStrByByte( const CHAR *name, const BSONElement &in,
+                                  INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                                  BSONObjBuilder &outBuilder ) ;
+   static INT32 _mthSubStrByCP( const CHAR *name, const BSONElement &in,
+                                INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                                BSONObjBuilder &outBuilder ) ;
+
+   static INT32 _mthSubStrByByteBasic( const CHAR *name, const BSONElement &in,
+                                       INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                                       BSONObjBuilder &outBuilder ) ;
+   static INT32 _mthSubStrByCPBasic( const CHAR *name, const BSONElement &in,
+                                     INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                                     BSONObjBuilder &outBuilder ) ;
    static INT32 _mthStrLenBasic( const CHAR *name, const BSONElement &in,
                                  BSONObjBuilder &outBuilder ) ;
 
@@ -125,9 +136,13 @@ namespace engine
    static INT32 _mthCast( const CHAR *fieldName, const bson::BSONElement &e,
                           BSONType type, BSONObjBuilder &builder ) ;
 
-   static void _getSubStr( const CHAR *src, INT32 srcLen, INT32 begin,
-                           INT32 limit, const CHAR *&subStr,
-                           INT32 &subStrLen ) ;
+   static void _mthGetSubStrByByte( const CHAR *src, INT32 srcLen, INT32 begin,
+                                    INT32 limit, BOOLEAN checkLimit, const CHAR *&subStr,
+                                    INT32 &subStrLen ) ;
+
+   static void _mthGetSubStrByCP( const CHAR *src, INT32 srcLen, INT32 begin,
+                                  INT32 limit, BOOLEAN checkLimit, const CHAR *&subStr,
+                                  INT32 &subStrLen ) ;
 
    static INT32 _lower( const CHAR *str, UINT32 len, _utilString<> &us ) ;
    static INT32 _upper( const CHAR *str, UINT32 len, _utilString<> &us ) ;
@@ -801,12 +816,14 @@ namespace engine
       goto done ;
    }
 
-   void _getSubStr( const CHAR *src, INT32 srcLen, INT32 begin,
-                    INT32 limit, const CHAR *&subStr, INT32 &subStrLen )
+   void _mthGetSubStrByByte( const CHAR *src, INT32 srcLen, INT32 begin, INT32 limit,
+                             BOOLEAN checkLimit, const CHAR *&subStr, INT32 &subStrLen )
    {
       const CHAR *cpBegin = NULL ;
 
-      if ( srcLen < 0 )
+      // $leftBytes or $rightBytes args is negative number
+      if ( srcLen < 0 ||
+           ( checkLimit && ( begin > 0 || limit < 0 ) ) )
       {
          goto error ;
       }
@@ -823,7 +840,12 @@ namespace engine
       else
       {
          INT32 beginPos = srcLen + begin ;
-         if ( beginPos < 0 )
+         // $rightBytes len args over left boundary
+         if ( beginPos < 0 && checkLimit )
+         {
+            beginPos = 0 ;
+         }
+         else if ( beginPos < 0 )
          {
             goto error ;
          }
@@ -844,6 +866,109 @@ namespace engine
       subStrLen = -1 ;
       goto done ;
    }
+
+   void _mthGetSubStrByCP( const CHAR *src, INT32 srcLen, INT32 begin, INT32 limit,
+                           BOOLEAN checkLimit, const CHAR *&subStr, INT32 &subStrLen )
+   {
+      INT32 bytesStart = 0, bytesEnd = 0 ;
+      INT32 cpBegin = 0, cpLen = 0 ;
+      INT32 i = 0 ;
+      const CHAR *subStrBegin = NULL ;
+
+      // $leftCP or $rightCP args is negative number
+      if ( srcLen < 0 ||
+           ( checkLimit && ( begin > 0 || limit < 0 ) ) )
+      {
+         goto error ;
+      }
+
+      // interception substring step:
+      // the first step finds where the substring byte starts
+      // the second step finds where the substring byte ends
+      if ( 0 <= begin )
+      {
+         if ( srcLen <= begin )
+         {
+            goto error ;
+         }
+         for ( i = 0; i <= srcLen && cpBegin <= begin; i++ )
+         {
+            if ( _mthIsUTF8StartByte( src[i] ) )
+            {
+               ++ cpBegin ;
+            }
+         }
+         bytesStart = i - 1 ;
+         subStrBegin = src + bytesStart ;
+
+         // 1. $substrCP args <len> is negative number
+         // 2. substring more than srcStr len
+         if ( limit < 0 || limit > srcLen )
+         {
+            bytesEnd = srcLen ;
+            subStrLen = bytesEnd - bytesStart ;
+         }
+         else
+         {
+            for ( i = bytesStart; i <= srcLen && cpLen <= limit; i++ )
+            {
+               if ( _mthIsUTF8StartByte( src[i] ) )
+               {
+                  ++ cpLen ;
+               }
+            }
+
+            bytesEnd = i - 1 ;
+            subStrLen = bytesEnd - bytesStart ;
+         }
+      }
+      else
+      {
+         for ( i = srcLen - 1; i >= 0 && cpBegin > begin; i-- )
+         {
+            if ( _mthIsUTF8StartByte( src[i] ) )
+            {
+               -- cpBegin ;
+            }
+         }
+         // $substrCP pos args over left boundary
+         if ( !checkLimit && cpBegin > begin )
+         {
+            goto error ;
+         }
+         bytesStart = i + 1 ;
+         subStrBegin = src + bytesStart ;
+
+         // 1. $substrCP args <len> is negative number
+         // 2. substring more than srcStr len
+         if ( limit < 0 || limit > srcLen )
+         {
+            bytesEnd = srcLen ;
+            subStrLen = bytesEnd - bytesStart ;
+         }
+         else
+         {
+            for ( i = bytesStart; i <= srcLen && cpLen <= limit; i++ )
+            {
+               if ( _mthIsUTF8StartByte( src[i] ) )
+               {
+                  ++ cpLen ;
+               }
+            }
+            bytesEnd = i - 1 ;
+            subStrLen = bytesEnd - bytesStart ;
+         }
+      }
+
+      subStr = subStrBegin ;
+   done:
+      return ;
+   error:
+      subStr = NULL ;
+      subStrLen = -1 ;
+      goto done ;
+   }
+
 
    INT32 _lower( const CHAR *str, UINT32 len, _utilString<> &us )
    {
@@ -1740,8 +1865,75 @@ namespace engine
       goto done ;
    }
 
-   INT32 _mthSubStrBasic( const CHAR *name, const BSONElement &in,
-                          INT32 begin, INT32 limit, BSONObjBuilder &outBuilder )
+   INT32 _mthSubStrByByte( const CHAR *name, const BSONElement &in,
+                           INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                           BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthSubStrByByteBasic( ele.fieldName(), ele, begin, limit,
+                                        checkLimit, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to slice substr by byte:rc=%d", rc ) ;
+
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthSubStrByByteBasic( name, in, begin, limit, checkLimit, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to slice substr by byte:rc=%d", rc ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthSubStrByCP( const CHAR *name, const BSONElement &in,
+                         INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                         BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthSubStrByCPBasic( ele.fieldName(), ele, begin, limit,
+                                      checkLimit, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to slice substr by CP:rc=%d", rc ) ;
+
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthSubStrByCPBasic( name, in, begin, limit, checkLimit, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to slice substr by CP:rc=%d", rc ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthSubStrByByteBasic( const CHAR *name, const BSONElement &in,
+                                INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                                BSONObjBuilder &outBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -1757,8 +1949,42 @@ namespace engine
       {
          const CHAR *outStr = NULL ;
          INT32 outStrLen    = -1 ;
-         _getSubStr( in.valuestr(), in.valuestrsize() - 1, begin, limit,
-                     outStr, outStrLen ) ;
+         _mthGetSubStrByByte( in.valuestr(), in.valuestrsize() - 1, begin, limit, checkLimit,
+                              outStr, outStrLen ) ;
+         if ( NULL == outStr || -1 == outStrLen )
+         {
+            outBuilder.append( name, "" ) ;
+         }
+         else
+         {
+            outBuilder.appendStrWithNoTerminating( name, outStr, outStrLen ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   }
+
+   INT32 _mthSubStrByCPBasic( const CHAR *name, const BSONElement &in,
+                              INT32 begin, INT32 limit, BOOLEAN checkLimit,
+                              BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else if ( String != in.type() )
+      {
+         outBuilder.appendNull( name ) ;
+      }
+      else
+      {
+         const CHAR *outStr = NULL ;
+         INT32 outStrLen    = -1 ;
+         _mthGetSubStrByCP( in.valuestr(), in.valuestrsize() - 1, begin, limit, checkLimit,
+                            outStr, outStrLen ) ;
          if ( NULL == outStr || -1 == outStrLen )
          {
             outBuilder.append( name, "" ) ;
@@ -1805,35 +2031,46 @@ namespace engine
    INT32 mthSubStr( const CHAR *name, const BSONElement &in,
                     INT32 begin, INT32 limit, BSONObjBuilder &outBuilder )
    {
-      INT32 rc = SDB_OK ;
-      if ( Array == in.type() )
-      {
-         BSONArrayBuilder arrayBuilder ;
-         BSONObjIterator iter( in.embeddedObject() ) ;
-         while ( iter.more() )
-         {
-            BSONObjBuilder tmpBuilder ;
-            BSONElement ele = iter.next() ;
-            rc = _mthSubStrBasic( ele.fieldName(), ele, begin, limit,
-                                  tmpBuilder ) ;
-            PD_RC_CHECK( rc, PDERROR, "failed to SubStr:rc=%d", rc ) ;
-
-            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
-         }
-
-         outBuilder.append( name, arrayBuilder.arr() ) ;
-      }
-      else
-      {
-         rc = _mthSubStrBasic( name, in, begin, limit, outBuilder ) ;
-         PD_RC_CHECK( rc, PDERROR, "failed to SubStr:rc=%d", rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return _mthSubStrByByte( name, in, begin, limit, FALSE, outBuilder ) ;
    }
+
+   INT32 mthSubStrBytes( const CHAR *name, const BSONElement &in,
+                         INT32 begin, INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByByte( name, in, begin, limit, FALSE, outBuilder ) ;
+   }
+
+   INT32 mthSubStrCP( const CHAR *name, const BSONElement &in,
+                      INT32 begin, INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByCP( name, in, begin, limit, FALSE, outBuilder ) ;
+   }
+
+   INT32 mthRightBytes( const CHAR *name, const BSONElement &in,
+                        INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByByte( name, in, 0 - limit, limit, TRUE, outBuilder ) ;
+   }
+
+   INT32 mthRightCP( const CHAR *name, const BSONElement &in,
+                     INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByCP( name, in,  0 - limit , limit, TRUE, outBuilder ) ;
+   }
+
+
+   INT32 mthLeftBytes( const CHAR *name, const BSONElement &in,
+                       INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByByte( name, in, 0, limit, TRUE, outBuilder ) ;
+   }
+
+   INT32 mthLeftCP( const CHAR *name, const BSONElement &in,
+                    INT32 limit, BSONObjBuilder &outBuilder )
+   {
+      return _mthSubStrByCP( name, in, 0, limit, TRUE, outBuilder ) ;
+   }
+
 
    INT32 _mthStrLenBasic( const CHAR *name, const BSONElement &in,
                           BSONObjBuilder &outBuilder )
@@ -3036,5 +3273,72 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 mthParseSubStrArgs( const bson::BSONElement &e, BOOLEAN allowToArgs,
+                             INT32 &begin, INT32 &limit )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( e.isNumber() && 0 <= e.numberInt() )
+      {
+         limit = e.numberInt() ;
+      }
+      else if ( e.isNumber() )
+      {
+         begin = e.numberInt() ;
+      }
+      else if ( Array == e.type() )
+      {
+         BSONObjIterator i( e.embeddedObject() ) ;
+         BSONElement ele ;
+
+         if ( !i.more() || !allowToArgs )
+         {
+            goto invalid_arg ;
+         }
+
+         ele = i.next() ;
+         if ( !ele.isNumber() )
+         {
+            goto invalid_arg ;
+         }
+
+         begin = ele.numberInt() ;
+
+         if ( !i.more() )
+         {
+            goto invalid_arg ;
+         }
+
+         ele = i.next() ;
+         if ( !ele.isNumber() )
+         {
+            goto invalid_arg ;
+         }
+
+         limit = ele.numberInt() ;
+
+         if ( i.more() )
+         {
+            goto invalid_arg ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   invalid_arg:
+      PD_LOG( PDERROR, "invalid argument:%s",
+              e.toString( TRUE, TRUE ).c_str() ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
 }
 

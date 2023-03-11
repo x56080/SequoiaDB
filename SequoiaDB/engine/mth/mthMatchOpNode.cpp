@@ -615,12 +615,30 @@ namespace engine
       return MTH_FUNCTION_STR_STRLENCP ;
    }
 
-   //************************_mthMatchFuncSUBSTR*****************************
-   _mthMatchFuncSUBSTR::_mthMatchFuncSUBSTR( _mthNodeAllocator *allocator )
-                       :_mthMatchFunc( allocator )
+   //*********************_mthMatchSubStrBase***********************
+   _mthMatchSubStrBase::_mthMatchSubStrBase()
    {
       _begin = 0 ;
       _limit = -1 ;
+   }
+
+   _mthMatchSubStrBase::~_mthMatchSubStrBase()
+   {
+      _begin = 0 ;
+      _limit = -1 ;
+   }
+
+   INT32 _mthMatchSubStrBase::_parseInitArgs( const BSONElement &ele, BOOLEAN needTwoArgs,
+                                              INT32 &begin, INT32 &limit )
+   {
+      return mthParseSubStrArgs( ele, needTwoArgs, begin, limit ) ;
+   }
+
+   //************************_mthMatchFuncSUBSTR*****************************
+   _mthMatchFuncSUBSTR::_mthMatchFuncSUBSTR( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
    }
 
    _mthMatchFuncSUBSTR::~_mthMatchFuncSUBSTR()
@@ -646,7 +664,7 @@ namespace engine
 
    INT32 _mthMatchFuncSUBSTR::getType()
    {
-      return EN_MATCH_FUNC_STRLEN ;
+      return EN_MATCH_FUNC_SUBSTR ;
    }
 
    const CHAR* _mthMatchFuncSUBSTR::getName()
@@ -656,9 +674,6 @@ namespace engine
 
    void _mthMatchFuncSUBSTR::clear()
    {
-      _begin = 0 ;
-      _limit = -1 ;
-
       _mthMatchFunc::clear() ;
    }
 
@@ -666,78 +681,353 @@ namespace engine
                                      const BSONElement &ele )
    {
       INT32 rc = SDB_OK ;
-      if ( ele.isNumber() )
+      rc = _parseInitArgs( ele, TRUE, _begin, _limit ) ;
+      if ( SDB_OK != rc )
       {
-         INT32 temp = ele.numberInt() ;
-         if ( temp >= 0 )
-         {
-            _limit = temp ;
-         }
-         else
-         {
-            _begin = temp ;
-         }
-      }
-      else if ( Array == ele.type() )
-      {
-         BSONObjIterator i( ele.embeddedObject() ) ;
-         BSONElement subELe ;
-         if ( !i.more() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "substr must have two element2 in array:ele=%s",
-                    ele.toString().c_str() ) ;
-            goto error ;
-         }
-
-         subELe = i.next() ;
-         if ( !subELe.isNumber() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "substr element1 must be number:ele=%s",
-                    ele.toString().c_str() ) ;
-            goto error ;
-         }
-
-         _begin = subELe.numberInt() ;
-
-         if ( !i.more() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "substr must have two element in array:ele=%s",
-                    ele.toString().c_str() ) ;
-            goto error ;
-         }
-
-         subELe = i.next() ;
-         if ( !subELe.isNumber() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "substr element2 must be number:ele=%s",
-                    ele.toString().c_str() ) ;
-            goto error ;
-         }
-
-         _limit = subELe.numberInt() ;
-         if ( !mthIsValidLen( _limit ) )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "limit is invalid:len=%d", _limit ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "substr's obj is invaid:ele=%s",
-                 ele.toString().c_str() ) ;
-         goto error ;
+         PD_LOG( PDERROR, "substr init args failed:rc=%d", rc ) ;
       }
 
-   done:
       return rc ;
-   error:
-      goto done ;
+   }
+
+   //************************_mthMatchFuncSUBSTRCP*****************************
+   _mthMatchFuncSUBSTRCP::_mthMatchFuncSUBSTRCP( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncSUBSTRCP::~_mthMatchFuncSUBSTRCP()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRCP::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthSubStrCP( _fieldName.getFieldName(), in, _begin, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStrCP failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRCP::getType()
+   {
+      return EN_MATCH_FUNC_SUBSTRCP ;
+   }
+
+   const CHAR* _mthMatchFuncSUBSTRCP::getName()
+   {
+      return MTH_FUNCTION_STR_SUBSTRCP ;
+   }
+
+   void _mthMatchFuncSUBSTRCP::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRCP::_init( const CHAR *fieldName,
+                                       const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      rc = _parseInitArgs( ele, TRUE, _begin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "substrCP init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   //************************_mthMatchFuncSUBSTRBYTES*****************************
+   _mthMatchFuncSUBSTRBYTES::_mthMatchFuncSUBSTRBYTES( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncSUBSTRBYTES::~_mthMatchFuncSUBSTRBYTES()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRBYTES::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthSubStrBytes( _fieldName.getFieldName(), in, _begin, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthSubStrBytes failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRBYTES::getType()
+   {
+      return EN_MATCH_FUNC_SUBSTRBYTES ;
+   }
+
+   const CHAR* _mthMatchFuncSUBSTRBYTES::getName()
+   {
+      return MTH_FUNCTION_STR_RIGHTBYTES ;
+   }
+
+   void _mthMatchFuncSUBSTRBYTES::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncSUBSTRBYTES::_init( const CHAR *fieldName,
+                                          const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      rc = _parseInitArgs( ele, TRUE, _begin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "substrBytes init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   //************************_mthMatchFuncRIGHTCP*****************************
+   _mthMatchFuncRIGHTCP::_mthMatchFuncRIGHTCP( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncRIGHTCP::~_mthMatchFuncRIGHTCP()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncRIGHTCP::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthRightCP( _fieldName.getFieldName(), in, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightCP failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncRIGHTCP::getType()
+   {
+      return EN_MATCH_FUNC_RIGHTCP ;
+   }
+
+   const CHAR* _mthMatchFuncRIGHTCP::getName()
+   {
+      return MTH_FUNCTION_STR_RIGHTCP ;
+   }
+
+   void _mthMatchFuncRIGHTCP::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncRIGHTCP::_init( const CHAR *fieldName,
+                                      const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 dummyBegin = 0;
+      rc = _parseInitArgs( ele, FALSE, dummyBegin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "rightCP init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   //************************_mthMatchFuncRIGHTBYTES*****************************
+   _mthMatchFuncRIGHTBYTES::_mthMatchFuncRIGHTBYTES( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncRIGHTBYTES::~_mthMatchFuncRIGHTBYTES()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncRIGHTBYTES::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthRightBytes( _fieldName.getFieldName(), in, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthRightBytes failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncRIGHTBYTES::getType()
+   {
+      return EN_MATCH_FUNC_RIGHTBYTES ;
+   }
+
+   const CHAR* _mthMatchFuncRIGHTBYTES::getName()
+   {
+      return MTH_FUNCTION_STR_RIGHTBYTES ;
+   }
+
+   void _mthMatchFuncRIGHTBYTES::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncRIGHTBYTES::_init( const CHAR *fieldName,
+                                         const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 dummyBegin = 0;
+      rc = _parseInitArgs( ele, FALSE, dummyBegin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "rightBytes init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   //************************_mthMatchFuncLEFTCP*****************************
+   _mthMatchFuncLEFTCP::_mthMatchFuncLEFTCP( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncLEFTCP::~_mthMatchFuncLEFTCP()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncLEFTCP::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthLeftCP( _fieldName.getFieldName(), in, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftCP failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncLEFTCP::getType()
+   {
+      return EN_MATCH_FUNC_LEFTCP ;
+   }
+
+   const CHAR* _mthMatchFuncLEFTCP::getName()
+   {
+      return MTH_FUNCTION_STR_LEFTCP ;
+   }
+
+   void _mthMatchFuncLEFTCP::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncLEFTCP::_init( const CHAR *fieldName,
+                                     const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 dummyBegin = 0;
+      rc = _parseInitArgs( ele, FALSE, dummyBegin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "leftCP init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   //************************_mthMatchFuncLEFTBYTES*****************************
+   _mthMatchFuncLEFTBYTES::_mthMatchFuncLEFTBYTES( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ),
+   _mthMatchSubStrBase()
+   {
+   }
+
+   _mthMatchFuncLEFTBYTES::~_mthMatchFuncLEFTBYTES()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncLEFTBYTES::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthLeftBytes( _fieldName.getFieldName(), in, _limit, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthLeftBytes failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncLEFTBYTES::getType()
+   {
+      return EN_MATCH_FUNC_LEFTBYTES ;
+   }
+
+   const CHAR* _mthMatchFuncLEFTBYTES::getName()
+   {
+      return MTH_FUNCTION_STR_LEFTBYTES ;
+   }
+
+   void _mthMatchFuncLEFTBYTES::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncLEFTBYTES::_init( const CHAR *fieldName,
+                                     const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 dummyBegin = 0;
+      rc = _parseInitArgs( ele, FALSE, dummyBegin, _limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "leftBytes init args failed:rc=%d", rc ) ;
+      }
+
+      return rc ;
    }
 
    //************************_mthMatchFuncMOD********************************

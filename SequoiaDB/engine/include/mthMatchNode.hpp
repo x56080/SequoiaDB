@@ -109,6 +109,13 @@ namespace engine
       EN_MATCH_FUNC_STRLENBYTES        = 120,
       EN_MATCH_FUNC_STRLENCP           = 121,
 
+      EN_MATCH_FUNC_SUBSTRBYTES        = 123,
+      EN_MATCH_FUNC_SUBSTRCP           = 124,
+      EN_MATCH_FUNC_RIGHTBYTES         = 125,
+      EN_MATCH_FUNC_RIGHTCP            = 126,
+      EN_MATCH_FUNC_LEFTBYTES          = 127,
+      EN_MATCH_FUNC_LEFTCP             = 128,
+
       EN_MATCH_FUNC_END                = 200,
 
       EN_MATCH_ATTR_RETURNMATCH        = 201,
@@ -163,6 +170,12 @@ namespace engine
    #define MTH_FUNCTION_STR_TYPE                "$type"
    #define MTH_FUNCTION_STR_STRLENBYTES         "$strlenBytes"
    #define MTH_FUNCTION_STR_STRLENCP            "$strlenCP"
+   #define MTH_FUNCTION_STR_SUBSTRBYTES         "$substrBytes"
+   #define MTH_FUNCTION_STR_SUBSTRCP            "$substrCP"
+   #define MTH_FUNCTION_STR_RIGHTBYTES          "$rightBytes"
+   #define MTH_FUNCTION_STR_RIGHTCP             "$rightCP"
+   #define MTH_FUNCTION_STR_LEFTBYTES           "$leftBytes"
+   #define MTH_FUNCTION_STR_LEFTCP              "$leftCP"
 
    #define MTH_ALLOCATOR_SIZE                   2048
    #define MTH_MATCH_FIELD_STATIC_NAME_LEN      32

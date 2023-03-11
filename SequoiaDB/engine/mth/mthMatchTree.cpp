@@ -95,6 +95,12 @@ namespace engine
       { MTH_FUNCTION_STR_MULTIPLY,    EN_MATCH_FUNC_MULTIPLY },
       { MTH_FUNCTION_STR_DIVIDE,      EN_MATCH_FUNC_DIVIDE },
       { MTH_FUNCTION_STR_SUBSTR,      EN_MATCH_FUNC_SUBSTR },
+      { MTH_FUNCTION_STR_SUBSTRCP,    EN_MATCH_FUNC_SUBSTRCP },
+      { MTH_FUNCTION_STR_SUBSTRBYTES, EN_MATCH_FUNC_SUBSTRBYTES},
+      { MTH_FUNCTION_STR_RIGHTCP,     EN_MATCH_FUNC_RIGHTCP},
+      { MTH_FUNCTION_STR_RIGHTBYTES,  EN_MATCH_FUNC_RIGHTBYTES},
+      { MTH_FUNCTION_STR_LEFTCP,      EN_MATCH_FUNC_LEFTCP},
+      { MTH_FUNCTION_STR_LEFTBYTES,   EN_MATCH_FUNC_LEFTBYTES},
       { MTH_FUNCTION_STR_STRLEN,      EN_MATCH_FUNC_STRLEN },
       { MTH_FUNCTION_STR_STRLENBYTES, EN_MATCH_FUNC_STRLENBYTES },
       { MTH_FUNCTION_STR_STRLENCP,    EN_MATCH_FUNC_STRLENCP },
@@ -291,6 +297,24 @@ namespace engine
       case EN_MATCH_FUNC_SUBSTR:
          func = new ( allocator ) _mthMatchFuncSUBSTR( allocator ) ;
          break ;
+      case EN_MATCH_FUNC_SUBSTRBYTES:
+         func = new ( allocator ) _mthMatchFuncSUBSTRBYTES( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_SUBSTRCP:
+         func = new ( allocator ) _mthMatchFuncSUBSTRCP( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_RIGHTBYTES:
+         func = new ( allocator ) _mthMatchFuncRIGHTBYTES( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_RIGHTCP:
+         func = new ( allocator ) _mthMatchFuncRIGHTCP( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_LEFTBYTES:
+         func = new ( allocator ) _mthMatchFuncLEFTBYTES( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_LEFTCP:
+         func = new ( allocator ) _mthMatchFuncLEFTCP( allocator ) ;
+         break;
       case EN_MATCH_FUNC_STRLEN:
          func = new ( allocator ) _mthMatchFuncSTRLEN( allocator ) ;
          break ;

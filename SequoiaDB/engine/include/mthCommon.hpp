@@ -96,6 +96,24 @@ namespace engine
    INT32 mthSubStr( const CHAR *name, const BSONElement &in,
                     INT32 begin, INT32 limit, BSONObjBuilder &outBuilder ) ;
 
+   INT32 mthSubStrCP( const CHAR *name, const BSONElement &in,
+                      INT32 begin, INT32 limit, BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthSubStrBytes( const CHAR *name, const BSONElement &in,
+                         INT32 begin, INT32 limit, BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthRightCP( const CHAR *name, const BSONElement &in,
+                     INT32 limit, BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthRightBytes( const CHAR *name, const BSONElement &in,
+                        INT32 limit, BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthLeftCP( const CHAR *name, const BSONElement &in,
+                    INT32 limit, BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthLeftBytes( const CHAR *name, const BSONElement &in,
+                       INT32 limit, BSONObjBuilder &outBuilder ) ;
+
    INT32 mthStrLen( const CHAR *name, const BSONElement &in,
                     BSONObjBuilder &outBuilder ) ;
    INT32 mthStrLenBytes( const CHAR *name, const BSONElement &in,
@@ -193,6 +211,9 @@ namespace engine
 
    INT32 mthCheckIfSubFieldIsOp( const BSONElement &ele,
                                  BOOLEAN &subFieldIsOp ) ;
+
+   INT32 mthParseSubStrArgs( const bson::BSONElement &e, BOOLEAN allowToArgs,
+                             INT32 &begin, INT32 &limit ) ;
 }
 
 #endif //MTHCOMMON_HPP__

@@ -49,55 +49,10 @@ namespace engine
       INT32 begin = 0 ;
       INT32 limit = -1 ;
 
-      if ( e.isNumber() && 0 <=  e.numberInt())
+      rc = mthParseSubStrArgs( e, TRUE, begin, limit ) ;
+      if ( SDB_OK != rc )
       {
-         limit = e.numberInt() ;
-      }
-      else if ( e.isNumber() )
-      {
-         begin = e.numberInt() ;
-      }
-      else if ( Array == e.type() )
-      {
-         BSONObjIterator i( e.embeddedObject() ) ;
-         BSONElement ele ;
-         if ( !i.more() )
-         {
-            goto invalid_arg ;
-         }
-
-         ele = i.next() ;
-         if ( !ele.isNumber() )
-         {
-            goto invalid_arg ;
-         }
-
-         begin = ele.numberInt() ;
-
-         if ( !i.more() )
-         {
-            goto invalid_arg ;
-         }
-
-         ele = i.next() ;
-         if ( !ele.isNumber() )
-         {
-            goto invalid_arg ;
-         }
-
-         limit = ele.numberInt() ;
-         if ( !mthIsValidLen( limit ) )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "limit is invalid:len=%d", limit ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         PD_LOG( PDERROR, "invalid element" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         PD_LOG( PDERROR, "invalid substr argument rc = %d", rc ) ;
       }
 
       action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
@@ -106,16 +61,165 @@ namespace engine
       action.setName( _name.c_str() ) ;
       action.setArg( BSON( "arg1" << begin << "arg2" << limit ) ) ;
 
-   done:
       PD_TRACE_EXITRC( SDB__MTHSUBSTRPARSER_PARSE, rc ) ;
       return rc ;
-   error:
-      goto done ;
-   invalid_arg:
-      PD_LOG( PDERROR, "invalid substr argument:%s",
-                    e.toString( TRUE, TRUE ).c_str() ) ;
-      rc = SDB_INVALIDARG ;
-      goto error ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRCPPARSER_PARSE, "_mthSubStrCPParser::parse" )
+   INT32 _mthSubStrCPParser::parse( const bson::BSONElement &e,
+                                    _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRCPPARSER_PARSE ) ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, TRUE, begin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid substrCP argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthSubStrCPBuild,
+                      &mthSubStrCPGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg1" << begin << "arg2" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRCPPARSER_PARSE, rc ) ;
+      return rc ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSUBSTRBYTESPARSER_PARSE, "_mthSubStrBytesParser::parse" )
+   INT32 _mthSubStrBytesParser::parse( const bson::BSONElement &e,
+                                       _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSUBSTRBYTESPARSER_PARSE ) ;
+      INT32 begin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, TRUE, begin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid substrBytes argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthSubStrBytesBuild,
+                      &mthSubStrBytesGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg1" << begin << "arg2" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHSUBSTRBYTESPARSER_PARSE, rc ) ;
+      return rc ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTCPPARSER_PARSE, "_mthRightCPParser::parse" )
+   INT32 _mthRightCPParser::parse( const bson::BSONElement &e,
+                                   _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTCPPARSER_PARSE ) ;
+      INT32 dummyBegin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, FALSE, dummyBegin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid rightCP argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthRightCPBuild,
+                      &mthRightCPGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHRIGHTCPPARSER_PARSE, rc ) ;
+      return rc ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHRIGHTBYTESPARSER_PARSE, "_mthRightBytesParser::parse" )
+   INT32 _mthRightBytesParser::parse( const bson::BSONElement &e,
+                                      _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHRIGHTBYTESPARSER_PARSE ) ;
+      INT32 dummyBegin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, FALSE, dummyBegin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid rightBytes argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthRightBytesBuild,
+                      &mthRightBytesGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHRIGHTBYTESPARSER_PARSE, rc ) ;
+      return rc ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTCPPARSER_PARSE, "_mthLeftCPParser::parse" )
+   INT32 _mthLeftCPParser::parse( const bson::BSONElement &e,
+                                  _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTCPPARSER_PARSE ) ;
+      INT32 dummyBegin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, FALSE, dummyBegin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid leftCP argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthLeftCPBuild,
+                      &mthLeftCPGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHLEFTCPPARSER_PARSE, rc ) ;
+      return rc ;
+
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLEFTBYTESPARSER_PARSE, "_mthLeftBytesParser::parse" )
+   INT32 _mthLeftBytesParser::parse( const bson::BSONElement &e,
+                                     _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHLEFTBYTESPARSER_PARSE ) ;
+      INT32 dummyBegin = 0 ;
+      INT32 limit = -1 ;
+
+      rc = mthParseSubStrArgs( e, FALSE, dummyBegin, limit ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "invalid leftBytes argument rc = %d", rc ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthLeftBytesBuild,
+                      &mthLeftBytesGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg" << limit ) ) ;
+
+      PD_TRACE_EXITRC( SDB__MTHLEFTBYTESPARSER_PARSE, rc ) ;
+      return rc ;
+
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENPARSER_PARSE, "_mthStrLenParser::parse" )

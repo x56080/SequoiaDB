@@ -183,6 +183,66 @@ namespace engine
                        _mthSAction *,
                        bson::BSONElement & ) ;
 
+   INT32 mthSubStrCPBuild( const CHAR *,
+                           const bson::BSONElement &,
+                           _mthSAction *,
+                           bson::BSONObjBuilder & ) ;
+
+   INT32 mthSubStrCPGet( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONElement & ) ;
+
+   INT32 mthSubStrBytesBuild( const CHAR *,
+                              const bson::BSONElement &,
+                              _mthSAction *,
+                              bson::BSONObjBuilder & ) ;
+
+   INT32 mthSubStrBytesGet( const CHAR *,
+                            const bson::BSONElement &,
+                            _mthSAction *,
+                            bson::BSONElement & ) ;
+
+   INT32 mthRightCPBuild( const CHAR *,
+                          const bson::BSONElement &,
+                          _mthSAction *,
+                          bson::BSONObjBuilder & ) ;
+
+   INT32 mthRightCPGet( const CHAR *,
+                        const bson::BSONElement &,
+                        _mthSAction *,
+                        bson::BSONElement & ) ;
+
+   INT32 mthRightBytesBuild( const CHAR *,
+                             const bson::BSONElement &,
+                             _mthSAction *,
+                             bson::BSONObjBuilder & ) ;
+
+   INT32 mthRightBytesGet( const CHAR *,
+                           const bson::BSONElement &,
+                           _mthSAction *,
+                           bson::BSONElement & ) ;
+
+   INT32 mthLeftCPBuild( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONObjBuilder & ) ;
+
+   INT32 mthLeftCPGet( const CHAR *,
+                       const bson::BSONElement &,
+                       _mthSAction *,
+                       bson::BSONElement & ) ;
+
+   INT32 mthLeftBytesBuild( const CHAR *,
+                            const bson::BSONElement &,
+                            _mthSAction *,
+                            bson::BSONObjBuilder & ) ;
+
+   INT32 mthLeftBytesGet( const CHAR *,
+                          const bson::BSONElement &,
+                          _mthSAction *,
+                          bson::BSONElement & ) ;
+
    INT32 mthStrLenBuild( const CHAR *,
                          const bson::BSONElement &,
                          _mthSAction *,

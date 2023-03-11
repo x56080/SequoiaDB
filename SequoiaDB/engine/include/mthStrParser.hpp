@@ -50,7 +50,91 @@ namespace engine
 
    public:
       virtual INT32 parse( const bson::BSONElement &e,
-                            _mthSAction &action ) const ;
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthSubStrCPParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthSubStrCPParser()
+      {
+         _name = MTH_S_SUBSTRCP ;
+      }
+      virtual ~_mthSubStrCPParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthSubStrBytesParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthSubStrBytesParser()
+      {
+         _name = MTH_S_SUBSTRBYTES ;
+      }
+      virtual ~_mthSubStrBytesParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthRightCPParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthRightCPParser()
+      {
+         _name = MTH_S_RIGHTCP ;
+      }
+      virtual ~_mthRightCPParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthRightBytesParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthRightBytesParser()
+      {
+         _name = MTH_S_RIGHTBYTES ;
+      }
+      virtual ~_mthRightBytesParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthLeftCPParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthLeftCPParser()
+      {
+         _name = MTH_S_LEFTCP ;
+      }
+      virtual ~_mthLeftCPParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
+   class _mthLeftBytesParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthLeftBytesParser()
+      {
+         _name = MTH_S_LEFTBYTES ;
+      }
+      virtual ~_mthLeftBytesParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
    } ;
 
    class _mthStrLenParser : public _mthSActionParser::parser
@@ -64,7 +148,7 @@ namespace engine
 
    public:
       virtual INT32 parse( const bson::BSONElement &e,
-                            _mthSAction &action ) const ;
+                           _mthSAction &action ) const ;
    } ;
 
    class _mthStrLenBytesParser : public _mthSActionParser::parser

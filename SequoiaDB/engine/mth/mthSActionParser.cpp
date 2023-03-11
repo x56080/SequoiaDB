@@ -219,6 +219,24 @@ namespace engine
       /// $substr
       MTH_ADD_PARSER( _mthSubStrParser ) ;
 
+      /// $substrCP
+      MTH_ADD_PARSER( _mthSubStrCPParser ) ;
+
+      /// $substrBYTES
+      MTH_ADD_PARSER( _mthSubStrBytesParser ) ;
+
+      /// $rightCP
+      MTH_ADD_PARSER( _mthRightCPParser ) ;
+
+      /// $rightBytes
+      MTH_ADD_PARSER( _mthRightBytesParser ) ;
+
+      /// $leftCP
+      MTH_ADD_PARSER( _mthLeftCPParser ) ;
+
+      /// $leftBytes
+      MTH_ADD_PARSER( _mthLeftBytesParser ) ;
+
       /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 
