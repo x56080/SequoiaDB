@@ -8,115 +8,44 @@
 removeNode \- remove the specified node in the replication group
 .SH SYNOPSIS
 .PP
-\f[B]rg.removeNode(<host>, <service>, [options])\f[]
+\f[B]rg.removeNode(<hostname>, <svcname>, [options])\f[]
 .SH CATEGORY
 .PP
 SdbReplicaGroup
 .SH DESCRIPTION
 .PP
-This function is used to remove the specified node in the replication group.
+This function is used to remove the specified node in the current replication
+group.
 .SH PARAMETERS
+.IP \[bu] 2
+hostname ( \f[I]string, required\f[] )
+.RS 2
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-Name
-T}@T{
-Type
-T}@T{
-Description
-T}@T{
-Required or not
-T}
-_
-T{
-1
-T}@T{
-host
-T}@T{
-string
-T}@T{
-Node hostname.
-T}@T{
-yes
-T}
-T{
-2
-T}@T{
-service
-T}@T{
-number
-T}@T{
-Node port number.
-T}@T{
-yes
-T}
-T{
-3
-T}@T{
-options
-T}@T{
-object
-T}@T{
-Options, Users can
-T}@T{
-not
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-refer to the following
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-options description.
-T}@T{
-T}
-.TE
+Host name.
+.RE
+.IP \[bu] 2
+svcname ( \f[I]number/string, required\f[] )
+.RS 2
 .PP
-options：
+Node port name.
+.RE
+.IP \[bu] 2
+options ( \f[I]object, optional\f[] )
+.RS 2
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-Name
-T}@T{
-Type
-T}@T{
-Description
-T}@T{
-Default
-T}
-_
-T{
-1
-T}@T{
-Enforced
-T}@T{
-boolean
-T}@T{
-Forced node deletion or
-T}@T{
-false
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-not.
-T}@T{
-T}
-.TE
+Set the optional parameter through the parameter "options":
+.PP
+Enforced ( \f[I]boolean\f[] )：Whether to forcibly remove the node, and the
+default value is "false", which means that the node is not forcibly removed.
+.IP \[bu] 2
+When there are multiple nodes in the replication group, if the user needs to
+remove the primary node, the user needs to specify "Enforced" as "true".
+.IP \[bu] 2
+If the user needs to remove the only empty node in the group, the user needs to
+specify "Enforced" as "true".
+.PP
+Format: \f[C]Enforced: true\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -124,6 +53,122 @@ When the function executes successfully, there is no return value.
 When the function fails, an exception will be thrown and an error message will
 be printed.
 .SH ERRORS
+.PP
+The common exceptions of \f[C]removeNode()\f[] function are as follows:
+.PP
+.TS
+tab(@);
+l l l l l.
+T{
+0
+T}@T{
+Error Code
+T}@T{
+Error Type
+T}@T{
+Description
+T}@T{
+Solution
+T}
+_
+T{
+1
+T}@T{
+\-204
+T}@T{
+SDB_CATA_RM_NODE_
+T}@T{
+Attempts to remove the
+T}@T{
+It is necessary to
+T}
+T{
+T}@T{
+T}@T{
+FORBIDDEN
+T}@T{
+only non\-empty node
+T}@T{
+remove the data of the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+within the group.
+T}@T{
+current node first, and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+then execute the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+remove operation.
+T}
+T{
+2
+T}@T{
+\-206
+T}@T{
+SDB_CATA_RM_CATA_
+T}@T{
+Attempts to remove the
+T}@T{
+Only standby catalog
+T}
+T{
+T}@T{
+T}@T{
+FORBIDDEN
+T}@T{
+primary catalog node.
+T}@T{
+nodes can be removed.
+T}
+T{
+3
+T}@T{
+\-79
+T}@T{
+SDB_NET_CANNOT_CONNECT
+T}@T{
+The CM process on the
+T}@T{
+If the user needs to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+remove node host does
+T}@T{
+force remove, the user
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+not exist, or the host
+T}@T{
+can add {Enforced:
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+is down.
+T}@T{
+true} option.
+T}
+.TE
 .PP
 When the exception happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
@@ -133,24 +178,24 @@ For more details, refer to Troubleshooting.
 v2.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Remove the node in the replication group1.
+Remove the node in the replication "group1".
 .RS 2
 .IP
 .nf
 \f[C]
 > var rg = db.getRG("group1")
-> rg.removeNode("vmsvr2\-suse\-x64", 11800)
+> rg.removeNode("sdbserver", 11820)
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Force removetion of nodes in the replication group1.
+Force removetion of nodes in the replication "group1".
 .RS 2
 .IP
 .nf
 \f[C]
 > var rg = db.getRG("group1")
-> rg.removeNode("vmsvr2\-suse\-x64", 11800, {Enforced: true})
+> rg.removeNode("sdbserver", 11820, {Enforced: true})
 \f[]
 .fi
 .RE
