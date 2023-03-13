@@ -64,7 +64,7 @@ namespace engine
 {
 
    //The max del session deque size
-   #define MAX_SHD_SESSION_CATCH_DEQ_SIZE          (1000)
+   #define MAX_SHD_SESSION_CATCH_DEQ_SIZE          (2000)
 
    #define CLS_WAIT_CB_ATTACH_TIMEOUT              ( 300 * OSS_ONE_SEC )
 
@@ -253,7 +253,7 @@ namespace engine
       else if ( _sessionTimerID == timerID )
       {
          ossScopedLock lock( &_metaLatch ) ;
-         if ( _mapSession.size() <= MAX_SHD_SESSION_CATCH_DEQ_SIZE / 2 )
+         if ( _mapSession.size() <= MAX_SHD_SESSION_CATCH_DEQ_SIZE )
          {
             goto done ;
          }

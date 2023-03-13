@@ -60,7 +60,7 @@ using namespace bson ;
 namespace engine
 {
 
-#define SHD_SESSION_TIMEOUT         (60)
+#define SHD_SESSION_TIMEOUT         (300)
 #define SHD_INTERRUPT_CHECKPOINT    (10)
 #define SHD_NOTPRIMARY_WAITTIME     (20000)     //ms
 #define SHD_TRANSROLLBACK_WAITTIME  (60000)     //ms
