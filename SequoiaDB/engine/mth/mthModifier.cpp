@@ -429,11 +429,19 @@ namespace engine
          }
          else if ( !elt.isNumber() )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "Field %s is not a nubmer in record: %s",
-                        me.getSourceFieldName(),
-                        _sourceRecord.toString().c_str() ) ;
-            goto error ;
+            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR),
+                        "Field %s is not a nubmer in record: %s",
+                        me.getSourceFieldName(), _sourceRecord.toString().c_str() ) ;
+            if ( _ignoreTypeError )
+            {
+               bb.append( in ) ;
+               goto done ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
          }
       }
       else if ( me._isSimple )
