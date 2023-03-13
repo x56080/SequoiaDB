@@ -4,7 +4,7 @@ removeNode - 删除当前复制组中的指定节点
 
 ##语法##
 
-**rg.removeNode( \<host\>, \<service\>, [options] )**
+**rg.removeNode(\<hostname\>, \<svcname\>, [options])**
 
 ##类别##
 
@@ -12,35 +12,46 @@ SdbReplicaGroup
 
 ##描述##
 
-删除当前复制组中的指定节点。
+该函数用于删除当前复制组中的指定节点。
 
 ##参数##
 
-| 参数名  | 参数类型   | 描述           | 是否必填 |
-|---------|------------|----------------|----------|
-| host    | string     | 节点主机名。   | 是       |
-| service | int/string | 节点端口号。   | 是       |
-| options | Json 对象 | 可选项，详见如下options选项说明。 | 否 |
+- hostname（ *string，必填* ）
 
-options 选项：
+    主机名
 
-| 参数名  |  参数类型  |  描述                        |  默认值 |
-| ------- | ---------- | ---------------------------- | ------- |
-| Enforced | bool      | 是否强制删除节点。           |  false  |
+- svcname（ *number/string，必填* ）
+
+    节点端口号
+
+- options（ *object，选填* ）
+
+    通过 options 参数可以设置选填参数：
+
+    Enforced（ *boolean* ）：是否强制删除节点，默认值为 false，表示不强制删除节点
+
+    - 当复制组存在多个节点时，如果需要删除主节点，需指定 Enforced 为 true。
+    - 如果需要删除组内唯一的空节点，需指定 Enforced 为 true。
+
+    格式：`Enforced: true`
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息。可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息，通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。 
 
 ##错误##
 
-| 错误码 | 可能的原因 | 解决方法 |
-| ------ | ------ | ------ |
-| -204   | 尝试删除主节点，<br>或者组内最后一个节点 | 如果需要强制删除空的主节点，可以加入 { Enforced: true } 选项 |
-| -206   | 尝试删除主编目节点 | 只能删除备编目节点 |
-| -79    | 删除节点主机上的CM进程不存在，<br>或者主机宕机 | 如果需要强制删除，可以加入 { Enforced: true } 选项 |
+`removeNode()` 函数常见异常如下：
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | ---------|----------------| ---------|
+| -204   | SDB_CATA_RM_NODE_FORBIDDEN | 尝试删除组内唯一的非空节点 | 需先移除当前节点的数据，再执行删除操作 |
+| -206   | SDB_CATA_RM_CATA_FORBIDDEN | 尝试删除主编目节点 | 只能删除备编目节点 |
+| -79    | SDB_NET_CANNOT_CONNECT | 删除节点主机上的CM进程不存在，或者主机宕机 | 如果需要强制删除，可以加入 {Enforced: true} 选项 |
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -48,16 +59,23 @@ v2.0 及以上版本
 
 ##示例##
 
-删除 group1 复制组中节点
+- 删除复制组 group1 中的节点
 
-```lang-javascript
-> var rg = db.getRG( "group1" )
-> rg.removeNode( "vmsvr2-suse-x64", 11800 )
-```
+    ```lang-javascript
+    > var rg = db.getRG("group1")
+    > rg.removeNode("sdbserver", 11820)
+    ```
 
-强制删除 group1 复制组中的节点
+- 强制删除复制组 group1 中的节点
 
-```lang-javascript
-> var rg = db.getRG("group1")
-> rg.removeNode( "vmsvr2-suse-x64", 11800, { Enforced: true } )
-```
+    ```lang-javascript
+    > var rg = db.getRG("group1")
+    > rg.removeNode("sdbserver", 11820, {Enforced: true})
+    ```
+
+[^_^]:
+    本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
