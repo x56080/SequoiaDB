@@ -5,22 +5,22 @@ Import("env")
 Import("dllBuildEnv")
 Import("staticBuildEnv")
 
-gtestFiles = [ 
-   "../../../../../SequoiaDB/engine/gtest/src/gtest-all.cc" 
+gtestFiles = [
+   "../../../../../SequoiaDB/engine/gtest/src/gtest-all.cc"
 ]
 
 testMainFile = [
    "./common/testMain.cpp"
 ]
 
-testCommonFiles = [ 
+testCommonFiles = [
    "./common/testcommon.cpp",
    "./common/impWorker.cpp",
    "./common/arguments.cpp",
    "./common/testBase.cpp"
 ]
 
-testFiles = [ 
+testFiles = [
    [ "./lob/lob23377.cpp" ],
    [ "./lob/lob23411.cpp" ],
    [ "./checkClientCataVersion/checkClientCataVersion22815.cpp" ],
@@ -80,6 +80,7 @@ testFiles = [
    [ "./split/splitHash12683.cpp" ],
    [ "./split/task12527.cpp" ],
    [ "./crud/bulkInsert12540_12666.cpp" ],
+   [ "./crud/insertWithFlag30391.cpp" ],
    [ "./crud/setSessionAttr12538.cpp" ],
    [ "./crud/upsert12541.cpp" ],
    [ "./crud/cudtest26312_4.cpp" ],
@@ -216,13 +217,13 @@ testFiles = [
 
 def getFileName( filePath ):
    strArr = re.split( r'[/.]', filePath )
-   # last element is suffix, 
+   # last element is suffix,
    # second last element is the name
    return strArr[-2]
 
 def getObjectName( filePath ):
    return getFileName( filePath ) + ".o"
-                      
+
 # add common to path
 dllBuildEnv.Append( CPPPATH=[ "./common/" ] )
 staticBuildEnv.Append( CPPPATH=[ "./common/" ] )
@@ -238,7 +239,7 @@ commObj = []
 for file in testCommonFiles:
    commonFileName = getFileName( file )
    commonFile = dllBuildEnv.Object( commonFileName, [file] )
-   commObj.append( commonFile ) 
+   commObj.append( commonFile )
 
 # compile test object file
 objectFiles = []
@@ -248,7 +249,7 @@ for index in range( len(testFiles) ):
       objectFileName = getObjectName( file )
       objectFile = dllBuildEnv.Object( objectFileName, [file] )
       objectFileArr.append( objectFile )
-   objectFiles.append( objectFileArr ) 
+   objectFiles.append( objectFileArr )
 
 # dll compile
 dllPrograms = []
