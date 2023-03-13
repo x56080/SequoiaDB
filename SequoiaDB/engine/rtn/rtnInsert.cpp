@@ -185,7 +185,7 @@ retry:
                   }
                }
 
-               rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, &upResult,
+               rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, 1, &upResult,
                                shardingKey.isEmpty() ? NULL : &shardingKey,
                                DPS_LOG_WRITE_MODE_INCREMENT, handler ) ;
                
