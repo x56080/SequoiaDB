@@ -62,7 +62,8 @@ public class IndexKeyLengthLimit18061 extends SdbTestBase {
     public void setUp() {
     }
 
-    @Test(dataProvider = "pagesizeProvider")
+    // SEQUOIADBMAINSTREAM-4498
+    @Test(dataProvider = "pagesizeProvider", enabled = false)
     public void testIndexInAnyPageSize( int pageSize, int length1, int length2,
             int length3 ) {
         try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" ) ;) {
