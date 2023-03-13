@@ -14,12 +14,14 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [createDomain()][createDomain] | 创建域 |
 | [createProcedure()][createProcedure] | 创建存储过程 |
 | [createRG()][createRG] | 新建复制组 |
+| [createSchema][createSchema] | 创建 Schema |
 | [createSequence()][createSequence] | 创建序列对象 |
 | [createSpareRG()][createSpareRG]| 创建热备组 |
 | [createUsr()][createUsr] | 创建数据库用户 |
 | [dropCS()][dropCS] | 删除一个已存在的集合空间 |
 | [dropDataSource()][dropDataSource] | 删除数据源 |
 | [dropDomain()][dropDomain] | 删除域 |
+| [dropSchema][dropSchema] | 删除指定的 Schema |
 | [dropSequence()][dropSequence] | 删除指定的序列 |
 | [dropUsr()][dropUsr] | 删除数据库用户 |
 | [eval()][eval] | 调用存储过程 |
@@ -35,6 +37,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [getDomain()][getDomain] | 获取指定域 |
 | [getRecycleBin()][getRecycleBin] | 获取回收站的引用 |
 | [getRG()][getRG] | 获取指定复制组 |
+| [getSchema][getSchema] | 获取指定 Schema 的引用|
 | [getSequence()][getSequence] | 获取指定的序列对象 |
 | [getSessionAttr()][getSessionAttr] | 获取会话属性 |
 | [getSpareRG()][getSpareRG] | 获取备份组的引用 |
@@ -151,3 +154,6 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [transRollback]:manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
+[createSchema]:manual/Manual/Sequoiadb_Command/Sdb/createSchema.md
+[dropSchema]:manual/Manual/Sequoiadb_Command/Sdb/dropSchema.md
+[getSchema]:manual/Manual/Sequoiadb_Command/Sdb/getSchema.md

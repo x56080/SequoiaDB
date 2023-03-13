@@ -177,6 +177,13 @@ ans automatically created.
 .PP
 Format: \f[C]AutoIndexId: false\f[]
 .RE
+.IP \[bu] 2
+EnableInfoSchema ( \f[I]boolean\f[] ): Whether to enable the Information Schema
+function, and the default value is "false", which means it is not enable.
+.RS 2
+.PP
+Format: \f[C]EnableInfoSchema: true\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.

@@ -10,6 +10,7 @@
     | [SYSNODES][sysnodes] | 保存了该集群中所有的逻辑节点与复制组信息 |
     | [SYSTASKS][systasks] | 保存了该集群中所有正在运行的后台任务信息 |
     | [SYSDATASOURCES][sysdatasource] | 保存了该集群中所有数据源的元数据信息 |
+    | [SYSSCHEMAS][syschema] | 保存了该集群中所有 Schema 的信息 |
 
 - SYSAUTH：系统认证集合空间，包含一个用户集合，保存当前系统中所有的用户信息
 
@@ -55,3 +56,4 @@
 [sysdatasource]:manual/Manual/Catalog_Table/SYSDATASOURCES.md
 [storeprocedures]:manual/Manual/Catalog_Table/STOREPROCEDURES.md
 [sequences]:manual/Manual/Catalog_Table/SEQUENCES.md
+[syschema]:manual/Manual/Catalog_Table/SYSSCHEMAS.md

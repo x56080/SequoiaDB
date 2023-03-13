@@ -140,6 +140,10 @@ This function is used to create a collection in the specified collection space. 
         >
         > For the specific usage scenarios of the parameters "DataSource" and "Mapping", refer to [Data Source][datasource].
 
+    - EnableInfoSchema ( *boolean* ): Whether to enable the [Information Schema][schema] function, and the default value is "false", which means it is not enable.
+
+        Format: `EnableInfoSchema: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, it will return an object of type SdbCollection.
@@ -221,6 +225,7 @@ v1.0 and above
 [sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md#集合
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[schema]:manual/Distributed_Engine/Architecture/infoSchema.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

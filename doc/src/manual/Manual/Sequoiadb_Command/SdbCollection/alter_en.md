@@ -106,6 +106,10 @@ Modify the collection properties through the parameter "options":
 
     Format: `AutoIndexId: false`
 
+- EnableInfoSchema ( *boolean* ): Whether to enable the [Information Schema][schema] function, and the default value is "false", which means it is not enable.
+
+    Format: `EnableInfoSchema: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
@@ -160,6 +164,7 @@ v1.12 and above
 [^_^]:
     Links
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
+[schema]:manual/Distributed_Engine/Architecture/infoSchema.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

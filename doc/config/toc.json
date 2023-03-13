@@ -1279,6 +1279,12 @@
                      "file": "compression_encryption",
                      "cn": "数据压缩",
                      "en": "Compression Encryption"
+                  },
+                  {
+                     "id": 1676466303,
+                     "file": "infoSchema",
+                     "cn": "Information Schema",
+                     "en": "Information Schema"
                   }
                ]
             },
@@ -1306,6 +1312,12 @@
                      "file": "build_datasource",
                      "cn": "搭建数据源",
                      "en": "Build DataSource"
+                  },
+                  {
+                     "id": 1676466371,
+                     "file": "infoSchema",
+                     "cn": "使用 Information Schema",
+                     "en": "use Information Schema"
                   }
                ]
             },
@@ -2635,6 +2647,12 @@
                            "en": "createRG()"
                         },
                         {
+                           "id": 1676466033,
+                           "file": "createSchema",
+                           "cn": "createSchema()",
+                           "en": "createSchema()"
+                        },
+                        {
                            "id": 1606120774,
                            "file": "createSequence",
                            "cn": "createSequence()",
@@ -2669,6 +2687,12 @@
                            "file": "dropDomain",
                            "cn": "dropDomain()",
                            "en": "dropDomain()"
+                        },
+                        {
+                           "id": 1676465963,
+                           "file": "dropSchema",
+                           "cn": "dropSchema()",
+                           "en": "dropSchema()"
                         },
                         {
                            "id": 1606120775,
@@ -2759,6 +2783,12 @@
                            "file": "getRG",
                            "cn": "getRG()",
                            "en": "getRG()"
+                        },
+                        {
+                           "id": 1676465844,
+                           "file": "getSchema",
+                           "cn": "getSchema()",
+                           "en": "getSchema()"
                         },
                         {
                            "id": 1606120776,
@@ -3088,6 +3118,12 @@
                      "cn": "SdbCollection",
                      "en": "SdbCollection",
                      "contents": [
+                        {
+                           "id": 1676466128,
+                           "file": "addSchema",
+                           "cn": "addSchema()",
+                           "en": "addSchema()"
+                        },
                         {
                            "id": 1432190825,
                            "file": "aggregate",
@@ -3767,6 +3803,38 @@
                            "file": "snapshot",
                            "cn": "snapshot()",
                            "en": "snapshot()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1676464880,
+                     "dir": "SdbSchema",
+                     "cn": "SdbSchema",
+                     "en": "SdbSchema",
+                     "contents": [
+                        {
+                           "id": 1676464944,
+                           "file": "addColumn",
+                           "cn": "addColumn()",
+                           "en": "addColumn()"
+                        },
+                        {
+                           "id": 1676464988,
+                           "file": "alterColumn",
+                           "cn": "alterColumn()",
+                           "en": "alterColumn()"
+                        },
+                        {
+                           "id": 1676465036,
+                           "file": "dropColumn",
+                           "cn": "dropColumn()",
+                           "en": "dropColumn()"
+                        },
+                        {
+                           "id": 1676467283,
+                           "file": "renameColumn",
+                           "cn": "renameColumn()",
+                           "en": "renameColumn()"
                         }
                      ]
                   },
@@ -5983,6 +6051,12 @@
                      "en": "SYSINDEXES"
                   },
                   {
+                     "id": 1676465338,
+                     "file": "SYSSCHEMAS",
+                     "cn": "SYSSCHEMAS集合",
+                     "en": "SYSSCHEMAS"
+                  },
+                  {
                      "id": 1519625795,
                      "file": "SYSTASKS",
                      "cn": "SYSTASKS集合",
@@ -6273,6 +6347,12 @@
                      "file": "SDB_LIST_RECYCLEBIN",
                      "cn": "回收站项目列表",
                      "en": "SDB_LIST_RECYCLEBIN"
+                  },
+                  {
+                     "id": 1676465524,
+                     "file": "SDB_LIST_SCHEMAS",
+                     "cn": "Schema 列表",
+                     "en": "SDB_LIST_SCHEMAS"
                   }
                ]
             },

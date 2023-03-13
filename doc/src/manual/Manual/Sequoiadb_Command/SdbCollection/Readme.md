@@ -2,6 +2,7 @@ SdbCollection 类主要用于操作集合，包含的函数如下：
 
 | 名称 | 描述 |
 |------|------|
+| [addSchema][addSchema]| 绑定 Schema |
 | [aggregate()][aggregate] | 计算集合中数据的聚合值 |
 | [alter()][alter] | 修改集合的属性 |
 | [attachCL()][attachCL] | 挂载子分区集合 |
@@ -41,6 +42,7 @@ SdbCollection 类主要用于操作集合，包含的函数如下：
 
 [^_^]:
      本文使用的所有引用及链接
+[addSchema]:manual/Manual/Sequoiadb_Command/SdbCollection/addSchema.md
 [aggregate]:manual/Manual/Sequoiadb_Command/SdbCollection/aggregate.md
 [alter]:manual/Manual/Sequoiadb_Command/SdbCollection/alter.md
 [attachCL]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md

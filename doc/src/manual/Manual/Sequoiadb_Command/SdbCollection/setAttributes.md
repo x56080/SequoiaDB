@@ -106,6 +106,10 @@ options ( *object，必填* )
 
     格式：`AutoIndexId: false`
 
+- EnableInfoSchema（ *boolean* ）：是否开启 [Information Schema][schema] 功能，默认值为 false，表示不开启
+
+    格式：`EnableInfoSchema: true`
+
 ##返回值##
 
 函数执行成功时，无返回值。
@@ -160,6 +164,7 @@ v2.10 及以上版本
 [^_^]:
     本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
+[schema]:manual/Distributed_Engine/Architecture/infoSchema.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

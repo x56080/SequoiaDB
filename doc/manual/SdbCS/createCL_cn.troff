@@ -202,6 +202,13 @@ Mapping（ \f[I]string\f[] ）：所映射的集合名
 参数 DataSource 和 Mapping 的具体使用场景可参考数据源。
 .RE
 .RE
+.IP \[bu] 2
+EnableInfoSchema（ \f[I]boolean\f[] ）：是否开启 Information Schema
+功能，默认值为 false，表示不开启
+.RS 2
+.PP
+格式：\f[C]EnableInfoSchema: true\f[]
+.RE
 .RE
 .SH 返回值
 .PP

@@ -25,6 +25,7 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
 |Mapping|string|在数据源中所映射的集合名称（仅使用数据源的集合显示）|
 | CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
 | UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
+| Schema | string | 与集合绑定的 Schema（仅使用 Information Schema 的集合显示）|
 
 **示例**
 

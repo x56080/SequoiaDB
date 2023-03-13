@@ -140,6 +140,10 @@ SdbCS
         >
         > 参数 DataSource 和 Mapping 的具体使用场景可参考[数据源][datasource]。
 
+    - EnableInfoSchema（ *boolean* ）：是否开启 [Information Schema][schema] 功能，默认值为 false，表示不开启
+
+        格式：`EnableInfoSchema: true`
+
 ##返回值##
  
 函数执行成功时，将返回一个 SdbCollection 类型的对象。
@@ -221,6 +225,7 @@ v1.0 及以上版本
 [sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md#集合
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[schema]:manual/Distributed_Engine/Architecture/infoSchema.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
