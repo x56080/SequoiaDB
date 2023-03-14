@@ -18,6 +18,8 @@ testConf.csName  = COMMCSNAME + "_xxx";         指定框架创建的 cs 名
 testConf.csOpt = {};                            指定创建的 cs 配置项
 testConf.clName = COMMCLNAME + "_xxx";          指定框架创建的 cl 名
 testConf.clOpt = {};                            指定创建的 cl 配置项
+testConf.schemaName = COMMSCHEMANAME + "_xxx";  指定框架创建的 schema 名
+testConf.schemaDef = {};                        指定创建的 schema 的字段定义
 testConf.testGroups = null;                     用于测试分组，对相同分组的用例统一修改配置(只能用于串行用例，或修改不影响其他用例的配置，如：setSessionAttr)
 
 出参：
@@ -25,6 +27,7 @@ function test(testPara) {}
 testPara.groups           获取数据组的信息，没有前置要求，可直接获取
 testPara.testCS           获取创建的 cs，不指定 testConf.csName 则获取公共cs
 testPara.testCL           获取创建的 cl，需要指定 testConf.clName
+testPara.testSchema       获取创建的 schema，需要指定 testConf.schemaName 和 testConf.schemaDef
 testPara.srcGroupName     获取创建的 cl 所在组，需要指定 testConf.clName,testConf.useSrcGroup = true
 testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testConf.clName,testConf.useDstGroup = true
 */
@@ -213,6 +216,18 @@ function createTestCL ( db, testConf )
    }
 }
 
+function createTestSchema ( db, testConf )
+{
+   if( testConf.schemaName !== undefined )
+   {
+      var objSchema = null;
+      // try drop schema
+      commDropSchema( db, testConf.schemaName, true );
+      objSchema = commCreateSchema( db, testConf.schemaName, testConf.schemaDef, {}, false );
+      return objSchema;
+   }
+}
+
 function dropTestCS ( db, testConf )
 {
    if( testConf.csName !== undefined &&
@@ -234,6 +249,14 @@ function dropTestCL ( db, testConf )
       testConf.csName === COMMCSNAME )
    {
       commDropCL( db, testConf.csName, testConf.clName, true, true );
+   }
+}
+
+function dropTestSchema ( db, testConf )
+{
+   if( testConf.schemaName !== undefined )
+   {
+      commDropSchema( db, testConf.schemaName, true );
    }
 }
 
@@ -279,6 +302,7 @@ function commonSetUp ( db, testConf )
    checkEnv( db, testConf );
    initTestGroups( db, testConf.testGroups );
 
+   testPara.testSchema = createTestSchema( db, testConf );
    testPara.testCS = createTestCS( db, testConf );
    testPara.testCL = createTestCL( db, testConf );
 }
@@ -289,6 +313,7 @@ function commonTearDown ( db, testConf )
    {
       dropTestCL( db, testConf );
       dropTestCS( db, testConf );
+      dropTestSchema( db, testConf );
       db.close();
    }
 }
