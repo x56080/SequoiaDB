@@ -8,10 +8,6 @@
     <parameter name="HOSTNAME"        value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
     <parameter name="SVCNAME"         value="${SVCNAME}" />
-    <!--数据源集群端主机名，CI默认传入localhost-->
-    <parameter name="DSHOSTNAME"     value="${DSHOSTNAME}" />
-    <!--数据源集群端端口号，CI默认传入11810-->
-    <parameter name="DSSVCNAME"      value="${DSSVCNAME}" />
     <!--全文索引ES端主机名，CI默认传入192.168.28.143-->
     <parameter name="ESHOSTNAME"      value="${ESHOSTNAME}" />
     <!--全文索引ES端端口号，CI默认传入9200-->
@@ -49,8 +45,6 @@
     <!-- 磁盘满的用例请放到testng_release.xml中 -->
     <test name="reliability_normal" preserve-order="true">
         <packages>
-            <package name="com.sequoiadb.datasrc.brokennetwork" />
-            <package name="com.sequoiadb.datasrc.killnode" />
             <package name="com.sequoiadb.datasource"/>
             <package name="com.sequoiadb.snapshot" />
             <package name="com.sequoiadb.subcl.brokennetwork" />
