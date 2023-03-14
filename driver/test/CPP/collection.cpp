@@ -2153,3 +2153,95 @@ TEST(debug, getIndexes)
    connection.disconnect() ;
 }
 
+TEST( sdbCollection, dropAutoIncrement )
+{
+   sdb connection ;
+   sdbCollectionSpace cs ;
+   sdbCollection cl ;
+
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   INT32 rc                                 = SDB_OK ;
+   string fieldName1                        = "fieldName1" ;
+   string fieldName2                        = "fieldName2" ;
+   BSONObj obj1                             = BSON( "Field" << fieldName1 ) ;
+   BSONObj obj2                             = BSON( "Field" << fieldName2 ) ;
+
+   vector<string> fieldNames ;
+
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs );
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // drop one
+   rc = cl.createAutoIncrement( obj1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   fieldNames.push_back( fieldName1 ) ;
+   rc = cl.dropAutoIncrement( fieldNames ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // drop multiple
+   rc = cl.createAutoIncrement( obj1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = cl.createAutoIncrement( obj2 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   fieldNames.push_back( fieldName2 ) ;
+   rc = cl.dropAutoIncrement( fieldNames ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   connection.disconnect() ;
+}
+
+TEST( sdbCollection, dropAutoIncrementWithEmptyString )
+{
+   sdb connection ;
+   sdbCollectionSpace cs ;
+   sdbCollection cl ;
+
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   INT32 rc                                 = SDB_OK ;
+   string fieldName                         = "fieldName" ;
+   BSONObj obj                              = BSON( "Field" << fieldName ) ;
+
+   vector<string> fieldNames ;
+
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs );
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = cl.createAutoIncrement( obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   fieldNames.push_back( fieldName ) ;
+   fieldNames.push_back( "" ) ;
+   rc = cl.dropAutoIncrement( fieldNames ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
+   fieldNames.pop_back() ;
+   rc = cl.dropAutoIncrement( fieldNames ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   connection.disconnect() ;
+}

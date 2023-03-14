@@ -644,6 +644,8 @@ namespace sdbclient
 
       virtual INT32 dropAutoIncrement( const std::vector<const CHAR*> &fieldNames ) = 0;
 
+      virtual INT32 dropAutoIncrement( const std::vector<string> &fieldNames ) = 0 ;
+
       virtual INT32 pop ( const bson::BSONObj &option = _sdbStaticObject ) = 0 ;
 
       virtual INT32 enableSharding ( const bson::BSONObj &options ) = 0 ;
@@ -2481,6 +2483,21 @@ namespace sdbclient
           \retval Others Operation Fail
       */
       INT32 dropAutoIncrement ( const std::vector<const CHAR*> &fieldNames )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->dropAutoIncrement( fieldNames ) ;
+      }
+
+      /** \fn INT32 dropAutoIncrement( const std::vector<string> &fieldNames )
+          \brief Drop a bulk of autoincrement fields on collection
+          \param [in] fieldNames The array of autoincrement field names
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropAutoIncrement( const std::vector<string> &fieldNames )
       {
          if ( !pCollection )
          {
