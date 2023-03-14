@@ -1145,18 +1145,17 @@ namespace engine
       {
          if ( -scale < _mthLog10INT64Size )
          {
-            INT64 tmp = 0 ;
-            tmp = _mthLog10INT64[-scale];
+            INT64 tmp = _mthLog10INT64[-scale] ;
             INT64 carry = 0 ;
             /// pre-compute these, to avoid optimizing away '(v/tmp) * tmp'.
             volatile INT64 valueDivTmp = value / tmp ;
             /// get the remainder to determine whether to carry
             volatile INT64 valueModTmp = value % tmp ;
-            if ( 0 > value && tmp / 2 < -valueModTmp )
+            if ( 0 > value && tmp >> 1 <= -valueModTmp )
             {
                carry = -tmp ;
             }
-            else if ( 0 < value && tmp / 2 < valueModTmp )
+            else if ( 0 < value && tmp >> 1 <= valueModTmp )
             {
                carry = tmp ;
             }

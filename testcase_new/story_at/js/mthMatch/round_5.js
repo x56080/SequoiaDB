@@ -7,24 +7,24 @@
  * @Change Activity:
  * Date       Who           Description
  * ========== ============= =========================================================
- * 03/06/2022 JiangFeng You Init
+ * 03/13/2022 JiangFeng You Init
  **************************************************************************************************/
 
 /*********************************************测试用例***********************************************
  * 环境准备：
  * 测试场景：
- *    $round与匹配符配合使用 - double > 0
+ *    $round与匹配符配合使用 - int
  * 测试步骤：
- *    1. $round取值-1，发起查询
- *    2. $round取值0，发起查询
- *    3. $round取值1，发起查询
- *    3. $round取值2，发起查询
+ *    1. $round取值2，发起查询
+ *    2. $round取值1，发起查询
+ *    3. $round取值0，发起查询
+ *    4. $round取值-1，发起查询
  * 期望结果：
  *    期望结果与实际结果一致
  **************************************************************************************************/
 
 testConf.skipStandAlone = true;
-testConf.clName = COMMCLNAME + "_round_4";
+testConf.clName = COMMCLNAME + "_round_5";
 
 main(test);
 function test(args)
@@ -33,32 +33,31 @@ function test(args)
    cl.alter( { StrictDataMode: false } ) ;
 
    var expRecords = insertRecords( cl );
+   var actRecords = cl.find( {},{ "fieldName": { "$round": 2 } } ) ;
+   commCompareResults( actRecords, expRecords ) ;
+   var actRecords = cl.find( {},{ "fieldName": { "$round": 1} } ) ;
+   commCompareResults( actRecords, expRecords ) ;
+   var actRecords = cl.find( {},{ "fieldName": { "$round": 0 } } ) ;
+   commCompareResults( actRecords, expRecords ) ;
+
+
+   var expRecords = expectRecords()
+   var actRecords = cl.find( { "fieldName": { "$round": -1, "$et": -10 } } ) ;
+   commCompareResults( actRecords, expRecords ) ;
+
+   var expRecords = expectRecordsfor0()
    var actRecords = cl.find( { "fieldName": { "$round": -1, "$et": 0 } } ) ;
    commCompareResults( actRecords, expRecords ) ;
 
-   var actRecords = cl.find( { "fieldName": { "$round": 0, "$et": 3 } } ) ;
-   commCompareResults( actRecords, expRecords ) ;
-
-   var actRecords = cl.find( { "fieldName": { "$round": 1, "$et": 3.1 } } ) ;
-   commCompareResults( actRecords, expRecords ) ;
-
-   var expRecords = [] ;
-   var actRecords = cl.find( { "fieldName": { "$round": 1, "$et": 3.2 } } ) ;
-   commCompareResults( actRecords, expRecords ) ;
-
-   var expRecords = expectRecordsET3p14() ;
-   var actRecords = cl.find( { "fieldName": { "$round": 2, "$et": 3.14 } } ) ;
-   commCompareResults( actRecords, expRecords ) ;
-
-   var expRecords = expectRecordsET3p15() ;
-   var actRecords = cl.find( { "fieldName": { "$round": 2, "$et": 3.15 } } ) ;
+   var expRecords = expectRecordsfor10()
+   var actRecords = cl.find( { "fieldName": { "$round": -1, "$et": 10 } } ) ;
    commCompareResults( actRecords, expRecords ) ;
 
 }
 
 function insertRecords ( cl )
 {
-   var values = [ 3.14, 3.141, 3.142, 3.143, 3.144, 3.145, 3.146, 3.147, 3.148, 3.149 ];
+   var values = [ -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
    var docs = [];
    for( var i = 0; i < values.length; ++i )
    {
@@ -67,12 +66,12 @@ function insertRecords ( cl )
       docs.push( objs );
    }
    cl.insert( docs );
-   return docs;
+   return docs ;
 }
 
-function expectRecordsET3p14()
+function expectRecords()
 {
-   var values = [ 3.14, 3.141, 3.142, 3.143, 3.144 ];
+   var values = [ -9, -8, -7, -6, -5 ];
    var docs = [];
    for( var i = 0; i < values.length; ++i )
    {
@@ -83,9 +82,9 @@ function expectRecordsET3p14()
    return docs;
 }
 
-function expectRecordsET3p15()
+function expectRecordsfor0()
 {
-   var values = [ 3.145, 3.146, 3.147, 3.148, 3.149 ];
+   var values = [ -4,-3,-2,-1, 0, 1, 2, 3, 4 ];
    var docs = [];
    for( var i = 0; i < values.length; ++i )
    {
@@ -95,4 +94,18 @@ function expectRecordsET3p15()
    }
    return docs;
 }
+
+function expectRecordsfor10()
+{
+   var values = [ 5, 6, 7, 8, 9 ];
+   var docs = [];
+   for( var i = 0; i < values.length; ++i )
+   {
+      var fieldValue = values[i];
+      var objs = { "no": i+14, "fieldName": fieldValue };
+      docs.push( objs );
+   }
+   return docs;
+}
+
 
