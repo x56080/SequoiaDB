@@ -3163,10 +3163,10 @@
       </code>
 
       <code>
-         <name>SDB_CLS_NOT_LOCATION_PRIMARY</name>
+         <name>SDB_ERROR_RESERVED_395</name> <!--Not used-->
          <description>
-            <en>Node is not primary of location set</en>
-            <cn>非位置集主节点</cn>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
          </description>
       </code>
 
