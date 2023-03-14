@@ -11,31 +11,38 @@ main( test );
 
 function test ( testPara )
 {
+   var dbcl = testPara.testCL;
    var docs = [{ no: 0, a: -2, testb: "test0", num: 0 },
    { no: 1, a: { $numberLong: "9223372036854775000" }, testb: "test1", num: 123 },
    { no: 2, a: { num1: 20, num2: 0 }, testb: "test2", num: 4 },
-   { no: 3, a: ["test0", 10.23, 0], testb: "test3", num: -234 }];
-   testPara.testCL.insert( docs );
+   { no: 3, a: ["test0", 10.23, 0], testb: "test3", num: -234 },
+   { no: 4, a: "string", testb: "test4", num: 666 },
+   { no: 5, a: null, testb: 1, num: 777 }];
+   dbcl.insert( docs );
 
    //$field指定字段值为非数值，更新字段为数值
-   var updateCondition1 = { $inc: { a: { $field: 'testb' } } };
-   var findCondition1 = { no: { $lt: 2 } };
-   updateError( updateCondition1, findCondition1 );
+   dbcl.update( { $inc: { a: { $field: 'testb' } } }, { no: { $lt: 2 } } );
+   var cursor = dbcl.find( { "no": 0 } );
+   commCompareResults( cursor, [docs[0]] );
+   cursor = dbcl.find( { "no": 1 } );
+   commCompareResults( cursor, [docs[1]] );
 
    //$field指定字段值为非数值，更新字段为对象，数组
-   var updateCondition2 = { $inc: { 'a.num1': { $field: 'testb' } } };
-   var findCondition2 = { no: { $et: 2 } };
-   updateError( updateCondition2, findCondition2 );
+   dbcl.update( { $inc: { 'a.num1': { $field: 'testb' } } }, { no: { $et: 2 } } );
+   cursor = dbcl.find( { "no": 2 } );
+   commCompareResults( cursor, [docs[2]] );
 
-   var updateCondition3 = { $inc: { 'a.1': { $field: 'testb' } } };
-   var findCondition3 = { no: { $et: 3 } };
-   updateError( updateCondition3, findCondition3 );
-}
+   dbcl.update( { $inc: { 'a.1': { $field: 'testb' } } }, { no: { $et: 3 } } );
+   cursor = dbcl.find( { "no": 3 } );
+   commCompareResults( cursor, [docs[3]] );
 
-function updateError ( updateCondition, findCondition )
-{
-   assert.tryThrow( SDB_INVALIDARG, function()
-   {
-      testPara.testCL.update( updateCondition, findCondition );
-   } )
+   //$field指定字段值为非数值，更新字段为字符串
+   dbcl.update( { $inc: { a: { $field: 'testb' } } }, { no: { $et: 4 } } );
+   cursor = dbcl.find( { "no": 4 } );
+   commCompareResults( cursor, [docs[4]] );
+
+   //$field指定字段值为数值，更新字段为null
+   dbcl.update( { $inc: { a: { $field: 'testb' } } }, { no: { $et: 5 } } );
+   cursor = dbcl.find( { "no": 5 } );
+   commCompareResults( cursor, [docs[5]] );
 }
