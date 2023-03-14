@@ -617,6 +617,8 @@ namespace sdbclient
 
       INT32 dropAutoIncrement( const std::vector<const CHAR*> &fieldNames ) ;
 
+      INT32 dropAutoIncrement( const std::vector<string> &fieldNames ) ;
+
       INT32 enableSharding ( const bson::BSONObj & options ) ;
 
       INT32 disableSharding () ;
