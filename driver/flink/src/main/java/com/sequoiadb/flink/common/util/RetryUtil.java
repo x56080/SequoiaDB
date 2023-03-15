@@ -16,19 +16,9 @@
 
 package com.sequoiadb.flink.common.util;
 
-import com.github.rholder.retry.Retryer;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
-import com.github.rholder.retry.BlockStrategies;
-
-import com.google.common.base.Predicate;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,38 +77,6 @@ public class RetryUtil {
     @FunctionalInterface
     public interface RetryContent<T> {
         T retry();
-    }
-
-    /**
-     * retry task with the given condition, retry times, sleep times (retry interval).
-     *
-     * @param condition retry condition, retry when the condition dost not hold.
-     * @param task given task for retrying
-     * @param retryTimes
-     * @param sleepTimes time unit is millisecond.
-     * @return
-     * @param <V>
-     */
-    public static <V> Optional<V> retry(
-            Predicate<V> condition,
-            Callable<V> task, int retryTimes, long sleepTimes) {
-        Optional<V> result = Optional.empty();
-        try {
-            Retryer<V> retry = RetryerBuilder.<V>newBuilder()
-                    .retryIfException()
-                    .retryIfResult(condition)
-                    .withWaitStrategy(WaitStrategies.fixedWait(sleepTimes, TimeUnit.MILLISECONDS))
-                    .withStopStrategy(StopStrategies.stopAfterAttempt(retryTimes))
-                    .withBlockStrategy(BlockStrategies.threadSleepStrategy())
-                    .build();
-
-            // start retrying task
-            result = Optional.ofNullable(retry.call(task));
-        } catch (Exception ex) {
-            LOG.warn("error occurs on retrying task. reason: {}", ex.getMessage());
-        }
-
-        return result;
     }
 
 }
