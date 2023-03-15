@@ -106,7 +106,7 @@ public class FilterPushDownSupport {
 
 
     /**
-     * Loop through a list of expressions to get BSON　result
+     * Loop through a list of expressions to get BSON result
      *
      * @param resolvedExpressionList list of expression
      * @return BSONObject expression
