@@ -533,14 +533,14 @@ INT32 hash_table_create( hashTable **tb, const UINT32 bucketSize )
 done:
    return rc ;
 error:
-   if ( NULL != (*tb)->node )
-   {
-      SDB_OSS_FREE( (*tb)->node ) ;
-      (*tb)->node = NULL ;
-   }
-
    if ( NULL != (*tb) )
    {
+      if (NULL != (*tb)->node )
+      {
+         SDB_OSS_FREE( (*tb)->node ) ;
+         (*tb)->node = NULL ;
+      }
+
       SDB_OSS_FREE( *tb ) ;
       *tb = NULL ;
    }
