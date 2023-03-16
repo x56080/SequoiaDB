@@ -520,6 +520,7 @@ INT32 hash_table_create( hashTable **tb, const UINT32 bucketSize )
    }
    *tb = ( hashTable * )ptr ;
    (*tb)->capacity = bucketSize ;
+   (*tb)->node = NULL ;
 
    ptr = ( CHAR * )SDB_OSS_MALLOC( sizeof(htbNode *) * bucketSize ) ;
    if ( NULL == ptr )
