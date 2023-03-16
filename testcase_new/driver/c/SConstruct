@@ -8,8 +8,8 @@ from os.path import join, dirname, abspath
 root_dir = dirname(File('SConstruct').rfile().abspath)
 client_include_dir = join(root_dir,'../../../client/include')
 client_lib_dir = join(root_dir,'../../../client/lib')
-boost_dir = join(root_dir, '../../../thirdparty/boost')
-boost_lib_dir = join(boost_dir, 'lib')
+#boost_dir = join(root_dir, '../../../thirdparty/boost')
+#boost_lib_dir = join(boost_dir, 'lib')
 gtest_dir = join(root_dir, '../../../SequoiaDB/engine/gtest/')
 options = {}
 options_topass = {}
@@ -153,11 +153,12 @@ if guess_os == "win32":
 
     winLibString = "ws2_32.lib kernel32.lib advapi32.lib psapi.lib dbghelp.lib user32.lib gdi32.lib winspool.lib comdlg32.lib sdbcpp.lib"
     if guess_arch == "ia64":
-        env.Append( LIBPATH=[join(boost_lib_dir,'win64', build_type)] )
+    #    env.Append( LIBPATH=[join(boost_lib_dir,'win64', build_type)] )
+       pass
     else:
         env.Append( LIBPATH=[join(lib_dir,'win32')] )
         env.Append( CPPDEFINES=[ "_USE_32BIT_TIME_T=1"])
-        env.Append( LIBPATH=[join(boost_lib_dir,'win32', build_type)] )
+        #env.Append( LIBPATH=[join(boost_lib_dir,'win32', build_type)] )
 
     env.Append( LIBS=Split(winLibString) )
     env.Append( CPPDEFINES=[ "_CRT_RAND_S" ] )
@@ -185,15 +186,15 @@ elif guess_os == "linux":
     if guess_arch == "ia64":
         env.Append( LIBPATH="/usr/lib64")
         env.Append( LIBPATH="/lib64")
-        env.Append( LIBPATH=[join(boost_lib_dir,'linux64', build_type)] )
+      #  env.Append( LIBPATH=[join(boost_lib_dir,'linux64', build_type)] )
     elif guess_arch == "ia32":
         env.Append( LIBPATH="/usr/lib")
         env.Append( LIBPATH="/lib")
-        env.Append( LIBPATH=[join(boost_lib_dir,'linux32', build_type)] )
+     #   env.Append( LIBPATH=[join(boost_lib_dir,'linux32', build_type)] )
     elif guess_arch == 'ppc64':
         env.Append( LIBPATH="/usr/lib64")
         env.Append( LIBPATH="/lib64")
-        env.Append( LIBPATH=[join(boost_lib_dir,'ppclinux64', build_type)] )
+    #    env.Append( LIBPATH=[join(boost_lib_dir,'ppclinux64', build_type)] )
 
 
     winLibString = "gtest crypt"
@@ -216,7 +217,7 @@ elif guess_os == 'aix':
     env.Append( CPPDEFINES=[ "SDB_BIG_ENDIAN" ] )
     env.Append( LIBPATH="/lib" )
     # use project-related boost library
-    env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
+   # env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
     winLibString = "gtest crypt pthread dl"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
@@ -229,7 +230,7 @@ else:
 
 env.Append( LIBPATH=[client_lib_dir, '.'] )
 ext_dir = join(root_dir, 'ext')
-env.Append( CPPPATH=[root_dir,client_include_dir,boost_dir,join(gtest_dir,'include')]  )
+env.Append( CPPPATH=[root_dir,client_include_dir,join(gtest_dir,'include')]  )
 
 dllBuildEnv = env.Clone()
 staticBuildEnv = env.Clone()
