@@ -10,7 +10,7 @@ installInformation:
   productname: sequoiadb
   productfullname: SequoiaDB Server
   # SYS parameters provided by package framwork
-  installerfilename: ${productname}-${SYS_PRODUCT_VERSION}-${SYS_PLATFORM}${SYS_ENTERPRISE}-installer.${SYS_PLATFORM_EXEC_SUFFIX}
+  installerfilename: ${productname}-${SYS_PRODUCT_VERSION}-${SYS_PLATFORM}${SYS_ENTERPRISE}${SYS_HYBRID}-installer.${SYS_PLATFORM_EXEC_SUFFIX}
   supportmultversion: false
   # file name in /etc/default
   sysconfig: sequoiadb
