@@ -2988,7 +2988,16 @@ public class Sequoiadb implements Closeable {
             buffer = Helper.resetBuff(buffer, length, byteOrder);
             System.arraycopy(lengthBytes, 0, buffer.array(), 0, lengthBytes.length);
             connection.receive(buffer.array(), 4, length - 4);
-        }catch (Exception e){
+        } catch(BaseException e) {
+            if (e.getErrorCode() == SDBError.SDB_TIMEOUT.getErrorCode()) {
+                // cause by socket time out, send close message to engine
+                close();
+            } else {
+                // cause by network error, unable to send close message to engine
+                connection.close();
+            }
+            throw e;
+        } catch (Exception e){
             connection.close();
             throw new BaseException(SDBError.SDB_NETWORK, "Failed to receive message.", e);
         }

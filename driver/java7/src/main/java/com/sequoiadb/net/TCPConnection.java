@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -206,9 +207,12 @@ public class TCPConnection implements IConnection {
                 }
                 size += retSize;
             }
+        } catch (SocketTimeoutException e) {
+            // do not close socket for now, need to release resource
+            throw new BaseException(SDBError.SDB_TIMEOUT, "Socket time out", e);
         } catch (IOException e) {
             close();
-            throw new BaseException(SDBError.SDB_NETWORK, remoteAddressInfo, e);
+            throw new BaseException(SDBError.SDB_NETWORK, "Failed to receive message, " + remoteAddressInfo, e);
         }
         if (size != length) {
             close();
