@@ -27,11 +27,11 @@ import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, V1Scan}
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, SupportsTruncate, V1WriteBuilder, WriteBuilder}
 import org.apache.spark.sql.sequoiadb.catalog.read.{SdbScan, SdbScanBuilder}
-import org.apache.spark.sql.sequoiadb.util.SdbUtils
+import org.apache.spark.sql.sequoiadb.util.{SdbSourceUtils, SdbUtils}
 import org.apache.spark.sql.sources.{BaseRelation, Filter, InsertableRelation, TableScan}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.apache.spark.sql.{AnalysisException, SQLContext, SparkSession}
+import org.apache.spark.sql.{AnalysisException, DataSourceVersion, SQLContext, SparkSession}
 
 import java.util
 import scala.collection.JavaConverters.{mapAsJavaMapConverter, setAsJavaSetConverter}
@@ -62,12 +62,20 @@ case class SdbTableV2(
     /**
      * parameters of mapping table
      */
-    private lazy val parameters = {
+    private lazy val parameters: Map[String, String] = {
+        var params = options
+
         if (catalogTable.isDefined) {
-            catalogTable.get.properties
-        } else {
-            options
+            val table = catalogTable.get
+            val version = SdbSourceUtils.getDataSourceVersion(table.properties)
+            params = version match {
+                // v1 properties should get from table storage
+                case DataSourceVersion.v1 => Map() ++ table.storage.properties
+                case DataSourceVersion.v2 => table.properties
+            }
         }
+
+        params
     }
 
     override def properties(): util.Map[String, String] = parameters.asJava
