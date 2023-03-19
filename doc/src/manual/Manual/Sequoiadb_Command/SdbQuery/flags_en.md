@@ -31,7 +31,6 @@ The optional values of the 'flag' parameter are as follows：
 | SDB_FLG_QUERY_PREPARE_MORE | During the query, the server will perform multiple transmissions with the client to return the query result to client. When add this flag, the server will transmit more data to the client each time. It will reduce the number of transmissions between the server and the client and reduce network overhead. |
 | SDB_FLG_QUERY_FOR_UPDATE | Acquire U lock on the records that are read. When the session is in transaction and setting this flag, the transaction lock will not released until the transaction is committed or rollback. When the session is not in transaction, the flag does not work. |
 | SDB_FLG_QUERY_FOR_SHARE | Acquire S lock on the records that are read. When the session is in transaction and setting this flag, the transaction lock will not released until the transaction is committed or rollback. When the session is not in transaction, the flag does not work. |
-| SDB_FLG_QUERY_ASYNC_READ | During the query, the coordination node will perform multiple data interactions with the data nodes. After each batch of data is processed, the next batch of data is requested from the data node. When add this flag, the coordination node will asynchronously read the data of the data node in advance. Improve query performance by reducing the time spent waiting for a response to a request. |
 
 >**Note:**
 
