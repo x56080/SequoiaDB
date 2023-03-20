@@ -160,4 +160,6 @@ final class AdminCommand {
     final static String RETURN_RECYCLEBIN_ITEM_TO_NAME = PREFIX + "return recyclebin item to name";
     final static String DROP_RECYCLEBIN_ITEM = PREFIX + "drop recyclebin item";
     final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
+
+    final static String ALTER_NODE = PREFIX + "alter node";
 }

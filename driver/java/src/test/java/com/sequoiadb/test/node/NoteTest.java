@@ -6,7 +6,11 @@ import com.sequoiadb.base.Node.NodeStatus;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.junit.*;
 
 import static org.junit.Assert.assertTrue;
@@ -104,4 +108,47 @@ public class NoteTest {
         assertTrue(status != NodeStatus.SDB_NODE_UNKNOWN);
     }
 
+    @Test
+    public void locationTest() {
+        try {
+            node.setLocation(null);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        setAndCheckLocation(node, "shanghai");
+
+        setAndCheckLocation(node, "guangzhou.nansha");
+
+        setAndCheckLocation(node, "");
+    }
+
+    private void setAndCheckLocation(Node node, String location) {
+        // 1. set location
+        node.setLocation(location);
+
+        // 2. query location
+        String actualLocation = "";
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put("GroupName", node.getReplicaGroup().getGroupName());
+        matcher.put("Group.NodeID", node.getNodeId());
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("Group.Location", "");
+
+        try (DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, matcher, selector, null)){
+            BSONObject obj = cursor.getNext();
+            BasicBSONList nodeList = (BasicBSONList) obj.get("Group");
+            Assert.assertNotNull(nodeList);
+            Assert.assertEquals(1, nodeList.size());
+            BSONObject nodeObj = (BasicBSONObject)nodeList.get(0);
+
+            if (nodeObj.containsField("Location")) {
+                actualLocation = (String)nodeObj.get("Location");
+            }
+        }
+
+        // 3. check location
+        Assert.assertEquals(location, actualLocation);
+    }
 }

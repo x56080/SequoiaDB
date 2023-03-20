@@ -153,4 +153,7 @@ final class SdbConstants {
     final static String SEQ_OPT_SET_CURR_VALUE = "set current value";
     final static String SEQ_OPT_RENAME = "rename";
     final static String SEQ_OPT_RESTART = "restart";
+
+    final static String NODE_LOCATION = "Location";
+    final static String NODE_SET_LOCATION = "set location";
 }

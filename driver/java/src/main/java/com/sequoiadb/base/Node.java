@@ -213,6 +213,39 @@ public class Node {
         startStop(false);
     }
 
+    /**
+     * Alter node to set Location.
+     * @param location The location name of node. If it is "", it means to remove the location setting of node.
+     * @throws BaseException If error happens.
+     * @since 3.6.1
+     */
+    public void setLocation(String location) throws BaseException {
+        if (location == null) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "The location name is null" );
+        }
+
+        BSONObject option = new BasicBSONObject(SdbConstants.NODE_LOCATION, location);
+        alterInternal(SdbConstants.NODE_SET_LOCATION, option);
+    }
+
+    private void alterInternal(String taskName, BSONObject options) throws BaseException {
+        if (options == null || options.isEmpty()) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "The option is null or empty" );
+        }
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SdbConstants.FIELD_NAME_ACTION, taskName);
+        matcher.put(SdbConstants.FIELD_NAME_OPTIONS, options);
+
+        BSONObject hint = new BasicBSONObject();
+        hint.put(SdbConstants.FIELD_NAME_GROUPID, rg.getId());
+        hint.put(SdbConstants.FIELD_NAME_NODEID, id);
+
+        AdminRequest request = new AdminRequest(AdminCommand.ALTER_NODE, matcher, hint);
+        SdbReply response = rg.getSequoiadb().requestAndResponse(request);
+        rg.getSequoiadb().throwIfError(response);
+    }
+
     private void startStop(boolean start) {
         BSONObject config = new BasicBSONObject();
         config.put(SdbConstants.FIELD_NAME_HOST, hostName);
