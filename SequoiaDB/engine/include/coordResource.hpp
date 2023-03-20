@@ -123,7 +123,8 @@ namespace engine
 
          UINT32      getGroupList( CoordGroupList &groupList,
                                    BOOLEAN exceptCata,
-                                   BOOLEAN exceptCoord ) ;
+                                   BOOLEAN exceptCoord,
+                                   BOOLEAN exceptEmptyGroup ) ;
 
          INT32       updateGroupInfo( UINT32 groupID,
                                       CoordGroupInfoPtr &groupPtr,
@@ -144,14 +145,16 @@ namespace engine
                                        _pmdEDUCB *cb,
                                        const BSONObj *pCondObj = NULL,
                                        BOOLEAN exceptCata = FALSE,
-                                       BOOLEAN exceptCoord = FALSE ) ;
+                                       BOOLEAN exceptCoord = FALSE,
+                                       BOOLEAN exceptEmptyGroup = FALSE ) ;
 
          INT32       updateGroupList( CoordGroupList &groupList,
                                       _pmdEDUCB *cb,
                                       const BSONObj *pCondObj = NULL,
                                       BOOLEAN exceptCata = FALSE,
                                       BOOLEAN exceptCoord = FALSE,
-                                      BOOLEAN useLocalWhenFailed = TRUE ) ;
+                                      BOOLEAN useLocalWhenFailed = TRUE,
+                                      BOOLEAN exceptEmptyGroup = FALSE ) ;
 
          void        removeGroupInfo( UINT32 groupID ) ;
          void        removeGroupInfo( const CHAR *groupName ) ;

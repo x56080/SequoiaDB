@@ -664,7 +664,8 @@ namespace engine
 
    UINT32 _coordResource::getGroupList( CoordGroupList &groupList,
                                         BOOLEAN exceptCata,
-                                        BOOLEAN exceptCoord )
+                                        BOOLEAN exceptCoord,
+                                        BOOLEAN exceptEmptyGroup )
    {
       UINT32 count = 0 ;
       MAP_GROUP_INFO_IT it ;
@@ -679,6 +680,11 @@ namespace engine
             continue ;
          }
          else if ( COORD_GROUPID == it->first && exceptCoord )
+         {
+            ++it ;
+            continue ;
+         }
+         else if ( 0 == it->second->nodeCount() && exceptEmptyGroup )
          {
             ++it ;
             continue ;
@@ -814,7 +820,8 @@ namespace engine
                                            _pmdEDUCB *cb,
                                            const BSONObj *pCondObj,
                                            BOOLEAN exceptCata,
-                                           BOOLEAN exceptCoord )
+                                           BOOLEAN exceptCoord,
+                                           BOOLEAN exceptEmptyGroup )
    {
       INT32 rc = SDB_OK ;
       coordCommandFactory *pFactory = coordGetFactory() ;
@@ -893,6 +900,13 @@ namespace engine
                vecGroupPtr.push_back( groupPtr ) ;
             }
          }
+         else if ( 0 == groupPtr->nodeCount() )
+         {
+            if ( !exceptEmptyGroup )
+            {
+               vecGroupPtr.push_back( groupPtr ) ;
+            }
+         }
          else
          {
             vecGroupPtr.push_back( groupPtr ) ;
@@ -939,18 +953,19 @@ namespace engine
                                           const BSONObj *pCondObj,
                                           BOOLEAN exceptCata,
                                           BOOLEAN exceptCoord,
-                                          BOOLEAN useLocalWhenFailed )
+                                          BOOLEAN useLocalWhenFailed,
+                                          BOOLEAN exceptEmptyGroup )
    {
       INT32 rc = SDB_OK ;
       GROUP_VEC vecGroupPtr ;
 
       rc = updateGroupsInfo( vecGroupPtr, cb, pCondObj,
-                             exceptCata, exceptCoord ) ;
+                             exceptCata, exceptCoord, exceptEmptyGroup ) ;
       if ( rc )
       {
          if ( useLocalWhenFailed )
          {
-            getGroupList( groupList, exceptCata, exceptCoord ) ;
+            getGroupList( groupList, exceptCata, exceptCoord, exceptEmptyGroup ) ;
             rc = SDB_OK ;
          }
          else

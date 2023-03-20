@@ -108,7 +108,7 @@ namespace engine
                    "rc: %d", getName(), rc ) ;
 
       // update all groups
-      rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE ) ;
+      rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE, TRUE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update all data group, "
                    "rc: %d", rc ) ;
 
@@ -182,7 +182,7 @@ namespace engine
       if ( needAllGroups )
       {
          // use all groups
-         rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE ) ;
+         rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE, TRUE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update all data group for "
                       "command [%s], rc: %d", getName(), rc ) ;
       }
