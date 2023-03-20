@@ -53,7 +53,6 @@
 #include "Psapi.h"
 #endif
 #include <sstream>
-#include <boost/thread/exceptions.hpp>
 
 // Wrapper of localtime, convert a time value and correct for the local time
 // zone. The input pTime represents the seconds elapsed since the Epoch,
@@ -2496,10 +2495,6 @@ INT32 ossException2RC( std::exception *pe )
    if ( NULL != dynamic_cast<std::bad_alloc*>(pe) )
    {
       return SDB_OOM ;
-   }
-   else if ( NULL != dynamic_cast<boost::thread_resource_error*>(pe) )
-   {
-      return SDB_OSS_NORES ;
    }
    return SDB_SYS ;
 }

@@ -740,7 +740,7 @@ INT32 SdbDataReloader::_run()
    }
    catch ( std::exception &e )
    {
-      rc = ossException2RC( &e ) ;
+      rc = SDB_SYS ;
       PD_LOG( PDERROR, "Failed to create query thread: %s", e.what() ) ;
       goto error ;
    }
@@ -763,7 +763,7 @@ INT32 SdbDataReloader::_run()
       }
       catch ( std::exception &e )
       {
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
          PD_LOG( PDERROR, "Failed to create import thread: %s", e.what() ) ;
          goto error ;
       }

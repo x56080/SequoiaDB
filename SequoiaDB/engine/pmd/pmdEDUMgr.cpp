@@ -173,7 +173,7 @@ namespace engine
                   e.what() ) ;
          delete _pMonitorThd ;
          _pMonitorThd = NULL ;
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
@@ -227,7 +227,7 @@ namespace engine
                   e.what() ) ;
          delete _pDeadCheckThd ;
          _pDeadCheckThd = NULL ;
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
@@ -1786,7 +1786,7 @@ namespace engine
          // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
                   e.what() ) ;
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
 
          _latch.get() ;
          _mapIdles.erase( newID ) ;
@@ -1938,7 +1938,7 @@ namespace engine
          // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
                   e.what() ) ;
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
 
          _latch.get() ;
          _mapRuns.erase( newID ) ;

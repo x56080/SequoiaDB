@@ -1002,7 +1002,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
    }
    catch ( boost::thread_resource_error )
    {
-      rc = SDB_OSS_NORES ;
+      rc = SDB_SYS ;
       goto error ;
    }
 
