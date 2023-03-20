@@ -164,7 +164,7 @@ INT32 createShellMonitorThread ( const OSSPID & shpid ,
    }
    catch ( boost::thread_resource_error & )
    {
-      rc = SDB_OSS_NORES ;
+      rc = SDB_SYS ;
       goto error ;
    }
 
@@ -346,7 +346,7 @@ INT32 enterDaemonMode ( sptScope *scope ,
       catch ( boost::thread_resource_error )
       {
          hasCrtWriteThread = FALSE ;
-         rc = SDB_OSS_NORES ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
