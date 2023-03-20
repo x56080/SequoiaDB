@@ -48,7 +48,7 @@ The common exceptions of `removeNode()` function are as follows:
 | Error Code | Error Type | Description | Solution |
 | ---------- | ---------- | ----------- | -------- |
 | -204 | SDB_CATA_RM_NODE_FORBIDDEN | Attempts to remove the only non-empty node within the group. | It is necessary to remove the data of the current node first, and then execute the remove operation. |
-| -206 | SDB_CATA_RM_CATA_FORBIDDEN | Attempts to remove the primary catalog node. | Only standby catalog nodes can be removed. |
+| -206 | SDB_CATA_RM_CATA_FORBIDDEN | Attempts to remove the primary catalog node. | Only secondary catalog nodes can be removed. |
 | -79  | SDB_NET_CANNOT_CONNECT     | The CM process on the remove node host does not exist, or the host is down. | If the user needs to force remove, the user can add  {Enforced: true} option. |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
