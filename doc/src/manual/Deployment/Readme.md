@@ -40,7 +40,10 @@ SequoiaDB 目前支持两种形式的部署：
 
 ![高可用部署][available]
 
+SequoiaDB 提供同城双中心、同城三中心、两地三中心和三地五中心的[高可用与容灾部署方案][ha_dr]。
+
 ###高性能部署###
+
 高性能部署方式适用于对总数据吞吐或性能要求高、硬件成本低、可靠性要求不高的场景。该部署方式，在三台物理机服务上都部署有编目节点和数据节点，三个编目节点组成一个复制组，每个数据节点分别组成一个单副本的复制组。协调节点与应用部署既可以部署在分离的服务器上，也可以部署在数据库所在服务器上。
 
 这种部署模式可以充分利用所有服务器的存储容量，总的存储容量等于三个服务器的容量总和。但缺点是可靠性较低，任意一台服务器故障，都会导致部分数据无法读取和写入。
@@ -58,3 +61,4 @@ SequoiaDB 目前支持两种形式的部署：
 [easiest]:images/Deployment/easiest.jpg
 [available]:images/Deployment/available.jpg
 [performance]:images/Deployment/performance.jpg
+[ha_dr]:manual/Deployment/ha_dr_program.md

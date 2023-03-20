@@ -77,6 +77,12 @@
                "en": "SequoiaDB Installation"
             },
             {
+               "id": 1655344290,
+               "file": "ha_dr_program",
+               "cn": "高可用与容灾部署方案",
+               "en": "High Availability Deployment"
+            },
+            {
                "id": 1432191002,
                "file": "cluster_deployment",
                "cn": "集群模式部署",
