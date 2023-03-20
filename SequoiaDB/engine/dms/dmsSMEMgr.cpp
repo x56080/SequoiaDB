@@ -573,6 +573,11 @@ namespace engine
             _totalFree -= rmLen ;
             rmNum += rmLen ;
          }
+
+         if ( len == _maxNode )
+         {
+            _resetMax () ;
+         }
       }
 
    done :
