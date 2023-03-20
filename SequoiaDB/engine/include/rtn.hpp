@@ -660,6 +660,7 @@ namespace engine
       SDB_FILE_INDEX       = 1,
       SDB_FILE_LOBM        = 2,
       SDB_FILE_LOBD        = 3,
+      SDB_FILE_HOLE        = 4,
 
       SDB_FILE_STARTUP     = 10,
       SDB_FILE_STARTUP_HST = 11,

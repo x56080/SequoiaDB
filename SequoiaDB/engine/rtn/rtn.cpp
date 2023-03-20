@@ -738,6 +738,10 @@ namespace engine
          {
             fileType = SDB_FILE_LOBD ;
          }
+         else if ( 0 == ossStrcmp( pDotr + 1, DMS_HOLEMAP_SU_EXT_NAME ) )
+         {
+            fileType = SDB_FILE_HOLE ;
+         }
       }
 
    done:
