@@ -696,10 +696,10 @@ namespace engine
       return _suPageSize[ type ] ;
    }
 
-   INT32 _dmsHoleMapMgr::_getHME( INT32 type, dmsHME **pHME  )
+   INT32 _dmsHoleMapMgr::_getHME( INT32 type, dmsHME **pHME )
    {
       INT32 rc = SDB_OK ;
-      ossScopedTryLock _lock( &_HMMgrMutex, EXCLUSIVE ) ;
+      ossScopedLock _lock( &_HMMgrMutex, EXCLUSIVE ) ;
 
       if ( !_opened )
       {
