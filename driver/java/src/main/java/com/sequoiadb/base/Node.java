@@ -221,7 +221,7 @@ public class Node {
      */
     public void setLocation(String location) throws BaseException {
         if (location == null) {
-            throw new BaseException( SDBError.SDB_INVALIDARG, "The location name is null" );
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The location name is null");
         }
 
         BSONObject option = new BasicBSONObject(SdbConstants.NODE_LOCATION, location);
@@ -230,7 +230,7 @@ public class Node {
 
     private void alterInternal(String taskName, BSONObject options) throws BaseException {
         if (options == null || options.isEmpty()) {
-            throw new BaseException( SDBError.SDB_INVALIDARG, "The option is null or empty" );
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The option is null or empty");
         }
 
         BSONObject matcher = new BasicBSONObject();
