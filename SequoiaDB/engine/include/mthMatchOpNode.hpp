@@ -398,6 +398,28 @@ namespace engine
 
    } ;
 
+   class _mthMatchFuncCONCAT : public _mthMatchFunc
+   {
+      public:
+         _mthMatchFuncCONCAT( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncCONCAT() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+
+      private:
+         _utilString<> _prefix ;
+         _utilString<> _suffix ;
+         BOOLEAN       _isReturnNull ;
+   } ;
+
    class _mthMatchFuncMOD : public _mthMatchFunc
    {
       public:

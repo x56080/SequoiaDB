@@ -137,6 +137,20 @@ namespace engine
                            _mthSAction &action ) const ;
    } ;
 
+   class _mthConcatParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthConcatParser()
+      {
+         _name = MTH_S_CONCAT ;
+      }
+      virtual ~_mthConcatParser(){}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                           _mthSAction &action ) const ;
+   } ;
+
    class _mthStrLenParser : public _mthSActionParser::parser
    {
    public:

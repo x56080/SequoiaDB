@@ -118,6 +118,10 @@ namespace engine
    INT32 mthLeftBytes( const CHAR *name, const BSONElement &in,
                        INT32 limit, BSONObjBuilder &outBuilder ) ;
 
+   INT32 mthConcat( const CHAR *name, const BSONElement &in,
+                    const CHAR *prefix, const CHAR *suffix,
+                    BOOLEAN isReturnNull, BSONObjBuilder &outBuilder ) ;
+
    INT32 mthStrLen( const CHAR *name, const BSONElement &in,
                     BSONObjBuilder &outBuilder ) ;
    INT32 mthStrLenBytes( const CHAR *name, const BSONElement &in,
@@ -218,6 +222,12 @@ namespace engine
 
    INT32 mthParseSubStrArgs( const bson::BSONElement &e, BOOLEAN allowToArgs,
                              INT32 &begin, INT32 &limit ) ;
+
+   INT32 mthToString( const bson::BSONElement &e, _utilString<> &us,
+                      BOOLEAN &isReturnNull ) ;
+   INT32 mthParseConcatArrayArgs( const bson::BSONElement &e, BOOLEAN &isReturnNull,
+                                  _utilString<> &prefix, _utilString<> &suffix ) ;
+
 }
 
 #endif //MTHCOMMON_HPP__

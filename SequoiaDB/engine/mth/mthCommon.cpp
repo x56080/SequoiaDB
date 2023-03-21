@@ -112,6 +112,10 @@ namespace engine
    static INT32 _mthSubStrByCPBasic( const CHAR *name, const BSONElement &in,
                                      INT32 begin, INT32 limit, BOOLEAN checkLimit,
                                      BSONObjBuilder &outBuilder ) ;
+   static INT32 _mthConcatBasic( const CHAR *name, const BSONElement &in,
+                                 const CHAR *prefix, const CHAR *suffix,
+                                 BOOLEAN isReturnNull, BSONObjBuilder &outBuilder ) ;
+
    static INT32 _mthStrLenBasic( const CHAR *name, const BSONElement &in,
                                  BSONObjBuilder &outBuilder ) ;
 
@@ -2352,6 +2356,91 @@ namespace engine
       return rc ;
    }
 
+   INT32 _mthConcatBasic( const CHAR *name, const BSONElement &in,
+                          const CHAR *prefix, const CHAR *suffix,
+                          BOOLEAN isReturnNull, BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else if ( isReturnNull )
+      {
+         outBuilder.appendNull( name ) ;
+      }
+      else
+      {
+         _utilString<> us ;
+         rc = us.append( prefix ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+            goto error ;
+         }
+
+         rc = mthToString( in, us, isReturnNull ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to convert element to string :%d", rc ) ;
+            goto error ;
+         }
+         else if ( isReturnNull )
+         {
+            outBuilder.appendNull( name ) ;
+            goto done ;
+         }
+
+         rc = us.append( suffix ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+            goto error ;
+         }
+
+         outBuilder.append( name, us.str() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   INT32 mthConcat( const CHAR *name, const BSONElement &in,
+                    const CHAR *prefix, const CHAR *suffix,
+                    BOOLEAN isReturnNull, BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthConcatBasic( ele.fieldName(), ele, prefix, suffix, isReturnNull, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to concat:rc=%d", rc ) ;
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthConcatBasic( name, in, prefix, suffix, isReturnNull, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to concat:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 mthSlice( const CHAR *name, const BSONElement &in,
                    INT32 begin, INT32 limit, BSONObjBuilder &outBuilder )
    {
@@ -3691,6 +3780,250 @@ namespace engine
               e.toString( TRUE, TRUE ).c_str() ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
+   }
+
+   static INT32 _mthConcatArrayToStr( const bson::BSONElement &e,
+                                      INT32 pos, BOOLEAN &isReturnNull,
+                                      _utilString<> &prefix, _utilString<> &suffix )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj obj = e.embeddedObject() ;
+      BSONObjIterator itr( obj ) ;
+      INT32 curPos = 0 ;
+      INT32 splitPos = pos < 0 ? pos + obj.nFields() + 1 : pos ;
+      // pos over left boundary
+      splitPos = splitPos < 0 ? 0 : splitPos ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+         if ( curPos < splitPos )
+         {
+            rc = mthToString( ele, prefix, isReturnNull ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to convert element to string :%d", rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            rc = mthToString( ele, suffix, isReturnNull ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to convert element to string :%d", rc ) ;
+               goto error ;
+            }
+         }
+         // if args cannot be converted to str, just exit
+         if ( isReturnNull )
+         {
+            break ;
+         }
+         ++ curPos ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthParseConcatArrayArgs( const bson::BSONElement &e, BOOLEAN &isReturnNull,
+                                  _utilString<> &prefix, _utilString<> &suffix )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 pos = 0 ;
+      BSONObjIterator i( e.embeddedObject() ) ;
+      BSONElement ele ;
+      if ( !i.more() )
+      {
+         goto invalid_arg ;
+      }
+
+      // the first arg must be number
+      ele = i.next() ;
+      if ( !ele.isNumber() )
+      {
+         goto invalid_arg ;
+      }
+      pos = ele.numberInt() ;
+
+      if ( !i.more() )
+      {
+         goto invalid_arg ;
+      }
+
+      // the second arg must be array
+      ele = i.next() ;
+      if ( Array != ele.type() )
+      {
+         goto invalid_arg ;
+      }
+
+      rc = _mthConcatArrayToStr( ele, pos, isReturnNull, prefix, suffix ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to Convert array elements to str rc = %d", rc ) ;
+         goto error ;
+      }
+
+      if ( i.more() )
+      {
+         goto invalid_arg ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   invalid_arg:
+      PD_LOG( PDERROR, "invalid argument:%s",
+              e.toString( TRUE, TRUE ).c_str() ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+
+   INT32 mthToString( const bson::BSONElement &e, _utilString<> &us,
+                      BOOLEAN &isReturnNull )
+   {
+      INT32 rc = SDB_OK ;
+
+      switch ( e.type() )
+      {
+         case MinKey :
+         case EOO :
+         case BinData :
+         case Undefined :
+         case jstNULL :
+         case RegEx :
+         case DBRef :
+         case CodeWScope :
+         case Symbol :
+         case Code :
+         case MaxKey :
+            isReturnNull = TRUE ;
+            break ;
+         case String :
+         {
+            rc = us.append( e.valuestr() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberInt :
+         {
+            rc = us.appendINT32( e.numberInt() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append int32:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberLong :
+         {
+            rc = us.appendINT64( e.numberLong() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append int64:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberDouble :
+         {
+            rc = us.appendDouble( e.numberDouble() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append float64:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberDecimal :
+         {
+            rc = us.appendDecimal( e.numberDecimal() );
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append decimal %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Date :
+         {
+            rc = us.appendDate( e.date() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append Date:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Timestamp :
+         {
+            rc = us.appendTimestamp( e.timestampTime(), e.timestampInc() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append Timestamp %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case jstOID :
+         {
+            rc = us.appendOID( e.OID() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append OID:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Object :
+         {
+            rc = us.append( e.embeddedObject().toString( FALSE, TRUE ).c_str() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append OID:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Array :
+         {
+            rc = us.append( e.embeddedObject().toString( TRUE, TRUE ).c_str() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append Array:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Bool :
+         {
+            rc = us.appendBool( e.booleanSafe() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append Bool:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         default:
+            isReturnNull = TRUE ;
+            break ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+
    }
 
 }

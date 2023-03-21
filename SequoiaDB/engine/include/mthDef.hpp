@@ -71,6 +71,7 @@ namespace engine
    #define MTH_S_RIGHTBYTES     MTH_S_PREFIX"rightBytes"
    #define MTH_S_LEFTCP         MTH_S_PREFIX"leftCP"
    #define MTH_S_LEFTBYTES      MTH_S_PREFIX"leftBytes"
+   #define MTH_S_CONCAT         MTH_S_PREFIX"concat"
 
 
    typedef UINT32 MTH_S_ATTRIBUTE ;

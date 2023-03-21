@@ -102,6 +102,7 @@ namespace engine
       { MTH_FUNCTION_STR_RIGHTBYTES,  EN_MATCH_FUNC_RIGHTBYTES},
       { MTH_FUNCTION_STR_LEFTCP,      EN_MATCH_FUNC_LEFTCP},
       { MTH_FUNCTION_STR_LEFTBYTES,   EN_MATCH_FUNC_LEFTBYTES},
+      { MTH_FUNCTION_STR_CONCAT,      EN_MATCH_FUNC_CONCAT},
       { MTH_FUNCTION_STR_STRLEN,      EN_MATCH_FUNC_STRLEN },
       { MTH_FUNCTION_STR_STRLENBYTES, EN_MATCH_FUNC_STRLENBYTES },
       { MTH_FUNCTION_STR_STRLENCP,    EN_MATCH_FUNC_STRLENCP },
@@ -318,6 +319,9 @@ namespace engine
          break;
       case EN_MATCH_FUNC_LEFTCP:
          func = new ( allocator ) _mthMatchFuncLEFTCP( allocator ) ;
+         break;
+      case EN_MATCH_FUNC_CONCAT:
+         func = new ( allocator ) _mthMatchFuncCONCAT( allocator ) ;
          break;
       case EN_MATCH_FUNC_STRLEN:
          func = new ( allocator ) _mthMatchFuncSTRLEN( allocator ) ;

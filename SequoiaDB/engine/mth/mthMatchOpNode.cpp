@@ -1092,6 +1092,122 @@ namespace engine
       return rc ;
    }
 
+   //************************_mthMatchFuncCONCAT*****************************
+   _mthMatchFuncCONCAT::_mthMatchFuncCONCAT( _mthNodeAllocator *allocator )
+   :_mthMatchFunc( allocator ), _isReturnNull( FALSE )
+   {
+   }
+
+   _mthMatchFuncCONCAT::~_mthMatchFuncCONCAT()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncCONCAT::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthConcat( _fieldName.getFieldName(), in, _prefix.str(),
+                      _suffix.str(), _isReturnNull, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthConcat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      out = builder.obj() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthMatchFuncCONCAT::getType()
+   {
+      return EN_MATCH_FUNC_CONCAT ;
+   }
+
+   const CHAR* _mthMatchFuncCONCAT::getName()
+   {
+      return MTH_FUNCTION_STR_CONCAT ;
+   }
+
+   void _mthMatchFuncCONCAT::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncCONCAT::_init( const CHAR *fieldName,
+                                     const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+
+      switch ( ele.type() )
+      {
+         case MinKey :
+         case EOO :
+         case BinData :
+         case Undefined :
+         case jstNULL :
+         case RegEx :
+         case DBRef :
+         case CodeWScope :
+         case Symbol :
+         case Code :
+         case MaxKey :
+            _isReturnNull = TRUE ;
+            break ;
+         case String :
+         {
+            rc = _suffix.append( ele.valuestr() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberInt :
+         case NumberLong :
+         case NumberDouble :
+         case NumberDecimal :
+         case Date :
+         case Timestamp :
+         case Object :
+         case jstOID :
+         case Bool :
+         {
+            rc = mthToString( ele, _suffix, _isReturnNull ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to convert element to string rc = %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Array :
+         {
+            rc = mthParseConcatArrayArgs( ele, _isReturnNull, _prefix, _suffix ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to parse array argument rc = %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         default:
+            _isReturnNull = TRUE ;
+            break ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //************************_mthMatchFuncMOD********************************
    _mthMatchFuncMOD::_mthMatchFuncMOD( _mthNodeAllocator *allocator )
                     :_mthMatchFunc( allocator )

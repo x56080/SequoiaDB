@@ -240,6 +240,9 @@ namespace engine
       /// $leftBytes
       MTH_ADD_PARSER( _mthLeftBytesParser ) ;
 
+      /// $concat
+      MTH_ADD_PARSER( _mthConcatParser ) ;
+
       /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 

@@ -41,11 +41,17 @@
 #include "pd.hpp"
 #include "ossMem.hpp"
 #include <boost/noncopyable.hpp>
+#include "utilMemListPool.hpp"
+#include "../bson/bson.hpp"
 
-#define UTIL_STRING_STAITC_LEN 256 
-#define UTIL_STRING_INT_LEN    11
-#define UTIL_STRING_INT64_LEN  22
-#define UTIL_STRING_DOUBLE_LEN 25
+#define UTIL_STRING_STAITC_LEN     256
+#define UTIL_STRING_INT_LEN        11
+#define UTIL_STRING_INT64_LEN      22
+#define UTIL_STRING_DOUBLE_LEN     25
+#define UTIL_STRING_DATE_LEN       64
+#define UTIL_STRING_TIMESTAMP_LEN  128
+
+using namespace bson ;
 
 namespace engine
 {
@@ -61,7 +67,11 @@ namespace engine
 
       ~_utilString()
       {
-         SAFE_OSS_FREE( _dynamic ) ;
+         if ( NULL != _dynamic )
+         {
+            SDB_THREAD_FREE( _dynamic ) ;
+            _dynamic = NULL ;
+         }
       }
 
    public:
@@ -128,7 +138,7 @@ namespace engine
          INT32 rc = SDB_OK ;
          if ( BUFFERSIZE < _bufLen && _bufLen < size )
          {
-            CHAR *p = ( CHAR * )SDB_OSS_REALLOC( _dynamic, size ) ;
+            CHAR *p = ( CHAR * )SDB_THREAD_REALLOC( _dynamic, size ) ;
             if ( NULL == p )
             {
                PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -141,7 +151,7 @@ namespace engine
          }
          else if ( BUFFERSIZE == _bufLen && _bufLen < size )
          {
-            _dynamic = ( CHAR * )SDB_OSS_MALLOC( size ) ;
+            _dynamic = ( CHAR * )SDB_THREAD_ALLOC( size ) ;
             if ( NULL == _dynamic )
             {
                PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -193,13 +203,120 @@ namespace engine
          return appendNumber( v, UTIL_STRING_INT64_LEN, "%lld" ) ;
       }
 
+      INT32 appendDecimal( const bsonDecimal &decimal )
+      {
+         INT32 rc = SDB_OK ;
+         string value ;
+         rc = decimal.toStringChecked( value ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed toStringChecked,rc=%d",rc ) ;
+            goto error ;
+         }
+
+         rc = append( value.c_str(), value.length() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 appendDate( Date_t date )
+      {
+         INT32 rc = SDB_OK ;
+         time_t timer ;
+         struct tm psr ;
+         if ( !enough( UTIL_STRING_DATE_LEN ) )
+         {
+            rc = resize( _bufLen + UTIL_STRING_DATE_LEN + 1 ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
+         timer = (time_t)( ( INT64 )( date ) / 1000 ) ;
+         local_time ( &timer, &psr ) ;
+         rc = sprintf( &(_buf[_len]),
+                       "%04d-%02d-%02d",
+                       psr.tm_year + 1900,
+                       psr.tm_mon + 1,
+                       psr.tm_mday ) ;
+         if ( rc < SDB_OK )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         _len += rc ;
+         rc = SDB_OK ;
+         _buf[_len] = '\0';
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 appendTimestamp( Date_t date, UINT32 inc )
+      {
+         INT32 rc = SDB_OK ;
+         time_t timer ;
+         struct tm psr ;
+         if ( !enough( UTIL_STRING_TIMESTAMP_LEN ) )
+         {
+            rc = resize( _bufLen + UTIL_STRING_TIMESTAMP_LEN + 1 ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
+         timer = (time_t)( ( INT64 )( date.millis ) / 1000 ) ;
+         local_time ( &timer, &psr ) ;
+         rc = sprintf ( &(_buf[_len]),
+                        "%04d-%02d-%02d-%02d.%02d.%02d.%06d",
+                        psr.tm_year + 1900,
+                        psr.tm_mon + 1,
+                        psr.tm_mday,
+                        psr.tm_hour,
+                        psr.tm_min,
+                        psr.tm_sec,
+                        inc ) ;
+         if ( rc < SDB_OK )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         _len += rc ;
+         rc = SDB_OK ;
+         _buf[_len] = '\0';
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
+      INT32 appendOID( const bson::OID &oid )
+      {
+         return append( oid.str().c_str() ) ;
+      }
+
+      INT32 appendBool( BOOLEAN boolValue )
+      {
+         return append( boolValue ? "true" : "false" ) ;
+      }
+
       template <typename T>
       INT32 appendNumber( T v, UINT32 size, const CHAR *macro )
       {
          INT32 rc = SDB_OK ;
          if ( !enough( size ) )
          {
-            rc = resize( size + _bufLen ) ;
+            rc = resize( size + _bufLen + 1 ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -221,6 +338,7 @@ namespace engine
       error:
          goto done ;
       }
+
    private:
       CHAR _static[ BUFFERSIZE ] ;
       CHAR *_dynamic ;

@@ -1292,6 +1292,76 @@ namespace engine
    }
 
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHCONCATBUILD, "mthConcatBuild" )
+   INT32 mthConcatBuild( const CHAR *fieldName,
+                         const bson::BSONElement &e,
+                         _mthSAction *action,
+                         bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHCONCATBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      const CHAR *prefix = NULL ;
+      const CHAR *suffix = NULL ;
+      BOOLEAN isReturnNull = FALSE ;
+
+      prefix = action->getArg().getStringField( "arg1" ) ;
+      suffix = action->getArg().getStringField( "arg2" ) ;
+      isReturnNull = action->getArg().getIntField( "arg3" ) ;
+
+      rc = mthConcat( fieldName, e, prefix, suffix, isReturnNull, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthConcat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHCONCATBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHCONCATGET, "mthConcatGet" )
+   INT32 mthConcatGet( const CHAR *fieldName,
+                       const bson::BSONElement &in,
+                       _mthSAction *action,
+                       bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHCONCATGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      const CHAR *prefix = NULL ;
+      const CHAR *suffix = NULL ;
+      BOOLEAN isReturnNull = FALSE ;
+
+      prefix = action->getArg().getStringField( "arg1" ) ;
+      suffix = action->getArg().getStringField( "arg2" ) ;
+      isReturnNull = action->getArg().getIntField( "arg3" ) ;
+
+      rc = mthConcat( fieldName, in, prefix, suffix, isReturnNull, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthConcat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHCONCATGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENBUILD, "mthStrLenBuild" )
    INT32 mthStrLenBuild( const CHAR *fieldName,

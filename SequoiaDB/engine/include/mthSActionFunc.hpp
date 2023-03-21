@@ -253,6 +253,16 @@ namespace engine
                           _mthSAction *,
                           bson::BSONElement & ) ;
 
+   INT32 mthConcatBuild( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONObjBuilder & ) ;
+
+   INT32 mthConcatGet( const CHAR *,
+                       const bson::BSONElement &,
+                       _mthSAction *,
+                       bson::BSONElement & ) ;
+
    INT32 mthStrLenBuild( const CHAR *,
                          const bson::BSONElement &,
                          _mthSAction *,

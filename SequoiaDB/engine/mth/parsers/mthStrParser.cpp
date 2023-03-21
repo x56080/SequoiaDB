@@ -222,6 +222,88 @@ namespace engine
 
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHCONCATPARSER_PARSE, "_mthConcatParser::parse" )
+   INT32 _mthConcatParser::parse( const bson::BSONElement &e,
+                                  _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHCONCATPARSER_PARSE ) ;
+
+      BOOLEAN isReturnNull = FALSE ;
+      _utilString<> prefix, suffix ;
+
+      switch ( e.type() )
+      {
+         case MinKey :
+         case EOO :
+         case BinData :
+         case Undefined :
+         case jstNULL :
+         case RegEx :
+         case DBRef :
+         case CodeWScope :
+         case Symbol :
+         case Code :
+         case MaxKey :
+            isReturnNull = TRUE ;
+            break ;
+         case String :
+         {
+            rc = suffix.append( e.valuestr() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append String:%d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case NumberInt :
+         case NumberLong :
+         case NumberDouble :
+         case NumberDecimal :
+         case Date :
+         case Timestamp :
+         case Object :
+         case jstOID :
+         case Bool :
+         {
+            rc = mthToString( e, suffix, isReturnNull ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to convert element to string rc = %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case Array :
+         {
+            rc = mthParseConcatArrayArgs( e, isReturnNull, prefix, suffix ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to parse array argument rc = %d", rc ) ;
+               goto error ;
+            }
+            break ;
+         }
+         default:
+            isReturnNull = TRUE ;
+            break ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthConcatBuild, &mthConcatGet ) ;
+      action.setName( _name.c_str() ) ;
+      action.setArg( BSON( "arg1" << prefix.str() <<
+                           "arg2" << suffix.str() <<
+                           "arg3" << isReturnNull ) ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHCONCATPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENPARSER_PARSE, "_mthStrLenParser::parse" )
    INT32 _mthStrLenParser::parse( const bson::BSONElement &e,
                                   _mthSAction &action ) const
