@@ -41,8 +41,11 @@
 #include "pd.hpp"
 #include "ossMem.hpp"
 #include <boost/noncopyable.hpp>
-#include "utilMemListPool.hpp"
 #include "../bson/bson.hpp"
+
+#ifdef SDB_ENGINE
+#include "utilMemListPool.hpp"
+#endif // SDB_ENGINE
 
 #define UTIL_STRING_STAITC_LEN     256
 #define UTIL_STRING_INT_LEN        11
@@ -67,11 +70,15 @@ namespace engine
 
       ~_utilString()
       {
-         if ( NULL != _dynamic )
-         {
-            SDB_THREAD_FREE( _dynamic ) ;
-            _dynamic = NULL ;
-         }
+         #ifdef SDB_ENGINE
+            if ( NULL != _dynamic )
+            {
+               SDB_THREAD_FREE( _dynamic ) ;
+               _dynamic = NULL ;
+            }
+         #else
+            SAFE_OSS_FREE( _dynamic ) ;
+         #endif
       }
 
    public:
@@ -138,7 +145,11 @@ namespace engine
          INT32 rc = SDB_OK ;
          if ( BUFFERSIZE < _bufLen && _bufLen < size )
          {
-            CHAR *p = ( CHAR * )SDB_THREAD_REALLOC( _dynamic, size ) ;
+            #ifdef SDB_ENGINE
+               CHAR *p = ( CHAR * )SDB_THREAD_REALLOC( _dynamic, size ) ;
+            #else
+               CHAR *p = ( CHAR * )SDB_OSS_REALLOC( _dynamic, size ) ;
+            #endif
             if ( NULL == p )
             {
                PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -151,7 +162,11 @@ namespace engine
          }
          else if ( BUFFERSIZE == _bufLen && _bufLen < size )
          {
-            _dynamic = ( CHAR * )SDB_THREAD_ALLOC( size ) ;
+            #ifdef SDB_ENGINE
+               _dynamic = ( CHAR * )SDB_THREAD_ALLOC( size ) ;
+            #else
+               _dynamic = ( CHAR * )SDB_OSS_MALLOC( size ) ;
+            #endif
             if ( NULL == _dynamic )
             {
                PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -348,5 +363,5 @@ namespace engine
    } ;
 }
 
-#endif
+#endif //UTIL_STRING_HPP_
 
