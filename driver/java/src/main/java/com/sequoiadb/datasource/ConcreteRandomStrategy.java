@@ -16,23 +16,18 @@
 
 package com.sequoiadb.datasource;
 
+import java.util.List;
 import java.util.Random;
 
 class ConcreteRandomStrategy extends AbstractStrategy {
-    private Random _rand = new Random(47);
+    private final Random _rand = new Random(47);
 
     @Override
-    public String getAddress() {
-        String addr = null;
-        _addrLock.lock();
-        try {
-            if (_addrs.size() >= 1) {
-                addr = _addrs.get(_rand.nextInt(_addrs.size()));
-            }
-        } finally {
-            _addrLock.unlock();
+    public ServerAddress selectAddress(List<ServerAddress> addressList) {
+        ServerAddress retAddr = null;
+        if (addressList.size() >= 1) {
+            retAddr = addressList.get(_rand.nextInt(addressList.size()));
         }
-        return addr;
+        return retAddr;
     }
-
 }

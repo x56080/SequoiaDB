@@ -20,27 +20,18 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-
 abstract class AbstractStrategy implements IConnectStrategy {
 
     protected ArrayDeque<ConnItem> _activeConnItemDeque = new ArrayDeque<ConnItem>();
     protected ArrayDeque<ConnItem> _newlyCreatedConnItemDeque = new ArrayDeque<ConnItem>();
-    protected ArrayList<String> _addrs = new ArrayList<String>();
     protected Lock _opLock = new ReentrantLock();
-    protected Lock _addrLock = new ReentrantLock();
 
     // we need to keep all the API thread safe
     @Override
-    public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
+    public void init(List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
         // Notice that, we won't depend on the address in used queue, for
         // some addresses may have been removed, but, they may be still in used pool.
 
-        // get addresses to local
-        Iterator<String> addrListItr = addressList.iterator();
-        while (addrListItr.hasNext()) {
-            String addr = addrListItr.next();
-            _addAddress(addr);
-        }
         // get idle connections information
         if (_idleConnPairs != null) {
             Iterator<Pair> idleConnPairItr = _idleConnPairs.iterator();
@@ -48,14 +39,9 @@ abstract class AbstractStrategy implements IConnectStrategy {
                 Pair pair = idleConnPairItr.next();
                 String addr = pair.first().getAddr();
                 _addConnItem(pair.first());
-                _addAddress(addr);
             }
         }
     }
-
-    @Override
-    public abstract String getAddress();
-
 
     @Override
     public ConnItem pollConnItemForGetting() {
@@ -114,46 +100,34 @@ abstract class AbstractStrategy implements IConnectStrategy {
     }
 
     @Override
-    public void addAddress(String addr) {
-        _addAddress(addr);
-    }
+    public abstract ServerAddress selectAddress(List<ServerAddress> addressList);
 
     @Override
-    public List<ConnItem> removeAddress(String addr) {
-        List<ConnItem> returnList = new ArrayList<ConnItem>();
-        // remove address
-        _addrLock.lock();
-        try {
-            if (_addrs.contains(addr)) {
-                _addrs.remove(addr);
-            }
-        } finally {
-            _addrLock.unlock();
-        }
-        // remove item
+    public List<ConnItem> removeConnItemByAddress(String address) {
+        List<ConnItem> retLst = new ArrayList<>();
+
         _opLock.lock();
         try {
-            // prepare the return ConnItem for destroying
             Iterator<ConnItem> iterator = _activeConnItemDeque.iterator();
             while (iterator.hasNext()) {
                 ConnItem connItem = iterator.next();
-                if (addr.equals(connItem.getAddr())) {
-                    returnList.add(connItem);
+                if (address.equals(connItem.getAddr())) {
+                    retLst.add(connItem);
                     iterator.remove();
                 }
             }
             iterator = _newlyCreatedConnItemDeque.iterator();
             while (iterator.hasNext()) {
                 ConnItem connItem = iterator.next();
-                if (addr.equals(connItem.getAddr())) {
-                    returnList.add(connItem);
+                if (address.equals(connItem.getAddr())) {
+                    retLst.add(connItem);
                     iterator.remove();
                 }
             }
         } finally {
             _opLock.unlock();
         }
-        return returnList;
+        return retLst;
     }
 
     @Override
@@ -183,17 +157,6 @@ abstract class AbstractStrategy implements IConnectStrategy {
             _activeConnItemDeque.addFirst(connItem);
         } finally {
             _opLock.unlock();
-        }
-    }
-
-    private void _addAddress(String addr) {
-        _addrLock.lock();
-        try {
-            if (!_addrs.contains(addr)) {
-                _addrs.add(addr);
-            }
-        } finally {
-            _addrLock.unlock();
         }
     }
 }

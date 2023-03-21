@@ -32,7 +32,7 @@ enum Action {
 }
 
 interface IConnectStrategy {
-    public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs);
+    public void init(List<Pair> _idleConnPairs, List<Pair> _usedConnPairs);
 
     public ConnItem pollConnItemForGetting();
 
@@ -61,9 +61,7 @@ interface IConnectStrategy {
 
     public void updateUsedConnItemCount(ConnItem connItem, int change);
 
-    public String getAddress();
+    public ServerAddress selectAddress(List<ServerAddress> addressList);
 
-    public void addAddress(String addr);
-
-    public List<ConnItem> removeAddress(String addr);
+    public List<ConnItem> removeConnItemByAddress(String address);
 }

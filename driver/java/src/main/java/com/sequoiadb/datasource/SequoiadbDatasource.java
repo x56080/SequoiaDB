@@ -42,13 +42,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @since v1.12.6 & v2.2
  */
 public class SequoiadbDatasource {
-    // for coord address
-    private List<String> _normalAddrs = Collections.synchronizedList(new ArrayList<String>());
-    private ConcurrentSkipListSet<String> _abnormalAddrs = new ConcurrentSkipListSet<String>();
-    private ConcurrentSkipListSet<String> _localAddrs = new ConcurrentSkipListSet<String>();
-    private List<String> _localIPs = Collections.synchronizedList(new ArrayList<String>());
+    private AddressMgr addrMgr;
     // for created connections
-    private LinkedBlockingQueue<Sequoiadb> _destroyConnQueue = new LinkedBlockingQueue<Sequoiadb>();
+    private final LinkedBlockingQueue<Sequoiadb> _destroyConnQueue = new LinkedBlockingQueue<Sequoiadb>();
     private IConnectionPool _idleConnPool = null;
     private IConnectionPool _usedConnPool = null;
     private IConnectStrategy _strategy = null;
@@ -69,13 +65,13 @@ public class SequoiadbDatasource {
     private volatile boolean _isDatasourceOn = false;
     private volatile boolean _hasClosed = false;
     // for thread safe
-    private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
     private final Object _objForReleaseConn = new Object();
     // for session
     private volatile BSONObject _sessionAttr = null;
     // for others
-    private Random _rand = new Random(47);
-    private double MULTIPLE = 1.5;
+    private final Random _rand = new Random(47);
+    private static final double MULTIPLE = 1.5;
     private volatile int _preDeleteInterval = 0;
     private static final int _deleteInterval = 180000; // 3min
     // for error report
@@ -238,36 +234,24 @@ public class SequoiadbDatasource {
                 if (_hasClosed) {
                     return;
                 }
-                if (_abnormalAddrs.size() == 0) {
-                    return;
-                }
-                Iterator<String> abnormalAddrSetItr = _abnormalAddrs.iterator();
-                String addr = "";
-                while (abnormalAddrSetItr.hasNext()) {
-                    addr = abnormalAddrSetItr.next();
-                    Sequoiadb sdb = null;
+                List<ServerAddress> serAddrLst = addrMgr.getAbnormalAddress();
+                for (ServerAddress serAddr : serAddrLst) {
+                    Sequoiadb db = null;
                     try {
-                        sdb = new Sequoiadb(addr, _username, _password, _abnormalNwOpt);
+                        db = new Sequoiadb(serAddr.getAddress(), _username, _password, _abnormalNwOpt);
+                        addrMgr.enableAddress(serAddr.getAddress());
+                        log.debug(String.format("Change abnormal address %s to normal address", serAddr.getAddress()));
                     } catch (Exception e) {
-                        continue;
+                        // ignore the exception
                     } finally {
-                        if ( sdb != null ) {
+                        if ( db != null ) {
                             try {
-                                sdb.close();
+                                db.close();
                             } catch (Exception e) {
                                 // do nothing
                             }
                         }
                     }
-                    abnormalAddrSetItr.remove();
-                    // add address to normal address set
-                    synchronized (_normalAddrs) {
-                        if (!_normalAddrs.contains(addr)) {
-                            _normalAddrs.add(addr);
-                        }
-                    }
-                    log.debug(String.format("Change abnormal address %s to normal address", addr));
-                    _strategy.addAddress(addr);
                 }
             } finally {
                 rlock.unlock();
@@ -284,93 +268,41 @@ public class SequoiadbDatasource {
                 if (Thread.interrupted()) {
                     return;
                 }
-                if (_hasClosed) {
+                if (_hasClosed || _dsOpt.getSyncCoordInterval() == 0) {
                     return;
                 }
-                if (_dsOpt.getSyncCoordInterval() == 0) {
-                    return;
-                }
-                // we don't need "synchronized(_normalAddrs)" here, for
-                // "wlock" tell us that nobody is using "_normalAddrs"
-                Iterator<String> itr = _normalAddrs.iterator();
+                Iterator<ServerAddress> itr = addrMgr.getNormalAddress().iterator();
                 Sequoiadb sdb = null;
                 while (itr.hasNext()) {
-                    String addr = itr.next();
+                    ServerAddress serAddr = itr.next();
                     try {
-                        sdb = new Sequoiadb(addr, _username, _password, _normalNwOpt);
+                        sdb = new Sequoiadb(serAddr.getAddress(), _username, _password, _normalNwOpt);
                         break;
                     } catch (BaseException e) {
-                        continue;
+                        // ignore
                     }
                 }
                 if (sdb == null) {
                     // if we can't connect to database, let's return
                     return;
                 }
-                // get the coord addresses from catalog
-                List<String> cachedAddrList;
+
+                List<String> addrLst;
                 try {
-                    cachedAddrList = _synchronizeCoordAddr(sdb);
+                    addrLst = _synchronizeCoordAddr(sdb);
                 } catch (Exception e) {
-                    // if we failed, let's return
-                    log.debug("Synchronize coord address fail", e);
                     return;
                 } finally {
                     try {
-                        sdb.disconnect();
+                        sdb.close();
                     } catch (Exception e) {
                         // ignore
                     }
-                    sdb = null;
                 }
-                // get the difference of coord addresses between catalog and local
-                List<String> incList = new ArrayList<String>();
-                List<String> decList = new ArrayList<String>();
-                String addr = null;
-                if (cachedAddrList != null && cachedAddrList.size() > 0) {
-                    itr = _normalAddrs.iterator();
-                    for (int i = 0; i < 2; i++, itr = _abnormalAddrs.iterator()) {
-                        while (itr.hasNext()) {
-                            addr = itr.next();
-                            if (!cachedAddrList.contains(addr))
-                                decList.add(addr);
-                        }
-                    }
-                    itr = cachedAddrList.iterator();
-                    while (itr.hasNext()) {
-                        addr = itr.next();
-                        if (!_normalAddrs.contains(addr) &&
-                                !_abnormalAddrs.contains(addr))
-                            incList.add(addr);
-                    }
-                }
-                // check whether we need to handle the difference or not
-                if (incList.size() > 0) {
-                    // we are going to increase some coord addresses to local
-                    itr = incList.iterator();
-                    while (itr.hasNext()) {
-                        addr = itr.next();
-                        synchronized (_normalAddrs) {
-                            if (!_normalAddrs.contains(addr)) {
-                                _normalAddrs.add(addr);
-                            }
-                        }
-                        _strategy.addAddress(addr);
-                    }
-                }
-                if (decList.size() > 0) {
-                    // we are going to remove some coord addresses from local
-                    itr = decList.iterator();
-                    while (itr.hasNext()) {
-                        addr = itr.next();
-                        _normalAddrs.remove(addr);
-                        _abnormalAddrs.remove(addr);
-                        _removeAddrInStrategy(addr);
-                    }
-                }
-                if (incList.size() > 0 || decList.size() > 0) {
-                    log.info(String.format("Synchronize coord address success, increase address: %s, decrease address: %s",
-                            incList, decList));
+
+                List<ServerAddress> decList = addrMgr.updateAddress(addrLst);
+                for (ServerAddress serAddr : decList) {
+                    _removeConnItemInStrategy(serAddr.getAddress());
                 }
             } finally {
                 wlock.unlock();
@@ -409,7 +341,7 @@ public class SequoiadbDatasource {
                                 if (svcName == null || svcName.trim().isEmpty()) throw exp;
                                 String ip;
                                 try {
-                                    ip = _parseHostName(hostName.trim());
+                                    ip = AddressMgr.parseHostName(hostName.trim());
                                 } catch (Exception e) {
                                     break;
                                 }
@@ -518,14 +450,14 @@ public class SequoiadbDatasource {
      * Get the current normal address amount.
      */
     public int getNormalAddrNum() {
-        return _normalAddrs.size();
+        return addrMgr.getNormalAddressSize();
     }
 
     /**
      * Get the current abnormal address amount.
      */
     public int getAbnormalAddrNum() {
-        return _abnormalAddrs.size();
+        return addrMgr.getAbnormalAddressSize();
     }
 
     /**
@@ -537,45 +469,26 @@ public class SequoiadbDatasource {
      * @since 2.2
      */
     public int getLocalAddrNum() {
-        return _localAddrs.size();
+        return addrMgr.getLocalAddressSize();
     }
 
     /**
      * Add coord address.
-     * @param url The address in format "192.168.20.168:11810"
+     * @param address The address of coord node. Format: "hostname:port"
      * @throws BaseException If error happens.
      */
-    public void addCoord(String url) throws BaseException {
+    public void addCoord(String address) throws BaseException {
         Lock wlock = _rwLock.writeLock();
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "Connection pool has closed");
             }
-            if (url == null || url.equals( "" ) ) {
-                throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be empty or null");
+            if (address == null || address.equals( "" ) ) {
+                throw new BaseException(SDBError.SDB_INVALIDARG, "Address can't be empty or null");
             }
-            // parse coord address to the format "192.168.20.165:11810"
-            String addr = _parseCoordAddr(url);
-            // check whether the url exists in pool or not
-            if (_normalAddrs.contains(addr) ||
-                    _abnormalAddrs.contains(addr)) {
-                log.info(String.format("Already exist address: %s", url));
-                return;
-            }
-            // add to local
-            synchronized (_normalAddrs) {
-                if (!_normalAddrs.contains(addr)) {
-                    _normalAddrs.add(addr);
-                }
-            }
-            if (ConcreteLocalStrategy.isLocalAddress(addr, _localIPs))
-                _localAddrs.add(addr);
-            log.info(String.format("Add coord address: %s", url));
-            // add to strategy
-            if (_isDatasourceOn) {
-                _strategy.addAddress(addr);
-            }
+            String addr = AddressMgr.parseAddress(address);
+            addrMgr.addAddress(addr);
         } finally {
             wlock.unlock();
         }
@@ -583,28 +496,26 @@ public class SequoiadbDatasource {
 
     /**
      * Remove coord address.
+     * @param address The address of coord node. Format: "hostname:port"
+     * @throws BaseException If error happens.
      * @since 2.2
      */
-    public void removeCoord(String url) throws BaseException {
+    public void removeCoord(String address) throws BaseException {
         Lock wlock = _rwLock.writeLock();
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "Connection pool has closed");
             }
-            if (null == url) {
-                throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be null");
+            if (address == null || address.equals( "" )) {
+                throw new BaseException(SDBError.SDB_INVALIDARG, "Address can't be empty or null");
             }
-            // parse coord address to the format "192.168.20.165:11810"
-            String addr = _parseCoordAddr(url);
-            // remove from local
-            _normalAddrs.remove(addr);
-            _abnormalAddrs.remove(addr);
-            _localAddrs.remove(addr);
-            log.info(String.format("Remove coord address: %s", url));
+            String addr = AddressMgr.parseAddress(address);
+            addrMgr.removeAddress(addr);
+            log.info(String.format("Remove address: %s", address));
             if (_isDatasourceOn) {
                 // remove from strategy
-                _removeAddrInStrategy(addr);
+                _removeConnItemInStrategy(addr);
             }
         } finally {
             wlock.unlock();
@@ -927,8 +838,8 @@ public class SequoiadbDatasource {
                 String threadInfo = String.format("[thread id: %d]", Thread.currentThread().getId());
                 String itemSnap = getConnItemSnapshot();
                 String connSnap = getConnPoolSnapshot();
-                String addressSnap = getAddressSnapshot();
-                String detail = threadInfo + ", " + itemSnap + ", " + connSnap + ", " + addressSnap;
+                String addrSnap = addrMgr.getAddressSnapshot();
+                String detail = threadInfo + ", " + itemSnap + ", " + connSnap + ", " + addrSnap;
 
                 String errMsg;
                 // Check whether the connection pool is full
@@ -937,7 +848,7 @@ public class SequoiadbDatasource {
                     if (getNormalAddrNum() == 0) {
                         BaseException exception = _getLastException();
                         errMsg = "Get connection failed, no available address for connection, ";
-                        log.error(errMsg + addressSnap);
+                        log.error(errMsg + addrSnap);
                         if (exception != null) {
                             throw new BaseException(SDBError.SDB_NETWORK, errMsg + detail, exception);
                         } else {
@@ -1102,18 +1013,7 @@ public class SequoiadbDatasource {
 
     private void _init(List<String> addrList, String username, String password,
                        ConfigOptions nwOpt, DatasourceOptions dsOpt) throws BaseException {
-        // set arguments
-        for (String elem : addrList) {
-            if (elem != null && !elem.isEmpty()) {
-                // parse coord address to the format "192.168.20.165:11810"
-                String addr = _parseCoordAddr(elem);
-                synchronized (_normalAddrs) {
-                    if (!_normalAddrs.contains(addr)) {
-                        _normalAddrs.add(addr);
-                    }
-                }
-            }
-        }
+        addrMgr = new AddressMgr(addrList);
         _username = (username == null) ? "" : username;
         _password = (password == null) ? "" : password;
 
@@ -1151,13 +1051,6 @@ public class SequoiadbDatasource {
         // to reduce the connection time of abnormal address
         _abnormalNwOpt.setConnectTimeout(100);  // 100ms
         _abnormalNwOpt.setMaxAutoConnectRetryTime(0);  //0ms
-
-        // pick up local coord address
-        List<String> localIPList = ConcreteLocalStrategy.getNetCardIPs();
-        _localIPs.addAll(localIPList);
-        List<String> localCoordList =
-                ConcreteLocalStrategy.getLocalCoordIPs(_normalAddrs, localIPList);
-        _localAddrs.addAll(localCoordList);
 
         // if connection is shutdown, return directly
         if (_dsOpt.getMaxCount() == 0) {
@@ -1240,7 +1133,7 @@ public class SequoiadbDatasource {
         // here we don't need to offer abnormal address, for "RetrieveAddressTask"
         // will here us to add those addresses to strategy when those addresses
         // can be use again
-        _strategy.init(_normalAddrs, idleConnPairs, usedConnPairs);
+        _strategy.init(idleConnPairs, usedConnPairs);
     }
 
     private void _closePoolConnections(IConnectionPool pool) {
@@ -1297,23 +1190,22 @@ public class SequoiadbDatasource {
 
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
         Sequoiadb sdb = null;
-        String address = null;
+        ServerAddress serAddr = null;
         try {
+            List<ServerAddress> serAddrLst = addrMgr.getNormalAddress();
             while (true) {
                 // never forget to handle the situation of the datasourc is disable
                 if (_isDatasourceOn) {
-                    address = _strategy.getAddress();
+                    serAddr = _strategy.selectAddress(serAddrLst);
                 } else {
-                    synchronized (_normalAddrs) {
-                        int size = _normalAddrs.size();
-                        if (size > 0) {
-                            address = _normalAddrs.get(_rand.nextInt(size));
-                        }
+                    int size = serAddrLst.size();
+                    if (size > 0) {
+                        serAddr = serAddrLst.get(_rand.nextInt(size));
                     }
                 }
-                if (address != null) {
+                if (serAddr != null) {
                     try {
-                        sdb = new Sequoiadb(address, _username, _password, _normalNwOpt);
+                        sdb = new Sequoiadb(serAddr.getAddress(), _username, _password, _normalNwOpt);
                         clearLastException();
                         // when success, let's return the connection
                         break;
@@ -1322,8 +1214,9 @@ public class SequoiadbDatasource {
                         String errType = e.getErrorType();
                         if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                                 errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                            _handleErrorAddr(address);
-                            address = null;
+                            serAddrLst.remove(serAddr);
+                            _handleErrorAddr(serAddr.getAddress());
+                            serAddr = null;
                             continue;
                         } else {
                             throw e;
@@ -1352,9 +1245,9 @@ public class SequoiadbDatasource {
         Sequoiadb retConn = null;
         int retry = 3;
         while (retry-- > 0) {
-            Iterator<String> itr = _abnormalAddrs.iterator();
+            Iterator<ServerAddress> itr = addrMgr.getAbnormalAddress().iterator();
             while (itr.hasNext()) {
-                String addr = itr.next();
+                String addr = itr.next().getAddress();
                 try {
                     retConn = new Sequoiadb(addr, _username, _password, _abnormalNwOpt);
                 } catch (Exception e) {
@@ -1363,20 +1256,9 @@ public class SequoiadbDatasource {
                     }
                     continue;
                 }
-                // TODO:
-                // multi thread to do this, it's not the best way
-                // to move a address from abnormal list ot normal list
-                _abnormalAddrs.remove(addr);
-                synchronized (_normalAddrs) {
-                    if (!_normalAddrs.contains(addr)) {
-                        _normalAddrs.add(addr);
-                    }
-                }
+                addrMgr.enableAddress(addr);
                 log.debug(String.format("Create connections success with abnormal address: %s, " +
                         "change it to normal address", addr));
-                if (_isDatasourceOn) {
-                    _strategy.addAddress(addr);
-                }
                 break;
             }
             if (retConn != null) {
@@ -1399,7 +1281,7 @@ public class SequoiadbDatasource {
 
     private String _getDataSourceSnapshot() {
         String threadInfo = String.format("[thread id: %d]", Thread.currentThread().getId());
-        return threadInfo + ", " + getConnItemSnapshot() + ", " + getConnPoolSnapshot() + ", " + getAddressSnapshot();
+        return threadInfo + ", " + getConnItemSnapshot() + ", " + getConnPoolSnapshot() + ", " + addrMgr.getAddressSnapshot();
     }
 
     private void _setLastException(BaseException e) {
@@ -1416,17 +1298,16 @@ public class SequoiadbDatasource {
         lastException.remove();
     }
 
-    private void _handleErrorAddr(String addr) {
-        _normalAddrs.remove(addr);
-        _abnormalAddrs.add(addr);
-        log.debug(String.format("Create connections fail with normal address: %s, change it to abnormal address", addr));
+    private void _handleErrorAddr(String address) {
+        addrMgr.disableAddress(address);
+        log.debug(String.format("Create connections fail with normal address: %s, change it to abnormal address", address));
         if (_isDatasourceOn) {
-            _removeAddrInStrategy(addr);
+            _removeConnItemInStrategy(address);
         }
     }
 
-    private void _removeAddrInStrategy(String addr) {
-        List<ConnItem> list = _strategy.removeAddress(addr);
+    private void _removeConnItemInStrategy(String address) {
+        List<ConnItem> list = _strategy.removeConnItemByAddress(address);
         Iterator<ConnItem> itr = list.iterator();
         while (itr.hasNext()) {
             ConnItem item = itr.next();
@@ -1445,7 +1326,7 @@ public class SequoiadbDatasource {
         while (createNum > 0 && _idleConnPool.count() < _dsOpt.getMinIdleCount()) {
             // never let "sdb" defined out of current scope
             Sequoiadb sdb = null;
-            String addr = null;
+            ServerAddress serAddr = null;
             // get item for new connection
             ConnItem connItem = _connItemMgr.getItem();
             if (connItem == null) {
@@ -1454,23 +1335,23 @@ public class SequoiadbDatasource {
             }
             // create new connection
             while (true) {
-                addr = null;
-                addr = _strategy.getAddress();
-                if (addr == null) {
+                serAddr = null;
+                serAddr = _strategy.selectAddress(addrMgr.getNormalAddress());
+                if (serAddr == null) {
                     // when have no address, we don't want to report any error message,
                     // let it done by main branch.
                     break;
                 }
                 // create connection
                 try {
-                    sdb = new Sequoiadb(addr, _username, _password, _normalNwOpt);
+                    sdb = new Sequoiadb(serAddr.getAddress(), _username, _password, _normalNwOpt);
                     break;
                 } catch (BaseException e) {
                     String errType = e.getErrorType();
                     if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                             errType.equals("SDB_NET_CANNOT_CONNECT")) {
                         // remove this address from normal address list
-                        _handleErrorAddr(addr);
+                        _handleErrorAddr(serAddr.getAddress());
                         continue;
                     } else {
                         // let's stop for another error
@@ -1497,7 +1378,7 @@ public class SequoiadbDatasource {
                 }
             }
             // when we create a connection, let's put it to idle pool
-            connItem.setAddr(addr);
+            connItem.setAddr(serAddr.getAddress());
             // add to idle pool
             _idleConnPool.insert(connItem, sdb);
             // update info to strategy
@@ -1512,6 +1393,10 @@ public class SequoiadbDatasource {
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
         // check the send/receive buffer size of the connection is out of the cache limit or not
         if (_dsOpt.getCacheLimit() > 0 && sdb.getCurrentCacheSize() > _dsOpt.getCacheLimit()) {
+            return false;
+        }
+
+        if (!addrMgr.isNormalAddress(sdb.getNodeName())) {
             return false;
         }
 
@@ -1589,7 +1474,7 @@ public class SequoiadbDatasource {
         }
         // initialize strategy
         _strategy = _createStrategy(strategy);
-        _strategy.init(_normalAddrs, null, null);
+        _strategy.init(null, null);
         // start timer
         _startTimer();
         // start back group thread
@@ -1619,57 +1504,6 @@ public class SequoiadbDatasource {
             }
         }
         return reduceCount;
-    }
-
-    private void _reduceIdleConnections_bak(int count) {
-        while (count-- > 0) {
-            ConnItem item = _strategy.pollConnItemForDeleting();
-            if (item == null) {
-                // Actually, should never come here. When it happen, just let it go.
-                break;
-            }
-            try {
-                Sequoiadb sdb = _idleConnPool.poll(item);
-                _destroyConnQueue.add(sdb);
-            } finally {
-                // release connItem
-                _connItemMgr.releaseItem(item);
-            }
-        }
-    }
-
-    private String _parseHostName(String hostName) {
-        InetAddress ia = null;
-        try {
-            ia = InetAddress.getByName(hostName);
-        } catch (UnknownHostException e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for UnknownHostException", e);
-        } catch (SecurityException e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for SecurityException", e);
-        }
-        return ia.getHostAddress();
-    }
-
-    private String _parseCoordAddr(String coordAddr) {
-        String retCoordAddr = null;
-        if (coordAddr.indexOf(":") > 0) {
-            String host = "";
-            int port = 0;
-            String[] tmp = coordAddr.split(":");
-            if (tmp.length < 2)
-                throw new BaseException(SDBError.SDB_INVALIDARG, "Point 1: invalid format coord address: " + coordAddr);
-            host = tmp[0].trim();
-            try {
-                host = InetAddress.getByName(host).toString().split("/")[1];
-            } catch (Exception e) {
-                throw new BaseException(SDBError.SDB_INVALIDARG, e);
-            }
-            port = Integer.parseInt(tmp[1].trim());
-            retCoordAddr = host + ":" + port;
-        } else {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Point 2: invalid format coord address: " + coordAddr);
-        }
-        return retCoordAddr;
     }
 
     private void updateConnConf(Sequoiadb sdb, ConfigOptions config){
@@ -1801,11 +1635,6 @@ public class SequoiadbDatasource {
         return String.format("use connections: %d, idle connections: %d",
                 _usedConnPool != null ? _usedConnPool.count() : null,
                 _idleConnPool != null ? _idleConnPool.count() : null);
-    }
-
-    private String getAddressSnapshot() {
-        return String.format("normal address: %d, abnormal address: %d, local address: %d",
-                _normalAddrs.size(), _abnormalAddrs.size(), _localAddrs.size());
     }
 }
 

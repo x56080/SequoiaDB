@@ -12,6 +12,7 @@ public class Constants {
     //public final static String HOST = TestConfig.getSingleHost();
     public final static String DATA_HOST = TestConfig.getDataHost();
     public final static int DATA_PORT = TestConfig.getDataPort();
+    public final static String DB_PATH = TestConfig.getDBPath();
     public final static String BACKUPPATH = "/opt/sequoiadb/database/test/backup";
     public final static String DATAPATH4 = "/opt/sequoiadb/database/test/data4";
 

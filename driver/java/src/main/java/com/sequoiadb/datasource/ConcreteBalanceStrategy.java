@@ -83,7 +83,6 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
     private TreeSet<CountInfo> _countInfoSet = new TreeSet<CountInfo>();
     private static CountInfo _dumpCountInfo = new CountInfo("", 0, false);
 
-    @Override
     public synchronized void init(List<String> addressList, List<Pair> _idleConnPairs,
                                   List<Pair> _usedConnPairs) {
         // initialize info from giving addresses
@@ -154,6 +153,23 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
             }
         }
 
+    }
+
+    @Override
+    public void init(List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
+        // do nothing
+    }
+
+    @Override
+    public ServerAddress selectAddress(List<ServerAddress> addressList) {
+        // do nothing
+        return null;
+    }
+
+    @Override
+    public List<ConnItem> removeConnItemByAddress(String address) {
+        // do nothing
+        return null;
     }
 
     @Override
@@ -378,7 +394,6 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         }
     }
 
-    @Override
     public synchronized String getAddress() {
         // when an address have no connection which had been built,
         // this address will be marked to "false"
@@ -397,7 +412,6 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         return info.getAddress();
     }
 
-    @Override
     public synchronized void addAddress(String addr) {
 
         ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
@@ -410,7 +424,6 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         }
     }
 
-    @Override
     public synchronized List<ConnItem> removeAddress(String addr) {
         List<ConnItem> list = new ArrayList<ConnItem>();
         if (_idleConnItemMap.containsKey(addr)) {

@@ -37,6 +37,7 @@ public class TestConfig {
     private static final String dataPort = "data.port";
     private static final String datasourceAddress = "datasource.address";
     private static final String datasourceUrls = "datasource.urls";
+    private static final String dbPath = "dbPath";
 
     private TestConfig() {
     }
@@ -116,5 +117,9 @@ public class TestConfig {
 
     public static String getDatasourceUrls() {
         return properties.getProperty(datasourceUrls);
+    }
+
+    public static String getDBPath() {
+        return properties.getProperty(dbPath);
     }
 }
