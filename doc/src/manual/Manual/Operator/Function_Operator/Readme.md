@@ -27,6 +27,7 @@
 | [$abs][abs]            | 取绝对值         | db.sample.employee.find({}, {a:{$abs:1}}) |
 | [$ceiling][ceiling]    | 向上取整         | db.sample.employee.find({}, {a:{$ceiling:1}}) |
 | [$floor][floor]        | 向下取整         | db.sample.employee.find({}, {a:{$floor:1}}) |
+| [$round][round]        | 四舍五入为整数或指定的小数位 | db.sample.employee.find({}, {a:{$round:1}}) |
 | [$mod][mod]            | 取模运算         | db.sample.employee.find({}, {a:{$mod:1}}) |
 | [$add][add]            | 加法运算         | db.sample.employee.find({}, {a:{$add:10}}) |
 | [$subtract][subtract]  | 减法运算         | db.sample.employee.find({}, {a:{$subtract:10}}) |
@@ -53,6 +54,7 @@
 [abs]:manual/Manual/Operator/Function_Operator/abs.md
 [ceiling]:manual/Manual/Operator/Function_Operator/ceiling.md
 [floor]:manual/Manual/Operator/Function_Operator/floor.md
+[round]:manual/Manual/Operator/Function_Operator/round.md
 [mod]:manual/Manual/Operator/Function_Operator/mod.md
 [add]:manual/Manual/Operator/Function_Operator/add.md
 [subtract]:manual/Manual/Operator/Function_Operator/subtract.md

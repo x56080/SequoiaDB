@@ -5243,6 +5243,12 @@
                            "en": "$floor"
                         },
                         {
+                           "id": 1678699505,
+                           "file": "round",
+                           "cn": "$round",
+                           "en": "$round"
+                        },
+                        {
                            "id": 1440656858,
                            "file": "mod",
                            "cn": "$mod",
