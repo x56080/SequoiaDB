@@ -196,5 +196,4 @@ v2.0 及以上版本
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
-[standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
-
+[standalone]:manual/Distributed_Engine/Operation/Index/standalone_index.md
