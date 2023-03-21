@@ -69,13 +69,9 @@ SequoiaDB 的集群管理相关概念的关系如图 2 所示。
 
 在 SequoiaDB 中，[索引][data_mode_index]是一种特殊的数据对象。索引本身不作为保存用户数据的容器，而是作为一种特殊的元数据，用以提高数据访问的效率。
 
-全文索引
-----
-
-SequoiaDB 通过与 Elasticsearch 配合提供全文检索能力。以此为基础，SequoiaDB 提供一种新类型的索引——[全文索引][data_mode_text_index]。该索引与普通索引的典型区别在于索引数据不是存放于 SequoiaDB 的数据节点的索引文件中，而是存储在 Elasticsearch 中。
-
 序列
 ----
+
 SequoiaDB 提供[自增字段][data_mode_sequence]能力。在创建集合时，用户可以指定一个或者多个字段为自增字段。
 
 [^_^]:
@@ -90,7 +86,6 @@ SequoiaDB 提供[自增字段][data_mode_sequence]能力。在创建集合时，
 [data_mode_oid]:manual/Manual/Sequoiadb_Command/SpecialObjects/OID.md
 
 [data_mode_index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
-[data_mode_text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [data_mode_sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 
 [data_mode_domain]:manual/Distributed_Engine/Architecture/domain.md

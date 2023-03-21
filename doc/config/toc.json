@@ -1193,12 +1193,6 @@
                            "en": "Index"
                         },
                         {
-                            "id": 1519293107,
-                            "file": "text_index",
-                            "cn": "全文索引",
-                            "en": "Text Index"
-                        },
-                        {
                            "id": 1541038339,
                            "file": "sequence",
                            "cn": "序列",
@@ -1270,6 +1264,32 @@
                      "file": "collection_operation",
                      "cn": "集合操作",
                      "en": "Collection Operation"
+                  },
+                  {
+                     "id": 1634698695,
+                     "dir": "Index",
+                     "cn": "索引使用",
+                     "en": "Index",
+                     "contents":[
+                        {
+                            "id": 1634699299,
+                            "file": "normal_index",
+                            "cn": "普通索引",
+                            "en": "Normal Index"
+                        },
+                        {
+                            "id": 1634699313,
+                            "file": "unique_index",
+                            "cn": "唯一索引",
+                            "en": "Unique Index"
+                        },
+                        {
+                            "id": 1519293107,
+                            "file": "text_index",
+                            "cn": "全文索引",
+                            "en": "Text Index"
+                        }
+                     ]
                   },
                   {
                      "id": 1617245375,
