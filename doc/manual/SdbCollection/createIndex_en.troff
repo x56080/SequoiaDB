@@ -19,6 +19,14 @@ SdbCollection
 .PP
 This function is used to create an index for the collection to improve query
 speed.User need to understand the limitations of indexes before careating.
+.PP
+If the index field is sorted in positive order in the collection or needs to
+match records with smaller values, it is recommended to create an index in
+ascending order, which can hit the target records faster.
+If the user needs to match records with large values, it is recommended to
+create a descending index.
+In actual use, correctly specifying the index type according to the scenario can
+greatly improve the query efficiency of the index.
 .SH PARAMETERS
 .IP \[bu] 2
 name ( \f[I]string, required\f[] )
@@ -67,7 +75,7 @@ sortBufferSize ( \f[I]number, optional\f[] )
 The size of sort buffer.
 The default value is 64, the unit is MB.
 .IP \[bu] 2
-Zero means don\[aq]t use sort buffer.
+A value of 0 means not to use the sort buffer.
 .IP \[bu] 2
 When the collection record data volume more than 10 million records,
 appropriately increasing the sort cache size can increase the speed of index
@@ -87,14 +95,14 @@ indexAttr ( \f[I]object, optional\f[] )
 Index attributes can be set through the parameter "indexAttr":
 .IP \[bu] 2
 Unique ( \f[I]boolean\f[] ): Whether the index is unique.
-The defalut value is false.
+The default value is false.
 .RS 2
 .PP
 Format: \f[C]Unique: true\f[]
 .RE
 .IP \[bu] 2
 Enforced ( \f[I]boolean\f[] ): Whether the index is mandatorily unique.
-The defalut value is false.
+The default value is false.
 .RS 2
 .IP \[bu] 2
 When it is true, cannot repeatedly insert records whose index field value is
@@ -107,7 +115,7 @@ Format: \f[C]Enforced: true\f[]
 .IP \[bu] 2
 NotNull ( \f[I]boolean\f[] ): Whether to allowed the index field to
 not\-existent or be null when inserting a record.
-The defalut value is false.
+The default value is false.
 .RS 2
 .PP
 The values are as follows:
@@ -121,7 +129,7 @@ Format: \f[C]NotNull: true\f[]
 .IP \[bu] 2
 NotArray ( \f[I]boolean\f[] ): Whether any field of index is allowed to be an
 array when inserting a record.
-The defalut value is false.
+The default value is false.
 .RS 2
 .IP \[bu] 2
 true: The value of the index field is not allowed to be an array.
@@ -132,7 +140,7 @@ Format: \f[C]NotArray: true\f[]
 .RE
 .IP \[bu] 2
 Standalone ( \f[I]boolean\f[] ): Whether it is a standalone index.
-The defalut value is false, means is not a standalone index.
+The default value is false, means is not a standalone index.
 .RS 2
 .PP
 When it is true, the parameter "NodeName", "NodeID" or "InstanceID" must be
@@ -140,6 +148,15 @@ specified.
 .PP
 Format: \f[C]Standalone: true\f[]
 .RE
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+The standalone index does not support configuration constaints, that is, the
+parameters Unique, NotNull and NotArray cannot be true.
+.IP \[bu] 2
+Text indexes cannot be used as standalone indexes.
 .RE
 .IP \[bu] 2
 option ( \f[I]object, optional\f[] )
@@ -151,7 +168,7 @@ SortBufferSize ( \f[I]number\f[] ): The size of sort buffer.
 The default value is 64, the unit is MB.
 .RS 2
 .IP \[bu] 2
-Zero means don\[aq]t use sort buffer.
+A value of 0 means not to use the sort buffer.
 .IP \[bu] 2
 When the collection record data volume more than 10 million records,
 appropriately increasing the sort cache size can increase the speed of index
@@ -160,19 +177,19 @@ creation.
 Format: \f[C]SortBufferSize: 80\f[]
 .RE
 .IP \[bu] 2
-NodeName ( \f[I]string/array\f[] ): Data node name
+NodeName ( \f[I]string/array\f[] ): Data node name.
 .RS 2
 .PP
 Format: \f[C]NodeName: "sdbserver:11820"\f[]
 .RE
 .IP \[bu] 2
-NodeID ( \f[I]number/array\f[] ): Data node ID
+NodeID ( \f[I]number/array\f[] ): Data node ID.
 .RS 2
 .PP
 Format: \f[C]NodeID: 1001\f[]
 .RE
 .IP \[bu] 2
-InstanceID ( \f[I]number/array\f[] ): Data node instance ID
+InstanceID ( \f[I]number/array\f[] ): Data node instance ID.
 .RS 2
 .PP
 Format: \f[C]InstanceID: 100\f[]

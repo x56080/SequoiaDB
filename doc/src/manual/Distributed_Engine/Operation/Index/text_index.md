@@ -2,7 +2,7 @@
     全文索引
 
 
-全文索引用于在大量文本中进行快速检索。与普通索引相比，全文索引通过建立词库，统计每个词条出现的频率和位置，可以快速定位关键词出现的位置，以提升检索效率。
+SequoiaDB 巨杉数据库支持创建全文索引，用于在大量文本中进行快速检索。与其他索引相比，全文索引通过建立词库，统计每个词条出现的频率和位置，可以快速定位关键词出现的位置，以提升检索效率。
 
 一个新的文档从插入集合到可被搜索会有一定的延迟，延迟长短取决于构建全文索引的速度。索引的构建主要分为以下两种情况：
 
@@ -244,6 +244,7 @@ find( { "": { "$Text": <search command> } } )
 
 | 操作 | 说明 |
 | ---- | ---- |
+| [query.explain()][explain] | 获取查询的访问计划 |
 | [dropIndex()][drop_index] | 删除指定的全文索引 |
 
 
@@ -258,3 +259,4 @@ find( { "": { "$Text": <search command> } } )
 [dsl]:https://elasticsearch-dsl.readthedocs.io/en/6.2.1/
 [drop_index]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
 [full_text_search_flow]:images/Distributed_Engine/Architecture/Data_Model/full_text_search_flow.png
+[explain]:manual/Manual/Sequoiadb_Command/SdbQuery/explain.md

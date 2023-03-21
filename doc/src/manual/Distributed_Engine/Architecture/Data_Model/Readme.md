@@ -16,7 +16,6 @@ SequoiaDB 巨杉数据库支持结构化、半结构化和非结构化数据的�
 - [集合空间][data_mode_collection_space]
 - [大对象][data_mode_lob]
 - [索引][data_mode_index]
-- [全文索引][data_mode_text_index]
 - [序列][data_mode_sequence]
 - [实例][data_mode_instance]
 
@@ -34,6 +33,6 @@ SequoiaDB 巨杉数据库支持结构化、半结构化和非结构化数据的�
 [data_mode_collection_space]:manual/Distributed_Engine/Architecture/Data_Model/collection_space.md
 [data_mode_lob]:manual/Distributed_Engine/Architecture/Data_Model/lob.md
 [data_mode_index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
-[data_mode_text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [data_mode_sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [data_mode_instance]:manual/Distributed_Engine/Architecture/Data_Model/instance.md
+

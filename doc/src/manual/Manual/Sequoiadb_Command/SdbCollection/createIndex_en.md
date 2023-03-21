@@ -16,6 +16,8 @@ SdbCollection
 
 This function is used to create an [index][index] for the collection to improve query speed.User need to understand the [limitations][limitation] of indexes before careating.
 
+If the index field is sorted in positive order in the collection or needs to match records with smaller values, it is recommended to create an index in ascending order, which can hit the target records faster. If the user needs to match records with large values, it is recommended to create a descending index. In actual use, correctly specifying the index type according to the scenario can greatly improve the query efficiency of the index. 
+
 ##PARAMETERS##
 
 - name ( *string, required* )
@@ -45,7 +47,7 @@ This function is used to create an [index][index] for the collection to improve 
 
     The size of sort buffer. The default value is 64, the unit is MB.
 
-    - Zero means don't use sort buffer.
+    - A value of 0 means not to use the sort buffer.
     - When the collection record data volume more than 10 million records, appropriately increasing the sort cache size can increase the speed of index creation. 
 
 > **Note:**
@@ -56,18 +58,18 @@ This function is used to create an [index][index] for the collection to improve 
 
     Index attributes can be set through the parameter "indexAttr":
     
-    - Unique ( *boolean* ): Whether the index is unique. The defalut value is false.
+    - Unique ( *boolean* ): Whether the index is unique. The default value is false.
     
         Format: `Unique: true`
 
-    - Enforced ( *boolean* ): Whether the index is mandatorily unique. The defalut value is false.
+    - Enforced ( *boolean* ): Whether the index is mandatorily unique. The default value is false.
 
         - When it is true, cannot repeatedly insert records whose index field value is null.
         - It only becomes effective when the parameter "Unique" is true.
 
         Format: `Enforced: true`
     
-    - NotNull ( *boolean* ): Whether to allowed the index field to not-existent or be null when inserting a record. The defalut value is false.
+    - NotNull ( *boolean* ): Whether to allowed the index field to not-existent or be null when inserting a record. The default value is false.
 
         The values are as follows:
 
@@ -76,18 +78,23 @@ This function is used to create an [index][index] for the collection to improve 
     
         Format: `NotNull: true`
 
-    - NotArray ( *boolean* ): Whether any field of index is allowed to be an array when inserting a record. The defalut value is false.
+    - NotArray ( *boolean* ): Whether any field of index is allowed to be an array when inserting a record. The default value is false.
 
         - true: The value of the index field is not allowed to be an array.
         - false: The value of the index field is allowed to be an array.
 
         Format: `NotArray: true`
     
-    - Standalone ( *boolean* ): Whether it is a standalone index. The defalut value is false, means is not a standalone index.
+    - Standalone ( *boolean* ): Whether it is a [standalone index][standalone]. The default value is false, means is not a standalone index.
 
         When it is true, the parameter "NodeName", "NodeID" or "InstanceID" must be specified.
 
         Format: `Standalone: true`
+
+> **Note:**
+>
+> - The standalone index does not support configuration constaints, that is, the parameters Unique, NotNull and NotArray cannot be true.
+> - Text indexes cannot be used as standalone indexes.
 
 - option ( *object, optional* )
 
@@ -95,20 +102,20 @@ This function is used to create an [index][index] for the collection to improve 
 
     - SortBufferSize ( *number* ): The size of sort buffer. The default value is 64, the unit is MB.
     
-        - Zero means don't use sort buffer.
+        - A value of 0 means not to use the sort buffer.
         - When the collection record data volume more than 10 million records, appropriately increasing the sort cache size can increase the speed of index creation.
 
         Format: `SortBufferSize: 80`
 
-    - NodeName ( *string/array* ): Data node name
+    - NodeName ( *string/array* ): Data node name.
 
         Format: `NodeName: "sdbserver:11820"`
     
-    - NodeID ( *number/array* ): Data node ID
+    - NodeID ( *number/array* ): Data node ID.
 
         Format: `NodeID: 1001`
     
-    - InstanceID ( *number/array* ): Data node instance ID
+    - InstanceID ( *number/array* ): Data node instance ID.
 
         Format: `InstanceID: 100`
 
@@ -186,4 +193,6 @@ v2.0 and above
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
+[standalone]:manual/Distributed_Engine/Operation/Index/standalone_index.md
+
