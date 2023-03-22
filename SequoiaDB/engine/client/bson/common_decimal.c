@@ -2303,14 +2303,19 @@ int sdb_decimal_from_double( double value, bson_decimal *decimal )
   return sdb_decimal_from_str( buf, decimal ) ;
 }
 
+int sdb_decimal_from_str( const char *value, bson_decimal *decimal )
+{
+   return sdb_decimal_from_str1( value, decimal, 0 ) ;
+}
+
 /*
- * sdb_decimal_from_str()
+ * sdb_decimal_from_str1()
  *
  *  Parse a string and put the number into a variable
  *  the caller is responsible for freeing this decimal( sdb_decimal_free )
  */
-int sdb_decimal_from_str( const char *value, bson_decimal *decimal )
-
+int sdb_decimal_from_str1( const char *value, bson_decimal *decimal,
+                           int ignoreInvalidChar )
 {
    int have_dp = 0 ;
    int i       = 0 ;
@@ -2408,8 +2413,15 @@ int sdb_decimal_from_str( const char *value, bson_decimal *decimal )
 
    if ( !_decimal_is_digit( *cp ) )
    {
-      rc = -6 ;
-      goto error ;
+      if ( ignoreInvalidChar  )
+      {
+         goto done ;
+      }
+      else
+      {
+         rc = -6 ;
+         goto error ;
+      }
    }
 
    decdigits = (unsigned char *) bson_malloc( strlen(cp) +
@@ -2504,7 +2516,7 @@ int sdb_decimal_from_str( const char *value, bson_decimal *decimal )
       goto error ;
    }
 
-   if ( *cp != '\0' )
+   if ( !ignoreInvalidChar && *cp != '\0' )
    {
       // exist not digits value
       rc = -6 ;

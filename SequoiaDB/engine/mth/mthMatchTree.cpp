@@ -89,6 +89,7 @@ namespace engine
       { MTH_FUNCTION_STR_CEILING,     EN_MATCH_FUNC_CEILING },
       { MTH_FUNCTION_STR_FLOOR,       EN_MATCH_FUNC_FLOOR },
       { MTH_FUNCTION_STR_ROUND,       EN_MATCH_FUNC_ROUND },
+      { MTH_FUNCTION_STR_FORMAT,      EN_MATCH_FUNC_FORMAT },
       //special process: MTH_OPERATOR_STR_MOD
       //{ MTH_FUNCTION_STR_MOD,         EN_MATCH_FUNC_MOD },
       { MTH_FUNCTION_STR_ADD,         EN_MATCH_FUNC_ADD },
@@ -282,6 +283,9 @@ namespace engine
          break ;
       case EN_MATCH_FUNC_ROUND:
          func = new ( allocator ) _mthMatchFuncROUND( allocator ) ;
+         break ;
+      case EN_MATCH_FUNC_FORMAT:
+         func = new ( allocator ) _mthMatchFuncFORMAT( allocator ) ;
          break ;
       case EN_MATCH_FUNC_MOD:
       case EN_MATCH_OPERATOR_MOD:

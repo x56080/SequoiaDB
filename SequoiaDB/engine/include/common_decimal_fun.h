@@ -69,6 +69,8 @@ SDB_EXPORT int  sdb_decimal_from_double( double value, bson_decimal *decimal ) ;
 
 // the caller is responsible for freeing this decimal( sdb_decimal_free )
 SDB_EXPORT int  sdb_decimal_from_str( const char *value, bson_decimal *decimal ) ;
+int  sdb_decimal_from_str1( const char *value, bson_decimal *decimal,
+                            int ignoreInvalidChar ) ;
 
 SDB_EXPORT int  sdb_decimal_get_typemod( const bson_decimal *decimal,
                                          int *precision,

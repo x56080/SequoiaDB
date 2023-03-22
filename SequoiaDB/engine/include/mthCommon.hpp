@@ -85,8 +85,11 @@ namespace engine
                    BSONObjBuilder &outBuilder ) ;
 
    INT32 mthRound( const CHAR * name, const BSONElement & in,
-                   BSONObjBuilder & outBuilder,
-                   INT32 scale, INT32 &flag ) ;
+                   INT32 scale, INT32 &flag,
+                   BSONObjBuilder & outBuilder ) ;
+
+   INT32 mthFormat( const CHAR * name, const BSONElement & in,
+                    INT32 scale, BSONObjBuilder & outBuilder ) ;
 
    INT32 mthMod( const CHAR *name, const BSONElement &in,
                  const BSONElement &modm, BSONObjBuilder &outBuilder ) ;

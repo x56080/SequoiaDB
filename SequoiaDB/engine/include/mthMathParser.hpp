@@ -95,6 +95,20 @@ namespace engine
                             _mthSAction &action ) const ;
    } ;
 
+   class _mthFormatParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthFormatParser()
+      {
+         _name = MTH_S_FORMAT ;
+      }
+      virtual ~_mthFormatParser() {}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                            _mthSAction &action ) const ;
+   } ;
+
    class _mthModParser : public _mthSActionParser::parser
    {
    public:

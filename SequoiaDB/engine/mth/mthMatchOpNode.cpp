@@ -336,8 +336,8 @@ namespace engine
       BSONObjBuilder builder ;
       INT32 flag = 0 ;
 
-      rc = mthRound( _fieldName.getFieldName(), in, builder,
-                     _funcEle.numberInt(), flag ) ;
+      rc = mthRound( _fieldName.getFieldName(), in,
+                     _funcEle.numberInt(), flag, builder ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "mthRound failed:rc=%d", rc ) ;
@@ -364,6 +364,71 @@ namespace engine
    }
 
    INT32 _mthMatchFuncROUND::_init( const CHAR *fieldName,
+                                    const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "scale must be number:ele=%s",
+                 ele.toString().c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   //************************_mthMatchFuncFORMAT********************************
+   _mthMatchFuncFORMAT::_mthMatchFuncFORMAT( _mthNodeAllocator *allocator )
+                       :_mthMatchFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncFORMAT::~_mthMatchFuncFORMAT()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncFORMAT::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthFormat( _fieldName.getFieldName(), in,
+                      _funcEle.numberInt(), builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthFormat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      out = builder.obj() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthMatchFuncFORMAT::getType()
+   {
+      return EN_MATCH_FUNC_FORMAT ;
+   }
+
+   const CHAR* _mthMatchFuncFORMAT::getName()
+   {
+      return MTH_FUNCTION_STR_FORMAT ;
+   }
+
+   void _mthMatchFuncFORMAT::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncFORMAT::_init( const CHAR *fieldName,
                                     const BSONElement &ele )
    {
       INT32 rc = SDB_OK ;

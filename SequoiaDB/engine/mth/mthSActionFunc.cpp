@@ -628,7 +628,7 @@ namespace engine
       }
       scale = arg.numberInt() ;
 
-      rc = mthRound( fieldName, e, builder, scale, flag ) ;
+      rc = mthRound( fieldName, e, scale, flag, builder ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "mthRound failed:rc=%d", rc ) ;
@@ -674,7 +674,7 @@ namespace engine
       }
       scale = arg.numberInt() ;
 
-      rc = mthRound( fieldName, e, builder, scale, flag ) ;
+      rc = mthRound( fieldName, e, scale, flag, builder ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "mthFloor failed:rc=%d", rc ) ;
@@ -696,6 +696,84 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHROUNDGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHFORMATBUILD, "mthFormatBuild" )
+   INT32 mthFormatBuild( const CHAR *fieldName,
+                         const bson::BSONElement &e,
+                         _mthSAction *action,
+                         bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHFORMATBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+      INT32 scale = 0 ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid arg element:%s",
+                 arg.toString( TRUE, TRUE ).c_str() ) ;
+         goto error ;
+      }
+      scale = arg.numberInt() ;
+
+      rc = mthFormat( fieldName, e, scale, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthFormat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHFORMATBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHFORMATGET, "mthFormatGet" )
+   INT32 mthFormatGet( const CHAR *fieldName,
+                       const bson::BSONElement &e,
+                       _mthSAction *action,
+                       bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHFORMATGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+      INT32 scale = 0 ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid arg element:%s",
+                 arg.toString( TRUE, TRUE ).c_str() ) ;
+         goto error ;
+      }
+      scale = arg.numberInt() ;
+
+      rc = mthFormat( fieldName, e, scale, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthFormat failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__MTHFORMATGET, rc ) ;
       return rc ;
    error:
       goto done ;

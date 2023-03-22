@@ -208,7 +208,8 @@ utilFiles = [
       "util/utilRecycleBinConf.cpp",
       "util/utilRecycleReturnInfo.cpp",
       "util/utilSecure.cpp",
-      "util/utilLocation.cpp"
+      "util/utilLocation.cpp",
+      "util/utilLocale.cpp"
       ]
 
 rtnFiles = [

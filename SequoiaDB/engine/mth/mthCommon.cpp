@@ -44,6 +44,8 @@
 #include "mthDef.hpp"
 #include "../util/fromjson.hpp"
 #include "utilMath.hpp"
+#include "ossMemPool.hpp"
+#include "utilLocale.hpp"
 
 
 using namespace bson ;
@@ -56,6 +58,7 @@ namespace engine
 
    #define MTH_INT64_SAFE_UP_BOUND   (4999999999999999999)
    #define MTH_INT64_SAFE_LOW_BOUND  (-4999999999999999999)
+   #define MTH_FORMAT_MAX_SCALE      (SDB_DECIMAL_DSCALE_MASK)
 
    struct mthCastStr2Type
    {
@@ -91,8 +94,10 @@ namespace engine
    static INT32 _mthFloorBasic( const CHAR *name, const BSONElement &in,
                                 BSONObjBuilder &outBuilder ) ;
    static INT32 _mthRoundBasic( const CHAR * name, const BSONElement & in,
-                                BSONObjBuilder & outBuilder,
-                                INT32 scale, INT32 &flag ) ;
+                                INT32 scale, INT32 &flag,
+                                BSONObjBuilder & outBuilder ) ;
+   static INT32 _mthFormatBasic( const CHAR * name, const BSONElement & in,
+                                 INT32 scale, BSONObjBuilder & outBuilder ) ;
    static INT32 _mthModBasic( const CHAR *name, const BSONElement &in,
                               const BSONElement &modm,
                               BSONObjBuilder &outBuilder ) ;
@@ -166,6 +171,9 @@ namespace engine
    static INT64 _mthRoundInt( INT64 value, INT32 scale ) ;
 
    static FLOAT64 _mthRoundFloat( FLOAT64 value, INT32 scale, BOOLEAN &isSpecial ) ;
+
+   static INT32 _mthFormatString( const CHAR *src, INT32 scale, ossPoolString &result,
+                                  BOOLEAN isFromInt ) ;
 
    const static INT64 _mthLog10INT64[] = {
       0x0000000000000001, 0x000000000000000A, 0x0000000000000064, 0x00000000000003E8,
@@ -1226,6 +1234,126 @@ namespace engine
       return result ;
    }
 
+   INT32 _mthFormatString( const CHAR * src, INT32 scale, ossPoolString &result,
+                           BOOLEAN isFromInt )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 sign = *src == '-' ? 1 : 0 ;
+      const utilNumberFacet& myNumberFacet = utilGetDefaultNumberFacet() ;
+      CHAR decimalPoint = myNumberFacet.decimalPoint() ;
+      CHAR thousandsSep = myNumberFacet.thousandsSep() ;
+      const CHAR *grouping = myNumberFacet.grouping() ;
+      INT32 orgLen = ossStrlen( src ) ;
+
+      try
+      {
+         ossPoolString tmp ;
+         INT32 curPos = 0 ;
+         INT32 extendLen = 0 ;
+         const CHAR *n = src + orgLen - 1 ;
+         CHAR *tmpData = NULL ;
+         /// replace the decimal point
+         if ( 0 < scale )
+         {
+            if ( MTH_FORMAT_MAX_SCALE < scale )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "scale(%d) must be less than %d, "
+                       "rc:%d", scale, MTH_FORMAT_MAX_SCALE, rc ) ;
+               goto error ;
+            }
+            if ( isFromInt )
+            {
+               extendLen = 2 * orgLen + scale + 2 ;
+               curPos = extendLen - 1 ;
+               tmp.reserve( extendLen ) ;
+               tmpData = ( CHAR* )tmp.data() ;
+               tmpData[ curPos ] = '\0' ;
+               curPos -= ( scale + 1 ) ;
+               tmpData[ curPos ] = decimalPoint ;
+               for ( INT32 i = 1 ; i <= scale ; ++i )
+               {
+                  tmpData[ curPos + i ] = '0' ;
+               }
+            }
+            else
+            {
+               const CHAR *p = NULL ;
+               INT32 i = 1 ;
+               INT32 pointPos = scale + 1 ;
+               extendLen = 2 * orgLen + 1 ;
+               curPos = extendLen - 1 ;
+               tmp.reserve( extendLen ) ;
+               tmpData = ( CHAR* )tmp.data() ;
+               tmpData[ curPos ] = '\0' ;
+               curPos -= pointPos ;
+               SDB_ASSERT( '.' == src[ orgLen - pointPos ], "must be \'.\'" ) ;
+               tmpData[ curPos ] = decimalPoint ;
+               for ( p = src + orgLen - pointPos + i ;
+                     i <= scale && p < src + orgLen ; ++i, ++p )
+               {
+                  tmpData[ curPos + i ] = *p ;
+               }
+               SDB_ASSERT( p == src + orgLen, "must point the end of src" ) ;
+               n -= pointPos ;
+            }
+         }
+         else
+         {
+            extendLen = 2 * orgLen + 1 ;
+            curPos = extendLen - 1 ;
+            tmp.reserve( extendLen ) ;
+            tmpData = ( CHAR* )tmp.data() ;
+            tmpData[ curPos ] = '\0' ;
+         }
+
+         if ( 0 < grouping[0] && '\0' != thousandsSep )
+         {
+            /// replace the integer part with grouping
+            for ( INT32 count = *grouping ; n >= ( src + sign ) ; --count )
+            {
+               /// *grouping==0x03  means "digit grouping in numeric is 3".
+               if ( 0 == count )
+               {
+                  tmpData[ --curPos ] = thousandsSep ;
+
+                  if ( grouping[1] )
+                  {
+                     grouping++ ;
+                  }
+                  count = *grouping ;
+               }
+               tmpData[ --curPos ] = *n-- ;
+            }
+         }
+         else
+         {
+            /// replace the integer part without grouping
+            while ( n >= ( src + sign ) )
+            {
+               tmpData[ --curPos ] = *n-- ;
+            }
+         }
+         /// put '-'
+         if ( sign )
+         {
+            tmpData[ --curPos ] = *src ;
+         }
+         result.assign( tmpData + curPos ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to append format string, occurred "
+                 "unexpected exception: %s, rc:%d", e.what(), rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _mthTrim( const CHAR *str, INT32 size, INT8 lr, _utilString<> &us )
    {
       INT32 rc = SDB_OK ;
@@ -1847,8 +1975,8 @@ namespace engine
    }
 
    INT32 _mthRoundBasic( const CHAR * name, const BSONElement & in,
-                         BSONObjBuilder & outBuilder,
-                         INT32 scale, INT32 &flag )
+                         INT32 scale, INT32 &flag,
+                         BSONObjBuilder & outBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -2022,8 +2150,8 @@ namespace engine
    }
 
    INT32 mthRound( const CHAR * name, const BSONElement & in,
-                   BSONObjBuilder & outBuilder,
-                   INT32 scale, INT32 &flag )
+                   INT32 scale, INT32 &flag,
+                   BSONObjBuilder & outBuilder )
    {
       INT32 rc = SDB_OK ;
       if ( Array == in.type() )
@@ -2034,7 +2162,7 @@ namespace engine
          {
             BSONObjBuilder tmpBuilder ;
             BSONElement ele = iter.next() ;
-            rc = _mthRoundBasic( ele.fieldName(), ele, tmpBuilder, scale, flag ) ;
+            rc = _mthRoundBasic( ele.fieldName(), ele, scale, flag, tmpBuilder ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to Round:rc=%d", rc ) ;
 
             arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
@@ -2044,8 +2172,158 @@ namespace engine
       }
       else
       {
-         rc = _mthRoundBasic( name, in, outBuilder, scale, flag ) ;
+         rc = _mthRoundBasic( name, in, scale, flag, outBuilder ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to Round:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthFormatBasic( const CHAR * name, const BSONElement & in,
+                          INT32 scale, BSONObjBuilder & outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      ossPoolString str ;
+      switch( in.type() )
+      {
+         case NumberInt :
+         {
+            _utilString<UTIL_STRING_INT_LEN+1> us ;
+            rc = us.appendINT32( in.numberInt() ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to append int32:%d", rc ) ;
+            rc = _mthFormatString( us.str(), scale, str, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to format int32:%d", rc ) ;
+            outBuilder.append( name, str ) ;
+            break ;
+         }
+         case NumberLong :
+         {
+            _utilString<UTIL_STRING_INT64_LEN+1> us ;
+            rc = us.appendINT64( in.numberLong() ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to append int64:%d", rc ) ;
+            rc = _mthFormatString( us.str(), scale, str, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to format int64:%d", rc ) ;
+            outBuilder.append( name, str ) ;
+            break ;
+         }
+         case NumberDouble :
+         {
+            FLOAT64 f64 = in.numberDouble() ;
+            if ( ossIsNaN( f64 ) || ossIsInf( f64 ) )
+            {
+               _utilString<UTIL_STRING_DOUBLE_LEN+1> us ;
+               rc = us.appendDouble( f64 ) ;
+               PD_RC_CHECK( rc, PDERROR, "failed to append float64:%d", rc ) ;
+               outBuilder.append( name, us.str() ) ;
+            }
+            else
+            {
+               bsonDecimal decimal ;
+               bsonDecimal tmpDecimal ;
+
+               rc = decimal.fromDouble( f64 ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse decimal from double:%g, "
+                            "rc:%d", f64, rc ) ;
+               rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
+                            "rc:%d", decimal.toString(), rc ) ;
+               rc = _mthFormatString( tmpDecimal.toString().c_str(),
+                                      scale, str, FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "failed to format float64:%d", rc ) ;
+               outBuilder.append( name, str ) ;
+            }
+            break ;
+         }
+         case Bool :
+            rc = _mthFormatString( in.booleanSafe() ? "1" : "0",
+                                   scale, str, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to format boolean:%d", rc ) ;
+            outBuilder.append( name, str ) ;
+            break ;
+         case NumberDecimal :
+         {
+            BSONDecimalElement ele( in ) ;
+            bsonDecimal decimal ;
+
+            decimal = ele.numberDecimal() ;
+            if ( decimal.isSpecial() )
+            {
+               outBuilder.append( name, decimal.toString() ) ;
+            }
+            else
+            {
+               bsonDecimal tmpDecimal ;
+               rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
+                            "rc:%d", decimal.toString(), rc ) ;
+               rc = _mthFormatString( tmpDecimal.toString().c_str(),
+                                      scale, str, FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "failed to format decimal:%d", rc ) ;
+               outBuilder.append( name, str ) ;
+            }
+            break ;
+         }
+         case String :
+         {
+            bsonDecimal decimal ;
+            bsonDecimal tmpDecimal ;
+
+            rc = decimal.fromString( in.String().c_str(), TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse decimal from string:%s, "
+                         "rc:%d", in.String().c_str(), rc ) ;
+
+            // if value is specail from String like "NAN", the true value should be 0.
+            if ( decimal.isSpecial() )
+            {
+               decimal.setZero() ;
+            }
+
+            rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
+                         "rc:%d", decimal.toString(), rc ) ;
+            rc = _mthFormatString( tmpDecimal.toString().c_str(), scale, str, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to format string:%d", rc ) ;
+            outBuilder.append( name, str ) ;
+            break ;
+         }
+         default :
+            outBuilder.appendNull( name ) ;
+            break ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthFormat( const CHAR * name, const BSONElement & in,
+                    INT32 scale, BSONObjBuilder & outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthFormatBasic( ele.fieldName(), ele, scale, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to Format:rc=%d", rc ) ;
+
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthFormatBasic( name, in, scale, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to Format:rc=%d", rc ) ;
       }
 
    done:

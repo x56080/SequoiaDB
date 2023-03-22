@@ -48,6 +48,7 @@ namespace engine
    #define MTH_S_CEILING        MTH_S_PREFIX"ceiling"
    #define MTH_S_FLOOR          MTH_S_PREFIX"floor"
    #define MTH_S_ROUND          MTH_S_PREFIX"round"
+   #define MTH_S_FORMAT         MTH_S_PREFIX"format"
    #define MTH_S_MOD            MTH_S_PREFIX"mod"
    #define MTH_S_ADD            MTH_S_PREFIX"add"
    #define MTH_S_SUBTRACT       MTH_S_PREFIX"subtract"

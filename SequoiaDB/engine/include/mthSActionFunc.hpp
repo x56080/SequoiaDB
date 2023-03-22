@@ -168,6 +168,16 @@ namespace engine
                       _mthSAction *,
                       bson::BSONObjBuilder & ) ;
 
+   INT32 mthFormatBuild( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONObjBuilder & ) ;
+
+   INT32 mthFormatGet( const CHAR *,
+                       const bson::BSONElement &,
+                       _mthSAction *,
+                       bson::BSONElement & ) ;
+
    INT32 mthModGet( const CHAR *,
                     const bson::BSONElement &,
                     _mthSAction *,

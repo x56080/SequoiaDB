@@ -141,6 +141,11 @@ namespace bson {
       return sdb_decimal_is_max( &_decimal ) ;
    }
 
+   BOOLEAN bsonDecimal::isSpecial() const
+   {
+      return sdb_decimal_is_special( &_decimal ) ;
+   }
+
    INT32 bsonDecimal::fromInt( INT32 value )
    {
       return sdb_decimal_from_int( value, &_decimal ) ;
@@ -276,9 +281,9 @@ namespace bson {
       return SDB_OK ;
    }
 
-   INT32 bsonDecimal::fromString( const CHAR *value )
+   INT32 bsonDecimal::fromString( const CHAR *value, BOOLEAN ignoreInvalidChar )
    {
-      return sdb_decimal_from_str( value, &_decimal ) ;
+      return sdb_decimal_from_str1( value, &_decimal, ignoreInvalidChar ) ;
    }
 
    INT32 bsonDecimal::toStringChecked( string &result ) const
