@@ -191,27 +191,30 @@ void _monClassContainer::_processPendingObj()
 {
 
    getArchiveLatch( EXCLUSIVE ) ;
-   MON_PARTITION_LIST::iterator it = _activeList.begin() ;
-
-   while ( it != _activeList.end() )
+   if ( 0 != _activeList.size() )
    {
-      if ( TRUE == it->isPendingArchive() )
+      MON_PARTITION_LIST::iterator it = _activeList.begin() ;
+
+      while ( it != _activeList.end() )
       {
-         monClass &obj = *it ;
-         it = _activeList.erase(it) ;
-         _numPendingArchive.dec() ;
-         _archivedList.push_back(obj) ;
-      }
-      else if ( TRUE == it->isPendingDelete() )
-      {
-         monClass &monClass = *it ;
-         it = _activeList.erase(it) ;
-         SDB_OSS_DEL &monClass ;
-         _numPendingDelete.dec() ;
-      }
-      else
-      {
-         it++ ;
+         if ( TRUE == it->isPendingArchive() )
+         {
+            monClass &obj = *it ;
+            it = _activeList.erase(it) ;
+            _numPendingArchive.dec() ;
+            _archivedList.push_back(obj) ;
+         }
+         else if ( TRUE == it->isPendingDelete() )
+         {
+            monClass &monClass = *it ;
+            it = _activeList.erase(it) ;
+            SDB_OSS_DEL &monClass ;
+            _numPendingDelete.dec() ;
+         }
+         else
+         {
+            it++ ;
+         }
       }
    }
    releaseArchiveLatch( EXCLUSIVE ) ;
