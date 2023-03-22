@@ -1332,7 +1332,7 @@ function commGetInstallPath ()
       var cmd = new Cmd();
       try
       {
-         var installFile = cmd.run( "sed -n '3p' /etc/default/sequoiadb" ).split( "=" );
+         var installFile = cmd.run( "grep INSTALL_DIR /etc/default/sequoiadb" ).split( "=" );
          var installPath = installFile[1].split( "\n" );
          var InstallPath = installPath[0];
       }
