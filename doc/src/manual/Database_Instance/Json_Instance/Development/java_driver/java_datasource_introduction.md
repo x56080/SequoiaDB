@@ -25,16 +25,21 @@ Java 驱动连接池用于创建和管理连接。通过连接复用以减少创
  
  // 连接池参数配置
  DatasourceOptions dsOpt = new DatasourceOptions();
- dsOpt.setMaxCount( 500 );
- dsOpt.setMaxIdleCount( 50 );
- dsOpt.setMinIdleCount( 20 );
+ dsOpt.setMaxCount(500);
+ dsOpt.setMaxIdleCount(50);
+ dsOpt.setMinIdleCount(20);
 
  // 连接参数配置
  ConfigOptions nwOpt = new ConfigOptions();
- nwOpt.setConnectTimeout( 200 );
- nwOpt.setMaxAutoConnectRetryTime( 0 );
+ nwOpt.setConnectTimeout(200);
+ nwOpt.setMaxAutoConnectRetryTime(0);
  
- SequoiadbDatasource ds = new SequoiadbDatasource(addrs, userName, password, nwOpt, dsOpt);
+ SequoiadbDatasource ds = SequoiadbDatasource.builder()
+                .serverAddress(addrs)
+                .userConfig(new UserConfig(userName, password))
+                .datasourceOptions(dsOpt)
+                .configOptions(nwOpt)
+                .build();
  ```
 
 > **Note:**
@@ -72,13 +77,19 @@ Java 驱动连接池用于创建和管理连接。通过连接复用以减少创
 
 ##连接池配置##
 
-连接池需要使用如下两种参数配置：
+连接池主要使用如下配置：
 
-* DatasourceOptions：连接池参数配置
+* DatasourceOptions 连接池配置
 
-* ConfigOptions：连接参数配置
+* ConfigOptions 连接配置
 
-###连接池参数配置###
+* Location 配置
+
+> **Note:**
+>
+> 各种配置项详情可查看 [Java API][api]。
+
+###连接池配置###
 
 用于控制连接池的运行。常用配置如下：
 
@@ -108,7 +119,7 @@ Java 驱动连接池用于创建和管理连接。通过连接复用以减少创
  dsOpt.setCheckInterval(60 * 1000);
  ```
 
-###连接参数配置###
+###连接配置###
 
 连接池创建新连接时使用的网络参数，常用配置如下：
 
@@ -122,11 +133,54 @@ Java 驱动连接池用于创建和管理连接。通过连接复用以减少创
  nwOpt.setMaxAutoConnectRetryTime(0);
  ```
 
-> **Note:**
->
-> 连接池参数配置、连接参数配置的其他配置项详情可查看 [Java API][api]。
+###Location 配置###
+
+设置连接池所属 Location。连接池将根据 Location 对地址进行分级访问：
+ 1. 优先访问相同 Location 的地址
+ 2. 次级访问亲和 Location 的地址
+ 3. 最后访问剩余有效地址
+
+示例：
+
+1. 假设集群协调节点及 location 信息如下：
+ ```lang-text
+ sdbserver1:11810  "guangdong.guangzhou"
+ sdbserver2:11810  "guangdong.shenzhen"
+ sdbserver3:11810  "guangdong"
+ sdbserver4:11810  "shanghai"
+ sdbserver5:11810  "chongqing"
+ ```
+ 可通过 [setLocation()][setLocation_link] 接口设置协调节点的 Location
+
+2. 创建连接池，并指定其 Location 为 "guangdong.guangzhou"
+ ```lang-java
+ ArrayList<String> addrs = new ArrayList<String>();
+ addrs.add("sdbserver1:11810");
+ addrs.add("sdbserver2:11810");
+ addrs.add("sdbserver3:11810");
+ addrs.add("sdbserver4:11810");
+ addrs.add("sdbserver5:11810");
+
+ String location = "guangdong.guangzhou";
+ SequoiadbDatasource ds = SequoiadbDatasource.builder()
+                .serverAddress(addrs)
+                .userConfig(new UserConfig(userName, password))
+                .datasourceOptions(dsOpt)
+                .configOptions(nwOpt)
+                .location(location)
+                .build();
+ ```
+ 地址访问分级：
+ 1. 相同 Location 地址：sdbserver1:11810
+ 2. 亲和 Location 地址：sdbserver2:11810、sdbserver3:11810
+ 3. 剩余可用地址：sdbserver4:11810、sdbserver5:11810
+
+ 当 sdbserver1:11810 故障不可用时，连接池将自动切换为访问 sdbserver2:11810、sdbserver3:11810。  
+ 当 sdbserver2:11810、sdbserver3:11810 都故障不可用时，连接池将自动切换为访问 sdbserver4:11810、sdbserver5:11810。  
+ 当 sdbserver1:11810 恢复时，连接池将自动切换为访问 sdbserver1:11810。
 
 
 [^_^]:
      本文使用的所有引用和链接
 [api]:api/java/html/index.html
+[setLocation_link]:manual/Manual/Sequoiadb_Command/SdbNode/setLocation.md
