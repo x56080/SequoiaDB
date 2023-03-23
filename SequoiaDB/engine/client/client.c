@@ -12722,6 +12722,31 @@ error:
    goto done ;
 }
 
+SDB_EXPORT INT32 sdbShrinkSpace( sdbConnectionHandle cHandle,
+                                 bson *options )
+{
+   INT32 rc = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
+
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+   rc = _runCommand2( cHandle, &connection->_pSendBuffer,
+                      &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer,
+                      &connection->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_SHRINK_SPACE,
+                      0, 0, -1, -1,
+                      options, NULL, NULL, NULL, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 SDB_EXPORT INT32 sdbLoadCollectionSpace( sdbConnectionHandle cHandle,
                                          const CHAR *csName,
                                          bson *options )
