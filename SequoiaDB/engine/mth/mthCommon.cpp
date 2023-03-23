@@ -183,8 +183,8 @@ namespace engine
       0x002386F26FC10000, 0x016345785D8A0000, 0x0DE0B6B3A7640000
       } ;
 
-   const static INT32 _mthLog10INT64Size =
-      (INT32) ( sizeof( _mthLog10INT64 ) / sizeof( _mthLog10INT64[0] ) ) ;
+   const static UINT32 _mthLog10INT64Size =
+      (UINT32) ( sizeof( _mthLog10INT64 ) / sizeof( _mthLog10INT64[0] ) ) ;
 
    const static FLOAT64 _mthLog10FLOAT64[] = {
       1e000, 1e001, 1e002, 1e003, 1e004, 1e005, 1e006, 1e007, 1e008, 1e009,
@@ -220,8 +220,8 @@ namespace engine
       1e300, 1e301, 1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308
    } ;
 
-   const static INT32 _mthLog10FLOAT64Size =
-      (INT32) ( sizeof( _mthLog10FLOAT64 ) / sizeof( _mthLog10FLOAT64[0] ) ) ;
+   const static UINT32 _mthLog10FLOAT64Size =
+      (UINT32) ( sizeof( _mthLog10FLOAT64 ) / sizeof( _mthLog10FLOAT64[0] ) ) ;
 
    INT32 _mthCast( const CHAR *fieldName, const bson::BSONElement &e,
                    BSONType type, BSONObjBuilder &builder )
@@ -1155,9 +1155,10 @@ namespace engine
       /// and get the remainder to determine whether to carry
       if ( scaleNegative )
       {
-         if ( -scale < _mthLog10INT64Size )
+         UINT32 absScale = -scale ;
+         if ( absScale < _mthLog10INT64Size )
          {
-            INT64 tmp = _mthLog10INT64[-scale] ;
+            INT64 tmp = _mthLog10INT64[absScale] ;
             INT64 carry = 0 ;
             /// pre-compute these, to avoid optimizing away '(v/tmp) * tmp'.
             volatile INT64 valueDivTmp = value / tmp ;
@@ -2013,7 +2014,7 @@ namespace engine
          {
             outBuilder.append( name, value ) ;
          }
-         else if ( -scale < _mthLog10INT64Size )
+         else if ( (UINT32)(-scale) < _mthLog10INT64Size )
          {
             INT64 i = _mthRoundInt( value, scale ) ;
             /* in the range of -4999999999999999999 and 4999999999999999999
@@ -2229,7 +2230,7 @@ namespace engine
                             "rc:%d", f64, rc ) ;
                rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
-                            "rc:%d", decimal.toString(), rc ) ;
+                            "rc:%d", decimal.toString().c_str(), rc ) ;
                rc = _mthFormatString( tmpDecimal.toString().c_str(),
                                       scale, str, FALSE ) ;
                PD_RC_CHECK( rc, PDERROR, "failed to format float64:%d", rc ) ;
@@ -2258,7 +2259,7 @@ namespace engine
                bsonDecimal tmpDecimal ;
                rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
-                            "rc:%d", decimal.toString(), rc ) ;
+                            "rc:%d", decimal.toString().c_str(), rc ) ;
                rc = _mthFormatString( tmpDecimal.toString().c_str(),
                                       scale, str, FALSE ) ;
                PD_RC_CHECK( rc, PDERROR, "failed to format decimal:%d", rc ) ;
@@ -2283,7 +2284,7 @@ namespace engine
 
             rc = decimal.round( tmpDecimal, scale > 0 ? scale : 0 ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to round decimal :%s, "
-                         "rc:%d", decimal.toString(), rc ) ;
+                         "rc:%d", decimal.toString().c_str(), rc ) ;
             rc = _mthFormatString( tmpDecimal.toString().c_str(), scale, str, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to format string:%d", rc ) ;
             outBuilder.append( name, str ) ;
