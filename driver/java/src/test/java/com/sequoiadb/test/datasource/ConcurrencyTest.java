@@ -149,7 +149,7 @@ public class ConcurrencyTest {
                 } else {
                     for (int j = 0; j < num; j++) {
                         try {
-                            connList.add(ds.getConnection(100));
+                            connList.add(ds.getConnection());
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }

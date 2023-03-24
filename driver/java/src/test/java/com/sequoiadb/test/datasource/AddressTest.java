@@ -145,7 +145,7 @@ public class AddressTest {
 
         List<Sequoiadb> connList = new ArrayList<>();
         for (int i = 0; i < options.getMaxCount(); i++) {
-            connList.add(ds.getConnection(100));
+            connList.add(ds.getConnection());
         }
         for (Sequoiadb conn : connList) {
             ds.releaseConnection(conn);
@@ -266,7 +266,7 @@ public class AddressTest {
 
         List<Sequoiadb> connList = new ArrayList<>();
         for (int i = 0; i < options.getMaxCount(); i++) {
-            connList.add(ds.getConnection(100));
+            connList.add(ds.getConnection());
         }
         for (Sequoiadb conn : connList) {
             ds.releaseConnection(conn);
@@ -287,7 +287,7 @@ public class AddressTest {
         //Assert.assertEquals(4, ds.getNormalAddrNum());
         Assert.assertEquals(1, ds.getAbnormalAddrNum());
         for (int i = 0; i < options.getMaxCount(); i++) {
-            connList.add(ds.getConnection(100));
+            connList.add(ds.getConnection());
         }
         TreeSet<String> addrSet = new TreeSet<>();
         for (Sequoiadb conn : connList) {
