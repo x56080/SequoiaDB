@@ -54,6 +54,7 @@ public class SequoiadbDatasource {
     private IConnectStrategy _strategy = null;
     private ConnectionItemMgr _connItemMgr = null;
     private final Object _createConnSignal = new Object();
+    private final Object idleConnSignal = new Object();
     // for creating connections
     private String _username = null;
     private String _password = null;
@@ -80,6 +81,7 @@ public class SequoiadbDatasource {
     private static final int _deleteInterval = 180000; // 3min
     // for error report
     private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
+    private static final int MIN_CONNECTION_TIME = 100; // 100ms
     private static Log log = LogFactory.getLog(SequoiadbDatasource.class);
 
     // finalizer guardian
@@ -781,11 +783,10 @@ public class SequoiadbDatasource {
     }
 
     /**
-     * Get a connection from current connection pool.
-     * When the pool runs out, a request will wait up to 5 seconds. When time is up, if the pool
-     * still has no idle connection, it throws BaseException with the type of "SDB_DRIVER_DS_RUNOUT".
-     * @return Sequoiadb the connection for using
-     * @throws BaseException If error happens.
+     * Get a connection from current connection pool. The waiting time default to 5 seconds
+     * @return Sequoiadb The connection for using
+     * @throws BaseException When waiting for timeout, throw {@link SDBError#SDB_DRIVER_DS_RUNOUT}
+     *                       if current connection pool is full, otherwise throw {@link SDBError#SDB_TIMEOUT}.
      * @throws InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      */
     public Sequoiadb getConnection() throws BaseException, InterruptedException {
@@ -794,9 +795,10 @@ public class SequoiadbDatasource {
 
     /**
      * Get a connection from current connection pool.
-     * @param timeout the time for waiting for connection in millisecond. 0 for waiting until a connection is available.
-     * @return Sequoiadb the connection for using
-     * @throws BaseException when connection pool run out, throws BaseException with the type of "SDB_DRIVER_DS_RUNOUT"
+     * @param timeout The time for waiting for connection in millisecond. 0 means infinite timeout.
+     * @return Sequoiadb The connection for using
+     * @throws BaseException When waiting for timeout, throw {@link SDBError#SDB_DRIVER_DS_RUNOUT}
+     *                       if current connection pool is full, otherwise throw {@link SDBError#SDB_TIMEOUT}.
      * @throws InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      * @since 2.2
      */
@@ -804,58 +806,51 @@ public class SequoiadbDatasource {
         if (timeout < 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "timeout should >= 0");
         }
+
         Lock rlock = _rwLock.readLock();
         rlock.lock();
         try {
             Sequoiadb sdb;
             ConnItem connItem;
-            long restTime = timeout;
+            Timer timer = new Timer(timeout);
+
             while (true) {
-                sdb = null;
-                connItem = null;
                 if (_hasClosed) {
                     throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
                 }
-                // when the pool is disabled
+
+                // disabled status
                 if (!_isDatasourceOn) {
-                    sdb = _newConnByNormalAddr();
+                    sdb = createConnByAddr(timer);
                     // Use external network configuration when connection leaving the pool
                     updateConnConf(sdb, _userNwOpt);
                     return sdb;
                 }
+
+                // enable status
                 if ((connItem = _strategy.pollConnItemForGetting()) != null) {
-                    // when we still have connection in idle pool,
-                    // get connection directly
+                    // 1. get connection from idle pool
                     sdb = _idleConnPool.poll(connItem);
                     // sanity check
                     if (sdb == null) {
                         _connItemMgr.releaseItem(connItem);
-                        connItem = null;
                         // should never come here
                         throw new BaseException(SDBError.SDB_SYS, "no matching connection");
                     }
                 } else if ((connItem = _connItemMgr.getItem()) != null) {
-                    // when we have no connection in idle pool,
-                    // new a connection, and wait up background thread to create connections
+                    // 2. idle pool is empty, create a connection directly
                     try {
-                        sdb = _newConnByNormalAddr();
+                        sdb = createConnByAddr(timer);
                     } catch (BaseException e) {
                         _connItemMgr.releaseItem(connItem);
-                        connItem = null;
                         throw e;
                     }
-                    // sanity check
-                    if (sdb == null) {
-                        _connItemMgr.releaseItem(connItem);
-                        connItem = null;
-                        // should never come here
-                        throw new BaseException(SDBError.SDB_SYS, "create connection directly failed");
-                    } else if (_sessionAttr != null) {
+                    // set session attributes for new connection
+                    if (_sessionAttr != null) {
                         try {
                             sdb.setSessionAttr(_sessionAttr);
                         } catch (Exception e) {
                             _connItemMgr.releaseItem(connItem);
-                            connItem = null;
                             _destroyConnQueue.add(sdb);
                             throw new BaseException(SDBError.SDB_SYS,
                                     String.format("failed to set the session attribute[%s]",
@@ -863,107 +858,53 @@ public class SequoiadbDatasource {
                         }
                     }
                     connItem.setAddr(sdb.getServerAddress().toString());
+                    // wait up background thread to create connections
                     synchronized (_createConnSignal) {
                         _createConnSignal.notify();
                     }
                 } else {
-                    // when we can't get anything, let's wait
-                    long beginTime = 0;
-                    long endTime = 0;
                     // release the read lock before wait up
                     rlock.unlock();
                     try {
-                        if (timeout != 0) {
-                            if (restTime <= 0) {
-                                // stop waiting
-                                break;
+                        // if timer is disabled, wait 5s each time
+                        if (!timer.getStatus()) {
+                            synchronized (idleConnSignal) {
+                                idleConnSignal.wait(5000);
                             }
-                            beginTime = System.currentTimeMillis();
-                            try {
-                                synchronized (this) {
-                                    this.wait(restTime);
-                                }
-                            } finally {
-                                endTime = System.currentTimeMillis();
-                                restTime -= (endTime - beginTime);
-                            }
-                            // even if the restTime is up, let it retry one more time
-                            continue;
                         } else {
-                            try {
-                                synchronized (this) {
-                                    // we have no double check of the connItem here,
-                                    // so we can't use this.wait() here.
-                                    // let it retry after a few seconds later
-                                    this.wait(5000);
-                                }
-                            } finally {
-                                continue;
+                            // the connection pool is full
+                            if (timer.isTimeout()) {
+                                throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, "Get connection timeout: " + timer.getOriginTime());
                             }
+                            long startTime = System.currentTimeMillis();
+                            synchronized (idleConnSignal) {
+                                idleConnSignal.wait(timer.getTime());
+                            }
+                            timer.consumeTime(startTime);
                         }
+                        continue;
                     } finally {
                         // let's get the read lock before going on
                         rlock.lock();
                     }
                 }
-                // here we get the connection, let's check whether the connection is usable
-                if (sdb.isClosed() ||
-                        (_dsOpt.getValidateConnection() && !sdb.isValid())) {
+                // check whether the connection is usable
+                if (sdb.isClosed() || (_dsOpt.getValidateConnection() && !sdb.isValid())) {
                     // let the item go back to _connItemMgr and destroy
                     // the connection, then try again
                     _connItemMgr.releaseItem(connItem);
-                    connItem = null;
                     _destroyConnQueue.add(sdb);
-                    sdb = null;
-                    continue;
                 } else {
                     // stop looping
                     break;
                 }
             } // while(true)
-
-            // when we can't get connection, try to report error
-            if (connItem == null) {
-                // make some debug info
-                String threadInfo = String.format("[thread id: %d]", Thread.currentThread().getId());
-                String itemSnap = getConnItemSnapshot();
-                String connSnap = getConnPoolSnapshot();
-                String addressSnap = getAddressSnapshot();
-                String detail = threadInfo + ", " + itemSnap + ", " + connSnap + ", " + addressSnap;
-
-                String errMsg;
-                // Check whether the connection pool is full
-                if (getUsedConnNum() < _dsOpt.getMaxCount()) {
-                    // If background creating thread fail to create the last connection, let's report network error
-                    if (getNormalAddrNum() == 0) {
-                        BaseException exception = _getLastException();
-                        errMsg = "Get connection failed, no available address for connection, ";
-                        log.error(errMsg + addressSnap);
-                        if (exception != null) {
-                            throw new BaseException(SDBError.SDB_NETWORK, errMsg + detail, exception);
-                        } else {
-                            throw new BaseException(SDBError.SDB_NETWORK, errMsg + detail);
-                        }
-                    }
-
-                    errMsg = "Get connection timeout, ";
-                    log.error(String.format("%s%s, %s, timeout: %d", errMsg, connSnap, itemSnap, timeout));
-                    throw new BaseException(SDBError.SDB_TIMEOUT, errMsg + detail);
-                } else {
-                    errMsg = "The pool has run out of connections, ";
-                    log.error(String.format("%s%s, maxCount: %d, timeout: %d",
-                            errMsg, connSnap, _dsOpt.getMaxCount(), timeout));
-                    throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, errMsg + detail);
-                }
-            } else {
-                // insert the itemInfo and connection to used pool
-                _usedConnPool.insert(connItem, sdb);
-                // tell strategy used pool had add a connection
-                _strategy.updateUsedConnItemCount(connItem, 1);
-                // Use external network configuration when connection leaving the pool
-                updateConnConf(sdb, _userNwOpt);
-                return sdb;
-            }
+            // connItem and sdb never be null
+            _usedConnPool.insert(connItem, sdb);
+            _strategy.updateUsedConnItemCount(connItem, 1);
+            // Use external network configuration when connection leaving the pool
+            updateConnConf(sdb, _userNwOpt);
+            return sdb;
         } finally {
             rlock.unlock();
         }
@@ -1039,17 +980,13 @@ public class SequoiadbDatasource {
                 _idleConnPool.insert(item, sdb);
                 // tell the strategy one connection is add to idle pool now
                 _strategy.addConnItemAfterReleasing(item);
-                // notify the people who waits
-                synchronized (this) {
-                    notifyAll();
-                }
             } else {
                 // let the item come back to item pool, and destroy the connection
                 _connItemMgr.releaseItem(item);
                 _destroyConnQueue.add(sdb);
-                synchronized (this) {
-                    notifyAll();
-                }
+            }
+            synchronized (idleConnSignal) {
+                idleConnSignal.notifyAll();
             }
         } finally {
             rlock.unlock();
@@ -1150,7 +1087,7 @@ public class SequoiadbDatasource {
         _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         _abnormalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         // to reduce the connection time of abnormal address
-        _abnormalNwOpt.setConnectTimeout(100);  // 100ms
+        _abnormalNwOpt.setConnectTimeout(MIN_CONNECTION_TIME);  // 100ms
         _abnormalNwOpt.setMaxAutoConnectRetryTime(0);  //0ms
 
         // pick up local coord address
@@ -1295,74 +1232,110 @@ public class SequoiadbDatasource {
         _sessionAttr = newOpt.getSessionAttr();
     }
 
-    private Sequoiadb _newConnByNormalAddr() throws BaseException {
-        Sequoiadb sdb = null;
-        String address = null;
+    private Sequoiadb createConnByAddr(Timer timer) throws BaseException {
         try {
-            while (true) {
-                // never forget to handle the situation of the datasourc is disable
-                if (_isDatasourceOn) {
-                    address = _strategy.getAddress();
-                } else {
-                    synchronized (_normalAddrs) {
-                        int size = _normalAddrs.size();
-                        if (size > 0) {
-                            address = _normalAddrs.get(_rand.nextInt(size));
-                        }
-                    }
-                }
-                if (address != null) {
-                    try {
-                        sdb = new Sequoiadb(address, _username, _password, _normalNwOpt);
-                        clearLastException();
-                        // when success, let's return the connection
-                        break;
-                    } catch (BaseException e) {
-                        _setLastException(e);
-                        String errType = e.getErrorType();
-                        if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
-                                errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                            _handleErrorAddr(address);
-                            address = null;
-                            continue;
-                        } else {
-                            throw e;
-                        }
-                    }
-                } else {
-                    sdb = _newConnByAbnormalAddr();
-                    clearLastException();
-                    break;
-                }
+            Sequoiadb db = createConnByNormalAddr(timer);
+            if (db == null) {
+                db = createConnByAbnormalAddr(timer);
             }
 
-            // sanity check, should never hit here
-            if (sdb == null) {
-                throw new BaseException(SDBError.SDB_SYS, "failed to create connection directly");
+            if (db == null) {
+                String detail = _getDataSourceSnapshot();
+                BaseException exp = _getLastException();
+                String errMsg = "No available address for connection, " + detail;
+                if (exp != null) {
+                    throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
+                } else {
+                    throw new BaseException(SDBError.SDB_NETWORK, errMsg);
+                }
             }
+            return db;
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
             throw new BaseException(SDBError.SDB_SYS, e);
         }
+    }
+
+    private Sequoiadb createConnByNormalAddr(Timer timer) throws BaseException {
+        Sequoiadb sdb = null;
+        String addr = null;
+        ConfigOptions netOpt;
+
+        try {
+            netOpt = (ConfigOptions)_normalNwOpt.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new BaseException(SDBError.SDB_SYS, e);
+        }
+
+        while (true) {
+            if (timer.isTimeout()) {
+                throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
+            }
+            long startTime = System.currentTimeMillis();
+            // in order to control the time, the connection timeout time needs to be reset every time
+            resetConnTime(timer, netOpt);
+
+            // never forget to handle the situation of the datasource is disable
+            if (_isDatasourceOn) {
+                addr = _strategy.getAddress();
+            } else {
+                int size = _normalAddrs.size();
+                if (size > 0) {
+                    addr = _normalAddrs.get(_rand.nextInt(size));
+                }
+            }
+            if (addr == null) {
+                break;
+            }
+
+            try {
+                sdb = new Sequoiadb(addr, _username, _password, netOpt);
+                clearLastException();
+                // when success, let's return the connection
+                break;
+            } catch (BaseException e) {
+                _setLastException(e);
+                if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
+                    throw e;
+                }
+                _handleErrorAddr(addr);
+                addr = null;
+            } finally {
+                timer.consumeTime(startTime);
+            }
+        }
         return sdb;
     }
 
-    private Sequoiadb _newConnByAbnormalAddr() throws BaseException {
+    private Sequoiadb createConnByAbnormalAddr(Timer timer) throws BaseException {
         Sequoiadb retConn = null;
         int retry = 3;
+
         while (retry-- > 0) {
-            Iterator<String> itr = _abnormalAddrs.iterator();
-            while (itr.hasNext()) {
-                String addr = itr.next();
+            for (String addr : _abnormalAddrs) {
+                if (timer.isTimeout()) {
+                    throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
+                }
+                long startTime = System.currentTimeMillis();
                 try {
+                    // it takes very little time to create a connection with an abnormal address,
+                    // so there is no need to use the timer to rest the connection timeout
                     retConn = new Sequoiadb(addr, _username, _password, _abnormalNwOpt);
+                    clearLastException();
+                } catch (BaseException e) {
+                    _setLastException(e);
+                    continue;
                 } catch (Exception e) {
-                    if (e instanceof BaseException) {
-                        _setLastException((BaseException) e);
-                    }
+                    _setLastException(new BaseException(SDBError.SDB_SYS, e));
                     continue;
                 }
+                finally {
+                    timer.consumeTime(startTime);
+                }
+
                 // TODO:
                 // multi thread to do this, it's not the best way
                 // to move a address from abnormal list ot normal list
@@ -1372,6 +1345,7 @@ public class SequoiadbDatasource {
                         _normalAddrs.add(addr);
                     }
                 }
+
                 log.debug(String.format("Create connections success with abnormal address: %s, " +
                         "change it to normal address", addr));
                 if (_isDatasourceOn) {
@@ -1381,17 +1355,6 @@ public class SequoiadbDatasource {
             }
             if (retConn != null) {
                 break;
-            }
-        }
-        if (retConn == null) {
-            // make some debug info
-            String detail = _getDataSourceSnapshot();
-            BaseException exp = _getLastException();
-            String errMsg = "no available address for connection, " + detail;
-            if (exp != null) {
-                throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
-            } else {
-                throw new BaseException(SDBError.SDB_NETWORK, errMsg);
             }
         }
         return retConn;
@@ -1467,16 +1430,14 @@ public class SequoiadbDatasource {
                     sdb = new Sequoiadb(addr, _username, _password, _normalNwOpt);
                     break;
                 } catch (BaseException e) {
-                    String errType = e.getErrorType();
-                    if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
-                            errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                        // remove this address from normal address list
-                        _handleErrorAddr(addr);
-                        continue;
-                    } else {
+                    if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                            e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
+                            e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
                         // let's stop for another error
                         break;
                     }
+                    // remove this address from normal address list
+                    _handleErrorAddr(addr);
                 } catch (Exception e) {
                     // let's stop for another error
                     break;
@@ -1807,6 +1768,25 @@ public class SequoiadbDatasource {
     private String getAddressSnapshot() {
         return String.format("normal address: %d, abnormal address: %d, local address: %d",
                 _normalAddrs.size(), _abnormalAddrs.size(), _localAddrs.size());
+    }
+
+    private void resetConnTime(Timer timer, ConfigOptions netOpt){
+        if (!timer.getStatus()) {
+            return;
+        }
+
+        long time = Math.max(timer.getTime(), MIN_CONNECTION_TIME);
+
+        long retryTimeOut = Math.min(time, netOpt.getMaxAutoConnectRetryTime());
+        long connTimeout = netOpt.getConnectTimeout();
+
+        // connTimeout == 0 means socket.connect() infinite timeout.
+        if (connTimeout == 0 || connTimeout > time ) {
+            connTimeout = time;
+        }
+
+        netOpt.setConnectTimeout((int)connTimeout);
+        netOpt.setMaxAutoConnectRetryTime(retryTimeOut);
     }
 }
 
