@@ -9,8 +9,8 @@ testConf.clName = COMMCLNAME + "_csName_29397"
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 
-main( test );
-function test( testPara )
+//main( test );
+function test ( testPara )
 {
    var coord = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1];
    var hostname = coord.HostName;
@@ -28,7 +28,7 @@ function test( testPara )
       var ret = sdb.snapshot( SDB_SNAP_QUERIES );
       var queryID = ret.current().toObj()["QueryID"];
       ret = sdb.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
-      if ( !ret.next() )
+      if( !ret.next() )
       {
          throw new Error( "Invalid QueryID in query snapshot. It must be " + queryID );
       }
@@ -36,7 +36,7 @@ function test( testPara )
       queryID = getNewQueryID( queryID );
       ret = sdb.snapshot( SDB_SNAP_CONTEXTS, { "$and": [{ "Contexts.QueryID": queryID }, { "Contexts.Type": "COORD" }] } );
       //print( JSON.parse(ret.toString()) );
-      if ( !ret.next() )
+      if( !ret.next() )
       {
          throw new Error( "Invalid QueryID in contexts snapshot. It must be " + queryID );
       }
@@ -66,29 +66,29 @@ function test( testPara )
    }
 }
 
-function getNewQueryID( curQueryID )
+function getNewQueryID ( curQueryID )
 {
    var queryIDPrefixStr = curQueryID.substr( 0, 18 );
-   var sequence = parseInt( curQueryID.substr( 18, 8 ), 16);
-   var newQueryID = queryIDPrefixStr + numToHexStr( ++sequence, 8 ) ;
-   return newQueryID ;
+   var sequence = parseInt( curQueryID.substr( 18, 8 ), 16 );
+   var newQueryID = queryIDPrefixStr + numToHexStr( ++sequence, 8 );
+   return newQueryID;
 }
 
-function numToHexStr( num, totalStrlen )
+function numToHexStr ( num, totalStrlen )
 {
-   var numHexStr = num.toString(16);
-   if ( totalStrlen < numHexStr.length )
+   var numHexStr = num.toString( 16 );
+   if( totalStrlen < numHexStr.length )
    {
       throw new Error( "Invalid total str len" );
    }
-   else if ( totalStrlen == numHexStr.length )
+   else if( totalStrlen == numHexStr.length )
    {
       return numHexStr;
    }
    else
    {
       var ret = "";
-      for ( var i = 0; i < totalStrlen - numHexStr.length; i++ )
+      for( var i = 0; i < totalStrlen - numHexStr.length; i++ )
       {
          ret += "0";
       }
