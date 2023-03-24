@@ -1,6 +1,6 @@
 /***************************************************************************************************
- * @Description: $substrBytes功能测试
- * @ATCaseID: substrBytes_at_1
+ * @Description: $substrBytes作为选择符使用
+ * @ATCaseID: substrBytes_at_2
  * @Author: Huang Youquan
  * @TestlinkCase: 无
  * @Change Activity:
@@ -12,21 +12,17 @@
 /*********************************************测试用例***********************************************
  * 环境准备：正常集群
  * 测试场景：
- *    $substrBytes功能性测试
+ *    $substrBytes作为选择符使用
  * 测试步骤：
  *    1. 准备字符串类型（单字节编码）记录和非字符串类型记录
  *    2. 测试$substrBytes{ $substrBytes : value }语法
  *    3. 测试$substrBytes{ $substrBytes : [ pos, len ] }语法
- *    4. 测试$substrBytes作为匹配符{ $substrBytes : value, "$": ...}语法
- *    5. 测试$substrBytes作为匹配符{ $substrBytes : [pos, len ], "$": ...}语法
- *    6. 校验非法参数
  * 期望结果：
- *    第2-5步输出期望子串结果
- *    第6步对外报错-6
+ *    输出期望子串结果
  *
  **************************************************************************************************/
 
-testConf.clName = COMMCLNAME + "substrBytes_at_1";
+testConf.clName = COMMCLNAME + "substrBytes_at_2";
 
 main(test);
 function test(testPara) {
@@ -42,13 +38,19 @@ function test(testPara) {
     { a: true },
     { a: { $date: "2022-02-11T15:59:59.999Z" } },
     { a: { $timestamp: "2022-02-11T15:59:59.999Z" } },
+    { a: ".?\\$`" },
+    { a: "abc123.?" },
   ];
   dbcl.insert(docs);
 
+  var actResult;
+  var expResult;
+
   // $substrBytes as selector
   // 2.{ $substrBytes : value }
-  var actResult1 = dbcl.find({}, { a: { $substrBytes: 3 } });
-  var expResult1 = [
+
+  actResult = dbcl.find({}, { a: { $substrBytes: 3 } });
+  expResult = [
     { a: "Seq" },
     { a: "se" },
     { a: ["Seq", null] },
@@ -58,12 +60,29 @@ function test(testPara) {
     { a: null },
     { a: null },
     { a: null },
+    { a: "." },
+    { a: "a" },
   ];
 
-  commCompareResults(actResult1, expResult1);
+  actResult = dbcl.find({}, { a: { $substrBytes: 3 } });
+  expResult = [
+    { a: "Seq" },
+    { a: "se" },
+    { a: ["Seq", null] },
+    { a: [null, null] },
+    { a: null },
+    { a: null },
+    { a: null },
+    { a: null },
+    { a: null },
+    { a: ".?\\" },
+    { a: "abc" },
+  ];
 
-  var actResult2 = dbcl.find({}, { a: { $substrBytes: -3 } });
-  var expResult2 = [
+  commCompareResults(actResult, expResult);
+
+  actResult = dbcl.find({}, { a: { $substrBytes: -3 } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -73,12 +92,14 @@ function test(testPara) {
     { a: null },
     { a: null },
     { a: null },
+    { a: "\\$`" },
+    { a: "3.?" },
   ];
-  commCompareResults(actResult2, expResult2);
+  commCompareResults(actResult, expResult);
 
   // 3.{ $substrBytes : [ pos, len ] }
-  var actResult3 = dbcl.find({}, { a: { $substrBytes: [2, 3] } });
-  var expResult3 = [
+  actResult = dbcl.find({}, { a: { $substrBytes: [2, 3] } });
+  expResult = [
     { a: "quo" },
     { a: "" },
     { a: ["quo", null] },
@@ -88,11 +109,13 @@ function test(testPara) {
     { a: null },
     { a: null },
     { a: null },
+    { a: "\\$`" },
+    { a: "c12" },
   ];
-  commCompareResults(actResult3, expResult3);
+  commCompareResults(actResult, expResult);
 
-  var actResult4 = dbcl.find({}, { a: { $substrBytes: [-3, 3] } });
-  var expResult4 = [
+  actResult = dbcl.find({}, { a: { $substrBytes: [-3, 3] } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -102,11 +125,13 @@ function test(testPara) {
     { a: null },
     { a: null },
     { a: null },
+    { a: "\\$`" },
+    { a: "3.?" },
   ];
-  commCompareResults(actResult4, expResult4);
+  commCompareResults(actResult, expResult);
 
-  var actResult5 = dbcl.find({}, { a: { $substrBytes: [-3, -1] } });
-  var expResult5 = [
+  actResult = dbcl.find({}, { a: { $substrBytes: [-3, -1] } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -116,38 +141,8 @@ function test(testPara) {
     { a: null },
     { a: null },
     { a: null },
+    { a: "\\$`" },
+    { a: "3.?" },
   ];
-  commCompareResults(actResult5, expResult5);
-
-  // $substrBytes as Matcher
-  // 4.{ $substrBytes : value, "$": ...}
-  var actResult6 = dbcl.find({ a: { $substrBytes: 2, $et: "Se" } });
-  var expResult6 = [{ a: "Sequoiadb" }, { a: ["Sequoiadb", 111] }];
-  commCompareResults(actResult6, expResult6);
-
-  // 5.{ $substrBytes : [pos , len ], "$": ...}
-  var actResult7 = dbcl.find({ a: { $substrBytes: [0, 2], $et: "Se" } });
-  var expResult7 = [{ a: "Sequoiadb" }, { a: ["Sequoiadb", 111] }];
-  commCompareResults(actResult7, expResult7);
-
-  // 6.check arguments
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substrBytes: true } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substrBytes: null } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substrBytes: [null, true] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substrBytes: [1, 2, 3] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({ a: { $substrBytes: [null, true], et: "Se" } }).toArray();
-  });
+  commCompareResults(actResult, expResult);
 }

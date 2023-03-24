@@ -1,6 +1,6 @@
 /***************************************************************************************************
- * @Description: $substr功能测试
- * @ATCaseID: substr_at_1
+ * @Description: $substr作为选择符
+ * @ATCaseID: substr_at_2
  * @Author: Huang Youquan
  * @TestlinkCase: 无
  * @Change Activity:
@@ -12,21 +12,17 @@
 /*********************************************测试用例***********************************************
  * 环境准备：正常集群
  * 测试场景：
- *    $substr功能性测试
+ *    $substr作为选择符测试
  * 测试步骤：
  *    1. 准备字符串类型（单字节编码）记录和非字符串类型记录
  *    2. 测试$substr{ $substr : value }语法
  *    3. 测试$substr{ $substr : [ pos, len ] }语法
- *    4. 测试$substr作为匹配符{ $substr : value, "$": ...}语法
- *    5. 测试$substr作为匹配符{ $substr : [pos, len ], "$": ...}语法
- *    6. 校验非法参数
  * 期望结果：
- *    第2-5步输出期望子串结果
- *    第6步对外报错-6
+ *    输出期望子串结果
  *
  **************************************************************************************************/
 
-testConf.clName = COMMCLNAME + "substr_at_1";
+testConf.clName = COMMCLNAME + "substr_at_2";
 
 main(test);
 function test(testPara) {
@@ -45,10 +41,13 @@ function test(testPara) {
   ];
   dbcl.insert(docs);
 
+  var actResult;
+  var expResult;
+
   //  $substr as selector
   // 2.{  $substr : value }
-  var actResult1 = dbcl.find({}, { a: { $substr: 3 } });
-  var expResult1 = [
+  actResult = dbcl.find({}, { a: { $substr: 3 } });
+  expResult = [
     { a: "Seq" },
     { a: "se" },
     { a: ["Seq", null] },
@@ -59,11 +58,10 @@ function test(testPara) {
     { a: null },
     { a: null },
   ];
+  commCompareResults(actResult, expResult);
 
-  commCompareResults(actResult1, expResult1);
-
-  var actResult2 = dbcl.find({}, { a: { $substr: -3 } });
-  var expResult2 = [
+  actResult = dbcl.find({}, { a: { $substr: -3 } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -74,11 +72,11 @@ function test(testPara) {
     { a: null },
     { a: null },
   ];
-  commCompareResults(actResult2, expResult2);
+  commCompareResults(actResult, expResult);
 
   // 3.{  $substr : [ pos, len ] }
-  var actResult3 = dbcl.find({}, { a: { $substr: [2, 3] } });
-  var expResult3 = [
+  actResult = dbcl.find({}, { a: { $substr: [2, 3] } });
+  expResult = [
     { a: "quo" },
     { a: "" },
     { a: ["quo", null] },
@@ -89,10 +87,10 @@ function test(testPara) {
     { a: null },
     { a: null },
   ];
-  commCompareResults(actResult3, expResult3);
+  commCompareResults(actResult, expResult);
 
-  var actResult4 = dbcl.find({}, { a: { $substr: [-3, 3] } });
-  var expResult4 = [
+  actResult = dbcl.find({}, { a: { $substr: [-3, 3] } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -103,10 +101,10 @@ function test(testPara) {
     { a: null },
     { a: null },
   ];
-  commCompareResults(actResult4, expResult4);
+  commCompareResults(actResult, expResult);
 
-  var actResult5 = dbcl.find({}, { a: { $substr: [-3, -1] } });
-  var expResult5 = [
+  actResult = dbcl.find({}, { a: { $substr: [-3, -1] } });
+  expResult = [
     { a: "adb" },
     { a: "" },
     { a: ["adb", null] },
@@ -117,37 +115,5 @@ function test(testPara) {
     { a: null },
     { a: null },
   ];
-  commCompareResults(actResult5, expResult5);
-
-  //  $substr as Matcher
-  // 4.{  $substr : value, "$": ...}
-  var actResult6 = dbcl.find({ a: { $substr: 2, $et: "Se" } });
-  var expResult6 = [{ a: "Sequoiadb" }, { a: ["Sequoiadb", 111] }];
-  commCompareResults(actResult6, expResult6);
-
-  // 5.{  $substr : [pos , len ], "$": ...}
-  var actResult7 = dbcl.find({ a: { $substr: [0, 2], $et: "Se" } });
-  var expResult7 = [{ a: "Sequoiadb" }, { a: ["Sequoiadb", 111] }];
-  commCompareResults(actResult7, expResult7);
-
-  // 6.check arguments
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substr: true } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substr: null } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substr: [null, true] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $substr: [1, 2, 3] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({ a: { $substr: [null, true], et: "巨杉" } }).toArray();
-  });
+  commCompareResults(actResult, expResult);
 }

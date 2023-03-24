@@ -1,6 +1,6 @@
 /***************************************************************************************************
- * @Description: $leftCP功能测试
- * @ATCaseID: leftCP_at_1
+ * @Description: $leftCP作为选择符使用
+ * @ATCaseID: leftCP_at_2
  * @Author: Huang Youquan
  * @TestlinkCase: 无
  * @Change Activity:
@@ -12,19 +12,16 @@
 /*********************************************测试用例***********************************************
  * 环境准备：正常集群
  * 测试场景：
- *    $leftCP功能性测试
+ *    $leftCP作为选择符使用
  * 测试步骤：
  *    1. 准备字符串类型（不定长字节编码）记录和非字符串类型记录
  *    2. 测试$leftCP作为选择符{ $leftCP : len }语法
- *    3. 测试$leftCP作为匹配符{ $leftCP: len, "$": ...}语法
- *    4. 校验非法参数
  * 期望结果：
- *    第2-3步输出期望子串结果
- *    第4步对外报错-6
+ *    输出期望子串结果
  *
  **************************************************************************************************/
 
-testConf.clName = COMMCLNAME + "leftCP_at_1";
+testConf.clName = COMMCLNAME + "leftCP_at_2";
 
 main(test);
 function test(testPara) {
@@ -47,10 +44,13 @@ function test(testPara) {
   ];
   dbcl.insert(docs);
 
+  var actResult;
+  var expResult;
+
   //$leftCP as selector
   // 2.{ $leftCP : value }
-  var actResult1 = dbcl.find({}, { a: { $leftCP: 3 } });
-  var expResult1 = [
+  actResult = dbcl.find({}, { a: { $leftCP: 3 } });
+  expResult = [
     { a: "Seq" },
     { a: "巨杉" },
     { a: "巨杉数" },
@@ -65,10 +65,10 @@ function test(testPara) {
     { a: "𐍈𝄞𠮷" },
     { a: "éè𐍈" },
   ];
-  commCompareResults(actResult1, expResult1);
+  commCompareResults(actResult, expResult);
 
-  var actResult2 = dbcl.find({}, { a: { $leftCP: -1 } });
-  var expResult2 = [
+  actResult = dbcl.find({}, { a: { $leftCP: -1 } });
+  expResult = [
     { a: "" },
     { a: "" },
     { a: "" },
@@ -83,10 +83,10 @@ function test(testPara) {
     { a: "" },
     { a: "" },
   ];
-  commCompareResults(actResult2, expResult2);
+  commCompareResults(actResult, expResult);
 
-  var actResult3 = dbcl.find({}, { a: { $leftCP: 0 } });
-  var expResult3 = [
+  actResult = dbcl.find({}, { a: { $leftCP: 0 } });
+  expResult = [
     { a: "" },
     { a: "" },
     { a: "" },
@@ -101,49 +101,5 @@ function test(testPara) {
     { a: "" },
     { a: "" },
   ];
-  commCompareResults(actResult3, expResult3);
-
-  // $leftCP as Matcher
-  // 3.{ $leftCP : value, "$": ...}
-  var actResult4 = dbcl.find({ a: { $leftCP: 2, $et: "巨杉" } });
-  var expResult4 = [
-    { a: "巨杉" },
-    { a: "巨杉数据库" },
-    { a: "巨杉Sequoiadb" },
-    { a: ["Sequoiadb", "巨杉", 111] },
-  ];
-  commCompareResults(actResult4, expResult4);
-
-  // 4.check arguments
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: true } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: null } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: [1, 2] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: [1, null] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: [null, true] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({}, { a: { $leftCP: [1, 2, 3] } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({ a: { $leftCP: [null, true], et: "巨杉" } }).toArray();
-  });
-
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    dbcl.find({ a: { $leftCP: [1, 2], et: "巨杉" } }).toArray();
-  });
+  commCompareResults(actResult, expResult);
 }
