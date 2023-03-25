@@ -1102,18 +1102,18 @@ function restartAllHostNode( hostnameArr ) {
 
       /* New version */
       if ( NEW_VERSION ) {
+         var remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
          try {
-            var remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
             var cmd = remoteObj.getCmd() ;
-            var cmdStr = SDBSHELL + " -s 'var cmd = new Cmd(); cmd.start( \"" + SDBSTOP + " -t all && " + SDBSTART  + " -t all \", \"\", 1, 0 );'" ;
-            var retStr = cmd.run( cmdStr ).toString() ;
+            var cmdStr = SDBSTOP + " -t all && " + SDBSTART  + " -t all" ;
+            var retStr = cmd.start( cmdStr, "", 1, 0 ).toString() ;
             var pid = retStr.split( "\n" )[ 0 ] ;
             restartJob[ j ] = { "pid" : "" + pid } ;
-            remoteObj.close() ;
          } catch ( e ) {
-            remoteObj.close() ;
             println( "Restart " + hostnameArr[ j ] + " node failed: " + e + "(" + getLastErrMsg() + ")" ) ;
             return false ;
+         } finally {
+            remoteObj.close() ;
          }
       } else {
          try {
@@ -1170,6 +1170,15 @@ function restartAllHostNode( hostnameArr ) {
             {
                finishFlagArr[ j ] = true ;
                finishNumber++ ;
+            }
+            else
+            {
+               var cmdInfo = listProc[ 0 ].toObj()[ "cmd" ];
+               // Ignore zombie process
+               if ( undefined != cmdInfo && cmdInfo.indexOf( "<defunct>" ) != -1 ) {
+                   finishFlagArr[ j ] = true ;
+                   finishNumber++ ;
+               }
             }
          }
       }
