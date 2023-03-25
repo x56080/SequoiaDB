@@ -129,7 +129,6 @@ public class TestUpsert30378 extends SdbTestBase {
                                 new Object[] { 4, existData4, insertData4, matcher4, index4 },
                                 new Object[] { 5, existData5, insertData5, matcher5, index5 },
                                 new Object[] { 6, existData6, insertData6, matcher6, index6 } };
-
     }
 
     @BeforeClass
@@ -179,8 +178,6 @@ public class TestUpsert30378 extends SdbTestBase {
         Assert.assertEquals( actRecord, expRecord );
     }
 
-
-    @Test(dependsOnMethods = "test" )
     private class testUpsert{
         int num;
         private BasicBSONObject insertData;
