@@ -1,35 +1,18 @@
 [^_^]:
-    日志归档
+    日志归档与重放
 
-在数据库引擎的多副本机制中，复制组之间的数据同步，主要依赖同步日志完成。同步日志默认在各个节点的 dbpath 路径下的 `replicalog` 目录。同步日志根据节点的[配置文件][node_conf]生成，默认情况下，每个节点的同步日志为 20 个 64MB 的文件。
+SequoiaDB 巨杉数据库支持日志归档与重放功能。在数据库引擎运行的过程中，同步日志将被循环使用，新的日志会覆盖旧的日志。因此当用户希望系统可以自动执行备份操作时，应开启日志归档功能。已归档的日志可以通过重放功能在其他集群或节点重新执行。通过日志归档与重放，用户可以实现不同集群间的数据同步。
 
-在数据库引擎运行过程中，同步日志文件将被循环使用，最新产生的日志将会覆盖最老的日志文件。如果用户希望永久保存同步日志，应该选择打开节点的日志归档功能。
+##日志归档##
 
-通过开启节点的日志归档，用户可以持续归档节点的同步日志，归档的日志不会被覆盖。而且用户可以通过[重放工具][repli_tool]在其它 SequoiaDB 巨杉数据库集群或节点中重新执行。因此用户也可以通过日志归档和重放工具来实现不同集群间的数据同步。
-
-##基本功能##
-
-日志归档包括以下基本功能：
-
-* 归档数据节点的同步日志到本地目录
-* 支持压缩存储归档文件
-* 归档文件过期自动清理
-* 归档目录磁盘配额
-
-##开启归档##
-
-将节点的配置参数 archiveon 设置为 true 即可开启日志归档功能。首次开启日志归档时，节点会在归档目录下生成用于保证可靠性的归档状态文件 `.archive.1` 和 `.archive.2`，状态文件记录了归档的起始 LSN。
-
-> **Note:**
->
-> 开启归档时，节点的 --logfilenum 配置参数必须大于 1。
+开启日志归档功能后，SequoiaDB 将根据触发归档的条件，在目录 `archivelog` 下自动生成归档文件，并记录同步日志的内容。
 
 触发归档的条件如下：
 
 - 当前同步日志文件写满并切换至下一同步日志时
 - 归档超时时间段内未发生归档操作
 
-##归档文件##
+###归档文件###
 
 归档文件分为完整归档文件、部分归档文件和发生移动的归档文件，具体说明如下：
 
@@ -52,18 +35,94 @@
 > - 如果归档日志开启了压缩功能，节点将会对完整归档文件进行压缩。
 > - 同步日志归档功能详细配置，可参考节点[配置文件][node_conf]中 archiveon、archivecompresson、archivepath、archivetimeout、archiveexpired 和 archivequota 参数介绍。
 
-##错误##
 
-如果节点发生归档日志失败，会将相关错误信息记录在[节点诊断日志][sdb_diaglog]中，常见错误信息如下表：
+###开启归档###
 
-| 错误码 | 原因                                                                       | 解决方法                                                         |
-| ------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| -313   | 开启了归档，同步日志的日志文件循环回来，即将要被覆盖的同步日志还没有被归档 | 发生该错误后会触发归档操作，如果连续发生错误需要结合诊断日志分析 |
+首次开启归档功能后，SequoiaDB 将在目录 `archivelog` 下生成状态文件 `.archive.1` 和 `.archive.2`，用于记录归档的起始 LSN。下述以节点 11820 和 11830 为例，介绍开启归档功能的具体步骤。
 
+1. 将参数 archiveon 设置为 true
 
+    ```lang-javascript
+    > db.updateConf({archiveon: true}, {svcname: ["11820","11830"]})
+    (shell):1 uncaught exception: -322
+    Some configuration changes didn't take effect:
+    Config 'archiveon' require(s) restart to take effect.
+    ```
+
+2. 重启节点使配置生效
+
+    ```lang-bash
+    $ sdbstop -p 11820,11830
+    $ sdbstart -p 11820,11830
+    ```
+
+3. 查看归档功能的配置信息
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_CONFIGS, {SvcName: ["11820", "11830"]}, {svcname:"", archiveon: "", archivecompresson: "", archivepath: "", archivetimeout: "", archiveexpired: "", archivequota: ""})
+    ```
+
+    输出结果如下，字段 archiveon 显示为 "TRUE" 表示成功开启归档：
+
+    ```lang-javascript
+    {
+      "svcname": "11820",
+      "archiveon": "TRUE",
+      "archivecompresson": "TRUE",
+      "archivepath": "/opt/sequoiadb/database/data/11820/archivelog/",
+      "archivetimeout": 600,
+      "archiveexpired": 240,
+      "archivequota": 10
+    }
+    {
+      "svcname": "11830",
+      "archiveon": "TRUE",
+      ...
+    }
+    ```
+
+>**Note:**
+>
+> 归档功能的相关配置可参考[参数说明][node_conf]。
+
+##日志重放##
+
+SequoiaDB 支持使用 [sdbreplay 工具][repli_tool]重放归档文件或归档目录。下述以主机 `sdbserver:11810`、集合 sample.employee、归档文件 `archivelog.0.p` 为例，介绍日志重放的具体步骤。
+
+1. 检查集群是否存在集合 sample.employee
+
+    ```lang-javascript
+    > db.listCollections()
+    ```
+
+    如果集合不存在，用户需手动创建
+
+    ```lang-javascript
+    > db.createCS("sample").createCL("employee")
+    ```
+
+2. 重放归档文件 `archivelog.0.p`
+
+    ```lang-bash
+    $ sdbreplay --hostname sdbserver --svcname 11810 --path /data/archivelog/archivelog.0.p
+    ```
+
+3. 检查集合 sample.employee 中是否新增对应条数的记录
+
+    ```lang-javascript
+    > db.sample.employee.find().count()
+    ```
+
+>**Note:**
+>
+> - 指定重放归档目录时，将跳过 .m 文件，并根据归档文件的 Filed 从小到大依次重放。
+> - 当发生数据回滚时，用户可单独重放 .m 文件找回丢失的数据。
 
 [^_^]:
     本文使用到的所有链接及引用。
 [node_conf]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [repli_tool]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/log_replay.md
 [sdb_diaglog]:manual/Distributed_Engine/Maintainance/DiagLog/diaglog.md
+[sycn_log]:manual/Distributed_Engine/Architecture/Replication/architecture.md##同步日志
+[repli]:manual/Distributed_Engine/Maintainance/Backup_Recovery/log_archive.md##日志重放
+[archive_file]:manual/Distributed_Engine/Maintainance/Backup_Recovery/log_archive.md##归档文件
