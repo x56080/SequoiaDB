@@ -1845,12 +1845,6 @@
                            "en": "Data Backup"
                         },
                         {
-                           "id": 1477552448,
-                           "file": "log_archive",
-                           "cn": "日志归档",
-                           "en": "Log Archive"
-                        },
-                        {
                            "id": 1432190666,
                            "file": "data_restore",
                            "cn": "数据恢复",
@@ -1861,6 +1855,12 @@
                            "file": "point_in_time_restore",
                            "cn": "时间点恢复",
                            "en": "Point In Time Restore"
+                        },
+                        {
+                           "id": 1477552448,
+                           "file": "log_archive",
+                           "cn": "日志归档与重放",
+                           "en": "Log Archive"
                         }
                      ]
                   },
