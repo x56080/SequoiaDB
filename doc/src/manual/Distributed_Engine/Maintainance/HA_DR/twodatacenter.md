@@ -144,7 +144,7 @@ SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于�
     逐一修改所有故障节点的配置文件 `sdb.conf`
 
     ```lang-bash
-    $ vim <INSTALL_DIR>/conf/local/<端口号>/sdb.conf
+    $ vim /opt/sequoiadb/conf/local/<端口号>/sdb.conf
     ```
 
     修改内容如下：
