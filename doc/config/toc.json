@@ -5285,6 +5285,42 @@
                            "en": "$substr"
                         },
                         {
+                           "id": 1678420506,
+                           "file": "substrBytes",
+                           "cn": "$substrBytes",
+                           "en": "$substrBytes"
+                        },
+                        {
+                           "id": 1678420494,
+                           "file": "substrCP",
+                           "cn": "$substrCP",
+                           "en": "$substrCP"
+                        },
+                        {
+                           "id": 1678420526,
+                           "file": "rightBytes",
+                           "cn": "$rightBytes",
+                           "en": "$rightBytes"
+                        },
+                        {
+                           "id": 1678420517,
+                           "file": "rightCP",
+                           "cn": "$rightCP",
+                           "en": "$rightCP"
+                        },
+                        {
+                           "id": 1678420545,
+                           "file": "leftBytes",
+                           "cn": "$leftBytes",
+                           "en": "$leftBytes"
+                        },
+                        {
+                           "id": 1678420535,
+                           "file": "leftCP",
+                           "cn": "$leftCP",
+                           "en": "$leftCP"
+                        },
+                        {
                            "id": 1440656864,
                            "file": "strlen",
                            "cn": "$strlen",

@@ -22,30 +22,36 @@
 
 所支持的函数操作如下：
 
-| 函数                                                           | 描述             | 示例                                     |
-| -------------------------------------------------------------- | ---------------- | ---------------------------------------- |
-| [$abs][abs]            | 取绝对值         | db.sample.employee.find({}, {a:{$abs:1}}) |
-| [$ceiling][ceiling]    | 向上取整         | db.sample.employee.find({}, {a:{$ceiling:1}}) |
-| [$floor][floor]        | 向下取整         | db.sample.employee.find({}, {a:{$floor:1}}) |
-| [$round][round]        | 四舍五入为整数或指定的小数位 | db.sample.employee.find({}, {a:{$round:1}}) |
-| [$mod][mod]            | 取模运算         | db.sample.employee.find({}, {a:{$mod:1}}) |
-| [$add][add]            | 加法运算         | db.sample.employee.find({}, {a:{$add:10}}) |
-| [$subtract][subtract]  | 减法运算         | db.sample.employee.find({}, {a:{$subtract:10}}) |
-| [$multiply][multiply]  | 乘法运算         | db.sample.employee.find({}, {a:{$multiply:10}}) |
-| [$divide][divide]      | 除法运算         | db.sample.employee.find({}, {a:{$divide:10}}) |
-| [$substr][substr]      | 截取子串         | db.sample.employee.find({}, {a:{$substr:[0,4]}}) |
-| [$strlen][strlen]      | 获取指定字段的字节数 | db.sample.employee.find({}, {a:{$strlen:10}}) |
+| 函数                        | 描述                 | 示例                                     |
+| --------------------------- | -------------------- | ---------------------------------------- |
+| [$abs][abs]                 | 取绝对值             | db.sample.employee.find({}, {a:{$abs:1}}) |
+| [$ceiling][ceiling]         | 向上取整             | db.sample.employee.find({}, {a:{$ceiling:1}}) |
+| [$floor][floor]             | 向下取整             | db.sample.employee.find({}, {a:{$floor:1}}) |
+| [$round][round]             | 四舍五入为整数或指定的小数位 | db.sample.employee.find({}, {a:{$round:1}}) |
+| [$mod][mod]                 | 取模运算             | db.sample.employee.find({}, {a:{$mod:1}}) |
+| [$add][add]                 | 加法运算             | db.sample.employee.find({}, {a:{$add:10}}) |
+| [$subtract][subtract]       | 减法运算             | db.sample.employee.find({}, {a:{$subtract:10}}) |
+| [$multiply][multiply]       | 乘法运算             | db.sample.employee.find({}, {a:{$multiply:10}}) |
+| [$divide][divide]           | 除法运算             | db.sample.employee.find({}, {a:{$divide:10}}) |
+| [$substr][substr]           | 截取指定字节数的子串<br>v3.6.1 及以上版本中，该操作符已更名为 $substrBytes | db.sample.employee.find({}, {a:{$substr:[0, 4]}}) |
+| [$substrBytes][substrBytes] | 截取指定字节数的子串 | db.sample.employee.find({}, {a:{$substrBytes:[0, 4]}}) |
+| [$substrCP][substrCP]       | 截取指定字符数的子串 | db.sample.employee.find({}, {a:{$substrCP:[0, 4]}}) |
+| [$leftBytes][rightBytes]    | 从字符串开头截取指定字节数的子串 | db.sample.employee.find({}, {a:{$leftBytes:4}}) |
+| [$leftCP][rightCP]          | 从字符串开头截取指定字符数的子串 | db.sample.employee.find({}, {a:{$leftCP:4}}) |
+| [$rightBytes][rightBytes]   | 从字符串末尾截取指定字节数的子串 | db.sample.employee.find({}, {a:{$rightBytes:4}}) |
+| [$rightCP][rightCP]         | 从字符串末尾截取指定字符数的子串 | db.sample.employee.find({}, {a:{$rightCP:4}}) |
+| [$strlen][strlen]           | 获取指定字段的字节数 | db.sample.employee.find({}, {a:{$strlen:10}}) |
 | [$strlenBytes][strlenBytes] | 获取指定字段的字节数 | db.sample.employee.find({}, {a:{$strlenBytes:10}}) |
 | [$strlenCP][strlenCP]       | 获取指定字段的字符数 | db.sample.employee.find({}, {a:{$strlenCP:10}}) |
-| [$lower][lower]        | 字符串转为小写   | db.sample.employee.find({}, {a:{$lower:1}}) |
-| [$upper][upper]        | 字符串转为大写   | db.sample.employee.find({}, {a:{$upper:1}}) |
-| [$ltrim][ltrim]        | 去除左侧空格     | db.sample.employee.find({}, {a:{$ltrim:1}}) |
-| [$rtrim][rtrim]        | 去除右侧空格     | db.sample.employee.find({}, {a:{$rtrim:1}}) |
-| [$trim][trim]          | 去除左右两侧空格 | db.sample.employee.find({}, {a:{$trim:1}}) |
-| [$cast][cast]          | 转换字段类型     | db.sample.employee.find({}, {a:{$cast:"int32"}}) |
-| [$size][size]          | 获取数组元素个数 | db.sample.employee.find({}, {a:{$size:1}}) |
-| [$type][type]          | 获取字段类型     | db.sample.employee.find({}, {a:{$type:1}}) |
-| [$slice][slice]        | 截取数组元素     | db.sample.employee.find({}, {a:{$slice:[0,2]}}) |
+| [$lower][lower]             | 字符串转为小写       | db.sample.employee.find({}, {a:{$lower:1}}) |
+| [$upper][upper]             | 字符串转为大写       | db.sample.employee.find({}, {a:{$upper:1}}) |
+| [$ltrim][ltrim]             | 去除左侧空格         | db.sample.employee.find({}, {a:{$ltrim:1}}) |
+| [$rtrim][rtrim]             | 去除右侧空格         | db.sample.employee.find({}, {a:{$rtrim:1}}) |
+| [$trim][trim]               | 去除左右两侧空格     | db.sample.employee.find({}, {a:{$trim:1}}) |
+| [$cast][cast]               | 转换字段类型         | db.sample.employee.find({}, {a:{$cast:"int32"}}) |
+| [$size][size]               | 获取数组元素个数     | db.sample.employee.find({}, {a:{$size:1}}) |
+| [$type][type]               | 获取字段类型         | db.sample.employee.find({}, {a:{$type:1}}) |
+| [$slice][slice]             | 截取数组元素         | db.sample.employee.find({}, {a:{$slice:[0,2]}}) |
 
 [^_^]:
     本文使用的所有引用及链接
@@ -61,6 +67,12 @@
 [multiply]:manual/Manual/Operator/Function_Operator/multiply.md
 [divide]:manual/Manual/Operator/Function_Operator/divide.md
 [substr]:manual/Manual/Operator/Function_Operator/substr.md
+[substrCP]:manual/Manual/Operator/Function_Operator/substrCP.md
+[substrBytes]:manual/Manual/Operator/Function_Operator/substrBytes.md
+[rightCP]:manual/Manual/Operator/Function_Operator/rightCP.md
+[rightBytes]:manual/Manual/Operator/Function_Operator/rightBytes.md
+[leftCP]:manual/Manual/Operator/Function_Operator/leftCP.md
+[leftBytes]:manual/Manual/Operator/Function_Operator/leftBytes.md
 [strlen]:manual/Manual/Operator/Function_Operator/strlen.md
 [lower]:manual/Manual/Operator/Function_Operator/lower.md
 [upper]:manual/Manual/Operator/Function_Operator/upper.md

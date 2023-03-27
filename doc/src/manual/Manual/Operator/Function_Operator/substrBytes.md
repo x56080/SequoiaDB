@@ -2,23 +2,21 @@
 ##语法##
 
 ```lang-json
-{<字段名>: {$substr: <值>}}
-{<字段名>: {$substr:[<起点>, <长度>]}})
+{<字段名>: {$substrBytes: <值>}}
+{<字段名>: {$substrBytes:[<起点>, <长度>]}})
 ```
 
 ##说明##
 
-v3.6.1 及以上版本中，$substr 已更名为 [$substrBytes][substrBytes]。
+$substrBytes 用于截取指定字节数的子串。当字段类型为字符串时，将按 UTF-8 编码规则对字符串进行截取；当字段类型为数组时，将对每个数组元素进行截取；当字段类型为非字符串时，将返回 null。
 
-$substr 用于截取指定字节数的子串。当字段类型为字符串时，将按 UTF-8 编码规则对字符串进行截取；当字段类型为数组时，将对每个数组元素进行截取；当字段类型为非字符串时，将返回 null。
-
-- {$substr: <值>}表示截取指定字节数的子串，其中 <值> 的取值如下：
+- {$substrBytes: <值>}表示截取指定字节数的子串，其中 <值> 的取值如下：
 
     - 正整数：从字符串开头截取指定字节数的子串。
     - 0：返回空串。
     - 负整数：从字符串末尾第 N 个字节开始，截取所有字节。如果指定的值大于字符串的总字节数，将返回空串。
 
-- {$substr:[<起点>, <长度>]}表示从指定位置截取指定字节数的子串，其中：
+- {$substrBytes:[<起点>, <长度>]}表示从指定位置截取指定字节数的子串，其中：
 
     <起点> 的取值如下：
 
@@ -45,7 +43,7 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
     以字符串开头为起点，在字段 a 中截取字节数为 3 的子串并返回
 
     ```lang-javascript
-    > db.sample.employee.find({}, {a: {$substr: 3}})
+    > db.sample.employee.find({}, {a: {$substrBytes: 3}})
     {
         "_id": {
           "$oid": "58257afbec5c9b3b7e000002"
@@ -65,10 +63,10 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
     >
     > 如果指定的字节数小于字符的字节数，将返回乱码。
 
-    以字符串末尾第 3 个字节为起点，在字段 a 中截取所有字节并返回
+    以字符串末尾第 3 个字符为起点，在字段 a 中截取所有字节并返回
 
     ```lang-javascript
-    > db.sample.employee.find({}, {a: {$substr: -3}})
+    > db.sample.employee.find({}, {a: {$substrBytes: -3}})
     {
         "_id": {
           "$oid": "58257afbec5c9b3b7e000002"
@@ -87,7 +85,7 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
     以字符串开头第 3 个字节为起点，在字段 a 中截取字节数为 3 的子串并返回
 
     ```lang-javascript
-    > db.sample.employee.find({}, {a: {$substr: [2, 3]}})
+    > db.sample.employee.find({}, {a: {$substrBytes: [2, 3]}})
     {
         "_id": {
           "$oid": "58257afbec5c9b3b7e000002"
@@ -125,7 +123,7 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
     以字符串末尾第 3 个字节为起点，在字段 a 中截取字节数为 3 的子串并返回
 
     ```lang-javascript
-    > db.sample.employee.find({}, {a: {$substr: [-3, 3]}})
+    > db.sample.employee.find({}, {a: {$substrBytes: [-3, 3]}})
     {
         "_id": {
           "$oid": "58257afbec5c9b3b7e000002"
@@ -144,7 +142,7 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
 - 配合匹配符使用，匹配字段 a 截取子串后值为“cde”的记录
 
     ```lang-javascript
-    > db.sample.employee.find({a: {$substr: [2, 3], $et: "cde"}})
+    > db.sample.employee.find({a: {$substrBytes: [2, 3], $et: "cde"}})
     {
         "_id": {
           "$oid": "58257afbec5c9b3b7e000002"
@@ -154,6 +152,4 @@ $substr 用于截取指定字节数的子串。当字段类型为字符串时，
     Return 1 row(s).
     ```
 
-[^_^]:
-    本文使用的所有引用及链接
-[substrBytes]:manual/Manual/Operator/Function_Operator/substrBytes.md
+
