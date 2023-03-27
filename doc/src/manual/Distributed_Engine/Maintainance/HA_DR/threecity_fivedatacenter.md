@@ -5,29 +5,344 @@
 
 ##灾难应对方案##
 
-###单节点故障###
+###节点故障###
 
-由于采用了五副本高可用架构，个别节点故障情况下，集群依然可以正常工作。针对个别节点的故障场景，无需采取特别的应对措施，只需要及时修复故障节点，并通过自动数据同步或者人工数据同步的方式去恢复故障节点数据即可。
+当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需参考[节点故障场景][node_down]进行灾难恢复。如果故障节点未超过半数，用户仅需修复故障节点并恢复节点数据即可。
 
-###单个数据中心整体故障###
+![节点故障情况][3c5d_node_down]
 
-当五个中心的一个发生故障时，每个数据组存活节点的数量还大于每个数据组的总节点数的 1/2，所以每个数据组仍然能够为应用层提供读写服务。针对单个数据中心整体故障的场景，无需采取特别的应对措施，只需要及时修复故障节点，并通过自动数据同步或者人工数据同步的方式去恢复故障节点数据即可。
+###单个数据中心故障###
 
-###城市级整体故障###
+当单个数据中心发生故障，集群仍对外提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
 
-当一个城市的所有数据中心发生故障时，每个数据组存活节点的数量还大于每个数据组的总节点数的 1/2，所以每个数据组仍然能够为应用层提供读写服务。针对单个城市整体故障的场景，无需采取特别的应对措施，只需要及时修复故障节点，并通过自动数据同步或者人工数据同步的方式去恢复故障节点数据即可。
+![单个数据中心故障情况][3c5d_singlecenter_down]
 
-当两个城市的数据中心全部故障时，每个数据组存活节点数小于总数的 1/2，无法选出主节点。这种情况下就需要用到分裂（split）和合并（merge）工具来进行处理，把存活的节点分裂成独立的集群提供读写服务。分裂集群的耗时相对比较短，一般在十分钟内便能完成。
+###城市级中心故障###
+
+当一个城市发生灾难，导致两个数据中心故障，另外两个城市的数据中心仍可提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
+
+![单个城市灾难情况][3c5d_singcity_down]
+
+当两个城市发生灾难，集群将失去半数以上的节点，导致无法对外提供读写服务。针对该情况，用户需参考[数据中心故障场景][center_down]进行灾难恢复。
+
+![两个城市灾难情况][3c5d_twocity_down]
 
 ##灾难恢复##
 
-用户可以参考[容灾工具的使用][threecity_fivedatacenter_usage]来解决故障。
+SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于对节点故障场景和数据中心故障场景进行灾难恢复。下述以 SequoiaDB 安装目录 `/opt/sequoiadb/` 、集群鉴权用户名“sdbadmin”和用户密码“sdbadmin”为例，介绍不同场景的灾难恢复步骤。
 
+###节点故障场景###
+
+下述以复制组 group1 不可用为例，介绍节点故障场景的具体恢复步骤。
+
+1. 选择一台未发生故障的主机 `sdbserver`，切换至容灾工具目录
+
+    ```lang-bash
+    $ cd /opt/sequoiadb/tools/dr_ha
+    ```
+
+2. 修改配置文件 `cluster_opr.js`
+
+    ```lang-bash
+    $ vim cluster_opr.js
+    ```
+
+    修改内容如下：
+
+    ```lang-javascript
+    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
+    if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "sdbadmin" ; }
+    if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "sdbadmin" ; }
+    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver" ] ; }
+    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver:11810" ] }
+    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 1 ; }
+    if ( typeof(MINREPLICANUM) == "undefined" ) { MINREPLICANUM = 1 ; }
+    if ( typeof(NEEDREELECT) == "undefined" ) { NEEDREELECT = false }
+    if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = true }
+    ```
+
+    >**Note:**
+    >
+    > 配置文件的参数说明可参考[容灾切换合并工具][split_merge]。
+
+3. 剔除故障节点，剔除后复制组将恢复读写服务
+
+    ```lang-bash
+    $ sh detachGroupNode.sh
+    ```
+
+4. 修复故障节点
+
+5. 将修复后的节点重新加入复制组
+
+    ```lang-bash
+    $ sh attachGroupNode.sh
+    ```
+
+6. 通过 SDB Shell 检查节点间数据是否一致
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_HEALTH, {GroupName: "group1"}, {IsPrimary: null, CompleteLSN: null})
+    ```
+
+    对比主备节点间字段 CompleteLSN 的值，如果保持一致则说明节点数据一致
+
+    ```lang-json
+    {
+      "IsPrimary": true,
+      "CompleteLSN": 228
+    }
+    {
+      "IsPrimary": false,
+      "CompleteLSN": 228
+    }
+    {
+      "IsPrimary": false,
+      "CompleteLSN": 228
+    }
+    ```
+
+    >**Note:**
+    >
+    > 如果主备节点间字段 CompleteLSN 的值不一致，用户需等待片刻，待节点数据同步后再次检查节点数据是否一致。
+
+7. 在当前复制组中重新选主
+
+    ```lang-javascript
+    > var rg = db.getRG("group1")
+    > rg.reelect({Seconds: 60})
+    ```
+
+###数据中心故障场景###
+
+当数据中心故障导致集群不可用，主要通过以下步骤进行恢复：
+
+1. 划分子网
+2. 集群分裂
+3. 集群合并
+4. 集群信息初始化
+
+下述以城市1和城市3发生灾难为例，介绍数据中心故障场景的具体恢复步骤。
+
+**划分子网**
+
+将正常机房划分为 SUB1，故障机房划分为 SUB2
+
+| 子网 | 主机                   |
+| ---- | ---------------------- |
+| SUB1 | sdbserver3、sdbserver4 |
+| SUB2 | sdbserver1、sdbserver2、sdbserver5 |
+
+**集群分裂**
+
+集群分裂操作用于将城市2包含的主机从集群中分裂，使其成为具备读写功能的独立集群。分裂完成后，将由城市2对外提供服务。
+
+1. 开启自动全量同步，避免节点重启失败
+
+    逐一修改所有故障节点的配置文件 `sdb.conf`
+
+    ```lang-bash
+    $ vim /opt/sequoiadb/conf/local/<端口号>/sdb.conf
+    ```
+
+    修改内容如下：
+
+    ```lang-ini
+    ...
+    dataerrorop=1
+    ...
+    ```
+
+2. 选择 SUB1 的任意一台主机，切换至容灾工具目录
+
+    ```lang-bash
+    $ cd /opt/sequoiadb/tools/dr_ha
+    ```
+
+3. 修改配置文件 `cluster_opr.js`
+
+    ```lang-bash
+    $ vim cluster_opr.js
+    ```
+
+    修改内容如下：
+
+    ```lang-javascript
+    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver3", "sdbserver4" ] ; }
+    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver1", "sdbserver2", "sdbserver5" ] ; }
+    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver3:11810" ] }
+    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 1 ; }
+    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
+    ```
+
+4. 执行分裂操作
+
+    ```lang-bash
+    $ sh split.sh
+    ```
+
+5. 修复故障中心
+
+6. 选择 SUB2 的任意一台主机，切换至容灾工具目录
+
+    ```lang-bash
+    $ cd /opt/sequoiadb/tools/dr_ha
+    ```
+
+7. 修改配置文件 `cluster_opr.js`
+
+    ```lang-bash
+    $ vim cluster_opr.js
+    ```
+
+    修改内容如下：
+
+    ```lang-javascript
+    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver3", "sdbserver4" ] ; }
+    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver1", "sdbserver2", "sdbserver5" ] ; }
+    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver3:11810" ] }
+    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 2 ; }
+    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = false ; }
+    ```
+
+8. 执行分裂操作
+
+    ```lang-bash
+    $ sh split.sh 
+    ```
+
+**集群合并**
+
+1. 选择集群中的任意一台主机，执行合并操作
+
+    ```lang-bash
+    $ sh merge.sh 
+    ```
+
+2. 通过 SDB Shell 检查节点间数据是否一致
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_HEALTH, {}, {NodeName: null, IsPrimary: null, CompleteLSN: null})
+    ```
+
+    对比主备节点间字段 CompleteLSN 的值，如果保持一致则说明节点间数据一致
+
+    ```lang-json
+    ...
+    {
+      "NodeName": "sdbserver1:11820",
+      "IsPrimary": true,
+      "CompleteLSN": 80148
+    }
+    {
+      "NodeName": "sdbserver2:11820",
+      "IsPrimary": false,
+      "CompleteLSN": 80148
+    }
+    {
+      "NodeName": "sdbserver3:11820",
+      "IsPrimary": false,
+      "CompleteLSN": 80148
+    }
+    ...
+    ```
+
+    >**Note:**
+    >
+    > 如果主备节点间字段 CompleteLSN 的值不一致，用户需等待片刻，待节点数据同步后再次检查节点数据是否一致。
+
+3. 关闭自动全量同步
+
+    ```lang-javascript
+    > db.updateConf({dataerrorop: 2})
+    ```
+
+**集群信息初始化**
+
+集群信息初始化操作用于将主节点分配至主中心，以恢复集群初始状态。执行该操作前，用户需转移或删除集群部署信息文件 `datacenter_init.info`，该文件位于 SequoiaDB 安装目录。
+
+1. 根据数据中心划分子网，主中心为 SUB1，灾备中心为 SUB2
+
+    | 子网 | 主机                   |
+    | ---- | ---------------------- |
+    | SUB1 | sdbserver1             |
+    | SUB2 | sdbserver2、sdbserver3、sdbserver4、sdbserver5 |
+
+2. 选择 SUB1 的主机，切换至容灾工具目录
+
+    ```lang-bash
+    $ cd /opt/sequoiadb/tools/dr_ha
+    ```
+
+3. 修改配置文件 `cluster_opr.js`
+
+    ```lang-bash
+    $ vim cluster_opr.js
+    ```
+
+    修改内容如下：
+
+    ```lang-javascript
+    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
+    if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "sdbadmin" ; }
+    if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "sdbadmin" ; }
+    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
+    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3", "sdbserver4", "sdbserver5" ] ; }
+    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver1:11810" ] }
+    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 1 ; }
+    if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
+    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
+    if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = false }
+    ```
+
+4. 集群信息初始化
+
+    ```lang-bash
+    $ sh init.sh 
+    ```
+
+5. 选择 SUB2 的任意一台主机，切换至容灾工具目录
+
+    ```lang-bash
+    $ cd /opt/sequoiadb/tools/dr_ha
+    ```
+
+6. 修改配置文件 `cluster_opr.js`
+
+    ```lang-bash
+    $ vim cluster_opr.js
+    ```
+
+    修改内容如下：
+
+    ```lang-javascript
+    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
+    if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "sdbadmin" ; }
+    if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "sdbadmin" ; }
+    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
+    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3", "sdbserver4", "sdbserver5" ] ; }
+    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver1:11810" ] }
+    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 2 ; }
+    if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
+    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = false ; }
+    if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = true }
+    ```
+
+7. 集群信息初始化
+
+    ```lang-bash
+    $ sh init.sh 
+    ```
 
 [^_^]:
     本文使用到的所有链接
-
-[threecity_fivedatacenter]:images/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.png
-[split_merge]:manual/database_management/tools/split_merge.md
+[split_merge]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/split_merge.md
 [consistency]:manual/Distributed_Engine/Architecture/Replication/primary_secondary_consistency.md
 [threecity_fivedatacenter_usage]:manual/Distributed_Engine/Maintainance/HA_DR/disaster_recovery_tool.md
+[recovery]:manual/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.md#灾难恢复
+[3c5d_node_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_node_down.png
+[3c5d_singlecenter_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_singlecenter_down.png
+[3c5d_singcity_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_singcity_down.png
+[3c5d_twocity_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_twocity_down.png
+[node_down]:manual/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.md#节点故障场景
+[center_down]:manual/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.md#数据中心故障场景
