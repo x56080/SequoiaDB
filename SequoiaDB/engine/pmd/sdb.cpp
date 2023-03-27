@@ -769,6 +769,26 @@ error:
    goto done ;
 }
 
+static void sigintHandler( int sig )
+{
+   struct termios on_termios ;
+
+   // get origin setting
+   if ( tcgetattr( STDIN_FILENO, &on_termios ) == -1 ) goto error ;
+
+   // turn on echo
+   on_termios.c_lflag |= ( ECHO ) ;
+
+   // set new setting
+   if ( tcsetattr( STDIN_FILENO, TCSADRAIN, &on_termios ) < 0 ) goto error ;
+
+done:
+   // program interrupt
+   exit( sig ) ;
+error:
+   goto done ;
+}
+
 #endif
 
 #define SDB_FRONTEND_RECEIVEBUFFERSIZE 128
@@ -1124,6 +1144,10 @@ int main ( int argc , CHAR **argv )
    setlocale(LC_CTYPE, "zh_CN.UTF-8");
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
+
+   // capture the SIGINT signal and restore the echo
+   // that was turned off by readThread in enterFrontEndMode()
+   signal( SIGINT, sigintHandler ) ;
 #endif // _LINUX
 
    // Initialize TZ, ignore error
