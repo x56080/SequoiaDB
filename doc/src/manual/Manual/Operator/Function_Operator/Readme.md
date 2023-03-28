@@ -52,6 +52,7 @@
 | [$size][size]               | 获取数组元素个数     | db.sample.employee.find({}, {a:{$size:1}}) |
 | [$type][type]               | 获取字段类型         | db.sample.employee.find({}, {a:{$type:1}}) |
 | [$slice][slice]             | 截取数组元素         | db.sample.employee.find({}, {a:{$slice:[0,2]}}) |
+| [$concat][concat]           | 连接字符串           | db.sample.employee.find({}, {a:{$concat:"abc"}}) |
 
 [^_^]:
     本文使用的所有引用及链接
@@ -85,3 +86,4 @@
 [slice]:manual/Manual/Operator/Function_Operator/slice.md
 [strlenBytes]:manual/Manual/Operator/Function_Operator/strlenBytes.md
 [strlenCP]:manual/Manual/Operator/Function_Operator/strlenCP.md
+[concat]:manual/Manual/Operator/Function_Operator/concat.md
