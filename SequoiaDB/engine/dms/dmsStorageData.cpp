@@ -620,12 +620,15 @@ namespace engine
          // to migrate ealier due to not enough space, we need to allocate
          // overflow record for the case
          if ( dmsRecordSize <= pRecord->getSize() &&
-              pRecord->hasGlobTransID() )
+              ( pRecord->hasGlobTransID() || !_mvccSupport ) )
          {
             pRecord->setData( newRecordData ) ;
 
             // set or restore transID in record header
-            _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+            if ( pRecord->hasGlobTransID() )
+            {
+               _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+            }
 
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
@@ -647,12 +650,15 @@ namespace engine
             goto done ;
          }
          else if ( pOvfRecord && ( dmsRecordSize <= pOvfRecord->getSize() ) &&
-                   pOvfRecord->hasGlobTransID() )
+                   ( pOvfRecord->hasGlobTransID() || !_mvccSupport ) )
          {
             pOvfRecord->setData( newRecordData ) ;
 
             // set or restore transID in both origin and ovf record header
-            _setRecordGlobTransID( context, recordRW, cb, TRUE ) ;
+            if ( pOvfRecord->hasGlobTransID() )
+            {
+               _setRecordGlobTransID( context, recordRW, cb, TRUE ) ;
+            }
 
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
             /// sub the remove data info
