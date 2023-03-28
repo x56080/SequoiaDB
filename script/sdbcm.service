@@ -5,9 +5,9 @@ After=network.target
 [Service]
 Type=forking
 KillMode=none
-PIDFile=/opt/sequoiadb/conf/log/sdbcm.pid
-ExecStart=/opt/sequoiadb/bin/sdbcmart
-ExecStop=-/opt/sequoiadb/bin/sdbcmtop 
+PIDFile=SYS_INSTALL_DIR/conf/log/sdbcm.pid
+ExecStart=SYS_INSTALL_DIR/bin/sdbcmart
+ExecStop=-SYS_INSTALL_DIR/bin/sdbcmtop
 
 [Install]
 WantedBy=multi-user.target
