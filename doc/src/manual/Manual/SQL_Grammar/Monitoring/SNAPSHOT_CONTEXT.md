@@ -17,7 +17,7 @@ $SNAPSHOT_CONTEXT
 | ----------------------- | ------ | ---------------------------------------- |
 | NodeName                | string | 节点名，格式为 `<主机名>:<端口号>`       |
 | SessionID               | int64  | 会话 ID                                  |
-| Contexts.QueryID        | string | 执行语句的唯一标识                       |
+| Contexts.QueryID        | string | 执行语句的唯一标识（仅在 v3.6.1 及以上版本生效） |
 | Contexts.ContextID      | int64  | 上下文 ID                                |
 | Contexts.Type           | string | 上下文类型，如 DUMP                      |
 | Contexts.Description    | string | 上下文的描述信息，如包含当前的查询条件   |
