@@ -245,7 +245,7 @@ find( { "": { "$Text": <search command> } } )
 | 操作 | 说明 |
 | ---- | ---- |
 | [query.explain()][explain] | 获取查询的访问计划 |
-| [dropIndex()][drop_index] | 删除指定的全文索引 |
+| [SdbCollection.dropIndex()][drop_index] | 删除指定的全文索引 |
 
 
 
