@@ -29,7 +29,7 @@
 
 ##灾难恢复##
 
-SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于对节点故障场景和数据中心故障场景进行灾难恢复。下述以 SequoiaDB 安装目录 `/opt/sequoiadb/` 、集群鉴权用户名“sdbadmin”和用户密码“sdbadmin”为例，介绍不同场景的灾难恢复步骤。
+SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于对节点故障场景和数据中心故障场景进行灾难恢复。下述以 SequoiaDB 安装目录 `/opt/sequoiadb/`、集群鉴权用户名“sdbadmin”和用户密码“sdbadmin”为例，介绍不同场景的灾难恢复步骤。
 
 ###节点故障场景###
 
