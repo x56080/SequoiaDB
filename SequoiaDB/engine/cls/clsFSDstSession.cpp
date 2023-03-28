@@ -3755,6 +3755,8 @@ namespace engine
       if ( _collectionW > 1 )
       {
          // wait the group other nodes sync complete, ignored result
+         eduCB()->insertLsn( _lastOprLSN ) ;
+         eduCB()->setOrgReplSize( _collectionW ) ;
          sdbGetReplCB()->onCompleteOpr( eduCB(), _collectionW ) ;
       }
 
