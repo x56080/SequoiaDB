@@ -22,7 +22,7 @@ $SNAPSHOT_QUERIES
 | Name                   | string   | 操作对象名                                      |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                    |
 | ReturnNum              | int32    | 返回值                                          |
-| QueryID                | string   | 执行语句的唯一标识                              |
+| QueryID                | string   | 执行语句的唯一标识（仅在 v5.0.4 及以上版本生效）|
 | TotalMsgSent           | int32    | 发送到远程节点的消息总数                        |
 | LastOpInfo             | string   | 查询语句内容                                    |
 | MsgSentTime            | int32    | 消息发送花费时间，单位为毫秒                    |
@@ -43,7 +43,7 @@ $SNAPSHOT_QUERIES
 | Name                   | string   | 操作对象名                                                                               |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                                                             |
 | ReturnNum              | int32    | 返回值                                                                                   |
-| QueryID                | string   | 执行语句的唯一标识                                                                       |
+| QueryID                | string   | 执行语句的唯一标识（仅在 v5.0.4 及以上版本生效）                                         |
 | RelatedNID             | int32    | 将该查询请求发送到该数据节点的的相关协调节点 ID                                          |
 | RelatedTID             | int32    | 发送查询的相关协调节点的线程 ID，结合 RelatedNID 可以将协调节点和数据节点的快照输出联系起来 |
 | SessionID              | int32    | 内部会话ID                                                                               |
