@@ -2314,7 +2314,7 @@ namespace engine
          while( itrCL != clList.end() )
          {
             // Skip SYSRBS CLs
-            if ( 0 == ossStrncmp( itrCL->_name, SDB_DMSRBS_NAME, 
+            if ( 0 == ossStrncmp( itrCL->_name, SDB_DMSRBS_NAME,
                                   (sizeof(SDB_DMSRBS_NAME)-1) ) )
             {
                clList.erase( itrCL++ ) ;
@@ -3384,8 +3384,16 @@ namespace engine
          // need wait the group other nodes sync complete
          if ( _collectionW > 1 )
          {
-            INT32 rc = sdbGetReplCB()->sync( _lastOprLSN,
-                                             eduCB(), _collectionW, 1 ) ;
+            INT32 rc = SDB_OK ;
+            INT16 replSize = _collectionW ;
+            rc = sdbGetReplCB()->replSizeCheck( _collectionW, replSize,
+                                                eduCB(), TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               goto done ;
+            }
+            rc = sdbGetReplCB()->sync( _lastOprLSN,
+                                       eduCB(), replSize, 1 ) ;
             if ( SDB_TIMEOUT == rc )
             {
                goto done ;
