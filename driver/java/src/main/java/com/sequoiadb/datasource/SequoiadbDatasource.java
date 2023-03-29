@@ -693,11 +693,10 @@ public class SequoiadbDatasource {
     }
 
     /**
-     * Get a connection from current connection pool.
-     * When the pool runs out, a request will wait up to 5 seconds. When time is up, if the pool
-     * still has no idle connection, it throws BaseException with the type of "SDB_DRIVER_DS_RUNOUT".
-     * @return Sequoiadb the connection for using
-     * @throws BaseException If error happens.
+     * Get a connection from current connection pool. The waiting time default to 5 seconds
+     * @return Sequoiadb The connection for using
+     * @throws BaseException When waiting for timeout, throw {@link SDBError#SDB_DRIVER_DS_RUNOUT}
+     *                       if current connection pool is full, otherwise throw {@link SDBError#SDB_TIMEOUT}.
      * @throws InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      */
     public Sequoiadb getConnection() throws BaseException, InterruptedException {
@@ -706,9 +705,10 @@ public class SequoiadbDatasource {
 
     /**
      * Get a connection from current connection pool.
-     * @param timeout the time for waiting for connection in millisecond. 0 for waiting until a connection is available.
-     * @return Sequoiadb the connection for using
-     * @throws BaseException If error happens.
+     * @param timeout The time for waiting for connection in millisecond. 0 means infinite timeout.
+     * @return Sequoiadb The connection for using
+     * @throws BaseException When waiting for timeout, throw {@link SDBError#SDB_DRIVER_DS_RUNOUT}
+     *                       if current connection pool is full, otherwise throw {@link SDBError#SDB_TIMEOUT}.
      * @throws InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      * @since 2.2
      */
@@ -776,8 +776,22 @@ public class SequoiadbDatasource {
                     // release the read lock before wait up
                     rlock.unlock();
                     try {
-                        // 3. The connection pool is full
-                        waitIdleConn(timer);
+                        // if timer is disabled, wait 5s each time
+                        if (!timer.getStatus()) {
+                            synchronized (idleConnSignal) {
+                                idleConnSignal.wait(5000);
+                            }
+                        } else {
+                            // the connection pool is full
+                            if (timer.isTimeout()) {
+                                throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, "Get connection timeout: " + timer.getOriginTime());
+                            }
+                            long startTime = System.currentTimeMillis();
+                            synchronized (idleConnSignal) {
+                                idleConnSignal.wait(timer.getRemnantTime());
+                            }
+                            timer.consumeTime(startTime);
+                        }
                         continue;
                     } finally {
                         // let's get the read lock before going on
@@ -796,6 +810,7 @@ public class SequoiadbDatasource {
                 }
             } // while(true)
 
+            // connItem and sdb never be null
             _usedConnPool.insert(connItem, sdb);
             _strategy.updateUsedConnItemCount(connItem, 1);
             // Use external network configuration when connection leaving the pool
@@ -1147,14 +1162,16 @@ public class SequoiadbDatasource {
         }
 
         List<ServerAddress> serAddrLst = addrMgr.getNormalAddress();
+        boolean hadReset;
         while (true) {
             if (timer.isTimeout()) {
                 throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
             }
             long startTime = System.currentTimeMillis();
-            setConnTime(timer, netOpt);
+            // in order to control the time, the connection timeout time needs to be reset every time
+            hadReset = resetConnTime(timer, netOpt);
 
-            // never forget to handle the situation of the datasourc is disable
+            // never forget to handle the situation of the datasource is disable
             if (_isDatasourceOn) {
                 serAddr = _strategy.selectAddress(serAddrLst);
             } else {
@@ -1174,19 +1191,18 @@ public class SequoiadbDatasource {
                 break;
             } catch (BaseException e) {
                 _setLastException(e);
-                String errType = e.getErrorType();
-                if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
-                        errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                    serAddrLst.remove(serAddr);
-                    if (compareConnTimeout(netOpt, _normalNwOpt)) {
-                        _handleErrorAddr(serAddr.getAddress());
-                    }
-                    serAddr = null;
-                } else {
+                if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
                     throw e;
                 }
+                if (!hadReset) {
+                    _handleErrorAddr(serAddr.getAddress());
+                }
+                serAddrLst.remove(serAddr);
+                serAddr = null;
             } finally {
-                timer.consume(startTime);
+                timer.consumeTime(startTime);
             }
         }
         return sdb;
@@ -1209,7 +1225,7 @@ public class SequoiadbDatasource {
                     throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
                 }
                 long startTime = System.currentTimeMillis();
-                setConnTime(timer, netOpt);
+                resetConnTime(timer, netOpt);
                 String addr = serAddr.getAddress();
                 try {
                     retConn = new Sequoiadb(addr, _username, _password, netOpt);
@@ -1222,7 +1238,7 @@ public class SequoiadbDatasource {
                     continue;
                 }
                 finally {
-                    timer.consume(startTime);
+                    timer.consumeTime(startTime);
                 }
                 addrMgr.enableAddress(addr);
                 log.debug(String.format("Create connections success with abnormal address: %s, " +
@@ -1305,16 +1321,14 @@ public class SequoiadbDatasource {
                     sdb = new Sequoiadb(serAddr.getAddress(), _username, _password, _normalNwOpt);
                     break;
                 } catch (BaseException e) {
-                    String errType = e.getErrorType();
-                    if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
-                            errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                        // remove this address from normal address list
-                        _handleErrorAddr(serAddr.getAddress());
-                        continue;
-                    } else {
+                    if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                            e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
+                            e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
                         // let's stop for another error
                         break;
                     }
+                    // remove this address from normal address list
+                    _handleErrorAddr(serAddr.getAddress());
                 } catch (Exception e) {
                     // let's stop for another error
                     break;
@@ -1595,44 +1609,32 @@ public class SequoiadbDatasource {
                 _idleConnPool != null ? _idleConnPool.count() : null);
     }
 
-    private void setConnTime(Timer timer, ConfigOptions netOpt){
+    private boolean resetConnTime(Timer timer, ConfigOptions netOpt){
+        boolean hadReset = false;
+
         if (!timer.getStatus()) {
-            return;
+            return false;
         }
 
-        long connTimeout = Math.min(timer.getTime(), netOpt.getConnectTimeout());
-        long retryTimeOut = Math.min(timer.getTime(), netOpt.getMaxAutoConnectRetryTime());
+        long remnantTime = timer.getRemnantTime();
+        long connTimeout = netOpt.getConnectTimeout();
+        long retryTimeOut = netOpt.getMaxAutoConnectRetryTime();
+
+        // connTimeout == 0 means socket.connect() infinite timeout.
+        if (connTimeout == 0 || connTimeout > remnantTime ) {
+            connTimeout = remnantTime;
+            hadReset = true;
+        }
+
+        if (retryTimeOut > remnantTime) {
+            retryTimeOut = remnantTime;
+            hadReset = true;
+        }
 
         netOpt.setConnectTimeout((int)connTimeout);
         netOpt.setMaxAutoConnectRetryTime(retryTimeOut);
-    }
 
-    private boolean compareConnTimeout(ConfigOptions opt1, ConfigOptions opt2) {
-        long time1 = Math.max(opt1.getMaxAutoConnectRetryTime(), opt1.getConnectTimeout());
-        long time2 = Math.max(opt2.getMaxAutoConnectRetryTime(), opt2.getConnectTimeout());
-        return time1 >= time2;
-    }
-
-    private void waitIdleConn(Timer timer) {
-        try {
-            // if timer is disabled, wait 5s each time
-            if (!timer.getStatus()) {
-                synchronized (idleConnSignal) {
-                    idleConnSignal.wait(5000);
-                }
-            } else {
-                if (timer.isTimeout()) {
-                    throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
-                }
-                long startTime = System.currentTimeMillis();
-                synchronized (idleConnSignal) {
-                    idleConnSignal.wait(timer.getTime());
-                }
-                timer.consume(startTime);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        return hadReset;
     }
 }
 

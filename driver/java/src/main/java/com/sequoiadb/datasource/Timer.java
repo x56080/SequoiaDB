@@ -41,11 +41,11 @@ class Timer {
         return status;
     }
 
-    public long getTime() {
+    public long getRemnantTime() {
         return time;
     }
 
-    public void consume(long startTime) {
+    public void consumeTime(long startTime) {
         if (!status){
             return;
         }
