@@ -1,7 +1,7 @@
 package org.apache.spark.sql.sequoiadb.catalog.read
 
-import com.sequoiadb.base.{DBCollection, DBCursor, Sequoiadb}
-import com.sequoiadb.spark.{BSONConverter, Logging, PartitionMode, SdbConfig, SdbConnUtil, SdbCursor, SdbFastCursor, SdbFilter, SdbNormalCursor, SdbPartition}
+import com.sequoiadb.base.{DBCollection, Sequoiadb}
+import com.sequoiadb.spark.{BSONConverter, Logging, PartitionMode, SdbConfig, SdbConnUtil, SdbCursor, SdbFastCursor, SdbFilter, SdbPartition}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.sequoiadb.util.SdbUtils
@@ -32,6 +32,8 @@ case class SdbPartitionReader(
     extends PartitionReader[InternalRow]
     with Serializable
     with Logging {
+
+    BSONConverter.SESSION_TIMEZONE = config.sessionTimezone
 
     /**
      * create sequoiadb connection
@@ -108,8 +110,7 @@ case class SdbPartitionReader(
     override def get(): InternalRow = {
         val record = fastCursor.next()
         // convert bson to spark internal row.
-        BSONConverter.bsonToRow(
-            record, requiredSchema, config.java8APIEnabled)
+        BSONConverter.bsonToRow(record, requiredSchema)
     }
 
     /**
