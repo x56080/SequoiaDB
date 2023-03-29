@@ -1325,6 +1325,11 @@ namespace engine
       _pEDUCB->setCurProcessName( pCommand->getProcessName() ) ;
 
       rc = pCommand->doit( _pEDUCB, ctxBuff, contextID ) ;
+      if ( SDB_LOCK_FAILED == rc )
+      {
+         SDB_ASSERT( -1 == contextID, "ContextID must be -1" ) ;
+         goto lock_failed ;
+      }
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to do command[%s], rc: %d",
                     pCommand->name(), rc ) ;
@@ -1368,6 +1373,21 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_PRCSCMD, rc ) ;
       return rc ;
+
+   lock_failed:
+      // Lock failed, then try to delay operation
+      if ( !delayCurOperation() )
+      {
+         rc = SDB_LOCK_FAILED ;
+         goto error ;
+      }
+      else
+      {
+         // Ignore the lock error
+         rc = SDB_OK ;
+      }
+      goto done ;
+
    error:
       if ( -1 != contextID )
       {
