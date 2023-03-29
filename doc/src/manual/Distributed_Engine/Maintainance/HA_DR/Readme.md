@@ -18,7 +18,6 @@
 + [同城三中心部署][threedatacenter]
 + [两地三中心部署][twocity_threedatacenter]
 + [三地五中心部署][threecity_fivedatacenter]
-+ [容灾工具的使用][disaster_recovery_tool]
 
 [^_^]:
     本文使用到的所有链接
@@ -29,4 +28,3 @@
 [threedatacenter]:manual/Distributed_Engine/Maintainance/HA_DR/threedatacenter.md
 [twocity_threedatacenter]:manual/Distributed_Engine/Maintainance/HA_DR/twocity_threedatacenter.md
 [threecity_fivedatacenter]:manual/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.md
-[disaster_recovery_tool]:manual/Distributed_Engine/Maintainance/HA_DR/disaster_recovery_tool.md
