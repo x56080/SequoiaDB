@@ -1469,12 +1469,6 @@
                            "file": "threecity_fivedatacenter",
                            "cn": "三地五中心部署",
                            "en": "three city_five center"
-                        },
-                        {
-                           "id": 1599719122,
-                           "file": "disaster_recovery_tool",
-                           "cn": "容灾工具",
-                           "en": "disaster recovery tool"
                         }
                      ]
                   },
