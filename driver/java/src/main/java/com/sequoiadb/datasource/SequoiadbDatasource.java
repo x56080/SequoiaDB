@@ -1006,7 +1006,7 @@ public class SequoiadbDatasource {
             }
             _isDatasourceOn = false;
             _hasClosed = true;
-            log.info("Sequoiadb datasource has benn closed");
+            log.info("Sequoiadb datasource has been closed");
         } finally {
             wlock.unlock();
         }
