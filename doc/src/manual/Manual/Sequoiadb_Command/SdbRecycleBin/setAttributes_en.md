@@ -42,7 +42,7 @@ The properties of recycle bin can be modified through the "options":
 
     Format: `MaxVersionNum: 6`
 
-- AutoDrop ( *number* ): Whether to automatically clean up when the number of items stored in the recycle bin exceeds the limit.
+- AutoDrop ( *boolean* ): Whether to automatically clean up when the number of items stored in the recycle bin exceeds the limit.
 
     Format: `AutoDrop: true`
 
