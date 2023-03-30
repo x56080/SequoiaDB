@@ -1871,7 +1871,14 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINBGJOB_DOIT ) ;
 
-      if ( !_recycleBinMgr->isConfValid() )
+      if ( PMD_IS_DB_DOWN() )
+      {
+         PD_LOG( PDDEBUG, "DB is down, stop to drop expired items" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
+      else if ( !_recycleBinMgr->isConfValid() )
       {
          shardCB *shardCB = sdbGetShardCB() ;
 
