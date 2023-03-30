@@ -171,7 +171,6 @@ public:
                 UINT32 iPermission = OSS_RU|OSS_WU|OSS_RG ) ;
    void  close () ;
    INT32 map ( UINT64 offset, UINT32 length, void **pAddress ) ;
-   INT32 truncateMap ( UINT64 offset ) ;
    INT32 flushAll ( BOOLEAN sync = FALSE ) ;
    INT32 flush ( UINT32 segmentID, BOOLEAN sync = FALSE ) ;
    /*

@@ -58,7 +58,6 @@ final class AdminCommand {
     final static String GET_SESSION_ATTRIBUTE = PREFIX + "get session attribute";
     final static String FORCE_SESSION = PREFIX + "force session";
     final static String SYNC_DB = PREFIX + "sync db";
-    final static String SHRINK_SPACE = PREFIX + "shrink space";
     final static String EXPORT_CONFIG = PREFIX + "export configuration";
     final static String UPDATE_CONFIG = PREFIX + "update config";
     final static String DELETE_CONFIG = PREFIX + "delete config";

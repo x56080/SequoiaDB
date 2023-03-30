@@ -43,7 +43,6 @@
 #include "dmsStorageDataCommon.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageLob.hpp"
-#include "dmsHoleMapMgr.hpp"
 #include "monDMS.hpp"
 #include "utilCache.hpp"
 #include "dmsEventHandler.hpp"
@@ -415,8 +414,7 @@ namespace engine
 
          void        setSyncConfig( UINT32 syncInterval,
                                     UINT32 syncRecordNum,
-                                    UINT32 syncDirtyRatio,
-                                    UINT32 spaceShrinkTimeout ) ;
+                                    UINT32 syncDirtyRatio ) ;
          void        setSyncDeep( BOOLEAN syncDeep ) ;
          void        setMVCCSupport( BOOLEAN mvccSupport ) ;
 
@@ -676,8 +674,6 @@ namespace engine
          INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                UINT16 numPages ) ;
 
-         INT32 shrinkSpace() ;
-
       public :
          _IDmsEventHolder * getEventHolder () ;
 
@@ -703,7 +699,6 @@ namespace engine
          dmsStorageIndex                     *_pIndexSu ;
          dmsStorageInfo                      _storageInfo ;
          dmsStorageLob                       *_pLobSu ;
-         dmsHoleMapMgr                       *_pHMMgr ;
 
          utilCacheMgr                        *_pMgr ;
          utilCacheUnit                       *_pCacheUnit ;

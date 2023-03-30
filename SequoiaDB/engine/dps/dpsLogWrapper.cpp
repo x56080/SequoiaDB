@@ -635,16 +635,6 @@ namespace engine
       return commit( sync, NULL ) ;
    }
 
-   BOOLEAN _dpsLogWrapper::canShrinkSpace() const
-   {
-      return FALSE ;
-   }
-
-   INT32 _dpsLogWrapper::shrinkSpace()
-   {
-      return SDB_OK ;
-   }
-
    void _dpsLogWrapper::lock()
    {
    }

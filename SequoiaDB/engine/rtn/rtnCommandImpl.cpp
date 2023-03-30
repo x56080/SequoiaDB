@@ -1471,8 +1471,7 @@ retry:
       /// set config
       su->setSyncConfig( optCB->getSyncInterval(),
                          optCB->getSyncRecordNum(),
-                         optCB->getSyncDirtyRatio(),
-                         optCB->getSpaceShrinkTimeout() ) ;
+                         optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
       // set MVCC support
       su->setMVCCSupport( optCB->mvccOn() ) ;

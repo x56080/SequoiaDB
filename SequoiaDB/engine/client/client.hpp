@@ -5843,9 +5843,6 @@ namespace sdbclient
       virtual INT32 syncDB(
          const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
-      virtual INT32 shrinkSpace(
-         const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
-
       virtual INT32 analyze(
          const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
@@ -7742,34 +7739,6 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->syncDB ( options ) ;
-      }
-
-      /** \fn INT32 shrinkSpace(const bson::BSONObj &options)
-          \brief shrink the collection space's free spaces
-          \param [in] options The control options:
-
-              CollectionSpace: (String) Specify the collectionspace to shrink space.
-                               If not set, will shrink all the collectionspaces spaces,
-                               otherwise, will only shrink the collectionspace specified.
-              Some of other options are as below:(only take effect in coordinate nodes,
-                             please visit the official website to search "shrinkSpace"
-                             or "Location Elements" for more detail.)
-              GroupID:INT32,
-              GroupName:String,
-              NodeID:INT32,
-              HostName:String,
-              svcname:String,
-              ...
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 shrinkSpace( const bson::BSONObj &options = _sdbStaticObject )
-      {
-         if ( !pSDB )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pSDB->shrinkSpace ( options ) ;
       }
 
       /** \fn INT32 analyze(const bson::BSONObj &options)

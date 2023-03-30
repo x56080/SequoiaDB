@@ -66,7 +66,6 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [stopRG()][stopRG] | 停止复制组 |
 | [sync()][sync] | 持久化数据和日志到磁盘 |
 | [setPDLevel()][setPDLevel] | 动态设置节点的诊断日志级别 |
-| [shrinkSpace()][shrinkSpace] | 回收空闲空间 |
 | [traceOff()][traceOff] | 关闭数据库引擎跟踪功能 |
 | [traceOn()][traceOn] | 开启数据库引擎跟踪功能 |
 | [traceResume()][traceResume] | 重新开启断点跟踪程序 |
@@ -152,4 +151,3 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [transRollback]:manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
-[shrinkSpace]:manual/Manual/Sequoiadb_Command/Sdb/shrinkSpace.md

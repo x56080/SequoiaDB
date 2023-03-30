@@ -104,8 +104,6 @@ namespace engine
 
 #define DMS_SYS_SEGMENT_SZ     (32*1024*1024)      /// 32MB
 
-#define DMS_FILEHOLE_BLOCK_SZ  (16*1024*1024)      /// 16MB
-
 #define DMS_IS_VALID_SEGMENT(x)  ((x) > 0 && \
                                   (x) <= DMS_SEGMENT_SZ_MAX && \
                                   (x) % DMS_SEGMENT_SZ_BASE == 0)
@@ -136,7 +134,6 @@ namespace engine
 #define DMS_INDEX_SU_EXT_NAME       "idx"
 #define DMS_LOB_DATA_SU_EXT_NAME    "lobd"
 #define DMS_LOB_META_SU_EXT_NAME    "lobm"
-#define DMS_HOLEMAP_SU_EXT_NAME     "hole"
 
 #define SDB_DMSTEMP_NAME            "SYSTEMP"
 #define DMS_TEMP_NAME_PATTERN       "%s%04d"

@@ -119,7 +119,6 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, forceSession )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, forceStepUp )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, sync )
-   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, shrinkSpace )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, loadCS )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, unloadCS )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, setPDLevel )
@@ -193,7 +192,6 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "forceSession", forceSession )
       JS_ADD_MEMBER_FUNC( "forceStepUp", forceStepUp )
       JS_ADD_MEMBER_FUNC( "sync", sync )
-      JS_ADD_MEMBER_FUNC( "shrinkSpace", shrinkSpace )
       JS_ADD_MEMBER_FUNC( "loadCS", loadCS )
       JS_ADD_MEMBER_FUNC( "unloadCS", unloadCS )
       JS_ADD_MEMBER_FUNC( "setPDLevel", setPDLevel )
@@ -2739,30 +2737,6 @@ namespace engine
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to sync db" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBSdb::shrinkSpace( const _sptArguments &arg,
-                                 _sptReturnVal &rval,
-                                 bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj options ;
-      rc = arg.getBsonobj( 0, options ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "Options must be obj" ) ;
-         goto error ;
-      }
-      rc = _sptSdb.shrinkSpace( options ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to shrink db's free spaces" ) ;
          goto error ;
       }
    done:

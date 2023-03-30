@@ -82,27 +82,8 @@ MME 段被切分成 4096 个 1KB 大小的元数据块（MB, Meta Block），每
 
 索引文件采用 B 树的结构来组织记录的索引，B 树节点中包含着排序后的索引键和每一个索引键对应的记录偏移。一旦获取记录偏移，在使用索引查找数据过程中能够快速在数据文件中定位数据。
 
-##空间回收##
-
-SequoiaDB 巨杉数据库提供空间回收功能，用于回收集合空间内长期未使用的空闲空间，以提升磁盘利用率。根据空闲空间在文件中的位置，空间回收的方式可分为文件截断和构造文件空洞，用户需确保本地文件系统支持构造文件空洞。
-
-###文件截断###
-
-当空闲空间位于文件尾部时，系统将通过文件截断的方式进行空间回收。回收后对应文件的大小和所占用的磁盘空间都将变小。示意图如下：
-
-![文件收缩][data_mod_shrinkspace1]
-
-###构造文件空洞###
-
-当空闲空间位于文件中部时，系统将通过构造文件空洞的方式进行空间回收。回收后对应文件的大小不变，但所占用的磁盘空间将变小。示意图如下：
-
-![文件空洞][data_mod_shrinkspace2]
-
-
 [^_^]:
     本文使用的所有链接及引用
 [data_mode_data_su_struct]:images/Distributed_Engine/Architecture/Data_Model/data_storage_unit_struct.png
 [data_mode_index_su_struct]:images/Distributed_Engine/Architecture/Data_Model/index_storage_unit_struct.png
 [data_mode_createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
-[data_mod_shrinkspace1]:images/Distributed_Engine/Architecture/Data_Model/shrinkspace1.png
-[data_mod_shrinkspace2]:images/Distributed_Engine/Architecture/Data_Model/shrinkspace2.png
