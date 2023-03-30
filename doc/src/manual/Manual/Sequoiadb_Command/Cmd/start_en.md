@@ -1,11 +1,11 @@
 
 ##NAME##
 
-start - Execute the command.
+start - execute the shell command in the background
 
 ##SYNOPSIS##
 
-***start( \<cmd\>, [args], [timeout], [useShell] )***
+**cmd.start(\<cmd\>, [args], [useShell], [timeout])**
 
 ##CATEGORY##
 
@@ -19,10 +19,10 @@ Execute the Shell command in the background.
 
 | Name     | Type     | Default | Description        | Required or not |
 | -------- | -------- | ------- | ------------------ | --------------- |
-| cmd      | string   | ---     | Shell command name | yes             |
-| args     | string   | NULL    | command parameter  | not             |
-| timeout  | int      | 0       | set timeout        | not             |
-| useShell | int      | 1       | whether to use /bin/sh to parse and execute the command. Default use /bin/sh.  | not             |
+| cmd      | string   | ---     | Shell command name | Required        |
+| args     | string   | NULL    | Command parameter  | Not             |
+| useShell | number   | 1       | whether to use /bin/sh to parse and execute the command. Default use /bin/sh.  | Not             |
+| timeout  | number   | 0       | Set timeout        | Not             |
 
 
 ##RETURN VALUE##
@@ -34,6 +34,10 @@ On error, exception will be thrown.
 ##ERRORS##
 
 when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLES##
 

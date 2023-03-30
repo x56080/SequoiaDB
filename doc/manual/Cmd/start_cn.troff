@@ -8,7 +8,7 @@
 start \- 后台执行 Shell 指令
 .SH 语法
 .PP
-\f[B]cmd.start(<cmd>,[args],[timeout],[useShell])\f[]
+\f[B]cmd.start(<cmd>, [args], [useShell], [timeout])\f[]
 .SH 类别
 .PP
 Cmd
@@ -63,22 +63,9 @@ T}
 T{
 3
 T}@T{
-timeout
-T}@T{
-int
-T}@T{
-0
-T}@T{
-设置超时时间
-T}@T{
-否
-T}
-T{
-4
-T}@T{
 useShell
 T}@T{
-int
+number
 T}@T{
 1
 T}@T{
@@ -101,6 +88,19 @@ T}@T{
 T}@T{
 默认使用
 T}@T{
+T}
+T{
+4
+T}@T{
+timeout
+T}@T{
+number
+T}@T{
+0
+T}@T{
+设置超时时间
+T}@T{
+否
 T}
 .TE
 .SH 返回值
