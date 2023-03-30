@@ -43,7 +43,7 @@ options（ *object，必填* ）
 
     格式：`MaxVersionNum: 6`
 
-- AutoDrop（ *number* ）：回收站存放的项目个数超过限制时是否自动清理
+- AutoDrop（ *boolean* ）：回收站存放的项目个数超过限制时是否自动清理
 
     格式：`AutoDrop: true`
 
