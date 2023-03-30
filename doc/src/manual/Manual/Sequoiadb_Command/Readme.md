@@ -15,6 +15,7 @@ SequoiaDB Shell 包含的类如下：
 - [SdbDataSource][SdbDataSource]
 - [SdbSequence][SdbSequence]
 - [Oma][Oma]
+- [Stp][Stp]
 - [File][File]
 - [FileContent][FileContent]
 - [Cmd][Cmd]
@@ -29,28 +30,29 @@ SequoiaDB Shell 包含的类如下：
 
 [^_^]:
      本文使用的所有引用及链接
-[Global]:manual/Manual/Sequoiadb_Command/Global
-[Sdb]:manual/Manual/Sequoiadb_Command/Sdb
+[Global]:manual/Manual/Sequoiadb_Command/Global/Readme.md
+[Sdb]:manual/Manual/Sequoiadb_Command/Sdb/Readme.md
 [SecureSdb]:manual/Manual/Sequoiadb_Command/SecureSdb.md
-[SdbCS]:manual/Manual/Sequoiadb_Command/SdbCS
+[SdbCS]:manual/Manual/Sequoiadb_Command/SdbCS/Readme.md
 [SdbCollection]:manual/Manual/Sequoiadb_Command/SdbCollection/Readme.md
-[SdbCursor]:manual/Manual/Sequoiadb_Command/SdbCursor
-[SdbQuery]:manual/Manual/Sequoiadb_Command/SdbQuery
-[SdbReplicaGroup]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup
-[SdbNode]:manual/Manual/Sequoiadb_Command/SdbNode
-[SdbDomain]:manual/Manual/Sequoiadb_Command/SdbDomain
-[SdbDataSource]:manual/Manual/Sequoiadb_Command/SdbDataSource
-[SdbSequence]:manual/Manual/Sequoiadb_Command/SdbSequence
-[Oma]:manual/Manual/Sequoiadb_Command/Oma
-[File]:manual/Manual/Sequoiadb_Command/File
-[FileContent]:manual/Manual/Sequoiadb_Command/FileContent
-[Cmd]:manual/Manual/Sequoiadb_Command/Cmd
-[Remote]:manual/Manual/Sequoiadb_Command/Remote
-[Hash]:manual/Manual/Sequoiadb_Command/Hash
-[IniFile]:manual/Manual/Sequoiadb_Command/IniFile
-[Sdbtool]:manual/Manual/Sequoiadb_Command/Sdbtool
-[Ssh]:manual/Manual/Sequoiadb_Command/Ssh
-[System]:manual/Manual/Sequoiadb_Command/System
-[AuxiliaryObjects]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects
-[SpecialObjects]:manual/Manual/Sequoiadb_Command/SpecialObjects
+[SdbCursor]:manual/Manual/Sequoiadb_Command/SdbCursor/Readme.md
+[SdbQuery]:manual/Manual/Sequoiadb_Command/SdbQuery/Readme.md
+[SdbReplicaGroup]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/Readme.md
+[SdbNode]:manual/Manual/Sequoiadb_Command/SdbNode/Readme.md
+[SdbDomain]:manual/Manual/Sequoiadb_Command/SdbDomain/Readme.md
+[SdbDataSource]:manual/Manual/Sequoiadb_Command/SdbDataSource/Readme.md
+[SdbSequence]:manual/Manual/Sequoiadb_Command/SdbSequence/Readme.md
+[Oma]:manual/Manual/Sequoiadb_Command/Oma/Readme.md
+[Stp]:manual/Manual/Sequoiadb_Command/Stp/Readme.md
+[File]:manual/Manual/Sequoiadb_Command/File/Readme.md
+[FileContent]:manual/Manual/Sequoiadb_Command/FileContent/Readme.md
+[Cmd]:manual/Manual/Sequoiadb_Command/Cmd/Readme.md
+[Remote]:manual/Manual/Sequoiadb_Command/Remote/Readme.md
+[Hash]:manual/Manual/Sequoiadb_Command/Hash/Readme.md
+[IniFile]:manual/Manual/Sequoiadb_Command/IniFile/Readme.md
+[Sdbtool]:manual/Manual/Sequoiadb_Command/Sdbtool/Readme.md
+[Ssh]:manual/Manual/Sequoiadb_Command/Ssh/Readme.md
+[System]:manual/Manual/Sequoiadb_Command/System/Readme.md
+[AuxiliaryObjects]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/Readme.md
+[SpecialObjects]:manual/Manual/Sequoiadb_Command/SpecialObjects/Readme.md
 [location]:manual/Manual/Sequoiadb_Command/location.md
