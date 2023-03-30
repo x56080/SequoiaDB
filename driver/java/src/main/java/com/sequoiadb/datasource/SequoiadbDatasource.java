@@ -77,6 +77,7 @@ public class SequoiadbDatasource {
     private static final int _deleteInterval = 180000; // 3min
     // for error report
     private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
+    private static final int MIN_CONNECTION_TIME = 100; // 100ms
     private static Log log = LogFactory.getLog(SequoiadbDatasource.class);
 
     // finalizer guardian
@@ -788,7 +789,7 @@ public class SequoiadbDatasource {
                             }
                             long startTime = System.currentTimeMillis();
                             synchronized (idleConnSignal) {
-                                idleConnSignal.wait(timer.getRemnantTime());
+                                idleConnSignal.wait(timer.getTime());
                             }
                             timer.consumeTime(startTime);
                         }
@@ -987,7 +988,7 @@ public class SequoiadbDatasource {
         _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         _abnormalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         // to reduce the connection time of abnormal address
-        _abnormalNwOpt.setConnectTimeout(100);  // 100ms
+        _abnormalNwOpt.setConnectTimeout(MIN_CONNECTION_TIME);  // 100ms
         _abnormalNwOpt.setMaxAutoConnectRetryTime(0);  //0ms
 
         // if connection is shutdown, return directly
@@ -1162,14 +1163,13 @@ public class SequoiadbDatasource {
         }
 
         List<ServerAddress> serAddrLst = addrMgr.getNormalAddress();
-        boolean hadReset;
         while (true) {
             if (timer.isTimeout()) {
                 throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
             }
             long startTime = System.currentTimeMillis();
             // in order to control the time, the connection timeout time needs to be reset every time
-            hadReset = resetConnTime(timer, netOpt);
+            resetConnTime(timer, netOpt);
 
             // never forget to handle the situation of the datasource is disable
             if (_isDatasourceOn) {
@@ -1196,9 +1196,7 @@ public class SequoiadbDatasource {
                         e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
                     throw e;
                 }
-                if (!hadReset) {
-                    _handleErrorAddr(serAddr.getAddress());
-                }
+                _handleErrorAddr(serAddr.getAddress());
                 serAddrLst.remove(serAddr);
                 serAddr = null;
             } finally {
@@ -1211,13 +1209,6 @@ public class SequoiadbDatasource {
     private Sequoiadb createConnByAbnormalAddr(Timer timer) throws BaseException {
         Sequoiadb retConn = null;
         int retry = 3;
-        ConfigOptions netOpt;
-
-        try {
-            netOpt = (ConfigOptions)_abnormalNwOpt.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new BaseException(SDBError.SDB_SYS, e);
-        }
 
         while (retry-- > 0) {
             for (ServerAddress serAddr : addrMgr.getAbnormalAddress()) {
@@ -1225,10 +1216,11 @@ public class SequoiadbDatasource {
                     throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
                 }
                 long startTime = System.currentTimeMillis();
-                resetConnTime(timer, netOpt);
                 String addr = serAddr.getAddress();
                 try {
-                    retConn = new Sequoiadb(addr, _username, _password, netOpt);
+                    // it takes very little time to create a connection with an abnormal address,
+                    // so there is no need to use the timer to rest the connection timeout
+                    retConn = new Sequoiadb(addr, _username, _password, _abnormalNwOpt);
                     clearLastException();
                 } catch (BaseException e) {
                     _setLastException(e);
@@ -1609,32 +1601,23 @@ public class SequoiadbDatasource {
                 _idleConnPool != null ? _idleConnPool.count() : null);
     }
 
-    private boolean resetConnTime(Timer timer, ConfigOptions netOpt){
-        boolean hadReset = false;
-
+    private void resetConnTime(Timer timer, ConfigOptions netOpt){
         if (!timer.getStatus()) {
-            return false;
+            return;
         }
 
-        long remnantTime = timer.getRemnantTime();
+        long time = Math.max(timer.getTime(), MIN_CONNECTION_TIME);
+
+        long retryTimeOut = Math.min(time, netOpt.getMaxAutoConnectRetryTime());
         long connTimeout = netOpt.getConnectTimeout();
-        long retryTimeOut = netOpt.getMaxAutoConnectRetryTime();
 
         // connTimeout == 0 means socket.connect() infinite timeout.
-        if (connTimeout == 0 || connTimeout > remnantTime ) {
-            connTimeout = remnantTime;
-            hadReset = true;
-        }
-
-        if (retryTimeOut > remnantTime) {
-            retryTimeOut = remnantTime;
-            hadReset = true;
+        if (connTimeout == 0 || connTimeout > time ) {
+            connTimeout = time;
         }
 
         netOpt.setConnectTimeout((int)connTimeout);
         netOpt.setMaxAutoConnectRetryTime(retryTimeOut);
-
-        return hadReset;
     }
 }
 

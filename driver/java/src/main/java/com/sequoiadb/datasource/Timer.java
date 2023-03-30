@@ -41,7 +41,7 @@ class Timer {
         return status;
     }
 
-    public long getRemnantTime() {
+    public long getTime() {
         return time;
     }
 
