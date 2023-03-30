@@ -6591,14 +6591,24 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_MONRECYBINFETCH_INIT ) ;
 
-      clsRecycleBinManager *recycleBinMgr =
-            pmdGetKRCB()->getClsCB()->getRecycleBinMgr() ;
-
+      clsRecycleBinManager *recycleBinMgr = NULL ;
       BSONObj dummy ;
 
       _isDetail = isDetail ;
       _addInfoMask = addInfoMask ;
       _hitEnd = TRUE ;
+
+      if ( pmdGetDBRole() != SDB_ROLE_DATA )
+      {
+         goto done ;
+      }
+      else if ( NULL == pmdGetKRCB()->getClsCB() ||
+                NULL == pmdGetKRCB()->getClsCB()->getRecycleBinMgr() )
+      {
+         goto done ;
+      }
+
+      recycleBinMgr = pmdGetKRCB()->getClsCB()->getRecycleBinMgr() ;
 
       rc = recycleBinMgr->getItems( dummy, dummy, dummy, -1, cb, _subContextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open query for recycle items, "
