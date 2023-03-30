@@ -1239,7 +1239,17 @@ namespace engine
                   ( CLS_PARALLA_REC == info._parallaType ) ? FALSE : TRUE ;
 
    retry:
-      rc = _replayer->replay( header, cb, FALSE, ignoreDupKey, &info._dataExInfo ) ;
+      try
+      {
+         rc = _replayer->replay( header, cb, FALSE, ignoreDupKey, &info._dataExInfo ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to replay lsn [%llu] because of exception:%s",
+                 header->_lsn, e.what() ) ;
+      }
+      
       if ( rc )
       {
          PD_LOG( PDERROR, "Replay LSN [%llu] encountered error: %d",
