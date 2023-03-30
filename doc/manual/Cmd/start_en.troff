@@ -5,10 +5,10 @@
 .hy
 .SH NAME
 .PP
-start \- Execute the command.
+start \- execute the shell command in the background
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]start( <cmd>, [args], [timeout], [useShell] )\f[]\f[]
+\f[B]cmd.start(<cmd>, [args], [useShell], [timeout])\f[]
 .SH CATEGORY
 .PP
 Cmd
@@ -45,7 +45,7 @@ T}@T{
 T}@T{
 Shell command name
 T}@T{
-yes
+Required
 T}
 T{
 2
@@ -56,35 +56,22 @@ string
 T}@T{
 NULL
 T}@T{
-command parameter
+Command parameter
 T}@T{
-not
+Not
 T}
 T{
 3
 T}@T{
-timeout
-T}@T{
-int
-T}@T{
-0
-T}@T{
-set timeout
-T}@T{
-not
-T}
-T{
-4
-T}@T{
 useShell
 T}@T{
-int
+number
 T}@T{
 1
 T}@T{
 whether to use /bin/sh
 T}@T{
-not
+Not
 T}
 T{
 T}@T{
@@ -111,6 +98,19 @@ T}@T{
 use /bin/sh.
 T}@T{
 T}
+T{
+4
+T}@T{
+timeout
+T}@T{
+number
+T}@T{
+0
+T}@T{
+Set timeout
+T}@T{
+Not
+T}
 .TE
 .SH RETURN VALUE
 .PP
@@ -122,6 +122,9 @@ On error, exception will be thrown.
 when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
+.SH VERSION
+.PP
+v3.2 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Create a Command object.
