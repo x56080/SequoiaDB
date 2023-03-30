@@ -3,7 +3,10 @@ Stp 类主要用于操作时间序列服务，包含的函数如下：
 | 名称 | 描述 |
 |------|------|
 | [Stp][Stp] | STP 服务进程对象 |
+| [convLogicalTimeToRealTime][convLogicalTimeToRealTime] | 将指定的逻辑时间转换为系统时间 |
+| [convRealTimeToLogicalTime][convRealTimeToLogicalTime] | 将指定的系统时间转换为逻辑时间 |
 | [getTime][getTime] | 获取 STP 节点当前的逻辑时间 |
+| [getTimeMap][getTimeMap] | 获取逻辑时间和对应的系统时间 |
 | [getTimeUS][getTimeUS] | 获取 STP 节点当前的逻辑时间 |
 | [getConf][getConf] | 获取 STP 节点的配置 |
 | [getMeta][getMeta] | 获取 STP 节点的元数据信息 |
@@ -29,3 +32,6 @@ Stp 类主要用于操作时间序列服务，包含的函数如下：
 [reelect]:manual/Manual/Sequoiadb_Command/Stp/reelect.md
 [stop]:manual/Manual/Sequoiadb_Command/Stp/stop.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Stp/updateConf.md
+[convLogicalTimeToRealTime]:manual/Manual/Sequoiadb_Command/Stp/convLogicalTimeToRealTime.md
+[convRealTimeToLogicalTime]:manual/Manual/Sequoiadb_Command/Stp/convRealTimeToLogicalTime.md
+[getTimeMap]:manual/Manual/Sequoiadb_Command/Stp/getTimeMap.md

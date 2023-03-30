@@ -4163,10 +4163,28 @@
                            "en": "Stp()"
                         },
                         {
+                           "id": 1679283340,
+                           "file": "convLogicalTimeToRealTime",
+                           "cn": "convLogicalTimeToRealTime()",
+                           "en": "convLogicalTimeToRealTime()"
+                        },
+                        {
+                           "id": 1679283341,
+                           "file": "convRealTimeToLogicalTime",
+                           "cn": "convRealTimeToLogicalTime()",
+                           "en": "convRealTimeToLogicalTime()"
+                        },
+                        {
                            "id": 1612245512,
                            "file": "getTime",
                            "cn": "getTime()",
                            "en": "getTime()"
+                        },
+                        {
+                           "id": 1679283342,
+                           "file": "getTimeMap",
+                           "cn": "getTimeMap()",
+                           "en": "getTimeMap()"
                         },
                         {
                            "id": 1612245513,
