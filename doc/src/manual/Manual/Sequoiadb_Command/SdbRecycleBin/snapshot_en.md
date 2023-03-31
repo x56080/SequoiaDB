@@ -5,6 +5,7 @@ snapshot - get the snapshot of items in recycle bin
 ##SYNOPSIS##
 
 **db.getRecycleBin().snapshot([cond], [sel], [sort])**
+
 **db.getRecycleBin().snapshot([SdbSnapshotOption])**
 
 ##CATEGORY##

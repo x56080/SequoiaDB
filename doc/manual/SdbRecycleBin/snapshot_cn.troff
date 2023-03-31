@@ -8,6 +8,7 @@ snapshot \- 查看回收站项目快照
 .SH 语法
 .PP
 \f[B]db.getRecycleBin().snapshot([cond], [sel], [sort])\f[]
+.PP
 \f[B]db.getRecycleBin().snapshot([SdbSnapshotOption])\f[]
 .SH 类别
 .PP

@@ -8,6 +8,7 @@ snapshot \- get the snapshot of items in recycle bin
 .SH SYNOPSIS
 .PP
 \f[B]db.getRecycleBin().snapshot([cond], [sel], [sort])\f[]
+.PP
 \f[B]db.getRecycleBin().snapshot([SdbSnapshotOption])\f[]
 .SH CATEGORY
 .PP
