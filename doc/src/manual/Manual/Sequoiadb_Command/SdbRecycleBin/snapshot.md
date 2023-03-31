@@ -5,6 +5,7 @@ snapshot - 查看回收站项目快照
 ##语法##
 
 **db.getRecycleBin().snapshot([cond], [sel], [sort])**
+
 **db.getRecycleBin().snapshot([SdbSnapshotOption])**
 
 ##类别##
