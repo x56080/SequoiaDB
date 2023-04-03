@@ -618,7 +618,10 @@ namespace engine
       {
          SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
                      "invalid index ID" ) ;
-         _idxHashFields[ indexID ].reset() ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashFields[ indexID ].reset() ;
+         }
       }
 
       void mergeIdxHash( INT32 indexID )
