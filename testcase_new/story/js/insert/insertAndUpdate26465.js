@@ -31,15 +31,27 @@ function test ( testPara )
    commCompareResults( actRes, expRes );
 
    //指定UpdateOnDup和更新规则，单条插入冲突记录，涉及分区键修改，分区键值变化
-   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function ()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.insert( { a: 1, b: 3 }, { UpdateOnDup: true, Update: { "$inc": { "a": 1 } } } );
    } );
 
    //指定UpdateOnDup和更新规则，批量插入冲突记录，涉及分区键修改，分区键值变化
-   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function ()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.insert( [{ a: 1, b: 3 }, { a: 2, b: 3 }], { UpdateOnDup: true, Update: { "$set": { "a": 1 } } } );
+   } );
+
+   // 指定UpdateOnDup和更新规则，单条插入冲突记录，涉及分区键修改，更新分区键为数组类型
+   assert.tryThrow( SDB_MULTI_SHARDING_KEY, function()
+   {
+      cl.insert( { a: 1, b: 3 }, { UpdateOnDup: true, Update: { "$set": { "a": [1, 2] } } } );
+   } );
+
+   // 指定UpdateOnDup和更新规则，批量插入冲突记录，涉及分区键修改，更新分区键为数组类型
+   assert.tryThrow( SDB_MULTI_SHARDING_KEY, function()
+   {
+      cl.insert( [{ a: 1, b: 3 }, { a: 2, b: 3 }], { UpdateOnDup: true, Update: { "$set": { "a": [1, 2] } } } );
    } );
 
    //检查表数据
