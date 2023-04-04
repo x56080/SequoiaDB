@@ -1,5 +1,6 @@
 /******************************************************************************
 @description : seqDB-20006:hash切分表百分百切分多次，多个组多次切分覆盖边界值
+               seqDB-30004:100%切分，源数据组删除集合的同时删除相应的集合空间
 @author : 2019-10-11   XiaoNi Huang  init
 *******************************************************************************/
 main( test );
@@ -30,7 +31,7 @@ function test ()
 
    // insert records
    var recs = [];
-   for( var i = 0; i < 1000; ++i ) 
+   for( var i = 0; i < 1000; ++i )
    {
       recs.push( { "id": i, "name": "a" + i } );
    }
@@ -48,6 +49,13 @@ function test ()
    checkRecordsNum( cl, csName, clName, recordsNum, groupNames );
    checkShardingRange( csName, clName );
 
+   // 100% split
+   cl.split( groupNames[0], groupNames[1], 100 );
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
+   {
+      db.getRG( groupNames[0] ).getMaster().connect().getCS( csName );
+   } )
+
    commDropCS( db, csName, false, "drop cs in the end." );
    commDropDomain( db, dmName, false );
 }
@@ -60,10 +68,10 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
 
    // check count for each group
    var totalNodeRecsCnt = 0;
-   for( var i = 0; i < groupNames.length; i++ ) 
+   for( var i = 0; i < groupNames.length; i++ )
    {
       var nodeDB = null;
-      try 
+      try
       {
          var nodeDB = db.getRG( groupNames[i] ).getMaster().connect();
          var nodeRecsCnt = nodeDB.getCS( csName ).getCL( clName ).count();
@@ -77,7 +85,7 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
    assert.equal( recordsNum, totalNodeRecsCnt );
 }
 
-function checkShardingRange ( csName, clName ) 
+function checkShardingRange ( csName, clName )
 {
    var cataInfo = db.snapshot( 8, { "Name": csName + "." + clName } ).next().toObj().CataInfo;
    if( cataInfo[0]["LowBound"][""] !== 0 || cataInfo[0]["UpBound"][""] !== 1373
