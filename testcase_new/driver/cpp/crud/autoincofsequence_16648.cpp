@@ -33,6 +33,8 @@ protected:
          ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
       }
 
+      rc = db.getCollectionSpace( csName, cs ) ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to get cs " << csName ;
       rc = cs.createCollection( clName,  cl ) ;
       if ( rc == -22 ) {
       	 rc = cs.dropCollection( clName ) ;
@@ -119,7 +121,7 @@ TEST_F( autoIncrement_16648, case16648 )
    ASSERT_EQ (false, ret.hasField("studentID") ) << ret.toString() ;
 }
 
-TEST_F( autoIncrement_16648, case16649 )
+TEST_F( autoIncrement_16648, case16649_1 )
 {
    INT32 rc = SDB_OK ;
    if( isStandalone( db ) )
@@ -168,7 +170,66 @@ TEST_F( autoIncrement_16648, case16649 )
    fields.push_back( (CHAR*)"innerID" ) ;
    rc = cl.dropAutoIncrement( fields ) ; 
    ASSERT_EQ( SDB_OK, rc ) << "fail to dropAutoIncrement " << fields[0] << "," << fields[1] ;
+
+   doc = BSON( "a" << 3 ) ;
+   rc = cl.insert( doc )  ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to insert " << doc.toString() ;
    
+   rc = cl.queryOne( ret, doc ) ;
+   ASSERT_EQ (false, ret.hasField("studentID") ) << ret.toString() ;
+   ASSERT_EQ (false, ret.hasField("innerID") ) << ret.toString() ;
+}
+
+TEST_F( autoIncrement_16648, case16649_2 )
+{
+   INT32 rc = SDB_OK ;
+   if( isStandalone( db ) )
+   {
+      cout << "Run mode is standalone." << endl ;
+      return ;
+   }
+   std::vector<bson::BSONObj> opts ;
+   rc = cl.createAutoIncrement( opts ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to createAutoIncrement " ;
+   
+   opts.push_back( BSON( "Field" << "studentID" ) ) ;
+   opts.push_back( BSON( "Field" << "innerID" ) ) ;
+
+   rc = cl.createAutoIncrement( opts ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to createAutoIncrement " << opts[0].toString()
+                           << "," << opts[1].toString() ;
+   
+   
+   bson::BSONObj doc = BSON( "a" << 1 );
+   rc = cl.insert( doc )  ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to insert " << doc.toString() ;
+   
+   int field1Small, field2Small, field1Big, field2Big ;
+   bson::BSONObj ret ;
+   rc = cl.queryOne( ret, doc ) ;
+   field1Small = ret.getIntField("studentID") ;
+   field2Small = ret.getIntField("innerID") ;
+   
+   std::vector<string> fields ;
+   rc = cl.dropAutoIncrement(fields) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to dropAutoIncrement " ;
+   
+   doc = BSON( "a" << 2 );
+   rc = cl.insert( doc )  ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to insert " << doc.toString() ;
+   
+   rc = cl.queryOne( ret, doc ) ;
+   field1Big = ret.getIntField("studentID") ;
+   field2Big = ret.getIntField("innerID") ;
+   
+   ASSERT_GT( field1Big, field1Small ) << "fail to AutoIncrement" ;
+   ASSERT_GT( field2Big, field2Small ) << "fail to AutoIncrement" ;
+   
+   fields.push_back( "studentID" ) ;
+   fields.push_back( "innerID" ) ;
+   rc = cl.dropAutoIncrement( fields ) ; 
+   ASSERT_EQ( SDB_OK, rc ) << "fail to dropAutoIncrement " << fields[0] << "," << fields[1] ;
+
    doc = BSON( "a" << 3 ) ;
    rc = cl.insert( doc )  ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to insert " << doc.toString() ;
