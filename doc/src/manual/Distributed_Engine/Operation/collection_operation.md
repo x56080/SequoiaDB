@@ -144,12 +144,15 @@ Return 3 row(s).
 
 > **Note:**
 >
-> - 修改集合的详细参数说明可参考 [dropCL()][dropCL]。
-> - 删除集合后，该集合占用的数据块将释放为空闲空间，可供其他集合使用。如果在一定时间阈值内空闲空间未被使用，系统将自动进行空间回收，提升磁盘的利用率。用户可通过参数 [spaceshrinktimeout][parameter] 设置时间阈值。
+> 修改集合的详细参数说明可参考 [dropCL()][dropCL]。
 
 ##参考##
 
 更多集合操作可参考 [SdbCollection][cl]。
+
+
+
+
 
 [^_^]:
       本文使用的所有引用及链接
@@ -161,4 +164,3 @@ Return 3 row(s).
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
 [dropCL]:manual/Manual/Sequoiadb_Command/SdbCS/dropCL.md
 [cl]:manual/Manual/Sequoiadb_Command/SdbCollection/Readme.md
-[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md

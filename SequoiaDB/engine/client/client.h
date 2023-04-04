@@ -3753,29 +3753,6 @@ SDB_EXPORT INT32 sdbDetachGroups( sdbDCHandle cHandle, bson *info ) ;
 SDB_EXPORT INT32 sdbSyncDB( sdbConnectionHandle cHandle,
                             bson *options ) ;
 
-/** \fn INT32 sdbShrinkSpace( sdbConnectionHandle cHandle, bson *options )
-    \brief shrink database's free space which are specified
-    \param [in] cHandle The database connection handle
-    \param [in] options The control options:
-
-        CollectionSpace: (String) Specify the collectionspace to shrink.
-                         If not set, will shrink all the collectionspaces,
-                         otherwise, will only shrink the collectionspace specified.
-        Some of other options are as below:(only take effect in coordinate nodes,
-                       please visit the official website to search "shrinkspace" or
-                       "Location Elements" for more detail.)
-        GroupID:INT32,
-        GroupName:String,
-        NodeID:INT32,
-        HostName:String,
-        svcname:String,
-        ...
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbShrinkSpace( sdbConnectionHandle cHandle,
-                                 bson *options ) ;
-
 /** \fn INT32 sdbLoadCollectionSpace( sdbConnectionHandle cHandle,
                                       const CHAR *csName,
                                       bson *options )

@@ -165,9 +165,6 @@ namespace engine
 
       INT32 flush() ;
 
-      INT32 _fileTruncate( UINT64 truncateSize ) ;
-      INT32 _fileFallocate( UINT32 mode, UINT64 offset, UINT64 size ) ;
-
    private:
       INT32 _initFileHeader( const dmsStorageInfo &info,
                              _pmdEDUCB *cb ) ;

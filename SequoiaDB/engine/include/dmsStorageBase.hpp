@@ -46,7 +46,6 @@
 #include "dms.hpp"
 #include "ossUtil.hpp"
 #include "ossMem.hpp"
-#include "ossEnv.hpp"
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 #include "../bson/oid.h"
@@ -86,8 +85,6 @@ namespace engine
       UINT32      _extentThreshold ;
 
       BOOLEAN     _enableSparse ;
-      BOOLEAN     _hadShrinkSpace ;
-      BOOLEAN     _createLobs ;
       BOOLEAN     _directIO ;
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
@@ -106,30 +103,28 @@ namespace engine
 
       _dmsStorageInfo ()
       {
-         _pageSize            = DMS_PAGE_SIZE_DFT ;
+         _pageSize      = DMS_PAGE_SIZE_DFT ;
          ossMemset( _suName, 0, sizeof( _suName ) ) ;
-         _sequence            = 0 ;
-         _secretValue         = 0 ;
-         _lobdPageSize        = DMS_DO_NOT_CREATE_LOB ;
+         _sequence      = 0 ;
+         _secretValue   = 0 ;
+         _lobdPageSize  = DMS_DO_NOT_CREATE_LOB ;
 
-         _overflowRatio       = 0 ;
-         _extentThreshold     = 0 ;
-         _enableSparse        = FALSE ;
-         _hadShrinkSpace      = FALSE ;
-         _createLobs          = FALSE ;
-         _directIO            = FALSE ;
-         _cacheMergeSize      = 0 ;
-         _pageAllocTimeout    = 0 ;
+         _overflowRatio = 0 ;
+         _extentThreshold = 0 ;
+         _enableSparse = FALSE ;
+         _directIO = FALSE ;
+         _cacheMergeSize = 0 ;
+         _pageAllocTimeout = 0 ;
 
-         _dataIsOK            = FALSE ;
-         _curLSNOnStart       = ~0 ;
-         _type                = DMS_STORAGE_NORMAL ;
-         _extDataHandler      = NULL ;
+         _dataIsOK       = FALSE ;
+         _curLSNOnStart  = ~0 ;
+         _type = DMS_STORAGE_NORMAL ;
+         _extDataHandler = NULL ;
 
-         _csUniqueID          = UTIL_UNIQUEID_NULL ;
+         _csUniqueID     = UTIL_UNIQUEID_NULL ;
 
-         _createTime          = 0 ;
-         _updateTime          = 0 ;
+         _createTime     = 0 ;
+         _updateTime     = 0 ;
       }
    };
    typedef _dmsStorageInfo dmsStorageInfo ;
@@ -159,8 +154,7 @@ namespace engine
       CHAR   _pad1[ 4 ] ;                                // reserved
       UINT64 _createTime ;                               // create time
       UINT64 _updateTime ;                               // update time
-      UINT32 _hasHoleMap ;                               // has hole map
-      CHAR   _pad [ 65304 ] ;
+      CHAR   _pad [ 65308 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -367,56 +361,9 @@ namespace engine
    };
    typedef _dmsContext  dmsContext ;
 
-
-   struct _dmsFileSpaceNode
-   {
-      INT64 start ;
-      INT64 length ;
-
-      _dmsFileSpaceNode()
-      {
-         start = 0 ;
-         length = 0 ;
-      }
-      _dmsFileSpaceNode( INT64 st, INT64 len )
-      {
-         start = st ;
-         length = len ;
-      }
-   } ;
-   /*
-      _IHoleMapMgr define
-   */
-   class _IHoleMapMgr
-   {
-      public:
-         _IHoleMapMgr() {}
-         virtual ~_IHoleMapMgr() {}
-
-      public:
-         virtual INT32  resetHoleMapMask( INT32 type ) = 0 ;
-         virtual INT32  clearHoleMapMask( INT32 type, dmsExtentID &foundPage,
-                                          INT32 &numPages, INT64 *pOffset = NULL,
-                                          INT64 *pLenght = NULL ) = 0 ;
-         virtual INT32  setHoleMapMask( INT32 type, dmsExtentID &foundPage,
-                                        INT32 &numPages, INT64 *pOffset = NULL,
-                                        INT64 *pLenght = NULL ) = 0 ;
-         virtual INT32  setHoleMapMask( INT32 type,
-                                        const ossPoolVector<_dmsSMESpaceNode> &freePages,
-                                        ossPoolVector<_dmsFileSpaceNode> &offsetVec ) = 0 ;
-         virtual void   flushHME( BOOLEAN sync ) = 0 ;
-   } ;
-   typedef _IHoleMapMgr IHoleMapMgr ;
-
    #define DMS_SU_FILENAME_SZ       ( DMS_SU_NAME_SZ + 15 )
    #define DMS_HEADER_OFFSET        ( 0 )
    #define DMS_SME_OFFSET           ( DMS_HEADER_OFFSET + DMS_HEADER_SZ )
-
-   #define DMS_MICSEC_OF_DAY              ( 86400000 )
-   #define DMS_MICSEC_START_PROTECT       ( 600000 )   // 10 minute
-   #define DMS_TICK_SHRINKSPACE_BASE      ( 0 )
-   #define DMS_TICK_SHRINKSPACE_ALLOC     ( DMS_TICK_SHRINKSPACE_BASE + 1 )
-   #define DMS_TICK_SHRINKSPACE_RELEASE   ( DMS_TICK_SHRINKSPACE_ALLOC + 1 )
 
    /*
       Storage Unit Base
@@ -445,8 +392,7 @@ namespace engine
 
          void                 setSyncConfig( UINT32 syncInterval,
                                              UINT32 syncRecordNum,
-                                             UINT32 syncDirtyRatio,
-                                             UINT32 spaceShrinkTimeout ) ;
+                                             UINT32 syncDirtyRatio ) ;
          void                 setSyncDeep( BOOLEAN syncDeep ) ;
          void                 setSyncNoWriteTime( UINT32 millsec ) ;
 
@@ -478,7 +424,6 @@ namespace engine
          const CHAR*    getSuName() const ;
          const dmsStorageUnitHeader *getHeader() { return _dmsHeader ; }
          const dmsSpaceManagementExtent *getSME () { return _dmsSME ; }
-         const dmsSMEMgr *getSMEMgr () const { return &_smeMgr ; }
          dmsSMEMgr *getSMEMgr () { return &_smeMgr ; }
 
          OSS_INLINE UINT64  dataSize () const ;
@@ -549,8 +494,6 @@ namespace engine
 
          INT32 setLobPageSize ( UINT32 lobPageSize ) ;
 
-         void setHMMgr ( IHoleMapMgr* pHMMgr ) ;
-
          /// flush functions
          INT32 flushHeader( BOOLEAN sync = FALSE ) ;
          INT32 flushSME( BOOLEAN sync = FALSE ) ;
@@ -579,26 +522,8 @@ namespace engine
             return ;
          }
 
-      public:
-         /*
-            For shrink space
-         */
-         BOOLEAN canShrinkSpace() const ;
-         INT32 shrinkSpace() ;
-         INT32 rebuildHoleMapMask() ;
-
-      protected:
-         virtual BOOLEAN _canShrinkSpace() const ;
-         INT32 _shrinkHole( UINT32 blockPageNum ) ;
-         INT32 _ensureSpaceCanWrite ( INT32 foundPageStart, INT32 foundPageNum ) ;
-         virtual INT32 _shrinkSegment( UINT32 segPageNum ) ;
-         virtual void  _calcPageThreshold( UINT32 &segPageNum, UINT32 &blockPageNum ) const ;
-         virtual INT32 _fileTruncate( UINT64 truncateSize ) ;
-         virtual INT32 _fileFallocate( UINT32 mode, UINT64 offset, UINT64 size ) ;
-
       private:
          virtual const CHAR*  _getEyeCatcher() const = 0 ;
-         virtual const INT32 _getStorageFileType() const = 0 ;
          virtual UINT64 _dataOffset()  = 0 ;
          virtual UINT32 _curVersion() const = 0 ;
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) = 0 ;
@@ -690,8 +615,6 @@ namespace engine
 
          void     _disableBlockScan() ;
 
-         void     _setPageNum( UINT32 pageNum ) ;
-
       private:
          INT32    _initializeStorageUnit () ;
          void     _initHeader ( dmsStorageUnitHeader *pHeader ) ;
@@ -702,7 +625,6 @@ namespace engine
       protected:
          dmsStorageUnitHeader          *_dmsHeader ;     // 64KB
          dmsSpaceManagementExtent      *_dmsSME ;        // 16MB
-         IHoleMapMgr                   *_dmsHMMgr ;
          CHAR                          _suFileName[ DMS_SU_FILENAME_SZ + 1 ] ;
 
          dmsStorageInfo                *_pStorageInfo ;
@@ -711,12 +633,6 @@ namespace engine
          UINT32                        _segmentSize ; // cache, not use header
 
          BOOLEAN                       _transSupport ;
-
-         UINT32                        _spaceShrinkTimeout ;
-         UINT64                        _lastAllocPageTick ;
-         UINT64                        _lastReleasePageTick ;
-         UINT64                        _lastShrinkSpaceTick ;
-         UINT64                        _lastCommitTimeOffset ;
 
       /// for persistence
       private:

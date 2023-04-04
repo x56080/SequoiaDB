@@ -864,7 +864,6 @@
 #define CMD_NAME_JSON_LOAD                   "json load"
 #define CMD_NAME_TRUNCATE                    "truncate"
 #define CMD_NAME_SYNC_DB                     "sync db"
-#define CMD_NAME_SHRINK_SPACE                "shrink space"
 #define CMD_NAME_POP                         "pop"
 #define CMD_NAME_RELOAD_CONFIG               "reload config"
 #define CMD_NAME_UPDATE_CONFIG               "update config"

@@ -2809,26 +2809,4 @@
       <hidden>true</hidden>
   </opt>
 
-  <opt>
-      <name>PMD_OPTION_SPACESHRINK_TIMEOUT</name>
-      <long>spaceshrinktimeout</long>
-      <description>
-         <en>Time threshold for the system to reclaim free space, the unit is day, value range [0, 365], the default value is 0 for not reclaim free space. If the free space is still unused after exceeding the threshold, the system will reclaim the space.</en>
-         <cn>系统回收空闲空间的时间阈值，单位为天，取值范围为 [0, 365]，默认值为 0，表示不回收空闲空间。如果超出该阈值后空闲空间仍未被使用，系统将进行空间回收。</cn>
-      </description>
-      <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
-      </reloadable>
-      <detail>
-         <en>Time threshold for the system to reclaim free space, the unit is day, value range [0, 365], the default value is 0 for not reclaim free space.<fig></fig>
-             If the free space is still unused after exceeding the threshold, the system will reclaim the space.</en>
-         <cn>系统回收空闲空间的时间阈值，单位为天，取值范围为 [0, 365]，默认值为 0，表示不回收空闲空间。<fig></fig>
-             如果超出该阈值后空闲空间仍未被使用，系统将进行空间回收。</cn>
-      </detail>
-      <type>int</type>
-      <default>0</default>
-      <typeofweb>num</typeofweb>
-   </opt>
-
 </optlist>

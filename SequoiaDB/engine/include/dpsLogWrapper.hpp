@@ -185,9 +185,6 @@ namespace engine
                                     BOOLEAN sync,
                                     IExecutor* cb ) ;
 
-         virtual BOOLEAN      canShrinkSpace() const ;
-         virtual INT32        shrinkSpace() ;
-
          virtual void         lock() ;
          virtual void         unlock() ;
 

@@ -619,7 +619,6 @@ namespace engine
       SDB_FILE_INDEX       = 1,
       SDB_FILE_LOBM        = 2,
       SDB_FILE_LOBD        = 3,
-      SDB_FILE_HOLE        = 4,
 
       SDB_FILE_STARTUP     = 10,
       SDB_FILE_STARTUP_HST = 11,
@@ -658,8 +657,6 @@ namespace engine
    INT32 rtnSyncDB( pmdEDUCB *cb, INT32 syncType,
                     const CHAR *pSpecCSName = NULL,
                     BOOLEAN block = FALSE ) ;
-
-   INT32 rtnShrinkSpace( pmdEDUCB *cb,  const CHAR *pSpecCSName = NULL ) ;
 
    INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,

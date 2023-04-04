@@ -1411,8 +1411,7 @@ retry:
       /// set config
       su->setSyncConfig( optCB->getSyncInterval(),
                          optCB->getSyncRecordNum(),
-                         optCB->getSyncDirtyRatio(),
-                         optCB->getSpaceShrinkTimeout() ) ;
+                         optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
 
       /// add collctionspace

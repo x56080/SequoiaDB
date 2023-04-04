@@ -241,10 +241,6 @@ namespace engine
                   _sptReturnVal &rval,
                   bson::BSONObj &detail ) ;
 
-      INT32 shrinkSpace( const _sptArguments &arg,
-                         _sptReturnVal &rval,
-                         bson::BSONObj &detail ) ;
-
       INT32 loadCS( const _sptArguments &arg,
                     _sptReturnVal &rval,
                     bson::BSONObj &detail ) ;

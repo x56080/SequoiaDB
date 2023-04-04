@@ -390,12 +390,10 @@ namespace engine
       PD_TRACE_ENTRY( SDB_RTNCORRECTCS1 ) ;
 
       const CHAR* pathList[]    = { dataPath,
-                                    dataPath,
                                     indexPath,
                                     lobPath,
                                     lobMetaPath } ;
       const CHAR* extNameList[] = { DMS_DATA_SU_EXT_NAME,
-                                    DMS_HOLEMAP_SU_EXT_NAME,
                                     DMS_INDEX_SU_EXT_NAME,
                                     DMS_LOB_DATA_SU_EXT_NAME,
                                     DMS_LOB_META_SU_EXT_NAME } ;
@@ -738,10 +736,6 @@ namespace engine
          {
             fileType = SDB_FILE_LOBD ;
          }
-         else if ( 0 == ossStrcmp( pDotr + 1, DMS_HOLEMAP_SU_EXT_NAME ) )
-         {
-            fileType = SDB_FILE_HOLE ;
-         }
       }
 
    done:
@@ -935,8 +929,7 @@ namespace engine
                         /// set config
                         storageUnit->setSyncConfig( optCB->getSyncInterval(),
                                                     optCB->getSyncRecordNum(),
-                                                    optCB->getSyncDirtyRatio(),
-                                                    optCB->getSpaceShrinkTimeout() ) ;
+                                                    optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
                         /// add collectionspace
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
@@ -1143,8 +1136,7 @@ namespace engine
                /// set config
                storageUnit->setSyncConfig( optCB->getSyncInterval(),
                                            optCB->getSyncRecordNum(),
-                                           optCB->getSyncDirtyRatio(),
-                                           optCB->getSpaceShrinkTimeout() ) ;
+                                           optCB->getSyncDirtyRatio() ) ;
                storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
                /// add collectionspace
                rc = dmsCB->addCollectionSpace ( csName, sequence, storageUnit,
@@ -2253,129 +2245,6 @@ namespace engine
    error:
       goto done ;
    }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSHRINKSPACE, "rtnShrinkSpace" )
-   INT32 rtnShrinkSpace( _pmdEDUCB *cb, const CHAR *pSpecCSName )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNSHRINKSPACE ) ;
-
-      pmdKRCB *krcb = pmdGetKRCB() ;
-      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
-
-      UINT64 beginTick = pmdGetDBTick() ;
-      MON_CS_SIM_LIST allCS ;
-      BOOLEAN dmsLocked = FALSE ;
-      BOOLEAN shrinkSpecCS = FALSE ;
-      UINT32 shrinkCSNum = 0 ;
-
-      if ( !dmsCB )
-      {
-         /// do nothing
-         goto done ;
-      }
-
-      if ( pSpecCSName && *pSpecCSName )
-      {
-         shrinkSpecCS = TRUE ;
-      }
-
-      /// Dump all collectionspace, except SYSTEM
-      dmsCB->dumpInfo( allCS, TRUE ) ;
-
-      for ( MON_CS_SIM_LIST::const_iterator itr = allCS.begin() ;
-            itr != allCS.end() ;
-            ++itr )
-      {
-         const CHAR *csName = itr->_name ;
-         dmsStorageUnit *su = NULL ;
-         dmsStorageUnitID suID = DMS_INVALID_CS ;
-
-         if ( shrinkSpecCS && 0 != ossStrcmp( pSpecCSName, csName ) )
-         {
-            continue ;
-         }
-         ++shrinkCSNum ;
-
-         dmsCSMutexScope csLock( dmsCB, csName ) ;
-         /// get cs lock
-         rc = dmsCB->nameToSUAndLock ( csName, suID, &su, SHARED ) ;
-         if ( SDB_DMS_CS_NOTEXIST == rc )
-         {
-            /// may be dropped, continue ;
-            continue ;
-         }
-         else if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to get lock of cs[%s], rc: %d",
-                    csName, rc ) ;
-            continue ;
-         }
-
-         /// except SYSTEM
-         if ( su->data()->isTempSU() )
-         {
-            dmsCB->suUnlock( suID ) ;
-            continue ;
-         }
-
-         /// shrink space
-         rc = su->shrinkSpace() ;
-         if ( rc )
-         {
-            PD_LOG( PDWARNING, "Shrink collectionspace[%s] space failed, "
-                    "rc: %d", csName, rc ) ;
-            if ( SDB_SYSENV_NOT_SUPPORT == rc )
-            {
-               /// not report the error
-               rc = SDB_OK ;
-            }
-            else
-            {
-               goto error ;
-            }
-         }
-         dmsCB->suUnlock( suID ) ;
-      }
-
-      if ( shrinkSpecCS && 0 == shrinkCSNum )
-      {
-         rc = SDB_DMS_CS_NOTEXIST ;
-         goto error ;
-      }
-
-   done:
-      if ( dmsLocked )
-      {
-         dmsCB->unblockWrite( cb ) ;
-         PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
-      }
-      if ( SDB_OK == rc )
-      {
-         if ( shrinkSpecCS )
-         {
-            PD_LOG( PDEVENT, "Shrink collectionspace[%s] space succeed, "
-                    "cost(ms): %llu", pSpecCSName,
-                    pmdGetTickSpanTime( beginTick ) ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Shrink db spaces succeed, cost(ms): %llu",
-                    pmdGetTickSpanTime( beginTick ) ) ;
-         }
-         if ( !ossEnvCanPunchHole() )
-         {
-            rc = SDB_SYSENV_NOT_SUPPORT ;
-            PD_LOG( PDWARNING, "File system do not support punch_hole mode,"
-                  " skip shrink hole, rc: %d", rc ) ;
-         }
-      }
-      PD_TRACE_EXITRC( SDB_RTNSHRINKSPACE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCRTCL, "rtnTestAndCreateCL" )
    INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,

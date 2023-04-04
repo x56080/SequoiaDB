@@ -112,28 +112,6 @@ namespace engine
    typedef _coordCMDSyncDB coordCMDSyncDB ;
 
    /*
-      _coordCMDShrinkSpace define
-   */
-   class _coordCMDShrinkSpace : public _coordCmdWithLocation
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDShrinkSpace() ;
-         virtual ~_coordCMDShrinkSpace() ;
-      private:
-         virtual BOOLEAN _useContext() { return FALSE ; }
-         virtual INT32   _onLocalMode( INT32 flag ) { return flag ; }
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
-         virtual UINT32  _getControlMask() const ;
-
-         virtual INT32   _preExcute( MsgHeader *pMsg,
-                                     pmdEDUCB *cb,
-                                     coordCtrlParam &ctrlParam,
-                                     SET_RC &ignoreRCList ) ;
-   } ;
-   typedef _coordCMDShrinkSpace coordCMDShrinkSpace ;
-
-   /*
       _coordCmdLoadCS define
    */
    class _coordCmdLoadCS : public _coordCmdWithLocation

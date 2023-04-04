@@ -110,11 +110,6 @@ namespace engine
       return DMS_INDEXSU_EYECATCHER ;
    }
 
-   const INT32 _dmsStorageIndex::_getStorageFileType() const
-   {
-      return DMS_FILE_IDX ;
-   }
-
    UINT32 _dmsStorageIndex::_curVersion() const
    {
       return DMS_INDEXSU_CUR_VERSION ;

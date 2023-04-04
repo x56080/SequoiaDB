@@ -3171,10 +3171,10 @@
       </code>
 
       <code>
-         <name>SDB_SYSENV_NOT_SUPPORT</name>
+         <name>SDB_ERROR_RESERVED_396</name> <!--Not used-->
          <description>
-            <en>System enviroment is not support</en>
-            <cn>系统环境不支持</cn>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
          </description>
       </code>
 
