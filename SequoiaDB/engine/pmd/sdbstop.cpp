@@ -427,7 +427,7 @@ namespace engine
       }
 
    done :
-      PD_LOG( PDEVENT, "Stop programme." ) ;
+      PD_LOG( PDEVENT, "Stop programme(%d).", rc ) ;
       PD_TRACE_EXITRC( SDB_SDBSTOP_MAIN, rc ) ;
       return ( rc >= 0 ) ? rc : utilRC2ShellRC( rc ) ;
    error:

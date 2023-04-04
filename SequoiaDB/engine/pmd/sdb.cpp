@@ -590,7 +590,10 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
    }
 
 done :
-   ossDeleteNamedPipe ( waitPipe ) ;
+   if ( SDB_FE != rc )
+   {
+      ossDeleteNamedPipe ( waitPipe ) ;
+   }
    SAFE_OSS_FREE ( args ) ;
    PD_TRACE_EXITRC ( SDB_CREATEDAEMONPROC, rc );
    return rc ;
@@ -664,7 +667,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          if ( rc )
          {
             ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
-                       bpf2dCtlName, rc ) ;
+                       bpd2fCtlName, rc ) ;
             goto error ;
          }
 
@@ -747,7 +750,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          if ( rc )
          {
             ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
-                       bpf2dCtlName, rc ) ;
+                       bpd2fCtlName, rc ) ;
             goto error ;
          }
 
@@ -1014,8 +1017,14 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
       // loop until reading something
       if ( rc )
          break ;
-      if ( pCurrentReceivePtr - &receiveBuffer[0] ==
-           SDB_FRONTEND_RECEIVEBUFFERSIZE - 1 )
+      if ( '\0' == c )
+      {
+         ossPrintf ( "%s", receiveBuffer ) ;
+         ossMemset ( receiveBuffer, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
+         pCurrentReceivePtr = &receiveBuffer[0] ;
+      }
+      else if ( pCurrentReceivePtr - &receiveBuffer[0] ==
+                SDB_FRONTEND_RECEIVEBUFFERSIZE - 1 )
       {
          receiveBuffer[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = 0 ;
          ossPrintf ( "%s", receiveBuffer ) ;

@@ -249,6 +249,7 @@ INT32 enterDaemonMode ( sptScope *scope ,
    OSSNPIPE b2fCtlPipe ;
    boost::thread writeTh ;
    BOOLEAN hasCrtWriteThread = FALSE ;
+   BYTE cZero = 0 ;
 
    PD_TRACE_ENTRY ( SDB_ENTERDAEMONMODE );
 
@@ -357,7 +358,9 @@ INT32 enterDaemonMode ( sptScope *scope ,
          scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
                       SPT_EVAL_FLAG_PRINT, NULL ) ;
       SAFE_OSS_FREE ( code ) ;
+
       // shell always have errno defined
+      oss_write( STDOUT, &cZero, 1 ) ;
       ossPrintf ( " %d", sdbGetErrno() ) ;
       //result = NULL ;
 
@@ -439,6 +442,7 @@ int main ( int argc , const char * argv[] )
 
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
+   signal( SIGPIPE, SIG_DFL ) ;
 #endif // _LINUX
 
    ossMemset ( waitName,   0, sizeof( waitName ) ) ;

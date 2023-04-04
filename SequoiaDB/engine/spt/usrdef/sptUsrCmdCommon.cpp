@@ -115,15 +115,6 @@ namespace engine
       ossCmdRunner runner ;
       OSSHANDLE processHandle = (OSSHANDLE)0 ;
 
-#if defined( _LINUX )
-      struct sigaction    ignore ;
-      struct sigaction    savechild ;
-      sigset_t            childmask ;
-      sigset_t            savemask ;
-      BOOLEAN             restoreSigMask         = FALSE ;
-      BOOLEAN             restoreSIGCHLDHandling = FALSE ;
-#endif // _LINUX
-
       _command.clear() ;
       _command = command ;
       utilStrTrim( _command ) ;
@@ -134,36 +125,6 @@ namespace engine
          _command += env ;
          utilStrTrim( _command ) ;
       }
-
-#if defined( _LINUX )
-      // we should block SIGCHLD and rembmer caller's mask
-      sigemptyset ( &childmask ) ;
-      sigaddset ( &childmask, SIGCHLD ) ;
-      // set new mask, save old mask
-      rc = pthread_sigmask( SIG_BLOCK, &childmask, &savemask ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to block sigchld, err=%d", rc ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      // once we changed signal mask, we have to restore it later
-      restoreSigMask = TRUE ;
-
-      // change sigchld action to default
-      ignore.sa_handler = SIG_DFL ;
-      sigemptyset ( &ignore.sa_mask ) ;
-      ignore.sa_flags = 0 ;
-      rc = sigaction ( SIGCHLD, &ignore, &savechild ) ;
-      if ( rc < 0 )
-      {
-         PD_LOG ( PDERROR, "Failed to run sigaction, err = %d", rc ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      // once we change signal handler, we have to restore it later
-      restoreSIGCHLDHandling = TRUE ;
-#endif //_LINUX
 
       _strOut = "" ;
       _retCode = 0 ;
@@ -228,16 +189,6 @@ namespace engine
       }
 
    done:
-#if defined( _LINUX )
-      if ( restoreSIGCHLDHandling )
-      {
-         sigaction ( SIGCHLD, &savechild, NULL ) ;
-      }
-      if ( restoreSigMask )
-      {
-         pthread_sigmask ( SIG_SETMASK, &savemask, NULL ) ;
-      }
-#endif // _LINUX
       {
          UINT32 tmpCode = SDB_OK ;
          ossGetExitCodeProcess( processHandle, tmpCode ) ;
