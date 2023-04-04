@@ -16,8 +16,6 @@
 
 package com.sequoiadb.spark;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Row$;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.InternalRow$;
 import org.apache.spark.sql.types.*;
@@ -34,14 +32,14 @@ import scala.collection.mutable.ArrayBuffer$;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TestBSONConverter {
     private static final BooleanType$ SparkBooleanType = BooleanType$.MODULE$;
@@ -74,7 +72,7 @@ public class TestBSONConverter {
         new BSONDecimal("1234567890123456789012345678901234567890.123456789");
     private final BSONTimestamp bsonTimestampVal =
         new BSONTimestamp((int) (new Date().getTime() / 1000), 123456);
-    private final Date dateVal = new Date();
+    private final BSONDate dateVal = BSONDate.valueOf(LocalDate.now());
     private final String strVal = "hello";
     private final Binary binaryVal = new Binary("hello world!".getBytes());
     private final UUID uuidVal = UUID.randomUUID();
@@ -407,6 +405,8 @@ public class TestBSONConverter {
 
         Timestamp ts = new Timestamp(((long) bsonTimestampVal.getTime() * 1000));
         ts.setNanos(bsonTimestampVal.getInc() * 1000);
+        Instant instant = ts.toInstant();
+        long microseconds = instant.getEpochSecond() * 1000000 + instant.getNano() / 1000;
 
         InternalRow expectedRow = InternalRow$.MODULE$.apply(JavaConversions.asScalaBuffer(Arrays.asList(
             new Object[]{
@@ -416,15 +416,15 @@ public class TestBSONConverter {
                 Decimal.apply(bsonDecimalVal.toBigDecimal()),
                 null,
                 UTF8String.fromString(strVal),
-                new java.sql.Date(dateVal.getTime()),
-                ts,
+                new java.sql.Date(dateVal.getTime()).toLocalDate().toEpochDay(),
+                microseconds,
                 binaryVal.getData()
             }
         )));
 
         StructType schema = (StructType) BSONConverter.typeOfData(obj);
 
-        InternalRow row = BSONConverter.bsonToRow(obj, schema, false);
+        InternalRow row = BSONConverter.bsonToRow(obj, schema);
 
         assertEquals(expectedRow, row);
 
@@ -477,7 +477,7 @@ public class TestBSONConverter {
             ))
         );
 
-        InternalRow row = BSONConverter.bsonToRow(obj, schema, false);
+        InternalRow row = BSONConverter.bsonToRow(obj, schema);
 
         assertEquals(expectedRow, row);
 

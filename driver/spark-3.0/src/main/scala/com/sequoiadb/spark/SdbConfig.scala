@@ -28,6 +28,7 @@ import org.bson.util.JSON
 import org.slf4j.LoggerFactory
 
 import java.io.{File, FileInputStream}
+import java.time.ZoneId
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -348,6 +349,7 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
         .map(_.toInt).getOrElse(SdbConfig.DefaultConnectTimeout)
 
     var java8APIEnabled: Boolean = SdbConfig.DefaultJava8APIEnabled
+    var sessionTimezone: ZoneId = ZoneId.systemDefault()
 }
 
 object SdbConfig {
@@ -726,6 +728,10 @@ object SdbConnUtil {
         config.java8APIEnabled = spark.sparkContext
             .getConf
             .getBoolean(SQLConf.DATETIME_JAVA8API_ENABLED.key, false)
+    }
+
+    def setupSessionTimezone(spark: SparkSession, config: SdbConfig): Unit = {
+        config.sessionTimezone = ZoneId.of(spark.sessionState.conf.getConf(SQLConf.SESSION_LOCAL_TIMEZONE))
     }
 
 }

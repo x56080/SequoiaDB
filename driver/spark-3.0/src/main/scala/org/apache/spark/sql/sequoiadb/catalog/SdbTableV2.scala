@@ -128,9 +128,8 @@ case class SdbTableV2(
      */
     override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
         val config = SdbConfig(spark.sqlContext.getAllConfs, parameters)
-        SdbConnUtil.
-            setupJava8APIEnabled(spark, config)
 
+        SdbConnUtil.setupSessionTimezone(spark, config)
         SdbScanBuilder(
             config,
             SdbConnUtil.generateSourceInfo(spark.sparkContext),
