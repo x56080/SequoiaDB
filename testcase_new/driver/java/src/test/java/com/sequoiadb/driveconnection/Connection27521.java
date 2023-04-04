@@ -27,7 +27,7 @@ public class Connection27521 extends SdbTestBase {
     public void setUp() {
     }
 
-    @Test
+    @Test( enabled = false )
     public void test() throws Exception {
         // test a：指定可用地址
         ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )

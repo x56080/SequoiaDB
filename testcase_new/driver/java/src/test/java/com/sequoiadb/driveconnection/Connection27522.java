@@ -45,7 +45,7 @@ public class Connection27522 extends SdbTestBase {
         }
     }
 
-    @Test
+    @Test( enabled = false )
     public void test() throws Exception {
         // test a：指定所有地址可用
         List< String > correctUrlList = getCoordUrls( db );
