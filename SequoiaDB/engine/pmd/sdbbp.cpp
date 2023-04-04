@@ -249,6 +249,7 @@ INT32 enterDaemonMode ( sptScope *scope ,
    OSSNPIPE b2fCtlPipe ;
    boost::thread writeTh ;
    BOOLEAN hasCrtWriteThread = FALSE ;
+   BYTE cZero = 0 ;
 
    PD_TRACE_ENTRY ( SDB_ENTERDAEMONMODE );
 
@@ -357,8 +358,11 @@ INT32 enterDaemonMode ( sptScope *scope ,
          rc = scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
                       SPT_EVAL_FLAG_PRINT, NULL ) ;
       SAFE_OSS_FREE ( code ) ;
+
+      oss_write( STDOUT, &cZero, 1 ) ;
       // Printf the return code for command evaluation here, allowing sdb shell to access it
       ossPrintf ( " %d", rc ) ;
+
       //result = NULL ;
 
       //*stdout = oldStdout ;
@@ -439,6 +443,7 @@ int main ( int argc , const char * argv[] )
 
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
+   signal( SIGPIPE, SIG_DFL ) ;
 #endif // _LINUX
 
    ossMemset ( waitName,   0, sizeof( waitName ) ) ;
