@@ -461,6 +461,7 @@ namespace engine
       // - updated after destination of split
       // - updated after commit of transaction with lock escalated
       ossAtomic64 _globTransAvailTime ;
+      ossAtomic64 _maxTransCommitTime ;
 
       // the last search slot of delete list
       UINT8       _lastSearchSlot ;
@@ -514,6 +515,7 @@ namespace engine
             _idxHashFields[ i ].reset() ;
          }
          _globTransAvailTime.init( 0 ) ;
+         _maxTransCommitTime.init( 0 ) ;
          _lastSearchSlot = dmsMB::_max ;
          _lastSearchRID.reset() ;
          _createTime             = 0 ;
@@ -727,7 +729,8 @@ namespace engine
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 ),
-        _globTransAvailTime( 0 )
+        _globTransAvailTime( 0 ),
+        _maxTransCommitTime( 0 )
       {
          reset() ;
       }

@@ -980,11 +980,13 @@ namespace engine
 
    void _dpsTransExecutor::_initMBStat ( utilCLUniqueID clUniqueID,
                                          ossAtomic64 * globTransAvailTime,
+                                         ossAtomic64 * maxTransCommitTime,
                                          ossAtomic64 * totalRecords,
                                          UINT64 incDelta,
                                          UINT64 decDelta )
    {
       dpsTransMBStat stat( globTransAvailTime,
+                           maxTransCommitTime,
                            totalRecords,
                            incDelta,
                            decDelta ) ;
@@ -993,6 +995,7 @@ namespace engine
 
    BOOLEAN _dpsTransExecutor::incMBTotalRecords ( utilCLUniqueID clUniqueID,
                                                   ossAtomic64 * globTransAvailTime,
+                                                  ossAtomic64 * maxTransCommitTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -1003,7 +1006,8 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, delta, 0 ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, maxTransCommitTime,
+                      totalRecords, delta, 0 ) ;
       }
       else
       {
@@ -1026,6 +1030,7 @@ namespace engine
 
    BOOLEAN _dpsTransExecutor::decMBTotalRecords ( utilCLUniqueID clUniqueID,
                                                   ossAtomic64 * globTransAvailTime,
+                                                  ossAtomic64 * maxTransCommitTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -1036,7 +1041,8 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, delta ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, maxTransCommitTime,
+                      totalRecords, 0, delta ) ;
       }
       else
       {
@@ -1059,6 +1065,7 @@ namespace engine
 
    BOOLEAN _dpsTransExecutor::updateMBStat( utilCLUniqueID clUniqueID,
                                             ossAtomic64 * globTransAvailTime,
+                                            ossAtomic64 * maxTransCommitTime,
                                             ossAtomic64 * totalRecords )
    {
       if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
@@ -1069,7 +1076,8 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, 0 ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, maxTransCommitTime,
+                      totalRecords, 0, 0 ) ;
       }
       else
       {

@@ -5730,9 +5730,11 @@ namespace engine
          // first
          // NOTE: insert records won't touch MVCC old version, so needn't to
          //       update global transaction available time of collection
+         ossAtomic64 *maxTransCommitTime = &( mbStat->_maxTransCommitTime ) ;
          ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
          if ( !cb->getTransExecutor()->incMBTotalRecords( clUniqueID,
                                                           NULL,
+                                                          maxTransCommitTime,
                                                           totalRecords,
                                                           1 ) )
          {
@@ -5785,11 +5787,13 @@ namespace engine
                                    ( recordInfo->_transLockEscalated ) ;
          ossAtomic64 *globTransAvalTime =
                isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         ossAtomic64 *maxTransCommitTime = &( mbStat->_maxTransCommitTime ) ;
          ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
          // in transaction, update the RC counter in transaction executor
          // first
          if ( !cb->getTransExecutor()->decMBTotalRecords( clUniqueID,
                                                           globTransAvalTime,
+                                                          maxTransCommitTime,
                                                           totalRecords,
                                                           1 ) )
          {
@@ -5831,8 +5835,10 @@ namespace engine
                                    ( recordInfo->_transLockEscalated ) ;
          ossAtomic64 *globTransAvalTime =
                isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         ossAtomic64 *maxTransCommitTime = &( mbStat->_maxTransCommitTime ) ;
          cb->getTransExecutor()->updateMBStat( clUniqueID,
                                                globTransAvalTime,
+                                               maxTransCommitTime,
                                                NULL ) ;
       }
 

@@ -162,6 +162,7 @@ namespace engine
       protected :
          _dpsTransMBStat ()
          : _globTransAvailTime( NULL ),
+           _maxTransCommitTime( NULL ),
            _totalRecords( NULL ),
            _incDelta( 0 ),
            _decDelta( 0 )
@@ -170,10 +171,12 @@ namespace engine
 
       public :
          _dpsTransMBStat ( ossAtomic64 * globTransAvailTime,
+                           ossAtomic64 * maxTransCommitTime,
                            ossAtomic64 * totalRecords,
                            UINT64 incDelta,
                            UINT64 decDelta )
          : _globTransAvailTime( globTransAvailTime ),
+           _maxTransCommitTime( maxTransCommitTime ),
            _totalRecords( totalRecords ),
            _incDelta( incDelta ),
            _decDelta( decDelta )
@@ -182,6 +185,7 @@ namespace engine
 
          _dpsTransMBStat ( const _dpsTransMBStat & stat )
          : _globTransAvailTime( stat._globTransAvailTime ),
+           _maxTransCommitTime( stat._maxTransCommitTime ),
            _totalRecords( stat._totalRecords ),
            _incDelta( stat._incDelta ),
            _decDelta( stat._decDelta )
@@ -196,6 +200,7 @@ namespace engine
          _dpsTransMBStat & operator = ( const _dpsTransMBStat & stat )
          {
             _globTransAvailTime = stat._globTransAvailTime ;
+            _maxTransCommitTime = stat._maxTransCommitTime ;
             _totalRecords = stat._totalRecords ;
             _incDelta = stat._incDelta ;
             _decDelta = stat._decDelta ;
@@ -259,6 +264,10 @@ namespace engine
             {
                _globTransAvailTime->swapGreaterThan( commitTime ) ;
             }
+            if ( NULL != _maxTransCommitTime )
+            {
+               _maxTransCommitTime->swapGreaterThan( commitTime ) ;
+            }
          }
 
          OSS_INLINE void rollback ( UINT64 rollbackTime )
@@ -269,6 +278,16 @@ namespace engine
             // other transactions may fetch MVCC versions before
             if ( NULL != _globTransAvailTime )
             {
+               // if collection has max transaciton commit time, use it as
+               // rollback time, before that, MVCC versions has lost
+               if ( NULL != _maxTransCommitTime )
+               {
+                  UINT64 tmp = _maxTransCommitTime->fetch() ;
+                  if ( tmp < rollbackTime )
+                  {
+                     rollbackTime = tmp ;
+                  }
+               }
                _globTransAvailTime->swapGreaterThan( rollbackTime ) ;
             }
          }
@@ -295,6 +314,7 @@ namespace engine
 
       protected :
          ossAtomic64 * _globTransAvailTime ;
+         ossAtomic64 * _maxTransCommitTime ;
          ossAtomic64 * _totalRecords ;
          UINT64        _incDelta ;
          UINT64        _decDelta ;
@@ -429,14 +449,17 @@ namespace engine
 
          BOOLEAN incMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      ossAtomic64 * globTransAvailTime,
+                                     ossAtomic64 * maxTransCommitTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
          BOOLEAN decMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      ossAtomic64 * globTransAvailTime,
+                                     ossAtomic64 * maxTransCommitTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
          BOOLEAN updateMBStat( utilCLUniqueID clUniqueID,
                                ossAtomic64 * globTransAvailTime,
+                               ossAtomic64 * maxTransCommitTime,
                                ossAtomic64 * totalRecords ) ;
          BOOLEAN getMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      UINT64 & totalRecords ) const ;
@@ -666,6 +689,7 @@ namespace engine
 
          void _initMBStat ( utilCLUniqueID clUniqueID,
                             ossAtomic64 * globTransAvailTime,
+                            ossAtomic64 * maxTransCommitTime,
                             ossAtomic64 * totalRecords,
                             UINT64 incDelta,
                             UINT64 decDelta ) ;
