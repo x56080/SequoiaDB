@@ -337,7 +337,7 @@ found:
                else
                {
                   /// not only a bson msg.
-                  _readBuf[_itr - 4] = '\0' ;
+                  _readBuf[_itr - sizeof( SPD_MAGIC )] = '\0' ;
                   BSONElement retCode = tmp.getField( FMP_RES_CODE ) ;
                   BSONElement errMsg = tmp.getField( FMP_ERR_MSG ) ;
 

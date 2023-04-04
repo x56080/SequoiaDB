@@ -175,7 +175,8 @@ INT32 ossStopService( const CHAR *serviceName,
    When the pid is still running, will return SDB_TIMEOUT
 */
 INT32 ossWaitChild ( OSSPID pid, ossResultCode &result,
-                     BOOLEAN block = TRUE ) ;
+                     BOOLEAN block = TRUE,
+                     OSSPID *pPid = NULL ) ;
 void  ossEnableNameChanges ( const INT32 argc, CHAR **pArgv0 ) ;
 void  ossRenameProcess (  const CHAR *pNewName ) ;
 INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,

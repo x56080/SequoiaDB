@@ -122,13 +122,19 @@ void ossCloseProcessHandle( OSSHANDLE & handle )
 // It calls waitpid until the given pid stop
 // When the pid is still running, will return SDB_TIMEOUT
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSWAITCHLD, "ossWaitChild" )
-INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
+INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *pPid )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSWAITCHLD );
    INT32 err = 0 ;
    INT32 statuslocation ;
    INT32 options = block ? WUNTRACED : WNOHANG ;
+
+   if ( pPid )
+   {
+      *pPid = OSS_INVALID_PID ;
+   }
+
    // loop until the program finish
    do
    {
@@ -161,6 +167,11 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
    // otherwise let's check the status of the output process id
    else
    {
+      if ( pPid )
+      {
+         *pPid = (OSSPID)rc ;
+      }
+
       if ( WIFEXITED ( statuslocation ) )
       {
          // if exited
@@ -410,6 +421,9 @@ static INT32 ossExec2 ( const CHAR *program,
       // fill out all signals ( not SIGKILL and SIGSTOP are ignored in the
       // function ossRegisterSignalHandle
       sigSet.fillSet () ;
+      /// ignore the SIGPIPE
+      signal( SIGPIPE, SIG_IGN ) ;
+      sigSet.sigDel( SIGPIPE ) ;
       rc = ossRegisterSignalHandle( sigSet, SIG_DFL ) ;
       if ( SDB_OK != rc )
       {
@@ -533,6 +547,25 @@ error :
    goto done ;
 }
 
+#define OSS_SIGCHLD_WAIT_DELAY_TIME       ( 100 )     /// ms
+
+/// signal handler
+void _ossSigCHLDHandler( INT32 signum )
+{
+   INT32 rc = SDB_OK ;
+   ossResultCode result ;
+   OSSPID pid = OSS_INVALID_PID ;
+
+   ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
+   while( ( rc = ossWaitChild( OSS_INVALID_PID, result, FALSE, &pid ) == SDB_OK &&
+          OSS_INVALID_PID != pid ) )
+   {
+      PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
+              pid, result.termcode, result.exitcode ) ;
+      ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
+   }
+}
+
 // function to execute program.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXEC, "ossExec" )
 INT32 ossExec ( const CHAR * program,
@@ -561,6 +594,21 @@ INT32 ossExec ( const CHAR * program,
    INT32               retcode                = 0 ;
    INT32               failedMessage          = 0 ;
    INT32               msgRecvBytes           = 0 ;
+
+   // change sigchld action to default
+   ignore.sa_handler = _ossSigCHLDHandler ;
+   sigemptyset ( &ignore.sa_mask ) ;
+   ignore.sa_flags = 0 ;
+   sysRC = sigaction ( SIGCHLD, &ignore, &savechild ) ;
+   if ( sysRC < 0 )
+   {
+      PD_LOG ( PDERROR, "Failed to run sigaction, sysRC = %d", sysRC ) ;
+      rc = SDB_SYS ;
+      goto error ;
+   }
+   // once we change signal handler, we have to restore it later
+   restoreSIGCHLDHandling = TRUE ;
+
    if ( OSS_EXEC_SSAVE & flag )
    {
       // we should block SIGCHLD and rembmer caller's mask
@@ -577,19 +625,6 @@ INT32 ossExec ( const CHAR * program,
       }
       // once we changed signal mask, we have to restore it later
       restoreSigMask = TRUE ;
-      // change sigchld action to default
-      ignore.sa_handler = SIG_DFL ;
-      sigemptyset ( &ignore.sa_mask ) ;
-      ignore.sa_flags = 0 ;
-      sysRC = sigaction ( SIGCHLD, &ignore, &savechild ) ;
-      if ( sysRC < 0 )
-      {
-         PD_LOG ( PDERROR, "Failed to run sigaction, sysRC = %d", sysRC ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      // once we change signal handler, we have to restore it later
-      restoreSIGCHLDHandling = TRUE ;
 
       // get a message queue to communicate with child
       msgQueue = msgget ( IPC_PRIVATE, IPC_CREAT | IPC_EXCL |
@@ -712,7 +747,8 @@ INT32 ossExec ( const CHAR * program,
 done :
    if ( restoreSIGCHLDHandling )
    {
-      sigaction ( SIGCHLD, &savechild, NULL ) ;
+      /// don't restore
+      // sigaction ( SIGCHLD, &savechild, NULL ) ;
    }
    if ( restoreSigMask )
    {
