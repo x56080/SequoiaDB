@@ -938,8 +938,7 @@ sequoiadb
 │   ├── SequoiaDB_usermanuals_v3.6.pdf
 │   └── SequoiaDB_usermanuals_v3.6.tar.gz
 ├── flink
-│   ├── sdb-flink-connector-${SYS_VERSION}.jar
-│   └── sdb-flink-connector-${SYS_VERSION}-jar-with-dependencies.jar
+│   └── sdb-flink-connector-${SYS_VERSION}.jar
 ├── include
 │   ├── base64c.h
 │   ├── bson
