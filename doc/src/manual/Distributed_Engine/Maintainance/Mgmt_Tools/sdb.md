@@ -11,6 +11,7 @@ sdb 是 SequoiaDB 巨杉数据库的接口工具。关于命令行工具详细�
 | --file      | -f   | 指定要在 sdb 中执行的文件              |
 | --eval      | -e   | 提前声明变量，与 -f 选项一起用          |
 | --shell     | -s   | 指定要在 sdb 中执行的语句          |
+| --runtime-size | - | 指定 SDB 使用的 JS_Runtime 实例内存大小，默认值为 64，单位为 MB。有效取值范围 [64, 4096] （仅在 v3.6.1 及以上版本生效） |
 
 ##快捷键##
 
@@ -54,6 +55,9 @@ sdb 是 SequoiaDB 巨杉数据库的接口工具。关于命令行工具详细�
    -e [ --eval ] arg     predefined variables(format: "var varname='varvalue'")
    -s [ --shell ] arg    if the -s option is present, then commands are read
                          from <string>
+   --runtime-size arg    the memory size for the JS_NewRuntime instance, in 
+                         megabytes. If the provided value is less than 64, the 
+                         value will be set to 64
    ```
 
 - 提前声明变量，并指定文件执行

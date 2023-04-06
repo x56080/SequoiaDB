@@ -77,6 +77,7 @@ using namespace engine ;
 #define SDB_OPTION_FILE         "file"
 #define SDB_OPTION_EVAL         "eval"
 #define SDB_OPTION_SHELL        "shell"
+#define SDB_OPTOPN_RUNTIME_SIZE "runtime-size"
 #define ELSE_STATEMENT          "else{}"
 
 #if defined (_WINDOWS)
@@ -87,6 +88,8 @@ using namespace engine ;
 
 #define SPT_LANG_EN             "en"
 #define SPT_LANG_CN             "cn"
+
+#define SPT_OPT_RUNTIME_SIZE_MIN 64
 
 namespace po = boost::program_options ;
 po::options_description display ( "Command options" ) ;
@@ -112,6 +115,7 @@ struct ArgInfo
    string       cmd ; // available in front-end mode
    string       variable ; // variable
    string       language ; // language, can be "en" or "cn"
+   UINT32        runtimeSize ; // the memory size of JS_NewRuntime instance
 } ;
 
 void printUsage()
@@ -132,6 +136,7 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
    argInfo.variable  = "" ;
    argInfo.cmd       = "" ;
    argInfo.program   = "" ;
+   argInfo.runtimeSize = SPT_OPT_RUNTIME_SIZE_MIN ;
 
    SDB_POSITIONAL_OPTIONS_DESCRIPTION
 
@@ -194,6 +199,21 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
       argInfo.language = (l == SPT_LANG_EN || l == SPT_LANG_CN) ? l : SPT_LANG_EN ;
       argc -= 2 ;
    }
+
+   if ( vm.count( SDB_OPTOPN_RUNTIME_SIZE ) )
+   {
+      UINT32 runtimeSize = vm[SDB_OPTOPN_RUNTIME_SIZE].as<UINT32>() ;
+      if ( runtimeSize < SPT_OPT_RUNTIME_SIZE_MIN )
+      {
+         argInfo.runtimeSize = SPT_OPT_RUNTIME_SIZE_MIN ;
+      }
+      else
+      {
+         argInfo.runtimeSize = runtimeSize ;
+      }
+      argc -= 2 ;
+   }
+
    if ( 1 == argc )
    {
       // Empty. Normal interactive mode
@@ -1152,9 +1172,6 @@ int main ( int argc , CHAR **argv )
       goto error ;
    }
 
-   scope = container.newScope() ;
-   SH_VERIFY_COND ( scope , SDB_SYS ) ;
-
    // parse Argument into argInfo
    rc = parseArguments ( argc , argv , argInfo ) ;
    if( SDB_SDB_HELP_ONLY == rc || SDB_SDB_VERSION_ONLY == rc )
@@ -1167,6 +1184,10 @@ int main ( int argc , CHAR **argv )
       ossPrintf( "Parse args failed, rc: %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
+
+   scope = container.newScope( SPT_SCOPE_TYPE_SP, SPT_OBJ_MASK_ALL,
+                               argInfo.runtimeSize ) ;
+   SH_VERIFY_COND ( scope , SDB_SYS ) ;
 
    switch ( argInfo.mode )
    {
