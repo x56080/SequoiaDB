@@ -3437,6 +3437,18 @@
                            "en": "removeNode()"
                         },
                         {
+                           "id": 1678067837,
+                           "file": "setActiveLocation",
+                           "cn": "setActiveLocation()",
+                           "en": "setActiveLocation()"
+                        },
+                        {
+                           "id": 1678067862,
+                           "file": "setAttrubutes",
+                           "cn": "setAttrubutes()",
+                           "en": "setAttrubutes()"
+                        },
+                        {
                            "id": 1432190875,
                            "file": "start",
                            "cn": "start()",
@@ -3541,6 +3553,12 @@
                            "file": "removeGroups",
                            "cn": "removeGroups()",
                            "en": "removeGroups()"
+                        },
+                        {
+                           "id": 1678067914,
+                           "file": "setActiveLocation",
+                           "cn": "setActiveLocation()",
+                           "en": "setActiveLocation()"
                         },
                         {
                            "id": 1524019942,

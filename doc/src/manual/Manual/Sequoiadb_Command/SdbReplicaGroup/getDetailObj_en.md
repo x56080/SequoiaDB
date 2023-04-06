@@ -47,6 +47,7 @@ The result is as follow:
 
 ```lang-text
 {
+  "ActiveLocation": "GuangZhou",
   "Group": [
     {
       "HostName": "localhost",

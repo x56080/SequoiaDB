@@ -39,6 +39,7 @@ SDB_LIST_GROUPS
 | SecretID           | int32      | 复制组的校验 ID（内部使用） |
 | Status             | string     | 复制组状态，取值如下：<br>1：已激活<br>0：未激活<br>不存在：未激活分区组            |
 | Version            | int32      | 复制组版本号（内部使用） |
+| ActiveLocation     | string     | 复制组中的 ActiveLocation |
 
 
 ##示例##
@@ -53,6 +54,7 @@ SDB_LIST_GROUPS
 
 ```lang-json
 {
+  "ActiveLocation": "GuangZhou",
   "Group":[
     {
       "HostName": "sdbserver",

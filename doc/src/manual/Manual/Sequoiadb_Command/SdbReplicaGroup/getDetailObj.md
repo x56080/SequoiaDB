@@ -47,6 +47,7 @@ v3.4.2 及以上版本
 
 ```lang-text
 {
+  "ActiveLocation": "GuangZhou",
   "Group": [
     {
       "HostName": "localhost",

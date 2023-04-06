@@ -39,6 +39,7 @@ v2.0 and above
     ```lang-javascript
     > db.listReplicaGroups()
     {
+    "ActiveLocation": "GuangZhou",
     "Group": 
     [
       {

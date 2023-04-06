@@ -39,6 +39,7 @@ v2.0 及以上版本
     ```lang-javascript
     > db.listReplicaGroups()
     {
+    "ActiveLocation": "GuangZhou",
     "Group": 
     [
       {
