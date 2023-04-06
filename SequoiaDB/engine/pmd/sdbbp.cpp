@@ -355,13 +355,14 @@ INT32 enterDaemonMode ( sptScope *scope ,
          isexit = TRUE ;
 
       if ( ! isexit )
-         scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
+         rc = scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
                       SPT_EVAL_FLAG_PRINT, NULL ) ;
       SAFE_OSS_FREE ( code ) ;
 
-      // shell always have errno defined
       oss_write( STDOUT, &cZero, 1 ) ;
-      ossPrintf ( " %d", sdbGetErrno() ) ;
+      // Printf the return code for command evaluation here, allowing sdb shell to access it
+      ossPrintf ( " %d", rc ) ;
+
       //result = NULL ;
 
       //*stdout = oldStdout ;
