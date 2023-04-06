@@ -114,7 +114,7 @@ namespace engine
                        0 == tmpObj.getIntField( "$include" ) )
                   {
                      pSelectSet->clear() ;
-                     checkSelectSet = FASLE ;
+                     checkSelectSet = FALSE ;
                   }
                }
 
