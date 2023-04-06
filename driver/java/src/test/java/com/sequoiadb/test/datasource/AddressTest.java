@@ -10,9 +10,9 @@ import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
+import com.sequoiadb.util.Helper;
 import org.junit.*;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -294,8 +294,8 @@ public class AddressTest {
             addrSet.add(conn.getNodeName());
             ds.releaseConnection(conn);
         }
-        Assert.assertFalse(addrSet.contains(parseAddress(node5.getNodeName())));
-        Assert.assertTrue(addrSet.contains(parseAddress(node4.getNodeName())));
+        Assert.assertFalse(addrSet.contains(Helper.parseAddress(node5.getNodeName())));
+        Assert.assertTrue(addrSet.contains(Helper.parseAddress(node4.getNodeName())));
     }
 
     @Test
@@ -305,9 +305,9 @@ public class AddressTest {
         addressList.add(node3.getNodeName());
         addressList.add(node4.getNodeName());
 
-        String addr1 = parseAddress(node1.getNodeName());
-        String addr2 = parseAddress(node3.getNodeName());
-        String addr3 = parseAddress(node4.getNodeName());
+        String addr1 = Helper.parseAddress(node1.getNodeName());
+        String addr2 = Helper.parseAddress(node3.getNodeName());
+        String addr3 = Helper.parseAddress(node4.getNodeName());
 
         int maxCount = 20;
         options.setMaxCount(maxCount);
@@ -402,33 +402,6 @@ public class AddressTest {
 
         for (Sequoiadb db : connList2) {
             ds.releaseConnection(db);
-        }
-    }
-
-    String parseHostName(String hostName) {
-        try {
-            return InetAddress.getByName(hostName).getHostAddress();
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse hostname: " + hostName, e);
-        }
-    }
-
-    String parseAddress(String address) {
-        String host ;
-        int port;
-        String[] tmp = address.split(":");
-        if (tmp.length < 2) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address);
-        }
-
-        try {
-            host = parseHostName(tmp[0].trim());
-            port = Integer.parseInt(tmp[1].trim());
-            return host + ":" + port;
-        } catch (NumberFormatException e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address, e);
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse address: " + address, e);
         }
     }
 }

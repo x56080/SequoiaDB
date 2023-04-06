@@ -20,249 +20,64 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.log.Log;
 import com.sequoiadb.log.LogFactory;
-
+import com.sequoiadb.util.Helper;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-class AddressMgr {
-    private final static String ADDRESS_SEPARATOR = ":";
+class AddressMgr implements IAddressMgr {
+    private final static String LOCATION_SEPARATOR = ".";
     private final static Log log = LogFactory.getLog(AddressMgr.class);
 
-    private final List<ServerAddress> normalList;
-    private final List<ServerAddress> abnormalList;
+    private final LinkedHashMap<String, ServerAddress> addressMap;
+    private final String location;
+    private final LocationPriorityCounter counter;
     private final List<String> localIpList;
-    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock rwLock;
 
-    AddressMgr(List<String> addressList) {
-        localIpList = getNetCardIPs();
+    AddressMgr(List<String> addressList, String location) {
+        this.addressMap = new LinkedHashMap<>();
+        this.location = location;
+        this.counter = new LocationPriorityCounter();
+        this.localIpList = getNetCardIPs();
+        this.rwLock = new ReentrantReadWriteLock();
 
-        normalList = new ArrayList<>();
-        abnormalList = new ArrayList<>();
         for (String address : addressList) {
-            if (address != null && !address.isEmpty()) {
-                String addr = parseAddress(address);
-
-                ServerAddress serAddr = new ServerAddress(addr);
-                serAddr.setLocal(isLocalAddress(addr));
-
-                if (!normalList.contains(serAddr)) {
-                    normalList.add(serAddr);
-                }
+            if (address == null || address.isEmpty()) {
+                continue;
             }
+
+            String addr = Helper.parseAddress(address);
+            ServerAddress serAddr = new ServerAddress(addr);
+            serAddr.setLocal(isLocalAddress(addr));
+            this.addressMap.put(addr, serAddr);
         }
-        if (normalList.isEmpty()) {
+        if (this.addressMap.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "No available address: " + addressList);
         }
     }
 
-    List<ServerAddress> getNormalAddress() {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            return new ArrayList<>(normalList);
-        } finally {
-            lock.unlock();
-        }
-    }
+    public List<String> updateAddressInfo(BSONObject addrInfoObj, UpdateType type) {
+        Map<String, String> addrInfoMap = parseAddressInfo(addrInfoObj);
 
-    List<ServerAddress> getAbnormalAddress() {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            return new ArrayList<>(abnormalList);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    int getLocalAddressSize() {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            int result = 0;
-            for (ServerAddress serAddr : normalList) {
-                if (serAddr.isLocal()) {
-                    result++;
-                }
-            }
-            for (ServerAddress serAddr : abnormalList) {
-                if (serAddr.isLocal()) {
-                    result++;
-                }
-            }
-            return result;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    int getNormalAddressSize() {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            return normalList.size();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    int getAbnormalAddressSize() {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            return abnormalList.size();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    boolean isNormalAddress(String address) {
-        Lock lock = rwLock.readLock();
-        lock.lock();
-        try {
-            for (ServerAddress serAddr : normalList) {
-                if (address.equals(serAddr.getAddress())) {
-                    return true;
-                }
-            }
-            return false;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    void addAddress(String address) {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            ServerAddress serAddr = new ServerAddress(address);
-            serAddr.setLocal(isLocalAddress(address));
-
-            if (normalList.contains(serAddr) || abnormalList.contains(serAddr)) {
-                log.info(String.format("Already exist address: %s", address));
-            } else {
-                normalList.add(serAddr);
-                log.info(String.format("Add address: %s", address));
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    void removeAddress(String address) {
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            Iterator<ServerAddress> itr;
-
-            itr = normalList.iterator();
-            while (itr.hasNext()) {
-                if (address.equals(itr.next().getAddress())) {
-                    itr.remove();
+            List<String> decList = null;
+            switch (type) {
+                case ADDRESS:
+                    decList = updateAddressInfo(addrInfoMap);
                     break;
-                }
-            }
-
-            itr = abnormalList.iterator();
-            while (itr.hasNext()) {
-                if (address.equals(itr.next().getAddress())) {
-                    itr.remove();
+                case LOCATION:
+                    updateLocationInfo(addrInfoMap);
                     break;
-                }
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    void enableAddress(String address) {
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            ServerAddress serAddr = null;
-            Iterator<ServerAddress> itr = abnormalList.iterator();
-            while (itr.hasNext()) {
-                serAddr = itr.next();
-                if (address.equals(serAddr.getAddress())) {
-                    itr.remove();
+                default:
                     break;
-                }
-                serAddr = null;
-            }
-            if (serAddr != null) {
-                normalList.add(serAddr);
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    void disableAddress(String address) {
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            ServerAddress serAddr = null;
-            Iterator<ServerAddress> itr = normalList.iterator();
-            while (itr.hasNext()) {
-                serAddr = itr.next();
-                if (address.equals(serAddr.getAddress())) {
-                    itr.remove();
-                    break;
-                }
-                serAddr = null;
-            }
-            if (serAddr != null) {
-                abnormalList.add(serAddr);
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    List<ServerAddress> updateAddress(List<String> addressList) {
-        List<ServerAddress> sourceList = new ArrayList<>();
-        for (String addr : addressList) {
-            ServerAddress serAddr = new ServerAddress(addr);
-            serAddr.setLocal(isLocalAddress(addr));
-
-            if (!sourceList.contains(serAddr)) {
-                sourceList.add(serAddr);
-            }
-        }
-
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            List<ServerAddress> incList = new ArrayList<>();
-            List<ServerAddress> decList = new ArrayList<>();
-
-            for (ServerAddress serAddr : this.normalList) {
-                if (!sourceList.contains(serAddr)) {
-                    decList.add(serAddr);
-                }
-            }
-            for (ServerAddress serAddr : this.abnormalList) {
-                if (!sourceList.contains(serAddr)) {
-                    decList.add(serAddr);
-                }
-            }
-
-            for (ServerAddress serAddr : sourceList) {
-                if (!this.normalList.contains(serAddr) && !this.abnormalList.contains(serAddr)) {
-                    incList.add(serAddr);
-                }
-            }
-
-            this.normalList.removeAll(decList);
-            this.abnormalList.removeAll(decList);
-            this.normalList.addAll(incList);
-
-            if (incList.size() > 0 || decList.size() > 0) {
-                log.info(String.format("update address success, increase address: %s, decrease address: %s",
-                        incList, decList));
             }
             return decList;
         } finally {
@@ -270,59 +85,356 @@ class AddressMgr {
         }
     }
 
-    String getAddressSnapshot() {
+    public List<ServerAddress> getAddress() {
         Lock lock = rwLock.readLock();
         lock.lock();
         try {
-            int localNum = 0;
-            for (ServerAddress serAddr : normalList) {
-                if (serAddr.isLocal()) {
-                    localNum++;
-                }
+            if (counter.getHighNum() > 0) {
+                return getAddressByPriority(LocationPriority.HIGH);
+            } else if (counter.getMediumNum() > 0) {
+                return getAddressByPriority(LocationPriority.MEDIUM);
+            } else {
+                return getAddressByPriority(LocationPriority.LOW);
             }
-            for (ServerAddress serAddr : abnormalList) {
-                if (serAddr.isLocal()) {
-                    localNum++;
-                }
-            }
-            return String.format("normal address: %d, abnormal address: %d, local address: %d",
-                    normalList.size(), abnormalList.size(), localNum);
         } finally {
             lock.unlock();
         }
     }
 
+    private List<ServerAddress> getAddressByPriority(LocationPriority priority) {
+        List<ServerAddress> serAddrLst = new ArrayList<>();
+        for (ServerAddress serAddr : addressMap.values()) {
+            if (!serAddr.isEnable()) {
+                continue;
+            }
+            if (serAddr.getLocationPriority() == priority) {
+                serAddrLst.add(serAddr);
+            }
+        }
+        return serAddrLst;
+    }
+
+    public List<ServerAddress> getNormalAddress() {
+        return getAddressByStatus(true);
+    }
+
+    public List<ServerAddress> getAbnormalAddress() {
+        return getAddressByStatus(false);
+    }
+
+    private List<ServerAddress> getAddressByStatus(boolean isEnable) {
+        Lock lock = rwLock.readLock();
+        lock.lock();
+        try {
+            List<ServerAddress> serAddrLst = new ArrayList<>();
+            for (ServerAddress serAddr : addressMap.values()) {
+                if (serAddr.isEnable() == isEnable) {
+                    serAddrLst.add(serAddr);
+                }
+            }
+            return serAddrLst;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public List<ServerAddress> getLocalAddress() {
+        Lock lock = rwLock.readLock();
+        lock.lock();
+        try {
+            List<ServerAddress> addrLst = new ArrayList<>();
+            for (ServerAddress addr : addressMap.values()) {
+                if (addr.isLocal()) {
+                    addrLst.add(addr);
+                }
+            }
+            return addrLst;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public int getNormalAddressSize() {
+        return getNormalAddress().size();
+    }
+
+    public int getAbnormalAddressSize() {
+        return getAbnormalAddress().size();
+    }
+
+    public int getLocalAddressSize() {
+        return getLocalAddress().size();
+    }
+
+    public boolean checkAddress(String address) {
+        Lock lock = rwLock.readLock();
+        lock.lock();
+        try {
+            ServerAddress serAddr = addressMap.get(address);
+            if (serAddr == null || !serAddr.isEnable()) {
+                return false;
+            }
+            switch (serAddr.getLocationPriority()) {
+                case HIGH:
+                    return counter.getHighNum() > 0;
+                case MEDIUM:
+                    return (counter.getHighNum() == 0) && (counter.getMediumNum() > 0);
+                case LOW:
+                    return (counter.getHighNum() == 0) && (counter.getMediumNum() == 0);
+                default:
+                    return false;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void addAddress(String address) {
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            if (addressMap.containsKey(address)) {
+                log.info(String.format("Already exist address: %s", address));
+            } else {
+                ServerAddress serAddr = new ServerAddress(address);
+                serAddr.setLocal(isLocalAddress(address));
+                // SyncAddressInfoTask will update location for the address later
+
+                addressMap.put(address, serAddr);
+                counter.inc(serAddr.getLocationPriority());
+                log.info(String.format("Add address: %s", address));
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void removeAddress(String address) {
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            ServerAddress serAddr = addressMap.remove(address);
+            if (serAddr != null && serAddr.isEnable()) {
+                counter.dec(serAddr.getLocationPriority());
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void enableAddress(String address) {
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            ServerAddress serAddr = addressMap.get(address);
+            if (serAddr != null && !serAddr.isEnable()) {
+                serAddr.setEnable(true);
+                counter.inc(serAddr.getLocationPriority());
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void disableAddress(String address) {
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            ServerAddress serAddr = addressMap.get(address);
+            if (serAddr != null && serAddr.isEnable()) {
+                serAddr.setEnable(false);
+                counter.dec(serAddr.getLocationPriority());
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public String getLocation() {
+        return this.location;
+    }
+
+    public String getAddressSnapshot() {
+        Lock lock = rwLock.readLock();
+        lock.lock();
+        try {
+            int localNum = 0;
+            int normalNum = 0;
+            int abnormalNum = 0;
+            for (ServerAddress addr : addressMap.values()) {
+                if (addr.isLocal()) {
+                    localNum++;
+                }
+                if (addr.isEnable()) {
+                    normalNum++;
+                } else {
+                    abnormalNum++;
+                }
+            }
+            return String.format("location: %s, normal address: %d, abnormal address: %d, local address: %d",
+                    location, normalNum, abnormalNum, localNum);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // map<ip address, location name>
+    private List<String> updateAddressInfo(Map<String, String> addrInfo) {
+        List<String> incList = new ArrayList<>();
+        List<String> decList = new ArrayList<>();
+
+        for (String addr : addressMap.keySet()) {
+            if (!addrInfo.containsKey(addr)) {
+                decList.add(addr);
+            }
+        }
+
+        for (String addr : addrInfo.keySet()) {
+            if (!addressMap.containsKey(addr)) {
+                incList.add(addr);
+            }
+        }
+
+        for (String addr : decList) {
+            ServerAddress serAddr = addressMap.remove(addr);
+            if (serAddr.isEnable()) {
+                counter.dec(serAddr.getLocationPriority());
+            }
+        }
+
+        for (String addr : incList) {
+            ServerAddress serAddr = new ServerAddress(addr);
+            serAddr.setLocal(isLocalAddress(addr));
+            serAddr.setLocation(addrInfo.get(addr));
+            serAddr.setLocationPriority(calAffinity(location, serAddr.getLocation()));
+
+            addressMap.put(addr, serAddr);
+            counter.inc(serAddr.getLocationPriority());
+        }
+        if (incList.size() > 0 || decList.size() > 0) {
+            log.info(String.format("update address success, increase address: %s, decrease address: %s",
+                    incList, decList));
+        }
+        return decList;
+    }
+
+    // map<ip address, location name>
+    private void updateLocationInfo(Map<String, String> addrInfo) {
+        for (String addr : addrInfo.keySet()) {
+            ServerAddress serAddr = addressMap.get(addr);
+            if (serAddr == null) {
+                continue;
+            }
+
+            String location = addrInfo.get(addr);
+            if (location.equals(serAddr.getLocation())) {
+                continue;
+            }
+
+            serAddr.setLocation(location);
+            serAddr.setLocationPriority(calAffinity(this.location, location));
+        }
+
+        counter.reset();
+        for (ServerAddress serAddr : addressMap.values()) {
+            if (serAddr.isEnable()) {
+                counter.inc(serAddr.getLocationPriority());
+            }
+        }
+
+        int lowNum = addressMap.size() - counter.getHighNum() - counter.getMediumNum();
+        log.info("Successfully updated location information for addresses, the number of addresses in different " +
+                "levels: HIGH = " + counter.getHighNum() + ", MEDIUM = " + counter.getMediumNum() + " ,LOW = " + lowNum);
+    }
+
     private boolean isLocalAddress(String address) {
-        return localIpList.contains(address.split(ADDRESS_SEPARATOR)[0]);
+        return localIpList.contains(address.split(Helper.ADDRESS_SEPARATOR)[0]);
     }
 
-    // hostname to ip
-    static String parseHostName(String hostName) {
-        try {
-            return InetAddress.getByName(hostName).getHostAddress();
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse hostname: " + hostName, e);
+    static LocationPriority calAffinity(String location1, String location2) {
+        if (location1 == null || location1.equals("")) {
+            return LocationPriority.LOW;
+        }
+        if (location2 == null || location2.equals("")) {
+            return LocationPriority.LOW;
+        }
+
+        // e.g. guangzhou.nansha and guangzhou.nansha
+        if (location1.equals(location2)) {
+            return LocationPriority.HIGH;
+        }
+
+        // e.g. guangzhou.nansha and guangzhou, GUANGZHOU.panyu
+        int post1 = location1.indexOf(LOCATION_SEPARATOR);
+        if (post1 == -1) {
+            post1 = location1.length();
+        }
+        int post2 = location2.indexOf(LOCATION_SEPARATOR);
+        if (post2 == -1) {
+            post2 = location2.length();
+        }
+
+        String pref1 = location1.substring(0, post1);
+        String pref2 = location2.substring(0, post2);
+        if (pref1.equalsIgnoreCase(pref2)) {
+            return LocationPriority.MEDIUM;
+        } else {
+            return LocationPriority.LOW;
         }
     }
 
-    // hostname:port to ip:port
-    static String parseAddress(String address) {
-        String host ;
-        int port;
-        String[] tmp = address.split(ADDRESS_SEPARATOR);
-        if (tmp.length < 2) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address);
-        }
+    // return map<address, location>
+    private Map<String, String> parseAddressInfo(BSONObject obj) {
+        Map<String, String> addrInfo = new HashMap<>();
+        String addr = "";
+        String location;
+        BaseException exp = new BaseException(SDBError.SDB_SYS, "Invalid address information got from catalog");
 
-        try {
-            host = parseHostName(tmp[0].trim());
-            port = Integer.parseInt(tmp[1].trim());
-            return host + ADDRESS_SEPARATOR + port;
-        } catch (NumberFormatException e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address, e);
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse address: " + address, e);
+        if (obj == null) throw exp;
+
+        BasicBSONList arr = (BasicBSONList) obj.get("Group");
+        if (arr == null) throw exp;
+
+        Object[] objArr = arr.toArray();
+        for (Object o : objArr) {
+            BSONObject subObj = (BasicBSONObject) o;
+
+            String hostName = (String) subObj.get("HostName");
+            if (hostName == null || hostName.trim().isEmpty()) throw exp;
+
+            location = (String) subObj.get("Location");
+            // coord node maybe not set location
+            if (location == null) {
+                location = "";
+            }
+
+            String svcName;
+            BasicBSONList subArr = (BasicBSONList) subObj.get("Service");
+            if (subArr == null) throw exp;
+
+            Object[] subObjArr = subArr.toArray();
+            for (Object value : subObjArr) {
+                BSONObject subSubObj = (BSONObject) value;
+
+                Integer type = (Integer) subSubObj.get("Type");
+                if (type == null) throw exp;
+                if (type != 0) {
+                    continue;
+                }
+
+                svcName = (String) subSubObj.get("Name");
+                if (svcName == null || svcName.trim().isEmpty()) throw exp;
+
+                try {
+                    addr = Helper.parseHostName(hostName.trim()) + ":" + svcName.trim();
+                    addrInfo.put(addr, location);
+                } catch (Exception e) {
+                    // ignore
+                }
+                break;
+            }
         }
+        return addrInfo;
     }
 
     private static List<String> getNetCardIPs() {
@@ -347,5 +459,75 @@ class AddressMgr {
             throw new BaseException(SDBError.SDB_SYS, "Failed to get local ip address");
         }
         return localIPs;
+    }
+}
+
+enum LocationPriority {
+    HIGH,
+    MEDIUM,
+    LOW
+}
+
+class LocationPriorityCounter {
+    private int highNum;
+    private int mediumNum;
+
+    LocationPriorityCounter() {
+        reset();
+    }
+
+    void incHighNum() {
+        this.highNum += 1;
+    }
+
+    void decHigNum() {
+        this.highNum -= 1;
+    }
+
+    void incMediumNum() {
+        this.mediumNum += 1;
+    }
+
+    void decMediumNum() {
+        this.mediumNum -= 1;
+    }
+
+    int getHighNum() {
+        return highNum;
+    }
+
+    int getMediumNum() {
+        return mediumNum;
+    }
+
+    void reset() {
+        this.highNum = 0;
+        this.mediumNum = 0;
+    }
+
+    void inc(LocationPriority priority) {
+        switch (priority) {
+            case HIGH:
+                incHighNum();
+                break;
+            case MEDIUM:
+                incMediumNum();
+                break;
+            default:
+                // do nothing
+        }
+    }
+
+    void dec(LocationPriority priority) {
+        switch (priority) {
+            case HIGH:
+                decHigNum();
+                break;
+            case MEDIUM:
+                decMediumNum();
+                break;
+            default:
+                // do nothing
+        }
     }
 }

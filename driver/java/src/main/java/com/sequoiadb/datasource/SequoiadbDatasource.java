@@ -27,11 +27,7 @@ import com.sequoiadb.log.LogFactory;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 
-import java.io.Closeable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
@@ -42,7 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @since v1.12.6 & v2.2
  */
 public class SequoiadbDatasource {
-    private AddressMgr addrMgr;
+    private IAddressMgr addrMgr;
     // for created connections
     private final LinkedBlockingQueue<Sequoiadb> _destroyConnQueue = new LinkedBlockingQueue<Sequoiadb>();
     private IConnectionPool _idleConnPool = null;
@@ -79,6 +75,8 @@ public class SequoiadbDatasource {
     private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
     private static final int MIN_CONNECTION_TIME = 100; // 100ms
     private static Log log = LogFactory.getLog(SequoiadbDatasource.class);
+
+    private boolean needUpdateLocation = false;
 
     // finalizer guardian
     @SuppressWarnings("unused")
@@ -262,7 +260,16 @@ public class SequoiadbDatasource {
         }
     }
 
-    class SynchronizeAddressTask implements Runnable {
+    class SyncAddressInfoTask implements Runnable {
+
+        private final UpdateType type;
+        private int version;  // The version of SYSCoord group
+
+        SyncAddressInfoTask(UpdateType type) {
+            this.type = type;
+            this.version = 0;
+        }
+
         @Override
         public void run() {
             Lock wlock = _rwLock.writeLock();
@@ -271,93 +278,70 @@ public class SequoiadbDatasource {
                 if (Thread.interrupted()) {
                     return;
                 }
-                if (_hasClosed || _dsOpt.getSyncCoordInterval() == 0) {
+                if (_hasClosed) {
                     return;
                 }
-                Iterator<ServerAddress> itr = addrMgr.getNormalAddress().iterator();
-                Sequoiadb sdb = null;
-                while (itr.hasNext()) {
-                    ServerAddress serAddr = itr.next();
-                    try {
-                        sdb = new Sequoiadb(serAddr.getAddress(), _username, _password, _normalNwOpt);
-                        break;
-                    } catch (BaseException e) {
-                        // ignore
-                    }
+                if (_dsOpt.getSyncCoordInterval() == 0 && _dsOpt.getSyncLocationInterval() == 0) {
+                    return;
                 }
-                if (sdb == null) {
+
+                Sequoiadb db = createTempConn();
+                if (db == null) {
                     // if we can't connect to database, let's return
                     return;
                 }
 
-                List<String> addrLst;
+                BSONObject addrInfoObj;
+                int version;
                 try {
-                    addrLst = _synchronizeCoordAddr(sdb);
+                    addrInfoObj = queryAddressInfo(db);
+                    version = parseVersionInfo(addrInfoObj);
+                    if (version == -1) {
+                        log.info("Failed to get version of SYSCoord group");
+                    }
                 } catch (Exception e) {
                     return;
                 } finally {
                     try {
-                        sdb.close();
+                        db.close();
                     } catch (Exception e) {
                         // ignore
                     }
                 }
 
-                List<ServerAddress> decList = addrMgr.updateAddress(addrLst);
-                for (ServerAddress serAddr : decList) {
-                    _removeConnItemInStrategy(serAddr.getAddress());
+                List<String> decList = null;
+                switch (type) {
+                    case ADDRESS:
+                        if (version == -1 || version > this.version) {
+                            decList = addrMgr.updateAddressInfo(addrInfoObj, type);
+                        }
+                        break;
+                    case LOCATION:
+                        if (needUpdateLocation) {
+                            // some new address maybe add from addCoord(), so the sync location task need update
+                            // location for they
+                            decList = addrMgr.updateAddressInfo(addrInfoObj, type);
+                            needUpdateLocation = false;
+                        } else if (version == -1 || version > this.version) {
+                            decList = addrMgr.updateAddressInfo(addrInfoObj, type);
+                        }
+                        break;
+                    default:
+                        throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid update type");
+                }
+
+                if (decList != null) {
+                    for (String addr : decList) {
+                        _removeConnItemInStrategy(addr);
+                    }
+                }
+
+                if (version > this.version) {
+                    this.version = version;
                 }
             } finally {
                 wlock.unlock();
             }
-        }
-
-        private List<String> _synchronizeCoordAddr(Sequoiadb sdb) {
-            List<String> addrList = new ArrayList<String>();
-            BSONObject condition = new BasicBSONObject();
-            condition.put("GroupName", "SYSCoord");
-            BSONObject select = new BasicBSONObject();
-            select.put("Group.HostName", "");
-            select.put("Group.Service", "");
-            DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, condition, select, null);
-            BaseException exp = new BaseException(SDBError.SDB_SYS, "Invalid coord information got from catalog");
-            try {
-                while (cursor.hasNext()) {
-                    BSONObject obj = cursor.getNext();
-                    BasicBSONList arr = (BasicBSONList) obj.get("Group");
-                    if (arr == null) throw exp;
-                    Object[] objArr = arr.toArray();
-                    for (int i = 0; i < objArr.length; i++) {
-                        BSONObject subObj = (BasicBSONObject) objArr[i];
-                        String hostName = (String) subObj.get("HostName");
-                        if (hostName == null || hostName.trim().isEmpty()) throw exp;
-                        String svcName = "";
-                        BasicBSONList subArr = (BasicBSONList) subObj.get("Service");
-                        if (subArr == null) throw exp;
-                        Object[] subObjArr = subArr.toArray();
-                        for (int j = 0; j < subObjArr.length; j++) {
-                            BSONObject subSubObj = (BSONObject) subObjArr[j];
-                            Integer type = (Integer) subSubObj.get("Type");
-                            if (type == null) throw exp;
-                            if (type == 0) {
-                                svcName = (String) subSubObj.get("Name");
-                                if (svcName == null || svcName.trim().isEmpty()) throw exp;
-                                String ip;
-                                try {
-                                    ip = AddressMgr.parseHostName(hostName.trim());
-                                } catch (Exception e) {
-                                    break;
-                                }
-                                addrList.add(ip + ":" + svcName.trim());
-                                break;
-                            }
-                        }
-                    }
-                }
-            } finally {
-                cursor.close();
-            }
-            return addrList;
         }
     }
 
@@ -372,7 +356,7 @@ public class SequoiadbDatasource {
 
     private SequoiadbDatasource( Builder builder ) {
         String passwd = Helper.getPasswd( builder.userConfig );
-        _init(builder.addressList, builder.userConfig.getUserName(), passwd,
+        _init(builder.addressList, builder.location, builder.userConfig.getUserName(), passwd,
                 builder.configOptions, builder.datasourceOptions);
     }
 
@@ -384,7 +368,7 @@ public class SequoiadbDatasource {
      * get them back for use. When connection pool get a unavailable address to connect,
      * the default timeout is 100ms, and default retry time is 0. Parameter nwOpt can
      * can change both of the default value.
-     * @param urls     the addresses of coord nodes, can't be null or empty,
+     * @param addressList the addresses of coord nodes, can't be null or empty,
      *                 e.g."ubuntu1:11810","ubuntu2:11810",...
      * @param username the user name for logging sequoiadb
      * @param password the password for logging sequoiadb
@@ -394,13 +378,13 @@ public class SequoiadbDatasource {
      * @see ConfigOptions
      * @see DatasourceOptions
      */
-    public SequoiadbDatasource(List<String> urls, String username, String password,
+    public SequoiadbDatasource(List<String> addressList, String username, String password,
                                ConfigOptions nwOpt, DatasourceOptions dsOpt) throws BaseException {
-        if (null == urls || 0 == urls.size())
+        if (null == addressList || 0 == addressList.size())
             throw new BaseException(SDBError.SDB_INVALIDARG, "coord addresses can't be empty or null");
 
         // init connection pool
-        _init(urls, username, password, nwOpt, dsOpt);
+        _init(addressList, "", username, password, nwOpt, dsOpt);
     }
 
     /**
@@ -408,25 +392,25 @@ public class SequoiadbDatasource {
      * @see #SequoiadbDatasource(List, String, String, com.sequoiadb.base.ConfigOptions, DatasourceOptions)
      */
     @Deprecated
-    public SequoiadbDatasource(List<String> urls, String username, String password,
+    public SequoiadbDatasource(List<String> addressList, String username, String password,
                                com.sequoiadb.net.ConfigOptions nwOpt, DatasourceOptions dsOpt) throws BaseException {
-        this(urls, username, password, (ConfigOptions) nwOpt, dsOpt);
+        this(addressList, username, password, (ConfigOptions) nwOpt, dsOpt);
     }
 
     /**
-     * @param url      the address of coord, can't be empty or null, e.g."ubuntu1:11810"
+     * @param address      the address of coord, can't be empty or null, e.g."ubuntu1:11810"
      * @param username the user name for logging sequoiadb
      * @param password the password for logging sequoiadb
      * @param dsOpt    the options for connection pool
      * @throws BaseException If error happens.
      */
-    public SequoiadbDatasource(String url, String username, String password,
+    public SequoiadbDatasource(String address, String username, String password,
                                DatasourceOptions dsOpt) throws BaseException {
-        if (url == null || url.isEmpty())
+        if (address == null || address.isEmpty())
             throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be empty or null");
-        ArrayList<String> urls = new ArrayList<String>();
-        urls.add(url);
-        _init(urls, username, password, null, dsOpt);
+        ArrayList<String> addrLst = new ArrayList<String>();
+        addrLst.add(address);
+        _init(addrLst, "", username, password, null, dsOpt);
     }
 
     /**
@@ -490,8 +474,9 @@ public class SequoiadbDatasource {
             if (address == null || address.equals( "" ) ) {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "Address can't be empty or null");
             }
-            String addr = AddressMgr.parseAddress(address);
+            String addr = Helper.parseAddress(address);
             addrMgr.addAddress(addr);
+            needUpdateLocation = true;
         } finally {
             wlock.unlock();
         }
@@ -513,7 +498,7 @@ public class SequoiadbDatasource {
             if (address == null || address.equals( "" )) {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "Address can't be empty or null");
             }
-            String addr = AddressMgr.parseAddress(address);
+            String addr = Helper.parseAddress(address);
             addrMgr.removeAddress(addr);
             log.info(String.format("Remove address: %s", address));
             if (_isDatasourceOn) {
@@ -561,6 +546,7 @@ public class SequoiadbDatasource {
             int previousMaxCount = _dsOpt.getMaxCount();
             int previousCheckInterval = _dsOpt.getCheckInterval();
             int previousSyncCoordInterval = _dsOpt.getSyncCoordInterval();
+            int previousSyncLocationInterval = _dsOpt.getSyncLocationInterval();
             ConnectStrategy previousStrategy = _dsOpt.getConnectStrategy();
 
             // reset options
@@ -623,7 +609,8 @@ public class SequoiadbDatasource {
                 _startThreads();
                 _currentSequenceNumber = _connItemMgr.getCurrentSequenceNumber();
             } else if (previousCheckInterval != _dsOpt.getCheckInterval() ||
-                    previousSyncCoordInterval != _dsOpt.getSyncCoordInterval()) {
+                    previousSyncCoordInterval != _dsOpt.getSyncCoordInterval() ||
+                    previousSyncLocationInterval != _dsOpt.getSyncLocationInterval()) {
                 _cancelTimer();
                 _startTimer();
             }
@@ -950,9 +937,18 @@ public class SequoiadbDatasource {
         }
     }
 
-    private void _init(List<String> addrList, String username, String password,
+    /**
+     * Get the location name of current connection pool.
+     * @return The location name
+     */
+    public String getLocation() {
+        return addrMgr.getLocation();
+    }
+
+    private void _init(List<String> addrList, String location, String username, String password,
                        ConfigOptions nwOpt, DatasourceOptions dsOpt) throws BaseException {
-        addrMgr = new AddressMgr(addrList);
+        addrMgr = new AddressMgr(addrList, location);
+
         _username = (username == null) ? "" : username;
         _password = (password == null) ? "" : password;
 
@@ -991,6 +987,10 @@ public class SequoiadbDatasource {
         _abnormalNwOpt.setConnectTimeout(MIN_CONNECTION_TIME);  // 100ms
         _abnormalNwOpt.setMaxAutoConnectRetryTime(0);  //0ms
 
+        if (!addrMgr.getLocation().isEmpty()) {
+            updateLocationInfo();
+        }
+
         // if connection is shutdown, return directly
         if (_dsOpt.getMaxCount() == 0) {
             _isDatasourceOn = false;
@@ -1014,10 +1014,16 @@ public class SequoiadbDatasource {
                 }
         );
         if (_dsOpt.getSyncCoordInterval() > 0) {
-            _timerExec.scheduleAtFixedRate(new SynchronizeAddressTask(), 0, _dsOpt.getSyncCoordInterval(),
+            _timerExec.scheduleAtFixedRate(new SyncAddressInfoTask(UpdateType.ADDRESS), 0, _dsOpt.getSyncCoordInterval(),
                     TimeUnit.MILLISECONDS);
             log.debug("Synchronize address task has been started");
         }
+        if (_dsOpt.getSyncLocationInterval() > 0 && !addrMgr.getLocation().isEmpty()) {
+            _timerExec.scheduleAtFixedRate(new SyncAddressInfoTask(UpdateType.LOCATION), 0, _dsOpt.getSyncLocationInterval(),
+                    TimeUnit.MILLISECONDS);
+            log.debug("Synchronize location task has been started");
+        }
+
         _timerExec.scheduleAtFixedRate(new CheckConnectionTask(), _dsOpt.getCheckInterval(),
                 _dsOpt.getCheckInterval(), TimeUnit.MILLISECONDS);
         log.debug("Check connection task has been started");
@@ -1029,6 +1035,9 @@ public class SequoiadbDatasource {
         _timerExec.shutdownNow();
         if (_dsOpt.getSyncCoordInterval() > 0) {
             log.debug("Synchronize address task has been closed");
+        }
+        if (_dsOpt.getSyncLocationInterval() > 0 && !addrMgr.getLocation().isEmpty()) {
+            log.debug("Synchronize location task has been closed");
         }
         log.debug("Check connection task has been closed");
         log.debug("Retrieve address task has been closed");
@@ -1162,8 +1171,10 @@ public class SequoiadbDatasource {
             throw new BaseException(SDBError.SDB_SYS, e);
         }
 
-        List<ServerAddress> serAddrLst = addrMgr.getNormalAddress();
         while (true) {
+            // Location maybe change, so need get addresses from addrMgr every time
+            List<ServerAddress> serAddrLst = addrMgr.getAddress();
+
             if (timer.isTimeout()) {
                 throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
             }
@@ -1302,7 +1313,7 @@ public class SequoiadbDatasource {
             // create new connection
             while (true) {
                 serAddr = null;
-                serAddr = _strategy.selectAddress(addrMgr.getNormalAddress());
+                serAddr = _strategy.selectAddress(addrMgr.getAddress());
                 if (serAddr == null) {
                     // when have no address, we don't want to report any error message,
                     // let it done by main branch.
@@ -1360,7 +1371,7 @@ public class SequoiadbDatasource {
             return false;
         }
 
-        if (!addrMgr.isNormalAddress(sdb.getNodeName())) {
+        if (!addrMgr.checkAddress(sdb.getNodeName())) {
             return false;
         }
 
@@ -1478,6 +1489,81 @@ public class SequoiadbDatasource {
         sdb.getConnProxy().setSoTimeout(config.getSocketTimeout());
     }
 
+    private void updateLocationInfo() {
+        Sequoiadb db = createTempConn();
+        if (db == null) {
+            log.warn("Failed to update location information for addresses");
+            return;
+        }
+        try {
+            BSONObject addInfoObj = queryAddressInfo(db);
+            addrMgr.updateAddressInfo(addInfoObj, UpdateType.LOCATION);
+        } finally {
+            try {
+                db.close();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+    }
+
+    private Sequoiadb createTempConn() {
+        Iterator<ServerAddress> itr = addrMgr.getAddress().iterator();
+        Sequoiadb sdb = null;
+        while (itr.hasNext()) {
+            ServerAddress addr = itr.next();
+            try {
+                sdb = new Sequoiadb(addr.getAddress(), _username, _password, _normalNwOpt);
+                break;
+            } catch (BaseException e) {
+                // ignore
+            }
+        }
+        return sdb;
+    }
+
+    private BSONObject queryAddressInfo(Sequoiadb db) {
+        BSONObject condition = new BasicBSONObject();
+        condition.put("GroupName", "SYSCoord");
+        BSONObject select = new BasicBSONObject();
+        select.put("Group.HostName", "");
+        select.put("Group.Service", "");
+        select.put("Group.Location", "");
+        select.put("Version", "");
+
+        DBCursor cursor = db.getList(Sequoiadb.SDB_LIST_GROUPS, condition, select, null);
+        try {
+            return cursor.getNext();
+        } finally {
+            try {
+                cursor.close();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+    }
+
+    // -1 mean failed to get version from BSONObj
+    private int parseVersionInfo(BSONObject obj) {
+        int version = -1;
+        Object verObj = obj.get("Version");
+        if (verObj == null ) {
+            return version;
+        }
+
+        // if the 'Version' field not exist in old version, the verObj maybe an empty string
+        if (verObj instanceof String) {
+            try {
+                version = Integer.parseInt((String) verObj);
+            } catch (Exception e) {
+                // ignore
+            }
+        } else if (verObj instanceof Number) {
+            version = (Integer) verObj;
+        }
+        return version;
+    }
+
     /**
      * The builder of SequoiadbDatasource.
      *
@@ -1497,6 +1583,7 @@ public class SequoiadbDatasource {
      */
     public static final class Builder {
         private List<String> addressList = null;
+        private String location = "";
         private UserConfig userConfig = null;
         private ConfigOptions configOptions = null;
         private DatasourceOptions datasourceOptions = null;
@@ -1528,6 +1615,21 @@ public class SequoiadbDatasource {
                 throw new BaseException( SDBError.SDB_INVALIDARG, "The server address list is null or empty" );
             }
             this.addressList = addressList;
+            return this;
+        }
+
+        /**
+         * Set the location name of connection pool, the format is consistent with SequoiaDB node, eg: guangdong.guangzhou.
+         * When the connection pool creates a new connection, it will use the address of the same location first, then use
+         * the address of location affinity, and finally use the remaining address.
+         *
+         * @param location The location name, case sensitive. Default is "".
+         */
+        public Builder location(String location) {
+            if (location == null) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The location name is null" );
+            }
+            this.location = location;
             return this;
         }
 
@@ -1601,7 +1703,7 @@ public class SequoiadbDatasource {
                 _idleConnPool != null ? _idleConnPool.count() : null);
     }
 
-    private void resetConnTime(Timer timer, ConfigOptions netOpt){
+    private void resetConnTime(Timer timer, ConfigOptions netOpt) {
         if (!timer.getStatus()) {
             return;
         }
@@ -1612,11 +1714,11 @@ public class SequoiadbDatasource {
         long connTimeout = netOpt.getConnectTimeout();
 
         // connTimeout == 0 means socket.connect() infinite timeout.
-        if (connTimeout == 0 || connTimeout > time ) {
+        if (connTimeout == 0 || connTimeout > time) {
             connTimeout = time;
         }
 
-        netOpt.setConnectTimeout((int)connTimeout);
+        netOpt.setConnectTimeout((int) connTimeout);
         netOpt.setMaxAutoConnectRetryTime(retryTimeOut);
     }
 }

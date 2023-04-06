@@ -37,7 +37,6 @@ abstract class AbstractStrategy implements IConnectStrategy {
             Iterator<Pair> idleConnPairItr = _idleConnPairs.iterator();
             while (idleConnPairItr.hasNext()) {
                 Pair pair = idleConnPairItr.next();
-                String addr = pair.first().getAddr();
                 _addConnItem(pair.first());
             }
         }

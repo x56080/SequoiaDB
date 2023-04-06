@@ -15,6 +15,7 @@
 package com.sequoiadb.util;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
@@ -38,6 +39,8 @@ public final class Helper {
     public static final String ENCODING_TYPE =  "UTF-8";
 
     public static final long INIT_LONG = -1L;
+
+    public final static String ADDRESS_SEPARATOR = ":";
 
     public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
         if ( srcObj == null ){
@@ -430,5 +433,34 @@ public final class Helper {
 
     public static byte[] Base64Decode( String data ) {
         return Base64.getDecoder().decode( data );
+    }
+
+    // hostname to ip
+    public static String parseHostName(String hostName) {
+        try {
+            return InetAddress.getByName(hostName).getHostAddress();
+        } catch (Exception e) {
+            throw new BaseException(SDBError.SDB_SYS, "Failed to parse hostname: " + hostName, e);
+        }
+    }
+
+    // hostname:port to ip:port
+    public static String parseAddress(String address) {
+        String host ;
+        int port;
+        String[] tmp = address.split(ADDRESS_SEPARATOR);
+        if (tmp.length < 2) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address);
+        }
+
+        try {
+            host = parseHostName(tmp[0].trim());
+            port = Integer.parseInt(tmp[1].trim());
+            return host + ADDRESS_SEPARATOR + port;
+        } catch (NumberFormatException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid address format: " + address, e);
+        } catch (Exception e) {
+            throw new BaseException(SDBError.SDB_SYS, "Failed to parse address: " + address, e);
+        }
     }
 }

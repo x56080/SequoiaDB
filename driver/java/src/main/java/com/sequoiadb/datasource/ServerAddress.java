@@ -16,41 +16,54 @@
 
 package com.sequoiadb.datasource;
 
-import java.util.Objects;
-
 class ServerAddress {
     private final String address;
     private boolean isLocal;
+    private boolean isEnable;
+    private String location;
+    private LocationPriority priority;
 
     ServerAddress(String address) {
         this.address = address;
         this.isLocal = false;
+        this.isEnable = true;
+        this.location = "";
+        this.priority = LocationPriority.LOW;
+    }
+
+    String getAddress() {
+        return this.address;
     }
 
     void setLocal(boolean value) {
         this.isLocal = value;
     }
 
-    String getAddress() {
-        return address;
+    void setEnable(boolean value) {
+        this.isEnable = value;
+    }
+
+    void setLocation(String location) {
+        this.location = location;
+    }
+
+    void setLocationPriority(LocationPriority priority) {
+        this.priority = priority;
     }
 
     boolean isLocal() {
         return isLocal;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ServerAddress)) return false;
-
-        ServerAddress that = (ServerAddress) o;
-
-        return Objects.equals(address, that.address);
+    boolean isEnable() {
+        return isEnable;
     }
 
-    @Override
-    public int hashCode() {
-        return address != null ? address.hashCode() : 0;
+    String getLocation() {
+        return location;
+    }
+
+    LocationPriority getLocationPriority() {
+        return priority;
     }
 }
