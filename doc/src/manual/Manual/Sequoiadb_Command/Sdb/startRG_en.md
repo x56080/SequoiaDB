@@ -12,7 +12,7 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to start the specified replication group. Only after the replication group is started can nodes be created on the replication group. This method is equivalent to [rg.start()][start].
+This function is used to start the specified replication group, and related operations of the collection can only be performed after the start. This method is equivalent to [rg.start()][start].
 
 ##PARAMETERS##
 

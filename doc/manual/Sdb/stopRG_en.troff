@@ -14,8 +14,8 @@ stopRG \- stop the replication group
 Sdb
 .SH DESCRIPTION
 .PP
-This function is used to stop the specified replication group.
-After stopping, users cannot perform related operations such as creating nodes.
+This function is used to stop the specified replication group, and related
+operations of the collection cannot be performed after the stop.
 This method is equivalent to rg.stop().
 .SH PARAMETERS
 .PP

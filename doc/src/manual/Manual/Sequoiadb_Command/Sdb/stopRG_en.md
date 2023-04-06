@@ -12,7 +12,7 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to stop the specified replication group. After stopping, users cannot perform related operations such as creating nodes. This method is equivalent to [rg.stop()][stop].
+This function is used to stop the specified replication group, and related operations of the collection cannot be performed after the stop. This method is equivalent to [rg.stop()][stop].
 
 ##PARAMETERS##
 
