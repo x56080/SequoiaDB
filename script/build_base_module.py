@@ -118,22 +118,9 @@ class CompileBaseModuleMgr:
          print_log('Finish compile python driver')
 
    def compile_connector(self, db_version):
-      #hive, hadoop connector need sequoaidb.jar, so prepare the env first
-      java_dir = os.path.join(self.root_dir, 'driver/java')
-      jar_dir = os.path.join(java_dir, 'target')
-      jar_name = 'sequoiadb.jar'
-      file_name = self.get_jar_name(jar_dir)
-      if file_name.strip() == '':
-         self.err_exit(1, 'Unable to find sequoiadb.jar, Compile fail')
-      src_file = os.path.join(jar_dir, file_name)
-      target_file = os.path.join(java_dir, jar_name)
-      shutil.copy(src_file, target_file)
-      
       self.compile_pg_connector()
       self.compile_om_plugin(db_version)
       self.compile_s3(db_version)
-      self.compile_hive_connector()
-      self.compile_hadoop_connector()
       self.compile_spark(db_version)
       self.compile_spark3(db_version)
       self.compile_flink(db_version)
@@ -170,22 +157,6 @@ class CompileBaseModuleMgr:
       self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env)
       print_log('Finish compile sequoias3')
 
-   def compile_hive_connector(self):
-      print_log('Begine compile hive connector')
-      hive_dir = os.path.join(self.root_dir, 'driver/hadoop/hive')
-      hive_cmd = 'ant'
-      self.run_in_dir(hive_cmd, hive_dir, self.jdk_env)
-      print_log('Finish compile hive connector')
-      
-   def compile_hadoop_connector(self):
-      print_log('Begine compile hive connector')
-      hadoop_dir = os.path.join(self.root_dir, 'driver/hadoop/hadoop-connector')
-      hadoop_cmd = 'ant -Dhadoop.version=1.2'
-      self.run_in_dir(hadoop_cmd, hadoop_dir, self.jdk_env)
-      hadoop_cmd = 'ant -Dhadoop.version=2.2'
-      self.run_in_dir(hadoop_cmd, hadoop_dir, self.jdk_env)
-      print_log('Finish compile hadoop')
-      
    def compile_spark(self, db_version):
       print_log('Begine compile spark connector')
       spark_dir = os.path.join(self.root_dir, 'driver/spark')
@@ -213,17 +184,6 @@ class CompileBaseModuleMgr:
    def set_pom_version(self, db_version, src_path):
       set_version_cmd = 'mvn versions:set -DnewVersion={}'.format(db_version)
       self.run_in_dir(set_version_cmd, src_path)
-
-   # get java driver jar name, exclude javadoc.jar
-   def get_jar_name(self, src_dir):
-      for root_path, dir_list, file_list in os.walk(src_dir):
-         for f_name in file_list:
-            if not f_name.endswith('.jar'):
-               continue
-            else:
-               if 'javadoc' not in f_name:
-                  return f_name
-      return ''
 
    def run_in_dir(self, cmd, dir, env=None):
       print_log('Run command: {} in dir {}'.format(cmd, dir))

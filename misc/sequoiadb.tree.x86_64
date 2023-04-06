@@ -988,11 +988,6 @@ sequoiadb
 ├── flink
 │   ├── sdb-flink-connector-${SYS_VERSION}.jar
 │   └── sdb-flink-connector-${SYS_VERSION}-jar-with-dependencies.jar
-├── hadoop
-│   ├── hadoop-connector-1.2.jar
-│   ├── hadoop-connector-2.2.jar
-│   ├── hive-sequoiadb-apache.jar
-│   └── hive-sequoiadb-cdh-5.0.0-beta-2.jar
 ├── include
 │   ├── base64c.h
 │   ├── bson
