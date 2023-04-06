@@ -58,7 +58,7 @@
       ("shell,s", po::value< string >(),                          \
        "if the -s option is present, "                            \
        "then commands are read from <string>")                    \
-      ("runtime-size", po::value< int >()->default_value(64),     \
+      ("runtime-size", po::value< UINT32 >(),                     \
        "the memory size for the JS_NewRuntime instance, in "      \
        "megabytes. If the "                                       \
        "provided value is less than 64, the value will be set to "\

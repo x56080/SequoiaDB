@@ -199,6 +199,21 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
       argInfo.language = (l == SPT_LANG_EN || l == SPT_LANG_CN) ? l : SPT_LANG_EN ;
       argc -= 2 ;
    }
+
+   if ( vm.count( SDB_OPTOPN_RUNTIME_SIZE ) )
+   {
+      UINT32 runtimeSize = vm[SDB_OPTOPN_RUNTIME_SIZE].as<UINT32>() ;
+      if ( runtimeSize < SPT_OPT_RUNTIME_SIZE_MIN )
+      {
+         argInfo.runtimeSize = SPT_OPT_RUNTIME_SIZE_MIN ;
+      }
+      else
+      {
+         argInfo.runtimeSize = runtimeSize ;
+      }
+      argc -= 2 ;
+   }
+
    if ( 1 == argc )
    {
       // Empty. Normal interactive mode
@@ -221,19 +236,6 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
       printUsage() ;
       goto error ;
    }
-
-   if ( vm.count( SDB_OPTOPN_RUNTIME_SIZE ) )
-   {
-      UINT32 runtimeSize = vm[SDB_OPTOPN_RUNTIME_SIZE].as<UINT32>() ;
-      if ( runtimeSize < SPT_OPT_RUNTIME_SIZE_MIN )
-      {
-         argInfo.runtimeSize = SPT_OPT_RUNTIME_SIZE_MIN ;
-      }
-      else
-      {
-         argInfo.runtimeSize = runtimeSize ;
-      }
-   } 
 
 done :
    PD_TRACE_EXITRC ( SDB_PARSEARGUMENTS, rc );
