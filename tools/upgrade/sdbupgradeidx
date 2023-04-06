@@ -235,7 +235,7 @@ fi
 jsParameter="'"$jsParameter"'"
 
 # execute command
-command=$sdbShellPath" -f "$jsFile" -e "$jsParameter" > "$OUTPUT
+command=$sdbShellPath" -f "$jsFile" -e "$jsParameter" --runtime-size 4096 > "$OUTPUT
 #echo "Execute command: "$command
 eval $command
 echo "Generate report: "$OUTPUT

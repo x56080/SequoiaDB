@@ -235,7 +235,6 @@ namespace engine
    } ;
 
    #define SPT_RVAL_KEY          ""
-   const UINT32 RUNTIME_SIZE = 64 * 1024 * 1024 ;
 
    /*
       _sptSPResultVal implement
@@ -321,10 +320,14 @@ namespace engine
       shutdown() ;
    }
 
-   INT32 _sptSPScope::start( UINT32 loadMask )
+   INT32 _sptSPScope::start( UINT32 loadMask, UINT32 runtimeMegaBytes )
    {
       INT32 rc = SDB_OK ;
       BSONObj::setJSCompatibility( TRUE ) ;
+      UINT64 runtimeBytesLL = 1024ull * 1024ull * runtimeMegaBytes ;
+      UINT32 runtimeBytes = runtimeBytesLL > OSS_UINT32_MAX
+                               ? OSS_UINT32_MAX
+                               : static_cast< UINT32 >( runtimeBytesLL ) ;
       if ( NULL != _runtime )
       {
          ossPrintf( "scope has already been started up"OSS_NEWLINE) ;
@@ -332,7 +335,7 @@ namespace engine
          goto error ;
       }
 
-      _runtime = JS_NewRuntime( RUNTIME_SIZE );
+      _runtime = JS_NewRuntime( runtimeBytes ) ;
       if ( NULL == _runtime )
       {
          ossPrintf( "failed to init js runtime"OSS_NEWLINE ) ;
@@ -340,7 +343,7 @@ namespace engine
          goto error ;
       }
 
-      _context = JS_NewContext( _runtime, RUNTIME_SIZE / 8 );
+      _context = JS_NewContext( _runtime, runtimeBytes / 8 ) ;
       if ( NULL == _context )
       {
          ossPrintf( "failed to init js context"OSS_NEWLINE ) ;

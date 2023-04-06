@@ -58,6 +58,8 @@ namespace engine
 
    #define SPT_OBJ_MASK_ALL                     0xFFFF
 
+   #define SPT_RUNTIME_MB_SIZE_DEFAULT          64
+
    /*
       _sptResultVal define
    */
@@ -111,7 +113,7 @@ namespace engine
       string   calcImportPath( const string &filename ) ;
 
    public:
-      virtual INT32  start( UINT32 loadMask = SPT_OBJ_MASK_ALL ) = 0 ;
+      virtual INT32  start( UINT32 loadMask = SPT_OBJ_MASK_ALL, UINT32 runtimeMegaBytes = SPT_RUNTIME_MB_SIZE_DEFAULT ) = 0 ;
 
       virtual void   shutdown() = 0 ;
 

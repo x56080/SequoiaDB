@@ -104,7 +104,8 @@ namespace engine
    }
 
    _sptScope* _sptContainer::_createScope( SPT_SCOPE_TYPE type,
-                                           UINT32 loadMask )
+                                           UINT32 loadMask,
+                                           UINT32 runtimeMegaBytes )
    {
       INT32 rc = SDB_OK ;
       _sptScope *scope = NULL ;
@@ -120,7 +121,7 @@ namespace engine
          goto error ;
       }
 
-      rc = scope->start( loadMask ) ;
+      rc = scope->start( loadMask, runtimeMegaBytes ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Failed to init scope, rc: %d"OSS_NEWLINE, rc ) ;
@@ -135,7 +136,8 @@ namespace engine
    }
 
    _sptScope *_sptContainer::newScope( SPT_SCOPE_TYPE type,
-                                       UINT32 loadMask )
+                                       UINT32 loadMask,
+                                       UINT32 runtimeMegaBytes )
    {
       _sptScope *scope = _getFromCache( type, loadMask ) ;
       if ( scope )
@@ -143,7 +145,7 @@ namespace engine
          goto done ;
       }
 
-      scope = _createScope( type, loadMask ) ;
+      scope = _createScope( type, loadMask, runtimeMegaBytes ) ;
       if ( !scope )
       {
          ossPrintf( "Failed to create scope[%d]"OSS_NEWLINE, type ) ;
