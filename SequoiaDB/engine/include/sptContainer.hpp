@@ -60,7 +60,8 @@ namespace engine
 
    public:
       _sptScope   *newScope( SPT_SCOPE_TYPE type = SPT_SCOPE_TYPE_SP,
-                             UINT32 loadMask = SPT_OBJ_MASK_ALL ) ;
+                             UINT32 loadMask = SPT_OBJ_MASK_ALL,
+                             UINT32 runtimeMegaBytes = SPT_RUNTIME_MB_SIZE_DEFAULT ) ;
       void        releaseScope( _sptScope *pScope ) ;
 
    protected:
@@ -68,7 +69,8 @@ namespace engine
                                 UINT32 loadMask ) ;
 
       _sptScope* _createScope( SPT_SCOPE_TYPE type,
-                               UINT32 loadMask ) ;
+                               UINT32 loadMask,
+                               UINT32 runtimeMegaBytes ) ;
 
    private:
       VEC_SCOPE            _vecScopes ;
