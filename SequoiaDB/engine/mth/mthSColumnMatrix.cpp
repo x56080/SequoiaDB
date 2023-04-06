@@ -95,25 +95,30 @@ namespace engine
 
       try
       {
-         BOOLEAN kownedType = TRUE ;
+         BOOLEAN checkSelectSet = NULL != pSelectSet ;
          /// must be sorted.
          BSONObjIteratorSorted i( _pattern ) ;
          while ( i.more() )
          {
             BSONElement e = i.next() ;
 
-            if( NULL != pSelectSet )
+            if ( checkSelectSet )
             {
                static BSONObj objInclude = BSON( "$include" << 1 ) ;
-               // field is object and is not include, clear pSelectSet
-               // then follow proccess will set indexCover to FALSE if pSelectSet is empty
-               if( Object == e.type() &&
-                   !e.embeddedObject().shallowEqual( objInclude ) )
+               if ( Object == e.type() )
                {
-                  pSelectSet->clear() ;
-                  kownedType = FALSE ;
+                  BSONObj tmpObj = e.embeddedObject() ;
+                  // field is object and is not include, clear pSelectSet
+                  // then follow proccess will set indexCover to FALSE if pSelectSet is empty
+                  if ( !tmpObj.shallowEqual( objInclude ) &&
+                       0 == tmpObj.getIntField( "$include" ) )
+                  {
+                     pSelectSet->clear() ;
+                     checkSelectSet = FASLE ;
+                  }
                }
-               else if( TRUE == kownedType)
+
+               if ( checkSelectSet )
                {
                   pSelectSet->insert( e.fieldName() ) ;
                }

@@ -40,7 +40,7 @@
 
 namespace engine
 {
-   class _mthSColumnMatrix : public _mthSColumn 
+   class _mthSColumnMatrix : public _mthSColumn
    {
    public:
       _mthSColumnMatrix() ;
