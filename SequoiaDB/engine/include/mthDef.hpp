@@ -73,6 +73,9 @@ namespace engine
    #define MTH_S_LEFTCP         MTH_S_PREFIX"leftCP"
    #define MTH_S_LEFTBYTES      MTH_S_PREFIX"leftBytes"
    #define MTH_S_CONCAT         MTH_S_PREFIX"concat"
+   #define MTH_S_DAY            MTH_S_PREFIX"day"
+   #define MTH_S_MONTH          MTH_S_PREFIX"month"
+   #define MTH_S_YEAR           MTH_S_PREFIX"year"
 
 
    typedef UINT32 MTH_S_ATTRIBUTE ;

@@ -273,6 +273,36 @@ namespace engine
                        _mthSAction *,
                        bson::BSONElement & ) ;
 
+   INT32 mthDayBuild( const CHAR *,
+                      const bson::BSONElement &,
+                      _mthSAction *,
+                      bson::BSONObjBuilder & ) ;
+
+   INT32 mthDayGet( const CHAR *,
+                    const bson::BSONElement &,
+                    _mthSAction *,
+                    bson::BSONElement & ) ;
+
+   INT32 mthMonthBuild( const CHAR *,
+                        const bson::BSONElement &,
+                        _mthSAction *,
+                        bson::BSONObjBuilder & ) ;
+
+   INT32 mthMonthGet( const CHAR *,
+                      const bson::BSONElement &,
+                      _mthSAction *,
+                      bson::BSONElement & ) ;
+
+   INT32 mthYearBuild( const CHAR *,
+                       const bson::BSONElement &,
+                       _mthSAction *,
+                       bson::BSONObjBuilder & ) ;
+
+   INT32 mthYearGet( const CHAR *,
+                     const bson::BSONElement &,
+                     _mthSAction *,
+                     bson::BSONElement & ) ;
+
    INT32 mthStrLenBuild( const CHAR *,
                          const bson::BSONElement &,
                          _mthSAction *,

@@ -571,5 +571,95 @@ namespace engine
    error:
       goto done ;
    }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHDAYPARSER_PARSE, "_mthDayParser::parse" )
+   INT32 _mthDayParser::parse( const bson::BSONElement &e,
+                               _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHDAYPARSER_PARSE ) ;
+
+      if ( e.eoo() )
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !mthIsNumber1( e ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_RC_CHECK( rc, PDERROR, "placeholder must be 1" ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthDayBuild, &mthDayGet ) ;
+      action.setName( _name.c_str() ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHDAYPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMONTHPARSER_PARSE, "_mthMonthParser::parse" )
+   INT32 _mthMonthParser::parse( const bson::BSONElement &e,
+                                 _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMONTHPARSER_PARSE ) ;
+
+      if ( e.eoo() )
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !mthIsNumber1( e ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_RC_CHECK( rc, PDERROR, "placeholder must be 1" ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthMonthBuild, &mthMonthGet ) ;
+      action.setName( _name.c_str() ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMONTHPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHYEARPARSER_PARSE, "_mthYearParser::parse" )
+   INT32 _mthYearParser::parse( const bson::BSONElement &e,
+                                 _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHYEARPARSER_PARSE ) ;
+
+      if ( e.eoo() )
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !mthIsNumber1( e ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_RC_CHECK( rc, PDERROR, "placeholder must be 1" ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthYearBuild, &mthYearGet ) ;
+      action.setName( _name.c_str() ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHYEARPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 

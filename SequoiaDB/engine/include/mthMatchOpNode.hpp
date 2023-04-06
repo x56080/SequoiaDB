@@ -437,6 +437,42 @@ namespace engine
          BOOLEAN       _isReturnNull ;
    } ;
 
+   class _mthMatchFuncDAY : public _mthMatchUnaryFunc
+   {
+      public:
+         _mthMatchFuncDAY( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncDAY() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+   } ;
+
+   class _mthMatchFuncMONTH : public _mthMatchUnaryFunc
+   {
+      public:
+         _mthMatchFuncMONTH( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncMONTH() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+   } ;
+
+   class _mthMatchFuncYEAR : public _mthMatchUnaryFunc
+   {
+      public:
+         _mthMatchFuncYEAR( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncYEAR() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+   } ;
+
    class _mthMatchFuncMOD : public _mthMatchFunc
    {
       public:

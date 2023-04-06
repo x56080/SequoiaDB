@@ -1273,6 +1273,118 @@ namespace engine
       goto done ;
    }
 
+   //************************_mthMatchFuncDAY********************************
+   _mthMatchFuncDAY::_mthMatchFuncDAY( _mthNodeAllocator *allocator )
+   :_mthMatchUnaryFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncDAY::~_mthMatchFuncDAY()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncDAY::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthDay( _fieldName.getFieldName(), in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthDay failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncDAY::getType()
+   {
+      return EN_MATCH_FUNC_DAY ;
+   }
+
+   const CHAR* _mthMatchFuncDAY::getName()
+   {
+      return MTH_FUNCTION_STR_DAY ;
+   }
+
+   //************************_mthMatchFuncMONTH********************************
+   _mthMatchFuncMONTH::_mthMatchFuncMONTH( _mthNodeAllocator *allocator )
+   :_mthMatchUnaryFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncMONTH::~_mthMatchFuncMONTH()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncMONTH::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthMonth( _fieldName.getFieldName(), in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthMonth failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncMONTH::getType()
+   {
+      return EN_MATCH_FUNC_MONTH ;
+   }
+
+   const CHAR* _mthMatchFuncMONTH::getName()
+   {
+      return MTH_FUNCTION_STR_MONTH ;
+   }
+
+    //************************_mthMatchFuncYEAR********************************
+   _mthMatchFuncYEAR::_mthMatchFuncYEAR( _mthNodeAllocator *allocator )
+   :_mthMatchUnaryFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncYEAR::~_mthMatchFuncYEAR()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncYEAR::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthYear( _fieldName.getFieldName(), in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthYear failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncYEAR::getType()
+   {
+      return EN_MATCH_FUNC_YEAR ;
+   }
+
+   const CHAR* _mthMatchFuncYEAR::getName()
+   {
+      return MTH_FUNCTION_STR_YEAR ;
+   }
+
+
    //************************_mthMatchFuncMOD********************************
    _mthMatchFuncMOD::_mthMatchFuncMOD( _mthNodeAllocator *allocator )
                     :_mthMatchFunc( allocator )

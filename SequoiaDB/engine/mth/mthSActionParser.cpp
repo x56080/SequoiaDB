@@ -246,6 +246,15 @@ namespace engine
       /// $concat
       MTH_ADD_PARSER( _mthConcatParser ) ;
 
+      /// $day
+      MTH_ADD_PARSER( _mthDayParser ) ;
+
+      /// $month
+      MTH_ADD_PARSER( _mthMonthParser ) ;
+
+      /// $year
+      MTH_ADD_PARSER( _mthYearParser ) ;
+
       /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 

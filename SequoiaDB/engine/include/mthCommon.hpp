@@ -125,6 +125,15 @@ namespace engine
                     const CHAR *prefix, const CHAR *suffix,
                     BOOLEAN isReturnNull, BSONObjBuilder &outBuilder ) ;
 
+   INT32 mthDay( const CHAR *name, const BSONElement &in,
+                 BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthMonth( const CHAR *name, const BSONElement &in,
+                   BSONObjBuilder &outBuilder ) ;
+
+   INT32 mthYear( const CHAR *name, const BSONElement &in,
+                  BSONObjBuilder &outBuilder ) ;
+
    INT32 mthStrLen( const CHAR *name, const BSONElement &in,
                     BSONObjBuilder &outBuilder ) ;
    INT32 mthStrLenBytes( const CHAR *name, const BSONElement &in,

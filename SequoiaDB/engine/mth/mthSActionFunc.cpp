@@ -1369,7 +1369,6 @@ namespace engine
       goto done ;
    }
 
-
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHCONCATBUILD, "mthConcatBuild" )
    INT32 mthConcatBuild( const CHAR *fieldName,
                          const bson::BSONElement &e,
@@ -1436,6 +1435,186 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__MTHCONCATGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHDAYBUILD, "mthDayBuild" )
+   INT32 mthDayBuild( const CHAR *fieldName,
+                      const bson::BSONElement &e,
+                      _mthSAction *action,
+                      bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHDAYBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+
+      rc = mthDay( fieldName, e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthDay failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHDAYBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHDAYGET, "mthDayGet" )
+   INT32 mthDayGet( const CHAR *fieldName,
+                    const bson::BSONElement &in,
+                    _mthSAction *action,
+                    bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHDAYGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+
+      rc = mthDay( fieldName, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthDay failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHDAYGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMONTHBUILD, "mthMonthBuild" )
+   INT32 mthMonthBuild( const CHAR *fieldName,
+                        const bson::BSONElement &e,
+                        _mthSAction *action,
+                        bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMONTHBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+
+      rc = mthMonth( fieldName, e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthMonth failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMONTHBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMONTHGET, "mthMonthGet" )
+   INT32 mthMonthGet( const CHAR *fieldName,
+                      const bson::BSONElement &in,
+                      _mthSAction *action,
+                      bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMONTHGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+
+      rc = mthMonth( fieldName, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthMonth failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMONTHGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHYEARBUILD, "mthYearBuild" )
+   INT32 mthYearBuild( const CHAR *fieldName,
+                       const bson::BSONElement &e,
+                       _mthSAction *action,
+                       bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHYEARBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+
+      rc = mthYear( fieldName, e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthYear failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHYEARBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHYEARGET, "mthYearGet" )
+   INT32 mthYearGet( const CHAR *fieldName,
+                     const bson::BSONElement &in,
+                     _mthSAction *action,
+                     bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHYEARGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+
+      rc = mthYear( fieldName, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthYear failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHYEARGET, rc ) ;
       return rc ;
    error:
       goto done ;

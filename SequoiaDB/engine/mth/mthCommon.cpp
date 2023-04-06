@@ -121,6 +121,15 @@ namespace engine
                                  const CHAR *prefix, const CHAR *suffix,
                                  BOOLEAN isReturnNull, BSONObjBuilder &outBuilder ) ;
 
+   static INT32 _mthDayBasic( const CHAR *name, const BSONElement &in,
+                              BSONObjBuilder &outBuilder ) ;
+
+   static INT32 _mthMonthBasic( const CHAR *name, const BSONElement &in,
+                                BSONObjBuilder &outBuilder ) ;
+
+   static INT32 _mthYearBasic( const CHAR *name, const BSONElement &in,
+                               BSONObjBuilder &outBuilder ) ;
+
    static INT32 _mthStrLenBasic( const CHAR *name, const BSONElement &in,
                                  BSONObjBuilder &outBuilder ) ;
 
@@ -158,6 +167,8 @@ namespace engine
    static void _mthGetSubStrByCP( const CHAR *src, INT32 srcLen, INT32 begin,
                                   INT32 limit, BOOLEAN checkLimit, const CHAR *&subStr,
                                   INT32 &subStrLen ) ;
+
+   static INT32 _mthGetTime( const BSONElement &e, time_t &timeValue, BOOLEAN &isReturnNull ) ;
 
    static INT32 _lower( const CHAR *str, UINT32 len, _utilString<> &us ) ;
    static INT32 _upper( const CHAR *str, UINT32 len, _utilString<> &us ) ;
@@ -2686,7 +2697,6 @@ namespace engine
       goto done ;
    }
 
-
    INT32 mthConcat( const CHAR *name, const BSONElement &in,
                     const CHAR *prefix, const CHAR *suffix,
                     BOOLEAN isReturnNull, BSONObjBuilder &outBuilder )
@@ -2712,6 +2722,293 @@ namespace engine
       {
          rc = _mthConcatBasic( name, in, prefix, suffix, isReturnNull, outBuilder ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to concat:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthGetTime( const BSONElement &e, time_t &timeValue, BOOLEAN &isReturnNull )
+   {
+      INT32 rc = SDB_OK ;
+      switch ( e.type() )
+      {
+         case Date :
+         {
+            timeValue = (time_t)( ( INT64 )( e.date() ) / 1000 ) ;
+            break ;
+         }
+         case Timestamp :
+         {
+            timeValue = (time_t)( ( INT64 )( e.timestampTime() ) / 1000 ) ;
+            break ;
+         }
+         case NumberInt :
+         {
+            Date_t d( e.numberInt() * 1000LL ) ;
+            timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
+            break ;
+         }
+         case NumberLong :
+         case NumberDouble :
+         {
+            Date_t d( e.numberLong() ) ;
+            timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
+            break ;
+         }
+         case NumberDecimal :
+         {
+            bsonDecimal original = e.Decimal() ;
+            bsonDecimal l_min ;
+            bsonDecimal l_max ;
+            rc = l_min.fromLong( OSS_SINT64_MIN ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse decimal:rc=%d", rc ) ;
+               goto error ;
+            }
+            rc = l_max.fromLong( OSS_SINT64_MAX ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse decimal:rc=%d", rc ) ;
+               goto error ;
+            }
+
+            if ( original.compare( l_min ) < 0 ||
+                  original.compare( l_max ) > 0 )
+            {
+               isReturnNull = TRUE ;
+               goto done ;
+            }
+
+            Date_t d( e.numberLong() ) ;
+            timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
+            break ;
+         }
+         case String :
+         {
+            UINT64 tm = 0 ;
+            if ( SDB_OK == utilStr2Date( e.valuestr(), tm ) )
+            {
+               Date_t d( tm ) ;
+               timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
+            }
+            else
+            {
+               isReturnNull = TRUE ;
+            }
+            break ;
+         }
+         default :
+         {
+            isReturnNull = TRUE ;
+            break ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthDayBasic( const CHAR *name, const BSONElement &in,
+                       BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else
+      {
+         time_t time ;
+         BOOLEAN isReturnNull = FALSE ;
+         struct tm tm ;
+         rc = _mthGetTime( in, time, isReturnNull ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get time:rc=%d", rc ) ;
+            goto error ;
+         }
+         else if ( isReturnNull )
+         {
+            outBuilder.appendNull( name ) ;
+         }
+         else
+         {
+            ossLocalTime( time, tm ) ;
+            outBuilder.appendNumber( name, tm.tm_mday ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthDay( const CHAR *name, const BSONElement &in,
+                 BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthDayBasic( ele.fieldName(), ele, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to mthDayBasic:rc=%d", rc ) ;
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthDayBasic( name, in, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to mthDayBasic:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthMonthBasic( const CHAR *name, const BSONElement &in,
+                         BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else
+      {
+         time_t time ;
+         BOOLEAN isReturnNull = FALSE ;
+         struct tm tm ;
+         rc = _mthGetTime( in, time, isReturnNull ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get time:rc=%d", rc ) ;
+            goto error ;
+         }
+         else if ( isReturnNull )
+         {
+            outBuilder.appendNull( name ) ;
+         }
+         else
+         {
+            ossLocalTime( time, tm ) ;
+            outBuilder.appendNumber( name, tm.tm_mon + 1 ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthMonth( const CHAR *name, const BSONElement &in,
+                   BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthMonthBasic( ele.fieldName(), ele, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to mthMonthBasic:rc=%d", rc ) ;
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthMonthBasic( name, in, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to mthMonthBasic:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthYearBasic( const CHAR *name, const BSONElement &in,
+                        BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else
+      {
+         time_t time ;
+         BOOLEAN isReturnNull = FALSE ;
+         struct tm tm ;
+         rc = _mthGetTime( in, time, isReturnNull ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get time:rc=%d", rc ) ;
+            goto error ;
+         }
+         else if ( isReturnNull )
+         {
+            outBuilder.appendNull( name ) ;
+         }
+         else
+         {
+            ossLocalTime( time, tm ) ;
+            outBuilder.appendNumber( name, tm.tm_year + 1900 ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthYear( const CHAR *name, const BSONElement &in,
+                  BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthYearBasic( ele.fieldName(), ele, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to mthYearBasic:rc=%d", rc ) ;
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthYearBasic( name, in, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to mthYearBasic:rc=%d", rc ) ;
       }
 
    done:
