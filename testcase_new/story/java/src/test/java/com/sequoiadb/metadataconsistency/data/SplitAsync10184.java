@@ -104,7 +104,7 @@ public class SplitAsync10184 extends SdbTestBase {
                 int eCode = e.getErrorCode();
                 if ( eCode != -175 // -175:The mutex task already exist
                         && eCode != -147 && eCode != -23 && eCode != -34
-                        && eCode != -190 ) {
+                        && eCode != -190 && eCode != -243 ) {
                     throw e;
                 }
             }
@@ -120,7 +120,7 @@ public class SplitAsync10184 extends SdbTestBase {
                 db.dropCollectionSpace( csName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -147 && eCode != -34 && eCode != -190 ) {
+                if ( eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             }
