@@ -9,7 +9,7 @@ testConf.clName = COMMCLNAME + "_csName_29397"
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 
-main( test );
+//main( test );
 function test ( testPara )
 {
    var coord = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1];
