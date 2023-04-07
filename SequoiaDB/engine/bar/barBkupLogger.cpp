@@ -45,6 +45,7 @@
 #include "monDump.hpp"
 #include "clsReplayer.hpp"
 #include "ossPath.hpp"
+#include "ossFile.hpp"
 #include "pmdStartup.hpp"
 #include "utilCompressor.hpp"
 #include "pdTrace.hpp"
@@ -892,6 +893,14 @@ namespace engine
       rc = ossMkdir( _metaHeader._path ) ;
       if ( SDB_PERM == rc )
       {
+         BOOLEAN isMkdirSucceeded = TRUE ;
+         ossFile::exists( _metaHeader._path, isMkdirSucceeded ) ;
+         if( !isMkdirSucceeded )
+         {
+            PD_LOG( PDERROR, "Failed to create backup dir[%s], rc: %d",
+                    _metaHeader._path, rc ) ;
+            goto error ;
+         }
          // ossMkdir may return SDB_PERM if mkdir succeeded but chmod failed.
          // This can happen when there are userid issues on the system. A
          // common scenario for this issue is when a mounted network disk
@@ -913,11 +922,6 @@ namespace engine
          if ( SDB_PERM == rc )
          {
             PD_LOG( PDERROR, "No read/write privileges on the backup dir[%s]",
-                    _metaHeader._path ) ;
-         }
-         else if ( SDB_FNE == rc )
-         {
-            PD_LOG( PDERROR, "Failed to create backup dir[%s]",
                     _metaHeader._path ) ;
          }
          else
