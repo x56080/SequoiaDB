@@ -31,11 +31,8 @@ function test ( testPara )
    commCompareResults( actRes, expRes );
 
    //指定更新规则，更新操作为$replace，单条插入冲突记录，查看自增字段值
-   //SEQUOIADBMAINSTREAM-8499
-   /*
    cl.insert( { a: 4, b: 2 }, { UpdateOnDup: true, Update: { "$replace": { "a": 2 } } } );
    actRes = cl.find().sort( { a: 1 } );
    expRes = [{ a: 2, "id": 2 }, { a: 5, b: 1, "id": 1 }];
    commCompareResults( actRes, expRes );
-   */
 }
