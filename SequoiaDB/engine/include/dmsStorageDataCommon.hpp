@@ -1420,7 +1420,6 @@ namespace engine
          virtual UINT32 _curVersion() const ;
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;
-         virtual const INT32 _getStorageFileType() const ;
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,

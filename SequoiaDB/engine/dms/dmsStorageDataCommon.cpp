@@ -856,12 +856,6 @@ namespace engine
       goto done ;
    }
 
-
-   const INT32 _dmsStorageDataCommon::_getStorageFileType() const
-   {
-      return DMS_FILE_DATA ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INITCOMPRESSORENTRY, "_dmsStorageDataCommon::_initCompressorEntry" )
    INT32 _dmsStorageDataCommon::_initCompressorEntry( UINT16 mbID )
    {

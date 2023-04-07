@@ -711,7 +711,6 @@ namespace engine
          OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
-         OSS_INLINE UINT32 getSpaceShrinkTimeout() const { return _spaceShrinkTimeout ; }
          OSS_INLINE BOOLEAN isEnableAsyncRead() const { return _enableAsyncRead ; }
 
 #ifdef SDB_ENTERPRISE
@@ -859,7 +858,6 @@ namespace engine
          BOOLEAN     _diagSecureOn ;
          UINT32      _metacacheexpired ;
          UINT32      _metacachelwm ;
-         UINT32      _spaceShrinkTimeout ;
 
          UINT32      _statMCVLimit ;
          BOOLEAN     _enableAsyncRead ;

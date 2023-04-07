@@ -198,8 +198,7 @@ namespace engine
       {
          pUnit = *it ;
 
-         if ( pUnit->canSync( force ) ||
-              pUnit->canShrinkSpace() )
+         if ( pUnit->canSync( force ) )
          {
             _unitList.erase( it ) ;
             /// lock the unit
@@ -252,8 +251,7 @@ namespace engine
       {
          IDataSyncBase *pUnit = *it ;
          ++it ;
-         if ( pUnit->canSync( force ) ||
-              pUnit->canShrinkSpace() )
+         if ( pUnit->canSync( force ) )
          {
             ++readyNum ;
          }
@@ -429,11 +427,6 @@ namespace engine
       {
          pUnit->sync( force, _pMgr->isSyncDeep(), eduCB() ) ;
          eduCB()->incEventCount( 1 ) ;
-      }
-
-      if ( pUnit->canShrinkSpace() )
-      {
-         pUnit->shrinkSpace() ;
       }
 
       pEDUMgr->waitEDU( eduCB() ) ;

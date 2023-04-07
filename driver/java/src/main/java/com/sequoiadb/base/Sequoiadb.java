@@ -1111,43 +1111,6 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Shrink the free space in collection space.
-     *
-     * @param options The control options:
-     *                <ul>
-     *                <li>CollectionSpace:String Specify the collection space to shrink. If not set,
-     *                will shrink all the collection spaces.</li>
-     *                <li>Some of other options are as below:(only take effect in coordinate nodes)
-     *                <ul>
-     *                <li>GroupID:int. The id(s) of replica group(s) which to be shrinked</li>
-     *                <li>GroupName:String. The name(s) of replica group(s) which to be shrinked</li>
-     *                <li>NodeID:int. The id(s) of node(s) which to be shrinked</li>
-     *                <li>HostName:String. The host name of node(s) which to be shrinked</li>
-     *                <li>svcname:String. The service name of node(s) which to be shrinked</li>
-     *                <li>...</li>
-     *                </ul>
-     *                </li>
-     *                </ul>
-     * @throws BaseException If error happens.
-     * @since 3.6.1
-     */
-    public void shrinkSpace(BSONObject options) throws BaseException {
-        AdminRequest request = new AdminRequest(AdminCommand.SHRINK_SPACE, options);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response);
-    }
-
-    /**
-     * Shrink all collection spaces of the current database.
-     *
-     * @throws BaseException If error happens.
-     * @since 3.6.1
-     */
-    public void shrinkSpace() throws BaseException {
-        shrinkSpace(null);
-    }
-
-    /**
      * Analyze collection or index to collect statistics information
      *
      * @param options The control options:(can be null)
