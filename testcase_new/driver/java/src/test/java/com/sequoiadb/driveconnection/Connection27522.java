@@ -1,5 +1,6 @@
 package com.sequoiadb.driveconnection;
 
+import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.datasource.SequoiadbDatasource;
@@ -47,6 +48,10 @@ public class Connection27522 extends SdbTestBase {
 
     @Test( enabled = false )
     public void test() throws Exception {
+        ConfigOptions netOpt = new ConfigOptions();
+        netOpt.setConnectTimeout( 2* 1000 );
+        netOpt.setMaxAutoConnectRetryTime( 2*1000 );
+
         // test a：指定所有地址可用
         List< String > correctUrlList = getCoordUrls( db );
         ds = SequoiadbDatasource.builder().serverAddress( correctUrlList )
@@ -59,7 +64,9 @@ public class Connection27522 extends SdbTestBase {
         List< String > partCorrectUrlList = new ArrayList<>();
         partCorrectUrlList.addAll( Arrays.asList(
                 SdbTestBase.hostName + ":" + "10", SdbTestBase.coordUrl ) );
-        ds = SequoiadbDatasource.builder().serverAddress( partCorrectUrlList )
+        ds = SequoiadbDatasource.builder()
+                .serverAddress( partCorrectUrlList )
+                .configOptions( netOpt )
                 .build();
         sdb = ds.getConnection();
         sdb.createCollectionSpace( csName );
@@ -101,7 +108,9 @@ public class Connection27522 extends SdbTestBase {
 
         // test e：指定所有地址不可用
         try {
-            ds = SequoiadbDatasource.builder().serverAddress( wrongUrlList )
+            ds = SequoiadbDatasource.builder()
+                    .serverAddress( wrongUrlList )
+                    .configOptions( netOpt )
                     .build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
@@ -113,8 +122,11 @@ public class Connection27522 extends SdbTestBase {
 
         // test f：多次调用,最后一次List列表中不存在可用地址
         try {
-            ds = SequoiadbDatasource.builder().serverAddress( correctUrlList )
-                    .serverAddress( wrongUrlList ).build();
+            ds = SequoiadbDatasource.builder()
+                    .serverAddress( correctUrlList )
+                    .serverAddress( wrongUrlList )
+                    .configOptions( netOpt )
+                    .build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {

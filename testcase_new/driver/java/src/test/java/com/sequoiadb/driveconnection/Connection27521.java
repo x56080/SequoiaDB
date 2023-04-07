@@ -1,5 +1,6 @@
 package com.sequoiadb.driveconnection;
 
+import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
@@ -29,6 +30,10 @@ public class Connection27521 extends SdbTestBase {
 
     @Test( enabled = false )
     public void test() throws Exception {
+        ConfigOptions netOpt = new ConfigOptions();
+        netOpt.setConnectTimeout( 2* 1000 );
+        netOpt.setMaxAutoConnectRetryTime( 2*1000 );
+
         // test a：指定可用地址
         ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )
                 .build();
@@ -83,7 +88,9 @@ public class Connection27521 extends SdbTestBase {
         // test d：指定不可用地址
         wrongUrl = SdbTestBase.hostName + ":" + "30";
         try {
-            ds = SequoiadbDatasource.builder().serverAddress( wrongUrl )
+            ds = SequoiadbDatasource.builder()
+                    .serverAddress( wrongUrl )
+                    .configOptions( netOpt )
                     .build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
@@ -97,7 +104,9 @@ public class Connection27521 extends SdbTestBase {
         try {
             ds = SequoiadbDatasource.builder()
                     .serverAddress( SdbTestBase.coordUrl )
-                    .serverAddress( wrongUrl ).build();
+                    .serverAddress( wrongUrl )
+                    .configOptions( netOpt )
+                    .build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
