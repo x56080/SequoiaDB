@@ -11,6 +11,8 @@ SdbReplicaGroup 类主要用于操作复制组和获取复制组相关的信息�
 | [getSlave()][getSlave] | 获取当前复制组的备节点 |
 | [reelect()][reelect] | 在当前复制组中重新选举 |
 | [removeNode()][removeNode] | 删除当前复制组中的指定节点 |
+| [setActiveLocation()][setActiveLocation] | 设置复制组的 ActivedLocation |
+| [setAttributes()][setAttributes] | 修改当前复制组的属性 |
 | [start()][start] | 启动当前复制组 |
 | [stop()][stop] | 停止当前复制组 |
 
@@ -25,5 +27,7 @@ SdbReplicaGroup 类主要用于操作复制组和获取复制组相关的信息�
 [getSlave]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getSlave.md
 [reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
 [removeNode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/removeNode.md
+[setActiveLocation]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setActiveLocation.md
+[setAttributes]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setAttributes.md
 [start]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/start.md
 [stop]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stop.md
