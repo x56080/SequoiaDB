@@ -1,13 +1,9 @@
 package com.sequoiadb.driveconnection;
 
-import com.sequoiadb.base.ConfigOptions;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.datasource.SequoiadbDatasource;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -17,19 +13,24 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.datasource.SequoiadbDatasource;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
+ * @author Xu Mingxing
+ * @version 1.0
  * @descreption seqDB-27522:SequoiadbDatasource.builder()方式设置serverAddress(List<String>
  *              addressList)
- * @author Xu Mingxing
  * @date 2022/9/14
  * @updateUser
  * @updateDate
  * @updateRemark
- * @version 1.0
  */
 
 public class Connection27522 extends SdbTestBase {
@@ -37,6 +38,30 @@ public class Connection27522 extends SdbTestBase {
     private Sequoiadb db = null;
     private Sequoiadb sdb = null;
     private String csName = "cs_27522";
+
+    public static ArrayList< String > getCoordUrls( Sequoiadb sdb ) {
+        DBCursor cursor = null;
+        cursor = sdb.getList( Sequoiadb.SDB_LIST_GROUPS, null, null, null );
+        ArrayList< String > coordUrls = new ArrayList< String >();
+        while ( cursor.hasNext() ) {
+            BasicBSONObject obj = ( BasicBSONObject ) cursor.getNext();
+            String groupName = obj.getString( "GroupName" );
+            if ( groupName.equals( "SYSCoord" ) ) {
+                BasicBSONList group = ( BasicBSONList ) obj.get( "Group" );
+                for ( Object temp : group ) {
+                    BSONObject nodeifg = ( BSONObject ) temp;
+                    String coordHostName = ( String ) nodeifg.get( "HostName" );
+                    BasicBSONList service = ( BasicBSONList ) nodeifg
+                            .get( "Service" );
+                    BSONObject tempservice = ( BSONObject ) service.get( 0 );
+                    String coordPort = ( String ) tempservice.get( "Name" );
+                    coordUrls.add( coordHostName + ":" + coordPort );
+                }
+            }
+        }
+        cursor.close();
+        return coordUrls;
+    }
 
     @BeforeClass
     public void setUp() {
@@ -46,11 +71,11 @@ public class Connection27522 extends SdbTestBase {
         }
     }
 
-    @Test( enabled = false )
+    @Test
     public void test() throws Exception {
         ConfigOptions netOpt = new ConfigOptions();
-        netOpt.setConnectTimeout( 2* 1000 );
-        netOpt.setMaxAutoConnectRetryTime( 2*1000 );
+        netOpt.setConnectTimeout( 2 * 1000 );
+        netOpt.setMaxAutoConnectRetryTime( 2 * 1000 );
 
         // test a：指定所有地址可用
         List< String > correctUrlList = getCoordUrls( db );
@@ -64,10 +89,8 @@ public class Connection27522 extends SdbTestBase {
         List< String > partCorrectUrlList = new ArrayList<>();
         partCorrectUrlList.addAll( Arrays.asList(
                 SdbTestBase.hostName + ":" + "10", SdbTestBase.coordUrl ) );
-        ds = SequoiadbDatasource.builder()
-                .serverAddress( partCorrectUrlList )
-                .configOptions( netOpt )
-                .build();
+        ds = SequoiadbDatasource.builder().serverAddress( partCorrectUrlList )
+                .configOptions( netOpt ).build();
         sdb = ds.getConnection();
         sdb.createCollectionSpace( csName );
         sdb.dropCollectionSpace( csName );
@@ -108,10 +131,8 @@ public class Connection27522 extends SdbTestBase {
 
         // test e：指定所有地址不可用
         try {
-            ds = SequoiadbDatasource.builder()
-                    .serverAddress( wrongUrlList )
-                    .configOptions( netOpt )
-                    .build();
+            ds = SequoiadbDatasource.builder().serverAddress( wrongUrlList )
+                    .configOptions( netOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
@@ -122,10 +143,8 @@ public class Connection27522 extends SdbTestBase {
 
         // test f：多次调用,最后一次List列表中不存在可用地址
         try {
-            ds = SequoiadbDatasource.builder()
-                    .serverAddress( correctUrlList )
-                    .serverAddress( wrongUrlList )
-                    .configOptions( netOpt )
+            ds = SequoiadbDatasource.builder().serverAddress( correctUrlList )
+                    .serverAddress( wrongUrlList ).configOptions( netOpt )
                     .build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
@@ -134,30 +153,6 @@ public class Connection27522 extends SdbTestBase {
                 throw e;
             }
         }
-    }
-
-    public static ArrayList< String > getCoordUrls( Sequoiadb sdb ) {
-        DBCursor cursor = null;
-        cursor = sdb.getList( Sequoiadb.SDB_LIST_GROUPS, null, null, null );
-        ArrayList< String > coordUrls = new ArrayList< String >();
-        while ( cursor.hasNext() ) {
-            BasicBSONObject obj = ( BasicBSONObject ) cursor.getNext();
-            String groupName = obj.getString( "GroupName" );
-            if ( groupName.equals( "SYSCoord" ) ) {
-                BasicBSONList group = ( BasicBSONList ) obj.get( "Group" );
-                for ( Object temp : group ) {
-                    BSONObject nodeifg = ( BSONObject ) temp;
-                    String coordHostName = ( String ) nodeifg.get( "HostName" );
-                    BasicBSONList service = ( BasicBSONList ) nodeifg
-                            .get( "Service" );
-                    BSONObject tempservice = ( BSONObject ) service.get( 0 );
-                    String coordPort = ( String ) tempservice.get( "Name" );
-                    coordUrls.add( coordHostName + ":" + coordPort );
-                }
-            }
-        }
-        cursor.close();
-        return coordUrls;
     }
 
     @AfterClass
