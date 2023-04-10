@@ -49,6 +49,7 @@
 #include "rtnRecover.hpp"
 #include "../bson/bsonobj.h"
 #include <map>
+#include "clsUtil.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -86,7 +87,8 @@ namespace engine
          // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
-         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader,
+                                          UINT64 recvTime ) ;
          virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
 
       public:
@@ -155,6 +157,8 @@ namespace engine
 
          void              _updateNtyLSN( DPS_LSN_OFFSET collectoinLSN ) ;
 
+         void              _printLastSyncDetail( INT32 opCode ) ;
+         void              _printLastSyncDetail( INT32 opCode, CLS_FS_NOTIFY_TYPE type ) ;
 
       protected:
          BSONObj                          _rangeKeyObj ;
@@ -196,6 +200,7 @@ namespace engine
 
          UINT64                           _syncBeginTick ;
          UINT64                           _totalDataSync ;
+         UINT64                           _totalTimeSpent ;
          MsgRouteID                       _lastSyncNode ;
          CHAR                             _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
    };

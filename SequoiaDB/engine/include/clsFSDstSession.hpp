@@ -49,6 +49,7 @@
 #include "../bson/bsonobj.h"
 #include "clsTask.hpp"
 #include "ossMemPool.hpp"
+#include "clsUtil.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -131,7 +132,8 @@ namespace engine
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
          virtual void    onRecieve ( const NET_HANDLE netHandle, MsgHeader * msg ) ;
 
-         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader,
+                                          UINT64 recvTime ) ;
          virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
 
       protected:
@@ -200,6 +202,8 @@ namespace engine
                                          UINT32 *pHasRemoved = NULL ) ;
 
          void           _updateName() ;
+         void           _printLastSyncDetail( INT32 opCode ) ;
+         void           _printLastSyncDetail( INT32 opCode, CLS_FS_NOTIFY_TYPE type ) ;
 
       private:
          INT32 _replayDoc( const MsgClsFSNotifyRes *msg ) ;
@@ -227,6 +231,7 @@ namespace engine
          BOOLEAN              _needMoreDoc ;
          UINT64               _syncBeginTick ;
          UINT64               _totalDataSync ;
+         UINT64               _totalTimeSpent ;
          CHAR                 _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
 
       private:

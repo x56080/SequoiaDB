@@ -39,7 +39,6 @@
 #include "clsFSDstSession.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
-#include "clsUtil.hpp"
 #include "clsSyncManager.hpp"
 #include "pmdStartup.hpp"
 #include "msgMessage.hpp"
@@ -97,6 +96,7 @@ namespace engine
 
       _syncBeginTick = 0 ;
       _totalDataSync = 0 ;
+      _totalTimeSpent = 0 ;
       _lastSyncDetail[0] = 0 ;
 
       _connID.value = MSG_INVALID_ROUTEID ;
@@ -187,7 +187,8 @@ namespace engine
    }
 
    void _clsDataDstBaseSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                                    const MsgHeader *pHeader )
+                                                    const MsgHeader *pHeader,
+                                                    UINT64 recvTime )
    {
       MON_START_OP( eduCB()->getMonAppCB() ) ;
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
@@ -209,6 +210,33 @@ namespace engine
       {
          eduCB()->setName( _name ) ;
       }
+   }
+
+   void _clsDataDstBaseSession::_printLastSyncDetail( INT32 opCode )
+   {
+      _totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
+                   "%u collections finished, %u collections left, "
+                   "time spent: %llu min, speed: %.2f MB/s",
+                   _fullNames.size() > _current ? _fullNames.at( _current ).c_str(): "",
+                   _current, _fullNames.size() > _current ? _fullNames.size() - _current : 0,
+                   CLS_FS_TIME_SPENT( _totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, _totalTimeSpent ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), opCode, _lastSyncDetail ) ;
+   }
+
+   void _clsDataDstBaseSession::_printLastSyncDetail( INT32 opCode, CLS_FS_NOTIFY_TYPE type )
+   {
+      _totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
+                   "%u collections finished, %u collections left, time spent: %llu min, "
+                   "speed: %.2f MB/s, type: %s" , _fullNames.size() > _current ?
+                   _fullNames.at( _current ).c_str() : "", _current,
+                   _fullNames.size() > _current ? _fullNames.size() - _current : 0,
+                   CLS_FS_TIME_SPENT( _totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, _totalTimeSpent ),
+                   clsFSNotifyType2String( type ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), opCode, _lastSyncDetail ) ;
    }
 
    INT32 _clsDataDstBaseSession::_onMetaDone( const _clMetaData &meta )
@@ -1004,7 +1032,6 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDMETARES );
       MsgClsFSMetaRes *msg = ( _MsgClsFSMetaRes * )header ;
-      UINT64 totalTimeSpent = 0 ;
 
       if ( CLS_FS_STATUS_META != _status )
       {
@@ -1017,15 +1044,7 @@ namespace engine
          goto done ;
       }
 
-      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
-      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
-                   "%u collections finished, %u collections left, "
-                   "time spent: %llu min, speed: %.2f MB/s",
-                   _fullNames.size() > _current ? _fullNames.at( _current ).c_str(): "",
-                   _current, _fullNames.size() > _current ? _fullNames.size() - _current : 0,
-                   CLS_FS_TIME_SPENT( totalTimeSpent ),
-                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
-      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+      _printLastSyncDetail( header->opCode ) ;
 
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
@@ -1126,7 +1145,6 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDINXRES2 );
       MsgClsFSIndexRes *msg = ( MsgClsFSIndexRes * )header ;
-      UINT64 totalTimeSpent = 0 ;
 
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
@@ -1142,15 +1160,7 @@ namespace engine
       }
       else
       {
-         totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
-         ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
-                      "%u collections finished, %u collections left, "
-                      "time spent: %llu min, speed: %.2f MB/s",
-                      _fullNames.size() > _current ? _fullNames.at( _current ).c_str(): "",
-                      _current, _fullNames.size() > _current ? _fullNames.size() - _current : 0,
-                      CLS_FS_TIME_SPENT( totalTimeSpent ),
-                      CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
-         MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+         _printLastSyncDetail( header->opCode ) ;
 
          _selector.clearTime() ;
          BSONObj obj ;
@@ -1198,7 +1208,6 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDNTFRES );
       MsgClsFSNotifyRes *msg = ( MsgClsFSNotifyRes * )header ;
-      UINT64 totalTimeSpent = 0 ;
 
       CHECK_REQUEST_ID ( msg->header.header , _requestID ) ;
 
@@ -1227,17 +1236,8 @@ namespace engine
          goto done ;
       }
 
-      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
       _totalDataSync += ( header->messageLength - sizeof( MsgClsFSNotifyRes ) ) ;
-      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
-                   "%u collections finished, %u collections left, time spent: %llu min, "
-                   "speed: %.2f MB/s, type: %s" , _fullNames.size() > _current ?
-                   _fullNames.at( _current ).c_str() : "", _current,
-                   _fullNames.size() > _current ? _fullNames.size() - _current : 0,
-                   CLS_FS_TIME_SPENT( totalTimeSpent ),
-                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ),
-                   clsFSNotifyType2String( msg->type ) ) ;
-      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+      _printLastSyncDetail( header->opCode, msg->type ) ;
 
       if ( CLS_FS_NOTIFY_TYPE_DOC == msg->type )
       {
@@ -1316,6 +1316,7 @@ namespace engine
                     _expectLSN.offset ) ;
 
             ++_current ;
+            _printLastSyncDetail( header->opCode, msg->type ) ;
             _notify( CLS_FS_NOTIFY_TYPE_OVER ) ;
             //get next collection
             _meta() ;

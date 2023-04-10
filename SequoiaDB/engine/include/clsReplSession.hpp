@@ -81,7 +81,8 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
-         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader,
+                                          UINT64 recvTime ) ;
          virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
 
       public:
@@ -157,7 +158,8 @@ namespace engine
          // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
-         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader,
+                                          UINT64 recvTime ) ;
          virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
 
       public:

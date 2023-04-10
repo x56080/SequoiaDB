@@ -121,7 +121,8 @@ namespace engine
    }
 
    void _clsReplDstSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                                const MsgHeader *pHeader )
+                                                const MsgHeader *pHeader,
+                                                UINT64 recvTime )
    {
       MON_START_OP( eduCB()->getMonAppCB() ) ;
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
@@ -1379,7 +1380,8 @@ namespace engine
    }
 
    void _clsReplSrcSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                                const MsgHeader *pHeader )
+                                                const MsgHeader *pHeader,
+                                                UINT64 recvTime )
    {
       MON_START_OP( eduCB()->getMonAppCB() ) ;
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
