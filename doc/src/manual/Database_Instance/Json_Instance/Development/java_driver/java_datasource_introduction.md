@@ -149,7 +149,7 @@ Java 驱动连接池用于创建和管理连接。通过连接复用以减少创
     >
     > 用户可通过 [setLocation()][setLocation_link] 设置节点的位置集。
 
-2. 创建连接池，并指定所属位置集为 "GuangDong.guangzhou"
+2. 创建连接池，并指定所属位置集为"GuangDong.guangzhou"
 
     ```lang-java
     ArrayList<String> addrs = new ArrayList<String>();
