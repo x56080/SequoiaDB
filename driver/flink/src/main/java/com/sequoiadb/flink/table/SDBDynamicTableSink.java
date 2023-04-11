@@ -82,10 +82,10 @@ public class SDBDynamicTableSink implements DynamicTableSink {
             UniqueConstraint uc = schema.getPrimaryKey().get();
             sinkOptions.setUpsertKey(uc.getColumns()
                     .toArray(new String[0]));
-
-            //create collectionspace,collection and index if not exist.
-            SDBCollectionProvider.ensureCollectionSpaceWithCollection(sinkOptions);
         }
+
+        //create collection space, collection and index if not exist.
+        SDBCollectionProvider.ensureCollectionSpaceWithCollection(sinkOptions);
 
         if (APPEND_ONLY.equals(sinkOptions.getWriteMode())) {
             return SinkProvider.of(
