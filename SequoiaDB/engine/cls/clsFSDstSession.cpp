@@ -1257,11 +1257,19 @@ namespace engine
          {
             /// status moving:
             /// | current status |  eof     | not eof |
-            /// |    doc         |  lob     | log     |
+            /// |    doc         |  lob/log | log     |
             /// |    log         |  doc/lob | log     |
             /// |    lob         |  -       | log     |
-            _status = CLS_FS_STATUS_NOTIFY_LOB ;
-            _notify( CLS_FS_NOTIFY_TYPE_LOB ) ;
+            if ( _fullNames.size() - 1 == _current )
+            {
+               _status = CLS_FS_STATUS_NOTIFY_LOG ;
+               _notify( CLS_FS_NOTIFY_TYPE_LOG ) ;
+            }
+            else
+            {
+               _status = CLS_FS_STATUS_NOTIFY_LOB ;
+               _notify( CLS_FS_NOTIFY_TYPE_LOB ) ;
+            }
             _needMoreDoc = FALSE ;
          }
       }

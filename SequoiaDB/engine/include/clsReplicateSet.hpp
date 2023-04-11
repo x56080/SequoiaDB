@@ -313,9 +313,27 @@ namespace engine
             return 0 == lastLogMoveTick || curTimeSpan > CLS_DISABLE_SRC_INTERVAL ;
          }
 
+         OSS_INLINE void onReplayLogError()
+         {
+            _lastLogMoveTick.swap( pmdGetDBTick() ) ;
+         }
+
          ossQueue< clsLSNNtyInfo >* getNtyQue() { return &_ntyQue ; }
          DPS_LSN_OFFSET getNtyLastOffset() const { return _ntyLastOffset ; }
          DPS_LSN_OFFSET getNtyProcessedOffset() const { return _ntyProcessedOffset ; }
+
+         DPS_LSN_OFFSET getNtyReplayOffset() const { return _ntyReplayOffset ; }
+         void updateNtyReplayOffset( DPS_LSN_OFFSET offset )
+         {
+            if ( offset > _ntyReplayOffset )
+            {
+               _ntyReplayOffset = offset ;
+            }
+         }
+         void resetNtyReplayOffset( DPS_LSN_OFFSET offset )
+         {
+            _ntyReplayOffset = offset ;
+         }
 
          void notify2Session( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
                               const DPS_LSN_OFFSET &offset ) ;
@@ -552,6 +570,7 @@ namespace engine
          ossQueue< clsLSNNtyInfo >  _ntyQue ;
          DPS_LSN_OFFSET             _ntyLastOffset ;
          DPS_LSN_OFFSET             _ntyProcessedOffset ;
+         DPS_LSN_OFFSET             _ntyReplayOffset ;
 
          // sync control param
          UINT64                  _totalLogSize ;

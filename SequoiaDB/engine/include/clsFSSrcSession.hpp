@@ -196,6 +196,7 @@ namespace engine
          ossSpinXLatch                    _LSNlatch ;
          rtnLobFetcher                    _lobFetcher ;
          DPS_LSN_OFFSET                   _lastEndNtyOffset ;
+         DPS_LSN_OFFSET                   _clLSNOffset ;
 
          UINT64                           _syncBeginTick ;
          UINT64                           _totalDataSync ;

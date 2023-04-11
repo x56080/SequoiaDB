@@ -113,6 +113,7 @@ namespace engine
       _srcSessionNum = 0 ;
       _ntyLastOffset = DPS_INVALID_LSN_OFFSET ;
       _ntyProcessedOffset = DPS_INVALID_LSN_OFFSET ;
+      _ntyReplayOffset = DPS_INVALID_LSN_OFFSET ;
 
       _totalLogSize = 0 ;
       _inSyncCtrl   = FALSE ;
@@ -177,8 +178,9 @@ namespace engine
       // 2. consult
       if ( DPS_BEFORE == moment && moveToOffset != expectOffset )
       {
-         _lastLogMoveTick.swap( pmdGetDBTick() ) ;
+         _lastLogMoveTick.swapGreaterThan( pmdGetDBTick() ) ;
       }
+      resetNtyReplayOffset( moveToOffset ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS, "_clsReplicateSet::_notifySrcSessions" )

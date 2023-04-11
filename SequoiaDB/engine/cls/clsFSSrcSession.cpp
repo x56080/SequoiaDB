@@ -112,6 +112,7 @@ namespace engine
       _info._info.setNice( SCHED_NICE_MIN ) ;
 
       _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
+      _clLSNOffset = DPS_INVALID_LSN_OFFSET ;
       _syncBeginTick = 0 ;
       _totalDataSync = 0 ;
       _totalTimeSpent = 0 ;
@@ -1169,9 +1170,12 @@ namespace engine
 
       // we should make sure the DPS logs for this batch of records
       // will be send right after them
+      DPS_LSN_OFFSET replayLSN = sdbGetReplCB()->getNtyReplayOffset() ;
       DPS_LSN_OFFSET preparedLSN = sdbGetReplCB()->getNtyLastOffset() ;
       DPS_LSN_OFFSET lastNtyLSN = _lastEndNtyOffset ;
+      DPS_LSN_OFFSET lastClLSNOffset = _clLSNOffset ;
       DPS_LSN_OFFSET tempLSN = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN_OFFSET tempCLsLSN = DPS_INVALID_LSN_OFFSET ;
 
       if ( DPS_INVALID_LSN_OFFSET == preparedLSN )
       {
@@ -1182,6 +1186,7 @@ namespace engine
       {
          // first time to update, use the LSN from log manager
          _lastEndNtyOffset = preparedLSN ;
+         _clLSNOffset = collectionLSN ;
          goto done ;
       }
 
@@ -1196,14 +1201,17 @@ namespace engine
          //   LSN which means the collection has not been updated recently
          //   and it is safe
          tempLSN = OSS_MIN( preparedLSN, collectionLSN ) ;
+         tempCLsLSN = OSS_MIN( replayLSN, collectionLSN ) ;
       }
       else
       {
          // LSN from log manager is valid
          tempLSN = preparedLSN ;
+         tempCLsLSN = preparedLSN ;
       }
 
       _lastEndNtyOffset = OSS_MAX( lastNtyLSN, tempLSN ) ;
+      _clLSNOffset      = OSS_MAX( lastClLSNOffset, tempCLsLSN ) ;
 
    done:
       PD_LOG( PDDEBUG, "Session[%s]: update last notify LSN from "
@@ -2144,13 +2152,32 @@ namespace engine
          return TRUE ;
       }
 
+      if ( DPS_INVALID_LSN_OFFSET == _clLSNOffset )
+      {
+         // no logs need to sync.
+         return TRUE ;
+      }
+
+      DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+      // - the processedLSN is invalid means the first log has not synchronized.
+      //   due to this _lastEndNtyOffset is equal to this first log lsn at this time.
+      //   use the _lastEndNtyOffset instead of processedLSN.
+      // - if the collection LSN is greater than log processedLSN.
+      //   need to wait for log sync.
+      if ( ( DPS_INVALID_LSN_OFFSET == processed &&
+             _clLSNOffset >= _lastEndNtyOffset ) ||
+           ( DPS_INVALID_LSN_OFFSET != processed &&
+             _clLSNOffset > processed ) )
+      {
+         return FALSE ;
+      }
+
       if ( _beginLSNOffset >= _lastEndNtyOffset )
       {
          // begin lsn is greater than the lsn when meta info is fetched.
          return TRUE ;
       }
 
-      DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
       if ( DPS_INVALID_LSN_OFFSET != processed &&
            _lastEndNtyOffset <= processed )
       {

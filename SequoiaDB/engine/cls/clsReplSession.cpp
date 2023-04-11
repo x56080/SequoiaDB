@@ -1250,6 +1250,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSDSTREPSN__REPLG, rc );
       return rc ;
    error:
+      _repl->onReplayLogError() ;
       if ( _pReplBucket->waitEmptyAndRollback( NULL, &completeLSN ) )
       {
          rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger,
@@ -1310,6 +1311,7 @@ namespace engine
 
    INT32 _clsReplDstSession::_replay( dpsLogRecordHeader *header )
    {
+      _repl->updateNtyReplayOffset( header->_lsn ) ;
       if ( _pReplBucket->maxReplSync() > 0 )
       {
          return _replayer.replayByBucket( header, eduCB(), _pReplBucket ) ;
