@@ -157,790 +157,787 @@ sequoiadb
 ├── CSharp
 │   └── sequoiadb.dll
 ├── doc
-│   ├── manual
-│   │   ├── BSONArray
-│   │   │   ├── index_en.troff
-│   │   │   ├── more_en.troff
-│   │   │   ├── next_en.troff
-│   │   │   ├── pos_en.troff
-│   │   │   ├── size_en.troff
-│   │   │   ├── toArray_en.troff
-│   │   │   └── toString_en.troff
-│   │   ├── BSONObj
-│   │   │   ├── BSONObj_en.troff
-│   │   │   ├── toJson_en.troff
-│   │   │   ├── toObj_en.troff
-│   │   │   └── toString_en.troff
-│   │   ├── CLCount
-│   │   │   ├── hint_en.troff
-│   │   │   ├── toString_en.troff
-│   │   │   └── valueOf_en.troff
-│   │   ├── Cmd
-│   │   │   ├── Cmd_cn.troff
-│   │   │   ├── Cmd_en.troff
-│   │   │   ├── getCommand_cn.troff
-│   │   │   ├── getCommand_en.troff
-│   │   │   ├── getInfo_cn.troff
-│   │   │   ├── getInfo_en.troff
-│   │   │   ├── getLastOut_cn.troff
-│   │   │   ├── getLastOut_en.troff
-│   │   │   ├── getLastRet_cn.troff
-│   │   │   ├── getLastRet_en.troff
-│   │   │   ├── run_cn.troff
-│   │   │   ├── run_en.troff
-│   │   │   ├── runJS_cn.troff
-│   │   │   ├── runJS_en.troff
-│   │   │   ├── start_cn.troff
-│   │   │   └── start_en.troff
-│   │   ├── File
-│   │   │   ├── chgrp_cn.troff
-│   │   │   ├── chgrp_en.troff
-│   │   │   ├── chmod_cn.troff
-│   │   │   ├── chmod_en.troff
-│   │   │   ├── chown_cn.troff
-│   │   │   ├── chown_en.troff
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── copy_cn.troff
-│   │   │   ├── copy_en.troff
-│   │   │   ├── exist_cn.troff
-│   │   │   ├── exist_en.troff
-│   │   │   ├── File_cn.troff
-│   │   │   ├── File_en.troff
-│   │   │   ├── find_cn.troff
-│   │   │   ├── find_en.troff
-│   │   │   ├── getSize_cn.troff
-│   │   │   ├── getSize_en.troff
-│   │   │   ├── getUmask_cn.troff
-│   │   │   ├── getUmask_en.troff
-│   │   │   ├── isDir_cn.troff
-│   │   │   ├── isDir_en.troff
-│   │   │   ├── isEmptyDir_cn.troff
-│   │   │   ├── isEmptyDir_en.troff
-│   │   │   ├── isFile_cn.troff
-│   │   │   ├── isFile_en.troff
-│   │   │   ├── list_cn.troff
-│   │   │   ├── list_en.troff
-│   │   │   ├── md5_cn.troff
-│   │   │   ├── md5_en.troff
-│   │   │   ├── mkdir_cn.troff
-│   │   │   ├── mkdir_en.troff
-│   │   │   ├── move_cn.troff
-│   │   │   ├── move_en.troff
-│   │   │   ├── read_cn.troff
-│   │   │   ├── readContent_cn.troff
-│   │   │   ├── readContent_en.troff
-│   │   │   ├── read_en.troff
-│   │   │   ├── readLine_cn.troff
-│   │   │   ├── readLine_en.troff
-│   │   │   ├── remove_cn.troff
-│   │   │   ├── remove_en.troff
-│   │   │   ├── scp_cn.troff
-│   │   │   ├── scp_en.troff
-│   │   │   ├── seek_cn.troff
-│   │   │   ├── seek_en.troff
-│   │   │   ├── setUmask_cn.troff
-│   │   │   ├── setUmask_en.troff
-│   │   │   ├── stat_cn.troff
-│   │   │   ├── stat_en.troff
-│   │   │   ├── truncate_cn.troff
-│   │   │   ├── truncate_en.troff
-│   │   │   ├── write_cn.troff
-│   │   │   ├── writeContent_cn.troff
-│   │   │   ├── writeContent_en.troff
-│   │   │   └── write_en.troff
-│   │   ├── FileContent
-│   │   │   ├── clear_cn.troff
-│   │   │   ├── clear_en.troff
-│   │   │   ├── getLength_cn.troff
-│   │   │   ├── getLength_en.troff
-│   │   │   ├── toBase64Code_cn.troff
-│   │   │   └── toBase64Code_en.troff
-│   │   ├── Global
-│   │   │   ├── forceGC_cn.troff
-│   │   │   ├── forceGC_en.troff
-│   │   │   ├── getErr_cn.troff
-│   │   │   ├── getErr_en.troff
-│   │   │   ├── getExePath_cn.troff
-│   │   │   ├── getExePath_en.troff
-│   │   │   ├── getLastErrMsg_cn.troff
-│   │   │   ├── getLastErrMsg_en.troff
-│   │   │   ├── getLastErrObj_cn.troff
-│   │   │   ├── getLastErrObj_en.troff
-│   │   │   ├── getLastError_cn.troff
-│   │   │   ├── getLastError_en.troff
-│   │   │   ├── getRootPath_cn.troff
-│   │   │   ├── getRootPath_en.troff
-│   │   │   ├── getSelfPath_cn.troff
-│   │   │   ├── getSelfPath_en.troff
-│   │   │   ├── help_cn.troff
-│   │   │   ├── help_en.troff
-│   │   │   ├── import_cn.troff
-│   │   │   ├── import_en.troff
-│   │   │   ├── importOnce_cn.troff
-│   │   │   ├── importOnce_en.troff
-│   │   │   ├── jsonFormat_cn.troff
-│   │   │   ├── jsonFormat_en.troff
-│   │   │   ├── print_cn.troff
-│   │   │   ├── print_en.troff
-│   │   │   ├── setLastErrMsg_cn.troff
-│   │   │   ├── setLastErrMsg_en.troff
-│   │   │   ├── setLastErrObj_cn.troff
-│   │   │   ├── setLastErrObj_en.troff
-│   │   │   ├── setLastError_cn.troff
-│   │   │   ├── setLastError_en.troff
-│   │   │   ├── showClass_cn.troff
-│   │   │   ├── showClass_en.troff
-│   │   │   ├── sleep_cn.troff
-│   │   │   ├── sleep_en.troff
-│   │   │   ├── traceFmt_cn.troff
-│   │   │   └── traceFmt_en.troff
-│   │   ├── Hash
-│   │   │   ├── fileMD5_cn.troff
-│   │   │   ├── fileMD5_en.troff
-│   │   │   ├── md5_cn.troff
-│   │   │   └── md5_en.troff
-│   │   ├── IniFile
-│   │   │   ├── addComment_cn.troff
-│   │   │   ├── addComment_en.troff
-│   │   │   ├── addLastComment_cn.troff
-│   │   │   ├── addLastComment_en.troff
-│   │   │   ├── addSectionComment_cn.troff
-│   │   │   ├── addSectionComment_en.troff
-│   │   │   ├── delComment_cn.troff
-│   │   │   ├── delComment_en.troff
-│   │   │   ├── delLastComment_cn.troff
-│   │   │   ├── delLastComment_en.troff
-│   │   │   ├── delSectionComment_cn.troff
-│   │   │   ├── delSectionComment_en.troff
-│   │   │   ├── disableAllItem_cn.troff
-│   │   │   ├── disableAllItem_en.troff
-│   │   │   ├── disableItem_cn.troff
-│   │   │   ├── disableItem_en.troff
-│   │   │   ├── enableItem_cn.troff
-│   │   │   ├── enableItem_en.troff
-│   │   │   ├── getComment_cn.troff
-│   │   │   ├── getComment_en.troff
-│   │   │   ├── getLastComment_cn.troff
-│   │   │   ├── getLastComment_en.troff
-│   │   │   ├── getSectionComment_cn.troff
-│   │   │   ├── getSectionComment_en.troff
-│   │   │   ├── getValue_cn.troff
-│   │   │   ├── getValue_en.troff
-│   │   │   ├── IniFile_cn.troff
-│   │   │   ├── IniFile_en.troff
-│   │   │   ├── save_cn.troff
-│   │   │   ├── save_en.troff
-│   │   │   ├── setComment_cn.troff
-│   │   │   ├── setComment_en.troff
-│   │   │   ├── setLastComment_cn.troff
-│   │   │   ├── setLastComment_en.troff
-│   │   │   ├── setSectionComment_cn.troff
-│   │   │   ├── setSectionComment_en.troff
-│   │   │   ├── setValue_cn.troff
-│   │   │   ├── setValue_en.troff
-│   │   │   ├── toObj_cn.troff
-│   │   │   ├── toObj_en.troff
-│   │   │   ├── toString_cn.troff
-│   │   │   └── toString_en.troff
-│   │   ├── Oma
-│   │   │   ├── addAOmaSvcName_cn.troff
-│   │   │   ├── addAOmaSvcName_en.troff
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── createCoord_cn.troff
-│   │   │   ├── createCoord_en.troff
-│   │   │   ├── createData_cn.troff
-│   │   │   ├── createData_en.troff
-│   │   │   ├── createOM_cn.troff
-│   │   │   ├── createOM_en.troff
-│   │   │   ├── delAOmaSvcName_cn.troff
-│   │   │   ├── delAOmaSvcName_en.troff
-│   │   │   ├── getAOmaSvcName_cn.troff
-│   │   │   ├── getAOmaSvcName_en.troff
-│   │   │   ├── getIniConfigs_cn.troff
-│   │   │   ├── getIniConfigs_en.troff
-│   │   │   ├── getNodeConfigs_cn.troff
-│   │   │   ├── getNodeConfigs_en.troff
-│   │   │   ├── getOmaConfigFile_cn.troff
-│   │   │   ├── getOmaConfigFile_en.troff
-│   │   │   ├── getOmaConfigs_cn.troff
-│   │   │   ├── getOmaConfigs_en.troff
-│   │   │   ├── getOmaInstallFile_cn.troff
-│   │   │   ├── getOmaInstallFile_en.troff
-│   │   │   ├── getOmaInstallInfo_cn.troff
-│   │   │   ├── getOmaInstallInfo_en.troff
-│   │   │   ├── listNodes_cn.troff
-│   │   │   ├── listNodes_en.troff
-│   │   │   ├── Oma_cn.troff
-│   │   │   ├── Oma_en.troff
-│   │   │   ├── reloadConfigs_cn.troff
-│   │   │   ├── reloadConfigs_en.troff
-│   │   │   ├── removeCoord_cn.troff
-│   │   │   ├── removeCoord_en.troff
-│   │   │   ├── removeData_cn.troff
-│   │   │   ├── removeData_en.troff
-│   │   │   ├── removeOM_cn.troff
-│   │   │   ├── removeOM_en.troff
-│   │   │   ├── setIniConfigs_cn.troff
-│   │   │   ├── setIniConfigs_en.troff
-│   │   │   ├── setNodeConfigs_cn.troff
-│   │   │   ├── setNodeConfigs_en.troff
-│   │   │   ├── setOmaConfigs_cn.troff
-│   │   │   ├── setOmaConfigs_en.troff
-│   │   │   ├── startAllNodes_cn.troff
-│   │   │   ├── startAllNodes_en.troff
-│   │   │   ├── start_cn.troff
-│   │   │   ├── start_en.troff
-│   │   │   ├── startNode_cn.troff
-│   │   │   ├── startNode_en.troff
-│   │   │   ├── startNodes_cn.troff
-│   │   │   ├── startNodes_en.troff
-│   │   │   ├── stopAllNodes_cn.troff
-│   │   │   ├── stopAllNodes_en.troff
-│   │   │   ├── stopNode_cn.troff
-│   │   │   ├── stopNode_en.troff
-│   │   │   ├── stopNodes_cn.troff
-│   │   │   ├── stopNodes_en.troff
-│   │   │   ├── updateNodeConfigs_cn.troff
-│   │   │   └── updateNodeConfigs_en.troff
-│   │   ├── Remote
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── getCmd_cn.troff
-│   │   │   ├── getCmd_en.troff
-│   │   │   ├── getFile_cn.troff
-│   │   │   ├── getFile_en.troff
-│   │   │   ├── getInfo_cn.troff
-│   │   │   ├── getInfo_en.troff
-│   │   │   ├── getIniFile_cn.troff
-│   │   │   ├── getIniFile_en.troff
-│   │   │   ├── getSystem_cn.troff
-│   │   │   ├── getSystem_en.troff
-│   │   │   ├── Remote_cn.troff
-│   │   │   └── Remote_en.troff
-│   │   ├── Sdb
-│   │   │   ├── analyze_cn.troff
-│   │   │   ├── analyze_en.troff
-│   │   │   ├── backup_cn.troff
-│   │   │   ├── backup_en.troff
-│   │   │   ├── cancelTask_cn.troff
-│   │   │   ├── cancelTask_en.troff
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── createCataRG_cn.troff
-│   │   │   ├── createCataRG_en.troff
-│   │   │   ├── createCoordRG_cn.troff
-│   │   │   ├── createCoordRG_en.troff
-│   │   │   ├── createCS_cn.troff
-│   │   │   ├── createCS_en.troff
-│   │   │   ├── createDataSource_cn.troff
-│   │   │   ├── createDataSource_en.troff
-│   │   │   ├── createDomain_cn.troff
-│   │   │   ├── createDomain_en.troff
-│   │   │   ├── createProcedure_cn.troff
-│   │   │   ├── createProcedure_en.troff
-│   │   │   ├── createRG_cn.troff
-│   │   │   ├── createRG_en.troff
-│   │   │   ├── createSequence_cn.troff
-│   │   │   ├── createSequence_en.troff
-│   │   │   ├── createSpareRG_cn.troff
-│   │   │   ├── createSpareRG_en.troff
-│   │   │   ├── createUsr_cn.troff
-│   │   │   ├── createUsr_en.troff
-│   │   │   ├── deleteConf_cn.troff
-│   │   │   ├── deleteConf_en.troff
-│   │   │   ├── dropCS_cn.troff
-│   │   │   ├── dropCS_en.troff
-│   │   │   ├── dropDataSource_cn.troff
-│   │   │   ├── dropDataSource_en.troff
-│   │   │   ├── dropDomain_cn.troff
-│   │   │   ├── dropDomain_en.troff
-│   │   │   ├── dropSequence_cn.troff
-│   │   │   ├── dropSequence_en.troff
-│   │   │   ├── dropUsr_cn.troff
-│   │   │   ├── dropUsr_en.troff
-│   │   │   ├── eval_cn.troff
-│   │   │   ├── eval_en.troff
-│   │   │   ├── exec_cn.troff
-│   │   │   ├── exec_en.troff
-│   │   │   ├── execUpdate_cn.troff
-│   │   │   ├── execUpdate_en.troff
-│   │   │   ├── flushConfigure_cn.troff
-│   │   │   ├── flushConfigure_en.troff
-│   │   │   ├── forceSession_cn.troff
-│   │   │   ├── forceSession_en.troff
-│   │   │   ├── forceStepUp_cn.troff
-│   │   │   ├── forceStepUp_en.troff
-│   │   │   ├── getCataRG_cn.troff
-│   │   │   ├── getCataRG_en.troff
-│   │   │   ├── getCoordRG_cn.troff
-│   │   │   ├── getCoordRG_en.troff
-│   │   │   ├── getCS_cn.troff
-│   │   │   ├── getCS_en.troff
-│   │   │   ├── getDataSource_cn.troff
-│   │   │   ├── getDataSource_en.troff
-│   │   │   ├── getDomain_cn.troff
-│   │   │   ├── getDomain_en.troff
-│   │   │   ├── getRecycleBin_cn.troff
-│   │   │   ├── getRecycleBin_en.troff
-│   │   │   ├── getRG_cn.troff
-│   │   │   ├── getRG_en.troff
-│   │   │   ├── getSequence_cn.troff
-│   │   │   ├── getSequence_en.troff
-│   │   │   ├── getSessionAttr_cn.troff
-│   │   │   ├── getSessionAttr_en.troff
-│   │   │   ├── getSpareRG_cn.troff
-│   │   │   ├── getSpareRG_en.troff
-│   │   │   ├── getTask_cn.troff
-│   │   │   ├── getTask_en.troff
-│   │   │   ├── invalidateCache_cn.troff
-│   │   │   ├── invalidateCache_en.troff
-│   │   │   ├── listBackup_cn.troff
-│   │   │   ├── listBackup_en.troff
-│   │   │   ├── list_cn.troff
-│   │   │   ├── listCollections_cn.troff
-│   │   │   ├── listCollections_en.troff
-│   │   │   ├── listCollectionSpaces_cn.troff
-│   │   │   ├── listCollectionSpaces_en.troff
-│   │   │   ├── listDataSources_cn.troff
-│   │   │   ├── listDataSources_en.troff
-│   │   │   ├── listDomains_cn.troff
-│   │   │   ├── listDomains_en.troff
-│   │   │   ├── list_en.troff
-│   │   │   ├── listProcedures_cn.troff
-│   │   │   ├── listProcedures_en.troff
-│   │   │   ├── listReplicaGroups_cn.troff
-│   │   │   ├── listReplicaGroups_en.troff
-│   │   │   ├── listSequences_cn.troff
-│   │   │   ├── listSequences_en.troff
-│   │   │   ├── listTasks_cn.troff
-│   │   │   ├── listTasks_en.troff
-│   │   │   ├── reloadConf_cn.troff
-│   │   │   ├── reloadConf_en.troff
-│   │   │   ├── removeBackup_cn.troff
-│   │   │   ├── removeBackup_en.troff
-│   │   │   ├── removeCataRG_cn.troff
-│   │   │   ├── removeCataRG_en.troff
-│   │   │   ├── removeCoordRG_cn.troff
-│   │   │   ├── removeCoordRG_en.troff
-│   │   │   ├── removeProcedure_cn.troff
-│   │   │   ├── removeProcedure_en.troff
-│   │   │   ├── removeRG_cn.troff
-│   │   │   ├── removeRG_en.troff
-│   │   │   ├── removeSpareRG_cn.troff
-│   │   │   ├── removeSpareRG_en.troff
-│   │   │   ├── renameCS_cn.troff
-│   │   │   ├── renameCS_en.troff
-│   │   │   ├── renameSequence_cn.troff
-│   │   │   ├── renameSequence_en.troff
-│   │   │   ├── resetSnapshot_cn.troff
-│   │   │   ├── resetSnapshot_en.troff
-│   │   │   ├── Sdb_cn.troff
-│   │   │   ├── Sdb_en.troff
-│   │   │   ├── setPDLevel_cn.troff
-│   │   │   ├── setPDLevel_en.troff
-│   │   │   ├── setSessionAttr_cn.troff
-│   │   │   ├── setSessionAttr_en.troff
-│   │   │   ├── snapshot_cn.troff
-│   │   │   ├── snapshot_en.troff
-│   │   │   ├── startRG_cn.troff
-│   │   │   ├── startRG_en.troff
-│   │   │   ├── stopRG_cn.troff
-│   │   │   ├── stopRG_en.troff
-│   │   │   ├── sync_cn.troff
-│   │   │   ├── sync_en.troff
-│   │   │   ├── traceOff_cn.troff
-│   │   │   ├── traceOff_en.troff
-│   │   │   ├── traceOn_cn.troff
-│   │   │   ├── traceOn_en.troff
-│   │   │   ├── traceResume_cn.troff
-│   │   │   ├── traceResume_en.troff
-│   │   │   ├── traceStatus_cn.troff
-│   │   │   ├── traceStatus_en.troff
-│   │   │   ├── transBegin_cn.troff
-│   │   │   ├── transBegin_en.troff
-│   │   │   ├── transCommit_cn.troff
-│   │   │   ├── transCommit_en.troff
-│   │   │   ├── transRollback_cn.troff
-│   │   │   ├── transRollback_en.troff
-│   │   │   ├── updateConf_cn.troff
-│   │   │   ├── updateConf_en.troff
-│   │   │   ├── waitTasks_cn.troff
-│   │   │   └── waitTasks_en.troff
-│   │   ├── SdbCollection
-│   │   │   ├── aggregate_cn.troff
-│   │   │   ├── aggregate_en.troff
-│   │   │   ├── alter_cn.troff
-│   │   │   ├── alter_en.troff
-│   │   │   ├── attachCL_cn.troff
-│   │   │   ├── attachCL_en.troff
-│   │   │   ├── copyIndexAsync_cn.troff
-│   │   │   ├── copyIndexAsync_en.troff
-│   │   │   ├── copyIndex_cn.troff
-│   │   │   ├── copyIndex_en.troff
-│   │   │   ├── count_cn.troff
-│   │   │   ├── count_en.troff
-│   │   │   ├── createAutoIncrement_cn.troff
-│   │   │   ├── createAutoIncrement_en.troff
-│   │   │   ├── createIdIndex_cn.troff
-│   │   │   ├── createIdIndex_en.troff
-│   │   │   ├── createIndexAsync_cn.troff
-│   │   │   ├── createIndexAsync_en.troff
-│   │   │   ├── createIndex_cn.troff
-│   │   │   ├── createIndex_en.troff
-│   │   │   ├── createLobID_cn.troff
-│   │   │   ├── createLobID_en.troff
-│   │   │   ├── deleteLob_cn.troff
-│   │   │   ├── deleteLob_en.troff
-│   │   │   ├── detachCL_cn.troff
-│   │   │   ├── detachCL_en.troff
-│   │   │   ├── disableCompression_cn.troff
-│   │   │   ├── disableCompression_en.troff
-│   │   │   ├── disableSharding_cn.troff
-│   │   │   ├── disableSharding_en.troff
-│   │   │   ├── dropAutoIncrement_cn.troff
-│   │   │   ├── dropAutoIncrement_en.troff
-│   │   │   ├── dropIdIndex_cn.troff
-│   │   │   ├── dropIdIndex_en.troff
-│   │   │   ├── dropIndexAsync_cn.troff
-│   │   │   ├── dropIndexAsync_en.troff
-│   │   │   ├── dropIndex_cn.troff
-│   │   │   ├── dropIndex_en.troff
-│   │   │   ├── enableCompression_cn.troff
-│   │   │   ├── enableCompression_en.troff
-│   │   │   ├── enableSharding_cn.troff
-│   │   │   ├── enableSharding_en.troff
-│   │   │   ├── explain_en.troff
-│   │   │   ├── findAndRemove_en.troff
-│   │   │   ├── findAndUpdate_en.troff
-│   │   │   ├── find_cn.troff
-│   │   │   ├── find_en.troff
-│   │   │   ├── findOne_cn.troff
-│   │   │   ├── findOne_en.troff
-│   │   │   ├── getCollectionStat_cn.troff
-│   │   │   ├── getCollectionStat_en.troff
-│   │   │   ├── getDetail_cn.troff
-│   │   │   ├── getDetail_en.troff
-│   │   │   ├── getIndex_cn.troff
-│   │   │   ├── getIndex_en.troff
-│   │   │   ├── getIndexStat_cn.troff
-│   │   │   ├── getIndexStat_en.troff
-│   │   │   ├── getLob_cn.troff
-│   │   │   ├── getLobDetail_cn.troff
-│   │   │   ├── getLobDetail_en.troff
-│   │   │   ├── getLob_en.troff
-│   │   │   ├── insert_cn.troff
-│   │   │   ├── insert_en.troff
-│   │   │   ├── listIndexes_cn.troff
-│   │   │   ├── listIndexes_en.troff
-│   │   │   ├── listLobs_cn.troff
-│   │   │   ├── listLobs_en.troff
-│   │   │   ├── putLob_cn.troff
-│   │   │   ├── putLob_en.troff
-│   │   │   ├── remove_cn.troff
-│   │   │   ├── remove_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── setConsistencyStrategy_cn.troff
-│   │   │   ├── setConsistencyStrategy_en.troff
-│   │   │   ├── snapshotIndexes_cn.troff
-│   │   │   ├── snapshotIndexes_en.troff
-│   │   │   ├── splitAsync_cn.troff
-│   │   │   ├── splitAsync_en.troff
-│   │   │   ├── split_cn.troff
-│   │   │   ├── split_en.troff
-│   │   │   ├── truncate_cn.troff
-│   │   │   ├── truncate_en.troff
-│   │   │   ├── truncateLob_cn.troff
-│   │   │   ├── truncateLob_en.troff
-│   │   │   ├── update_cn.troff
-│   │   │   ├── update_en.troff
-│   │   │   ├── upsert_cn.troff
-│   │   │   └── upsert_en.troff
-│   │   ├── SdbCS
-│   │   │   ├── alter_cn.troff
-│   │   │   ├── alter_en.troff
-│   │   │   ├── createCL_cn.troff
-│   │   │   ├── createCL_en.troff
-│   │   │   ├── dropCL_cn.troff
-│   │   │   ├── dropCL_en.troff
-│   │   │   ├── getCL_cn.troff
-│   │   │   ├── getCL_en.troff
-│   │   │   ├── getDomainName_cn.troff
-│   │   │   ├── getDomainName_en.troff
-│   │   │   ├── listCollections_cn.troff
-│   │   │   ├── listCollections_en.troff
-│   │   │   ├── removeDomain_cn.troff
-│   │   │   ├── removeDomain_en.troff
-│   │   │   ├── renameCL_cn.troff
-│   │   │   ├── renameCL_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── setDomain_cn.troff
-│   │   │   └── setDomain_en.troff
-│   │   ├── SdbCursor
-│   │   │   ├── arrayAccess_cn.troff
-│   │   │   ├── arrayAccess_en.troff
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── current_cn.troff
-│   │   │   ├── current_en.troff
-│   │   │   ├── [i]_en.troff
-│   │   │   ├── next_cn.troff
-│   │   │   ├── next_en.troff
-│   │   │   ├── size_en.troff
-│   │   │   └── toArray_en.troff
-│   │   ├── SdbDataSource
-│   │   │   ├── alter_cn.troff
-│   │   │   └── alter_en.troff
-│   │   ├── SdbDomain
-│   │   │   ├── addGroups_cn.troff
-│   │   │   ├── addGroups_en.troff
-│   │   │   ├── alter_cn.troff
-│   │   │   ├── alter_en.troff
-│   │   │   ├── listCollections_cn.troff
-│   │   │   ├── listCollections_en.troff
-│   │   │   ├── listCollectionSpaces_cn.troff
-│   │   │   ├── listCollectionSpaces_en.troff
-│   │   │   ├── listGroups_cn.troff
-│   │   │   ├── listGroups_en.troff
-│   │   │   ├── removeGroups_cn.troff
-│   │   │   ├── removeGroups_en.troff
-│   │   │   ├── setActiveLocation_cn.troff
-│   │   │   ├── setActiveLocation_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── setGroups_cn.troff
-│   │   │   └── setGroups_en.troff
-│   │   ├── SdbNode
-│   │   │   ├── connect_cn.troff
-│   │   │   ├── connect_en.troff
-│   │   │   ├── getDetailObj_cn.troff
-│   │   │   ├── getDetailObj_en.troff
-│   │   │   ├── getHostName_cn.troff
-│   │   │   ├── getHostName_en.troff
-│   │   │   ├── getServiceName_cn.troff
-│   │   │   ├── getServiceName_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── setLocation_cn.troff
-│   │   │   ├── setLocation_en.troff
-│   │   │   ├── start_cn.troff
-│   │   │   ├── start_en.troff
-│   │   │   ├── stop_cn.troff
-│   │   │   └── stop_en.troff
-│   │   ├── SdbQuery
-│   │   │   ├── arrayAccess_cn.troff
-│   │   │   ├── arrayAccess_en.troff
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── count_cn.troff
-│   │   │   ├── count_en.troff
-│   │   │   ├── current_cn.troff
-│   │   │   ├── current_en.troff
-│   │   │   ├── explain_cn.troff
-│   │   │   ├── explain_en.troff
-│   │   │   ├── flags_cn.troff
-│   │   │   ├── flags_en.troff
-│   │   │   ├── getQueryMeta_cn.troff
-│   │   │   ├── getQueryMeta_en.troff
-│   │   │   ├── hint_cn.troff
-│   │   │   ├── hint_en.troff
-│   │   │   ├── limit_cn.troff
-│   │   │   ├── limit_en.troff
-│   │   │   ├── next_cn.troff
-│   │   │   ├── next_en.troff
-│   │   │   ├── query_cn.troff
-│   │   │   ├── query_en.troff
-│   │   │   ├── remove_cn.troff
-│   │   │   ├── remove_en.troff
-│   │   │   ├── size_cn.troff
-│   │   │   ├── size_en.troff
-│   │   │   ├── skip_cn.troff
-│   │   │   ├── skip_en.troff
-│   │   │   ├── sort_cn.troff
-│   │   │   ├── sort_en.troff
-│   │   │   ├── toArray_cn.troff
-│   │   │   ├── toArray_en.troff
-│   │   │   ├── update_cn.troff
-│   │   │   └── update_en.troff
-│   │   ├── SdbRecycleBin
-│   │   │   ├── alter_cn.troff
-│   │   │   ├── alter_en.troff
-│   │   │   ├── count_cn.troff
-│   │   │   ├── count_en.troff
-│   │   │   ├── disable_cn.troff
-│   │   │   ├── disable_en.troff
-│   │   │   ├── dropAll_cn.troff
-│   │   │   ├── dropAll_en.troff
-│   │   │   ├── dropItem_cn.troff
-│   │   │   ├── dropItem_en.troff
-│   │   │   ├── enable_cn.troff
-│   │   │   ├── enable_en.troff
-│   │   │   ├── getDetail_cn.troff
-│   │   │   ├── getDetail_en.troff
-│   │   │   ├── list_cn.troff
-│   │   │   ├── list_en.troff
-│   │   │   ├── returnItem_cn.troff
-│   │   │   ├── returnItem_en.troff
-│   │   │   ├── returnItemToName_cn.troff
-│   │   │   ├── returnItemToName_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── snapshot_cn.troff
-│   │   │   └── snapshot_en.troff
-│   │   ├── SdbReplicaGroup
-│   │   │   ├── attachNode_cn.troff
-│   │   │   ├── attachNode_en.troff
-│   │   │   ├── createNode_cn.troff
-│   │   │   ├── createNode_en.troff
-│   │   │   ├── detachNode_cn.troff
-│   │   │   ├── detachNode_en.troff
-│   │   │   ├── getDetailObj_cn.troff
-│   │   │   ├── getDetailObj_en.troff
-│   │   │   ├── getMaster_cn.troff
-│   │   │   ├── getMaster_en.troff
-│   │   │   ├── getNode_cn.troff
-│   │   │   ├── getNode_en.troff
-│   │   │   ├── getSlave_cn.troff
-│   │   │   ├── getSlave_en.troff
-│   │   │   ├── reelect_cn.troff
-│   │   │   ├── reelect_en.troff
-│   │   │   ├── reelectLocation_cn.troff
-│   │   │   ├── reelectLocation_en.troff
-│   │   │   ├── removeNode_cn.troff
-│   │   │   ├── removeNode_en.troff
-│   │   │   ├── setActiveLocation_cn.troff
-│   │   │   ├── setActiveLocation_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── start_cn.troff
-│   │   │   ├── start_en.troff
-│   │   │   ├── stop_cn.troff
-│   │   │   └── stop_en.troff
-│   │   ├── SdbSequence
-│   │   │   ├── fetch_cn.troff
-│   │   │   ├── fetch_en.troff
-│   │   │   ├── getCurrentValue_cn.troff
-│   │   │   ├── getCurrentValue_en.troff
-│   │   │   ├── getNextValue_cn.troff
-│   │   │   ├── getNextValue_en.troff
-│   │   │   ├── restart_cn.troff
-│   │   │   ├── restart_en.troff
-│   │   │   ├── setAttributes_cn.troff
-│   │   │   ├── setAttributes_en.troff
-│   │   │   ├── setCurrentValue_cn.troff
-│   │   │   └── setCurrentValue_en.troff
-│   │   ├── Sdbtool
-│   │   │   ├── listNodes_cn.troff
-│   │   │   └── listNodes_en.troff
-│   │   ├── SecureSdb
-│   │   │   ├── SecureSdb_cn.troff
-│   │   │   └── SecureSdb_en.troff
-│   │   ├── Ssh
-│   │   │   ├── close_cn.troff
-│   │   │   ├── close_en.troff
-│   │   │   ├── exec_cn.troff
-│   │   │   ├── exec_en.troff
-│   │   │   ├── getLastOut_cn.troff
-│   │   │   ├── getLastOut_en.troff
-│   │   │   ├── getLastRet_cn.troff
-│   │   │   ├── getLastRet_en.troff
-│   │   │   ├── getLocalIP_cn.troff
-│   │   │   ├── getLocalIP_en.troff
-│   │   │   ├── getPeerIP_cn.troff
-│   │   │   ├── getPeerIP_en.troff
-│   │   │   ├── pull_cn.troff
-│   │   │   ├── pull_en.troff
-│   │   │   ├── push_cn.troff
-│   │   │   ├── push_en.troff
-│   │   │   ├── Ssh_cn.troff
-│   │   │   └── Ssh_en.troff
-│   │   └── System
-│   │       ├── addAHostMap_cn.troff
-│   │       ├── addAHostMap_en.troff
-│   │       ├── addGroup_cn.troff
-│   │       ├── addGroup_en.troff
-│   │       ├── addUser_cn.troff
-│   │       ├── addUser_en.troff
-│   │       ├── delAHostMap_cn.troff
-│   │       ├── delAHostMap_en.troff
-│   │       ├── delGroup_cn.troff
-│   │       ├── delGroup_en.troff
-│   │       ├── delUser_cn.troff
-│   │       ├── delUser_en.troff
-│   │       ├── getAHostMap_cn.troff
-│   │       ├── getAHostMap_en.troff
-│   │       ├── getCpuInfo_cn.troff
-│   │       ├── getCpuInfo_en.troff
-│   │       ├── getCurrentUser_cn.troff
-│   │       ├── getCurrentUser_en.troff
-│   │       ├── getDiskInfo_cn.troff
-│   │       ├── getDiskInfo_en.troff
-│   │       ├── getEWD_cn.troff
-│   │       ├── getEWD_en.troff
-│   │       ├── getHostName_cn.troff
-│   │       ├── getHostName_en.troff
-│   │       ├── getHostsMap_cn.troff
-│   │       ├── getHostsMap_en.troff
-│   │       ├── getIpTablesInfo_cn.troff
-│   │       ├── getIpTablesInfo_en.troff
-│   │       ├── getMemInfo_cn.troff
-│   │       ├── getMemInfo_en.troff
-│   │       ├── getNetcardInfo_cn.troff
-│   │       ├── getNetcardInfo_en.troff
-│   │       ├── getPID_cn.troff
-│   │       ├── getPID_en.troff
-│   │       ├── getProcUlimitConfigs_cn.troff
-│   │       ├── getProcUlimitConfigs_en.troff
-│   │       ├── getReleaseInfo_cn.troff
-│   │       ├── getReleaseInfo_en.troff
-│   │       ├── getSystemConfigs_cn.troff
-│   │       ├── getSystemConfigs_en.troff
-│   │       ├── getTID_cn.troff
-│   │       ├── getTID_en.troff
-│   │       ├── getUserEnv_cn.troff
-│   │       ├── getUserEnv_en.troff
-│   │       ├── isGroupExist_cn.troff
-│   │       ├── isGroupExist_en.troff
-│   │       ├── isProcExist_cn.troff
-│   │       ├── isProcExist_en.troff
-│   │       ├── isUserExist_cn.troff
-│   │       ├── isUserExist_en.troff
-│   │       ├── killProcess_cn.troff
-│   │       ├── killProcess_en.troff
-│   │       ├── listAllUsers_cn.troff
-│   │       ├── listAllUsers_en.troff
-│   │       ├── listGroups_cn.troff
-│   │       ├── listGroups_en.troff
-│   │       ├── listLoginUsers_cn.troff
-│   │       ├── listLoginUsers_en.troff
-│   │       ├── listProcess_cn.troff
-│   │       ├── listProcess_en.troff
-│   │       ├── ping_cn.troff
-│   │       ├── ping_en.troff
-│   │       ├── runService_cn.troff
-│   │       ├── runService_en.troff
-│   │       ├── setProcUlimitConfigs_cn.troff
-│   │       ├── setProcUlimitConfigs_en.troff
-│   │       ├── setUserConfigs_cn.troff
-│   │       ├── setUserConfigs_en.troff
-│   │       ├── snapshotCpuInfo_cn.troff
-│   │       ├── snapshotCpuInfo_en.troff
-│   │       ├── snapshotDiskInfo_cn.troff
-│   │       ├── snapshotDiskInfo_en.troff
-│   │       ├── snapshotMemInfo_cn.troff
-│   │       ├── snapshotMemInfo_en.troff
-│   │       ├── snapshotNetcardInfo_cn.troff
-│   │       ├── snapshotNetcardInfo_en.troff
-│   │       ├── sniffPort_cn.troff
-│   │       ├── sniffPort_en.troff
-│   │       ├── type_cn.troff
-│   │       └── type_en.troff
-│   ├── SequoiaDB_usermanuals_v3.6.chm
-│   ├── SequoiaDB_usermanuals_v3.6.pdf
-│   └── SequoiaDB_usermanuals_v3.6.tar.gz
+│   └── manual
+│       ├── BSONArray
+│       │   ├── index_en.troff
+│       │   ├── more_en.troff
+│       │   ├── next_en.troff
+│       │   ├── pos_en.troff
+│       │   ├── size_en.troff
+│       │   ├── toArray_en.troff
+│       │   └── toString_en.troff
+│       ├── BSONObj
+│       │   ├── BSONObj_en.troff
+│       │   ├── toJson_en.troff
+│       │   ├── toObj_en.troff
+│       │   └── toString_en.troff
+│       ├── CLCount
+│       │   ├── hint_en.troff
+│       │   ├── toString_en.troff
+│       │   └── valueOf_en.troff
+│       ├── Cmd
+│       │   ├── Cmd_cn.troff
+│       │   ├── Cmd_en.troff
+│       │   ├── getCommand_cn.troff
+│       │   ├── getCommand_en.troff
+│       │   ├── getInfo_cn.troff
+│       │   ├── getInfo_en.troff
+│       │   ├── getLastOut_cn.troff
+│       │   ├── getLastOut_en.troff
+│       │   ├── getLastRet_cn.troff
+│       │   ├── getLastRet_en.troff
+│       │   ├── run_cn.troff
+│       │   ├── run_en.troff
+│       │   ├── runJS_cn.troff
+│       │   ├── runJS_en.troff
+│       │   ├── start_cn.troff
+│       │   └── start_en.troff
+│       ├── File
+│       │   ├── chgrp_cn.troff
+│       │   ├── chgrp_en.troff
+│       │   ├── chmod_cn.troff
+│       │   ├── chmod_en.troff
+│       │   ├── chown_cn.troff
+│       │   ├── chown_en.troff
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── copy_cn.troff
+│       │   ├── copy_en.troff
+│       │   ├── exist_cn.troff
+│       │   ├── exist_en.troff
+│       │   ├── File_cn.troff
+│       │   ├── File_en.troff
+│       │   ├── find_cn.troff
+│       │   ├── find_en.troff
+│       │   ├── getSize_cn.troff
+│       │   ├── getSize_en.troff
+│       │   ├── getUmask_cn.troff
+│       │   ├── getUmask_en.troff
+│       │   ├── isDir_cn.troff
+│       │   ├── isDir_en.troff
+│       │   ├── isEmptyDir_cn.troff
+│       │   ├── isEmptyDir_en.troff
+│       │   ├── isFile_cn.troff
+│       │   ├── isFile_en.troff
+│       │   ├── list_cn.troff
+│       │   ├── list_en.troff
+│       │   ├── md5_cn.troff
+│       │   ├── md5_en.troff
+│       │   ├── mkdir_cn.troff
+│       │   ├── mkdir_en.troff
+│       │   ├── move_cn.troff
+│       │   ├── move_en.troff
+│       │   ├── read_cn.troff
+│       │   ├── readContent_cn.troff
+│       │   ├── readContent_en.troff
+│       │   ├── read_en.troff
+│       │   ├── readLine_cn.troff
+│       │   ├── readLine_en.troff
+│       │   ├── remove_cn.troff
+│       │   ├── remove_en.troff
+│       │   ├── scp_cn.troff
+│       │   ├── scp_en.troff
+│       │   ├── seek_cn.troff
+│       │   ├── seek_en.troff
+│       │   ├── setUmask_cn.troff
+│       │   ├── setUmask_en.troff
+│       │   ├── stat_cn.troff
+│       │   ├── stat_en.troff
+│       │   ├── truncate_cn.troff
+│       │   ├── truncate_en.troff
+│       │   ├── write_cn.troff
+│       │   ├── writeContent_cn.troff
+│       │   ├── writeContent_en.troff
+│       │   └── write_en.troff
+│       ├── FileContent
+│       │   ├── clear_cn.troff
+│       │   ├── clear_en.troff
+│       │   ├── getLength_cn.troff
+│       │   ├── getLength_en.troff
+│       │   ├── toBase64Code_cn.troff
+│       │   └── toBase64Code_en.troff
+│       ├── Global
+│       │   ├── forceGC_cn.troff
+│       │   ├── forceGC_en.troff
+│       │   ├── getErr_cn.troff
+│       │   ├── getErr_en.troff
+│       │   ├── getExePath_cn.troff
+│       │   ├── getExePath_en.troff
+│       │   ├── getLastErrMsg_cn.troff
+│       │   ├── getLastErrMsg_en.troff
+│       │   ├── getLastErrObj_cn.troff
+│       │   ├── getLastErrObj_en.troff
+│       │   ├── getLastError_cn.troff
+│       │   ├── getLastError_en.troff
+│       │   ├── getRootPath_cn.troff
+│       │   ├── getRootPath_en.troff
+│       │   ├── getSelfPath_cn.troff
+│       │   ├── getSelfPath_en.troff
+│       │   ├── help_cn.troff
+│       │   ├── help_en.troff
+│       │   ├── import_cn.troff
+│       │   ├── import_en.troff
+│       │   ├── importOnce_cn.troff
+│       │   ├── importOnce_en.troff
+│       │   ├── jsonFormat_cn.troff
+│       │   ├── jsonFormat_en.troff
+│       │   ├── print_cn.troff
+│       │   ├── print_en.troff
+│       │   ├── setLastErrMsg_cn.troff
+│       │   ├── setLastErrMsg_en.troff
+│       │   ├── setLastErrObj_cn.troff
+│       │   ├── setLastErrObj_en.troff
+│       │   ├── setLastError_cn.troff
+│       │   ├── setLastError_en.troff
+│       │   ├── showClass_cn.troff
+│       │   ├── showClass_en.troff
+│       │   ├── sleep_cn.troff
+│       │   ├── sleep_en.troff
+│       │   ├── traceFmt_cn.troff
+│       │   └── traceFmt_en.troff
+│       ├── Hash
+│       │   ├── fileMD5_cn.troff
+│       │   ├── fileMD5_en.troff
+│       │   ├── md5_cn.troff
+│       │   └── md5_en.troff
+│       ├── IniFile
+│       │   ├── addComment_cn.troff
+│       │   ├── addComment_en.troff
+│       │   ├── addLastComment_cn.troff
+│       │   ├── addLastComment_en.troff
+│       │   ├── addSectionComment_cn.troff
+│       │   ├── addSectionComment_en.troff
+│       │   ├── delComment_cn.troff
+│       │   ├── delComment_en.troff
+│       │   ├── delLastComment_cn.troff
+│       │   ├── delLastComment_en.troff
+│       │   ├── delSectionComment_cn.troff
+│       │   ├── delSectionComment_en.troff
+│       │   ├── disableAllItem_cn.troff
+│       │   ├── disableAllItem_en.troff
+│       │   ├── disableItem_cn.troff
+│       │   ├── disableItem_en.troff
+│       │   ├── enableItem_cn.troff
+│       │   ├── enableItem_en.troff
+│       │   ├── getComment_cn.troff
+│       │   ├── getComment_en.troff
+│       │   ├── getLastComment_cn.troff
+│       │   ├── getLastComment_en.troff
+│       │   ├── getSectionComment_cn.troff
+│       │   ├── getSectionComment_en.troff
+│       │   ├── getValue_cn.troff
+│       │   ├── getValue_en.troff
+│       │   ├── IniFile_cn.troff
+│       │   ├── IniFile_en.troff
+│       │   ├── save_cn.troff
+│       │   ├── save_en.troff
+│       │   ├── setComment_cn.troff
+│       │   ├── setComment_en.troff
+│       │   ├── setLastComment_cn.troff
+│       │   ├── setLastComment_en.troff
+│       │   ├── setSectionComment_cn.troff
+│       │   ├── setSectionComment_en.troff
+│       │   ├── setValue_cn.troff
+│       │   ├── setValue_en.troff
+│       │   ├── toObj_cn.troff
+│       │   ├── toObj_en.troff
+│       │   ├── toString_cn.troff
+│       │   └── toString_en.troff
+│       ├── Oma
+│       │   ├── addAOmaSvcName_cn.troff
+│       │   ├── addAOmaSvcName_en.troff
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── createCoord_cn.troff
+│       │   ├── createCoord_en.troff
+│       │   ├── createData_cn.troff
+│       │   ├── createData_en.troff
+│       │   ├── createOM_cn.troff
+│       │   ├── createOM_en.troff
+│       │   ├── delAOmaSvcName_cn.troff
+│       │   ├── delAOmaSvcName_en.troff
+│       │   ├── getAOmaSvcName_cn.troff
+│       │   ├── getAOmaSvcName_en.troff
+│       │   ├── getIniConfigs_cn.troff
+│       │   ├── getIniConfigs_en.troff
+│       │   ├── getNodeConfigs_cn.troff
+│       │   ├── getNodeConfigs_en.troff
+│       │   ├── getOmaConfigFile_cn.troff
+│       │   ├── getOmaConfigFile_en.troff
+│       │   ├── getOmaConfigs_cn.troff
+│       │   ├── getOmaConfigs_en.troff
+│       │   ├── getOmaInstallFile_cn.troff
+│       │   ├── getOmaInstallFile_en.troff
+│       │   ├── getOmaInstallInfo_cn.troff
+│       │   ├── getOmaInstallInfo_en.troff
+│       │   ├── listNodes_cn.troff
+│       │   ├── listNodes_en.troff
+│       │   ├── Oma_cn.troff
+│       │   ├── Oma_en.troff
+│       │   ├── reloadConfigs_cn.troff
+│       │   ├── reloadConfigs_en.troff
+│       │   ├── removeCoord_cn.troff
+│       │   ├── removeCoord_en.troff
+│       │   ├── removeData_cn.troff
+│       │   ├── removeData_en.troff
+│       │   ├── removeOM_cn.troff
+│       │   ├── removeOM_en.troff
+│       │   ├── setIniConfigs_cn.troff
+│       │   ├── setIniConfigs_en.troff
+│       │   ├── setNodeConfigs_cn.troff
+│       │   ├── setNodeConfigs_en.troff
+│       │   ├── setOmaConfigs_cn.troff
+│       │   ├── setOmaConfigs_en.troff
+│       │   ├── startAllNodes_cn.troff
+│       │   ├── startAllNodes_en.troff
+│       │   ├── start_cn.troff
+│       │   ├── start_en.troff
+│       │   ├── startNode_cn.troff
+│       │   ├── startNode_en.troff
+│       │   ├── startNodes_cn.troff
+│       │   ├── startNodes_en.troff
+│       │   ├── stopAllNodes_cn.troff
+│       │   ├── stopAllNodes_en.troff
+│       │   ├── stopNode_cn.troff
+│       │   ├── stopNode_en.troff
+│       │   ├── stopNodes_cn.troff
+│       │   ├── stopNodes_en.troff
+│       │   ├── updateNodeConfigs_cn.troff
+│       │   └── updateNodeConfigs_en.troff
+│       ├── Remote
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── getCmd_cn.troff
+│       │   ├── getCmd_en.troff
+│       │   ├── getFile_cn.troff
+│       │   ├── getFile_en.troff
+│       │   ├── getInfo_cn.troff
+│       │   ├── getInfo_en.troff
+│       │   ├── getIniFile_cn.troff
+│       │   ├── getIniFile_en.troff
+│       │   ├── getSystem_cn.troff
+│       │   ├── getSystem_en.troff
+│       │   ├── Remote_cn.troff
+│       │   └── Remote_en.troff
+│       ├── Sdb
+│       │   ├── analyze_cn.troff
+│       │   ├── analyze_en.troff
+│       │   ├── backup_cn.troff
+│       │   ├── backup_en.troff
+│       │   ├── cancelTask_cn.troff
+│       │   ├── cancelTask_en.troff
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── createCataRG_cn.troff
+│       │   ├── createCataRG_en.troff
+│       │   ├── createCoordRG_cn.troff
+│       │   ├── createCoordRG_en.troff
+│       │   ├── createCS_cn.troff
+│       │   ├── createCS_en.troff
+│       │   ├── createDataSource_cn.troff
+│       │   ├── createDataSource_en.troff
+│       │   ├── createDomain_cn.troff
+│       │   ├── createDomain_en.troff
+│       │   ├── createProcedure_cn.troff
+│       │   ├── createProcedure_en.troff
+│       │   ├── createRG_cn.troff
+│       │   ├── createRG_en.troff
+│       │   ├── createSequence_cn.troff
+│       │   ├── createSequence_en.troff
+│       │   ├── createSpareRG_cn.troff
+│       │   ├── createSpareRG_en.troff
+│       │   ├── createUsr_cn.troff
+│       │   ├── createUsr_en.troff
+│       │   ├── deleteConf_cn.troff
+│       │   ├── deleteConf_en.troff
+│       │   ├── dropCS_cn.troff
+│       │   ├── dropCS_en.troff
+│       │   ├── dropDataSource_cn.troff
+│       │   ├── dropDataSource_en.troff
+│       │   ├── dropDomain_cn.troff
+│       │   ├── dropDomain_en.troff
+│       │   ├── dropSequence_cn.troff
+│       │   ├── dropSequence_en.troff
+│       │   ├── dropUsr_cn.troff
+│       │   ├── dropUsr_en.troff
+│       │   ├── eval_cn.troff
+│       │   ├── eval_en.troff
+│       │   ├── exec_cn.troff
+│       │   ├── exec_en.troff
+│       │   ├── execUpdate_cn.troff
+│       │   ├── execUpdate_en.troff
+│       │   ├── flushConfigure_cn.troff
+│       │   ├── flushConfigure_en.troff
+│       │   ├── forceSession_cn.troff
+│       │   ├── forceSession_en.troff
+│       │   ├── forceStepUp_cn.troff
+│       │   ├── forceStepUp_en.troff
+│       │   ├── getCataRG_cn.troff
+│       │   ├── getCataRG_en.troff
+│       │   ├── getCoordRG_cn.troff
+│       │   ├── getCoordRG_en.troff
+│       │   ├── getCS_cn.troff
+│       │   ├── getCS_en.troff
+│       │   ├── getDataSource_cn.troff
+│       │   ├── getDataSource_en.troff
+│       │   ├── getDomain_cn.troff
+│       │   ├── getDomain_en.troff
+│       │   ├── getRecycleBin_cn.troff
+│       │   ├── getRecycleBin_en.troff
+│       │   ├── getRG_cn.troff
+│       │   ├── getRG_en.troff
+│       │   ├── getSequence_cn.troff
+│       │   ├── getSequence_en.troff
+│       │   ├── getSessionAttr_cn.troff
+│       │   ├── getSessionAttr_en.troff
+│       │   ├── getSpareRG_cn.troff
+│       │   ├── getSpareRG_en.troff
+│       │   ├── getTask_cn.troff
+│       │   ├── getTask_en.troff
+│       │   ├── invalidateCache_cn.troff
+│       │   ├── invalidateCache_en.troff
+│       │   ├── listBackup_cn.troff
+│       │   ├── listBackup_en.troff
+│       │   ├── list_cn.troff
+│       │   ├── listCollections_cn.troff
+│       │   ├── listCollections_en.troff
+│       │   ├── listCollectionSpaces_cn.troff
+│       │   ├── listCollectionSpaces_en.troff
+│       │   ├── listDataSources_cn.troff
+│       │   ├── listDataSources_en.troff
+│       │   ├── listDomains_cn.troff
+│       │   ├── listDomains_en.troff
+│       │   ├── list_en.troff
+│       │   ├── listProcedures_cn.troff
+│       │   ├── listProcedures_en.troff
+│       │   ├── listReplicaGroups_cn.troff
+│       │   ├── listReplicaGroups_en.troff
+│       │   ├── listSequences_cn.troff
+│       │   ├── listSequences_en.troff
+│       │   ├── listTasks_cn.troff
+│       │   ├── listTasks_en.troff
+│       │   ├── reloadConf_cn.troff
+│       │   ├── reloadConf_en.troff
+│       │   ├── removeBackup_cn.troff
+│       │   ├── removeBackup_en.troff
+│       │   ├── removeCataRG_cn.troff
+│       │   ├── removeCataRG_en.troff
+│       │   ├── removeCoordRG_cn.troff
+│       │   ├── removeCoordRG_en.troff
+│       │   ├── removeProcedure_cn.troff
+│       │   ├── removeProcedure_en.troff
+│       │   ├── removeRG_cn.troff
+│       │   ├── removeRG_en.troff
+│       │   ├── removeSpareRG_cn.troff
+│       │   ├── removeSpareRG_en.troff
+│       │   ├── renameCS_cn.troff
+│       │   ├── renameCS_en.troff
+│       │   ├── renameSequence_cn.troff
+│       │   ├── renameSequence_en.troff
+│       │   ├── resetSnapshot_cn.troff
+│       │   ├── resetSnapshot_en.troff
+│       │   ├── Sdb_cn.troff
+│       │   ├── Sdb_en.troff
+│       │   ├── setPDLevel_cn.troff
+│       │   ├── setPDLevel_en.troff
+│       │   ├── setSessionAttr_cn.troff
+│       │   ├── setSessionAttr_en.troff
+│       │   ├── snapshot_cn.troff
+│       │   ├── snapshot_en.troff
+│       │   ├── startRG_cn.troff
+│       │   ├── startRG_en.troff
+│       │   ├── stopRG_cn.troff
+│       │   ├── stopRG_en.troff
+│       │   ├── sync_cn.troff
+│       │   ├── sync_en.troff
+│       │   ├── traceOff_cn.troff
+│       │   ├── traceOff_en.troff
+│       │   ├── traceOn_cn.troff
+│       │   ├── traceOn_en.troff
+│       │   ├── traceResume_cn.troff
+│       │   ├── traceResume_en.troff
+│       │   ├── traceStatus_cn.troff
+│       │   ├── traceStatus_en.troff
+│       │   ├── transBegin_cn.troff
+│       │   ├── transBegin_en.troff
+│       │   ├── transCommit_cn.troff
+│       │   ├── transCommit_en.troff
+│       │   ├── transRollback_cn.troff
+│       │   ├── transRollback_en.troff
+│       │   ├── updateConf_cn.troff
+│       │   ├── updateConf_en.troff
+│       │   ├── waitTasks_cn.troff
+│       │   └── waitTasks_en.troff
+│       ├── SdbCollection
+│       │   ├── aggregate_cn.troff
+│       │   ├── aggregate_en.troff
+│       │   ├── alter_cn.troff
+│       │   ├── alter_en.troff
+│       │   ├── attachCL_cn.troff
+│       │   ├── attachCL_en.troff
+│       │   ├── copyIndexAsync_cn.troff
+│       │   ├── copyIndexAsync_en.troff
+│       │   ├── copyIndex_cn.troff
+│       │   ├── copyIndex_en.troff
+│       │   ├── count_cn.troff
+│       │   ├── count_en.troff
+│       │   ├── createAutoIncrement_cn.troff
+│       │   ├── createAutoIncrement_en.troff
+│       │   ├── createIdIndex_cn.troff
+│       │   ├── createIdIndex_en.troff
+│       │   ├── createIndexAsync_cn.troff
+│       │   ├── createIndexAsync_en.troff
+│       │   ├── createIndex_cn.troff
+│       │   ├── createIndex_en.troff
+│       │   ├── createLobID_cn.troff
+│       │   ├── createLobID_en.troff
+│       │   ├── deleteLob_cn.troff
+│       │   ├── deleteLob_en.troff
+│       │   ├── detachCL_cn.troff
+│       │   ├── detachCL_en.troff
+│       │   ├── disableCompression_cn.troff
+│       │   ├── disableCompression_en.troff
+│       │   ├── disableSharding_cn.troff
+│       │   ├── disableSharding_en.troff
+│       │   ├── dropAutoIncrement_cn.troff
+│       │   ├── dropAutoIncrement_en.troff
+│       │   ├── dropIdIndex_cn.troff
+│       │   ├── dropIdIndex_en.troff
+│       │   ├── dropIndexAsync_cn.troff
+│       │   ├── dropIndexAsync_en.troff
+│       │   ├── dropIndex_cn.troff
+│       │   ├── dropIndex_en.troff
+│       │   ├── enableCompression_cn.troff
+│       │   ├── enableCompression_en.troff
+│       │   ├── enableSharding_cn.troff
+│       │   ├── enableSharding_en.troff
+│       │   ├── explain_en.troff
+│       │   ├── findAndRemove_en.troff
+│       │   ├── findAndUpdate_en.troff
+│       │   ├── find_cn.troff
+│       │   ├── find_en.troff
+│       │   ├── findOne_cn.troff
+│       │   ├── findOne_en.troff
+│       │   ├── getCollectionStat_cn.troff
+│       │   ├── getCollectionStat_en.troff
+│       │   ├── getDetail_cn.troff
+│       │   ├── getDetail_en.troff
+│       │   ├── getIndex_cn.troff
+│       │   ├── getIndex_en.troff
+│       │   ├── getIndexStat_cn.troff
+│       │   ├── getIndexStat_en.troff
+│       │   ├── getLob_cn.troff
+│       │   ├── getLobDetail_cn.troff
+│       │   ├── getLobDetail_en.troff
+│       │   ├── getLob_en.troff
+│       │   ├── insert_cn.troff
+│       │   ├── insert_en.troff
+│       │   ├── listIndexes_cn.troff
+│       │   ├── listIndexes_en.troff
+│       │   ├── listLobs_cn.troff
+│       │   ├── listLobs_en.troff
+│       │   ├── putLob_cn.troff
+│       │   ├── putLob_en.troff
+│       │   ├── remove_cn.troff
+│       │   ├── remove_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── setConsistencyStrategy_cn.troff
+│       │   ├── setConsistencyStrategy_en.troff
+│       │   ├── snapshotIndexes_cn.troff
+│       │   ├── snapshotIndexes_en.troff
+│       │   ├── splitAsync_cn.troff
+│       │   ├── splitAsync_en.troff
+│       │   ├── split_cn.troff
+│       │   ├── split_en.troff
+│       │   ├── truncate_cn.troff
+│       │   ├── truncate_en.troff
+│       │   ├── truncateLob_cn.troff
+│       │   ├── truncateLob_en.troff
+│       │   ├── update_cn.troff
+│       │   ├── update_en.troff
+│       │   ├── upsert_cn.troff
+│       │   └── upsert_en.troff
+│       ├── SdbCS
+│       │   ├── alter_cn.troff
+│       │   ├── alter_en.troff
+│       │   ├── createCL_cn.troff
+│       │   ├── createCL_en.troff
+│       │   ├── dropCL_cn.troff
+│       │   ├── dropCL_en.troff
+│       │   ├── getCL_cn.troff
+│       │   ├── getCL_en.troff
+│       │   ├── getDomainName_cn.troff
+│       │   ├── getDomainName_en.troff
+│       │   ├── listCollections_cn.troff
+│       │   ├── listCollections_en.troff
+│       │   ├── removeDomain_cn.troff
+│       │   ├── removeDomain_en.troff
+│       │   ├── renameCL_cn.troff
+│       │   ├── renameCL_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── setDomain_cn.troff
+│       │   └── setDomain_en.troff
+│       ├── SdbCursor
+│       │   ├── arrayAccess_cn.troff
+│       │   ├── arrayAccess_en.troff
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── current_cn.troff
+│       │   ├── current_en.troff
+│       │   ├── [i]_en.troff
+│       │   ├── next_cn.troff
+│       │   ├── next_en.troff
+│       │   ├── size_en.troff
+│       │   └── toArray_en.troff
+│       ├── SdbDataSource
+│       │   ├── alter_cn.troff
+│       │   └── alter_en.troff
+│       ├── SdbDomain
+│       │   ├── addGroups_cn.troff
+│       │   ├── addGroups_en.troff
+│       │   ├── alter_cn.troff
+│       │   ├── alter_en.troff
+│       │   ├── listCollections_cn.troff
+│       │   ├── listCollections_en.troff
+│       │   ├── listCollectionSpaces_cn.troff
+│       │   ├── listCollectionSpaces_en.troff
+│       │   ├── listGroups_cn.troff
+│       │   ├── listGroups_en.troff
+│       │   ├── removeGroups_cn.troff
+│       │   ├── removeGroups_en.troff
+│       │   ├── setActiveLocation_cn.troff
+│       │   ├── setActiveLocation_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── setGroups_cn.troff
+│       │   └── setGroups_en.troff
+│       ├── SdbNode
+│       │   ├── connect_cn.troff
+│       │   ├── connect_en.troff
+│       │   ├── getDetailObj_cn.troff
+│       │   ├── getDetailObj_en.troff
+│       │   ├── getHostName_cn.troff
+│       │   ├── getHostName_en.troff
+│       │   ├── getServiceName_cn.troff
+│       │   ├── getServiceName_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── setLocation_cn.troff
+│       │   ├── setLocation_en.troff
+│       │   ├── start_cn.troff
+│       │   ├── start_en.troff
+│       │   ├── stop_cn.troff
+│       │   └── stop_en.troff
+│       ├── SdbQuery
+│       │   ├── arrayAccess_cn.troff
+│       │   ├── arrayAccess_en.troff
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── count_cn.troff
+│       │   ├── count_en.troff
+│       │   ├── current_cn.troff
+│       │   ├── current_en.troff
+│       │   ├── explain_cn.troff
+│       │   ├── explain_en.troff
+│       │   ├── flags_cn.troff
+│       │   ├── flags_en.troff
+│       │   ├── getQueryMeta_cn.troff
+│       │   ├── getQueryMeta_en.troff
+│       │   ├── hint_cn.troff
+│       │   ├── hint_en.troff
+│       │   ├── limit_cn.troff
+│       │   ├── limit_en.troff
+│       │   ├── next_cn.troff
+│       │   ├── next_en.troff
+│       │   ├── query_cn.troff
+│       │   ├── query_en.troff
+│       │   ├── remove_cn.troff
+│       │   ├── remove_en.troff
+│       │   ├── size_cn.troff
+│       │   ├── size_en.troff
+│       │   ├── skip_cn.troff
+│       │   ├── skip_en.troff
+│       │   ├── sort_cn.troff
+│       │   ├── sort_en.troff
+│       │   ├── toArray_cn.troff
+│       │   ├── toArray_en.troff
+│       │   ├── update_cn.troff
+│       │   └── update_en.troff
+│       ├── SdbRecycleBin
+│       │   ├── alter_cn.troff
+│       │   ├── alter_en.troff
+│       │   ├── count_cn.troff
+│       │   ├── count_en.troff
+│       │   ├── disable_cn.troff
+│       │   ├── disable_en.troff
+│       │   ├── dropAll_cn.troff
+│       │   ├── dropAll_en.troff
+│       │   ├── dropItem_cn.troff
+│       │   ├── dropItem_en.troff
+│       │   ├── enable_cn.troff
+│       │   ├── enable_en.troff
+│       │   ├── getDetail_cn.troff
+│       │   ├── getDetail_en.troff
+│       │   ├── list_cn.troff
+│       │   ├── list_en.troff
+│       │   ├── returnItem_cn.troff
+│       │   ├── returnItem_en.troff
+│       │   ├── returnItemToName_cn.troff
+│       │   ├── returnItemToName_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── snapshot_cn.troff
+│       │   └── snapshot_en.troff
+│       ├── SdbReplicaGroup
+│       │   ├── attachNode_cn.troff
+│       │   ├── attachNode_en.troff
+│       │   ├── createNode_cn.troff
+│       │   ├── createNode_en.troff
+│       │   ├── detachNode_cn.troff
+│       │   ├── detachNode_en.troff
+│       │   ├── getDetailObj_cn.troff
+│       │   ├── getDetailObj_en.troff
+│       │   ├── getMaster_cn.troff
+│       │   ├── getMaster_en.troff
+│       │   ├── getNode_cn.troff
+│       │   ├── getNode_en.troff
+│       │   ├── getSlave_cn.troff
+│       │   ├── getSlave_en.troff
+│       │   ├── reelect_cn.troff
+│       │   ├── reelect_en.troff
+│       │   ├── reelectLocation_cn.troff
+│       │   ├── reelectLocation_en.troff
+│       │   ├── removeNode_cn.troff
+│       │   ├── removeNode_en.troff
+│       │   ├── setActiveLocation_cn.troff
+│       │   ├── setActiveLocation_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── start_cn.troff
+│       │   ├── start_en.troff
+│       │   ├── stop_cn.troff
+│       │   └── stop_en.troff
+│       ├── SdbSequence
+│       │   ├── fetch_cn.troff
+│       │   ├── fetch_en.troff
+│       │   ├── getCurrentValue_cn.troff
+│       │   ├── getCurrentValue_en.troff
+│       │   ├── getNextValue_cn.troff
+│       │   ├── getNextValue_en.troff
+│       │   ├── restart_cn.troff
+│       │   ├── restart_en.troff
+│       │   ├── setAttributes_cn.troff
+│       │   ├── setAttributes_en.troff
+│       │   ├── setCurrentValue_cn.troff
+│       │   └── setCurrentValue_en.troff
+│       ├── Sdbtool
+│       │   ├── listNodes_cn.troff
+│       │   └── listNodes_en.troff
+│       ├── SecureSdb
+│       │   ├── SecureSdb_cn.troff
+│       │   └── SecureSdb_en.troff
+│       ├── Ssh
+│       │   ├── close_cn.troff
+│       │   ├── close_en.troff
+│       │   ├── exec_cn.troff
+│       │   ├── exec_en.troff
+│       │   ├── getLastOut_cn.troff
+│       │   ├── getLastOut_en.troff
+│       │   ├── getLastRet_cn.troff
+│       │   ├── getLastRet_en.troff
+│       │   ├── getLocalIP_cn.troff
+│       │   ├── getLocalIP_en.troff
+│       │   ├── getPeerIP_cn.troff
+│       │   ├── getPeerIP_en.troff
+│       │   ├── pull_cn.troff
+│       │   ├── pull_en.troff
+│       │   ├── push_cn.troff
+│       │   ├── push_en.troff
+│       │   ├── Ssh_cn.troff
+│       │   └── Ssh_en.troff
+│       └── System
+│           ├── addAHostMap_cn.troff
+│           ├── addAHostMap_en.troff
+│           ├── addGroup_cn.troff
+│           ├── addGroup_en.troff
+│           ├── addUser_cn.troff
+│           ├── addUser_en.troff
+│           ├── delAHostMap_cn.troff
+│           ├── delAHostMap_en.troff
+│           ├── delGroup_cn.troff
+│           ├── delGroup_en.troff
+│           ├── delUser_cn.troff
+│           ├── delUser_en.troff
+│           ├── getAHostMap_cn.troff
+│           ├── getAHostMap_en.troff
+│           ├── getCpuInfo_cn.troff
+│           ├── getCpuInfo_en.troff
+│           ├── getCurrentUser_cn.troff
+│           ├── getCurrentUser_en.troff
+│           ├── getDiskInfo_cn.troff
+│           ├── getDiskInfo_en.troff
+│           ├── getEWD_cn.troff
+│           ├── getEWD_en.troff
+│           ├── getHostName_cn.troff
+│           ├── getHostName_en.troff
+│           ├── getHostsMap_cn.troff
+│           ├── getHostsMap_en.troff
+│           ├── getIpTablesInfo_cn.troff
+│           ├── getIpTablesInfo_en.troff
+│           ├── getMemInfo_cn.troff
+│           ├── getMemInfo_en.troff
+│           ├── getNetcardInfo_cn.troff
+│           ├── getNetcardInfo_en.troff
+│           ├── getPID_cn.troff
+│           ├── getPID_en.troff
+│           ├── getProcUlimitConfigs_cn.troff
+│           ├── getProcUlimitConfigs_en.troff
+│           ├── getReleaseInfo_cn.troff
+│           ├── getReleaseInfo_en.troff
+│           ├── getSystemConfigs_cn.troff
+│           ├── getSystemConfigs_en.troff
+│           ├── getTID_cn.troff
+│           ├── getTID_en.troff
+│           ├── getUserEnv_cn.troff
+│           ├── getUserEnv_en.troff
+│           ├── isGroupExist_cn.troff
+│           ├── isGroupExist_en.troff
+│           ├── isProcExist_cn.troff
+│           ├── isProcExist_en.troff
+│           ├── isUserExist_cn.troff
+│           ├── isUserExist_en.troff
+│           ├── killProcess_cn.troff
+│           ├── killProcess_en.troff
+│           ├── listAllUsers_cn.troff
+│           ├── listAllUsers_en.troff
+│           ├── listGroups_cn.troff
+│           ├── listGroups_en.troff
+│           ├── listLoginUsers_cn.troff
+│           ├── listLoginUsers_en.troff
+│           ├── listProcess_cn.troff
+│           ├── listProcess_en.troff
+│           ├── ping_cn.troff
+│           ├── ping_en.troff
+│           ├── runService_cn.troff
+│           ├── runService_en.troff
+│           ├── setProcUlimitConfigs_cn.troff
+│           ├── setProcUlimitConfigs_en.troff
+│           ├── setUserConfigs_cn.troff
+│           ├── setUserConfigs_en.troff
+│           ├── snapshotCpuInfo_cn.troff
+│           ├── snapshotCpuInfo_en.troff
+│           ├── snapshotDiskInfo_cn.troff
+│           ├── snapshotDiskInfo_en.troff
+│           ├── snapshotMemInfo_cn.troff
+│           ├── snapshotMemInfo_en.troff
+│           ├── snapshotNetcardInfo_cn.troff
+│           ├── snapshotNetcardInfo_en.troff
+│           ├── sniffPort_cn.troff
+│           ├── sniffPort_en.troff
+│           ├── type_cn.troff
+│           └── type_en.troff
 ├── flink
 │   └── sdb-flink-connector-${SYS_VERSION}.jar
 ├── include

@@ -164,7 +164,10 @@ class RemoteMgr():
       print_log('Begine remote compile')
       script_name = os.path.join(self.db_path, 'script/build_ex_module.py')
       build_cmd = 'python {} -j {}'.format(script_name, self.job)
-      stdin, stdout, stderr = self.client.exec_command(build_cmd)
+      stdin, stdout, stderr = self.client.exec_command(build_cmd, get_pty=True)
+      while not stdout.channel.exit_status_ready():
+         data = stdout.readline()
+         print_log(data)
       rs = stdout.channel.recv_exit_status()
       err_exit(rs, 'Run command {} fail in {}, remote compile fail'.format(build_cmd, REMOTE_HOST))
       print_log('Finish remote compile')
@@ -304,9 +307,6 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'script/generate_version_file.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'script/service_control.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'driver/C#.Net/build/release/sequoiadb.dll'), os.path.join(install_dir, 'CSharp'))
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.chm'), os.path.join(install_dir, 'doc'))
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.pdf'), os.path.join(install_dir, 'doc'))
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.tar.gz'), os.path.join(install_dir, 'doc'))
    # copy the php base on system os or arch
    if OS_ARCH == 'aarch64':
       copy_file(os.path.join(ROOT_DIR, 'tools/server/php_arm/*'), os.path.join(install_dir, 'tools/server/php'))
@@ -510,6 +510,15 @@ def main():
    if opt_mgr.get_clean():
       run_command('git clean -fxd')
 
+   # if compile on windows, no need to check env
+   if opt_mgr.get_enable_windows_compile():
+      remote = RemoteMgr(opt_mgr)
+      remote.remote_exec_compile()
+      remote.get_remote_file()
+      if opt_mgr.get_install_dir():
+         package_doc(opt_mgr)
+      sys.exit(0)
+
    check_env()
 
    # compile base module
@@ -525,17 +534,11 @@ def main():
    compile_base_mgr.compile_driver(db_version)
    compile_base_mgr.compile_connector(db_version)
 
-   if opt_mgr.get_enable_windows_compile():
-      remote = RemoteMgr(opt_mgr)
-      remote.remote_exec_compile()
-      remote.get_remote_file()
-
    if opt_mgr.get_install_dir():
       package_db(opt_mgr, ver)
       package_bin(opt_mgr, ver)
       package_all_driver(opt_mgr, ver)
       package_driver(opt_mgr, ver)
-      package_doc(opt_mgr)
 
 if __name__ == "__main__":
    sys.exit(main())
