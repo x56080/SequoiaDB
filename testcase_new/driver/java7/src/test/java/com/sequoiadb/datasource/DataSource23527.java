@@ -71,7 +71,7 @@ public class DataSource23527 extends DataSourceTestBase {
         }
         Thread.sleep( checkInterval  );
         int actIdleCount = ds.getIdleConnNum();
-        Assert.assertEquals( actIdleCount, minIdleCount );
+        Assert.assertEquals( actIdleCount, ( minIdleCount + maxIdleCount ) / 2 );
     }
 
     @AfterClass
