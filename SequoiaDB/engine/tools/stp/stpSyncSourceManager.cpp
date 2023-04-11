@@ -460,7 +460,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse client node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -710,7 +710,7 @@ namespace engine
       catch ( exception &e )
       {
          PD_LOG( PDERROR, "Failed to dump clients, error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
       }
 
    done:
@@ -946,7 +946,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to add synchronize source, error: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

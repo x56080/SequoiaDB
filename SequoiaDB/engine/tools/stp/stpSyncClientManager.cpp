@@ -1260,7 +1260,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build BSON object for register node, "
                  "error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1351,7 +1351,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to register source, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1544,7 +1544,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to dump sources, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

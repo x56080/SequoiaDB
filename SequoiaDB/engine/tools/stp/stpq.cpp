@@ -360,7 +360,7 @@ namespace engine
       {
          ossPrintf( "Error: Failed to generate task list, error: %s",
                     e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -792,7 +792,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add address list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 
@@ -833,7 +833,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add time error list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 
@@ -1307,7 +1307,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add address list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 
@@ -1328,7 +1328,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add count list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 
@@ -1350,7 +1350,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add delay list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 
@@ -1378,7 +1378,7 @@ namespace engine
             {
                ossPrintf( "Error: Failed to add offset list, "
                           "error: %s"OSS_NEWLINE, e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
 

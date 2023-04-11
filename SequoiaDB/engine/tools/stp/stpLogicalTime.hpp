@@ -247,8 +247,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -276,8 +275,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -301,7 +299,7 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_SECOND ) ;
             if ( bson::NumberLong != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
             _second = (UINT64)( element.numberLong() ) ;
@@ -310,15 +308,14 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_NANO_SECOND ) ;
             if ( bson::NumberLong != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
             _nanoSecond = (UINT64)( element.numberLong() ) ;
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -349,8 +346,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -376,7 +372,7 @@ namespace engine
          {
             if ( bson::Timestamp != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
 
@@ -385,8 +381,7 @@ namespace engine
          }
          catch ( exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -441,8 +436,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -899,8 +893,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -930,8 +923,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -955,7 +947,7 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_TIMESTAMP ) ;
             if ( bson::Object != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
 
@@ -969,15 +961,14 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_TIME_ERROR ) ;
             if ( bson::NumberInt != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
             _timeError = (UINT32)( element.numberInt() ) ;
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -1150,8 +1141,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -1181,8 +1171,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -1206,7 +1195,7 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_TIMESTAMP ) ;
             if ( bson::NumberLong != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
             _time = (UINT64)( element.numberLong() ) ;
@@ -1215,15 +1204,14 @@ namespace engine
             element = object.getField( STP_FIELD_NAME_TIME_ERROR ) ;
             if ( bson::NumberInt != element.type() )
             {
-               rc = SDB_SYS ;
+               rc = SDB_INVALIDARG ;
                goto error ;
             }
             _timeError = (UINT32)( element.numberInt() ) ;
          }
          catch ( std::exception &e )
          {
-            (void)e ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 

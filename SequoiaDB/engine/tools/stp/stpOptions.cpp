@@ -840,7 +840,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to generate command line, error: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

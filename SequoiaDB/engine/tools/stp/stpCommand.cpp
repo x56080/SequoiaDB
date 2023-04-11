@@ -342,7 +342,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse option for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -413,7 +413,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -502,7 +502,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -624,7 +624,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -709,7 +709,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -789,7 +789,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -833,7 +833,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -885,7 +885,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -928,7 +928,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse option for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -986,7 +986,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1105,7 +1105,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse option for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1273,7 +1273,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse option for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1353,7 +1353,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1499,7 +1499,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse options, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1598,7 +1598,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build result for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1645,7 +1645,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse option for command [%s], "
                  "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

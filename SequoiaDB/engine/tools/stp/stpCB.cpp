@@ -389,7 +389,7 @@ namespace engine
          PD_LOG( PDERROR, "Failed to register module [%s], "
                  "occurred unexpected error: %s", module->getModuleName(),
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

@@ -311,7 +311,7 @@ namespace engine
          }
          catch ( exception &e )
          {
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Failed to parse server group object, "
                     "occurred unexpected error: %s", e.what() ) ;
             goto error ;
@@ -775,7 +775,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to dump sources, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -880,7 +880,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build server group object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -924,7 +924,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse server group object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1118,7 +1118,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to add self to server list, error: %s",
                     e.what() ) ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
 
@@ -1505,7 +1505,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build version object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1550,7 +1550,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build server group object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1627,7 +1627,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build primary node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1672,7 +1672,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse version object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1743,7 +1743,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse server group object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -1834,7 +1834,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse primary node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;

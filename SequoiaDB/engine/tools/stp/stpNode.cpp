@@ -194,7 +194,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -286,7 +286,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -541,7 +541,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build source node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -591,7 +591,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse source node from BSON object, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -828,7 +828,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse client node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;
@@ -916,7 +916,7 @@ namespace engine
       }
       catch ( exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to build client node object, "
                  "occurred unexpected error: %s", e.what() ) ;
          goto error ;

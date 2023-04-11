@@ -135,7 +135,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to parse BSON object from result, "
                     "error: %s", e.what() ) ;
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
       }
@@ -260,7 +260,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for meta, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -438,7 +438,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for servers, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -533,7 +533,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for synchronize clients, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -629,7 +629,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for synchronize status, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -692,7 +692,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for synchronize history, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -880,7 +880,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build BSON for [%s], "
                  "occur exception %s", fromField, e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -905,7 +905,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for [%s], "
                  "occur exception %s", toField, e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

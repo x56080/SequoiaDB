@@ -377,7 +377,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build BSON for meta data, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -413,7 +413,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build BSON for time [%s], "
                  "occurred unexpected error: %s", fieldName, e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -493,7 +493,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for meta, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -531,7 +531,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON for time [%s], "
                  "occurred unexpected error: %s", fieldName, e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

@@ -214,7 +214,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to format synchronize record to BSON, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -277,7 +277,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse synchronize record from BSON, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -560,7 +560,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build BSON for synchronize statistics, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -716,7 +716,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to parse BSON to synchronize statistics, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

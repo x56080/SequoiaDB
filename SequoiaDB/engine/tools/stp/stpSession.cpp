@@ -148,7 +148,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to handle authentication request, error: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -607,7 +607,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to post event, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

@@ -581,7 +581,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to dump servers, "
                  "occurred unexpected error: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
