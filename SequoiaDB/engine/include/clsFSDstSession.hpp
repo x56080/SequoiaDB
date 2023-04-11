@@ -49,6 +49,7 @@
 #include "../bson/bsonobj.h"
 #include "clsTask.hpp"
 #include "ossMemPool.hpp"
+#include "clsUtil.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -200,6 +201,8 @@ namespace engine
                                          UINT32 *pHasRemoved = NULL ) ;
 
          void           _updateName() ;
+         void           _printLastSyncDetail( INT32 opCode ) ;
+         void           _printLastSyncDetail( INT32 opCode, CLS_FS_NOTIFY_TYPE type ) ;
 
       private:
          INT32 _replayDoc( const MsgClsFSNotifyRes *msg ) ;
@@ -227,6 +230,7 @@ namespace engine
          BOOLEAN              _needMoreDoc ;
          UINT64               _syncBeginTick ;
          UINT64               _totalDataSync ;
+         UINT64               _totalTimeSpent ;
          CHAR                 _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
 
       private:
