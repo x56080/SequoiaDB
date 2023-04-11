@@ -53,6 +53,7 @@ public class TestLobStream12262 extends SdbTestBase {
             lob = cl.openLob( lob.getID() );
             byte[] readBytes = new byte[ lobSize ];
             lob.read( readBytes );
+            lob.close();
             Assert.assertEquals( bytes, readBytes );
         }
     }
