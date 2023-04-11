@@ -77,6 +77,18 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
         }
     }
 
+    public byte getVersion() {
+        return version;
+    }
+
+    public byte getSubVersion() {
+        return subVersion;
+    }
+
+    public byte getFixVersion() {
+        return fixVersion;
+    }
+
     @Override
     public void decode(ByteBuffer in, SdbProtocolVersion protocolVersion) {
         // Java platform is BIG_ENDIAN
