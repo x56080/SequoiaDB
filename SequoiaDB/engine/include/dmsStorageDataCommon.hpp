@@ -1475,9 +1475,9 @@ namespace engine
       private:
          void               _initializeMME () ;
 
-         OSS_INLINE void _collectionInsert( const CHAR *pName,
-                                            UINT16 mbID,
-                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
+         OSS_INLINE INT32 _collectionInsert( const CHAR *pName,
+                                             UINT16 mbID,
+                                             utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
 
          OSS_INLINE UINT16 _collectionNameLookup( const CHAR *pName ) ;
          OSS_INLINE UINT16 _collectionIdLookup( utilCLUniqueID clUniqueID ) ;
@@ -1551,16 +1551,46 @@ namespace engine
    /*
       OSS_INLINE functions :
    */
-   OSS_INLINE void _dmsStorageDataCommon::_collectionInsert( const CHAR * pName,
-                                                             UINT16 mbID,
-                                                             utilCLUniqueID clUniqueID )
+   OSS_INLINE INT32 _dmsStorageDataCommon::_collectionInsert( const CHAR * pName,
+                                                              UINT16 mbID,
+                                                              utilCLUniqueID clUniqueID )
    {
-      _collectionNameMap[ ossStrdup( pName ) ] = mbID ;
-
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+      INT32 rc = SDB_OK ;
+      BOOLEAN isInserted = FALSE ;
+      CHAR *clNamePtr = ossStrdup( pName ) ;
+      if ( NULL == clNamePtr )
       {
-         _collectionIDMap[ clUniqueID ] = mbID ;
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate dup string failed." ) ;
+         goto error ;
       }
+
+      try
+      {
+         _collectionNameMap[ clNamePtr ] = mbID ;
+         isInserted = TRUE ;
+         if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+         {
+            _collectionIDMap[ clUniqueID ] = mbID ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Insert mbid into maps failed, exception:%s, rc:%d.",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( isInserted )
+      {
+         _collectionNameMap.erase( pName ) ;
+      }
+      SAFE_OSS_FREE( clNamePtr ) ;
+      goto done ;
    }
    OSS_INLINE UINT16 _dmsStorageDataCommon::_collectionNameLookup( const CHAR * pName )
    {

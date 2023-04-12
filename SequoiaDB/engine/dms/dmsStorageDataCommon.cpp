@@ -2338,6 +2338,14 @@ namespace engine
          goto error ;
       }
 
+      rc = _collectionInsert( pName, newCollectionID, clUniqueID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG(PDERROR, "Failed to insert collectionID into map, rc:%d", rc ) ;
+         newCollectionID = DMS_INVALID_MBID ;
+         goto error ;
+      }
+
       // set mb meta data and header data
       logicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
@@ -2353,7 +2361,6 @@ namespace engine
 
       _dmsHeader->_numMB++ ;
       _onHeaderUpdated() ;
-      _collectionInsert( pName, newCollectionID, clUniqueID ) ;
 
       if ( isBlockScanSupport() )
       {
