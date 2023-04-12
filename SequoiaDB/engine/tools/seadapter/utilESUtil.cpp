@@ -131,8 +131,7 @@ namespace seadapter
          BSONObjBuilder builder ;
 
          BSONObjBuilder mapBuilder( builder.subobjStart( "mappings" ) ) ;
-         BSONObjBuilder typeBuilder( mapBuilder.subobjStart( _type.c_str() ) ) ;
-         BSONObjBuilder propBuilder( typeBuilder.subobjStart( "properties" ) ) ;
+         BSONObjBuilder propBuilder( builder.subobjStart( "properties" ) ) ;
 
          for ( vector<_utilESMapProp>::const_iterator itr = _properties.begin() ;
                itr != _properties.end(); ++itr )
@@ -169,7 +168,6 @@ namespace seadapter
          }
 
          propBuilder.done() ;
-         typeBuilder.done() ;
          mapBuilder.done() ;
 
          mapObj = builder.obj() ;

@@ -246,7 +246,7 @@ namespace seadapter
    _seIdxMetaMgr::_seIdxMetaMgr()
    {
       _version = -1 ;
-      ossMemset( _typeName, 0, SEADPT_MAX_TYPE_SZ + 1 ) ;
+      ossMemset( _peerGrpName, 0, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
 
       for ( UINT16 i = 0; i < SEADPT_MAX_IDX_NUM; ++i )
       {
@@ -266,11 +266,11 @@ namespace seadapter
       }
    }
 
-   void _seIdxMetaMgr::setFixTypeName( const CHAR *type )
+   void _seIdxMetaMgr::setPeerGrpName( const CHAR *peerGrpName )
    {
-      SDB_ASSERT( type && ossStrlen( type ) <= SEADPT_MAX_TYPE_SZ,
-                  "Type name is invalid" ) ;
-      ossStrncpy( _typeName, type, SEADPT_MAX_TYPE_SZ + 1 ) ;
+      SDB_ASSERT( peerGrpName && ossStrlen( peerGrpName ) <= OSS_MAX_GROUPNAME_SIZE,
+                  "Peer group name is invalid" ) ;
+      ossStrncpy( _peerGrpName, peerGrpName, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
    }
 
    INT32 _seIdxMetaMgr::lock( OSS_LATCH_MODE mode )
@@ -657,11 +657,11 @@ namespace seadapter
             // more than one group.
             std::string esIdx =
                   (( 0 == ossStrlen(idxPrefix) ) ? "" : std::string(idxPrefix))
-                  +  std::string(cappedCLName) + "_" + _typeName ;
+                  +  std::string(cappedCLName) + "_" + _peerGrpName ;
             // ES index names should be in lower case.
             std::transform( esIdx.begin(), esIdx.end(), esIdx.begin(), ::tolower ) ;
             meta.setESIdxName( esIdx.c_str() ) ;
-            meta.setESTypeName( _typeName ) ;
+            meta.setESTypeName( SEADPT_DEFAULT_TYPE ) ;
             meta.setVersion( _version ) ;
          }
       }

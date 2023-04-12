@@ -901,7 +901,7 @@ namespace seadapter
             goto error ;
          }
 
-         _idxMetaMgr.setFixTypeName( peerGrpName ) ;
+         _idxMetaMgr.setPeerGrpName( peerGrpName ) ;
 
          cataInfoObj = objVec[0].getObjectField( FIELD_NAME_CATALOGINFO ) ;
          if ( cataInfoObj.isEmpty() )

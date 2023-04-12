@@ -397,7 +397,7 @@ namespace seadapter
       _seIdxMetaMgr() ;
       ~_seIdxMetaMgr() ;
 
-      void setFixTypeName( const CHAR *type ) ;
+      void setPeerGrpName( const CHAR *peerGrpName ) ;
 
       // In concurrent operation, always use lock to protect.
       INT32 lock( OSS_LATCH_MODE mode = SHARED ) ;
@@ -452,7 +452,7 @@ namespace seadapter
 
    private:
       INT64         _version ;
-      CHAR          _typeName[ SEADPT_MAX_TYPE_SZ + 1 ] ;
+      CHAR          _peerGrpName[ OSS_MAX_GROUPNAME_SIZE + 1 ] ;
       seIndexMeta   _metas[ SEADPT_MAX_IDX_NUM ] ;
 
       ossSpinSLatch _mapLatch ;

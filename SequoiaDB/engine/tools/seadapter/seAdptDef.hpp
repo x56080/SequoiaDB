@@ -74,9 +74,12 @@ namespace seadapter
    #define SEADPT_MAX_IDX_NUM             64
    #define SEADPT_MAX_IDXNAME_SZ          255
    #define SEADPT_MAX_IDXPREFIX_SZ        16
-   #define SEADPT_MAX_TYPE_SZ             127
    #define SEADPT_MAX_ID_SZ               512
    #define SEADPT_COMMIT_ID               "SDBCOMMIT"
+
+   // After 7.x, ES will deprecate type. The type defaults to "_doc"
+   #define SEADPT_DEFAULT_TYPE            "_doc"
+   #define SEADPT_MAX_TYPE_SZ             4
 
    #define SEADPT_FIELD_NAME_ID          "_id"
    #define SEADPT_FIELD_NAME_RID         "_rid"
