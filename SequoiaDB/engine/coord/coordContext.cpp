@@ -183,6 +183,42 @@ namespace engine
       if ( cb )
       {
          tid = cb->getTID() ;
+
+         if ( _asyncRead )
+         {
+            // some contexts have send for async read data, need to
+            // those contexts from empty map to prepared map,
+            // so we can receive async read data before kill them
+            COORD_SUB_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
+            while ( it != _emptyContextMap.end() )
+            {
+               UINT64 routeIDValue = it->first ;
+               coordSubContext *pSubContext = it->second ;
+
+               if ( pSubContext->hasSendForData() )
+               {
+                  _emptyContextMap.erase( it ++ ) ;
+
+                  try
+                  {
+                     _prepareContextMap.insert( COORD_SUB_CONTEXT_MAP::value_type(
+                                                routeIDValue,
+                                                pSubContext ) ) ;
+                  }
+                  catch ( exception &e )
+                  {
+                     PD_LOG( PDWARNING, "Failed to move context to prepare contexts, "
+                             "occur exception %s", e.what() ) ;
+                     _releaseSubContext( pSubContext ) ;
+                  }
+               }
+               else
+               {
+                  ++ it ;
+               }
+            }
+         }
+
          // get all pre-read reply
          _getPrepareNodesData( cb, TRUE ) ;
       }
