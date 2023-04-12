@@ -72,7 +72,7 @@ function main ()
       {
          expRc.push( { "user": users[i] } );
       }
-      assert.eq( JSON.stringify( rc ), JSON.stringify( expRc ) );
+      assert.eq( JSON.stringify( rc.sort( sortBy( "user" ) ) ), JSON.stringify( expRc ) );
 
       // usersInfo
       // get all info
@@ -148,4 +148,12 @@ function main ()
    assert.eq( rc, { "ok": 1 } );
    var rc = db.getLastError();
    assert.eq( rc, null );
+}
+
+function sortBy ( field )
+{
+   return function( a, b )
+   {
+      return a[field] > b[field];
+   }
 }
