@@ -200,7 +200,7 @@
 
     修改内容如下：
 
-    ```lang-ini
+    ```lang-javascript
     if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
     if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
     if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3" ] ; }
@@ -235,7 +235,7 @@
 
     修改内容如下：
 
-    ```lang-ini
+    ```lang-javascript
     if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
     if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
     if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3" ] ; }
