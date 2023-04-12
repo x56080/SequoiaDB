@@ -285,7 +285,7 @@ SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于�
 
     修改内容如下：
 
-    ```lang-ini
+    ```lang-javascript
     if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
     if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "sdbadmin" ; }
     if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "sdbadmin" ; }
@@ -318,7 +318,7 @@ SequoiaDB 巨杉数据库提供[容灾切换合并工具][split_merge]，用于�
 
     修改内容如下：
 
-    ```lang-ini
+    ```lang-javascript
     if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
     if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "sdbadmin" ; }
     if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "sdbadmin" ; }
