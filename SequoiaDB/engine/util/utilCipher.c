@@ -40,7 +40,7 @@
 
 #define BYTES_PER_TIME               8
 #define KEY_BYTE_LENGTH              8
-#define EIGHT_BYTE_ALIGNED_BITS      8
+#define EIGHT_BYTE_ALIGNED_BYTES     8
 
 #define RANDOM_ARRAY_MAX_LENGTH      16
 #define ARRAY_PIECE_LENGTH           RANDOM_ARRAY_MAX_LENGTH
@@ -422,7 +422,7 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
    UINT32           resultLen      = 0 ;
    UINT32           resultSize     = 0 ;
    INT32            copiedTokenLen = 0 ;
-   UINT32           extraBits      = 0 ; // 8-byte aligned supplementary bits
+   UINT32           extraBytes     = 0 ; // 8-byte aligned supplementary bytes
    UINT32           i              = 0 ;
 
    SDB_ASSERT( NULL != clearText, "clearText can't be NULL" ) ;
@@ -452,15 +452,24 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
       goto error ;
    }
 
-   if ( clearTextSize % BYTES_PER_TIME != 0 )
+   if ( clearTextSize > 0 )
    {
-      extraBits = EIGHT_BYTE_ALIGNED_BITS - ( clearTextSize % BYTES_PER_TIME ) ;
+      if ( clearTextSize % BYTES_PER_TIME != 0 )
+      {
+         extraBytes = EIGHT_BYTE_ALIGNED_BYTES - ( clearTextSize % BYTES_PER_TIME ) ;
+      }
+      else
+      {
+         extraBytes = 0 ;
+      }
    }
    else
    {
-      extraBits = 0 ;
+      // when clearText is an empty string,
+      // also need 8 bytes space for cipher text
+      extraBytes = 8 ;
    }
-   resultLen = clearTextSize + extraBits + RANDOM_ARRAY_MAX_LENGTH +
+   resultLen = clearTextSize + extraBytes + RANDOM_ARRAY_MAX_LENGTH +
                EXTRA_AUXILIARY_FIELDS_COUNT ;
    result = ( CHAR * )SDB_OSS_MALLOC( resultLen ) ;
    if ( NULL == result )
@@ -470,23 +479,34 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
    }
    ossMemset( result, 0, resultLen ) ;
 
-   for ( i = 0; i < clearTextSize / BYTES_PER_TIME; i++ )
+   if ( clearTextSize > 0 )
    {
-      ossMemcpy( inputText, clearText + i * BYTES_PER_TIME, BYTES_PER_TIME ) ;
-      DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
-      _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
-                           BYTES_PER_TIME, &resultSize ) ;
+      for ( i = 0; i < clearTextSize / BYTES_PER_TIME; i++ )
+      {
+         ossMemcpy( inputText, clearText + i * BYTES_PER_TIME, BYTES_PER_TIME ) ;
+         DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
+         _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
+                              BYTES_PER_TIME, &resultSize ) ;
+      }
+
+      if ( clearTextSize % BYTES_PER_TIME != 0 )
+      {
+         INT32 remainTextIndex = ( clearTextSize / BYTES_PER_TIME ) *
+                                   BYTES_PER_TIME ;
+         INT32 remainTextLen = EIGHT_BYTE_ALIGNED_BYTES - extraBytes ;
+
+         // padding using 0s
+         ossMemset( inputText, 0, BYTES_PER_TIME ) ;
+         ossMemcpy( inputText, clearText + remainTextIndex, remainTextLen ) ;
+         DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
+         _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
+                              BYTES_PER_TIME, &resultSize ) ;
+      }
    }
-
-   if ( clearTextSize % BYTES_PER_TIME != 0 )
+   else
    {
-      INT32 remainTextIndex = ( clearTextSize / BYTES_PER_TIME ) *
-                                BYTES_PER_TIME ;
-      INT32 remainTextLen = EIGHT_BYTE_ALIGNED_BITS - extraBits ;
-
-      // padding using 0s
+      // when clearText is an empty string
       ossMemset( inputText, 0, BYTES_PER_TIME ) ;
-      ossMemcpy( inputText, clearText + remainTextIndex, remainTextLen ) ;
       DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
       _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
                            BYTES_PER_TIME, &resultSize ) ;
@@ -513,6 +533,8 @@ error:
    goto done ;
 }
 
+// make sure clearText is not less than SDB_MAX_PASSWORD_LENGTH + 1,
+// and should be init before
 INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
                          CHAR *clearText )
 {
@@ -529,18 +551,26 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
    DES_key_schedule   keySchedule ;
    const_DES_cblock   inputText ;
    DES_cblock         outputText ;
-   UINT32             posInClearText = 0 ;
    UINT32             clearTextSize = 0 ;
    UINT32             i = 0 ;
    UINT32             j = 0 ;
+   INT32              cipherTextLen = 0 ;
 
-   if ( NULL == cipherText )
+   if ( NULL == cipherText || NULL == clearText )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   passwdEncrypted = ( CHAR * )SDB_OSS_MALLOC( ossStrlen( cipherText ) / 2 ) ;
+   // not support empty cipherText string
+   cipherTextLen =  ossStrlen( cipherText ) ;
+   if ( 0 == cipherTextLen )
+   {
+      rc = SDB_INVALIDSIZE ;
+      goto error ;
+   }
+
+   passwdEncrypted = ( CHAR * )SDB_OSS_MALLOC( cipherTextLen / 2 ) ;
    if ( NULL == passwdEncrypted )
    {
       rc = SDB_OOM ;
@@ -591,17 +621,6 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
                               ( CHAR * )&outputText[j], 0, 1,
                               &clearTextSize ) ;
       }
-   }
-
-   // remove trailing padding 0s
-   posInClearText = clearTextSize - 1 ;
-   while ( 0 == clearText[posInClearText] )
-   {
-      posInClearText-- ;
-   }
-   if ( ( clearTextSize - 1 ) != posInClearText )
-   {
-      clearText[posInClearText + 1] = '\0' ;
    }
 
 done:

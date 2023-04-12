@@ -189,6 +189,9 @@ public class SdbDecrypt {
     //      |valuePart1|keyRealLen1(1b)|keyPart1|keyOff2(1b)|valuePart2|keyRealLen2(1b)|keyPart2|keyOff3(1b)|valuePart3|keyRealLen3(1b)|keyPart3|valuePart4|
     //
     private KeyValuePair parsePasswd(String encryptPasswd) {
+        if (encryptPasswd.isEmpty()) {
+            throw new BaseException(SDBError.SDB_INVALIDSIZE, "encryptPasswd can not be empty");
+        }
         String lengthStr = encryptPasswd.substring(0, 2);
         byte[] lengthByte = Helper.hexToByte(lengthStr);
         String epStr = encryptPasswd.substring(2);

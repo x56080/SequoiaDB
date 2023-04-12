@@ -233,21 +233,14 @@ INT32 _utilCipherMgr::addUser( const string &userFullName,
       goto error ;
    }
 
-   if ( !passwd.empty() )
+   rc = utilCipherEncrypt( passwd.c_str(), token.c_str(),
+                           cipherText, UTIL_CLEARTEXT_MAX_LENGTH + 1 ) ;
+   if ( SDB_OK != rc )
    {
-      rc = utilCipherEncrypt( passwd.c_str(), token.c_str(),
-                              cipherText, UTIL_CLEARTEXT_MAX_LENGTH + 1 ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
-         goto error ;
-      }
-      _usersCipher[userFullName] = cipherText ;
+      PD_LOG ( PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
+      goto error ;
    }
-   else
-   {
-      _usersCipher[userFullName] = "\0" ;
-   }
+   _usersCipher[userFullName] = cipherText ;
 
    it = _usersCipher.begin() ;
    for ( ; it != _usersCipher.end(); it++ )

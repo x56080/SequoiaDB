@@ -251,6 +251,60 @@ public class SdbConnect {
         }
     }
 
+    @Test
+    public void sdbEmptyPasswdTest() {
+        String userName1 = "user_emptypasswd1";
+        String userName2 = "user_emptypasswd2";
+        String userName3 = "user_emptypasswd2_token";
+        String passwd = "";
+        String token = "abc";
+
+        // case 1: connect by username and no password got from cipher file
+        sdb.createUser(userName1, passwd);
+        try {
+            UserConfig userConfig = new UserConfig(userName1, new File(Constants.TEST_USER_CIPHER_FILE));
+            try {
+                Sequoiadb db = Sequoiadb.builder()
+                        .serverAddress(Constants.COOR_NODE_CONN)
+                        .userConfig(userConfig)
+                        .build();
+                Assert.fail("should get -7 error here");
+            } catch (BaseException e){
+                Assert.assertEquals(SDBError.SDB_INVALIDSIZE.getErrorCode(), e.getErrorCode());
+            }
+        } finally {
+            sdb.removeUser(userName1, passwd);
+        }
+
+        // case 2: connect by username and empty password got from cipher file(without token)
+        sdb.createUser(userName2, passwd);
+        try {
+            UserConfig userConfig = new UserConfig(userName2, new File(Constants.TEST_USER_CIPHER_FILE));
+            try (Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress(Constants.COOR_NODE_CONN)
+                    .userConfig(userConfig)
+                    .build()) {
+                Assert.assertTrue(db.isValid());
+            }
+        } finally {
+            sdb.removeUser(userName2, passwd);
+        }
+
+        // case 3: connect by username, empty password got from cipher file(with token)
+        sdb.createUser(userName3, passwd);
+        try {
+            UserConfig userConfig = new UserConfig(userName3, new File(Constants.TEST_USER_CIPHER_FILE), token);
+            try (Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress(Constants.COOR_NODE_CONN)
+                    .userConfig(userConfig)
+                    .build()) {
+                Assert.assertTrue(db.isValid());
+            }
+        } finally {
+            sdb.removeUser(userName3, passwd);
+        }
+    }
+
     private String generatePassword() {
         String text = new StringBuffer()
                 .append( "abcdefghijklmnopqrstuvwxyz" )
