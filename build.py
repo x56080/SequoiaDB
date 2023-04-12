@@ -467,7 +467,6 @@ def package_doc(opt_mgr):
    print_log('Begine package doc')
    # copy into install dir, not need to package
    install_dir = opt_mgr.get_install_dir()
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.doc'), install_dir)
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.chm'), install_dir)
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.pdf'), install_dir)
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.tar.gz'), install_dir)

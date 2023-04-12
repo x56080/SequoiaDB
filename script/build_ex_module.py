@@ -41,7 +41,6 @@ class CompileExModuleMgr:
       scons_doc = 'scons --doc'
       # compile fail because doc, dont check rs for now
       self.exec_compile(scons_doc, self.root_dir)
-      self.copy_file(out_put_dir, '*.doc')
       self.copy_file(out_put_dir, '*.pdf')
       print('Finish compile doc')
 
