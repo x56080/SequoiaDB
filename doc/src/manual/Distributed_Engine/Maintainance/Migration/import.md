@@ -101,7 +101,7 @@ CSV 格式中，默认以逗号（,）作为字段分隔符。当用户数据文
 3|"Woody"|25|"worker"|"18945253245"|"woody@example.com"|"China"
 ```
 
-将数据文件 `data.csv` 中的数据导入集合中，并通过参数 --delfield 自定义字段分隔符为"|"
+将数据文件 `data4.csv` 中的数据导入集合中，并通过参数 --delfield 自定义字段分隔符为"|"
 
 ```lang-bash
 $ sdbimprt --hosts "localhost:11810" --type csv -c sample -l employee --user sdbadmin --cipher true --cipherfile ~/sequoiadb/passwd --fields 'id long,name string default "Anonymous",age int,identity,phone_number,email,country' --delfield "|" --file /opt/data4.csv
