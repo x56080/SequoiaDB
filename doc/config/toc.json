@@ -5229,6 +5229,24 @@
                            "file": "concat",
                            "cn": "$concat",
                            "en": "$concat"
+                        },
+                        {
+                           "id": 1680487675,
+                           "file": "year",
+                           "cn": "$year",
+                           "en": "$year"
+                        },
+                        {
+                           "id": 1680487720,
+                           "file": "month",
+                           "cn": "$month",
+                           "en": "$month"
+                        },
+                        {
+                           "id": 1680487765,
+                           "file": "day",
+                           "cn": "$day",
+                           "en": "$day"
                         }
                      ]
                   },

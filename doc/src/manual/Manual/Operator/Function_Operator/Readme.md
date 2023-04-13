@@ -54,6 +54,10 @@
 | [$type][type]               | 获取字段类型         | db.sample.employee.find({}, {a:{$type:1}}) |
 | [$slice][slice]             | 截取数组元素         | db.sample.employee.find({}, {a:{$slice:[0,2]}}) |
 | [$concat][concat]           | 连接字符串           | db.sample.employee.find({}, {a:{$concat:"abc"}}) |
+| [$year][year]               | 获取日期时间中的年份  | db.sample.employee.find({}, {a:{$year: 1}}) |
+| [$month][month]             | 获取日期时间中的月份  | db.sample.employee.find({}, {a:{$month: 1}}) |
+| [$day][day]                 | 获取日期时间中的天数  | db.sample.employee.find({}, {a:{$day: 1}}) |
+
 
 [^_^]:
     本文使用的所有引用及链接
@@ -89,3 +93,6 @@
 [strlenCP]:manual/Manual/Operator/Function_Operator/strlenCP.md
 [concat]:manual/Manual/Operator/Function_Operator/concat.md
 [format]:manual/Manual/Operator/Function_Operator/format.md
+[year]:manual/Manual/Operator/Function_Operator/year.md
+[month]:manual/Manual/Operator/Function_Operator/month.md
+[day]:manual/Manual/Operator/Function_Operator/day.md
