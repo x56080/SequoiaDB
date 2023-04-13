@@ -1,5 +1,6 @@
 package com.sequoiadb.auth;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -65,6 +66,31 @@ public class TestSdbUser7119To7120 extends SdbTestBase {
     }
 
     public void testSdbUser7119() {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 257; i++) {
+            stringBuilder.append("a");
+        }
+        String str = "test";
+        String outRange = stringBuilder.toString();
+        // username out of range
+        try {
+            sdb.createUser( outRange, str );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
+                throw e;
+            }
+        }
+        // password out of range
+        try {
+            sdb.createUser( str, outRange );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
+                throw e;
+            }
+        }
+
         String username = "用户七一一九";
         String password = "密码七一一九";
         Sequoiadb sdb1 = null;
