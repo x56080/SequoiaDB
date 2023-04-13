@@ -7,6 +7,7 @@ import os,sys
 import platform
 import shutil
 import argparse
+import codecs
 from subprocess import Popen, PIPE
 
 OS_TYPE = platform.system()
@@ -204,7 +205,9 @@ class CompileBaseModuleMgr:
 
 def print_log(log):
    if LOG_FILE:
-      file = open(LOG_FILE, 'a')
+      file = codecs.open(LOG_FILE, 'a', encoding='utf-8')
+      if not isinstance(log, unicode):
+         log = unicode(log, 'utf-8')
       file.write(log)
       file.write('\n')
       file.flush()
