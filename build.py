@@ -11,6 +11,7 @@ import argparse
 import paramiko
 import glob
 import tarfile
+import codecs
 from subprocess import Popen, PIPE
 from scp import SCPClient
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'script'))
@@ -228,7 +229,11 @@ def init_log(log_file):
 
 def print_log(log):
    if LOG_FILE:
-      file = open(LOG_FILE, 'a')
+      # we need to write log data from windows, in paramiko connection, all return data has been
+      # encode with utf-8, so we need to open file with encoding utf-8
+      file = codecs.open(LOG_FILE, 'a', encoding='utf-8')
+      if not isinstance(log, unicode):
+         log = unicode(log, 'utf-8')
       file.write(log)
       file.write('\n')
       file.flush()
