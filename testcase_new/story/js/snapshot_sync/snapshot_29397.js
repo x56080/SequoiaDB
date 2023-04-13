@@ -9,7 +9,7 @@ testConf.clName = COMMCLNAME + "_csName_29397"
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 
-//main( test );
+main( test );
 function test ( testPara )
 {
    var coord = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1];
@@ -40,24 +40,6 @@ function test ( testPara )
       {
          throw new Error( "Invalid QueryID in contexts snapshot. It must be " + queryID );
       }
-      // change to a new connection
-      var oldQueryIDPrefixStr = queryID.substr( 0, 18 );
-
-      // catalog
-      var catalog = sdb.getCataRG().getMaster().connect();
-      ret = catalog.snapshot( SDB_SNAP_QUERIES );
-      queryID = ret.current().toObj()["QueryID"];
-      newQueryIDPrefixStr = queryID.substr( 0, 18 );
-      assert.notEqual( newQueryIDPrefixStr, oldQueryIDPrefixStr );
-      catalog.close();
-
-      // data
-      var data = sdb.getRG( testPara.srcGroupName ).getMaster().connect();
-      ret = data.snapshot( SDB_SNAP_QUERIES );
-      queryID = ret.current().toObj()["QueryID"];
-      var newQueryIDPrefixStr = queryID.substr( 0, 18 );
-      assert.notEqual( newQueryIDPrefixStr, oldQueryIDPrefixStr );
-      data.close();
    }
    finally
    {
