@@ -124,6 +124,9 @@ TEST_F( sdbParaVerify, user )
    INT32 rc = SDB_OK ;
    const CHAR* tmpUsr = "sdbadmin" ;
    const CHAR* tmpPasswd = "sdbadmin" ;
+   const INT32 limitedLen = 256 ;
+   CHAR unlimitedARG[ limitedLen + 2 ] = { 0 } ;
+   memset( unlimitedARG, 'a', limitedLen + 1 ) ;
 
    // test sdbCreateUsr
    rc = sdbCreateUsr( NULL, tmpUsr, tmpPasswd ) ;
@@ -136,6 +139,10 @@ TEST_F( sdbParaVerify, user )
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbCreateUsr( db, tmpUsr, NULL ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   rc = sdbCreateUsr( db, unlimitedARG, tmpPasswd );
+   ASSERT_EQ( SDB_INVALIDARG, rc );
+   rc = sdbCreateUsr( db, tmpUsr, unlimitedARG ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc );
 
    // test sdbRemoveUsr
    rc = sdbRemoveUsr( NULL, tmpUsr, tmpPasswd ) ;
