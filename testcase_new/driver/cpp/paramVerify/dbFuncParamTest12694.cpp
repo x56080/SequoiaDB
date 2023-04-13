@@ -117,6 +117,8 @@ TEST_F( dbFuncParamTest, createUsr12695 )
    }
 
    INT32 rc = SDB_OK ;
+   const INT32 limitedLen = 256 ;
+   string longStr( limitedLen + 1, 'a' );
 
    // pUsrName NULL
    rc = db.createUsr( NULL, ARGS->passwd() ) ;
@@ -132,6 +134,12 @@ TEST_F( dbFuncParamTest, createUsr12695 )
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = db.removeUsr( newUser, "" ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+
+   // args exceed limited length
+   rc = db.createUsr( longStr.c_str(), ARGS->passwd() ) ;
+   EXPECT_EQ( SDB_INVALIDARG, rc ) ;
+   rc = db.createUsr( ARGS->user(), longStr.c_str() ) ;
+   EXPECT_EQ( SDB_INVALIDARG, rc ) ;
 }
 
 TEST_F( dbFuncParamTest, removeUsr12696 )
