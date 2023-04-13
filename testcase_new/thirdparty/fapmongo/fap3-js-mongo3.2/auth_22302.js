@@ -77,6 +77,7 @@ function main ()
       // usersInfo
       // get all info
       var rc = db.runCommand( { "usersInfo": 1 } );
+      rc["users"] = rc["users"].sort( sortBy( "user" ) );
       assert.eq( JSON.stringify( rc ), '{"users":' + JSON.stringify( expRc ) + ',"ok":1}' );
       // get one info
       var rc = db.runCommand( { "usersInfo": [{ "user": users[0] }] } );
