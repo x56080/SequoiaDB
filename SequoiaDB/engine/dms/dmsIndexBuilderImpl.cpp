@@ -417,6 +417,11 @@ namespace engine
          }
 
          _mbContext->mbUnlock() ;
+
+         // TODO: sleep lms to let others have more opportunities
+         // to get the write lock. THIS is only a temporary solution,
+         // we need a fairer lock to solve this problem
+         ossSleep(1) ;
       }
 
    done:
