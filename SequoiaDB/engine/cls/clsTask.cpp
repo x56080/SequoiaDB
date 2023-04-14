@@ -2632,7 +2632,6 @@ namespace engine
                                          BSONObj& matcher )
    {
       SDB_ASSERT( srcGroup && dstGroup, "group name can't be null" ) ;
-      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CLSIDXTASK_BMGTGP ) ;
@@ -2681,7 +2680,10 @@ namespace engine
             _changedMask |= CLS_IDX_MASK_GROUPS ;
 
             // change other field
-            _updateOtherByGroupInfo() ;
+            if ( ! _isMainTask )
+            {
+               _updateOtherByGroupInfo() ;
+            }
 
             // to bson
             rc = _toChangedObj( dstGroupUnit, NULL, matcher, updator ) ;

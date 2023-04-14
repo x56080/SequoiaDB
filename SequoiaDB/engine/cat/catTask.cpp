@@ -833,7 +833,25 @@ namespace engine
 
          pMainIdxTask = (clsIdxTask*)pMainTask ;
 
-         // 5.2 add group
+         // 5.2 migrate task for split
+         matcher = BSONObj() ;
+         updator = BSONObj() ;
+
+         rc = pMainIdxTask->buildMigrateGroup( srcGroupName, dstGroupName,
+                                               updator, matcher ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to migrate group from[%s] to [%s] in main task[%d], "
+                      "rc: %d", srcGroupName, dstGroupName, pMainIdxTask->taskID(), rc ) ;
+
+         rc = catUpdateTask( matcher, updator, cb, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, rc: %d",
+                      rc ) ;
+         PD_LOG( PDDEBUG,
+                 "migrate group, update task, matcher: %s, updator: %s",
+                 matcher.toString().c_str(), updator.toString().c_str() ) ;
+
+         // 5.3 add group
          if ( addDstGroup )
          {
             matcher = BSONObj() ;
@@ -855,7 +873,7 @@ namespace engine
 
          }
 
-         // 5.3 remove group
+         // 5.4 remove group
          if ( removeSrcGroup )
          {
             matcher = BSONObj() ;
@@ -929,7 +947,7 @@ namespace engine
                     matcher.toString().c_str(), updator.toString().c_str() ) ;
          }
 
-         // 5.4 if task finish, then we need to update metadata
+         // 5.5 if task finish, then we need to update metadata
          if ( CLS_TASK_STATUS_FINISH == pMainTask->status() )
          {
             if ( pMainTask->commandName() )
