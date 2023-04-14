@@ -942,4 +942,55 @@ namespace engine
       return QGM_OPTI_TYPE_JOIN == type ||
              QGM_OPTI_TYPE_JOIN_CONDITION == type ;
    }
+
+   BOOLEAN _qgmOptiNLJoin::canCondPushDown( const qgmField &relegation )
+   {
+      BOOLEAN result = TRUE ;
+
+      if ( !relegation.empty() )
+      {
+         switch ( _joinType )
+         {
+            case SQL_GRAMMAR::L_OUTERJOIN :
+            {
+               // for left outer join, condition of right table could not
+               // be pushed down
+               // for left outer join, right table is inner table
+               if ( inner()->getAlias( TRUE ) == relegation )
+               {
+                  result = FALSE ;
+               }
+               break ;
+            }
+            case SQL_GRAMMAR::R_OUTERJOIN :
+            {
+               // for right outer join, condition of left table could not
+               // be pushed down
+               // for right outer join, left table is outer table
+               if ( outer()->getAlias( TRUE ) == relegation )
+               {
+                  result = FALSE ;
+               }
+               break ;
+            }
+            case SQL_GRAMMAR::F_OUTERJOIN :
+            {
+               // for left outer join, condition of both left and right tables
+               // could not be pushed down
+               if ( inner()->getAlias( TRUE ) == relegation ||
+                    outer()->getAlias( TRUE ) == relegation )
+               {
+                  result = FALSE ;
+               }
+               break ;
+            }
+            default:
+            {
+               break ;
+            }
+         }
+      }
+
+      return result ;
+   }
 }

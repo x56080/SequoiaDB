@@ -42,6 +42,7 @@
 #include "qgmUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
+#include "mthCommon.hpp"
 #define PCRE_STATIC
 #include "../pcre/pcrecpp.h"
 
@@ -77,7 +78,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER_MATCH, "_qgmMatcher::match" )
-   INT32 _qgmMatcher::match( const qgmFetchOut &fetch, BOOLEAN &r )
+   INT32 _qgmMatcher::match( const qgmFetchOut &fetch, BOOLEAN mixCmp, BOOLEAN &r )
    {
       PD_TRACE_ENTRY( SDB__QGMMATCHER_MATCH ) ;
       INT32 rc = SDB_OK ;
@@ -89,7 +90,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _match( _condition, fetch, r ) ;
+      rc = _match( _condition, fetch, mixCmp, r ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -104,6 +105,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER__MATCH, "_qgmMatcher::_match" )
    INT32 _qgmMatcher::_match( const _qgmConditionNode *node,
                               const qgmFetchOut &fetch,
+                              BOOLEAN mixCmp,
                               BOOLEAN &r )
    {
       PD_TRACE_ENTRY( SDB__QGMMATCHER__MATCH ) ;
@@ -199,25 +201,35 @@ namespace engine
             }
             else if ( SQL_GRAMMAR::LT == node->type )
             {
-               r = (0 < fromCondition.woCompare( fromFetch, FALSE )) ?
-                   TRUE : FALSE ;
+               rc = mthMatchLT( fromFetch, fromCondition, mixCmp, FALSE, r ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
             else if ( SQL_GRAMMAR::GT == node->type )
             {
-               r = (0 > fromCondition.woCompare( fromFetch, FALSE  )) ?
-                   TRUE : FALSE ;
+               rc = mthMatchGT( fromFetch, fromCondition, mixCmp, FALSE, r ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
             else if ( SQL_GRAMMAR::GTE == node->type )
             {
-               INT32 wo = fromCondition.woCompare( fromFetch, FALSE ) ;
-               r = ( 0 > wo ) || ( 0 == wo )?
-                   TRUE : FALSE ;
+               rc = mthMatchGTE( fromFetch, fromCondition, mixCmp, FALSE, r ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
             else if ( SQL_GRAMMAR::LTE == node->type )
             {
-               INT32 wo = fromCondition.woCompare( fromFetch, FALSE ) ;
-               r = ( 0 < wo ) || ( 0 == wo )?
-                   TRUE : FALSE ;
+               rc = mthMatchLTE( fromFetch, fromCondition, mixCmp, FALSE, r ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
             else
             {
@@ -305,7 +317,7 @@ namespace engine
          else if ( SQL_GRAMMAR::NOT == node->type )
          {
             BOOLEAN rleft = FALSE ;
-            rc = _match( node->left, fetch, rleft ) ;
+            rc = _match( node->left, fetch, mixCmp, rleft ) ;
             if ( rc )
             {
                goto error ;
@@ -319,7 +331,7 @@ namespace engine
                         "impossible" ) ;
             BOOLEAN rleft = FALSE ;
             BOOLEAN rright = FALSE ;
-            rc = _match( node->left, fetch, rleft ) ;
+            rc = _match( node->left, fetch, mixCmp, rleft ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -336,7 +348,7 @@ namespace engine
                goto done ;
             }
 
-            rc = _match( node->right, fetch, rright ) ;
+            rc = _match( node->right, fetch, mixCmp, rright ) ;
             if ( SDB_OK != rc )
             {
                goto error ;

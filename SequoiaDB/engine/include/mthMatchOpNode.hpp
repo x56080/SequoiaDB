@@ -1098,13 +1098,19 @@ namespace engine
                                         const BSONElement &right,
                                         BOOLEAN mixCmp,
                                         _mthMatchTreeContext &context,
-                                        BOOLEAN &result ) ;
+                                        BOOLEAN &result )
+         {
+            return mthMatchLTE( left, right, mixCmp, TRUE, result ) ;
+         }
 
          virtual INT32 _excValueMatch ( const BSONElement &left,
                                         const BSONElement &right,
                                         BOOLEAN mixCmp,
                                         _mthMatchTreeContext &context,
-                                        BOOLEAN &result ) ;
+                                        BOOLEAN &result )
+         {
+            return mthMatchLT( left, right, mixCmp, TRUE, result ) ;
+         }
    } ;
 
    class _mthMatchOpNodeGT : public _mthMatchFuzzyOpNode
@@ -1162,13 +1168,19 @@ namespace engine
                                         const BSONElement &right,
                                         BOOLEAN mixCmp,
                                         _mthMatchTreeContext &context,
-                                        BOOLEAN &result ) ;
+                                        BOOLEAN &result )
+         {
+            return mthMatchGTE( left, right, mixCmp, TRUE, result ) ;
+         }
 
          virtual INT32 _excValueMatch ( const BSONElement &left,
                                         const BSONElement &right,
                                         BOOLEAN mixCmp,
                                         _mthMatchTreeContext &context,
-                                        BOOLEAN &result ) ;
+                                        BOOLEAN &result )
+         {
+            return mthMatchGT( left, right, mixCmp, TRUE, result ) ;
+         }
    } ;
 
    class _mthMatchOpNodeRegex ;

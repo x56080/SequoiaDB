@@ -51,14 +51,16 @@ namespace engine
                                 _qgmConditionNode *condition,
                                 INT64 numSkip,
                                 INT64 numReturn,
-                                const qgmField &alias )
+                                const qgmField &alias,
+                                BOOLEAN mixCmp )
    :_qgmPlan( QGM_PLAN_TYPE_FILTER, alias ),
     _return( numReturn ),
     _skip( numSkip ),
     _currentSkip( 0 ),
     _currentReturn( 0 ),
     _matcher( condition ),
-    _condition( NULL )
+    _condition( NULL ),
+    _mixCmp( mixCmp )
    {
       if ( _matcher.ready() )
       {
@@ -152,7 +154,7 @@ namespace engine
          if ( NULL != _condition )
          {
             BOOLEAN r = FALSE ;
-            rc = _matcher.match( fetch, r ) ;
+            rc = _matcher.match( fetch, _mixCmp, r ) ;
             if ( SDB_OK != rc )
             {
                goto error ;

@@ -45,8 +45,9 @@ namespace engine
    qgmPlMthMatcherFilter::qgmPlMthMatcherFilter( const qgmOPFieldVec &selector,
                                                 INT64 numSkip,
                                                 INT64 numReturn,
-                                                const qgmField &alias )
-   :_qgmPlFilter( selector, NULL, numSkip, numReturn, alias )
+                                                const qgmField &alias,
+                                                BOOLEAN mixCmp )
+   :_qgmPlFilter( selector, NULL, numSkip, numReturn, alias, mixCmp )
    {
    }
 

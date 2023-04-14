@@ -240,6 +240,30 @@ namespace engine
    INT32 mthParseConcatArrayArgs( const bson::BSONElement &e, BOOLEAN &isReturnNull,
                                   _utilString<> &prefix, _utilString<> &suffix ) ;
 
+   INT32 mthMatchGT( const bson::BSONElement &left,
+                     const bson::BSONElement &right,
+                     BOOLEAN mixCmp,
+                     BOOLEAN rejectArray,
+                     BOOLEAN &result ) ;
+
+   INT32 mthMatchGTE( const bson::BSONElement &left,
+                      const bson::BSONElement &right,
+                      BOOLEAN mixCmp,
+                      BOOLEAN rejectArray,
+                      BOOLEAN &result ) ;
+
+   INT32 mthMatchLT( const bson::BSONElement &left,
+                     const bson::BSONElement &right,
+                     BOOLEAN mixCmp,
+                     BOOLEAN rejectArray,
+                     BOOLEAN &result ) ;
+
+   INT32 mthMatchLTE( const bson::BSONElement &left,
+                      const bson::BSONElement &right,
+                      BOOLEAN mixCmp,
+                      BOOLEAN rejectArray,
+                      BOOLEAN &result ) ;
+
 }
 
 #endif //MTHCOMMON_HPP__

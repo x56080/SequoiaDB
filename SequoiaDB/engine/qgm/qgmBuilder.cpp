@@ -148,6 +148,8 @@ namespace engine
    {
       SDB_ASSERT( NULL != _table && NULL != _param,
                   "impossible" ) ;
+
+      _mixCmp = pmdGetOptionCB()->isEnabledMixCmp() ;
    }
 
    _qgmBuilder::~_qgmBuilder()
@@ -937,7 +939,8 @@ namespace engine
                                       s->_condition,
                                       s->_skip,
                                       s->_limit,
-                                      s->_alias ) ;
+                                      s->_alias,
+                                      _mixCmp ) ;
       if ( NULL == phy )
       {
          PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -974,7 +977,8 @@ namespace engine
       pFilter = SDB_OSS_NEW qgmPlMthMatcherFilter( s->_selector,
                                                    s->_skip,
                                                    s->_limit,
-                                                   s->_alias ) ;
+                                                   s->_alias,
+                                                   _mixCmp ) ;
       if ( NULL == pFilter )
       {
          PD_LOG( PDERROR, "Failed to allocate mem." ) ;

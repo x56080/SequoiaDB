@@ -59,6 +59,8 @@ namespace engine
       BOOLEAN              needMakeCondition() const ;
       INT32                makeCondition() ;
 
+      BOOLEAN              canCondPushDown( const qgmField &relegation ) ;
+
    public:
       virtual INT32     outputSort( qgmOPFieldVec &sortFields ) ;
       virtual INT32     outputStream( qgmOpStream &stream ) ;

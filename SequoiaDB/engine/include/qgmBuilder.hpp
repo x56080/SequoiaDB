@@ -209,6 +209,7 @@ namespace engine
    private:
       _qgmPtrTable *_table ;
       _qgmParamTable *_param ;
+      BOOLEAN       _mixCmp ;
    } ;
    typedef class _qgmBuilder qgmBuilder ;
 }

@@ -196,7 +196,9 @@ namespace engine
    // tool functions
    /////////////////////////////////////////////////////////////////////////////
 
-   BOOLEAN isCondSameRele( qgmConditionNode *condNode, BOOLEAN allowEmpty = TRUE ) ;
+   BOOLEAN isCondSameRele( qgmConditionNode *condNode,
+                           BOOLEAN allowEmpty,
+                           qgmField &relegation ) ;
 
    BOOLEAN isCondIncludedNull( qgmConditionNode *condNode ) ;
 

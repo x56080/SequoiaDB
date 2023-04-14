@@ -82,11 +82,13 @@ namespace engine
       string toString() const ;
 
       INT32 match( const qgmFetchOut &fetch,
+                   BOOLEAN mixCmp,
                    BOOLEAN &r ) ;
 
    private:
       INT32 _match( const _qgmConditionNode *node,
                     const qgmFetchOut &fetch,
+                    BOOLEAN mixCmp,
                     BOOLEAN &r ) ;
 
    private:

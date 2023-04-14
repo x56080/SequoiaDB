@@ -57,7 +57,8 @@ namespace engine
                     _qgmConditionNode *condition,
                     INT64 numSkip,
                     INT64 numReturn,
-                    const qgmField &alias ) ;
+                    const qgmField &alias,
+                    BOOLEAN mixCmp ) ;
 
       virtual ~_qgmPlFilter() ;
 
@@ -79,7 +80,7 @@ namespace engine
    private:
       qgmMatcher _matcher ;
       _qgmConditionNode *_condition ;
-      BOOLEAN _hasSelector ;
+      BOOLEAN _mixCmp ;
    } ;
 
    typedef class _qgmPlFilter qgmPlFilter ;

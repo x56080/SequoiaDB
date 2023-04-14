@@ -675,20 +675,31 @@ namespace engine
             ++itField ;
          }
       }
-
+      qgmOptiNLJoin *joinNode = dynamic_cast<qgmOptiNLJoin *>( subNode ) ;
+      SDB_ASSERT( NULL != joinNode, "join node is invalid" ) ;
       qgmConditionNodePtrVec subConds = filterUnit->getConditions() ;
       qgmConditionNodePtrVec::iterator itSub = subConds.begin() ;
       while ( itSub != subConds.end() )
       {
-         if ( isCondSameRele( *itSub, FALSE ) )
+         BOOLEAN pushedDown = FALSE ;
+         qgmField relegation ;
+         qgmConditionNode *pCondNode = *itSub ;
+
+         if ( isCondSameRele( pCondNode, FALSE, relegation ) )
          {
-            pushConds.push_back( *itSub ) ;
-            filterUnit->removeCondition( *itSub ) ;
+            // check if we can push down
+            if ( joinNode->canCondPushDown( relegation ) )
+            {
+               pushConds.push_back( pCondNode ) ;
+               filterUnit->removeCondition( pCondNode ) ;
+               pushedDown = TRUE ;
+            }
          }
-         else
+
+         if ( !pushedDown )
          {
             condReleSame = FALSE ;
-            getCondAttrMoreFields( *itSub, *(filterUnit->getFields()),
+            getCondAttrMoreFields( pCondNode, *(filterUnit->getFields()),
                                    moreField ) ;
          }
          ++itSub ;
@@ -844,7 +855,9 @@ namespace engine
    // tool functions
    /////////////////////////////////////////////////////////////////////////////
 
-   BOOLEAN isCondSameRele( qgmConditionNode * condNode, BOOLEAN allowEmpty )
+   BOOLEAN isCondSameRele( qgmConditionNode * condNode,
+                           BOOLEAN allowEmpty,
+                           qgmField &relegation )
    {
       if ( condNode->type != SQL_GRAMMAR::AND &&
            condNode->type != SQL_GRAMMAR::OR &&
@@ -862,6 +875,17 @@ namespace engine
               condNode->left->value.relegation() )
          {
             return FALSE ;
+         }
+
+         if ( condNode->left->type == SQL_GRAMMAR::DBATTR &&
+              !condNode->left->value.relegation().empty() )
+         {
+            relegation = condNode->left->value.relegation() ;
+         }
+         else if ( condNode->right->type == SQL_GRAMMAR::DBATTR &&
+                   !condNode->right->value.relegation().empty() )
+         {
+            relegation = condNode->right->value.relegation() ;
          }
       }
       else
@@ -883,6 +907,11 @@ namespace engine
                return FALSE ;
             }
             ++itCond ;
+         }
+
+         if ( condFields.size() > 0 )
+         {
+            relegation = condFields[ 0 ]->relegation() ;
          }
       }
       return TRUE ;

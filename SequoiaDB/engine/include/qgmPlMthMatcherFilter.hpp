@@ -50,7 +50,8 @@ namespace engine
       qgmPlMthMatcherFilter( const qgmOPFieldVec &selector,
                              INT64 numSkip,
                              INT64 numReturn,
-                             const qgmField &alias );
+                             const qgmField &alias,
+                             BOOLEAN mixCmp );
 
       INT32 loadPattern( bson::BSONObj matcher );
 
