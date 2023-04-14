@@ -580,11 +580,12 @@ namespace engine
                        INT32 flags,
                        SINT16 w,
                        _pmdEDUCB *cb,
-                       SDB_DPSCB *dpsCB )
+                       SDB_DPSCB *dpsCB,
+                       _rtnLobStream *pStream,
+                       rtnContextBuf *errBuf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREMOVELOB ) ;
-      _rtnLocalLobStream stream ;
       BSONElement fullName ;
       BSONElement oidEle ;
       bson::OID oid ;
@@ -608,9 +609,12 @@ namespace engine
       }
       oid = oidEle.OID() ;
 
-      stream.setDPSCB( dpsCB ) ;
+      if ( NULL != dpsCB )
+      {
+         pStream->setDPSCB( dpsCB ) ;
+      }
 
-      rc = stream.open( fullName.valuestr(),
+      rc = pStream->open( fullName.valuestr(),
                         oid, SDB_LOB_MODE_REMOVE,
                         flags, NULL, cb ) ;
       if ( SDB_OK != rc )
@@ -619,19 +623,17 @@ namespace engine
                  oid.str().c_str(), rc ) ;
          goto error ;
       }
-      else
-      {
-         /// do nothing.
-      }
 
-      rc = stream.truncate( 0, cb ) ;
+      rc = pStream->truncate( 0, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Faield to truncate lob, rc:%d", rc ) ;
+         /// get error info
+         pStream->getErrorInfo( rc, cb, errBuf ) ;
          goto error ;
       }
 
-      rc = stream.close( cb ) ;
+      rc = pStream->close( cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to remove lob, rc:%d", rc ) ;
@@ -643,7 +645,7 @@ namespace engine
    error:
       {
          INT32 rcTmp = SDB_OK ;
-         rcTmp = stream.closeWithException( cb ) ;
+         rcTmp = pStream->closeWithException( cb ) ;
          if ( SDB_OK != rcTmp )
          {
             PD_LOG( PDERROR, "failed to close lob with exception:%d", rcTmp ) ;

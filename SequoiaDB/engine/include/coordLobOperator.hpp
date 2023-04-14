@@ -200,6 +200,24 @@ namespace engine
                                 rtnContextBuf *buf ) ;
    } ;
    typedef _coordCreateLobID coordCreateLobID ;
+
+   /*
+      _coordPutLob define
+   */
+   class _coordPutLob : public _coordOperator
+   {
+      public:
+         _coordPutLob() ;
+         virtual ~_coordPutLob() ;
+      public:
+         virtual const CHAR* getName() const ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+   } ;
+   typedef _coordPutLob coordPutLob ;
 }
 
 #endif // COORD_LOB_OPERATOR_HPP__

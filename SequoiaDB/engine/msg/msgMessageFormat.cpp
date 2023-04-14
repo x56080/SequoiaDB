@@ -171,6 +171,8 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "LOB CREATELOBID" ;
       case MSG_BS_LOB_GETRTDETAIL_REQ :
          return "LOB GETDETAIL" ;
+      case MSG_BS_LOB_PUT_REQ :
+         return "LOB PUT" ;
       case MSG_BS_SEQUENCE_FETCH_REQ :
          return "SEQUENCE FETCH" ;
       case MSG_CLS_SYNC_REQ :

@@ -386,8 +386,6 @@ namespace engine
 
       const MsgOpLob *header = NULL ;
       BSONObj obj ;
-      BSONElement ele ;
-      const CHAR *fullName = NULL ;
       coordLobStream stream( _pResource, getTimeout() ) ;
       contextID = -1 ;
 
@@ -395,26 +393,7 @@ namespace engine
                                        obj ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to extract remove msg:%d", rc ) ;
-         goto error ;
-      }
-
-      ele = obj.getField( FIELD_NAME_COLLECTION ) ;
-      if ( String != ele.type() )
-      {
-         PD_LOG( PDERROR, "invalid type of field \"collection\":%s",
-                 obj.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      fullName = ele.valuestr() ;
-
-      ele = obj.getField( FIELD_NAME_LOB_OID ) ;
-      if ( jstOID != ele.type() )
-      {
-         PD_LOG( PDERROR, "invalid type of field \"oid\":%s",
-                 obj.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to extract remove msg:%d", rc ) ;
          goto error ;
       }
 
@@ -424,46 +403,18 @@ namespace engine
 
       /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
-      /// then open stream, will init it's groupSession
-      rc = stream.open( fullName,
-                        ele.__oid(), SDB_LOB_MODE_REMOVE,
-                        header->flags,
-                        NULL,
-                        cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to remove lob:%s, rc:%d",
-                 ele.__oid().str().c_str(), rc ) ;
-         goto error ;
-      }
 
-      rc = stream.truncate( 0, cb ) ;
+      rc = rtnRemoveLob( obj, header->flags, header->w, cb, NULL, &stream, buf ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "faield to remove lob pieces:%d", rc ) ;
-         /// get error info
-         stream.getErrorInfo( rc, cb, buf ) ;
+         PD_LOG( PDERROR, "Failed to remove lob, rc:%d", rc ) ;
          goto error ;
-      }
-
-      rc = stream.close( cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to remove lob:%d", rc ) ;
       }
 
    done:
       PD_TRACE_EXITRC( COORD_REMOVELOB_EXE, rc ) ;
       return rc ;
    error:
-      {
-         INT32 rcTmp = SDB_OK ;
-         rcTmp = stream.closeWithException( cb ) ;
-         if ( SDB_OK != rcTmp )
-         {
-            PD_LOG( PDERROR, "failed to close lob with exception:%d", rcTmp ) ;
-         }
-      }
       goto done ;
    }
 
@@ -708,6 +659,114 @@ namespace engine
       PD_TRACE_EXITRC( COORD_CREATELOBID_EXE, rc ) ;
       return rc ;
    error:
+      goto done ;
+   }
+
+   /*
+      _coordPutLob implement
+   */
+   _coordPutLob::_coordPutLob()
+   {
+   }
+
+   _coordPutLob::~_coordPutLob()
+   {
+   }
+
+   const CHAR* _coordPutLob::getName() const
+   {
+      return "PutLob" ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_PUTLOB_EXE, "_coordPutLob::execute" )
+   INT32 _coordPutLob::execute( MsgHeader *pMsg, pmdEDUCB *cb,
+                                INT64 &contextID, rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_PUTLOB_EXE ) ;
+      SDB_ASSERT( NULL != buf, "Can not be null" ) ;
+
+      rtnLobStream *pStream  = NULL ;
+      const MsgOpLob *header = NULL ;
+      UINT32 len             = 0 ;
+      INT64 offset           = -1 ;
+      const CHAR *data       = NULL ;
+      BOOLEAN hadCreate      = FALSE ;
+      BSONObj mateObj ;
+      contextID              = -1 ;
+
+      rc = msgExtractPutLobRequest( (const CHAR*)pMsg, &header, mateObj, &len, &offset, &data ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to extract put lob msg:%d", rc ) ;
+         goto error ;
+      }
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode, "Option:%s",
+                          mateObj.toString().c_str() ) ;
+
+#if defined (_DEBUG)
+      {
+         string md5sum = md5::md5simpledigest( data, len ) ;
+         PD_LOG( PDDEBUG, "Got put LOB, meta: %s, context: %lld, len: %u, offset: %llu, "
+                 "md5sum: %s", mateObj.toString().c_str(), header->contextID, len, offset,
+                 md5sum.c_str() ) ;
+      }
+#endif
+
+      pStream = SDB_OSS_NEW _coordLobStream( _pResource, getTimeout() ) ;
+      if ( !pStream )
+      {
+         PD_LOG( PDERROR, "Create lob stream failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // 1. open
+      rc = rtnOpenLob( mateObj, header->flags, cb, NULL, pStream,
+                       0, contextID, *buf ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to open lob:%s, rc:%d",
+                 mateObj.toString( FALSE, TRUE ).c_str(), rc ) ;
+         goto error ;
+      }
+      hadCreate = true ;
+
+      // 2. write
+      rc = rtnWriteLob( contextID, cb, len, data, offset, buf ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to write lob:%d", rc ) ;
+         goto error ;
+      }
+
+      // 3. close
+      rc = rtnCloseLob( contextID, cb, buf ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to close lob:%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_PUTLOB_EXE, rc ) ;
+      return rc ;
+   error:
+      if ( true == hadCreate )
+      {
+         // remove
+         INT32 rcTmp = SDB_OK ;
+         coordLobStream streamTmp( _pResource, getTimeout() ) ;
+         /// release operator's groupSession to improve perfermance
+         _groupSession.release() ;
+         rcTmp = rtnRemoveLob( mateObj, header->flags, header->w, cb, NULL, &streamTmp, buf ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to remove lob:%d", rcTmp ) ;
+         }
+      }
       goto done ;
    }
 }

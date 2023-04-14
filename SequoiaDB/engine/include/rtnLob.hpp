@@ -109,7 +109,9 @@ namespace engine
                        INT32 flags,
                        SINT16 w,
                        _pmdEDUCB *cb,
-                       SDB_DPSCB *dpsCB ) ;
+                       SDB_DPSCB *dpsCB,
+                       _rtnLobStream *pStream,
+                       rtnContextBuf *errBuf = NULL ) ;
 
    INT32 rtnTruncateLob( const BSONObj &lob,
                          INT32 flags,

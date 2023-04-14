@@ -268,6 +268,8 @@ namespace engine
             case MSG_BS_LOB_CREATELOBID_REQ:
                rc = _onCreateLobIDMsg( msg, contextBuff ) ;
                break ;
+            case MSG_BS_LOB_PUT_REQ:
+               // TODO support standalone mode
             case MSG_AUTH_CRTUSR_REQ:
             case MSG_AUTH_DELUSR_REQ:
                rc = SDB_RTN_COORD_ONLY ;
@@ -1574,14 +1576,16 @@ namespace engine
 
    INT32 _pmdDataProcessor::_onRemoveLobMsg( MsgHeader *msg, SDB_DPSCB *dpsCB )
    {
-      INT32 rc = SDB_OK ;
-      BSONObj meta ;
+      INT32 rc               = SDB_OK ;
       const MsgOpLob *header = NULL ;
+      rtnLobStream *pStream  = NULL ;
+      BSONObj meta ;
+
       rc = msgExtractRemoveLobRequest( ( const CHAR * )msg, &header,
                                         meta ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to extract remove msg:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to extract remove msg:%d", rc ) ;
          goto error ;
       }
 
@@ -1591,10 +1595,19 @@ namespace engine
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toPoolString().c_str() ) ;
 
-         rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB ) ;
+         /// pStream will delete in context
+         pStream = SDB_OSS_NEW _rtnLocalLobStream() ;
+         if ( !pStream )
+         {
+            PD_LOG( PDERROR, "Create lob stream failed" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB, pStream ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to remove lob:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to remove lob:%d", rc ) ;
             goto error ;
          }
       }
@@ -2088,6 +2101,16 @@ namespace engine
          case MSG_BS_LOB_CREATELOBID_REQ:
          {
             coordCreateLobID opr ;
+            rc = opr.init( pResource, eduCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
+                         opr.getName(), rc ) ;
+            needRollback = opr.needRollback() ;
+            rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
+            break ;
+         }
+         case MSG_BS_LOB_PUT_REQ:
+         {
+            coordPutLob opr ;
             rc = opr.init( pResource, eduCB() ) ;
             PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
                          opr.getName(), rc ) ;
