@@ -57,7 +57,6 @@ public class IndexConsistent23946 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( newCSName ) ) {
             sdb.dropCollectionSpace( newCSName );
         }
-
         cs = sdb.createCollectionSpace( csName );
         dbcl = createAndAttachCL( cs, mainclName, subclName1, subclName2 );
         insertRecords = IndexUtils.insertData( dbcl, recsNum );
@@ -211,7 +210,26 @@ public class IndexConsistent23946 extends SdbTestBase {
             String indexName ) throws Exception {
         CollectionSpace cs = db.getCollectionSpace( csName );
         DBCollection dbcl = cs.getCollection( mainclName );
-        if ( !dbcl.isIndexExist( indexName ) ) {
+        DBCollection dbcl1 = cs.getCollection( subclName1 );
+        DBCollection dbcl2 = cs.getCollection( subclName2 );
+        boolean isIndexInSubcl1 = cs.getCollection( subclName1 )
+                .isIndexExist( indexName );
+        boolean isIndexInSubcl2 = cs.getCollection( subclName2 )
+                .isIndexExist( indexName );
+        if ( !( dbcl.isIndexExist( indexName ) ) ) {
+            // 主表无索引，子表至少一个无索引
+            Assert.assertFalse( isIndexInSubcl2 && isIndexInSubcl1,
+                    " one subcl should have no index!" );
+            if ( isIndexInSubcl1 ) {
+                dbcl1.dropIndex( indexName );
+                IndexUtils.checkIndexTask( db, "Drop index", csName, subclName1,
+                        indexName );
+            }
+            if ( isIndexInSubcl2 ) {
+                dbcl2.dropIndex( indexName );
+                IndexUtils.checkIndexTask( db, "Drop index", csName, subclName2,
+                        indexName );
+            }
             dbcl.createIndex( indexName, "{testa:1}", false, false );
             IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
                     indexName );
@@ -227,10 +245,6 @@ public class IndexConsistent23946 extends SdbTestBase {
             IndexUtils.checkRecords( dbcl, insertRecords, "",
                     "{'':'" + indexName + "'}" );
         } else {
-            boolean isIndexInSubcl1 = cs.getCollection( subclName1 )
-                    .isIndexExist( indexName );
-            boolean isIndexInSubcl2 = cs.getCollection( subclName2 )
-                    .isIndexExist( indexName );
             // 可能出现其中一个子表创建索引成功，另一个子表索引失败回滚，校验只有一个子表上有索引，另一个子表上索引回滚删除
             if ( isIndexInSubcl1 ) {
                 Assert.assertFalse( isIndexInSubcl2,
