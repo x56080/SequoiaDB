@@ -712,7 +712,9 @@ sequoiadb
 │       │   ├── setAttributes_cn.troff
 │       │   ├── setAttributes_en.troff
 │       │   ├── setGroups_cn.troff
-│       │   └── setGroups_en.troff
+│       │   ├── setGroups_en.troff
+│       │   ├── setLocation_cn.troff
+│       │   └── setLocation_en.troff
 │       ├── SdbNode
 │       │   ├── connect_cn.troff
 │       │   ├── connect_en.troff

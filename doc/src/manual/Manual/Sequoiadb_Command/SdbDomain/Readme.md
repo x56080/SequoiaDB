@@ -10,6 +10,7 @@ SdbDomain 类主要用于操作数据域，包含的函数如下：
 | [setActiveLocation()][setActiveLocation] | 设置域中所有复制组的 ActiveLocation |
 | [setAttributes()][setAttributes] | 修改域的属性 |
 | [setGroups()][setGroups] | 重设域包含的复制组 |
+| [setLocation()][setLocation] | 修改节点的位置信息 |
 | [listGroups()][listGroups] | 获取指定域中所有的复制组 |
 
 [^_^]:
@@ -23,3 +24,4 @@ SdbDomain 类主要用于操作数据域，包含的函数如下：
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbDomain/setAttributes.md
 [setGroups]:manual/Manual/Sequoiadb_Command/SdbDomain/setGroups.md
 [listGroups]:manual/Manual/Sequoiadb_Command/SdbDomain/listGroups.md
+[setLocation]:manual/Manual/Sequoiadb_Command/SdbDomain/setLocation.md
