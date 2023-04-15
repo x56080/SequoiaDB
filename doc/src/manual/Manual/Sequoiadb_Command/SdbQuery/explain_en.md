@@ -1,11 +1,10 @@
-
 ##NAME##
 
-explain - Get the access plan for the query.
+explain - get the access plan for the query
 
 ##SYNOPSIS##
 
-***query.explain( [options] )***
+**query.explain([options])**
 
 ##CATEGORY##
 
@@ -13,842 +12,420 @@ SdbQuery
 
 ##DESCRIPTION##
 
-Get the access plan for the query.
+This function is used to get the access plan for the query.
 
 ##PARAMETERS##
 
-| Name    | Type     | Description                      | Required or not |
-| ------- | -------- | -------------------------------- | --------------- |
-| options | JSON     | Access plan execution parameters | not             |
+options ( *object, optional* )
 
-The detail description of 'options' parameter is as follow:
+The output information of the access plan can be controlled through the parameter "options":
 
-| Name | Type | Description | Default |
-| ---------- | ---- | ------- | ----------- |
-| Run            | bool | Whether to execute the access plan.<br>Execute an access plan to get data and time informaitom if Run is true. <br>Otherwise it only gets information about the access and the access plan isn't executed | false |
-| Detail         | bool | Whether to display more detailed information about access plan, like coord nodes, data nodes and context information that related to the access plans. <br>Display more detailed information about access plan if Detail is true. <br>Otherwise it doesn't display them. <br>However, if Detail is true, it displays one level more detailed information about access plan. <br>You can use parameter Expand to control whether to display all more detailed information about access plan. | false |
-| Estimate       | bool | Whether to display the estimate part of the detailed access plan. <br>Display the estimate part of the detailed access plan if Estimate is true. <br>Otherwise it doesn't display them. <br>If the Estimate option is explicitly set, Detail is automatically set to true. |  same as Detail |
-| Expand         | bool | Whether to display all level more detailed information about the access plan. <br>Display all level more detailed information about the access plan if Expand is true. <br>Otherwise it display one level more detailed information about the access plan.<br>If Expand is explicitly set, Detail is automatically set to true. | false |
-| Flatten        | bool | Indicates whether to expand the output of the access plan for each node and each child tables as a record. Expand the output if Flatten is true. <br>Otherwise, it will not. <br>If Flatten is explicitly set, Detail and Expand are automatically set to true. | false |
-| Filter         | string / string array | Fileter the details of the estimation results. The filter option allows you to select "None", "Output", "Input", "Filter", "All", or a combination of them. <br>None: No detail of the estimated results are output.<br>Input: Output details of the intput of the estimation result. <br>Filter: Output filtering details of the estimation results. <br>Output: Output details of the output of the estimation result. <br>All: output full details of the estimation results.  <br>If Filter is explicitly set, Detail and Estimate are automatically set to true. | "All" |
-| CMDLocation    | JSON | The results of the access plan are filtered according to the data set, using the command location parameter item. The CMDLocation option only supports the "GroupID" and "GroupName" options.<br>If CMDLocation is explicitly set, Detail is automatically set to true. | - |
-| SubCollections | string / string array | The results of the access plan are filtered according to the sub-table. <br>The SubCollections option only takes effect when an access plan with primary child tables is used. <br>The SubCollections option can select a sub-table name, or an array of sub-table names, to indicate that only the access plan for the specified sub-table is displayed. <br>The SubCollections option is [] or null for no filtering. <br>If SubCollections is explicitly set, Detail is automatically set to true. | - |
-| Search         | bool | Whether to view the access plan that the query optimizer has searched for and to view the results of the query optimizer selection. <br>Show the selection process of the query optimizer if Search is true. <br>Otherwise, it won't show them.<br>If Search  is explicitly set, Detail and Expand are automatically set to true. | false |
-| Evaluate       | bool | Whether to view the calculation process of the access plan that the query optimizer has searched for. <br>Shows the calculation process of the query optimizer if Evaluate is true. <br>Otherwise it won't show them.<br>If Evaluate is explicitly set, Detail, Search and Expand are automatically set to true. | false |
-| Abbrev         | bool | Whether to output strings in abbreviation mode. | false |
+- Run ( *boolean* ): Whether to run the access plan, and the default value is "false".
+
+    The values are as follows:
+
+    - true: Run access plan and output access plan information.
+    - false: Only output access plan information, do not run.
+
+    Format: `Run: true`
+
+- Detail ( *boolean* ): Whether to output detailed access plan, and the default value is "false".
+
+    When the value of parameter "Detail" is "true", a layer of detailed access plan is displayed by default.
+
+    The values are as follows:
+
+    - true: Displayed [detailed access plan][explain_det].
+    - false: Displayed [normal access plan][explain_ord].
+
+    Format: `Detail: true`
+
+- Estimate ( *boolean* ): Whether to display the estimate part of the detailed access plan, and the default value is the value of the parameter "Detail".
+
+    If parameter "Estimate" is explicitly set, parameter "Detail" will be automatically set to "true". 
+
+    The values are as follows:
+
+    - true: Display the estimated part.
+    - false：Do not display the estimated part.
+
+    Format: `Estimate: true`
+
+- Expand ( *boolean* ): Whether to display the expanded information of the detailed access plan, and the default value is "false", which means not to display.
+
+    If parameter "Expand" is explicitly set, parameter "Detail" will be automatically set to "true". 
+
+    Format: `Expand: true`
+
+- Flatten ( *boolean* ): Whether to display the access plan of each node and each sub-collection separately, and the default value is "false".
+
+    If parameter "Flatten" is explicitly set, parameter "Detail" and "Expand" will be automatically set to "true". 
+
+    The values are as follows:
+
+    - true: Display the access plan of each node and each sub-collection separately.
+    - false: Combine the access plans of nodes and sub-collections into an array and hang them on the upper-level node or main collection for display.
+
+    Format: `Flatten: true`
+
+- Filter ( *string/array* ): Filter the details of the estimated results, and the default value is "ALL".
+
+    If parameter "Filter" is explicitly set, parameter "Detail" and "Estimate" will be automatically set to "true". 
+
+    The values are as follows:
+
+    - "None": Do not display any details of the estimated results. 
+    - "Input": Display input details of the estimated results.
+    - "Filter": Display filtering details of the estimated results.
+    - "Output": Display output details of the estimated results.
+    - "All": Display all details of the estimated results.
+
+    Format: `Filter: ["Input", "Output"]`
+
+- CMDLocation ( "object" ): Filter the results of the access plan according to the data groups, and the default is null, which means that no filter condition is set.
+
+    - Parameter "CMDLocation" only supports filtering by replication group ID (corresponding to parameter "GroupID") and replication group name (corresponding to parameter "GroupName").
+    - If parameter "CMDLocation" is explicitly set, parameter "Detail" will be automatically set to "true". 
+
+    Format: `CMDLocation: {GroupName: "group1"}`
+
+- SubCollections ( *string/array* ): Filter the results of the access plan according to one or multiple sub-collections, and the default is null, which means that no filter condition is set.
+
+    - This parameter only takes effect in the access plan involving the main collection and sub-collection.
+    - When specifying this parameter, it is necessary to specify the parameter "Expand" as "true" at the same time. 
+
+    Format: `SubCollections: ["subcs.subcl1", "subcs.subcl2"]`
+
+- Search ( *boolean* ): Whether to display the [search process of the access plan][cost_estimation], and the default value is "false", which means not to display.
+
+    If parameter "Search" is explicitly set, parameter "Detail" and "Expand" will be automatically set to "true". 
+
+    Format: `Search: true`
+
+- Evaluate ( *boolean* ): Whether to display the deduction formula of the query optimizer, and the default value is "false", which means not to display.
+
+    If parameter "Evaluate" is explicitly set, parameter "Detail", "Search" and "Expand" will be automatically set to "true". 
+
+    Format: `Evaluate: true`
+
+- Abbrev ( *boolean* ): Whether to output long strings in abbreviation mode, and the default value is "false", which means not to abbreviate the output.
+
+    Format: `Abbrev: true`
 
 ##RETURN VALUE##
 
-On success, return access plan's cursor.
+When the function executes successfully, it will return an object of type SdbCursor. Users can get the access plan of the query through this object, refer to [access plan][explain].
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, refer to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v2.0 and above
 
 ##EXAMPLES##
 
-* Normal access plan.
+- Get the normal access plan for a query.
 
-```lang-json
-{
-  "Name": "sample.employee",
-  "ScanType": "ixscan",
-  "IndexName": "$shard",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
+    ```lang-javascript
+    > db.sample.employee.find({a:{$gte:100}}).explain()
+    {
+      "NodeName": "hostname:11820",
+      "GroupName": "group1",
+      "Role": "data",
+      "Name": "sample.employee",
+      "ScanType": "tbscan",
+      "IndexName": "",
+      "UseExtSort": false,
+      "Query": {
+        "$and": [
+          {
+            "a": {
+              "$gte": 100
+            }
+          }
+        ]
+      },
+      "IXBound": null,
+      "NeedMatch": true,
+      "IndexCover": false,
+      "ReturnNum": 49892,
+      "ElapsedTime": 0.323423,
+      "IndexRead": 0,
+      "DataRead": 49945,
+      "UserCPU": 0.1399999999999999,
+      "SysCPU": 0
+    }
+    ...
+    ```
+
+- Get the detailed access plan for a query.
+
+    ```lang-javascript
+    > db.sample.employee.find({a: {$gt: 100}}).explain({Detail: true})
+    {
+      "NodeName": "hostname:11810",
+      "GroupName": "SYSCoord",
+      "Role": "coord",
+      "Collection": "sample.employee",
+      "Query": {
         "a": {
-          "$gt": 1
+          "$gt": 100
+        }
+      },
+      "Sort": {},
+      "Selector": {},
+      "Hint": {},
+      "Skip": 0,
+      "Return": -1,
+      "Flag": 0,
+      "ReturnNum": 0,
+      "ElapsedTime": 0.00123,
+      "IndexRead": 0,
+      "DataRead": 0,
+      "UserCPU": 0,
+      "SysCPU": 0,
+      "PlanPath": {
+        "Operator": "COORD-MERGE",
+        "Sort": {},
+        "NeedReorder": false,
+        "DataNodeNum": 2,
+        "DataNodeList": [
+          {
+            "Name": "hostname:11820",
+            "EstTotalCost": 1.484
+          },
+          {
+            "Name": "hostname:11830",
+            "EstTotalCost": 0.7418349999999999
+          }
+        ],
+        "Selector": {},
+        "Skip": 0,
+        "Return": -1,
+        "Estimate": {
+          "StartCost": 0,
+          "RunCost": 1.5214865,
+          "TotalCost": 1.5214865,
+          "Output": {
+            "Records": 74973,
+            "RecordSize": 29,
+            "Sorted": false
+          }
+        },
+        "ChildOperators": [
+          {
+            "NodeName": "hostname:11820",
+            "GroupName": "group1",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000078,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          },
+          {
+            "NodeName": "hostname:11830",
+            "GroupName": "group2",
+            "Role": "data",
+            "Collection": "sample.employee",
+            "Query": {
+              "a": {
+                "$gt": 100
+              }
+            },
+            "Sort": {},
+            "Selector": {},
+            "Hint": {},
+            "Skip": 0,
+            "Return": -1,
+            "Flag": 2048,
+            "ReturnNum": 0,
+            "ElapsedTime": 0.000081,
+            "IndexRead": 0,
+            "DataRead": 0,
+            "UserCPU": 0,
+            "SysCPU": 0,
+            "CacheStatus": "HitCache",
+            "MainCLPlan": false,
+            "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+            "Parameters": [
+              100
+            ],
+            "MatchConfig": {
+              "EnableMixCmp": false,
+              "Parameterized": true,
+              "FuzzyOptr": false
+            }
+          }
+        ]
+      }
+    }
+    ```
+
+- Specify the parameter "Run" as "true", run and get the detailed access plan for a query.
+
+    ```lang-javascript
+    > db.sample.employee.find({a: {$gt: 100}}).explain({Run: true, Detail: true})
+    ...
+        "Run": {
+          "ContextID": 29314,
+          "StartTimestamp": "2017-12-14-15.24.51.254623",
+          "QueryTimeSpent": 0.821182,
+          "GetMores": 112,
+          "ReturnNum": 99899,
+          "WaitTimeSpent": 0.075
+        },
+    ...
+    ```
+
+- Specify the parameter "Expand" as "true" to get the expanded information in the detailed access plan.
+
+    ```lang-javascript
+    > db.sample.employee.find({a: {$gt: 100}}).explain({Expand: true})
+    ...
+    "PlanPath": {
+      "Operator": "TBSCAN",
+      "Collection": "sample.employee",
+      "Query": {
+        "$and": [
+          {
+            "a": {
+              "$gt": 100
+            }
+          }
+        ]
+      },
+      "Selector": {},
+      "Skip": 0,
+      "Return": -1,
+      "Estimate": {
+        "StartCost": 0,
+        "RunCost": 0.0007999999999999999,
+        "TotalCost": 0.0007999999999999999,
+        "CLEstFromStat": false,
+        "Input": {
+          "Pages": 1,
+          "Records": 200,
+          "RecordSize": 1
+        },
+        "Filter": {
+          "MthSelectivity": 0.49999995
+        },
+        "Output": {
+          "Records": 100,
+          "RecordSize": 1,
+          "Sorted": false
         }
       }
-    ]
-  },
-  "IXBound": {
-    "a": [
-      [
-        1,
+    }
+    ...
+    ```
+
+- Specify the parameter "Search" as "true" to get the search process of the detailed access plan.
+
+    ```lang-javascript
+    > db.sample.employee.find({a: {$gt: 100}}).explain(Search: true})
+    ...  
+    "Search": {
+      "Options": {
+        "sortbuf": 256,
+        "optcostthreshold": 20
+      },
+      "SearchPaths": [
         {
-          "$maxElement": 1
+          "IsUsed": false,
+          "IsCandidate": false,
+          "Score": 1,
+          "ScanType": "ixscan",
+          "IndexName": "$id",
+          "UseExtSort": false,
+          "Direction": 1,
+          "IXBound": {
+            "_id": [
+              [
+                {
+                  "$minElement": 1
+                },
+                {
+                  "$maxElement": 1
+                }
+              ]
+            ]
+          },
+          "NeedMatch": true,
+          "IndexCover": false,
+          "IXEstFromStat": false
+        },
+        {
+          "IsUsed": false,
+          "IsCandidate": false,
+          "Score": 0.4999994999999995,
+          "ScanType": "ixscan",
+          "IndexName": "$shard",
+          "UseExtSort": false,
+          "Direction": 1,
+          "IXBound": {
+            "a": [
+              [
+                100,
+                {
+                  "$decimal": "MAX"
+                }
+              ]
+            ]
+          },
+          "NeedMatch": false,
+          "IndexCover": false,
+          "IXEstFromStat": false
+        },
+        {
+          "IsUsed": true,
+          "IsCandidate": true,
+          "Score": 0.4999994999999995,
+          "TotalCost": 1483670,
+          "ScanType": "tbscan",
+          "IndexName": "",
+          "UseExtSort": false
         }
       ]
-    ]
-  },
-  "NeedMatch": false,
-  "IndexCover": true,
-  "NodeName": "hostname:11830",
-  "GroupName": "group",
-  "Role": "data",
-  "ReturnNum": 0,
-  "ElapsedTime": 0.000107,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0
-}
-```
+    }
+    ...
+    ```
 
-* Table partition access plan.
+- Specify the parameter "CMDLocation" to get the detailed access plan of the query on the replication group "group1".
 
-```lang-json
-{
-  "NodeName": "hostname:11830",
-  "GroupName": "group",
-  "Role": "data",
-  "Name": "maincs.maincl",
-  "SubCollections": [
+    ```lang-javascript
+    > db.sample.employee.find({a: {$gt: 100}}).explain({Detail: true, CMDLocation: {GroupName: "group1"}})
     {
-      "Name": "subcs.subcl1",
-      "ScanType": "tbscan",
-      "IndexName": "",
-      "UseExtSort": false,
-      "Query": {
-        "$and": []
-      },
-      "IXBound": null,
-      "NeedMatch": false,
-      "IndexCover": true,
-      "ReturnNum": 0,
-      "ElapsedTime": 0.000088,
-      "IndexRead": 0,
-      "DataRead": 0,
-      "UserCPU": 0,
-      "SysCPU": 0
-    },
-    {
-      "Name": "subcs.subcl2",
-      "ScanType": "tbscan",
-      "IndexName": "",
-      "UseExtSort": false,
-      "Query": {
-        "$and": []
-      },
-      "IXBound": null,
-      "NeedMatch": false,
-      "IndexCover": true,
-      "ReturnNum": 0,
-      "ElapsedTime": 0.000089,
-      "IndexRead": 0,
-      "DataRead": 0,
-      "UserCPU": 0,
-      "SysCPU": 0
-    }
-  ]
-}
-```
-
-* The vittual access plan on the coordination node. Matches cannot hit any partition.
-
-```lang-json
-{
-  "NodeName": "hostname:11810",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "maincs.maincl",
-  "Query": {
-    "a": 10000000
-  },
-}
-```
-
-* View the general access plan for the query and execute query using the Run option.
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Run : true } )
-{
-  "NodeName": "hostname:11810",
-  "GroupName": "group1",
-  "Role": "data",
-  "Name": "sample.employee",
-  "ScanType": "tbscan",
-  "IndexName": "",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
-        "a": {
-          "$gt": 100
-        }
-      }
-    ]
-  },
-  "IXBound": null,
-  "NeedMatch": true,
-  "IndexCover": falses,
-  "ReturnNum": 49892,
-  "ElapsedTime": 0.323423,
-  "IndexRead": 0,
-  "DataRead": 49945,
-  "UserCPU": 0.1399999999999999,
-  "SysCPU": 0
-}
-{
-  "NodeName": "hostname:11820",
-  "GroupName": "group2",
-  "Role": "data",
-  "Name": "sample.employee",
-  "ScanType": "tbscan",
-  "IndexName": "",
-  "UseExtSort": false,
-  "Query": {
-    "$and": [
-      {
-        "a": {
-          "$gt": 100
-        }
-      }
-    ]
-  },
-  "IXBound": null,
-  "NeedMatch": true,
-  "IndexCover": false,
-  "ReturnNum": 50007,
-  "ElapsedTime": 0.41887,
-  "IndexRead": 0,
-  "DataRead": 50055,
-  "UserCPU": 0.1400000000000006,
-  "SysCPU": 0.009999999999999787
-}
-```
-
-* Use the Detail option to view the detailed access plan for the query.
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.00123,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484
-      },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000078,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      },
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000081,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      }
-    ]
-  }
-}
-```
-
-* Use the Detail option to view the detailed access plan for the query and execute query using the Run option.
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Run : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 99899,
-  "ElapsedTime": 0.82863,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0.01999999999999999,
-  "SysCPU": 0.009999999999999995,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999,
-        "QueryTimeSpent": 0.733299,
-        "WaitTimeSpent": 0.013556
-      },
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484,
-        "QueryTimeSpent": 0.82677,
-        "WaitTimeSpent": 0.084652
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "Run": {
-      "ContextID": 29314,
-      "StartTimestamp": "2017-12-14-15.24.51.254623",
-      "QueryTimeSpent": 0.821182,
-      "GetMores": 112,
-      "ReturnNum": 99899,
-      "WaitTimeSpent": 0.075
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 49892,
-        "ElapsedTime": 0.733493,
-        "IndexRead": 0,
-        "DataRead": 49945,
-        "UserCPU": 0.14,
-        "SysCPU": 0.01000000000000001,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      },
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 50007,
-        "ElapsedTime": 0.82666,
-        "IndexRead": 0,
-        "DataRead": 50055,
-        "UserCPU": 0.1499999999999986,
-        "SysCPU": 0.01000000000000023,
-        "CacheStatus": "HitCache",
-        "MainCLPlan": false,
-        "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-        "Parameters": [
-          100
-        ],
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": true,
-          "FuzzyOptr": false
-        }
-      }
-    ]
-  }
-}
-```
-
-* Use the Detail option to view the detailed access plan for the query and use Search option to view the search optimizer's search process.
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Search : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.037223,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      },
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.334165
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.3591655,
-      "TotalCost": 1.3591655,
-      "Output": {
-        "Records": 50001,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000048,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "NoCache",
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": false,
-          "FuzzyOptr": false
-        },
-        "PlanPath": {
-          "Operator": "TBSCAN",
-          "Collection": "sample.employee",
-          "Query": {
-            "$and": [
-              {
-                "a": {
-                  "$gt": 100
-                }
-              }
-            ]
-          },
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.7418349999999999,
-            "TotalCost": 0.7418349999999999,
-            "CLEstFromStat": false,
-            "Input": {
-              "Pages": 37,
-              "Records": 49945,
-              "RecordSize": 29
-            },
-            "Filter": {
-              "MthSelectivity": 0.4999994999999995
-            },
-            "Output": {
-              "Records": 24973,
-              "RecordSize": 29,
-              "Sorted": false
-            }
-          }
-        },
-        "Search": {
-          "Options": {
-            "sortbuf": 256,
-            "optcostthreshold": 20
-          },
-          "SearchPaths": [
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 1,
-              "ScanType": "ixscan",
-              "IndexName": "$id",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "_id": [
-                  [
-                    {
-                      "$minElement": 1
-                    },
-                    {
-                      "$maxElement": 1
-                    }
-                  ]
-                ]
-              },
-              "NeedMatch": true,
-              "IndexCover": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 0.4999994999999995,
-              "ScanType": "ixscan",
-              "IndexName": "$shard",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "a": [
-                  [
-                    100,
-                    {
-                      "$decimal": "MAX"
-                    }
-                  ]
-                ]
-              },
-              "NeedMatch": false,
-              "IndexCover": false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": true,
-              "IsCandidate": true,
-              "Score": 0.4999994999999995,
-              "TotalCost": 1483670,
-              "ScanType": "tbscan",
-              "IndexName": "",
-              "UseExtSort": false
-            }
-          ]
-        }
-      },
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "sample.employee",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.000064,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "CacheStatus": "NoCache",
-        "MatchConfig": {
-          "EnableMixCmp": false,
-          "Parameterized": false,
-          "FuzzyOptr": false
-        },
-        "PlanPath": {
-          "Operator": "TBSCAN",
-          "Collection": "sample.employee",
-          "Query": {
-            "$and": [
-              {
-                "a": {
-                  "$gt": 100
-                }
-              }
-            ]
-          },
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 1.334165,
-            "TotalCost": 1.334165,
-            "CLEstFromStat": false,
-            "Input": {
-              "Pages": 74,
-              "Records": 50055,
-              "RecordSize": 29
-            },
-            "Filter": {
-              "MthSelectivity": 0.4999994999999995
-            },
-            "Output": {
-              "Records": 25028,
-              "RecordSize": 29,
-              "Sorted": false
-            }
-          }
-        },
-        "Search": {
-          "Options": {
-            "sortbuf": 256,
-            "optcostthreshold": 20
-          },
-          "SearchPaths": [
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 1,
-              "ScanType": "ixscan",
-              "IndexName": "$id",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "_id": [
-                  [
-                    {
-                      "$minElement": 1
-                    },
-                    {
-                      "$maxElement": 1
-                    }
-                  ]
-                ]
-              },
-              "NeedMatch": true,
-              "IndexCover":false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": false,
-              "IsCandidate": false,
-              "Score": 0.4999994999999995,
-              "ScanType": "ixscan",
-              "IndexName": "$shard",
-              "UseExtSort": false,
-              "Direction": 1,
-              "IXBound": {
-                "a": [
-                  [
-                    100,
-                    {
-                      "$decimal": "MAX"
-                    }
-                  ]
-                ]
-              },
-              "NeedMatch": false,
-              "IndexCover":false,
-              "IXEstFromStat": false
-            },
-            {
-              "IsUsed": true,
-              "IsCandidate": true,
-              "Score": 0.4999994999999995,
-              "TotalCost": 2668330,
-              "ScanType": "tbscan",
-              "IndexName": "",
-              "UseExtSort": false
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-```
-
-* Use the Detail option to view the detailed access plan for the query and use CMDLocation option to view the query's access plan on group1.
-
-```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, CMDLocation : { GroupName : 'group1' } } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "sample.employee",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.011374,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 1.484
-      },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.7418349999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 1.5214865,
-      "TotalCost": 1.5214865,
-      "Output": {
-        "Records": 74973,
-        "RecordSize": 29,
-        "Sorted": false
-      }
-    },
+    ...
     "ChildOperators": [
       {
         "NodeName": "hostname:11810",
@@ -885,440 +462,18 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
         }
       }
     ]
-  }
-}
-```
+    ...
+    ```
 
-* Use the Detail option to view the detailed access plan for table partitions and use Expand option to expand all detailed information.
-
-```lang-javascript
-> db.maincs.maincl.find( { a : { $gt : 100 } } ).explain( { Detail : true, Expand : true } )
-{
-  "NodeName": "hostname:11800",
-  "GroupName": "SYSCoord",
-  "Role": "coord",
-  "Collection": "maincs.maincl",
-  "Query": {
-    "a": {
-      "$gt": 100
-    }
-  },
-  "Sort": {},
-  "Selector": {},
-  "Hint": {},
-  "Skip": 0,
-  "Return": -1,
-  "Flag": 0,
-  "ReturnNum": 0,
-  "ElapsedTime": 0.002748,
-  "IndexRead": 0,
-  "DataRead": 0,
-  "UserCPU": 0,
-  "SysCPU": 0,
-  "PlanPath": {
-    "Operator": "COORD-MERGE",
-    "Sort": {},
-    "NeedReorder": false,
-    "DataNodeNum": 2,
-    "DataNodeList": [
-      {
-        "Name": "hostname:11810",
-        "EstTotalCost": 0.9624999999999999
-      },
-      {
-        "Name": "hostname:11820",
-        "EstTotalCost": 0.9624999999999999
-      }
-    ],
-    "Selector": {},
-    "Skip": 0,
-    "Return": -1,
-    "Estimate": {
-      "StartCost": 0,
-      "RunCost": 0.9874999999999999,
-      "TotalCost": 0.9874999999999999,
-      "Output": {
-        "Records": 50000,
-        "RecordSize": 43,
-        "Sorted": false
-      }
-    },
-    "ChildOperators": [
-      {
-        "NodeName": "hostname:11810",
-        "GroupName": "group1",
-        "Role": "data",
-        "Collection": "maincs.maincl",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.00062,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "PlanPath": {
-          "Operator": "MERGE",
-          "Sort": {},
-          "NeedReorder": false,
-          "SubCollectionNum": 2,
-          "SubCollectionList": [
-            {
-              "Name": "subcs.subcl2",
-              "EstTotalCost": 0.475
-            },
-            {
-              "Name": "subcs.subcl1",
-              "EstTotalCost": 0.475
-            }
-          ],
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.9624999999999999,
-            "TotalCost": 0.9624999999999999,
-            "Output": {
-              "Records": 25000,
-              "RecordSize": 43,
-              "Sorted": false
-            }
-          },
-          "SubCollections": [
-            {
-              "Collection": "subcs.subcl2",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000042,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl2",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            },
-            {
-              "Collection": "subcs.subcl1",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000049,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl1",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "NodeName": "hostname:11820",
-        "GroupName": "group2",
-        "Role": "data",
-        "Collection": "maincs.maincl",
-        "Query": {
-          "a": {
-            "$gt": 100
-          }
-        },
-        "Sort": {},
-        "Selector": {},
-        "Hint": {},
-        "Skip": 0,
-        "Return": -1,
-        "Flag": 2048,
-        "ReturnNum": 0,
-        "ElapsedTime": 0.00067,
-        "IndexRead": 0,
-        "DataRead": 0,
-        "UserCPU": 0,
-        "SysCPU": 0,
-        "PlanPath": {
-          "Operator": "MERGE",
-          "Sort": {},
-          "NeedReorder": false,
-          "SubCollectionNum": 2,
-          "SubCollectionList": [
-            {
-              "Name": "subcs.subcl2",
-              "EstTotalCost": 0.475
-            },
-            {
-              "Name": "subcs.subcl1",
-              "EstTotalCost": 0.475
-            }
-          ],
-          "Selector": {},
-          "Skip": 0,
-          "Return": -1,
-          "Estimate": {
-            "StartCost": 0,
-            "RunCost": 0.9624999999999999,
-            "TotalCost": 0.9624999999999999,
-            "Output": {
-              "Records": 25000,
-              "RecordSize": 43,
-              "Sorted": false
-            }
-          },
-          "SubCollections": [
-            {
-              "Collection": "subcs.subcl2",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000034,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl2",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            },
-            {
-              "Collection": "subcs.subcl1",
-              "Query": {
-                "a": {
-                  "$gt": 100
-                }
-              },
-              "Sort": {},
-              "Selector": {},
-              "Hint": {},
-              "Skip": 0,
-              "Return": -1,
-              "Flag": 2048,
-              "ReturnNum": 0,
-              "ElapsedTime": 0.000048,
-              "IndexRead": 0,
-              "DataRead": 0,
-              "UserCPU": 0,
-              "SysCPU": 0,
-              "CacheStatus": "HitCache",
-              "MainCLPlan": true,
-              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
-              "Parameters": [
-                100
-              ],
-              "MatchConfig": {
-                "EnableMixCmp": false,
-                "Parameterized": true,
-                "FuzzyOptr": false
-              },
-              "PlanPath": {
-                "Operator": "TBSCAN",
-                "Collection": "subcs.subcl1",
-                "Query": {
-                  "$and": [
-                    {
-                      "a": {
-                        "$gt": 100
-                      }
-                    }
-                  ]
-                },
-                "Selector": {},
-                "Skip": 0,
-                "Return": -1,
-                "Estimate": {
-                  "StartCost": 0,
-                  "RunCost": 0.475,
-                  "TotalCost": 0.475,
-                  "CLEstFromStat": false,
-                  "Input": {
-                    "Pages": 25,
-                    "Records": 25000,
-                    "RecordSize": 43
-                  },
-                  "Filter": {
-                    "MthSelectivity": 0.4999994999999995
-                  },
-                  "Output": {
-                    "Records": 12500,
-                    "RecordSize": 43,
-                    "Sorted": false
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-```
-
-
+[^_^]:
+     Links
+[explain]:manual/Distributed_Engine/Maintainance/Access_Plan/explain.md
+[cost_estimation]:manual/Distributed_Engine/Maintainance/Access_Plan/cost_estimation.md#访问计划的搜索过程
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[location]:manual/Manual/Sequoiadb_Command/location.md
+[explain_det]:manual/Distributed_Engine/Maintainance/Access_Plan/explain.md#详细的访问计划
+[explain_ord]:manual/Distributed_Engine/Maintainance/Access_Plan/explain.md#普通访问计划
+[Evaluate]:manual/Manual/Cost_Estimation/Readme.md
