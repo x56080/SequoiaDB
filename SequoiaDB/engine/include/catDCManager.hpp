@@ -159,6 +159,10 @@ namespace engine
                                          _clsDCMgr *pDCMgr,
                                          const BSONObj &objQuery,
                                          BSONObjBuilder &retObjBuilder ) ;
+      INT32 processCmdSetLocation( const NET_HANDLE &handle,
+                                   _clsDCMgr *pDCMgr,
+                                   const BSONObj &objQuery,
+                                   BSONObjBuilder &retObjBuilder ) ;
 
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;

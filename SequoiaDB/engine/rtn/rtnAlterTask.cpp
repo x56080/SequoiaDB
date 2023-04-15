@@ -2314,7 +2314,7 @@ namespace engine
          if ( optionEle.eoo() || String != optionEle.type() )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
             goto error ;
          }
          // optionEle.valuestrsize include the length of '\0'
@@ -2339,6 +2339,78 @@ namespace engine
 
    done :
       PD_TRACE_EXITRC( SDB__RTNDOMAINSETACTIVELOCATIONTASK_PARSEARG, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   /*
+      _rtnDomainSetLocationTask implement
+    */
+   _rtnDomainSetLocationTask::_rtnDomainSetLocationTask ( const rtnAlterTaskSchema & schema,
+                                                          const BSONObj & argument )
+   : _rtnAlterDomainTask( schema, argument ), _pHostName( NULL ), _pLocation( NULL )
+   {
+      SDB_ASSERT( RTN_ALTER_DOMAIN_SET_LOCATION == schema.getActionType(),
+                  "schema is invalid" ) ;
+   }
+
+   _rtnDomainSetLocationTask::~_rtnDomainSetLocationTask ()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDOMAINSETLOCATIONTASK_PARSEARG, "_rtnDomainSetLocationTask::parseArgument" )
+   INT32 _rtnDomainSetLocationTask::parseArgument ()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNDOMAINSETLOCATIONTASK_PARSEARG ) ;
+
+      try
+      {
+         BSONElement optionEle ;
+
+         // Get host name, this field should not be empty
+         optionEle = _argument.getField( FIELD_NAME_HOST ) ;
+         if ( optionEle.eoo() || String != optionEle.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", FIELD_NAME_HOST ) ;
+            goto error ;
+         }
+         _pHostName = optionEle.valuestrsafe() ;
+
+         // Get new Location, this field should not be empty
+         optionEle = _argument.getField( FIELD_NAME_LOCATION ) ;
+         if ( optionEle.eoo() || String != optionEle.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", FIELD_NAME_LOCATION ) ;
+            goto error ;
+         }
+         // optionEle.valuestrsize include the length of '\0'
+         if ( MSG_LOCATION_NAMESZ < optionEle.valuestrsize() - 1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+         _pLocation = optionEle.valuestrsafe() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse arguments for "
+                 "setLocation task[%s], exception=%s",
+                 _argument.toPoolString().c_str(), e.what() ) ;
+         goto error ;
+      }
+
+      parsedArgumentMask( UTIL_DOMAIN_LOCATION_FIELD ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__RTNDOMAINSETLOCATIONTASK_PARSEARG, rc ) ;
       return rc ;
 
    error :

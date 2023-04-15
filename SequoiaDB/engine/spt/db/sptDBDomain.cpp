@@ -47,6 +47,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBDomain, removeGroups )
    JS_MEMBER_FUNC_DEFINE( _sptDBDomain, setGroups )
    JS_MEMBER_FUNC_DEFINE( _sptDBDomain, setActiveLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBDomain, setLocation )
    JS_MEMBER_FUNC_DEFINE( _sptDBDomain, setAttributes )
 
    JS_BEGIN_MAPPING( _sptDBDomain, SPT_DOMAIN_NAME )
@@ -60,6 +61,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "removeGroups", removeGroups  )
       JS_ADD_MEMBER_FUNC( "setGroups", setGroups  )
       JS_ADD_MEMBER_FUNC( "setActiveLocation", setActiveLocation )
+      JS_ADD_MEMBER_FUNC( "setLocation", setLocation )
       JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes  )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBDomain::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBDomain::fmpToBSON )
@@ -292,6 +294,51 @@ namespace engine
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set active location" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBDomain::setLocation( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string hostName ;
+      string locationName ;
+
+      rc = arg.getString( 0, hostName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Host name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Host name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, locationName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Location name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Location name must be string" ) ;
+         goto error ;
+      }
+
+      rc = _domain.setLocation( hostName.c_str() ,locationName.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set location" ) ;
          goto error ;
       }
 

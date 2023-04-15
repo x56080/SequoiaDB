@@ -145,6 +145,11 @@ namespace engine
 
       INT32 removeActiveLocation( UINT32 groupID ) ;
 
+      INT32 setGroupLocation( const BSONObj &groupInfo ,
+                              UINT32 groupID,
+                              const ossPoolString &newLoc,
+                              const ossPoolString &hostName ) ;
+
    private:
       _SDB_DMSCB                 *_pDmsCB ;
       _dpsLogWrapper             *_pDpsCB ;

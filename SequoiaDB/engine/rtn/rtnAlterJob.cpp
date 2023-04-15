@@ -199,6 +199,11 @@ namespace engine
                      RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION,
                      RTN_ALTER_TASK_FLAG_SHARDONLY ) ;
 
+      _registerTask( SDB_ALTER_DOMAIN_SET_LOCATION,
+                     RTN_ALTER_DOMAIN,
+                     RTN_ALTER_DOMAIN_SET_LOCATION,
+                     RTN_ALTER_TASK_FLAG_SHARDONLY ) ;
+
       _registerTask( SDB_ALTER_DOMAIN_SET_ATTR,
                      RTN_ALTER_DOMAIN,
                      RTN_ALTER_DOMAIN_SET_ATTRIBUTES,
@@ -648,6 +653,11 @@ namespace engine
          case RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION:
          {
             task = SDB_OSS_NEW _rtnDomainSetActiveLocationTask( taskSchema, arguments ) ;
+            break;
+         }
+         case RTN_ALTER_DOMAIN_SET_LOCATION:
+         {
+            task = SDB_OSS_NEW _rtnDomainSetLocationTask( taskSchema, arguments ) ;
             break;
          }
          default :

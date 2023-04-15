@@ -3622,8 +3622,9 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_CHECK_INT ) ;
 
-      BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD | 
-                                                     UTIL_DOMAIN_ACTIVE_LOCATION_FIELD ) ;
+      BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD |
+                                                     UTIL_DOMAIN_ACTIVE_LOCATION_FIELD |
+                                                     UTIL_DOMAIN_LOCATION_FIELD ) ;
       OSS_LATCH_MODE groupLatch = SHARED ;
 
       rc = catGetAndLockDomain( _dataName, _boData,
@@ -3661,6 +3662,7 @@ namespace engine
             break ;
          }
          case RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION :
+         case RTN_ALTER_DOMAIN_SET_LOCATION :
          {
             groupLatch = EXCLUSIVE ;
             break ;
@@ -3742,6 +3744,12 @@ namespace engine
       else if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _task->getActionType() )
       {
          _executeSetActiveLocationTask( cb ) ;
+         goto done ;
+      }
+      else if ( RTN_ALTER_DOMAIN_SET_LOCATION == _task->getActionType() )
+      {
+         rc = _executeSetLocationTask( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to execute set location task, rc: %d", rc ) ;
          goto done ;
       }
 
@@ -4117,11 +4125,11 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION, "_catCtxAlterDomainTask::_executeSetActiveLocationTask" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETACTIVELOCATION, "_catCtxAlterDomainTask::_executeSetActiveLocationTask" )
    INT32 _catCtxAlterDomainTask::_executeSetActiveLocationTask( _pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETACTIVELOCATION ) ;
 
       sdbCatalogueCB * pCatCB = pmdGetKRCB()->getCATLOGUECB() ;
       catNodeManager* pCatNodeMgr = pCatCB->getCatNodeMgr() ;
@@ -4191,7 +4199,64 @@ namespace engine
       }
 
    done :
-      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SECACTIVELOCATION, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETACTIVELOCATION, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETLOCATION, "_catCtxAlterDomainTask::_executeSetLocationTask" )
+   INT32 _catCtxAlterDomainTask::_executeSetLocationTask( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETLOCATION ) ;
+
+      sdbCatalogueCB *pCatCB = pmdGetKRCB()->getCATLOGUECB() ;
+      catNodeManager *pCatNodeMgr = pCatCB->getCatNodeMgr() ;
+      const _rtnDomainSetLocationTask* task =
+            dynamic_cast< const _rtnDomainSetLocationTask* >( _task ) ;
+
+      try
+      {
+         INT32 tmpRC = SDB_OK ;
+         // Get HostName
+         ossPoolString hostName = task->getHostName() ;
+         // Get Location
+         ossPoolString newLoc = task->getLocation() ;
+
+         CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
+         while ( _groupMap.end() != itr )
+         {
+            UINT32 groupID = ( itr++ )->second ;
+            BSONObj groupObj ;
+            // Get group obj by group id
+            tmpRC = catGetGroupObj( groupID, groupObj, cb ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               _failedGroupLst.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, tmpRC ) ;
+               continue ;
+            }
+
+            tmpRC = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               _failedGroupLst.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to set group location, rc: %d", tmpRC ) ;
+               continue ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETLOCATION, rc ) ;
       return rc ;
 
    error :

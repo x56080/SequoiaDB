@@ -4096,6 +4096,8 @@ namespace sdbclient
 
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
 
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation ) = 0 ;
+
       virtual INT32 removeGroups ( const bson::BSONObj & options ) = 0 ;
 
       virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
@@ -4231,6 +4233,27 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pDomain->setActiveLocation( pActiveLocation ) ;
+      }
+
+      /** \fn INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+          \brief Alter replica groups in domain to set location.
+          \param [in] pHostName The host name in data group to be changed.
+          \param [in] pLocation The location in data group to be changed.
+
+              HostName     : The host name in data group, if the host name in replica group that match
+                             the specified host name, it will set location info.
+              Location     : The location in data group, if the parameter is "",
+                             it means to remove the domain location
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+      {
+         if ( NULL == pDomain )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDomain->setLocation( pHostName, pLocation ) ;
       }
 
 
@@ -4388,6 +4411,7 @@ namespace sdbclient
       virtual INT32 attachGroups( const bson::BSONObj &info ) = 0 ;
       virtual INT32 detachGroups( const bson::BSONObj &info ) = 0 ;
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation ) = 0 ;
 
    } ;
 
@@ -4604,6 +4628,27 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pDC->setActiveLocation( pActiveLocation ) ;
+      }
+
+      /** \fn INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+          \brief Alter replica groups in data center to set location.
+          \param [in] pHostName The host name in data center to be changed.
+          \param [in] pLocation The location in data center to be changed.
+
+              HostName     : The host name in data center, if the host name in replica group that match
+                             the specified host name, it will set location info.
+              Location     : The location in data center, if the parameter is "",
+                             it means to remove the data center location
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+      {
+         if ( NULL == pDC )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDC->setLocation( pHostName, pLocation ) ;
       }
 
    };

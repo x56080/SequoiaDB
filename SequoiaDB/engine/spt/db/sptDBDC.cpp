@@ -50,6 +50,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, disableReadOnly )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, getDetail )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, setActiveLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBDC, setLocation )
 
    JS_BEGIN_MAPPING( _sptDBDC, SPT_DC_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -66,6 +67,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "disableReadonly", disableReadOnly )
       JS_ADD_MEMBER_FUNC( "getDetail", getDetail )
       JS_ADD_MEMBER_FUNC( "setActiveLocation", setActiveLocation )
+      JS_ADD_MEMBER_FUNC( "setLocation", setLocation )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBDC::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBDC::bsonToJSObj )
    JS_MAPPING_END()
@@ -351,6 +353,51 @@ namespace engine
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set active location" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBDC::setLocation( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string hostName ;
+      string locationName ;
+
+      rc = arg.getString( 0, hostName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Host name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Host name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, locationName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Location name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Location name must be string" ) ;
+         goto error ;
+      }
+
+      rc = _dc.setLocation( hostName.c_str() ,locationName.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set location" ) ;
          goto error ;
       }
 

@@ -554,6 +554,12 @@ namespace engine
             rc = processCmdSetActiveLocation( handle, &dcMgr,
                                               objQuery, retObjBuilder ) ;
          }
+         else if ( 0 == ossStrcasecmp( pAction,
+                                       CMD_VALUE_NAME_SET_LOCATION ) )
+         {
+            rc = processCmdSetLocation( handle, &dcMgr,
+                                        objQuery, retObjBuilder ) ;
+         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -1288,7 +1294,7 @@ namespace engine
          if ( ele.eoo() || String != ele.type() )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
             goto error ;
          }
          // ele.valuestrsize include the length of '\0'
@@ -1392,6 +1398,129 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 _catDCManager::processCmdSetLocation( const NET_HANDLE & handle,
+                                               _clsDCMgr * pDCMgr,
+                                               const BSONObj & objQuery,
+                                               BSONObjBuilder & retObjBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+      BSONElement ele ;
+      ossPoolString newLoc ;
+      ossPoolString hostName ;
+      CAT_GROUP_LIST allGroups ;
+      CAT_GROUP_LIST failedGroups ;
+      catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
+
+      try
+      {
+         // Get options
+         ele = objQuery.getField( FIELD_NAME_OPTIONS ) ;
+         if ( ele.eoo() || Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
+                    FIELD_NAME_OPTIONS, objQuery.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         options = ele.embeddedObject() ;
+
+         // Get new Location, this field should not be empty
+         ele = options.getField( CAT_LOCATION_NAME ) ;
+         if ( ele.eoo() || String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", CAT_LOCATION_NAME ) ;
+            goto error ;
+         }
+         // ele.valuestrsize include the length of '\0'
+         if ( MSG_LOCATION_NAMESZ < ele.valuestrsize() - 1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+         newLoc = ele.valuestrsafe() ;
+
+         ele = options.getField( CAT_HOST_FIELD_NAME ) ;
+         if ( ele.eoo() || String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Failed to get the field[%s]", CAT_HOST_FIELD_NAME ) ;
+            goto error ;
+         }
+         hostName = ele.valuestrsafe() ;
+
+         // Get all groups
+         _pCatCB->getGroupsID( allGroups, FALSE ) ;
+         allGroups.push_back( CATALOG_GROUPID ) ;
+         allGroups.push_back( COORD_GROUPID ) ;
+
+         CAT_GROUP_LIST::const_iterator itr = allGroups.begin() ;
+         while ( allGroups.end() != itr )
+         {
+            BSONObj groupObj ;
+            string groupName ;
+            ossPoolString oldActLoc ;
+            catCtxLockMgr lockMgr ;
+            UINT32 groupID = *itr++ ;
+
+            // Get group obj by group id
+            rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Get group name
+            rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Lock group
+            if ( ! lockMgr.tryLockGroup( groupName, EXCLUSIVE ) )
+            {
+               rc = SDB_LOCK_FAILED ;
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               continue ;
+            }
+
+            rc = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to set group location, rc: %d", rc  ) ;
+               continue ;
+            }
+         }
+
+         rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
+
+         rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 
    void _catDCManager::_fillRspHeader( MsgHeader * rspMsg,
                                        const MsgHeader * reqMsg )

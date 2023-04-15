@@ -183,6 +183,32 @@ public class Domain {
     }
 
     /**
+     * Alter replica groups in domain to set location.
+     *
+     * @param hostName   The host name in data group, if the host name in replica group that match
+     *                   the specified host name, it will set location info.
+     *                   However, if a group which don't match the host name, do nothing.
+     * @param location   The location in data group, if the parameter is "",
+     *                   it means to remove the domain location
+     * @throws BaseException If error happens.
+     * @since 3.6.1
+     */
+    public void setLocation(String hostName, String location) throws BaseException {
+        if (hostName == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The host name is null");
+        }
+
+        if (location == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The location name is null");
+        }
+
+        BSONObject options = new BasicBSONObject();
+        options.put(SdbConstants.FIELD_NAME_HOST, hostName);
+        options.put(SdbConstants.NODE_LOCATION, location);
+        alterInternal(SdbConstants.SDB_ALTER_SET_LOCATION, options, false);
+    }
+
+    /**
      * List all the collection spaces in current domain.
      *
      * @return the cursor of result

@@ -490,6 +490,8 @@ namespace engine
 
          INT32 _executeSetActiveLocationTask( _pmdEDUCB * cb ) ;
 
+         INT32 _executeSetLocationTask( _pmdEDUCB * cb ) ;
+
       protected :
          CAT_DOMAIN_GROUP_MAP    _groupMap ;
          CAT_GROUP_LIST          _failedGroupLst ;

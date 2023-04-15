@@ -7180,6 +7180,43 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbDomainImpl::setLocation( const CHAR * pHostName, const CHAR * pLocation )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      BSONObj option ;
+
+      if ( NULL == pHostName || NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // build { HostName: pHostName, Location: pLocation }
+         builder.append( FIELD_NAME_HOST, pHostName ) ;
+         builder.append( FIELD_NAME_NODE_LOCATION, pLocation ) ;
+         option = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alterInternal( SDB_ALTER_DOMAIN_SET_LOCATION, &option, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _sdbDomainImpl::setAttributes ( const bson::BSONObj & options )
    {
       return _alterInternal( SDB_ALTER_DOMAIN_SET_ATTR, &options, FALSE ) ;
@@ -7445,6 +7482,44 @@ do                                                            \
       }
 
       rc = _innerAlter( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, &option ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbDataCenterImpl::setLocation( const CHAR * pHostName, const CHAR * pLocation )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjBuilder builder ;
+      BSONObj option ;
+
+      if ( NULL == pHostName || NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // build { HostName: pHostName, Location: pLocation }
+         builder.append( FIELD_NAME_HOST, pHostName ) ;
+         builder.append( FIELD_NAME_NODE_LOCATION, pLocation ) ;
+         option = builder.obj() ;
+      }
+      catch( const std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( CMD_VALUE_NAME_SET_LOCATION, &option ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

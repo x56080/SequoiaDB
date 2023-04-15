@@ -5,10 +5,12 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Domain;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.testdata.SDBTestHelper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
 import org.junit.*;
 
@@ -129,6 +131,53 @@ public class DomainTest {
 
         result = addDataGroupToDomain(domainName, groupList.size());
         assertEquals(!standaloneFlag, result);
+    }
+
+    @Test
+    public void setLocation() {
+        if (standaloneFlag) return;
+        Domain domain = sdb.getDomain(domainName);
+        String hostName = "";
+        String location = "location_dom_1";
+
+        // case 1: hostName is null, location is null
+        try {
+            domain.setLocation(null, null);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 2: hostName is not null, location is null
+        try {
+            domain.setLocation(hostName, null);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // get group host name
+        String groupName = groupList.get(0);
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put("GroupName", groupName);
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("Group.HostName", "");
+
+        try (DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, matcher, selector, null)) {
+            BSONObject obj = cursor.getNext();
+            BasicBSONList tmpList = (BasicBSONList) obj.get("Group");
+            Assert.assertNotNull(tmpList);
+            BSONObject nodeObj = (BasicBSONObject) tmpList.get(0);
+
+            if (nodeObj.containsField("HostName")) {
+                hostName = (String) nodeObj.get("HostName");
+            }
+        }
+
+        // case 3: normal, set location
+        setAndCheckLocation(hostName, location);
+
+        // case 4: normal, remove location
+        setAndCheckLocation(hostName, "");
     }
 
     //
@@ -360,5 +409,47 @@ public class DomainTest {
             SDBTestHelper.println("ErrorMess: " + e.getMessage());
         }
         return flag;
+    }
+
+    private void setAndCheckLocation(String hostName, String location) {
+        // 1. set location
+        Domain domain = sdb.getDomain(domainName);
+        domain.setLocation(hostName, location);
+
+        // 2. query location
+        String actualLocation = "";
+        String actualHostName = "";
+        for (int i = 0; i < groupList.size(); i++) {
+            String groupName = groupList.get(i);
+            BSONObject matcher = new BasicBSONObject();
+            matcher.put("GroupName", groupName);
+
+            try (DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, matcher, null, null)) {
+                BSONObject obj = cursor.getNext();
+                BasicBSONList tmpList = (BasicBSONList) obj.get("Group");
+                Assert.assertNotNull(tmpList);
+                for (int j = 0; j < tmpList.size(); j++) {
+                    BSONObject nodeObj = (BasicBSONObject) tmpList.get(j);
+
+                    // get host name
+                    if (nodeObj.containsField("HostName")) {
+                        actualHostName = (String) nodeObj.get("HostName");
+                    }
+
+                    // compare location if match host name
+                    if (actualHostName.equals(hostName)) {
+                        if (nodeObj.containsField("Location")) {
+                            actualLocation = (String) nodeObj.get("Location");
+                        }
+                        Assert.assertEquals(actualLocation, location);
+                    } else {
+                        if (nodeObj.containsField("Location")) {
+                            actualLocation = (String) nodeObj.get("Location");
+                            Assert.assertEquals("", actualLocation);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

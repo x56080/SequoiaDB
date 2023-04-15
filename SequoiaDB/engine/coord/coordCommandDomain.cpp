@@ -164,7 +164,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_ALTERDOMAIN_DO_ON_CATA ) ;
 
-      if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _arguments.getTaskRunner()->getActionType() )
+      if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _arguments.getTaskRunner()->getActionType() ||
+           RTN_ALTER_DOMAIN_SET_LOCATION == _arguments.getTaskRunner()->getActionType() )
       {
          coordNodeCMDHelper helper ;
          BOOLEAN hasFailedGroup = FALSE ;

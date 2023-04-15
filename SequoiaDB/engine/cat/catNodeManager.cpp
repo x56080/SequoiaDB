@@ -2353,7 +2353,7 @@ namespace engine
                   }
                   else
                   {
-                     pTmpLocation = locationEle.valuestrsafe() ; 
+                     pTmpLocation = locationEle.valuestrsafe() ;
                      break ;
                   }
                }
@@ -2475,7 +2475,7 @@ namespace engine
 
       BSONObj groupObj ;
       BSONObj updator, matcher ;
-      BSONObjBuilder updatorBuilder, matcherBuilder ; 
+      BSONObjBuilder updatorBuilder, matcherBuilder ;
       ossPoolString oldLocation ;
 
       // Get SYSCAT.SYSNODES
@@ -2489,14 +2489,14 @@ namespace engine
          if ( MSG_INVALID_LOCATIONID == locID )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDWARNING, "LocationID[%d] is invalid", locID ) ;
+            PD_LOG( PDERROR, "LocationID[%d] is invalid", locID ) ;
             goto error ;
          }
 
          // Build updator and matcher
          rc = catSetLocation( locID, newLoc, nodeID, groupObj, oldLocation,
                               updatorBuilder, matcherBuilder ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to build setLocation builder" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build setLocation builder" ) ;
 
          matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
          updatorBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
@@ -2531,11 +2531,9 @@ namespace engine
                  e.what(), rc ) ;
          goto error ;
       }
-
    done:
       PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_SETLOCATION, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -2561,7 +2559,7 @@ namespace engine
          // Build updator and matcher
          rc = catRemoveLocation( nodeID, groupObj, updatorBuilder,
                                  matcherBuilder, FALSE, &oldLocation ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to build removeLocation builder" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build removeLocation builder" ) ;
 
          matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
          updatorBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
@@ -2693,6 +2691,116 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_REMOVEACTLOC, rc ) ;
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_SETGROUPLOCATION, "catNodeManager::setGroupLocation" )
+   INT32 catNodeManager::setGroupLocation( const BSONObj &groupInfo,
+                                           UINT32 groupID,
+                                           const ossPoolString &newLoc,
+                                           const ossPoolString &hostName )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_SETGROUPLOCATION ) ;
+
+      BSONObj nodeListObj ;
+
+      rc = rtnGetArrayElement( groupInfo, CAT_GROUP_NAME, nodeListObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                   CAT_GROUP_NAME, rc ) ;
+
+      try
+      {
+         // Parse nodeList array
+         BSONObjIterator nodeItr( nodeListObj ) ;
+         while ( nodeItr.more() )
+         {
+            UINT32 nodeID = INVALID_NODEID ;
+            BSONElement nodeEle = nodeItr.next() ;
+            BSONObj nodeObj = nodeEle.embeddedObject() ;
+            ossPoolString oldLoc ;
+            ossPoolString nodeHostName ;
+
+            BSONElement nodeIDEle = nodeObj.getField( CAT_NODEID_NAME ) ;
+            BSONElement locationEle = nodeObj.getField( CAT_LOCATION_NAME ) ;
+            BSONElement hostNameEle = nodeObj.getField( CAT_HOST_FIELD_NAME ) ;
+
+            if ( nodeIDEle.eoo() || ! nodeIDEle.isNumber() )
+            {
+               PD_LOG( PDERROR, "Failed to get the field(%s)",
+                       CAT_NODEID_NAME ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else
+            {
+               nodeID = nodeIDEle.numberInt() ;
+            }
+
+            if ( ! locationEle.eoo() && String != locationEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Failed to get the field(%s)",
+                       CAT_LOCATION_NAME ) ;
+               goto error ;
+            }
+            else
+            {
+               oldLoc = locationEle.valuestrsafe() ;
+            }
+
+            if ( ! hostNameEle.eoo() && String != hostNameEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Failed to get the field(%s)",
+                       CAT_HOST_FIELD_NAME ) ;
+               goto error ;
+            }
+            else
+            {
+               nodeHostName = hostNameEle.valuestrsafe() ;
+            }
+
+            if ( hostName != nodeHostName )
+            {
+               PD_LOG( PDDEBUG, "The host name(%s) of node(%u) is different from the"
+                       "specified host name(%s), do nothing",
+                       nodeHostName.c_str(), nodeID, hostName.c_str() ) ;
+               continue ;
+            }
+            // Compare oldLocation and newLocation
+            else if ( oldLoc == newLoc )
+            {
+               PD_LOG( PDDEBUG, "The old and new location are same, do nothing" ) ;
+               continue ;
+            }
+
+            if ( ! newLoc.empty() )
+            {
+               rc = setLocation( nodeID, groupID, newLoc ) ;
+            }
+            else
+            {
+               rc = removeLocation( nodeID, groupID ) ;
+            }
+
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to set location, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_SETGROUPLOCATION, rc ) ;
+      return rc ;
    error:
       goto done ;
    }

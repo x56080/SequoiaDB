@@ -1018,6 +1018,7 @@
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
 #define CMD_VALUE_NAME_SET_ACTIVE_LOCATION   "set active location"
+#define CMD_VALUE_NAME_SET_LOCATION          "set location"
 
 /*
    alter user
@@ -1312,6 +1313,10 @@ enum SDB_CONSISTENCY_STRATEGY
 #define SDB_ALTER_NODE_SET_LOCATION    SDB_ALTER_ACTION_SET \
                                        SDB_ALTER_DELIMITER \
                                        SDB_CATALOG_NODE_LOCATION
+/// set location
+#define SDB_ALTER_DOMAIN_SET_LOCATION    SDB_ALTER_ACTION_SET \
+                                         SDB_ALTER_DELIMITER \
+                                         SDB_CATALOG_NODE_LOCATION
 
 /// set attributes
 #define SDB_ALTER_NODE_SET_ATTR        SDB_ALTER_ACTION_SET_ATTR

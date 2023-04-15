@@ -143,7 +143,7 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__CATCMDALTERNODE_INITNODEINFO, rc ) ;
       return rc ;
-   
+
    error:
       goto done ;
    }
@@ -396,7 +396,7 @@ namespace engine
                  e.what(), rc ) ;
          goto error ;
       }
-      
+
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDALTERNODE_DOIT, rc ) ;

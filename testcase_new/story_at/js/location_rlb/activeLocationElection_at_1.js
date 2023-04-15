@@ -68,4 +68,5 @@ function test() {
 
   // Remove location info
   setLocationForNodes(rg, locNodelList, "");
+  rg.start();
 }

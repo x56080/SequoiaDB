@@ -139,7 +139,8 @@ namespace engine
       {
          _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;
       }
-      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) )
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
+                0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) )
       {
          coordNodeCMDHelper helper ;
          BOOLEAN hasFailedGroup = FALSE ;

@@ -1897,7 +1897,8 @@ namespace engine
             try
             {
                // Build return error group obj
-               if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == task->getActionType() )
+               if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == task->getActionType() ||
+                    RTN_ALTER_DOMAIN_SET_LOCATION == task->getActionType() )
                {
                   BSONObjBuilder retBuilder ;
                   rc = catTask.buildDomainGroups( retBuilder, CAT_GROUP_NAME ) ;
