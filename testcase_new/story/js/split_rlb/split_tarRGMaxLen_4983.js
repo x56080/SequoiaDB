@@ -45,7 +45,7 @@ function test ()
    try
    {
       var nodeNum = 1;
-      var dstRGLogPath = commCreateRG( db, dstGroupName, nodeNum, hostname );
+      var nodeInfo = commCreateRG( db, dstGroupName, nodeNum, hostname );
       try
       {
          cl.split( srcGroupName, dstGroupName, { a: 0 }, { a: recsNum } );
@@ -56,7 +56,7 @@ function test ()
       {
          var svcname = nodeInfo[0].svcname;
          backupGroupLog( hostname, svcname, "split_4983" );
-         throw e;
+         throw new Error( "Error node is: " + hostname + " : " + svcname, e );
       }
    }
    finally
