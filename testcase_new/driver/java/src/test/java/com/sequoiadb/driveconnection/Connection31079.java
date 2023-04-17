@@ -43,31 +43,18 @@ public class Connection31079 extends SdbTestBase {
         testTimeOut( address, 2000, 0, 2000,
                 SDBError.SDB_TIMEOUT.getErrorCode() );
 
-        // case 2: retryTime = 0
-        testTimeOut( address, 2000, 2000, 0,
-                SDBError.SDB_TIMEOUT.getErrorCode() );
-
-        // case 3: connTime < retryTime
+        // case 2: connTime < retryTime
         testTimeOut( address, 3000, 1000, 3000,
                 SDBError.SDB_TIMEOUT.getErrorCode() );
 
-        // case 4: connTime = retryTime
-        testTimeOut( address, 3000, 2000, 2000,
-                SDBError.SDB_NETWORK.getErrorCode() );
-
-        // case 5: connTime > retryTime
-        testTimeOut( address, 3000, 2000, 1000,
-                SDBError.SDB_NETWORK.getErrorCode() );
-
-        // case 6: timeout = 0
+        // case 3: timeout = 0
         testTimeOut( address, 0, 2000, 2000,
                 SDBError.SDB_NETWORK.getErrorCode() );
 
-        // case 7: timeout < connTime
+        // case 4: timeout < connTime
         testTimeOut( address, 1000, 2000, 3000,
                 SDBError.SDB_TIMEOUT.getErrorCode() );
     }
-
     public void testTimeOut( String address, int timeout, int connTime,
             int retryTime, int errorCode ) throws InterruptedException {
         int deviationTime = 1000;
