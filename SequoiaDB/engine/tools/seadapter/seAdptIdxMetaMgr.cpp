@@ -655,9 +655,15 @@ namespace seadapter
             // From ES6.0, one index can contain only one type. So we need to append
             // the group name to the ES index name, to handle index data splited to
             // more than one group.
-            std::string esIdx =
-                  (( 0 == ossStrlen(idxPrefix) ) ? "" : std::string(idxPrefix))
-                  +  std::string(cappedCLName) + "_" + _peerGrpName ;
+            StringBuilder buf ;
+            std::string esIdx ;
+            if ( 0 != ossStrlen( idxPrefix ) )
+            {
+               buf << idxPrefix ;
+            }
+            buf << cappedCLName << "_" << _peerGrpName ;
+            esIdx = buf.str() ;
+
             // ES index names should be in lower case.
             std::transform( esIdx.begin(), esIdx.end(), esIdx.begin(), ::tolower ) ;
             meta.setESIdxName( esIdx.c_str() ) ;
