@@ -422,6 +422,7 @@
                                                 OriginID:{$first:\"$OriginID\"},\
                                                 Type:{$first:\"$Type\"},\
                                                 OpType:{$first:\"$OpType\"},\
+                                                Comment:{$first:\"$Comment\"},\
                                                 PageSize:{$first:\"$PageSize\"},\
                                                 LobPageSize:{$first:\"$LobPageSize\"},\
                                                 TotalRecords:{$sum:\"$TotalRecords\"},\

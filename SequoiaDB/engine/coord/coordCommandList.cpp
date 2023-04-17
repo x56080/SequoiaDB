@@ -1291,6 +1291,7 @@ namespace engine
          builder.appendNull( FIELD_NAME_TYPE ) ;
          builder.appendNull( FIELD_NAME_OPTYPE ) ;
          builder.appendNull( FIELD_NAME_RECYCLE_TIME ) ;
+         builder.append( FIELD_NAME_COMMENT, "" ) ;
 
          outSelector = queryOpt.getSelector() ;
          queryOpt.setSelector( builder.obj() ) ;

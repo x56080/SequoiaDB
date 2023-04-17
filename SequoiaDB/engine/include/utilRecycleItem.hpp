@@ -227,6 +227,16 @@ namespace engine
          _isCSRecycled = isCSRecycled ;
       }
 
+      OSS_INLINE const ossPoolString& getComment() const
+      {
+         return _comment ;
+      }
+
+      OSS_INLINE void setComment( const ossPoolString& comment )
+      {
+         _comment = comment ;
+      }
+
       OSS_INLINE BOOLEAN isDrop() const
       {
          return UTIL_RECYCLE_OP_DROP == _opType ;
@@ -273,6 +283,8 @@ namespace engine
       // especially in the case, a recycled collection in a recycled
       // collection space
       BOOLEAN              _isCSRecycled ;
+      // comment of recycle item
+      ossPoolString        _comment ;
    } ;
 
    typedef class _utilRecycleItem utilRecycleItem ;

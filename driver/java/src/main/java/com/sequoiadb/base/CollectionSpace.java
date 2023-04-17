@@ -232,6 +232,7 @@ public class CollectionSpace {
      * @param options The options for drop specified collection
      *                <ul>
      *                <li>SkipRecycleBin : Indicates whether to skip recycle bin, default is false.
+     *                <li>Comment : Add a comment for the recycle bin item, default is "".
      *                </ul>
      * @throws BaseException If error happens.
      */

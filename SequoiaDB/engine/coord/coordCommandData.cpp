@@ -1781,6 +1781,8 @@ namespace engine
 
       try
       {
+         const CHAR *comment = NULL ;
+
          rc = rtnGetSTDStringElement( pArgs->_boQuery, CAT_COLLECTION,
                                       pArgs->_targetName ) ;
          if ( rc )
@@ -1791,12 +1793,31 @@ namespace engine
             goto error ;
          }
 
+         rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_COMMENT, &comment ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_COMMENT, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
          if ( dmsCheckFullCLName( pArgs->_targetName.c_str() ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Collection name is invalid[%s], rc: %d",
                     pArgs->_targetName.c_str(), rc ) ;
             goto error ;
+         }
+
+         if ( NULL != comment )
+         {
+            PD_LOG( PDEVENT, "Truncate collection: [%s], comment: [%s]",
+                    pArgs->_targetName.c_str(), comment ) ;
          }
       }
       catch ( exception &e )
@@ -2164,6 +2185,8 @@ namespace engine
 
       try
       {
+         const CHAR *comment = NULL ;
+
          rc = rtnGetSTDStringElement( pArgs->_boQuery,
                                       CAT_COLLECTION_SPACE_NAME,
                                       pArgs->_targetName ) ;
@@ -2171,6 +2194,19 @@ namespace engine
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
                     "rc: %d", CAT_COLLECTION_SPACE_NAME, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_COMMENT, &comment ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_COMMENT, getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -2185,6 +2221,12 @@ namespace engine
 
          // Add ignore return codes
          pArgs->_ignoreRCList.insert( SDB_DMS_CS_NOTEXIST ) ;
+
+         if ( NULL != comment )
+         {
+            PD_LOG( PDEVENT, "Drop collection space: [%s], comment: [%s]",
+                    pArgs->_targetName.c_str(), comment ) ;
+         }
       }
       catch( std::exception &e )
       {
@@ -2938,12 +2980,27 @@ namespace engine
 
       try
       {
+         const CHAR *comment = NULL ;
+
          rc = rtnGetSTDStringElement( pArgs->_boQuery, CAT_COLLECTION_NAME,
                                       pArgs->_targetName ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
                     CAT_COLLECTION_NAME, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_COMMENT, &comment ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_COMMENT, getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -2957,6 +3014,12 @@ namespace engine
          }
 
          pArgs->_ignoreRCList.insert( SDB_DMS_NOTEXIST ) ;
+
+         if ( NULL != comment )
+         {
+            PD_LOG( PDEVENT, "Drop collection: [%s], comment: [%s]",
+                    pArgs->_targetName.c_str(), comment ) ;
+         }
       }
       catch( std::exception &e )
       {

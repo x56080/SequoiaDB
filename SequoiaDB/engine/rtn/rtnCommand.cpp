@@ -1110,6 +1110,7 @@ namespace engine
          BSONObj hintArg( pHintBuff ) ;
 
          BOOLEAN isSkipRecycleBin = FALSE ;
+         const CHAR *comment = NULL ;
 
          BSONObjIterator iter( arg ) ;
          while ( iter.more() )
@@ -1129,6 +1130,17 @@ namespace engine
                          "Failed to get field [%s], it is not a boolean",
                          FIELD_NAME_SKIPRECYCLEBIN ) ;
                isSkipRecycleBin = ele.Bool() ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COMMENT ) )
+            {
+               PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Failed to get field [%s], it is not string",
+                         FIELD_NAME_COMMENT ) ;
+
+               PD_CHECK( MSG_COMMENT_MAX_LEN >= ele.valuestrsize(),
+                         SDB_INVALIDARG, error, PDERROR,
+                         "Size of Comment is greater than 128KB" ) ;
+               comment = ele.valuestr() ;
             }
          }
 
@@ -1157,6 +1169,12 @@ namespace engine
             PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
                       "Failed to initialize drop collection command, "
                       "should not have recycle item if skip recycle bin" ) ;
+         }
+
+         if ( NULL != comment )
+         {
+            PD_LOG( PDEVENT, "Drop collection: [%s], comment: [%s]",
+                    _collectionName, comment ) ;
          }
 
          if ( _recycleItem.isValid() )
@@ -1278,6 +1296,7 @@ namespace engine
          BSONObj hintArg( pHintBuff ) ;
 
          BOOLEAN isSkipRecycleBin = FALSE ;
+         const CHAR *comment = NULL ;
 
          BSONObjIterator iter( arg ) ;
          while ( iter.more() )
@@ -1309,6 +1328,17 @@ namespace engine
                          FIELD_NAME_SKIPRECYCLEBIN ) ;
                isSkipRecycleBin = ele.Bool() ;
             }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COMMENT ) )
+            {
+               PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Failed to get field [%s], it is not string",
+                         FIELD_NAME_COMMENT ) ;
+
+               PD_CHECK( MSG_COMMENT_MAX_LEN >= ele.valuestrsize(),
+                         SDB_INVALIDARG, error, PDERROR,
+                         "Size of Comment is greater than 128KB" ) ;
+               comment = ele.valuestr() ;
+            }
          }
 
          if ( NULL == _spaceName || '\0' == _spaceName[0] )
@@ -1336,6 +1366,12 @@ namespace engine
             PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
                       "Failed to initialize drop collection command, "
                       "should not have recycle item if skip recycle bin" ) ;
+         }
+
+         if ( NULL != comment )
+         {
+            PD_LOG( PDEVENT, "Drop collection space: [%s], comment: [%s]",
+                    _spaceName, comment ) ;
          }
 
          if ( _recycleItem.isValid() )
@@ -4446,6 +4482,7 @@ error:
       PD_TRACE_ENTRY( SDB__RTNTRUNCATE_INIT ) ;
 
       BOOLEAN isSkipRecycleBin = FALSE ;
+      const CHAR *comment = NULL ;
 
       try
       {
@@ -4469,6 +4506,19 @@ error:
                       "Failed to get field [%s], it is not a boolean",
                       FIELD_NAME_SKIPRECYCLEBIN ) ;
             isSkipRecycleBin = ele.Bool() ;
+         }
+
+         ele = query.getField( FIELD_NAME_COMMENT ) ;
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is not string",
+                      FIELD_NAME_COMMENT ) ;
+
+            PD_CHECK( MSG_COMMENT_MAX_LEN >= ele.valuestrsize(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Size of Comment is greater than 128KB" ) ;
+            comment = ele.valuestr() ;
          }
 
          if ( hintArg.hasElement( FIELD_NAME_RECYCLE_ITEM ) )
@@ -4496,6 +4546,12 @@ error:
          PD_CHECK( !_recycleItem.isValid(), SDB_SYS, error, PDERROR,
                    "Failed to initialize drop collection command, "
                    "should not have recycle item if skip recycle bin" ) ;
+      }
+
+      if ( NULL != comment )
+      {
+         PD_LOG( PDEVENT, "Truncate collection: [%s], comment: [%s]",
+                 _collectionName, comment ) ;
       }
 
       if ( _recycleItem.isValid() )

@@ -970,6 +970,7 @@ public class Sequoiadb implements Closeable {
      *                <li>EnsureEmpty(boolean) : check whether the collection space is empty when drop,
      *                false means drop directly, true means only empty can drop, default value is false
      *                <li>SkipRecycleBin(boolean) : Indicates whether to skip recycle bin, default is false.
+     *                <li>Comment : Add a comment for the recycle bin item, default is "".
      *                </ul>
      * @throws BaseException If error happens.
      */

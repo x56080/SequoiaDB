@@ -191,7 +191,8 @@ namespace engine
      _opType( item._opType ),
      _recycleTime( item._recycleTime ),
      _isMainCL( item._isMainCL ),
-     _isCSRecycled( item._isCSRecycled )
+     _isCSRecycled( item._isCSRecycled ),
+     _comment( item._comment )
    {
       setRecycleName( item._recycleName ) ;
       setOriginName( item._originName ) ;
@@ -225,6 +226,7 @@ namespace engine
       // inherit type
       _type = item._type ;
       _opType = item._opType ;
+      _comment = item._comment ;
 
       // set with different origin ID and name
       setOriginID( originID ) ;
@@ -330,6 +332,7 @@ namespace engine
          {
             builder.appendBool( FIELD_NAME_RECYCLE_ISCSRECY, _isCSRecycled ) ;
          }
+         builder.append( FIELD_NAME_COMMENT, _comment.c_str() ) ;
       }
       catch ( exception &e )
       {
@@ -479,6 +482,13 @@ namespace engine
          {
             _isCSRecycled = FALSE ;
          }
+
+         // comment
+         element = object.getField( FIELD_NAME_COMMENT ) ;
+         PD_CHECK( String == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not string",
+                   FIELD_NAME_COMMENT ) ;
+         setComment( element.valuestr() ) ;
       }
       catch ( exception &e )
       {
@@ -583,6 +593,7 @@ namespace engine
       _originName[ UTIL_ORIGIN_NAME_SZ ] = '\0' ;
       _isMainCL = item._isMainCL ;
       _isCSRecycled = item._isCSRecycled ;
+      _comment = item._comment ;
 
       return ( *this ) ;
    }
@@ -600,7 +611,8 @@ namespace engine
                                 item._originName,
                                 UTIL_ORIGIN_NAME_SZ ) &&
                _isMainCL == item._isMainCL &&
-               _isCSRecycled == item._isCSRecycled ) ;
+               _isCSRecycled == item._isCSRecycled &&
+               _comment == item._comment ) ;
    }
 
    void _utilRecycleItem::_setRecycleName( utilRecycleID recycleID,

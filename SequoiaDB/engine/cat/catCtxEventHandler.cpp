@@ -622,9 +622,9 @@ namespace engine
       try
       {
          BOOLEAN isSkipRecycleBin = FALSE ;
-
-         BSONElement ele = boQuery.getField( FIELD_NAME_SKIPRECYCLEBIN ) ;
-
+         const CHAR *comment = NULL ;
+         BSONElement ele ;
+         ele = boQuery.getField( FIELD_NAME_SKIPRECYCLEBIN ) ;
          if ( EOO != ele.type() )
          {
             PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
@@ -635,10 +635,28 @@ namespace engine
             isSkipRecycleBin = ele.Bool() ;
          }
 
+         ele = boQuery.getField( FIELD_NAME_COMMENT ) ;
+         if ( EOO != ele.type() )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is not string",
+                      FIELD_NAME_COMMENT ) ;
+
+            PD_CHECK( MSG_COMMENT_MAX_LEN >= ele.valuestrsize(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Size of Comment is greater than 128KB" ) ;
+            comment = ele.valuestr() ;
+         }
+
          // skip to use recycle bin
          if ( isSkipRecycleBin )
          {
             _isUseRecycleBin = FALSE ;
+         }
+         else if ( NULL != comment )
+         {
+            _recycleItem.setComment( comment ) ;
+            PD_LOG( PDEVENT, "Add comment: [%s] to recycle bin item", comment ) ;
          }
       }
       catch ( exception &e )
