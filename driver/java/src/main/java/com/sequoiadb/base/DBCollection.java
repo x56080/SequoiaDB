@@ -29,6 +29,7 @@ import com.sequoiadb.base.options.UpsertOption;
 import com.sequoiadb.base.result.DeleteResult;
 import com.sequoiadb.base.result.InsertResult;
 import com.sequoiadb.base.result.UpdateResult;
+import com.sequoiadb.message.request.*;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -39,15 +40,6 @@ import org.bson.util.JSON;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.ResultSet;
-import com.sequoiadb.message.request.AdminRequest;
-import com.sequoiadb.message.request.AggregateRequest;
-import com.sequoiadb.message.request.DeleteRequest;
-import com.sequoiadb.message.request.InsertRequest;
-import com.sequoiadb.message.request.LobCreateIDRequest;
-import com.sequoiadb.message.request.LobRemoveRequest;
-import com.sequoiadb.message.request.LobTruncateRequest;
-import com.sequoiadb.message.request.QueryRequest;
-import com.sequoiadb.message.request.UpdateRequest;
 import com.sequoiadb.message.response.SdbReply;
 
 /**
@@ -2798,7 +2790,7 @@ public class DBCollection {
         BSONObject createLobID = null;
         if (null != d) {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH.mm.ss");
-            createLobID = new BasicBSONObject(DBLobImpl.FIELD_NAME_LOB_CREATE_TIME, sdf.format(d));
+            createLobID = new BasicBSONObject(SdbConstants.FIELD_NAME_LOB_CREATE_TIME, sdf.format(d));
         }
 
         LobCreateIDRequest request = new LobCreateIDRequest(createLobID);
@@ -2814,7 +2806,7 @@ public class DBCollection {
         if (o == null) {
             throw new BaseException(SDBError.SDB_SYS, "expect a return obj to get oid, but got null");
         }
-        return (ObjectId) o.get(DBLobImpl.FIELD_NAME_LOB_OID);
+        return (ObjectId) o.get(SdbConstants.FIELD_NAME_LOB_OID);
     }
 
     /**
@@ -2888,7 +2880,7 @@ public class DBCollection {
     public void removeLob(ObjectId lobId) throws BaseException {
         BSONObject removeObj = new BasicBSONObject();
         removeObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-        removeObj.put(DBLobImpl.FIELD_NAME_LOB_OID, lobId);
+        removeObj.put(SdbConstants.FIELD_NAME_LOB_OID, lobId);
 
         LobRemoveRequest request = new LobRemoveRequest(removeObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
@@ -2910,13 +2902,79 @@ public class DBCollection {
 
         BSONObject truncateObj = new BasicBSONObject();
         truncateObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-        truncateObj.put(DBLobImpl.FIELD_NAME_LOB_OID, lobId);
-        truncateObj.put(DBLobImpl.FIELD_NAME_LOB_LENGTH, length);
+        truncateObj.put(SdbConstants.FIELD_NAME_LOB_OID, lobId);
+        truncateObj.put(SdbConstants.FIELD_NAME_LOB_LENGTH, length);
 
         LobTruncateRequest request = new LobTruncateRequest(truncateObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, truncateObj);
         sequoiadb.upsertCache(collectionFullName);
+    }
+
+    public ObjectId putLob(byte[] data) throws BaseException {
+        return putLob(data, null);
+    }
+
+    // TODO API
+    public ObjectId putLob(byte[] data, ObjectId lobId) throws BaseException {
+        if (data == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The data is null");
+        }
+
+        if (data.length > DBLobImpl.SDB_LOB_MAX_WRITE_DATA_LENGTH) {
+            return putBigLob(data, lobId);
+        }
+
+        BSONObject metaObj = new BasicBSONObject();
+        metaObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        if (lobId != null) {
+            metaObj.put(SdbConstants.FIELD_NAME_LOB_OID, lobId);
+        }
+        metaObj.put(SdbConstants.FIELD_NAME_LOB_OPEN_MODE, DBLobImpl.SDB_LOB_CREATEONLY);
+
+        LobPutRequest request = new LobPutRequest(metaObj, data);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        sequoiadb.throwIfError(response, metaObj);
+        sequoiadb.upsertCache(collectionFullName);
+
+        ResultSet resultSet = response.getResultSet();
+        if (!resultSet.hasNext()) {
+            throw new BaseException(SDBError.SDB_SYS, "Response must have obj");
+        }
+
+        ObjectId oid = null;
+        BSONObject obj = resultSet.getNext();
+        if (obj != null) {
+            oid = (ObjectId) obj.get(SdbConstants.FIELD_NAME_LOB_OID);
+        }
+        if (oid == null) {
+            throw new BaseException(SDBError.SDB_SYS, "Expect a return obj to get oid, but got null");
+        }
+        return oid;
+    }
+
+    private ObjectId putBigLob(byte[] data, ObjectId lobId) throws BaseException {
+        boolean hadCreate = false;
+
+        try {
+            DBLob lob = createLob(lobId);
+            hadCreate = true;
+
+            lob.write(data);
+
+            lob.close();
+
+            return lob.getID();
+        } catch (BaseException e) {
+            if (hadCreate) {
+                try {
+                    removeLob(lobId);
+                } catch (BaseException ex) {
+                    // ignore
+                }
+            }
+            throw e;
+        }
     }
 
     /**

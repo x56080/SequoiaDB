@@ -157,4 +157,12 @@ final class SdbConstants {
 
     final static String NODE_LOCATION = "Location";
     final static String NODE_SET_LOCATION = "set location";
+
+    final static String FIELD_NAME_LOB_OPEN_MODE = "Mode";
+    final static String FIELD_NAME_LOB_OID = "Oid";
+    final static String FIELD_NAME_LOB_SIZE = "Size";
+    final static String FIELD_NAME_LOB_CREATE_TIME = "CreateTime";
+    final static String FIELD_NAME_LOB_MODIFICATION_TIME = "ModificationTime";
+    final static String FIELD_NAME_LOB_PAGESIZE = "LobPageSize";
+    final static String FIELD_NAME_LOB_LENGTH = "Length";
 }

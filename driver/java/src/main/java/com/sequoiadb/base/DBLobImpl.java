@@ -38,17 +38,10 @@ import com.sequoiadb.message.response.SdbReply;
 import com.sequoiadb.util.Helper;
 
 class DBLobImpl implements DBLob {
-    final static String FIELD_NAME_LOB_OPEN_MODE = "Mode";
-    final static String FIELD_NAME_LOB_OID = "Oid";
-    final static String FIELD_NAME_LOB_SIZE = "Size";
-    final static String FIELD_NAME_LOB_CREATE_TIME = "CreateTime";
-    final static String FIELD_NAME_LOB_MODIFICATION_TIME = "ModificationTime";
-    final static String FIELD_NAME_LOB_PAGESIZE = "LobPageSize";
-    final static String FIELD_NAME_LOB_LENGTH = "Length";
     final static int SDB_LOB_CREATEONLY = 0x00000001;
 
     // the max lob data size to send for one message
-    private final static int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
+    protected final static int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
     private final static int SDB_LOB_WRITE_DATA_LENGTH = 524288; // 512k;
     private final static int SDB_LOB_READ_DATA_LENGTH = 65536; // 64k;
 
@@ -195,9 +188,9 @@ class DBLobImpl implements DBLob {
         BSONObject openLob = new BasicBSONObject();
         openLob.put(SdbConstants.FIELD_COLLECTION, _cl.getFullName());
         if (_id != null) {
-            openLob.put(FIELD_NAME_LOB_OID, _id);
+            openLob.put(SdbConstants.FIELD_NAME_LOB_OID, _id);
         }
-        openLob.put(FIELD_NAME_LOB_OPEN_MODE, _mode);
+        openLob.put(SdbConstants.FIELD_NAME_LOB_OPEN_MODE, _mode);
 
         int flags = (_mode == SDB_LOB_READ) ? FLG_LOBOPEN_WITH_RETURNDATA : 0;
 
@@ -211,17 +204,17 @@ class DBLobImpl implements DBLob {
         _sdb.throwIfError(response, openLob);
 
         BSONObject obj = response.getMetaInfo();
-        if (_id == null && obj.containsField(FIELD_NAME_LOB_OID) && _mode == SDB_LOB_CREATEONLY) {
-            _id = (ObjectId) obj.get(FIELD_NAME_LOB_OID);
+        if (_id == null && obj.containsField(SdbConstants.FIELD_NAME_LOB_OID) && _mode == SDB_LOB_CREATEONLY) {
+            _id = (ObjectId) obj.get(SdbConstants.FIELD_NAME_LOB_OID);
         }
-        _lobSize = (Long) obj.get(FIELD_NAME_LOB_SIZE);
-        _createTime = (Long) obj.get(FIELD_NAME_LOB_CREATE_TIME);
-        if (obj.containsField(FIELD_NAME_LOB_MODIFICATION_TIME)) {
-            _modificationTime = (Long) obj.get(FIELD_NAME_LOB_MODIFICATION_TIME);
+        _lobSize = (Long) obj.get(SdbConstants.FIELD_NAME_LOB_SIZE);
+        _createTime = (Long) obj.get(SdbConstants.FIELD_NAME_LOB_CREATE_TIME);
+        if (obj.containsField(SdbConstants.FIELD_NAME_LOB_MODIFICATION_TIME)) {
+            _modificationTime = (Long) obj.get(SdbConstants.FIELD_NAME_LOB_MODIFICATION_TIME);
         } else {
             _modificationTime = _createTime;
         }
-        _pageSize = (Integer) obj.get(FIELD_NAME_LOB_PAGESIZE);
+        _pageSize = (Integer) obj.get(SdbConstants.FIELD_NAME_LOB_PAGESIZE);
         // refresh _receivedBuff
         _receivedBuff = response.getData();
         // get return data
@@ -298,8 +291,8 @@ class DBLobImpl implements DBLob {
         if (response.getReturnedNum() > 0) {
             ResultSet resultSet = response.getResultSet();
             BSONObject obj = resultSet.getNext();
-            if (obj != null && obj.containsField(FIELD_NAME_LOB_MODIFICATION_TIME)) {
-                _modificationTime = (Long) obj.get(FIELD_NAME_LOB_MODIFICATION_TIME);
+            if (obj != null && obj.containsField(SdbConstants.FIELD_NAME_LOB_MODIFICATION_TIME)) {
+                _modificationTime = (Long) obj.get(SdbConstants.FIELD_NAME_LOB_MODIFICATION_TIME);
             }
         }
     }
