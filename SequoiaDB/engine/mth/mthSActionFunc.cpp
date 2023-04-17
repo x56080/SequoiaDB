@@ -2513,6 +2513,51 @@ namespace engine
    error:
       goto done ;
    }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHIFNULLBUILD, "mthIfNullBuild" )
+   INT32 mthIfNullBuild( const CHAR *fieldName, const bson::BSONElement &e,
+                         _mthSAction *action, bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHIFNULLBUILD ) ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+
+      rc = mthIfNull( fieldName, e, arg, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "mthIfNull failed:rc=%d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHIFNULLBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHIFNULLGET, "mthIfNullGet" )
+   INT32 mthIfNullGet( const CHAR *fieldName, const bson::BSONElement &in,
+                       _mthSAction *action, bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHIFNULLGET ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+
+      rc = mthIfNull( fieldName, in, arg, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "mthIfNull failed:rc=%d", rc ) ;
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHIFNULLGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 
 

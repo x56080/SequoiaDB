@@ -47,6 +47,7 @@
 #include "mthSActionFunc.hpp"
 #include "mthSizeParser.hpp"
 #include "mthTypeParser.hpp"
+#include "mthIfNullParser.hpp"
 
 #define MTH_ADD_PARSER( parser )\
         do                                                                                    \
@@ -299,6 +300,9 @@ namespace engine
 
       /// $size
       MTH_ADD_PARSER( _mthSizeParser ) ;
+
+      /// $ifnull
+      MTH_ADD_PARSER( _mthIfNullParser ) ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__REGISTERPARSERS, rc ) ;
       return rc ;

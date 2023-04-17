@@ -4067,6 +4067,22 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 mthIfNull( const CHAR *name, const BSONElement &in,
+                    const BSONElement &value,
+                    BSONObjBuilder &outBuilder )
+   {
+      if ( in.eoo() || in.isNull() || Undefined == in.type() )
+      {
+         outBuilder.appendAs( value, name ) ;
+      }
+      else
+      {
+         outBuilder.appendAs( in, name ) ;
+      }
+
+      return SDB_OK ;
+   }
+
    INT32 mthSize( const CHAR *name, const BSONElement &in,
                   BSONObjBuilder &outBuilder )
    {

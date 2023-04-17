@@ -120,6 +120,7 @@ namespace engine
       EN_MATCH_FUNC_DAY                = 131,
       EN_MATCH_FUNC_MONTH              = 132,
       EN_MATCH_FUNC_YEAR               = 133,
+      EN_MATCH_FUNC_IFNULL             = 134,
 
       EN_MATCH_FUNC_END                = 200,
 
@@ -187,6 +188,7 @@ namespace engine
    #define MTH_FUNCTION_STR_DAY                 "$day"
    #define MTH_FUNCTION_STR_MONTH               "$month"
    #define MTH_FUNCTION_STR_YEAR                "$year"
+   #define MTH_FUNCTION_STR_IFNULL              "$ifnull"
 
    #define MTH_ALLOCATOR_SIZE                   2048
    #define MTH_MATCH_FIELD_STATIC_NAME_LEN      32

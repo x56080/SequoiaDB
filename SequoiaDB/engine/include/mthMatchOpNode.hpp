@@ -650,6 +650,23 @@ namespace engine
          INT32 _resultType ;
    } ;
 
+   class _mthMatchFuncIFNULL : public _mthMatchFunc
+   {
+      public:
+         _mthMatchFuncIFNULL( _mthNodeAllocator *allocator ) ;
+         virtual ~_mthMatchFuncIFNULL() ;
+
+      public:
+         virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+         virtual INT32 getType() ;
+         virtual const CHAR* getName() ;
+         virtual void clear() ;
+
+      protected:
+         virtual INT32 _init( const CHAR *fieldName,
+                              const BSONElement &ele ) ;
+   } ;
+
    class _mthMatchFuncRETURNMATCH : public _mthMatchFunc
    {
       public:

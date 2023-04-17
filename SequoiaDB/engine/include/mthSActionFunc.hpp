@@ -423,6 +423,16 @@ namespace engine
                        _mthSAction *,
                        bson::BSONElement & ) ;
 
+   INT32 mthIfNullBuild( const CHAR *,
+                         const bson::BSONElement &,
+                         _mthSAction *,
+                         bson::BSONObjBuilder & ) ;
+
+   INT32 mthIfNullGet( const CHAR *,
+                       const bson::BSONElement &,
+                       _mthSAction *,
+                       bson::BSONElement & ) ;
+
    INT32 mthSizeBuild( const CHAR *fieldName, const bson::BSONElement &e,
                        _mthSAction *action, bson::BSONObjBuilder &builder ) ;
 

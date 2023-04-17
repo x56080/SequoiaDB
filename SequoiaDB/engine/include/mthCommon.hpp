@@ -171,6 +171,10 @@ namespace engine
                     BSONObjBuilder &outBuilder,
                     INT32 &flag ) ;
 
+   INT32 mthIfNull( const CHAR *name, const BSONElement &in,
+                    const BSONElement &value,
+                    BSONObjBuilder &outBuilder ) ;
+
    INT32 mthType( const CHAR *name, INT32 outType, const BSONElement &in,
                   BSONObjBuilder &outBuilder ) ;
 

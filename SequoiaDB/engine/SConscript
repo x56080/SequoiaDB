@@ -395,7 +395,8 @@ mthFiles = [
       "mth/parsers/mthCastParser.cpp",
       "mth/parsers/mthMatchNormalizer.cpp",
       "mth/parsers/mthSizeParser.cpp",
-      "mth/parsers/mthTypeParser.cpp"
+      "mth/parsers/mthTypeParser.cpp",
+      "mth/parsers/mthIfNullParser.cpp"
       ]
 
 optFiles = [

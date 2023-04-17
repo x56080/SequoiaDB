@@ -76,6 +76,7 @@ namespace engine
    #define MTH_S_DAY            MTH_S_PREFIX"day"
    #define MTH_S_MONTH          MTH_S_PREFIX"month"
    #define MTH_S_YEAR           MTH_S_PREFIX"year"
+   #define MTH_S_IFNULL         MTH_S_PREFIX"ifnull"
 
 
    typedef UINT32 MTH_S_ATTRIBUTE ;

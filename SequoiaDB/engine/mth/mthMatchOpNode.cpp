@@ -2035,63 +2035,111 @@ namespace engine
 
 
    //**********************_mthMatchFuncTYPE******************************
-      _mthMatchFuncTYPE::_mthMatchFuncTYPE( _mthNodeAllocator *allocator )
-                        :_mthMatchFunc( allocator ), _resultType( -1 )
+   _mthMatchFuncTYPE::_mthMatchFuncTYPE( _mthNodeAllocator *allocator )
+                     :_mthMatchFunc( allocator ), _resultType( -1 )
+   {
+   }
+
+   _mthMatchFuncTYPE::~_mthMatchFuncTYPE()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncTYPE::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthType( _fieldName.getFieldName(), _resultType, in, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "mthType failed:rc=%d" ) ;
+      out = builder.obj() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _mthMatchFuncTYPE::getType()
+   {
+      return EN_MATCH_FUNC_TYPE ;
+   }
+
+   const CHAR* _mthMatchFuncTYPE::getName()
+   {
+      return MTH_FUNCTION_STR_TYPE ;
+   }
+
+   void _mthMatchFuncTYPE::clear()
+   {
+      _resultType = -1 ;
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncTYPE::_init( const CHAR *fieldName,
+                                    const BSONElement &ele )
+   {
+      if ( !ele.isNumber() )
       {
+         return SDB_INVALIDARG ;
       }
 
-      _mthMatchFuncTYPE::~_mthMatchFuncTYPE()
+      _resultType = ele.numberInt() ;
+      if ( 1 != _resultType && 2 != _resultType )
       {
-         clear() ;
+         return SDB_INVALIDARG ;
       }
 
-      INT32 _mthMatchFuncTYPE::call( const BSONElement &in, BSONObj &out )
-      {
-         INT32 rc = SDB_OK ;
-         BSONObjBuilder builder ;
+      return SDB_OK ;
+   }
 
-         rc = mthType( _fieldName.getFieldName(), _resultType, in, builder ) ;
-         PD_RC_CHECK( rc, PDERROR, "mthType failed:rc=%d" ) ;
-         out = builder.obj() ;
+   //************************_mthMatchFuncIFNULL********************************
+   _mthMatchFuncIFNULL::_mthMatchFuncIFNULL( _mthNodeAllocator *allocator )
+                       :_mthMatchFunc( allocator )
+   {
+   }
 
-      done:
-         return rc ;
-      error:
-         goto done ;
-      }
+   _mthMatchFuncIFNULL::~_mthMatchFuncIFNULL()
+   {
+      clear() ;
+   }
 
-      INT32 _mthMatchFuncTYPE::getType()
-      {
-         return EN_MATCH_FUNC_TYPE ;
-      }
+   INT32 _mthMatchFuncIFNULL::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
 
-      const CHAR* _mthMatchFuncTYPE::getName()
-      {
-         return MTH_FUNCTION_STR_TYPE ;
-      }
+      rc = mthIfNull( _fieldName.getFieldName(), in, _funcEle, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "mthIfNull failed:rc=%d" ) ;
 
-      void _mthMatchFuncTYPE::clear()
-      {
-         _resultType = -1 ;
-         _mthMatchFunc::clear() ;
-      }
+      out = builder.obj() ;
 
-      INT32 _mthMatchFuncTYPE::_init( const CHAR *fieldName,
-                                      const BSONElement &ele )
-      {
-         if ( !ele.isNumber() )
-         {
-            return SDB_INVALIDARG ;
-         }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
-         _resultType = ele.numberInt() ;
-         if ( 1 != _resultType && 2 != _resultType )
-         {
-            return SDB_INVALIDARG ;
-         }
+   INT32 _mthMatchFuncIFNULL::getType()
+   {
+      return EN_MATCH_FUNC_IFNULL ;
+   }
 
-         return SDB_OK ;
-      }
+   const CHAR* _mthMatchFuncIFNULL::getName()
+   {
+      return MTH_FUNCTION_STR_IFNULL ;
+   }
+
+   void _mthMatchFuncIFNULL::clear()
+   {
+      _mthMatchFunc::clear() ;
+   }
+
+   INT32 _mthMatchFuncIFNULL::_init( const CHAR *fieldName,
+                                     const BSONElement &ele )
+   {
+      return SDB_OK ;
+   }
 
    //************************_mthMatchFuncRETURNMATCH********************************
    _mthMatchFuncRETURNMATCH::_mthMatchFuncRETURNMATCH( _mthNodeAllocator *allocator )
