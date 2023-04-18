@@ -120,7 +120,7 @@ MariaDB 实例组是由若干 MariaDB 实例组成的一个无状态的集群，
 9. 新增实例 mariadb03 并加入实例组
  
    ```lang-bash
-   $ bin/sdb_maria_ctl addinst mariadb03 -D database/3311 -p 3311 -g mariadb -k test
+   $ bin/sdb_maria_ctl addinst mariadb03 -D database/3311 -P 3311 -g mariadb -k test
    ```
 
 10. 使用 mysql 命令连接到实例 mariadb03
