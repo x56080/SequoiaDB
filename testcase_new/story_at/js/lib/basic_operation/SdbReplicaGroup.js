@@ -16,7 +16,9 @@ if ( tmpSdbReplicaGroup == undefined )
       setActiveLocation: SdbReplicaGroup.prototype.setActiveLocation,
       setAttributes: SdbReplicaGroup.prototype.setAttributes,
       start: SdbReplicaGroup.prototype.start,
+      startCriticalMode: SdbReplicaGroup.prototype.startCriticalMode,
       stop: SdbReplicaGroup.prototype.stop,
+      stopCriticalMode: SdbReplicaGroup.prototype.stopCriticalMode,
       toString: SdbReplicaGroup.prototype.toString
    };
 }
@@ -39,5 +41,7 @@ SdbReplicaGroup.prototype.removeNode=function(){try{return tmpSdbReplicaGroup.re
 SdbReplicaGroup.prototype.setActiveLocation=function(){try{return tmpSdbReplicaGroup.setActiveLocation.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.setAttributes=function(){try{return tmpSdbReplicaGroup.setAttributes.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.start=function(){try{return tmpSdbReplicaGroup.start.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbReplicaGroup.prototype.startCriticalMode=function(){try{return tmpSdbReplicaGroup.startCriticalMode.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.stop=function(){try{return tmpSdbReplicaGroup.stop.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbReplicaGroup.prototype.stopCriticalMode=function(){try{return tmpSdbReplicaGroup.stopCriticalMode.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.toString=function(){try{return tmpSdbReplicaGroup.toString.apply(this,arguments);}catch(e){throw new Error(e);}};

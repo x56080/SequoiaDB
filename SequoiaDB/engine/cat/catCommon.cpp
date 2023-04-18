@@ -736,6 +736,94 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETNODEID_BY_NODENAME, "catGetNodeIDByNodeName" )
+   INT32 catGetNodeIDByNodeName( const BSONObj &groupObj,
+                                 const string &nodeName,
+                                 UINT16 &nodeID,
+                                 BOOLEAN &isExists )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATGETNODEID_BY_NODENAME ) ;
+
+      UINT16 tmpNodeID = CAT_INVALID_NODEID ;
+      isExists = FALSE ;
+
+      try
+      {
+         vector< string > splitStrVec ;
+
+         rc = utilSplitStr( nodeName, splitStrVec, ":" ) ;
+         if( SDB_OK != rc || splitStrVec.size() != 2 ||
+             splitStrVec.at( 0 ).empty() || splitStrVec.at( 1 ).empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "NodeName: %s is invalid", nodeName.c_str() ) ;
+            goto error ;
+         }
+
+         {
+            BSONObj boNodeList ;
+            ossPoolString tmpHostName ;
+            ossPoolString tmpSvcName ;
+            pmdAddrPair node( splitStrVec[0], splitStrVec[1] ) ;
+
+            rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, boNodeList ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d", CAT_GROUP_NAME, rc ) ;
+
+            BSONObjIterator itr( boNodeList ) ;
+            while ( itr.more() )
+            {
+               BSONObj boNode = itr.next().embeddedObject() ;
+
+               BSONElement beHost = boNode.getField( FIELD_NAME_HOST ) ;
+               if ( beHost.eoo() || String != beHost.type() )
+               {
+                  rc = SDB_CAT_CORRUPTION ;
+                  PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                          FIELD_NAME_HOST, beHost.type() ) ;
+                  goto error ;
+               }
+               tmpHostName = beHost.valuestrsafe() ;
+
+               BSONElement beService = boNode.getField( FIELD_NAME_SERVICE ) ;
+               if ( beService.eoo() || Array != beService.type() )
+               {
+                  rc = SDB_CAT_CORRUPTION ;
+                  PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                          FIELD_NAME_SERVICE, beService.type() ) ;
+                  goto error ;
+               }
+               tmpSvcName = getServiceName( beService, MSG_ROUTE_LOCAL_SERVICE ) ;
+
+               if ( 0 == ossStrcmp( tmpHostName.c_str(), node._host ) &&
+                    0 == ossStrcmp( tmpSvcName.c_str(), node._service ) )
+               {
+                  rc = rtnGetIntElement( boNode, FIELD_NAME_NODEID, ( INT32 & )tmpNodeID ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                               FIELD_NAME_NODEID, rc ) ;
+                  isExists = TRUE ;
+                  break ;
+               }
+            }
+
+            nodeID = isExists ? tmpNodeID : nodeID ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETNODEID_BY_NODENAME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINOBJ, "catGetDomainObj" )
    INT32 catGetDomainObj( const CHAR * domainName, BSONObj & obj, pmdEDUCB * cb )
    {
@@ -4942,6 +5030,275 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGET_GRPMODE_OBJ, "catGetGrpModeObj" )
+   INT32 catGetGrpModeObj( const UINT32 &groupID, BSONObj &obj, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATGET_GRPMODE_OBJ ) ;
+
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObj boMatcher ;
+
+         boMatcher = BSON( CAT_GROUPID_NAME << groupID ) ;
+
+         rc = catGetOneObj( CAT_GROUP_MODE_COLLECTION, dummyObj, boMatcher, dummyObj, cb, obj ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_CLS_GRP_NOT_EXIST ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                    boMatcher.toString().c_str(), CAT_GROUP_MODE_COLLECTION, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGET_GRPMODE_OBJ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CAT_PARSE_GRPMODE_OBJ, "catParseGrpModeObj" )
+   INT32 catParseGrpModeObj( const BSONObj &grpModeObj,
+                             const CLS_LOC_INFO_MAP &locMap,
+                             clsGroupMode &grpMode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CAT_PARSE_GRPMODE_OBJ ) ;
+
+      try
+      {
+         BSONElement ele ;
+         BSONObjIterator propItr ;
+         CHAR timeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossTimestamp curTime ;
+         ossGetCurrentTime( curTime ) ;
+
+         // Get old GroupMode field
+         ele = grpModeObj.getField( CAT_GROUP_MODE_NAME ) ;
+         if ( ! ele.eoo() && String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDWARNING, "Failed to get field[%s] from GroupMode obj[%s]",
+                    CAT_GROUP_MODE_NAME, grpModeObj.toPoolString().c_str() ) ;
+            goto error ;
+         }
+
+         if ( ele.eoo() )
+         {
+            // Do nothing, because if this field is empty, this function shouldn't be called
+            goto done ;
+         }
+         else if ( 0 == ossStrcmp( CAT_CRITICAL_MODE_NAME, ele.valuestrsafe() ) )
+         {
+            grpMode.mode = CLS_GROUP_MODE_CRITICAL ;
+         }
+         else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, ele.valuestrsafe() ) )
+         {
+            grpMode.mode = CLS_GROUP_MODE_MAINTENANCE ;
+         }
+         else
+         {
+            grpMode.mode = CLS_GROUP_MODE_NONE ;
+         }
+
+         // Get GroupID
+         ele = grpModeObj.getField( CAT_GROUPID_NAME ) ;
+         if ( ele.eoo() || ! ele.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDWARNING, "Failed to get field[%s] from GroupMode obj[%s]",
+                    CAT_GROUPID_NAME, grpModeObj.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         grpMode.groupID = ele.numberInt() ;
+
+         // Get properties field
+         ele = grpModeObj.getField( CAT_PROPERTIES_NAME ) ;
+         if ( ele.eoo() || Array != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDWARNING, "Failed to get field[%s] from GroupMode obj[%s]",
+                    CAT_PROPERTIES_NAME, grpModeObj.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         propItr = BSONObjIterator( ele.embeddedObject() ) ;
+
+         // Parse properties array
+         while ( propItr.more() )
+         {
+            clsGrpModeItem tmpGrpModeItem ;
+            BSONObj propObj = propItr.next().embeddedObject() ;
+            BSONElement propEle ;
+            ossTimestamp tmpTime ;
+
+            // Get nodeID field
+            if ( propObj.hasField( CAT_NODEID_NAME ) )
+            {
+               propEle = propObj.getField( CAT_NODEID_NAME ) ;
+               if ( ! propEle.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                          CAT_NODEID_NAME, propObj.toPoolString().c_str() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  tmpGrpModeItem.nodeID = propEle.numberInt() ;
+               }
+            }
+            // Get location field
+            else if ( propObj.hasField( CAT_LOCATION_NAME ) )
+            {
+               propEle = propObj.getField( CAT_LOCATION_NAME ) ;
+               if ( String != propEle.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                          CAT_LOCATION_NAME, propObj.toPoolString().c_str() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  tmpGrpModeItem.location = propEle.valuestrsafe() ;
+
+                  // Assign locationID
+                  CLS_LOC_INFO_MAP::const_iterator locItr = locMap.begin() ;
+                  while ( locMap.end() != locItr )
+                  {
+                     if ( 0 == ossStrcmp( propEle.valuestrsafe(),
+                                          locItr->second._location.c_str() ) )
+                     {
+                        tmpGrpModeItem.locationID = locItr->second._locationID ;
+                        break ;
+                     }
+                     ++locItr ;
+                  }
+               }
+            }
+
+            // Get MinKeepTime
+            propEle = propObj.getField( CAT_MIN_KEEP_TIME_NAME ) ;
+            if ( propEle.eoo() || String != propEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                       CAT_MIN_KEEP_TIME_NAME, propObj.toPoolString().c_str() ) ;
+               goto error ;
+            }
+            ossStrcpy( timeStr, propEle.valuestrsafe() ) ;
+            ossStringToTimestamp( timeStr, tmpTime ) ;
+            tmpGrpModeItem.minKeepTime.time =
+               OSS_MIN( tmpTime.time, curTime.time + CLS_GROUP_MODE_KEEP_TIME_MAX * 60 ) ;
+
+            // Get MaxKeepTime
+            propEle = propObj.getField( CAT_MAX_KEEP_TIME_NAME ) ;
+            if ( propEle.eoo() || String != propEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                       CAT_MAX_KEEP_TIME_NAME, propObj.toPoolString().c_str() ) ;
+               goto error ;
+            }
+            ossStrcpy( timeStr, propEle.valuestrsafe() ) ;
+            ossStringToTimestamp( timeStr, tmpTime ) ;
+            tmpGrpModeItem.maxKeepTime.time =
+               OSS_MIN( tmpTime.time, curTime.time + CLS_GROUP_MODE_KEEP_TIME_MAX * 60 ) ;
+
+
+            // Get UpdateTime
+            propEle = propObj.getField( CAT_UPDATETIME_NAME ) ;
+            if ( propEle.eoo() || String != propEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                       CAT_UPDATETIME_NAME, propObj.toPoolString().c_str() ) ;
+               goto error ;
+            }
+            ossStrcpy( timeStr, propEle.valuestrsafe() ) ;
+            ossStringToTimestamp( timeStr, tmpGrpModeItem.updateTime ) ;
+
+            grpMode.grpModeInfo.push_back( tmpGrpModeItem ) ;
+         }
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CAT_PARSE_GRPMODE_OBJ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CAT_DELGRP_FROM_GRPMODE, "catDelGroupFromGrpMode" )
+   INT32 catDelGroupFromGrpMode( const UINT32 &groupID,
+                                 const INT16 &w,
+                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CAT_DELGRP_FROM_GRPMODE ) ;
+
+      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      SDB_DPSCB *dpsCB = sdbGetDPSCB() ;
+
+      try
+      {
+         BSONObj matcher, dummyObj, updator ;
+
+         // Append groupID to matcher
+         matcher = BSON( CAT_GROUPID_NAME << groupID ) ;
+
+         // Remove in CAT_NODE_INFO_COLLECTION
+         updator = BSON( "$unset" << BSON( CAT_GROUP_MODE_NAME << "" ) ) ;
+
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
+                         0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
+                      "updator: %s, rc: %d", groupID, matcher.toPoolString().c_str(),
+                      updator.toPoolString().c_str(), rc ) ;
+
+         // Remove in CAT_GROUP_MODE_COLLECTION
+         rc = rtnDelete( CAT_GROUP_MODE_COLLECTION, matcher,
+                         dummyObj, 0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to delete group info in %s, "
+                      "groupID: %u, matcher: %s, rc: %d", CAT_GROUP_MODE_COLLECTION,
+                      groupID, matcher.toPoolString().c_str(), rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CAT_DELGRP_FROM_GRPMODE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPRASEFUNC, "catPraseFunc" )
    INT32 catPraseFunc( const BSONObj &func, BSONObj &parsed )
@@ -8165,6 +8522,18 @@ namespace engine
       rc = catRemoveLocation( nodeID, boGroup, updatorBuilder,
                               matcherBuilder, TRUE, NULL ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to build removeLocation builder" ) ;
+
+      if ( 0 == baNewNodeList.nFields() )
+      {
+         UINT32 groupID = CAT_INVALID_GROUPID ;
+         rc = catGroupName2ID( groupName.c_str(), groupID, FALSE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get groupID, groupName[%s], rc: %d",
+                      groupName.c_str(), rc ) ;
+
+         rc = catDelGroupFromGrpMode( groupID, w, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove group [%s] from group mode, rc: %d",
+                      groupName.c_str(), rc ) ;
+      }
 
       try
       {

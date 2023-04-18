@@ -6123,6 +6123,38 @@ do                                                            \
          goto done ;
    }
 
+   INT32 _sdbReplicaGroupImpl::startCriticalMode ( const BSONObj & options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_GROUP_START_CRITICAL_MODE, &options, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
+   INT32 _sdbReplicaGroupImpl::stopCriticalMode ()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_GROUP_STOP_CRITICAL_MODE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::_getRetVersion ()
    {
       INT32 version = CATALOG_INVALID_VERSION ;
@@ -10850,6 +10882,9 @@ do                                                            \
          break ;
       case SDB_LIST_RECYCLEBIN:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+         break ;
+      case SDB_LIST_GROUPMODES:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_GROUPMODES ;
          break ;
       default :
          rc = SDB_INVALIDARG ;

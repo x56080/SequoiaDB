@@ -239,9 +239,9 @@ namespace engine
          return _buf.flushAll() ;
       }
 
-      OSS_INLINE void incVersion()
+      OSS_INLINE void incVersion( UINT8 incVerVal = DPS_INC_VER_DFT )
       {
-         _buf.incVersion() ;
+         _buf.incVersion( incVerVal ) ;
       }
 
       OSS_INLINE void cancelIncVersion()

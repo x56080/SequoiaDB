@@ -512,6 +512,58 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsRemoteOperator::stopCriticalMode( const UINT32 &groupID )
+   {
+      INT32 rc = SDB_OK ;
+
+      CHAR              *msg = NULL ;
+      INT32             bufferSize = 0 ;
+      rtnContextBuf     contextBuff ;
+      INT64             contextID = -1 ;
+      const CHAR        *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_GROUP ;
+      BSONObj           queryObj, hintObj ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder, hintBuilder ;
+
+         // Build Action and Options
+         queryBuilder.append( FIELD_NAME_ACTION, SDB_ALTER_GROUP_STOP_CRITICAL_MODE ) ;
+         queryBuilder.appendNull( FIELD_NAME_OPTIONS ) ;
+         queryBuilder.doneFast() ;
+
+         // Build GroupID
+         hintBuilder.append( FIELD_NAME_GROUPID, groupID ) ;
+         hintBuilder.doneFast() ;
+
+         queryObj = queryBuilder.obj() ;
+         hintObj = hintBuilder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected error happened:%s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryMsg( &msg, &bufferSize, pCommand, 0, 0, 0, -1,
+                             &queryObj, NULL, NULL, &hintObj, _cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build stop critical mode message, command: %s, rc: %d",
+                   pCommand, rc ) ;
+
+      rc = _processMsg( (MsgHeader *)msg, contextBuff, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process stop critical mode message, rc: %d", rc ) ;
+
+   done:
+      if ( msg )
+      {
+         msgReleaseBuffer( msg, _cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    UINT64 _clsRemoteOperator::getSucCount()
    {
       return _sucCount ;

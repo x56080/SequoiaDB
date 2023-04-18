@@ -182,7 +182,8 @@ namespace engine
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL,
                               CLS_LOC_INFO_MAP *pLocationInfo = NULL,
-                              ossPoolString *pActiveLocation = NULL ) ;
+                              ossPoolString *pActiveLocation = NULL,
+                              CLS_GROUP_MODE *pGrpMode = NULL ) ;
 
    const CHAR* getServiceName ( const bson::BSONElement &beService,
                                 INT32 serviceType ) ;

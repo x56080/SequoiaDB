@@ -92,10 +92,42 @@ namespace engine
          {
             if ( SDB_OK == msg->header.res )
             {
-               if ( _info()->groupSize() <= ( ++_accepted() + 1 ) )
+               ++_accepted() ;
+
+               // If this accepted msg is from critical node, record it
+               if ( _info()->info.find( msg->identity.value )->second.isInCriticalMode() )
+               {
+                  ++_criticalAccepted() ;
+               }
+
+               // Node in normal mode, not critical mode
+               if ( _info()->groupSize() <= ( _accepted() + 1 ) )
                {
                   next = CLS_ELECTION_STATUS_ANNOUNCE ;
                   PD_LOG( PDEVENT, "%s: Change to announce by all accept", getScopeName() ) ;
+               }
+               // Node in critical mode which is only effective in group election( not in location election )
+               else if ( CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode && ! isLocation() )
+               {
+                  // Node is in enforced mode, need to check if all critical nodes agree
+                  if ( _info()->enforcedGrpMode &&
+                       ( _info()->criticalAliveSize() <= ( _criticalAccepted() + 1 ) ) )
+                  {
+                     next = CLS_ELECTION_STATUS_ANNOUNCE ;
+                     PD_LOG( PDEVENT, "%s: Change to announce by all critical nodes accept "
+                             "in critical mode", getScopeName() ) ;
+                  }
+                  // Node is not in enforced mode, need to check if all alive nodes agree
+                  else if ( _info()->aliveSize() <= ( _accepted() + 1 ) )
+                  {
+                     next = CLS_ELECTION_STATUS_ANNOUNCE ;
+                     PD_LOG( PDEVENT, "%s: Change to announce by all alive nodes accept "
+                             "in critical mode", getScopeName() ) ;
+                  }
+                  else
+                  {
+                     next = id() ;
+                  }
                }
                else
                {
@@ -137,7 +169,24 @@ namespace engine
          else if ( _isAccepted() )
          {
             next = CLS_ELECTION_STATUS_ANNOUNCE ;
-            PD_LOG( PDEVENT, "%s: Change to announce by timeout", getScopeName() ) ;
+
+            if ( CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode && ! isLocation() )
+            {
+               if ( _info()->enforcedGrpMode )
+               {
+                  PD_LOG( PDEVENT, "%s: Change to announce by timeout "
+                          "in enforced critical mode", getScopeName() ) ;
+               }
+               else
+               {
+                  PD_LOG( PDEVENT, "%s: Change to announce by timeout "
+                          "in critical mode", getScopeName() ) ;
+               }
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "%s: Change to announce by timeout", getScopeName() ) ;
+            }
          }
          else
          {
@@ -158,6 +207,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSVT_ACTIVE ) ;
       _timeout() = 0 ;
       _accepted() = 0 ;
+      _criticalAccepted() = 0 ;
 
       if ( _info()->groupSize() == 1 && pmdGetStartup().isOK() )
       {

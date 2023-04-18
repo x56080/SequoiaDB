@@ -3127,6 +3127,12 @@ namespace sdbclient
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
 
       virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
+
+      // start critical mode
+      virtual INT32 startCriticalMode( const bson::BSONObj &options ) = 0 ;
+
+      // stop critical mode
+      virtual INT32 stopCriticalMode() = 0 ;
    } ;
 
    /** \class sdbReplicaGroup
@@ -3590,6 +3596,42 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->setAttributes( options ) ;
+      }
+
+      /** \fn INT32 startCriticalMode( const bson::BSONObj &options )
+          \brief start critical mode in the current replica group.
+          \param [in] options The options of critical mode:
+
+               Node: The critical node to be set in replica group
+               Location: The critical location to be set in replica group
+               Enforced: Whether to force to start critical mode in replica group
+               MinKeepTime: The minimum keep time of critical mode
+               MaxKeepTime: The maximum keep time of critical mode
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 startCriticalMode( const bson::BSONObj &options )
+      {
+         if ( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->startCriticalMode( options ) ;
+      }
+
+      /** \fn INT32 stopCriticalMode ()
+          \brief Stop critical mode in current replica group.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 stopCriticalMode()
+      {
+         if ( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->stopCriticalMode () ;
       }
    } ;
 

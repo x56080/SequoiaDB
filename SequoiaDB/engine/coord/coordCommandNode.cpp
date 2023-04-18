@@ -3276,6 +3276,8 @@ namespace engine
                                       CMD_NAME_ALTER_GROUP,
                                       FALSE ) ;
    _coordCMDAlterRG::_coordCMDAlterRG()
+   : _groupID( INVALID_GROUPID ),
+     _pActionName( NULL )
    {
    }
 
@@ -3283,73 +3285,485 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_EXE, "_coordCMDAlterRG::execute" )
-   INT32 _coordCMDAlterRG::execute( MsgHeader *pMsg,
-                                    pmdEDUCB *cb,
-                                    INT64 &contextID,
-                                    rtnContextBuf *buf )
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_PARSE_MSG, "_coordCMDAlterRG::_parseMsg" )
+   INT32 _coordCMDAlterRG::_parseMsg( MsgHeader *pMsg,
+                                      coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( COORD_ALTERRG_EXE ) ;
-
-      BSONObj hintObj ;
-      BSONElement ele ;
-      UINT32 groupID = INVALID_GROUPID ;
-      coordNodeCMDHelper helper ;
-
-      // Get groupID
-      const CHAR *pHint = NULL ;
-      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL,
-                            NULL, NULL, NULL, NULL, &pHint ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse message, rc: %d", rc ) ;
+      PD_TRACE_ENTRY( COORD_ALTERRG_PARSE_MSG ) ;
 
       try
       {
-         hintObj.init( pHint ) ;
+         const BSONObj &queryObj = pArgs->_boQuery ;
+         BSONElement ele ;
 
-         ele = hintObj.getField( FIELD_NAME_GROUPID ) ;
-         if ( ele.eoo() || ! ele.isNumber() )
+         // Get action name
+         ele = queryObj.getField( FIELD_NAME_ACTION ) ;
+         if ( ele.eoo() || String != ele.type() )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Failed to get field[%s] from hint object: %s",
-                    FIELD_NAME_GROUPID, hintObj.toPoolString().c_str() ) ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
+                    FIELD_NAME_ACTION, queryObj.toPoolString().c_str() ) ;
             goto error ;
          }
-         groupID = ele.numberInt() ;
+         _pActionName = ele.valuestrsafe() ;
       }
       catch ( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Parse hint object [%s] occur exception: %s", pHint, e.what() ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
-      // Send to cataGroup
-      rc = executeOnCataGroup( pMsg, cb, NULL, NULL, TRUE, NULL, buf ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to execute command [%s] on catalog, "
-                   "rc: %d", getName(), rc ) ;
+   done:
+      PD_TRACE_EXITRC( COORD_ALTERRG_PARSE_MSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 
-      if ( CATALOG_GROUPID == groupID ||
-           ( DATA_GROUP_ID_BEGIN <= groupID && DATA_GROUP_ID_END >= groupID ) )
+   INT32 _coordCMDAlterRG::_generateCataMsg( MsgHeader *pMsg,
+                                             pmdEDUCB *cb,
+                                             coordCMDArguments *pArgs,
+                                             CHAR **ppMsgBuf,
+                                             INT32 *pBufSize )
+   {
+      *ppMsgBuf = (CHAR*)pMsg ;
+      *pBufSize = pMsg->messageLength ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_DO_ON_DATA, "_coordCMDAlterRG::_doOnDataGroup" )
+   INT32 _coordCMDAlterRG::_doOnDataGroup( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           rtnContextCoord::sharePtr *ppContext,
+                                           coordCMDArguments *pArgs,
+                                           const CoordGroupList &groupLst,
+                                           const vector<BSONObj> &cataObjs,
+                                           CoordGroupList &sucGroupLst,
+                                           vector<BSONObj> &dataObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_DO_ON_DATA ) ;
+
+      try
       {
-         // Notify all group nodes to update group info in clsReplicateSet
-         helper.notify2GroupNodes( _pResource, groupID, cb ) ;
+         // ReplyObj inculde: { GroupID: 1001 }
+         const BSONObj &replyObj = cataObjs[0] ;
+         BSONElement groupIDEle ;
+
+         // Get groupID, used to notify group nodes to update catalog info
+         groupIDEle = replyObj.getField( FIELD_NAME_GROUPID ) ;
+         if ( groupIDEle.eoo() || ! groupIDEle.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from cata reply: %s",
+                    FIELD_NAME_GROUPID, replyObj.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         _groupID = groupIDEle.numberInt() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+      if ( 0 == ossStrcmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, _pActionName ) ||
+           0 == ossStrcmp( CMD_VALUE_NAME_STOP_CRITICAL_MODE, _pActionName ) ||
+           0 == ossStrcmp( CMD_VALUE_NAME_SET_ATTRIBUTES, _pActionName ) )
+      {
+         // do nothing
+      }
+      else if ( 0 == ossStrcmp( CMD_VALUE_NAME_START_CRITICAL_MODE, _pActionName ) )
+      {
+         rc = _startCriticalModeOnData( pMsg, cb, cataObjs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to do action[%s] on data nodes, rc: %d",
+                      _pActionName, rc ) ;
       }
       else
       {
-         // Only cata and data groupID are valid
-         PD_LOG( PDWARNING, "Failed to notify to group, got invalid groupID: %d", groupID ) ;
+         PD_LOG( PDERROR, "Failed to alter node, received unknown action[%s]", _pActionName ) ;
       }
 
-      if ( CATALOG_GROUPID == groupID )
-      {
-         // Notify all group nodes to update group info in _clsShardMgr
-         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
-      }
    done:
-      PD_TRACE_EXITRC ( COORD_ALTERRG_EXE, rc ) ;
+      PD_TRACE_EXITRC ( COORD_ALTERRG_DO_ON_DATA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_DO_COMPLETE, "_coordCMDAlterRG::_doComplete" )
+   INT32 _coordCMDAlterRG::_doComplete( MsgHeader *pMsg,
+                                        pmdEDUCB * cb,
+                                        coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_DO_COMPLETE ) ;
+
+      if ( 0 == ossStrcmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, _pActionName ) ||
+           0 == ossStrcmp( CMD_VALUE_NAME_STOP_CRITICAL_MODE, _pActionName ) ||
+           0 == ossStrcmp( CMD_VALUE_NAME_START_CRITICAL_MODE, _pActionName ) ||
+           0 == ossStrcmp( CMD_VALUE_NAME_SET_ATTRIBUTES, _pActionName ) )
+      {
+         coordNodeCMDHelper helper ;
+
+         if ( CATALOG_GROUPID == _groupID ||
+              ( DATA_GROUP_ID_BEGIN <= _groupID && DATA_GROUP_ID_END >= _groupID ) )
+         {
+            // Notify all group nodes to update group info in clsReplicateSet
+            helper.notify2GroupNodes( _pResource, _groupID, cb ) ;
+         }
+         else
+         {
+            // Only cata and data groupID are valid
+            PD_LOG( PDWARNING, "Failed to notify to group in [%s] command ,"
+                    "got invalid groupID: %d", _pActionName, _groupID ) ;
+         }
+
+         if ( CATALOG_GROUPID == _groupID )
+         {
+            // Notify all group nodes to update group info in _clsShardMgr
+            helper.notify2AllNodes( _pResource, TRUE, cb ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( COORD_ALTERRG_DO_COMPLETE, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_EXE_BY_LOCATION, "_coordCMDAlterRG::_executeByLocation" )
+   INT32 _coordCMDAlterRG::_executeByLocation( MsgHeader *pMsg,
+                                               pmdEDUCB *cb,
+                                               UINT32 locationID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_EXE_BY_LOCATION ) ;
+
+      SET_ROUTEID sendNodes ;
+      ROUTE_RC_MAP faileds ;
+
+      try
+      {
+         // Get nodes in location
+         UINT32 nodeCount = _groupInfoPtr->nodeCount() ;
+         for ( UINT32 pos = 0 ; pos < nodeCount ; ++pos )
+         {
+            MsgRouteID nodeID ;
+
+            if ( locationID == _groupInfoPtr->nodeLocationID( pos ) &&
+                 _groupInfoPtr->isNodeInStatus( pos, NET_NODE_STAT_NORMAL ) )
+            {
+               _groupInfoPtr->getNodeID( pos, nodeID ) ;
+               sendNodes.insert( nodeID.value ) ;
+            }
+         }
+
+         rc = executeOnNodes( pMsg, cb, sendNodes, faileds ) ;
+         PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to send msg to data node, occured exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERRG_EXE_BY_LOCATION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_EXE_BY_NODE, "_coordCMDAlterRG::_executeByNode" )
+   INT32 _coordCMDAlterRG::_executeByNode( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           UINT16 nodeID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_EXE_BY_NODE ) ;
+
+      MsgRouteID node ;
+      SET_ROUTEID sendNodes ;
+      ROUTE_RC_MAP faileds ;
+
+      try
+      {
+         node.columns.groupID = _groupID ;
+         node.columns.nodeID = nodeID ;
+         node.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+         sendNodes.insert( node.value ) ;
+
+         rc = executeOnNodes( pMsg, cb, sendNodes, faileds ) ;
+         PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to send msg to data node, occured exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERRG_EXE_BY_NODE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_REELECT_GROUP, "_coordCMDAlterRG::_reelectGroup" )
+   INT32 _coordCMDAlterRG::_reelectGroup( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_REELECT_GROUP ) ;
+
+      coordCMDReelectGroup cmd ;
+
+      CHAR *msgBuff = NULL ;
+      INT32 msgSize = 0 ;
+      BSONObj query ;
+      INT64 contextID = -1 ;
+
+      try
+      {
+         query = BSON( FIELD_NAME_GROUPNAME << _groupInfoPtr->groupName().c_str() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build reelect command query, occured exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryMsg( &msgBuff, &msgSize, CMD_ADMIN_PREFIX CMD_NAME_REELECT,
+                             0, 0, 0, -1, &query, NULL, NULL, NULL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build reelect command message, rc: %d", rc ) ;
+
+      rc = cmd.init( _pResource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init reelect command, rc: %d", rc ) ;
+
+      rc = cmd.execute( (MsgHeader *)msgBuff, cb, contextID,  NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reelect group[%u], rc: %d", _groupID, rc ) ;
+      SDB_ASSERT( -1 == contextID, "contextID must be -1" ) ;
+
+   done:
+      if ( NULL != msgBuff )
+      {
+         msgReleaseBuffer( msgBuff, cb ) ;
+      }
+      PD_TRACE_EXITRC ( COORD_ALTERRG_REELECT_GROUP, rc ) ;
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CHECK_CRITICAL_MODE, "_coordCMDAlterRG::_checkCriticalMode" )
+   INT32 _coordCMDAlterRG::_checkCriticalMode( pmdEDUCB *cb,
+                                               const UINT16 &nodeID,
+                                               const UINT32 &locationID,
+                                               const UINT32 &waitTime )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_CHECK_CRITICAL_MODE ) ;
+
+      UINT32 timePassed = 0 ;
+      UINT32 checkInterval = 2 ; // Seconds
+
+      while ( timePassed < waitTime )
+      {
+         BOOLEAN isSuccessful = FALSE ;
+
+         rc = _pResource->updateGroupInfo( _groupID, _groupInfoPtr, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update group[%u] info failed, rc: %d", _groupID, rc ) ;
+
+         // Check if targetNode is replica group's primary
+         if ( INVALID_NODEID != nodeID )
+         {
+            if ( nodeID == _groupInfoPtr->primary().columns.nodeID )
+            {
+               isSuccessful = TRUE ;
+            }
+         }
+         // Check if replica group's primary is in target location
+         else if ( MSG_INVALID_LOCATIONID != locationID )
+         {
+            UINT32 nodeCount = _groupInfoPtr->nodeCount() ;
+            MsgRouteID primary = _groupInfoPtr->primary() ;
+
+            if (  MSG_INVALID_ROUTEID != primary.value )
+            {
+               for ( UINT32 pos = 0 ; pos < nodeCount ; ++pos )
+               {
+                  if ( locationID == _groupInfoPtr->nodeLocationID( pos ) )
+                  {
+                     MsgRouteID node ;
+                     _groupInfoPtr->getNodeID( pos, node ) ;
+
+                     if ( node.value == primary.value )
+                     {
+                        isSuccessful = TRUE ;
+                        break ;
+                     }
+                  }
+               }
+            }
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get parameter [%s] or [%s] from cata node",
+                    FIELD_NAME_NODEID, FIELD_NAME_LOCATION ) ;
+            goto error ;
+         }
+
+         if ( isSuccessful )
+         {
+            break ;
+         }
+
+         // Sleep
+         ossSleepsecs( checkInterval ) ;
+         timePassed += checkInterval ;
+      }
+
+      if ( waitTime <= timePassed )
+      {
+         rc = SDB_TIMEOUT ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_CHECK_CRITICAL_MODE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_START_CRITICAL_MODE_ON_DATA, "_coordCMDAlterRG::_startCriticalModeOnData" )
+   INT32 _coordCMDAlterRG::_startCriticalModeOnData( MsgHeader *pMsg,
+                                                     pmdEDUCB *cb,
+                                                     const vector<BSONObj> &cataObjs )
+   {
+      /* 
+         This function do the following steps:
+         1. If starting critical mode in cata, do nothing
+         2. Check and get the nodes from cata which will be effective in critical mode
+         2. Send start critical mode msg to these nodes
+         4. Execute a reelect group command, and check rc
+         5. Check if critical mode has started successfully
+       */
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERRG_START_CRITICAL_MODE_ON_DATA ) ;
+
+      UINT16         tarNodeID = INVALID_NODEID ;
+      UINT32         tarLocationID = MSG_INVALID_LOCATIONID ;
+
+      if ( CATALOG_GROUPID == _groupID )
+      {
+         // If start critical mode in catalog group, the effective nodes must in cata primary,
+         // we don't need to do on data slave nodes.
+         goto done ;
+      }
+
+      rc = _pResource->updateGroupInfo( _groupID, _groupInfoPtr, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update group[%u] info failed, rc: %d", _groupID, rc ) ;
+
+      try
+      {
+         // Get effective node/location, we don't need to check if the nodeID or location is valid,
+         // because these parameters has been validated in catalog node
+         if ( ! cataObjs.empty() )
+         {
+            // replyObj: { Location: "XX" } | { NodeID: 1000 }
+            const BSONObj &replyObj = cataObjs[0] ;
+            BSONElement replyEle ;
+
+            if ( replyObj.hasField( FIELD_NAME_NODEID ) )
+            {
+               // Get effective nodeID
+               replyEle = replyObj.getField( FIELD_NAME_NODEID ) ;
+               if ( ! replyEle.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Failed to get [%s] from cata reply, type[%d] is not Number",
+                          FIELD_NAME_NODEID, replyEle.type() ) ;
+                  goto error ;
+               }
+               tarNodeID = replyEle.numberInt() ;
+            }
+            else if ( replyObj.hasField( FIELD_NAME_LOCATION ) )
+            {
+               // Get effective locationID
+               replyEle = replyObj.getField( FIELD_NAME_LOCATION ) ;
+               if ( String != replyEle.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Failed to get [%s] from cata reply, type[%d] is not String",
+                          FIELD_NAME_LOCATION, replyEle.type() ) ;
+                  goto error ;
+               }
+               tarLocationID = _groupInfoPtr->getLocationID( replyEle.valuestrsafe() ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Failed to get parameter [%s] or [%s] from cata node",
+                       FIELD_NAME_NODEID, FIELD_NAME_LOCATION ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+      // Send start critical mode msg to data nodes
+      if ( INVALID_NODEID != tarNodeID )
+      {
+         rc = _executeByNode( pMsg, cb, tarNodeID ) ;
+      }
+      else if ( MSG_INVALID_LOCATIONID != tarLocationID )
+      {
+         rc = _executeByLocation( pMsg, cb, tarLocationID ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to start critical mode on data nodes, rc: %d", rc ) ;
+
+      // Execute a reelect command, and ignore the rc: SDB_CLS_NOT_PRIMARY,
+      // because some data group may not have primary
+      rc = _reelectGroup( cb ) ;
+      if ( SDB_CLS_NOT_PRIMARY == rc )
+      {
+         // If data group don't have primary, need to wait at most 30s
+         rc = _checkCriticalMode( cb, tarNodeID, tarLocationID, CLS_REELECT_COMMAND_TIMEOUT_DFT ) ;
+      }
+      else
+      {
+         // Wait at most 10s
+         rc = _checkCriticalMode( cb, tarNodeID, tarLocationID, 10 ) ;
+      }
+
+      // If start critical mode successfully, we need to notify cata to
+      // update the properties of critical mode to SYSCAT table, and notify
+      // data nodes to update group info from cata
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to %s, rc: %d", CMD_VALUE_NAME_START_CRITICAL_MODE, rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERRG_START_CRITICAL_MODE_ON_DATA, rc ) ;
+      return rc ;
    error:
       goto done ;
    }

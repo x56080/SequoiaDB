@@ -114,13 +114,6 @@ namespace engine
                          CLS_ELECTION_ROUND_STAGE_TWO ) ;
       }
 
-      OSS_INLINE BOOLEAN _isAccepted()
-      {
-         /// must be approved by myself
-         return CLS_IS_MAJORITY( _acceptedNum + 1,
-                                 _groupInfo->groupSize() ) ;
-      }
-
       OSS_INLINE UINT32 &_timeout()
       {
          return _time ;
@@ -129,6 +122,11 @@ namespace engine
       OSS_INLINE UINT32 &_accepted()
       {
          return _acceptedNum ;
+      }
+
+      OSS_INLINE UINT32 &_criticalAccepted()
+      {
+         return _criticalAcceptedNum ;
       }
 
       OSS_INLINE _clsGroupInfo *_info()
@@ -140,6 +138,8 @@ namespace engine
       {
          return MSG_INVALID_LOCATIONID != _groupInfo->localLocationID ;
       }
+
+      BOOLEAN _isAccepted() ;
 
    private:
       INT32 _launch( const CLS_ELECTION_ROUND &round ) ;
@@ -155,6 +155,7 @@ namespace engine
       INT32 _id ;
       UINT32 _time ;
       UINT32 _acceptedNum ;
+      UINT32 _criticalAcceptedNum ;
    } ;
 }
 

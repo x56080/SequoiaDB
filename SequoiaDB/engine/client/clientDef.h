@@ -81,6 +81,8 @@
 #define SDB_SNAP_TRANSDEADLOCK    26
 /** snapshot recycle bin **/
 #define SDB_SNAP_RECYCLEBIN       27
+/** reserved */
+#define SDB_SNAP_RESERVED4        28
 
 /** list of all the contexts of all the sessions */
 #define SDB_LIST_CONTEXTS         0
@@ -133,6 +135,8 @@
 #define SDB_LIST_RESERVED8        26
 /** list recycle bin**/
 #define SDB_LIST_RECYCLEBIN       27
+/** list group mode */
+#define SDB_LIST_GROUPMODES       28
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129

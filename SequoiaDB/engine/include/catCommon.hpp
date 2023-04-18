@@ -119,6 +119,11 @@ namespace engine
 
    INT32 catGroupCount( INT64 & count, pmdEDUCB * cb ) ;
 
+   INT32 catGetNodeIDByNodeName( const BSONObj &groupObj,
+                                 const string &nodeName,
+                                 UINT16 &nodeID,
+                                 BOOLEAN &isExists ) ;
+
    /* Collection[CAT_DOMAIN_COLLECTION] functions: */
    INT32 catGetDomainObj( const CHAR *domainName, BSONObj &obj, pmdEDUCB *cb ) ;
    INT32 catCheckDomainExist( const CHAR *pDomainName,
@@ -355,6 +360,15 @@ namespace engine
                               utilCSUniqueID& csUniqueID ) ;
    INT32 catUpdateGlobalID( pmdEDUCB *cb, INT16 w,
                             utilGlobalID& globalID ) ;
+
+   /* Collection[CAT_GROUP_MODE_COLLECTION] functions */
+   INT32 catGetGrpModeObj( const UINT32 &groupID, BSONObj &obj, pmdEDUCB *cb ) ;
+
+   INT32 catParseGrpModeObj( const BSONObj &grpModeObj,
+                             const CLS_LOC_INFO_MAP &locMap,
+                             clsGroupMode &grpMode ) ;
+
+   INT32 catDelGroupFromGrpMode( const UINT32 &groupID, const INT16 &w, pmdEDUCB *cb ) ;
 
    /* Other Tools */
    INT32 catFormatIndexInfo( const CHAR* collection, utilCLUniqueID clUniqID,

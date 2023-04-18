@@ -316,7 +316,6 @@ function getSlaveList(nodeList, primary) {
 /******************************************************************************
  * @description: Use kill -9 to node list
  * @param {string} nodeList
- * @return {array} slaveList // group node list without primary
  ******************************************************************************/
 function killNodes(nodeList) {
   for (var i in nodeList) {
@@ -339,7 +338,11 @@ function killNodes(nodeList) {
 function checkNodeLocation(node, expLocation) {
   var nodeObj = node.getDetailObj().toObj();
   actLocation = nodeObj.Location;
-  assert.equal(actLocation, expLocation);
+  assert.equal(
+    actLocation,
+    expLocation,
+    "Node's location[" + actLocation + "] is not equal to[" + expLocation + "] "
+  );
 }
 
 /******************************************************************************

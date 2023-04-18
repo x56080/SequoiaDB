@@ -130,6 +130,7 @@ namespace engine
 #define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
 #define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
+#define NAME_ALTER_GROUP                     CMD_NAME_ALTER_GROUP
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -289,6 +290,7 @@ namespace engine
       CMD_WAITTASK                           = 146,
       CMD_CANCEL_TASK                        = 147,
       CMD_ALTER_DOMAIN                       = 148,
+      CMD_ALTER_GROUP                        = 149,
 
       CMD_LINK_COLLECTION                    = 150,
       CMD_UNLINK_COLLECTION                  = 151,

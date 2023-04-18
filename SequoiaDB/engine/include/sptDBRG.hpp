@@ -96,6 +96,14 @@ namespace engine
                            _sptReturnVal &rval,
                            bson::BSONObj &detail ) ;
 
+      INT32 startCriticalMode( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail ) ;
+
+      INT32 stopCriticalMode( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail ) ;
+
       INT32 detachNode( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;

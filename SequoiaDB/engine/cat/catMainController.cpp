@@ -773,6 +773,19 @@ namespace engine
          goto error ;
       }
 
+      /// SYSGROUPMODES
+      rc = _createSysCollection( CAT_GROUP_MODE_COLLECTION, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_GROUP_MODE_COLLECTION,
+                            CAT_GROUP_MODE_GROUPID_IDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       /// SYSLOG
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {

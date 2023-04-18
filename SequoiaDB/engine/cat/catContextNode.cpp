@@ -44,6 +44,7 @@
 #include "rtn.hpp"
 #include "rtnCB.hpp"
 #include "utilCommon.hpp"
+#include "catLocation.hpp"
 
 #define CAT_PORT_STR_SZ 10
 
@@ -55,7 +56,8 @@ namespace engine
     * _catCtxNodeBase implement
     */
    _catCtxNodeBase::_catCtxNodeBase ( INT64 contextID, UINT64 eduID )
-   : _catContextBase( contextID, eduID )
+   : _catContextBase( contextID, eduID ),
+     _groupID( CAT_INVALID_GROUPID )
    {
       _isLocalConnection = FALSE ;
    }
@@ -534,6 +536,12 @@ namespace engine
                    "Failed to remove group [%s] from domain, rc: %d",
                    _targetName.c_str(), rc ) ;
 
+      // Remove group from group mode
+      rc = catDelGroupFromGrpMode( _groupID, w, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to remove group [%s] from group mode, rc: %d",
+                   _targetName.c_str(), rc ) ;
+
       matcher = BSON( FIELD_NAME_GROUPNAME << _targetName ) ;
       rc = rtnDelete( CAT_NODE_INFO_COLLECTION, matcher, dummy, 0,
                       cb, _pDmsCB, _pDpsCB, w ) ;
@@ -550,6 +558,637 @@ namespace engine
       {
          _pCatCB->insertGroupID ( _groupID, _targetName, TRUE ) ;
       }
+      goto done ;
+   }
+
+   /*
+    * _catCtxAlterGrp implement
+    */
+   RTN_CTX_AUTO_REGISTER( _catCtxAlterGrp, RTN_CONTEXT_CAT_ALTER_GROUP, "CAT_ALTER_GROUP" )
+
+   _catCtxAlterGrp::_catCtxAlterGrp( INT64 contextID, UINT64 eduID )
+   : _catCtxNodeBase( contextID, eduID ),
+     _pActionName( NULL ),
+     _pCatNodeMgr( _pCatCB->getCatNodeMgr() )
+   {
+      _executeOnP1 = FALSE ;
+      _needRollback = FALSE ;
+   }
+
+   _catCtxAlterGrp::~_catCtxAlterGrp()
+   {
+      _onCtxDelete() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (  SDB_CATCTXALTERGROUP_OPEN, "_catCtxAlterGrp::open" )
+   INT32 _catCtxAlterGrp::open( MSG_TYPE cmdType,
+                                const BSONObj &queryObj,
+                                const BSONObj &hintObj,
+                                rtnContextBuf &buffObj,
+                                _pmdEDUCB *cb )
+   {
+      SDB_ASSERT ( _status == CAT_CONTEXT_NEW, "Wrong catalog status before opening" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY(  SDB_CATCTXALTERGROUP_OPEN ) ;
+
+      _cmdType = cmdType ;
+
+      try
+      {
+         _boQuery = queryObj.getOwned() ;
+         _boHint = hintObj.getOwned() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = _open( buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open context, rc: %d", rc ) ;
+
+   done :
+      PD_TRACE_EXITRC(  SDB_CATCTXALTERGROUP_OPEN, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_PARSEQUERY, "_catCtxAlterGrp::_parseQuery" )
+   INT32 _catCtxAlterGrp::_parseQuery( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATCTXALTERGRP_PARSEQUERY ) ;
+
+      SDB_ASSERT( MSG_BS_QUERY_REQ == _cmdType, "Wrong command type" ) ;
+
+      try
+      {
+         BSONElement ele ;
+
+         // Get GroupID from hint obj
+         rc = rtnGetIntElement( _boHint, CAT_GROUPID_NAME, (INT32 &)_groupID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from hint object: %s, rc: %d",
+                      CAT_GROUPID_NAME, _boHint.toPoolString().c_str(), rc ) ;
+
+         // Get action name
+         rc = rtnGetStringElement( _boQuery, FIELD_NAME_ACTION, &_pActionName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from query object: %s, rc: %d",
+                      FIELD_NAME_ACTION, _boQuery.toPoolString().c_str(), rc ) ;
+
+         // Get option
+         if ( 0 == ossStrcmp( SDB_ALTER_GROUP_SET_ACTIVE_LOCATION, _pActionName ) ||
+              0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) ||
+              0 == ossStrcmp( SDB_ALTER_GROUP_SET_ATTR, _pActionName ) )
+         {
+            rc = rtnGetObjElement( _boQuery, FIELD_NAME_OPTIONS, _option ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from query object: %s, rc: %d",
+                         FIELD_NAME_OPTIONS, _boQuery.toPoolString().c_str(), rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCTXALTERGRP_PARSEQUERY, rc ) ;
+      return rc;
+   error :
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_CHECK_INT, "_catCtxAlterGrp::_checkInternal" )
+   INT32 _catCtxAlterGrp::_checkInternal( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATCTXALTERGRP_CHECK_INT ) ;
+
+      BSONObjIterator itr ;
+      string groupName ;
+
+      // Get group obj by group id
+      rc = catGetGroupObj( _groupID, _boTarget, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group [%u] obj, rc: %d", _groupID, rc ) ;
+
+      // Get group name
+      rc = rtnGetSTDStringElement( _boTarget, FIELD_NAME_GROUPNAME, groupName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group name, rc: %d", rc ) ;
+
+      // Lock group
+      PD_CHECK( _lockMgr.tryLockGroup( groupName, EXCLUSIVE ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock group [%s]", groupName.c_str() ) ;
+
+      try
+      {
+         // Match Action
+         if ( 0 == ossStrcmp( SDB_ALTER_GROUP_SET_ACTIVE_LOCATION, _pActionName ) )
+         {
+            rc = _setActiveLocation() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set active location, rc: %d", rc ) ;
+         }
+         else if ( 0 == ossStrcmp( SDB_ALTER_GROUP_SET_ATTR, _pActionName ) )
+         {
+            // Parse options
+            itr = BSONObjIterator( _option ) ;
+            while ( itr.more() )
+            {
+               BSONElement optionEle = itr.next() ;
+               // Match ActiveLocation
+               if ( 0 == ossStrcmp( CAT_ACTIVE_LOCATION_NAME, optionEle.fieldName() ) )
+               {
+                  rc = _setActiveLocation() ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to set active location in group[%s], rc: %d",
+                               groupName.c_str(),  rc ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Invalid alter group option[%s]", optionEle.fieldName() ) ;
+                  goto error ;
+               }
+            }
+         }
+         else if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
+         {
+            rc = _checkCriticalMode() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check critical mode, rc: %d", rc ) ;
+         }
+         else if ( 0 == ossStrcmp( SDB_ALTER_GROUP_STOP_CRITICAL_MODE, _pActionName ) )
+         {
+            rc = _stopCriticalMode() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to stop critical mode, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to alter group, received unknown action[%s]",
+                    _pActionName ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCTXALTERGRP_CHECK_INT, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_EXECUTE_INT, "_catCtxAlterGrp::_executeInternal" )
+   INT32 _catCtxAlterGrp::_executeInternal ( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATCTXALTERGRP_EXECUTE_INT ) ;
+
+      if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
+      {
+         rc = _startCriticalMode( w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start critical mode, rc: %d", rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCTXALTERGRP_EXECUTE_INT, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP__BUILDP1REPLY, "_catCtxAlterGrp::_buildP1Reply" )
+   INT32 _catCtxAlterGrp::_buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERGRP__BUILDP1REPLY ) ;
+
+      try
+      {
+         // In alter group command, the return msg of all actions should contain groupID
+         builder.append( FIELD_NAME_GROUPID, _groupID ) ;
+
+         // If the action is start critical mode, location or nodeID should also be returned
+         if ( CLS_GROUP_MODE_CRITICAL == _grpMode.mode )
+         {
+            if ( CAT_INVALID_NODEID != _grpMode.grpModeInfo[0].nodeID )
+            {
+               builder.append( CAT_NODEID_NAME, _grpMode.grpModeInfo[0].nodeID ) ;
+            }
+            else if ( ! _grpMode.grpModeInfo[0].location.empty() )
+            {
+               builder.append( CAT_LOCATION_NAME, _grpMode.grpModeInfo[0].location.c_str() ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERGRP__BUILDP1REPLY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_SETACTIVELOC, "_catCtxAlterGrp::_setActiveLocation" )
+   INT32 _catCtxAlterGrp::_setActiveLocation()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_SETACTIVELOC ) ;
+
+      BSONElement optionEle ;
+      ossPoolString newActLoc ;
+      ossPoolString oldActLoc ;
+
+      // Get new ActiveLocation, this field should not be empty
+      optionEle = _option.getField( CAT_ACTIVE_LOCATION_NAME ) ;
+      if ( optionEle.eoo() || String != optionEle.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
+         goto error ;
+      }
+      // optionEle.valuestrsize include the length of '\0'
+      if ( MSG_LOCATION_NAMESZ < optionEle.valuestrsize() - 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+         goto error ;
+      }
+      newActLoc = optionEle.valuestrsafe() ;
+
+      // Check and get active location
+      rc = catCheckAndGetActiveLocation( _boTarget, _groupID, newActLoc, oldActLoc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check active location, rc: %d", rc ) ;
+
+      // Compare oldLocation and newLocation
+      if ( oldActLoc == newActLoc )
+      {
+         PD_LOG( PDDEBUG, "The old and new ActiveLocation are same, do nothing" ) ;
+         goto done ;
+      }
+
+      // Set new ActiveLocation
+      if ( ! newActLoc.empty() )
+      {
+         rc = _pCatNodeMgr->setActiveLocation( _groupID, newActLoc ) ;
+      }
+      // Remove old ActiveLocation
+      else
+      {
+         rc = _pCatNodeMgr->removeActiveLocation( _groupID ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to set active location, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERGRP_SETACTIVELOC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_CHECK_CRITICAL_MODE, "_catCtxAlterGrp::_checkCriticalMode" )
+   INT32 _catCtxAlterGrp::_checkCriticalMode()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_CHECK_CRITICAL_MODE ) ;
+
+      BSONElement     optionEle ;
+      BSONElement     grpModeEle ;
+      BSONObjIterator itr ;
+      string          tmpNodeName ;
+      string          tmpLocation ;
+      UINT16          tmpMinKeepTime = 0 ;
+      UINT16          tmpMaxKeepTime = 0 ;
+      clsGrpModeItem  tmpGrpModeItem ;
+      BOOLEAN         hasNodeName = FALSE ;
+      BOOLEAN         hasLocation = FALSE ;
+      BOOLEAN         hasMinKeepTime = FALSE ;
+      BOOLEAN         hasMaxKeepTime = FALSE ;
+      BOOLEAN         isCataGroup = FALSE ;
+      ossTimestamp    curTime ;
+
+      // Init _grpMode member
+      _grpMode.groupID = _groupID ;
+      _grpMode.mode = CLS_GROUP_MODE_CRITICAL ;
+
+      // Check the groupID, only the node in cata and data group can start critical mode
+      if ( CATALOG_GROUPID == _groupID )
+      {
+         isCataGroup = TRUE ;
+      }
+      else if ( DATA_GROUP_ID_BEGIN > _groupID || DATA_GROUP_ID_END < _groupID )
+      {
+         rc = SDB_OPERATION_CONFLICT ;
+         PD_LOG_MSG( PDERROR, "Group[%u] doesn't support to start critical mode", _groupID ) ;
+         goto error ;
+      }
+
+      // Check if this group is in maintenance mode
+      grpModeEle = _boTarget.getField( CAT_GROUP_MODE_NAME ) ;
+      if ( ! grpModeEle.eoo() )
+      {
+         if ( String != grpModeEle.type() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDWARNING, "Failed to get the field[%s], type[%d] is not String",
+                    CAT_GROUP_MODE_NAME, grpModeEle.type() ) ;
+            goto error ;
+         }
+         else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, grpModeEle.valuestrsafe() ) )
+         {
+            rc = SDB_OPERATION_CONFLICT ;
+            PD_LOG_MSG( PDERROR, "Failed to start critical mode in group[%u], "
+                        "maintenance mode is operating", _groupID ) ;
+            goto error ;
+         }
+      }
+
+      // Get properties from _option object
+      itr = BSONObjIterator( _option ) ;
+      while ( itr.more() )
+      {
+         optionEle = itr.next() ;
+
+         // Get nodeName
+         if ( 0 == ossStrcmp( FIELD_NAME_NODE_NAME, optionEle.fieldName() ) )
+         {
+            if ( String != optionEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Parameter [%s]'s value is not string", FIELD_NAME_NODE_NAME ) ;
+               goto error ;
+            }
+            hasNodeName = TRUE ;
+            tmpNodeName = optionEle.valuestrsafe() ;
+         }
+         // Get location
+         else if ( 0 == ossStrcmp( FIELD_NAME_NODE_LOCATION, optionEle.fieldName() ) )
+         {
+            if ( String != optionEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Parameter [%s]'s value is not string", FIELD_NAME_NODE_LOCATION ) ;
+               goto error ;
+            }
+            hasLocation = TRUE ;
+            tmpLocation = optionEle.valuestrsafe() ;
+         }
+         // Check Enforced field
+         else if ( 0 == ossStrcmp( FIELD_NAME_ENFORCED1, optionEle.fieldName() ) )
+         {
+            if ( Bool != optionEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Patrmeter [%s]'s value is not bool", FIELD_NAME_ENFORCED1 ) ;
+               goto error ;
+            }
+         }
+         // Get MinKeepTime field
+         else if ( 0 == ossStrcmp( CAT_MIN_KEEP_TIME_NAME, optionEle.fieldName() ) )
+         {
+            if ( ! optionEle.isNumber() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Parameter [%s]'s value is not number", CAT_MIN_KEEP_TIME_NAME ) ;
+               goto error ;
+            }
+            hasMinKeepTime = TRUE ;
+            tmpMinKeepTime = optionEle.numberInt() ;
+         }
+         // Get MaxKeepTime field
+         else if ( 0 == ossStrcmp( CAT_MAX_KEEP_TIME_NAME, optionEle.fieldName() ) )
+         {
+            if ( ! optionEle.isNumber() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Parameter [%s]'s value is not number", CAT_MAX_KEEP_TIME_NAME ) ;
+               goto error ;
+            }
+            hasMaxKeepTime = TRUE ;
+            tmpMaxKeepTime = optionEle.numberInt() ;
+         }
+         // Get unknown input
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Parameter [%s] is unknown", optionEle.fieldName() ) ;
+            goto error ;
+         }
+      }
+
+      // Check if any required parameters are missing
+      if ( ( ! hasNodeName ) && ( ! hasLocation ) )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         PD_LOG_MSG( PDERROR, "Parameter [%s] or [%s] is missing",
+                     FIELD_NAME_NODE_NAME, FIELD_NAME_LOCATION ) ;
+         goto error ;
+      }
+      else if ( ( ! hasMinKeepTime ) || ( ! hasMaxKeepTime ) )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         PD_LOG_MSG( PDERROR, "Parameter [%s] or [%s] is missing",
+                     CAT_MIN_KEEP_TIME_NAME, CAT_MAX_KEEP_TIME_NAME ) ;
+         goto error ;
+      }
+
+      // Validate the parameters
+
+      // Validate node or location
+      if ( hasNodeName )
+      {
+         BOOLEAN isExists = FALSE ;
+         UINT16 tmpNodeID = CAT_INVALID_NODEID ;
+
+         rc = catGetNodeIDByNodeName( _boTarget, tmpNodeName, tmpNodeID, isExists ) ;
+         if ( SDB_INVALIDARG == rc )
+         {
+            PD_LOG_MSG( PDERROR, "NodeName: [%s] is invalid", tmpNodeName.c_str() ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get nodeID by nodeName[%s] from group[%s]",
+                    tmpNodeName.c_str(), _boTarget.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         else if ( ! isExists )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "NodeName: [%s] is not exist", tmpNodeName.c_str() ) ;
+            goto error ;
+         }
+         tmpGrpModeItem.nodeID = tmpNodeID ;
+      }
+      else if ( hasLocation )
+      {
+         BOOLEAN isExists = FALSE ;
+
+         if ( tmpLocation.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location: [%s] can't be null", tmpLocation.c_str() ) ;
+            goto error ;
+         }
+         else if ( MSG_LOCATION_NAMESZ < tmpLocation.size() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+
+         rc = catCheckLocationExists( _boTarget, tmpLocation.c_str(), isExists ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check location[%s] info in group[%u]",
+                      tmpLocation.c_str(), _groupID ) ;
+
+         if ( ! isExists )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
+                        tmpLocation.c_str(), _groupID ) ;
+            goto error ;
+         }
+         tmpGrpModeItem.location = tmpLocation.c_str() ;
+      }
+
+      // If we start critical mode in cata group, we must ensure that cata primary is in effective nodes
+      if ( isCataGroup )
+      {
+         if ( pmdGetNodeID().columns.nodeID != tmpGrpModeItem.nodeID &&
+              ( tmpLocation.empty() ||
+                0 != ossStrcmp( pmdGetLocation(), tmpLocation.c_str() ) ) )
+         {
+            rc = SDB_OPERATION_CONFLICT ;
+            PD_LOG_MSG( PDERROR, "Catalog group's primary is not in effective nodes "
+                        "of critical mode" ) ;
+            goto error ;
+         }
+      }
+
+      // Validate MinKeepTime and MaxKeepTime
+      if ( CLS_GROUP_MODE_KEEP_TIME_MIN > tmpMinKeepTime ||
+           CLS_GROUP_MODE_KEEP_TIME_MAX < tmpMinKeepTime ||
+           CLS_GROUP_MODE_KEEP_TIME_MIN > tmpMaxKeepTime ||
+           CLS_GROUP_MODE_KEEP_TIME_MAX < tmpMaxKeepTime )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Parameter [%s: %d] or [%s: %d] is not in range: [%d, %d]",
+                     CAT_MIN_KEEP_TIME_NAME, tmpMinKeepTime,
+                     CAT_MAX_KEEP_TIME_NAME, tmpMaxKeepTime,
+                     CLS_GROUP_MODE_KEEP_TIME_MIN,
+                     CLS_GROUP_MODE_KEEP_TIME_MAX ) ;
+         goto error ;
+      }
+      else if ( tmpMinKeepTime > tmpMaxKeepTime )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Parameter [%s: %d] shoule be less or equal than [%s: %d]",
+                     CAT_MIN_KEEP_TIME_NAME, tmpMinKeepTime,
+                     CAT_MAX_KEEP_TIME_NAME, tmpMaxKeepTime ) ;
+         goto error ;
+      }
+      ossGetCurrentTime( curTime ) ;
+
+      // The unit of input: tmpMinKeepTime and tmpMaxKeepTime is minute,
+      // so we need to convert it to second
+      tmpGrpModeItem.minKeepTime = curTime ;
+      tmpGrpModeItem.minKeepTime.time += tmpMinKeepTime * 60 ;
+
+      tmpGrpModeItem.maxKeepTime = curTime ;
+      tmpGrpModeItem.maxKeepTime.time += tmpMaxKeepTime * 60 ;
+
+      // Set current time to update time
+      tmpGrpModeItem.updateTime = curTime ;
+
+      _grpMode.grpModeInfo.push_back( tmpGrpModeItem ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERGRP_CHECK_CRITICAL_MODE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_START_CRITICAL_MODE, "_catCtxAlterGrp::_startCriticalMode" )
+   INT32 _catCtxAlterGrp::_startCriticalMode( INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_START_CRITICAL_MODE ) ;
+
+      if ( CATALOG_GROUPID == _groupID )
+      {
+         w = 1 ;
+         catSetSyncW( 1 ) ;
+      }
+
+      rc = _pCatNodeMgr->startCriticalMode( _grpMode, _boTarget, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start critical mode, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERGRP_START_CRITICAL_MODE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_STOP_CRITICAL_MODE, "_catCtxAlterGrp::_stopCriticalMode" )
+   INT32 _catCtxAlterGrp::_stopCriticalMode()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_STOP_CRITICAL_MODE ) ;
+
+      // Check stop critical mode
+      if ( ! _boTarget.hasField( CAT_GROUP_MODE_NAME ) )
+      {
+         // do nothing
+         goto done ;
+      }
+      else
+      {
+         BSONElement grpModeEle = _boTarget.getField( CAT_GROUP_MODE_NAME ) ;
+
+         if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, grpModeEle.valuestrsafe() ) )
+         {
+            rc = SDB_OPERATION_CONFLICT ;
+            PD_LOG_MSG( PDERROR, "Failed to stop critical mode, current group mode is [%s], "
+                        "rc: %d", grpModeEle.valuestrsafe(), rc ) ;
+            goto error ;
+         }
+         else if ( 0 == ossStrcmp( CAT_CRITICAL_MODE_NAME, grpModeEle.valuestrsafe() ) )
+         {
+            if ( CATALOG_GROUPID == _groupID )
+            {
+               catSetSyncW( 1 ) ;
+            }
+
+            rc = _pCatNodeMgr->stopCriticalMode( _groupID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to stop critical mode, rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERGRP_STOP_CRITICAL_MODE, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 

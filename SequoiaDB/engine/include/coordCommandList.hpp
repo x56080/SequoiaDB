@@ -666,6 +666,23 @@ namespace engine
    } ;
    typedef class _coordCMDListRecycleBinIntr coordCMDListRecycleBinIntr ;
 
+   /* 
+      _coordCMDListGrpModes define
+    */
+   class _coordCMDListGrpModes : public _coordCMDQueryBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDListGrpModes() ;
+      virtual ~_coordCMDListGrpModes() ;
+
+   protected:
+      virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
+                                 string &clName,
+                                 BSONObj &outSelector ) ;
+   } ;
+   typedef class _coordCMDListGrpModes coordCMDListGrpModes ;
+
 }
 
 #endif // COORD_COMMAND_LIST_HPP__

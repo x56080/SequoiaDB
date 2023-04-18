@@ -118,13 +118,8 @@ namespace engine
       }
 
    private:
-      INT32 _setActiveLocation( const BSONObj &groupObj ) ;
-
-   private:
-      UINT32                 _groupID ;
-      ossPoolString          _actionName ;
-      BSONObj                _option ;
-      catNodeManager         *_pCatNodeMgr ;
+      BSONObj _queryObj ;
+      BSONObj _hintObj ;
    } ;
 
    typedef class _catCMDAlterRG catCMDAlterRG ;

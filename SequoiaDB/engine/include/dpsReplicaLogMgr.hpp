@@ -66,6 +66,10 @@ namespace engine
    #define  DPS_SEARCH_FILE      0x10
    #define  DPS_SEARCH_ALL       (DPS_SEARCH_MEM|DPS_SEARCH_FILE)
 
+   #define DPS_INC_VER_ZERO      0
+   #define DPS_INC_VER_DFT       1
+   #define DPS_INC_VER_CRITICAL  10
+
    class _pmdEDUCB ;
    class dpsTransCB ;
 
@@ -101,7 +105,7 @@ namespace engine
 
       dpsTransCB                 *_transCB ;
       vector< dpsEventHandler* > _vecEventHandler ;
-      BOOLEAN                    _incVersion ;
+      UINT8                      _incVerVal ;
 
       _dpsMetaFile               _metaFile ;
 
@@ -159,17 +163,17 @@ namespace engine
          return lsn ;
       }
 
-      OSS_INLINE void incVersion()
+      OSS_INLINE void incVersion( UINT8 incVerVal = DPS_INC_VER_DFT )
       {
          _mtx.get() ;
-         _incVersion = TRUE ;
+         _incVerVal = incVerVal ;
          _mtx.release() ;
       }
 
       OSS_INLINE void cancelIncVersion()
       {
          _mtx.get() ;
-         _incVersion = FALSE ;
+         _incVerVal = DPS_INC_VER_ZERO ;
          _mtx.release() ;
       }
 

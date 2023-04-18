@@ -153,6 +153,17 @@ namespace engine
             {
                continue ;
             }
+            if ( CLS_GROUP_MODE_CRITICAL == _info->curGrpMode && 
+                 INVALID_NODE_ID == _info->grpMode.grpModeInfo[0].nodeID )
+            {
+               map<UINT64, _clsSharingStatus *>::const_iterator itr = 
+                           _info->alives.find( _notifyList[i].id.value ) ;
+               // If group is in critical location mode, ignore the nodes which are not in critical mode
+               if ( _info->alives.end() == itr || ! itr->second->isInCriticalMode() )
+               {
+                  continue ;
+               }
+            }
             if ( DPS_INVALID_LSN_OFFSET == offset ||
                  _notifyList[i].offset < offset )
             {

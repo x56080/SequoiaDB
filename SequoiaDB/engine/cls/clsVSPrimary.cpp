@@ -71,8 +71,10 @@ namespace engine
       _timeout() += millisec ;
       if ( CLS_VOTE_CS_TIME <= _timeout() )
       {
-         if ( CLS_IS_MAJORITY( _info()->alives.size() + 1,
-                               _info()->groupSize() ) )
+         if ( CLS_IS_MAJORITY( _info()->aliveSize(), _info()->groupSize() ) ||
+              ( ! isLocation() &&
+                CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode &&
+                CLS_IS_MAJORITY( _info()->criticalAliveSize(), _info()->criticalSize() ) ) )
          {
             _timeout() = 0 ;
             next = id() ;

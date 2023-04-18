@@ -46,6 +46,7 @@ if ( tmpSdbCollection == undefined )
       rawFind: SdbCollection.prototype.rawFind,
       remove: SdbCollection.prototype.remove,
       setAttributes: SdbCollection.prototype.setAttributes,
+      setConsistencyStrategy: SdbCollection.prototype.setConsistencyStrategy,
       snapshotIndexes: SdbCollection.prototype.snapshotIndexes,
       split: SdbCollection.prototype.split,
       splitAsync: SdbCollection.prototype.splitAsync,
@@ -105,6 +106,7 @@ SdbCollection.prototype.putLob=function(){try{return tmpSdbCollection.putLob.app
 SdbCollection.prototype.rawFind=function(){try{return tmpSdbCollection.rawFind.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.remove=function(){try{return tmpSdbCollection.remove.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.setAttributes=function(){try{return tmpSdbCollection.setAttributes.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbCollection.prototype.setConsistencyStrategy=function(){try{return tmpSdbCollection.setConsistencyStrategy.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.snapshotIndexes=function(){try{return tmpSdbCollection.snapshotIndexes.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.split=function(){try{return tmpSdbCollection.split.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.splitAsync=function(){try{return tmpSdbCollection.splitAsync.apply(this,arguments);}catch(e){throw new Error(e);}};

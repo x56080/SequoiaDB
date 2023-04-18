@@ -6646,13 +6646,12 @@ namespace engine
          }
          else if ( MSG_INVALID_ROUTEID !=
                   ( _primaryID.value = _pReplSet->getPrimary().value ) &&
-                  _pReplSet->isSendNormal( _primaryID.value ) )
+                    _pReplSet->isSendNormal( _primaryID.value ) )
          {
             rc = SDB_CLS_NOT_PRIMARY ;
             goto error ;
          }
-         else if ( !CLS_IS_MAJORITY( _pReplSet->getAlivesByTimeout(),
-                                     _pReplSet->groupSize() ) )
+         else if ( ! _pReplSet->isMajorityAlive() )
          {
             rc = SDB_CLS_NOT_PRIMARY ;
             goto error ;

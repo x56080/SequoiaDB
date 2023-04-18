@@ -71,6 +71,7 @@ if ( tmpSdb == undefined )
       resetSnapshot: Sdb.prototype.resetSnapshot,
       setPDLevel: Sdb.prototype.setPDLevel,
       setSessionAttr: Sdb.prototype.setSessionAttr,
+      shrinkSpace: Sdb.prototype.shrinkSpace,
       snapshot: Sdb.prototype.snapshot,
       startRG: Sdb.prototype.startRG,
       stopRG: Sdb.prototype.stopRG,
@@ -162,6 +163,7 @@ Sdb.prototype.renameSequence=function(){try{return tmpSdb.renameSequence.apply(t
 Sdb.prototype.resetSnapshot=function(){try{return tmpSdb.resetSnapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.setPDLevel=function(){try{return tmpSdb.setPDLevel.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.setSessionAttr=function(){try{return tmpSdb.setSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.shrinkSpace=function(){try{return tmpSdb.shrinkSpace.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.snapshot=function(){try{return tmpSdb.snapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.startRG=function(){try{return tmpSdb.startRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.stopRG=function(){try{return tmpSdb.stopRG.apply(this,arguments);}catch(e){throw new Error(e);}};

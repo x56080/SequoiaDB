@@ -189,6 +189,7 @@ public :
    {
    }
 
+   // The unit of curTime is millisecond
    ossTimestamp ( UINT64 curTime )
    : time( curTime / 1000 ),
      microtm( ( curTime % 1000 ) * 1000 )

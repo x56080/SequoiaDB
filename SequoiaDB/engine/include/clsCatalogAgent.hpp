@@ -538,7 +538,6 @@ namespace engine
          clsNodeItem*         nodeItemByPos( UINT32 pos ) ;
          INT32                nodePos  ( UINT16 nodeID ) ;
          UINT32               nodeLocationID( UINT32 pos ) ;
-         UINT32               nodeLocationID( const MsgRouteID& nodeID ) ;
 
          INT32 getNodeID ( UINT32 pos, MsgRouteID& id,
                            MSG_ROUTE_SERVICE_TYPE type=

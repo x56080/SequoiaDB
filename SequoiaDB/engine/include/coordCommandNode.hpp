@@ -674,17 +674,60 @@ namespace engine
    /*
       _coordCMDAlterRG define
    */
-   class _coordCMDAlterRG : public _coordCommandBase
+   class _coordCMDAlterRG : public _coordNodeCMD2Phase
    {
       COORD_DECLARE_CMD_AUTO_REGISTER() ;
       public:
          _coordCMDAlterRG() ;
          virtual ~_coordCMDAlterRG() ;
 
-         virtual INT32 execute( MsgHeader *pMsg,
-                                pmdEDUCB *cb,
-                                INT64 &contextID,
-                                rtnContextBuf *buf ) ;
+      protected:
+         virtual INT32 _parseMsg( MsgHeader *pMsg,
+                                  coordCMDArguments *pArgs ) ;
+
+         virtual INT32 _generateCataMsg( MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         coordCMDArguments *pArgs,
+                                         CHAR **ppMsgBuf,
+                                         INT32 *pBufSize ) ;
+
+         virtual INT32 _doOnDataGroup( MsgHeader *pMsg,
+                                       pmdEDUCB *cb,
+                                       rtnContextCoord::sharePtr *ppContext,
+                                       coordCMDArguments *pArgs,
+                                       const CoordGroupList &groupLst,
+                                       const vector<BSONObj> &cataObjs,
+                                       CoordGroupList &sucGroupLst,
+                                       vector<BSONObj> &dataObjs ) ;
+
+         virtual INT32 _doComplete( MsgHeader *pMsg,
+                                    pmdEDUCB * cb,
+                                    coordCMDArguments *pArgs ) ;
+
+         virtual INT32 _executeByLocation( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           UINT32 locationID ) ;
+
+         virtual INT32 _executeByNode( MsgHeader *pMsg,
+                                       pmdEDUCB *cb,
+                                       UINT16 nodeID ) ;
+
+         virtual INT32 _reelectGroup( pmdEDUCB *cb ) ;
+
+      private:
+         INT32 _checkCriticalMode( pmdEDUCB *cb,
+                                   const UINT16 &nodeID,
+                                   const UINT32 &locationID,
+                                   const UINT32 &waitTime ) ;
+
+         INT32 _startCriticalModeOnData( MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         const vector<BSONObj> &cataObjs ) ;
+
+      private:
+         UINT32              _groupID ;
+         const CHAR*         _pActionName ;
+         CoordGroupInfoPtr   _groupInfoPtr ;
    } ;
    typedef _coordCMDAlterRG coordCMDAlterRG ;
 

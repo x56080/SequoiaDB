@@ -42,6 +42,7 @@
 #include "pmd.hpp"
 #include "rtnCB.hpp"
 #include "dmsCB.hpp"
+#include "clsMgr.hpp"
 
 using namespace bson ;
 
@@ -211,13 +212,19 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       dmsLocalSUMgr *pMgr = krcb->getDMSCB()->getLocalSUMgr() ;
       INT16 w = pmdGetOptionCB()->transReplSize() ;
+      INT16 finalW = 0 ;
       BSONObj obj ;
       BSONObj retIDObj ;
       UINT64 lastWriteCount = 0 ;
 
-      if ( w <= 0 )
+      w = w <= 0 ? 2 : w ;
+      rc = pmdGetKRCB()->getClsCB()->getReplCB()->replSizeCheck( w, finalW, cb ) ;
+      if ( SDB_OK != rc )
       {
-         w = 2 ;
+         finalW = w ;
+         PD_LOG( PDWARNING, "Failed to check repl size for task[%s], given "
+                 "repl size [%d], rc: %d", ptr->toPrintString().c_str(), w, rc ) ;
+         rc = SDB_OK ;
       }
 
       {
@@ -274,7 +281,7 @@ namespace engine
 
       lastWriteCount = cb->getMonAppCB()->totalDataWrite ;
       // save to file
-      rc = pMgr->addTask( obj, cb, dpsCB, w, retIDObj ) ;
+      rc = pMgr->addTask( obj, cb, dpsCB, finalW, retIDObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Add task failed, rc: %d", rc ) ;

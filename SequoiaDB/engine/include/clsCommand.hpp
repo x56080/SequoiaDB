@@ -516,6 +516,43 @@ namespace engine
 
    } ;
 
+   /* 
+      _rtnAlterGroup define
+    */
+   class _rtnAlterGroup : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnAlterGroup () ;
+         ~_rtnAlterGroup () ;
+
+         virtual INT32 spaceNode () ;
+         virtual INT32 spaceService () ;
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+
+      public :
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+
+      private:
+         INT32 _parseOptions() ;
+
+      private:
+         UINT32                 _groupID ;
+         const CHAR*            _pActionName ;
+         BSONObj                _option ;
+         BOOLEAN                _enforced ;
+         clsGroupMode           _grpMode ;
+   } ;
+
 }
 
 

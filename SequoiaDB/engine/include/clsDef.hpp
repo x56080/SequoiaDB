@@ -79,6 +79,8 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
+   #define CLS_REELECT_COMMAND_TIMEOUT_DFT      30
+
    // Temporary weight, use for reelect / fault tolerant
    #define CLS_ELECTION_WEIGHT_MIN 0
    #define CLS_ELECTION_WEIGHT_MAX 101
@@ -97,6 +99,7 @@ namespace engine
    // The macro can be use to represent election weight as well as election weight mask
    #define CLS_ELECTION_WEIGHT_DFT                     0x00
    #define CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE     0x80
+   #define CLS_ELECTION_WEIGHT_CRITICAL_NODE           0x40
    #define CLS_ELECTION_WEIGHT_ACTIVE_LOCATION         0x08
    #define CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION     0x04
 
@@ -142,6 +145,17 @@ namespace engine
       CLS_NODE_RUNNING  = 0,
       CLS_NODE_CATCHUP  = 1,
       CLS_NODE_STOP     = 2
+   } ;
+
+   // Uint: minutes
+   #define CLS_GROUP_MODE_KEEP_TIME_MIN 1
+   #define CLS_GROUP_MODE_KEEP_TIME_MAX 10080
+
+   enum CLS_GROUP_MODE
+   {
+      CLS_GROUP_MODE_NONE = 0,
+      CLS_GROUP_MODE_CRITICAL,
+      CLS_GROUP_MODE_MAINTENANCE
    } ;
 
    /*
@@ -414,6 +428,11 @@ namespace engine
                 ( !isLocation && CLS_GROUP_ROLE_PRIMARY == beat.role ) ;
       }
 
+      OSS_INLINE BOOLEAN isInCriticalMode() const
+      {
+         return OSS_BIT_TEST( beat.electionWeight, CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+      }
+
    } ;
 
    /*
@@ -427,6 +446,7 @@ namespace engine
          _primary.value = 0 ;
          _isAffinitiveLocation = FALSE ;
          _locationIndex = 0xFF ;
+         _nodeCount = 0 ;
       }
 
       UINT32         _locationID ;
@@ -434,9 +454,76 @@ namespace engine
       MsgRouteID     _primary ;
       BOOLEAN        _isAffinitiveLocation ;
       UINT8          _locationIndex ;
+      UINT8          _nodeCount ;
    } ;
    // locationID is key, location info is value
    typedef ossPoolMap< UINT32, _clsLocationInfoItem > CLS_LOC_INFO_MAP ;
+
+   /* 
+      _clsGrpModeItem define
+    */
+   struct _clsGrpModeItem
+   {
+      _clsGrpModeItem()
+      {
+         locationID = MSG_INVALID_LOCATIONID ;
+         nodeID = INVALID_NODEID ;
+      }
+
+      ~_clsGrpModeItem()
+      {
+         location.clear() ;
+      }
+
+      ossPoolString              location ;
+      UINT32                     locationID ;
+      UINT16                     nodeID ;
+      ossTimestamp               minKeepTime ;
+      ossTimestamp               maxKeepTime ;
+      ossTimestamp               updateTime ;
+   } ;
+   typedef _clsGrpModeItem clsGrpModeItem ;
+
+   typedef ossPoolVector<clsGrpModeItem> VEC_GRPMODE_ITEM ;
+
+   /*
+      _clsGroupMode define
+   */
+   struct _clsGroupMode
+   {
+      _clsGroupMode()
+      {
+         mode = CLS_GROUP_MODE_NONE ;
+         groupID = INVALID_GROUPID ;
+      }
+
+      ~_clsGroupMode()
+      {
+         grpModeInfo.clear() ;
+      }
+
+      _clsGroupMode& operator=( const _clsGroupMode& grpMode )
+      {
+         mode = grpMode.mode ;
+         groupID = grpMode.groupID ;
+         grpModeInfo = grpMode.grpModeInfo ;
+
+         return *this ;
+      }
+
+      void reset()
+      {
+         mode = CLS_GROUP_MODE_NONE ;
+         groupID = INVALID_GROUPID ;
+         grpModeInfo.clear() ;
+      }
+
+      CLS_GROUP_MODE             mode ;
+      UINT32                     groupID ;
+
+      VEC_GRPMODE_ITEM           grpModeInfo ;
+   } ;
+   typedef _clsGroupMode clsGroupMode ;
 
    /*
       _clsCatGroupItem define
@@ -445,10 +532,11 @@ namespace engine
    {
       _clsCatGroupItem()
       {
-         groupID = 0 ;
-         primary = 0 ;
+         groupID = INVALID_GROUPID ;
+         primary = INVALID_NODEID ;
          secID = 0 ;
          version = 0 ;
+         grpMode = CLS_GROUP_MODE_NONE ;
       }
 
       string                     groupName ;
@@ -460,6 +548,8 @@ namespace engine
 
       ossPoolString              activeLocation ;
       CLS_LOC_INFO_MAP           locationInfo ;
+
+      CLS_GROUP_MODE             grpMode ;
    } ;
    typedef _clsCatGroupItem      clsCatGroupItem ;
 
@@ -479,17 +569,23 @@ namespace engine
       UINT32                             localBeatID ;
       CLS_GROUP_VERSION                  version ;
 
+      // If localLocationID is invalid, this groupInfo is use for replica group
       UINT32                             localLocationID ;
       ossPoolString                      localLocation ;
       CLS_LOC_INFO_MAP                   locationInfoMap ;
+
+      clsGroupMode                       grpMode ;
+      BOOLEAN                            enforcedGrpMode ;
+      CLS_GROUP_MODE                     curGrpMode ;
 
    private:
       UINT32 _hashCode ;
 
    public:
-      _clsGroupInfo():
-      localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
-      localLocationID( MSG_INVALID_LOCATIONID ), _hashCode( 0 )
+      _clsGroupInfo()
+      : localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
+        localLocationID( MSG_INVALID_LOCATIONID ), enforcedGrpMode( FALSE),
+        curGrpMode( CLS_GROUP_MODE_NONE ), _hashCode( 0 )
       {
          local.value = 0 ;
          primary.value = 0 ;
@@ -500,6 +596,7 @@ namespace engine
          alives.clear() ;
          info.clear() ;
          locationInfoMap.clear() ;
+         grpMode.reset() ;
       }
 
       void resetInfo()
@@ -512,6 +609,9 @@ namespace engine
          version = 0 ;
          localLocationID = MSG_INVALID_LOCATIONID ;
          localLocation.clear() ;
+         grpMode.reset() ;
+         enforcedGrpMode = FALSE ;
+         curGrpMode = CLS_GROUP_MODE_NONE ;
       }
 
       UINT32 nextBeatID()
@@ -535,6 +635,24 @@ namespace engine
       UINT32 aliveSize ()
       {
          return alives.size() + 1 ;
+      }
+
+      UINT32 criticalAliveSize() const
+      {
+         UINT32 count = 1 ;
+
+         map<UINT64, _clsSharingStatus *>::const_iterator itr = alives.begin() ;
+         while ( alives.end() != itr )
+         {
+            const _clsSharingStatus &status = *( itr++->second ) ;
+
+            if ( status.isInCriticalMode() )
+            {
+               ++count ;
+            }
+         }
+
+         return count ;
       }
 
       BOOLEAN isAllNodeBeat()
@@ -572,6 +690,26 @@ namespace engine
          return TRUE ;
       }
 
+      UINT32 getCriticalAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT )
+      {
+         UINT32 count = 1 ;
+         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         while ( it != info.end() )
+         {
+            _clsSharingStatus &status = it->second ;
+            if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
+                 ( 0 == timeout || status.breakTime > timeout ) &&
+                 status.isInCriticalMode() )
+            {
+               ++it ;
+               continue ;
+            }
+            ++count ;
+            ++it ;
+         }
+         return count ;
+      }
+
       UINT32 getAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT )
       {
          UINT32 count = 1 ;
@@ -591,6 +729,30 @@ namespace engine
          return count ;
       }
 
+      UINT32 getAlivesByLsn( UINT64 minLsnOffset )
+      {
+         UINT32 count = 1 ;
+
+         map<UINT64, _clsSharingStatus *>::const_iterator itr = alives.begin() ;
+         while ( alives.end() != itr )
+         {
+            const _clsSharingStatus &status = *( itr++->second ) ;
+
+            if ( 0 != status.beat.getFTConfirmStat() ||
+                 SERVICE_NORMAL!= status.beat.serviceStatus ||
+                 CLS_NODE_RUNNING != itr->second->beat.nodeRunStat )
+            {
+               continue ;
+            }
+            else if ( status.beat.endLsn.offset >= minLsnOffset )
+            {
+               ++count ;
+            }
+         }
+
+         return count ;
+      }
+
       UINT32 getNodeSendFailedTimes( UINT64 nodeID )
       {
          map<UINT64, _clsSharingStatus>::iterator it = info.find( nodeID ) ;
@@ -603,6 +765,32 @@ namespace engine
          return (UINT32)-1 ;
       }
 
+      UINT32 criticalSize()
+      {
+         UINT32 num = 0 ;
+
+         if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+         {
+            // If group is in critical node mode, this size is 1
+            if ( INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
+            {
+               num = 1 ;
+            }
+            // If group is in critical location mode, return location's node count
+            else if ( ! grpMode.grpModeInfo[0].location.empty() )
+            {
+               UINT32 locationID = grpMode.grpModeInfo[0].locationID ;
+
+               CLS_LOC_INFO_MAP::const_iterator itr = locationInfoMap.find( locationID ) ;
+               if ( locationInfoMap.end() != itr )
+               {
+                  num = itr->second._nodeCount ;
+               }
+            }
+         }
+
+         return num ;
+      }
    } ;
 
    enum CLS_ELECTION_ROUND

@@ -75,8 +75,15 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !CLS_IS_MAJORITY( _groupInfo->aliveSize() ,
-                                  _groupInfo->groupSize() ) )
+      /* 
+         1. For group in normal mode, check if majority nodes are alive.
+         2. For group in critical mode, check if local node is in critical mode and
+            if majority critical nodes are alive. Only replica group's election is effective.
+       */
+      else if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
+                ! ( ! isLocation() &&
+                    CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+                    CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) ) )
       {
          PD_LOG ( PDINFO, "Alive nodes is not major, can't initial voting, "
                   "alive size = %d, group size = %d",
@@ -133,22 +140,56 @@ namespace engine
             // Add locationID to ballot msg
             msg.locationID = _groupInfo->localLocationID ;
          }
-         map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
-         for ( ; itr != _groupInfo->alives.end(); itr++ )
+
+         map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
+
+         // Local node is in enforced critical mode, only replica group's election is effective
+         if ( ! isLocation() &&
+              CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+              CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) )
          {
-            // if my bs is ok, but peer is not ok, skip
-            if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus &&
-                 pmdGetStartup().isOK() )
+            while ( _groupInfo->alives.end() != itr )
             {
-               continue ;
-            }
-            if ( 0 > lsn.compare(itr->second->beat.endLsn ) )
-            {
-               PD_LOG ( PDDEBUG, "DSP lsn is not max, can't initial voting" ) ;
-               rc = SDB_CLS_VOTE_FAILED ;
-               goto error ;
+               const _clsSharingStatus* status = ( itr++ )->second ;
+               // If local is normal but iterator node is abnormal, continue
+               if ( SERVICE_ABNORMAL == status->beat.serviceStatus && pmdGetStartup().isOK() )
+               {
+                  continue ;
+               }
+               // If iterator node is not in critical node, ignore
+               // This condition helps node in enforced critical mode to start a new election which
+               // breaks the principle of lsn first.
+               else if ( ! status->isInCriticalMode() )
+               {
+                  continue ;
+               }
+               // If iterator node is in critical node and lsn is greater than local's, stop initializing vote
+               else if ( 0 > lsn.compare( status->beat.endLsn ) )
+               {
+                  PD_LOG ( PDDEBUG, "DSP lsn is not max, can't initial voting" ) ;
+                  rc = SDB_CLS_VOTE_FAILED ;
+                  goto error ;
+               }
             }
          }
+         else
+         {
+            for ( ; itr != _groupInfo->alives.end(); itr++ )
+            {
+               // if my bs is ok, but peer is not ok, skip
+               if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus && pmdGetStartup().isOK() )
+               {
+                  continue ;
+               }
+               if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
+               {
+                  PD_LOG ( PDDEBUG, "DSP lsn is not max, can't initial voting" ) ;
+                  rc = SDB_CLS_VOTE_FAILED ;
+                  goto error ;
+               }
+            }
+         }
+
          _broadcastAlives( &msg ) ;
          PD_LOG( PDEVENT, "%s: Broadcast vote[round:%d] to all alive nodes",
                  getScopeName(), round ) ;
@@ -207,9 +248,10 @@ namespace engine
                  _groupInfo->primary.columns.nodeID ) ;
          goto accepterr ;
       }
-      /// majority members' status are unknown.do not response
-      if ( !CLS_IS_MAJORITY( _groupInfo->aliveSize() ,
-                             _groupInfo->groupSize() ) )
+      // Check if majority nodes are alive or peer node is in critical mode,
+      // if not, do not response.
+      if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
+           ! itrInfo->second.isInCriticalMode() )
       {
          PD_LOG( PDDEBUG, "vote: sharing break whih majority" ) ;
          goto error ;
@@ -221,8 +263,36 @@ namespace engine
       }
       local = _logger->expectLsn() ;
 
+      // Local node is in enforced critical mode
+      if ( ! isLocation() &&
+           CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+           _groupInfo->enforcedGrpMode )
       {
-         map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
+         map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
+         while ( _groupInfo->alives.end() != itr )
+         {
+            const _clsSharingStatus* status = ( itr++ )->second ;
+            // If peer is normal but iterator node is abnormal, continue
+            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus )
+            {
+               continue ;
+            }
+            // If iterator node is not in critical node, ignore
+            else if ( ! status->isInCriticalMode() )
+            {
+               continue ;
+            }
+            // If iterator node is in critical node and lsn is greater than peer's, accept error
+            else if ( 0 > lsn.compare( status->beat.endLsn ) )
+            {
+               goto accepterr ;
+            }
+         }
+      }
+      // Node is not in enforced critical mode
+      else
+      {
+         map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             if ( !peerAbnormal &&
@@ -352,6 +422,33 @@ namespace engine
          _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;
       }
       PD_TRACE_EXIT ( SDB__CLSVTSTUS__BCALIVES ) ;
+   }
+
+   BOOLEAN _clsVoteStatus::_isAccepted()
+   {
+      BOOLEAN isAccept ;
+
+      // Node in critical mode which is only effective in group election( not in location election )
+      if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode && ! isLocation() )
+      {
+         // Node is in enforced mode, need to check if majority alive critical nodes agree
+         if ( _groupInfo->enforcedGrpMode )
+         {
+            isAccept = CLS_IS_MAJORITY( _criticalAcceptedNum + 1, _groupInfo->criticalAliveSize() ) ;
+         }
+         // Node is not in enforced mode, need to check if majority alive nodes agree
+         else
+         {
+            isAccept = CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->aliveSize() ) ;
+         }
+      }
+      // Node is in normal mode
+      else
+      {
+         isAccept = CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->groupSize() ) ;
+      }
+
+      return isAccept ;
    }
 
 }

@@ -848,6 +848,7 @@
 #define CMD_NAME_LIST_SEQUENCES              "list sequences"
 #define CMD_NAME_LIST_DATASOURCES            "list datasources"
 #define CMD_NAME_LIST_RECYCLEBIN             "list recyclebin"
+#define CMD_NAME_LIST_GROUPMODES             "list group modes"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -1018,8 +1019,11 @@
 #define CMD_VALUE_NAME_DEACTIVATE            "deactivate"
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
+#define CMD_VALUE_NAME_SET_ATTRIBUTES        "set attributes"
 #define CMD_VALUE_NAME_SET_ACTIVE_LOCATION   "set active location"
 #define CMD_VALUE_NAME_SET_LOCATION          "set location"
+#define CMD_VALUE_NAME_START_CRITICAL_MODE   "start critical mode"
+#define CMD_VALUE_NAME_STOP_CRITICAL_MODE    "stop critical mode"
 
 /*
    alter user
@@ -1331,6 +1335,10 @@ enum SDB_CONSISTENCY_STRATEGY
 #define SDB_ALTER_GROUP_SET_ACTIVE_LOCATION  SDB_ALTER_ACTION_SET \
                                              SDB_ALTER_DELIMITER \
                                              SDB_CATALOG_GROUP_ACTIVE_LOCATION
+
+/// critical mode
+#define SDB_ALTER_GROUP_START_CRITICAL_MODE  CMD_VALUE_NAME_START_CRITICAL_MODE
+#define SDB_ALTER_GROUP_STOP_CRITICAL_MODE   CMD_VALUE_NAME_STOP_CRITICAL_MODE
 
 /// set attributes
 #define SDB_ALTER_GROUP_SET_ATTR             SDB_ALTER_ACTION_SET_ATTR

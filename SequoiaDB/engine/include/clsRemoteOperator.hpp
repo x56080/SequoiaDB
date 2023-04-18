@@ -109,6 +109,8 @@ namespace engine
       virtual INT32           listCSIndexes( INT64 &contextID,
                                              utilCSUniqueID csUniqID ) ;
 
+      virtual INT32           stopCriticalMode( const UINT32 &groupID ) ;
+
       virtual UINT64          getSucCount() ;
 
       virtual UINT64          getFailureCount() ;

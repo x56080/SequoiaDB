@@ -91,9 +91,7 @@ namespace engine
       if ( SDB_OK == rc )
       {
          const CHAR *data = MSG_GET_INNER_REPLY_DATA( pHeader ) ;
-         rc = msgParseCatGroupObj( data, item.version, item.groupID, item.groupName,
-                                   item.groupInfo, &item.primary, &item.secID,
-                                   &item.locationInfo, &item.activeLocation ) ;
+         rc = msgParseCatGroupObj( data, item ) ;
       }
 
       PD_TRACE_EXITRC ( SDB_MSGPASCATGRPRES_GRPITEM, rc );
@@ -257,7 +255,7 @@ namespace engine
    {
       return msgParseCatGroupObj( objdata, item.version, item.groupID, item.groupName,
                                   item.groupInfo, &item.primary, &item.secID,
-                                  &item.locationInfo, &item.activeLocation ) ;
+                                  &item.locationInfo, &item.activeLocation, &item.grpMode ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGPASCATGRPOBJ, "msgParseCatGroupObj" )
@@ -269,7 +267,8 @@ namespace engine
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
                               CLS_LOC_INFO_MAP *pLocationInfo,
-                              ossPoolString *pActiveLocation )
+                              ossPoolString *pActiveLocation,
+                              CLS_GROUP_MODE *pGrpMode )
    {
       INT32 rc = SDB_OK ;
 
@@ -417,12 +416,13 @@ namespace engine
                // Set locationID in route.locationID
                if ( NULL != pLocationInfo && NULL != pTmpLocation )
                {
-                  CLS_LOC_INFO_MAP::const_iterator itr = pLocationInfo->begin() ;
+                  CLS_LOC_INFO_MAP::iterator itr = pLocationInfo->begin() ;
                   while ( pLocationInfo->end() != itr )
                   {
                      if ( 0 == ossStrcmp( pTmpLocation, itr->second._location.c_str() ) )
                      {
                         route._locationID = itr->first ;
+                        itr->second._nodeCount++ ;
                         break ;
                      }
                      ++itr ;
@@ -454,6 +454,35 @@ namespace engine
                goto error ;
             }
             *pActiveLocation = ele.valuestrsafe() ;
+         }
+
+         // Parse group mode
+         if ( NULL != pGrpMode )
+         {
+            ele = obj.getField( CAT_GROUP_MODE_NAME ) ;
+            if ( ele.eoo() )
+            {
+               *pGrpMode = CLS_GROUP_MODE_NONE ;
+            }
+            else if ( String != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "Failed to parse [%s], type[%d] is not string",
+                       CAT_GROUP_MODE_NAME, ele.type() ) ;
+               goto error ;
+            }
+            else if ( 0 == ossStrcmp( CAT_CRITICAL_MODE_NAME, ele.valuestrsafe() ) )
+            {
+               *pGrpMode = CLS_GROUP_MODE_CRITICAL ;
+            }
+            else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, ele.valuestrsafe() ) )
+            {
+               *pGrpMode = CLS_GROUP_MODE_MAINTENANCE ;
+            }
+            else
+            {
+               *pGrpMode = CLS_GROUP_MODE_NONE ;
+            }
          }
 
       }

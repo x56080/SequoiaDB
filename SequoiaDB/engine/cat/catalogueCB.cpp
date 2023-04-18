@@ -266,8 +266,10 @@ namespace engine
    {
       // For sub-command inside transaction, do not wait for replicas
       // For ending transaction of commands, wait for majority number of replicas
-      INT16 w = (INT16)( sdbGetReplCB()->groupSize() / 2 + 1 ) ;
+
       INT16 ret = 1 ;
+
+      INT16 w = sdbGetReplCB()->majoritySize() ;
 
       if ( needWaitSync )
       {
@@ -305,13 +307,11 @@ namespace engine
       // return at now, otherwise, need to wait some time
       if ( MSG_INVALID_ROUTEID !=
            ( _primaryID.value = pRepl->getPrimary().value ) &&
-           !pRepl->primaryIsMe() &&
-           pRepl->isSendNormal( _primaryID.value ) )
+             ! pRepl->primaryIsMe() && pRepl->isSendNormal( _primaryID.value ) )
       {
          goto error ;
       }
-      else if ( !CLS_IS_MAJORITY( pRepl->getAlivesByTimeout(),
-                                  pRepl->groupSize() ) )
+      else if ( ! pRepl->isMajorityAlive() )
       {
          goto error ;
       }

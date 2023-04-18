@@ -1327,4 +1327,26 @@ namespace engine
    {
    }
 
+   /*
+      _coordCMDListGrpModes implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListGrpModes,
+                                      CMD_NAME_LIST_GROUPMODES,
+                                      TRUE ) ;
+   _coordCMDListGrpModes::_coordCMDListGrpModes()
+   {
+   }
+
+   _coordCMDListGrpModes::~_coordCMDListGrpModes()
+   {
+   }
+
+   INT32 _coordCMDListGrpModes::_preProcess( rtnQueryOptions &queryOpt,
+                                             string &clName,
+                                             BSONObj &outSelector )
+   {
+      clName = CAT_GROUP_MODE_COLLECTION ;
+      return SDB_OK ;
+   }
+
 }

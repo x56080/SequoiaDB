@@ -121,38 +121,61 @@ namespace engine
             /// _agent was set by clsMgr.
          }
 
-         OSS_INLINE const UINT32 ailves()
+         OSS_INLINE const UINT32 ailves( BOOLEAN isLocation = FALSE )
          {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r() ;
-            num = _info.aliveSize() ;
-            _info.mtx.release_r() ;
-            return num ;
+            _clsGroupInfo &info = isLocation ? _locationInfo : _info ;
+            ossScopedRWLock( &info.mtx, SHARED ) ;
+            return info.aliveSize() ;
          }
 
-         OSS_INLINE UINT32 groupSize ()
+         OSS_INLINE UINT32 groupSize( BOOLEAN isLocation = FALSE )
          {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r() ;
-            num = _info.groupSize() ;
-            _info.mtx.release_r() ;
-            return num ;
+            _clsGroupInfo &info = isLocation ? _locationInfo : _info ;
+            ossScopedRWLock( &info.mtx, SHARED ) ;
+            return info.groupSize() ;
          }
 
-         OSS_INLINE UINT32 locationSetSize ()
+         OSS_INLINE UINT32 criticalSize()
          {
-            UINT32 num = 0 ;
-            _locationInfo.mtx.lock_r() ;
-            num = _locationInfo.groupSize() ;
-            _locationInfo.mtx.release_r() ;
-            return num ;
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            return _info.criticalSize() ;
+         }
+
+         OSS_INLINE UINT32 criticalAliveSize()
+         {
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            return _info.criticalAliveSize() ;
+         }
+
+         OSS_INLINE INT16 majoritySize()
+         {
+            INT16 w = 0 ;
+
+            if ( isInCriticalMode() )
+            {
+               // If group is in critical mode, use critical size to calculate majority size
+               w = (INT16)( criticalSize() / 2 + 1 ) ;
+            }
+            else
+            {
+               w = (INT16)( groupSize() / 2 + 1 ) ;
+            }
+
+            return w ;
+         }
+
+         OSS_INLINE const clsGroupMode& getGrpMode()
+         {
+            return _info.grpMode ;
          }
 
          OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
                                         UINT32 &falutCnt, UINT32 &ssCnt,
                                         INT32 &indoubtErr,
                                         UINT16 &indoubtNodeID,
-                                        utilLocationInfo *locationInfo )
+                                        utilLocationInfo *locationInfo = NULL,
+                                        const SDB_CONSISTENCY_STRATEGY strategy =
+                                        SDB_CONSISTENCY_NODE )
          {
             map<UINT64, _clsSharingStatus *>::iterator it ;
             _clsSharingStatus *pStatus = NULL ;
@@ -168,11 +191,33 @@ namespace engine
             UINT8 affinitiveLocations = 0 ;
             UINT8 locations = 0 ;
             _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
+            BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
+            const clsGroupMode &grpMode = getGrpMode() ;
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
-            nodeCnt = _info.groupSize() ;
-            aliveCnt = _info.aliveSize() ;
+            if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+            {
+               const clsGrpModeItem &grpModeItem = grpMode.grpModeInfo[0] ;
+
+               // This is critical node mode, use alive node count
+               if ( INVALID_NODEID != grpModeItem.nodeID )
+               {
+                  nodeCnt = _info.aliveSize() ;
+                  aliveCnt = _info.aliveSize() ;
+               }
+               // This is critical location mode, use location node count
+               else if ( ! grpModeItem.location.empty() )
+               {
+                  nodeCnt = criticalSize() ;
+                  aliveCnt = _info.criticalAliveSize() ;
+               }
+            }
+            else
+            {
+               nodeCnt = _info.groupSize() ;
+               aliveCnt = _info.aliveSize() ;
+            }
 
             it = _info.alives.begin() ;
             while( it != _info.alives.end() )
@@ -201,7 +246,7 @@ namespace engine
                   continue ;
                }
 
-               if( NULL != locationInfo )
+               if ( needLocInfo )
                {
                   locationID = pStatus->beat.locationID ;
                   if ( MSG_INVALID_LOCATIONID != selfLocationID &&
@@ -223,7 +268,7 @@ namespace engine
                   }
                }
             }
-            if ( NULL != locationInfo )
+            if ( needLocInfo )
             {
                locationInfo->primaryLocationNodes = primaryLocationNodes ;
                locationInfo->locations = locations ;
@@ -235,10 +280,17 @@ namespace engine
          OSS_INLINE UINT32 getAlivesByTimeout( UINT32 timeout =
                                                CLS_NODE_KEEPALIVE_TIMEOUT )
          {
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            return _info.getAlivesByTimeout( timeout ) ;
+         }
+
+         OSS_INLINE UINT32 getCriticalAlivesByTimeout( UINT32 timeout =
+                                                       CLS_NODE_KEEPALIVE_TIMEOUT )
+         {
             UINT32 num = 0 ;
-            _info.mtx.lock_r () ;
-            num = _info.getAlivesByTimeout( timeout ) ;
-            _info.mtx.release_r  () ;
+            _info.mtx.lock_r() ;
+            num = _info.getCriticalAlivesByTimeout( timeout ) ;
+            _info.mtx.release_r() ;
             return num ;
          }
 
@@ -301,6 +353,18 @@ namespace engine
          OSS_INLINE BOOLEAN isInStepUp() const
          {
             return _vote.isInStepUp() ;
+         }
+
+         OSS_INLINE BOOLEAN isInCriticalMode()
+         {
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            return CLS_GROUP_MODE_CRITICAL == _info.curGrpMode ;
+         }
+
+         OSS_INLINE BOOLEAN isInEnforcedGrpMode()
+         {
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            return _info.enforcedGrpMode ;
          }
 
          OSS_INLINE BOOLEAN isReadyForSrc( UINT64 curTick )
@@ -423,6 +487,13 @@ namespace engine
             return ;
          }
 
+         BOOLEAN isMajorityAlive()
+         {
+            return CLS_IS_MAJORITY( getAlivesByTimeout(), groupSize() ) ||
+                   ( isInCriticalMode() && CLS_IS_MAJORITY( getCriticalAlivesByTimeout(),
+                                                            criticalSize() ) ) ;
+         }
+
       public:
          void  regSession ( _clsDataSrcBaseSession *pSession ) ;
          void  unregSession ( _clsDataSrcBaseSession *pSession ) ;
@@ -450,6 +521,11 @@ namespace engine
 
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
+
+         const CLS_LOC_INFO_MAP& getLocInfoMap() const
+         {
+            return _info.locationInfoMap ;
+         }
 
          MsgRouteID     getPrimary () ;
          MsgRouteID     getLocationPrimary () ;
@@ -491,6 +567,8 @@ namespace engine
       private:
          INT32 _checkGroupInfo( const CLS_GROUP_VERSION &version,
                                 const map<UINT64, _netRouteNode> &nodes ) ;
+
+         INT32 _checkGrpModeInfo( CLS_GROUP_MODE grpMode ) ;
 
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
                              const CLS_LOC_INFO_MAP &locationInfoMap,

@@ -50,6 +50,7 @@
 #include "clsTrace.hpp"
 #include "utilLocation.hpp"
 #include "utilReplSizePlan.hpp"
+#include "clsGroupModeJob.hpp"
 
 namespace engine
 {
@@ -599,6 +600,32 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsReplicateSet::_checkGrpModeInfo( CLS_GROUP_MODE grpMode )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( CLS_GROUP_MODE_NONE != grpMode )
+      {
+         rc = clsStartGroupModeReqJob( &_info, &_vote ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update group mode info, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _vote.setGrpMode( clsGroupMode(), 0 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to set group mode, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETGPSET, "_clsReplicateSet::_setGroupSet" )
    INT32 _clsReplicateSet::_setGroupSet( const CLS_GROUP_VERSION &version,
                                          const CLS_LOC_INFO_MAP &locationInfoMap,
@@ -897,59 +924,33 @@ namespace engine
             if ( _locationInfo.localLocation == activeLocation )
             {
                // Add new activeLocation flag
-               if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) )
-               {
-                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-                  _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-               }
+               _vote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
 
                // Add new affinitiveLocation flag
-               if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
-               {
-                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-                  _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-               }
+               _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
             }
             else
             {
                // Remove old activeLocation flag
-               if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) )
-               {
-                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-                  _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-               }
+               _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
 
                if ( utilCalAffinity( _locationInfo.localLocation.c_str(), activeLocation.c_str() ) )
                {
                   // Add new affinitiveLocation flag
-                  if ( ! _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
-                  {
-                     _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-                     _locationVote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-                  }
+                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
                }
                else
                {
                   // Remove old affinitiveLocation flag
-                  if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
-                  {
-                     _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-                     _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-                  }
+                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
                }
             }
          }
          else
          {
             // Remove old activeLocation and affinitiveLocation flag
-            if ( _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
-                                       CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) )
-            {
-               _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
+            _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
                                        CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-               _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
-                                               CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-            }
          }
       }
 
@@ -1228,6 +1229,7 @@ namespace engine
                   _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN,
                                          CLS_FT_SW_TIMEOUT,
                                          FALSE ) ;
+                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
                }
             }
          }
@@ -1442,8 +1444,15 @@ namespace engine
          _vote.init() ;
       }
 
+      rc = _checkGrpModeInfo( item.grpMode ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to check group mode info, rc = %d", rc ) ;
+         goto error ;
+      }
+
    done :
-      PD_TRACE_EXITRC ( SDB__CLSREPSET__HNDGPRES, rc );
+      PD_TRACE_EXITRC ( SDB__CLSREPSET__HNDGPRES, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2355,7 +2364,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_LOCATIONREELECT ) ;
 
-      if ( 1 == locationSetSize() )
+      if ( 1 == groupSize( TRUE ) )
       {
          goto done ;
       }
@@ -2523,7 +2532,7 @@ namespace engine
       if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
       {
          finalW = w ;
-         cb->getOperator()->setWaitplan( finalW, locationInfo ) ;
+         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
          goto done ;
       }
 
@@ -2537,10 +2546,9 @@ namespace engine
             goto error ;
          }
 
-         getDetailInfo( nodeCnt, aliveCnt, faultCnt, ssCnt,
-                        indoubtErr, indoubtNodeID,
-                        SDB_CONSISTENCY_NODE == cb->getOperator()->getReplStrategy() ?
-                        NULL : &locationInfo ) ;
+         getDetailInfo( nodeCnt, aliveCnt, faultCnt, ssCnt, indoubtErr,
+                        indoubtNodeID, &locationInfo,
+                        cb->getOperator()->getReplStrategy() ) ;
 
          /// One node in the group
          if ( 1 == nodeCnt )
@@ -2667,7 +2675,7 @@ namespace engine
          timeout += OSS_ONE_SEC ;
          continue ;
       }
-      cb->getOperator()->setWaitplan( finalW, locationInfo ) ;
+      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
 
    done:
       if ( hasBlock )

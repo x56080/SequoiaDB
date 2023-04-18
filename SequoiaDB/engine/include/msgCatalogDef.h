@@ -61,6 +61,13 @@
 #define CAT_LOCATION_PRIMARY_NAME         FIELD_NAME_PRIMARY
 #define CAT_ACTIVE_LOCATION_NAME          FIELD_NAME_GROUP_ACTIVE_LOCATION
 #define CAT_FAILGROUP_NAME                FIELD_NAME_FAILGROUP
+#define CAT_UPDATETIME_NAME               "UpdateTime"
+#define CAT_MIN_KEEP_TIME_NAME            "MinKeepTime"
+#define CAT_MAX_KEEP_TIME_NAME            "MaxKeepTime"
+#define CAT_PROPERTIES_NAME               "Properties"
+#define CAT_GROUP_MODE_NAME               "GroupMode"
+#define CAT_CRITICAL_MODE_NAME            "critical"
+#define CAT_MAINTENANCE_MODE_NAME         "maintenance"
 
 #define CAT_DOMAIN_NAME                   FIELD_NAME_DOMAIN
 #define CAT_DOMAINNAME_NAME               FIELD_NAME_NAME

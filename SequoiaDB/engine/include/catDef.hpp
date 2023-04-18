@@ -54,6 +54,7 @@
 #define CAT_DOMAIN_COLLECTION             CAT_SYS_SPACE_NAME".SYSDOMAINS"
 #define CAT_HISTORY_COLLECTION            CAT_SYS_SPACE_NAME".SYSHISTORY"
 #define CAT_DATASOURCE_COLLECTION         CAT_SYS_SPACE_NAME".SYSDATASOURCES"
+#define CAT_GROUP_MODE_COLLECTION         CAT_SYS_SPACE_NAME".SYSGROUPMODES"
 
 #define CAT_NODEINFO_GROUPNAMEIDX         "{name:\"SYSIDX1\",key: {"\
                                           CAT_GROUPNAME_NAME":1}, unique: true, enforced: true } "
@@ -81,6 +82,8 @@
                                           CAT_DOMAINNAME_NAME":1}, unique: true, enforced: true } "
 #define CAT_HISTORY_BUCKETID_IDX          "{name:\"SYSIDX1\",key: {"\
                                           FIELD_NAME_BUCKETID":1}, unique: true, enforced: true } "
+#define CAT_GROUP_MODE_GROUPID_IDX        "{name:\"SYSIDX1\",key: {"\
+                                          CAT_GROUPID_NAME":1}, unique: true, enforced: true } "
 
 #define CAT_MATCHER_HOST_NAME             CAT_HOST_FIELD_NAME
 #define CAT_MATCHER_NODEID_NAME           CAT_GROUP_NAME"."CAT_NODEID_NAME

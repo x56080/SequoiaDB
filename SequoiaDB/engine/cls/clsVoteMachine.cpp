@@ -43,6 +43,7 @@
 #include "clsVSPrimary.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+#include "clsGroupModeJob.hpp"
 
 namespace engine
 {
@@ -112,7 +113,8 @@ namespace engine
     _shadowForReelect( TRUE ),
     _forceMillis( 0 ),
     _electionWeight( CLS_ELECTION_WEIGHT_DFT ),
-    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN )
+    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
+    _grpModeShadowTime( 0 )
    {
    }
 
@@ -201,8 +203,34 @@ namespace engine
             // if the shadow wight is not set for reelect,
             // it should be timeout to restore
             _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
-            resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
             _shadowForReelect = TRUE ;
+         }
+      }
+
+      // Handle group mode shadow time
+      if ( _grpModeShadowTime > 0 )
+      {
+         _grpModeShadowTime -= millisec ;
+
+         // Remove group mode
+         if ( _grpModeShadowTime <= 0 )
+         {
+            if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->grpMode.mode )
+            {
+
+               // Remove reelect targetNode flag, if this flag is use for critical mode instead of reelectGroup
+               if ( 0 == _shadowTimeout )
+               {
+                  resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+               }
+
+               // Remove critical mode info
+               resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+               _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
+               _groupInfo->grpMode.reset() ;
+               _groupInfo->enforcedGrpMode = FALSE ;
+               _grpModeShadowTime = 0 ;
+            }
          }
       }
 
@@ -255,4 +283,74 @@ namespace engine
       return FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTMH_SETGRPMODE, "_clsVoteMachine::setGrpMode" )
+   INT32 _clsVoteMachine::setGrpMode( const clsGroupMode &grpMode,
+                                      const INT32 &shadowTime,
+                                      const BOOLEAN &enforced )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSVTMH_SETGRPMODE ) ;
+
+      _grpModeShadowTime = shadowTime ;
+      _groupInfo->enforcedGrpMode = enforced ;
+
+      // Remove local group mode
+      if ( CLS_GROUP_MODE_NONE == grpMode.mode &&
+           grpMode.mode != _groupInfo->grpMode.mode )
+      {
+         resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+         _groupInfo->grpMode.reset() ;
+         _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
+      }
+      else
+      {
+         // 0 != shadowTime means keep this mode forever or temporary, we need to set electionWeight.
+         if ( 0 != shadowTime )
+         {
+            if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+            {
+               // Set critical mode flag
+               setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+               _groupInfo->curGrpMode = CLS_GROUP_MODE_CRITICAL ;
+
+               // 0 > shadowTime means keep this mode forever, we need to remove targetNode flag
+               if ( 0 > shadowTime )
+               {
+                  resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+               }
+               // 0 < shadowTime means keep this mode temporary, we need to add targetNode flag
+               else
+               {
+                  setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+               }
+            }
+         }
+
+         _groupInfo->grpMode = grpMode ;
+
+         // If this node is primary and not in tmporary mode, we need to start a monitor job
+         if ( primaryIsMe() && CLS_GROUP_MODE_CRITICAL == grpMode.mode && ! isTmpGrpMode() )
+         {
+            rc = startCriticalModeMonitor() ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( SDB__CLSVTMH_SETGRPMODE, rc ) ;
+      return rc ;
+   }
+
+   UINT32 _clsVoteMachine::startCriticalModeMonitor()
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( 1 == _groupInfo->grpMode.grpModeInfo.size(),
+                  "grpModeInfo's item number should be 1" ) ;
+
+      rc = clsStartCriticalModeMonitor( _groupInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to start critical mode monitor, rc: %d", rc ) ;
+      }
+
+      return rc ;
+   }
 }

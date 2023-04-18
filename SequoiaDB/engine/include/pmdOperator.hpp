@@ -119,28 +119,39 @@ namespace engine
          return _replStrategy ;
       }
 
-      void setWaitplan( UINT8 nodes, const utilLocationInfo &info )
+      void setWaitplan( UINT8 nodes,
+                        const utilLocationInfo &info,
+                        BOOLEAN isCriticalLoc = FALSE )
       {
-         switch ( _replStrategy )
+         // In critical location mode, we just need to check primary location nodes
+         if ( isCriticalLoc )
          {
-            case SDB_CONSISTENCY_NODE:
-               _waitPlan.setNodeReplSizePlan() ;
-               break ;
-            case SDB_CONSISTENCY_LOC_MAJOR:
-               _waitPlan.setLocMajorReplSizePlan( nodes,
-                                                  info.affinitiveLocations,
-                                                  info.primaryLocationNodes,
-                                                  info.locations ) ;
-               break ;
-            case SDB_CONSISTENCY_PRY_LOC_MAJOR:
-               _waitPlan.setPryLocMajorReplSizePlan( nodes,
+            _waitPlan.reset() ;
+            _waitPlan.primaryLocationNodes = info.primaryLocationNodes ;
+         }
+         else
+         {
+            switch ( _replStrategy )
+            {
+               case SDB_CONSISTENCY_NODE:
+                  _waitPlan.setNodeReplSizePlan() ;
+                  break ;
+               case SDB_CONSISTENCY_LOC_MAJOR:
+                  _waitPlan.setLocMajorReplSizePlan( nodes,
                                                      info.affinitiveLocations,
                                                      info.primaryLocationNodes,
                                                      info.locations ) ;
-               break ;
-            default:
-               SDB_ASSERT( FALSE, "impossible" ) ;
-               _waitPlan.setNodeReplSizePlan() ;
+                  break ;
+               case SDB_CONSISTENCY_PRY_LOC_MAJOR:
+                  _waitPlan.setPryLocMajorReplSizePlan( nodes,
+                                                        info.affinitiveLocations,
+                                                        info.primaryLocationNodes,
+                                                        info.locations ) ;
+                  break ;
+               default:
+                  SDB_ASSERT( FALSE, "impossible" ) ;
+                  _waitPlan.setNodeReplSizePlan() ;
+            }
          }
       }
 

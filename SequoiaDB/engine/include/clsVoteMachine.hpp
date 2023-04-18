@@ -94,12 +94,18 @@ namespace engine
 
       OSS_INLINE void setElectionWeight( UINT8 electionWeight )
       {
-         OSS_BIT_SET( _electionWeight, electionWeight ) ;
+         if ( ! hasElectionWeight( electionWeight ) )
+         {
+            OSS_BIT_SET( _electionWeight, electionWeight ) ;
+         }
       }
 
       OSS_INLINE void resetElectionWeight( UINT8 electionWeight )
       {
-         OSS_BIT_CLEAR( _electionWeight, electionWeight ) ;
+         if ( hasElectionWeight( electionWeight ) )
+         {
+            OSS_BIT_CLEAR( _electionWeight, electionWeight ) ;
+         }
       }
 
       OSS_INLINE BOOLEAN isInStepUp() const
@@ -117,6 +123,13 @@ namespace engine
          return MSG_INVALID_LOCATIONID != _groupInfo->localLocationID ;
       }
 
+      OSS_INLINE BOOLEAN isTmpGrpMode() const
+      {
+         return 0 < _grpModeShadowTime ;
+      }
+
+      UINT32 startCriticalModeMonitor() ;
+
    public:
       INT32 init() ;
 
@@ -131,6 +144,10 @@ namespace engine
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
       BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
+
+      INT32 setGrpMode( const clsGroupMode &grpMode,
+                        const INT32 &shadowTime,
+                        const BOOLEAN &enforced = FALSE ) ;
 
    private:
       vector<_clsVoteStatus *>   _status ;
@@ -147,6 +164,11 @@ namespace engine
       // compare _electionWeight first, then compare _shadowWeight.
       UINT8                      _electionWeight ;
       UINT8                      _shadowWeight ;
+
+      // _grpModeShadowTime = -1 means keep grpMode forever
+      // _grpModeShadowTime = 0 means grpMode in this group is NORMAL
+      // _grpModeShadowTime > 0 means keep grpMode for the next _grpModeShadowTime milliseconds
+      INT32                      _grpModeShadowTime ;
 
       ossSpinXLatch              _latch ;
    } ;

@@ -150,6 +150,12 @@ namespace engine
                               const ossPoolString &newLoc,
                               const ossPoolString &hostName ) ;
 
+      INT32 startCriticalMode( const clsGroupMode &grpMode,
+                               const BSONObj &groupObj,
+                               INT16 w ) ;
+
+      INT32 stopCriticalMode( UINT32 groupID ) ;
+
    private:
       _SDB_DMSCB                 *_pDmsCB ;
       _dpsLogWrapper             *_pDpsCB ;

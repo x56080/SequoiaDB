@@ -44,7 +44,6 @@
 #include "catTrace.hpp"
 #include "rtn.hpp"
 #include "pdTrace.hpp"
-#include "catLocation.hpp"
 
 namespace engine
 {
@@ -53,10 +52,10 @@ namespace engine
    */
    CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDAlterNode ) ;
 
-   _catCMDAlterNode::_catCMDAlterNode():
-   _groupID( CAT_INVALID_GROUPID ),
-   _nodeID( CAT_INVALID_NODEID ),
-   _pCatNodeMgr( sdbGetCatalogueCB()->getCatNodeMgr() )
+   _catCMDAlterNode::_catCMDAlterNode()
+   : _groupID( CAT_INVALID_GROUPID ),
+     _nodeID( CAT_INVALID_NODEID ),
+     _pCatNodeMgr( sdbGetCatalogueCB()->getCatNodeMgr() )
    {
    }
 
@@ -411,9 +410,7 @@ namespace engine
    */
    CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDAlterRG ) ;
 
-   _catCMDAlterRG::_catCMDAlterRG():
-   _groupID( CAT_INVALID_GROUPID ),
-   _pCatNodeMgr( sdbGetCatalogueCB()->getCatNodeMgr() )
+   _catCMDAlterRG::_catCMDAlterRG()
    {
    }
 
@@ -435,48 +432,14 @@ namespace engine
 
       try
       {
-         BSONObj        queryObj( pQuery ) ;
-         BSONObj        hintObj( pHint ) ;
-         BSONElement    ele ;
-
-         // Get groupID
-         ele = hintObj.getField( FIELD_NAME_GROUPID ) ;
-         if ( ele.eoo() || !ele.isNumber() )
-         {
-            PD_LOG( PDERROR, "Failed to get field[%s] from hint object: %s",
-                    FIELD_NAME_GROUPID, hintObj.toPoolString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         _groupID = ele.numberInt() ;
-
-         // Get _actionName
-         ele = queryObj.getField( FIELD_NAME_ACTION ) ;
-         if ( ele.eoo() || String != ele.type() )
-         {
-            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
-                    FIELD_NAME_ACTION, queryObj.toPoolString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         _actionName = ele.valuestrsafe() ;
-
-         // Get option
-         ele = queryObj.getField( FIELD_NAME_OPTIONS ) ;
-         if ( ele.eoo() || Object != ele.type() )
-         {
-            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
-                    FIELD_NAME_OPTIONS, queryObj.toPoolString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         _option = ele.embeddedObject() ;
-
+         _queryObj.init( pQuery ) ;
+         _hintObj.init( pHint ) ;
       }
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
    done:
@@ -495,131 +458,25 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CATCMDALTERRG_DOIT ) ;
 
-      BSONObj groupObj ;
-      BSONObjIterator itr ;
-      catCtxLockMgr lockMgr ;
-      string groupName ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      catCtxAlterGrp::sharePtr context ;
 
-      // Get group obj by group id
-      rc = catGetGroupObj( _groupID, groupObj, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get group obj, rc: %d", rc ) ;
+      rc = rtnCB->contextNew( RTN_CONTEXT_CAT_ALTER_GROUP, context, contextID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create alter group context, rc: %d", rc ) ;
 
-      // Get group name
-      rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get group name, rc: %d", rc ) ;
-
-      // Lock group
-      PD_CHECK( lockMgr.tryLockGroup( groupName, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock group [%s]", groupName.c_str() ) ;
-
-      try
-      {
-         // Match Action
-         if ( 0 == ossStrcmp( SDB_ALTER_GROUP_SET_ACTIVE_LOCATION, _actionName.c_str() ) )
-         {
-            rc = _setActiveLocation( groupObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to set active location, rc: %d", rc ) ;
-         }
-         else if ( 0 == ossStrcmp( SDB_ALTER_GROUP_SET_ATTR, _actionName.c_str() ) )
-         {
-            // Parse options
-            itr = BSONObjIterator( _option ) ;
-            while ( itr.more() )
-            {
-               BSONElement optionEle = itr.next() ;
-               // Match ActiveLocation
-               if ( 0 == ossStrcmp( CAT_ACTIVE_LOCATION_NAME, optionEle.fieldName() ) )
-               {
-                  rc = _setActiveLocation( groupObj ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to set active location in group[%s], rc: %d",
-                               groupName.c_str(),  rc ) ;
-               }
-               else
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "Invalid alter group option[%s]", optionEle.fieldName() ) ;
-                  goto error ;
-               }
-            }
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Failed to alter group, received unknown action[%s]",
-                    _actionName.c_str() ) ;
-         }
-      }
-      catch( exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
-      }
+      rc = context->open( MSG_BS_QUERY_REQ, _queryObj, _hintObj, ctxBuf, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open alter group context, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDALTERRG_DOIT, rc ) ;
       return rc ;
 
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDALTERRG_SETACTIVELOC, "_catCMDAlterRG::_setActiveLocation" )
-   INT32 _catCMDAlterRG::_setActiveLocation( const BSONObj &groupObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CATCMDALTERRG_SETACTIVELOC ) ;
-
-      BSONElement optionEle ;
-      ossPoolString newActLoc ;
-      ossPoolString oldActLoc ;
-
-      // Get new ActiveLocation, this field should not be empty
-      optionEle = _option.getField( CAT_ACTIVE_LOCATION_NAME ) ;
-      if ( optionEle.eoo() || String != optionEle.type() )
+      if ( -1 != contextID )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDWARNING, "Failed to get the field[%s]", CAT_ACTIVE_LOCATION_NAME ) ;
-         goto error ;
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
       }
-      // optionEle.valuestrsize include the length of '\0'
-      if ( MSG_LOCATION_NAMESZ < optionEle.valuestrsize() - 1 )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
-         goto error ;
-      }
-      newActLoc = optionEle.valuestrsafe() ;
-
-      // Check and get active location
-      rc = catCheckAndGetActiveLocation( groupObj, _groupID, newActLoc, oldActLoc ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check active location, rc: %d", rc ) ;
-
-      // Compare oldLocation and newLocation
-      if ( oldActLoc == newActLoc )
-      {
-         PD_LOG( PDDEBUG, "The old and new ActiveLocation are same, do nothing" ) ;
-         goto done ;
-      }
-
-      // Set new ActiveLocation
-      if ( ! newActLoc.empty() )
-      {
-         rc = _pCatNodeMgr->setActiveLocation( _groupID, newActLoc ) ;
-      }
-      // Remove old ActiveLocation
-      else
-      {
-         rc = _pCatNodeMgr->removeActiveLocation( _groupID ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to set active location, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CATCMDALTERRG_SETACTIVELOC, rc ) ;
-      return rc ;
-
-   error:
       goto done ;
    }
 

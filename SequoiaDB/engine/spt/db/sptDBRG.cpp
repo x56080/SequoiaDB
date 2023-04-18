@@ -52,6 +52,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, reelectLocation )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, setActiveLocation )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, setAttributes )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRG, startCriticalMode )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRG, stopCriticalMode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, detachNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, attachNode )
 
@@ -69,6 +71,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "reelectLocation", reelectLocation )
       JS_ADD_MEMBER_FUNC( "setActiveLocation", setActiveLocation )
       JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes )
+      JS_ADD_MEMBER_FUNC( "startCriticalMode", startCriticalMode )
+      JS_ADD_MEMBER_FUNC( "stopCriticalMode", stopCriticalMode )
       JS_ADD_MEMBER_FUNC( "detachNode", detachNode )
       JS_ADD_MEMBER_FUNC( "attachNode", attachNode )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBRG::cvtToBSON )
@@ -579,6 +583,59 @@ namespace engine
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set attributes" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRG::startCriticalMode( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+
+      if ( arg.argc() == 0 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Options can't be null" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 0, options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _rg.startCriticalMode( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to start critical mode" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRG::stopCriticalMode( const _sptArguments &arg,
+                                     _sptReturnVal &rval,
+                                     bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _rg.stopCriticalMode() ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to stop critical mode" ) ;
          goto error ;
       }
 

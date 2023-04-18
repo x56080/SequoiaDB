@@ -67,6 +67,7 @@ const SDB_LIST_BACKUPS             = 17 ;
 const SDB_LIST_DATASOURCES         = 22 ;
 // const SDB_LIST_INDEXES = 24, for internal use only
 const SDB_LIST_RECYCLEBIN          = 27 ;
+const SDB_LIST_GROUPMODES          = 28 ;
 
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 0x10000000 ;

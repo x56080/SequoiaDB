@@ -174,6 +174,61 @@ namespace engine
    typedef class _catCtxRemoveGrp catCtxRemoveGrp ;
 
    /*
+    * _catCtxAlterGrp define
+    */
+   class _catCtxAlterGrp : public _catCtxNodeBase
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxAlterGrp )
+   public:
+      _catCtxAlterGrp ( INT64 contextID, UINT64 eduID ) ;
+
+      virtual ~_catCtxAlterGrp () ;
+
+      virtual const CHAR* name() const
+      {
+         return "CAT_ALTER_GROUP" ;
+      }
+
+      virtual RTN_CONTEXT_TYPE getType () const
+      {
+         return RTN_CONTEXT_CAT_ALTER_GROUP ;
+      }
+
+      INT32 open( MSG_TYPE cmdType,
+                  const BSONObj &queryObj,
+                  const BSONObj &hintObj,
+                  rtnContextBuf &buffObj,
+                  _pmdEDUCB *cb ) ;
+
+   protected:
+      virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
+
+      virtual INT32 _buildP1Reply( BSONObjBuilder &builder ) ;
+
+   private:
+      INT32 _setActiveLocation() ;
+
+      INT32 _checkCriticalMode() ;
+
+      INT32 _startCriticalMode( INT16 w ) ;
+
+      INT32 _stopCriticalMode() ;
+
+   private:
+      BSONObj                _boHint ;
+      const CHAR*            _pActionName ;
+      BSONObj                _option ;
+      clsGroupMode           _grpMode ;
+      catNodeManager         *_pCatNodeMgr ;
+   } ;
+
+   typedef class _catCtxAlterGrp catCtxAlterGrp ;
+
+   /*
     * _catCtxCreateNode define
     */
    class _catCtxCreateNode : public _catCtxNodeBase
