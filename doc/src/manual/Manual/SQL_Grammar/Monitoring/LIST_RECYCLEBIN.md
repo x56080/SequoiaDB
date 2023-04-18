@@ -16,6 +16,7 @@ $LIST_RECYCLEBIN
 | Type            | string     | 回收站项目的类型，取值如下：<br>"CollectionSpace"：集合空间<br>"Collection" ：集合 |
 | OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 |
 | RecycleTime     | string     | 生成回收站项目的时间 |
+| Comment         | string     | 回收站项目的备注信息 |
 
 ##示例##
 
@@ -35,7 +36,8 @@ $LIST_RECYCLEBIN
   "OriginID": 21474836481,
   "Type": "Collection",
   "OpType": "Drop",
-  "RecycleTime": "2022-01-24-12.04.12.000000"
+  "RecycleTime": "2022-01-24-12.04.12.000000",
+  "Comment": ""
 }
 ```
 

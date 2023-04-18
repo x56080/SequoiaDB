@@ -64,7 +64,8 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
       "OriginID": 12884901889,
       "Type": "Collection",
       "OpType": "Drop",
-      "RecycleTime": "2022-02-11-16.52.59.000000"
+      "RecycleTime": "2022-02-11-16.52.59.000000",
+      "Comment": ""
     }
     ```
 
@@ -92,6 +93,7 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
 
     ```lang-json
     {
+      "Comment": "",
       "OpType": "Drop",
       "OriginID": 12884901889,
       "OriginName": "sample.employee",
@@ -107,7 +109,8 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
       "OriginID": 3,
       "Type": "CollectionSpace",
       "OpType": "Drop",
-      "RecycleTime": "2022-02-11-16.54.06.000000"
+      "RecycleTime": "2022-02-11-16.54.06.000000",
+      "Comment": ""
     }
     ```
 
@@ -161,7 +164,7 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
 | [SdbRecycleBin.count()][count] | 查看回收站项目的个数 |
 | [SdbRecycleBin.dropItem()][dropItem] | 删除指定的回收站项目 |
 | [SdbRecycleBin.dropAll()][dropAll] | 删除所有的回收站项目 |
-| [Sdb.dropCS()][dropCS]/[SdbCS.dropCL()][dropCL]/[SdbCollection.truncate()][truncate] | 删除集合空间/删除集合/删除集合的所有数据<br>函数中增加参数 SkipRecycleBin，当一些临时表的操作不希望被回收时，可以设置 SkipRecycleBin 为 true
+| [Sdb.dropCS()][dropCS]/[SdbCS.dropCL()][dropCL]/[SdbCollection.truncate()][truncate] | 删除集合空间/删除集合/删除集合的所有数据<br>函数中增加参数 SkipRecycleBin，当一些临时集合的操作不希望被回收时，可以设置 SkipRecycleBin 为 true
 
 
 

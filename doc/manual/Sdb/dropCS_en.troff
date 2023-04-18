@@ -17,13 +17,13 @@ Sdb
 Delete a specified collection space.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]name\f[] ( \f[I]String\f[]， \f[I]Required\f[] )
+\f[C]name\f[] ( \f[I]String\f[], \f[I]Required\f[] )
 .RS 2
 .PP
 Collection space name.
 .RE
 .IP \[bu] 2
-\f[C]options\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+\f[C]options\f[] ( \f[I]Object\f[], \f[I]Optional\f[] )
 .RS 2
 .PP
 The options for dropping the collection space, could be a combination of the
@@ -53,6 +53,17 @@ false: Determine whether to enable the recycle bin mechanism according to the
 value of the field "Enable".
 .PP
 Format: \f[C]SkipRecycleBin:true|false\f[]
+.RE
+.IP "3." 3
+\f[C]Comment\f[] ( \f[I]String\f[] ): Add a comment for the corresponding
+recycle bin item.
+.RS 4
+.IP \[bu] 2
+This parameter only takes effect when the recycle bin mechanism is enabled.
+.IP \[bu] 2
+The maximum length limit for the comment information is 128KB.
+.PP
+Format: \f[C]Comment:"sample"\f[]
 .RE
 .RE
 .SH RETURN VALUE

@@ -13,7 +13,7 @@ SDB_SNAP_RECYCLEBIN
 
 | 字段名          | 类型       | 描述 |
 | --------------- | ---------- | ---- |
-| NodeName        | string     | 集合空间所属节点的名称，格式为<主机名>:<服务名> |
+| NodeName        | string     | 集合空间所属节点的名称，格式为`<主机名>:<服务名>` |
 | GroupName       | string     | 集合空间所属复制组的名称 |
 | RecycleName     | string     | 回收站项目的名称  |
 | RecycleID       | int64      | 回收站项目的唯一标识 |
@@ -22,6 +22,7 @@ SDB_SNAP_RECYCLEBIN
 | Type            | string     | 回收站项目的类型，取值如下：<br>"CollectionSpace"：集合空间<br>"Collection" ：集合 |
 | OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 |
 | RecycleTime     | string     | 生成回收站项目的时间 |
+| Comment         | string     | 回收站项目的备注信息 |
 | PageSize        | int32      | 回收站项目的数据页大小，单位为字节 |
 | LobPageSize     | int32      | 回收站项目的大对象数据页大小，单位为字节 |
 | TotalRecords    | int32      | 回收站项目的记录总数 |
@@ -41,6 +42,7 @@ SDB_SNAP_RECYCLEBIN
 | Type            | string     | 回收站项目的类型，取值如下：<br>"CollectionSpace"：集合空间<br>"Collection" ：集合 |
 | OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 |
 | RecycleTime     | string     | 生成回收站项目的时间 |
+| Comment         | string     | 回收站项目的备注信息 |
 | PageSize        | int32      | 回收站项目的数据页大小，单位为字节 |
 | LobPageSize     | int32      | 回收站项目的大对象数据页大小，单位为字节 |
 | TotalRecords    | int32      | 回收站项目的记录总数 |
@@ -69,6 +71,7 @@ SDB_SNAP_RECYCLEBIN
      "Type": "Collection",
      "OpType": "Drop",
      "RecycleTime": "2022-01-24-12.04.12.000000",
+     "Comment": "",
      "NodeName": "sdbserver:20000",
      "GroupName": "group1",
      "PageSize": 65536,
@@ -97,6 +100,7 @@ SDB_SNAP_RECYCLEBIN
      "OriginID": 21474836481,
      "Type": "Collection",
      "OpType": "Drop",
+     "Comment": "",
      "PageSize": 65536,
      "LobPageSize": 262144,
      "TotalRecords": 0,

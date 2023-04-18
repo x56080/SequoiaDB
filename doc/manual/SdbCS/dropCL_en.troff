@@ -29,7 +29,7 @@ options ( \f[I]object, optional\f[] )
 .PP
 Other optional parameters can be set through "options":
 .IP \[bu] 2
-SkipRecycleBin ( \f[I]boolean\f[] )：Whether to disable the recycle bin.
+SkipRecycleBin ( \f[I]boolean\f[] ): Whether to disable the recycle bin.
 The default is false, which means whether to enable the recycle bin mechanism
 according to the value of the field "Enable".
 .RS 2
@@ -38,6 +38,17 @@ The value of this parameter is true, which means that the corresponding recycle
 bin item will be not be generated when the collection is deleted.
 .PP
 Format: \f[C]SkipRecycleBin: true\f[]
+.RE
+.IP \[bu] 2
+Comment ( \f[I]string\f[] ): Add a comment for the corresponding recycle bin
+item.
+.RS 2
+.IP \[bu] 2
+This parameter only takes effect when the recycle bin mechanism is enabled.
+.IP \[bu] 2
+The maximum length limit for the comment information is 128KB.
+.PP
+Format: \f[C]Comment: "sample"\f[]
 .RE
 .RE
 .SH RETURN VALUE

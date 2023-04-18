@@ -30,6 +30,13 @@ SdbCS
 
         格式：`SkipRecycleBin: true`
 
+    - Comment（ *string* ）：为对应的回收站项目添加备注信息
+
+        - 该参数仅在启用回收站机制的情况下生效。
+        - 备注信息的最大长度限制为 128KB。
+
+        格式：`Comment: "sample"`
+
 ##返回值##
 
 函数执行成功时，无返回值。

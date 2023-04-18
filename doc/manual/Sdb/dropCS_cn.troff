@@ -51,6 +51,17 @@ false：根据字段 Enable 的值决定是否启用回收站机制
 .PP
 格式：\f[C]SkipRecycleBin:true|false\f[]
 .RE
+.IP "3." 3
+\f[C]Comment\f[] ( \f[I]String\f[]
+)：删除集合空间时，为对应的回收站项目添加备注信息。
+.RS 4
+.IP \[bu] 2
+该参数仅在启用回收站机制的情况下生效。
+.IP \[bu] 2
+备注信息的最大长度限制为 128KB。
+.PP
+格式：\f[C]Comment:"sample"\f[]
+.RE
 .RE
 .SH 返回值
 .PP

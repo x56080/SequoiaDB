@@ -24,11 +24,18 @@ options ( *object, optional* )
 
 Other optional parameters can be set through "options":
 
-- SkipRecycleBin ( *boolean* )：Whether to disable the [recycle bin][recycle_bin]. The default is false, which means whether to enable the recycle bin mechanism according to the value of the field "[Enable][getDetail]".
+- SkipRecycleBin ( *boolean* ): Whether to disable the [recycle bin][recycle_bin]. The default is false, which means whether to enable the recycle bin mechanism according to the value of the field "[Enable][getDetail]".
 
     The value of this parameter is true, which means that the corresponding recycle bin item will be not be generated when the collection is deleted.
 
     Format: `SkipRecycleBin: true`
+
+- Comment ( *string* ): Add a comment for the corresponding recycle bin item.
+
+    - This parameter only takes effect when the recycle bin mechanism is enabled.
+    - The maximum length limit for the comment information is 128KB.
+
+    Format: `Comment: "sample"`
 
 ##RETURN VALUE##
 

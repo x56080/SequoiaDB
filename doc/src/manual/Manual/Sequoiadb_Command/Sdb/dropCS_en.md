@@ -16,11 +16,11 @@ Delete a specified collection space.
 
 ##PARAMETERS##
 
-* `name` ( *String*， *Required* )
+* `name` ( *String*, *Required* )
 
     Collection space name.
 
-* `options` ( *Object*， *Optional* )
+* `options` ( *Object*, *Optional* )
 
     The options for dropping the collection space, could be a combination of 
     the following options:
@@ -38,6 +38,13 @@ Delete a specified collection space.
         * false: Determine whether to enable the recycle bin mechanism according to the value of the field "[Enable][getDetail]".
 
         Format: `SkipRecycleBin:true|false`
+
+    3. `Comment` ( *String* ): Add a comment for the corresponding recycle bin item.
+
+        * This parameter only takes effect when the recycle bin mechanism is enabled.
+        * The maximum length limit for the comment information is 128KB.
+
+        Format: `Comment:"sample"`
 
 ##RETURN VALUE##
 
