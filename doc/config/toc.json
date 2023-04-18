@@ -3449,10 +3449,22 @@
                            "en": "start()"
                         },
                         {
+                           "id": 1681112281,
+                           "file": "startCriticalMode",
+                           "cn": "startCriticalMode()",
+                           "en": "startCriticalMode()"
+                        },
+                        {
                            "id": 1432190876,
                            "file": "stop",
                            "cn": "stop()",
                            "en": "stop()"
+                        },
+                        {
+                           "id": 1681112291,
+                           "file": "stopCriticalMode",
+                           "cn": "stopCriticalMode()",
+                           "en": "stopCriticalMode()"
                         }
                      ]
                   },
@@ -5987,6 +5999,12 @@
                      "file": "SYSDATASOURCES",
                      "cn": "SYSDATASOURCES集合",
                      "en": "SYSDATASOURCES"
+                  },
+                  {
+                     "id": 1681216758,
+                     "file": "SYSGROUPMODES",
+                     "cn": "SYSGROUPMODES集合",
+                     "en": "SYSGROUPMODES"
                   }
                ]
             },
@@ -6249,6 +6267,12 @@
                      "file": "SDB_LIST_RECYCLEBIN",
                      "cn": "回收站项目列表",
                      "en": "SDB_LIST_RECYCLEBIN"
+                  },
+                  {
+                     "id": 1681216684,
+                     "file": "SDB_LIST_GROUPMODES",
+                     "cn": "复制组运行模式列表",
+                     "en": "SDB_LIST_GROUPMODES"
                   }
                ]
             },

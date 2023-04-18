@@ -14,7 +14,9 @@ SdbReplicaGroup 类主要用于操作复制组和获取复制组相关的信息�
 | [setActiveLocation()][setActiveLocation] | 设置复制组的 ActivedLocation |
 | [setAttributes()][setAttributes] | 修改当前复制组的属性 |
 | [start()][start] | 启动当前复制组 |
+| [startCriticalMode()][startCriticalMode] | 在当前复制组中开启 Critical 模式 |
 | [stop()][stop] | 停止当前复制组 |
+| [stopCriticalMode()][stopCriticalMode] | 在当前复制组中停止 Critical 模式 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -30,4 +32,6 @@ SdbReplicaGroup 类主要用于操作复制组和获取复制组相关的信息�
 [setActiveLocation]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setActiveLocation.md
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setAttributes.md
 [start]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/start.md
+[startCriticalMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startCriticalMode.md
 [stop]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stop.md
+[stopCriticalMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stopCriticalMode.md
