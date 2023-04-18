@@ -53,24 +53,24 @@ sdbseadapter 是数据节点与 Elasticsearch 交互的桥梁。SequoiaDB 通过
 
 ###部署 Elasticsearch 集群###
 
-下述示例以 Elasticsearch 安装目录为 `/opt/elasticsearch-6.8.5`、对外服务的 http 端口为 9200 ，介绍部署步骤。
+下述示例以 Elasticsearch 安装目录为 `/opt/elasticsearch-7.17.7`、对外服务的 http 端口为 9200 ，介绍部署步骤。
 
 1. 在 [Elasticsearch 官网][es]下载 Elasticsearch 安装包
 
     > **Note:**
     >
-    > 当前 SequoiaDB 适配的 Elasticsearch 版本为 6.8.5
+    > 当前 SequoiaDB 适配的 Elasticsearch 版本为 7.17.7
 
 2. 解压安装包
 
     ```lang-bash
-    $ tar -xzf elasticsearch-6.8.5.tar.gz
+    $ tar -xzf elasticsearch-7.17.7.tar.gz
     ```
 
 3. 切换至 Elasticsearch 安装目录
 
     ```lang-bash
-    $ cd /opt/elasticsearch-6.8.5
+    $ cd /opt/elasticsearch-7.17.7
     ```
 
 4. 修改 Elasticsearch 集群配置
