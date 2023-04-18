@@ -6,19 +6,17 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，可以�
 |------------------|---------------------------------------------|
 | x86 架构     |- 通用 x86 硬件平台                          |
 | ARM64 架构   |- 华为 TaiShan 服务器（鲲鹏 920 处理器）<br> - 长城擎天服务器（飞腾 2000 处理器）  |
-| Power 架构   |- 浪潮(IBM) Open Power |
 
 ##受支持的操作系统##
 
 | 硬件平台类型 | 系统类型 | 系统列表                                                   |
 |--------------|----------|------------------------------------------------------------|
-| x86 系统     | Linux    |- Red Hat Enterprise Linux (RHEL) 6<br> - Red Hat Enterprise Linux (RHEL) 7<br> - Red Hat Enterprise Linux (RHEL) 8<br> - SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12.x <br> - Ubuntu 14.x <br> - Ubuntu 16.x <br> - CentOS 6.x <br> - CentOS 7.x <br> - CentOS 8.x <br> - 国产统信 UOS <br> - 深度 Deepin <br> - 中标麒麟 <br> - 银河麒麟 <br> - 红旗 Linux         |
-| ARM64 架构   | Linux    |- Red Hat Enterprise Linux (RHEL) 7<br> - Red Hat Enterprise Linux (RHEL) 8<br> - Ubuntu 16.x <br> - CentOS 7.x <br> - CentOS 8.x <br> - 国产统信 UOS <br> - 深度 Deepin <br> - 中标麒麟 <br> - 银河麒麟 <br> - 华为 EulerOS(openEuler) |
-| Power 架构   | Linux    |- Red Hat Enterprise Linux Server release 7.5 |
+| x86 系统     | Linux    | - Red Hat Enterprise Linux (RHEL) 7<br> - Red Hat Enterprise Linux (RHEL) 8<br> - SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> - SUSE Linux Enterprise Server (SLES) 15 <br>  - Ubuntu 16.x <br>  - Ubuntu 17.x <br>  - Ubuntu 18.x <br> - CentOS 7.x <br> - CentOS 8.x <br> - 国产统信 UOS <br> - 深度 Deepin <br> - 中标麒麟 <br> - 银河麒麟 <br> - 红旗 Linux         |
+| ARM64 架构   | Linux    |- Red Hat Enterprise Linux (RHEL) 7<br> - Red Hat Enterprise Linux (RHEL) 8<br> - Ubuntu 16.x <br>  - Ubuntu 17.x <br>  - Ubuntu 18.x <br> - CentOS 7.x <br> - CentOS 8.x <br> - 国产统信 UOS <br> - 深度 Deepin <br> - 中标麒麟 <br> - 银河麒麟 <br> - 华为 EulerOS(openEuler) |
 
 > **Note:**
 >
->* 操作系统需安装 glibc 2.15 和 libstdc++ 6.0.18，或安装其更高版本。
+>* 操作系统需安装 glibc 2.17 和 libstdc++ 6.0.18，或安装其更高版本。
 >* 如果用户需要将未在上述列表中列举的 Linux 操作系统应用于生产环境，建议联系 SequoiaDB 技术支持，以获得更详细的信息。
 
 ##服务器要求##
@@ -29,7 +27,7 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 | 需求项 | 要求                                                                  | 推荐配置                     |
 |--------|-----------------------------------------------------------------------|------------------------------|
-| CPU    | - x86（Intel Pentium、Intel Xeon 和 AMD）32位 Intel 和 AMD 处理器 <br> - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）<br> - PowerPC 7 或者 PowerPC 7+ 处理器         | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器） <br> - PowerPC 7 或者 PowerPC 7+ 处理器        |
+| CPU    | - x86（Intel Pentium、Intel Xeon 和 AMD）32位 Intel 和 AMD 处理器 <br> - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）         | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器） |
 | 磁盘   | 10GB+                                                                 | 100GB+                       |
 | 内存   | 1GB+                                                                  | 2GB+                         |
 | 网卡   | 1 张+                                                                 | 百兆网卡                     |
@@ -43,7 +41,7 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 | 需求项 | 要求                                                                  | 推荐配置                     |
 |--------|-----------------------------------------------------------------------|------------------------------|
-| CPU    | - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）<br> - PowerPC 7 或者 PowerPC 7+ 处理器       | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器） <br> - PowerPC 7 或者 PowerPC 7+ 处理器       |
+| CPU    | - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）   | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器）       |
 | 磁盘   | 512GB（至少一块）                                                     | 2TB（至少两块）              |
 | 内存   | 32GB+                                                                 | 64GB+                        |
 | 网卡   | 1 张+                                                                 | 千兆网卡                     |
@@ -57,7 +55,7 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 | 需求项 | 要求                                                                  | 推荐配置                     |
 |--------|-----------------------------------------------------------------------|------------------------------|
-| CPU    | - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）<br> - PowerPC 7 或者 PowerPC 7+ 处理器       | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器） <br> - PowerPC 处理器            |
+| CPU    | - x64（64 位 AMD64 和 Intel EM64T 处理器） <br> - ARM（64位处理器）   | - x64（64 位 AMD64 和 Intel EM64T 处理器）<br> - ARM（64 位处理器）        |
 | 磁盘   | 2TB 或 4TB（至少十块）                                                | 4TB（至少十块）              |
 | 内存   | 64GB+                                                                 | 64GB+                        |
 | 网卡   | 1 张+                                                                 | 万兆网卡                     |
@@ -103,31 +101,19 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
     # echo "sdbserver1" > /etc/HOSTNAME
     ```
 
-- Red Hat:
+- Red Hat/CentOS:
 
-    - 对于 Red Hat 6/CentOS 6 及以下的系统，执行如下命令设置主机名： 
+    设置主机名
 
-        ```lang-bash
-        # hostname sdbserver1
-        ```
+    ```lang-bash
+    # hostname sdbserver1
+    ```
         
-        将主机名持久化到配置文件
+    将主机名持久化到配置文件
         
-        ```lang-bash
-        # sed -i "s/HOSTNAME=.*/HOSTNAME=sdbserver1/g" /etc/sysconfig/network
-        ```
-
-    - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8，执行如下命令设置主机名： 
-
-        ```lang-bash
-        # hostname sdbserver1
-        ```
-        
-        将主机名持久化到配置文件
-        
-        ```lang-bash
-        # echo "sdbserver1" > /etc/hostname
-        ```
+    ```lang-bash
+    # echo "sdbserver1" > /etc/hostname
+    ```
 
 - Ubuntu:
 
@@ -174,36 +160,21 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 [^_^]:tab
 - SUSE:
 
-    - 对于 SUSE 11，执行如下命令：
+    执行如下命令：
 
-        ```lang-bash
-        # SuSEfirewall2 stop    # 临时关闭防火墙
-        # chkconfig SuSEfirewall2_init off    # 设置开机禁用防火墙
-        # chkconfig SuSEfirewall2_setup off
-        ```
+    ```lang-bash
+    # systemctl stop SuSEfirewall2.service    # 临时关闭防火墙
+    # systemctl disable SuSEfirewall2.service    # 设置开机禁用防火墙
+    ```
 
-    - 对于 SUSE 12，执行如下命令：
+- Red Hat/CentOS:
 
-        ```lang-bash
-        # systemctl stop SuSEfirewall2.service    # 临时关闭防火墙
-        # systemctl disable SuSEfirewall2.service    # 设置开机禁用防火墙
-        ```
+    执行如下命令：
 
-- Red Hat:
-
-    - 对于 Red Hat 6/CentOS 6 及以下系统，执行如下命令：
-
-        ```lang-bash
-        # service iptables stop    # 临时关闭防火墙
-        # chkconfig iptables off    # 设置开机禁用防火墙
-        ```
-
-    - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8，执行如下命令：
-
-        ```lang-bash
-        # systemctl stop firewalld.service    # 临时关闭防火墙
-        # systemctl disable firewalld.service    # 设置开机禁用防火墙
-        ```
+    ```lang-bash
+    # systemctl stop firewalld.service    # 临时关闭防火墙
+    # systemctl disable firewalld.service    # 设置开机禁用防火墙
+    ```
 
 - Ubuntu:
 
@@ -218,45 +189,30 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 [^_^]:tab
 - SUSE:
 
-    - 对于 SUSE 11，执行命令，若打印以下信息，说明关闭防火墙成功：
+    执行命令，若打印以下信息，说明关闭防火墙成功：
 
-        ```lang-bash
-        # chkconfig -list | grep fire
-        SuSEfirewall2_init       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
-        SuSEfirewall2_setup      	0:off	1:off	2:off	3:off	4:off	5:off	6:off
-        ```
+    ```lang-bash
+    # systemctl status SuSEfirewall2.service
+    ● SuSEfirewall2.service - SuSEfirewall2 phase 2
+          Loaded: loaded (/usr/lib/systemd/system/SuSEfirewall2.service; disabled; vendor preset: disabled)
+          Active: inactive (dead)
+    ```
 
-    - 对于 SUSE 12，执行命令，若打印以下信息，说明关闭防火墙成功：
+- Red Hat/CentOS:
 
-        ```lang-bash
-        # systemctl status SuSEfirewall2.service
-        ● SuSEfirewall2.service - SuSEfirewall2 phase 2
-              Loaded: loaded (/usr/lib/systemd/system/SuSEfirewall2.service; disabled; vendor preset: disabled)
-              Active: inactive (dead)
-        ```
+    执行命令，若打印以下信息，说明关闭防火墙成功：
 
-- Red Hat:
-
-    - 对于 Red Hat 6/CentOS 6 及以下系统，执行命令，若打印以下信息，说明关闭防火墙成功：
-
-        ```lang-bash
-        # chkconfig --list iptables
-        iptables       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
-        ```
-
-    - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8，执行命令，若打印以下信息，说明关闭防火墙成功：
-
-        ```lang-bash
-        # systemctl status firewalld.service
-        ● firewalld.service - firewalld - dynamic firewall daemon
-              Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
-              Active: inactive (dead)
-                Docs: man:firewalld(1)
-        ```
+    ```lang-bash
+    # systemctl status firewalld.service
+    ● firewalld.service - firewalld - dynamic firewall daemon
+          Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+          Active: inactive (dead)
+            Docs: man:firewalld(1)
+    ```
 
 - Ubuntu:
 
-     执行命令，若打印以下信息，说明关闭防火墙成功
+    执行命令，若打印以下信息，说明关闭防火墙成功：
 
      ```lang-bash
      # ufw status
