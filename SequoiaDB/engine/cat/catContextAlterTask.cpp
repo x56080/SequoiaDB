@@ -3743,7 +3743,8 @@ namespace engine
       }
       else if ( RTN_ALTER_DOMAIN_SET_ACTIVE_LOCATION == _task->getActionType() )
       {
-         _executeSetActiveLocationTask( cb ) ;
+         rc = _executeSetActiveLocationTask( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to execute set active location task, rc: %d", rc ) ;
          goto done ;
       }
       else if ( RTN_ALTER_DOMAIN_SET_LOCATION == _task->getActionType() )
@@ -4138,6 +4139,7 @@ namespace engine
 
       try
       {
+         INT32 tmpRC = SDB_OK ;
          // Get ActiveLocation
          ossPoolString newActLoc = task->getActiveLocation() ;
 
@@ -4149,20 +4151,20 @@ namespace engine
             UINT32 groupID = ( itr++ )->second ;
 
             // Get group obj by group id
-            rc = catGetGroupObj( groupID, groupObj, cb ) ;
-            if ( SDB_OK != rc )
+            tmpRC = catGetGroupObj( groupID, groupObj, cb ) ;
+            if ( SDB_OK != tmpRC )
             {
                _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, tmpRC ) ;
                continue ;
             }
 
             // Check and get active location
-            rc = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc ) ;
-            if ( SDB_OK != rc )
+            tmpRC = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc ) ;
+            if ( SDB_OK != tmpRC )
             {
                _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get and check active location, rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get and check active location, rc: %d", tmpRC ) ;
                continue ;
             }
 
@@ -4176,17 +4178,17 @@ namespace engine
             // Set new ActiveLocation
             if ( ! newActLoc.empty() )
             {
-               rc = pCatNodeMgr->setActiveLocation( groupID, newActLoc ) ;
+               tmpRC = pCatNodeMgr->setActiveLocation( groupID, newActLoc ) ;
             }
             // Remove old ActiveLocation
             else
             {
-               rc = pCatNodeMgr->removeActiveLocation( groupID ) ;
+               tmpRC = pCatNodeMgr->removeActiveLocation( groupID ) ;
             }
-            if ( SDB_OK != rc )
+            if ( SDB_OK != tmpRC )
             {
                _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to set active location, rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Failed to set active location, rc: %d", tmpRC ) ;
                continue ;
             }
          }
