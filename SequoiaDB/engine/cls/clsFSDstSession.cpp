@@ -2781,10 +2781,11 @@ namespace engine
          }
          else
          {
-            BSONObjIterator i( ele.embeddedObject() ) ;
-            while ( i.more() )
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            vector<string> tmpFullNames ;
+            while ( itr.more() )
             {
-               BSONElement next = i.next() ;
+               BSONElement next = itr.next() ;
                BSONElement name ;
                if ( next.eoo() || !next.isABSONObj() )
                {
@@ -2801,8 +2802,19 @@ namespace engine
                           next.toString().c_str() ) ;
                   goto error ;
                }
-
-               _fullNames.push_back( name.String() ) ;
+               // prioritize system collection synchronization
+               if ( dmsIsSysCSName( name.valuestrsafe() ) )
+               {
+                  _fullNames.push_back( name.String() ) ;
+               }
+               else
+               {
+                  tmpFullNames.push_back( name.String() ) ;
+               }
+            }
+            for ( UINT32 i = 0 ; i < tmpFullNames.size() ; i++ )
+            {
+               _fullNames.push_back( tmpFullNames.at( i ) ) ;
             }
          }
 
