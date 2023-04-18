@@ -8,6 +8,104 @@ SequoiaDB 巨杉数据库是一款金融级分布式数据库，产品引擎采�
 - 从 3.4.4/3.6/5.0.3 及早期版本滚动升级到 3.4.5/3.6.1/5.0.4 及之后的版本时，从 SQL 引擎执行的 INSERT 操作会存在失败。因此滚动升级的过程中需保证优先完成存储引擎的升级，然后再进行 MySQL/MariaDB 实例的升级。
 - 从 3.4.4/3.6/5.0.3 及早期版本升级到 3.4.5/3.6.1/5.0.4 及之后的版本，如果集群会扩展为 X86 和 ARM 架构混合部署，则在升级前版本上创建的、使用 double 类型字段作为 hash 分区键的集合，需要进行重建，否则可能会出现数据无法正确访问的问题。可通过查询 SDB_SNAP_CATALOG 快照，根据集合使用的 hash 算法版本号（InternalV 字段）判断，对于该版本号小于 4 的集合需要进行处理。
 
+##SequoiaDB version 5.0.4 版本说明##
+
+**接口变更：**
+
+- SQL 引擎
+  - 新增 optimizer_limit_pushdown_threshold 配置参数
+  - 新增 sequoiadb_stats_flush_time_threshold 配置参数
+  - 新增 sequoiadb_stats_cache_level 配置参数
+  - 新增 sequoiadb_execution_mode 配置参数
+  - 新增 sql_select_result_limit 参数以配置 select 语句期望返回的最大记录数
+  - 新增 sql_select_result_limit_exceed_handling 参数以配置 select 语句执行后返回记录的行为
+- 存储引擎
+  - 会话快照复制平面信息增加 LastOpInfo
+  - 集合空间快照增加回收站相关信息
+  - 快照中新增部分 LOB 监控指标
+  - 快照中新增部分性能监控指标
+
+**主要特性：**
+
+- SQL 引擎
+  - 支持 MySQL 5.7.39
+  - 支持 Catalog Simulation 工具以帮助定位诊断执行计划不准确的问题
+  - 索引统计信息支持频繁集以提高索引选择的准确度
+  - like 谓词支持部分常量函数下压，以提升查询性能
+  - 实例组支持根据插入删除累积的记录数和时间淘汰清理缓存的统计信息
+  - INSERT ... ON DUPLICATE KEY UPDATE 直接使用存储引擎支持的对应功能，优化性能
+  - 查询语句是带有 order by 和 limit 子句的块驱动关联查询，支持 limit 下压以提升查询性能
+  - 支持 slow/general 日志重定向输出到 SequoiaDB 引擎非事务表
+  - MySQL 支持对 TCP 连接类型客户端的探活能力
+  - 新增 REFRESH TABLES STATS 命令以刷新替换 TABLE_SHALE 缓存表的统计信息
+  - 支持 sequoiadb_execute_only_in_mysql 开启时在实例组之间同步元数据
+- 存储引擎
+  - 支持返回静态表统计信息
+  - 增加消息唯一 ID
+  - 支持夏令时
+  - 支持创建监控用户，仅可以查看快照等信息
+  - 支持查询索引频繁集
+  - 支持 x86 与 ARM 环境混合部署
+
+**性能优化：**
+
+- SQL 引擎
+  - 支持单表派生表 direct_count 查询以提升查询性能
+  - 支持部分查询走索引查询时，去除内部不必要的索引排序以提升查询性能
+  - 对于同一查询块只包含一个表的子查询、表表达式和 UNION 查询语句，支持 direct_count/direct_limit/direct_sort 下压以提前其查询性能
+  - 对于 INSERT INTO SELECT .../REPLACE INTO SELECT ... 语句，支持其 SELECT 子句中可能的 direct_count/direct_limit/direct_sort 下压以提升其插入性能
+
+**工具优化：**
+
+- SQL 引擎
+  - 优化 sdb_sql_ctl 工具若干问题
+
+**解决重要Bug：**
+
+- SQL 引擎
+  - 修复 MySQL 单独在分区表上创建索引时误报外键不支持的错误
+  - 修复 engine_condition_pushdown/index_condition_pushdown 关闭时，走 direct_xxx 优化后可能造成数据不正确的问题
+  - direct_count 支持 is null 或者 not null 条件下压
+  - 修复 MariaDB 分区表做 BKA/BKAH 时 CRASH 的问题
+  - 修复协调节点重启后，SQL 实例做索引查询时 CRASH 的问题
+  - 修复 KILL [CONNECTION | QUERY] processlist_id 可能 CRASH 的问题 
+  - 修复批量插入失效的问题
+  - 修复部分场景下多范围索引查询可能 CRASH 的问题
+  - 修复索引扫描可能预估出超大的检查行记录数问题
+  - 修复统计信息可能访问到异常失效的问题
+  - 修复 LOAD DATA 命令无输出 Records 描述信息的问题
+  - curl 库版本升级到 7.83.1，解决已知漏洞
+  - OpenSSL 库版本升级到 1.1.1o，解决已知漏洞
+  - 修复基于 SequoiaDB 已存在表基础上在 SQL 做 create table like 失败后可能删除已存在表的问题
+  - 修复 DATE 类型字段在某些夏令时场景数据读取不正确的问题
+  - 修复多范围查询走联合索引，并且联合索引以字符型字段作为左前缀时可能报错的问题
+  - 修复走 direct_sort 查询时，部分 SQL 访问计划与实际执行计划不一致的问题
+  - 修复实例组元数据同步相关的问题
+  - 修复 direct_sort 下压时，执行计划 ACCESS_TYPE 总是显示为 ALL 的问题
+  - 修复 NO_ZERO_DATE 模式下添加列操作无法走 INPLACE 算法的问题
+  - 修复 systemd 守护进程拉起 mysqld 进程后，open_files_limit 参数值可能变小的问题
+  - 修复 SELECT 语句指定 SQL_BIG_RESULT、SQL_SMALL_RESULT 或 SQL_BUFFER_RESULT 时的若干问题
+  - 修复实例组下 ALTER USER USER() IDENTIFY BY ... 可能导致服务进程 CRASH 的问题
+  - MySQL 支持 NOT 谓词下压以修复 NOT LIKE 谓词无法下压的问题
+  - 修复 <=> 下压没有匹配 NULL 值的问题
+  - 修复 rand 函数条件没下压而 direct_count/direct_limit/direct_sort 误下压的问题
+  - 修复可能由于 killed 状态的会话连接导致停止实例超时失败的问题
+  - 修复 MySQL 查询时使用了内部临时表可能导致分页查询结果不正确的问题
+  - 修复 BKA JOIN 走默认实现时，下压的索引查询条件可能导致结果不正确问题
+  - 修复 BKA JOIN 在 NULL REJECT 谓词条件下，查询结果可能不正确的问题
+  - 修复 BKA JOIN 在 IS NULL 谓词下的若干问题
+  - 修复实例组在 SQL 表与 SequoiaDB 集合版本不一致下，PREPARE/EXECUTE 等语句报 -357 错误的问题
+  - 修复带有 ROLLUP 子句 SQL 可能导致实例 CRASH 的问题
+  - 修复管理工具脚本无法识别带空格的用户密码问题
+  - 修复 GROUP BY 使用 MRR 做多范围 loose scan 时结果集缺失的问题
+  - 修复 ORDER BY 逆序查询走联合索引时，等值条件下压成小于等于导致查询性能差的问题
+- 存储引擎
+  - 修复批量 upsert 包含相同主键的记录时，不再返回 -38 错误的问题
+  - 修复创建压缩字典过程中 IO 消耗过高的问题
+  - 修复 Replace Into 选择错误访问计划的问题
+  - 修复查询快照操作导致诊断日志中打印 -29 错误的问题
+  - 修复创建压缩字典导致诊断日志不停打印 -29 错误的问题
+
 ##SequoiaDB version 5.0.3 版本说明##
 
 **接口变更：**
