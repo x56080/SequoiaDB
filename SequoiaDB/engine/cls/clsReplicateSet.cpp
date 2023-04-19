@@ -1725,7 +1725,7 @@ namespace engine
 
       // Location info: if alive node is timeout, remove it
       _locationInfo.mtx.lock_w() ;
-      for ( itr = _locationInfo.alives.begin() ; itr != _locationInfo.alives.end() ; ++itr )
+      for ( itr = _locationInfo.alives.begin() ; itr != _locationInfo.alives.end() ; )
       {
          pStatus = itr->second ;
          if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
@@ -1743,7 +1743,11 @@ namespace engine
                        pStatus->beat.identity.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
             }
-            _locationInfo.alives.erase( itr ) ;
+            _locationInfo.alives.erase( itr++ ) ;
+         }
+         else
+         {
+            ++itr ;
          }
       }
       // Reset pStatus ?
