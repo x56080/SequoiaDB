@@ -9,47 +9,42 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   var CSNAME = COMMCLNAME + "_8118";
-   var domName = COMMCLNAME + "_8118"
+   var csName = COMMCSNAME + "_8118";
+   var clName = COMMCLNAME + "_8118";
+   var domName = "domain_8118";
    var groups = commGetGroups( db );
    for( var i = 0; i < groups.length; ++i )
    {
       var csRg = groups[i][0].GroupName;
-      commDropCS( db, CSNAME, true, "clear environmen in the beginning" );
+      commDropCS( db, csName, true, "clear environmen in the beginning" );
       commDropDomain( db, domName );
       db.createDomain( domName, [csRg] );
-      var varCS = db.createCS( CSNAME, { "Domain": domName } );
+      var varCS = db.createCS( csName, { "Domain": domName } );
       // need to create cl, because when cs has no cl, the cs don't create in data group
-      var cl = varCS.createCL( COMMCLNAME );
+      varCS.createCL( clName, { ReplSize: -1 } );
 
       // Inspect the CS is located in
       db.invalidateCache();  // clean coord and data node cache
-      var csGroups = commGetCSGroups( db, CSNAME );
-      var csGroupWrong = false;
+      var csGroups = commGetCSGroups( db, csName );
       if( csGroups.length > 1 || csGroups != csRg )
       {
-         //throw "error, create CS located in wrong group" ;
-         csGroupWrong = true;
          // sleep 10000ms, see the group that cs located in is changed or not
          sleep( 10000 );
       }
       db.invalidateCache();  // clean coord and data node cache
-      csGroups = commGetCSGroups( db, CSNAME );
+      csGroups = commGetCSGroups( db, csName );
       var retryTimes = 10;
       while( csGroups.length > 1 && 0 != retryTimes-- )
       {
          sleep( 3000 );
-         csGroups = commGetCSGroups( db, CSNAME );
+         csGroups = commGetCSGroups( db, csName );
       }
       if( csGroups.length > 1 || csGroups != csRg )
       {
-         throw new Error( "error, create CS located in wrong group" );
-      }
-      if( true == csGroupWrong )
-      {
+         throw new Error( "error, create CS located in wrong group, csGroups:" + csGroups + ", csRg:" + csRg );
       }
    }
    // Clear the envioronment
-   commDropCS( db, CSNAME, false, "clear environmen in the end" );
+   commDropCS( db, csName, false, "clear environmen in the end" );
    db.dropDomain( domName );
 }
