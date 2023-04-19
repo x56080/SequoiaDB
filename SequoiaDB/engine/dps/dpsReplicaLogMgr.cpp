@@ -414,7 +414,12 @@ namespace engine
          goto error ;
       }
 
-      if ( DPS_INVALID_LSN_VERSION == _lsn.version || DPS_INC_VER_ZERO != _incVerVal )
+      if ( DPS_INVALID_LSN_VERSION == _lsn.version )
+      {
+         _lsn.version += DPS_INC_VER_ZERO == _incVerVal ? 1 : _incVerVal ;
+         _incVerVal = DPS_INC_VER_ZERO ;
+      }
+      else if ( DPS_INC_VER_ZERO != _incVerVal )
       {
          _lsn.version += _incVerVal ;
          _incVerVal = DPS_INC_VER_ZERO ;
