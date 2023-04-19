@@ -2567,6 +2567,10 @@ namespace engine
    INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef )
    {
       INT32 rc = SDB_OK ;
+      BSONElement indexMappinsEle ;
+      BOOLEAN hasMappings = FALSE ;
+      BSONElement indexKeyEle ;
+      UINT16 indexType = 0 ;
 
       // 1. Message of old version, has "unique" field. Message since v3.2,
       // has "Unique" and "unique" field. But in engine, we just convert
@@ -2667,6 +2671,7 @@ namespace engine
                if ( Object == e.type() )
                {
                   builder.append( e ) ;
+                  indexKeyEle = e ;
                }
                else
                {
@@ -2683,6 +2688,17 @@ namespace engine
                // old version create index or copy index has them
                builder.append( e ) ;
             }
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_ES_NAME_MAPPINGS ) )
+            {
+               if ( Object != e.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be Object", FIELD_ES_NAME_MAPPINGS ) ;
+                  goto error ;
+               }
+               indexMappinsEle = e ;
+               hasMappings = TRUE ;
+            }
             else
             {
                rc = SDB_INVALIDARG ;
@@ -2690,6 +2706,28 @@ namespace engine
                goto error ;
             }
          }
+
+         if ( hasMappings )
+         {
+            rc = ixmIndexCB::generateIndexType( indexKeyEle.wrap(), indexType ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to generate index type, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
+            {
+               rc = rtnCheckFulltextIdxMappings( indexMappinsEle.Obj(), indexKeyEle.Obj() ) ;
+               if ( rc )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to check fulltext index mappings, rc: %d", rc ) ;
+                  goto error ;
+               }
+               builder.append( indexMappinsEle ) ;
+            }
+         }
+
          indexDef = builder.obj() ;
       }
       catch( std::exception &e )
@@ -2878,6 +2916,191 @@ namespace engine
       }
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   static INT32 _checkMappingsFields( const BSONObj &fields, const BSONObj &indexKey )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjIterator itr( fields ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            ossPoolString fieldName = ele.fieldName() ;
+            BOOLEAN existInIndexKey = FALSE ;
+
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The elements in Fileds must be Object" ) ;
+               goto error ;
+            }
+
+            {
+               BSONObjIterator i( indexKey ) ;
+               while( i.more() )
+               {
+                  BSONElement e = i.next() ;
+                  if ( 0 == ossStrcmp( fieldName.c_str(), e.fieldName() ) )
+                  {
+                     existInIndexKey = TRUE ;
+                     break ;
+                  }
+
+                  // May be the fieldName is a nested field
+                  if ( 0 == fieldName.rfind( e.fieldName(), 0 ) )
+                  {
+                     if ( NULL == ossStrstr( fieldName.c_str(), "." ) )
+                     {
+                        break ;
+                     }
+                     existInIndexKey = TRUE ;
+                  }
+               }
+            }
+
+            if ( !existInIndexKey )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Index keys must contain all fields definded in "
+                           "Mappings.Fields. Field \"%s\" doesn't exist in index key, "
+                           "rc: %d", fieldName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            {
+               BSONObjIterator i( ele.Obj() ) ;
+               while( i.more() )
+               {
+                  BSONElement e = i.next() ;
+                  if ( 0 == ossStrcmp( e.fieldName(), FIELD_ES_NAME_TYPE ) )
+                  {
+                     const CHAR* typeStr = NULL ;
+                     if ( String != e.type() )
+                     {
+                        rc = SDB_INVALIDARG ;
+                        PD_LOG_MSG( PDERROR, "The Type field in Fields must be string" ) ;
+                        goto error ;
+                     }
+                     typeStr = e.valuestr() ;
+
+                     if ( 0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_TEXT ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_KEYWORD ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_WILDCARD ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_INT ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_LONG ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_FLOAT ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_DOUBLE ) &&
+                          0 != ossStrcmp( typeStr, VALUE_ES_TYPE_NAME_DATE ) )
+                     {
+                        rc = SDB_INVALIDARG ;
+                        PD_LOG_MSG( PDERROR, "Invalid Type[%s]. Now we only support text, "
+                                    "keyword, wildcard, integer, long, float, double and date",
+                                    typeStr ) ;
+                     }
+                  }
+                  else if ( 0 == ossStrcmp( e.fieldName(), FIELD_ES_NAME_INDEX ) )
+                  {
+                     if ( Bool != e.type() )
+                     {
+                        rc = SDB_INVALIDARG ;
+                        PD_LOG_MSG( PDERROR, "The Type field in Fields must be bool" ) ;
+                        goto error ;
+                     }
+                  }
+                  else
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "Unrecognized field[%s] in Fields",
+                                 ele.fieldName() ) ;
+                     goto error ;
+                  }
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when checking fields in fulltext index maapings: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCHKFULLTEXTIDXMAPPINGS, "rtnCheckFulltextIdxMappings" )
+   INT32 rtnCheckFulltextIdxMappings( const BSONObj &indexMappings, const BSONObj &indexKey )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNCHKFULLTEXTIDXMAPPINGS ) ;
+
+      /*
+
+      eg:
+
+      mappings =
+      {
+         Fields:
+         {
+            fieldName1: { Type: "keyword" },
+            fieldName2: { Index: false },
+            ...
+         }
+      }
+
+      */
+
+      try
+      {
+         BSONObjIterator itr( indexMappings ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            if ( 0 == ossStrcmp( ele.fieldName(), FIELD_ES_NAME_FIELDS ) )
+            {
+               if ( Object != ele.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s in fulltext index mappings should be Object",
+                              FIELD_NAME_FIELDS ) ;
+                  goto error ;
+               }
+
+               rc = _checkMappingsFields( ele.Obj(), indexKey ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Unrecognized field[%s] in fulltext index mappings",
+                           ele.fieldName() ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when checking fulltext index mappings: %s, "
+                 "rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNCHKFULLTEXTIDXMAPPINGS, rc ) ;
       return rc ;
    error:
       goto done ;

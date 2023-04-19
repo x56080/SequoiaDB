@@ -47,6 +47,9 @@
 using namespace engine ;
 using bson::BSONObj ;
 using bson::BSONObjSet ;
+using bson::BSONType ;
+using bson::BSONElement ;
+using bson::BSONObjBuilder ;
 
 namespace seadapter
 {
@@ -112,6 +115,14 @@ namespace seadapter
       INT32 _cleanSearchEngine() ;
 
       virtual const CHAR *_getStepDesp() const = 0 ;
+
+      BOOLEAN _isSupportType( BSONType type ) ;
+
+      INT32 _rebuildDateField( const BSONElement &srcEle, BSONObj &dstObj ) ;
+
+      INT32 _rebuildRcordEle( const BSONElement &ele,
+                              const ossPoolVector<ossPoolString> &dateFieldVec,
+                              BSONObjBuilder &builder ) ;
 
    protected:
       _seAdptIndexSession *_session ;

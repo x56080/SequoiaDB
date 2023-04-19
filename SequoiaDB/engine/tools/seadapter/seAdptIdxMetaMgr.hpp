@@ -157,8 +157,8 @@ namespace seadapter
          void setCappedCLName( const CHAR *cappedCLFullName ) ;
          void setESIdxName( const CHAR *esIdxName ) ;
          void setESTypeName( const CHAR *esTypeName ) ;
-         INT32 setIdxDef( BSONObj &idxDef ) ;
-
+         INT32 setIdxDef( const BSONObj &idxDef ) ;
+         INT32 setIdxDefMappings( const BSONObj &mappings ) ;
 
          const CHAR* getOrigCLName() const
          {
@@ -189,6 +189,13 @@ namespace seadapter
          {
             return _indexDef ;
          }
+
+         const BSONObj& getIdxDefMappings() const
+         {
+            return _indexMappings ;
+         }
+
+         INT32 getDateFields( ossPoolVector<ossPoolString> &dateFieldVec ) ;
 
          utilCLUniqueID getCLUID() const
          {
@@ -224,7 +231,8 @@ namespace seadapter
                   << "es index[" << _esIdxName << "], "
                   << "es type[" << _esTypeName << "], "
                   << "original index[" << _origIdxName << ", "
-                  << _indexDef.toString() << "], "
+                  << _indexDef.toString() << ", "
+                  << _indexMappings.toString() << "], "
                   << "original index logicalID[" << _idxLogicalID << "]" ;
                return ss.str() ;
             }
@@ -255,6 +263,7 @@ namespace seadapter
          UINT32         _clLogicalID ;
          UINT32         _idxLogicalID ;
          BSONObj        _indexDef ;  // Used for fetching data from original collection.
+         BSONObj        _indexMappings ;
    } ;
    typedef _seIndexMeta seIndexMeta ;
 

@@ -516,7 +516,7 @@ namespace engine
 
    } ;
 
-   /* 
+   /*
       _rtnAlterGroup define
     */
    class _rtnAlterGroup : public _rtnCommand

@@ -4903,6 +4903,13 @@ namespace engine
       BSONObjBuilder builder ;
       const CHAR* indexName = NULL ;
       clsCatalogSet *pCataSet = NULL ;
+      UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
+
+      rc = ixmGetIndexType( indexDef, idxType ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       try
       {
@@ -4966,17 +4973,18 @@ namespace engine
          {
             ob.append( IXM_2DRANGE_FIELD, range ) ;
          }
+
+         if ( IXM_EXTENT_HAS_TYPE( idxType, IXM_EXTENT_TYPE_TEXT ) &&
+              indexDef.hasField( FIELD_ES_NAME_MAPPINGS ) )
+         {
+            ob.append( indexDef.getField( FIELD_ES_NAME_MAPPINGS ) ) ;
+         }
+
          ob.done () ;
 
          builder.append( IXM_FIELD_NAME_INDEX_FLAG,
                          ixmGetIndexFlagDesp( IXM_INDEX_FLAG_NORMAL ) ) ;
 
-         UINT16 idxType = 0 ;
-         rc = ixmGetIndexType( indexDef, idxType ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
          builder.append( FIELD_NAME_TYPE,
                          ixmGetIndexTypeDesp( idxType ).c_str() ) ;
 

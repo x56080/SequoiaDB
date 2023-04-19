@@ -78,6 +78,8 @@ namespace seadapter
    #define SEADPT_MAX_ID_SZ               512
    #define SEADPT_COMMIT_ID               "SDBCOMMIT"
 
+   #define SEADPT_PREFIX_TEMPLATE_NAME   "template"
+
    // After 7.x, ES will deprecate type. The type defaults to "_doc"
    #define SEADPT_DEFAULT_TYPE            "_doc"
    #define SEADPT_MAX_TYPE_SZ             4
@@ -91,6 +93,16 @@ namespace seadapter
    #define SEADPT_FIELD_NAME_IDXLID      "_idxlid"
    #define SEADPT_FIELD_NAME_HASH        "_hash"
    #define SEADPT_FIELD_NAME_CAPPEDCL    "CappedCL"
+   #define SEADPT_FIELD_NAME_TYPE        "type"
+   #define SEADPT_FIELD_NAME_MAPPINGS    "mappings"
+   #define SEADPT_FIELD_NAME_MAPPING     "mapping"
+   #define SEADPT_FIELD_NAME_PROPERTIES  "properties"
+   #define SEADPT_FIELD_NAME_DY_TMPL     "dynamic_templates"
+   #define SEADPT_FIELD_NAME_STRING      "string"
+
+   #define SEADPT_DY_TMPL_RULE_MATCH            "match"
+   #define SEADPT_DY_TMPL_RULE_PATH_MATCH       "path_match"
+   #define SEADPT_DY_TMPL_RULE_MACTH_MAP_TYPE   "match_mapping_type"
 
    #define SEADPT_OPERATOR_STR_OR        "$or"
    #define SEADPT_OPERATOR_STR_EXIST     "$exists"

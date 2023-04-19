@@ -39,6 +39,7 @@
 #include "seAdptIdxMetaMgr.hpp"
 #include "msgDef.hpp"
 #include "seAdptMgr.hpp"
+#include "utilESUtil.hpp"
 
 namespace seadapter
 {
@@ -125,7 +126,7 @@ namespace seadapter
       ossStrncpy( _esTypeName, esTypeName, SEADPT_MAX_TYPE_SZ ) ;
    }
 
-   INT32 _seIndexMeta::setIdxDef( BSONObj &idxDef )
+   INT32 _seIndexMeta::setIdxDef( const BSONObj &idxDef )
    {
       INT32 rc = SDB_OK ;
       try
@@ -142,6 +143,85 @@ namespace seadapter
       {
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "Unexpected exception happened: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seIndexMeta::setIdxDefMappings( const BSONObj &mappings )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _indexMappings = mappings.copy() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when setting index mappings: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seIndexMeta::getDateFields( ossPoolVector<ossPoolString> &dateFieldVec )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj fields ;
+
+      if ( _indexMappings.isEmpty() )
+      {
+         goto done ;
+      }
+
+      rc = seGetObjElement( _indexMappings, FIELD_ES_NAME_FIELDS, fields ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                   FIELD_ES_NAME_FIELDS, _indexMappings.toString().c_str(), rc ) ;
+
+      try
+      {
+         BSONObjIterator itr( fields ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            const CHAR* type = NULL ;
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "The elements in Fileds must be Object" ) ;
+               goto error ;
+            }
+
+            rc = seGetStringElement( ele.Obj(), FIELD_ES_NAME_TYPE, &type ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_ES_NAME_TYPE, ele.Obj().toString().c_str(), rc ) ;
+
+            if ( 0 == ossStrcmp( type, VALUE_ES_TYPE_NAME_DATE ) )
+            {
+               dateFieldVec.push_back( ele.fieldName() ) ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when getting date fields from mappings: "
+                 "%s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -191,6 +271,10 @@ namespace seadapter
       if ( 0 != _indexDef.woCompare( right._indexDef ) )
       {
          _indexDef = right._indexDef ;
+      }
+      if ( 0 != _indexMappings.woCompare( right._indexMappings ) )
+      {
+         _indexMappings = right._indexMappings ;
       }
 
       return *this ;
@@ -610,6 +694,8 @@ namespace seadapter
             {
                BSONObj idxDef = ele.Obj() ;
                BSONObj key ;
+               BSONObj indexMappings ;
+
                if ( idxDef.isEmpty() )
                {
                   rc = SDB_INVALIDARG ;
@@ -624,8 +710,24 @@ namespace seadapter
                   PD_LOG( PDERROR, "No valid key definition in index info" ) ;
                   goto error ;
                }
-               meta.setIdxDef( key ) ;
+
+               rc = meta.setIdxDef( key ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+
                meta.setIdxName( idxDef.getStringField( IXM_FIELD_NAME_NAME ) ) ;
+
+               if ( idxDef.hasField( FIELD_ES_NAME_MAPPINGS ) )
+               {
+                  indexMappings = idxDef.getObjectField( FIELD_ES_NAME_MAPPINGS ) ;
+                  rc = meta.setIdxDefMappings( indexMappings ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+               }
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNIQUEID ) )
             {

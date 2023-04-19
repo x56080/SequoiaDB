@@ -4889,6 +4889,8 @@ namespace engine
       {
          INT64 idxUniqID = 0 ;
          const BSONObj &indexDef = index._indexDef ;
+         UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
+         index.getIndexType( idxType ) ;
 
          BSONObjBuilder sub( ob.subobjStart( IXM_FIELD_NAME_INDEX_DEF ) );
 
@@ -4944,6 +4946,13 @@ namespace engine
          {
             sub.append( IXM_2DRANGE_FIELD, range ) ;
          }
+
+         if ( IXM_EXTENT_HAS_TYPE( idxType, IXM_EXTENT_TYPE_TEXT ) &&
+              indexDef.hasField( FIELD_ES_NAME_MAPPINGS ) )
+         {
+            sub.append( indexDef.getField( FIELD_ES_NAME_MAPPINGS ) ) ;
+         }
+
          sub.done () ;
 
          ob.append( IXM_FIELD_NAME_INDEX_FLAG,
@@ -4954,8 +4963,6 @@ namespace engine
             ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanExtLID ) ;
          }
 
-         UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
-         index.getIndexType( idxType ) ;
          ob.append( FIELD_NAME_TYPE, ixmGetIndexTypeDesp( idxType ) ) ;
 
          const CHAR *extDataName = index.getExtDataName() ;

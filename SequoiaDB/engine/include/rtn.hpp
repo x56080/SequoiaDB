@@ -767,6 +767,8 @@ namespace engine
                                      BSONObj &newMatcher,
                                      BOOLEAN ignoreNodeParam = FALSE,
                                      BOOLEAN ignoreCtrlParam = FALSE ) ;
+
+   INT32 rtnCheckFulltextIdxMappings( const BSONObj &indexMappings, const BSONObj &indexKey ) ;
 }
 
 #endif

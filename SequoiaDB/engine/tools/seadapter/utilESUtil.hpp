@@ -54,6 +54,7 @@ namespace seadapter
    {
       ES_TEXT,
       ES_KEYWORD,
+      ES_WILDCARD,
       ES_MULTI_FIELDS,
       ES_DATE,
       ES_LONG,
@@ -69,44 +70,38 @@ namespace seadapter
       ES_COMPLETION
    } ;
 
-   class _utilESMapProp
-   {
-      public:
-         _utilESMapProp( const CHAR *name, ES_DATA_TYPE type ) ;
-         ~_utilESMapProp() ;
-
-         const std::string& getName() const { return _name ; }
-         const ES_DATA_TYPE getType() const { return _type ; }
-
-         // Reserved, maybe need to set more parameters in future.
-         // INT32 setParams( const BSONObj &parameters ) ;
-
-      private:
-         std::string    _name ;
-         ES_DATA_TYPE   _type ;
-   } ;
-   typedef _utilESMapProp utilESMapProp ;
-
    class _utilESMapping
    {
       public:
-         _utilESMapping( const CHAR *index, const CHAR *type ) ;
+         _utilESMapping() ;
          ~_utilESMapping() ;
-
-         INT32 addProperty( const CHAR *name, ES_DATA_TYPE type,
-                            BSONObj *parameters = NULL ) ;
 
          INT32 toObj( BSONObj &mapObj ) const ;
 
+         INT32 generateIndexMapping( const BSONObj &mappings ) ;
+
       private:
-         std::string _index ;
-         std::string _type ;
-         vector<_utilESMapProp> _properties ;
+         INT32 _processField( const BSONElement &eField ) ;
+         INT32 _generateDefaultIndexTemplate() ;
+
+         INT32 _generateStringTemplate() ;
+         INT32 _generateDoubleTemplate() ;
+
+      private:
+         ossPoolVector< BSONObj > _properties ;
+         ossPoolVector< BSONObj > _templates ;
+         UINT32 _templateCount ;
    } ;
    typedef _utilESMapping utilESMapping ;
 
    void encodeID( const BSONElement &idEle, string &id ) ;
    INT32 decodeID( const CHAR *id, CHAR *raw, UINT32 &len, BSONType &type ) ;
+
+   INT32 seGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
+                              const CHAR **value ) ;
+
+   INT32 seGetObjElement ( const BSONObj &obj, const CHAR *fieldName,
+                           BSONObj &value ) ;
 }
 
 #endif /* UTIL_ESUTIL_HPP__ */

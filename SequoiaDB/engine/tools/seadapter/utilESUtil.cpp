@@ -41,6 +41,9 @@
 #include "utilESUtil.hpp"
 #include "../../util/hex.h"
 #include <sstream>
+#include <algorithm>
+#include "msgDef.hpp"
+#include "seAdptDef.hpp"
 
 using bson::BSONObjBuilder ;
 
@@ -48,75 +51,295 @@ using bson::BSONObjBuilder ;
 
 namespace seadapter
 {
-   static const CHAR* getTypeStr( ES_DATA_TYPE type )
+   _utilESMapping::_utilESMapping()
    {
-      switch ( type )
-      {
-         case ES_TEXT:
-            return "text" ;
-         case ES_KEYWORD:
-            return "keyword" ;
-         case ES_DATE:
-            return "date" ;
-         case ES_LONG:
-            return "long" ;
-         case ES_DOUBLE:
-            return "double" ;
-         case ES_BOOLEAN:
-            return "boolean" ;
-         case ES_IP:
-            return "ip" ;
-         case ES_OBJECT:
-            return "object" ;
-         case ES_NESTED:
-            return "nested" ;
-         case ES_GEO_POINT:
-            return "geo_point" ;
-         case ES_GEO_SHAPE:
-            return "geo_shape" ;
-         case ES_COMPLETION:
-            return "completion" ;
-         default:
-            return NULL ;
-      } ;
-   }
-
-   _utilESMapProp::_utilESMapProp( const CHAR *name, ES_DATA_TYPE type )
-   {
-      SDB_ASSERT( name, "Name is NULL" ) ;
-      _name = string( name ) ;
-      _type = type ;
-   }
-
-   _utilESMapProp::~_utilESMapProp()
-   {
-   }
-
-   _utilESMapping::_utilESMapping( const CHAR *index, const CHAR *type )
-   {
-      SDB_ASSERT( index, "Index is NULL" ) ;
-      SDB_ASSERT( type, "type is NULL" ) ;
-
-      _index = string( index ) ;
-      _type = string( type ) ;
+      _templateCount = 0 ;
    }
 
    _utilESMapping::~_utilESMapping()
    {
    }
 
-   INT32 _utilESMapping::addProperty( const CHAR *name, ES_DATA_TYPE type,
-                                      BSONObj *parameters )
+   INT32 _utilESMapping::_processField( const BSONElement &eField )
    {
       INT32 rc = SDB_OK ;
+      const CHAR* fieldName = eField.fieldName() ;
 
-      if ( !name )
+      /*
+      eg:
+
+      eField.Obj() =
       {
-         rc = SDB_INVALIDARG ;
+         "a": { "Type": "text", "Index": true },
+         "b": { "Index": false },
+         "c": { "Type": "keyword" },
+         "d.c": { "Type": "text" }
+      }
+
+      We will generate the following index templates:
+
+      {
+         "template_0" : {
+            "match" : "b",
+            "mappings" : {
+               "index" : "false"
+            }
+         }
+      }
+
+      {
+         "template_1" : {
+            "path_match" : "d.c",
+            "mappings" : {
+               "type" : "text"
+            }
+         }
+      }
+
+      We will generate the following index properties:
+
+      { "a": { "type" : "text", "index": true } }
+
+      { "c": { "type" : "keyword" } }
+
+      */
+
+      try
+      {
+         BSONObjBuilder bob ;
+         BSONObj field = eField.Obj() ;
+         BSONObjIterator itr( field ) ;
+         BOOLEAN isNested = ossStrstr( fieldName, "." ) ? TRUE : FALSE ;
+         BOOLEAN hasType = field.hasField( FIELD_ES_NAME_TYPE ) ;
+         StringBuilder buf ;
+         string templateName ;
+
+         if ( isNested || !hasType )
+         {
+            buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+            templateName = buf.str() ;
+
+            BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
+
+            if ( isNested )
+            {
+               templateBuilder.append( SEADPT_DY_TMPL_RULE_PATH_MATCH, fieldName ) ;
+            }
+            else if ( !hasType )
+            {
+               templateBuilder.append( SEADPT_DY_TMPL_RULE_MATCH, fieldName ) ;
+            }
+
+            BSONObjBuilder mapBuilder( templateBuilder.subobjStart( SEADPT_FIELD_NAME_MAPPING ) ) ;
+
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               ossPoolString fieldName = ele.fieldName() ;
+               std::transform( fieldName.begin(), fieldName.end(), fieldName.begin(), ::tolower ) ;
+               mapBuilder.appendAs( ele, fieldName.c_str() ) ;
+            }
+            mapBuilder.done() ;
+            templateBuilder.done() ;
+
+            _templates.push_back( bob.obj() ) ;
+         }
+         else
+         {
+            BSONObjBuilder fieldBuilder( bob.subobjStart( fieldName ) ) ;
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               ossPoolString fieldName = ele.fieldName() ;
+               std::transform( fieldName.begin(), fieldName.end(), fieldName.begin(), ::tolower ) ;
+               fieldBuilder.appendAs( ele, fieldName.c_str() ) ;
+            }
+            fieldBuilder.done() ;
+
+            _properties.push_back( bob.obj() ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when processing field: %s, rc: %d",
+                 e.what(), rc ) ;
          goto error ;
       }
 
-      _properties.push_back( utilESMapProp( name, type ) ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _utilESMapping::_generateStringTemplate()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         /*
+         {
+            "templatex":
+            {
+               "match_mapping_type": "string",
+               "mappings":
+               {
+                  "type": "string"
+               }
+            }
+         }
+         */
+         BSONObjBuilder bob ;
+         StringBuilder buf ;
+         string templateName ;
+
+         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+         templateName = buf.str() ;
+
+         BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
+         templateBuilder.append( SEADPT_DY_TMPL_RULE_MACTH_MAP_TYPE,
+                                 SEADPT_FIELD_NAME_STRING ) ;
+         BSONObjBuilder mapBuilder( templateBuilder.subobjStart( SEADPT_FIELD_NAME_MAPPING ) ) ;
+         mapBuilder.append( SEADPT_FIELD_NAME_TYPE, VALUE_ES_TYPE_NAME_TEXT ) ;
+         mapBuilder.done() ;
+         templateBuilder.done() ;
+
+         _templates.push_back( bob.obj() ) ;
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when generating string template: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _utilESMapping::_generateDoubleTemplate()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         /*
+         {
+            "templatex":
+            {
+               "match_mapping_type": "double",
+               "mappings":
+               {
+                  "type": "double"
+               }
+            }
+         }
+         */
+         BSONObjBuilder bob ;
+         StringBuilder buf ;
+         string templateName ;
+
+         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+         templateName = buf.str() ;
+
+         BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
+         templateBuilder.append( SEADPT_DY_TMPL_RULE_MACTH_MAP_TYPE,
+                                 VALUE_ES_TYPE_NAME_DOUBLE ) ;
+         BSONObjBuilder mapBuilder( templateBuilder.subobjStart( SEADPT_FIELD_NAME_MAPPING ) ) ;
+         mapBuilder.append( SEADPT_FIELD_NAME_TYPE, VALUE_ES_TYPE_NAME_DOUBLE ) ;
+         mapBuilder.done() ;
+         templateBuilder.done() ;
+
+         _templates.push_back( bob.obj() ) ;
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when generating double template: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _utilESMapping::_generateDefaultIndexTemplate()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _generateDoubleTemplate() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _generateStringTemplate() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _utilESMapping::generateIndexMapping( const BSONObj &mappings )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder indexMapping ;
+         BSONObjIterator iMap( mappings ) ;
+         while( iMap.more() )
+         {
+            BSONElement eMap = iMap.next() ;
+            if ( 0 == ossStrcmp( eMap.fieldName(), FIELD_ES_NAME_FIELDS ) &&
+                 Object == eMap.type() )
+            {
+               BSONObjIterator iFields( eMap.Obj() ) ;
+               while( iFields.more() )
+               {
+                  BSONElement eField = iFields.next() ;
+                  if ( Object != eField.type() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDERROR, "The elements in Fileds must be Object" ) ;
+                     goto error ;
+                  }
+
+                  rc = _processField( eField ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+               }
+            }
+         }
+
+         rc = _generateDefaultIndexTemplate() ;
+         PD_RC_CHECK( rc, PDERROR, "Generate default index mapping failed[%d]", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when generating index mappings: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
    done:
       return rc ;
    error:
@@ -128,48 +351,47 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObjBuilder builder ;
+         /*
 
-         BSONObjBuilder mapBuilder( builder.subobjStart( "mappings" ) ) ;
-         BSONObjBuilder propBuilder( builder.subobjStart( "properties" ) ) ;
-
-         for ( vector<_utilESMapProp>::const_iterator itr = _properties.begin() ;
-               itr != _properties.end(); ++itr )
          {
-            BSONObjBuilder fieldBuilder(
-               propBuilder.subobjStart( itr->getName().c_str() ) ) ;
-
-            /* If the string mapping option is multifields, we'll map it as:
-               {
-                  "field_name" : {
-                     "type" : "text",
-                     "fields" : {
-                        "keyword" : {
-                           "type" : "keyword"
-                        }
-                     }
-                  }
-
-               }
-            */
-            if ( ES_MULTI_FIELDS == itr->getType() )
-            {
-               fieldBuilder.append( "type", getTypeStr( ES_TEXT ) ) ;
-               BSONObj fieldsObj =
-                  BSON( "fields" << BSON ( "keyword" <<
-                        BSON( "type" << getTypeStr( ES_KEYWORD ) ) ) ) ;
-               fieldBuilder.appendElements( fieldsObj ) ;
+            "mappings" : {
+               "properties" : {
+                  ...
+               },
+               "dynamic_templates" : [
+                  {
+                     ...
+                  },
+                  {
+                     ...
+                  },
+                  ...
+               ]
             }
-            else
-            {
-               fieldBuilder.append( "type", getTypeStr( itr->getType() ) ) ;
-            }
-            fieldBuilder.done() ;
          }
 
-         propBuilder.done() ;
-         mapBuilder.done() ;
+         */
 
+         BSONObjBuilder builder ;
+         BSONObjBuilder mapBuilder( builder.subobjStart( SEADPT_FIELD_NAME_MAPPINGS ) ) ;
+
+         BSONObjBuilder propBuilder( builder.subobjStart( SEADPT_FIELD_NAME_PROPERTIES ) ) ;
+         for ( ossPoolVector< BSONObj >::const_iterator it = _properties.begin() ;
+               it != _properties.end() ; it++ )
+         {
+            propBuilder.append( (*it).firstElement() ) ;
+         }
+         propBuilder.done() ;
+
+         BSONArrayBuilder templateBuilder( builder.subarrayStart( SEADPT_FIELD_NAME_DY_TMPL ) ) ;
+         for ( ossPoolVector< BSONObj >::const_iterator it = _templates.begin() ;
+               it != _templates.end() ; it++ )
+         {
+            templateBuilder.append( *it ) ;
+         }
+         templateBuilder.done() ;
+
+         mapBuilder.done() ;
          mapObj = builder.obj() ;
       }
       catch ( std::exception &e )
@@ -317,6 +539,66 @@ namespace seadapter
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 seGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
+                              const CHAR **value )
+   {
+      SINT32 rc = SDB_OK ;
+      SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toString().c_str()) ;
+         *value = ele.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 seGetObjElement ( const BSONObj &obj, const CHAR *fieldName,
+                           BSONObj &value )
+   {
+      SINT32 rc = SDB_OK ;
+      SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Object",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done :
+      return rc ;
+   error :
       goto done ;
    }
 }

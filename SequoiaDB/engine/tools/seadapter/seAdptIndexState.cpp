@@ -581,6 +581,186 @@ namespace seadapter
       goto done ;
    }
 
+   BOOLEAN _seAdptIndexerState::_isSupportType( BSONType type )
+   {
+      if ( NumberDouble == type ||
+           String == type ||
+           Object == type ||
+           Array == type  ||
+           Bool == type ||
+           Date == type ||
+           NumberInt == type ||
+           Timestamp == type ||
+           NumberLong == type )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   INT32 _seAdptIndexerState::_rebuildDateField( const BSONElement &srcEle,
+                                                 BSONObj &dstObj )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      const CHAR* fieldName = srcEle.fieldName() ;
+      StringBuilder buf ;
+
+      try
+      {
+         if ( Date == srcEle.type() )
+         {
+            INT64 milli = srcEle.date() ;
+            CHAR buffer[64] ;
+            // date() return UINT64, but need INT64
+            struct tm psr ;
+            ossMemset ( buffer, 0, 64 ) ;
+            time_t timer = (time_t)( ( (INT64)milli ) / 1000 ) ;
+            local_time ( &timer, &psr ) ;
+            //[ 0000-01-01, 9999-12-31 ]
+            if( psr.tm_year + 1900 >= 0 &&
+                psr.tm_year + 1900 <= 9999 )
+            {
+               sprintf ( buffer,
+                         "%04d-%02d-%02d",
+                         psr.tm_year + 1900,
+                         psr.tm_mon + 1,
+                         psr.tm_mday ) ;
+               buf << buffer ;
+            }
+            else
+            {
+               sprintf ( buffer, "%lld", (UINT64)milli ) ;
+               buf << buffer ;
+            }
+
+            bob.append( fieldName, buf.str().c_str() ) ;
+            dstObj = bob.obj() ;
+         }
+         else if ( Timestamp == srcEle.type() )
+         {
+            Date_t date = srcEle.timestampTime() ;
+            UINT32 inc = srcEle.timestampInc () ;
+            CHAR buffer[128] ;
+            time_t timer = (time_t)(((INT64)date.millis)/1000) ;
+            struct tm psr ;
+            local_time ( &timer, &psr ) ;
+            ossMemset ( buffer, 0, 128 ) ;
+            sprintf ( buffer,
+                      "%04d-%02d-%02dT%02d:%02d:%02d.%06d",
+                      psr.tm_year + 1900,
+                      psr.tm_mon + 1,
+                      psr.tm_mday,
+                      psr.tm_hour,
+                      psr.tm_min,
+                      psr.tm_sec,
+                      inc ) ;
+            buf << buffer ;
+
+            bob.append( fieldName, buf.str().c_str() ) ;
+            dstObj = bob.obj() ;
+         }
+         else
+         {
+            goto done ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when rebuilding date field: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptIndexerState::_rebuildRcordEle( const BSONElement &ele,
+                                                const ossPoolVector<ossPoolString> &dateFieldVec,
+                                                BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( !_isSupportType( ele.type() ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Record has field of unsupported type[%d]", ele.type() ) ;
+            goto error ;
+         }
+
+         if ( Array == ele.type() )
+         {
+            // ES dose not support mixed type of array
+            BSONType type = EOO ;
+            BOOLEAN mixedType = FALSE ;
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while ( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( type != EOO && type != e.type() )
+               {
+                  mixedType = TRUE ;
+                  break ;
+               }
+               type = e.type() ;
+            }
+
+            if ( !mixedType )
+            {
+               builder.append( ele ) ;
+            }
+         }
+         else if ( Date == ele.type() || Timestamp == ele.type() )
+         {
+            BSONObj dstObj ;
+            BOOLEAN isDateField = FALSE ;
+
+            for( UINT32 i = 0 ; i < dateFieldVec.size() ; i++ )
+            {
+               if ( 0 == ossStrcmp( ele.fieldName(), dateFieldVec[i].c_str() ) )
+               {
+                  isDateField = TRUE ;
+                  break ;
+               }
+            }
+
+            if ( isDateField )
+            {
+               rc = _rebuildDateField( ele, dstObj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to rebuild date field, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               builder.append( dstObj.firstElement() ) ;
+            }
+         }
+         else
+         {
+            builder.append( ele ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when rebuilding record element: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    _seAdptConsultState::_seAdptConsultState( _seAdptIndexSession *session )
    : _seAdptIndexerState( session )
    {
@@ -1096,24 +1276,12 @@ namespace seadapter
       seIdxMetaContext *imContext = _session->idxMetaContext() ;
       const seIndexMeta *indexMeta = imContext->meta() ;
       const CHAR *idxName = _session->getESIdxName() ;
-      const CHAR *typeName = _session->getESTypeName() ;
-      UINT16 strMapType = sdbGetSeAdptOptions()->getStrMapType() ;
-      ES_DATA_TYPE type = ES_TEXT ;
-
-      if ( 2 == strMapType )
-      {
-         type = ES_KEYWORD ;
-      }
-      else if ( 3 == strMapType )
-      {
-         type = ES_MULTI_FIELDS ;
-      }
+      const BSONObj &idxDefmappings = indexMeta->getIdxDefMappings() ;
+      BSONObj mappingObj ;
+      utilESMapping mapping ;
 
       try
       {
-         BSONObj mappingObj ;
-         utilESMapping mapping( idxName, typeName ) ;
-
          rc = imContext->metaLock( SHARED ) ;
          if ( rc )
          {
@@ -1132,13 +1300,8 @@ namespace seadapter
             goto error ;
          }
 
-         // Generate the Elasticsearch index mapping. Only string fields.
-         BSONObjIterator itr( indexMeta->getIdxDef() ) ;
-         while ( itr.more() )
-         {
-            BSONElement ele = itr.next() ;
-            mapping.addProperty( ele.fieldName(), type ) ;
-         }
+         mapping.generateIndexMapping( idxDefmappings ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate index mapping failed[%d]", rc ) ;
 
          imContext->metaUnlock() ;
 
@@ -1592,8 +1755,14 @@ namespace seadapter
       SDB_ASSERT( !keySet.empty(), "Key set is empty") ;
 
       BSONObjBuilder builder ;
-      BOOLEAN found = FALSE ;    // Whether any string field(or string array)
-                                 // is found.
+      seIndexMeta *meta = _session->idxMetaContext()->meta() ;
+      ossPoolVector<ossPoolString> dateFieldVec ;
+
+      rc = meta->getDateFields( dateFieldVec ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       try
       {
@@ -1603,14 +1772,10 @@ namespace seadapter
             // Loop and check if the record contains only strings.
             while ( itr.more() )
             {
-               BSONElement ele = itr.next() ;
-               if ( String == ele.type() )
+               rc = _rebuildRcordEle( itr.next(), dateFieldVec, builder ) ;
+               if ( rc )
                {
-                  builder.append( ele ) ;
-                  if ( !found )
-                  {
-                     found = TRUE ;
-                  }
+                  continue ;
                }
             }
          }
@@ -1629,15 +1794,10 @@ namespace seadapter
                BSONElement rNextEle = itrSecond.next() ;
                if ( arrayFieldHit || 0 == lNextEle.woCompare( rNextEle, true) )
                {
-                  // Same, it's not the array field. Only keep string fields.
-                  if ( String != lNextEle.type() )
+                  rc = _rebuildRcordEle( lNextEle, dateFieldVec, builder ) ;
+                  if ( rc )
                   {
                      continue ;
-                  }
-                  builder.append( lNextEle ) ;
-                  if ( !found )
-                  {
-                     found = TRUE ;
                   }
                }
                else
@@ -1645,13 +1805,12 @@ namespace seadapter
                   // The array field is found. If any element of the array field
                   // is of non-string type, ignore the array.
                   arrayFieldHit = TRUE ;
-                  if ( String == lNextEle.type() && String == rNextEle.type() )
+                  if ( lNextEle.type() == rNextEle.type() )
                   {
-                     BOOLEAN pureStrArray = TRUE ;
+                     BSONType type = lNextEle.type() ;
+                     BOOLEAN mixType = FALSE ;
                      const CHAR *arrField = lNextEle.fieldName() ;
                      BSONArrayBuilder arrBuilder ;
-                     arrBuilder.append( lNextEle ) ;
-                     arrBuilder.append( rNextEle ) ;
                      // Get the array field from all key record.
                      BSONObjSet::iterator itr = keySet.begin() ;
                      // Skip the first and second key.
@@ -1659,31 +1818,27 @@ namespace seadapter
                      while ( itr != keySet.end() )
                      {
                         BSONElement ele = itr->getField( arrField ) ;
-                        if ( String != ele.type() )
+                        if ( type != ele.type() )
                         {
-                           pureStrArray = FALSE ;
+                           mixType = TRUE ;
                            break ;
                         }
-                        arrBuilder.append( itr->getStringField( arrField ) ) ;
+                        arrBuilder.append( ele ) ;
                         ++itr ;
                      }
-                     if ( pureStrArray )
+
+                     if ( !mixType )
                      {
+                        arrBuilder.append( lNextEle ) ;
+                        arrBuilder.append( rNextEle ) ;
                         arrBuilder.doneFast() ;
                         builder.append( arrField, arrBuilder.arr() ) ;
-                        if ( !found )
-                        {
-                           found = TRUE ;
-                        }
                      }
                   }
                }
             }
          }
-         if ( found )
-         {
-            record = builder.obj() ;
-         }
+         record = builder.obj() ;
       }
       catch ( std::exception &e )
       {
@@ -2291,6 +2446,8 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       INT32 type = 0 ;
+      seIndexMeta *meta = _session->idxMetaContext()->meta() ;
+      ossPoolVector<ossPoolString> dateFieldVec ;
 
       try
       {
@@ -2360,6 +2517,12 @@ namespace seadapter
             }
          }
 
+         rc = meta->getDateFields( dateFieldVec ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
          {
             BSONObjBuilder builder ;
             BSONObj source = origObj.getObjectField( "_source" ) ;
@@ -2375,31 +2538,10 @@ namespace seadapter
             // will be ignored.
             for ( BSONObj::iterator eleItr = source.begin(); eleItr.more(); )
             {
-               BSONElement ele = eleItr.next() ;
-               if ( String == ele.type() )
+               rc = _rebuildRcordEle( eleItr.next(), dateFieldVec, builder ) ;
+               if ( rc )
                {
-                  builder.append( ele ) ;
-               }
-               else if ( Array == ele.type() )
-               {
-                  // As ES dose not support mixed type of array, so check if the
-                  // array only contains strings. If yes, index it on ES.
-                  // Otherwise, ignore the field.
-                  BOOLEAN onlyString = TRUE ;
-                  BSONObjIterator itr( ele.embeddedObject() ) ;
-                  while ( itr.more() )
-                  {
-                     if ( String != itr.next().type() )
-                     {
-                        onlyString = FALSE ;
-                        break ;
-                     }
-                  }
-
-                  if ( onlyString )
-                  {
-                     builder.append( ele ) ;
-                  }
+                  continue ;
                }
             }
 

@@ -880,6 +880,11 @@ namespace engine
             fieldCount++ ;
          }
 
+         if ( obj.hasField( FIELD_ES_NAME_MAPPINGS ) )
+         {
+            fieldCount++ ;
+         }
+
          // make sure no other fields, unless it is a geo index.
          if ( fieldCount != obj.nFields() )
          {
