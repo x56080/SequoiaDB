@@ -75,7 +75,7 @@ public class Sequoiadb implements Closeable {
     private ByteBuffer requestBuffer = null;
     private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
     private SdbAuthVersion authVersion = SdbAuthVersion.SDB_AUTH_MD5;
-
+    private int closeAllCursorMark = 0;
     private final int MAX_USERNAME_LENGTH = 256;
     private final int MAX_PASSWORD_LENGTH = 256;
 
@@ -2217,6 +2217,7 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void closeAllCursors() throws BaseException {
+        closeAllCursorMark++;
         interrupt();
     }
 
@@ -3026,6 +3027,10 @@ public class Sequoiadb implements Closeable {
             }
         }
         return result;
+    }
+
+    int getCloseAllCursorMark() {
+        return closeAllCursorMark;
     }
 
     private SysInfoResponse receiveSysInfoResponse() {
