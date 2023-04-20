@@ -1,5 +1,6 @@
-import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
+var lobdSize = 128 * 1024 * 1024;
+var lobmSize = 83984384;
 
 /*******************************************************************************
 @Description : 校验集合快照信息
