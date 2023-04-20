@@ -5265,6 +5265,12 @@
                            "file": "day",
                            "cn": "$day",
                            "en": "$day"
+                        },
+                        {
+                           "id": 1681542605,
+                           "file": "ifnull",
+                           "cn": "$ifnull",
+                           "en": "$ifnull"
                         }
                      ]
                   },

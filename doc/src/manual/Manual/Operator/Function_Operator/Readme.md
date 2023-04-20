@@ -57,6 +57,7 @@
 | [$year][year]               | 获取日期时间中的年份  | db.sample.employee.find({}, {a:{$year: 1}}) |
 | [$month][month]             | 获取日期时间中的月份  | db.sample.employee.find({}, {a:{$month: 1}}) |
 | [$day][day]                 | 获取日期时间中的天数  | db.sample.employee.find({}, {a:{$day: 1}}) |
+| [$ifnull][ifnull]           | 判断字段是否为空或不存在 | db.sample.employee.find({}, {a:{$ifnull: 1}}) |
 
 
 [^_^]:
@@ -96,3 +97,4 @@
 [year]:manual/Manual/Operator/Function_Operator/year.md
 [month]:manual/Manual/Operator/Function_Operator/month.md
 [day]:manual/Manual/Operator/Function_Operator/day.md
+[ifnull]:manual/Manual/Operator/Function_Operator/ifnull.md
