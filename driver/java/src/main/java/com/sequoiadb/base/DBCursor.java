@@ -31,7 +31,7 @@ import java.io.Closeable;
  * Cursor of query result.
  */
 public class DBCursor implements Closeable {
-    private Sequoiadb sequoiadb;
+    private final Sequoiadb sequoiadb;
     private long contextId;
     private ResultSet resultSet;
     private boolean isClosed;
@@ -39,11 +39,13 @@ public class DBCursor implements Closeable {
     private boolean isStarted;
     private byte[] currentRaw;
     private BSONObject currentObj;
+    private final int closeAllCursorMark;
 
     DBCursor(Sequoiadb sequoiadb, long contextId, ResultSet resultSet) {
         this.sequoiadb = sequoiadb;
         this.contextId = contextId;
         this.resultSet = resultSet;
+        this.closeAllCursorMark = sequoiadb.getCloseAllCursorMark();
     }
 
     DBCursor(SdbReply response, Sequoiadb sequoiadb) {
@@ -57,6 +59,8 @@ public class DBCursor implements Closeable {
      * @throws BaseException If error happens.
      */
     public boolean hasNext() throws BaseException {
+        checkCloseAllCursor();
+
         if (isClosed) {
             throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
         }
@@ -72,9 +76,7 @@ public class DBCursor implements Closeable {
 
         if (contextId != -1) {
             resultSet = getResultSetFromServer();
-            if (resultSet != null && resultSet.hasNext()) {
-                return true;
-            }
+            return resultSet != null && resultSet.hasNext();
         }
 
         return false;
@@ -103,9 +105,6 @@ public class DBCursor implements Closeable {
      * @throws BaseException If error happens.
      */
     public BSONObject getNext() throws BaseException {
-        if (isClosed) {
-            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
-        }
         if (hasNext()) {
             currentObj = resultSet.getNext();
             currentRaw = null;
@@ -125,9 +124,6 @@ public class DBCursor implements Closeable {
      * @throws BaseException If error happens.
      */
     public byte[] getNextRaw() throws BaseException {
-        if (isClosed) {
-            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
-        }
         if (hasNext()) {
             currentRaw = resultSet.getNextRaw();
             currentObj = null;
@@ -146,6 +142,8 @@ public class DBCursor implements Closeable {
      * @throws BaseException If error happens.
      */
     public BSONObject getCurrent() throws BaseException {
+        checkCloseAllCursor();
+
         if (isClosed) {
             throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
         }
@@ -208,5 +206,13 @@ public class DBCursor implements Closeable {
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);
         contextId = -1;
+    }
+
+    private void checkCloseAllCursor() {
+        if (this.closeAllCursorMark < this.sequoiadb.getCloseAllCursorMark()) {
+            // closeAllCursor() is called, so the current cursor object
+            // needs to be marked as closed
+            isClosed = true;
+        }
     }
 }
