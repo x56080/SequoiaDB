@@ -2911,11 +2911,22 @@ public class DBCollection {
         sequoiadb.upsertCache(collectionFullName);
     }
 
+    /**
+     * Put lob data into current collection.
+     * @param data The lob data
+     * @return ObjectId object of The new lob
+     * @throws BaseException If error happens.
+     */
     public ObjectId putLob(byte[] data) throws BaseException {
         return putLob(data, null);
     }
 
-    // TODO API
+    /**
+     * Put lob data with the specified id.
+     * @param data The lob data
+     * @return ObjectId object of The new lob
+     * @throws BaseException If error happens.
+     */
     public ObjectId putLob(byte[] data, ObjectId lobId) throws BaseException {
         if (data == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "The data is null");
