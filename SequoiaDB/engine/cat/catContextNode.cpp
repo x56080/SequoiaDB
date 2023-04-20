@@ -1442,21 +1442,6 @@ namespace engine
                    "Cata service [%s] conflict", _cataSvc.c_str() ) ;
       }
 
-      if ( 0 == _targetName.compare( CATALOG_GROUPNAME ) ||
-           0 == _targetName.compare( COORD_GROUPNAME ) )
-      {
-         _nodeID = _pCatCB->allocSystemNodeID() ;
-         _nodeStatus = SDB_CAT_GRP_ACTIVE ;
-      }
-      else
-      {
-         _nodeID = _pCatCB->allocNodeID();
-      }
-
-      PD_CHECK( CAT_INVALID_NODEID != _nodeID,
-                SDB_SYS, error, PDERROR,
-                "Failed to allocate node id, maybe node is full" ) ;
-
       // lock node
       _nodeName = _hostName + ":" + _localSvc ;
       PD_CHECK( _lockMgr.tryLockNode( _targetName, _nodeName, EXCLUSIVE ),
@@ -1478,6 +1463,21 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATENODE_EXECUTE_INT ) ;
 
+      if ( 0 == _targetName.compare( CATALOG_GROUPNAME ) ||
+           0 == _targetName.compare( COORD_GROUPNAME ) )
+      {
+         _nodeID = _pCatCB->allocSystemNodeID() ;
+         _nodeStatus = SDB_CAT_GRP_ACTIVE ;
+      }
+      else
+      {
+         _nodeID = _pCatCB->allocNodeID();
+      }
+
+      PD_CHECK( CAT_INVALID_NODEID != _nodeID,
+                SDB_SYS, error, PDERROR,
+                "Failed to allocate node id, maybe node is full" ) ;
+
       rc = catCreateNodeStep( _targetName, _hostName, _dbPath, _instanceID,
                               _localSvc, _replSvc, _shardSvc, _cataSvc,
                               _nodeRole, _nodeID, _nodeStatus,
@@ -1490,6 +1490,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_EXECUTE_INT, rc ) ;
       return rc ;
    error :
+      if ( CAT_INVALID_NODEID != _nodeID )
+      {
+         _pCatCB->releaseNodeID( _nodeID ) ;
+         _nodeID = CAT_INVALID_NODEID ;
+      }
       goto done ;
    }
 
