@@ -5,6 +5,7 @@
 ****************************************************/
 
 import( "../lib/rest_commlib.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 /*****************************************************************
 @description:	open ssl, use https

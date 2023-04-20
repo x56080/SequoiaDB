@@ -5,7 +5,6 @@
 ****************************************************/
 
 import( "../lib/main.js" );
-import( "../lib/basic_operation/commlib.js" );
 
 var com = new Cmd();              //com.run("command");
 var info;                             //returned information after curl command
