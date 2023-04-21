@@ -1101,12 +1101,6 @@
                            "en": "Primary Secondary Consistency"
                         },
                         {
-                           "id": 1672796627,
-                           "file": "consistency_strategy",
-                           "cn": "同步一致性",
-                           "en": "Consistency Strategy"
-                        },
-                        {
                            "id": 1599727239,
                            "file": "replica_set",
                            "cn": "复制组熔断",
@@ -1169,6 +1163,26 @@
                      "file": "domain",
                      "cn": "数据域",
                      "en": "Domain"
+                  },
+                  {
+                     "id": 1681541137,
+                     "dir": "Location",
+                     "cn": "位置集",
+                     "en": "Location",
+                     "contents": [
+                        {
+                           "id": 1681539523,
+                           "file": "location_principle",
+                           "cn": "位置集原理",
+                           "en": "Location Principle"
+                        },
+                        {
+                           "id": 1672796627,
+                           "file": "consistency_strategy",
+                           "cn": "同步一致性",
+                           "en": "Consistency Strategy"
+                        }
+                     ]
                   },
                   {
                      "id": 1610373324,
@@ -1372,6 +1386,12 @@
                      "file": "build_datasource",
                      "cn": "搭建数据源",
                      "en": "Build DataSource"
+                  },
+                  {
+                     "id": 1681980293,
+                     "file": "location_operation",
+                     "cn": "位置集操作",
+                     "en": "Location Operation"
                   }
                ]
             },

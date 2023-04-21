@@ -218,4 +218,4 @@ $SNAPSHOT_CATA
     本文使用的所有引用及链接
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md
-[ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
+[ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md

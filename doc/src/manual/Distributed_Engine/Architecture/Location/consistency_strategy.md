@@ -29,9 +29,9 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[consistencystrategy1]:images/Distributed_Engine/Architecture/Replication/consistencystrategy1.png
-[consistencystrategy2]:images/Distributed_Engine/Architecture/Replication/consistencystrategy2.png
-[consistencystrategy3]:images/Distributed_Engine/Architecture/Replication/consistencystrategy3.png
+[consistencystrategy1]:images/Distributed_Engine/Architecture/Location/consistencystrategy1.png
+[consistencystrategy2]:images/Distributed_Engine/Architecture/Location/consistencystrategy2.png
+[consistencystrategy3]:images/Distributed_Engine/Architecture/Location/consistencystrategy3.png
 [session_attr]: manual/Manual/Sequoiadb_Command/SdbCS/setAttributes.md
 [node_consistency]:manual/Distributed_Engine/Architecture/Replication/primary_secondary_consistency.md
 [ConsistencyStrategy]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md

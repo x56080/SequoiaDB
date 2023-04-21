@@ -179,4 +179,4 @@ v2.10 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
-[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
