@@ -91,18 +91,6 @@ public class SequoiadbDatasource {
         }
     };
 
-    /// when client program finish running,
-    /// this task will be executed
-    class ExitClearUpTask extends Thread {
-        public void run() {
-            try {
-                close();
-            } catch (Exception e) {
-                // do nothing
-            }
-        }
-    }
-
     class CreateConnectionTask implements Runnable {
         public void run() {
             try {
@@ -999,8 +987,6 @@ public class SequoiadbDatasource {
         }
         log.info(String.format("Sequoiadb datasource initialized successfully, status is %s, %s, %s",
                 _isDatasourceOn? "enable" : "disable", _dsOpt.toString(), _userNwOpt.toString()));
-        // set a hook for closing all the connection, when object is destroyed
-        Runtime.getRuntime().addShutdownHook(new ExitClearUpTask());
     }
 
     private void _startTimer() {
