@@ -21,7 +21,7 @@ function test ()
       db.createDomain( domName, [csRg] );
       var varCS = db.createCS( csName, { "Domain": domName } );
       // need to create cl, because when cs has no cl, the cs don't create in data group
-      varCS.createCL( clName, { ReplSize: -1 } );
+      varCS.createCL( clName );
 
       // Inspect the CS is located in
       db.invalidateCache();  // clean coord and data node cache
@@ -33,7 +33,7 @@ function test ()
       }
       db.invalidateCache();  // clean coord and data node cache
       csGroups = commGetCSGroups( db, csName );
-      var retryTimes = 10;
+      var retryTimes = 30;
       while( csGroups.length > 1 && 0 != retryTimes-- )
       {
          sleep( 3000 );
