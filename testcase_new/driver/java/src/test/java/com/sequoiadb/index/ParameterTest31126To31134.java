@@ -181,7 +181,7 @@ public class ParameterTest31126To31134 extends SdbTestBase {
             cs.dropCollection( clName );
         }
         cl = cs.createCollection( clName );
-        cl.createIndexAsync( "idx_31128", new BasicBSONObject( "a", 1 ),
+        cl.createIndex( "idx_31128", new BasicBSONObject( "a", 1 ),
                 new BasicBSONObject( "Enforced", false ),
                 new BasicBSONObject( "SortBufferSize", 2048 ) );
         cl.insertRecord( new BasicBSONObject( "a", 1 ) );
