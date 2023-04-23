@@ -35,8 +35,8 @@ MariaDB 实例组是由若干 MariaDB 实例组成的一个无状态的集群，
 3. 创建两个 MariaDB 实例并加入到实例组 mariadb
 
    ```lang-bash
-   $ bin/sdb_maria_ctl addinst mariadb01 -D database/3309 -p3309 -g mariadb -k test
-   $ bin/sdb_maria_ctl addinst mariadb02 -D database/3310 -p3310 -g mariadb -k test
+   $ bin/sdb_maria_ctl addinst mariadb01 -D database/3309 -P3309 -g mariadb -k test
+   $ bin/sdb_maria_ctl addinst mariadb02 -D database/3310 -P3310 -g mariadb -k test
    ```
 
    > **Note：**
