@@ -295,8 +295,12 @@ public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
         sdb = datasource.getConnection();
         DBCursor cursor = sdb.listReplicaGroups();
         datasource.releaseConnection( sdb );
-        // 问题单SEQUOIADBMAINSTREAM-8226修改，该用例预期结果getNext()成功
-        cursor.getNext();
+        try {
+            cursor.getNext();
+            Assert.fail( "expect fail but success." );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -31 );
+        }
         cursor.close();
     }
 }
