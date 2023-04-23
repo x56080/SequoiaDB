@@ -126,9 +126,8 @@ public class SnapshotUtil extends SdbTestBase {
                     Object value = obj.get( key );
                     if ( value != null ) {
                         Assert.assertEquals( value, expResult.get( key ),
-                                "actual: " + value + "\nexpected: "
-                                        + expResult.get( key ) + "\n" + key
-                                        + "\nnode name:"
+                                "act: " + value + "exp: " + expResult.get( key )
+                                        + key + "node name:"
                                         + expResult.get( "NodeName" ) );
                     }
                 }
@@ -214,8 +213,8 @@ public class SnapshotUtil extends SdbTestBase {
                     } else {
                         Assert.assertEquals( clDetails.get( 0 ).get( key ),
                                 expResult.get( key ),
-                                "actual: " + clDetails.get( 0 ).get( key )
-                                        + "\nexpected: " + expResult.get( key )
+                                "act: " + clDetails.get( 0 ).get( key )
+                                        + "\nexp: " + expResult.get( key )
                                         + "\n" + key + "npde name:"
                                         + expResult.get( "NodeName" ) );
                     }
@@ -284,8 +283,7 @@ public class SnapshotUtil extends SdbTestBase {
                             if ( value != null ) {
                                 Assert.assertEquals( clInfo.get( key ),
                                         expResult.get( key ),
-                                        "actual: " + clInfo.get( key )
-                                                + "\nexpected: "
+                                        "act: " + clInfo.get( key ) + "\nexp: "
                                                 + expResult.get( key ) + "\n"
                                                 + key + "\nact node name:"
                                                 + clInfo.get( "NodeName" )

@@ -1,8 +1,9 @@
 package com.sequoiadb.snapshot;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-
+import com.sequoiadb.base.*;
+import com.sequoiadb.lob.utils.RandomWriteLobUtil;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -14,26 +15,24 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.*;
-import com.sequoiadb.lob.utils.RandomWriteLobUtil;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
 /**
- * @Description seqDB-27866:同一CL下并发执行putlob操作和split
- * @Author liuli
- * @Date 2022.10.17
- * @UpdateAuthor liuli
- * @UpdateDate 2022.10.17
  * @version 1.10
+ * @Description seqDB-27868:同一CS下不同CL下并发执行putlob操作和split
+ * @Author huanghaimei
+ * @Date 2022.11.03
+ * @UpdateAuthor huanghaimei
+ * @UpdateDate 2023.02.08
  */
-public class Snapshot27866 extends SdbTestBase {
-
+public class Snapshot27868 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private CollectionSpace dbcs = null;
     private DBCollection dbcl = null;
-    private String csName = "cs_27866";
-    private String clName = "cl_27866";
+    private String csName = "cs_27868";
+    private String clName1 = "cl_27868_1";
+    private String clName2 = "cl_27868_2";
     private int lobPageSize = 262144;
     private ArrayList< String > groupNames = new ArrayList<>();
     private int lobSize = 1024 * 200;
@@ -58,13 +57,20 @@ public class Snapshot27866 extends SdbTestBase {
         option.append( "Group", groupNames.get( 0 ) );
         option.append( "ReplSize", -1 );
         option.append( "ShardingKey", new BasicBSONObject( "a", 1 ) );
-        dbcl = dbcs.createCollection( clName, option );
-        dbcl.split( groupNames.get( 0 ), groupNames.get( 1 ), 50 );
+        DBCollection dbcl1 = dbcs.createCollection( clName1, option );
+        DBCollection dbcl2 = dbcs.createCollection( clName2, option );
         lobBuff = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBLob lob1 = dbcl1.createLob();
+        lob1.write( lobBuff );
+        lob1.close();
+        DBLob lob2 = dbcl2.createLob();
+        lob2.write( lobBuff );
+        lob2.close();
     }
 
     @Test
     public void testLob() throws Exception {
+
         // 获取数据库快照信息
         DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE,
                 new BasicBSONObject(), null, null );
@@ -86,26 +92,11 @@ public class Snapshot27866 extends SdbTestBase {
         th.addWorker( new Split() );
         th.run();
 
-        int srcNodeName = CommLib.getNodeAddress( sdb, groupNames.get( 0 ) )
+        int srcNodeNum = CommLib.getNodeAddress( sdb, groupNames.get( 0 ) )
                 .size();
-        int dstNodeName = CommLib.getNodeAddress( sdb, groupNames.get( 1 ) )
+        int dstNodeNum = CommLib.getNodeAddress( sdb, groupNames.get( 1 ) )
                 .size();
         int lobPages = ( lobSize + 1023 ) / lobPageSize + 1;
-        Node masterNode = sdb.getReplicaGroup( groupNames.get( 0 ) )
-                .getMaster();
-        String masterNodeName = masterNode.getNodeName();
-        Sequoiadb data = Sequoiadb.builder().serverAddress( masterNodeName )
-                .build();
-
-        // 获取原组上lob数量
-        int dataLobs = 0;
-        cursor = data.getCollectionSpace( csName ).getCollection( clName )
-                .listLobs();
-        while ( cursor.hasNext() ) {
-            cursor.getNext();
-            dataLobs++;
-        }
-        cursor.close();
 
         // 校验数据库快照
         // Number of load monitoring nodes
@@ -131,56 +122,39 @@ public class Snapshot27866 extends SdbTestBase {
 
         // 获取集合空间快照信息
         csInfos.get( 0 ).put( "LobCapacity", ( double ) SnapshotUtil.lobdSize
-                * ( srcNodeName + dstNodeName ) );
+                * ( srcNodeNum + dstNodeNum ) );
         csInfos.get( 0 ).put( "LobMetaCapacity",
                 ( double ) SnapshotUtil.lobmSize
-                        * ( srcNodeName + dstNodeName ) );
+                        * ( srcNodeNum + dstNodeNum ) );
+        csInfos.get( 0 ).put( "MaxLobCapacity", ( double ) SnapshotUtil.lobmSize
+                * ( srcNodeNum + dstNodeNum ) * lobPageSize );
         csInfos.get( 0 ).put( "TotalLobs",
                 ( double ) csInfos.get( 0 ).get( "TotalLobs" )
-                        + dataLobs * srcNodeName
-                        + ( lobs - dataLobs ) * dstNodeName );
+                        + lobs * dstNodeNum );
         csInfos.get( 0 ).put( "TotalLobPut",
-                ( double ) csInfos.get( 0 ).get( "TotalLobPut" ) + lobs );
-        csInfos.get( 0 ).put( "TotalLobAddressing",
-                ( double ) csInfos.get( 0 ).get( "TotalLobAddressing" )
-                        + lobPages * lobs );
+                ( double ) csInfos.get( 0 ).get( "TotalLobPut" ) + lobs - 1 );
         csInfos.get( 0 ).put( "TotalLobWriteSize",
                 ( double ) csInfos.get( 0 ).get( "TotalLobWriteSize" )
                         + lobSize * lobs );
         csInfos.get( 0 ).put( "TotalLobSize",
                 ( double ) csInfos.get( 0 ).get( "TotalLobSize" )
-                        + lobSize * dataLobs * srcNodeName
-                        + lobSize * ( lobs - dataLobs ) * dstNodeName );
+                        + lobSize * lobs * dstNodeNum );
         csInfos.get( 0 ).put( "TotalValidLobSize",
                 ( double ) csInfos.get( 0 ).get( "TotalValidLobSize" )
-                        + lobSize * dataLobs * srcNodeName
-                        + lobSize * ( lobs - dataLobs ) * dstNodeName );
+                        + lobSize * lobs * dstNodeNum );
         csInfos.get( 0 ).put( "TotalLobPages",
                 ( double ) csInfos.get( 0 ).get( "TotalLobPages" )
-                        + lobPages * dataLobs * srcNodeName
-                        + lobPages * ( lobs - dataLobs ) * dstNodeName );
+                        + lobPages * lobs * dstNodeNum );
         csInfos.get( 0 ).put( "TotalUsedLobSpace",
                 ( double ) csInfos.get( 0 ).get( "TotalUsedLobSpace" )
-                        + lobPages * lobPageSize * dataLobs * srcNodeName
-                        + lobPages * lobPageSize * ( lobs - dataLobs )
-                                * dstNodeName );
-        csInfos.get( 0 ).put( "LobUsageRate",
-                ( double ) csInfos.get( 0 ).get( "TotalValidLobSize" )
-                        / ( double ) csInfos.get( 0 )
-                                .get( "TotalUsedLobSpace" ) );
+                        + lobPages * lobPageSize * lobs
+                                * ( srcNodeNum + dstNodeNum ) / 2 );
         csInfos.get( 0 ).put( "FreeLobSpace",
                 ( double ) csInfos.get( 0 ).get( "LobCapacity" )
                         - ( double ) csInfos.get( 0 )
                                 .get( "TotalUsedLobSpace" ) );
         csInfos.get( 0 ).put( "FreeLobSize",
                 ( double ) csInfos.get( 0 ).get( "FreeLobSpace" ) );
-        csInfos.get( 0 ).put( "AvgLobSize", ( long ) lobSize );
-        csInfos.get( 0 ).put( "TotalLobRead",
-                ( double ) csInfos.get( 0 ).get( "TotalLobRead" )
-                        + lobPageSize * 2 );
-        csInfos.get( 0 ).put( "TotalLobWrite",
-                ( double ) csInfos.get( 0 ).get( "TotalLobWrite" )
-                        + lobPageSize * 2 );
         cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_COLLECTIONSPACES,
                 new BasicBSONObject( "Name", csName ), null, null );
         SnapshotUtil.checkSnapshot( cursor, csInfos, lobPages * lobs );
@@ -205,9 +179,10 @@ public class Snapshot27866 extends SdbTestBase {
         public void split() throws InterruptedException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
-                DBCollection dbcl = sdb.getCollectionSpace( csName )
-                        .getCollection( clName );
-                dbcl.split( groupNames.get( 0 ), groupNames.get( 1 ), 50 );
+
+                DBCollection dbcl1 = sdb.getCollectionSpace( csName )
+                        .getCollection( clName1 );
+                dbcl1.split( groupNames.get( 0 ), groupNames.get( 1 ), 100 );
             }
         }
     }
@@ -219,9 +194,9 @@ public class Snapshot27866 extends SdbTestBase {
                 throws InterruptedException, NoSuchAlgorithmException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
-                DBCollection dbcl = sdb.getCollectionSpace( csName )
-                        .getCollection( clName );
-                DBLob lob = dbcl.createLob();
+                DBCollection dbcl2 = sdb.getCollectionSpace( csName )
+                        .getCollection( clName2 );
+                DBLob lob = dbcl2.createLob();
                 lob.write( lobBuff );
                 lob.close();
             }

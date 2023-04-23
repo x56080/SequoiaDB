@@ -77,8 +77,7 @@ public class Snapshot27862 extends SdbTestBase {
         DBLob lob = dbcl.createLob( lobid );
         lob.close();
 
-        int nodeName = CommLib.getNodeAddress( sdb, groupNames.get( 0 ) )
-                .size();
+        int nodeNum = CommLib.getNodeAddress( sdb, groupNames.get( 0 ) ).size();
         int lobPages = ( lobSize + 1023 ) / lobPageSize + 1;
         Node masterNode = sdb.getReplicaGroup( groupNames.get( 0 ) )
                 .getMaster();
@@ -97,18 +96,19 @@ public class Snapshot27862 extends SdbTestBase {
                 ( double ) csInfos.get( 0 ).get( "TotalLobPut" ) + 1 );
         csInfos.get( 0 ).put( "LobCapacity",
                 ( double ) csInfos.get( 0 ).get( "LobCapacity" )
-                        + 4.02653184E8 );
+                        + 1.34217728E8 * nodeNum );
         csInfos.get( 0 ).put( "TotalLobs",
-                ( double ) csInfos.get( 0 ).get( "TotalLobs" ) + 1 * 3 );
+                ( double ) csInfos.get( 0 ).get( "TotalLobs" ) + 1 * nodeNum );
         csInfos.get( 0 ).put( "TotalLobPages",
-                ( double ) csInfos.get( 0 ).get( "TotalLobPages" ) + 1 * 3 );
+                ( double ) csInfos.get( 0 ).get( "TotalLobPages" )
+                        + 1 * nodeNum );
         csInfos.get( 0 ).put( "LobUsageRate",
                 ( double ) csInfos.get( 0 ).get( "TotalValidLobSize" )
                         / ( double ) csInfos.get( 0 )
                                 .get( "TotalUsedLobSpace" ) );
         csInfos.get( 0 ).put( "TotalUsedLobSpace",
                 ( double ) csInfos.get( 0 ).get( "TotalUsedLobSpace" )
-                        + lobPageSize * 3 );
+                        + lobPageSize * nodeNum );
         csInfos.get( 0 ).put( "FreeLobSpace",
                 ( double ) csInfos.get( 0 ).get( "LobCapacity" )
                         - ( double ) csInfos.get( 0 )
@@ -181,7 +181,8 @@ public class Snapshot27862 extends SdbTestBase {
                 ( double ) dataInfos.get( 0 ).get( "TotalLobWriteSize" )
                         + lobSize * loadMonitorNodeNum );
         dataInfos.get( 0 ).put( "TotalLobWrite",
-                ( double ) dataInfos.get( 0 ).get( "TotalLobWrite" ) + loadMonitorNodeNum );
+                ( double ) dataInfos.get( 0 ).get( "TotalLobWrite" )
+                        + loadMonitorNodeNum );
         dataInfos.get( 0 ).put( "TotalLobRead",
                 ( double ) dataInfos.get( 0 ).get( "TotalLobRead" )
                         + lobPages );
@@ -202,17 +203,17 @@ public class Snapshot27862 extends SdbTestBase {
                         + lobSize );
         csInfos.get( 0 ).put( "TotalLobSize",
                 ( double ) csInfos.get( 0 ).get( "TotalLobSize" )
-                        + lobSize * nodeName );
+                        + lobSize * nodeNum );
         csInfos.get( 0 ).put( "TotalValidLobSize",
                 ( double ) csInfos.get( 0 ).get( "TotalValidLobSize" )
-                        + lobSize * nodeName );
-        csInfos.get( 0 ).put( "TotalLobPages", ( double ) lobPages * nodeName );
+                        + lobSize * nodeNum );
+        csInfos.get( 0 ).put( "TotalLobPages", ( double ) lobPages * nodeNum );
         csInfos.get( 0 ).put( "LobUsageRate",
                 ( double ) csInfos.get( 0 ).get( "TotalValidLobSize" )
                         / ( double ) csInfos.get( 0 )
                                 .get( "TotalUsedLobSpace" ) );
         csInfos.get( 0 ).put( "TotalUsedLobSpace",
-                ( double ) lobPages * lobPageSize * nodeName );
+                ( double ) lobPages * lobPageSize * nodeNum );
         csInfos.get( 0 ).put( "FreeLobSpace",
                 ( double ) csInfos.get( 0 ).get( "LobCapacity" )
                         - ( double ) csInfos.get( 0 )
@@ -276,14 +277,16 @@ public class Snapshot27862 extends SdbTestBase {
         dataInfos.get( 0 ).put( "TotalLobPut",
                 ( double ) dataInfos.get( 0 ).get( "TotalLobPut" ) );
         dataInfos.get( 0 ).put( "TotalLobGet",
-                ( double ) dataInfos.get( 0 ).get( "TotalLobGet" ) + loadMonitorNodeNum );
+                ( double ) dataInfos.get( 0 ).get( "TotalLobGet" )
+                        + loadMonitorNodeNum );
         dataInfos.get( 0 ).put( "TotalLobAddressing",
                 ( double ) dataInfos.get( 0 ).get( "TotalLobAddressing" ) );
         dataInfos.get( 0 ).put( "TotalLobWriteSize",
                 ( double ) dataInfos.get( 0 ).get( "TotalLobWriteSize" )
                         + lobSize * loadMonitorNodeNum );
         dataInfos.get( 0 ).put( "TotalLobWrite",
-                ( double ) dataInfos.get( 0 ).get( "TotalLobWrite" ) + loadMonitorNodeNum );
+                ( double ) dataInfos.get( 0 ).get( "TotalLobWrite" )
+                        + loadMonitorNodeNum );
         dataInfos.get( 0 ).put( "TotalLobReadSize",
                 ( double ) dataInfos.get( 0 ).get( "TotalLobReadSize" )
                         + lobSize * loadMonitorNodeNum );
