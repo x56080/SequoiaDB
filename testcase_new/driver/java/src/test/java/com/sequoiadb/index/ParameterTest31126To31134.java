@@ -3,9 +3,11 @@ package com.sequoiadb.index;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -20,7 +22,8 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @Descreption seqDB-31126:createIndexcreateIndex
  *              (<name>,<indexDef>,[indexAttr], [option] )接口参数校验
  *              seqDB-31127:cl.createIndexAsync接口参数校验
- *              seqDB-31128:dropIndexAsync接口参数校验 seqDB-31132:copyIndex接口参数校验
+ *              seqDB-31128:dropIndexAsync接口参数校验
+ *              seqDB-31132:copyIndex接口参数校验
  *              seqDB-31134:copyIndexAsync接口参数校验
  * @Author Cheng Jingjing
  * @CreateDate 2023/4/17
@@ -33,10 +36,15 @@ public class ParameterTest31126To31134 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
+    private CommLib commlib = new CommLib();
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( commlib.isStandAlone( sdb ) ) {
+            throw new SkipException(
+                    "run mode is standalone,test case skip" );
+        }
         cs = sdb.getCollectionSpace( csName );
     }
 
