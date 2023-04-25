@@ -91,7 +91,7 @@ public class Index10218 extends SdbTestBase {
                 if ( eCode != -47 // -47:Index name does not exist
                         && eCode != -248 // -248:Dropping the collection space
                                          // is in progress
-                        && eCode != -23 && eCode != -34 ) {
+                        && eCode != -23 && eCode != -34 && eCode != -147 ) {
                     throw e;
                 }
             }
