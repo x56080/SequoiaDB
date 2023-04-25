@@ -12,6 +12,7 @@
 #@return code: 0:    normal
 #              1:    format error
 #              2/3:  unexpect error
+#              4:    uncompatible version
 #              64:   input error
 ######################################################################
 function checkVsnPara()
@@ -306,6 +307,7 @@ then
    isCompatible=`matchConf $oldVsn $oldEdt $newVsn $newEdt $defaultCompatible`
    if [ $? -ne 0 ]; then exit 3; fi
    echo $isCompatible
+   if [ "$isCompatible" = "false" ]; then exit 4; fi
    exit 0
 fi
 if [ $result == "greater" ]
@@ -314,5 +316,6 @@ then
    isCompatible=`matchConf $oldVsn $oldEdt $newVsn $newEdt $defaultCompatible`
    if [ $? -ne 0 ]; then exit 3; fi
    echo $isCompatible
+   if [ "$isCompatible" = "false" ]; then exit 4; fi
    exit 0
 fi
