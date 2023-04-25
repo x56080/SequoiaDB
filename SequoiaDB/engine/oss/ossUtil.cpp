@@ -1988,6 +1988,7 @@ _kstkEsp(0),_kstkEip(0)
 {
    ossMemset( _comm, 0, OSS_MAX_PATHSIZE + 1 ) ;
    CHAR pathName[ OSS_PROC_PATH_LEN_MAX + 1 ] = {0} ;
+   INT64 rsPageNum ;
    ossSnprintf( pathName, sizeof(pathName), "/proc/%d/stat", pid ) ;
    FILE *fp = NULL ;
    fp = fopen( pathName, "r" ) ;
@@ -2004,7 +2005,7 @@ _kstkEsp(0),_kstkEip(0)
                   "%u "
                   "%u "
                   "%u "                  //&_vSize,
-                  "%d "
+                  "%lld "
                   "%u %u %u %u %u %u ",
                   &_pid, _comm, &_state,
                   &_ppid, &_pgrp, &_session, &_tty, &_tpgid,
@@ -2015,9 +2016,13 @@ _kstkEsp(0),_kstkEip(0)
                   &_alarm,
                   &_startTime,
                   &_vSize,
-                  &_rss,
+                  &rsPageNum,
                   &_rssRlim, &_startCode, &_endCode, &_startStack, &_kstkEsp, &_kstkEip );
       fclose(fp) ;
+
+      // change the number of pages to bytes
+      _rss = rsPageNum * ossGetPageSize() ;
+
       if ( rc <= 0 )
       {
          PD_LOG( PDERROR, "failed to read proc-info" );
