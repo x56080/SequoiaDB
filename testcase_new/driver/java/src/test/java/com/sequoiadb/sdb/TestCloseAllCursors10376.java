@@ -47,8 +47,7 @@ public class TestCloseAllCursors10376 extends SdbTestBase {
         this.cl = this.cs.createCollection( clName );
     }
 
-    // 问题单SEQUOIADBMAINSTREAM-8175，屏蔽该用例
-    @Test(enabled = false)
+    @Test
     public void testCloseAllCursors() {
         this.insertData();
         try {
@@ -67,7 +66,7 @@ public class TestCloseAllCursors10376 extends SdbTestBase {
             Assert.fail(
                     "Sequoiadb driver TestCloseAllCursors10376 testServerAddress should fail!" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -36 );
+            Assert.assertEquals( e.getErrorCode(), -31 );
         }
 
         try {
@@ -86,9 +85,8 @@ public class TestCloseAllCursors10376 extends SdbTestBase {
             Assert.fail(
                     "Sequoiadb driver TestCloseAllCursors10376 testReleaseResource should fail!" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -36 );
+            Assert.assertEquals( e.getErrorCode(), -31 );
         }
-
     }
 
     public void insertData() {
