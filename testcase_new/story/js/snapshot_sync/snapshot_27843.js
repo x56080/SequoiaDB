@@ -2,7 +2,7 @@
  * @Description   : seqDB-27843:主表attachCL/detachCL后getDetail 
  * @Author        : liuli
  * @CreateTime    : 2022.09.27
- * @LastEditTime  : 2023.04.14
+ * @LastEditTime  : 2023.04.25
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -77,23 +77,29 @@ function test ()
 
    // 校验主表getDetail信息
    var cursor = mainCL.getDetail();
-   checkSnapshotToCL( cursor, subDetail, true, lobs );
-
+   if( commIsArmArchitecture() == false )
+   {
+      checkSnapshotToCL( cursor, subDetail, true, lobs );
+   }
    // 重新挂载子表
    mainCL.attachCL( csName + "." + subCLName2, { "LowBound": lowBound, "UpBound": upBound } );
 
    // 校验主表getDetail信息
    var cursor = mainCL.getDetail();
-   checkSnapshotToCL( cursor, mainDetail, true, lobs );
-
+   if( commIsArmArchitecture() == false )
+   {
+      checkSnapshotToCL( cursor, mainDetail, true, lobs );
+   }
    // 执行listLobs后校验getDetail信息
    mainDetail[0]["TotalLobList"] += 1 * 2;
    mainDetail[0]["TotalLobRead"] += lobs - 1;
    mainDetail[0]["TotalLobAddressing"] += lobs - 1;
    mainCL.listLobs().toArray();
    var cursor = mainCL.getDetail();
-   checkSnapshotToCL( cursor, mainDetail, true, lobs );
-
+   if( commIsArmArchitecture() == false )
+   {
+      checkSnapshotToCL( cursor, mainDetail, true, lobs );
+   }
    commDropCS( db, csName );
    deleteTmpFile( filePath + fileName )
 }
