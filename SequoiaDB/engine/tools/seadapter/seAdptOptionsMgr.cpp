@@ -47,6 +47,7 @@ using namespace engine ;
    ( PMD_OPTION_VERSION, "version" ) \
    ( PMD_COMMANDS_STRING (PMD_OPTION_CONFPATH, ",c"), boost::program_options::value<string>(), "Configure file path" ) \
    ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "Diagnostic level,default:3,value range:[0-5]" ) \
+   ( SEADPT_NODE_PORT, boost::program_options::value<string>(), "Search engine adapter node service name or port" ) \
    ( SEADPT_DNODE_HOST, boost::program_options::value<string>(), "Data node address" ) \
    ( SEADPT_DNODE_PORT, boost::program_options::value<string>(), "Data node service name or port" ) \
    ( SEADPT_SE_HOST, boost::program_options::value<string>(), "Search engine address" ) \
@@ -193,6 +194,10 @@ namespace seadapter
    INT32 _seAdptOptionsMgr::doDataExchange( pmdCfgExchange *pEX )
    {
       resetResult() ;
+
+      rdxString( pEX, SEADPT_NODE_PORT, _serviceName, sizeof( _serviceName ),
+                 TRUE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
+      rdvNotEmpty( pEX, _serviceName ) ;
 
       rdxString( pEX, SEADPT_DNODE_HOST, _dbHost, sizeof( _dbHost ),
                  TRUE, PMD_CFG_CHANGE_FORBIDDEN , "" ) ;

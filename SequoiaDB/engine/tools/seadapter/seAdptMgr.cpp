@@ -670,60 +670,31 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       MsgRouteID svcRtID = _selfRouteID ;
       const CHAR *hostName = pmdGetKRCB()->getHostName() ;
-      UINT16 sdbPort = 0 ;
-      BOOLEAN success = FALSE ;
+      UINT16 svcPort = 0 ;
 
-      // Use a fixed node id and a random service port for the adapter.
-      // Try to use port starting from [ sdb_service + 7|8|9 ], skipping the
-      // ones end with 0. Find one that can be used, or return error if we
-      // can't.
-      ossSocket::getPort( _options.getDBService(), sdbPort ) ;
+      const CHAR *svcPortStr = _options.getSvcName() ;
+      // check port is in range
+      rc = ossSocket::getPort( svcPortStr, svcPort ) ;
+      PD_RC_CHECK( rc, PDERROR, "Create listener for adapter service "
+                   "failed[ %d ], service name [ %s ] out of range", rc, svcPortStr ) ;
 
       // Create listener socket. This is for searching and command processing.
       svcRtID.columns.groupID = SEADPT_GRP_ID ;
       svcRtID.columns.nodeID = SEADPT_NODE_ID ;
       svcRtID.columns.serviceID = SEADPT_SVC_ID ;
 
-      INT32 svcPort = sdbPort + SEADPT_SVC_PORT_PLUS ;
-      while ( svcPort <= SEADPT_MAX_PORT )
+      _svcRtAgent.updateRoute( svcRtID, hostName, svcPortStr ) ;
+
+      rc = _svcRtAgent.listen( svcRtID ) ;
+      if ( rc )
       {
-         // Skip the ports end with 0, for they may be used by sdb nodes.
-         if ( 0 == svcPort % 10 )
-         {
-            svcPort += SEADPT_SVC_PORT_PLUS ;
-            continue ;
-         }
-
-         CHAR svcPortStr[ SEADPT_PORT_STR_SZ ] = { 0 } ;
-         ossItoa( svcPort, svcPortStr, SEADPT_PORT_STR_SZ ) ;
-
-         _svcRtAgent.updateRoute( svcRtID, hostName, svcPortStr ) ;
-
-         rc = _svcRtAgent.listen( svcRtID ) ;
-         if ( rc )
-         {
-            _svcRtAgent.delRoute( svcRtID ) ;
-            if ( SEADPT_MAX_PORT == svcPort )
-            {
-               PD_RC_CHECK( rc, PDERROR, "Create listener for adapter service "
-                            "failed[ %d ]", rc ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            _options.setSvcName( svcPortStr ) ;
-            success = TRUE ;
-            PD_LOG( PDEVENT, "Create search engine adapter listener"
-                    "[ServiceName: %s] successfully", _options.getSvcName() ) ;
-            break ;
-         }
-         ++svcPort ;
-      }
-      if ( !success )
-      {
+         PD_LOG( PDERROR, "Create listener for adapter service "
+                "failed[ %d ]", rc ) ;
+         _svcRtAgent.delRoute( svcRtID ) ;
          goto error ;
       }
+      PD_LOG( PDEVENT, "Create search engine adapter listener"
+              "[ServiceName: %s] successfully", _options.getSvcName() ) ;
 
    done:
       return rc ;

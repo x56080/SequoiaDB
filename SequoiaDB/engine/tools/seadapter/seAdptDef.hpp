@@ -44,6 +44,7 @@ namespace seadapter
    #define SEADPT_ROLE_SHORT_STR          "A"
 
    // Related with adapter configurations.
+   #define SEADPT_NODE_PORT               "svcname"
    #define SEADPT_DNODE_HOST              "datanodehost"
    #define SEADPT_DNODE_PORT              "datasvcname"
    #define SEADPT_DIAGLEVEL               "diaglevel"
@@ -103,7 +104,6 @@ namespace seadapter
    #define SEADPT_CFG_FILE_NAME          SEADPT_EXE_FILE_NAME".conf"
    #define SEADPT_LOG_DIR                "sdbseadapterlog"
    #define SEADPT_LOG_FILE_NAME          SEADPT_EXE_FILE_NAME".log"
-   #define SEADPT_LOCK_FILE_NAME         ".sdbseadapter.lock"
 }
 
 #endif /* SEADPT_DEF_HPP_ */
