@@ -856,6 +856,13 @@ namespace engine
          case MSG_CLS_FULL_SYNC_TRANS_RES:
             result = TRUE ;
             break ;
+         // stp messages
+         case MSG_STP_SERVER_RSP:
+         case MSG_STP_REG_RSP:
+         case MSG_STP_TIME_SYNC_RSP:
+         case MSG_STP_META_SYNC_RSP:
+            result = TRUE ;
+            break ;
          default:
             result = FALSE ;
       }
