@@ -2,8 +2,8 @@
  * @Description   :
  * @Author        : liuli
  * @CreateTime    : 2021.08.17
- * @LastEditTime  : 2022.08.15
- * @LastEditors   : liuli
+ * @LastEditTime  : 2023.04.26
+ * @LastEditors   : Bi Qin
  ******************************************************************************/
 import( "../lib/main.js" );
 
@@ -183,4 +183,16 @@ function isRecycleBinOpen ( sdb )
       isRecycleBinOpen = false;
    }
    return isRecycleBinOpen;
+}
+
+/*******************************************************************************
+@Description : 判断comment是否正确
+@param : 
+@Modify list : 2023-04-24 biqin
+*******************************************************************************/
+function checkCursorComment ( cursor, comment )
+{
+   var obj = cursor.current().toObj()
+   assert.equal( obj.Comment, comment, JSON.stringify( obj ) );
+   cursor.close();
 }
