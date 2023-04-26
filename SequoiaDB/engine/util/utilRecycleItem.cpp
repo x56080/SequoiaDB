@@ -268,6 +268,7 @@ namespace engine
       _recycleTime = 0 ;
       _isMainCL = FALSE ;
       _isCSRecycled = FALSE ;
+      _comment.clear() ;
 
       PD_TRACE_EXIT( SDB_UTILRECYCLEITEM_RESET ) ;
    }
@@ -485,10 +486,13 @@ namespace engine
 
          // comment
          element = object.getField( FIELD_NAME_COMMENT ) ;
-         PD_CHECK( String == element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to get field [%s], it is not string",
-                   FIELD_NAME_COMMENT ) ;
-         setComment( element.valuestr() ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( String == element.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s], it is not string",
+                      FIELD_NAME_COMMENT ) ;
+            setComment( element.valuestr() ) ;
+         }
       }
       catch ( exception &e )
       {
