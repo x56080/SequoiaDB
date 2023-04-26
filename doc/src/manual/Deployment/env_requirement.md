@@ -393,7 +393,7 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 ###设置时区###
 
-为保证时间数据正确，要求 SequoiaDB 集群中所有机器的时区保持一致。下述以中国上海时区为例，介绍具体步骤。
+为保证时间数据正确，要求 SequoiaDB 集群中所有机器的时区保持一致，同时要求每台机器的 TZ 环境变量与系统时区保持一致。下述以中国上海时区为例，介绍具体步骤。
 
 [^_^]:tab
 - SUSE:
@@ -417,6 +417,25 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
           Sat Nov  5 17:57:06 CST 2022
         ```
 
+    - 同步修改 TZ 环境变量
+
+        ```lang-bash
+        # echo 'export TZ="Asia/Shanghai"' >> /etc/profile
+        ```
+
+    - 使配置生效
+
+        ```lang-bash
+        # source /etc/profile
+        ```
+
+    - 查看 TZ 环境变量
+
+        ```lang-bash
+        # env | grep TZ
+        TZ=Asia/Shanghai
+        ```
+
 - Red Hat:
 
     - 设置为 Asia/Shanghai 时区
@@ -432,6 +451,25 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
         ...
         Time zone: Asia/Shanghai (CST, +0800)
         ...
+        ```
+
+    - 同步修改 TZ 环境变量
+
+        ```lang-bash
+        # echo 'export TZ="Asia/Shanghai"' >> /etc/profile
+        ```
+
+    - 使配置生效
+
+        ```lang-bash
+        # source /etc/profile
+        ```
+
+    - 查看 TZ 环境变量
+
+        ```lang-bash
+        # env | grep TZ
+        TZ=Asia/Shanghai
         ```
 
 - Ubuntu:
@@ -451,6 +489,25 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
         ...
         ```
 
+    - 同步修改 TZ 环境变量
+
+        ```lang-bash
+        # echo 'export TZ="Asia/Shanghai"' >> /etc/profile
+        ```
+
+    - 使配置生效
+
+        ```lang-bash
+        # source /etc/profile
+        ```
+
+    - 查看 TZ 环境变量
+
+        ```lang-bash
+        # env | grep TZ
+        TZ=Asia/Shanghai
+        ```
+
 - UOS V20:
 
     - 设置为 Asia/Shanghai 时区
@@ -468,6 +525,25 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
         ...
         ```
 
+    - 同步修改 TZ 环境变量
+
+        ```lang-bash
+        # echo 'export TZ="Asia/Shanghai"' >> /etc/profile
+        ```
+
+    - 使配置生效
+
+        ```lang-bash
+        # source /etc/profile
+        ```
+
+    - 查看 TZ 环境变量
+
+        ```lang-bash
+        # env | grep TZ
+        TZ=Asia/Shanghai
+        ```
+
 - Kylin V10:
 
     - 设置为 Asia/Shanghai 时区
@@ -483,4 +559,23 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
         ...
         Time zone: Asia/Shanghai (CST, +0800)
         ...
+        ```
+
+    - 同步修改 TZ 环境变量
+
+        ```lang-bash
+        # echo 'export TZ="Asia/Shanghai"' >> /etc/profile
+        ```
+
+    - 使配置生效
+
+        ```lang-bash
+        # source /etc/profile
+        ```
+
+    - 查看 TZ 环境变量
+
+        ```lang-bash
+        # env | grep TZ
+        TZ=Asia/Shanghai
         ```
