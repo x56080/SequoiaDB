@@ -41,6 +41,8 @@
 #include "seAdptAgentSession.hpp"
 #include "seAdptIndexSession.hpp"
 #include "utilESCltMgr.hpp"
+#include "pmdPipeManager.hpp"
+#include "seAdptPipeHandlers.hpp"
 
 #define DATA_NODE_GRP_ID                        10000
 #define DATA_NODE_ID                            10000
@@ -50,8 +52,14 @@
 #define SEADPT_MAX_PORT                         65535
 #define SEADPT_SVC_PORT_PLUS                    7
 
+#define SEADPT_UNREGISTER_MODE_STR              "unregister"
+#define SEADPT_READONLY_MODE_STR                "read-only"
+#define SEADPT_READWRITE_MODE_STR               "read-write"
+
 namespace seadapter
 {
+   static seAdapterPipeHandler s_seAdptHandler ;
+
    UINT64 _seSvcSessionMgr::makeSessionID( const NET_HANDLE &handle,
                                            const MsgHeader *header )
    {
@@ -292,6 +300,9 @@ namespace seadapter
       _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
       _regMsgBuff = NULL ;
       _indexerOn = FALSE ;
+      _mode = UNREGISTER ;
+      ossMemset( _modeStr, 0, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+      _startTime = time( NULL ) ;
    }
 
    _seAdptCB::~_seAdptCB()
@@ -361,9 +372,25 @@ namespace seadapter
       esCltMgr->setScrollSize( _options.getSEScrollSize() ) ;
       PD_LOG( PDEVENT, "Search engine client manager init successfully" ) ;
 
+      rc = initPipeManager() ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize pipe manager failed[%d]", rc ) ;
+
       // Set the business status to not OK. Change to OK after successfully
       // registered on data node.
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptCB::initPipeManager()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = sdbGetSystemPipeManager()->registerHandler( (_IPmdPipeHandler*)&s_seAdptHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register seadapter handler, rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -791,6 +818,7 @@ namespace seadapter
       }
       return rc ;
    error:
+      setMode( UNREGISTER ) ;
       goto done ;
    }
 
@@ -832,6 +860,7 @@ namespace seadapter
       vector<BSONObj> objVec ;
       BSONObj cataInfoObj ;
       const CHAR *peerGrpName = NULL ;
+      BOOLEAN peerPrimary = FALSE ;
 
       // Adapter has registered successfully.
       if ( NET_INVALID_TIMER_ID == _regTimerID )
@@ -863,7 +892,7 @@ namespace seadapter
          PD_LOG( PDDEBUG, "Register reply message: %s",
                  objVec[0].toString(false, true).c_str() ) ;
 
-         _peerPrimary = objVec[0].getBoolField( FIELD_NAME_IS_PRIMARY ) ;
+         peerPrimary = objVec[0].getBoolField( FIELD_NAME_IS_PRIMARY ) ;
          peerGrpName = objVec[0].getStringField( FIELD_NAME_GROUPNAME ) ;
          if ( 0 == ossStrlen( peerGrpName ) )
          {
@@ -871,6 +900,8 @@ namespace seadapter
             rc = SDB_SYS ;
             goto error ;
          }
+
+         setDataNodePrimary( peerPrimary ) ;
 
          _idxMetaMgr.setPeerGrpName( peerGrpName ) ;
 
@@ -1230,6 +1261,30 @@ namespace seadapter
       esCltMgr->cleanup() ;
       return SDB_OK ;
    }
+
+   const CHAR* _seAdptCB::getModeStr()
+   {
+      UINT32 modeStrLen = 0 ;
+
+      if ( READ_ONLY == _mode )
+      {
+         ossStrncpy( _modeStr, SEADPT_READONLY_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         modeStrLen = ossStrlen( SEADPT_READONLY_MODE_STR ) ;
+      }
+      else if ( READ_WRITE == _mode )
+      {
+         ossStrncpy( _modeStr, SEADPT_READWRITE_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         modeStrLen = ossStrlen( SEADPT_READWRITE_MODE_STR ) ;
+      }
+      else if ( UNREGISTER == _mode )
+      {
+         ossStrncpy( _modeStr, SEADPT_UNREGISTER_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         modeStrLen = ossStrlen( SEADPT_UNREGISTER_MODE_STR ) ;
+      }
+      _modeStr[modeStrLen] = '\0' ;
+
+      return _modeStr ;
+   } ;
 
    seAdptCB* sdbGetSeAdapterCB()
    {

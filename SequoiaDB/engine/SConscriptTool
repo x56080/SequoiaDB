@@ -686,7 +686,8 @@ sdbSEAdptFiles = [
       "tools/seadapter/utilESFetcher.cpp",
       "tools/seadapter/utilProcessLock.cpp",
       "tools/seadapter/utilESCltMgr.cpp",
-      "tools/seadapter/seAdptCommand.cpp"
+      "tools/seadapter/seAdptCommand.cpp",
+      "tools/seadapter/seAdptPipeHandlers.cpp"
       ]
 
 sequoiaFSComFiles = [

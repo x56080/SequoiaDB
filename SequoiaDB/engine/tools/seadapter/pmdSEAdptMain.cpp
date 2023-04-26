@@ -45,6 +45,7 @@
 #include "seAdptMgr.hpp"
 #include "omagentDef.hpp"
 #include "utilProcessLock.hpp"
+#include "pmdPipeManager.hpp"
 
 namespace seadapter
 {
@@ -211,6 +212,9 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Enable trap failed[ %d ]", rc ) ;
 
       PMD_REGISTER_CB( sdbGetSeAdapterCB() ) ;
+
+      rc = sdbGetSystemPipeManager()->init( sdbGetSeAdptOptions()->getSvcName(), FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, rc: %d", rc ) ;
 
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Initialize krcb failed[ %d ]", rc ) ;

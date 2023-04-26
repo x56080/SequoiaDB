@@ -415,20 +415,22 @@ namespace engine
       RUN_MODE_RUN
    } ;
 
-   #define ENGINE_NPIPE_MSG_PID        "$pid"
-   #define ENGINE_NPIPE_MSG_SHUTDOWN   "$shutdown"
-   #define ENGINE_NPIPE_MSG_TYPE       "$type"
-   #define ENGINE_NPIPE_MSG_ROLE       "$role"
-   #define ENGINE_NPIPE_MSG_GID        "$gid"
-   #define ENGINE_NPIPE_MSG_NID        "$nid"
-   #define ENGINE_NPIPE_MSG_GNAME      "$gname"
-   #define ENGINE_NPIPE_MSG_PATH       "$path"
-   #define ENGINE_NPIPE_MSG_PRIMARY    "$primary"
-   #define ENGINE_NPIPE_MSG_ENDPIPE    "$endpipe"
-   #define ENGINE_NPIPE_MSG_STARTTIME  "$starttime"
-   #define ENGINE_NPIPE_MSG_DOING      "$doing"
-   #define ENGINE_NPIPE_MSG_LOCATION   "$location"
-   #define ENGINE_NPIPE_MSG_LOCPRIMARY "$locprimary"
+   #define ENGINE_NPIPE_MSG_PID           "$pid"
+   #define ENGINE_NPIPE_MSG_SHUTDOWN      "$shutdown"
+   #define ENGINE_NPIPE_MSG_TYPE          "$type"
+   #define ENGINE_NPIPE_MSG_ROLE          "$role"
+   #define ENGINE_NPIPE_MSG_GID           "$gid"
+   #define ENGINE_NPIPE_MSG_NID           "$nid"
+   #define ENGINE_NPIPE_MSG_GNAME         "$gname"
+   #define ENGINE_NPIPE_MSG_PATH          "$path"
+   #define ENGINE_NPIPE_MSG_PRIMARY       "$primary"
+   #define ENGINE_NPIPE_MSG_ENDPIPE       "$endpipe"
+   #define ENGINE_NPIPE_MSG_STARTTIME     "$starttime"
+   #define ENGINE_NPIPE_MSG_DOING         "$doing"
+   #define ENGINE_NPIPE_MSG_LOCATION      "$location"
+   #define ENGINE_NPIPE_MSG_LOCPRIMARY    "$locprimary"
+   #define ENGINE_NPIPE_MSG_MODE          "$mode"
+   #define ENGINE_NPIPE_MSG_DATASVCNAME   "$datasvcname"
 
    /*
       Config define

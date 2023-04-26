@@ -49,6 +49,8 @@
 
 using namespace engine ;
 
+#define SEADPT_MODE_STR_MAX_SIZE   16
+
 namespace seadapter
 {
    class _seAdptCB ;
@@ -56,6 +58,13 @@ namespace seadapter
    enum SEADPT_SESSION_TYPE
    {
       SEADPT_SESSION_INDEX = 1      // Indexer session for one text index.
+   } ;
+
+   enum SEADPT_MODE
+   {
+      UNREGISTER = 0,
+      READ_ONLY = 1,
+      READ_WRITE = 2
    } ;
 
    struct _seAdptSessionInfo
@@ -216,11 +225,31 @@ namespace seadapter
       void setDataNodePrimary( BOOLEAN isPrimary )
       {
          _peerPrimary = isPrimary ;
+
+         if ( _peerPrimary )
+         {
+            setMode( READ_WRITE ) ;
+         }
+         else
+         {
+            setMode( READ_ONLY ) ;
+         }
       }
+
+      void setMode( SEADPT_MODE mode )
+      {
+         _mode = mode ;
+      }
+
+      const CHAR* getModeStr() ;
+
+      UINT64 getStartTime() { return _startTime ; }
 
       const CHAR *getDataNodeGrpName() { return _peerGroupName ; }
 
       void resetIdxVersion() ;
+
+      INT32 initPipeManager() ;
 
    private:
       INT32 _startSvcListener() ;
@@ -282,6 +311,9 @@ namespace seadapter
       seIdxMetaMgr            _idxMetaMgr ;
       MsgHeader              *_regMsgBuff ;
       BOOLEAN                 _indexerOn ;
+      SEADPT_MODE             _mode ;
+      CHAR                    _modeStr[ SEADPT_MODE_STR_MAX_SIZE + 1 ] ;
+      UINT64                  _startTime ;
    } ;
    typedef _seAdptCB seAdptCB ;
 
