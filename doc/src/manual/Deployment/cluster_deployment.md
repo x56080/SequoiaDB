@@ -20,15 +20,14 @@
 在进行集群模式部署前，用户需要在每台数据库服务器上检查 SequoiaDB 配置服务的状态。
 
 ```lang-bash
-# service sdbcm status
+# systemctl status sdbcm
 ```
 
-系统提示“sdbcm is running”表示服务正在运行，否则执行如下指令重新配置服务程序：
+系统提示 running 表示服务正在运行，否则执行如下指令重新配置服务程序：
 
 ```lang-bash
-# service sdbcm start
+# systemctl start sdbcm
 ```
-
 
 ##部署##
 

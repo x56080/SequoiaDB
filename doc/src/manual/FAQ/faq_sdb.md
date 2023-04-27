@@ -113,7 +113,7 @@
 
 4. SDB_INTERRUPT(-8)
    * 发生系统中断，异致节点退出或操作终止
-   * 问题诊断：“节点”发生中断退出，即为收到相应信号量（比如SIGTERM等），即外部对该节点执行"kill -15"、"sdbstop"、"service sdbcm stop"或"操作系统重启"等相应操作，节点正常停止。
+   * 问题诊断：“节点”发生中断退出，即为收到相应信号量（比如SIGTERM等），即外部对该节点执行"kill -15"、"sdbstop"、"systemctl stop sdbcm"或"操作系统重启"等相应操作，节点正常停止。
 
 5. SDB_NOSPC(-11)
    * 磁盘空间不足
