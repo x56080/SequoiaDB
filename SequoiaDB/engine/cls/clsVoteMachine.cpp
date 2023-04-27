@@ -215,9 +215,9 @@ namespace engine
          // Remove group mode
          if ( _grpModeShadowTime <= 0 )
          {
+            ossScopedRWLock( &_groupInfo->mtx, EXCLUSIVE ) ;
             if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->grpMode.mode )
             {
-
                // Remove reelect targetNode flag, if this flag is use for critical mode instead of reelectGroup
                if ( 0 == _shadowTimeout )
                {
@@ -292,47 +292,52 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSVTMH_SETGRPMODE ) ;
 
       _grpModeShadowTime = shadowTime ;
-      _groupInfo->enforcedGrpMode = enforced ;
 
-      // Remove local group mode
-      if ( CLS_GROUP_MODE_NONE == grpMode.mode &&
-           grpMode.mode != _groupInfo->grpMode.mode )
       {
-         resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-         _groupInfo->grpMode.reset() ;
-         _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
-      }
-      else
-      {
-         // 0 != shadowTime means keep this mode forever or temporary, we need to set electionWeight.
-         if ( 0 != shadowTime )
+         ossScopedRWLock( &_groupInfo->mtx, EXCLUSIVE ) ;
+
+         _groupInfo->enforcedGrpMode = enforced ;
+
+         // Remove local group mode
+         if ( CLS_GROUP_MODE_NONE == grpMode.mode &&
+              grpMode.mode != _groupInfo->grpMode.mode )
          {
-            if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+            resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+            _groupInfo->grpMode.reset() ;
+            _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
+         }
+         else
+         {
+            // 0 != shadowTime means keep this mode forever or temporary, we need to set electionWeight.
+            if ( 0 != shadowTime )
             {
-               // Set critical mode flag
-               setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-               _groupInfo->curGrpMode = CLS_GROUP_MODE_CRITICAL ;
+               if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+               {
+                  // Set critical mode flag
+                  setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+                  _groupInfo->curGrpMode = CLS_GROUP_MODE_CRITICAL ;
 
-               // 0 > shadowTime means keep this mode forever, we need to remove targetNode flag
-               if ( 0 > shadowTime )
-               {
-                  resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-               }
-               // 0 < shadowTime means keep this mode temporary, we need to add targetNode flag
-               else
-               {
-                  setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  // 0 > shadowTime means keep this mode forever, we need to remove targetNode flag
+                  if ( 0 > shadowTime )
+                  {
+                     resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  }
+                  // 0 < shadowTime means keep this mode temporary, we need to add targetNode flag
+                  else
+                  {
+                     setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  }
                }
             }
-         }
 
-         _groupInfo->grpMode = grpMode ;
-
-         // If this node is primary and not in tmporary mode, we need to start a monitor job
-         if ( primaryIsMe() && CLS_GROUP_MODE_CRITICAL == grpMode.mode && ! isTmpGrpMode() )
-         {
-            rc = startCriticalModeMonitor() ;
+            _groupInfo->grpMode = grpMode ;
          }
+      }
+
+      // If this node is primary and not in tmporary mode, we need to start a monitor job
+      if ( primaryIsMe() && CLS_GROUP_MODE_CRITICAL == grpMode.mode && ! isTmpGrpMode() )
+      {
+         rc = startCriticalModeMonitor() ;
       }
 
       PD_TRACE_EXITRC ( SDB__CLSVTMH_SETGRPMODE, rc ) ;
@@ -342,6 +347,8 @@ namespace engine
    UINT32 _clsVoteMachine::startCriticalModeMonitor()
    {
       INT32 rc = SDB_OK ;
+      ossScopedRWLock( &_groupInfo->mtx, SHARED ) ;
+
       SDB_ASSERT( 1 == _groupInfo->grpMode.grpModeInfo.size(),
                   "grpModeInfo's item number should be 1" ) ;
 

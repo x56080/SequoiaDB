@@ -151,22 +151,25 @@ namespace engine
          {
             INT16 w = 0 ;
 
-            if ( isInCriticalMode() )
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+
+            if ( CLS_GROUP_MODE_CRITICAL == _info.curGrpMode )
             {
                // If group is in critical mode, use critical size to calculate majority size
-               w = (INT16)( criticalSize() / 2 + 1 ) ;
+               w = (INT16)( _info.criticalSize() / 2 + 1 ) ;
             }
             else
             {
-               w = (INT16)( groupSize() / 2 + 1 ) ;
+               w = (INT16)( _info.groupSize() / 2 + 1 ) ;
             }
 
             return w ;
          }
 
-         OSS_INLINE const clsGroupMode& getGrpMode()
+         OSS_INLINE CLS_GROUP_MODE getGrpMode()
          {
-            return _info.grpMode ;
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+            return _info.grpMode.mode ;
          }
 
          OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
@@ -192,13 +195,12 @@ namespace engine
             UINT8 locations = 0 ;
             _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
             BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
-            const clsGroupMode &grpMode = getGrpMode() ;
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
-            if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+            if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
             {
-               const clsGrpModeItem &grpModeItem = grpMode.grpModeInfo[0] ;
+               const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
 
                // This is critical node mode, use alive node count
                if ( INVALID_NODEID != grpModeItem.nodeID )
@@ -209,7 +211,7 @@ namespace engine
                // This is critical location mode, use location node count
                else if ( ! grpModeItem.location.empty() )
                {
-                  nodeCnt = criticalSize() ;
+                  nodeCnt = _info.criticalSize() ;
                   aliveCnt = _info.criticalAliveSize() ;
                }
             }
@@ -276,24 +278,6 @@ namespace engine
             }
          }
 
-         // timeout: ms
-         OSS_INLINE UINT32 getAlivesByTimeout( UINT32 timeout =
-                                               CLS_NODE_KEEPALIVE_TIMEOUT )
-         {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
-            return _info.getAlivesByTimeout( timeout ) ;
-         }
-
-         OSS_INLINE UINT32 getCriticalAlivesByTimeout( UINT32 timeout =
-                                                       CLS_NODE_KEEPALIVE_TIMEOUT )
-         {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r() ;
-            num = _info.getCriticalAlivesByTimeout( timeout ) ;
-            _info.mtx.release_r() ;
-            return num ;
-         }
-
          OSS_INLINE BOOLEAN isAlive ( NodeID node )
          {
             BOOLEAN bAlive = FALSE ;
@@ -357,13 +341,11 @@ namespace engine
 
          OSS_INLINE BOOLEAN isInCriticalMode()
          {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
             return CLS_GROUP_MODE_CRITICAL == _info.curGrpMode ;
          }
 
          OSS_INLINE BOOLEAN isInEnforcedGrpMode()
          {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
             return _info.enforcedGrpMode ;
          }
 
@@ -489,9 +471,13 @@ namespace engine
 
          BOOLEAN isMajorityAlive()
          {
-            return CLS_IS_MAJORITY( getAlivesByTimeout(), groupSize() ) ||
-                   ( isInCriticalMode() && CLS_IS_MAJORITY( getCriticalAlivesByTimeout(),
-                                                            criticalSize() ) ) ;
+            ossScopedRWLock( &_info.mtx, SHARED ) ;
+
+            return CLS_IS_MAJORITY( _info.getAlivesByTimeout( CLS_NODE_KEEPALIVE_TIMEOUT ),
+                                    _info.groupSize() ) ||
+                   ( CLS_GROUP_MODE_CRITICAL == _info.curGrpMode &&
+                     CLS_IS_MAJORITY( _info.getCriticalAlivesByTimeout( CLS_NODE_KEEPALIVE_TIMEOUT ),
+                                      _info.criticalSize() ) ) ;
          }
 
       public:
