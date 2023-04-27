@@ -586,8 +586,21 @@ namespace engine
          INT32 _initKeyPattern ( const BSONObj &boKeyPattern ) ;
          INT32 _initMCV ( const BSONObj &boMCV ) ;
 
-         INT32 _evalOperator ( dmsStatKey *pStartKey, dmsStatKey *pStopKey,
-                               double &predSelectivity, double &scanSelectivity ) const ;
+         INT32 _evalOperator ( dmsStatKey *pStartKey,
+                               dmsStatKey *pStopKey,
+                               UINT32 numEqualKeys,
+                               double &predSelectivity,
+                               double &scanSelectivity ) const ;
+
+         INT32 _evalETDefault( UINT32 numEqualKeys,
+                               double maxSelectivity,
+                               double &predSelectivity,
+                               double &scanSelectivity ) const ;
+         INT32 _evalETHitMCV( UINT32 numEqualKeys,
+                              double mcvPredSelectivity,
+                              double mcvScanSelectivity,
+                              double &predSelectivity,
+                              double &scanSelectivity ) const ;
 
       protected :
          // Name of collection space
@@ -625,6 +638,11 @@ namespace engine
          UINT16            _undefFrac ;
 
          dmsStatMCVSet     _mcvSet ;
+
+         // percent of sample records
+         FLOAT64           _totalFrac ;
+         FLOAT64           _sampleFrac ;
+         FLOAT64           _samplePercent ;
    } ;
 
    typedef _dmsIndexStat dmsIndexStat ;
