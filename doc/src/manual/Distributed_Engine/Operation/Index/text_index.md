@@ -29,6 +29,7 @@ sdbseadapter 是数据节点与 Elasticsearch 交互的桥梁。SequoiaDB 通过
 | ----------------- | ---- | ---------------------------------------- |
 | --help            | -h   | 获取帮助选项                                 |
 | --version         |      | 获取版本信息                                 |
+| --svcname         |      | sdbseadapter 节点端口号                  |
 | --confpath        | -c   | 配置文件路径（不需指定文件名）           |
 | --diaglevel       | -v   | 日志级别，默认值为 3                     |
 | --datanodehost    |      | 数据节点所在主机名                       |
@@ -114,35 +115,36 @@ SequoiaDB 集群包含的每一个数据节点均需要启动一个对应的适�
     $ cd /opt/sequoiadb/conf
     ```
 
-2. 在当前目录下创建 `seadapter` 目录
+2. 在当前目录下创建 `sdbseadapter` 目录
 
     ```lang-bash
-    $ mkdir seadapter
+    $ mkdir sdbseadapter
     ```
 
-3. 切换至 `seadapter` 目录
+3. 切换至 `sdbseadapter` 目录
 
     ```lang-bash
-    $ cd seadapter
+    $ cd sdbseadapter
     ```
 
-4. 创建各数据节点对应的适配器目录
+4. 创建各适配器节点对应的端口目录
 
     ```lang-bash
-    $ mkdir 11820 11830 11840
+    $ mkdir 11827 11837 11847
     ```
 
 5. 将适配器的配置文件分别拷贝至各节点对应的目录中
 
     ```lang-bash
-    $ cp ../samples/sdbseadapter.conf 11820
-    $ cp ../samples/sdbseadapter.conf 11830
-    $ cp ../samples/sdbseadapter.conf 11840
+    $ cp ../samples/sdbseadapter.conf 11827
+    $ cp ../samples/sdbseadapter.conf 11837
+    $ cp ../samples/sdbseadapter.conf 11847
     ```
 
-6.  分别修改上述配置文件，以节点 11830 为例，配置内容如下：
+6.  分别修改上述配置文件，以适配器节点 11837 为例，对应的数据节点端口为 11830，配置内容如下：
 
      ```lang-ini
+     svcname=11837
      datanodehost=sdbserver
      datasvcname=11830
      searchenginehost=sdbserver
@@ -155,9 +157,9 @@ SequoiaDB 集群包含的每一个数据节点均需要启动一个对应的适�
 7. 启动各节点对应的适配器
 
     ```lang-bash
-    $ nohup sdbseadapter -c /opt/sequoiadb/conf/seadapter/11820 &
-    $ nohup sdbseadapter -c /opt/sequoiadb/conf/seadapter/11830 &
-    $ nohup sdbseadapter -c /opt/sequoiadb/conf/seadapter/11840 &
+    $ nohup sdbseadapter -c /opt/sequoiadb/conf/sdbseadapter/11827 &
+    $ nohup sdbseadapter -c /opt/sequoiadb/conf/sdbseadapter/11837 &
+    $ nohup sdbseadapter -c /opt/sequoiadb/conf/sdbseadapter/11847 &
     ```
 
 8. 查看所有适配器进程是否均已启动成功
