@@ -3218,5 +3218,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_LOB_OUT_OF_PUT_SIZE</name>
+         <description>
+            <en>The lob which to put is out of page size</en>
+            <cn>集合空间页无法容纳该对象</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

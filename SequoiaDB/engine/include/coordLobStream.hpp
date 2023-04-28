@@ -115,6 +115,10 @@ namespace engine
 
          virtual BOOLEAN _canCache() const ;
 
+         virtual INT32 _prepareToPut(  UINT32 size, _pmdEDUCB *cb ) ;
+
+         virtual INT32 _put( UINT32 size, const CHAR *data, _pmdEDUCB *cb ) ;
+
       private:
          struct subStream
          {
@@ -317,6 +321,8 @@ namespace engine
          void _getGroupLst( CoordGroupList &groupLst ) ;
          INT32 _getLobGroupID( const OID &oid, UINT32 sequence,
                                UINT32 &groupID) ;
+
+         CoordCataInfo *_getNormalOrSubCL() ;
 
       private:
          CoordCataInfoPtr _cataInfo ;

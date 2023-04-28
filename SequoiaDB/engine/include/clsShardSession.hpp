@@ -232,6 +232,8 @@ namespace engine
 
          INT32 _onRemoveLobReq( MsgHeader *msg ) ;
 
+         INT32 _onPutLobReq( MsgHeader *msg, rtnContextBuf &buffObj ) ;
+
          INT32 _onPacketMsg( NET_HANDLE handle,
                              MsgHeader *msg,
                              INT64 &contextID,

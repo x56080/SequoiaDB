@@ -74,31 +74,6 @@ using namespace bson ;
 
 namespace engine
 {
-
-   const CHAR* rtnLobOpName( INT32 mode )
-   {
-      switch( mode )
-      {
-      case SDB_LOB_MODE_CREATEONLY:
-         return "LOB CREATE" ;
-      case SDB_LOB_MODE_READ:
-         return "LOB READ" ;
-      case SDB_LOB_MODE_SHAREREAD:
-         return "LOB SHAREREAD" ;
-      case SDB_LOB_MODE_WRITE:
-         return "LOB WRITE" ;
-      case (SDB_LOB_MODE_WRITE | SDB_LOB_MODE_SHAREREAD):
-         return "LOB WRITE | LOB SHAREREAD" ;
-      case SDB_LOB_MODE_REMOVE:
-         return "LOB REMOVE" ;
-      case SDB_LOB_MODE_TRUNCATE:
-         return "LOB TRUNCATE" ;
-      default:
-         SDB_ASSERT( FALSE, "Invalid mode" ) ;
-         return "LOB UNKNOWN" ;
-      }
-   }
-
    _rtnLobStream::_rtnLobStream( IMonSubmitEvent *pMonSubmitEvent )
    :_uniqueId( -1 ),
     _dpsCB( NULL ),
@@ -1588,6 +1563,61 @@ namespace engine
          _onIncreaseMetrics( _totalDeltaMonApp ) ;
          _totalDeltaMonApp.reset() ;
       }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBSTREAM_FASTPUT, "_rtnLobStream::fastPut" )
+   INT32 _rtnLobStream::fastPut( const CHAR *fullName,
+                                 const bson::OID &oid,
+                                 UINT32 size,
+                                 const CHAR *data,
+                                 _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_FASTPUT ) ;
+      SDB_ASSERT( NULL != fullName && oid.isSet(), "can not be invalid" ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
+
+      ossMemcpy( _fullName, fullName, ossStrlen( fullName ) ) ;
+      ossMemcpy( &_oid, &oid, sizeof( oid ) ) ;
+      _mode = SDB_LOB_MODE_CREATEONLY ;
+      _opType = MON_LOB_PUT ;
+
+      rc = _prepareToPut( size, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_ERR_OR( PDDEBUG, SDB_LOB_OUT_OF_PUT_SIZE, 
+                        "failed to prepare to put lob:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _put( size, data, cb ) ;
+
+      if ( SDB_OK == rc || SDB_LOB_OUT_OF_PUT_SIZE != rc )
+      {
+         PD_AUDIT_OP_WITHNAME( AUDIT_DML,
+                               rtnLobOpName(_mode),
+                               AUDIT_OBJ_CL,
+                               getFullName(), rc, "OID:%s, Length:%llu",
+                               getOID().toString().c_str(), size ) ;
+      }
+
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_ERR_OR( PDDEBUG, SDB_LOB_OUT_OF_PUT_SIZE, "failed to put lob:%d", rc ) ;
+         goto error ;
+      }
+
+      submitor.submit() ;
+      _increaseMetrics( cb ) ;
+      _increaseLobOpCount( cb ) ;
+      RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, size ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_FASTPUT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
 }

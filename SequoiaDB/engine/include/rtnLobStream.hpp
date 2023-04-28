@@ -104,6 +104,12 @@ namespace engine
 
       INT32 getMetaData( bson::BSONObj &meta ) ;
 
+      INT32 fastPut( const CHAR *fullName,
+                     const bson::OID &oid,
+                     UINT32 size,
+                     const CHAR *data,
+                     _pmdEDUCB *cb) ;
+
       OSS_INLINE const bson::OID &getOID() const
       {
          return _oid ;
@@ -262,6 +268,10 @@ namespace engine
          return TRUE ;
       }
 
+      virtual INT32 _prepareToPut( UINT32 size, _pmdEDUCB *cb ) = 0;
+
+      virtual INT32 _put( UINT32 size, const CHAR *data, _pmdEDUCB *cb ) = 0;
+
    private:
       INT32 _readFromPool( UINT32 len,
                            _rtnContextBase *context,
@@ -324,9 +334,6 @@ namespace engine
       _monAppCB            _totalDeltaMonApp ; // keep the changes of the session
    } ;
    typedef class _rtnLobStream rtnLobStream ;
-
-   // helper functions
-   const CHAR* rtnLobOpName( INT32 mode ) ;
 
 }
 

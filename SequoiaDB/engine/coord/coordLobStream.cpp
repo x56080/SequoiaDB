@@ -2722,5 +2722,193 @@ namespace engine
    {
       SAFE_OSS_FREE( _emptyPageBuf ) ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM__PREPARETOPUT, "_coordLobStream::_prepareToPut" )
+   INT32 _coordLobStream::_prepareToPut(  UINT32 size, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_LOBSTREAM__PREPARETOPUT ) ;
+      SDB_ASSERT( NULL != getFullName() && getOID().isSet(), "can not be invalid" ) ;
+      CoordCataInfo *cata = NULL ;
+
+      rc = _groupSession.init( _pResource, cb, _timeout,
+                               &_remoteHandler, &_groupHandler ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init group session failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _updateCataInfo( FALSE, cb ) ;
+      if ( SDB_OK != rc && coordCataCheckFlag( rc ) )
+      {
+         PD_LOG( PDEVENT, "Retry to update catalog info" ) ;
+         rc = _updateCataInfo( TRUE, cb ) ;
+      }
+
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to update catalog info of:%s, rc:%d",
+                 getFullName(), rc ) ;
+         goto error ;
+      }
+
+      cata = _getNormalOrSubCL() ;
+      SDB_ASSERT( NULL != cata, "can not be null" ) ;
+      if ( cata->getCatalogSet()->isLobdPageSizeSet() &&
+           cata->getCatalogSet()->getLobdPageSize() < (size + DMS_LOB_META_LENGTH) )
+      {
+         rc = SDB_LOB_OUT_OF_PUT_SIZE ;
+         goto error ;
+      }
+
+      /// set primary
+      _groupSession.getGroupSel()->setPrimary( TRUE ) ;
+      _groupSession.getGroupCtrl()->setMaxRetryTimes( LOB_MAX_RETRYTIMES ) ;
+   done:
+      PD_TRACE_EXITRC( COORD_LOBSTREAM__PREPARETOPUT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM__PUT, "_coordLobStream::_put" )
+   INT32 _coordLobStream::_put(  UINT32 size, const CHAR *data, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_LOBSTREAM__PUT ) ;
+      SDB_ASSERT( !(0 < size && NULL == data), "can not be invalid" ) ;
+      SDB_ASSERT( getOID().isSet(), "must be set first" ) ;
+
+      MsgOpLob header ;
+      MsgLobTuple tuple ;
+      tuple.columns.len = size ;
+      tuple.columns.sequence = DMS_LOB_META_SEQUENCE ;
+      tuple.columns.offset = 0 ;
+      const MsgOpReply *reply = NULL ;
+      BSONObj obj ;
+      BSONObjBuilder builder ;
+      netIOVec iov ;
+      std::set<INT32> errors ;
+      errors.insert( SDB_LOB_OUT_OF_PUT_SIZE ) ;
+
+      coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
+      coordGroupSel *pSel = _groupSession.getGroupSel() ;
+      pCtrl->resetRetry() ;
+
+      try
+      {
+         builder.append( FIELD_NAME_COLLECTION, getFullName() )
+                .append( FIELD_NAME_LOB_OID, getOID() )
+                .append( FIELD_NAME_LOB_OPEN_MODE, _getMode() ) ;
+         if ( _cataInfo->isMainCL() )
+         {
+            builder.append( FIELD_NAME_SUBCLNAME, _subCLInfo->getName() ) ;
+         }
+         obj = builder.obj() ;
+      }
+      catch( std::exception& e )
+      {
+         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+      
+      _initHeader( header, MSG_BS_LOB_PUT_REQ,
+                   ossAlign4( obj.objsize() ), -1 ) ;
+      rc = _pushLobHeader( &header, obj, iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+
+      header.header.messageLength += sizeof( MsgLobTuple ) ;
+      rc = _pushLobData( &tuple, sizeof( MsgLobTuple ), iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob tuple:rc=%d", rc ) ;
+
+      header.header.messageLength += size ;
+      if ( 0 < size )
+      {
+         rc = _pushLobData( data, size, iov ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push lob tuple:rc=%d", rc ) ;
+      }
+
+      do
+      {
+         _clearMsgData() ;
+         INT32 tag = RETRY_TAG_NULL ;
+         header.version = _cataInfo->getVersion() ;
+
+         /// add group info
+         pSel->addGroupPtr2Map( _metaGroupInfo ) ;
+
+         rc = _groupSession.sendMsg( (MsgHeader*)&header,
+                                     _metaGroup,
+                                     &iov,
+                                     NULL ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to send open msg to group[%d], rc: %d",
+                    _metaGroup, rc ) ;
+            goto error ;
+         }
+
+         rc = _getReply( cb, FALSE, tag, &errors ) ;
+         pCtrl->incRetry() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get reply msg, rc: %d", rc ) ;
+            goto error ;
+         }
+         else if ( RETRY_TAG_NULL == tag )
+         {
+            SDB_ASSERT( 1 == _results.size(), "impossible" ) ;
+
+            PD_CHECK( 1 == _results.size(), SDB_SYS, error, PDERROR,
+                      "Failed to get result, no result returned" ) ;
+
+            reply = (MsgOpReply*)((*_results.begin())._Data ) ;
+            break ;
+         }
+      } while ( TRUE ) ;
+
+      /// put size over lob page size
+      if ( SDB_LOB_OUT_OF_PUT_SIZE == reply->flags )
+      {
+         bson::BSONObj resultObj ;
+         _rtnLobDataPool::tuple t ;
+         UINT32 pageSize = 0 ;
+         CoordCataInfo *cata = _getNormalOrSubCL() ;
+         SDB_ASSERT( NULL != cata, "can not be null" ) ;
+
+         rc = _extractMeta( reply, resultObj, t ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to extract result obj from reply msg:%d", rc ) ;
+            goto error ;
+         }
+
+         pageSize = resultObj.getIntField( FIELD_NAME_LOB_PAGE_SIZE ) ;
+         if ( 0 < pageSize &&
+              !cata->getCatalogSet()->isLobdPageSizeSet() )
+         {
+            /// multi-threads may set it at the same time, but it does not matter.
+            cata->getCatalogSet()->setLobdPageSize( pageSize ) ;
+            PD_LOG( PDINFO, "set lob page size:%d to [%s]", pageSize, cata->getName() ) ;
+         }
+
+         rc = SDB_LOB_OUT_OF_PUT_SIZE ;
+      }
+      
+   done:
+      _clearMsgData() ;
+      PD_TRACE_EXITRC( COORD_LOBSTREAM__PUT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   CoordCataInfo *_coordLobStream::_getNormalOrSubCL()
+   {
+      SDB_ASSERT( NULL != _cataInfo.get(), "can not be null" ) ;
+      return _cataInfo->isMainCL() ? _subCLInfo.get() : _cataInfo.get() ;
+   }
 }
 

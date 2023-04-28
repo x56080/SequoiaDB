@@ -4697,6 +4697,103 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCollectionImpl::putLob( UINT32 size,
+                                     const void *data,
+                                     bson::OID &oid )
+   {
+      INT32 rc = SDB_OK ;
+      bson::BSONObj obj ;
+      BOOLEAN locked = FALSE ;
+      SINT64 contextID = -1 ;
+      SINT64 offset = 0;
+
+      if ( '\0' == _collectionFullName[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( 0 < size && NULL == data )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         bson::BSONObjBuilder bb ;
+         bb.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+         bb.append( FIELD_NAME_LOB_OPEN_MODE, SDB_LOB_CREATEONLY ) ;
+         if ( oid.isSet() )
+         {
+            bb.appendOID( FIELD_NAME_LOB_OID, &oid ) ;
+         }
+         obj = bb.obj() ;
+      }
+      catch( const std::exception& e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = clientBuildLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                 MSG_BS_LOB_PUT_REQ, obj.objdata(),
+                                 0, 0, -1, 0, &offset, &size,
+                                 ( const CHAR * )data,
+                                 _connection->_endianConvert ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      _connection->lock() ;
+      locked = TRUE ;
+      // send msg
+      rc = _connection->_send ( _pSendBuffer ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      // receive and extract msg from engine
+      rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
+                                       contextID ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      
+      _connection->unlock() ;
+      locked = FALSE ;
+
+      CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
+
+      try
+      {
+         bson::BSONObj result = BSONObj( _pReceiveBuffer + sizeof( MsgOpReply ) ) ;
+         bson::BSONElement oidElement = result.getField( FIELD_NAME_LOB_OID );
+         if ( bson::jstOID != oidElement.type() )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         oid = oidElement.OID() ;
+      }
+      catch ( const std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      
+   done:
+      if ( locked )
+      {
+         _connection->unlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
     * _sdbNodeImpl
     * Sdb Node Implementation

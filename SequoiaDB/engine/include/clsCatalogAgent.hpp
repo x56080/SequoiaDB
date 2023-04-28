@@ -323,6 +323,10 @@ namespace engine
          UINT32         getDataSourceID() const ;
          const string&  getMappingName() const ;
 
+         UINT32 getLobdPageSize() const { return _lobdPageSize ; }
+         BOOLEAN isLobdPageSizeSet() const { return 0 < _lobdPageSize ; }
+         void setLobdPageSize( UINT32 size ) { _lobdPageSize = size ; }
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -420,6 +424,7 @@ namespace engine
 
          UINT64            _createTime ;
          UINT64            _updateTime ;
+         UINT32            _lobdPageSize ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

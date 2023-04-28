@@ -1150,5 +1150,10 @@ namespace engine
       }
    }
 
+   INT32 _rtnLocalLobStream::_put( UINT32 size, const CHAR *data, _pmdEDUCB *cb )
+   {
+      return SDB_LOB_OUT_OF_PUT_SIZE ;
+   }
+
 }
 

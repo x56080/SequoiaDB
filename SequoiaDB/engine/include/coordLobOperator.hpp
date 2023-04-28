@@ -216,6 +216,15 @@ namespace engine
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
                                 rtnContextBuf *buf ) ;
+
+      private:
+
+         INT32 _writeBySteps( const MsgOpLob *header,
+                              const bson::BSONObj &metaObj,
+                              UINT32 len,
+                              const CHAR *data,
+                              pmdEDUCB *cb,
+                              rtnContextBuf *buf ) ;
    } ;
    typedef _coordPutLob coordPutLob ;
 }

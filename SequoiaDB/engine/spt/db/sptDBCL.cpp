@@ -75,6 +75,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, explain )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, putLob )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getLob )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, putLob2 )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, putLob3 )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getLobRTimeDetail )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, deleteLob )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, listLobs )
@@ -96,6 +98,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getIndexStat )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getCollectionStat )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, setConsistencyStrategy )
+   
 
    JS_BEGIN_MAPPING( _sptDBCL, SPT_CL_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -124,6 +127,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "detachCL", detachCL )
       JS_ADD_MEMBER_FUNC( "explain", explain )
       JS_ADD_MEMBER_FUNC( "putLob", putLob )
+      JS_ADD_MEMBER_FUNC( "_putLobValue", putLob2 )
+      JS_ADD_MEMBER_FUNC( "_putLobFile", putLob3 )
       JS_ADD_MEMBER_FUNC( "getLob", getLob )
       JS_ADD_MEMBER_FUNC( "getLobDetail", getLobRTimeDetail )
       JS_ADD_MEMBER_FUNC( "deleteLob", deleteLob )
@@ -1959,6 +1964,183 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to read local file" ) ;
          goto error ;
       }
+      rval.getReturnVal().setValue( oid.toString() ) ;
+   done:
+      SAFE_OSS_FREE( buf ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::putLob2( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string content ;
+      string oidStr ;
+      OID oid ;
+
+      rc = arg.getString( 0, content ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Content must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Content must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, oidStr ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "OidStr must be string" ) ;
+         goto error ;
+      }
+      else if ( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      else if ( !utilIsValidOID( oidStr.c_str() ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Oid string invalid" ) ;
+         goto error ;
+      }
+      else
+      {
+         oid.init( oidStr.c_str() ) ;
+      }
+      
+      rc = _cl.putLob( content.size(), content.c_str(), oid ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to put lob" ) ;
+         goto error ;
+      }
+      
+      rval.getReturnVal().setValue( oid.toString() ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::putLob3( const _sptArguments &arg,
+                            _sptReturnVal &rval,
+                            bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string oidStr ;
+      string filePath ;
+      OID oid ;
+      ossFile file ;
+      INT64 fileSize = 0 ;
+      INT64 readSize = 0 ;
+      CHAR *buf = NULL ;
+      rc = arg.getString( 0, filePath ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Filepath must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Filepath must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, oidStr ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         //oid is generated from server side
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "OidStr must be string" ) ;
+         goto error ;
+      }
+      else
+      {
+         if( SPT_OID_STR_LENGTH != oidStr.size() )
+         {
+            stringstream ss ;
+            ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << ss.str() ) ;
+            goto error ;
+         }
+         if ( !utilIsValidOID( oidStr.c_str() ) )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "Oid string invalid" ) ;
+            goto error ;
+         }
+         oid = OID( oidStr ) ;
+      }
+
+      rc = file.open( filePath, OSS_READONLY|OSS_SHAREREAD,
+                      OSS_DEFAULTFILE ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to open file" ) ;
+         goto error ;
+      }
+
+      rc = file.getFileSize( fileSize ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get file size" ) ;
+         goto error ;
+      }
+
+      if ( LOB_BUFFER_LEN < fileSize )
+      {
+         detail = BSON( SPT_ERR << "The file is too large to put" ) ;
+         rc = SDB_INVALIDSIZE ;
+         goto error ;
+      }
+
+      buf = static_cast< CHAR* >( SDB_OSS_MALLOC( fileSize ) ) ;
+      if( NULL == buf )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to mallc buffer" ) ;
+         goto error ;
+      }
+
+      rc = file.readN( buf, fileSize, readSize ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to write lob" ) ;
+         goto error ;
+      }
+      else if ( fileSize != readSize )
+      {
+         rc = SDB_SYS ;
+         detail = BSON( SPT_ERR << "Failed to read lob file" ) ;
+         goto error ;
+      }
+      else
+      {
+         rc = _cl.putLob( readSize, buf, oid ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to put lob" ) ;
+            goto error ;
+         }
+      }
+
       rval.getReturnVal().setValue( oid.toString() ) ;
    done:
       SAFE_OSS_FREE( buf ) ;

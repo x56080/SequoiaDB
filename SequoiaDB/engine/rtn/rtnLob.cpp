@@ -1319,5 +1319,195 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPUTLOB, "rtnPutLob" )
+   INT32 rtnPutLob( const CHAR *fullName,
+                    const bson::OID &oid,
+                    UINT32 size,
+                    const CHAR *data,
+                    pmdEDUCB *cb,
+                    SINT16 w,
+                    SDB_DPSCB *dpsCB,
+                    rtnContextBuf &buffObj )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNPUTLOB ) ;
+      SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
+      CHAR *buf = NULL ;
+      UINT32 bufferSize = size + DMS_LOB_META_LENGTH ;
+      dmsLobMeta *lobMeta = NULL ;
+      dmsLobRecord lobRecord ;
+      UINT32 lobdPageSize = 0 ;
+      dmsStorageLob *storage = NULL ;
+      bson::BSONObjBuilder builder ;
+
+      rtnLobEnv env( fullName, cb ) ;
+
+      cb->setCurProcessName( fullName ) ;
+
+      buf = ( CHAR * )SDB_THREAD_ALLOC( bufferSize ) ;
+      if ( NULL == buf )
+      {
+         PD_LOG(PDERROR, "out of memory") ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      ossMemset(buf, 0, bufferSize) ;
+
+      lobMeta = ( dmsLobMeta * )buf ;
+      lobMeta->_lobLen = size ;
+      lobMeta->_createTime = ossGetCurrentMilliseconds() ;
+      lobMeta->_status = DMS_LOB_COMPLETE ;
+      lobMeta->_version = DMS_LOB_META_CURRENT_VERSION ;
+      lobMeta->_padding = 0 ;
+      lobMeta->_modificationTime = lobMeta->_createTime ;
+      lobMeta->_flag = 0 ;
+      lobMeta->_piecesInfoNum = 0 ;
+      if ( 0 < size )
+      {
+         SDB_ASSERT( NULL != data, "can not be null" ) ;
+         ossMemcpy( buf + DMS_LOB_META_LENGTH, data, size ) ;
+      }
+      lobRecord.set( &oid, 0, 0, bufferSize, buf ) ;
+
+      rc = env.prepareOpr( EXCLUSIVE, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to prepare to put lob, rc:%d", rc ) ;
+         goto error ;
+      }
+
+      storage = env.getSU()->lob() ;
+      lobdPageSize = storage->getLobdPageSize() ;
+      if ( lobdPageSize < bufferSize )
+      {
+         env.oprDone() ;
+         PD_LOG( PDWARNING, "lob to put with invalid size:%d", size ) ;
+         rc = SDB_LOB_OUT_OF_PUT_SIZE ;
+         try
+         {
+            builder.append( FIELD_NAME_LOB_PAGE_SIZE, lobdPageSize ) ;
+            buffObj = rtnContextBuf( builder.obj() ) ;
+         }
+         catch( std::exception& e )
+         {
+            PD_LOG( PDERROR, "Unexpected error happended:%s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
+         
+         goto error ;
+      }
+
+      try
+      {
+         builder.appendOID( FIELD_NAME_LOB_OID, (OID *)&oid ) ;
+         builder.append( FIELD_NAME_LOB_SIZE, size ) ;
+         builder.append( FIELD_NAME_LOB_PAGE_SIZE, lobdPageSize ) ;
+         builder.append( FIELD_NAME_VERSION, (INT32)lobMeta->_version ) ;
+         builder.append( FIELD_NAME_LOB_CREATETIME, (INT64)lobMeta->_createTime ) ;
+         builder.append( FIELD_NAME_LOB_MODIFICATION_TIME, (INT64)lobMeta->_modificationTime ) ;
+         builder.append( FIELD_NAME_LOB_FLAG, (INT32)lobMeta->_flag ) ;
+         builder.append( FIELD_NAME_LOB_PIECESINFONUM, lobMeta->_piecesInfoNum ) ;
+      }
+      catch( std::exception& e )
+      {
+         PD_LOG( PDERROR, "Unexpected error happended:%s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = storage->write( lobRecord, env.getMBContext(), cb, dpsCB ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to write lob data:%d" , rc ) ;
+         if ( SDB_LOB_SEQUENCE_EXISTS == rc )
+         {
+            rc = SDB_FE ;
+         }
+         goto error ;
+      }
+
+      buffObj = rtnContextBuf( builder.obj() ) ;
+
+      env.oprDone() ;
+   
+      if ( NULL != dpsCB )
+      {
+         dpsCB->completeOpr( cb, w ) ;
+      }
+   done:
+      if ( NULL != buf )
+      {
+         SDB_THREAD_FREE( buf ) ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNPUTLOB, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   const CHAR* rtnLobOpName( INT32 mode )
+   {
+      switch( mode )
+      {
+      case SDB_LOB_MODE_CREATEONLY:
+         return "LOB CREATE" ;
+      case SDB_LOB_MODE_READ:
+         return "LOB READ" ;
+      case SDB_LOB_MODE_SHAREREAD:
+         return "LOB SHAREREAD" ;
+      case SDB_LOB_MODE_WRITE:
+         return "LOB WRITE" ;
+      case (SDB_LOB_MODE_WRITE | SDB_LOB_MODE_SHAREREAD):
+         return "LOB WRITE | LOB SHAREREAD" ;
+      case SDB_LOB_MODE_REMOVE:
+         return "LOB REMOVE" ;
+      case SDB_LOB_MODE_TRUNCATE:
+         return "LOB TRUNCATE" ;
+      default:
+         SDB_ASSERT( FALSE, "Invalid mode" ) ;
+         return "LOB UNKNOWN" ;
+      }
+   }
+
+   INT32 rtnGenerateLobOid( bson::OID &oid ) 
+   {
+      INT32 rc = SDB_OK ;
+      time_t localTime ;
+      time_t utcTime ;
+      _utilLobID lobId ;
+      BYTE oidArray[UTIL_LOBID_ARRAY_LEN] = { 0 } ;
+      _MsgRouteID routeId = pmdGetNodeID() ;
+
+      if ( MSG_INVALID_ROUTEID == routeId.value )
+      {
+         rc = SDB_INVALID_ROUTEID ;
+         PD_LOG( PDERROR, "Route id must be exist when create lob ID:rc=%d",
+                 rc ) ;
+         goto error ;
+      }
+
+      // init lobId with UTC timezone to avoid timezone issue
+      localTime = ossGetCurrentMilliseconds() / 1000 ;
+      ossTimeLocalToUTCInSameDate( localTime, utcTime ) ;
+      rc = lobId.init( (INT64)utcTime, routeId.columns.nodeID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
+
+      rc = lobId.toByteArray( oidArray, UTIL_LOBID_ARRAY_LEN ) ;
+      if ( SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "Failed to get Byte array from lodId[%s]",
+                 lobId.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      oid.init( oidArray, UTIL_LOBID_ARRAY_LEN ) ;
+
+   done:
+      return rc ;
+   error:
+      oid.clear() ;
+      goto done ;
+   }
 }
 

@@ -222,6 +222,22 @@ namespace engine
 
    INT32 rtnCreateLobID( const BSONObj &createLobIDObj, bson::OID &oid ) ;
 
+
+   /// on data node
+   INT32 rtnPutLob( const CHAR *fullName,
+                    const bson::OID &oid,
+                    UINT32 size,
+                    const CHAR *data,
+                    pmdEDUCB *cb,
+                    SINT16 w,
+                    SDB_DPSCB *dpsCB,
+                    rtnContextBuf &buf ) ;
+
+   /// helper functions
+   
+   const CHAR* rtnLobOpName( INT32 mode ) ;
+
+   INT32 rtnGenerateLobOid( bson::OID &oid ) ;
 }
 
 #endif

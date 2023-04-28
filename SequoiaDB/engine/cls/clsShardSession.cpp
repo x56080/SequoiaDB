@@ -914,6 +914,9 @@ namespace engine
             case MSG_BS_LOB_GETRTDETAIL_REQ:
                rc = _onGetLobRTDetailReq( msg, buffObj ) ;
                break ;
+            case MSG_BS_LOB_PUT_REQ:
+               rc = _onPutLobReq( msg, buffObj ) ;
+               break ;
             default:
                rc = SDB_CLS_UNKNOW_MSG ;
                break ;
@@ -7351,6 +7354,140 @@ namespace engine
          }
       }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_onPutLobReq( MsgHeader *msg, rtnContextBuf &buffObj )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != msg, "can not be null" ) ;
+      UINT32 len       = 0 ;
+      INT64 offset     = -1 ;
+      const CHAR *data = NULL ;
+      const MsgOpLob *header = NULL ;
+      bson::BSONObj lob ;
+      const CHAR *fullName = NULL ;
+      const CHAR *subCLName = NULL ;
+      bson::OID oid ;
+      bson::BSONElement e ;
+      INT16 replSize = 0 ;
+      INT16 w = 0 ;
+
+      rc = msgExtractPutLobRequest( ( const CHAR * )msg, &header,
+                                      lob, &len, &offset, &data ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to extract put lob msg:%d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONElement ele = lob.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                    "[%s] is not a string",
+                    lob.toString( FALSE, TRUE ).c_str(),
+                    FIELD_NAME_COLLECTION ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         fullName = ele.valuestr() ;
+         _setCollectionName( fullName ) ;
+
+         ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
+         if ( EOO != ele.type() )
+         {
+            if ( String != ele.type() )
+            {
+               PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                       "[%s] is not a string",
+                       lob.toString( FALSE, TRUE ).c_str(),
+                       FIELD_NAME_SUBCLNAME ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            subCLName = ele.valuestr() ;
+         }
+
+         ele = lob.getField( FIELD_NAME_LOB_OID ) ;
+         if ( jstOID != ele.type() )
+         {
+            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
+                    "[%s] is not an oid",
+                    lob.toString( FALSE, TRUE ).c_str(),
+                    FIELD_NAME_LOB_OID ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         oid = ele.OID() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse lob options, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                          "Option:%s, Len:%d", lob.toPoolString().c_str(), len ) ;
+
+      rc = _checkCLStatusAndGetSth( fullName,
+                                    header->version,
+                                    CLS_CL_OP_WRITE,
+                                    &replSize ) ;
+
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      if ( NULL != subCLName )
+      {
+         // switch to sub-collection
+         _pEDUCB->switchToSubCL( subCLName ) ;
+
+         rc = _checkSubCL( fullName, subCLName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
+                      "main-collection [%s], rc: %d", subCLName, fullName,
+                      rc ) ;
+      }
+
+      rc = _calculateW( &replSize, &( header->w ), w ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = rtnPutLob( NULL == subCLName ? fullName : subCLName,
+                      oid, len, data, _pEDUCB, w, _pDpsCB, buffObj ) ;
+      PD_AUDIT_OP_WITHNAME( AUDIT_DML,
+                            rtnLobOpName(SDB_LOB_MODE_CREATEONLY),
+                            AUDIT_OBJ_CL,
+                            NULL == subCLName ? fullName : subCLName,
+                            rc, "OID:%s, Length:%llu",
+                            oid.toString().c_str(), len ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_LOB_OUT_OF_PUT_SIZE != rc )
+         {
+            PD_LOG( PDERROR, "failed to put lob:%d", rc ) ;
+         }
+         goto error ;
+      }
+
+      if ( NULL != _pEDUCB )
+      {
+         RTN_MON_LOB_OP_COUNT_INC( _pEDUCB->getMonAppCB(), MON_LOB_PUT, 1 ) ;
+         RTN_MON_LOB_BYTES_COUNT_INC( _pEDUCB->getMonAppCB(), MON_LOB_WRITE_BYTES, len ) ;
+      }
    done:
       return rc ;
    error:

@@ -621,6 +621,11 @@ namespace sdbclient
          return listLobPieces( &cursor.pCursor, condition, selected, orderBy,
                                hint, numToSkip, numToReturn ) ;
       }
+
+      virtual INT32 putLob( UINT32 size,
+                            const void *data,
+                            bson::OID &oid ) ;
+
       /// truncate
       INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) ;
 

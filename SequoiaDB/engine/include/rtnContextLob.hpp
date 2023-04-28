@@ -111,9 +111,6 @@ namespace engine
       virtual void  _toString( stringstream &ss ) ;
 
    private:
-      INT32 _createLobID( bson::OID &oid ) ;
-
-   private:
       _rtnLobStream     *_stream ;
       UINT32            _suLogicalID ;
       SINT64            _offset ;

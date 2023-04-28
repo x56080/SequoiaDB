@@ -453,6 +453,7 @@ namespace engine
       _dataSourceID = UTIL_INVALID_DS_UID ;
       _createTime = 0 ;
       _updateTime = 0 ;
+      _lobdPageSize = 0 ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -726,6 +727,7 @@ namespace engine
       _autoIncSet.clear() ;
 
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
+      _lobdPageSize = 0 ;
 
       PD_TRACE_EXIT ( SDB__CLSCTSET__CLEAR ) ;
    }

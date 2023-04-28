@@ -39,6 +39,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "coordCB.hpp"
+#include "coordCommon.hpp"
 
 #ifdef _DEBUG
 #include "../bson/lib/md5.hpp"
@@ -678,24 +679,26 @@ namespace engine
       return "PutLob" ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_PUTLOB_EXE, "_coordPutLob::execute" )
-   INT32 _coordPutLob::execute( MsgHeader *pMsg, pmdEDUCB *cb,
-                                INT64 &contextID, rtnContextBuf *buf )
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_PUTLOB_EXECUTE, "_coordPutLob::execute" )
+   INT32 _coordPutLob::execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( COORD_PUTLOB_EXE ) ;
-      SDB_ASSERT( NULL != buf, "Can not be null" ) ;
-
-      rtnLobStream *pStream  = NULL ;
+      PD_TRACE_ENTRY( COORD_PUTLOB_EXECUTE ) ;
       const MsgOpLob *header = NULL ;
       UINT32 len             = 0 ;
       INT64 offset           = -1 ;
       const CHAR *data       = NULL ;
-      BOOLEAN hadCreate      = FALSE ;
-      BSONObj mateObj ;
-      contextID              = -1 ;
+      bson::BSONObj metaObj ;
+      bson::BSONElement oidEle ;
+      bson::BSONElement fullName ;
+      bson::OID oid ;
+      coordLobStream stream( _pResource, getTimeout() ) ;
+      contextID = -1 ;
 
-      rc = msgExtractPutLobRequest( (const CHAR*)pMsg, &header, mateObj, &len, &offset, &data ) ;
+      rc = msgExtractPutLobRequest( (const CHAR*)pMsg, &header, metaObj, &len, &offset, &data ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to extract put lob msg:%d", rc ) ;
@@ -703,17 +706,111 @@ namespace engine
       }
 
       // add last op info
-      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode, "Option:%s",
-                          mateObj.toString().c_str() ) ;
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode, "Option:%s, Len:%d",
+                          metaObj.toPoolString().c_str(), len ) ;
 
 #if defined (_DEBUG)
       {
          string md5sum = md5::md5simpledigest( data, len ) ;
          PD_LOG( PDDEBUG, "Got put LOB, meta: %s, context: %lld, len: %u, offset: %llu, "
-                 "md5sum: %s", mateObj.toString().c_str(), header->contextID, len, offset,
+                 "md5sum: %s", metaObj.toString().c_str(), header->contextID, len, offset,
                  md5sum.c_str() ) ;
       }
 #endif
+
+      fullName = metaObj.getField( FIELD_NAME_COLLECTION ) ;
+      if ( String != fullName.type() )
+      {
+         PD_LOG( PDERROR, "can not find collection name in lob[%s]",
+                 metaObj.toString( FALSE, TRUE ).c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      oidEle = metaObj.getField( FIELD_NAME_LOB_OID ) ;
+      if ( oidEle.eoo() )
+      {
+         rc = rtnGenerateLobOid( oid ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
+      }
+      else if ( jstOID == oidEle.type() )
+      {
+         oid = oidEle.OID() ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "invalid oid in meta bsonobj:%s",
+                 metaObj.toString( FALSE, TRUE ).c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = stream.fastPut( fullName.valuestr(), oid, len, data, cb ) ;
+      if ( SDB_OK == rc )
+      {
+         if ( NULL != buf )
+         {
+            *buf = rtnContextBuf( BSON(FIELD_NAME_LOB_OID << oid) ) ;
+         }
+         goto done ;
+      }
+      else if ( SDB_LOB_OUT_OF_PUT_SIZE == rc )
+      {
+         /// rebuild meta obj with same oid
+         if ( oidEle.eoo() )
+         {
+            try
+            {
+               bson::BSONObjBuilder builder ;
+               builder.appendElements( metaObj ) ;
+               builder.appendOID( FIELD_NAME_LOB_OID, &oid ) ;
+               metaObj = builder.obj() ;
+            }
+            catch( std::exception& e )
+            {
+               PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+
+         rc = _writeBySteps( header, metaObj, len, data, cb, buf ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to write lob by steps:%d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "failed to put lob:%d", rc ) ;
+         goto error ;
+      }
+
+
+   done:
+      PD_TRACE_EXITRC( COORD_PUTLOB_EXECUTE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_PUTLOB__WRITEBYSTEPS, "_coordPutLob::_writeBySteps" )
+   INT32 _coordPutLob::_writeBySteps( const MsgOpLob *header,
+                                      const bson::BSONObj &metaObj,
+                                      UINT32 len,
+                                      const CHAR *data,
+                                      pmdEDUCB *cb,
+                                      rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_PUTLOB__WRITEBYSTEPS ) ;
+      SDB_ASSERT( NULL != buf, "Can not be null" ) ;
+
+      rtnLobStream *pStream  = NULL ;
+      INT64 offset           = -1 ;
+      SINT64 contextID       = -1 ;
+      rtnContextBuf tmpBuf ;
 
       pStream = SDB_OSS_NEW _coordLobStream( _pResource, getTimeout() ) ;
       if ( !pStream )
@@ -724,15 +821,14 @@ namespace engine
       }
 
       // 1. open
-      rc = rtnOpenLob( mateObj, header->flags, cb, NULL, pStream,
-                       0, contextID, *buf ) ;
+      rc = rtnOpenLob( metaObj, header->flags, cb, NULL, pStream,
+                       0, contextID, NULL == buf ? tmpBuf : *buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to open lob:%s, rc:%d",
-                 mateObj.toString( FALSE, TRUE ).c_str(), rc ) ;
+                 metaObj.toString( FALSE, TRUE ).c_str(), rc ) ;
          goto error ;
       }
-      hadCreate = true ;
 
       // 2. write
       rc = rtnWriteLob( contextID, cb, len, data, offset, buf ) ;
@@ -751,23 +847,29 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( COORD_PUTLOB_EXE, rc ) ;
+      /// rtnOpenLob will always take over stream ptr even return error.
+      /// we do not need to delete pStream here.
+      /// rtnWriteLob and rtnCloseLob will close context unless they can not
+      /// find it. we consider it is impossible here.
+      PD_TRACE_EXITRC( COORD_PUTLOB__WRITEBYSTEPS, rc ) ;
       return rc ;
    error:
-      if ( true == hadCreate )
+      if ( -1 != contextID )
       {
          // remove
          INT32 rcTmp = SDB_OK ;
          coordLobStream streamTmp( _pResource, getTimeout() ) ;
          /// release operator's groupSession to improve perfermance
          _groupSession.release() ;
-         rcTmp = rtnRemoveLob( mateObj, header->flags, header->w, cb, NULL, &streamTmp, buf ) ;
+         rcTmp = rtnRemoveLob( metaObj, header->flags, header->w, cb, NULL, &streamTmp, buf ) ;
          if ( SDB_OK != rcTmp )
          {
-            PD_LOG( PDERROR, "Failed to remove lob:%d", rcTmp ) ;
+            PD_LOG( PDERROR, "Failed to rollback lob:%d", rcTmp ) ;
          }
       }
       goto done ;
    }
+
+   
 }
 

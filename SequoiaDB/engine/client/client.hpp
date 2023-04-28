@@ -628,6 +628,10 @@ namespace sdbclient
                               INT64 numToSkip    = 0,
                               INT64 numToReturn  = -1 ) = 0 ;
 
+      virtual INT32 putLob( UINT32 size,
+                            const void *data,
+                            bson::OID &oid ) = 0;
+
       /// truncate
       virtual INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
@@ -2370,6 +2374,15 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pCollection->createLobID( oid, pTimeStamp ) ;
+      }
+
+      INT32 putLob( UINT32 size, const void *data, bson::OID &oid )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->putLob( size, data, oid ) ;
       }
 
       /** \fn INT32 truncate( const bson::BSONObj &options )

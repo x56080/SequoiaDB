@@ -136,6 +136,24 @@
                  fmt, ##__VA_ARGS__) ;                      \
    } while ( 0 )                                            \
 
+#define PD_LOG_ERR_OR(level, rc1, fmt, ...)       \
+do { \
+      if ( (rc1) != (rc) )  \
+      { \
+         if ( getPDLevel() >= ( PDERROR ) && !pdIsShieldLog() ) \
+         { \
+            pdLog(( PDERROR ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+         } \
+      } \
+      else \
+      { \
+         if ( getPDLevel() >= ( level ) && !pdIsShieldLog() ) \
+         { \
+            pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+         } \
+      } \
+   }while (0)
+
 #define SDB_INTERNAL_DEBUG    0
 
 enum PDLEVEL

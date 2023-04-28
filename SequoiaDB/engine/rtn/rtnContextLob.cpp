@@ -89,45 +89,6 @@ namespace engine
              ( _stream->getFullName() ) : ( "" ) ;
    }
 
-   INT32 _rtnContextLob::_createLobID( bson::OID &oid )
-   {
-      INT32 rc = SDB_OK ;
-      time_t localTime ;
-      time_t utcTime ;
-      _utilLobID lobId ;
-      BYTE oidArray[UTIL_LOBID_ARRAY_LEN] = { 0 } ;
-      _MsgRouteID routeId = pmdGetNodeID() ;
-
-      if ( MSG_INVALID_ROUTEID == routeId.value )
-      {
-         rc = SDB_INVALID_ROUTEID ;
-         PD_LOG( PDERROR, "Route id must be exist when create lob ID:rc=%d",
-                 rc ) ;
-         goto error ;
-      }
-
-      // init lobId with UTC timezone to avoid timezone issue
-      localTime = ossGetCurrentMilliseconds() / 1000 ;
-      ossTimeLocalToUTCInSameDate( localTime, utcTime ) ;
-      rc = lobId.init( (INT64)utcTime, routeId.columns.nodeID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
-
-      rc = lobId.toByteArray( oidArray, UTIL_LOBID_ARRAY_LEN ) ;
-      if ( SDB_OK != rc)
-      {
-         PD_LOG( PDERROR, "Failed to get Byte array from lodId[%s]",
-                 lobId.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      oid.init( oidArray, UTIL_LOBID_ARRAY_LEN ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_OPEN, "_rtnContextLob::open" )
    INT32 _rtnContextLob::open( const BSONObj &lob,
                                INT32 flags,
@@ -171,7 +132,7 @@ namespace engine
       oidEle = lob.getField( FIELD_NAME_LOB_OID ) ;
       if ( EOO == oidEle.type() && SDB_LOB_MODE_CREATEONLY == mode.numberInt() )
       {
-         rc = _createLobID( oid ) ;
+         rc = rtnGenerateLobOid( oid ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
       }
       else if ( jstOID == oidEle.type() )

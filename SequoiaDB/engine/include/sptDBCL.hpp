@@ -148,6 +148,14 @@ namespace engine
                     _sptReturnVal &rval,
                     bson::BSONObj &detail ) ;
 
+      INT32 putLob2( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
+
+      INT32 putLob3( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
+
       INT32 getLob( const _sptArguments &arg,
                     _sptReturnVal &rval,
                     bson::BSONObj &detail ) ;
