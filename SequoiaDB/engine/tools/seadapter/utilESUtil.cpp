@@ -53,7 +53,6 @@ namespace seadapter
 {
    _utilESMapping::_utilESMapping()
    {
-      _templateCount = 0 ;
    }
 
    _utilESMapping::~_utilESMapping()
@@ -68,7 +67,7 @@ namespace seadapter
       /*
       eg:
 
-      eField.Obj() =
+      eField.embeddedObject() =
       {
          "a": { "Type": "text", "Index": true },
          "b": { "Index": false },
@@ -116,7 +115,7 @@ namespace seadapter
 
          if ( isNested || !hasType )
          {
-            buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+            buf << SEADPT_PREFIX_TEMPLATE_NAME << _templates.size() ;
             templateName = buf.str() ;
 
             BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
@@ -186,7 +185,7 @@ namespace seadapter
                "match_mapping_type": "string",
                "mappings":
                {
-                  "type": "string"
+                  "type": "text"
                }
             }
          }
@@ -195,7 +194,7 @@ namespace seadapter
          StringBuilder buf ;
          string templateName ;
 
-         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templates.size() ;
          templateName = buf.str() ;
 
          BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
@@ -245,7 +244,7 @@ namespace seadapter
          StringBuilder buf ;
          string templateName ;
 
-         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templateCount++ ;
+         buf << SEADPT_PREFIX_TEMPLATE_NAME << _templates.size() ;
          templateName = buf.str() ;
 
          BSONObjBuilder templateBuilder( bob.subobjStart( templateName ) ) ;
@@ -277,12 +276,48 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
+      /*
+
+      If we don't set this template,
+      the double type field will be mapped to the float type by default, like this
+
+      record = { a: 12.45 }
+
+      mappings in ES =
+      {
+         "a": {
+            "type" : "float"
+         }
+      }
+
+      */
       rc = _generateDoubleTemplate() ;
       if ( rc )
       {
          goto error ;
       }
 
+      /*
+
+      If we don't set this template,
+      the string type field will be mapped to the text type with keyword by default, like this
+
+      record = { a: "aaa" }
+
+      mappings in ES =
+      {
+         "a": {
+            "type": "text",
+            "fields": {
+               "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+               }
+            }
+         }
+      }
+
+      */
       rc = _generateStringTemplate() ;
       if ( rc )
       {
@@ -309,7 +344,7 @@ namespace seadapter
             if ( 0 == ossStrcmp( eMap.fieldName(), FIELD_ES_NAME_FIELDS ) &&
                  Object == eMap.type() )
             {
-               BSONObjIterator iFields( eMap.Obj() ) ;
+               BSONObjIterator iFields( eMap.embeddedObject() ) ;
                while( iFields.more() )
                {
                   BSONElement eField = iFields.next() ;

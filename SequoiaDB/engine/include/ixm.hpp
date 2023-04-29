@@ -51,6 +51,7 @@
 #include "../bson/ordering.h"
 #include "sdbInterface.hpp"
 #include "utilResult.hpp"
+#include "ixmUtil.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -882,6 +883,23 @@ namespace engine
 
          if ( obj.hasField( FIELD_ES_NAME_MAPPINGS ) )
          {
+            BSONElement ele = obj.getField( FIELD_ES_NAME_MAPPINGS ) ;
+
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The type of field[%s] in index definition must be object ",
+                           FIELD_ES_NAME_MAPPINGS ) ;
+               goto error ;
+            }
+
+            rc = ixmCheckFulltextIdxMappings( ele.embeddedObject(), indexKey ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Failed to check fulltext index mappings, rc: %d", rc ) ;
+               goto error ;
+            }
+
             fieldCount++ ;
          }
 

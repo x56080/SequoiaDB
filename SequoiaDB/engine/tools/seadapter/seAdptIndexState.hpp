@@ -50,6 +50,7 @@ using bson::BSONObjSet ;
 using bson::BSONType ;
 using bson::BSONElement ;
 using bson::BSONObjBuilder ;
+using bson::BSONArrayBuilder ;
 
 namespace seadapter
 {
@@ -120,9 +121,8 @@ namespace seadapter
 
       INT32 _rebuildDateField( const BSONElement &srcEle, BSONObj &dstObj ) ;
 
-      INT32 _rebuildRcordEle( const BSONElement &ele,
-                              const ossPoolVector<ossPoolString> &dateFieldVec,
-                              BSONObjBuilder &builder ) ;
+      template <typename T>
+      INT32 _rebuildRecordEle( const BSONElement &ele, T& builder ) ;
 
    protected:
       _seAdptIndexSession *_session ;

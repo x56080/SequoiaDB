@@ -82,15 +82,14 @@ namespace seadapter
 
       private:
          INT32 _processField( const BSONElement &eField ) ;
-         INT32 _generateDefaultIndexTemplate() ;
 
+         INT32 _generateDefaultIndexTemplate() ;
          INT32 _generateStringTemplate() ;
          INT32 _generateDoubleTemplate() ;
 
       private:
          ossPoolVector< BSONObj > _properties ;
          ossPoolVector< BSONObj > _templates ;
-         UINT32 _templateCount ;
    } ;
    typedef _utilESMapping utilESMapping ;
 

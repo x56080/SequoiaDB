@@ -679,9 +679,8 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _seAdptIndexerState::_rebuildRcordEle( const BSONElement &ele,
-                                                const ossPoolVector<ossPoolString> &dateFieldVec,
-                                                BSONObjBuilder &builder )
+   template <typename T>
+   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, T& builder )
    {
       INT32 rc = SDB_OK ;
 
@@ -713,34 +712,51 @@ namespace seadapter
 
             if ( !mixedType )
             {
-               builder.append( ele ) ;
+               BSONArrayBuilder subBuilder( builder.subarrayStart( ele.fieldName() ) ) ;
+               BSONObjIterator itr( ele.embeddedObject() ) ;
+               while( itr.more() )
+               {
+                  rc = _rebuildRecordEle( itr.next(), subBuilder ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to rebuild array field, rc: %d", rc ) ;
+                     goto error ;
+                  }
+               }
+               subBuilder.done() ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Array can't have elements of diferent types" ) ;
             }
          }
-         else if ( Date == ele.type() || Timestamp == ele.type() )
+         else if ( ( Date == ele.type() || Timestamp == ele.type() ) )
          {
             BSONObj dstObj ;
-            BOOLEAN isDateField = FALSE ;
 
-            for( UINT32 i = 0 ; i < dateFieldVec.size() ; i++ )
+            rc = _rebuildDateField( ele, dstObj ) ;
+            if ( rc )
             {
-               if ( 0 == ossStrcmp( ele.fieldName(), dateFieldVec[i].c_str() ) )
-               {
-                  isDateField = TRUE ;
-                  break ;
-               }
+               PD_LOG( PDERROR, "Failed to rebuild date field, rc: %d", rc ) ;
+               goto error ;
             }
 
-            if ( isDateField )
+            builder.append( dstObj.firstElement() ) ;
+         }
+         else if ( Object == ele.type() )
+         {
+            BSONObjBuilder subBuilder( builder.subobjStart( ele.fieldName() ) ) ;
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while( itr.more() )
             {
-               rc = _rebuildDateField( ele, dstObj ) ;
+               rc = _rebuildRecordEle( itr.next(), subBuilder ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, "Failed to rebuild date field, rc: %d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to rebuild object field, rc: %d", rc ) ;
                   goto error ;
                }
-
-               builder.append( dstObj.firstElement() ) ;
             }
+            subBuilder.done() ;
          }
          else
          {
@@ -1753,16 +1769,7 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( !keySet.empty(), "Key set is empty") ;
-
       BSONObjBuilder builder ;
-      seIndexMeta *meta = _session->idxMetaContext()->meta() ;
-      ossPoolVector<ossPoolString> dateFieldVec ;
-
-      rc = meta->getDateFields( dateFieldVec ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
 
       try
       {
@@ -1772,7 +1779,7 @@ namespace seadapter
             // Loop and check if the record contains only strings.
             while ( itr.more() )
             {
-               rc = _rebuildRcordEle( itr.next(), dateFieldVec, builder ) ;
+               rc = _rebuildRecordEle( itr.next(), builder ) ;
                if ( rc )
                {
                   continue ;
@@ -1794,7 +1801,7 @@ namespace seadapter
                BSONElement rNextEle = itrSecond.next() ;
                if ( arrayFieldHit || 0 == lNextEle.woCompare( rNextEle, true) )
                {
-                  rc = _rebuildRcordEle( lNextEle, dateFieldVec, builder ) ;
+                  rc = _rebuildRecordEle( lNextEle, builder ) ;
                   if ( rc )
                   {
                      continue ;
@@ -1805,6 +1812,7 @@ namespace seadapter
                   // The array field is found. If any element of the array field
                   // is of non-string type, ignore the array.
                   arrayFieldHit = TRUE ;
+
                   if ( lNextEle.type() == rNextEle.type() )
                   {
                      BSONType type = lNextEle.type() ;
@@ -1823,14 +1831,30 @@ namespace seadapter
                            mixType = TRUE ;
                            break ;
                         }
-                        arrBuilder.append( ele ) ;
+
+                        rc = _rebuildRecordEle( ele, arrBuilder ) ;
+                        if ( rc )
+                        {
+                           continue ;
+                        }
+
                         ++itr ;
                      }
 
                      if ( !mixType )
                      {
-                        arrBuilder.append( lNextEle ) ;
-                        arrBuilder.append( rNextEle ) ;
+                        rc = _rebuildRecordEle( lNextEle, arrBuilder ) ;
+                        if ( rc )
+                        {
+                           continue ;
+                        }
+
+                        rc = _rebuildRecordEle( rNextEle, arrBuilder ) ;
+                        if ( rc )
+                        {
+                           continue ;
+                        }
+
                         arrBuilder.doneFast() ;
                         builder.append( arrField, arrBuilder.arr() ) ;
                      }
@@ -2446,8 +2470,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       INT32 type = 0 ;
-      seIndexMeta *meta = _session->idxMetaContext()->meta() ;
-      ossPoolVector<ossPoolString> dateFieldVec ;
 
       try
       {
@@ -2517,12 +2539,6 @@ namespace seadapter
             }
          }
 
-         rc = meta->getDateFields( dateFieldVec ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-
          {
             BSONObjBuilder builder ;
             BSONObj source = origObj.getObjectField( "_source" ) ;
@@ -2538,7 +2554,7 @@ namespace seadapter
             // will be ignored.
             for ( BSONObj::iterator eleItr = source.begin(); eleItr.more(); )
             {
-               rc = _rebuildRcordEle( eleItr.next(), dateFieldVec, builder ) ;
+               rc = _rebuildRecordEle( eleItr.next(), builder ) ;
                if ( rc )
                {
                   continue ;

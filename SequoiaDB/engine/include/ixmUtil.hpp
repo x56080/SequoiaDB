@@ -60,6 +60,10 @@ namespace engine
                                 const BSONObj &defObj2,
                                 BOOLEAN strict = FALSE ) ;
 
+   INT32          ixmCheckMappingsFields( const BSONObj &fields, const BSONObj &indexKey ) ;
+
+   INT32          ixmCheckFulltextIdxMappings( const BSONObj &indexMappings,
+                                               const BSONObj &indexKey ) ;
 }
 
 #endif

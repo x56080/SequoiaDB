@@ -506,6 +506,7 @@
 #define VALUE_ES_TYPE_NAME_DATE              "date"
 #define VALUE_ES_TYPE_NAME_FLOAT             "float"
 #define VALUE_ES_TYPE_NAME_DOUBLE            "double"
+#define VALUE_ES_TYPE_NAME_BOOLEAN           "boolean"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"

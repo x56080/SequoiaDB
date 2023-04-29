@@ -195,8 +195,6 @@ namespace seadapter
             return _indexMappings ;
          }
 
-         INT32 getDateFields( ossPoolVector<ossPoolString> &dateFieldVec ) ;
-
          utilCLUniqueID getCLUID() const
          {
             return _clUniqID ;
@@ -231,8 +229,7 @@ namespace seadapter
                   << "es index[" << _esIdxName << "], "
                   << "es type[" << _esTypeName << "], "
                   << "original index[" << _origIdxName << ", "
-                  << _indexDef.toString() << ", "
-                  << _indexMappings.toString() << "], "
+                  << _indexDef.toString() << "], "
                   << "original index logicalID[" << _idxLogicalID << "]" ;
                return ss.str() ;
             }
