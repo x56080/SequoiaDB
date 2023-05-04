@@ -699,7 +699,7 @@ INT32 ossInitTZEnv ()
    rc = ossGetTZEnv( timeZone, len ) ;
    if ( SDB_OK == rc && 0 < ossStrlen( timeZone ) )
    {
-      PD_LOG( PDEVENT, "The environment variable %s exists, vlaue: %s", OSS_ENV_TIMEZONE,
+      PD_LOG( PDEVENT, "The environment variable %s exists, value: %s", OSS_ENV_TIMEZONE,
               timeZone ) ;
       goto done ;
    }
