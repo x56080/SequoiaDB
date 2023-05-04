@@ -623,7 +623,7 @@ namespace sdbclient
       }
 
       virtual INT32 putLob( UINT32 size,
-                            const void *data,
+                            const CHAR *data,
                             bson::OID &oid ) ;
 
       /// truncate

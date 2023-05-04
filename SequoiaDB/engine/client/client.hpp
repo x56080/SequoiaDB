@@ -629,8 +629,8 @@ namespace sdbclient
                               INT64 numToReturn  = -1 ) = 0 ;
 
       virtual INT32 putLob( UINT32 size,
-                            const void *data,
-                            bson::OID &oid ) = 0;
+                            const CHAR *data,
+                            bson::OID &oid ) = 0 ;
 
       /// truncate
       virtual INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
@@ -2376,7 +2376,15 @@ namespace sdbclient
          return pCollection->createLobID( oid, pTimeStamp ) ;
       }
 
-      INT32 putLob( UINT32 size, const void *data, bson::OID &oid )
+      /** \fn INT32 putLob( UINT32 size, const CHAR *data, bson::OID &oid )
+          \brief Put lob data into current collection
+          \param [in] size The data len
+          \param [in] data The lob data
+          \param [out] oid The oid of the lob
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 putLob( UINT32 size, const CHAR *data, bson::OID &oid )
       {
          if ( !pCollection )
          {

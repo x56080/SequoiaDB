@@ -822,7 +822,7 @@ namespace engine
 
       // 1. open
       rc = rtnOpenLob( metaObj, header->flags, cb, NULL, pStream,
-                       0, contextID, NULL == buf ? tmpBuf : *buf ) ;
+                       0, contextID, *buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to open lob:%s, rc:%d",

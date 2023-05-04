@@ -4698,14 +4698,14 @@ do                                                            \
    }
 
    INT32 _sdbCollectionImpl::putLob( UINT32 size,
-                                     const void *data,
+                                     const CHAR *data,
                                      bson::OID &oid )
    {
-      INT32 rc = SDB_OK ;
-      bson::BSONObj obj ;
-      BOOLEAN locked = FALSE ;
+      INT32 rc         = SDB_OK ;
+      BOOLEAN locked   = FALSE ;
       SINT64 contextID = -1 ;
-      SINT64 offset = 0;
+      SINT64 offset    = 0;
+      bson::BSONObj obj ;
 
       if ( '\0' == _collectionFullName[0] )
       {
@@ -4737,8 +4737,7 @@ do                                                            \
 
       rc = clientBuildLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                  MSG_BS_LOB_PUT_REQ, obj.objdata(),
-                                 0, 0, -1, 0, &offset, &size,
-                                 ( const CHAR * )data,
+                                 0, 0, -1, 0, &offset, &size, data,
                                  _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -4783,7 +4782,7 @@ do                                                            \
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      
+
    done:
       if ( locked )
       {

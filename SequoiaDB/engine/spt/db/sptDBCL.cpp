@@ -45,6 +45,8 @@ using namespace sdbclient ;
 namespace engine
 {
    #define LOB_BUFFER_LEN  (2*1024*1024)
+   // 256KB(default lobPagesize) - 1KB(meta data)
+   #define PUT_LOB_MAX_LEN  (255*1024)
    #define SPT_CL_NAME  "SdbCollection"
    #define SPT_OID_STR_LENGTH 24
 
@@ -1996,6 +1998,7 @@ namespace engine
       rc = arg.getString( 1, oidStr ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
+         //oid is generated from server side
          rc = SDB_OK ;
       }
       else if ( SDB_OK != rc )
@@ -2104,9 +2107,9 @@ namespace engine
          goto error ;
       }
 
-      if ( LOB_BUFFER_LEN < fileSize )
+      if ( PUT_LOB_MAX_LEN < fileSize )
       {
-         detail = BSON( SPT_ERR << "The file is too large to put" ) ;
+         detail = BSON( SPT_ERR << "The file content exceeds 255KB" ) ;
          rc = SDB_INVALIDSIZE ;
          goto error ;
       }
