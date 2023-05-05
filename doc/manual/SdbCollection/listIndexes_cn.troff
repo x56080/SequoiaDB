@@ -151,13 +151,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-一，取值如下：<
+一，取值如下：
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>"false"：不强制
+"false"：不强制
 T}
 T{
 T}@T{
@@ -220,19 +220,19 @@ T{
 T}@T{
 T}@T{
 T}@T{
-null 或者不存在 <
+null 或者不存在
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br> "false"：允许为
+ "false"：允许
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-null 或不存在
+为 null 或不存在
 T}
 T{
 7
@@ -387,6 +387,39 @@ T}
 T{
 11
 T}@T{
+Mappings
+T}@T{
+object
+T}@T{
+全文索引字段在
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Elasticsearch 的映射
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+关系（仅对已配
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+置字段映射的索
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+引生效）
+T}
+T{
+12
+T}@T{
 dropDups
 T}@T{
 boolean
@@ -435,5 +468,36 @@ v3.4 及以上版本
   "IndexFlag": "Normal",
   "Type": "Positive"
 }
+{
+  "IndexDef": {
+    "name": "idx_1",
+    "_id": {
+      "$oid": "64462a6764b21798e1ae0898"
+    },
+    "UniqueID": 382252089345,
+    "key": {
+      "date_of_birth": "text"
+    },
+    "v": 0,
+    "unique": false,
+    "dropDups": false,
+    "enforced": false,
+    "NotNull": false,
+    "NotArray": false,
+    "Global": false,
+    "Standalone": false,
+    "Mappings": {
+      "Fields": {
+        "date_of_birth": {
+          "Type": "date"
+        }
+      }
+    }
+  },
+  "IndexFlag": "Normal",
+  "Type": "Text",
+  "ExtDataName": "SYS_382252089345_idx_1"
+}
+Return 2 row(s).
 \f[]
 .fi

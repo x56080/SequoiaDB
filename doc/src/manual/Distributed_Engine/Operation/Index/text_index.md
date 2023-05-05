@@ -39,10 +39,43 @@ sdbseadapter 是数据节点与 Elasticsearch 交互的桥梁。SequoiaDB 通过
 | --idxprefix       | -p   | 全文检索适配器在搜索服务器（Elasticsearch）上创建索引时使用的索引名前缀，默认值为空<br>前缀名最大长度为 16 个字符，可包含英文字母（大小写不敏感）、阿拉伯数字及下划线，但不能以下划线开头 <br>同一个复制组对应的适配器必须使用相同的前缀，不同的 SequoiaDB 集群在共用相同的搜索服务器时，必须配置不同的前缀名；建议一个 SequoiaDB 集群包含的所有适配器使用相同的前缀 |
 | --bulkbuffsize    |      | 批量操作缓存大小，默认值为 10，单位为 MB，取值范围为[1, 32] |
 | --optimeout       | -t   | 在搜索服务器（Elasticsearch）上操作的超时时间，默认值为 10000，单位为 ms，取值范围为[3000, 3600000]|
-| --stringmaptype   | -s   | 字符串类型（包括字符串数组）的字段在搜索服务器（Elasticsearch）上映射的类型，默认值为 1，具体取值如下：<br> 1：表示"text"类型，字符串在搜索引擎上会被分析和拆词，适合于全文检索场景 <br>2：表示"keyword"，字符串不会被拆词，适合于字符串的精确查询、聚合运算等 <br> 3：表示同时映射成"text"和"keyword"类型，直接使用字段名时使用的是其"text"类型，而要使用其"keyword"类型，则需要使用 field_name.keyword 的格式，详细内容可参考 Elasticsearch 文档中的[字段类型介绍][mapping-types] |
 | --connlimit       | -l   | 全文检索适配器与搜索服务器之间的连接数上限，默认值为 50，取值范围为[1, 65535]|
 | --conntimeout     | -o   | 全文检索适配器与搜索服务器之间连接空闲时的超时时间，超时后连接将被释放，默认值为 1800，单位为秒，取值范围为[60, 86400] |
 | --scrollsize      |      | 全文检索适配器使用 scroll 方式（查询条件中不设置 from/size 参数）从搜索服务器（Elasticsearch）获取查询结果时，每批结果的记录数，默认值为 1000，取值范围为[50, 10000] |
+
+##索引字段映射##
+
+在 SequoiaDB v3.6.1 及以上版本中，全文索引支持检索字符串类型以外的数据。关于字段类型，详细可参考 Elasticsearch 文档中的[字段类型介绍][mapping-types]。
+
+###字段映射###
+
+用户在创建全文索引时，可通过参数 Mappings 指定索引字段在 Elasticsearch 的映射关系，格式为 `Mappings: {"Fields": {<fieldName>: {...}, ...}} `。其中，参数 Fields 可以设置索引字段的属性，可设置的属性如下：
+
+| 参数名 | 类型    | 说明                                  |
+| ------ | ------- | ------------------------------------- |
+| Type   | string  | 索引字段在 Elasticsearch 的映射类型，可选取值包括："text"、"keyword"、"wildcard"、"integer"、"long"、"float"、"double"、"date"、"boolean"<br> 在不指定该参数的情况下，字段将按照“字段类型映射表”中的规则建立映射 |
+| Index  | boolean | 索引字段是否在 Elasticsearch 建立索引信息，默认值为 true，表示在 Elasticsearch 建立索引信息 <br>取值为 false 时，对应的索引字段在 Elasticsearch 中仅存储，不建立索引信息，无法索引该字段 |
+
+###字段类型映射表###
+
+| SequoiaDB 字段类型 | Elasticsearch 默认映射类型 | SequoiaDB 是否支持检索该类型的字段 | 说明 |
+| ------------------ | -------------------------- | ---------------------------------- | ---- |
+| String | text | 是 | - |
+| NumberInt | long | 是 | - | - |
+| NumberLong | long | 是 | - |
+| NumberDouble | double | 是 | - |
+| Bool | boolean | 是 | - |
+| Date | date | 是 | - |
+| TimeStamp | date | 是 | - |
+| Object | object | 是 | - |
+| Array  | array | 是 | 在 Array 类型的字段上创建全文索引，需保证所有数组元素的数据类型一致，否则无法检索 |
+| jsOID  | 无对应类型 | 否 | - |
+| NumberDecimal  | 无对应类型 | 否 | - |
+| MinKey  | 无对应类型 | 否 | - |
+| MaxKey  | 无对应类型 | 否 | - |
+| jsNull  | 无对应类型 | 否 | - |
+| Regex  | 无对应类型 | 否 | - |
+| BinData  | 无对应类型 | 否 | - |
 
 ##全文索引环境部署##
 
@@ -60,7 +93,7 @@ sdbseadapter 是数据节点与 Elasticsearch 交互的桥梁。SequoiaDB 通过
 
     > **Note:**
     >
-    > 当前 SequoiaDB 适配的 Elasticsearch 版本为 7.17.7
+    > SequoiaDB v3.6.1 以下版本适配的 Elasticsearch 版本为 6.8.5；SequoiaDB v3.6.1 及以上版本适配的 Elasticsearch 版本为 7.17.7。
 
 2. 解压安装包
 
@@ -186,18 +219,18 @@ find( { "": { "$Text": <search command> } } )
 
 其中 \<search command\> 是 Elasticsearch 的搜索条件，需要使用 Elasticsearch 的 DSL（Domain Specific Language）语法。详情可参考 [Elasticsearch DSL][dsl] 官方文档。
 
-**示例**
+###检索字符串类型的数据###
 
 1. 创建集合 sample.employee
 
     ```lang-javascript
-    > var cl = db.createCS('sample').createCL('employee')
+    > var cl = db.createCS("sample").createCL("employee")
     ```
 
 2. 创建全文索引
 
     ```lang-javascript
-    > cl.createIndex('idx_1', {"first_name": "text", "last_name": "text", "age": "text", "about": "text", "interests": "text"})
+    > cl.createIndex("idx_1", {"first_name": "text", "last_name": "text", "age": "text", "about": "text", "interests": "text"})
     ```
 
 3. 将数据插入 sample.employee 中
@@ -208,7 +241,7 @@ find( { "": { "$Text": <search command> } } )
     > cl.insert({"first_name": "Douglas", "last_name": "Fir", "age": 35, "about": "I like to build cabinets", "interests": ["forestry"]})
     ```
 
-4. 使用全文索引对集合 sample.employee 中 about 字段包含的"rock climbing"进行模糊查询
+4. 使用全文索引模糊查询集合中 about 字段包含"rock climbing"的记录
 
     ```lang-javascript
     > cl.find({"": {"$Text": {"query": {"match": {"about": "rock climbing"}}}}}).hint({"": "idx_1"})
@@ -240,6 +273,105 @@ find( { "": { "$Text": <search command> } } )
     Return 2 row(s).
     ```
 
+###检索日期类型的数据###
+
+1. 创建集合 sample.employee
+
+    ```lang-javascript
+    > var cl = db.createCS("sample").createCL("employee")
+    ```
+
+2. 创建全文索引
+
+    ```lang-javascript
+    > cl.createIndex("timeidx", {"work_info.entry_time": "text"}, {Mappings: {"Fields": {"work_info.entry_time": {"Type": "date"}}}})
+    ```
+
+3. 将数据插入 sample.employee 中
+
+    ```lang-javascript
+    > cl.insert({"name": "John", "date_of_birth": {$date: "1998-03-05"}, "phone": 6883643, "work_info": {"entry_time": {$date: "2021-07-01"}, "post": "Engineer"}})
+    > cl.insert({"name": "Jane", "date_of_birth": {$date: "1985-09-23"}, "phone": 8891638, "work_info": {"entry_time": {$date: "2017-08-21"}, "post": "Manager"}})
+    > cl.insert({"name": "Douglas", "date_of_birth": {$date: "1991-08-16"}, "phone": 8390328, "work_info": {"entry_time": {$date: "2021-09-25"}, "post": "Engineer"}})
+    ```
+
+4. 使用全文索引查询集合中 work_info.entry_time 字段为"2021-07-01"的记录
+
+    ```lang-javascript
+    > cl.find({"": {"$Text": {"query": {"match": {"work_info.entry_time": "2021-07-01"}}}}}).hint({"": "timeidx"})
+    {
+      "_id": {
+        "$oid": "6444f489f64323e18fc60230"
+      },
+      "name": "John",
+      "date_of_birth": {
+        "$date": "1998-03-05"
+      },
+      "phone": 6883643,
+      "work_info": {
+        "entry_time": {
+          "$date": "2021-07-01"
+        },
+        "post": "Engineer"
+      }
+    }
+    Return 1 row(s).
+    ```
+
+###检索嵌套字段###
+
+1. 创建集合 sample.employee
+
+    ```lang-javascript
+    > var cl = db.createCS("sample").createCL("employee")
+    ```
+
+2. 创建全文索引
+
+    ```lang-javascript
+    > cl.createIndex("infoidx", {"work_info": "text"})
+    ```
+
+3. 将数据插入 sample.employee 中
+
+    ```lang-javascript
+    > cl.insert({"name": "John", "date_of_birth": {$date: "1998-03-05"}, "phone": 6883643, "work_info": {"entry_time": {$date: "2021-07-01"}, "post": "Engineer"}})
+    > cl.insert({"name": "Jane", "date_of_birth": {$date: "1985-09-23"}, "phone": 8891638, "work_info": {"entry_time": {$date: "2017-08-21"}, "post": "Manager"}})
+    > cl.insert({"name": "Douglas", "date_of_birth": {$date: "1991-08-16"}, "phone": 8390328, "work_info": {"entry_time": {$date: "2021-09-25"}, "post": "Engineer"}})
+    ```
+
+4. 执行查询
+
+    使用全文索引查询集合中 work_info.post 字段为"Manager"的记录
+
+    ```lang-javascript
+    > cl.find({"": {"$Text": {"query": {"match": {"work_info.post": "Manager"}}}}}).hint({"": "infoidx"})
+    {
+      "_id": {
+        "$oid": "6444f489f64323e18fc60231"
+      },
+      "name": "Jane",
+      "date_of_birth": {
+        "$date": "1985-09-23"
+      },
+      "phone": 8891638,
+      "work_info": {
+        "entry_time": {
+          "$date": "2017-08-21"
+        },
+        "post": "Manager"
+      }
+    }
+    Return 1 row(s).
+    ```
+
+    在 object 类型的字段上建立全文索引时，如果嵌套字段中包含时间字段，该时间字段将无法被检索
+
+    ```lang-javascript
+    > cl.find({"": {"$Text": {"query": {"match": {"work_info.entry_time":'2021-07-01'}}}}}).hint({"": "infoidx"})
+    Return 0 row(s).
+    ```
+
 ##参考##
 
 更多操作可参考
@@ -248,6 +380,9 @@ find( { "": { "$Text": <search command> } } )
 | ---- | ---- |
 | [query.explain()][explain] | 获取查询的访问计划 |
 | [SdbCollection.dropIndex()][drop_index] | 删除指定的全文索引 |
+| [SdbCollection.createIndex()][create_index] | 创建全文索引 |
+| [SdbCollection.createIndexAsync()][create_index_async] | 异步创建全文索引 |
+
 
 
 
@@ -262,3 +397,5 @@ find( { "": { "$Text": <search command> } } )
 [drop_index]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
 [full_text_search_flow]:images/Distributed_Engine/Architecture/Data_Model/full_text_search_flow.png
 [explain]:manual/Manual/Sequoiadb_Command/SdbQuery/explain.md
+[create_index]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
+[create_index_async]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndexAsync.md

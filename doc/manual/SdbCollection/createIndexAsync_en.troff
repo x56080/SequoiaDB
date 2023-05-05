@@ -51,6 +51,11 @@ The defalut value is false.
 .IP \[bu] 2
 NotArray ( \f[I]boolean\f[] ): Whether any filed of index can array.
 The defalut value is false.
+.IP \[bu] 2
+Mappings ( \f[I]object\f[] ): The mapping relationship of text index field in
+Elasticsearch.
+This parameter takes effect only when creating a text index.
+For specific configuration instructions, refer to field mapping.
 .RE
 .IP \[bu] 2
 options ( \f[I]object, optional\f[] )

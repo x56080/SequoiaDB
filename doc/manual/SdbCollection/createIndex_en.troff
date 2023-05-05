@@ -148,6 +148,17 @@ specified.
 .PP
 Format: \f[C]Standalone: true\f[]
 .RE
+.IP \[bu] 2
+Mappings ( \f[I]object\f[] ): The mapping relationship of text index field in
+Elasticsearch.
+.RS 2
+.PP
+This parameter takes effect only when creating a text index.
+For specific configuration instructions, refer to field mapping.
+.PP
+Format:
+\f[C]Mappings: {"Fields": {"field1": {"Type": "keyword"}, "field2": {"Index": false}}}\f[]
+.RE
 .RE
 .RS
 .PP

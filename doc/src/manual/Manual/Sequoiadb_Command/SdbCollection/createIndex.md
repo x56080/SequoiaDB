@@ -93,6 +93,12 @@ SdbCollection
 
         格式：`Standalone: true`
 
+    - Mappings（ *object* ）：全文索引字段在 Elasticsearch 的映射关系
+
+        该参数仅在创建全文索引时生效，具体配置说明可参考[字段映射][field_mapping]。
+
+        格式：`Mappings: {"Fields": {"field1": {"Type": "keyword"}, "field2": {"Index": false}}}`
+
 > **Note:**
 >
 > - 独立索引不支持配置约束，即参数 Unique、NotNull 和 NotArray 不能为 true。
@@ -197,3 +203,4 @@ v2.0 及以上版本
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
 [standalone]:manual/Distributed_Engine/Operation/Index/standalone_index.md
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射

@@ -25,7 +25,7 @@ SdbCollection
 | 字段名    | 类型  | 描述   | 
 | ------    | --------  | ------ |
 | name      | string    | 索引名 |
-| key       | json    | 索引键，取值如下：<br>1：按字段升序<br>-1：按字段降序<br>"text"：[全文索引][text_index]        |
+| key       | json    | 索引键，取值如下：<br>1：按字段升序<br>-1：按字段降序<br>"text"：[全文索引][text_index] |
 | v         | int32     | 索引版本号                                   |
 | unique    | boolean   | 索引是否唯一，取值如下： <br> "true"：唯一索引，不允许集合中有重复的值 <br> "false"：普通索引，允许集合中有重复的值                                     | 
 | enforced  | boolean   | 索引是否强制唯一，取值如下：<br>"false"：不强制唯一<br>"true"：强制唯一，即不允许存在一个以上全空的索引键       |
@@ -34,6 +34,7 @@ SdbCollection
 | Type      | string    | 索引类型，取值如下： <br> "Positive"：正序索引 <br> "Reverse"：逆序索引 <br> "Text"：全文索引                                       |
 | NotArray| boolean   | 索引的任意一个字段是否允许为数组，取值如下： <br> "true"：不允许为数组 <br> "false"：允许为数组    |
 | Standalone| boolean   | 是否为独立索引 |
+| Mappings  | object    | 全文索引字段在 Elasticsearch 的映射关系（仅对已配置[字段映射][field_mapping]的索引生效） |
 | dropDups  | boolean   | 暂不开放       |
 
 函数执行失败时，将抛异常并输出错误信息。
@@ -77,6 +78,37 @@ v3.4 及以上版本
   "IndexFlag": "Normal",
   "Type": "Positive"
 }
+{
+  "IndexDef": {
+    "name": "idx_1",
+    "_id": {
+      "$oid": "64462a6764b21798e1ae0898"
+    },
+    "UniqueID": 382252089345,
+    "key": {
+      "date_of_birth": "text"
+    },
+    "v": 0,
+    "unique": false,
+    "dropDups": false,
+    "enforced": false,
+    "NotNull": false,
+    "NotArray": false,
+    "Global": false,
+    "Standalone": false,
+    "Mappings": {
+      "Fields": {
+        "date_of_birth": {
+          "Type": "date"
+        }
+      }
+    }
+  },
+  "IndexFlag": "Normal",
+  "Type": "Text",
+  "ExtDataName": "SYS_382252089345_idx_1"
+}
+Return 2 row(s).
 ```
 
 [^_^]:
@@ -92,3 +124,4 @@ v3.4 及以上版本
 [SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
 [index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射

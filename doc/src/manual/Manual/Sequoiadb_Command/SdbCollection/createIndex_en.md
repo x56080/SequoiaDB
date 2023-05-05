@@ -91,6 +91,12 @@ If the index field is sorted in positive order in the collection or needs to mat
 
         Format: `Standalone: true`
 
+    - Mappings ( *object* ): The mapping relationship of text index field in Elasticsearch.
+
+        This parameter takes effect only when creating a text index. For specific configuration instructions, refer to [field mapping][field_mapping].
+
+        Format: `Mappings: {"Fields": {"field1": {"Type": "keyword"}, "field2": {"Index": false}}}`
+
 > **Note:**
 >
 > - The standalone index does not support configuration constaints, that is, the parameters Unique, NotNull and NotArray cannot be true.
@@ -195,3 +201,4 @@ v2.0 and above
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [text_index]:manual/Distributed_Engine/Operation/Index/text_index.md
 [standalone]:manual/Distributed_Engine/Operation/Index/standalone_index.md
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射

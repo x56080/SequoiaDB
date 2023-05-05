@@ -31,6 +31,7 @@ indexAttr 选项：
 | Enforced        | boolean  | 索引是否强制唯一 | false  |
 | NotNull         | boolean  | 索引的任意一个字段是否允许为 null 或者不存在 | false  |
 | NotArray        | boolean  | 索引的任意一个字段是否允许为数组 | false |
+| Mappings        | object   | 全文索引字段在 Elasticsearch 的映射关系<br>仅在创建全文索引时生效，具体配置说明可参考[字段映射][field_mapping] | - |
 
 option 选项：
 
@@ -86,3 +87,4 @@ v3.6 及以上版本
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [error_guide]:manual/FAQ/faq_sdb.md
 [standalone]:manual/Manual/sequoiadb_limitation.md#索引
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射

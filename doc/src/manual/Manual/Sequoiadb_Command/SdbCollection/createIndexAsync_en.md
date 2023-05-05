@@ -36,6 +36,8 @@ This function is used to create an index for the collection asynchronously to im
     
     - NotArray ( *boolean* ): Whether any filed of index can array. The defalut value is false.
 
+    - Mappings ( *object* ): The mapping relationship of text index field in Elasticsearch. This parameter takes effect only when creating a text index. For specific configuration instructions, refer to [field mapping][field_mapping].
+
 - options ( *object, optional* )
 
     Other optional parameters can be set through the options parameter:
@@ -86,3 +88,5 @@ v3.6 and above
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射
+

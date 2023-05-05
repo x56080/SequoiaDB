@@ -34,6 +34,7 @@ When the function executes successfully, it will return an object of type SdbCur
 | Type      | string    | Index type, the value is as follows:<br> "Positive": Positive index <br> "Reverse": Reverse index <br> "Text": Full-text index                                     |
 | NotArray| boolean   | Whether any field of the index is allowed to be an array, the value is as follows:<br> "true": Not allowed to be an array. <br> "false": Allowed as an array.    |
 |Standalone| boolean    | Whether it is an independent index. |
+| Mappings  | object    | The mapping relationship of text index field in Elasticsearch. (Only valid for indexes configured with [field mapping][field_mapping].) |
 | dropDups  | boolean   | Not open                                  |
 
 When the function fails, an exception will be thrown and an error message will be printed.
@@ -77,6 +78,37 @@ List the information of all indexes in the collection "sample.employee".
   "IndexFlag": "Normal",
   "Type": "Positive"
 }
+{
+  "IndexDef": {
+    "name": "idx_1",
+    "_id": {
+      "$oid": "64462a6764b21798e1ae0898"
+    },
+    "UniqueID": 382252089345,
+    "key": {
+      "date_of_birth": "text"
+    },
+    "v": 0,
+    "unique": false,
+    "dropDups": false,
+    "enforced": false,
+    "NotNull": false,
+    "NotArray": false,
+    "Global": false,
+    "Standalone": false,
+    "Mappings": {
+      "Fields": {
+        "date_of_birth": {
+          "Type": "date"
+        }
+      }
+    }
+  },
+  "IndexFlag": "Normal",
+  "Type": "Text",
+  "ExtDataName": "SYS_382252089345_idx_1"
+}
+Return 2 row(s).
 ```
 
 [^_^]:
@@ -91,3 +123,4 @@ List the information of all indexes in the collection "sample.employee".
 [indexDef]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
 [enforced]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[field_mapping]:manual/Distributed_Engine/Operation/Index/text_index.md#索引字段映射

@@ -127,6 +127,14 @@ false，表示不为独立索引
 .PP
 格式：\f[C]Standalone: true\f[]
 .RE
+.IP \[bu] 2
+Mappings（ \f[I]object\f[] ）：全文索引字段在 Elasticsearch 的映射关系
+.RS 2
+.PP
+该参数仅在创建全文索引时生效，具体配置说明可参考字段映射。
+.PP
+格式：\f[C]Mappings: {"Fields": {"field1": {"Type": "keyword"}, "field2": {"Index": false}}}\f[]
+.RE
 .RE
 .RS
 .PP

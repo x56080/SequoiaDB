@@ -443,6 +443,52 @@ T}
 T{
 11
 T}@T{
+Mappings
+T}@T{
+object
+T}@T{
+The mapping
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+relationship of text
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+index field in
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Elasticsearch.
+(Only
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+valid for indexes
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+configured with field
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+mapping.)
+T}
+T{
+12
+T}@T{
 dropDups
 T}@T{
 boolean
@@ -493,5 +539,36 @@ List the information of all indexes in the collection "sample.employee".
   "IndexFlag": "Normal",
   "Type": "Positive"
 }
+{
+  "IndexDef": {
+    "name": "idx_1",
+    "_id": {
+      "$oid": "64462a6764b21798e1ae0898"
+    },
+    "UniqueID": 382252089345,
+    "key": {
+      "date_of_birth": "text"
+    },
+    "v": 0,
+    "unique": false,
+    "dropDups": false,
+    "enforced": false,
+    "NotNull": false,
+    "NotArray": false,
+    "Global": false,
+    "Standalone": false,
+    "Mappings": {
+      "Fields": {
+        "date_of_birth": {
+          "Type": "date"
+        }
+      }
+    }
+  },
+  "IndexFlag": "Normal",
+  "Type": "Text",
+  "ExtDataName": "SYS_382252089345_idx_1"
+}
+Return 2 row(s).
 \f[]
 .fi

@@ -86,9 +86,9 @@ Get index information of collection sample.employee.
   "IndexDef": {
     "name": "$id",
     "_id": {
-      "$oid": "6098e71a820799d22f1f2164"
+      "$oid": "6454a4ef1d82202b37ef13ed"
     },
-    "UniqueID": 4037269258240,
+    "UniqueID": 4294967296,
     "key": {
       "_id": 1
     },
@@ -99,7 +99,7 @@ Get index information of collection sample.employee.
     "NotNull": false,
     "NotArray": true,
     "Global": false,
-    "Standalone": false,
+    "Standalone": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive",
@@ -115,5 +115,46 @@ Get index information of collection sample.employee.
     }
   ]
 }
+{
+  "IndexDef": {
+    "name": "idx_1",
+    "_id": {
+      "$oid": "6454a4f11d82202b37ef13ef"
+    },
+    "UniqueID": 4294967297,
+    "key": {
+      "date_of_birth": "text"
+    },
+    "v": 0,
+    "unique": false,
+    "dropDups": false,
+    "enforced": false,
+    "NotNull": false,
+    "NotArray": false,
+    "Global": false,
+    "Standalone": false,
+    "Mappings": {
+      "Fields": {
+        "date_of_birth": {
+          "Type": "date"
+        }
+      }
+    }
+  },
+  "IndexFlag": "Normal",
+  "Type": "Text",
+  "ExtDataName": "SYS_4294967297_idx_1",
+  "Nodes": [
+    {
+      "NodeName": "sdbserver1:11820",
+      "GroupName": "group1"
+    },
+    {
+      "NodeName": "sdbserver1:11830",
+      "GroupName": "group2"
+    }
+  ]
+}
+Return 2 row(s).
 \f[]
 .fi
