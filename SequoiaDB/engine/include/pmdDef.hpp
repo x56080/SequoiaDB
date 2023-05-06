@@ -331,6 +331,7 @@ namespace engine
    #define SDB_TYPE_DB_STR             "sequoiadb"
    #define SDB_TYPE_OM_STR             "sdbom"
    #define SDB_TYPE_OMA_STR            "sdbcm"
+   #define SDB_TYPE_SEADAPTER_STR      "sdbseadapter"
 
    /*
       SDB_DB_STATUS_STR DEFINE
@@ -462,6 +463,7 @@ namespace engine
       SDB_TYPE_DB  = 1,    // sequoiadb: data, standalone, coord, catalog
       SDB_TYPE_OM,         // om
       SDB_TYPE_OMA,        // omagent
+      SDB_TYPE_SEADAPTER,  // seadapter
 
       SDB_TYPE_MAX
    } ;
@@ -565,6 +567,11 @@ namespace engine
 
 
    #define PMD_MON_GROUP_MASK_DEFT_STR   "all:off"
+
+   /*
+      search engine adapter's mode infomation define
+   */
+   #define PMD_SEADPT_MODE_STR_MAX_SZ    16
 }
 
 #endif // PMD_DEF_HPP__

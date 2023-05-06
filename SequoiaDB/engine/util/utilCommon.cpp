@@ -66,6 +66,8 @@ namespace engine
          return SDB_ROLE_OM ;
       else if ( 0 == ossStrcasecmp( role, SDB_ROLE_OMA_STR ) )
          return SDB_ROLE_OMA ;
+      else if ( 0 == ossStrcasecmp( role, SDB_ROLE_SEADAPTER_STR ) )
+         return SDB_ROLE_SEADAPTER ;
       else
          return SDB_ROLE_MAX;
    }
@@ -86,6 +88,8 @@ namespace engine
             return SDB_ROLE_OM_STR ;
          case SDB_ROLE_OMA :
             return SDB_ROLE_OMA_STR ;
+         case SDB_ROLE_SEADAPTER :
+            return SDB_ROLE_SEADAPTER_STR ;
          default :
             break ;
       }
@@ -102,6 +106,8 @@ namespace engine
             return "S" ;
          case SDB_ROLE_CATALOG :
             return "C" ;
+         case SDB_ROLE_SEADAPTER :
+            return "A" ;
          default :
             break ;
       }
@@ -118,6 +124,8 @@ namespace engine
          return SDB_ROLE_CATALOG;
       else if ( 0 == ossStrcasecmp( role, "S" ) )
          return SDB_ROLE_COORD;
+      else if ( 0 == ossStrcasecmp( role, "A" ) )
+         return SDB_ROLE_SEADAPTER;
       else
          return SDB_ROLE_MAX;
    }
@@ -141,6 +149,10 @@ namespace engine
       {
          return SDB_TYPE_OMA ;
       }
+      else if (0 == ossStrcasecmp(type, SDB_TYPE_SEADAPTER_STR))
+      {
+         return SDB_TYPE_SEADAPTER;
+      }
       else
       {
          return SDB_TYPE_MAX ;
@@ -157,6 +169,8 @@ namespace engine
             return SDB_TYPE_OM_STR ;
          case SDB_TYPE_OMA :
             return SDB_TYPE_OMA_STR ;
+         case SDB_TYPE_SEADAPTER:
+            return SDB_TYPE_SEADAPTER_STR;
          default :
             break ;
       }
@@ -176,6 +190,8 @@ namespace engine
             return SDB_TYPE_OM ;
          case SDB_ROLE_OMA :
             return SDB_TYPE_OMA ;
+         case SDB_ROLE_SEADAPTER :
+            return SDB_TYPE_SEADAPTER ;
          default :
             break ;
       }

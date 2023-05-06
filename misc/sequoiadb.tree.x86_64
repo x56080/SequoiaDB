@@ -21,6 +21,7 @@ sequoiadb
 │   ├── sdbpasswd
 │   ├── sdbreplay
 │   ├── sdbrestore
+│   ├── sdbseactl
 │   ├── sdbseadapter
 │   ├── sdbsecuretool
 │   ├── sdbstart

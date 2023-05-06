@@ -483,6 +483,7 @@ namespace engine
       INT32 modeFilter     = RUN_MODE_RUN ;
       CHAR rootPath[OSS_MAX_PATHSIZE + 1] = { 0 } ;
       CHAR localPath[OSS_MAX_PATHSIZE + 1] = { 0 } ;
+      UTIL_VEC_NODES::iterator itr ;
 
       po::options_description desc ( "Command options" ) ;
       init ( desc ) ;
@@ -526,6 +527,19 @@ namespace engine
 
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
                      roleFilter, FALSE, showLocation ) ;
+
+      // can't print seadapter
+      itr = listNodes.begin() ;
+      while ( itr != listNodes.end() )
+      {
+         utilNodeInfo &node = *itr ;
+         if ( SDB_TYPE_SEADAPTER == node._type )
+         {
+            itr = listNodes.erase( itr ) ;
+            continue ;
+         }
+         ++itr ;
+      }
 
       if ( RUN_MODE_RUN == modeFilter )
       {

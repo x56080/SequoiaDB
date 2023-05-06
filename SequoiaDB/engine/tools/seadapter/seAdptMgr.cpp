@@ -301,7 +301,7 @@ namespace seadapter
       _regMsgBuff = NULL ;
       _indexerOn = FALSE ;
       _mode = UNREGISTER ;
-      ossMemset( _modeStr, 0, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+      ossMemset( _modeStr, 0, PMD_SEADPT_MODE_STR_MAX_SZ + 1 ) ;
       _startTime = time( NULL ) ;
    }
 
@@ -1268,17 +1268,17 @@ namespace seadapter
 
       if ( READ_ONLY == _mode )
       {
-         ossStrncpy( _modeStr, SEADPT_READONLY_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         ossStrncpy( _modeStr, SEADPT_READONLY_MODE_STR, PMD_SEADPT_MODE_STR_MAX_SZ + 1 ) ;
          modeStrLen = ossStrlen( SEADPT_READONLY_MODE_STR ) ;
       }
       else if ( READ_WRITE == _mode )
       {
-         ossStrncpy( _modeStr, SEADPT_READWRITE_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         ossStrncpy( _modeStr, SEADPT_READWRITE_MODE_STR, PMD_SEADPT_MODE_STR_MAX_SZ + 1 ) ;
          modeStrLen = ossStrlen( SEADPT_READWRITE_MODE_STR ) ;
       }
       else if ( UNREGISTER == _mode )
       {
-         ossStrncpy( _modeStr, SEADPT_UNREGISTER_MODE_STR, SEADPT_MODE_STR_MAX_SIZE + 1 ) ;
+         ossStrncpy( _modeStr, SEADPT_UNREGISTER_MODE_STR, PMD_SEADPT_MODE_STR_MAX_SZ + 1 ) ;
          modeStrLen = ossStrlen( SEADPT_UNREGISTER_MODE_STR ) ;
       }
       _modeStr[modeStrLen] = '\0' ;

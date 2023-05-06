@@ -113,6 +113,9 @@ namespace engine
       UINT64   _startTime ;
       string   _location ;
       INT32    _locPrimary ;
+      // adapter node extra info
+      string   _dataSvcname ;
+      string   _mode ;
       // extra info end
 
       _utilNodeInfo()

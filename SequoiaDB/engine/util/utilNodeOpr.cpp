@@ -41,6 +41,7 @@
 #include "ossProc.hpp"
 #include "ossUtil.hpp"
 #include "ossPath.hpp"
+#include "ossSocket.hpp"
 #include "utilParam.hpp"
 #include "pmdEnv.hpp"
 #include "pd.hpp"
@@ -558,8 +559,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       CHAR groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] = { 0 } ;
-      CHAR dbPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR location[ PMD_LOCATION_STR_LEN + 1 ] = { 0 } ;
+      CHAR dbPath[ OSS_MAX_PATHSIZE + 1 ]          = { 0 } ;
+      CHAR location[ PMD_LOCATION_STR_LEN + 1 ]    = { 0 } ;
+      CHAR dataSvcname[ OSS_MAX_SERVICENAME + 1 ]  = { 0 } ;
+      CHAR mode[ PMD_SEADPT_MODE_STR_MAX_SZ + 1 ]  = { 0 } ;
 
       info._groupID     = 0 ;
       info._nodeID      = 0 ;
@@ -570,68 +573,133 @@ namespace engine
       info._startTime   = 0 ;
       info._location    = "" ;
       info._locPrimary  = -1 ;
+      // seadapter
+      info._dataSvcname = "" ;
+      info._mode        = "" ;
 
-      // group id
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_GID,
-                               sizeof( ENGINE_NPIPE_MSG_GID ),
-                               (CHAR *)&info._groupID,
-                               sizeof( info._groupID ),
-                               TRUE ) ;
-      if ( rc )
+      if ( SDB_TYPE_SEADAPTER == info._type )
       {
-         goto error ;
-      }
+         // data service name
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_DATASVCNAME,
+                                  sizeof( ENGINE_NPIPE_MSG_DATASVCNAME ),
+                                  (CHAR *)dataSvcname,
+                                  OSS_MAX_SERVICENAME,
+                                  FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         info._dataSvcname = dataSvcname ;
 
-      // node id
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_NID,
-                               sizeof( ENGINE_NPIPE_MSG_NID ),
-                               (CHAR *)&info._nodeID,
-                               sizeof( info._nodeID ),
-                               TRUE ) ;
-      if ( rc )
-      {
-         goto error ;
+         // mode
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_MODE,
+                                  sizeof( ENGINE_NPIPE_MSG_MODE ),
+                                  (CHAR *)mode,
+                                  PMD_SEADPT_MODE_STR_MAX_SZ,
+                                  FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         info._mode = mode ;
       }
+      else
+      {
+         // group id
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_GID,
+                                  sizeof( ENGINE_NPIPE_MSG_GID ),
+                                  (CHAR *)&info._groupID,
+                                  sizeof( info._groupID ),
+                                  TRUE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
 
-      // primary
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_PRIMARY,
-                               sizeof( ENGINE_NPIPE_MSG_PRIMARY ),
-                               (CHAR *)&info._primary,
-                               sizeof( info._primary ),
-                               TRUE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+         // node id
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_NID,
+                                  sizeof( ENGINE_NPIPE_MSG_NID ),
+                                  (CHAR *)&info._nodeID,
+                                  sizeof( info._nodeID ),
+                                  TRUE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
 
-      // group name
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_GNAME,
-                               sizeof( ENGINE_NPIPE_MSG_GNAME ),
-                               (CHAR *)groupName,
-                               OSS_MAX_GROUPNAME_SIZE,
-                               FALSE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-      info._groupName = groupName ;
+         // primary
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_PRIMARY,
+                                  sizeof( ENGINE_NPIPE_MSG_PRIMARY ),
+                                  (CHAR *)&info._primary,
+                                  sizeof( info._primary ),
+                                  TRUE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
 
-      // dbpath
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_PATH,
-                               sizeof( ENGINE_NPIPE_MSG_PATH ),
-                               (CHAR *)dbPath,
-                               OSS_MAX_PATHSIZE,
-                               FALSE ) ;
-      if ( rc )
-      {
-         goto error ;
+         // group name
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_GNAME,
+                                  sizeof( ENGINE_NPIPE_MSG_GNAME ),
+                                  (CHAR *)groupName,
+                                  OSS_MAX_GROUPNAME_SIZE,
+                                  FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         info._groupName = groupName ;
+
+         // dbpath
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                  ENGINE_NPIPE_MSG_PATH,
+                                  sizeof( ENGINE_NPIPE_MSG_PATH ),
+                                  (CHAR *)dbPath,
+                                  OSS_MAX_PATHSIZE,
+                                  FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         info._dbPath = dbPath ;
+
+         if ( needLocationInfo )
+         {
+            // location
+            rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                    ENGINE_NPIPE_MSG_LOCATION,
+                                    sizeof( ENGINE_NPIPE_MSG_LOCATION ),
+                                    (CHAR *)location,
+                                    PMD_LOCATION_STR_LEN,
+                                    FALSE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            info._location = location ;
+
+            if ( !info._location.empty() )
+            {
+               // location primary
+               rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                       ENGINE_NPIPE_MSG_LOCPRIMARY,
+                                       sizeof( ENGINE_NPIPE_MSG_LOCPRIMARY ),
+                                       (CHAR *)&info._locPrimary,
+                                       sizeof( info._locPrimary ),
+                                       TRUE ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+         }
       }
-      info._dbPath = dbPath ;
 
       // start time
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
@@ -643,38 +711,6 @@ namespace engine
       {
          goto error ;
       }
-
-      if ( needLocationInfo )
-      {
-         // location
-         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                                 ENGINE_NPIPE_MSG_LOCATION,
-                                 sizeof( ENGINE_NPIPE_MSG_LOCATION ),
-                                 (CHAR *)location,
-                                 PMD_LOCATION_STR_LEN,
-                                 FALSE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         info._location = location ;
-
-         if ( !info._location.empty() )
-         {
-            // location primary
-            rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                                    ENGINE_NPIPE_MSG_LOCPRIMARY,
-                                    sizeof( ENGINE_NPIPE_MSG_LOCPRIMARY ),
-                                    (CHAR *)&info._locPrimary,
-                                    sizeof( info._locPrimary ),
-                                    TRUE ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-         }
-      }
-
    done:
       return rc ;
    error:
@@ -704,7 +740,7 @@ namespace engine
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
       struct dirent *pDirent     = NULL ;
-      BOOLEAN isOpen = FALSE ;
+      BOOLEAN isOpen             = FALSE ;
       CHAR *pStr                 = NULL ;
       INT32 beginType            = SDB_TYPE_DB ;
       CHAR *pSvcBegin            = NULL ;
@@ -823,6 +859,8 @@ namespace engine
                case SDB_TYPE_DB :
                   findNode._role = SDB_ROLE_STANDALONE ;
                   break ;
+               case SDB_TYPE_SEADAPTER :
+                  findNode._role = SDB_ROLE_SEADAPTER ;
                default :
                   break ;
             }

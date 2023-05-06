@@ -39,6 +39,7 @@
 #ifndef SE_ADPTMGR_HPP_
 #define SE_ADPTMGR_HPP_
 
+#include "pmdDef.hpp"
 #include "sdbInterface.hpp"
 #include "seAdptOptionsMgr.hpp"
 #include "pmdAsyncSession.hpp"
@@ -48,8 +49,6 @@
 #include "seAdptDBAssist.hpp"
 
 using namespace engine ;
-
-#define SEADPT_MODE_STR_MAX_SIZE   16
 
 namespace seadapter
 {
@@ -312,7 +311,7 @@ namespace seadapter
       MsgHeader              *_regMsgBuff ;
       BOOLEAN                 _indexerOn ;
       SEADPT_MODE             _mode ;
-      CHAR                    _modeStr[ SEADPT_MODE_STR_MAX_SIZE + 1 ] ;
+      CHAR                    _modeStr[ PMD_SEADPT_MODE_STR_MAX_SZ + 1 ] ;
       UINT64                  _startTime ;
    } ;
    typedef _seAdptCB seAdptCB ;

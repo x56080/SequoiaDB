@@ -329,8 +329,8 @@ namespace engine
       {
          utilNodeInfo &info = *itrNode ;
 
-         // can't stop oma
-         if ( SDB_TYPE_OMA == info._type )
+         // can't stop oma and seadapter
+         if ( SDB_TYPE_OMA == info._type || SDB_TYPE_SEADAPTER == info._type )
          {
             itrNode = listNodes.erase( itrNode ) ;
             continue ;

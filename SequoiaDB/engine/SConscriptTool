@@ -577,6 +577,10 @@ sdbListMain = [
       "pmd/sdblist.cpp",
       ]
 
+sdbSEAdptCtlMain = [
+      "tools/seadapter/seAdptCtl.cpp"
+      ]
+
 sdbcmMain = [
       "pmd/pmdCMMain.cpp",
       ]
@@ -863,6 +867,10 @@ sdbinspect = toolEnv.Program("sdbinspect",
          LIBDEPS=["oss", "bson", "pmd", "util", "pd", "client", "clientcpp", "mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
+sdbseactl = toolEnv.Program("sdbseactl", sdbSEAdptCtlMain,
+         LIBDEPS=["pd","oss","bson","util","pmd","mon"],
+         _LIBDEPS='$_LIBDEPS_OBJS' )
+
 if linux:
    sdbomtool = toolEnv.Program("sdbomtool",
                sdbOmToolFiles,
@@ -893,6 +901,7 @@ toolEnv.Install( '#/bin', sdbreplay )
 toolEnv.Install( '#/bin', sdbstart )
 toolEnv.Install( '#/bin', sdbstop )
 toolEnv.Install( '#/bin', sdblist )
+toolEnv.Install( '#/bin', sdbseactl )
 toolEnv.Install( '#/bin', sdbcm )
 toolEnv.Install( '#/bin', sdbcmd )
 toolEnv.Install( '#/bin', sdbcmart )
