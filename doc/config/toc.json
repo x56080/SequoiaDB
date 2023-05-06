@@ -1695,6 +1695,12 @@
                            "file": "sdbsecuretool",
                            "cn": "数据安全处理工具",
                            "en": "Secure Tool"
+                        },
+                        {
+                           "id": 1683182129,
+                           "file": "sdbseactl",
+                           "cn": "适配器管理工具",
+                           "en": "Adapter Management Tool"
                         }
                      ]
                   },
