@@ -58,7 +58,8 @@ using namespace engine ;
    ( PMD_COMMANDS_STRING (SEADPT_STR_MAP_TYPE, ",s"), boost::program_options::value<int>(), "String map type,default 1, value range[1-3]" ) \
    ( PMD_COMMANDS_STRING (SEADPT_CONN_LIMIT, ",l"), boost::program_options::value<int>(), "Max connection number between adapter and search engine,default:50, value range[1-65535]") \
    ( PMD_COMMANDS_STRING (SEADPT_CONN_TIMEOUT, ",o"), boost::program_options::value<int>(), "Max idle time of connection between adapter and search engine,unit:second, default:1800, value range[60-86400]") \
-   ( SEADPT_SCROLL_SIZE, boost::program_options::value<int>(), "Scroll size when fetch data from search engine,default:1000,value range:[50-10000]")
+   ( SEADPT_SCROLL_SIZE, boost::program_options::value<int>(), "Scroll size when fetch data from search engine,default:1000,value range:[50-10000]")\
+   ( SEADPT_LOG_PATH, boost::program_options::value<string>(), "Search engine adapter log path")
 
 namespace seadapter
 {
@@ -71,6 +72,7 @@ namespace seadapter
       ossMemset( _seHost, 0, sizeof( _seHost ) ) ;
       ossMemset( _seService, 0, sizeof( _seService ) ) ;
       ossMemset( _seIdxPrefix, 0, sizeof( _seIdxPrefix ) ) ;
+      ossMemset( _logPath, 0, sizeof( _logPath ) ) ;
       _diagLevel = PDWARNING ;
       _timeout = SEADPT_DFT_TIMEOUT ;
       _bulkBuffSize = SEADPT_DFT_BULKBUFF_SZ ;
@@ -245,6 +247,9 @@ namespace seadapter
       rdxUShort( pEX, SEADPT_SCROLL_SIZE, _seScrollSize, FALSE,
                  PMD_CFG_CHANGE_REBOOT, SEADPT_DFT_SCROLL_SIZE ) ;
       rdvMinMax( pEX, _seScrollSize, 50, 10000, TRUE ) ;
+
+      rdxString( pEX, SEADPT_LOG_PATH, _logPath, sizeof( _logPath ),
+                 TRUE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
       return getResult() ;
    }

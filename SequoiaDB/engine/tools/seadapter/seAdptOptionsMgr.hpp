@@ -61,6 +61,7 @@ namespace seadapter
       const CHAR* getSEHost() const { return _seHost ; }
       const CHAR* getSEService() const { return _seService ; }
       const CHAR* getSEIdxPrefix() const { return _seIdxPrefix ; }
+      const CHAR* getLogPath() const { return _logPath ; }
       PDLEVEL     getDiagLevel() const ;
       INT32       getTimeout() const ;
       UINT32      getBulkBuffSize() const ;
@@ -82,6 +83,7 @@ namespace seadapter
       CHAR     _seHost[ OSS_MAX_PATHSIZE + 1 ] ;
       CHAR     _seService[ OSS_MAX_SERVICENAME + 1 ] ;
       CHAR     _seIdxPrefix[ SEADPT_MAX_IDXPREFIX_SZ + 1 ] ;
+      CHAR     _logPath[ OSS_MAX_PATHSIZE + 1 ] ;
       UINT16   _diagLevel ;
       INT32    _timeout ;
       UINT32   _bulkBuffSize ;

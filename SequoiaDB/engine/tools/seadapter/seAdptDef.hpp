@@ -56,6 +56,7 @@ namespace seadapter
    #define SEADPT_CONN_LIMIT              "connlimit"
    #define SEADPT_CONN_TIMEOUT            "conntimeout"
    #define SEADPT_SCROLL_SIZE             "scrollsize"
+   #define SEADPT_LOG_PATH                "logpath"
 
    #define SEADPT_DFT_TIMEOUT             10000
    #define SEADPT_DFT_BULKBUFF_SZ         10

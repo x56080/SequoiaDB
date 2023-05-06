@@ -78,51 +78,59 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 buildDialogPath( CHAR *dialogPath, UINT32 bufSize )
+   INT32 buildDialogPath( CHAR *dialogPath )
    {
       // Create the log file directory.
       INT32 rc = SDB_OK ;
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      const CHAR *logPath = sdbGetSeAdptOptions()->getLogPath() ;
 
-      if ( bufSize < OSS_MAX_PATHSIZE + 1 )
+      if ( 0 != ossStrlen( logPath ) )
       {
-         ossPrintf( "Path buffer size is too small: %u", bufSize ) ;
-         goto error ;
+         // use setting work path
+         if ( !ossGetRealPath( logPath, dialogPath, OSS_MAX_PATHSIZE ) )
+         {
+            ossPrintf( "Invalid log path: %s"OSS_NEWLINE, logPath ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
-
-      rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
-      if ( rc )
+      // use default work path
+      else
       {
-         ossPrintf( "Get working directory failed: %d", rc ) ;
-         goto error ;
-      }
+         rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
+         if ( rc )
+         {
+            ossPrintf( "Get working directory failed: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
 
-      ossChDir( currentPath ) ;
+         ossChDir( currentPath ) ;
 
-      // conf/log
-      rc = utilBuildFullPath( currentPath, SDBCM_LOG_PATH,
-                              OSS_MAX_PATHSIZE, dialogPath ) ;
-      if ( rc )
-      {
-         ossPrintf( "Build log path failed: %d", rc ) ;
-         goto error ;
-      }
+         // conf/log
+         rc = utilBuildFullPath( currentPath, SDBCM_LOG_PATH,
+                                 OSS_MAX_PATHSIZE, dialogPath ) ;
+         if ( rc )
+         {
+            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
 
-      // conf/log/seadapterlog
-      rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE, SEADPT_LOG_DIR ) ;
-      if ( rc )
-      {
-         ossPrintf( "Build log path failed: %d", rc ) ;
-         goto error ;
-      }
-
-      // conf/log/seadapterlog/SERVICE
-      rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE,
-                        sdbGetSeAdptOptions()->getDBService() ) ;
-      if ( rc )
-      {
-         ossPrintf( "Build log path failed: %d", rc ) ;
-         goto error ;
+         // conf/log/seadapterlog
+         rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE, SEADPT_LOG_DIR ) ;
+         if ( rc )
+         {
+            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+         // conf/log/seadapterlog/svcname
+         rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE,
+                           sdbGetSeAdptOptions()->getSvcName() ) ;
+         if ( rc )
+         {
+            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
       }
 
       rc = ossMkdir( dialogPath ) ;
@@ -130,7 +138,7 @@ namespace seadapter
       {
          if ( SDB_FE != rc )
          {
-            ossPrintf( "Make dialog path[ %s ] failed: %d", dialogPath, rc ) ;
+            ossPrintf( "Make dialog path[ %s ] failed: %d"OSS_NEWLINE, dialogPath, rc ) ;
             goto error ;
          }
          else
@@ -176,7 +184,7 @@ namespace seadapter
          goto error ;
       }
 
-      rc = buildDialogPath( dialogPath, OSS_MAX_PATHSIZE + 1 ) ;
+      rc = buildDialogPath( dialogPath ) ;
       if ( rc )
       {
          ossPrintf( "Failed to build dialog path(error=%d), exit"OSS_NEWLINE,
@@ -184,7 +192,7 @@ namespace seadapter
          goto error ;
       }
 
-      // conf/log/seadapterlog/SERVICE/sdbseadapter.log
+      // dialogPath/sdbseadapter.log
       rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE, SEADPT_LOG_FILE_NAME ) ;
       if ( rc )
       {
