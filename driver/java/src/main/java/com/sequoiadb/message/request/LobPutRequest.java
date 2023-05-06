@@ -26,11 +26,11 @@ import java.nio.ByteBuffer;
 
 public class LobPutRequest extends LobRequest {
 
-    private static final int FIXED_LENGTH = 96; // LOB_HEADER_LENGTH + 16
+    private static final int FIXED_LENGTH = LOB_HEADER_LENGTH + 16; // 96
     private static final int sequence = 0;
+    private static final long offset = 0;
     private final byte[] metaBytes;
     private final int dateLen;
-    private final long offset;
     private final ByteBuffer dataBuff;
 
     public LobPutRequest(BSONObject metaObj, byte[] data) {
@@ -45,7 +45,6 @@ public class LobPutRequest extends LobRequest {
         bsonLength = metaBytes.length;
         length += Helper.alignedSize(metaBytes.length);
 
-        offset = 0;
         dateLen = data.length;
         dataBuff = ByteBuffer.wrap(data, 0, dateLen);
         length += Helper.alignedSize(data.length);

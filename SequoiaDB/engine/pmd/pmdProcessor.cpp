@@ -1578,7 +1578,7 @@ namespace engine
    {
       INT32 rc               = SDB_OK ;
       const MsgOpLob *header = NULL ;
-      rtnLobStream *pStream  = NULL ;
+      _rtnLocalLobStream stream ;
       BSONObj meta ;
 
       rc = msgExtractRemoveLobRequest( ( const CHAR * )msg, &header,
@@ -1595,16 +1595,7 @@ namespace engine
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toPoolString().c_str() ) ;
 
-         /// pStream will delete in context
-         pStream = SDB_OSS_NEW _rtnLocalLobStream() ;
-         if ( !pStream )
-         {
-            PD_LOG( PDERROR, "Create lob stream failed" ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB, pStream ) ;
+         rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB, &stream ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to remove lob:%d", rc ) ;

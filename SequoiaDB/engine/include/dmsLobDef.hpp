@@ -227,19 +227,6 @@ namespace engine
             << endl ;
          return ss.str() ;
       }
-
-      void initMembers( const _dmsLobMeta &o )
-      {
-         _lobLen = o._lobLen ;
-         _createTime = o._createTime ;
-         _status = o._status ;
-         _version = o._version ;
-         _padding = o._padding ;
-         _modificationTime = o._modificationTime ;
-         _flag = o._flag ;
-         _piecesInfoNum = o._piecesInfoNum ;
-         return ;
-      }
    } ;
    typedef struct _dmsLobMeta dmsLobMeta ;
 

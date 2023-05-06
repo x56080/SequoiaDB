@@ -1131,7 +1131,7 @@ namespace engine
                buffObj = rtnContextBuf( _errorInfo ) ;
             }
 
-            if ( rc != SDB_DMS_EOC )
+            if ( SDB_DMS_EOC != rc && SDB_LOB_OUT_OF_PUT_SIZE != rc )
             {
                PD_LOG ( (SDB_CLS_COORD_NODE_CAT_VER_OLD==rc ? PDINFO : PDERROR),
                         "Session[%s] process OP[type:%u] failed[rc:%d]",

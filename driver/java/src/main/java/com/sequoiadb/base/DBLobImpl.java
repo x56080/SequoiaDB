@@ -40,6 +40,7 @@ import com.sequoiadb.util.Helper;
 class DBLobImpl implements DBLob {
     final static int SDB_LOB_CREATEONLY = 0x00000001;
 
+    protected final static int SDB_LOB_PUT_MAX_LEN = 255 * 1024; // 256KB(default lobPagesize) - 1KB(meta data)
     // the max lob data size to send for one message
     protected final static int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
     private final static int SDB_LOB_WRITE_DATA_LENGTH = 524288; // 512k;

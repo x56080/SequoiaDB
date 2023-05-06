@@ -2918,7 +2918,7 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public ObjectId putLob(byte[] data) throws BaseException {
-        return putLob(data, null);
+        return putLobInternal(data, null);
     }
 
     /**
@@ -2927,13 +2927,18 @@ public class DBCollection {
      * @return ObjectId object of The new lob
      * @throws BaseException If error happens.
      */
-    public ObjectId putLob(byte[] data, ObjectId lobId) throws BaseException {
+    public void putLob(byte[] data, ObjectId lobId) throws BaseException {
+        putLobInternal(data, lobId);
+    }
+
+
+    private ObjectId putLobInternal(byte[] data, ObjectId lobId) throws BaseException {
         if (data == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "The data is null");
         }
 
-        if (data.length > DBLobImpl.SDB_LOB_MAX_WRITE_DATA_LENGTH) {
-            return putBigLob(data, lobId);
+        if (data.length > DBLobImpl.SDB_LOB_PUT_MAX_LEN) {
+            return putLargeLob(data, lobId);
         }
 
         BSONObject metaObj = new BasicBSONObject();
@@ -2964,28 +2969,12 @@ public class DBCollection {
         return oid;
     }
 
-    private ObjectId putBigLob(byte[] data, ObjectId lobId) throws BaseException {
-        boolean hadCreate = false;
-
-        try {
-            DBLob lob = createLob(lobId);
-            hadCreate = true;
-
-            lob.write(data);
-
-            lob.close();
-
-            return lob.getID();
-        } catch (BaseException e) {
-            if (hadCreate) {
-                try {
-                    removeLob(lobId);
-                } catch (BaseException ex) {
-                    // ignore
-                }
-            }
-            throw e;
-        }
+    private ObjectId putLargeLob(byte[] data, ObjectId lobId) throws BaseException {
+        DBLob lob = createLob(lobId);
+        // in SDB_LOB_CREATEONLY mode, if the lob write or close fails, the created lob
+        // will be automatically rolled back and deleted
+        lob.write(data);
+        lob.close();
     }
 
     /**

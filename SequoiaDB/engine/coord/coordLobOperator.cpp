@@ -854,19 +854,8 @@ namespace engine
       PD_TRACE_EXITRC( COORD_PUTLOB__WRITEBYSTEPS, rc ) ;
       return rc ;
    error:
-      if ( -1 != contextID )
-      {
-         // remove
-         INT32 rcTmp = SDB_OK ;
-         coordLobStream streamTmp( _pResource, getTimeout() ) ;
-         /// release operator's groupSession to improve perfermance
-         _groupSession.release() ;
-         rcTmp = rtnRemoveLob( metaObj, header->flags, header->w, cb, NULL, &streamTmp, buf ) ;
-         if ( SDB_OK != rcTmp )
-         {
-            PD_LOG( PDERROR, "Failed to rollback lob:%d", rcTmp ) ;
-         }
-      }
+      /// in rtnOpenLob(), rtnWriteLob(), rtnCloseLob(), when an error occurs
+      /// to destroy the lobContext, the created lob will be rolled back
       goto done ;
    }
 

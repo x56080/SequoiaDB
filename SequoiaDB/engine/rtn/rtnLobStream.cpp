@@ -1608,10 +1608,11 @@ namespace engine
          goto error ;
       }
 
-      submitor.submit() ;
-      _increaseMetrics( cb ) ;
       _increaseLobOpCount( cb ) ;
       RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, size ) ;
+
+      submitor.submit() ;
+      _increaseMetrics( cb ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_FASTPUT, rc ) ;

@@ -108,7 +108,7 @@ namespace engine
 
       virtual INT32 _getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail ) ;
 
-      virtual INT32 _prepareToPut( UINT32 size, _pmdEDUCB *cb ) { return SDB_OK ; }
+      virtual INT32 _prepareToPut( UINT32 size, _pmdEDUCB *cb ) { return SDB_LOB_OUT_OF_PUT_SIZE ; }
 
       virtual INT32 _put( UINT32 size, const CHAR *data, _pmdEDUCB *cb ) ;
 

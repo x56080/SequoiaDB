@@ -112,7 +112,7 @@ public final class MsgOpCode {
     public static final int LOB_GETRTDETAIL_RESP = RESP_MASK | LOB_GETRTDETAIL_REQ;
 
     public static final int LOB_PUT_REQ = 8011;
-    public static final int LOB_PUT_RESP = RESP_MASK | LOB_GETRTDETAIL_REQ;
+    public static final int LOB_PUT_RESP = RESP_MASK | LOB_PUT_REQ;
 
     // fake OpCode for SysInfoHeader msg
     public static final int SYS_INFO_REQ = 0xFFFFFFFF;

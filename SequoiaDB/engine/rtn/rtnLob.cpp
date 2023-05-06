@@ -1378,7 +1378,7 @@ namespace engine
       }
 
       storage = env.getSU()->lob() ;
-      lobdPageSize = storage->getLobdPageSize() ;
+      lobdPageSize = env.getSU()->getLobPageSize() ;
       if ( lobdPageSize < bufferSize )
       {
          env.oprDone() ;
@@ -1496,7 +1496,7 @@ namespace engine
       rc = lobId.toByteArray( oidArray, UTIL_LOBID_ARRAY_LEN ) ;
       if ( SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Failed to get Byte array from lodId[%s]",
+         PD_LOG( PDERROR, "Failed to get Byte array from lodId[%s], rc=%d",
                  lobId.toString().c_str(), rc ) ;
          goto error ;
       }
