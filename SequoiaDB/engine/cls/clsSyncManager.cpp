@@ -660,8 +660,7 @@ namespace engine
          {
             continue ;
          }
-         else if ( 0 == itr->second->beat.endLsn.offset ||
-                   0 != itr->second->beat.getFTConfirmStat() ||
+         else if ( 0 != itr->second->beat.getFTConfirmStat() ||
                    SERVICE_NORMAL != itr->second->beat.serviceStatus )
          {
             continue ;
@@ -670,7 +669,7 @@ namespace engine
          {
             priIds[ priSub++ ].value = itr->first ;
          }
-         else
+         else if ( 0 != itr->second->beat.endLsn.offset )
          {
             secIds[ secSub++ ].value = itr->first ;
          }
