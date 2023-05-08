@@ -154,7 +154,8 @@ sequoiadb
 │   │   │   └── sequoiasql-postgresql.js
 │   │   ├── syncBusinessConf.js
 │   │   └── updateHostsInfo.js
-│   └── sdbcm.conf
+│   ├── sdbcm.conf
+│   └── sdbseadapter
 ├── CSharp
 │   └── sequoiadb.dll
 ├── doc

@@ -392,6 +392,7 @@ namespace engine
    #define PMD_OPTION_STANDALONE       "standalone"      // for om
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
+   #define PDM_OPTION_START_MODE       "start"
 
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE

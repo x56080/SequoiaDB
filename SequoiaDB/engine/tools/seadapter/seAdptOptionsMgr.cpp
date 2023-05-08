@@ -73,6 +73,7 @@ namespace seadapter
       ossMemset( _seService, 0, sizeof( _seService ) ) ;
       ossMemset( _seIdxPrefix, 0, sizeof( _seIdxPrefix ) ) ;
       ossMemset( _logPath, 0, sizeof( _logPath ) ) ;
+      ossMemset( _confPath, 0, sizeof( _confPath ) ) ;
       _diagLevel = PDWARNING ;
       _timeout = SEADPT_DFT_TIMEOUT ;
       _bulkBuffSize = SEADPT_DFT_BULKBUFF_SZ ;
@@ -142,6 +143,7 @@ namespace seadapter
             goto error ;
          }
       }
+      ossStrcpy( _confPath, cfgTempPath ) ;
 
       rc = utilBuildFullPath( cfgTempPath, SEADPT_CFG_FILE_NAME,
                               OSS_MAX_PATHSIZE, _cfgFileName ) ;

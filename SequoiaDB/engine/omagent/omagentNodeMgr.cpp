@@ -58,10 +58,12 @@ namespace engine
       _startNodeJob implement
    */
    _startNodeJob::_startNodeJob( const string &svcname,
+                                 SDB_TYPE nodeType,
                                  NODE_START_TYPE startType,
                                  _omAgentNodeMgr *pNodeMgr )
    {
       _svcName       = svcname ;
+      _nodeType      = nodeType;
       _startType     = startType ;
       _pNodeMgr      = pNodeMgr ;
 
@@ -103,7 +105,9 @@ namespace engine
 
    INT32 _startNodeJob::doit()
    {
-      INT32 rc = _pNodeMgr->startANode( _svcName.c_str(), _startType,
+      INT32 rc = _pNodeMgr->startANode( _svcName.c_str(),
+                                        _nodeType,
+                                        _startType,
                                         TRUE ) ;
       if ( SDB_OK == rc )
       {
@@ -199,14 +203,17 @@ namespace engine
       goto done ;
    }
 
-   INT32 runStartNodeJob( const string &svcname, NODE_START_TYPE startType,
-                          _omAgentNodeMgr *pNodeMgr, EDUID * pEDUID,
+   INT32 runStartNodeJob( const string &svcname,
+                          SDB_TYPE nodeType,
+                          NODE_START_TYPE startType,
+                          _omAgentNodeMgr *pNodeMgr,
+                          EDUID *pEDUID,
                           BOOLEAN returnResult )
    {
       INT32 rc = SDB_OK ;
       startNodeJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW startNodeJob( svcname, startType, pNodeMgr ) ;
+      pJob = SDB_OSS_NEW startNodeJob( svcname, nodeType, startType, pNodeMgr ) ;
       if ( !pJob )
       {
          PD_LOG( PDERROR, "Failed to alloc start node job" ) ;
@@ -319,7 +326,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       omAgentOptions *option = sdbGetOMAgentOptions() ;
-      vector< string > vecSvc ;
+      vector< string > dbVecSvc ;
+      vector< string > adaptVecSvc ;
       dbProcessInfo dbProcess ;
       BOOLEAN isRunning = FALSE ;
 
@@ -335,31 +343,60 @@ namespace engine
          goto error ;
       }
 
-      rc = omGetSvcListFromConfig( option->getLocalCfgPath(), vecSvc ) ;
+      rc = omGetSvcListFromConfig( option->getLocalCfgPath(), dbVecSvc ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get service list from config, "
                    "rc: %d", rc ) ;
 
       /// init process info
       _mapLatch.get() ;
-      for ( UINT32 i = 0 ; i < vecSvc.size() ; ++i )
+      for ( UINT32 i = 0 ; i < dbVecSvc.size() ; ++i )
       {
-         omCheckDBProcessBySvc( vecSvc[i].c_str(), isRunning,
+         omCheckProcessBySvc( dbVecSvc[i].c_str(), SDB_TYPE_DB, isRunning,
                                 dbProcess._pid ) ;
          if ( isRunning )
          {
             dbProcess._status = OMNODE_RUNNING ;
             PD_LOG( PDEVENT, "Detect Sequoiadb node[svcname = %s] already "
-                    "started, pid: %d", vecSvc[i].c_str(), dbProcess._pid ) ;
+                    "started, pid: %d", dbVecSvc[i].c_str(), dbProcess._pid ) ;
          }
-         _mapDBProcess[ vecSvc[i] ] = dbProcess ;
+         dbProcess._type = SDB_TYPE_DB ;
+         _mapDBProcess[ dbVecSvc[i] ] = dbProcess ;
          dbProcess.reset() ;
       }
       _mapLatch.release() ;
 
       /// init node guards
-      for ( UINT32 i = 0 ; i < vecSvc.size() ; ++i )
+      for ( UINT32 i = 0 ; i < dbVecSvc.size() ; ++i )
       {
-         addNodeGuard( vecSvc[i] ) ;
+         addNodeGuard( dbVecSvc[i] ) ;
+      }
+
+      rc = omGetSvcListFromConfig( option->getSEAdapterCfgPath(), adaptVecSvc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get service list from config, "
+                   "rc: %d", rc ) ;
+
+      // init seadapter process info
+      _mapLatch.get() ;
+      for ( UINT32 i = 0 ; i < adaptVecSvc.size() ; ++i )
+      {
+         omCheckProcessBySvc( adaptVecSvc[i].c_str(), SDB_TYPE_SEADAPTER, isRunning,
+                              dbProcess._pid ) ;
+         if ( isRunning )
+         {
+            dbProcess._status = OMNODE_RUNNING ;
+            PD_LOG( PDEVENT, "Detect seadapter node[svcname = %s] already "
+                    "started, pid: %d", adaptVecSvc[i].c_str(), dbProcess._pid ) ;
+         }
+         dbProcess._type = SDB_TYPE_SEADAPTER ;
+         _mapDBProcess[ adaptVecSvc[i] ] = dbProcess ;
+         dbProcess.reset() ;
+      }
+      _mapLatch.release() ;
+
+      // init seadapter node guards
+      for ( UINT32 i = 0 ; i < adaptVecSvc.size() ; ++i )
+      {
+         addSEAdaptNodeGuard( adaptVecSvc[i] ) ;
       }
 
    done:
@@ -424,7 +461,7 @@ namespace engine
          {
             continue ;
          }
-         rc = runStartNodeJob( pSvcName, startType, this, NULL, FALSE ) ;
+         rc = runStartNodeJob( pSvcName, pInfo->_type, startType, this, NULL, FALSE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Start startNodeJob failed, svcname = %s, rc: %d",
@@ -489,7 +526,7 @@ namespace engine
          addNodeGuard( svcname ) ;
          if ( NULL != _getNodeGuard( svcname.c_str() ) )
          {
-            addNodeProcessInfo( svcname ) ;
+            addNodeProcessInfo( svcname, SDB_TYPE_DB ) ;
          }
 
          releaseBucket( svcname ) ;
@@ -497,6 +534,37 @@ namespace engine
 
    done:
       return ;
+   }
+
+   void _omAgentNodeMgr::watchSEAdptNodes()
+   {
+      INT32 rc = SDB_OK ;
+      vector< string > vecNodes ;
+
+      rc = omGetSvcListFromConfig( sdbGetOMAgentOptions()->getSEAdapterCfgPath(), vecNodes ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      for ( UINT32 i = 0 ; i< vecNodes.size() ; i++ )
+      {
+         const string &svcname = vecNodes[ i ] ;
+         lockBucket( svcname ) ;
+
+         addSEAdaptNodeGuard( svcname ) ;
+         if( NULL != _getNodeGuard( svcname.c_str() ) )
+         {
+            addNodeProcessInfo( svcname, SDB_TYPE_SEADAPTER ) ;
+         }
+
+         releaseBucket( svcname ) ;
+      }
+
+   done:
+      return ;
+   error:
+      goto done ;
    }
 
    void _omAgentNodeMgr::monitorNodes()
@@ -546,7 +614,7 @@ namespace engine
             continue ;
          }
 
-         omCheckDBProcessBySvc( pSvcName, isRunning, pInfo->_pid ) ;
+         omCheckProcessBySvc( pSvcName, -1, isRunning, pInfo->_pid ) ;
          if ( isRunning )
          {
             // start by manual start
@@ -562,7 +630,7 @@ namespace engine
          // before we try to restart a node which _status is "restart" or
          // "crash", check whether it's cfg file exist or not, if not,
          // set it's _status to be "removing"
-         rc = _getCfgFile( pSvcName, cfgFile, OSS_MAX_PATHSIZE + 1 ) ;
+         rc = _getCfgFile( pSvcName, pInfo->_type, cfgFile, OSS_MAX_PATHSIZE + 1, TRUE ) ;
          if ( SDB_FNE == rc )
          {
             PD_LOG ( PDERROR, "Failed to get node[%s]'s cfg file: rc: %d",
@@ -606,7 +674,14 @@ namespace engine
          {
             pInfo->_status = OMNODE_NORMAL ;
             // check status by startup file
-            _checkNodeByStartupFile( pSvcName, pInfo ) ;
+            if ( SDB_TYPE_DB == pInfo->_type )
+            {
+               _checkNodeByStartupFile( pSvcName, pInfo ) ;
+            }
+            else if ( SDB_TYPE_SEADAPTER == pInfo->_type )
+            {
+               _checkSEAdaptByStartupFile( pSvcName, pInfo ) ;
+            }
          }
 
          // if crashed, start job
@@ -625,7 +700,7 @@ namespace engine
                        "Begin to restart", pSvcName,
                        OMNODE_CRASH == pInfo->_status ?
                        "crashed" : "start failed" ) ;
-               runStartNodeJob( pSvcName, NODE_START_MONITOR, this,
+               runStartNodeJob( pSvcName, pInfo->_type, NODE_START_MONITOR, this,
                                 NULL, FALSE ) ;
             }
             else if( !pInfo->_isDetected )
@@ -647,8 +722,67 @@ namespace engine
       }
    }
 
-   INT32 _omAgentNodeMgr::_getCfgFile( const CHAR *pSvcName,
-                                       CHAR *pBuffer, INT32 bufSize )
+   INT32 _omAgentNodeMgr::_getCfgPath( const CHAR *svcname,
+                                       SDB_TYPE nodeType,
+                                       CHAR *configPath,
+                                       UINT32 pathSize,
+                                       BOOLEAN getReal )
+   {
+      INT32 rc = SDB_OK ;
+
+      switch ( nodeType )
+      {
+         case SDB_TYPE_DB :
+         {
+            const CHAR *localCfgDir = sdbGetOMAgentOptions()->getLocalCfgPath() ;
+            rc = utilBuildFullPath( localCfgDir, svcname, pathSize,
+                                    configPath ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build config path "
+                         "[svcname: %s], rc: %d", svcname, rc ) ;
+            break ;
+         }
+         case SDB_TYPE_SEADAPTER :
+         {
+            const CHAR *seAdapterCfgPath = sdbGetOMAgentOptions()->getSEAdapterCfgPath() ;
+            // build conf/sdbseadapter/<port>
+            rc = utilBuildFullPath( seAdapterCfgPath, svcname,
+                                   OSS_MAX_PATHSIZE, configPath );
+            PD_RC_CHECK( rc, PDERROR, "Failed to build sdbseadapter config path "
+                         "from sdbseadapter path %s, rc: %d", seAdapterCfgPath, rc );
+            break ;
+         }
+         default:
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Unsupported type %s[%d]",
+                    utilDBTypeStr( nodeType ), nodeType ) ;
+            break ;
+         }
+      }
+
+      if ( getReal )
+      {
+         CHAR realPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+         if ( !ossGetRealPath( configPath, realPath, OSS_MAX_PATHSIZE ) )
+         {
+            PD_LOG( PDERROR, "Failed to get real path for %s", configPath ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         ossStrncpy( configPath, realPath, pathSize ) ;
+         configPath[ pathSize ] = '\0' ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _omAgentNodeMgr::_getCfgFile( const CHAR *pSvcName, SDB_TYPE nodeType,
+                                       CHAR *pBuffer, INT32 bufSize,
+                                       BOOLEAN checkExist )
    {
       INT32 rc = SDB_OK ;
       INT32 len = 0 ;
@@ -661,29 +795,63 @@ namespace engine
          goto error ;
       }
 
-      rc = utilBuildFullPath( sdbGetOMAgentOptions()->getLocalCfgPath(),
-                              pSvcName, OSS_MAX_PATHSIZE, cfgFile ) ;
-      if ( rc )
+      switch ( nodeType )
       {
-         PD_LOG( PDERROR, "Build node[%s] config path failed, rc: %d",
-                 pSvcName, rc ) ;
-         goto error ;
+         case SDB_TYPE_DB :
+         {
+            rc = utilBuildFullPath( sdbGetOMAgentOptions()->getLocalCfgPath(),
+                                    pSvcName, OSS_MAX_PATHSIZE, cfgFile ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Build node[%s] config path failed, rc: %d",
+                     pSvcName, rc ) ;
+               goto error ;
+            }
+            rc = utilCatPath( cfgFile, OSS_MAX_PATHSIZE, PMD_DFT_CONF ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Build node[%s] config path failed, rc: %d",
+                     pSvcName, rc ) ;
+               goto error ;
+            }
+            break ;
+
+         }
+         case SDB_TYPE_SEADAPTER :
+         {
+            const CHAR* seAdapterCfgPath          = sdbGetOMAgentOptions()->getSEAdapterCfgPath() ;
+            CHAR portPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+            // build conf/sdbseadapter/<port>
+            rc = utilBuildFullPath( seAdapterCfgPath, pSvcName,
+                                   OSS_MAX_PATHSIZE, portPath );
+            PD_RC_CHECK( rc, PDERROR, "Failed to build sdbseadapter config path "
+                                     "from sdbseadapter path %s, rc: %d", seAdapterCfgPath, rc );
+
+            // build conf/sdbseadapter/<port>/sdbseadapter.conf
+            rc = utilBuildFullPath( portPath, SEADPT_CFG_FILE_NAME,
+                                   OSS_MAX_PATHSIZE, cfgFile );
+            PD_RC_CHECK( rc, PDERROR, "Failed to build sdbseadapter config path "
+                                     "from sdbseadapter path %s, rc: %d", portPath, rc );
+            break ;
+         }
+
+         default:
+         {
+            break ;
+         }
+
       }
 
-      rc = utilCatPath( cfgFile, OSS_MAX_PATHSIZE, PMD_DFT_CONF ) ;
-      if ( rc )
+      if ( checkExist )
       {
-         PD_LOG( PDERROR, "Build node[%s] config path failed, rc: %d",
-                 pSvcName, rc ) ;
-         goto error ;
-      }
-
-      rc = ossAccess( cfgFile ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Access node[%s]'s cfg file failed, rc: %d",
-                 pSvcName, rc ) ;
-         goto error ;
+         rc = ossAccess( cfgFile ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Access node[%s]'s cfg file failed, rc: %d",
+                  pSvcName, rc ) ;
+            goto error ;
+         }
       }
 
       // get cfg file
@@ -712,7 +880,7 @@ namespace engine
          PMD_HIDDEN_COMMANDS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      rc = _getCfgFile( pSvcName, cfgFile, OSS_MAX_PATHSIZE + 1 ) ;
+      rc = _getCfgFile( pSvcName, pInfo->_type, cfgFile, OSS_MAX_PATHSIZE + 1, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Get node[%s] config path failed, rc: %d",
@@ -781,22 +949,67 @@ namespace engine
       return ;
    }
 
+   void _omAgentNodeMgr::_checkSEAdaptByStartupFile(const CHAR *pSvcName, dbProcessInfo *pInfo)
+   {
+      INT32 rc = SDB_OK;
+
+      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      rc = _getCfgPath( pSvcName, SDB_TYPE_SEADAPTER, cfgPath, OSS_MAX_PATHSIZE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build seadapter config path, rc: %d", rc ) ;
+
+      {
+         pmdStartup startUpFile;
+         rc = startUpFile.init( cfgPath, TRUE );
+         if ( rc )
+         {
+            if ( pInfo->_errNum != 4 )
+            {
+               PD_LOG( PDERROR, "Init startup file[%s] failed, rc: %d",
+                       cfgPath, rc );
+               pInfo->_errNum = 4;
+            }
+            goto done;
+         }
+
+         pInfo->_errNum = 0;
+
+         if ( startUpFile.needRestart() )
+         {
+            pInfo->_status = OMNODE_CRASH;
+         }
+      }
+
+   done:
+      return ;
+   error:
+      PD_LOG( PDERROR, "Get node[%s] config path failed, rc: %d",
+              pSvcName, rc );
+      pInfo->_status = OMNODE_REMOVING;
+      goto done;
+   }
+
    INT32 _omAgentNodeMgr::startANode( const CHAR *svcname,
+                                      SDB_TYPE nodeType,
                                       NODE_START_TYPE type,
                                       BOOLEAN needLock )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasLock = FALSE ;
-      const CHAR *pLocalCfgDir = sdbGetOMAgentOptions()->getLocalCfgPath() ;
       CHAR  cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      const CHAR *startTool = NULL ;
       dbProcessInfo *pInfo = NULL ;
       time_t now ;
       time( &now ) ;
 
-      rc = utilBuildFullPath( pLocalCfgDir, svcname, OSS_MAX_PATHSIZE,
-                              cfgPath ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build config path[svcname: %s], "
-                   "rc: %d", svcname, rc ) ;
+      rc = _getCfgPath( svcname, nodeType, cfgPath, OSS_MAX_PATHSIZE, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build config path for type %s, "
+                               "svcname: %s, rc: %d", utilDBTypeStr( nodeType ),
+                  svcname, rc ) ;
+
+      startTool = _getStartTool( nodeType ) ;
+      PD_CHECK( NULL != startTool, SDB_SYS, error, PDERROR, "Failed to get "
+                "start tool for type %s", utilDBTypeStr( nodeType ) ) ;
 
       if ( needLock )
       {
@@ -811,6 +1024,13 @@ namespace engine
          goto error ;
       }
 
+      // let check start node type is the same with pInfo->_type
+      // if not the same, start node failed
+      PD_CHECK( pInfo->_type == nodeType, SDB_CM_RUN_NODE_FAILED, error, PDERROR,
+                "Node type of service %s is different, expected %s, given %s",
+                svcname, utilDBTypeStr( pInfo->_type ),
+                utilDBTypeStr( nodeType ) ) ;
+
       if ( OMNODE_RUNNING == pInfo->_status )
       {
          if ( OSS_INVALID_PID != pInfo->_pid &&
@@ -823,7 +1043,7 @@ namespace engine
          {
             BOOLEAN isRunning = FALSE ;
             // check is running
-            omCheckDBProcessBySvc( svcname, isRunning, pInfo->_pid ) ;
+            omCheckProcessBySvc( svcname, -1, isRunning, pInfo->_pid ) ;
 
             if ( isRunning )
             {
@@ -839,9 +1059,23 @@ namespace engine
       }
 
       // start node
-      rc = omStartDBNode( sdbGetOMAgentOptions()->getStartProcFile(),
-                          cfgPath, svcname, pInfo->_pid,
-                          sdbGetOMAgentOptions()->isUseCurUser() ) ;
+      if ( SDB_TYPE_DB == nodeType )
+      {
+         rc = omStartDBNode( startTool, cfgPath, svcname, pInfo->_pid,
+                             sdbGetOMAgentOptions()->isUseCurUser() ) ;
+      }
+      else if ( SDB_TYPE_SEADAPTER == nodeType )
+      {
+         rc = omStartSEAdaptNode( startTool, cfgPath, svcname, pInfo->_pid,
+                                  sdbGetOMAgentOptions()->isUseCurUser() ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to start unsupport node type: %s", utilDBTypeStr( nodeType ) ) ;
+         rc = SDB_CM_RUN_NODE_FAILED ;
+         goto error ;
+      }
+
       if ( SDB_OK == rc )
       {
          pInfo->_errNum = 0 ;
@@ -885,8 +1119,14 @@ namespace engine
 
       pInfo = getNodeProcessInfo( svcname ) ;
       /*
-         When NULL == pInfo, we can stop other sequoaidb
+         When NULL == pInfo, we can stop other sequoaidb,
+         not support oma stop adapter for now
       */
+      if ( SDB_TYPE_SEADAPTER == pInfo->_type )
+      {
+         rc = SDB_CM_OP_NODE_FAILED ;
+         goto error ;
+      }
 
       rc = omStopDBNode( sdbGetOMAgentOptions()->getStopProcFile(),
                          svcname, force ) ;
@@ -917,7 +1157,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::addNodeProcessInfo( const string &svcname )
+   INT32 _omAgentNodeMgr::addNodeProcessInfo( const string &svcname, SDB_TYPE nodeType )
    {
       INT32 rc = SDB_OK ;
       _mapLatch.get() ;
@@ -929,6 +1169,7 @@ namespace engine
       else
       {
          dbProcessInfo info ;
+         info._type = nodeType ;
          _mapDBProcess[ svcname ] = info ;
       }
       _mapLatch.release() ;
@@ -1002,6 +1243,36 @@ namespace engine
       {
          goto error ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _omAgentNodeMgr::addSEAdaptNodeGuard( const string &svcname )
+   {
+      INT32 rc                                 = SDB_OK ;
+      CHAR portPath[ OSS_MAX_PATHSIZE + 1 ]    = { 0 } ;
+      CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      omaNodePathGuard nodeGuard ;
+
+      // build conf/sdbseadapter/<port>
+      rc = utilBuildFullPath( sdbGetOMAgentOptions()->getSEAdapterCfgPath(), svcname.c_str(),
+                              OSS_MAX_PATHSIZE, portPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build sdbseadapter config path "
+                   "from sdbseadapter path %s, rc: %d",
+                   sdbGetOMAgentOptions()->getSEAdapterCfgPath(), rc ) ;
+
+      // build conf/sdbseadapter/<port>/sdbseadapter.conf
+      rc = utilBuildFullPath( portPath, SEADPT_CFG_FILE_NAME,
+                              OSS_MAX_PATHSIZE, cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build sdbseadapter config path "
+                   "from sdbseadapter path %s, rc: %d", portPath, rc ) ;
+
+      nodeGuard.initSEAdapter( svcname.c_str(), cfgFileName ) ;
+      addNodeGuard( nodeGuard ) ;
 
    done:
       return rc ;
@@ -1398,7 +1669,7 @@ namespace engine
       {
          if ( !isModify )
          {
-            addNodeProcessInfo( pSvcName ) ;
+            addNodeProcessInfo( pSvcName, SDB_TYPE_DB ) ;
             addNodeGuard( nodeGuard ) ;
             PD_LOG( PDEVENT, "Add node[%s] succeed", pSvcName ) ;
          }
@@ -1640,7 +1911,7 @@ namespace engine
          goto error ;
       }
 
-      rc = startANode( pSvcName, NODE_START_CLIENT, TRUE ) ;
+      rc = startANode( pSvcName, SDB_TYPE_DB, NODE_START_CLIENT, TRUE ) ;
       if ( SDBCM_SVC_STARTED == rc )
       {
          PD_LOG( PDERROR, "Node[%s] has already started", pSvcName ) ;
@@ -1891,6 +2162,32 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   const CHAR *_omAgentNodeMgr::_getStartTool( SDB_TYPE nodeType )
+   {
+      const CHAR *startTool = NULL;
+
+      switch ( nodeType )
+      {
+         case SDB_TYPE_DB:
+         {
+            startTool = sdbGetOMAgentOptions()->getStartProcFile();
+            break;
+         }
+         case SDB_TYPE_SEADAPTER:
+         {
+            startTool = sdbGetOMAgentOptions()->getSEAdaptProcFile() ;
+            break;
+         }
+         default:
+         {
+            PD_LOG(PDERROR, "Unsupported type %s[%d]",
+                  utilDBTypeStr(nodeType), nodeType);
+            break;
+         }
+      }
+      return startTool;
    }
 }
 

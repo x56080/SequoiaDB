@@ -74,12 +74,14 @@ namespace engine
       deque< time_t >      _startTime ;
       INT32                _errNum ;
       BOOLEAN              _isDetected ;
+      SDB_TYPE             _type ;
       _dbProcessInfo()
       {
          _pid        = OSS_INVALID_PID ;
          _status     = OMNODE_NORMAL ;
          _errNum     = 0 ;
          _isDetected = FALSE ;
+         _type       = SDB_TYPE_DB ;
       }
 
       void reset()
@@ -108,7 +110,9 @@ namespace engine
    class _startNodeJob : public _rtnBaseJob
    {
       public:
-         _startNodeJob( const string &svcname, NODE_START_TYPE startType,
+         _startNodeJob( const string &svcname,
+                        SDB_TYPE nodeType,
+                        NODE_START_TYPE startType,
                         _omAgentNodeMgr *pNodeMgr ) ;
          virtual ~_startNodeJob() ;
 
@@ -122,6 +126,7 @@ namespace engine
 
       private:
          string               _svcName ;
+         SDB_TYPE             _nodeType ;
          NODE_START_TYPE      _startType ;
          _omAgentNodeMgr      *_pNodeMgr ;
          string               _jobName ;
@@ -155,7 +160,8 @@ namespace engine
    } ;
    typedef _stopNodeJob stopNodeJob ;
 
-   INT32 runStartNodeJob ( const string &svcname,
+   INT32 runStartNodeJob( const string &svcname,
+                           SDB_TYPE nodeType,
                            NODE_START_TYPE startType,
                            _omAgentNodeMgr *pNodeMgr,
                            EDUID *pEDUID = NULL,
@@ -227,6 +233,10 @@ namespace engine
             Watch the nodes that create by user created manually
          */
          void     watchManualNodes() ;
+         /*
+            Watch the seadapter node that create by user created manually
+         */
+         void     watchSEAdptNodes() ;
 
          // remote process functions
          INT32    addANode( const CHAR *arg1, const CHAR *arg2,
@@ -245,15 +255,19 @@ namespace engine
 
       public:
 
-         INT32    addNodeProcessInfo( const string &svcname ) ;
+         INT32    addNodeProcessInfo( const string &svcname,
+                                      SDB_TYPE nodeType ) ;
          INT32    delNodeProcessInfo( const string &svcname ) ;
          dbProcessInfo* getNodeProcessInfo( const string &svcname ) ;
 
          INT32    addNodeGuard( _omaNodePathGuard &nodeGuard ) ;
          INT32    addNodeGuard( const string &svcname ) ;
+         INT32    addSEAdaptNodeGuard( const string &svcname ) ;
          INT32    delNodeGuard( const string &svcname ) ;
 
-         INT32    startANode( const CHAR *svcname, NODE_START_TYPE type,
+         INT32    startANode( const CHAR *svcname,
+                              SDB_TYPE nodeType,
+                              NODE_START_TYPE type,
                               BOOLEAN needLock ) ;
          INT32    stopANode( const CHAR *svcname, NODE_START_TYPE type,
                              BOOLEAN needLock, BOOLEAN force = FALSE ) ;
@@ -270,11 +284,24 @@ namespace engine
 
          const CHAR* _getSvcNameFromArg( const CHAR *arg ) ;
 
-         INT32 _getCfgFile( const CHAR *pSvcName,
-                            CHAR *pBuffer, INT32 bufSize ) ;
+         INT32    _getCfgPath( const CHAR *svcname,
+                               SDB_TYPE nodeType,
+                               CHAR *configPath,
+                               UINT32 pathSize,
+                               BOOLEAN getReal ) ;
+
+         INT32    _getCfgFile( const CHAR *pSvcName,
+                               SDB_TYPE nodeType,
+                               CHAR *pBuffer,
+                               INT32 bufSize,
+                               BOOLEAN checkExist ) ;
+
+         const CHAR *_getStartTool(SDB_TYPE nodeType);
 
          void     _checkNodeByStartupFile( const CHAR *pSvcName,
                                            dbProcessInfo *pInfo ) ;
+         void     _checkSEAdaptByStartupFile( const CHAR *pSvcName,
+                                              dbProcessInfo *pInfo ) ;
 
          _omaNodePathGuard*      _getNodeGuard( const CHAR *svcname ) ;
 

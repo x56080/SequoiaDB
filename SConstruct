@@ -517,7 +517,7 @@ def findVersion( root , choices ):
 
 
 env.Append(
-CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
+CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(engine_dir,'tools/seadapter'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
          join(snappy_dir,'include'),join(gtest_dir,'include'),
          pcre_dir, boost_dir, ssh2_dir] )

@@ -37,6 +37,7 @@
 #include "core.hpp"
 #include "ossUtil.hpp"
 #include "omagentDef.hpp"
+#include "seAdptDef.hpp"
 
 #include <string>
 #include <vector>
@@ -90,12 +91,19 @@ namespace engine
                                 const CHAR *pServiceName,
                                 BOOLEAN force = FALSE ) ;
 
+   INT32          omStartSEAdaptNode( const CHAR *pExecName,
+                                      const CHAR *pCfgPath,
+                                      const CHAR *pSvcName,
+                                      OSSPID &pid,
+                                      BOOLEAN useCurUser = FALSE ) ;
+
    INT32          omGetSvcListFromConfig( const CHAR *pCfgRootDir,
                                           vector< string > &svcList ) ;
 
-   INT32          omCheckDBProcessBySvc( const CHAR *svcname,
-                                         BOOLEAN &isRuning,
-                                         OSSPID &pid ) ;
+   INT32          omCheckProcessBySvc( const CHAR *svcname,
+                                       INT32 typeFilter,
+                                       BOOLEAN &isRuning,
+                                       OSSPID &pid ) ;
 
    string         omPickNodeOutString( const string &out,
                                        const CHAR *pSvcname ) ;

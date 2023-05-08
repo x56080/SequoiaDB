@@ -252,7 +252,7 @@ def package_db(opt_mgr, ver):
             'lib', 'license', 'packet', 'postgresql', 'python', 'samples', 'tools/server/php',
             'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'tools/upgrade', 'web',
             'www', 'spark', 'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp',
-            'tools/script']
+            'tools/script', 'conf/sdbseadapter']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
 

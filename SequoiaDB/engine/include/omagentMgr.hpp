@@ -71,11 +71,14 @@ namespace engine
          INT32    init ( const CHAR *pRootPath ) ;
          INT32    save () ;
 
+         const CHAR* getCfgPath() const { return _cfgPath ; }
          const CHAR* getCfgFileName() const { return _cfgFileName ; }
          const CHAR* getLocalCfgPath() const { return _localCfgPath ; }
          const CHAR* getScriptPath() const { return _scriptPath ; }
+         const CHAR* getSEAdapterCfgPath() const { return _seAdapterCfgPath ; }
          const CHAR* getStartProcFile() const { return _startProcFile ; }
          const CHAR* getStopProcFile() const { return _stopProcFile ; }
+         const CHAR* getSEAdaptProcFile() const { return _seAdaptProcFile ; }
 
          const CHAR* getCMServiceName() const { return _cmServiceName ; }
          const CHAR* getOMAddress() const { return _omAddress ; }
@@ -134,11 +137,14 @@ namespace engine
          // enable watch sequoiadb node, default TRUE
          BOOLEAN                    _enableWatch ;
 
+         CHAR                       _cfgPath[ OSS_MAX_PATHSIZE +1 ] ;
          CHAR                       _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _localCfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _scriptPath[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _seAdapterCfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _startProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _stopProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _seAdaptProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
 
          UINT16                     _localPort ;
 

@@ -78,6 +78,33 @@ namespace seadapter
       goto done ;
    }
 
+   static INT32 _pmdSystemInit( const CHAR *confPath )
+   {
+      INT32 rc                 = SDB_OK ;
+      BOOLEAN bOk              = TRUE ;
+      SDB_START_TYPE startType = SDB_START_NORMAL ;
+
+      SDB_ASSERT( NULL != confPath, "config path is invalid" ) ;
+
+      // analysis the start type
+      rc = pmdGetStartup().init( confPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check start up file [%s], "
+                   "rc: %d", confPath, rc ) ;
+
+      startType = pmdGetStartup().getStartType() ;
+      bOk = pmdGetStartup().isOK() ;
+
+      PD_LOG( PDEVENT, "Start up from %s, data is %s",
+              pmdGetStartTypeStr( startType ),
+              bOk ? "normal" : "abnormal" ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 buildDialogPath( CHAR *dialogPath )
    {
       // Create the log file directory.
@@ -171,6 +198,8 @@ namespace seadapter
       CHAR dialogPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::variables_map vm ;
 
+      pmdSetDBRole( SDB_ROLE_SEADAPTER ) ;
+
       rc = pmdResolveArguments( argc, argv ) ;
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
@@ -224,6 +253,13 @@ namespace seadapter
       rc = sdbGetSystemPipeManager()->init( sdbGetSeAdptOptions()->getSvcName(), FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, rc: %d", rc ) ;
 
+      // system init
+      rc = _pmdSystemInit( sdbGetSeAdptOptions()->getConfPath() ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Initialize krcb failed[ %d ]", rc ) ;
 
@@ -269,6 +305,11 @@ namespace seadapter
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy() ;
+      if ( krcb->needRestart() )
+      {
+         pmdGetStartup().restart( TRUE, rc ) ;
+      }
+      pmdGetStartup().final() ;
       pmdDisableSignalEvent() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;

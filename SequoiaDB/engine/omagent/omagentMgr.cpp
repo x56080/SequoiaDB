@@ -69,6 +69,9 @@ namespace engine
       ossMemset( _startProcFile, 0, sizeof( _startProcFile ) ) ;
       ossMemset( _stopProcFile, 0, sizeof( _stopProcFile ) ) ;
       ossMemset( _omAddress, 0, sizeof( _omAddress ) ) ;
+      ossMemset( _cfgPath, 0, sizeof( _cfgPath ) ) ;
+      ossMemset( _seAdapterCfgPath, 0, sizeof( _seAdapterCfgPath ) ) ;
+      ossMemset( _seAdaptProcFile, 0, sizeof( _seAdaptProcFile ) ) ;
 
       _localPort           = 0 ;
 
@@ -176,6 +179,33 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Root path is too long: %s", pRootPath ) ;
+         goto error ;
+      }
+
+      // build sdbseadapter start program file path
+      rc = utilBuildFullPath( pRootPath, SDBSEACTL,
+                              OSS_MAX_PATHSIZE, _seAdaptProcFile );
+      if (rc)
+      {
+         PD_LOG(PDERROR, "Root path is too long: %s", pRootPath);
+         goto error;
+      }
+
+      // build conf/
+      rc = utilBuildFullPath( pRootPath, SDB_CM_ROOT_PATH, OSS_MAX_PATHSIZE,
+                              _cfgPath ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Root path is too long: %s", pRootPath ) ;
+         goto error ;
+      }
+
+      // build conf/sdbseadapter
+      rc = utilBuildFullPath( _cfgPath, SEADPT_EXE_FILE_NAME, OSS_MAX_PATHSIZE,
+                              _seAdapterCfgPath ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "conf path is too long: %s", _cfgPath ) ;
          goto error ;
       }
 
@@ -975,6 +1005,7 @@ namespace engine
       else if ( _watchAndCleanTimer == timerID )
       {
          _nodeMgr.watchManualNodes() ;
+         _nodeMgr.watchSEAdptNodes() ;
          _nodeMgr.cleanDeadNodes() ;
       }
       else if ( _immediatelyTimer == timerID )

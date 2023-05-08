@@ -43,6 +43,8 @@
 #include "ossSocket.hpp"
 #include "utilCommon.hpp"
 #include "ossCmdRunner.hpp"
+#include "utilOptions.hpp"
+#include "utilParam.hpp"
 
 namespace engine
 {
@@ -478,6 +480,104 @@ namespace engine
       goto done ;
    }
 
+   INT32 omStartSEAdaptNode( const CHAR *pExecName,
+                             const CHAR *pCfgPath,
+                             const CHAR *pSvcName,
+                             OSSPID &pid,
+                             BOOLEAN useCurUser )
+   {
+      INT32 rc     = SDB_OK ;
+      UINT32 exit  = 0 ;
+      ossCmdRunner runner ;
+      string cmdline ;
+
+      // verify the configuration file
+      rc = ossAccess ( pCfgPath ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Can not access the configure file: %s", pCfgPath ) ;
+         goto error ;
+      }
+
+      cmdline += pExecName ;
+      cmdline += " " ;
+      cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_MODE ;
+      cmdline += " " ;
+      cmdline += PDM_OPTION_START_MODE ;
+      cmdline += " " ;
+      cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_SVCNAME ;
+      cmdline += " " ;
+      cmdline += pSvcName ;
+#if defined( _LINUX )
+      cmdline += " " ;
+      cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_IGNOREULIMIT ;
+#endif
+
+      if ( useCurUser )
+      {
+         cmdline += " " ;
+         cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CURUSER ;
+      }
+
+      // start with backgrand
+      rc = runner.exec( cmdline.c_str(), exit, FALSE, OSS_ONE_SEC * 900 ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to execute command[%s], rc: %d",
+                  cmdline.c_str(), rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK == exit )
+      {
+         UTIL_VEC_NODES nodes ;
+         rc = utilListNodes( nodes, SDB_TYPE_SEADAPTER, pSvcName ) ;
+
+         if ( SDB_OK == rc && nodes.size() > 0 )
+         {
+            pid = (*nodes.begin())._pid ;
+            goto done ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "List node[%s] failed", pSvcName ) ;
+            rc = SDBCM_FAIL ;
+         }
+      }
+      else
+      {
+         rc = utilShellRC2RC( exit ) ;
+      }
+
+      if ( rc )
+      {
+         string outString ;
+         runner.read( outString ) ;
+         string nodeOut = omPickNodeOutString( outString, pSvcName ) ;
+
+         if ( nodeOut.length() < PD_LOG_STRINGMAX - 100 )
+         {
+            PD_LOG( PDERROR, "node[%s] start[cmd: %s] failed, "
+                    "out info:===>%s%s%s<===", pSvcName,
+                    cmdline.c_str(), OSS_NEWLINE, nodeOut.c_str(),
+                    OSS_NEWLINE ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "node[%s] start[cmd: %s] failed, "
+                    "out info:===>", pSvcName,
+                    cmdline.c_str() ) ;
+            PD_LOG_RAW( PDERROR, nodeOut.c_str() ) ;
+            PD_LOG_RAW( PDERROR, OSS_NEWLINE"<==="OSS_NEWLINE OSS_NEWLINE ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omGetSvcListFromConfig( const CHAR * pCfgRootDir,
                                  vector < string > &svcList )
    {
@@ -497,15 +597,16 @@ namespace engine
       goto done ;
    }
 
-   INT32 omCheckDBProcessBySvc( const CHAR *svcname,
-                                BOOLEAN &isRuning,
-                                OSSPID &pid )
+   INT32 omCheckProcessBySvc( const CHAR *svcname,
+                              INT32 typeFilter,
+                              BOOLEAN &isRuning,
+                              OSSPID &pid )
    {
       INT32 rc = SDB_OK ;
       isRuning = FALSE ;
       UTIL_VEC_NODES nodes ;
 
-      rc = utilListNodes( nodes, -1, svcname ) ;
+      rc = utilListNodes( nodes, typeFilter, svcname ) ;
       if ( SDB_OK == rc && nodes.size() > 0 &&
            SDB_TYPE_OMA != (*nodes.begin())._type )
       {

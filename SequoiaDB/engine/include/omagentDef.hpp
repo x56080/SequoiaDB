@@ -103,10 +103,12 @@ namespace engine
       #define SDBSTARTPROG             "sdbstart"
       #define SDBSTOPPROG              "sdbstop"
       #define SDBSDBCMPROG             SDBCM_EXE_FILE_NAME
+      #define SDBSEACTL                "sdbseactl"
 #elif defined (_WINDOWS)
       #define SDBSTARTPROG             "sdbstart.exe"
       #define SDBSTOPPROG              "sdbstop.exe"
       #define SDBSDBCMPROG             SDBCM_EXE_FILE_NAME".exe"
+      #define SDBSEACTL                "sdbseactl.exe"
 #endif
 
    #define SDB_OMA_USER                "OMA_ADMIN"
