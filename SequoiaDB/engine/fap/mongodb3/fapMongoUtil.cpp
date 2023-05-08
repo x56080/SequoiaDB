@@ -524,5 +524,13 @@ error :
    goto done ;
 }
 
+std::string mongoGetNonce()
+{
+   const UINT64 n = 0 ;
+   std::stringstream ss ;
+   ss << std::hex << n ;
+   return ss.str() ;
+}
+
 }
 

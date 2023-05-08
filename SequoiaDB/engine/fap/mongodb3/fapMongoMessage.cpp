@@ -243,7 +243,24 @@ INT32 _mongoQueryRequest::init( const CHAR* pMsg )
 done:
    if ( SDB_OK == rc )
    {
-      _isInitialized = TRUE ;
+      /// compitable with $query
+      try
+      {
+         BSONObj queryObj( _pQuery ) ;
+         BSONElement e = queryObj.firstElement() ;
+         if ( Object == e.type() &&
+              0 == ossStrcmp( e.fieldName(), FAP_MONGO_FIELD_NAME_CMDQUERY ) )
+         {
+            BSONObj subObj = e.embeddedObject() ;
+            _pQuery = subObj.objdata() ;
+         }
+         _isInitialized = TRUE ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+      }
    }
    return rc ;
 error:

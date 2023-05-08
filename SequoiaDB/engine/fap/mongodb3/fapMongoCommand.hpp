@@ -1005,6 +1005,53 @@ class _mongoIsmasterCommand : public mongoIsMasterCommand
 } ;
 typedef _mongoIsmasterCommand mongoIsmasterCommand ;
 
+class _mongoPingCommand : public _mongoGlobalCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoPingCommand() {}
+      virtual ~_mongoPingCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_PING ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_PING ; }
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+} ;
+typedef _mongoPingCommand mongoPingCommand ;
+
+class _mongoGetnonceCommand : public _mongoGlobalCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoGetnonceCommand() {}
+      virtual ~_mongoGetnonceCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_GET_NONCE ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_GETNONCE ; }
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+} ;
+typedef _mongoGetnonceCommand mongoGetnonceCommand ;
+
+class _mongoGetNonceCommand : public _mongoGetnonceCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoGetNonceCommand() {}
+      virtual ~_mongoGetNonceCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_GETNONCE ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAMEGETNONCE ; }
+
+} ;
+typedef _mongoGetNonceCommand mongoGetNonceCommand ;
+
 class _mongoBuildInfoCommand : public _mongoGlobalCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()

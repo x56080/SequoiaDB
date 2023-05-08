@@ -88,6 +88,8 @@ enum MONGO_CMD_TYPE
    CMD_GET_LAST_ERROR   = 97,
    CMD_REPL_STAT        = 98,
    CMD_GET_CMD_LINE     = 99,
+   CMD_GET_NONCE        = 100,
+   CMD_GETNONCE         = 101,
 
    CMD_UNKNOWN          = 65535
 } ;
@@ -123,6 +125,8 @@ const CHAR* const MONGO_CMD_NAME_ISMASTER =          "ismaster" ;
 const CHAR* const MONGO_CMD_NAME_WHATS_MY_URI =      "whatsmyuri" ;
 const CHAR* const MONGO_CMD_NAME_BUILDINFO =         "buildinfo" ;
 const CHAR* const MONGO_CMD_NAME_BUILD_INFO =        "buildInfo" ;
+const CHAR* const MONGO_CMD_NAME_GETNONCE =          "getnonce" ;
+const CHAR* const MONGO_CMD_NAMEGETNONCE =           "getNonce" ;
 const CHAR* const MONGO_CMD_NAME_GET_LOG =           "getLog" ;
 const CHAR* const MONGO_CMD_NAME_PING =              "ping" ;
 const CHAR* const MONGO_CMD_NAME_LOGTOUT =           "logout" ;

@@ -42,6 +42,7 @@ namespace fap
 {
 
 #define FAP_MONGO_FIELD_NAME_CMD             ".$cmd"
+#define FAP_MONGO_FIELD_NAME_CMDQUERY        "$query"
 #define FAP_MONGO_FIELD_NAME_DOCUMENTS       "documents"
 #define FAP_MONGO_FIELD_NAME_DELETES         "deletes"
 #define FAP_MONGO_FIELD_NAME_UPDATES         "updates"

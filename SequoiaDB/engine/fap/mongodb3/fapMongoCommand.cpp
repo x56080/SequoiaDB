@@ -698,7 +698,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
       if ( ptr )
       {
          BSONObj obj( req.query() ) ;
-         pCommandName = obj.firstElementFieldName() ;
+         pCommandName = obj.firstElement().fieldName() ;
       }
       else
       {
@@ -802,7 +802,7 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       BSONObj obj = BSONObj( pReq->query() ) ;
-      const CHAR* pCommandName = obj.firstElementFieldName() ;
+      const CHAR* pCommandName = obj.firstElement().fieldName() ;
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
@@ -6868,6 +6868,74 @@ INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* pClientName,
       }
       pCurStr = ossStrtok( pLastParsed, ".", &pLastParsed ) ;
       i++ ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoPingCommand)
+INT32 _mongoPingCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                          engine::rtnContextBuf &replyBuf,
+                                          _mongoResponseBuffer &resHeader )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder builder ;
+      builder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      replyBuf = engine::rtnContextBuf( builder.obj() ) ;
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, replyBuf, resHeader ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetnonceCommand)
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetNonceCommand)
+INT32 _mongoGetnonceCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &replyBuf,
+                                              _mongoResponseBuffer &resHeader )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder builder ;
+      builder.append( "nonce", mongoGetNonce() ) ;
+      builder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      replyBuf = engine::rtnContextBuf( builder.obj() ) ;
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, replyBuf, resHeader ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
    }
 
 done:
