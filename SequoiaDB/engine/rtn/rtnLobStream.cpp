@@ -1581,7 +1581,7 @@ namespace engine
       ossMemcpy( _fullName, fullName, ossStrlen( fullName ) ) ;
       ossMemcpy( &_oid, &oid, sizeof( oid ) ) ;
       _mode = SDB_LOB_MODE_CREATEONLY ;
-      _opType = MON_LOB_PUT ;
+      _opType = MON_LOB_OP_PUT ;
 
       rc = _prepareToPut( size, cb ) ;
       if ( SDB_OK != rc )

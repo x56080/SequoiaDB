@@ -4718,6 +4718,12 @@ do                                                            \
          goto error ;
       }
 
+      if ( LOB_PUT_MAX_LEN < size )
+      {
+         rc = _putLargeLob( size, data, oid ) ;
+         goto done ;
+      }
+
       try
       {
          bson::BSONObjBuilder bb ;
@@ -4790,6 +4796,41 @@ do                                                            \
       }
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::_putLargeLob( UINT32 size,
+                                           const CHAR *data,
+                                           bson::OID &oid )
+   {
+      INT32 rc     = SDB_OK ;
+      _sdbLob *lob = NULL ;
+
+      rc = createLob( &lob, &oid );
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      rc = lob->write( data, size ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      rc = lob->close() ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      oid = lob->getOid() ;
+
+   done:
+      return rc ;
+   error:
+      // in SDB_LOB_CREATEONLY mode, if the lob write or close fails, the created lob
+      // will be automatically rolled back and deleted
       goto done ;
    }
 

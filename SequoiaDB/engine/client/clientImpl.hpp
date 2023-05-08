@@ -224,6 +224,10 @@ namespace sdbclient
       INT32 _createLob( _sdbLob **lob, const bson::OID *oid,
                         BOOLEAN *isOldVersionLobServer = NULL ) ;
 
+      INT32 _putLargeLob( UINT32 size,
+                          const CHAR *data,
+                          bson::OID &oid ) ;
+
 #if defined CLIENT_THREAD_SAFE
       void lock ()
       {

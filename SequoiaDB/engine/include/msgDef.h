@@ -1153,7 +1153,8 @@ enum AUTH_TYPE
    SDB_AUTH_TYPE_EXTEND_PWD
 } ;
 
-#define SDB_LOB_OID_LEN                      16
+#define SDB_LOB_OID_LEN                   16
+#define LOB_PUT_MAX_LEN                   (255*1024) // 256KB(default lobPagesize) - 1KB(meta data)
 
 #define SDB_SHARDING_PARTITION_DEFAULT    4096       // 2^12
 #define SDB_SHARDING_PARTITION_MIN        8          // 2^3

@@ -45,8 +45,6 @@ using namespace sdbclient ;
 namespace engine
 {
    #define LOB_BUFFER_LEN  (2*1024*1024)
-   // 256KB(default lobPagesize) - 1KB(meta data)
-   #define PUT_LOB_MAX_LEN  (255*1024)
    #define SPT_CL_NAME  "SdbCollection"
    #define SPT_OID_STR_LENGTH 24
 
@@ -2107,7 +2105,7 @@ namespace engine
          goto error ;
       }
 
-      if ( PUT_LOB_MAX_LEN < fileSize )
+      if ( LOB_PUT_MAX_LEN < fileSize )
       {
          detail = BSON( SPT_ERR << "The file content exceeds 255KB" ) ;
          rc = SDB_INVALIDSIZE ;

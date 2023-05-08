@@ -1333,13 +1333,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNPUTLOB ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      CHAR *buf = NULL ;
-      UINT32 bufferSize = size + DMS_LOB_META_LENGTH ;
-      dmsLobMeta *lobMeta = NULL ;
+      CHAR *buf              = NULL ;
+      UINT32 bufferSize      = size + DMS_LOB_META_LENGTH ;
+      dmsLobMeta *lobMeta    = NULL ;
       dmsLobRecord lobRecord ;
-      UINT32 lobdPageSize = 0 ;
+      UINT32 lobdPageSize    = 0 ;
       dmsStorageLob *storage = NULL ;
       bson::BSONObjBuilder builder ;
+      monAppCB *pMonAppCB    = cb->getMonAppCB() ;
+      monAppCB beginMonApp   = *pMonAppCB ;
+      monAppCB deltaMonApp ;
 
       rtnLobEnv env( fullName, cb ) ;
 
@@ -1429,8 +1432,28 @@ namespace engine
 
       buffObj = rtnContextBuf( builder.obj() ) ;
 
+      RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+      RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, size ) ;
+      deltaMonApp = *pMonAppCB - beginMonApp ;
+
+      if ( env.getMBContext()->mbStat() )
+      {
+         // submit the change to cl snapshot
+         env.getMBContext()->mbStat()->_crudCB.incMetrics( deltaMonApp ) ;
+      }
       env.oprDone() ;
-   
+
+      if ( pMonAppCB->mondbcb )
+      {
+         // submit the change to database snapshot
+         pMonAppCB->mondbcb->incMetrics( deltaMonApp ) ;
+      }
+      if ( pMonAppCB->getSvcTaskInfo() )
+      {
+         // submit the change to task snapshot
+         pMonAppCB->getSvcTaskInfo()->incMetrics( deltaMonApp ) ;
+      }
+
       if ( NULL != dpsCB )
       {
          dpsCB->completeOpr( cb, w ) ;

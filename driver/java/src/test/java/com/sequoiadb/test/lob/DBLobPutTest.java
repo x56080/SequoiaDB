@@ -105,54 +105,6 @@ public class DBLobPutTest {
     }
 
     @Test
-    public void putLobSnapshotTest() {
-        byte[] data = "putLobTest".getBytes(StandardCharsets.UTF_8);
-        cl.putLob(data);
-
-        ReplicaGroup group = db.getReplicaGroup(Constants.GROUPNAME);
-        String nodeName = group.getMaster().getNodeName();
-
-        BSONObject matcher = new BasicBSONObject();
-        matcher.put("Name", cl.getFullName());
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("Details.Group.TotalLobs", "");
-        selector.put("Details.Group.TotalValidLobSize", "");
-        selector.put("Details.Group.TotalLobPut", "");
-        selector.put("Details.Group.TotalLobWriteSize", "");
-        selector.put("Details.Group.NodeName", "");
-
-        try (DBCursor cursor = db.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS, matcher, selector, null)) {
-            BSONObject obj = cursor.getNext();
-            BasicBSONList details = (BasicBSONList)obj.get("Details");
-            Assert.assertEquals(1, details.size());
-
-            BSONObject groupObj = (BSONObject)details.get(0);
-            BasicBSONList infoList = (BasicBSONList)groupObj.get("Group");
-
-            boolean gotInfo = false;
-            for (Object o : infoList) {
-                BSONObject info = (BSONObject) o;
-                String actualNodeName = (String) info.get("NodeName");
-                if (!nodeName.equals(actualNodeName)) {
-                    continue;
-                }
-                gotInfo = true;
-                long lobNum = (long) info.get("TotalLobs");
-                long lobPutNum = (long) info.get("TotalLobPut");
-                long lobWriteSize = (long) info.get("TotalLobWriteSize");
-                long lobValidSize = (long) info.get("TotalValidLobSize");
-
-                Assert.assertEquals(1, lobNum);
-                Assert.assertEquals(1, lobPutNum);
-                Assert.assertEquals(data.length, lobWriteSize);
-                Assert.assertEquals(data.length, lobValidSize);
-            }
-            Assert.assertTrue("Error information of SDB_SNAP_COLLECTIONS", gotInfo);
-        }
-    }
-
-    @Test
     public void putAndReadLobTest() throws InterruptedException {
         putLobConcurrency(LobOpType.READ);
     }

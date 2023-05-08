@@ -7362,19 +7362,19 @@ namespace engine
 
    INT32 _clsShdSession::_onPutLobReq( MsgHeader *msg, rtnContextBuf &buffObj )
    {
-      INT32 rc = SDB_OK ;
+      INT32 rc               = SDB_OK ;
       SDB_ASSERT( NULL != msg, "can not be null" ) ;
-      UINT32 len       = 0 ;
-      INT64 offset     = -1 ;
-      const CHAR *data = NULL ;
+      UINT32 len             = 0 ;
+      INT64 offset           = -1 ;
+      const CHAR *data       = NULL ;
       const MsgOpLob *header = NULL ;
+      const CHAR *fullName   = NULL ;
+      const CHAR *subCLName  = NULL ;
+      INT16 replSize         = 0 ;
+      INT16 w                = 0 ;
       bson::BSONObj lob ;
-      const CHAR *fullName = NULL ;
-      const CHAR *subCLName = NULL ;
       bson::OID oid ;
       bson::BSONElement e ;
-      INT16 replSize = 0 ;
-      INT16 w = 0 ;
 
       rc = msgExtractPutLobRequest( ( const CHAR * )msg, &header,
                                       lob, &len, &offset, &data ) ;
@@ -7483,11 +7483,6 @@ namespace engine
          goto error ;
       }
 
-      if ( NULL != _pEDUCB )
-      {
-         RTN_MON_LOB_OP_COUNT_INC( _pEDUCB->getMonAppCB(), MON_LOB_PUT, 1 ) ;
-         RTN_MON_LOB_BYTES_COUNT_INC( _pEDUCB->getMonAppCB(), MON_LOB_WRITE_BYTES, len ) ;
-      }
    done:
       return rc ;
    error:
