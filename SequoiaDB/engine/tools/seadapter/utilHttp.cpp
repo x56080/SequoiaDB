@@ -108,7 +108,8 @@ namespace seadapter
      _sendBufSize( 0 ),
      _recvBuf( NULL ),
      _recvBufSize( 0 ),
-     _parserSetting( NULL )
+     _parserSetting( NULL ),
+     _hasError( FALSE )
    {
    }
 
@@ -521,6 +522,10 @@ namespace seadapter
    done:
       return rc ;
    error:
+      if ( SDB_TIMEOUT == rc )
+      {
+         _hasError = TRUE ;
+      }
       goto done ;
    }
 
@@ -598,14 +603,31 @@ namespace seadapter
       goto done ;
    }
 
-   BOOLEAN _utilHttp::_checkEndOfHeader( const CHAR *buff, UINT32 bufSize,
+   BOOLEAN _utilHttp::_checkEndOfHeader( const CHAR *buff, UINT32 bufSize, INT32 headerSize,
                                          INT32 &bodyOffset )
    {
       const CHAR *position = NULL ;
-      // TODO: end str may be splitted ?
+
+      // The end str is "\r\n\r\n"
       position = ossStrstr( buff, HTTP_BLOCK_END_STR ) ;
       if ( !position )
       {
+         if ( headerSize > 0 )
+         {
+            // The end str may be splitted
+            // If the end str is splitted, the message received for the first time contains
+            // at most 3 characters, "\r\n\r"
+            // So as long as the messgae received for the second time forward by 3 bytes,
+            // the end str, "\r\n\r\n", will definitely be found
+            INT32 offset = ( headerSize >= 3 ) ? 3 : headerSize ;
+            position = ossStrstr( buff - offset, HTTP_BLOCK_END_STR ) ;
+            if ( position )
+            {
+               bodyOffset = position - ( buff - offset ) + HTTP_BLOCK_END_STR_LEN ;
+               PD_LOG( PDEVENT, "The end str is splitted. bodyOffset is %d", bodyOffset ) ;
+               return TRUE ;
+            }
+         }
          return FALSE ;
       }
       else
@@ -681,10 +703,12 @@ namespace seadapter
          rc = _socket->recv( _recvBuf + headerSize, remainSize,
                              curRecvSize, _timeout, 0, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to receive data, rc: %d", rc ) ;
+
          remainSize -= curRecvSize ;
-         _recvBuf[ headerSize + curRecvSize + 1 ] = '\0' ;
+         _recvBuf[ headerSize + curRecvSize ] = '\0' ;
          headFound = _checkEndOfHeader( _recvBuf + headerSize,
-                                        curRecvSize, bodyOffset ) ;
+                                        curRecvSize, headerSize, bodyOffset ) ;
+
          if ( headFound )
          {
             SDB_ASSERT( bodyOffset >=0, "impossible" ) ;
@@ -730,8 +754,14 @@ namespace seadapter
       // If we only want the head, just leave the remainning data.
       if ( onlyHead )
       {
-         *reply = NULL ;
-         *replyLen = 0 ;
+         if ( reply )
+         {
+            *reply = NULL ;
+         }
+         if ( replyLen )
+         {
+            *replyLen = 0 ;
+         }
          goto done ;
       }
 
@@ -765,10 +795,11 @@ namespace seadapter
 
          // Loop and receive the total body.
          totalRecv = headerSize + bodyPartLen ;
-         if ( (UINT32)( headerSize + bodyTotalLen ) > _recvBufSize )
+         if ( (UINT32)( headerSize + bodyTotalLen + 1 ) > _recvBufSize )
          {
             CHAR *pNew = (CHAR *)SDB_OSS_REALLOC( _recvBuf,
-                                                  headerSize + bodyTotalLen ) ;
+                                                  headerSize + bodyTotalLen + 1 ) ;
+
             if ( !pNew )
             {
                rc = SDB_OOM ;
@@ -777,7 +808,8 @@ namespace seadapter
                goto error ;
             }
             _recvBuf = pNew ;
-            _recvBufSize = headerSize + bodyTotalLen ;
+            _recvBufSize = headerSize + bodyTotalLen + 1 ;
+            ossMemset( _recvBuf + totalRecv, 0, _recvBufSize - totalRecv ) ;
          }
          while ( bodyRemainLen > 0 )
          {
@@ -815,6 +847,10 @@ namespace seadapter
    done:
       return rc ;
    error:
+      if ( SDB_TIMEOUT == rc )
+      {
+         _hasError = TRUE ;
+      }
       goto done ;
    }
 
@@ -1048,6 +1084,8 @@ namespace seadapter
          SDB_OSS_FREE( _parserSetting ) ;
          _parserSetting = NULL ;
       }
+
+      _hasError = FALSE ;
    }
 }
 

@@ -132,6 +132,8 @@ namespace seadapter
                             statusCode, ppReply, replyLen ) ;
          }
 
+         OSS_INLINE BOOLEAN hasError() const { return _hasError ; }
+
       private:
          INT32 _parseUri( const string &uri ) ;
          INT32 _connectBySocket() ;
@@ -153,7 +155,7 @@ namespace seadapter
          void _paraInit( httpConnection *pHttpCon ) ;
          http_parser* _getHttpParser() { return &(_connection._httpParser) ; }
 
-         BOOLEAN _checkEndOfHeader( const CHAR *buff, UINT32 bufSize,
+         BOOLEAN _checkEndOfHeader( const CHAR *buff, UINT32 bufSize, INT32 headerSize,
                                     INT32 &bodyOffset ) ;
          INT32 _parseHeader( CHAR *buff, INT32 len ) ;
 
@@ -191,6 +193,7 @@ namespace seadapter
 
       void           *_parserSetting ;
       httpConnection _connection ;
+      BOOLEAN        _hasError ;
    };
    typedef _utilHttp utilHttp ;
 }

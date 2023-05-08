@@ -166,25 +166,39 @@ namespace seadapter
       stat = client->getStat() ;
       ossGetCurrentTime( stat->idleTime ) ;
 
-      // Releset the client before putting it back to cache.
-      client->reset() ;
 
-      _latch.get() ;
-      // Push may fail because of running out of memory. In that case, free the
-      // client directly.
-      rc = _cltList.push_back( client ) ;
-      if ( rc )
+      if ( client->hasError() )
       {
-         // Decrease the number of client in the protection of the lock.
-         --_number ;
-      }
-      _latch.release() ;
-      if ( rc )
-      {
-         PD_LOG( PDWARNING, "Release search engine client into cache "
-                 "failed[%d]", rc ) ;
+         client->reset( TRUE ) ;
          SDB_OSS_DEL client ;
+
+         _latch.get() ;
+         --_number ;
+         _latch.release() ;
       }
+      else
+      {
+         // Releset the client before putting it back to cache.
+         client->reset() ;
+
+         _latch.get() ;
+         // Push may fail because of running out of memory. In that case, free the
+         // client directly.
+         rc = _cltList.push_back( client ) ;
+         if ( rc )
+         {
+            // Decrease the number of client in the protection of the lock.
+            --_number ;
+         }
+         _latch.release() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Release search engine client into cache "
+                    "failed[%d]", rc ) ;
+            SDB_OSS_DEL client ;
+         }
+      }
+
       client = NULL ;
 
    done:

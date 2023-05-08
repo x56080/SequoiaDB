@@ -772,10 +772,10 @@ namespace seadapter
       _http.remove( endUrl.c_str(), NULL, NULL, NULL, NULL );
    }
 
-   INT32 _utilESClt::bulk( const CHAR *index, const CHAR *type,
-                           const CHAR *data, const CHAR *filterPath )
+   INT32 _utilESClt::bulk( const CHAR *index, const CHAR *data, const CHAR *filterPath )
    {
       INT32 rc = SDB_OK ;
+      StringBuilder buf ;
       string endUrl ;
       const CHAR *reply = NULL ;
       INT32 replyLen = 0 ;
@@ -789,20 +789,17 @@ namespace seadapter
          goto error ;
       }
 
-      // Index and type are optional.
       if ( index )
       {
-         endUrl = string( index ) ;
-         if ( type )
-         {
-            endUrl += string( "/" ) + type ;
-         }
+         buf << index ;
       }
-      endUrl += "/_bulk" ;
+
+      buf << "/_bulk" ;
       if ( filterPath )
       {
-         endUrl = endUrl + "?" + filterPath ;
+         buf << "?" << filterPath ;
       }
+      endUrl = buf.str() ;
 
       rc = _http.post( endUrl.c_str(), data, &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, replyObj ) ;

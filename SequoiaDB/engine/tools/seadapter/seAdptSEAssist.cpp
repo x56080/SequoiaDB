@@ -196,7 +196,7 @@ namespace seadapter
       {
          if ( _bulkBuilder.getItemNum() > 0 )
          {
-            rc = client->bulk( _index, _type, _bulkBuilder.getData() ) ;
+            rc = client->bulk( _index, _bulkBuilder.getData() ) ;
             PD_RC_CHECK( rc, PDERROR, "Bulk operation failed[ %d ]" ) ;
 
             PD_LOG( PDDEBUG, "Index documents in bulk mode successfully. "
@@ -275,7 +275,7 @@ namespace seadapter
 
       if ( _bulkBuilder.getDataLen() > 0 )
       {
-         rc = client->bulk( _index, _type, _bulkBuilder.getData() ) ;
+         rc = client->bulk( _index, _bulkBuilder.getData() ) ;
          PD_RC_CHECK( rc, PDERROR, "Bulk operation failed[%d]", rc ) ;
          PD_LOG( PDDEBUG, "Index documents in bulk mode successfully. "
                           "Document number[%u], size[%u]. Detail: insert[%u], "

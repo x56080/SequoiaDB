@@ -130,12 +130,14 @@ namespace seadapter
                            const CHAR *filterPath = NULL ) ;
          void clearScroll( const string& scrollId ) ;
 
-         INT32 bulk( const CHAR *index, const CHAR *type, const CHAR *data,
-                     const CHAR *filterPath = UTIL_SE_BULK_DFT_FILTERPATH) ;
+         INT32 bulk( const CHAR *index, const CHAR *data,
+                     const CHAR *filterPath = UTIL_SE_BULK_DFT_FILTERPATH ) ;
 
          const CHAR* getLastErrMsg() const ;
 
          utilESCltStat* getStat() ;
+
+         BOOLEAN hasError() const { return _http.hasError() ; }
 
       private:
          OSS_INLINE INT32 _processReply( INT32 returnCode, const CHAR *reply,
