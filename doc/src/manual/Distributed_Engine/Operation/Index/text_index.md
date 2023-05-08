@@ -41,6 +41,7 @@ sdbseadapter 是数据节点与 Elasticsearch 交互的桥梁。SequoiaDB 通过
 | --connlimit       | -l   | 全文检索适配器与搜索服务器之间的连接数上限，默认值为 50，取值范围为[1, 65535]|
 | --conntimeout     | -o   | 全文检索适配器与搜索服务器之间连接空闲时的超时时间，超时后连接将被释放，默认值为 1800，单位为秒，取值范围为[60, 86400] |
 | --scrollsize      |      | 全文检索适配器使用 scroll 方式（查询条件中不设置 from/size 参数）从搜索服务器（Elasticsearch）获取查询结果时，每批结果的记录数，默认值为 1000，取值范围为[50, 10000] |
+| --logpath         |      | 适配器日志的存放路径，默认为 `<INSTALL_DIR>/conf/log/sdbseadapterlog/<port>` |
 
 ##索引字段映射##
 
@@ -184,6 +185,7 @@ SequoiaDB 集群包含的每一个数据节点均需要启动一个对应的适�
      diaglevel=3
      optimeout=30000
      bulkbuffsize=10
+     logpath=/opt/sequoiadb/sdbadapterlog/11837
      ```
 
 7. 启动各节点对应的适配器
