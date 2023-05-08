@@ -371,6 +371,16 @@ namespace engine
          addNodeGuard( dbVecSvc[i] ) ;
       }
 
+      // if sdbseadapter dir not exist, goto done
+      rc = ossAccess( option->getSEAdapterCfgPath() ) ;
+      if ( SDB_FNE == rc )
+      {
+         PD_LOG( PDINFO, "Failed to get adapter config path %s, rc: %d",
+                 sdbGetOMAgentOptions()->getSEAdapterCfgPath(), rc ) ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+
       rc = omGetSvcListFromConfig( option->getSEAdapterCfgPath(), adaptVecSvc ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get service list from config, "
                    "rc: %d", rc ) ;
@@ -540,6 +550,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       vector< string > vecNodes ;
+
+      rc = ossAccess( sdbGetOMAgentOptions()->getSEAdapterCfgPath() ) ;
+      if ( SDB_FNE == rc  )
+      {
+         goto done ;
+      }
 
       rc = omGetSvcListFromConfig( sdbGetOMAgentOptions()->getSEAdapterCfgPath(), vecNodes ) ;
       if ( rc )
