@@ -420,7 +420,6 @@ namespace engine
          // send reply
          rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
       }
-      utilSecRemoveSecDirectories( pmdGetOptionCB()->getDbPath() ) ;
       PD_TRACE_EXITRC( SDB_CATSECKEYSMGR_INIT_KEYS, rc ) ;
       return rc ;
 
@@ -430,6 +429,7 @@ namespace engine
       {
          replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
       }
+      utilSecRemoveSecDirectories( pmdGetOptionCB()->getDbPath() ) ;
       goto done ;
    }
 
