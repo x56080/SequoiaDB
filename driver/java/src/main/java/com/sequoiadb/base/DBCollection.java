@@ -2975,6 +2975,7 @@ public class DBCollection {
         // will be automatically rolled back and deleted
         lob.write(data);
         lob.close();
+        return lob.getID();
     }
 
     /**

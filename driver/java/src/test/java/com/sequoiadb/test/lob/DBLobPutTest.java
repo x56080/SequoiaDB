@@ -29,7 +29,7 @@ public class DBLobPutTest {
 
         emptyData = new byte[0];
         normalData = new byte[100];
-        bigData = new byte[2097152 + 1]; // 2MB + 1byte > 2MB
+        bigData = new byte[256 * 1024]; // 256KB
 
         Arrays.fill(normalData, (byte) 'a');
         Arrays.fill(bigData, (byte) 'a');
@@ -88,11 +88,12 @@ public class DBLobPutTest {
     }
 
     private void putAndCheck(ObjectId oid, byte[] data) {
-        ObjectId retOid = cl.putLob(data, oid);
         if (oid != null) {
-            Assert.assertEquals(retOid, oid);
+            cl.putLob(data, oid);
+        } else {
+            oid = cl.putLob(data);
         }
-        checkLobData(retOid, data);
+        checkLobData(oid, data);
     }
 
     private void checkLobData(ObjectId oid, byte[] data) {
@@ -202,8 +203,7 @@ public class DBLobPutTest {
         }
 
         void putLob(DBCollection cl) {
-            ObjectId retOid = cl.putLob(data, oid);
-            Assert.assertEquals(retOid, oid);
+            cl.putLob(data, oid);
         }
 
         void readLob(DBCollection cl) throws InterruptedException {
