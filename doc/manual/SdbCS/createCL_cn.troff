@@ -218,6 +218,16 @@ Mapping（ \f[I]string\f[] ）：所映射的集合名
 参数 DataSource 和 Mapping 的具体使用场景可参考数据源。
 .RE
 .RE
+.IP \[bu] 2
+Encrypted（ \f[I]boolean\f[] ）：是否开启数据加密，默认值为 false，表示不开启
+.RS 2
+.IP \[bu] 2
+该参数与参数 IsMainCL 不能同时指定为 true。
+.IP \[bu] 2
+该参数仅在 v3.6.1 及以上版本中生效。
+.PP
+格式：\f[C]Encrypted: true\f[]
+.RE
 .RE
 .SH 返回值
 .PP
@@ -333,6 +343,85 @@ T}@T{
 出
 T}@T{
 否存在溢出情况
+T}
+T{
+6
+T}@T{
+\-399
+T}@T{
+SDB_SEC_KEYS_
+T}@T{
+密钥未初始化
+T}@T{
+使用 initSecurityKeys
+T}
+T{
+T}@T{
+T}@T{
+UNINITIALIZED
+T}@T{
+T}@T{
+() 初始化密钥
+T}
+T{
+7
+T}@T{
+\-400
+T}@T{
+SDB_SEC_KEYS_CORRUPTED
+T}@T{
+密钥损坏
+T}@T{
+先使用开启数据
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+加密时备份的密
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+钥文件替换当前
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+密钥文件，再执
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+行 reelect() 重新选
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+举编目复制组的
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+主节点，使新的
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+密钥文件生效
 T}
 .TE
 .PP

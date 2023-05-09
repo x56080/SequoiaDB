@@ -22,6 +22,7 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
 | --isSelf      |      | 是否将数据恢复至备份源节点，默认为 true，恢复至备份源节点 |
+| --privatekey  |      | 指定[主密钥文件][encryption]路径，当待恢复文件中不存在加密数据时，无需指定该参数<br>如果数据备份时指定的密钥文件由外部工具生成，该参数需指定包含对应私钥信息的文件 |
 
 ###配置参数###
 
@@ -168,3 +169,4 @@ auditpath=/opt/sequoiadb/database/data/11820/diaglog/
     本文使用的所有引用及链接
 [listBackup]:manual/Manual/Sequoiadb_Command/Sdb/listBackup.md
 [configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
+[encryption]:manual/Distributed_Engine/Architecture/data_encryption.md#密钥文件

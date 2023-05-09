@@ -152,6 +152,13 @@ SdbCS
         >
         > 参数 DataSource 和 Mapping 的具体使用场景可参考[数据源][datasource]。
 
+    - Encrypted（ *boolean* ）：是否开启[数据加密][encryption]，默认值为 false，表示不开启
+
+        - 该参数与参数 IsMainCL 不能同时指定为 true。
+        - 该参数仅在 v3.6.1 及以上版本中生效。
+
+        格式：`Encrypted: true`
+
 ##返回值##
 
 函数执行成功时，将返回一个 SdbCollection 类型的对象。
@@ -169,6 +176,8 @@ SdbCS
 | -22 | SDB_DMS_EXIST | 集合已存在| 检查集合是否存在|
 | -34 | SDB_DMS_CS_NOTEXIST | 集合空间不存在| 检查集合空间是否存在|
 | -318 | SDB_VALUE_OVERFLOW | 数值运算出现溢出| 检查运算过程是否存在溢出情况|
+| -399 | SDB_SEC_KEYS_UNINITIALIZED | 密钥未初始化 | 使用 [initSecurityKeys()][init] 初始化密钥 |
+| -400 | SDB_SEC_KEYS_CORRUPTED | 密钥损坏 | 先使用[开启数据加密][data_encryption]时备份的密钥文件替换当前密钥文件，再执行 [reelect()][reelect] 重新选举编目复制组的主节点，使新的密钥文件生效  |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
@@ -237,4 +246,8 @@ v1.0 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
+[encryption]:manual/Distributed_Engine/Architecture/data_encryption.md
+[init]:manual/Manual/Sequoiadb_Command/Sdb/initSecurityKeys.md
+[reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
+[data_encryption]:manual/Distributed_Engine/Architecture/data_encryption.md

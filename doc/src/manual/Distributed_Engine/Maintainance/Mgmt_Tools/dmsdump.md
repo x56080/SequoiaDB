@@ -54,6 +54,7 @@ sdbdmsdump --version | -v
 | --balance   |      | 开启 Lob 桶均衡性分析（取值为 true 或 false），默认值为 false；当 action 参数指定为 inspect 时，该参数生效                                                                                                    |
 | --meta      |      | 指定操作元数据（取值为 true 或 fasle ），默认值为 false                                  |
 | --force     |      | 强制输出无效的 mb 、delete list 与 index list 等（取值为 true 或 false），默认值为 false |
+| --securitypath |     | 指定密钥文件目录，默认为 `<catalog_dbpath>/security` |
 
 示例
 ----

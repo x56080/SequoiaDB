@@ -152,6 +152,13 @@ This function is used to create a collection in the specified collection space. 
         >
         > For the specific usage scenarios of the parameters "DataSource" and "Mapping", refer to [Data Source][datasource].
 
+    - Encrypted ( *boolean* ): Whether to enable [data encryption][encryption], and the default value is "false", which means it is not enabled.
+
+        - This parameter and parameter "IsMainCL" can not be specified as "true" at the same time.
+        - This parameter is only valid in SequoiaDB v3.6.1 and above versions.
+
+        Format: `Encrypted: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, it will return an object of type SdbCollection.
@@ -169,6 +176,8 @@ The common exceptions of `createCL()` function are as follows:
 | -22 | SDB_DMS_EXIST | Collection already exists| Check whether the collection exists.|
 | -34 | SDB_DMS_CS_NOTEXIST | Collection space does not exist| Check whether the collection space exists.|
 | -318 | SDB_VALUE_OVERFLOW | Numerical operation overflows| Check whether there is overflow in the operation process.|
+| -399 | SDB_SEC_KEYS_UNINITIALIZED | Key not initialized | Initialize the key with [initSecurityKeys()][init]. |
+| -400 | SDB_SEC_KEYS_CORRUPTED | Broken key | First replace the current key file with the key file backed up when [data encryption is enabled][data_encryption], and then execute [reelect()][reelect] to reelect the primary node of the catalog replication group to make the new key file take effect.  |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
@@ -237,4 +246,8 @@ v1.0 and above
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
+[encryption]:manual/Distributed_Engine/Architecture/data_encryption.md
+[init]:manual/Manual/Sequoiadb_Command/Sdb/initSecurityKeys.md
+[reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
+[data_encryption]:manual/Distributed_Engine/Architecture/data_encryption.md

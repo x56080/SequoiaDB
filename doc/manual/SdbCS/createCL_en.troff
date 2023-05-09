@@ -253,6 +253,18 @@ For the specific usage scenarios of the parameters "DataSource" and "Mapping",
 refer to Data Source.
 .RE
 .RE
+.IP \[bu] 2
+Encrypted ( \f[I]boolean\f[] ): Whether to enable data encryption, and the
+default value is "false", which means it is not enabled.
+.RS 2
+.IP \[bu] 2
+This parameter and parameter "IsMainCL" can not be specified as "true" at the
+same time.
+.IP \[bu] 2
+This parameter is only valid in SequoiaDB v3.6.1 and above versions.
+.PP
+Format: \f[C]Encrypted: true\f[]
+.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -393,6 +405,106 @@ T}@T{
 T}@T{
 T}@T{
 operation process.
+T}
+T{
+6
+T}@T{
+\-399
+T}@T{
+SDB_SEC_KEYS_
+T}@T{
+Key not initialized
+T}@T{
+Initialize the key with
+T}
+T{
+T}@T{
+T}@T{
+UNINITIALIZED
+T}@T{
+T}@T{
+initSecurityKeys().
+T}
+T{
+7
+T}@T{
+\-400
+T}@T{
+SDB_SEC_KEYS_CORRUPTED
+T}@T{
+Broken key
+T}@T{
+First replace the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+current key file with
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+the key file backed up
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+when data encryption is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+enabled, and then
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+execute reelect() to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+reelect the primary
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+node of the catalog
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+replication group to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+make the new key file
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+take effect.
 T}
 .TE
 .PP

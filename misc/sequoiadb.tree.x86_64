@@ -496,6 +496,8 @@ sequoiadb
 │       │   ├── getSpareRG_en.troff
 │       │   ├── getTask_cn.troff
 │       │   ├── getTask_en.troff
+|       |   ├── initSecurityKeys_cn.troff
+|       |   ├── initSecurityKeys_en.troff
 │       │   ├── invalidateCache_cn.troff
 │       │   ├── invalidateCache_en.troff
 │       │   ├── listBackup_cn.troff

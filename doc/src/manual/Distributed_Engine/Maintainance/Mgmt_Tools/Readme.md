@@ -28,6 +28,7 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 + [容灾切换合并工具][split_merge]：当两个子网间出现网络分离无法访问时，使用工具进行集群分离；两个子网间网络连通后，使用工具进行集群合并
 + [索引升级工具][upgrade_index]：sdbupgradeidx 是 SequoiaDB 的索引升级工具
 + [适配器管理工具][sdbseactl]：管理全文索引的搜索引擎适配器节点
++ [主密钥生成工具][sdbmkgen]：sdbmkgen 是 SequoiaDB 的主密钥生成工具
 
 [^_^]:
     本文使用到的所有链接及引用。
@@ -46,3 +47,4 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 [sdblist]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdblist.md
 [upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
 [sdbseactl]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbseactl.md
+[sdbmkgen]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbmkgen.md

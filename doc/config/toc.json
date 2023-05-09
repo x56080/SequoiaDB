@@ -1327,6 +1327,12 @@
                      "file": "compression_encryption",
                      "cn": "数据压缩",
                      "en": "Compression Encryption"
+                  },
+                  {
+                     "id": 1681718364,
+                     "file": "data_encryption",
+                     "cn": "数据加密",
+                     "en": "Data Encryption"
                   }
                ]
             },
@@ -1392,6 +1398,12 @@
                      "file": "location_operation",
                      "cn": "位置集操作",
                      "en": "Location Operation"
+                  },
+                  {
+                     "id": 1682410909,
+                     "file": "open_encryption",
+                     "cn": "开启数据加密",
+                     "en": "Enable Data Encryption"
                   }
                ]
             },
@@ -1701,6 +1713,12 @@
                            "file": "sdbseactl",
                            "cn": "适配器管理工具",
                            "en": "Adapter Management Tool"
+                        },
+                        {
+                           "id": 1682234622,
+                           "file": "sdbmkgen",
+                           "cn": "主密钥生成工具",
+                           "en": "Master Key Tool"
                         }
                      ]
                   },
@@ -2683,6 +2701,12 @@
                            "file": "getTask",
                            "cn": "getTask()",
                            "en": "getTask()"
+                        },
+                        {
+                           "id" : 1681718529,
+                           "file": "initSecurityKeys",
+                           "cn": "initSecurityKeys()",
+                           "en": "initSecurityKeys"
                         },
                         {
                            "id": 1432190792,

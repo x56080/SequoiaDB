@@ -38,6 +38,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [getSequence()][getSequence] | 获取指定的序列对象 |
 | [getSessionAttr()][getSessionAttr] | 获取会话属性 |
 | [getSpareRG()][getSpareRG] | 获取备份组的引用 |
+| [initSecurityKeys()][initSecurityKeys] | 初始化密钥 |
 | [invalidateCache()][invalidateCache] | 清除节点的缓存信息 |
 | [list()][list] | 获取列表 |
 | [listBackup()][listBackup] | 枚举数据库备份 |
@@ -151,3 +152,4 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [transRollback]:manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
+[initSecurityKeys]:manual/Manual/Sequoiadb_Command/Sdb/initSecurityKeys.md

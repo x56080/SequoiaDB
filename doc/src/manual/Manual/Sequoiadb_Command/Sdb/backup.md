@@ -87,6 +87,13 @@ options（ *object，选填* ）
 
     格式：`BackupLog: false`
 
+- MKPublicFile（ *string* ）：指定[主密钥文件][encryption]路径，仅在备份加密文件时指定
+
+    - 如果主密钥文件丢失，用户可通过[主密钥生成工具][sdbmkgen]重新创建。
+    - 该参数支持指定由外部工具生成的密钥文件，用户需保证该文件中包含公钥信息。
+
+    格式：`MKPublicFile: "mk.pem"`
+
 > **Note:**
 >
 > v2.8.2 及以上版本新增 Compressed、CompressionType 和 BackupLog 参数。
@@ -130,6 +137,12 @@ v1.2 及以上版本
     > db.backup({Name: "backupName", Description: "backup on secondary"})
     ```
 
+- 备份加密文件
+
+    ```lang-javascript
+    > db.backup({Name: "backupName", Description: "backup with security keys", MKPublicFile: "/path/test/mk.pem"})
+    ```
+
 [^_^]:
     本文使用的所有引用及连接
 [path]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
@@ -137,3 +150,5 @@ v1.2 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[sdbmkgen]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbmkgen.md
+[encryption]:manual/Distributed_Engine/Architecture/data_encryption.md#密钥文件
