@@ -590,6 +590,8 @@ namespace engine
       BSONElement oidEle ;
       bson::OID oid ;
 
+      SDB_ASSERT( NULL != pStream, "can not be null" ) ;
+
       fullName = meta.getField( FIELD_NAME_COLLECTION ) ;
       if ( bson::String != fullName.type() )
       {

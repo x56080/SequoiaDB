@@ -1131,7 +1131,7 @@ namespace engine
                buffObj = rtnContextBuf( _errorInfo ) ;
             }
 
-            if ( SDB_DMS_EOC != rc && SDB_LOB_OUT_OF_PUT_SIZE != rc )
+            if ( SDB_DMS_EOC != rc )
             {
                PD_LOG ( (SDB_CLS_COORD_NODE_CAT_VER_OLD==rc ? PDINFO : PDERROR),
                         "Session[%s] process OP[type:%u] failed[rc:%d]",
@@ -7466,6 +7466,7 @@ namespace engine
          goto error ;
       }
 
+      pdSetShieldRC( SDB_LOB_OUT_OF_PUT_SIZE ) ;
       rc = rtnPutLob( NULL == subCLName ? fullName : subCLName,
                       oid, len, data, _pEDUCB, w, _pDpsCB, buffObj ) ;
       PD_AUDIT_OP_WITHNAME( AUDIT_DML,
@@ -7476,10 +7477,6 @@ namespace engine
                             oid.toString().c_str(), len ) ;
       if ( SDB_OK != rc )
       {
-         if ( SDB_LOB_OUT_OF_PUT_SIZE != rc )
-         {
-            PD_LOG( PDERROR, "failed to put lob:%d", rc ) ;
-         }
          goto error ;
       }
 
