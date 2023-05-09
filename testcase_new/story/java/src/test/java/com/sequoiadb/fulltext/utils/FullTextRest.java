@@ -219,9 +219,10 @@ public class FullTextRest {
         }
         String body = response.getBody().toString();
         BSONObject bodyObj = ( BSONObject ) JSON.parse( body );
-
         BSONObject hitss = ( BSONObject ) bodyObj.get( "hits" );
-        if ( ( int ) hitss.get( "total" ) == 0 ) {
+        BSONObject total = ( BSONObject ) hitss.get( "total" );
+
+        if ( ( int ) total.get( "value" ) == 0 ) {
             throw new Exception( "no such _id=SDBCOMMIT record" );
         }
         BSONObject hits = ( ( List< BSONObject > ) hitss.get( "hits" ) )
@@ -261,7 +262,9 @@ public class FullTextRest {
         String body = response.getBody().toString();
         BSONObject bodyObj = ( BSONObject ) JSON.parse( body );
         BSONObject hitss = ( BSONObject ) bodyObj.get( "hits" );
-        if ( ( int ) hitss.get( "total" ) == 0 ) {
+        BSONObject total = (BSONObject) hitss.get("total");
+
+        if ( ( int ) total.get( "value" ) == 0 ) {
             throw new Exception( "no such index" );
         }
         BSONObject hits = ( ( List< BSONObject > ) hitss.get( "hits" ) )
@@ -301,7 +304,9 @@ public class FullTextRest {
         String body = response.getBody().toString();
         BSONObject bodyObj = ( BSONObject ) JSON.parse( body );
         BSONObject hitss = ( BSONObject ) bodyObj.get( "hits" );
-        if ( ( int ) hitss.get( "total" ) == 0 ) {
+        BSONObject total = ( BSONObject ) hitss.get( "total" );
+
+        if ( ( int ) total.get( "value" ) == 0 ) {
             throw new Exception( "no such index" );
         }
         BSONObject hits = ( ( List< BSONObject > ) hitss.get( "hits" ) )

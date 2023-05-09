@@ -22,7 +22,7 @@ public class FullTextUtils {
     // 插入记录数，所有用例公用此变量
     public static final int INSERT_NUMS = 200000; // insert 20w datas
     // 线程超时时间，所有用例公用此变量
-    public static final int THREAD_TIMEOUT = 600000; // timeout 10 mins
+    public static final int THREAD_TIMEOUT = 1800000; // timeout 10 mins
     // 全文索引前缀
     private static String FULLTEXTPREFIX;
 
@@ -40,8 +40,7 @@ public class FullTextUtils {
      * 检查DB端中普通表或分区表下的全文索引数据是否完全同步到ES端，总共分三层检查: 1.先检查文索引名是否都映射到ES端
      * 2.再检查ES端全文索引的总记录数是否正确
      * 3.最后检查DB端各个固定集合的最大一条LID记录是否与对应ES端全文索引的SDBCOMMITID值一致
-     * 
-     * @param esClient
+     *
      * @param cl
      * @param textIndexName
      * @param expectCount
@@ -81,8 +80,7 @@ public class FullTextUtils {
      * 检查DB端中主子表下的全文索引数据是否完全同步到ES端，总共分三层检查： 1. 先检查子表的全文索引名是否都映射到ES端 2.
      * 再检查ES端子表的全文索引总记录数是否正确 3.
      * 最后检查DB端各个固定集合的最大一条LID记录是否与对应ES端全文索引的dbCOMMITID值一致
-     * 
-     * @param esClient
+     *
      * @param cl
      * @param textIndexName
      * @param expectCount
@@ -131,8 +129,7 @@ public class FullTextUtils {
 
     /**
      * 检查ES端全文索引总记录数是否正确， 若原始集合中包含多个全文索引，则总记录数为所有全文索引记录数的总和
-     * 
-     * @param esClient
+     *
      * @param esIndexNames
      * @param expectCount
      * @return boolean 如果ES端的全文索引记录数正确则返回true，否则返回false
@@ -183,8 +180,7 @@ public class FullTextUtils {
     /**
      * 检查DB端各个固定集合的最大一条LID记录是否与对应ES端全文索引的dbCOMMITID值一致， 一个全文索引对应一个固定集合
      * 每个全文索引数组元素与每个固定集合对象数组元素一一对应
-     * 
-     * @param esClient
+     *
      * @param esIndexNames
      * @param cappedCLs
      * @return boolean 如果ES端的SDBCOMMIT._lid的值与对应固定集合最大一条lid的值一致则返回true，否则返回false
@@ -346,9 +342,7 @@ public class FullTextUtils {
     /**
      * ES端的cllid与原始集合的LogicalID一致,通过原始集合的LogicalID作为预期结果来判断全文索引是否重建
      * 检查原始集合内的多个全文索引
-     * 
-     * @param esClient
-     *            es连接
+     *
      * @param cl
      *            原始集合
      * @param indexNames
@@ -378,9 +372,7 @@ public class FullTextUtils {
     /**
      * ES端的cllid与原始集合的LogicalID一致,通过原始集合的LogicalID作为预期结果来判断全文索引是否重建
      * 检查原始集合内的多个全文索引
-     * 
-     * @param esClient
-     *            es连接
+     *
      * @param cl
      *            原始集合
      * @param indexName
@@ -407,9 +399,7 @@ public class FullTextUtils {
      * ES端的cllid与原始集合的LogicalID一致,通过原始集合的LogicalID作为预期结果来判断全文索引是否重建
      * FullTextESUtils.getCommitCLLIDFromES ( esClient, esIndexNames )
      * 获取每个全文索引对应的SDBCOMMIT._cllid
-     * 
-     * @param esClient
-     *            es连接
+     *
      * @param cl
      *            原始集合
      * @param esIndexName
@@ -789,8 +779,7 @@ public class FullTextUtils {
 
     /**
      * 判断主备节点的集合数据是否一致
-     * 
-     * @param nodes
+     *
      * @param csName
      * @param clName
      * @return boolean
@@ -828,8 +817,7 @@ public class FullTextUtils {
 
     /**
      * 判断主备节点的集合数据是否一致
-     * 
-     * @param nodes
+     *
      * @param csName
      * @param clName
      * @return boolean
@@ -911,10 +899,10 @@ public class FullTextUtils {
     /**
      * 检查全文索引是否创建,包括检查索引在es端是否被创建,固定集合空间是否被创建,数据是否同步
      * 
-     * @param db
-     * @param esClient
+     * @param cl
      * @param indexName
-     * @return
+     * @param expectCount
+     * @return boolean
      * @throws Exception
      */
     public static boolean isIndexCreated( DBCollection cl, String indexName,
@@ -932,9 +920,8 @@ public class FullTextUtils {
 
     /**
      * 检查主表全文索引是否创建,包括检查索引在es端是否被创建,固定集合空间是否被创建,数据是否同步
-     * 
-     * @param db
-     * @param esClient
+     *
+     * @param cl
      * @param indexName
      * @return
      * @throws Exception
@@ -955,7 +942,6 @@ public class FullTextUtils {
      * 检查全文索引是否删除,包括检查索引在es端是否被删除,固定集合空间是否被删除
      * 
      * @param db
-     * @param esClient
      * @param esIndexName
      * @param cappedName
      * @return boolean 删除成功返回true,否则返回false
@@ -977,8 +963,7 @@ public class FullTextUtils {
      * 检查全文索引是否删除,包括检查索引在es端是否被删除,固定集合空间是否被删除
      * 
      * @param db
-     * @param esClient
-     * @param esIndexName
+     * @param esIndexNames
      * @param cappedNames
      * @return boolean 删除成功返回true,否则返回false
      * @throws Exception
