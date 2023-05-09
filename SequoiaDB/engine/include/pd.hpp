@@ -198,7 +198,7 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define LOG_MASK_DMS_CS_NOTEXIST ( 0x0000000000000004 )
 #define LOG_MASK_DMS_NOTEXIST    ( 0x0000000000000008 )
 #define LOG_MASK_RTN_INVALID_HINT ( 0x0000000000000010 )
-#define LOG_MASK_RTN_LOB_OUT_SIZE ( 0x0000000000000100 )
+#define LOG_MASK_RTN_LOB_OUT_SIZE ( 0x0000000000000020 )
 
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;

@@ -7477,6 +7477,7 @@ namespace engine
                             oid.toString().c_str(), len ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG( PDERROR, "failed to put lob:%d", rc ) ;
          goto error ;
       }
 

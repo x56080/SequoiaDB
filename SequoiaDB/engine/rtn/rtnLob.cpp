@@ -1388,7 +1388,7 @@ namespace engine
       {
          env.oprDone() ;
          PD_LOG( PDWARNING, "lob to put with invalid size:%d", size ) ;
-         rc = SDB_LOB_OUT_OF_PUT_SIZE ;
+         rc = pdError( SDB_LOB_OUT_OF_PUT_SIZE ) ;
          try
          {
             builder.append( FIELD_NAME_LOB_PAGE_SIZE, lobdPageSize ) ;
