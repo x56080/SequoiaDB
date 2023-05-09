@@ -261,6 +261,7 @@ namespace engine
    #define BAR_DATA_TYPE_REPL_LOG                  4     // repl log
    #define BAR_DATA_TYPE_RAW_LOBM                  5     // lob meta
    #define BAR_DATA_TYPE_RAW_LOBD                  6     // lob data
+   #define BAR_DATA_TYPE_KEY_FILES                 7     // security key files
 
    /*
       _barBackupExtentHeader
@@ -456,6 +457,7 @@ namespace engine
          void     setBackupLog( BOOLEAN backupLog ) ;
          void     enableCompress( BOOLEAN compressed,
                                   UTIL_COMPRESSOR_TYPE compType ) ;
+         void     setPublicKey( const CHAR *publicKey ) ;
 
          INT32    backup ( _pmdEDUCB *cb ) ;
 
@@ -485,6 +487,7 @@ namespace engine
 
          INT32       _backupConfig () ;
          INT32       _writeMetaFile () ;
+         INT32       _backupSecurityKeys() ;
 
       protected:
          BOOLEAN                       _rewrite ;
@@ -501,6 +504,8 @@ namespace engine
 
          BOOLEAN                       _needBackupLog ;
          BOOLEAN                       _compressed ;
+         BOOLEAN                       _hasDEK ;
+         const CHAR                   *_publicKey ;
 
    } ;
    typedef _barBkupBaseLogger barBkupBaseLogger ;
@@ -600,7 +605,7 @@ namespace engine
 
          BSONObj  getConf () const { return _confObj ; }
 
-         INT32    init( const CHAR *path, const CHAR *backupName,
+         INT32    init( const CHAR *path, const CHAR *backupName, const CHAR *privateKeyPath,
                         const CHAR *prefix = NULL, INT32 incID = -1,
                         INT32 beginID = -1, BOOLEAN skipConf = FALSE ) ;
 
@@ -650,6 +655,7 @@ namespace engine
          BOOLEAN                       _skipConf ;
          BOOLEAN                       _isDoRestoring ;
 
+         const CHAR *                  _privateKeyPath ;
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;
 
@@ -681,6 +687,8 @@ namespace engine
          INT32    _processReplLog( barBackupExtentHeader *pExtHeader,
                                    const CHAR *pData, BOOLEAN isIncData,
                                    _pmdEDUCB *cb ) ;
+         INT32    _processKeysData( barBackupExtentHeader *pExtHeader, 
+                                    const CHAR *pData ) ;
 
       private:
          INT32             _closeSUFile () ;

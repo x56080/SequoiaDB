@@ -52,6 +52,7 @@
 #include "catNodeManager.hpp"
 #include "catGTSManager.hpp"
 #include "catDCManager.hpp"
+#include "catSecKeysManager.hpp"
 #include "sdbInterface.hpp"
 #include "catLevelLock.hpp"
 #include "catRecycleBinManager.hpp"
@@ -207,6 +208,10 @@ namespace engine
          {
             return &_catDCMgr ;
          }
+         catSecKeysManager *getSecKeysManager()
+         {
+            return &_keysManager ;
+         }
          catLevelLockMgr* getLevelLockMgr()
          {
             return &_levelLockMgr ;
@@ -266,6 +271,7 @@ namespace engine
 
          catMainController    _catMainCtrl ;
          catCatalogueManager  _catlogueMgr ;
+         catSecKeysManager    _keysManager ;
          catNodeManager       _catNodeMgr ;
          catGTSManager        _catGTSMgr ;
          catDCManager         _catDCMgr ;

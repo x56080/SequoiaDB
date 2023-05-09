@@ -76,7 +76,8 @@ namespace engine
       virtual INT32  write( INT32 pageID, const CHAR *pData,
                             UINT32 len, UINT32 offset,
                             UINT32 newestMask,
-                            IExecutor *cb ) ;
+                            IExecutor *cb,
+                            const utilELCryptor *cryptor = NULL ) ;
 
       virtual INT32  prepareRead( INT32 pageID,
                                   CHAR *pData,
@@ -87,7 +88,8 @@ namespace engine
       virtual INT32  read( INT32 pageID, CHAR *pData,
                            UINT32 len, UINT32 offset,
                            UINT32 &readLen,
-                           IExecutor *cb ) ;
+                           IExecutor *cb,
+                           const utilELCryptor *cryptor ) ;
 
       virtual INT64 pageID2Offset( INT32 pageID,
                                    UINT32 pageOffset = 0 ) const

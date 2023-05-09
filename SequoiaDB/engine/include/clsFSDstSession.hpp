@@ -287,6 +287,7 @@ namespace engine
                                           BSONObj &bodyObj,
                                           MON_CS_SIM_LIST &csList,
                                           INT32 &nomore ) ;
+
    protected:
       virtual void      _begin() ;
       virtual void      _end() ;
@@ -307,6 +308,7 @@ namespace engine
       INT32                _beginSlice ;
       INT32                _beginRspSlice ;
 
+      BSONObj              _keyFiles ;
    } ;
 
    /*

@@ -50,6 +50,7 @@
 #include "utilCompressor.hpp"
 #include "pdTrace.hpp"
 #include "barTrace.hpp"
+#include "utilSecurityKeys.hpp"
 
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -703,6 +704,9 @@ namespace engine
       _needBackupLog = FALSE ;
       _compressed    = TRUE ;
       _metaHeader._compressionType = UTIL_COMPRESSOR_SNAPPY ;
+
+      _hasDEK = FALSE ;
+      _publicKey = NULL ;
    }
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
@@ -747,6 +751,11 @@ namespace engine
          _metaHeader._compressionType = UTIL_COMPRESSOR_INVALID ;
          _pCompressor = NULL ;
       }
+   }
+
+   void _barBkupBaseLogger::setPublicKey( const CHAR *publicKey )
+   {
+      _publicKey = publicKey ;
    }
 
    INT32 _barBkupBaseLogger::init( const CHAR *path,
@@ -829,12 +838,16 @@ namespace engine
             // 2. backup config
             rc = _backupConfig() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+            
+            // 3. do backup key files
+            rc = _backupSecurityKeys() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to backup security keys, rc: %d", rc ) ;
 
-            // 3. do backup data
+            // 4. do backup data
             rc = _doBackup ( cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
 
-            // 4. write meta file
+            // 5. write meta file
             rc = _writeMetaFile () ;
             PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d",
                          rc ) ;
@@ -853,7 +866,7 @@ namespace engine
          goto error ;
       }
 
-      // 5. clean up after backup
+      // 6. clean up after backup
       rc = _afterBackup ( cb ) ;
       hasPrepared = FALSE ;
       PD_RC_CHECK( rc, PDERROR, "Failed to cleanup after backup, rc: %d", rc ) ;
@@ -1260,6 +1273,93 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _barBkupBaseLogger::_backupSecurityKeys()
+   {
+      INT32 rc = SDB_OK;
+      barBackupExtentHeader *pHeader = _nextDataExtent( BAR_DATA_TYPE_KEY_FILES );
+      SDB_ROLE role = pmdGetDBRole();
+      ossSM4Key dek;
+      CHAR tmpBuff[ 4 ] = { 0 };
+      UINT32 tmpSize = 0;
+      BSONObj keysObj;
+
+      if ( SDB_ROLE_CATALOG == role )
+      {
+         catSecKeysManager *keyMgr = pmdGetKRCB()->getCATLOGUECB()->getSecKeysManager();
+         if ( keyMgr->isUninitialized() )
+         {
+            rc = SDB_OK;
+            PD_LOG( PDDEBUG, "No need to backup security keys" );
+            goto done;
+         }
+         else if ( keyMgr->isCorrupted() )
+         {
+            rc = SDB_SEC_KEYS_CORRUPTED;
+            PD_LOG_MSG(
+               PDERROR,
+               "Failed to backup node[%s], because the security keys are corrupted, rc: %d",
+               routeID2String( pmdGetNodeID() ).c_str(), rc );
+            goto error;
+         }
+         else
+         {
+            if ( _publicKey )
+            {
+               const UINT8 * dek= keyMgr->getDEK();
+               rc = utilSecBackupToBson( dek, _publicKey, keysObj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to backup with provided public master key, rc: %d",
+                            rc );
+            }
+            else
+            {
+               rc = keyMgr->backupMKPublicAndDEK( keysObj );
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to backup with initialized public master key, rc: %d", rc );
+            }
+         }
+      }
+      else if ( SDB_ROLE_DATA == role && sdbGetDMSCB()->peekDEK( dek ) )
+      {
+         if ( !_publicKey )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG( PDERROR, "The node[%s] has DEK, must provide public master key",
+                        routeID2String( pmdGetNodeID() ).c_str() );
+            goto error;
+         }
+
+         rc = utilSecBackupToBson( dek, _publicKey, keysObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to construct bsonobj to backup, rc: %d", rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDDEBUG, "No need to backup security keys" );
+         goto done ;
+      }
+
+      tmpSize = ossAlign4( (UINT32)keysObj.objsize() ) - keysObj.objsize();
+      pHeader->_dataSize = ossAlign4( (UINT32)keysObj.objsize() );
+
+      // write extent header
+      rc = _writeData( (const CHAR *)pHeader, BAR_BACKUP_EXTENT_HEADER_SIZE, TRUE );
+      PD_RC_CHECK( rc, PDERROR, "Failed to write keys extent header, rc: %d", rc );
+      // wirte keys
+      rc = _writeData( keysObj.objdata(), keysObj.objsize(), FALSE );
+      PD_RC_CHECK( rc, PDERROR, "Failed to write keys, rc: %d", rc );
+
+      if ( 0 != tmpSize )
+      {
+         // wirte align data
+         rc = _writeData( (const CHAR *)tmpBuff, tmpSize, FALSE );
+         PD_RC_CHECK( rc, PDERROR, "Failed to write config align data, rc: %d", rc );
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _barBkupBaseLogger::_writeMetaFile ()
@@ -2123,6 +2223,8 @@ namespace engine
 
       _isDoRestoring       = FALSE ;
       _skipConf            = FALSE ;
+
+      _privateKeyPath      = NULL ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -2235,15 +2337,20 @@ namespace engine
       goto done ;
    }
 
-   INT32 _barRSBaseLogger::init( const CHAR *path, const CHAR *backupName,
-                                 const CHAR *prefix, INT32 incID,
-                                 INT32 beginID, BOOLEAN skipConf )
+   INT32 _barRSBaseLogger::init( const CHAR *path,
+                                 const CHAR *backupName,
+                                 const CHAR *privateKeyPath,
+                                 const CHAR *prefix,
+                                 INT32 incID,
+                                 INT32 beginID,
+                                 BOOLEAN skipConf )
    {
       INT32 rc = SDB_OK ;
       set< UINT32 > setSeq ;
 
       _beginID = beginID ;
       _skipConf = skipConf ;
+      _privateKeyPath = privateKeyPath ;
 
       rc = _initInner( path, backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init inner failed, rc: %d", rc ) ;
@@ -3030,6 +3137,9 @@ namespace engine
                }
                rc = _processReplLog( pExtHeader, pBuff, restoreInc, cb ) ;
                break ;
+            case BAR_DATA_TYPE_KEY_FILES :
+               rc = _processKeysData( pExtHeader, pBuff ) ;
+               break ;
             default :
                rc = SDB_SYS ;
                PD_LOG( PDERROR, "Unknow data type[%d]", pExtHeader->_dataType ) ;
@@ -3243,6 +3353,68 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   INT32 _barRSOfflineLogger::_processKeysData( barBackupExtentHeader *pExtHeader,
+                                                const CHAR *pData )
+   {
+      INT32 rc = SDB_OK;
+
+      if ( !_privateKeyPath || '\0' == _privateKeyPath[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Must provide the private master key to restore dek" ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObj obj( pData );
+         const CHAR *dbPath = pmdGetOptionCB()->getDbPath();
+         SDB_ROLE role = pmdGetDBRole();
+         ossSM4Key dek = { 0 };
+         BOOLEAN tryToCreate = FALSE;
+         const CHAR *dekCipher = obj.getStringField( FIELD_NAME_DEK );
+         const CHAR *dekSign = obj.getStringField( FIELD_NAME_DEKVERIFICATION );
+         const CHAR *mkPublic = obj.getStringField( FIELD_NAME_MK_PUBLIC );
+
+         if ( '\0' == dekCipher[ 0 ] || '\0' == dekSign[ 0 ] || '\0' == mkPublic[ 0 ] )
+         {
+            rc = SDB_BAR_DAMAGED_BK_FILE ;
+            PD_LOG( PDERROR, "Keys object is corrupted", rc );
+            goto error ;
+         }
+
+         if ( SDB_ROLE_CATALOG == role )
+         {
+            tryToCreate = TRUE;
+         }
+         else if ( SDB_ROLE_DATA == role )
+         {
+            tryToCreate = FALSE;
+         }
+         else
+         {
+            goto done;
+         }
+         rc = utilSecRestoreKeyFiles( dbPath, dekCipher, dekSign, mkPublic, _privateKeyPath,
+                                      tryToCreate, dek );
+         PD_RC_CHECK( rc, PDERROR, "Failed to restore key files from obj[%s], rc: %d",
+                      obj.toString().c_str(), rc );
+
+         sdbGetDMSCB()->setDEK( dek );
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when get meta obj: %s", e.what() );
+         rc = SDB_BAR_DAMAGED_BK_FILE;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _barRSOfflineLogger::_writeSU( barBackupExtentHeader * pExtHeader,

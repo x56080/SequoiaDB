@@ -347,6 +347,12 @@ namespace engine
                                 BOOLEAN self,
                                 pmdEDUCB *cb,
                                 INT16 w ) ;
+
+   INT32 catUpdateBaseInfoMKIndex( pmdEDUCB *cb,
+                                   _SDB_DMSCB *dmsCB,
+                                   _dpsLogWrapper *dpsCB,
+                                   const CHAR *mkIndex ) ;
+
    INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
                          _SDB_DMSCB *dmsCB, _dpsLogWrapper * dpsCB ) ;
 

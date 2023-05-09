@@ -3186,5 +3186,37 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_SEC_KEYS_INITIALIZED</name>
+         <description>
+            <en>Security keys already initialized</en>
+            <cn>安全密钥已初始化</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_KEYS_UNINITIALIZED</name>
+         <description>
+            <en>Security keys are uninitialized</en>
+            <cn>安全密钥未初始化</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_KEYS_CORRUPTED</name>
+         <description>
+            <en>Security keys are corrupted</en>
+            <cn>安全密钥损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_DEK_NOT_EXIST</name>
+         <description>
+            <en>Data encryption key does not exist</en>
+            <cn>数据加密密钥不存在</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

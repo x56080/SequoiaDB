@@ -39,6 +39,7 @@
 #include "dmsStorageLobData.hpp"
 #include "dmsStorageData.hpp"
 #include "monLatch.hpp"
+#include "ossGMCrypto.hpp"
 #include "utilCache.hpp"
 
 namespace engine
@@ -296,7 +297,10 @@ namespace engine
       INT32 _fillPage( const dmsLobRecord &record,
                        DMS_LOB_PAGEID page,
                        pmdEDUCB *cb,
-                       dmsMBContext *mbContext ) ;
+                       dmsMBContext *mbContext,
+                       BOOLEAN isEncrypted,
+                       const UINT8 *ctrNonce,
+                       const ossSM4Key dek ) ;
 
       /// only release space of page. will not change other meta data.
       INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
@@ -323,6 +327,14 @@ namespace engine
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;
+
+      INT32 _isPageEncrypted( pmdEDUCB *cb,
+                              UINT32 hash,
+                              DMS_LOB_PAGEID page,
+                              BOOLEAN &isEncrypted,
+                              UINT8 *ctrNonce,
+                              ossSM4Key dek ) ;
+
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
       _dmsStorageData               *_dmsData ;

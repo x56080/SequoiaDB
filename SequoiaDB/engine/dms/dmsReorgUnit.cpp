@@ -36,12 +36,18 @@
 *******************************************************************************/
 #include "dmsReorgUnit.hpp"
 #include "dmsStorageUnit.hpp"
+#include "dmsStorageDataCommon.hpp"
 #include "dmsRecord.hpp"
 #include "ossIO.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "pmdEDU.hpp"
 #include "dmsCompress.hpp"
+
+#include "dmsCB.hpp"
+#include "ossGMCrypto.hpp"
+#include "dmsEncrypt.hpp"
+
 
 using namespace bson ;
 
@@ -347,7 +353,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSROUNIT_INSRCD, "_dmsReorgUnit::insertRecord" )
    INT32 _dmsReorgUnit::insertRecord ( BSONObj &obj,
                                        _pmdEDUCB *cb,
-                                       dmsCompressorEntry *compressorEntry )
+                                       dmsCompressorEntry *compressorEntry,
+                                       _dmsMBContext *mbContext )
    {
       INT32 rc                     = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSROUNIT_INSRCD );
@@ -359,12 +366,44 @@ namespace engine
       dmsExtent *currentExtent     = (dmsExtent*)_pCurrentExtent ;
       dmsRecordData recordData ;
 
+      ossSM4Context encryptionCTX ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      ossSM4Key DEK ;
+      BOOLEAN bDoEncryption = FALSE ;
+      BOOLEAN bDidCompression = FALSE ;
+      UTIL_COMPRESSOR_TYPE compressorType = UTIL_COMPRESSOR_INVALID ;
+
       // sanity size check
       if ( obj.objsize() + DMS_RECORD_METADATA_SZ >
            DMS_RECORD_MAX_SZ )
       {
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
+      }
+
+      // check whether can do encryption
+      if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         if ( !dmsCB->peekDEK( DEK ) )
+         {
+            rc = SDB_SEC_DEK_NOT_EXIST ;
+            PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
+            goto error ;
+         }
+         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+         if ( SDB_OK == rc )
+         {
+            encryptionCTX.setKey( DEK ) ;
+            bDoEncryption = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to initialize encryption context, rc:%d. "
+                    "Data encryption is disabled for this operation.",
+                    rc ) ;
+            rc = SDB_OK ;
+         }
       }
 
       recordData.setData( obj.objdata(), obj.objsize(),
@@ -389,9 +428,10 @@ namespace engine
             // 4 bytes len + compressed record
             dmsrecordSize = compressedDataSize + sizeof(UINT32) ;
             // set the compression data
+            compressorType = compressorEntry->getCompressorType() ;
             recordData.setData( compressedData, compressedDataSize,
-                                compressorEntry->getCompressorType(),
-                                FALSE ) ;
+                                compressorType, FALSE ) ;
+            bDidCompression = TRUE ;
          }
          else if ( rc )
          {
@@ -410,11 +450,36 @@ namespace engine
          }
       }
 
+      // encrypt data to be written to disk if this CL is enabled
+      // data encryption
+      if ( bDoEncryption )
+      {
+         const CHAR *encryptedData = NULL ;
+         INT32 encryptedDataSize = 0 ;
+
+         if ( bDidCompression )
+         {
+            rc = dmsBinEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                &encryptedData, &encryptedDataSize ) ;
+            SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize, "unexpected length" ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to encrypt compressed data, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = dmsBSONEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                 &encryptedData, &encryptedDataSize ) ;
+            SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize + sizeof( INT32 ),
+                        "unexpected length" ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to encrypt origin data, rc: %d", rc ) ;
+         }
+         recordData.setData( encryptedData, encryptedDataSize, compressorType, FALSE ) ;
+         recordData.setEncrypted() ;
+      }
+
       dmsrecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
       dmsrecordSize += DMS_RECORD_METADATA_SZ ;
       dmsrecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                ossAlignX( dmsrecordSize, 4 ) ) ;
-
    alloc:
       if ( 0 == _currentExtentSize )
       {
@@ -486,6 +551,7 @@ namespace engine
       }
 
    done :
+      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSROUNIT_INSRCD, rc );
       return rc ;
    error :

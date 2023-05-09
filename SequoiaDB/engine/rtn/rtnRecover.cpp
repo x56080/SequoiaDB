@@ -986,7 +986,7 @@ namespace engine
                }
             }
 
-            rc = pSU->insertRecord( obj, cb, pEntry ) ;
+            rc = pSU->insertRecord( obj, cb, pEntry, mbContext ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Insert rid[%d.%d] record data[%s] to "
@@ -1500,7 +1500,7 @@ namespace engine
             try
             {
                BSONObj obj( buffObj.data() ) ;
-               rc = regSU.insertRecord( obj, cb, compEntry ) ;
+               rc = regSU.insertRecord( obj, cb, compEntry, mbContext ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Failed to insert obj[%s] to reorg file, "

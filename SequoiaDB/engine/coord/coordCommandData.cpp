@@ -2497,7 +2497,8 @@ namespace engine
          const CHAR *dataSourceName = NULL ;
          const CHAR *mappingName = NULL ;
          UINT8 dsArgNum = 0 ;
-
+         BOOLEAN isEncrypted = FALSE ;
+         
          rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_DATASOURCE,
                                    &dataSourceName ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
@@ -2621,6 +2622,20 @@ namespace engine
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
                     FIELD_NAME_COMPRESSED, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ENCRYPTED, isEncrypted ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            isEncrypted = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d", FIELD_NAME_ENCRYPTED,
+                    getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }

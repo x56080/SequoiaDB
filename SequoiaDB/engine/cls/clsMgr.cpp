@@ -57,6 +57,7 @@
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
 #include "clsIndexJob.hpp"
+#include "utilSecurityKeys.hpp"
 
 using namespace bson ;
 
@@ -2621,6 +2622,47 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsMgr::_extractDEKInfoObj( MsgHeader *msg, BSONObj &dekInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         /// update dc base info
+         BSONObj msgObject( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
+         if ( msgIsInnerOpReply( msg ) &&
+              msg->messageLength > (INT32)sizeof( MsgOpReply ) + msgObject.objsize() + 5 )
+         {
+            MsgOpReply *pReply = (MsgOpReply *)msg ;
+            if ( pReply->numReturned > 2 )
+            {
+               BSONObj objDCInfo( (const CHAR *)msg + sizeof( MsgOpReply ) +
+                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
+
+               BSONObj dekInfoObj( (const CHAR *)msg + sizeof( MsgOpReply ) +
+                                   ossAlign4( (UINT32)msgObject.objsize() ) +
+                                   ossAlign4( (UINT32)objDCInfo.objsize() ) ) ;
+               dekInfo = dekInfoObj ;
+            }
+         }
+         else
+         {
+            dekInfo = BSONObj() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse DC info, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
@@ -2662,6 +2704,36 @@ namespace engine
 
       rc = _updateDCInfo( msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update DC info, rc: %d", rc ) ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+         BSONObj dekInfo ;
+         ossSM4Key DEK ;
+
+         // extract DEK info BSONObj out of msg
+         rc = _extractDEKInfoObj( msg, dekInfo ) ;
+         if ( SDB_OK == rc && !dekInfo.isEmpty() )
+         {
+            BOOLEAN isValid = FALSE ;
+            // get plain DEK from DEKInfo obj
+            ossMemset( DEK, 0, sizeof( ossSM4Key ) ) ;
+            rc = utilSecExtractDEKFromDEKInfoBSONObj( dekInfo, DEK, isValid ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to extract DEK, rc: %d", rc ) ;
+
+            // set DEK in dmsCB
+            if ( isValid && !dmsCB->hasDEK() )
+            {
+               dmsCB->setDEK( DEK ) ;
+               #if defined( _DEBUG )
+               CHAR DEKBuf[ 128 ] = { 0 } ;
+               ossHexDumpBuffer( DEK, sizeof( DEK ), DEKBuf, sizeof( DEKBuf ), NULL,
+                                 OSS_HEXDUMP_PREFIX_AS_ADDR ) ;
+               PD_LOG( PDDEBUG, "DEK set to dmsCB:\n%s", DEKBuf ) ;
+               #endif
+            }
+         }
+      }
 
       if ( _needUpdateNode )
       {

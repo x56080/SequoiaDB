@@ -70,7 +70,8 @@ namespace engine
          }
          _dmsRecordData( const CHAR *data, UINT32 len,
                          UINT8 compressType = UTIL_COMPRESSOR_INVALID,
-                         BOOLEAN isOrgData = TRUE )
+                         BOOLEAN isOrgData = TRUE,
+                         BOOLEAN encrypted = FALSE )
          {
             _data = data ;
             _len = len ;
@@ -87,6 +88,8 @@ namespace engine
                _orgData = NULL ;
                _orgLen = 0 ;
             }
+
+            _encrypted = encrypted ;   
          }
          ~_dmsRecordData()
          {
@@ -101,6 +104,7 @@ namespace engine
          UINT32 orgLen() const { return _orgLen ; }
 
          BOOLEAN isCompressed() const { return UTIL_COMPRESSOR_INVALID != _compressType ; }
+         BOOLEAN isEncrypted() const { return _encrypted ; } ;
          UINT8 getCompressType () const { return _compressType ; }
          FLOAT32 getCompressRatio() const
          {
@@ -125,7 +129,25 @@ namespace engine
                _orgData = data ;
                _orgLen = len ;
             }
+
          }
+
+         void setDataOnly( const CHAR *data, UINT32 len )
+         {
+            _data = data ;
+            _len = len ;
+         }
+
+         void setEncrypted()
+         {
+            _encrypted = TRUE ;
+         }
+
+         void unsetEncrypted()
+         {
+            _encrypted = FALSE ;
+         }
+
          void setOrgData( const CHAR *orgData, UINT32 orgLen )
          {
             _orgData = orgData ;
@@ -139,6 +161,7 @@ namespace engine
             _compressType = UTIL_COMPRESSOR_INVALID ;
             _orgData = NULL ;
             _orgLen = 0 ;
+            _encrypted = FALSE ;
          }
          void resetOrgData()
          {
@@ -155,6 +178,7 @@ namespace engine
          const CHAR     *_orgData ;
          UINT32         _orgLen ;
 
+         BOOLEAN        _encrypted ;
    } ;
    typedef _dmsRecordData dmsRecordData ;
 
@@ -170,6 +194,8 @@ namespace engine
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
    // Indicate this record has global transaction ID, introduced in v1
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
+   // indicate this record has been encrypted
+   #define DMS_RECORD_FLAG_ENCRYPTED         0x40
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
@@ -364,6 +390,23 @@ namespace engine
          Copy the data to disk directly
       */
       OSS_INLINE void  setData( const dmsRecordData &data ) ;
+
+
+      OSS_INLINE BOOLEAN isEncrypted() const
+      {
+         return getAttr() & DMS_RECORD_FLAG_ENCRYPTED ;
+      }
+
+      OSS_INLINE void setEncrypted()
+      {
+         setAttr( DMS_RECORD_FLAG_ENCRYPTED ) ;
+      }
+
+      OSS_INLINE void unsetEncrypted()
+      {
+         unsetAttr( DMS_RECORD_FLAG_ENCRYPTED ) ;
+      }
+
    } ;
    typedef _dmsRecord_v0 dmsRecord_v0 ;
    
@@ -434,7 +477,6 @@ namespace engine
          setHasGlobTransID() ;
          return ;
       }
-   
    };
    typedef _dmsRecord_v1 dmsRecord_v1 ;
 
@@ -471,7 +513,7 @@ namespace engine
 
    OSS_INLINE const CHAR* _dmsRecord_v0::getData() const
    {
-      return isCompressed() ?
+      return isCompressed() || isEncrypted() ?
          ((const CHAR*)this+sizeof(UINT32)+ DMS_RECORD_VERSIONED_METADATA_SZ) :
          ((const CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ) ;
    }
@@ -498,9 +540,11 @@ namespace engine
       {
          return ;
       }
-      if ( data.isCompressed() )
+      data.isCompressed() ? setCompressed() : unsetCompressed() ;
+      data.isEncrypted() ? setEncrypted() : unsetEncrypted() ;
+
+      if ( data.isCompressed() || data.isEncrypted() )
       {
-         setCompressed() ;
          UINT32 * temp = (UINT32 *)( (CHAR *)this + 
                                        DMS_RECORD_VERSIONED_METADATA_SZ ) ;
          (*temp) = data.len() ;
@@ -512,7 +556,6 @@ namespace engine
       }
       else
       {
-         unsetCompressed() ;
          ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
                     data.data(), data.len() ) ;
       }
@@ -643,6 +686,21 @@ namespace engine
       BYTE getState() const
       {
          return ((const dmsRecord*)this)->getState() ;
+      }
+
+      BOOLEAN isEncrypted() const
+      {
+         return ((dmsRecord*)this)->isEncrypted() ;
+      }
+
+      void setEncrypted()
+      {
+         ((dmsRecord*)this)->setEncrypted(); 
+      }
+
+      void unsetEncrypted()
+      {
+         ((dmsRecord*)this)->unsetEncrypted() ;
       }
    } ;
    typedef _dmsCappedRecord dmsCappedRecord ;

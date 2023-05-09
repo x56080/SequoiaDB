@@ -53,6 +53,7 @@
 #include "msgMessageFormat.hpp"
 #include "rtnExtDataHandler.hpp"
 #include <set>
+#include "utilSecurityKeys.hpp"
 
 using namespace bson ;
 
@@ -2273,6 +2274,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 count = 0 ;
 
+      BSONObj secKeyFiles ;
+      BOOLEAN hasSecKeyFiles = FALSE ;
+
       /// When the first, need to dump info from dmsCB
       if ( 1 == slice )
       {
@@ -2286,6 +2290,19 @@ namespace engine
          if ( rc )
          {
             goto error ;
+         }
+
+         if (  SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() )
+         {
+            rc = sdbGetCatalogueCB()->getSecKeysManager()->packKeyFileContents( secKeyFiles );
+            if ( rc )
+            {
+               PD_LOG( PDDEBUG, "Failed to get key files, rc: %d", rc ) ;
+            }
+            else
+            {
+               hasSecKeyFiles = TRUE ;
+            }
          }
       }
 
@@ -2302,6 +2319,18 @@ namespace engine
 
          b.append( CLS_FS_NOMORE, nomore ) ;
          b.append( CLS_FS_SLICE, slice ) ;
+
+         if ( ( 1 == slice ) && hasSecKeyFiles &&
+              ( SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() ) )
+         {
+            b.append( FIELD_NAME_KEYFILES, secKeyFiles ) ;
+#if defined (_DEBUG)
+            PD_LOG( PDWARNING,
+                    "Pack key files in begin res msg as a BSONObj:"
+                    OSS_NEWLINE "%s",
+                    secKeyFiles.toString().c_str() ) ;
+#endif
+         }
 
          // empty space
          BSONArrayBuilder csArrayBD( b.subarrayStart( CLS_FS_CSNAMES ) ) ;

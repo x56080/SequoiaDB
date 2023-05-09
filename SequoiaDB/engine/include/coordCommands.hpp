@@ -82,6 +82,24 @@ namespace engine
 
    typedef _coordCMDGetSessionAttr coordCMDGetSessionAttr ;
 
+   /*
+      _coordCMDInitSecurityKeys define
+   */
+   class _coordCMDInitSecurityKeys : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+      public :
+         _coordCMDInitSecurityKeys () ;
+         virtual ~_coordCMDInitSecurityKeys () ;
+
+         virtual INT32 execute ( MsgHeader *pMsg,
+                                 pmdEDUCB *cb,
+                                 INT64 &contextID,
+                                 rtnContextBuf *buf ) ;
+   } ;
+
+   typedef _coordCMDInitSecurityKeys coordCMDInitSecurityKeys ;
 }
 
 #endif // COORD_COMMANDS_HPP__

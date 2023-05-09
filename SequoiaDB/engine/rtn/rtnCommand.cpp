@@ -53,6 +53,7 @@
 #include "utilCompressor.hpp"
 #include "msgMessageFormat.hpp"
 #include "clsRecycleBinJob.hpp"
+#include "clsDEKFetcher.hpp"
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -570,6 +571,7 @@ namespace engine
       BSONObj hint( pHintBuff ) ;
       BSONElement ele ;
       BSONObj indexArray ;
+      BOOLEAN isEncrypted = FALSE ;
 
       rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
                                  &_collectionName ) ;
@@ -683,6 +685,23 @@ namespace engine
          _attributes |= DMS_MB_ATTR_COMPRESSED ;
       }
 
+      // check encrypted
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENCRYPTED,
+                                 isEncrypted ) ; 
+      if ( ( SDB_OK == rc ) && isEncrypted )
+      {
+         if ( pmdGetDBRole() == SDB_ROLE_STANDALONE )
+         {
+            PD_LOG_MSG( PDERROR, "Encryption is not allowed on standalone node" ) ;
+            rc = SDB_OPERATION_DENIED ;
+            goto error ;
+         }
+         if ( !capped ) 
+         {
+            _attributes |= DMS_MB_ATTR_ENCRYPTED ;
+         }
+      }
+
       // check strictDataMode
       rc = rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
                                   strictDataMode ) ;
@@ -721,6 +740,14 @@ namespace engine
          {
             PD_LOG( PDWARNING,
                     "Compression is not allowed on capped collection." ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( isEncrypted )
+         {
+            PD_LOG( PDWARNING,
+                    "Encryption is not allowed on capped collection." ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -896,6 +923,14 @@ namespace engine
       {
          addIdxIDIfNotExist = TRUE ;
       }
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() && OSS_BIT_TEST( _attributes, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         clsDEKFetcher fetcher( *sdbGetShardCB() ) ;
+         rc = dmsCB->ensureOrFetchDEK( fetcher ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to refresh DEK when create collection[%s], rc: %d",
+                      _collectionName, rc ) ;
+      }      
 
       rc = rtnCreateCollectionCommand ( _collectionName,
                                         _shardIdxDef,

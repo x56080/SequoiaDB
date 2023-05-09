@@ -55,13 +55,14 @@ namespace engine
    /*
       catNodeManager implement
    */
-   catNodeManager::catNodeManager()
+   catNodeManager::catNodeManager( )
    {
       _pDmsCB = NULL ;
       _pDpsCB = NULL ;
       _pRtnCB = NULL ;
       _pCatCB = NULL ;
       _pEduCB = NULL ;
+      _keysMgr = NULL ;
    }
 
    catNodeManager::~catNodeManager()
@@ -69,7 +70,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_INIT, "catNodeManager::init" )
-   INT32 catNodeManager::init()
+   INT32 catNodeManager::init( ISecKeysManager *keysMgr )
    {
       INT32 rc = SDB_OK;
       pmdKRCB *krcb     = pmdGetKRCB() ;
@@ -78,6 +79,8 @@ namespace engine
       _pRtnCB           = krcb->getRTNCB();
       _pCatCB           = krcb->getCATLOGUECB();
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_INIT ) ;
+      SDB_ASSERT( keysMgr, "can not be nullptr" ) ;
+      _keysMgr = keysMgr ;
 
       // 1. insert self to node collection
       rc = readCataConf() ;
@@ -522,6 +525,9 @@ namespace engine
       BOOLEAN ownedData = FALSE ;
       INT32 objNumber = 0 ;
 
+      BSONObj dekInfo ;
+      BOOLEAN bGotDekInfo = FALSE ;
+
       /// fill reply header
       _fillRspHeader( &replyHeader.header, pMsg ) ;
       replyHeader.header.messageLength = sizeof( MsgCatRegisterRsp ) ;
@@ -598,6 +604,20 @@ namespace engine
          goto error ;
       }
 
+      // if config parameter ciphername is set to "SM4", that is,
+      // data encryption is enabled, get the DEK ( a.k.a Data Encryption
+      // Key ) from DEK file for the data node. The DEK file is saved
+      // in dbpath/security/DEK/dek file.
+      if ( SDB_ROLE_DATA == realRole )
+      {
+         rc = _keysMgr->getDEKInfo( dekInfo, bGotDekInfo ) ;
+         if ( rc )
+         {
+            PD_LOG( PDDEBUG, "Failed to get DEK info, rc: %d", rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+
       // build the response message
       dataLen = boNodeInfo.objsize() ;
       pData = ( CHAR* )boNodeInfo.objdata() ;
@@ -608,6 +628,13 @@ namespace engine
       {
          dataLen = ossAlign4( dataLen ) ;
          dataLen += boDCInfo.objsize() ;
+
+         // pass the DEK info to data node during registration.
+         if ( bGotDekInfo )
+         {
+            dataLen = ossAlign4( dataLen ) ;
+            dataLen += dekInfo.objsize() ;
+         }
 
          pData = ( CHAR* )SDB_THREAD_ALLOC( dataLen ) ;
          if ( !pData )
@@ -623,6 +650,13 @@ namespace engine
          ossMemcpy( pData, boNodeInfo.objdata(), boNodeInfo.objsize() ) ;
          ossMemcpy( pData + ossAlign4( (UINT32)boNodeInfo.objsize() ),
                     boDCInfo.objdata(), boDCInfo.objsize() ) ;
+         if ( bGotDekInfo )
+         {
+            objNumber = 3 ;
+            ossMemcpy( pData + ossAlign4( (UINT32)boNodeInfo.objsize() )
+                             + ossAlign4( (UINT32)boDCInfo.objsize() ) ,
+                       dekInfo.objdata(), dekInfo.objsize() ) ;
+         }
       }
 
    done:

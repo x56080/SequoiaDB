@@ -45,6 +45,10 @@
 #include "migLoad.hpp"
 #include "dmsTransLockCallback.hpp"
 
+#include "dmsCB.hpp"
+#include "ossGMCrypto.hpp"
+#include "dmsEncrypt.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -141,14 +145,46 @@ namespace engine
 
       dmsCompressorEntry *compressorEntry = NULL ;
 
+      ossSM4Context encryptionCTX ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      ossSM4Key DEK ;
+      BOOLEAN bDoEncryption = FALSE ;
+      BOOLEAN bDidCompression = FALSE ;
+      UTIL_COMPRESSOR_TYPE compressorType = UTIL_COMPRESSOR_INVALID ;
+
       SDB_ASSERT( mbContext, "mb context can't be NULL" ) ;
 
-      compressorEntry = _su->data()->getCompressorEntry( mbContext->mbID() ) ;
-      /* For concurrency protection with drop CL and set compresor. */
-      dmsCompressorGuard compGuard( compressorEntry, SHARED ) ;
-
+      // check whether can do encryption
+      if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         if ( !dmsCB->peekDEK( DEK ) )
+         {
+            rc = SDB_SEC_DEK_NOT_EXIST ;
+            PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
+            goto error ;
+         }
+         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+         if ( SDB_OK == rc )
+         {
+            encryptionCTX.setKey( DEK ) ;
+            bDoEncryption = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to initialize encryption context, rc:%d. "
+                    "Data encryption is disabled for this operation.",
+                    rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+      
       try
       {
+         compressorEntry = _su->data()->getCompressorEntry( mbContext->mbID() ) ;
+         /* For concurrency protection with drop CL and set compresor. */
+         dmsCompressorGuard compGuard( compressorEntry, SHARED ) ;
+
          recordData.setData( record.objdata(), record.objsize(),
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
          /* (0) */
@@ -214,9 +250,10 @@ namespace engine
                // 4 bytes len + compressed record
                dmsrecordSize = compressedDataSize + sizeof(UINT32) ;
                // set the compression data
+               compressorType = compressorEntry->getCompressorType() ;
                recordData.setData( compressedData, compressedDataSize,
-                                   compressorEntry->getCompressorType(),
-                                   FALSE ) ;
+                                   compressorType, FALSE ) ;
+               bDidCompression = FALSE ;
             }
             else if ( rc )
             {
@@ -239,6 +276,31 @@ namespace engine
           * Release the guard to avoid deadlock with truncate/drop collection.
           */
          compGuard.release() ;
+
+         // encrypt data to be written to disk if this CL is enabled data encryption
+         if ( bDoEncryption )
+         {
+               const CHAR *encryptedData = NULL ;
+               INT32 encryptedDataSize = 0 ;
+
+               if ( bDidCompression )
+               {
+                  rc = dmsBinEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                      &encryptedData, &encryptedDataSize ) ;
+                  SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize, "unexpected length" ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to encrypt compressed data, rc: %d", rc ) ;
+               }
+               else
+               {
+                  rc = dmsBSONEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                       &encryptedData, &encryptedDataSize ) ;
+                  SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize + sizeof( INT32 ),
+                              "unexpected length" ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to encrypt origin data, rc: %d", rc ) ;
+               }
+               recordData.setData( encryptedData, encryptedDataSize, compressorType, FALSE ) ;
+               recordData.setEncrypted() ;
+            }
 
          // add record metadata and oid
          dmsrecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
@@ -356,6 +418,7 @@ namespace engine
       }
 
    done:
+      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGELOADEXT__IMPRTBLOCK, rc );
       return rc ;
    error:

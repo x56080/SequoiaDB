@@ -49,6 +49,7 @@
 #include "clsTrace.hpp"
 #include "rtnLob.hpp"
 #include "rtnRecover.hpp"
+#include "utilSecurityKeys.hpp"
 
 using namespace bson ;
 
@@ -2007,6 +2008,7 @@ namespace engine
       _hasRegFullsyc = FALSE ;
       _beginSlice = 1 ;
       _beginRspSlice = 1 ;
+      _keyFiles = BSONObj() ;
    }
 
    _clsFSDstSession::~_clsFSDstSession()
@@ -2228,6 +2230,36 @@ namespace engine
                    "Fullsync begin, expect LSN: ( offset: %lld, version: %u )",
                    (INT64)msg->lsn.offset, msg->lsn.version ) ;
       MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
+      // create key files
+      try
+      {
+         if ( ( SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() ) && _keyFiles.isValid() &&
+              ( !_keyFiles.isEmpty() ) )
+         {
+#if defined( _DEBUG )
+            PD_LOG( PDWARNING, "Restoring key files from BSONObj: " OSS_NEWLINE "%s",
+                    _keyFiles.toString().c_str() ) ;
+#endif
+            rc = sdbGetCatalogueCB()->getSecKeysManager()->replayCrtKeyLogRecord( _keyFiles ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR,
+                       "Session[%s]: Failed to re-create "
+                       "key files, rc: %d",
+                       sessionName(), rc ) ;
+               _disconnect() ;
+               goto done ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Session[%s]: Occur exception: %s", sessionName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         _disconnect() ;
+         goto done ;
+      }
 
       /// begin next status
       _meta() ;
@@ -2655,6 +2687,23 @@ namespace engine
                     "obj[%s]", sessionName(), CLS_FS_NOMORE,
                     bodyObj.toString().c_str() ) ;
             goto error ;
+         }
+
+         /// get key files on catalog node
+         if ( SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() )
+         {
+            ele = bodyObj.getField( FIELD_NAME_KEYFILES ) ;
+            if ( ( ! ele.eoo() ) && ( Object == ele.type() ) &&
+                 ele.Obj().isValid() && ( ! ele.Obj().isEmpty() ) )
+            {
+               _keyFiles = ele.Obj().getOwned() ;
+               #if defined (_DEBUG)
+               PD_LOG( PDWARNING,
+                       "Extracted key files obj from begin res msg: "
+                       OSS_NEWLINE "%s",
+                       _keyFiles.toString().c_str() ) ;
+               #endif
+            }
          }
 
          // 1. empty collection space

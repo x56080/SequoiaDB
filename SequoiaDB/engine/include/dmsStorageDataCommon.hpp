@@ -1268,7 +1268,7 @@ namespace engine
          /*
             Caller must hold the mbContext
          */
-         virtual INT32 extractData( const dmsMBContext *mbContext,
+         virtual INT32 extractData( dmsMBContext *mbContext,
                                     const dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData,

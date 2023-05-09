@@ -6199,6 +6199,8 @@ namespace sdbclient
                                      const bson::BSONObj &selector = _sdbStaticObject,
                                      const bson::BSONObj &orderBy = _sdbStaticObject,
                                      const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
+
+      virtual INT32 initSecurityKeys( const bson::BSONObj &options ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -8709,6 +8711,21 @@ namespace sdbclient
          }
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pSDB->listDataSources( &cursor.pCursor, condition, selector, orderBy, hint ) ;
+      }
+
+      /** \fn INT32 initSecurityKeys( const bson::BSONObj &options )
+          \brief Initialize security keys.
+          \param [in] options Optional configuration option
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 initSecurityKeys( const bson::BSONObj &options )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->initSecurityKeys( options ) ;
       }
    } ;
 

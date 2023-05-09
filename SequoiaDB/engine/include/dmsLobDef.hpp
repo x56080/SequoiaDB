@@ -78,6 +78,8 @@ namespace engine
                     ( ((SINT64)(sequence)-1)*(SINT64)(pageSz)+ \
                       (SINT64)(offsetInSeq) ) )
 
+   #define DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE 8
+
    /*
       _dmsLobRecord define
    */
@@ -231,8 +233,9 @@ namespace engine
 
    #define DMS_LOB_PAGE_NORMAL               ( 0 )
    #define DMS_LOB_PAGE_REMOVED              ( 1 )
-   #define DMS_LOB_PAGE_FLAG_NEW             ( 1 )
-   #define DMS_LOB_PAGE_FLAG_OLD             ( 0 )
+   #define DMS_LOB_PAGE_FLAG_NEW             ( 0b00000001 )
+   #define DMS_LOB_PAGE_FLAG_ENCRYPTED       ( 0b00000010 )
+  
 
    /*
       _dmsLobDataMapBlk define
@@ -248,12 +251,14 @@ namespace engine
       UINT32         _clLogicalID ;
       UINT16         _mbID ;
       BYTE           _status ;
-      BYTE           _newFlag ;
-      CHAR           _pad2[24];  /// sizeof( _dmsLobDataMapBlk ) == 64B
+      BYTE           _flags ;
+      UINT8          _ctrNonce[DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE] ;
+      CHAR           _pad2[16] ;  /// sizeof( _dmsLobDataMapBlk ) == 64B
 
       _dmsLobDataMapBlk()
       {
          reset() ;
+         ossMemset( _ctrNonce, 0, DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
          SDB_ASSERT( 64 == sizeof( _dmsLobDataMapBlk ), "invalid blk" ) ;
       }
@@ -269,7 +274,7 @@ namespace engine
          _clLogicalID = DMS_INVALID_CLID ;
          _mbID = DMS_INVALID_MBID ;
          _status = DMS_LOB_PAGE_REMOVED ;
-         _newFlag = DMS_LOB_PAGE_FLAG_NEW ;
+         _flags = 0 ;
       }
 
       BOOLEAN isUndefined() const
@@ -299,9 +304,29 @@ namespace engine
 
       BOOLEAN isNew() const
       {
-         return _newFlag == DMS_LOB_PAGE_FLAG_NEW ? TRUE : FALSE ;
+         return OSS_BIT_TEST( _flags, DMS_LOB_PAGE_FLAG_NEW ) ;
       }
-      void setOld() { _newFlag = DMS_LOB_PAGE_FLAG_OLD ;}
+      void setOld()
+      {
+         OSS_BIT_CLEAR( _flags, DMS_LOB_PAGE_FLAG_NEW ) ;
+      }
+
+      BOOLEAN isEncrypted() const
+      {
+         return OSS_BIT_TEST( _flags, DMS_LOB_PAGE_FLAG_ENCRYPTED ) ;
+      }
+
+      void setEncrypted( BOOLEAN flag )
+      {
+         if ( flag )
+         {
+            OSS_BIT_SET( _flags, DMS_LOB_PAGE_FLAG_ENCRYPTED ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( _flags, DMS_LOB_PAGE_FLAG_ENCRYPTED ) ;
+         }
+      }
 
       BOOLEAN equals( const BYTE *oid, UINT32 sequence ) const
       {

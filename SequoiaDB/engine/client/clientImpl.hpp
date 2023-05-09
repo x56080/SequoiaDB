@@ -2195,6 +2195,8 @@ namespace sdbclient
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
+
+      INT32 initSecurityKeys( const bson::BSONObj &options ) ;
    } ;
    typedef class _sdbImpl sdbImpl ;
 

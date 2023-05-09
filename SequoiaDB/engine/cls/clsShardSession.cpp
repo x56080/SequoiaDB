@@ -54,6 +54,7 @@
 #include "pdSecure.hpp"
 #include "rtnInsertModifier.hpp"
 #include "clsOprHandler.hpp"
+#include "clsDEKFetcher.hpp"
 
 using namespace bson ;
 
@@ -1330,6 +1331,14 @@ namespace engine
          builder.append( FIELD_NAME_MAX, set->getMaxRecNum() ) ;
          builder.appendBool( FIELD_NAME_OVERWRITE, set->getOverWrite() ) ;
          extOptions = builder.done() ;
+      }
+
+      if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         clsDEKFetcher fetcher( *_pShdMgr ) ;
+         rc = _pDmsCB->ensureOrFetchDEK( fetcher ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to refresh DEK when create collection[%s], rc: %d",
+                      clFullName, rc ) ;
       }
 
       if ( isMainCL )

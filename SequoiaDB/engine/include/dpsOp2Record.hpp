@@ -425,6 +425,24 @@ namespace engine
    INT32 dpsRecord2Return( const CHAR *logRecord,
                            bson::BSONObj *boOptions ) ;
 
+   // encryption key files
+   INT32 dpsCrtKeys2Record( const BSONObj & oldSecKeyFiles,
+                            const BSONObj & newSecKeyFiles,
+                            dpsLogRecord & record ) ;
+
+   INT32 dpsRecord2CrtKeys( const CHAR * logRecord,
+                            bson::BSONObj & oldSecKeyFiles,
+                            bson::BSONObj & newSecKeyFiles ) ;
+   /*
+   INT32 dpsUpdKeys2Record( const BSONObj & oldSecKeyFiles,
+                            const BSONObj & newSecKeyFiles,
+                            dpsLogRecord &record ) ; 
+
+   INT32 dpsRecord2UpdKeys( const CHAR *logRecord,
+                            bson::BSONObj & oldSecKeyFiles,
+                            bson::BSONObj & newSecKeyFiles ) ;
+   */
+
    // get transaction ID from record
    INT32 dpsGetTransIDFromRecord( const CHAR *logRecord,
                                   DPS_TRANS_ID &transID ) ;

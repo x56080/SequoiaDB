@@ -1700,7 +1700,8 @@ namespace engine
                                    UINT32 offset,
                                    UINT32 len,
                                    IExecutor *cb,
-                                   UINT32 newestMask )
+                                   UINT32 newestMask,
+                                   utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHECTX_WRITE ) ;
@@ -1760,7 +1761,7 @@ namespace engine
                   loadLen = offset - loadOffset ;
                }
 
-               rc = _loadPage( loadOffset, loadLen, cb ) ;
+               rc = _loadPage( loadOffset, loadLen, cb, cryptor ) ;
                if( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] failed, "
@@ -1777,6 +1778,7 @@ namespace engine
          _newestMask = newestMask ;
          _usePage = TRUE ;
          _writeBack = FALSE ;
+         _cryptor = cryptor ;
       }
       else
       {
@@ -1797,6 +1799,7 @@ namespace engine
             _newestMask = newestMask ;
             _usePage = FALSE ;
             _writeBack = FALSE ;
+            _cryptor = cryptor ;
          }
       }
 
@@ -1811,7 +1814,8 @@ namespace engine
    INT32 _utilCacheContext::read( CHAR *pBuff,
                                   UINT32 offset,
                                   UINT32 len,
-                                  IExecutor *cb )
+                                  IExecutor *cb,
+                                  utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHECTX_READ ) ;
@@ -1859,7 +1863,7 @@ namespace engine
             /// load the data
             if ( offset < _pPage->start() )
             {
-               rc = _loadPage( offset, _pPage->start() - offset, cb ) ;
+               rc = _loadPage( offset, _pPage->start() - offset, cb, cryptor ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] data "
@@ -1871,7 +1875,7 @@ namespace engine
             if ( offset + len > _pPage->length() )
             {
                rc = _loadPage( _pPage->length(),
-                               offset + len - _pPage->length(), cb ) ;
+                               offset + len - _pPage->length(), cb, cryptor ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] data "
@@ -1897,6 +1901,7 @@ namespace engine
          _isWrite = FALSE ;
          _usePage = TRUE ;
          _writeBack = FALSE ;
+         _cryptor = cryptor ;
       }
       else
       {
@@ -1916,6 +1921,7 @@ namespace engine
             _isWrite = FALSE ;
             _usePage = FALSE ;
             _writeBack = FALSE ;
+            _cryptor = cryptor ;
          }
       }
 
@@ -1929,11 +1935,12 @@ namespace engine
    INT32 _utilCacheContext::readAndCache( CHAR *pBuff,
                                           UINT32 offset,
                                           UINT32 len,
-                                          IExecutor *cb )
+                                          IExecutor *cb,
+                                          utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
 
-      rc = read( pBuff, offset, len, cb ) ;
+      rc = read( pBuff, offset, len, cb, cryptor ) ;
       if ( rc )
       {
          goto error ;
@@ -1977,7 +1984,7 @@ namespace engine
                /// write to file
                utilCachFileBase* pFile = _pUnit->getCacheFile() ;
                rc = pFile->write( _pageID, _pData, _len, _offset,
-                                  _newestMask, cb ) ;
+                                  _newestMask, cb, _cryptor ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Write page[ID:%d,Off:%u,Len:%u] to "
@@ -1999,7 +2006,7 @@ namespace engine
             {
                /// read from file
                utilCachFileBase* pFile = _pUnit->getCacheFile() ;
-               rc = pFile->read( _pageID, _pData, _len, _offset, len, cb ) ;
+               rc = pFile->read( _pageID, _pData, _len, _offset, len, cb, _cryptor ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Read page[ID:%d,Off:%u,Len:%u] from "
@@ -2062,7 +2069,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX__LOADPAGE, "_utilCacheContext::_loadPage" )
    INT32 _utilCacheContext::_loadPage( UINT32 offset,
                                        UINT32 len,
-                                       IExecutor *cb )
+                                       IExecutor *cb,
+                                       const utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHECTX__LOADPAGE ) ;
@@ -2088,7 +2096,7 @@ namespace engine
          CHAR *ptr = _pPage->str() ;
          pFile = _pUnit->getCacheFile() ;
          /// read from file
-         rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb ) ;
+         rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb, cryptor ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Read from file[%s] failed, rc: %d",
@@ -2116,7 +2124,7 @@ namespace engine
 
          pFile = _pUnit->getCacheFile() ;
          /// read from file
-         rc = pFile->read( _pageID, pBuff, len, offset, readLen, cb ) ;
+         rc = pFile->read( _pageID, pBuff, len, offset, readLen, cb, cryptor ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Read from file[%s] failed, rc: %d",

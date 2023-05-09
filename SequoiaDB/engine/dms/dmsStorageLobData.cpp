@@ -482,7 +482,8 @@ namespace engine
    INT32 _dmsStorageLobData::write( INT32 pageID, const CHAR *pData,
                                     UINT32 len, UINT32 offset,
                                     UINT32 newestMask,
-                                    IExecutor *cb )
+                                    IExecutor *cb,
+                                    const utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_WRITE ) ;
@@ -490,41 +491,61 @@ namespace engine
                   NULL != pData &&
                   len + offset <= _pageSz, "invalid operation" ) ;
 
-      _dmsLobDirectOutBuffer buffer( pData, len, offset, isDirectIO(),
-                                     cb, pageID, newestMask, this ) ;
-      const _dmsLobDirectBuffer::tuple *t = NULL ;
+      UINT8 *encryptedBuffer = NULL ;
 
       INT64 written = 0 ;
       INT64 writeOffset = 0 ;
 
-      rc = buffer.doit( &t ) ;
-      if ( rc )
+      if ( cryptor )
       {
-         goto error ;
+         encryptedBuffer = (UINT8 *)SDB_THREAD_ALLOC( len ) ;
+         if ( !encryptedBuffer )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for encryption" ) ;
+            goto error ;
+         }
+         rc = cryptor->encrypt( (UINT8 *)pData, len, encryptedBuffer ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to encrypt user buffer", rc ) ;
+         pData = (CHAR *)encryptedBuffer ;
       }
-
-      writeOffset = getSeek( pageID, t->offset ) ;
-      if ( writeOffset + t->size > _fileSz )
       {
-         PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", t->offset, _fileSz, _fileName.c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         _dmsLobDirectOutBuffer buffer( pData, len, offset, isDirectIO(), cb, pageID, newestMask,
+                                        this ) ;
+         const _dmsLobDirectBuffer::tuple *t = NULL ;
+         rc = buffer.doit( &t ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         
+         writeOffset = getSeek( pageID, t->offset ) ;
+         if ( writeOffset + t->size > _fileSz )
+         {
+            PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in file[%s]", t->offset,
+                    _fileSz, _fileName.c_str() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         rc = ossSeekAndWriteN( &_file, writeOffset,
+                              t->buf, t->size,
+                              written ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to write data, page:%d, rc:%d",
+                  pageID, rc ) ;
+            goto error ;
+         }
+
+         buffer.done() ;
       }
-
-      rc = ossSeekAndWriteN( &_file, writeOffset,
-                             t->buf, t->size,
-                             written ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to write data, page:%d, rc:%d",
-                 pageID, rc ) ;
-         goto error ;
-      }
-
-      buffer.done() ;
-
    done:
+      if ( encryptedBuffer )
+      {
+         SDB_THREAD_FREE( encryptedBuffer ) ;
+         encryptedBuffer = NULL ;
+      } 
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_WRITE, rc ) ;
       return rc ;
    error:
@@ -634,13 +655,16 @@ namespace engine
    INT32 _dmsStorageLobData::read( INT32 pageID, CHAR *pData,
                                    UINT32 len, UINT32 offset,
                                    UINT32 &readLen,
-                                   IExecutor *cb )
+                                   IExecutor *cb,
+                                   const utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_READ ) ;
       SDB_ASSERT( DMS_LOB_INVALID_PAGEID != pageID &&
                   NULL != pData &&
                   len + offset <= _pageSz, "invalid operation" ) ;
+
+      UINT8 *decryptedBuffer = NULL ;
 
       SINT64 readFromFile = 0 ;
       INT64 readOffset = 0 ;
@@ -658,25 +682,43 @@ namespace engine
       if ( readOffset + t->size > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
+               "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       rc = ossSeekAndReadN( &_file, readOffset,
-                            t->size, t->buf,
-                            readFromFile ) ;
+                           t->size, t->buf,
+                           readFromFile ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to read page[%d], rc: %d",
-                 pageID, rc ) ;
+               pageID, rc ) ;
          goto error ;
       }
 
       buffer.done() ;
       readLen = len ;
 
+      if ( cryptor )
+      {
+         decryptedBuffer = (UINT8 *)SDB_THREAD_ALLOC( len ) ;
+         if ( !decryptedBuffer )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for decryption" ) ;
+            goto error ;
+         }
+         rc = cryptor->decrypt( (UINT8 *)pData, len, decryptedBuffer ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to encrypt user buffer", rc ) ;
+         ossMemcpy( pData, decryptedBuffer, len ) ;
+      }
    done:
+      if ( decryptedBuffer )
+      {
+         SDB_THREAD_FREE( decryptedBuffer );
+         decryptedBuffer = NULL;
+      }
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_READ, rc ) ;
       return rc ;
    error:

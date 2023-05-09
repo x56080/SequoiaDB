@@ -59,6 +59,8 @@
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 #include "dmsScanner.hpp"
+#include "ossGMCrypto.hpp"
+#include "utilDEKFetcher.hpp"
 
 using namespace std ;
 
@@ -242,6 +244,9 @@ namespace engine
       dmsPageMappingDispatcher   _pageMapDispatcher ;
 
       DMS_HANDLER_LIST           _handlers ;
+
+      ossSM4Key              _DEK ;
+      BOOLEAN                _hasDEK ;
 
    private:
       void  _logCSCBNameMap () ;
@@ -506,6 +511,11 @@ namespace engine
       void releaseScannerChecker( IDmsScannerChecker *pChecker ) ;
 
       INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
+
+      BOOLEAN hasDEK() ;
+      BOOLEAN peekDEK( ossSM4Key dek ) ;
+      void setDEK( ossSM4Key dek ) ;
+      INT32 ensureOrFetchDEK( utilDEKFetcher &fetcher ) ;
 
    public:
       typedef std::vector<SDB_DMS_CSCB*>::iterator CSCB_ITERATOR;

@@ -108,7 +108,7 @@ class _ossSocket : public SDBObject
 
    protected:
       UINT32   _getPort ( sockaddr_in *addr ) ;
-      UINT32   _getIP( sockaddr_in *addr ) ;
+      UINT32   _getIP( const sockaddr_in *addr ) const ;
       INT32    _getAddress ( sockaddr_in *addr, CHAR *pAddress,
                              UINT32 length ) ;
       INT32    _complete( INT32 timeout ) ;
@@ -175,11 +175,11 @@ class _ossSocket : public SDBObject
 #endif
       UINT32 getPeerPort () ;
       INT32  getPeerAddress ( CHAR *pAddress, UINT32 length ) ;
-      UINT32 getPeerIP () ;
+      UINT32 getPeerIP () const;
 
       UINT32 getLocalPort () ;
       INT32  getLocalAddress ( CHAR *pAddress, UINT32 length ) ;
-      UINT32 getLocalIP () ;
+      UINT32 getLocalIP () const ;
 
       INT32 setTimeout ( INT32 milliSeconds ) ;
 

@@ -331,6 +331,8 @@ namespace engine
                                           dmsTaskStatusPtr &statusPtr,
                                           BOOLEAN &needRollback ) ;
          INT32 _updateDCInfo( MsgHeader* msg ) ;
+         INT32 _extractDEKInfoObj( MsgHeader *msg, BSONObj & dekInfo ) ;
+         
       private:
          clsShardSessionMgr            _shardSessionMgr ;
          clsReplSessionMgr             _replSessionMgr ;

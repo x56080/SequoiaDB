@@ -220,6 +220,12 @@ namespace engine
       DPS_LOG_RETURN_OPTIONS = 1
    } ;
 
+   enum DPS_LOG_CRT_SEC_KEY_FILES
+   {
+      DPS_LOG_OLD_KEY_FILES = 1,
+      DPS_LOG_NEW_KEY_FILES
+   } ;
+
 }
 
 #endif

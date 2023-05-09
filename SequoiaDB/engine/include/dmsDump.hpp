@@ -50,6 +50,7 @@
 #include "dmsStorageIndex.hpp"
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
+#include "ossGMCrypto.hpp"
 
 #include <deque>
 
@@ -160,7 +161,8 @@ namespace engine
                                         dmsCompressorEntry *compressorEntry,
                                         set<dmsRecordID> *ridList = NULL,
                                         BOOLEAN dumpRecord = FALSE,
-                                        BOOLEAN capped = FALSE ) ;
+                                        BOOLEAN capped = FALSE,
+                                        ossSM4Context *pctx = NULL ) ;
 
          static UINT32 dumpExtentHeader ( void * inBuf,
                                           UINT32 inSize,
@@ -193,7 +195,8 @@ namespace engine
                                         UINT32 outSize,
                                         dmsOffset &nextRecord,
                                         dmsCompressorEntry *compressorEntry,
-                                        set<dmsRecordID> *ridList = NULL ) ;
+                                        set<dmsRecordID> *ridList = NULL,
+                                        ossSM4Context * ctx = NULL ) ;
 
          static UINT32 dumpCappedDataRecord( pmdEDUCB *cb,
                                              dmsCappedRecord *record,
@@ -269,7 +272,8 @@ namespace engine
                                           CHAR *outBuf, UINT32 outSize,
                                           dmsCompressorEntry *compressorEntry,
                                           set< dmsRecordID > *ridList,
-                                          pmdEDUCB *cb ) ;
+                                          pmdEDUCB *cb,
+                                          ossSM4Context * ctx ) ;
 
          static UINT32 _dumpCappedExtent( CHAR *inBuf, UINT32 inSize,
                                           CHAR *outBuf, UINT32 outSize,

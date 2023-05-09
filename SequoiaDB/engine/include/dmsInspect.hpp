@@ -51,6 +51,8 @@
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 
+#include "ossGMCrypto.hpp"
+
 #include <deque>
 
 using namespace bson ;
@@ -124,7 +126,8 @@ namespace engine
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
                                            UINT64 &deletingNum,
-                                           BOOLEAN capped = FALSE ) ;
+                                           BOOLEAN capped = FALSE,
+                                           ossSM4Context * pctx = NULL ) ;
 
          static UINT32 inspectDataRecord ( _pmdEDUCB *cb,
                                            void * inBuf,
@@ -138,7 +141,8 @@ namespace engine
                                            dmsCompressorEntry *compressorEntry,
                                            BOOLEAN &isCompressed,
                                            BOOLEAN *pIsDeleting = NULL,
-                                           BOOLEAN *pIsOvf = NULL ) ;
+                                           BOOLEAN *pIsOvf = NULL,
+                                           ossSM4Context * pctx = NULL ) ;
 
          static UINT32 inspectCappedDataRecord( pmdEDUCB *cb,
                                                 dmsCappedRecord *record,
@@ -211,7 +215,8 @@ namespace engine
                                            UINT64 &deletingNum,
                                            INT32 &localErr,
                                            set< dmsRecordID > *ridList,
-                                           pmdEDUCB *cb ) ;
+                                           pmdEDUCB *cb,
+                                           ossSM4Context * pctx ) ;
 
          static INT32 inspectCappedExtent( CHAR *inBuf, UINT32 inSize,
                                            CHAR *outBuf, UINT32 outSize,

@@ -44,6 +44,7 @@
 #include <vector>
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
+#include "utilELCryptor.hpp"
 
 using namespace std ;
 
@@ -655,7 +656,8 @@ namespace engine
                          UINT32 offset,
                          UINT32 len,
                          IExecutor *cb,
-                         UINT32 newestMask ) ;
+                         UINT32 newestMask,
+                         utilELCryptor *cryptor = NULL ) ;
 
          /*
             Need call submit or rollback to done
@@ -663,7 +665,8 @@ namespace engine
          INT32    read( CHAR *pBuff,
                         UINT32 offset,
                         UINT32 len,
-                        IExecutor *cb ) ;
+                        IExecutor *cb,
+                        utilELCryptor *cryptor = NULL ) ;
 
          /*
             Need call submit or rollback to done
@@ -671,7 +674,8 @@ namespace engine
          INT32    readAndCache( CHAR *pBuff,
                                 UINT32 offset,
                                 UINT32 len,
-                                IExecutor *cb ) ;
+                                IExecutor *cb,
+                                utilELCryptor *cryptor = NULL ) ;
 
          UINT32   submit( IExecutor *cb ) ;
 
@@ -682,7 +686,8 @@ namespace engine
       protected:
          INT32    _loadPage( UINT32 offset,
                              UINT32 len,
-                             IExecutor *cb ) ;
+                             IExecutor *cb,
+                             const utilELCryptor *cryptor ) ;
 
       private:
          CHAR*             _pData ;
@@ -693,6 +698,7 @@ namespace engine
          BOOLEAN           _writeBack ;
          BOOLEAN           _usePage ;
          BOOLEAN           _hasDiscard ;
+         utilELCryptor*    _cryptor ;
 
          /// should value in cache unit
          INT32             _pageID ;
@@ -726,7 +732,8 @@ namespace engine
          virtual INT32  write( INT32 pageID, const CHAR *pData,
                                UINT32 len, UINT32 offset,
                                UINT32 newestMask,
-                               IExecutor *cb ) = 0 ;
+                               IExecutor *cb,
+                               const utilELCryptor *cryptor= NULL ) = 0 ;
 
          virtual INT32  prepareRead( INT32 pageID,
                                      CHAR *pData,
@@ -737,7 +744,8 @@ namespace engine
          virtual INT32  read( INT32 pageID, CHAR *pData,
                               UINT32 len, UINT32 offset,
                               UINT32 &readLen,
-                              IExecutor *cb ) = 0 ;
+                              IExecutor *cb,
+                              const utilELCryptor *cryptor ) = 0 ;
 
          virtual INT64  pageID2Offset( INT32 pageID,
                                        UINT32 pageOffset = 0 ) const = 0 ;

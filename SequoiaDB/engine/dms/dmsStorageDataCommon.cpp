@@ -53,6 +53,9 @@
 #include "dmsLightJob.hpp"
 #include "dpsUtil.hpp"
 #include "pdSecure.hpp"
+#include "dmsCB.hpp"
+#include "ossGMCrypto.hpp"
+#include "dmsEncrypt.hpp"
 
 using namespace bson ;
 
@@ -190,6 +193,7 @@ namespace engine
    #define DMS_MB_ATTR_CAPPED_STR                            "Capped"
    #define DMS_MB_ATTR_STRICTDATAMODE_STR                    "StrictDataMode"
    #define DMS_MB_ATTR_NOTRANS_STR                           "NoTrans"
+   #define DMS_MB_ATTR_ENCRYPTED_STR                         "Encrypted"
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MBATTR2STRING, "mbAttr2String" )
    void mbAttr2String( UINT32 attributes, CHAR * pBuffer, INT32 bufSize )
@@ -222,6 +226,11 @@ namespace engine
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_NOTRANS_STR ) ;
          OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_NOTRANS ) ;
+      }
+      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_ENCRYPTED_STR ) ;
+         OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_ENCRYPTED ) ;
       }
 
       // Test other bits
@@ -3896,6 +3905,39 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
+      ossSM4Context encryptionCTX ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      ossSM4Key DEK ;
+      BOOLEAN bDoEncryption = FALSE ;
+      BOOLEAN bDidCompression = FALSE ;
+      UTIL_COMPRESSOR_TYPE compressorType = UTIL_COMPRESSOR_INVALID ;
+
+      // check whether can do encryption
+      if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENCRYPTED ) )
+      {
+         if ( !dmsCB->peekDEK( DEK ) )
+         {
+            rc = SDB_SEC_DEK_NOT_EXIST ;
+            PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
+            goto error ;
+         }
+         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+         if ( SDB_OK == rc )
+         {
+            encryptionCTX.setKey( DEK ) ;
+            bDoEncryption = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                    "Failed to initialize encryption context, rc:%d. "
+                    "Data encryption will not be performed for "
+                    "insert operation this time",
+                    rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+
       if ( !isTransSupport( context ) )
       {
          transID = DPS_INVALID_TRANS_ID ;
@@ -3958,9 +4000,10 @@ namespace engine
                                  PD_PACK_UINT ( dmsRecordSize ) ) ;
 
                      // set the compression data
+                     compressorType = compressorEntry->getCompressorType() ;
                      recordData.setData( compressedData, compressedDataSize,
-                                         compressorEntry->getCompressorType(),
-                                         FALSE ) ;
+                                         compressorType, FALSE ) ;
+                     bDidCompression = TRUE ;
                   }
                   else if ( rc )
                   {
@@ -3985,6 +4028,32 @@ namespace engine
                 * collection.
                 */
                compGuard.release() ;
+            }
+
+            // encrypt data to be written to disk if this CL is enabled
+            // data encryption
+            if ( bDoEncryption )
+            {
+               const CHAR *encryptedData = NULL ;
+               INT32 encryptedDataSize = 0 ;
+
+               if ( bDidCompression )
+               {
+                  rc = dmsBinEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                      &encryptedData, &encryptedDataSize ) ;
+                  SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize, "unexpected length" ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to encrypt compressed data, rc: %d", rc ) ;
+               }
+               else
+               {
+                  rc = dmsBSONEncrypt( cb, &encryptionCTX, recordData.data(), recordData.len(),
+                                       &encryptedData, &encryptedDataSize ) ;
+                  SDB_ASSERT( recordData.len() == (UINT32)encryptedDataSize + sizeof( INT32 ),
+                              "unexpected length" ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to encrypt origin data, rc: %d", rc ) ;
+               }
+               recordData.setData( encryptedData, encryptedDataSize, compressorType, FALSE ) ;
+               recordData.setEncrypted() ;
             }
 
             // Step 2: Calculate the required space size, and allocate it,
@@ -4276,6 +4345,8 @@ namespace engine
       {
          cb->releaseBuff( pMergedData ) ;
       }
+
+      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
       return rc ;
    error:
@@ -4460,7 +4531,7 @@ namespace engine
                recordData.setData( (const CHAR*)deletedDataPtr,
                                    *(UINT32*)deletedDataPtr,
                                    UTIL_COMPRESSOR_INVALID, TRUE ) ;
-               if ( pRecord->isCompressed() )
+               if ( pRecord->isCompressed() || pRecord->isEncrypted() )
                {
                   recordData.setOrgData( NULL, _getRecordDataLen( pRecord ) ) ;
                }
@@ -4810,7 +4881,7 @@ namespace engine
             recordData.setData( (const CHAR*)updatedDataPtr,
                                 *(UINT32*)updatedDataPtr,
                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
-            if ( pRecord->isCompressed() )
+            if ( pRecord->isCompressed() || pRecord->isEncrypted() )
             {
                recordData.setOrgData( NULL, _getRecordDataLen( pRecord ) ) ;
             }

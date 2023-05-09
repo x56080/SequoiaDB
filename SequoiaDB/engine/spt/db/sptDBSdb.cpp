@@ -50,6 +50,7 @@
 #include "msgDef.hpp"
 #include "fmpDef.hpp"
 #include "utilPasswdTool.hpp"
+#include "sptUsrFileCommon.hpp"
 #include <string>
 #include <sstream>
 #include <boost/lexical_cast.hpp>
@@ -136,6 +137,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, initSecurityKeys )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -205,6 +207,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDataSource", getDataSource )
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
       JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
+      JS_ADD_MEMBER_FUNC( "initSecurityKeys", initSecurityKeys )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -2090,12 +2093,31 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj options ;
+      CHAR *pBuf = NULL;
       rc = arg.getBsonobj( 0, options ) ;
       if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
          detail = BSON( SPT_ERR << "Options must be obj" ) ;
          goto error ;
       }
+
+      if ( options.hasField( FIELD_NAME_MK_PUBLIC_FILE ) )
+      {
+         const CHAR *mkPublicPath = options.getStringField( FIELD_NAME_MK_PUBLIC_FILE );
+         std::string err;
+         INT64 len = -1;
+         BSONObjBuilder builder;
+         rc = _sptUsrFileCommon::readFile( mkPublicPath, err, &pBuf, len );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << err.c_str() );
+            goto error;
+         }
+         builder.append( FIELD_NAME_MK_PUBLIC, pBuf ) ;
+         builder.appendElementsUnique( options ) ;
+         options = builder.obj();
+      }
+
       rc = _sptSdb.backup( options ) ;
       if( SDB_OK != rc )
       {
@@ -2103,6 +2125,7 @@ namespace engine
          goto error ;
       }
    done:
+      SAFE_OSS_FREE( pBuf ) ;
       return rc ;
    error:
       goto done ;
@@ -3513,6 +3536,34 @@ namespace engine
       }
       SPT_SET_CURSOR_TO_RETURNVAL( cursor.pCursor ) ;
       cursor.pCursor = NULL ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::initSecurityKeys( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+      if ( !arg.isNull( 0 ) )
+      {
+         rc = arg.getBsonobj( 0, options ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Options must be obj" ) ;
+            goto error ;
+         }
+      }
+      rc = _sptSdb.initSecurityKeys( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to init security keys" ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

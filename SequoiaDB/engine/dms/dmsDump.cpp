@@ -48,12 +48,15 @@
 #include "utilDictionary.hpp"
 #include "dmsStorageDataCapped.hpp"
 #include "rtnLobPieces.hpp"
+#include "ossGMCrypto.hpp"
+#include "dmsEncrypt.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-
+   #define DMS_DUMP_HEX_LINE_BUFF_SIZE  ( 2048 )
+   
    static void appendString( CHAR * pBuffer, INT32 bufSize,
                              const CHAR *flagStr )
    {
@@ -925,7 +928,8 @@ namespace engine
                                     dmsCompressorEntry *compressorEntry,
                                     set< dmsRecordID > *ridList,
                                     BOOLEAN dumpRecord,
-                                    BOOLEAN capped )
+                                    BOOLEAN capped,
+                                    ossSM4Context * pctx )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -1007,7 +1011,7 @@ namespace engine
             {
                len += _dumpNormalExtent( inBuf, inSize, outBuf + len,
                                          outSize - len, compressorEntry,
-                                         ridList, cb ) ;
+                                         ridList, cb, pctx ) ;
             }
          }
       }
@@ -1264,7 +1268,8 @@ namespace engine
                                        CHAR *outBuf, UINT32 outSize,
                                        dmsCompressorEntry *compressorEntry,
                                        set< dmsRecordID > *ridList,
-                                       pmdEDUCB *cb )
+                                       pmdEDUCB *cb,
+                                       ossSM4Context * ctx )
    {
       SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -1273,7 +1278,7 @@ namespace engine
       dmsExtent *extent = (dmsExtent *)inBuf ;
       dmsOffset nextRecord = 0 ;
       INT32 recordCount = 0 ;
-
+    
       if ( NULL == inBuf || NULL == outBuf )
       {
          goto exit ;
@@ -1298,7 +1303,7 @@ namespace engine
                                  inSize - nextRecord,
                                  outBuf + len, outSize - len,
                                  nextRecord, compressorEntry,
-                                 ridList) ;
+                                 ridList, ctx ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
          ++recordCount ;
@@ -1421,13 +1426,42 @@ namespace engine
       return len ;
    }
 
-   #define DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN         63
+   INT32 dmsExtractEncryptedRecord( pmdEDUCB *cb,
+                                    dmsRecord *record,
+                                    ossSM4Context *pctx,
+                                    const CHAR **decryptedData,
+                                    INT32 *decryptedDataSize )
+   {
+      INT32 rc = SDB_OK ;
+      if ( pctx )
+      {
+         if ( record->isCompressed() )
+         {
+            rc = dmsBinDecrypt( cb, pctx, record->getData(), record->getDataLength(), decryptedData,
+                                decryptedDataSize ) ;
+         }
+         else
+         {
+            rc = dmsBSONDecrypt( cb, pctx, record->getData(), record->getDataLength(),
+                                 decryptedData, decryptedDataSize ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to decrypted record, rc: %d", rc ) ;
+      }
+
+   exit:
+      return rc ;
+   error:
+      goto exit ;
+   }
+
+#define DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN         63
 
    UINT32 _dmsDump::dumpDataRecord( pmdEDUCB *cb, CHAR *inBuf, UINT32 inSize,
                                     CHAR *outBuf, UINT32 outSize,
                                     dmsOffset &nextRecord,
                                     dmsCompressorEntry *compressorEntry,
-                                    set< dmsRecordID > *ridList )
+                                    set< dmsRecordID > *ridList,
+                                    ossSM4Context * pctx )
    {
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
@@ -1440,6 +1474,8 @@ namespace engine
       CHAR      flagText [DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN+1] = {0} ;
       BOOLEAN   isOvf   = FALSE ;
       BOOLEAN   isDel   = FALSE ;
+
+      CHAR      hexBuf[ DMS_DUMP_HEX_LINE_BUFF_SIZE ] = { 0 } ;
 
       if ( NULL == outBuf || NULL == cb  )
       {
@@ -1489,6 +1525,10 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Flag         : 0x%02x (%s)"OSS_NEWLINE,
                            flag, flagText ) ;
+      len += ossSnprintf ( outBuf + len, outSize - len,
+                           "       Encrypted    : %s"OSS_NEWLINE,
+                           OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_ENCRYPTED ) ?
+                           "True":"False" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Compressed   : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
@@ -1550,12 +1590,54 @@ namespace engine
          try
          {
             ossValuePtr recordPtr = 0 ;
-            DMS_RECORD_EXTRACTDATA ( record, recordPtr,
-                                     compressorEntry ) ;
-            BSONObj obj ( (CHAR*)recordPtr ) ;
-            len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "       Record: %s"OSS_NEWLINE,
-                                 obj.toString( FALSE, TRUE ).c_str() ) ;
+            if ( record->isEncrypted() )
+            {
+               const CHAR *decryptedData = NULL ;
+               INT32 decryptedDataSize = 0 ;
+               rc =
+                  dmsExtractEncryptedRecord( cb, record, pctx, &decryptedData, &decryptedDataSize ) ;
+               if ( SDB_OK == rc && NULL != decryptedData )
+               {
+                  if ( record->isCompressed() )
+                  {
+                     INT32 uncompLen = 0 ;
+                     UINT8 compressType = record->getCompressType() ;
+                     rc = dmsUncompress( cb, compressorEntry, compressType, decryptedData,
+                                         decryptedDataSize, (const CHAR **)&( recordPtr ),
+                                         &uncompLen ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to uncompress record, rc = %d", rc ) ;
+                     PD_CHECK( uncompLen == *(INT32 *)( recordPtr ), SDB_CORRUPTED_RECORD, error,
+                               PDERROR,
+                               "uncompressed length %d does not match real "
+                               "len %d",
+                               uncompLen, *(INT32 *)( recordPtr ) ) ;
+                  }
+                  else
+                  {
+                     recordPtr = (ossValuePtr)( decryptedData ) ;
+                  }
+                  BSONObj obj( (CHAR *)recordPtr ) ;
+                  len += ossSnprintf( outBuf + len, outSize - len, "       Record: %s" OSS_NEWLINE,
+                                      obj.toString( FALSE, TRUE ).c_str() ) ;
+               }
+               else
+               {
+                  ossMemset( hexBuf, 0, sizeof( hexBuf ) ) ;
+                  ossHexDumpBuffer( record->getData(), record->getSize(), hexBuf, sizeof( hexBuf ),
+                                    NULL, OSS_HEXDUMP_PREFIX_AS_ADDR ) ;
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      "       Record: " OSS_NEWLINE "%s" OSS_NEWLINE, hexBuf ) ;
+               }
+            }
+            else
+            {
+               DMS_RECORD_EXTRACTDATA ( record, recordPtr,
+                                        compressorEntry ) ;
+               BSONObj obj ( (CHAR*)recordPtr ) ;
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    "       Record: %s"OSS_NEWLINE,
+                                    obj.toString( FALSE, TRUE ).c_str() ) ;
+            }
          }
          catch ( std::exception &e )
          {
@@ -1600,6 +1682,10 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Flag          : 0x%02x (%s)"OSS_NEWLINE,
                            flag, flagText ) ;
+      len += ossSnprintf ( outBuf + len, outSize - len,
+                           "       Encrypted     : %s"OSS_NEWLINE,
+                           OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_ENCRYPTED ) ?
+                           "True":"False" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Compressed    : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
@@ -2235,8 +2321,8 @@ UINT32 _dmsDump::dumpDmsLobDataMapBlk(dmsLobDataMapBlk *blk, CHAR * outBuf,
       tag = blk->isNormal()? "DMS_LOB_PAGE_NORMAL":"DMS_LOB_PAGE_REMOVED";
       len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)"OSS_NEWLINE,tag, blk->_status);
 
-      tag = blk->isNew()? "DMS_LOB_PAGE_NEW":"DMS_LOB_PAGE_OLD";
-      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)"OSS_NEWLINE,tag, blk->_newFlag);
+      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%u"OSS_NEWLINE,tag, blk->isNew());
+      len += ossSnprintf(outBuf + len, outSize - len, " Encrypted Flag :%u"OSS_NEWLINE,tag, blk->isEncrypted());
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;

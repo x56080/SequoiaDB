@@ -48,6 +48,9 @@
 #include "pmdOptionsMgr.hpp"
 #include "utilLZWDictionary.hpp"
 
+#include "ossGMCrypto.hpp"
+#include "dmsEncrypt.hpp"
+
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/filesystem.hpp>
@@ -83,7 +86,7 @@ namespace fs = boost::filesystem ;
 #define OPTION_REPAIRE      "repaire"
 #define OPTION_FORCE        "force"
 #define OPTION_HELPFULL   "helpfull"
-
+#define OPTION_SECURITYPATH     "securitypath"
 
 #define OPTION_REPAIRE_DESP \
    "repaire the db info, like --repaire mb:Flag=0,Attr=1\n"\
@@ -107,6 +110,7 @@ namespace fs = boost::filesystem ;
        ( OPTION_VERSION, "version" )\
        ( COMMANDS_STRING(OPTION_DBPATH, ",d"), boost::program_options::value<string>(), "database path" ) \
        ( COMMANDS_STRING(OPTION_INDEXPATH, ",x"), boost::program_options::value<string>(), "index path" ) \
+       ( COMMANDS_STRING(OPTION_SECURITYPATH, ",k"), boost::program_options::value<string>(), "catalog path" ) \
        ( COMMANDS_STRING(OPTION_LOBPATH, ",g"), boost::program_options::value<string>(), "lob path" ) \
        ( COMMANDS_STRING(OPTION_LOBMPATH, ",m"), boost::program_options::value<string>(), "lob meta path" ) \
        ( COMMANDS_STRING(OPTION_OUTPUT, ",o"), boost::program_options::value<string>(), "output file" ) \
@@ -199,6 +203,7 @@ namespace
     CHAR    gIndexPath[ OSS_MAX_PATHSIZE + 1 ]           = {0} ;
     CHAR    gLobPath[ OSS_MAX_PATHSIZE + 1 ]           = {0} ;
     CHAR    gLobmPath[ OSS_MAX_PATHSIZE + 1 ]           = {0} ;
+    CHAR    gSecurityPath[ OSS_MAX_PATHSIZE + 1 ]        = {0};
     CHAR    gOutputFile [ OSS_MAX_PATHSIZE + 1 ]         = {0} ;
     BOOLEAN gVerbose                                     = TRUE ;
     UINT32  gDumpType                                    = DMS_SU_DMP_OPT_FORMATTED;
@@ -559,6 +564,20 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    else
    {
       ossStrcpy( gIndexPath, gDatabasePath ) ;
+   }
+
+   // for catalog path copy to gCataPath
+   if ( vm.count( OPTION_SECURITYPATH ) )
+   {
+      const CHAR *securityPath = vm[OPTION_SECURITYPATH].as<string>().c_str() ;
+      if ( ossStrlen ( securityPath ) > OSS_MAX_PATHSIZE )
+      {
+         ossPrintf ( "Error: catalog path is too long: %s", securityPath ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      ossSnprintf( gSecurityPath, sizeof( gSecurityPath ), "%s%s",
+                   securityPath, OSS_FILE_SEP ) ;
    }
 
    if ( vm.count( OPTION_LOBPATH ) )
@@ -1745,7 +1764,8 @@ void inspectOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
                                 std::set<dmsRecordID> &overRIDList,
                                 SINT32 &err,
                                 dmsCompressorEntry *compressorEntry,
-                                UINT64 &compressedNum )
+                                UINT64 &compressedNum,
+                                ossSM4Context *pctx )
 {
    INT32 rc        = SDB_OK ;
    SINT32 oldErr   = err ;
@@ -1799,7 +1819,7 @@ retry :
       len = dmsInspect::inspectDataRecord ( cb, gExtentBuffer + offset,
               ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
               gBuffer, gBufferSize, count, offset, NULL, localErr,
-              compressorEntry, isCompressed ) ;
+              compressorEntry, isCompressed, NULL, NULL, pctx ) ;
       if ( len >= gBufferSize-1 )
       {
          if ( reallocBuffer () )
@@ -1840,7 +1860,8 @@ error :
 void dumpOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
                              UINT16 collectionID, dmsExtentID ovfFromExtID,
                              std::set<dmsRecordID> &overRIDList,
-                             dmsCompressorEntry *compressorEntry )
+                             dmsCompressorEntry *compressorEntry,
+                             ossSM4Context * ctx )
 {
    INT32 rc = SDB_OK ;
    UINT32 len = 0 ;
@@ -1875,7 +1896,7 @@ retry :
                    rid._extent, rid._offset ) ;
       len = dmsDump::dumpDataRecord ( cb, gExtentBuffer + offset,
                  ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
-                 gBuffer, gBufferSize, offset, compressorEntry, NULL ) ;
+                 gBuffer, gBufferSize, offset, compressorEntry, NULL, ctx ) ;
 
       if ( len >= gBufferSize-1 )
       {
@@ -2361,7 +2382,8 @@ error:
 
 void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
                             SINT32 hwm, CHAR *pExpBuffer, SINT32 &err,
-                            UINT64 &ovfNum, UINT64 &compressedNum, UINT64 &deletingNum )
+                            UINT64 &ovfNum, UINT64 &compressedNum, UINT64 &deletingNum,
+                            ossSM4Context * pctx )
 {
    INT32 rc        = SDB_OK ;
    INT32 len       = 0 ;
@@ -2501,7 +2523,7 @@ retry_data :
                                extTotalRecord,
                                extCompressedNum,
                                extDeletingNum,
-                               capped ) ;
+                               capped, pctx ) ;
       if ( (UINT32)len >= gBufferSize-1 )
       {
          // if our buffer is not large enough, let's allocate more memory and
@@ -2529,7 +2551,7 @@ retry_data :
          extCompressedNum = 0 ;
          inspectOverflowedRecords( file, pageSize, id, firstExtent,
                                    extentRIDList, err, &compressorEntry,
-                                   extCompressedNum ) ;
+                                   extCompressedNum, pctx ) ;
          // add the number of overflow compressed records
          compressedNum += extCompressedNum ;
       }
@@ -2681,14 +2703,36 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
    UINT32 len = 0 ;
    gMBStat.reset() ;
 
+   ossSM4Context ctx, *pctx = NULL ;
+   ossSM4Key dek ;
+
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
       UINT64 ovfNum = 0 ;
       UINT64 compressedNum = 0 ;
       UINT64 deletingNum = 0 ;
+
+      CHAR * pSecurityPath = NULL ;
+
+      if ( '\0' != gSecurityPath[0] )
+      {
+         pSecurityPath = gSecurityPath ;
+      }
+
+      // get DEK from DEK file under catalog path
+      if ( pSecurityPath && ( '\0' != pSecurityPath[ 0 ] ) )
+      {
+         if ( ( SDB_OK == dmsSecGetDEK( pSecurityPath, dek ) ) &&
+              ( SDB_OK == ossSM4Init( &ctx, OSS_SM4_CBC ) ) )
+         {
+            ctx.setKey( dek ) ;
+            pctx = &ctx ;
+         }
+      }
+
       inspectCollectionData( file, pageSize, id, hwm,
                              pExpBuffer, err, ovfNum,
-                             compressedNum, deletingNum ) ;
+                             compressedNum, deletingNum, pctx ) ;
       /// flush data info
       len = ossSnprintf( gBuffer, gBufferSize,
                          " ****The collection data info****"OSS_NEWLINE
@@ -2743,6 +2787,8 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
       len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }
+
+   ossSM4Fin( &ctx ) ;
 }
 
 void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
@@ -2756,6 +2802,26 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
    dmsExtentID firstExtent = DMS_INVALID_EXTENT ;
    dmsCompressorEntry compressorEntry ;
    BOOLEAN capped = FALSE ;
+   CHAR * pSecurityPath = NULL ;
+
+   ossSM4Context ctx, *pctx = NULL ;
+   ossSM4Key dek ;
+
+   if ( '\0' != gSecurityPath[0] )
+   {
+      pSecurityPath = gSecurityPath ;
+   }
+
+   // get DEK from DEK file under catalog path
+   if ( pSecurityPath && ( '\0' != pSecurityPath[ 0 ] ) )
+   {
+      if ( ( SDB_OK == dmsSecGetDEK( pSecurityPath, dek ) ) &&
+           ( SDB_OK == ossSM4Init( &ctx, OSS_SM4_CBC ) ) )
+      {
+         ctx.setKey( dek ) ;
+         pctx = &ctx ;
+      }
+   }
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -2904,7 +2970,8 @@ retry_data :
                                DMS_SU_DMP_OPT_HEX_WITH_ASCII |
                                DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
                                gDumpType, tempExtent, &compressorEntry,
-                               &extentRIDList,  gShowRecordContent, capped ) ;
+                               &extentRIDList,  gShowRecordContent, capped,
+                               pctx ) ;
 
       if ( (UINT32)len >= gBufferSize-1 )
       {
@@ -2922,13 +2989,14 @@ retry_data :
       if ( extentRIDList.size() != 0 && gShowRecordContent )
       {
          dumpOverflowedRecords ( file, pageSize, id, firstExtent,
-                                 extentRIDList, &compressorEntry ) ;
+                                 extentRIDList, &compressorEntry, pctx ) ;
       }
 
       firstExtent = tempExtent ;
    }
 
 done :
+   ossSM4Fin( &ctx ) ;
    return ;
 error :
    goto done ;

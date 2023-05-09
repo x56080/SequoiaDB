@@ -14307,4 +14307,9 @@ do                                                            \
    error:
       goto done ;
    }
+
+   INT32 _sdbImpl::initSecurityKeys( const bson::BSONObj &options )
+   {
+      return _runCommand( CMD_ADMIN_PREFIX CMD_NAME_INIT_SECURITY_KEYS, &options ) ;
+   }
 }

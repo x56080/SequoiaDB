@@ -315,6 +315,14 @@ enum MSG_TYPE
    MSG_GTS_SEQUENCE_ALTER_RSP          = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_ALTER_REQ),
    MSG_GTS_END                         = 3499,
 
+   // Security keys
+   MSG_CAT_SECURITY_BEGIN              = 3500,
+   MSG_CAT_INIT_SECKEYS_REQ            = 3501,
+   MSG_CAT_INIT_SECKEYS_RSP            = MAKE_REPLY_TYPE( MSG_CAT_INIT_SECKEYS_REQ ),
+   MSG_CAT_FETCH_DEK_REQ               = 3502,
+   MSG_CAT_FETCH_DEK_RSP               = MAKE_REPLY_TYPE( MSG_CAT_FETCH_DEK_REQ ),
+   MSG_CAT_SECURITY_END                = 3599,
+
    MSG_CAT_END                         = 3999,
 
    MSG_CLS_BEGIN                       = 4000,

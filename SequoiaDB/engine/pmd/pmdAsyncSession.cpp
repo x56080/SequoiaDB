@@ -312,6 +312,12 @@ namespace engine
       _info.reset() ;
    }
 
+   BOOLEAN _pmdAsyncSession::isLoopback() const
+   {
+      NET_EH eh = _pSessionMgr->getRouteAgent()->getFrame()->getEventHandle( _netHandle ) ;
+      return eh->isLocalConnection() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_RESET, "_pmdAsyncSession::_reset" )
    void _pmdAsyncSession::_reset()
    {

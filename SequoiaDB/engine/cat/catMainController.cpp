@@ -105,6 +105,7 @@ namespace engine
          _pCatCB->getCatlogueMgr()->attachCB( cb ) ;
          _pCatCB->getCatNodeMgr()->attachCB( cb ) ;
          _pCatCB->getCatDCMgr()->attachCB( cb ) ;
+         _pCatCB->getSecKeysManager()->attachCB( cb ) ;
       }
 
       _attachEvent.signalAll() ;
@@ -121,6 +122,7 @@ namespace engine
          _pCatCB->getCatlogueMgr()->detachCB( cb ) ;
          _pCatCB->getCatNodeMgr()->detachCB( cb ) ;
          _pCatCB->getCatGTSMgr()->detachCB( cb ) ;
+         _pCatCB->getSecKeysManager()->detachCB( cb ) ;
       }
       _pEDUCB = NULL ;
       _changeEvent.signal() ;
@@ -925,6 +927,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to active catalog GTS manager, rc: %d",
                    rc ) ;
 
+      rc = _pCatCB->getSecKeysManager()->active() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active security keys manager, rc: %d",
+                   rc ) ;
+
       rc = _pCatCB->getCatNodeMgr()->active() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active catalog node manager, rc: %d",
                    rc ) ;
@@ -1639,6 +1645,11 @@ namespace engine
                    (UINT32)msg->opCode < MSG_CAT_DC_END )
          {
             rc = _pCatCB->getCatDCMgr()->processMsg( handle, msg ) ;
+         }
+         else if ( MSG_CAT_SECURITY_BEGIN < (UINT32)msg->opCode &&
+                   (UINT32)msg->opCode < MSG_CAT_SECURITY_END )
+         {
+            rc = _pCatCB->getSecKeysManager()->processMsg( handle, msg ) ;
          }
          else
          {

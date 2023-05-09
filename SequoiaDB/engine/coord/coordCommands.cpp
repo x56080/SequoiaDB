@@ -161,4 +161,42 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _coordCMDGetSessionAttr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDInitSecurityKeys,
+                                      CMD_NAME_INIT_SECURITY_KEYS,
+                                      FALSE ) ;
+   _coordCMDInitSecurityKeys::_coordCMDInitSecurityKeys()
+   {
+   }
+
+   _coordCMDInitSecurityKeys::~_coordCMDInitSecurityKeys()
+   {
+   }
+
+   INT32 _coordCMDInitSecurityKeys::execute( MsgHeader *pMsg,
+                                             pmdEDUCB *cb,
+                                             INT64 &contextID,
+                                             rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      
+      if ( !cb->getSession()->isLoopback() )
+      {
+         rc = SDB_OPERATION_DENIED ;
+         PD_LOG_MSG( PDERROR, "The command must be executed from local session, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      pMsg->opCode = MSG_CAT_INIT_SECKEYS_REQ ;
+      rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, NULL, buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute on catalog in command[%s], rc: %d", getName(),
+                   rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }

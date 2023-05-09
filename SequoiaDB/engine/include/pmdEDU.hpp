@@ -396,6 +396,11 @@ namespace engine
       const CHAR* getUserName() const { return _userName.c_str() ; }
       const CHAR* getPassword() const { return _passWord.c_str() ; }
 
+      CHAR*       getEncryptionBuff( UINT32 len ) ;
+      INT32       getEncryptionBuffLen() const { return _encryptionBuffLen ; }
+      CHAR*       getDecryptionBuff( UINT32 len ) ;
+      INT32       getDecryptionBuffLen() const { return _decryptionBuffLen ; }
+
       void postEvent ( pmdEDUEvent const &data )
       {
          try
@@ -789,6 +794,11 @@ namespace engine
       UINT32         _compressBuffLen ;
       CHAR           *_pUncompressBuff ;
       UINT32         _uncompressBuffLen ;
+
+      CHAR           *_pEncryptionBuff ;
+      UINT32          _encryptionBuffLen ;
+      CHAR           *_pDecryptionBuff ;
+      UINT32          _decryptionBuffLen ;
 
       // thread specific error message buffer, aka SQLCA
       CHAR              *_pErrorBuff ;

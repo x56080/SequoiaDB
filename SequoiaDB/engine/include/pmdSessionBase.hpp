@@ -61,6 +61,7 @@ namespace engine
       virtual EDUID           eduID () const = 0 ;
 
       virtual BOOLEAN         isBusinessSession() const { return FALSE ; }
+      virtual BOOLEAN         isLoopback() const = 0 ;
       virtual IProcessor*     getProcessor() ;
       virtual _dpsLogWrapper* getDPSCB() { return NULL ; }
       virtual void            attachProcessor( _pmdProcessorBase *pProcessor ) ;

@@ -1793,6 +1793,76 @@ namespace engine
 
             break ;
          }
+         case LOG_TYPE_SEC_KEY_CRT :
+         {
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                " Type   : %s(%d)"OSS_NEWLINE,
+                                "CREATE KEY FILES", LOG_TYPE_SEC_KEY_CRT ) ;
+
+            dpsLogRecord::iterator itr ;
+            itr = this->find( DPS_LOG_OLD_KEY_FILES ) ;
+            if ( itr.valid() ) 
+            {
+               try
+               {
+                  BSONObj oldKeyFile( itr.value() ) ;
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " Old Key Files :%s"OSS_NEWLINE,
+                                      oldKeyFile.toString(FALSE, TRUE).c_str());
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "Invalid Create Key File record", e.what() ) ;
+                  goto done ;
+               }
+            }
+            else
+            {
+               try
+               {
+                  BSONObj oldKeyFile ;
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " Old Key Files :%s"OSS_NEWLINE,
+                                      oldKeyFile.toString(FALSE, TRUE).c_str());
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "Invalid Create Key File record", e.what() ) ;
+                  goto done ;
+               }
+            }
+
+            itr = this->find( DPS_LOG_NEW_KEY_FILES ) ;
+            if ( itr.valid() )
+            {
+               try
+               {
+                  BSONObj newKeyFile( itr.value() ) ;
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " New Key Files :%s"OSS_NEWLINE,
+                                      newKeyFile.toString(FALSE, TRUE).c_str());
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "Invalid Create Key File record", e.what() ) ;
+                  goto done ;
+               }
+            }
+            else
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   "*ERROR* : %s: no new key files"OSS_NEWLINE,
+                                   "Invalid Create Key File record" ) ;
+               goto done ;
+            }
+            break ;
+         }
          default:
          {
             // something goes wrong here, but let's just continue

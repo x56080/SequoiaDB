@@ -187,6 +187,8 @@ namespace engine
          virtual void clear() ;
          virtual BOOLEAN canAttachMeta() const { return TRUE ; }
 
+         virtual BOOLEAN isLoopback() const ;
+
          INT32 waitAttach ( INT64 millisec = -1 ) ;
          INT32 waitDetach ( INT64 millisec = -1 ) ;
          INT32 attachIn ( pmdEDUCB *cb ) ;

@@ -390,7 +390,10 @@ namespace engine
       rc = _catlogueMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init catlogue manager, rc: %d", rc ) ;
 
-      rc = _catNodeMgr.init() ;
+      rc = _keysManager.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init security keys manager, rc: %d", rc ) ;
+
+      rc = _catNodeMgr.init( &_keysManager ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init cat node manager, rc: %d", rc ) ;
 
       rc = _catDCMgr.init() ;
@@ -511,6 +514,7 @@ namespace engine
       _catGTSMgr.fini() ;
       _catMainCtrl.fini() ;
       _recycleBinMgr.fini() ;
+      _keysManager.fini() ;
       _idLocMap.clear() ;
       _locIdMap.clear() ;
 

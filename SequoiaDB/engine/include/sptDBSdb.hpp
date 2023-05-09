@@ -305,6 +305,10 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail ) ;
 
+      INT32 initSecurityKeys( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail ) ;
+
       INT32 resolve( const _sptArguments &arg,
                      UINT32 opcode,
                      BOOLEAN &processed,

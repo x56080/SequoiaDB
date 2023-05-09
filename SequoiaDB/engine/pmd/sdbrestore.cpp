@@ -55,6 +55,7 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "pmdController.hpp"
+#include "utilSecurityKeys.hpp"
 
 #include <iostream>
 #include <string>
@@ -85,6 +86,7 @@ namespace engine
    #define RS_BK_OFFLINE_BUILD   "offlinebuild"
    #define RS_BK_IS_SELF         "isSelf"
    #define RS_BK_SKIP_CONF       "skipconf"
+   #define RS_BK_MKPRIVATE_PATH   "privatekey"
 
    #define PMD_RS_OPTIONS  \
       ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
@@ -111,6 +113,7 @@ namespace engine
       ( PMD_OPTION_SHARDNAME, boost::program_options::value<string>(),   "override sharding service name or port" )    \
       ( PMD_OPTION_CATANAME, boost::program_options::value<string>(),    "override catalog service name or port" )     \
       ( PMD_OPTION_RESTNAME, boost::program_options::value<string>(),    "override REST service name or port" )        \
+      ( RS_BK_MKPRIVATE_PATH, boost::program_options::value<string>(),   "the path of private master key")             \
 
    #define PMD_RS_HIDE_OPTIONS \
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
@@ -247,6 +250,8 @@ namespace engine
             rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _diagLevel, FALSE, PMD_CFG_CHANGE_RUN,
                        (UINT16)PDWARNING ) ;
             rdvMinMax( pEX, _diagLevel, PDSEVERE, PDDEBUG, TRUE ) ;
+            rdxString( pEX, RS_BK_MKPRIVATE_PATH, _mkPrivatePath, sizeof( _mkPrivatePath ), FALSE,
+                       PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
             return getResult() ;
          }
@@ -316,6 +321,7 @@ namespace engine
          CHAR              _dialogPath[ OSS_MAX_PATHSIZE + 1 ] ;
          INT32             _incID ;
          INT32             _beginIncID ;
+         CHAR              _mkPrivatePath[ OSS_MAX_PATHSIZE + 1 ] ;
 
          BOOLEAN           _skipConf ;
          BOOLEAN           _getConfOnly ;
@@ -711,9 +717,8 @@ namespace engine
                SDB_ENGINE_VERISON_CURRENT, SDB_ENGINE_SUBVERSION_CURRENT,
                SDB_ENGINE_RELEASE_CURRENT, SDB_ENGINE_BUILD_TIME ) ;
 
-      rc = restoreLogger.init( optMgr._bkPath, optMgr._bkName, NULL,
-                                 optMgr._incID, optMgr._beginIncID,
-                                 optMgr._skipConf ) ;
+      rc = restoreLogger.init( optMgr._bkPath, optMgr._bkName, optMgr._mkPrivatePath, NULL,
+                               optMgr._incID, optMgr._beginIncID, optMgr._skipConf ) ;
       if ( rc )
       {
          std::cerr << "Init restore failed: " << rc << std::endl ;
@@ -782,6 +787,22 @@ namespace engine
          return rc ;
       }
 
+      // {
+      //    EVP_PKEY *pKey = NULL ;
+      //    fs::path priKeyPath(optMgr._mkPrivatePath);
+      //    CHAR mkPrivateContent[ UTIL_SEC_ENCRYPTED_MK_FILE_BUF_SZ + 1] = {0};
+      //    INT64 len = UTIL_SEC_ENCRYPTED_MK_FILE_BUF_SZ + 1 ;
+      //    rc = utilSecReadFileIntoBuf( priKeyPath.c_str(), mkPrivateContent, len );
+      //    if ( SDB_OK != rc )
+      //    {
+      //       std::cerr << "Failed to read file: " << priKeyPath.c_str() << ",rc: " << rc
+      //                 << std::endl;
+      //       return rc ;
+      //    }
+
+      //    // rc = utilSecReadMKPair( mkPrivateContent, &pKey, FALSE, TRUE );
+      // }
+      
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
       rc = startRestoreJob( &agentEDU, &restoreLogger ) ;

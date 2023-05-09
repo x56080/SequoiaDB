@@ -83,6 +83,7 @@ namespace engine
       BOOLEAN compressed      = TRUE ;
       const CHAR *pCompType   = VALUE_NAME_SNAPPY ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
+      const CHAR *publicKey   = NULL ;
 
       // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
@@ -144,6 +145,13 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_COMPRESSIONTYPE, rc ) ;
 
+      rc = rtnGetStringElement( option, FIELD_NAME_MK_PUBLIC, &publicKey ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Get field[%s] failed, rc: %d", FIELD_NAME_MK_PUBLIC, rc ) ;
+
       compType = utilString2CompressType( pCompType ) ;
       if ( UTIL_COMPRESSOR_INVALID == compType ||
            UTIL_COMPRESSOR_LZW == compType )
@@ -187,6 +195,7 @@ namespace engine
                    rc ) ;
       logger.setBackupLog( backupLog ) ;
       logger.enableCompress( compressed, compType ) ;
+      logger.setPublicKey( publicKey ) ;
 
       rc = logger.backup( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Off line backup failed, rc: %d", rc ) ;

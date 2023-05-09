@@ -47,6 +47,7 @@
 #include "dmsTrace.hpp"
 #include "dmsStorageDataCapped.hpp"
 #include "dmsStorageLob.hpp"
+#include "dmsEncrypt.hpp"
 
 using namespace bson ;
 
@@ -729,6 +730,7 @@ namespace engine
          if ( mb->_attributes & ~( DMS_MB_ATTR_COMPRESSED |
                                    DMS_MB_ATTR_NOIDINDEX |
                                    DMS_MB_ATTR_CAPPED |
+                                   DMS_MB_ATTR_ENCRYPTED |
                                    DMS_MB_ATTR_STRICTDATAMODE |
                                    DMS_MB_ATTR_NOTRANS ) )
          {
@@ -858,7 +860,8 @@ namespace engine
                                           UINT64 &recordNum,
                                           UINT64 &compressedNum,
                                           UINT64 &deletingNum,
-                                          BOOLEAN capped )
+                                          BOOLEAN capped,
+                                          ossSM4Context * pctx )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -909,7 +912,8 @@ namespace engine
       {
          len += inspectNormalExtent( inBuf, inSize, outBuf + len, outSize - len,
                                      collectionID, compressorEntry, recordNum,
-                                     compressedNum, deletingNum, localErr, ridList, cb ) ;
+                                     compressedNum, deletingNum, localErr, ridList,
+                                     cb, pctx ) ;
       }
 
    exit :
@@ -927,6 +931,12 @@ namespace engine
       return len ;
    }
 
+   extern INT32 dmsExtractEncryptedRecord( pmdEDUCB *cb,
+                                           dmsRecord *record,
+                                           ossSM4Context *pctx,
+                                           const CHAR **decryptedData,
+                                           INT32 *decryptedDataSize ) ;
+
    UINT32 _dmsInspect::inspectDataRecord( pmdEDUCB *cb, void *inBuf,
                                           UINT32 inSize, CHAR *outBuf,
                                           UINT32 outSize, INT32 currentRecordID,
@@ -936,7 +946,8 @@ namespace engine
                                           dmsCompressorEntry *compressorEntry,
                                           BOOLEAN &isCompressed,
                                           BOOLEAN *pIsDeleting,
-                                          BOOLEAN *pIsOvf )
+                                          BOOLEAN *pIsOvf,
+                                          ossSM4Context * pctx )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -1043,23 +1054,75 @@ namespace engine
          // for normal and ovfto types, let's inspect data
          try
          {
-            /// first to inc error
-            ++err ;
-
-            ossValuePtr recordPtr = 0 ;
-            DMS_RECORD_EXTRACTDATA ( record, recordPtr,
-                                     compressorEntry ) ;
-            BSONObj obj ( (CHAR*)recordPtr ) ;
-            if ( !obj.isValid() )
+            if ( ! record->isEncrypted() )
             {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "Error: Detected invalid record (0x%08x)"
-                                    OSS_NEWLINE, nextRecord ) ;
+               /// first to inc error
+               ++err ;
+
+               ossValuePtr recordPtr = 0 ;
+               DMS_RECORD_EXTRACTDATA ( record, recordPtr,
+                                        compressorEntry ) ;
+               BSONObj obj ( (CHAR*)recordPtr ) ;
+               if ( !obj.isValid() )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "Error: Detected invalid record (0x%08x)"
+                                       OSS_NEWLINE, nextRecord ) ;
+               }
+               /// dec error
+               else
+               {
+                  --err ;
+               }
             }
-            /// dec error
             else
             {
-               --err ;
+               ossValuePtr recordPtr = 0 ;
+               const CHAR *decryptedData = NULL ;
+               INT32 decryptedDataSize = 0 ;
+               /// first to inc error
+               ++err ;
+               rc =
+                  dmsExtractEncryptedRecord( cb, record, pctx, &decryptedData, &decryptedDataSize ) ;
+               if ( SDB_OK == rc && NULL != decryptedData )
+               {
+                  if ( record->isCompressed() )
+                  {
+                     INT32 uncompLen = 0 ;
+                     UINT8 compressType = record->getCompressType() ;
+                     rc = dmsUncompress( cb, compressorEntry, compressType, decryptedData,
+                                         decryptedDataSize, (const CHAR **)&( recordPtr ),
+                                         &uncompLen ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to uncompress record, rc = %d", rc ) ;
+                     PD_CHECK( uncompLen == *(INT32 *)( recordPtr ), SDB_CORRUPTED_RECORD, error,
+                               PDERROR,
+                               "uncompressed length %d does not match real "
+                               "len %d",
+                               uncompLen, *(INT32 *)( recordPtr ) ) ;
+                  }
+                  else
+                  {
+                     recordPtr = (ossValuePtr)( decryptedData ) ;
+                  }
+                  BSONObj obj( (CHAR *)recordPtr ) ;
+                  if ( !obj.isValid() )
+                  {
+                     len += ossSnprintf( outBuf + len, outSize - len,
+                                         "Error: Detected invalid record (0x%08x)" OSS_NEWLINE,
+                                         nextRecord ) ;
+                  }
+                  /// dec error
+                  else
+                  {
+                     --err ;
+                  }
+               }
+               else
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "Warning: Detected encrypted record (0x%08x)"
+                                       OSS_NEWLINE, nextRecord ) ;
+               }
             }
          }
          catch ( std::exception &e )
@@ -1653,7 +1716,8 @@ namespace engine
                                            UINT64 &deletingNum,
                                            INT32 &localErr,
                                            set< dmsRecordID > *ridList,
-                                           pmdEDUCB *cb )
+                                           pmdEDUCB *cb,
+                                           ossSM4Context * pctx )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
       SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
@@ -1702,7 +1766,8 @@ namespace engine
                                     compressorEntry,
                                     isCompressed,
                                     &isDeleting,
-                                    &isOvf ) ;
+                                    &isOvf,
+                                    pctx ) ;
          ++recordCount ;
          // when error happen, not update the statistical variables
          if ( localErr > err )

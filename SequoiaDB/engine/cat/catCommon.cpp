@@ -4572,6 +4572,26 @@ namespace engine
       goto done ;
    }
 
+   INT32 catUpdateBaseInfoMKIndex( pmdEDUCB *cb,
+                                   _SDB_DMSCB *dmsCB,
+                                   _dpsLogWrapper *dpsCB,
+                                   const CHAR *mkIndex )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+      BSONObj updator = BSON( "$set" << BSON( FIELD_NAME_MKINDEX << mkIndex ) ) ;
+
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator, BSONObj(), 0, cb, dmsCB,
+                      dpsCB, 1, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update collection[%s] obj[%s] failed, rc: %d",
+                   CAT_SYSDCBASE_COLLECTION_NAME, updator.toString().c_str(), rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
                          _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
    {
@@ -7231,6 +7251,14 @@ namespace engine
             clInfo._isCompressed = eleTmp.boolean() ;
             fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
          }
+         // encryption flag
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_ENCRYPTED ) == 0 )
+         {
+            PD_CHECK( Bool == eleTmp.type(), SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_ENCRYPTED, eleTmp.type() ) ;
+            clInfo._isEncrypted = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_ENCRYPTED_FIELD ;
+         }
          // main-collection flag
          else if ( ossStrcmp( eleTmp.fieldName(),
                               CAT_IS_MAINCL ) == 0 )
@@ -7493,6 +7521,8 @@ namespace engine
          PD_CHECK( !clInfo._noTrans,
                    SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                    "can not set no-trans on main collection" ) ;
+         PD_CHECK( !clInfo._isEncrypted, SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "main-collection is not allowed to set encrypted, rc: %d", rc ) ;
       }
 
       if ( clInfo._autoSplit || clInfo._autoRebalance )
@@ -7572,6 +7602,13 @@ namespace engine
          {
             PD_LOG( PDWARNING,
                     "Compression is not allowed on capped collection." ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( clInfo._isEncrypted )
+         {
+            PD_LOG( PDWARNING, "Encryption is not allowed on capped collection." ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -7814,6 +7851,10 @@ namespace engine
       if ( ( mask & UTIL_CL_CAPPED_FIELD ) && clInfo._capped )
       {
          attribute |= DMS_MB_ATTR_CAPPED ;
+      }
+      if ( ( mask & UTIL_CL_ENCRYPTED_FIELD ) && clInfo._isEncrypted )
+      {
+         attribute |= DMS_MB_ATTR_ENCRYPTED ;
       }
       if ( ( mask & UTIL_CL_STRICTDATAMODE_FIELD ) && clInfo._strictDataMode )
       {

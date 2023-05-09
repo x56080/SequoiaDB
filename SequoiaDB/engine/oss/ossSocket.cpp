@@ -1049,7 +1049,7 @@ UINT32 _ossSocket::_getPort ( sockaddr_in *addr )
    return ntohs ( addr->sin_port ) ;
 }
 
-UINT32 _ossSocket::_getIP( sockaddr_in * addr )
+UINT32 _ossSocket::_getIP( const sockaddr_in * addr ) const
 {
    return ntohl( addr->sin_addr.s_addr ) ;
 }
@@ -1088,12 +1088,12 @@ UINT32 _ossSocket::getPeerPort ()
    return _getPort ( &_peerAddress ) ;
 }
 
-UINT32 _ossSocket::getPeerIP()
+UINT32 _ossSocket::getPeerIP() const
 {
    return _getIP( &_peerAddress ) ;
 }
 
-UINT32 _ossSocket::getLocalIP()
+UINT32 _ossSocket::getLocalIP() const
 {
    return _getIP( &_sockAddress ) ;
 }

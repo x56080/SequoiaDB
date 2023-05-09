@@ -171,6 +171,11 @@ namespace engine
       _isAffectGIndex = FALSE ;
 
       _doReplay = FALSE ;
+
+      _pEncryptionBuff = NULL ;
+      _encryptionBuffLen = 0 ;
+      _pDecryptionBuff = NULL ;
+      _decryptionBuffLen = 0 ;
    }
 
    _pmdEDUCB::~_pmdEDUCB ()
@@ -234,6 +239,19 @@ namespace engine
          _pUncompressBuff = NULL ;
       }
       _uncompressBuffLen = 0 ;
+
+      if ( _pEncryptionBuff )
+      {
+         releaseBuff( _pEncryptionBuff ) ;
+         _pEncryptionBuff = NULL ;
+      }
+      _encryptionBuffLen = 0 ;
+      if ( _pDecryptionBuff )
+      {
+         releaseBuff( _pDecryptionBuff ) ;
+         _pDecryptionBuff = NULL ;
+      }
+      _decryptionBuffLen = 0 ;
 
       _curAutoTransCtxID = -1 ;
       if ( _pMemPool )
@@ -548,6 +566,41 @@ namespace engine
 
       return _pUncompressBuff ;
    }
+
+   CHAR* _pmdEDUCB::getEncryptionBuff( UINT32 len )
+   {
+      if ( _encryptionBuffLen < len )
+      {
+         if ( _pEncryptionBuff )
+         {
+            releaseBuff( _pEncryptionBuff ) ;
+            _pEncryptionBuff = NULL ;
+         }
+         _encryptionBuffLen = 0 ;
+
+         allocBuff( len, &_pEncryptionBuff, &_encryptionBuffLen ) ;
+      }
+
+      return _pEncryptionBuff ;
+   }
+
+   CHAR* _pmdEDUCB::getDecryptionBuff( UINT32 len )
+   {
+      if ( _decryptionBuffLen < len )
+      {
+         if ( _pDecryptionBuff )
+         {
+            releaseBuff( _pDecryptionBuff ) ;
+            _pDecryptionBuff = NULL ;
+         }
+         _decryptionBuffLen = 0 ;
+
+         allocBuff( len, &_pDecryptionBuff, &_decryptionBuffLen ) ;
+      }
+
+      return _pDecryptionBuff ;
+   }
+
 
    /*
       Interface impelent

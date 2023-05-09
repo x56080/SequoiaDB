@@ -57,6 +57,7 @@ namespace engine
    #define DMS_REORG_UNIT_EYECATCHER_LEN     8
 
    class _pmdEDUCB ;
+   class _dmsMBContext ;
 
    /*
       _dmsReorgUnit define
@@ -108,7 +109,8 @@ namespace engine
 
       INT32 insertRecord ( BSONObj &obj,
                            _pmdEDUCB *cb,
-                           dmsCompressorEntry *compEntry ) ;
+                           dmsCompressorEntry *compEntry,
+                           _dmsMBContext *mbContext ) ;
 
       // based on pagesize
       void  beginExport() ;

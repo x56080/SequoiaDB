@@ -40,6 +40,7 @@
 #include "pmd.hpp"
 #include "netDef.hpp"
 #include "rtnContextBuff.hpp"
+#include "ISecKeysManager.hpp"
 
 using namespace bson ;
 
@@ -59,7 +60,7 @@ namespace engine
       catNodeManager() ;
       ~catNodeManager() ;
 
-      INT32 init() ;
+      INT32 init( ISecKeysManager *keysMgr ) ;
       INT32 fini() ;
 
       void  attachCB( _pmdEDUCB *cb ) ;
@@ -162,6 +163,7 @@ namespace engine
       _SDB_RTNCB                 *_pRtnCB ;
       sdbCatalogueCB             *_pCatCB ;
       pmdEDUCB                   *_pEduCB ;
+      ISecKeysManager            *_keysMgr ;
 
    } ;
 }

@@ -3384,6 +3384,111 @@ namespace engine
       goto done ;
    }
 
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_CRTKEY2REC, "dpsCrtKeys2Record" )
+   INT32 dpsCrtKeys2Record( const BSONObj & oldKeyFiles,
+                            const BSONObj & newKeyFiles,
+                            dpsLogRecord & record )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_CRTKEY2REC ) ;
+
+      dpsLogRecordHeader &header = record.head() ;
+      header._type = LOG_TYPE_SEC_KEY_CRT ;
+
+      if ( newKeyFiles.isEmpty() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR,
+                 "Failed to build CRT KEY record, input is invalid, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+      rc = record.push( DPS_LOG_NEW_KEY_FILES,
+                        newKeyFiles.objsize(),
+                        newKeyFiles.objdata() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push new key files, rc: %d", rc ) ;
+
+      if ( ! oldKeyFiles.isEmpty() )
+      {
+         rc = record.push( DPS_LOG_OLD_KEY_FILES,
+                           oldKeyFiles.objsize(),
+                           oldKeyFiles.objdata() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to push old key files, rc: %d", rc ) ;
+      }
+
+      header._length = record.alignedLen() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_CRTKEY2REC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2CRTKEY, "dpsRecord2CrtKeys" )
+   INT32 dpsRecord2CrtKeys( const CHAR *logRecord,
+                            bson::BSONObj & oldKeyFiles, 
+                            bson::BSONObj & newKeyFiles )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_REC2CRTKEY ) ;
+
+      dpsLogRecord record ;
+
+      rc = record.load( logRecord ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to load recycle record, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      {
+         dpsLogRecord::iterator itrNewKeyFiles =
+                                record.find( DPS_LOG_NEW_KEY_FILES ) ;
+         dpsLogRecord::iterator itrOldKeyFiles =
+                                record.find( DPS_LOG_OLD_KEY_FILES ) ;
+
+         try
+         {
+            if ( itrNewKeyFiles.valid() )
+            {
+               newKeyFiles = BSONObj( itrNewKeyFiles.value() ) ;
+            }
+            else
+            {
+               newKeyFiles = BSONObj() ;
+            }
+
+            if ( itrOldKeyFiles.valid() )
+            {
+               oldKeyFiles = BSONObj( itrOldKeyFiles.value() ) ;
+            }
+            else
+            {
+               oldKeyFiles = BSONObj() ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to get key file, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_REC2CRTKEY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREC, "dpsGetTransIDFromRecord" )
    INT32 dpsGetTransIDFromRecord( const CHAR* logRecord,
                                   DPS_TRANS_ID &transID )

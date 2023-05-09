@@ -730,7 +730,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED_EXTRACTDATA, "_dmsStorageDataCapped::extractData" )
-   INT32 _dmsStorageDataCapped::extractData( const dmsMBContext *mbContext,
+   INT32 _dmsStorageDataCapped::extractData( dmsMBContext *mbContext,
                                              const dmsRecordRW &recordRW,
                                              pmdEDUCB *cb,
                                              dmsRecordData &recordData,

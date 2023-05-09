@@ -63,6 +63,7 @@ namespace engine
       virtual const CHAR*      sessionName() const { return "Dummy-Session" ; }
       virtual SDB_SESSION_TYPE sessionType() const { return SDB_SESSION_DUMMY ; }
       virtual BOOLEAN          isBusinessSession() const { return _isBusinessSession ; }
+      virtual BOOLEAN          isLoopback() const { return FALSE ; }
       virtual INT32            getServiceType() const { return 0 ; }
       virtual IClient*         getClient()            { return &_client ; }
 

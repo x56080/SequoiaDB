@@ -51,6 +51,9 @@
 #include "mthModifier.hpp"
 #include "utilBsonHash.hpp"
 #include "pdSecure.hpp"
+#include "utilSecurityKeys.hpp"
+#include "clsShardMgr.hpp"
+#include "clsDEKFetcher.hpp"
 
 using namespace bson ;
 
@@ -1158,7 +1161,26 @@ namespace engine
 
             cs = dmsGetCSNameFromFullName( cl ) ;
             csUniqID = utilGetCSUniqueID( clUniqueID ) ;
-
+            if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_ENCRYPTED ) )
+            {
+               if ( pmdGetKRCB()->isRestore() )
+               {
+                  if ( !_dmsCB->hasDEK() )
+                  {
+                     rc = SDB_SEC_DEK_NOT_EXIST;
+                     PD_LOG( PDERROR, "Must has DEK to replay on encrypted collection" );
+                     goto error;
+                  }
+               }
+               else
+               {
+                  clsDEKFetcher fetcher( *sdbGetShardCB() );
+                  rc = _dmsCB->ensureOrFetchDEK( fetcher );
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Failed to ensure or fetch DEK when create collection[%s], rc: %d",
+                               cl, rc );
+               }
+            }
             rc = rtnCreateCollectionCommand( cl, attribute, eduCB, _dmsCB,
                                              _dpsCB, clUniqueID,
                                              (UTIL_COMPRESSOR_TYPE)compType,
@@ -1658,6 +1680,20 @@ namespace engine
 
             break ;
          }
+         case LOG_TYPE_SEC_KEY_CRT: 
+         {
+            BSONObj oldKeyFiles, newKeyFiles ;
+
+            rc = dpsRecord2CrtKeys( (CHAR *)recordHeader, oldKeyFiles, newKeyFiles ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get create key files log record from "
+                         "DPS log, rc: %d",
+                         rc ) ;
+            // do replay, restore files
+            rc = sdbGetCatalogueCB()->getSecKeysManager()->replayCrtKeyLogRecord( newKeyFiles ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to replay create key files log record, rc: %d", rc ) ;
+            break ;
+         }
          case LOG_TYPE_DUMMY :
          {
             rc = SDB_OK ;
@@ -2090,6 +2126,22 @@ namespace engine
 
             break ;
          }
+         case LOG_TYPE_SEC_KEY_CRT:
+         {
+            BSONObj oldKeyFiles, newKeyFiles ;
+
+            rc = dpsRecord2CrtKeys( (CHAR *)recordHeader,
+                                    oldKeyFiles, newKeyFiles ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get create key files log record from "
+                         "DPS log, rc: %d", rc ) ;
+            // do rollback files
+            rc = sdbGetCatalogueCB()->getSecKeysManager()->rollbackCrtKeyLogRecord( oldKeyFiles );
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to rollback create key files log record, "
+                         "rc: %d", rc ) ;
+            break ;
+         }
          case LOG_TYPE_RETURN :
          {
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
@@ -2342,10 +2394,27 @@ namespace engine
 
       if ( SDB_DMS_NOTEXIST == rc )
       {
-         rc = rtnCreateCollectionCommand( collection, attributes, eduCB,
-                                          _dmsCB, _dpsCB, clUniqueID, compType,
-                                          0, TRUE, extOptions,
-                                          idIdxDef, FALSE ) ;
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENCRYPTED ) )
+         {
+            clsDEKFetcher fetcher( *sdbGetShardCB() ) ;
+            rc = _dmsCB->ensureOrFetchDEK( fetcher ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = SDB_DMS_NOTEXIST ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to ensure or fetch DEK when create collection[%s], rc: %d",
+                       collection, rc );
+            }
+         }
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            rc = rtnCreateCollectionCommand( collection, attributes, eduCB,
+                                             _dmsCB, _dpsCB, clUniqueID, compType,
+                                             0, TRUE, extOptions,
+                                             idIdxDef, FALSE ) ;
+         }
       }
 
       if ( rc )

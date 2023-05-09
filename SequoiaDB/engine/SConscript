@@ -42,6 +42,7 @@ ossFiles = [
       "oss/ossSSLCertificate.c",
       "oss/ossSSLWrapper.c",
       "oss/ossSSLContext.c",
+      "oss/ossGMCrypto.cpp",
       "oss/ossErr.cpp",
       "oss/oss.cpp",
       "oss/ossIO.cpp",
@@ -207,7 +208,8 @@ utilFiles = [
       "util/utilRecycleReturnInfo.cpp",
       "util/utilSecure.cpp",
       "util/utilLocation.cpp",
-      "util/utilLocale.cpp"
+      "util/utilLocale.cpp",
+      "util/utilSecurityKeys.cpp"
       ]
 
 rtnFiles = [
@@ -358,7 +360,9 @@ dmsFiles = [
       "dms/dmsCachedPlanUnit.cpp",
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
-      "dms/dmsLightJob.cpp"
+      "dms/dmsLightJob.cpp",
+      "dms/dmsEncrypt.cpp",
+      "dms/dmsLobCryptor.cpp",
       ]
 
 ixmFiles = [
@@ -498,7 +502,8 @@ clsFiles = [
       "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp",
       "cls/clsOprHandler.cpp",
-      "cls/clsGroupModeJob.cpp"
+      "cls/clsGroupModeJob.cpp",
+      "cls/clsDEKFetcher.cpp"
       ]
 
 dpsFiles = [
@@ -594,7 +599,8 @@ catFiles = [
       "cat/catRecycleReturnInfo.cpp",
       "cat/catContextRecycleBin.cpp",
       "cat/catCommandNode.cpp",
-      "cat/catLocation.cpp"
+      "cat/catLocation.cpp",
+      "cat/catSecKeysManager.cpp"
       ]
 
 coordFiles = [

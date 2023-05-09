@@ -120,7 +120,8 @@ namespace engine
     _localSUMgr( this ),
     _statMgr(),
     _ixmKeySorterCreator( NULL ),
-    _scannerCheckerCreator( NULL )
+    _scannerCheckerCreator( NULL ),
+    _hasDEK( FALSE )
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -136,6 +137,8 @@ namespace engine
       {
          _vecCSMutex.push_back( new( std::nothrow ) ossSpinRecursiveXLatch() ) ;
       }
+
+      ossMemset( _DEK, 0, sizeof( ossSM4Key ) ) ;
 
       _blockEvent.signal() ;
    }
@@ -4085,6 +4088,47 @@ namespace engine
             break ;
          }
       }
+   }
+
+   BOOLEAN _SDB_DMSCB::hasDEK()
+   {
+      return _hasDEK ;
+   }
+
+   void _SDB_DMSCB::setDEK( ossSM4Key dek )
+   {
+      if ( !_hasDEK )
+      {
+         ossMemcpy( _DEK, dek, sizeof( ossSM4Key ) ) ;
+         _hasDEK = TRUE ;
+      }
+   }
+
+   BOOLEAN _SDB_DMSCB::peekDEK( ossSM4Key dek )
+   {
+      if ( _hasDEK )
+      {
+         ossMemcpy( dek, _DEK, sizeof( ossSM4Key ) ) ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   INT32 _SDB_DMSCB::ensureOrFetchDEK( utilDEKFetcher &fetcher )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !_hasDEK )
+      {
+         rc = fetcher.fetch( _DEK );
+         PD_RC_CHECK( rc, PDERROR, "Failed to fetch DEK info, rc: %d", rc );
+         _hasDEK = TRUE;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

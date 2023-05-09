@@ -72,6 +72,10 @@ namespace engine
 
          virtual const CHAR*     sessionName() const ;
          virtual BOOLEAN         isBusinessSession() const { return TRUE ; }
+         virtual BOOLEAN         isLoopback() const
+         {
+            return _socket.getPeerIP() == _socket.getLocalIP() ;
+         }
          virtual IClient*        getClient() { return &_client ; }
 
          virtual _dpsLogWrapper* getDPSCB() { return _pDPSCB ; }

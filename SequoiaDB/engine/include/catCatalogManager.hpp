@@ -95,6 +95,7 @@ namespace engine
       clsAutoIncSet _autoIncSet ;
       UTIL_DS_UID _dsUID ;
       CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      BOOLEAN     _isEncrypted ;
 
       _catCollectionInfo()
       {
@@ -131,6 +132,7 @@ namespace engine
          _dsUID               = UTIL_INVALID_DS_UID ;
          _autoIncSet.clear() ;
          ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
+         _isEncrypted         = FALSE ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;
