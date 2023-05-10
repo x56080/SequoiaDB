@@ -1138,10 +1138,13 @@ namespace engine
          When NULL == pInfo, we can stop other sequoaidb,
          not support oma stop adapter for now
       */
-      if ( SDB_TYPE_SEADAPTER == pInfo->_type )
+      if ( NULL != pInfo )
       {
-         rc = SDB_CM_OP_NODE_FAILED ;
-         goto error ;
+         if ( SDB_TYPE_SEADAPTER == pInfo->_type )
+         {
+            rc = SDB_CM_OP_NODE_FAILED ;
+            goto error ;
+         }
       }
 
       rc = omStopDBNode( sdbGetOMAgentOptions()->getStopProcFile(),
