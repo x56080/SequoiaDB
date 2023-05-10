@@ -197,7 +197,8 @@ namespace engine
                              dmsMBContext *mbContext,
                              BOOLEAN canUnLock,
                              _pmdEDUCB *cb,
-                             SDB_DPSCB *dpscb ) ;
+                             SDB_DPSCB *dpscb,
+                             const dmsLobPageEncryptionInfo *encInfo ) ;
 
       /*
          1. Caller must hold lock with EXCLUSIVE
@@ -288,7 +289,8 @@ namespace engine
                    UINT32 clID,
                    pmdEDUCB *cb,
                    DMS_LOB_PAGEID &page,
-                   UINT32 *bucket = NULL ) ;
+                   UINT32 *bucket = NULL,
+                   dmsLobPageEncryptionInfo *encInfo = NULL ) ;
 
       INT32 _allocatePage( const dmsLobRecord &record,
                            dmsMBContext *mbContext,
@@ -298,9 +300,7 @@ namespace engine
                        DMS_LOB_PAGEID page,
                        pmdEDUCB *cb,
                        dmsMBContext *mbContext,
-                       BOOLEAN isEncrypted,
-                       const UINT8 *ctrNonce,
-                       const ossSM4Key dek ) ;
+                       const dmsLobPageEncryptionInfo *info ) ;
 
       /// only release space of page. will not change other meta data.
       INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
@@ -327,13 +327,6 @@ namespace engine
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;
-
-      INT32 _isPageEncrypted( pmdEDUCB *cb,
-                              UINT32 hash,
-                              DMS_LOB_PAGEID page,
-                              BOOLEAN &isEncrypted,
-                              UINT8 *ctrNonce,
-                              ossSM4Key dek ) ;
 
    private:
       dmsBucketsManagementExtent    *_dmsBME ;

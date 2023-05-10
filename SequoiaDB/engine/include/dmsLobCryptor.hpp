@@ -39,7 +39,7 @@ namespace engine
    class _dmsLobCryptor : public utilELCryptor
    {
       public:
-         _dmsLobCryptor( ossSM4Key dek, UINT8 *nonce, UINT32 offset ) ;
+         _dmsLobCryptor( const ossSM4Key dek, const UINT8 *nonce, UINT32 offset ) ;
          virtual INT32 encrypt( const UINT8 *in,
                                 UINT32 ilen,
                                 UINT8 *out,

@@ -608,10 +608,8 @@ namespace engine
 
       BOOLEAN pageFilled = FALSE ;
       utilCacheContext cContext ;
-      UINT8 ctrNonce[ DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ] = { 0 } ;
-      ossSM4Key DEK ;
+      dmsLobPageEncryptionInfo encInfo ;
       dmsLobCryptor *pCryptor = NULL ;
-      BOOLEAN isEncrypted = FALSE ;
 
       if ( DMS_LOB_INVALID_PAGEID == pageID )
       {
@@ -658,16 +656,16 @@ namespace engine
          rng.seed( static_cast< UINT32 >( std::time( 0 ) ) ) ;
          boost::random::uniform_int_distribution< INT64 > dist(
             0, std::numeric_limits< INT64 >::max() ) ;
-         *(INT64 *)ctrNonce = dist( rng ) ;
+         *(INT64 *)encInfo.ctrNonce = dist( rng ) ;
          SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-         if ( !dmsCB->peekDEK( DEK ) )
+         if ( !dmsCB->peekDEK( encInfo.dek ) )
          {
             rc = SDB_SEC_DEK_NOT_EXIST ;
             PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
             goto error ;
          }
          PD_RC_CHECK( rc, PDWARNING, "Failed to peek DEK, rc: %d", rc ) ;
-         pCryptor = SDB_OSS_NEW dmsLobCryptor( DEK, ctrNonce, record._offset ) ;
+         pCryptor = SDB_OSS_NEW dmsLobCryptor( encInfo.dek, encInfo.ctrNonce, record._offset ) ;
          if ( !pCryptor )
          {
             rc = SDB_OOM;
@@ -677,7 +675,7 @@ namespace engine
          rc = cContext.write( record._data, record._offset, record._dataLen, cb,
                               UTIL_WRITE_NEWEST_BOTH, pCryptor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write data to collection:%s, rc:%d", pFullName, rc ) ;
-         isEncrypted = TRUE ;
+         encInfo.isEncrypted = TRUE ;
       }
       else
       {
@@ -686,7 +684,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to write data to collection:%s, rc:%d", pFullName, rc ) ;
       }
 
-      rc = _fillPage( record, pageID, cb, mbContext, isEncrypted, ctrNonce, DEK ) ;
+      rc = _fillPage( record, pageID, cb, mbContext, &encInfo ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to fill page, rc:%d", rc ) ;
@@ -767,7 +765,8 @@ namespace engine
                                           dmsMBContext *mbContext,
                                           BOOLEAN canUnLock,
                                           _pmdEDUCB *cb,
-                                          SDB_DPSCB *dpscb )
+                                          SDB_DPSCB *dpscb,
+                                          const dmsLobPageEncryptionInfo *encInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_UPDATEWITHPAGE ) ;
@@ -789,10 +788,6 @@ namespace engine
       UINT32 orgBlkLen = 0 ;
       UINT32 pageIncSize = 0 ;
       UINT32 pageSize = _data.pageSize() ;
-
-      BOOLEAN isEncrypted = FALSE ;
-      UINT8 ctrNonce[ DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ] = { 0 } ;
-      ossSM4Key DEK ;
       dmsLobCryptor *pCryptor = NULL ;
 
       if ( DMS_LOB_INVALID_PAGEID == pageID )
@@ -867,11 +862,9 @@ namespace engine
          _pCacheUnit->prepareWrite( pageID, 0, newDataLen, cb, cContext ) ;
       }
 
-      rc = _isPageEncrypted( cb, record._hash, pageID, isEncrypted, ctrNonce, DEK ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check if page[%d] is encrypted, rc: %d", pageID, rc ) ;
-      if ( isEncrypted )
+      if ( encInfo && encInfo->isEncrypted )
       {
-         pCryptor = SDB_OSS_NEW dmsLobCryptor( DEK, ctrNonce, record._offset ) ;
+         pCryptor = SDB_OSS_NEW dmsLobCryptor( encInfo->dek, encInfo->ctrNonce, record._offset ) ;
          if ( !pCryptor )
          {
             rc = SDB_OOM;
@@ -1067,6 +1060,7 @@ namespace engine
       DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       BOOLEAN locked = FALSE ;
+      dmsLobPageEncryptionInfo encInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1085,7 +1079,7 @@ namespace engine
          locked = TRUE ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page ) ;
+      rc = _find( record, mbContext->clLID(), cb, page, NULL, &encInfo ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
@@ -1102,7 +1096,7 @@ namespace engine
       }
 
       rc = _updateWithPage( record, page, fullName, mbContext,
-                            locked, cb, dpscb ) ;
+                            locked, cb, dpscb, &encInfo ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Update record[%s] to page[%d] in collection[%s] "
@@ -1146,6 +1140,7 @@ namespace engine
       DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       UINT32 pageSize = 0 ;
       BOOLEAN locked = FALSE ;
+      dmsLobPageEncryptionInfo encInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1219,7 +1214,7 @@ namespace engine
       /// When using update
       if ( updateWhenExist )
       {
-         rc = _find( record, mbContext->clLID(), cb, foundPage ) ;
+         rc = _find( record, mbContext->clLID(), cb, foundPage, NULL, &encInfo ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
@@ -1255,7 +1250,7 @@ namespace engine
          info.clear() ;
 
          rc = _updateWithPage( record, foundPage, fullName, mbContext,
-                               locked, cb, dpscb ) ;
+                               locked, cb, dpscb, &encInfo ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Update record[%s] to page[%d] in "
@@ -1311,11 +1306,8 @@ namespace engine
       DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
       BOOLEAN locked = FALSE ;
       utilCacheContext cContext ;
-
-      BOOLEAN isEncrypted ;
-      UINT8 ctrNonce[ DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ] = { 0 } ;
-      ossSM4Key DEK ;
       dmsLobCryptor *pCryptor = NULL ;
+      dmsLobPageEncryptionInfo encInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1344,7 +1336,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page ) ;
+      rc = _find( record, mbContext->clLID(), cb, page, NULL, &encInfo ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find page of record[%s], rc:%d",
@@ -1364,12 +1356,9 @@ namespace engine
       _pCacheUnit->prepareRead( page, record._offset, record._dataLen,
                                 cb, cContext ) ;
 
-      rc = _isPageEncrypted( cb, record._hash, page, isEncrypted, ctrNonce, DEK ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check if page[%d] is encrypted, rc: %d", page, rc ) ;
-
-      if ( isEncrypted )
+      if ( encInfo.isEncrypted )
       {
-         pCryptor = SDB_OSS_NEW dmsLobCryptor( DEK, ctrNonce, record._offset ) ;
+         pCryptor = SDB_OSS_NEW dmsLobCryptor( encInfo.dek, encInfo.ctrNonce, record._offset ) ;
          if ( !pCryptor )
          {
             rc = SDB_OOM;
@@ -1438,9 +1427,7 @@ namespace engine
                                     DMS_LOB_PAGEID page,
                                     pmdEDUCB *cb,
                                     dmsMBContext *context,
-                                    BOOLEAN isEncrypted,
-                                    const UINT8* ctrNonce,
-                                    const ossSM4Key dek )
+                                    const dmsLobPageEncryptionInfo *encInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FILLPAGE ) ;
@@ -1472,17 +1459,21 @@ namespace engine
       blk->_prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->_nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->setRemoved() ;
-      blk->setEncrypted( isEncrypted ) ;
-      if ( isEncrypted )
+      if ( encInfo )
       {
-         SDB_ASSERT(
-            DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE * sizeof( UINT8 ) == sizeof( UINT64 ),
-            "UINT64 can be used for XOR operation only if the ctr nonce length is 64 bits" ) ;
-         *(UINT64 *)( blk->_ctrNonce ) = *(UINT64 *)( ctrNonce ) ^ *(UINT64 *)( dek ) ;
-      }
-      else
-      {
-         ossMemset( blk->_ctrNonce, 0, sizeof( blk->_ctrNonce ) ) ;
+         blk->setEncrypted( encInfo->isEncrypted );
+         if ( encInfo->isEncrypted )
+         {
+            SDB_ASSERT(
+               DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE * sizeof( UINT8 ) == sizeof( UINT64 ),
+               "UINT64 can be used for XOR operation only if the ctr nonce length is 64 bits" );
+            *(UINT64 *)( blk->_ctrNonce ) =
+               *(UINT64 *)( encInfo->ctrNonce ) ^ *(UINT64 *)( encInfo->dek );
+         }
+         else
+         {
+            ossMemset( blk->_ctrNonce, 0, sizeof( blk->_ctrNonce ) );
+         }
       }
 
 #if defined (_DEBUG)
@@ -1565,9 +1556,8 @@ namespace engine
       dmsLobRecord oldRecord ;
       UINT32 readLen = 0 ;
       BOOLEAN needSubmit = FALSE, isMetaPage = FALSE ;
-      UINT8 ctrNonce[ DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ] = { 0 } ;
-      ossSM4Key dek ;
       dmsLobCryptor *pCryptor = NULL ;
+      dmsLobPageEncryptionInfo encInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1649,7 +1639,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page, &bucketNumber ) ;
+      rc = _find( record, mbContext->clLID(), cb, page, &bucketNumber, &encInfo ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find record[%s], rc:%d",
@@ -1710,13 +1700,10 @@ namespace engine
                     readLen, rc ) ;
             goto error ;
          }
-         BOOLEAN isEncrypted = FALSE ;
-         rc = _isPageEncrypted( cb, record._hash, page, isEncrypted, ctrNonce, dek ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check if page[%d] is encrypted, rc: %d", page, rc ) ;
 
-         if ( isEncrypted )
+         if ( encInfo.isEncrypted )
          {
-            pCryptor = SDB_OSS_NEW dmsLobCryptor( dek, ctrNonce, record._offset ) ;
+            pCryptor = SDB_OSS_NEW dmsLobCryptor( encInfo.dek, encInfo.ctrNonce, record._offset ) ;
             if ( !pCryptor )
             {
                rc = SDB_OOM;
@@ -1882,7 +1869,8 @@ namespace engine
                                 UINT32 clID,
                                 pmdEDUCB *cb,
                                 DMS_LOB_PAGEID &page,
-                                UINT32 *bucket )
+                                UINT32 *bucket,
+                                dmsLobPageEncryptionInfo *encInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FIND ) ;
@@ -1927,6 +1915,27 @@ namespace engine
               blk->equals( record._oid->getData(), record._sequence ) )
          {
             page = pageInBucket ;
+            if ( encInfo )
+            {
+               encInfo->isEncrypted = blk->isEncrypted() ;
+               if ( encInfo->isEncrypted )
+               {
+                  SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+                  if ( !dmsCB->peekDEK( encInfo->dek ) )
+                  {
+                     rc = SDB_SEC_DEK_NOT_EXIST ;
+                     PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
+                     goto error ;
+                  }
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to peek DEK, rc: %d", rc ) ;
+                  SDB_ASSERT( DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE * sizeof( UINT8 ) ==
+                                 sizeof( UINT64 ),
+                              "UINT64 can be used for XOR operation only if the ctr nonce length "
+                              "is 64 bits" ) ;
+                  *(UINT64 *)( encInfo->ctrNonce ) =
+                     *(UINT64 *)blk->_ctrNonce ^ *(UINT64 *)encInfo->dek ;
+               }
+            }
             break ;
          }
          else
@@ -3306,53 +3315,5 @@ namespace engine
       {
          mbContext->mbStat()->addTotalValidLobSize( incLen ) ;
       }
-   }
-
-   INT32 _dmsStorageLob::_isPageEncrypted( pmdEDUCB *cb,
-                                           UINT32 hash,
-                                           DMS_LOB_PAGEID page,
-                                           BOOLEAN &isEncrypted,
-                                           UINT8 *ctrNonce,
-                                           ossSM4Key dek )
-   {
-      INT32 rc = SDB_OK ;
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-      dmsExtRW extRW ;
-      const dmsLobDataMapBlk *blk = NULL ;
-      ossScopedLock lock( _getBucketLatch( _getBucket( hash ) ), SHARED ) ;
-
-      DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_ADDRESSING, 1 ) ;
-      extRW = extent2RW( page, -1 ) ;
-      extRW.setNothrow( TRUE ) ;
-      blk = extRW.readPtr< _dmsLobDataMapBlk >() ;
-      if ( !blk )
-      {
-         PD_LOG( PDERROR,
-                 "we got a NULL extent from extendAddr(), "
-                 "pageid:%d",
-                 page ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      isEncrypted = blk->isEncrypted() ;
-      if ( isEncrypted && ctrNonce )
-      {
-         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-         if ( !dmsCB->peekDEK( dek ) )
-         {
-            rc = SDB_SEC_DEK_NOT_EXIST ;
-            PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
-            goto error ;
-         }
-         PD_RC_CHECK( rc, PDWARNING, "Failed to peek DEK, rc: %d", rc ) ;
-         SDB_ASSERT(
-            DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE * sizeof( UINT8 ) == sizeof( UINT64 ),
-            "UINT64 can be used for XOR operation only if the ctr nonce length is 64 bits" ) ;
-         *(UINT64 *)( ctrNonce ) = *(UINT64 *)blk->_ctrNonce ^ *(UINT64 *)dek ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 }

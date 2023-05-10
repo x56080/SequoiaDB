@@ -4,7 +4,7 @@
 
 namespace engine
 {
-   _dmsLobCryptor::_dmsLobCryptor( ossSM4Key dek, UINT8 *nonce, UINT32 offset ) : _offset( offset )
+   _dmsLobCryptor::_dmsLobCryptor( const ossSM4Key dek, const UINT8 *nonce, UINT32 offset ) : _offset( offset )
    {
       ossMemcpy( _dek, dek, OSS_SM4_KEY_SIZE ) ;
       ossMemcpy( _ctr, nonce, DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;

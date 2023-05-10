@@ -40,6 +40,7 @@
 #define DMS_LOBDEF_HPP_
 
 #include "dms.hpp"
+#include "ossGMCrypto.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 #include "../bson/bson.hpp"
@@ -347,6 +348,26 @@ namespace engine
       bson::OID _oid ;
    } ;
    typedef struct _dmsLobInfoOnPage dmsLobInfoOnPage ;
+
+   struct _dmsLobPageEncryptionInfo
+   {
+      BOOLEAN isEncrypted ;
+      ossSM4Key dek ;
+      UINT8 ctrNonce[ DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ] ;
+
+      _dmsLobPageEncryptionInfo()
+      {
+         reset() ;
+      }
+
+      void reset()
+      {
+         isEncrypted = FALSE ;
+         ossMemset( dek, 0, sizeof( dek ) ) ;
+         ossMemset( ctrNonce, 0, sizeof( ctrNonce ) ) ;
+      }
+   } ;
+   typedef struct _dmsLobPageEncryptionInfo dmsLobPageEncryptionInfo ;
 }
 
 #endif // DMS_LOBDEF_HPP_
