@@ -44,7 +44,7 @@
 #include "mthDef.hpp"
 #include "../util/fromjson.hpp"
 #include "utilMath.hpp"
-
+#include "mthModifierDef.hpp"
 
 using namespace bson ;
 
@@ -63,22 +63,22 @@ namespace engine
    static mthCastStr2Type g_cast_str_to_type_array[] =
    {
       //castStr,                      castType
-      { "minkey",                     MinKey },
-      { "double",                     NumberDouble },
-      { "string",                     String },
-      { "object",                     Object },
-      { "array",                      Array },
-      { "bindata",                    BinData },
-      { "oid",                        jstOID },
-      { "bool",                       Bool },
-      { "date",                       Date },
-      { "null",                       jstNULL },
-      { "int32",                      NumberInt },
-      { "timestamp",                  Timestamp },
-      { "int64",                      NumberLong },
-      { "regex",                      RegEx },
-      { "decimal",                    NumberDecimal },
-      { "maxkey",                     MaxKey },
+      { MTH_CAST_STR_MINKEY,          MinKey },
+      { MTH_CAST_STR_DOUBLE,          NumberDouble },
+      { MTH_CAST_STR_STRING,          String },
+      { MTH_CAST_STR_OBJECT,          Object },
+      { MTH_CAST_STR_ARRAY,           Array },
+      { MTH_CAST_STR_BINDATA,         BinData },
+      { MTH_CAST_STR_OID,             jstOID },
+      { MTH_CAST_STR_BOOL,            Bool },
+      { MTH_CAST_STR_DATE,            Date },
+      { MTH_CAST_STR_NULL,            jstNULL },
+      { MTH_CAST_STR_INT32,           NumberInt },
+      { MTH_CAST_STR_TIMESTAMP,       Timestamp },
+      { MTH_CAST_STR_INT64,           NumberLong },
+      { MTH_CAST_STR_REGEX,           RegEx },
+      { MTH_CAST_STR_DECIMA,          NumberDecimal },
+      { MTH_CAST_STR_MAXKEY,          MaxKey },
    } ;
 
    static INT32 _mthAbsBasic( const CHAR *name, const BSONElement &in,
@@ -1136,6 +1136,8 @@ namespace engine
       INT32 number = 0 ;
       dollarNum = 0 ;
 
+      MTH_SUBFIELD_STR subStr ;
+
       while ( pTmp && *pTmp )
       {
          pDot = ossStrchr( pTmp, '.' ) ;
@@ -1143,13 +1145,14 @@ namespace engine
          {
             if ( pDot )
             {
-               *(CHAR*)pDot = 0 ;
+               subStr.append( pTmp, pDot-pTmp ) ;
+               pTmp = subStr.str() ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
+            // clear
             if ( pDot )
             {
-               *(CHAR*)pDot = '.' ;
+               subStr.clear() ;
             }
             if ( rc )
             {
@@ -1175,6 +1178,8 @@ namespace engine
       INT32 number = 0 ;
       BOOLEAN hasUnknowDollar = FALSE ;
 
+      MTH_SUBFIELD_STR subStr ;
+
       while ( pTmp && *pTmp )
       {
          pDot = ossStrchr( pTmp, '.' ) ;
@@ -1183,13 +1188,14 @@ namespace engine
          {
             if ( pDot )
             {
-               *(CHAR*)pDot = 0 ;
+               subStr.append( pTmp, pDot-pTmp ) ;
+               pTmp = subStr.str() ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
+            // clear
             if ( pDot )
             {
-               *(CHAR*)pDot = '.' ;
+               subStr.clear() ;
             }
             if ( rc )
             {

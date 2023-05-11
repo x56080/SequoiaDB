@@ -1,7 +1,7 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2023 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -32,6 +32,7 @@
    defect Date        Who Description
    ====== =========== === ==============================================
           09/14/2012  TW  Initial Draft
+          05/11/2023  XJH Re-construct
 
    Last Changed =
 
@@ -39,237 +40,17 @@
 #ifndef MTHMODIFIER_HPP_
 #define MTHMODIFIER_HPP_
 
-#include "core.hpp"
-#include "oss.hpp"
-#include <vector>
-#include <set>
-#include "ossUtil.hpp"
-#include "../bson/bson.h"
-#include "../bson/bsonobj.h"
-#include "mthCommon.hpp"
+#include "mthModifierNode.hpp"
 #include "ixmIndexKey.hpp"
 #include "dpsDef.hpp"
-#include "msgDef.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
 
-   /*
-      ModType define
-   */
-   enum ModType
-   {
-      INC = 0,
-      SET,
-      PUSH,
-      PUSH_ALL,
-      PULL,
-      PULL_BY,
-      PULL_ALL,
-      PULL_ALL_BY,
-      POP,
-      UNSET,
-      BITNOT,
-      BITXOR,
-      BITAND,
-      BITOR,
-      BIT,
-      ADDTOSET,
-      RENAME,
-      NULLOPR,
-      REPLACE,
-      KEEP,
-      SETARRAY,
-
-      UNKNOWN
-   } ;
-
-#define MTH_MODIFIER_INC           "$inc"
-#define MTH_MODIFIER_SET           "$set"
-#define MTH_MODIFIER_PUSH          "$push"
-#define MTH_MODIFIER_PUSH_ALL      "$push_all"
-#define MTH_MODIFIER_PULL          "$pull"
-#define MTH_MODIFIER_PULL_BY       "$pull_by"
-#define MTH_MODIFIER_PULL_ALL      "$pull_all"
-#define MTH_MODIFIER_PULL_ALL_BY   "$pull_all_by"
-#define MTH_MODIFIER_POP           "$pop"
-#define MTH_MODIFIER_UNSET         "$unset"
-#define MTH_MODIFIER_BITNOT        "$bitnot"
-#define MTH_MODIFIER_BITXOR        "$bitxor"
-#define MTH_MODIFIER_BITAND        "$bitand"
-#define MTH_MODIFIER_BITOR         "$bitor"
-#define MTH_MODIFIER_BIT           "$bit"
-#define MTH_MODIFIER_ADDTOSET      "$addtoset"
-#define MTH_MODIFIER_RENAME        "$rename"
-#define MTH_MODIFIER_NULLOPR       "$null"
-#define MTH_MODIFIER_REPLACE       "$replace"
-#define MTH_MODIFIER_KEEP          "$keep"
-#define MTH_MODIFIER_SETARRAY      "$setarray"
-
-   /*
-      _ModifierElement define
-   */
-   class _ModifierElement : public utilPooledObject
-   {
-   public :
-      BSONElement _toModify ; // the element to modify
-      const CHAR *_sourceField ; // Used in format {$field:<name>}, pointing to
-                                 // the <name>, will be used in evaluation stage
-                                 // to fetch the field from the source record.
-      ModType     _modType ;
-      INT32       _dollarNum ;
-
-      _ModifierElement ( const BSONElement &e, ModType type,
-                         INT32 dollarNum = 0 )
-      {
-         _toModify = e ;
-         _sourceField = NULL ;
-         _modType = type ;
-         _dollarNum = dollarNum ;
-      }
-
-      virtual ~_ModifierElement() {}
-
-      // Analyze the modifier. If it uses the '$field' format, get the field
-      // name.
-      virtual INT32 analyzeModifyEle() ;
-
-      BOOLEAN isModifyByField() const
-      {
-         return ( NULL != _sourceField ) ;
-      }
-
-      const CHAR* getSourceFieldName() const
-      {
-         return _sourceField ;
-      }
-   } ;
-   typedef _ModifierElement ModifierElement ;
-
-   class _IncModifierElement : public _ModifierElement
-   {
-   public :
-      BOOLEAN _isSimple ;
-      BSONElement _valueEle ;
-      BSONElement _default ;
-      BSONElement _minEle ;
-      bsonDecimal _minDecimal ;
-
-      BSONElement _maxEle ;
-      bsonDecimal _maxDecimal ;
-
-      BSONObj _defaultResult ;
-
-      _IncModifierElement( const BSONElement &e,
-                           INT32 dollarNum = 0 )
-                        : _ModifierElement( e, INC, dollarNum )
-      {
-         _isSimple = TRUE ;
-      }
-
-      _IncModifierElement( const BSONElement &e, const BSONElement &valueEle,
-                           const BSONElement &myDefault,
-                           const BSONElement &minEle,
-                           const BSONElement &maxEle,
-                           INT32 dollarNum = 0 )
-                        : _ModifierElement( e, INC, dollarNum )
-      {
-         _valueEle = valueEle ;
-         _default = myDefault ;
-         _minEle = minEle ;
-         _maxEle = maxEle ;
-         _isSimple = FALSE ;
-      }
-
-      INT32 analyzeModifyEle() ;
-      INT32 calcDefaultResult( BOOLEAN strictMode ) ;
-      BOOLEAN isValidRange( BSONElement &resultEle ) ;
-   } ;
-   typedef _IncModifierElement IncModifierElement ;
-
-   #define MTH_DOLLAR_FIELD_SIZE          (10)
-   /*
-      _compareFieldNames1 define
-   */
-   class _compareFieldNames1
-   {
-   private:
-      vector<INT64> *_dollarList ;
-      CHAR           _dollarBuff[ MTH_DOLLAR_FIELD_SIZE + 1 ] ;
-
-   private:
-      OSS_INLINE BOOLEAN _isNumber( CHAR c )
-      {
-         return c >= '0' && c <= '9' ;
-      }
-
-      INT32 _lexNumCmp ( const CHAR *s1, const CHAR *s2 ) ;
-
-   public:
-      _compareFieldNames1( vector<INT64> *dollarList = NULL )
-      : _dollarList(NULL)
-      {
-         _dollarList = dollarList ;
-         ossMemset( _dollarBuff, 0, sizeof(_dollarBuff) ) ;
-      }
-
-      void setDollarList( vector<INT64> *dollarList )
-      {
-         _dollarList = dollarList ;
-      }
-
-      const CHAR *getDollarValue ( const CHAR *s,
-                                   BOOLEAN *pUnknowDollar = NULL ) ;
-
-      FieldCompareResult compField( const char* l, const char* r,
-                                    UINT32 *pLeftPos = NULL,
-                                    UINT32 *pRightPos = NULL ) ;
-
-   } ;
-
-   /*
-      _compareFieldNames2 define
-   */
-   class _compareFieldNames2
-   {
-   private:
-      vector<INT64> *_dollarList ;
-
-   public:
-      _compareFieldNames2( vector<INT64> *dollarList = NULL )
-      : _dollarList(NULL)
-      {
-         _dollarList = dollarList ;
-      }
-
-      BOOLEAN operator () ( const ModifierElement *l,
-                            const ModifierElement *r ) const
-      {
-         _compareFieldNames1 compare ( _dollarList ) ;
-         FieldCompareResult result = compare.compField(
-            l->_toModify.fieldName(), r->_toModify.fieldName() ) ;
-         return ( (result == RIGHT_SUBFIELD) || (result == LEFT_BEFORE) ) ;
-      }
-   } ;
-
    #define MTH_MODIFIER_FIELD_OPR_BIT              0x00000001
    #define MTH_MODIFIER_RECORD_OPR_BIT             0x00000002
-
-   class _mthModifierOpMap : public SDBObject
-   {
-      public:
-         _mthModifierOpMap() ;
-         ~_mthModifierOpMap() {}
-
-         ModType find( const CHAR* modifierName ) ;
-
-      private:
-         typedef map< const CHAR*, INT32, mthStrcasecmp > MODIFIER_MAP ;
-         MODIFIER_MAP _modifiersMap ;
-   } ;
-   typedef _mthModifierOpMap mthModifierOpMap ;
 
    /*
       _mthModifier define
@@ -302,7 +83,7 @@ namespace engine
       // add for replace end
 
       vector<INT64> *_dollarList ;
-      _compareFieldNames1  _fieldCompare ;
+      _mthModCompareNatrualOrder  _fieldCompare ;
       BOOLEAN        _ignoreTypeError ;
       BOOLEAN        _strictDataMode ;
 
@@ -316,28 +97,6 @@ namespace engine
       INT32 _addModifier ( const BSONElement &ele, ModType type ) ;
       INT32 _parseElement ( const BSONElement &ele ) ;
 
-      /**
-       * Parse simple $inc operation format, just increase by a value
-       * the {$field:<name>} format.
-       */
-      INT32 _parseIncSimple( const BSONElement& ele, INT32 dollarNum ) ;
-
-      /**
-       * Parse complicated $inc operation format, an object is used.
-       */
-      INT32 _parseIncAdvance( const BSONElement& ele, INT32 dollarNum ) ;
-
-      /**
-       * Parse complicated $inc operation format, an option object is used.
-       */
-      INT32 _parseIncByOptObj( const BSONElement& ele,
-                               const BSONElement& valueEle,
-                               const BSONElement& defaultEle,
-                               const BSONElement& minEle,
-                               const BSONElement& maxEle,
-                               INT32 dollarNum ) ;
-
-      INT32 _parseInc( const BSONElement& ele, INT32 dollarNum ) ;
       ModType _parseModType ( const CHAR *field ) ;
       OSS_INLINE void _incModifierIndex( INT32 *modifierIndex ) ;
 
@@ -346,7 +105,7 @@ namespace engine
       INT32 _setSourceRecord( const BSONObj &record ) ;
 
       template<class VType>
-      INT32 _bitCalc ( ModType type, VType l, VType r, VType &out );
+      INT32 _bitCalc ( ModType type, VType l, VType r, VType &out ) ;
 
       BOOLEAN _dupFieldName ( const BSONElement &l,
                               const BSONElement &r ) ;
@@ -361,11 +120,17 @@ namespace engine
       template<class Builder>
       INT32 _applyIncModifier ( const CHAR *pRoot, Builder &bb,
                                 const BSONElement &in,
-                                IncModifierElement &me ) ;
+                                mthModifierIncNode &me ) ;
       template<class Builder>
       INT32 _applySetModifier ( const CHAR *pRoot, Builder &bb,
                                 const BSONElement &in,
                                 ModifierElement &me ) ;
+
+      template<class Builder>
+      INT32 _applyCurDateModifier ( const CHAR *pRoot, Builder &bb,
+                                    const BSONElement &in,
+                                    ModifierElement &me ) ;
+
       template<class Builder>
       INT32 _applyPushModifier ( const CHAR *pRoot, Builder &bb,
                                  const BSONElement &in,
@@ -579,20 +344,6 @@ namespace engine
       }
    }
 
-   BOOLEAN mthIsBiggerNumberType( const BSONElement &left,
-                                  const BSONElement &right ) ;
-
-   /**
-    * @brief Evaluate the fields to be updated by '$inc' operator, and put them
-    *        into the builder for the final record.
-    * @param existElement   The current field element to be modified.
-    * @param inc            '$inc' value for the field to be modified.
-    * @param strictMode     Whether overflow is allowed in calculation.
-    * @param resBuilder     Builder for the final record.
-    */
-   INT32 mthModifierInc( const BSONElement& existElement,
-                         const BSONElement &inc, BOOLEAN strictMode,
-                         BSONObjBuilder &resBuilder ) ;
 }
 
 #endif //MTHMODIFIER_HPP_

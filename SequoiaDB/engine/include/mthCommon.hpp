@@ -56,7 +56,6 @@ namespace engine
    #define MTH_OPERATION_FLAG_OVERFLOW   0x00000001
 
 
-
    INT32 mthAppendString ( CHAR **ppStr, INT32 &bufLen,
                            INT32 strLen, const CHAR *newStr,
                            INT32 newStrLen, INT32 *pMergedLen = NULL ) ;
@@ -182,7 +181,7 @@ namespace engine
 
    struct mthStrcasecmp
    {
-      BOOLEAN operator() ( const CHAR* a, const CHAR* b )
+      BOOLEAN operator() ( const CHAR* a, const CHAR* b ) const
       {
          return ossStrcasecmp( a, b ) < 0 ;
       }

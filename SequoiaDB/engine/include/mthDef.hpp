@@ -104,6 +104,28 @@ namespace engine
    #define MTH_MOD(x,y)\
         ( (x) - ( trunc((x) / (y)) * (y) ) )
 #endif //_WINDOWS
+
+   /*
+      define mth cast type string
+   */
+   #define MTH_CAST_STR_MINKEY         "minkey"
+   #define MTH_CAST_STR_DOUBLE         "double"
+   #define MTH_CAST_STR_STRING         "string"
+   #define MTH_CAST_STR_OBJECT         "object"
+   #define MTH_CAST_STR_ARRAY          "array"
+   #define MTH_CAST_STR_BINDATA        "bindata"
+   #define MTH_CAST_STR_OID            "oid"
+   #define MTH_CAST_STR_BOOL           "bool"
+   #define MTH_CAST_STR_DATE           "date"
+   #define MTH_CAST_STR_NULL           "null"
+   #define MTH_CAST_STR_INT32          "int32"
+   #define MTH_CAST_STR_TIMESTAMP      "timestamp"
+   #define MTH_CAST_STR_INT64          "int64"
+   #define MTH_CAST_STR_REGEX          "regex"
+   #define MTH_CAST_STR_DECIMA         "decimal"
+   #define MTH_CAST_STR_MAXKEY         "maxkey"
+
+
 }
 
 #endif

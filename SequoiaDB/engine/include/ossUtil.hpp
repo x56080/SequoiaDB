@@ -243,6 +243,7 @@ void ossGetCurrentTime( ossTimestamp &TM ) ;
 
 UINT64 ossGetCurrentMicroseconds() ;
 UINT64 ossTimestampToMicroseconds( const ossTimestamp &timestamp ) ;
+UINT64 ossTimestampToMilliseconds( const ossTimestamp &timestamp ) ;
 ossTimestamp ossMicrosecondsToTimestamp( const UINT64 &microseconds ) ;
 UINT64 ossGetCurrentMilliseconds() ;
 
