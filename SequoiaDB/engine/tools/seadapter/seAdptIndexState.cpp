@@ -680,7 +680,7 @@ namespace seadapter
    }
 
    template <typename T>
-   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, T& builder )
+   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, T& builder, BOOLEAN &found )
    {
       INT32 rc = SDB_OK ;
 
@@ -688,9 +688,8 @@ namespace seadapter
       {
          if ( !_isSupportType( ele.type() ) )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Record has field of unsupported type[%d]", ele.type() ) ;
-            goto error ;
+            PD_LOG( PDWARNING, "Record has field of unsupported type[%d]", ele.type() ) ;
+            goto done ;
          }
 
          if ( Array == ele.type() )
@@ -716,7 +715,7 @@ namespace seadapter
                BSONObjIterator itr( ele.embeddedObject() ) ;
                while( itr.more() )
                {
-                  rc = _rebuildRecordEle( itr.next(), subBuilder ) ;
+                  rc = _rebuildRecordEle( itr.next(), subBuilder, found ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Failed to rebuild array field, rc: %d", rc ) ;
@@ -742,14 +741,21 @@ namespace seadapter
             }
 
             builder.append( dstObj.firstElement() ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
          }
          else if ( Object == ele.type() )
          {
-            BSONObjBuilder subBuilder( builder.subobjStart( ele.fieldName() ) ) ;
+            BSONObj tmpObj ;
+            BSONObjBuilder tmpBuilder ;
+            BSONObjBuilder subBuilder( tmpBuilder.subobjStart( ele.fieldName() ) ) ;
             BSONObjIterator itr( ele.embeddedObject() ) ;
             while( itr.more() )
             {
-               rc = _rebuildRecordEle( itr.next(), subBuilder ) ;
+               rc = _rebuildRecordEle( itr.next(), subBuilder, found ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Failed to rebuild object field, rc: %d", rc ) ;
@@ -757,10 +763,22 @@ namespace seadapter
                }
             }
             subBuilder.done() ;
+            tmpObj = tmpBuilder.obj() ;
+            builder.append( tmpObj.firstElement() ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
          }
          else
          {
             builder.append( ele ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -1770,6 +1788,7 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       SDB_ASSERT( !keySet.empty(), "Key set is empty") ;
       BSONObjBuilder builder ;
+      BOOLEAN found = FALSE ;
 
       try
       {
@@ -1779,7 +1798,7 @@ namespace seadapter
             // Loop and check if the record contains only strings.
             while ( itr.more() )
             {
-               rc = _rebuildRecordEle( itr.next(), builder ) ;
+               rc = _rebuildRecordEle( itr.next(), builder, found ) ;
                if ( rc )
                {
                   continue ;
@@ -1801,7 +1820,7 @@ namespace seadapter
                BSONElement rNextEle = itrSecond.next() ;
                if ( arrayFieldHit || 0 == lNextEle.woCompare( rNextEle, true) )
                {
-                  rc = _rebuildRecordEle( lNextEle, builder ) ;
+                  rc = _rebuildRecordEle( lNextEle, builder, found ) ;
                   if ( rc )
                   {
                      continue ;
@@ -1832,7 +1851,7 @@ namespace seadapter
                            break ;
                         }
 
-                        rc = _rebuildRecordEle( ele, arrBuilder ) ;
+                        rc = _rebuildRecordEle( ele, arrBuilder, found ) ;
                         if ( rc )
                         {
                            continue ;
@@ -1843,13 +1862,13 @@ namespace seadapter
 
                      if ( !mixType )
                      {
-                        rc = _rebuildRecordEle( lNextEle, arrBuilder ) ;
+                        rc = _rebuildRecordEle( lNextEle, arrBuilder, found ) ;
                         if ( rc )
                         {
                            continue ;
                         }
 
-                        rc = _rebuildRecordEle( rNextEle, arrBuilder ) ;
+                        rc = _rebuildRecordEle( rNextEle, arrBuilder, found ) ;
                         if ( rc )
                         {
                            continue ;
@@ -1862,7 +1881,10 @@ namespace seadapter
                }
             }
          }
-         record = builder.obj() ;
+         if ( found )
+         {
+            record = builder.obj() ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -2542,6 +2564,7 @@ namespace seadapter
          {
             BSONObjBuilder builder ;
             BSONObj source = origObj.getObjectField( "_source" ) ;
+            BOOLEAN found = FALSE ;
             if ( !source.isEmpty() && !source.isValid() )
             {
                PD_LOG( PDERROR, "_source field is invalid. Object: %s",
@@ -2554,7 +2577,7 @@ namespace seadapter
             // will be ignored.
             for ( BSONObj::iterator eleItr = source.begin(); eleItr.more(); )
             {
-               rc = _rebuildRecordEle( eleItr.next(), builder ) ;
+               rc = _rebuildRecordEle( eleItr.next(), builder, found ) ;
                if ( rc )
                {
                   continue ;

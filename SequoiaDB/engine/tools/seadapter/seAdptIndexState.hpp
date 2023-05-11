@@ -122,7 +122,7 @@ namespace seadapter
       INT32 _rebuildDateField( const BSONElement &srcEle, BSONObj &dstObj ) ;
 
       template <typename T>
-      INT32 _rebuildRecordEle( const BSONElement &ele, T& builder ) ;
+      INT32 _rebuildRecordEle( const BSONElement &ele, T& builder, BOOLEAN &found ) ;
 
    protected:
       _seAdptIndexSession *_session ;

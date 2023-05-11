@@ -56,7 +56,7 @@
 #define UTIL_ES_DFT_SCROLL_SIZE           1000
 #define UTIL_SE_MAX_TYPE_SZ               255
 #define UTIL_SE_DFT_TIMEOUT               10000
-#define UTIL_SE_BULK_DFT_FILTERPATH       "filter_path=errors,took,items.index._id,items.index.status"
+#define UTIL_SE_BULK_DFT_FILTERPATH       "filter_path=errors,took,items.index._id,items.index.status,items.index.error.type"
 using std::string ;
 
 namespace seadapter

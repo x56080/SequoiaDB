@@ -54,6 +54,12 @@ using namespace bson ;
 #define ES_SCROLL_ID_KEY         "_scroll_id"
 #define ES_SOURCE_KEY            "_source"
 #define ES_ERROR_FIELD_NAME      "errors"
+#define ES_ITEMS_FIELD_NAME      "items"
+
+#define ES_ERROR_MSG_STATUS_FULL_NAME   "index.status"
+#define ES_ERROR_MSG_TYPE_FULL_NAME     "index.error.type"
+
+#define ES_ERROR_PARSE_TYPE             "mapper_parsing_exception"
 
 // For arguments check.
 #define ES_CLT_ARG_CHK1( index )                         \
@@ -809,9 +815,57 @@ namespace seadapter
       {
          if ( replyObj.getBoolField( ES_ERROR_FIELD_NAME ) )
          {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Operation on remote failed. Reply: %s", reply ) ;
-            goto error ;
+            BOOLEAN onlyHasParseError = TRUE ;
+            BSONElement itemsEle = replyObj.getField( ES_ITEMS_FIELD_NAME ) ;
+            if ( Array == itemsEle.type() )
+            {
+               vector<BSONElement> itemsVec = itemsEle.Array() ;
+               for ( UINT32 i = 0 ; i < itemsVec.size() ; ++i )
+               {
+                  BSONObj item = itemsVec[i].embeddedObject() ;
+                  INT32 status = item.getFieldDotted( ES_ERROR_MSG_STATUS_FULL_NAME ).numberInt() ;
+                  BSONElement errorTypeEle ;
+
+                  // eg: { "index": { "_id": "645c4b3f8430b75ab7a3826d", "status": 201 } }
+                  if ( HTTP_CREATED == status )
+                  {
+                     continue ;
+                  }
+
+                  errorTypeEle = item.getFieldDotted( ES_ERROR_MSG_TYPE_FULL_NAME ) ;
+                  /*
+                  eg:
+                  {
+                     "index":
+                     {
+                        "_id": "645c4b3f8430b75ab7a3826e",
+                        "status": 400,
+                        "error": { "type": "mapper_parsing_exception" }
+                     }
+                  }
+                  */
+                  // Only this error, we can ignore
+                  if ( String == errorTypeEle.type() &&
+                       0 == ossStrcmp( errorTypeEle.valuestrsafe(), ES_ERROR_PARSE_TYPE ) )
+                  {
+                     continue ;
+                  }
+                  else
+                  {
+                     onlyHasParseError = FALSE ;
+                     break ;
+                  }
+               }
+            }
+
+            PD_LOG( onlyHasParseError ? PDWARNING : PDERROR,
+                    "Some operations on remote failed. Reply: %s", reply ) ;
+
+            if ( !onlyHasParseError )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
          }
       }
       catch ( std::exception &e )
