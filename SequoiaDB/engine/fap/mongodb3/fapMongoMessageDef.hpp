@@ -100,5 +100,6 @@ namespace fap
 #define FAP_MONGO_OPERATOR_REPLACE   "$replace"
 #define FAP_MONGO_OPERATOR_ISNULL    "$isnull"
 
+
 }
 #endif

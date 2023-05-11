@@ -295,8 +295,9 @@ error:
 }
 
 template< typename T >
-static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
-                                       T &matchConditonBob )
+static INT32 _convertMongoOperator2SdbInner( const BSONObj &matchConditonObj,
+                                             T &matchConditonBob,
+                                             BOOLEAN hasInOp )
 {
    INT32  rc = SDB_OK ;
 
@@ -313,14 +314,26 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
             // if the field name is "$eq", we should build the new field name
             // named "$et"
             pFieldName = FAP_MONGO_OPERATOR_ET ;
+
+            /// { $eq : null }  ==> { $isnull : 1 }
+            if ( ele.isNull() )
+            {
+               matchConditonBob.append( FAP_MONGO_OPERATOR_ISNULL, (INT32)1 ) ;
+               continue ;
+            }
          }
 
          if ( Object == ele.type() )
          {
+            BOOLEAN subHasInOp = hasInOp ;
             BSONObjBuilder subBob( matchConditonBob.subobjStart(
                                    ( NULL == pFieldName ) ?
                                    ele.fieldName() : pFieldName ) ) ;
-            rc = convertMongoOperator2Sdb( ele.Obj(), subBob ) ;
+            if ( !subHasInOp && '$' == *(ele.fieldName()) )
+            {
+               subHasInOp = TRUE ;
+            }
+            rc = _convertMongoOperator2SdbInner( ele.Obj(), subBob, subHasInOp ) ;
             if ( rc )
             {
                goto error ;
@@ -332,7 +345,7 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
             BSONArrayBuilder subBob( matchConditonBob.subarrayStart(
                                      ( NULL == pFieldName ) ?
                                      ele.fieldName() : pFieldName ) ) ;
-            rc = convertMongoOperator2Sdb( ele.Obj(), subBob ) ;
+            rc = _convertMongoOperator2SdbInner( ele.Obj(), subBob, hasInOp ) ;
             if ( rc )
             {
                goto error ;
@@ -341,7 +354,14 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
          }
          else
          {
-            if ( NULL == pFieldName )
+            /// { a : null }  ==> { a : { $isnull : 1 } }
+            if ( ele.isNull() && !hasInOp )
+            {
+               BSONObjBuilder sub( matchConditonBob.subobjStart( ele.fieldName() ) ) ;
+               sub.append( FAP_MONGO_OPERATOR_ISNULL, (INT32)1 ) ;
+               sub.done() ;
+            }
+            else if ( NULL == pFieldName )
             {
                matchConditonBob.append( ele ) ;
             }
@@ -364,6 +384,13 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+template< typename T >
+static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
+                                       T &matchConditonBob )
+{
+   return _convertMongoOperator2SdbInner( matchConditonObj, matchConditonBob, FALSE ) ;
 }
 
 _mongoCmdFactory::_mongoCmdFactory ()
