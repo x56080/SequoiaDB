@@ -148,6 +148,8 @@ namespace engine
 
    INT32 monBuildIndexStatResult( BSONObj &stat, UINT32 addInfoMask,
                                   BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
+   
+   INT32 monSecurityKeysStatus( BSONObjBuilder &ob ) ;
 
    /*
       _monTransFetcher define

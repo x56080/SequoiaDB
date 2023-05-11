@@ -106,6 +106,9 @@ SDB_SNAP_DATABASE
 | SchdlrMgrEvtNum       | int32     | 当前未分发的任务数量                                            |
 | SchdlrTimes           | int64     | 统计时间范围内总的任务执行次数                                  |
 | MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                                |
+| SecurityKeys.Status | string  | [密钥文件][data_encryption]的状态（仅通过编目节点查看快照时显示） <br> 取值如下：<br/>● "Uninitialized"：密钥未初始化<br/>● "Corrupted"：密钥文件损坏<br/>● "Available"：密钥文件可用   |
+| SecurityKeys.MK   | string    | 主密钥名（仅参数 SecurityKeys.Status 取值为"Available"时显示）  |
+| DEKReady          | boolean   | 数据加密密钥是否就绪（仅数据节点的取值有效，编目节点默认显示为 false） <br> 当参数 SecurityKeys.Status 取值为"Available"时，如果通过数据节点获取该参数的值为 false，表示密钥损坏|
 
 
 ##协调节点字段信息##
@@ -279,7 +282,12 @@ SDB_SNAP_DATABASE
      "Wait": 0,
      "SchdlrMgrEvtNum": 0,
      "SchdlrTimes": 0,
-     "MemPoolSize": 108975104
+     "MemPoolSize": 108975104,
+     "SecurityKeys": {
+       "Status": "Available",
+       "MK": "mk20230511152449152495.pem"
+     },
+     "DEKReady": false
    }
    ```
 
@@ -342,3 +350,4 @@ SDB_SNAP_DATABASE
 [replicate_url]: manual/Distributed_Engine/Architecture/Replication/architecture.md
 [error_code_url]: manual/Manual/Sequoiadb_error_code.md
 [regular_bar]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
+[data_encryption]:manual/Distributed_Engine/Architecture/data_encryption.md#密钥文件

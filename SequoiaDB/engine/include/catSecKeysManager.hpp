@@ -72,8 +72,9 @@ namespace engine
          BOOLEAN isUninitialized() ;
          BOOLEAN isCorrupted() ;
          BOOLEAN isAvailable() ;
+         void getStatusBson( bson::BSONObjBuilder &builder ) ;
          const UINT8* getDEK() ;
-         INT32 backupMKPublicAndDEK( BSONObj &obj ) ;
+         INT32 backupMKPublicAndDEK( bson::BSONObj &obj ) ;
          INT32 packKeyFileContents( bson::BSONObj &contents ) ;
          INT32 replayCrtKeyLogRecord( const bson::BSONObj &contents ) ;
          INT32 rollbackCrtKeyLogRecord( const bson::BSONObj &oldContents ) ;

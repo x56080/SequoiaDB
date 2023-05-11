@@ -806,6 +806,8 @@
 #define FIELD_NAME_DEK                       "DEK"
 #define FIELD_NAME_DEKVERIFICATION           "DEKVerification"
 #define FIELD_NAME_ENCRYPTED                 "Encrypted"
+#define FIELD_NAME_SECURITY_KEYS             "SecurityKeys"
+#define FIELD_NAME_DEK_READY                 "DEKReady"           
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"

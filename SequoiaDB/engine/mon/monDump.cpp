@@ -4377,6 +4377,8 @@ namespace engine
          ob.append ( FIELD_NAME_MEMPOOL_SIZE,
                      (INT64)krcb->getMemBlockPool()->getTotalSize() ) ;
 
+         monSecurityKeysStatus( ob ) ;
+
          obj = ob.done() ;
       }
       catch ( std::exception &e )
@@ -7120,4 +7122,37 @@ namespace engine
       goto done ;
    }
 
+   INT32 monSecurityKeysStatus( BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ROLE role = pmdGetDBRole();
+      try
+      {
+         if ( SDB_ROLE_CATALOG == role )
+         {
+            catSecKeysManager *keysMgr = sdbGetCatalogueCB()->getSecKeysManager() ;
+            BSONObjBuilder subBuilder( ob.subobjStart( FIELD_NAME_SECURITY_KEYS ) );
+            keysMgr->getStatusBson( subBuilder );
+            subBuilder.doneFast();
+         }
+         else 
+         {
+            ob.appendNull( FIELD_NAME_SECURITY_KEYS );
+         }
+
+         SDB_DMSCB *dmsCB = sdbGetDMSCB();
+         ob.appendBool( FIELD_NAME_DEK_READY, dmsCB->hasDEK() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception captured: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }

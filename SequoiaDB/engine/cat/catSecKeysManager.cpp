@@ -45,6 +45,10 @@
 
 namespace engine
 {
+#define CAT_SEC_KEYS_UNINITIALIZED_STR "Uninitialized"
+#define CAT_SEC_KEYS_CORRUPTED_STR "Corrupted"
+#define CAT_SEC_KEYS_AVAILABLE_STR "Available"
+
    _catSecKeysManager::_catSecKeysManager() {
       _pDmsCB = NULL ;
       _pDpsCB = NULL ;
@@ -119,6 +123,24 @@ namespace engine
    {
       ossScopedLock lock( &_latch, SHARED, TRUE );
       return _status == CAT_SEC_KEYS_AVAILABLE;
+   }
+
+   void _catSecKeysManager::getStatusBson( bson::BSONObjBuilder &builder )
+   {
+      ossScopedLock lock( &_latch, SHARED, TRUE ) ;
+      if ( CAT_SEC_KEYS_UNINITIALIZED == _status )
+      {
+         builder.append( FIELD_NAME_STATUS, CAT_SEC_KEYS_UNINITIALIZED_STR );
+      }
+      else if ( CAT_SEC_KEYS_CORRUPTED == _status )
+      {
+         builder.append( FIELD_NAME_STATUS, CAT_SEC_KEYS_CORRUPTED_STR );
+      }
+      else
+      {
+         builder.append( FIELD_NAME_STATUS, CAT_SEC_KEYS_AVAILABLE_STR );
+         builder.append( FIELD_NAME_MK, _indexContent );
+      }
    }
 
    const UINT8 *_catSecKeysManager::getDEK()
