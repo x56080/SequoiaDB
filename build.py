@@ -10,6 +10,7 @@ import shutil
 import argparse
 import paramiko
 import glob
+import fnmatch
 import tarfile
 import codecs
 from subprocess import Popen, PIPE
@@ -215,6 +216,12 @@ def chmod(src, privilege):
       cmd = 'chmod {} {}'.format(privilege, file)
       run_command(cmd)
 
+# chmod permission, recursively find all files that match the pattern
+def chmod_fnmatch(src, pattern, privilege):
+   for root, dirnames, filenames in os.walk(src):
+    for filename in fnmatch.filter(filenames, pattern):
+        chmod(os.path.join(root, filename), privilege)
+
 def setcap(src):
    cmd = 'sudo setcap CAP_SYS_RESOURCE=+ep {}'.format(src)
    run_command(cmd)
@@ -339,37 +346,31 @@ def package_db(opt_mgr, ver):
       remove_file(os.path.join(install_dir, 'tools/expect/bin/expect'))
       os.rename(os.path.join(install_dir, 'tools/expect/bin/expect_arm'), os.path.join(install_dir, 'tools/expect/bin/expect'))
 
+   # change shell script file permission to 744
+   chmod_fnmatch(install_dir, '*.sh', '0744')
+   chmod(os.path.join(install_dir, 'tools/crontask/sdbtaskctl'), '0744')
+   chmod(os.path.join(install_dir, 'tools/crontask/sdbtaskdaemon'), '0744')
+
+   # change config file permission to 644
+   chmod_fnmatch(install_dir, '*.conf', '0644')
+
+   # change other file permission
    chmod(os.path.join(install_dir, 'bin/sdbwsart'), 'u+x')
    chmod(os.path.join(install_dir, 'bin/sdbwstop'), 'u+x')
-   chmod(os.path.join(install_dir, 'postgresql/*sdb_fdw.so*'), 'a+x')
-   chmod(os.path.join(install_dir, 'install_om.sh'), '0755')
-   chmod(os.path.join(install_dir, 'plugins/SequoiaSQL/bin/*.sh'), '0755')
-   chmod(os.path.join(install_dir, 'conf/script/*.sh'), '0755')
-   chmod(os.path.join(install_dir, 'conf/script/*/*.sh'), '0755')
-   chmod(os.path.join(install_dir, 'www/shell/*'), '0755')
    chmod(os.path.join(install_dir, 'tools/server/php/bin/*'), '0755')
-   chmod(os.path.join(install_dir, 'tools/sequoiafs/bin/*'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/dr_ha/*.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/sdbmigrate/bin/*.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/upgrade/*.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/sequoias3/sequoias3.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/deploy/quickDeploy.sh'), '755')
-   chmod(os.path.join(install_dir, 'tools/deploy/postgresql.conf'), '666')
-   chmod(os.path.join(install_dir, 'tools/deploy/mysql.conf'), '666')
-   chmod(os.path.join(install_dir, 'tools/deploy/sequoiadb.conf'), '644')
+   chmod(os.path.join(install_dir, 'postgresql/*sdb_fdw.so*'), 'a+x')
+   chmod(os.path.join(install_dir, 'www/shell/phpexec.php'), '0755')
+   chmod(os.path.join(install_dir, 'tools/sequoiafs/bin/sequoiafs'), 'u+x')
+   chmod(os.path.join(install_dir, 'tools/sequoiafs/bin/sequoiamcs'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/sdbmemcheck'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/expect/bin/expect'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/expect/trust/trustRelpConf.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/sdbsupport/sdbsupport.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/ptmallocstats/ptmalloc_stats.py'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/crontask/sdbtaskctl'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/crontask/sdbtaskdaemon'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/sdbaudit/sdbaudit_ctl.py'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/sdbaudit/sdbaudit_daemon.py'), 'u+x')
-   chmod(os.path.join(install_dir, 'preUninstall.sh'), 'a+x')
    chmod(os.path.join(install_dir, 'bin/sdbomtool'), 'u+s')
-   chmod(os.path.join(install_dir, 'tools/script/generate_version_file.sh'), 'u+x')
-   chmod(os.path.join(install_dir, 'tools/script/service_control.sh'), 'u+x')
+
+   # further set file permission
+   chmod(os.path.join(install_dir, 'preUninstall.sh'), '0755')
 
    # setcap
    setcap(os.path.join(install_dir, 'bin/sdbstart'))
