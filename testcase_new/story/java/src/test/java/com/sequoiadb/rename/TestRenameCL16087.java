@@ -1,8 +1,11 @@
 package com.sequoiadb.rename;
 
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -15,7 +18,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * @FileName:TestRenameCL16087
@@ -41,61 +43,53 @@ public class TestRenameCL16087 extends SdbTestBase {
         }
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         createMainCL();
-        cs.createCollection( subCLName, ( BSONObject ) JSON
-                .parse( "{ShardingKey:{\"a\":1},ShardingType:\"hash\"}" ) );
-
+        cs.createCollection( subCLName, new BasicBSONObject( "ShardingKey",
+                new BasicBSONObject( "a", 1 ) ) );
     }
 
     @Test
-    public void test16087() {
+    public void test16087() throws Exception {
+        ThreadExecutor es = new ThreadExecutor();
         AttachCLThread attachCLThread = new AttachCLThread();
         RenameSubCLThread renameSubCL = new RenameSubCLThread();
-        attachCLThread.start();
-        renameSubCL.start();
-        if ( attachCLThread.isSuccess() && renameSubCL.isSuccess() ) {
-            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, subCLName,
-                    newSubCLName );
-            Assert.assertEquals( cs.isCollectionExist( subCLName ), false );
-            try {
-                mainCL.detachCollection(
-                        SdbTestBase.csName + "." + newSubCLName );
-            } catch ( BaseException e ) {
+        es.addWorker( attachCLThread );
+        es.addWorker( renameSubCL );
+        es.run();
+
+        if ( attachCLThread.getRetCode() == 0
+                && renameSubCL.getRetCode() == 0 ) {
+            Assert.assertFalse( cs.isCollectionExist( subCLName ) );
+            mainCL.detachCollection( SdbTestBase.csName + "." + newSubCLName );
+        } else if ( attachCLThread.getRetCode() == 0
+                && renameSubCL.getRetCode() != 0 ) {
+            mainCL.detachCollection( SdbTestBase.csName + "." + newSubCLName );
+            if ( renameSubCL.getRetCode() != SDBError.SDB_LOCK_FAILED
+                    .getErrorCode()
+                    && renameSubCL
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
                 Assert.fail(
-                        "cl detachCollection fail, expected detachCollection ok!" );
+                        "errcode not expected : " + renameSubCL.getRetCode() );
             }
-        } else if ( !attachCLThread.isSuccess() && renameSubCL.isSuccess() ) {
-            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, subCLName,
-                    newSubCLName );
-            try {
-                DBCollection maincl = cs.getCollection( mainCLName );
-                maincl.detachCollection(
-                        SdbTestBase.csName + "." + newSubCLName );
-                Assert.fail(
-                        "cl attachCollection ok, expected attachCollection fail!" );
-            } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -242 );
-            }
-            BaseException e = ( BaseException ) attachCLThread.getExceptions()
-                    .get( 0 );
-            if ( e.getErrorCode() != -23 ) {
-                Assert.fail( "errcode not expected : " + e.getMessage() );
-            }
-        } else if ( attachCLThread.isSuccess() && !renameSubCL.isSuccess() ) {
-            try {
-                mainCL.detachCollection(
-                        SdbTestBase.csName + "." + newSubCLName );
-            } catch ( BaseException e ) {
-                Assert.fail(
-                        "cl detachCollection fail, expected detachCollection ok!" );
-            }
-            BaseException e = ( BaseException ) renameSubCL.getExceptions()
-                    .get( 0 );
-            if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
-                Assert.fail( "errcode not expected : " + e.getMessage() );
+        } else if ( attachCLThread.getRetCode() != 0
+                && renameSubCL.getRetCode() == 0 ) {
+            DBCollection maincl = cs.getCollection( mainCLName );
+            maincl.detachCollection( SdbTestBase.csName + "." + newSubCLName );
+            Assert.fail(
+                    "cl attachCollection ok, expected attachCollection fail!" );
+            if ( attachCLThread.getRetCode() != SDBError.SDB_DMS_NOTEXIST
+                    .getErrorCode()
+                    && attachCLThread.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && attachCLThread
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail( "errcode not expected : "
+                        + attachCLThread.getRetCode() );
             }
         } else {
-            Assert.fail( "attachCLThread : " + attachCLThread.getErrorMsg()
-                    + "\n subCLThread : " + renameSubCL.getErrorMsg() );
+            Assert.fail( "attachCLThread : " + attachCLThread.getRetCode()
+                    + "\n subCLThread : " + renameSubCL.getRetCode() );
         }
     }
 
@@ -111,11 +105,9 @@ public class TestRenameCL16087 extends SdbTestBase {
             if ( cs.isCollectionExist( mainCLName ) ) {
                 cs.dropCollection( mainCLName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            if ( this.sdb != null ) {
-                this.sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
             }
         }
     }
@@ -130,37 +122,34 @@ public class TestRenameCL16087 extends SdbTestBase {
         mainCL = cs.createCollection( mainCLName, options );
     }
 
-    private class RenameSubCLThread extends SdbThreadBase {
-
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            try {
+    private class RenameSubCLThread extends ResultStore {
+        @ExecuteOrder(step = 1)
+        private void renameSubCL() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace localcs = db
                         .getCollectionSpace( SdbTestBase.csName );
                 localcs.renameCollection( subCLName, newSubCLName );
-            } finally {
-                db.close();
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
             }
         }
     }
 
-    private class AttachCLThread extends SdbThreadBase {
-
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            try {
+    private class AttachCLThread extends ResultStore {
+        @ExecuteOrder(step = 1)
+        private void attachCL() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 DBCollection maincl = cs.getCollection( mainCLName );
                 BSONObject options = new BasicBSONObject();
-                options.put( "LowBound", JSON.parse( "{\"a\":1}" ) );
-                options.put( "UpBound", JSON.parse( "{\"a\":100}" ) );
+                options.put( "LowBound", new BasicBSONObject( "a", 1 ) );
+                options.put( "UpBound", new BasicBSONObject( "a", 100 ) );
                 maincl.attachCollection( SdbTestBase.csName + "." + subCLName,
                         options );
-            } finally {
-                db.close();
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
             }
         }
     }
-
 }
