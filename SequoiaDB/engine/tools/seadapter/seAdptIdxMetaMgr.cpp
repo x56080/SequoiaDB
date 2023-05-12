@@ -43,6 +43,8 @@
 
 namespace seadapter
 {
+   #define SEADPT_MAX_IDX_TMP_NAME_LEN 32
+
    _seIndexMeta::_seIndexMeta()
    {
       _id = SEADPT_INVALID_IMID ;
@@ -617,6 +619,9 @@ namespace seadapter
                                            seIndexMeta &meta )
    {
       INT32 rc = SDB_OK ;
+      utilIdxInnerID idxInnerID = 0 ;
+      CHAR tmpIdxName[SEADPT_MAX_IDX_TMP_NAME_LEN] = { 0 } ;
+
       try
       {
          BSONObj::iterator itr( indexInfo ) ;
@@ -671,6 +676,12 @@ namespace seadapter
                      goto error ;
                   }
                }
+
+               if ( idxDef.hasField( FIELD_NAME_UNIQUEID ) )
+               {
+                  BSONElement idxUniqueIDEle = idxDef.getField( FIELD_NAME_UNIQUEID ) ;
+                  idxInnerID = (utilIdxInnerID)idxUniqueIDEle.numberLong() ;
+               }
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNIQUEID ) )
             {
@@ -692,10 +703,7 @@ namespace seadapter
          }
 
          {
-            // ES index name is in the format of [prefix]cappedCLName_groupName.
-            const CHAR *dot = ossStrchr( meta.getCappedCLName(), '.' ) ;
-            SDB_ASSERT( dot, "No dot found in the capped collection full name" ) ;
-            const CHAR *cappedCLName = dot + 1 ;
+            // ES index name is in the format of [prefix]sdb_clUniqueID indexInnerID_groupName.
             const CHAR *idxPrefix = sdbGetSeAdptOptions()->getSEIdxPrefix() ;
             // From ES6.0, one index can contain only one type. So we need to append
             // the group name to the ES index name, to handle index data splited to
@@ -706,7 +714,14 @@ namespace seadapter
             {
                buf << idxPrefix ;
             }
-            buf << cappedCLName << "_" << _peerGrpName ;
+
+            ossSnprintf( tmpIdxName, SEADPT_MAX_IDX_TMP_NAME_LEN, "%016llx%08x",
+                         meta.getCLUID(), idxInnerID ) ;
+
+            buf << "sdb" << "_"
+                << tmpIdxName << "_"
+                << _peerGrpName ;
+
             esIdx = buf.str() ;
 
             // ES index names should be in lower case.

@@ -230,7 +230,19 @@ function DBOperator ()
    {
       // check cappedcl name is valid
       var dbcl = db.getCS( csName ).getCL( clName );
-      var cappedCLName = this.getCappedCLName( dbcl, textIndexName );
+      var clUniqueID;
+      var clIdxInnerID;
+      var cursor = db.snapshot(8,{Name:csName+"."+clName},{UniqueID:1});
+      while( cursor.next() )
+      {
+         clUniqueID = cursor.current().toObj().UniqueID;
+      }
+
+      var idx = dbcl.getIndex(textIndexName);
+      clIdxInnerID = idx.toObj().IndexDef.UniqueID;
+
+      var clUniqueIDHexStr = numToHexStr( clUniqueID, 16 );
+      var clIdxInnerIDHexStr = numToHexStr( clIdxInnerID & 0x00000000FFFFFFFF, 8 );
 
       // get es index names
       var esIndexNames = new Array();
@@ -240,7 +252,7 @@ function DBOperator ()
       clGroupNames.sort();
       for( var i in clGroupNames )
       {
-         esIndexNames.push( FULLTEXTPREFIX.toLowerCase() + cappedCLName.toLowerCase() + "_" + clGroupNames[i] );
+         esIndexNames.push( FULLTEXTPREFIX.toLowerCase() + "sdb_" + clUniqueIDHexStr.toLowerCase() + clIdxInnerIDHexStr.toLowerCase() + "_" + clGroupNames[i] );
       }
 
       // if sharding cl, return all indices
@@ -1098,3 +1110,20 @@ function dropIndex ( cl, name, ignoreNotExist )
       }
    }
 }
+
+function numToHexStr(num, totalStrlen) {
+  var numHexStr = num.toString(16);
+  if (totalStrlen < numHexStr.length) {
+    throw new Error("Invalid total str len");
+  } else if (totalStrlen == numHexStr.length) {
+    return numHexStr;
+  } else {
+    var ret = "";
+    for (var i = 0; i < totalStrlen - numHexStr.length; i++) {
+      ret += "0";
+    }
+    ret += numHexStr;
+    return ret;
+  }
+}
+
