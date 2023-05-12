@@ -1278,7 +1278,7 @@ namespace engine
    INT32 _barBkupBaseLogger::_backupSecurityKeys()
    {
       INT32 rc = SDB_OK;
-      barBackupExtentHeader *pHeader = _nextDataExtent( BAR_DATA_TYPE_KEY_FILES );
+      barBackupExtentHeader *pHeader = NULL;
       SDB_ROLE role = pmdGetDBRole();
       ossSM4Key dek;
       CHAR tmpBuff[ 4 ] = { 0 };
@@ -1338,7 +1338,8 @@ namespace engine
          PD_LOG( PDDEBUG, "No need to backup security keys" );
          goto done ;
       }
-
+      
+      pHeader = _nextDataExtent( BAR_DATA_TYPE_KEY_FILES );
       tmpSize = ossAlign4( (UINT32)keysObj.objsize() ) - keysObj.objsize();
       pHeader->_dataSize = ossAlign4( (UINT32)keysObj.objsize() );
 
