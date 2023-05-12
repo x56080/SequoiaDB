@@ -46,6 +46,7 @@
 #include "pdTrace.hpp"
 
 using namespace bson ;
+using namespace engine ;
 
 namespace fap
 {
@@ -4713,6 +4714,198 @@ INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoRenameCLCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RENAMECLBUILDREQ, "_mongoRenameCLCommand::buildSdbRequest" )
+INT32 _mongoRenameCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RENAMECLBUILDREQ ) ;
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_RENAME_COLLECTION ;
+   BSONObj cond, empty ;
+
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   try
+   {
+      const CHAR *pDestFullName = NULL ;
+      const CHAR *pDestShort = NULL ;
+
+      const CHAR *pSourceFullName = NULL ;
+      const CHAR *pSourceShort = NULL ;
+
+      string strDestFull ;
+      UINT32 csDstNameLen = 0 ;
+      UINT32 csSrcNameLen = 0 ;
+
+      rc = mongoGetStringElement( _obj, FAP_MONGO_FIELD_NAME_TO, pDestFullName ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get string field[%s], rc: %d",
+                     FAP_MONGO_FIELD_NAME_TO, rc ) ;
+         goto error ;
+      }
+
+      rc = mongoGetStringElement( _obj, name(), pSourceFullName ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get string field[%s], rc: %d",
+                     name(), rc ) ;
+         goto error ;
+      }
+
+      pDestShort = ossStrchr( pDestFullName, '.' ) ;
+      pSourceShort = ossStrchr( pSourceFullName, '.' ) ;
+
+      if ( !pDestShort || !pSourceShort )
+      {
+         PD_LOG_MSG( PDERROR, "Invalid names, should fullname, param:%s",
+                     _obj.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      csDstNameLen = pDestShort - pDestFullName ;
+      csSrcNameLen = pSourceShort - pSourceFullName ;
+
+      if ( csDstNameLen != csSrcNameLen &&
+           0 != ossStrncmp( pDestFullName, pSourceFullName, csDstNameLen ) )
+      {
+         /// the collectionspace is not the same
+         PD_LOG_MSG( PDERROR, "The collectionspace is not the same in [%s], param:%s",
+                     MONGO_CMD_NAME_RENAME_COLLECTION, _obj.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      _clFullName = pSourceFullName ;
+      _csName.clear() ;
+      _csName.assign( pSourceFullName, pSourceShort - pSourceFullName ) ;
+
+      rc = escapeDot( _clFullName ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      strDestFull = pDestFullName ;
+      rc = escapeDot( strDestFull ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      cond = BSON( FIELD_NAME_COLLECTIONSPACE << csName() <<
+                   FIELD_NAME_OLDNAME << clShortName() <<
+                   FIELD_NAME_NEWNAME << ( strDestFull.c_str() + csDstNameLen + 1 ) ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb dropCL request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = sdbMsg.write( cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   sdbMsg.doneLen() ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_RENAMECLBUILDREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RENAMECLBUILDMONGOREPLLY, "_mongoRenameCLCommand::buildMongoReply" )
+INT32 _mongoRenameCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RENAMECLBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createCL reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_RENAMECLBUILDMONGOREPLLY, rc ) ;
    return rc ;
 error:
    goto done ;

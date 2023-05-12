@@ -256,6 +256,7 @@ class _mongoCollectionCommand : public _mongoCommand
 
       virtual const CHAR* csName() const { return _csName.c_str() ; }
       virtual const CHAR* clFullName() const { return _clFullName.c_str() ; }
+      virtual const CHAR* clShortName() const { return clFullName() + _csName.length() + 1 ; }
       virtual BOOLEAN needProcessByEngine() const { return TRUE ; }
       virtual BOOLEAN isInitialized() const       { return _isInitialized ; }
       virtual BOOLEAN needConvertDecimal() const { return FALSE ; }
@@ -693,6 +694,30 @@ class _mongoDropCLCommand : public _mongoCollectionCommand
       vector<BSONObj> _indexes ;
 } ;
 typedef _mongoDropCLCommand mongoDropCLCommand ;
+
+class _mongoRenameCLCommand : public _mongoCollectionCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoRenameCLCommand() {}
+      virtual ~_mongoRenameCLCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_COLLECTION_RENAME ; }
+      virtual const CHAR* name() const
+      {
+         return MONGO_CMD_NAME_RENAME_COLLECTION ;
+      }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+   private:
+
+} ;
+typedef _mongoRenameCLCommand mongoRenameCLCommand ;
 
 class _mongoListIdxCommand : public _mongoCollectionCommand
 {

@@ -60,6 +60,7 @@ enum MONGO_CMD_TYPE
 
    CMD_COLLECTION_CREATE = 40,
    CMD_COLLECTION_DROP   = 41,
+   CMD_COLLECTION_RENAME = 42,
 
    CMD_INDEX_CREATE     = 50,
    CMD_INDEX_DROP       = 51,
@@ -107,6 +108,7 @@ const CHAR* const MONGO_CMD_NAME_KILL_CURSORS =      "killCursors" ;
 const CHAR* const MONGO_CMD_NAME_DROP_DATABASE =     "dropDatabase" ;
 const CHAR* const MONGO_CMD_NAME_CREATE_COLLECTION = "create" ;
 const CHAR* const MONGO_CMD_NAME_DROP_COLLECTION =   "drop" ;
+const CHAR* const MONGO_CMD_NAME_RENAME_COLLECTION = "renameCollection" ;
 const CHAR* const MONGO_CMD_NAME_CREATE_INDEX =      "createIndexes" ;
 const CHAR* const MONGO_CMD_NAME_DELETE_INDEX =      "deleteIndexes" ;
 const CHAR* const MONGO_CMD_NAME_DROP_INDEX =        "dropIndexes" ;
