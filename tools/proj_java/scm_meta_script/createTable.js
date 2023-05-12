@@ -1,4 +1,4 @@
-// /opt/sequoiadb/bin/sdb -e ' var ADDR="locahost:11810"; var CSNAME = "IBSFLOW"; ' -f createTable.js
+// /opt/sequoiadb/bin/sdb -e ' var ADDR="localhost:11810"; var CSNAME = "IBSFLOW"; ' -f createTable.js
 
 
 if ( typeof (ADDR) == "undefined" || typeof (CSNAME) == "undefined" ) {

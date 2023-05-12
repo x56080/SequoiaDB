@@ -1,7 +1,7 @@
 /**
  * 提前创建一个叫 domain3 的域, 让其包含 三个数据组
  * 
- * /opt/sequoiadb/bin/sdb -e ' var ADDR="locahost:11810"; var CSNAME = "IBSFLOW"; ' -f createTable2.js
+ * /opt/sequoiadb/bin/sdb -e ' var ADDR="localhost:11810"; var CSNAME = "IBSFLOW"; ' -f createTable2.js
  */
 
 

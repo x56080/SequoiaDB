@@ -291,6 +291,7 @@ public class Worker implements Runnable {
 
         logger.debug("cl: " + cl.getFullName() + " query, matcher: "
                 + matcher.toString() + ", hint: " + hint.toString() + ", limit: " + limit);
+        // 直连节点进行带 hint($id 索引)，所以不需要指定 sorter
         DBCursor cursor = cl.query(matcher, null, null, hint, 0, limit, 0);
         return cursor;
     }
@@ -377,6 +378,9 @@ public class Worker implements Runnable {
         Object[] objs = (Object[]) bsonList.toArray();
         for (int i = 0; i < objs.length; i++) {
             BSONObject obj = (BSONObject) objs[i];
+            if (obj == null) {
+                return false;
+            }
             if (!isLegal(obj)) {
                 return false;
             }
@@ -402,6 +406,9 @@ public class Worker implements Runnable {
             Object[] objs = (Object[]) bsonList.toArray();
             for (int i = 0; i < objs.length; i++) {
                 BSONObject obj = (BSONObject) objs[i];
+                if (obj == null) {
+                    continue;
+                }
                 // 如果是非法的元素，直接丢弃
                 if (!isLegal(obj)) {
                     continue;
