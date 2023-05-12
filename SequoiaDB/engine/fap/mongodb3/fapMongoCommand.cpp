@@ -356,7 +356,8 @@ static INT32 _convertMongoOperator2SdbInner( const BSONObj &matchConditonObj,
          else
          {
             /// { a : null }  ==> { a : { $isnull : 1 } }
-            if ( ele.isNull() && !hasInOp )
+            /// { "$ne": null } should not be changed
+            if ( ele.isNull() && !hasInOp && '$' != *(ele.fieldName()) )
             {
                BSONObjBuilder sub( matchConditonBob.subobjStart( ele.fieldName() ) ) ;
                sub.append( FAP_MONGO_OPERATOR_ISNULL, (INT32)1 ) ;
@@ -7506,7 +7507,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             }
             isRemove = ele.Bool() ;
             if ( isRemove )
-            {   
+            {
                subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_REMOVE ) ;
                subHintBob.appendBool( FIELD_NAME_OP_REMOVE, isRemove ) ;
             }
