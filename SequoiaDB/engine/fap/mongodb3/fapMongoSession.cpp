@@ -1543,7 +1543,10 @@ done:
    return rc ;
 error:
    _replyHeader.flags = rc ;
-   errorObj = mongoGetErrorBson( rc ) ;
+   if ( errorObj.isEmpty() )
+   {
+      errorObj = mongoGetErrorBson( rc ) ;
+   }
    _contextBuff = engine::rtnContextBuf( errorObj ) ;
    goto done ;
 }

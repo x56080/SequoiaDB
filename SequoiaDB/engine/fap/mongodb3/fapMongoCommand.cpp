@@ -4816,7 +4816,9 @@ INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    INT32 rc = SDB_OK ;
 
    if ( SDB_OK      == sdbReply.flags ||
-        SDB_DMS_EOC == sdbReply.flags )
+        SDB_DMS_EOC == sdbReply.flags ||
+        SDB_DMS_NOTEXIST == sdbReply.flags ||
+        SDB_DMS_CS_NOTEXIST == sdbReply.flags )
    {
       rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
