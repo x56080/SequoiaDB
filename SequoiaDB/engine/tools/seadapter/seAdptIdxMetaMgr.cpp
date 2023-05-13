@@ -43,7 +43,9 @@
 
 namespace seadapter
 {
-   #define SEADPT_MAX_IDX_TMP_NAME_LEN 32
+   #define SEADPT_ES_INDEX_NAME_COMMON_PREFIX   "sdb"
+
+   #define SEADPT_ES_INDEX_NAME_BUF_LEN         32
 
    _seIndexMeta::_seIndexMeta()
    {
@@ -620,7 +622,7 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       utilIdxInnerID idxInnerID = 0 ;
-      CHAR tmpIdxName[SEADPT_MAX_IDX_TMP_NAME_LEN] = { 0 } ;
+      CHAR tmpIdxName[SEADPT_ES_INDEX_NAME_BUF_LEN] = { 0 } ;
 
       try
       {
@@ -680,6 +682,12 @@ namespace seadapter
                if ( idxDef.hasField( FIELD_NAME_UNIQUEID ) )
                {
                   BSONElement idxUniqueIDEle = idxDef.getField( FIELD_NAME_UNIQUEID ) ;
+                  if ( NumberLong != idxUniqueIDEle.type() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDERROR, "The type of index uniqueID must be NumberLong" ) ;
+                     goto error ;
+                  }
                   idxInnerID = (utilIdxInnerID)idxUniqueIDEle.numberLong() ;
                }
             }
@@ -715,12 +723,10 @@ namespace seadapter
                buf << idxPrefix ;
             }
 
-            ossSnprintf( tmpIdxName, SEADPT_MAX_IDX_TMP_NAME_LEN, "%016llx%08x",
-                         meta.getCLUID(), idxInnerID ) ;
+            ossSnprintf( tmpIdxName, SEADPT_ES_INDEX_NAME_BUF_LEN, "%s_%016llx%08x",
+                         SEADPT_ES_INDEX_NAME_COMMON_PREFIX, meta.getCLUID(), idxInnerID ) ;
 
-            buf << "sdb" << "_"
-                << tmpIdxName << "_"
-                << _peerGrpName ;
+            buf << tmpIdxName << "_" << _peerGrpName ;
 
             esIdx = buf.str() ;
 
