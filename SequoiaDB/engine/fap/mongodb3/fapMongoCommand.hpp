@@ -309,6 +309,10 @@ class _mongoInsertCommand : public _mongoCollectionCommand
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
+
+   protected:
+      INT32 _fixObject( const BSONObj &obj, BSONObj &out, BSONObjBuilder &builder ) ;
+
 } ;
 typedef _mongoInsertCommand mongoInsertCommand ;
 

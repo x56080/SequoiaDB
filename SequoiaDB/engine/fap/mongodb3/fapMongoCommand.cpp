@@ -1494,6 +1494,10 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    try
    {
+      /// add size should grater than OID(17)
+      BSONObjBuilder builder( _obj.firstElement().valuesize() + 20 ) ;
+      BSONObj insertor ;
+
       BSONObjIterator it( docList ) ;
       while ( it.more() )
       {
@@ -1502,7 +1506,14 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    "Invalid object[%s] in mongo %s request",
                    docList.toString().c_str(), name() ) ;
 
-         rc = sdbMsg.write( ele.Obj(), TRUE ) ;
+         builder.reset() ;
+         rc = _fixObject( ele.Obj(), insertor, builder ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         rc = sdbMsg.write( insertor, TRUE ) ;
          if ( rc )
          {
             goto error ;
@@ -1566,6 +1577,87 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 _mongoInsertCommand::_fixObject( const BSONObj &obj, BSONObj &out, BSONObjBuilder &builder )
+{
+   INT32 rc = SDB_OK ;
+   BSONElement idEle ;
+   INT32 fixPos = -1 ;
+   ossTimestamp tm ;
+
+   INT32 index = -1 ;
+   BSONObjIterator itr ( obj ) ;
+   while( itr.more() )
+   {
+      ++index ;
+      BSONElement e = itr.next() ;
+
+      if ( -1 == fixPos && Timestamp == e.type() && 0 == e.timestampTime() )
+      {
+         fixPos = index ;
+      }
+      else if ( idEle.eoo() && (Date_t)0 == ossStrcmp( e.fieldName(), FAP_MONGO_FIELD_NAME_ID ) )
+      {
+         idEle = e ;
+      }
+
+      if ( -1 != fixPos && !idEle.eoo() )
+      {
+         break ;
+      }
+   }
+
+   if ( !idEle.eoo() && -1 == fixPos )
+   {
+      out = obj ;
+      goto done ;
+   }
+
+   /// rebuild object
+   if ( idEle.eoo() )
+   {
+      builder.appendOID( FAP_MONGO_FIELD_NAME_ID, NULL, TRUE ) ;
+   }
+   else
+   {
+      builder.append( idEle ) ;
+   }
+
+   index = -1 ;
+   itr = BSONObjIterator( obj ) ;
+   while( itr.more() )
+   {
+      ++index ;
+      BSONElement e = itr.next() ;
+      /// skip _id
+      if ( !idEle.eoo() && idEle.fieldName() == e.fieldName() )
+      {
+         idEle = BSONElement() ;
+      }
+      else if ( index < fixPos )
+      {
+         builder.append( e ) ;
+      }
+      else if ( Timestamp == e.type() && (Date_t)0 == e.timestampTime() )
+      {
+         if ( 0 == tm.time )
+         {
+            ossGetCurrentTime( tm ) ;
+         }
+         OpTime opTm( tm.time, tm.microtm ) ;
+         builder.appendTimestamp( e.fieldName(), opTm.asDate() ) ;
+      }
+      else
+      {
+         builder.append( e ) ;
+      }
+   }
+
+   out = builder.done() ;
+
+done:
+   return rc ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
@@ -4772,6 +4864,11 @@ INT32 _mongoRenameCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessi
       string strDestFull ;
       UINT32 csDstNameLen = 0 ;
       UINT32 csSrcNameLen = 0 ;
+
+      /*
+         mongodb format :
+           { renameCollection: "foo.a", to: "bar.b", dropTarget: false, stayTemp: false }
+      */
 
       rc = mongoGetStringElement( _obj, FAP_MONGO_FIELD_NAME_TO, pDestFullName ) ;
       if ( rc )
