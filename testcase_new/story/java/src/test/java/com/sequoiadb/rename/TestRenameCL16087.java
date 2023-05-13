@@ -73,10 +73,18 @@ public class TestRenameCL16087 extends SdbTestBase {
             }
         } else if ( attachCLThread.getRetCode() != 0
                 && renameSubCL.getRetCode() == 0 ) {
-            DBCollection maincl = cs.getCollection( mainCLName );
-            maincl.detachCollection( SdbTestBase.csName + "." + newSubCLName );
-            Assert.fail(
-                    "cl attachCollection ok, expected attachCollection fail!" );
+            try {
+                DBCollection maincl = cs.getCollection( mainCLName );
+                maincl.detachCollection(
+                        SdbTestBase.csName + "." + newSubCLName );
+                Assert.fail(
+                        "cl attachCollection ok, expected attachCollection fail!" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_INVALID_SUB_CL
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
             if ( attachCLThread.getRetCode() != SDBError.SDB_DMS_NOTEXIST
                     .getErrorCode()
                     && attachCLThread.getRetCode() != SDBError.SDB_LOCK_FAILED
