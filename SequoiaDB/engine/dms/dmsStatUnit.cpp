@@ -70,6 +70,46 @@ namespace engine
 
    #define DMS_STAT_CHECKHOLE_THRESHOLD       ( 10 )
 
+   #define DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ( 1.5 )
+
+   static FLOAT64 _dmsStatPredEQSel[] =
+   {
+      DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 2 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 3 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 4 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 5 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 6 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 7 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 8 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 9 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 10 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 11 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 12 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 13 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 14 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 15 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 16 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 17 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 18 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 19 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 20 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 21 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 22 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 23 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 24 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 25 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 26 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 27 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 28 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 29 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 30 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 31 ),
+      pow( DMS_STAT_PRED_EQ_DEF_SELECTIVITY, 32 ),
+   } ;
+
+   const static UINT32 _dmsStatPredEQSelSize =
+        (UINT32) ( sizeof( _dmsStatPredEQSel ) / sizeof( _dmsStatPredEQSel[ 0 ] ) ) ;
 
    /*
       _dmsStatValues implement
@@ -690,7 +730,10 @@ namespace engine
      _distinctValues( 0 ),
      _nullFrac( 0 ),
      _undefFrac( 0 ),
-     _mcvSet()
+     _mcvSet(),
+     _totalFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
+     _sampleFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
+     _samplePercent( 0.0 )
    {
       ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
       ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
@@ -712,7 +755,10 @@ namespace engine
      _distinctValues( 0 ),
      _nullFrac( 0 ),
      _undefFrac( 0 ),
-     _mcvSet()
+     _mcvSet(),
+     _totalFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
+     _sampleFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
+     _samplePercent( 0.0 )
    {
       ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
       ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
@@ -800,7 +846,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALRANGEOPTR ) ;
 
-      rc = _evalOperator( &startKey, &stopKey, predSelectivity, scanSelectivity ) ;
+      rc = _evalOperator( &startKey, &stopKey, 0, predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALRANGEOPTR, rc ) ;
 
@@ -817,11 +863,12 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALETOPTR );
 
       BOOLEAN hitMCV = FALSE ;
+      UINT32 numEqualKeys = key.size() ;
 
       // Special case for unique index, could be one of the totalRecords
-      if ( _isUnique && key.size() == _numKeys )
+      if ( _isUnique && numEqualKeys == _numKeys )
       {
-         predSelectivity = 1.0 / (double)_totalRecords ;
+         predSelectivity = _totalFrac ;
          scanSelectivity = predSelectivity ;
          goto done ;
       }
@@ -834,18 +881,18 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The value is not in MCV set, evaluate in the rest of values
-         if ( _distinctValues == _mcvSet.getSize() )
-         {
-            predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
-                              DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
-         }
-         else
-         {
-            predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) /
-                              (double) ( _distinctValues - _mcvSet.getSize() ) ;
-         }
-         scanSelectivity = predSelectivity ;
+         // the value is not in MCV set, evaluate in the rest of values
+         rc = _evalETDefault( numEqualKeys, DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
+                              predSelectivity, scanSelectivity ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
+                      "selectivity, rc: %d", rc ) ;
+      }
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
+      {
+         rc = _evalETHitMCV( numEqualKeys, predSelectivity, scanSelectivity,
+                             predSelectivity, scanSelectivity ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
+                      "selectivity, rc: %d", rc ) ;
       }
 
    done :
@@ -864,7 +911,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALGTOPTR );
 
-      rc = _evalOperator( &startKey, NULL, predSelectivity, scanSelectivity ) ;
+      rc = _evalOperator( &startKey, NULL, 0, predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALGTOPTR, rc ) ;
 
@@ -880,7 +927,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALLTOPTR );
 
-      rc = _evalOperator( NULL, &stopKey, predSelectivity, scanSelectivity ) ;
+      rc = _evalOperator( NULL, &stopKey, 0, predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALLTOPTR, rc ) ;
 
@@ -890,6 +937,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXSTAT__EVALOPTR, "_dmsIndexStat::_evalOperator" )
    INT32 _dmsIndexStat::_evalOperator ( dmsStatKey *pStartKey,
                                         dmsStatKey *pStopKey,
+                                        UINT32 numEqualKeys,
                                         double &predSelectivity,
                                         double &scanSelectivity ) const
    {
@@ -908,11 +956,18 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The values do not include any MCV items, try to evaluate from
-         // the rest of values
-         predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
-                           DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ;
-         scanSelectivity = predSelectivity ;
+         // the value is not in MCV set, evaluate in the rest of values
+         rc = _evalETDefault( numEqualKeys, DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
+                              predSelectivity, scanSelectivity ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
+                      "selectivity, rc: %d", rc ) ;
+      }
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
+      {
+         rc = _evalETHitMCV( numEqualKeys, predSelectivity, scanSelectivity,
+                             predSelectivity, scanSelectivity ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
+                      "selectivity, rc: %d", rc ) ;
       }
 
    done :
@@ -1018,6 +1073,27 @@ namespace engine
                    rc ) ;
 
       _mcvSet.setTotalFrac() ;
+
+      if ( _totalRecords > 0 )
+      {
+         _totalFrac = 1.0 / (FLOAT64)_totalRecords ;
+         if ( _sampleRecords > 0 )
+         {
+            _sampleFrac = 1.0 / (FLOAT64)_sampleRecords ;
+            _samplePercent = (FLOAT64)_sampleRecords / (FLOAT64)_totalRecords ;
+         }
+         else
+         {
+            _sampleFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
+            _samplePercent = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
+         }
+      }
+      else
+      {
+         _totalFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
+         _sampleFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
+         _samplePercent = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
+      }
 
    done :
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT__POSTINIT, rc ) ;
@@ -1160,6 +1236,86 @@ namespace engine
       return rc ;
    error :
       _mcvSet.clear() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXSTAT__EVALETDEF, "_dmsIndexStat::_evalETDefault" )
+   INT32 _dmsIndexStat::_evalETDefault( UINT32 numEqualKeys,
+                                        double maxSelectivity,
+                                        double &predSelectivity,
+                                        double &scanSelectivity ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSIDXSTAT__EVALETDEF ) ;
+
+      FLOAT64 tmpSel = 1.0 ;
+      if ( numEqualKeys > _dmsStatPredEQSelSize )
+      {
+         tmpSel = _dmsStatPredEQSel[ _dmsStatPredEQSelSize - 1 ] ;
+      }
+      else if ( 0 == numEqualKeys )
+      {
+         tmpSel = _dmsStatPredEQSel[ 0 ] ;
+      }
+      else
+      {
+         tmpSel = _dmsStatPredEQSel[ numEqualKeys - 1 ] ;
+      }
+
+      predSelectivity = OSS_MIN( maxSelectivity,
+                                 OSS_MAX( ( ( 1.0 - _samplePercent ) * tmpSel ),
+                                          ( _totalFrac ) ) ) ;
+      scanSelectivity = predSelectivity ;
+
+      PD_TRACE_EXITRC( SDB_DMSIDXSTAT__EVALETDEF, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXSTAT__EVALETHITMCV, "_dmsIndexStat::_evalETHitMCV" )
+   INT32 _dmsIndexStat::_evalETHitMCV( UINT32 numEqualKeys,
+                                       double mcvPredSelectivity,
+                                       double mcvScanSelectivity,
+                                       double &predSelectivity,
+                                       double &scanSelectivity ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSIDXSTAT__EVALETHITMCV ) ;
+
+      if ( mcvPredSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
+      {
+         // only hit one sample
+         if ( numEqualKeys >= _numKeys )
+         {
+            // the number of keys is the same as the number of index
+            predSelectivity = OSS_MAX( ( mcvPredSelectivity * _samplePercent ),
+                                       ( _totalFrac ) ) ;
+            scanSelectivity = predSelectivity ;
+         }
+         else
+         {
+            // the number of keys is less than the number of index
+            rc =
+               _evalETDefault( numEqualKeys, _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION,
+                               predSelectivity, scanSelectivity ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
+                         "selectivity, rc: %d", rc ) ;
+         }
+      }
+      else
+      {
+         // hit multiple MCV records, use the selectivity directly
+         predSelectivity = mcvPredSelectivity ;
+         scanSelectivity = predSelectivity ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSIDXSTAT__EVALETHITMCV, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
