@@ -178,33 +178,32 @@ TEST_F( invalidArgTest9524, connectStrategy9526 )
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with connectStrategy 5" ;
 }
 
-// CI-1974
-//  url格式检验，检验空地址和格式不符合xxxx:xxxx的地址，init时不会报错但getConnection时会报错
-// TEST_F( invalidArgTest9524, url9528 )
-// {
-//    INT32 rc = SDB_OK ;   
+// url格式检验，检验空地址和格式不符合xxxx:xxxx的地址，init时不会报错但getConnection时会报错
+TEST_F( invalidArgTest9524, url9528 )
+{
+   INT32 rc = SDB_OK ;   
 
-//    // init with illeagal url
-//    string url_wrong1 = "something" ;
-//    string url_wrong2 = "something::00000" ;
-//    rc = ds.init( url_wrong1, conf ) ;
-//    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with url " << url_wrong1 ;
-//    rc = ds.init( url_wrong2, conf ) ;
-//    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with url " << url_wrong2 ;
+   // init with illeagal url
+   string url_wrong1 = "something" ;
+   string url_wrong2 = "something::00000" ;
+   rc = ds.init( url_wrong1, conf ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with url " << url_wrong1 ;
+   rc = ds.init( url_wrong2, conf ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with url " << url_wrong2 ;
 
-//    // init with legal url
-//    string url_right1 = "something:" ;
-//    string url_right2 = ":000000" ;
-//    string url_right3 = ":" ;
-//    rc = ds.init( url_right1, conf ) ;
-//    ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right1 ;
-//    ds.close() ;
-//    rc = ds.init( url_right2, conf ) ;
-//    ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right2 ;
-//    ds.close() ;
-//    rc = ds.init( url_right3, conf ) ;
-//    ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right3 ;
-// }
+   // init with legal url
+   string url_right1 = "something:" ;
+   string url_right2 = ":000000" ;
+   string url_right3 = ":" ;
+   rc = ds.init( url_right1, conf ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right1 ;
+   ds.close() ;
+   rc = ds.init( url_right2, conf ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right2 ;
+   ds.close() ;
+   rc = ds.init( url_right3, conf ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right3 ;
+}
 
 // url列表测试
 TEST_F( invalidArgTest9524, urlist9529 )
