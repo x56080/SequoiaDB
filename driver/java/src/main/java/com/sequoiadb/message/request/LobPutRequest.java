@@ -33,7 +33,7 @@ public class LobPutRequest extends LobRequest {
     private final int dateLen;
     private final ByteBuffer dataBuff;
 
-    public LobPutRequest(BSONObject metaObj, byte[] data) {
+    public LobPutRequest(BSONObject metaObj, byte[] data, int offset, int len) {
         if (metaObj == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "The meta object is null");
         }
@@ -45,8 +45,8 @@ public class LobPutRequest extends LobRequest {
         bsonLength = metaBytes.length;
         length += Helper.alignedSize(metaBytes.length);
 
-        dateLen = data.length;
-        dataBuff = ByteBuffer.wrap(data, 0, dateLen);
+        dateLen = len;
+        dataBuff = ByteBuffer.wrap(data, offset, len);
         length += Helper.alignedSize(data.length);
     }
 

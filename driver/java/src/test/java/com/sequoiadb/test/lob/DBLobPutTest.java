@@ -6,11 +6,9 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 import org.junit.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class DBLobPutTest {
@@ -31,8 +29,8 @@ public class DBLobPutTest {
         normalData = new byte[100];
         bigData = new byte[256 * 1024]; // 256KB
 
-        Arrays.fill(normalData, (byte) 'a');
-        Arrays.fill(bigData, (byte) 'a');
+        fillData(normalData);
+        fillData(bigData);
     }
 
     @AfterClass
@@ -55,45 +53,99 @@ public class DBLobPutTest {
         db.dropCollectionSpace(CS_NAME);
     }
 
+    private static void fillData(byte[] b) {
+        for (int i = 0; i < b.length; i++) {
+            b[i] = (byte)i;
+        }
+    }
+
     @Test
     public void normalTest() {
         ObjectId oid;
 
         // case 1: data is null, oid is null
         try {
-            putAndCheck(null, null);
+            putAndCheck(null, null, 0, 0);
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
         }
 
         // case 2: empty data
-        putAndCheck( null, emptyData);
+        putAndCheck( null, emptyData, 0, emptyData.length);
 
         // case 3: normal data, oid is null
-        putAndCheck(null, normalData);
+        putAndCheck(null, normalData, 0, normalData.length);
 
         // case 4: normal data and oid
         oid = cl.createLobID();
-        putAndCheck(oid, normalData);
+        putAndCheck(oid, normalData, 0, normalData.length);
 
         // case 5: oid repeat
         try {
-            putAndCheck(oid, normalData);
+            putAndCheck(oid, normalData, 0, normalData.length);
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_FE.getErrorCode(), e.getErrorCode());
         }
 
         // case 6: big lob
-        putAndCheck(null, bigData);
+        putAndCheck(null, bigData, 0, bigData.length);
+
+        // case 7: offset < 0
+        try {
+            putAndCheck(null, normalData, -1, normalData.length);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 8: offset = data length
+        putAndCheck(null, normalData, normalData.length, 0);
+
+        // case 9: offset > data length
+        try {
+            putAndCheck(null, normalData, normalData.length + 1, 0);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 10: len < 0
+        try {
+            putAndCheck(null, normalData, 0, -1);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 11: len = 0
+        putAndCheck(null, normalData, 0, 0);
+
+        // case 12: len > data length
+        try {
+            putAndCheck(null, normalData, 0, normalData.length + 1);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 13: offset + len < data length
+        putAndCheck(null, normalData, 1, normalData.length - 1);
+
+        // case 14: offset + len > data length
+        try {
+            putAndCheck(null, normalData, 1, normalData.length);
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 15: bigdata with offset and len
+        putAndCheck(null, bigData, 1, bigData.length - 1 );
     }
 
-    private void putAndCheck(ObjectId oid, byte[] data) {
+    private void putAndCheck(ObjectId oid, byte[] data, int offset, int len) {
         if (oid != null) {
-            cl.putLob(data, oid);
+            cl.putLob(data, offset, len, oid);
         } else {
-            oid = cl.putLob(data);
+            oid = cl.putLob(data, offset, len);
         }
-        checkLobData(oid, data);
+        byte[] exceptData = Arrays.copyOfRange(data, offset, offset + len);
+        checkLobData(oid, exceptData);
     }
 
     private void checkLobData(ObjectId oid, byte[] data) {

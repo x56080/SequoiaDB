@@ -2918,27 +2918,62 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public ObjectId putLob(byte[] data) throws BaseException {
-        return putLobInternal(data, null);
+        return putLobInternal(data, 0, data.length, null);
+    }
+
+    /**
+     * Put lob data into current collection.
+     * @param data The lob data
+     * @param offset The start offset in the data
+     * @param len The length of data to write
+     * @return ObjectId object of The new lob
+     * @throws BaseException If error happens.
+     */
+    public ObjectId putLob(byte[] data, int offset, int len) throws BaseException {
+        return putLobInternal(data, offset, len, null);
     }
 
     /**
      * Put lob data with the specified id.
      * @param data The lob data
-     * @return ObjectId object of The new lob
+     * @param lobId the lob id
      * @throws BaseException If error happens.
      */
     public void putLob(byte[] data, ObjectId lobId) throws BaseException {
-        putLobInternal(data, lobId);
+        putLobInternal(data, 0, data.length, lobId);
     }
 
+    /**
+     * Put lob data with the specified id.
+     * @param data The lob data
+     * @param offset The start offset in the data
+     * @param len The length of data to write
+     * @param lobId the lob id
+     * @throws BaseException If error happens.
+     */
+    public void putLob(byte[] data, int offset, int len, ObjectId lobId) throws BaseException {
+        putLobInternal(data, offset, len, lobId);
+    }
 
-    private ObjectId putLobInternal(byte[] data, ObjectId lobId) throws BaseException {
+    private ObjectId putLobInternal(byte[] data, int offset, int len, ObjectId lobId) throws BaseException {
         if (data == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "The data is null");
         }
 
-        if (data.length > DBLobImpl.SDB_LOB_PUT_MAX_LEN) {
-            return putLargeLob(data, lobId);
+        if (len < 0 || len > data.length) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid len");
+        }
+
+        if (offset < 0 || offset > data.length) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid offset");
+        }
+
+        if (offset + len > data.length) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Offset + len is great than data length");
+        }
+
+        if (len > DBLobImpl.SDB_LOB_PUT_MAX_LEN) {
+            return putLargeLob(data, offset, len, lobId);
         }
 
         BSONObject metaObj = new BasicBSONObject();
@@ -2948,7 +2983,7 @@ public class DBCollection {
         }
         metaObj.put(SdbConstants.FIELD_NAME_LOB_OPEN_MODE, DBLobImpl.SDB_LOB_CREATEONLY);
 
-        LobPutRequest request = new LobPutRequest(metaObj, data);
+        LobPutRequest request = new LobPutRequest(metaObj, data, offset, len);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, metaObj);
         sequoiadb.upsertCache(collectionFullName);
@@ -2969,11 +3004,11 @@ public class DBCollection {
         return oid;
     }
 
-    private ObjectId putLargeLob(byte[] data, ObjectId lobId) throws BaseException {
+    private ObjectId putLargeLob(byte[] data, int offset, int len, ObjectId lobId) throws BaseException {
         DBLob lob = createLob(lobId);
         // in SDB_LOB_CREATEONLY mode, if the lob write or close fails, the created lob
         // will be automatically rolled back and deleted
-        lob.write(data);
+        lob.write(data, offset, len);
         lob.close();
         return lob.getID();
     }
