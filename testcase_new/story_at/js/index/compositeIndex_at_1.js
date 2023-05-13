@@ -7,7 +7,7 @@
  * @Change Activity:
  * Date       Who           Description
  * ========== ============= =========================================================
- * 05/12/2022 Zhou Hongye   Init
+ * 05/12/2023 Zhou Hongye   Init
  **************************************************************************************************/
 
 /*********************************************测试用例***********************************************
@@ -36,8 +36,18 @@ function test(testPara)
     cl.createIndex("cd", {"c":1,"d":1});
     cl.createIndex("uniqueIdx", {"a": 1,"b":1,"c":1,"d":1,"e":1}, {"Unique": true});
 
-    for (i = 0; i < 50000; i++) {
-      cl.insert({ a: i, b: i, c: i, d: i, e: i, f: i });
+    var batchSize = 10000;
+    for (j = 0; j < 5; j++) {
+      data = [];
+      for (i = 0; i < batchSize; i++)
+        data.push({
+          a: i + j * batchSize,
+          b: i + j * batchSize,
+          c: i + j * batchSize,
+          d: i + j * batchSize,
+          e: i + j * batchSize,
+        });
+      cl.insert(data);
     }
 
     assert.equal(

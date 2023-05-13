@@ -70,6 +70,8 @@ namespace engine
 
    #define DMS_STAT_CHECKHOLE_THRESHOLD       ( 10 )
 
+   #define DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ( 1.5 )
+
    static FLOAT64 _dmsStatPredEQSel[] =
    {
       DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
@@ -885,7 +887,7 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
                       "selectivity, rc: %d", rc ) ;
       }
-      else if ( predSelectivity < _sampleFrac * 1.5 )
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
       {
          rc = _evalETHitMCV( numEqualKeys, predSelectivity, scanSelectivity,
                              predSelectivity, scanSelectivity ) ;
@@ -960,7 +962,7 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
                       "selectivity, rc: %d", rc ) ;
       }
-      else if ( predSelectivity < _sampleFrac * 1.5 )
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
       {
          rc = _evalETHitMCV( numEqualKeys, predSelectivity, scanSelectivity,
                              predSelectivity, scanSelectivity ) ;
@@ -1282,7 +1284,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT__EVALETHITMCV ) ;
 
-      if ( mcvPredSelectivity < _sampleFrac * 1.5 )
+      if ( mcvPredSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
       {
          // only hit one sample
          if ( numEqualKeys >= _numKeys )
@@ -1295,7 +1297,9 @@ namespace engine
          else
          {
             // the number of keys is less than the number of index
-            rc = _evalETDefault( numEqualKeys, _sampleFrac * 1.5, predSelectivity, scanSelectivity ) ;
+            rc =
+               _evalETDefault( numEqualKeys, _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION,
+                               predSelectivity, scanSelectivity ) ;
             PD_RC_CHECK( rc, PDWARNING, "Failed to evaluate default ET "
                          "selectivity, rc: %d", rc ) ;
          }
