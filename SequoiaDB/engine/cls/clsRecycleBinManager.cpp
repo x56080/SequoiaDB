@@ -666,18 +666,13 @@ namespace engine
          rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+         options->_blockOpID = opID ;
 
          rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
                                     taskID ) ;
-         if ( SDB_OK != rc )
-         {
-            _unregBlockCL( origFullName, recyFullName, opID ) ;
-            opID = 0 ;
-         }
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle truncate collection, rc: %d", rc ) ;
 
-         options->_blockOpID = opID ;
          options->_localTaskID = taskID ;
       }
 
@@ -686,6 +681,18 @@ namespace engine
       return rc ;
 
    error:
+      if ( NULL != options &&
+           0 != options->_blockOpID )
+      {
+         const utilRecycleItem &item = options->_recycleItem ;
+         SDB_ASSERT( options->_recycleItem.isValid(), "should be valid" ) ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+         _unregBlockCL( origFullName, recyFullName, options->_blockOpID ) ;
+         options->_blockOpID = 0 ;
+      }
       goto done ;
    }
 
@@ -881,18 +888,13 @@ namespace engine
          rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+         options->_blockOpID = opID ;
 
          rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
                                     taskID ) ;
-         if ( SDB_OK != rc )
-         {
-            _unregBlockCL( origFullName, recyFullName, opID ) ;
-            opID = 0 ;
-         }
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle drop collection, rc: %d", rc ) ;
 
-         options->_blockOpID = opID ;
          options->_localTaskID = taskID ;
       }
 
@@ -901,6 +903,18 @@ namespace engine
       return rc ;
 
    error:
+      if ( NULL != options &&
+           0 != options->_blockOpID )
+      {
+         const utilRecycleItem &item = options->_recycleItem ;
+         SDB_ASSERT( options->_recycleItem.isValid(), "should be valid" ) ;
+         const CHAR *origFullName = item.getOriginName() ;
+         CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      pEventHolder->getCSName(), item.getRecycleName() ) ;
+         _unregBlockCL( origFullName, recyFullName, options->_blockOpID ) ;
+         options->_blockOpID = 0 ;
+      }
       goto done ;
    }
 
@@ -1091,6 +1105,7 @@ namespace engine
          rc = _regBlockCS( originName, recycleName, suItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+         options->_blockOpID = opID ;
 
          /// log to .SEQUOIADB_RENAME_INFO
          utilRenameLog aLog( originName, recycleName ) ;
@@ -1104,15 +1119,9 @@ namespace engine
                       "rc: %d", rc ) ;
 
          rc = _createRecycleCSTask( originName, recycleName, item, cb, taskID ) ;
-         if ( SDB_OK != rc )
-         {
-            _unregBlockCS( originName, recycleName, opID ) ;
-            opID = 0 ;
-         }
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle drop collection collection, rc: %d", rc ) ;
 
-         options->_blockOpID = opID ;
          options->_localTaskID = taskID ;
       }
 
@@ -1127,6 +1136,15 @@ namespace engine
          if ( SDB_OK != tmpRC )
          {
             PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
+         }
+         if ( 0 != options->_blockOpID )
+         {
+            const utilRecycleItem &item = options->_recycleItem ;
+            SDB_ASSERT( options->_recycleItem.isValid(), "should be valid" ) ;
+            const CHAR *originName = item.getOriginName() ;
+            const CHAR *recycleName = item.getRecycleName() ;
+            _unregBlockCS( originName, recycleName, options->_blockOpID ) ;
+            options->_blockOpID = 0 ;
          }
       }
       goto done ;

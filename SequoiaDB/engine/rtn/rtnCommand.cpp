@@ -4466,6 +4466,11 @@ error:
       PD_TRACE_EXITRC( SDB__RTNTRUNCATE_DOIT, rc ) ;
       return rc ;
    error:
+      if ( -1 != *pContextID )
+      {
+         rtnCB->contextDelete( *pContextID, cb );
+         *pContextID = -1;
+      }
       goto done ;
    }
 

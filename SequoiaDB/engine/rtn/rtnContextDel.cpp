@@ -2131,7 +2131,6 @@ namespace engine
    done:
       return rc ;
    error:
-      _releaseLock( cb ) ;
       goto done ;
    }
 
