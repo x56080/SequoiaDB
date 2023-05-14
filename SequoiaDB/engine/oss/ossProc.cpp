@@ -118,6 +118,7 @@ void ossCloseProcessHandle( OSSHANDLE & handle )
 }
 
 static CHID_RESULT_MAP  g_childResultMap ;
+static ossSpinXLatch    g_ResultMapMutex ;
 
 #define OSS_INVALID_MSG_QUEUE_ID -1
 // Linux wait child process
@@ -158,17 +159,22 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
       {
          // if this child is using SIGCHLD handler function to wait for exit
          // try to get result code from map by pid
-         CHID_RESULT_MAP::iterator it ;
-         it = g_childResultMap.find( pid ) ;
+         g_ResultMapMutex.get() ;
+         CHID_RESULT_MAP::iterator it = g_childResultMap.find( pid ) ;
          if ( it != g_childResultMap.end() )
          {
             result.termcode = it->second.termcode ;
             result.exitcode = it->second.exitcode ;
             g_childResultMap.erase( it ) ;
+            g_ResultMapMutex.release() ;
             PD_LOG( PDEVENT, "get child process(%d) resultCode(TermCode:%d, ExitCode:%d)",
                     pid, result.termcode, result.exitcode ) ;
             rc = SDB_OK ;
             goto done ;
+         }
+         else
+         {
+            g_ResultMapMutex.release() ;
          }
       }
 
@@ -177,12 +183,14 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
          result.termcode = OSS_EXIT_NORMAL ;
          result.exitcode = 0 ;
          rc = SDB_OK ;
+         goto done ;
       }
       else
       {
          PD_LOG ( PDERROR, "Failed to wait child, errno: %d( %s )",
                   err, ossGetLastErrorMsg( err ) ) ;
          rc = SDB_SYS ;
+         goto error ;
       }
    }
    // otherwise let's check the status of the output process id
@@ -603,7 +611,9 @@ void _ossSigCHLDsaveResultHandler( INT32 signum )
           OSS_INVALID_PID != pid ) )
    {
       // when child process exit, save result code
+      g_ResultMapMutex.get() ;
       g_childResultMap[ pid ] = result ;
+      g_ResultMapMutex.release() ;
 
       PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
               pid, result.termcode, result.exitcode ) ;
