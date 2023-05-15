@@ -737,6 +737,16 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
       rc = _mongoGetAndInitCommand( pCommandName, &req, ppCommand, sessCtx ) ;
       if ( rc )
       {
+         try
+         {
+            BSONObj obj( req.query() ) ;
+            PD_LOG( PDERROR, "Get command(%s) by param(%s) failed, rc: %d",
+                    pCommandName, obj.toString().c_str(), rc ) ;
+         }
+         catch( std::exception )
+         {
+            /// ignore
+         }
          goto error ;
       }
    }
