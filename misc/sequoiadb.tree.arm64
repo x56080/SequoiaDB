@@ -17,6 +17,7 @@ sequoiadb
 │   ├── sdbinspect
 │   ├── sdblist
 │   ├── sdblobtool
+│   ├── sdbmkgen
 │   ├── sdbomtool
 │   ├── sdbpasswd
 │   ├── sdbreplay
