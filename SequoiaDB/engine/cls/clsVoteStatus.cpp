@@ -333,7 +333,7 @@ namespace engine
 
             // Get and compare electionWeight only if the peer beat version is greater than 1
             // Here we just comapre electionWeight, if the twos are equal, compare the _shadowWeight
-            if ( CLS_BEAT_VERSION_2 <= itrInfo->second.beat.beatVersion )
+            if ( ! isLocation() && CLS_BEAT_VERSION_2 <= itrInfo->second.beat.beatVersion )
             {
                UINT8 localElectionWeight = vote->getElectionWeight() ;
                UINT8 peerElectionWeight = itrInfo->second.beat.getElectionWeight() ;
@@ -426,26 +426,30 @@ namespace engine
 
    BOOLEAN _clsVoteStatus::_isAccepted()
    {
-      BOOLEAN isAccept ;
+      BOOLEAN isAccept = FALSE ;
 
-      // Node in critical mode which is only effective in group election( not in location election )
-      if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode && ! isLocation() )
-      {
-         // Node is in enforced mode, need to check if majority alive critical nodes agree
-         if ( _groupInfo->enforcedGrpMode )
-         {
-            isAccept = CLS_IS_MAJORITY( _criticalAcceptedNum + 1, _groupInfo->criticalAliveSize() ) ;
-         }
-         // Node is not in enforced mode, need to check if majority alive nodes agree
-         else
-         {
-            isAccept = CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->aliveSize() ) ;
-         }
-      }
       // Node is in normal mode
-      else
+      if ( CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->groupSize() ) )
       {
-         isAccept = CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->groupSize() ) ;
+         isAccept = TRUE ;
+      }
+      // Node in critical mode which is only effective in group election( not in location election )
+      else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode )
+      {
+         if ( CLS_IS_MAJORITY( _criticalAcceptedNum + 1, _groupInfo->criticalSize() ) )
+         {
+            // Node is in enforced mode, need to check if majority critical nodes agree
+            if ( _groupInfo->enforcedGrpMode )
+            {
+               isAccept = TRUE ;
+            }
+            // Node is not in enforced mode, need to check if majority nodes
+            // and majotiry critical nodes agree
+            else if ( CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->aliveSize() ) )
+            {
+               isAccept = TRUE ;
+            }
+         }
       }
 
       return isAccept ;

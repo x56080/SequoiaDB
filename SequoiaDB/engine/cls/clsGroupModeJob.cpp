@@ -171,8 +171,8 @@ namespace engine
 
             // If the difference of primary and slave node's lsn is less or equal
             // than 0.125 * totalLogSize, we can assume that the slave node is in normal state
-            UINT64 diffOffset = expectLsn.offset - CLS_CRITICAL_RESTORE_THRESHOLD * totalLogSize ;
-            UINT64 minLsnOffset = OSS_MAX( 0, diffOffset ) ;
+            const UINT64 diffOffset = CLS_CRITICAL_RESTORE_THRESHOLD * totalLogSize ;
+            UINT64 minLsnOffset = expectLsn.offset > diffOffset ? expectLsn.offset - diffOffset : 0 ;
             UINT32 sucNum = _info->getAlivesByLsn( minLsnOffset ) ;
 
             // Check if majority nodes achieve a threshold lsn

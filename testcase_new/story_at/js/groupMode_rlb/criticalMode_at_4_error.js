@@ -69,8 +69,8 @@ function test() {
   checkNormalGrpMode(db, groupName);
 
   // Reset group info
-  commDropCS(db, csName);
   setLocationForNodes(rg, nodeList, "");
   rg.stopCriticalMode();
   rg.start();
+  commDropCS(db, csName);
 }
