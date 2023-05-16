@@ -29,7 +29,6 @@ class ResultFile {
     }
 
     private void init() {
-        fileWriter.openFile();
         // 写入开始工作的时间
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

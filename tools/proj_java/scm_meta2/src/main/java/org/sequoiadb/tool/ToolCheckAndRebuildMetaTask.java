@@ -413,7 +413,7 @@ class TaskWorker implements Runnable {
             } else {
                 MetaInfo metaInfo = lobInfo.toMetaInfo(); // 当 lob 状态不可用时，toMetaInfo() 将返回 null
                 if (metaInfo != null) {
-                    outputBSONList.put(arrayStartIndex++, metaInfo);
+                    outputBSONList.put(arrayStartIndex++, metaInfo.toBSON());
                 } else {
                     logger.warn("Lob status is unavailable: " + lobInfo.toString());
                 }

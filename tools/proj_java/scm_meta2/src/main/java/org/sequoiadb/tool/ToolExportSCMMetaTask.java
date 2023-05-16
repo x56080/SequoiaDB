@@ -73,7 +73,6 @@ public class ToolExportSCMMetaTask implements TaskBase {
 
         try {
             DBCollection cl = sdb.getCollectionSpace(param.getCSName()).getCollection(param.getCLName());
-            writer.openFile();
             while ((line = loader.getLine()) != null) {
                 if (iterCount++ % 200 == 0 && !Controller.isRunning()) {
                     logger.info("Interrupted export meta");

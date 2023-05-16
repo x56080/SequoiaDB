@@ -130,6 +130,7 @@ public class ToolExportSCMLobInfoTask implements TaskBase {
         // 第一轮，扫描获取主中心的 lob 表名
         boolean hasBegin = false;
         for (String info : tableInfos) {
+            info = info.trim();
             // 跳过所有内容，直到遇到 "# Main-Site-Begin" 才开始处理内容
             if (!hasBegin && !isMainSiteBegin(info)) {
                 continue;
@@ -158,6 +159,7 @@ public class ToolExportSCMLobInfoTask implements TaskBase {
         // 第二轮，扫描获取分中心的 lob 表名
         hasBegin = false;
         for (String info : tableInfos) {
+            info = info.trim();
             // 跳过所有内容，直到遇到 "# Sub-Site-Begin" 才开始处理内容
             if (!hasBegin && !isSubSiteBegin(info)) {
                 continue;
@@ -220,7 +222,6 @@ public class ToolExportSCMLobInfoTask implements TaskBase {
         ConcurrentFileWriter fileWriter =
                 new ConcurrentFileWriter(this.outputFileName, Common.CACHE_SIZE_2MB, Common.CACHE_SIZE_2MB);
         try {
-            fileWriter.openFile();
             getMainSiteLobInfo(fileWriter);
             getSubSiteLobInfo(fileWriter);
         } finally {

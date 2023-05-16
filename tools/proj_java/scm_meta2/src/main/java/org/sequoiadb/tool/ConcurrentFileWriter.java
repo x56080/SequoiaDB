@@ -38,9 +38,10 @@ public class ConcurrentFileWriter {
         this.buffer = new StringBuilder(bufferSize);
         this.lock = new ReentrantLock();
         this.writeThreshold = writeThreshold;
+        openFile();
     }
 
-    public void openFile() {
+    private void openFile() {
         try {
             FileWriter fileWriter = new FileWriter(filePath, true);
             printWriter = new PrintWriter(fileWriter);

@@ -16,15 +16,12 @@ public class ConcurrentFileWriterTest {
     public void doubleOpenAndCloseFileTest() {
         ConcurrentFileWriter fileWriter =
                 new ConcurrentFileWriter("ConcurrentFileWriter.txt", 2048*1024, 2048*1024);
-        fileWriter.openFile();
         fileWriter.writeToFile("11111");
         fileWriter.closeFile();
-        fileWriter.openFile();
         fileWriter.writeToFile("22222");
         fileWriter.closeFile();
         ConcurrentFileWriter fileWriter2 =
                 new ConcurrentFileWriter("ConcurrentFileWriter.txt", 2048*1024, 2048*1024);
-        fileWriter2.openFile();
         fileWriter2.writeToFile("33333");
         fileWriter2.closeFile();
     }
