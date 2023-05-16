@@ -89,14 +89,19 @@ public class DataSource23528 extends SdbTestBase {
 
         connList.add( ds.getConnection() );
         // wait for CreateConnectionTask
-        Thread.sleep( dsOpt.getCheckInterval() * 4L );
+        int loopTime = 10 ;
+        while( ds.getIdleConnNum() != avgCount && loopTime-- > 0 ){
+            Thread.sleep( dsOpt.getCheckInterval() );
+        }
         Assert.assertEquals( ds.getIdleConnNum(), avgCount );
-
         // idleCount < avgCount, new connection will create by
         // CreateConnectionTask
         connList.add( ds.getConnection() );
         // wait for CheckConnectionTask and CreateConnectionTask
-        Thread.sleep( dsOpt.getCheckInterval() * 2L );
+        loopTime = 10;
+        while( ds.getIdleConnNum() != avgCount && loopTime-- > 0 ){
+            Thread.sleep( dsOpt.getCheckInterval() );
+        }
         Assert.assertEquals( ds.getIdleConnNum(), avgCount );
 
         for ( Sequoiadb db : connList ) {
