@@ -1799,6 +1799,25 @@ namespace engine
 
       if ( needUpdateGrp )
       {
+         // For cata group, we need to check if there are two primary nodes first
+         if ( CAT_CATALOG_GROUPID == beat.identity.columns.groupID &&
+              CLS_GROUP_ROLE_PRIMARY == beat.role && _vote.primaryIsMe() )
+         {
+            DPS_LSN lsn  = _logger->expectLsn() ;
+            if ( 0 >= lsn.compare( beat.endLsn ) )
+            {
+               _info.mtx.lock_w() ;
+               _info.primary = beat.identity ;
+               _info.mtx.release_w() ;
+               _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+               PD_LOG( PDEVENT, "Replica Group vote:remote lsn[%d:%lld]"
+                       " higher(or equal) than local lsn[%d:%lld],"
+                       " we change to silence.",
+                       beat.endLsn.version, beat.endLsn.offset,
+                       lsn.version, lsn.offset ) ;
+            }
+         }
+
          rc = SDB_REPL_LOCAL_G_V_EXPIRED ;
          //download ;
          _MsgCatGroupReq msg ;
@@ -1859,7 +1878,7 @@ namespace engine
                      _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                      PD_LOG( PDEVENT, "Replica Group vote:remote lsn[%d:%lld]"
                              " higher(or equal) than local lsn[%d:%lld],"
-                             " we change to secondary.",
+                             " we change to silence.",
                              beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
@@ -1930,7 +1949,7 @@ namespace engine
                      _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                      PD_LOG( PDEVENT, "Location Set Vote: remote primary node's lsn[%d:%lld] is "
                              "higher(or equal) than local's lsn[%d:%lld], so we change local "
-                             "status to secondary.", beat.endLsn.version, beat.endLsn.offset,
+                             "status to silence.", beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
                }
@@ -1973,7 +1992,7 @@ namespace engine
                      _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                      PD_LOG( PDEVENT, "Location Set Vote: remote non-primary node's lsn[%d:%lld] is "
                              "higher than local's lsn[%d:%lld], so we change local "
-                             "status to secondary.", beat.endLsn.version, beat.endLsn.offset,
+                             "status to silence.", beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
                }
