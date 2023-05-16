@@ -1,10 +1,6 @@
 package com.sequoiadb.fulltext.utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -38,7 +34,8 @@ public class FullTextDBUtils {
         if ( indexInfos != null && indexInfos.containsField( "ExtDataName" ) ) {
             return ( String ) indexInfos.get( "ExtDataName" );
         } else {
-            throw new BaseException( -52, "no such index: " + indexName + " from cl: " + cl.getFullName() );
+            throw new BaseException( -52, "no such index: " + indexName
+                    + " from cl: " + cl.getFullName() );
         }
     }
 
@@ -78,11 +75,11 @@ public class FullTextDBUtils {
      */
     public static String getESIndexName( DBCollection cl, String indexName ) {
 
-        String cappedName = getCappedName( cl, indexName );
+        String indexUniqueStr = getIndexUniqueStr( cl, indexName );
         List< String > groupNames = getCLGroups( cl );
 
-        return FullTextUtils.getFulltextPrefix().toLowerCase()
-                + cappedName.toLowerCase() + "_" + groupNames.get( 0 );
+        return FullTextUtils.getFulltextPrefix().toLowerCase() + "sdb_"
+                + indexUniqueStr + "_" + groupNames.get( 0 );
     }
 
     /**
@@ -96,19 +93,58 @@ public class FullTextDBUtils {
      */
     public static List< String > getESIndexNames( DBCollection cl,
             String indexName ) {
-        String cappedName = getCappedName( cl, indexName );
 
         // 获取原始集合下的全文索引名
         List< String > esIndexNames = new ArrayList<>();
         List< String > groupNames = getCLGroups( cl );
-
+        String indexUniqueStr = getIndexUniqueStr( cl, indexName );
         for ( String groupName : groupNames ) {
             esIndexNames.add( FullTextUtils.getFulltextPrefix().toLowerCase()
-                    + cappedName.toLowerCase() + "_" + groupName );
+                    + "sdb_" + indexUniqueStr + "_" + groupName );
         }
-
         // 分区表包含多个全文索引
         return esIndexNames;
+    }
+
+    public static String getIndexUniqueStr( DBCollection cl,
+            String indexName ) {
+        Sequoiadb db = cl.getSequoiadb();
+        String fullName = cl.getFullName();
+        BSONObject confOptions = new BasicBSONObject();
+        confOptions.put( "Name", fullName );
+        BSONObject selectOptions = new BasicBSONObject();
+        selectOptions.put( "UniqueID", 1 );
+        long clUniqueID = 0;
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+                confOptions, selectOptions, null );
+        while ( cursor.hasNext() ) {
+            BSONObject obj = cursor.getNext();
+            clUniqueID = ( long ) obj.get( "UniqueID" );
+        }
+        cursor.close();
+
+        BSONObject idxInfo = ( BSONObject ) cl.getIndexInfo( indexName )
+                .get( "IndexDef" );
+        long idxUniqueID = ( long ) idxInfo.get( "UniqueID" );
+
+        // 索引名为 sdb_UniqueID_groupName，其中UniqueID为是由 clUniqueID 十六进制字符串和
+        // indexUniqueID 后 32 位的 16 进制字符串组成的
+        String clUniqueIDStr = toHexString( clUniqueID, 16 );
+        String idxUniqueIDStr = toHexString( idxUniqueID, 16 );
+        String idxUniqueIDSubStr = idxUniqueIDStr.substring( 8, 16 );
+        return clUniqueIDStr.toLowerCase() + idxUniqueIDSubStr.toLowerCase();
+    }
+
+    // 输入数值转换成指定长度的16进制字符串
+    public static String toHexString( long value, int length ) {
+        String hexString = Long.toHexString( value );
+        int len = hexString.length();
+        if ( len < length ) {
+            for ( int i = 0; i < length - len; i++ ) {
+                hexString = "0" + hexString;
+            }
+        }
+        return hexString;
     }
 
     /**
