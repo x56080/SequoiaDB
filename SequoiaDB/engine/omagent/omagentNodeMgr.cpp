@@ -375,7 +375,7 @@ namespace engine
       rc = ossAccess( option->getSEAdapterCfgPath() ) ;
       if ( SDB_FNE == rc )
       {
-         PD_LOG( PDINFO, "Failed to get adapter config path %s, rc: %d",
+         PD_LOG( PDINFO, "Could not find search engine adapter config, path %s, rc: %d",
                  sdbGetOMAgentOptions()->getSEAdapterCfgPath(), rc ) ;
          rc = SDB_OK ;
          goto done ;
