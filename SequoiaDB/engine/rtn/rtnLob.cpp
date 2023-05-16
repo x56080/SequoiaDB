@@ -1375,7 +1375,7 @@ namespace engine
       }
       lobRecord.set( &oid, 0, 0, bufferSize, buf ) ;
 
-      rc = env.prepareOpr( EXCLUSIVE, TRUE ) ;
+      rc = env.prepareOpr( -1, TRUE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to prepare to put lob, rc:%d", rc ) ;
@@ -1432,29 +1432,48 @@ namespace engine
          goto error ;
       }
 
-      buffObj = rtnContextBuf( builder.obj() ) ;
-
       RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
       RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, size ) ;
       deltaMonApp = *pMonAppCB - beginMonApp ;
-
-      if ( env.getMBContext()->mbStat() )
-      {
-         // submit the change to cl snapshot
-         env.getMBContext()->mbStat()->_crudCB.incMetrics( deltaMonApp ) ;
-      }
-      env.oprDone() ;
-
+      
       if ( pMonAppCB->mondbcb )
       {
          // submit the change to database snapshot
          pMonAppCB->mondbcb->incMetrics( deltaMonApp ) ;
       }
+      
       if ( pMonAppCB->getSvcTaskInfo() )
       {
          // submit the change to task snapshot
          pMonAppCB->getSvcTaskInfo()->incMetrics( deltaMonApp ) ;
       }
+
+      if ( env.getMBContext()->mbStat() )
+      {
+         if ( !env.getMBContext()->isMBLock() )
+         {
+            rc = env.getMBContext()->mbLock( SHARED ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to lock mb:%d", rc ) ;
+               rc = SDB_OK ;
+            }
+            else
+            {
+               // submit the change to cl snapshot
+               env.getMBContext()->mbStat()->_crudCB.incMetrics( deltaMonApp ) ;
+               env.getMBContext()->mbUnlock() ;
+            }
+         }
+         else
+         {
+            // submit the change to cl snapshot
+            env.getMBContext()->mbStat()->_crudCB.incMetrics( deltaMonApp ) ;
+         }
+      }
+
+      buffObj = rtnContextBuf( builder.obj() ) ;
+      env.oprDone() ;
 
       if ( NULL != dpsCB )
       {
