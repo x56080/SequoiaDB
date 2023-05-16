@@ -2,7 +2,7 @@
  * @Description   : seqDB-27839 创建/删除CS后检查快照
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2022.10.20
+ * @LastEditTime  : 2023.05.06
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -28,7 +28,7 @@ function test ()
    var dbcl2 = commCreateCL( db, csName2, clName2, { ReplSize: 0 } );
    var dbcl3 = commCreateCL( db, csName3, clName3, { ReplSize: 0 } );
 
-   //putLob
+   // putLob
    deleteTmpFile( filePath );
    var fileMD5 = makeTmpFile( filePath, fileName, fileSize );
    dbcl1.putLob( filePath + fileName );
@@ -55,6 +55,9 @@ function test ()
    // 删除一个cs
    db.dropCS( csName3 );
 
+   // 等待LSN同步后进行校验
+   commCheckBusinessStatus( db );
+
    // 集合空间聚合结果检验
    var lobPages = parseInt( ( fileSize + 1023 ) / lobPageSize ) + 1;
    var cursor1 = db.snapshot( SDB_SNAP_COLLECTIONSPACES, { Name: csName1 } );
@@ -64,7 +67,7 @@ function test ()
    var cursor3 = db.snapshot( SDB_SNAP_COLLECTIONSPACES, { Name: csName3 } );
    while( cursor3.next() )
    {
-      throw new Error( "游标中有返回结果！" );
+      throw new Error( "游标中有返回结果！cursor3值为:" + JSON.stringify( cursor3.current().toObj() ) );
    }
    cursor3.close();
    // 集合空间非聚合结果检验
@@ -80,10 +83,11 @@ function test ()
    var cursor6 = db.snapshot( SDB_SNAP_COLLECTIONSPACES, option );
    while( cursor6.next() )
    {
-      throw new Error( "游标中有返回结果！" );
+      throw new Error( "游标中有返回结果！cursor6值为:" + JSON.stringify( cursor6.current().toObj() ) );
    }
    cursor6.close();
 
    db.dropCS( csName1 );
    db.dropCS( csName2 );
+   deleteTmpFile( filePath + fileName )
 }
