@@ -159,22 +159,18 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
       {
          // if this child is using SIGCHLD handler function to wait for exit
          // try to get result code from map by pid
-         g_ResultMapMutex.get() ;
+         ossScopedLock lock( &g_ResultMapMutex ) ;
          CHID_RESULT_MAP::iterator it = g_childResultMap.find( pid ) ;
          if ( it != g_childResultMap.end() )
          {
             result.termcode = it->second.termcode ;
             result.exitcode = it->second.exitcode ;
             g_childResultMap.erase( it ) ;
-            g_ResultMapMutex.release() ;
+            lock.release() ;
             PD_LOG( PDEVENT, "get child process(%d) resultCode(TermCode:%d, ExitCode:%d)",
                     pid, result.termcode, result.exitcode ) ;
             rc = SDB_OK ;
             goto done ;
-         }
-         else
-         {
-            g_ResultMapMutex.release() ;
          }
       }
 
@@ -611,9 +607,9 @@ void _ossSigCHLDsaveResultHandler( INT32 signum )
           OSS_INVALID_PID != pid ) )
    {
       // when child process exit, save result code
-      g_ResultMapMutex.get() ;
+      ossScopedLock lock( &g_ResultMapMutex ) ;
       g_childResultMap[ pid ] = result ;
-      g_ResultMapMutex.release() ;
+      lock.release() ;
 
       PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
               pid, result.termcode, result.exitcode ) ;
