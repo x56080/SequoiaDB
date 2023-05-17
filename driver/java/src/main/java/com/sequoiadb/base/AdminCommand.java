@@ -85,6 +85,7 @@ final class AdminCommand {
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
     final static String LIST_RECYCLEBIN = PREFIX + "list recyclebin";
+    final static String LIST_GROUPMODES = PREFIX + "list group modes";
 
     final static String SNAP_CONTEXTS = PREFIX + "snapshot contexts";
     final static String SNAP_CONTEXTS_CURRENT = PREFIX + "snapshot contexts current";
@@ -134,6 +135,7 @@ final class AdminCommand {
     final static String ACTIVE_GROUP = PREFIX + "active group";
     final static String SHUTDOWN_GROUP = PREFIX + "shutdown group";
     final static String CREATE_CATALOG_GROUP = PREFIX + "create catalog group";
+    final static String ALTER_GROUP = PREFIX + "alter group";
 
     final static String REELECT = PREFIX + "reelect";
 

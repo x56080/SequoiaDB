@@ -185,6 +185,10 @@ public class Sequoiadb implements Closeable {
      * List of recycle bin
      */
     public final static int SDB_LIST_RECYCLEBIN = 27;
+    /**
+     * list group mode
+     */
+    public final static int SDB_LIST_GROUPMODES = 28;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -1372,6 +1376,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
+     *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
      *                   </ul>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1424,6 +1429,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
+     *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
      *                   </ul>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -2974,6 +2980,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
                 return AdminCommand.LIST_CS_IN_DOMAIN;
+            case SDB_LIST_GROUPMODES:
+                return AdminCommand.LIST_GROUPMODES;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid list type: %d", listType));

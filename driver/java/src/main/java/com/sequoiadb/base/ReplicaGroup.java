@@ -683,6 +683,67 @@ public class ReplicaGroup {
         sequoiadb.throwIfError(response);
     }
 
+    /**
+     * Alter replica group to set active location.
+     *
+     * @param location The active location of replica group, if the parameter is "",
+     *                 it means to remove the replica group's active location
+     * @throws BaseException If error happens.
+     */
+    public void setActiveLocation(String location) {
+        if (location == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The location name is null");
+        }
+
+        BSONObject option = new BasicBSONObject();
+        option.put(SdbConstants.FIELD_NAME_GROUP_ACTIVE_LOCATION, location);
+        alterInternal(SdbConstants.SDB_ALTER_GROUP_SET_ACTIVE_LOCATION, option, false);
+    }
+
+    /**
+     * Start critical mode in the current replica group.
+     *
+     * @param options The options of critical mode:
+     *                <ul>
+     *                <li>NodeName: The critical node to be set in replica group</li>
+     *                <li>Location: The critical location to be set in replica group</li>
+     *                <li>Enforced: Whether to force to start critical mode in replica group</li>
+     *                <li>MinKeepTime: The minimum keep time of critical mode</li>
+     *                <li>MaxKeepTime: The maximum keep time of critical mode</li>
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void startCriticalMode(BSONObject options) {
+        if (options == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The options is null");
+        }
+        alterInternal(SdbConstants.SDB_ALTER_GROUP_START_CRITICAL_MODE, options, false);
+    }
+
+    /**
+     * Stop critical mode in current replica group.
+     *
+     * @throws BaseException If error happens.
+     */
+    public void stopCriticalMode() {
+        alterInternal(SdbConstants.SDB_ALTER_GROUP_STOP_CRITICAL_MODE, null, true);
+    }
+
+    private void alterInternal(String taskName, BSONObject options, boolean allowNullArgs) {
+        if (options == null && !allowNullArgs) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
+        }
+        BSONObject query = new BasicBSONObject();
+        BSONObject hint = new BasicBSONObject();
+        query.put(SdbConstants.FIELD_NAME_ACTION, taskName);
+        query.put(SdbConstants.FIELD_NAME_OPTIONS, options);
+
+        hint.put(SdbConstants.FIELD_NAME_GROUPID, this.id);
+        AdminRequest request = new AdminRequest(AdminCommand.ALTER_GROUP, query, hint);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        sequoiadb.throwIfError(response);
+    }
+
     private Node getNodeByMetaInfo(final String inputHostName, final int inputPort) {
         // check
         if (inputHostName == null || inputHostName.isEmpty() || inputPort < 0 || inputPort > 65535) {
