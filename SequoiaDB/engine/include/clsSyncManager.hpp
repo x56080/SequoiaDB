@@ -169,11 +169,12 @@ namespace engine
       }
 
    private:
-      INT32 _wait( _clsSyncSession &session, UINT32 sub, INT64 timeout = -1 ) ;
+      INT32 _wait( _clsSyncSession &session, UINT32 sub,
+                   BOOLEAN hasJump, INT64 timeout = -1 ) ;
 
       /// compare waitPlan of session whit checkList, and if necessary,
       /// jump to next checklist until it passes checklist.
-      INT32 _jump( _clsSyncSession &session, UINT32 &sub, BOOLEAN &needWait ) ;
+      INT32 _jump( _clsSyncSession &session, UINT32 &sub, BOOLEAN &needWait, BOOLEAN &hasJump ) ;
 
       void _createWakePlan( CLS_WAKE_PLAN &plan ) ;
 

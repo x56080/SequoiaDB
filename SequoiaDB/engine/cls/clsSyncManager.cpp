@@ -282,6 +282,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 sub = 0;
       BOOLEAN needWait = TRUE ;
+      BOOLEAN hasJump = FALSE ;
 
       /// if w <= 1, return
       if ( CLS_REPLSE_WRITE_ONE >= w )
@@ -351,7 +352,7 @@ namespace engine
          }
          else
          {
-            rc = _jump( session, sub, needWait ) ;
+            rc = _jump( session, sub, needWait, hasJump ) ;
          }
       }
       else
@@ -367,7 +368,7 @@ namespace engine
       }
       else if ( needWait )
       {
-         rc = _wait( session, sub, timeout ) ;
+         rc = _wait( session, sub, hasJump, timeout ) ;
       }
 
    done:
@@ -958,7 +959,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAIT, "_clsSyncManager::_wait" )
-   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub, INT64 timeout )
+   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub,
+                                 BOOLEAN hasJump, INT64 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAIT ) ;
@@ -1005,7 +1007,7 @@ namespace engine
             }
 
             BOOLEAN needWait = TRUE ;
-            rc = _jump( session, sub, needWait ) ;
+            rc = _jump( session, sub, needWait, hasJump ) ;
             if ( SDB_OK != rc )
             {
                goto done ;
@@ -1014,6 +1016,14 @@ namespace engine
             {
                goto done ;
             }
+         }
+         else if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
+         {
+            if ( hasJump && pmdIsPrimary() )
+            {
+               rc = SDB_TIMEOUT ;
+            }
+            break ;
          }
          else
          {
@@ -1064,7 +1074,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__JUMP, "_clsSyncManager::_jump" )
    INT32 _clsSyncManager::_jump( _clsSyncSession &session,
                                  UINT32 &sub,
-                                 BOOLEAN &needWait )
+                                 BOOLEAN &needWait,
+                                 BOOLEAN &hasJump )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__JUMP ) ;
       INT32 rc = SDB_OK ;
@@ -1100,6 +1111,7 @@ namespace engine
             rc = _syncList[sub].push( session ) ;
             _mtxs[sub].release() ;
             needWait = TRUE ;
+            hasJump = TRUE ;
             break ;
          }
       }
