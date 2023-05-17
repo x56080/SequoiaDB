@@ -38,7 +38,6 @@ public class RecycleBin23871 extends SdbTestBase {
     private String clName = "cl_23871";
     private String originName = csName + "." + clName;
     private List< BSONObject > insertRecords = new ArrayList< BSONObject >();
-    private String lastReturn = "";
 
     @BeforeClass
     public void setUp() {
@@ -80,9 +79,8 @@ public class RecycleBin23871 extends SdbTestBase {
                 .get( 0 );
         ThreadExecutor es = new ThreadExecutor();
         ReturnItemEnforced returnTruncate = new ReturnItemEnforced(
-                recycleName1, "returnTruncate" );
-        ReturnItemEnforced returnDrop = new ReturnItemEnforced( recycleName2,
-                "returnDrop" );
+                recycleName1 );
+        ReturnItemEnforced returnDrop = new ReturnItemEnforced( recycleName2 );
         es.addWorker( returnTruncate );
         es.addWorker( returnDrop );
         es.run();
@@ -91,7 +89,7 @@ public class RecycleBin23871 extends SdbTestBase {
                 .getCollection( clName );
         if ( returnTruncate.getRetCode() == 0
                 && returnDrop.getRetCode() == 0 ) {
-            if ( lastReturn.equals( "returnTruncate" ) ) {
+            if ( dbcl.getCount() == 1000 ) {
                 RecycleBinUtils.checkRecycleItem( sdb, recycleName1 );
                 RecycleBinUtils.checkRecycleItem( sdb, recycleName2 );
                 RecycleBinUtils.checkRecords( dbcl, insertRecords, "{ a:1 }" );
@@ -129,11 +127,9 @@ public class RecycleBin23871 extends SdbTestBase {
 
     private class ReturnItemEnforced extends ResultStore {
         private String recycleName;
-        private String successThread;
 
-        private ReturnItemEnforced( String recycleName, String successThread ) {
+        private ReturnItemEnforced( String recycleName ) {
             this.recycleName = recycleName;
-            this.successThread = successThread;
         }
 
         @ExecuteOrder(step = 1)
@@ -143,7 +139,6 @@ public class RecycleBin23871 extends SdbTestBase {
                 BasicBSONObject option = new BasicBSONObject();
                 option.put( "Enforced", true );
                 db.getRecycleBin().returnItem( recycleName, option );
-                lastReturn = successThread;
             } catch ( BaseException e ) {
                 saveResult( e.getErrorCode(), e );
             }
