@@ -61,13 +61,13 @@
 
    3. 连接本地集群管理服务进程 sdbcm
 
-     ```lang-bash
+     ```lang-javascript
      > var oma = new Oma("localhost", 11790)
      ```
 
    4. 创建临时协调节点
 
-     ```lang-bash
+     ```lang-javascript
      > oma.createCoord(18800, "/opt/sequoiadb/database/coord/18800")
      ```
 
@@ -77,7 +77,7 @@
 
    5. 启动临时协调节点
 
-     ```lang-bash
+     ```lang-javascript
      > oma.startNode(18800)
      ```
 
@@ -85,15 +85,15 @@
 
    1. 连接临时协调节点
  
-     ```lang-bash
-     > var db = new Sdb("localhost",18800)
+     ```lang-javascript
+     > var db = new Sdb("localhost", 18800)
      ```
 
    2. 创建编目节点组
 
-     ```lang-bash
-    >  db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")
-    ```
+     ```lang-javascript
+     > db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")
+     ```
 
      > **Note:**
      >
@@ -101,7 +101,7 @@
 
    3. 创建编目节点
 
-     ```lang-bash
+     ```lang-javascript
      > var cataRG = db.getCataRG()
      > var node1 = cataRG.createNode("sdbserver2", 11800,"/opt/sequoiadb/database/cata/11800")
      > var node2 = cataRG.createNode("sdbserver3", 11800,"/opt/sequoiadb/database/cata/11800")
@@ -109,7 +109,7 @@
 
    4. 启动编目节点
 
-     ```lang-bash
+     ```lang-javascript
      > node1.start()
      > node2.start()
      ```
@@ -118,13 +118,13 @@
 
    1. 创建数据节点组
  
-     ```lang-bash
+     ```lang-javascript
      > var dataRG = db.createRG("datagroup")
      ```
 
    2. 创建数据节点
 
-     ```lang-bash
+     ```lang-javascript
      > dataRG.createNode("sdbserver1", 11820, "/opt/sequoiadb/database/data/11820")
      > dataRG.createNode("sdbserver2", 11820, "/opt/sequoiadb/database/data/11820")
      > dataRG.createNode("sdbserver3", 11820, "/opt/sequoiadb/database/data/11820")
@@ -132,7 +132,7 @@
 
    3. 启动数据节点组
 
-     ```lang-bash
+     ```lang-javascript
      > dataRG.start()
      ```
 
@@ -140,13 +140,13 @@
 
    1. 创建协调节点组
 
-     ```lang-bash
+     ```lang-javascript
      > var coordRG = db.createCoordRG()
      ```
 
    2. 创建协调节点
 
-     ```lang-bash
+     ```lang-javascript
      > coordRG.createNode("sdbserver1", 11810, "/opt/sequoiadb/database/coord/11810")
      > coordRG.createNode("sdbserver2", 11810, "/opt/sequoiadb/database/coord/11810")
      > coordRG.createNode("sdbserver3", 11810, "/opt/sequoiadb/database/coord/11810")
@@ -154,7 +154,7 @@
 
    3. 启动协调节点组：
 
-     ```lang-bash
+     ```lang-javascript
      > coordRG.start()
      ```
 
@@ -162,13 +162,13 @@
 
    1. 连接本地集群管理服务进程 sdbcm
 
-     ```lang-bash
+     ```lang-javascript
      > var oma = new Oma("localhost", 11790)
      ```
 
    2. 删除临时协调节点
 
-     ```lang-bash
+     ```lang-javascript
      > oma.removeCoord(18800)
      ```
 
