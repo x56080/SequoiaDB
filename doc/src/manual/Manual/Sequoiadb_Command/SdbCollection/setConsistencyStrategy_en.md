@@ -44,7 +44,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v3.6.4 and above
+v3.6.1 and above
 
 ##EXAMPLES##
 
