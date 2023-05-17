@@ -314,9 +314,15 @@ next:
    if ( isOwned )
    {
       rc = _processOwnedClientMsg( pMsg, pCommand, sessCtx, needNext ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Session[%s] failed to process owned client "
-                   "msg, rc: %d", sessionName(), rc ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to process owned client "
+                    "msg, rc: %d", sessionName(), rc ) ;
+         }
+         goto error ;
+      }
 
       if ( needNext )
       {
@@ -587,26 +593,23 @@ done:
 }
 
 /*
-
-eg:
-
-Query command is executed in two steps: query operation and getMore operation
+Query command is executed in two steps: query operation and getMore operation.
 
 In SequoiaDB, these two operations must be performed in the same session.
-But in MongoDB, these two operations can be performed in different session.
+But in MongoDB, these two operations can be performed in different sessions.
 
-Under a query command, when we receive query operation message in A session,
-and receive getMore operation message in B session, we need to forward the
-getMore message to Session B for execution, and B session will send response
-to A session.
+For a query command, if we receive query operation message in session A,
+and receive getMore operation message in session B, we need to forward the
+getMore message to Session A for execution, and session A will send response
+to session B.
 
               getMore request msg
-   A session ----------------------> B session
+   session B ----------------------> session A
                                          |
                                          | process msg
                                          |
               getMore response msg       V
-   A session <---------------------- B session
+   session B <---------------------- session A
 
 */
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RUN, "_mongoSession::run" )

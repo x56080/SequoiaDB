@@ -353,7 +353,7 @@ INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *pFieldName,
    try
    {
       BSONElement ele = obj.getField ( pFieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                  "Can't locate field '%s': %s",
                  pFieldName,
                  obj.toString().c_str() ) ;
@@ -385,7 +385,7 @@ INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *pFieldName,
    try
    {
       BSONElement ele = obj.getField ( pFieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                  "Can't locate field '%s': %s",
                  pFieldName,
                  obj.toString().c_str() ) ;
@@ -417,7 +417,7 @@ INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *pFieldName,
    try
    {
       BSONElement ele = obj.getField ( pFieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                  "Can't locate field '%s': %s",
                  pFieldName,
                  obj.toString().c_str() ) ;
@@ -449,7 +449,7 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *pFieldName,
    try
    {
       BSONElement ele = obj.getField ( pFieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                  "Can't locate field '%s': %s",
                  pFieldName,
                  obj.toString().c_str() ) ;
