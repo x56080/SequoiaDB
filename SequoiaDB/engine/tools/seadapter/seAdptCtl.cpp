@@ -396,7 +396,8 @@ namespace engine
          rc = ossEnumSubDirs( cfgDirPath, serviceNameList, 1 ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Enum %s failed, rc: %d", cfgDirPath, rc ) ;
+            ossPrintf( "Error: Enum [%s] sub dirs failed: %d"OSS_NEWLINE,
+                       cfgDirPath, rc ) ;
             goto error;
          }
       }
