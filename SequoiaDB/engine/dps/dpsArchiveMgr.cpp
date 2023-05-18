@@ -520,6 +520,22 @@ namespace engine
       PD_TRACE_EXIT ( SDB_DPSARCHIVEMGR_ONMOVELOG ) ;
    }
 
+   INT32 dpsArchiveMgr::canAssignLogPageOnSecondary( UINT32 reqLen, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = canAssignLogPage( reqLen, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    DPS_LSN dpsArchiveMgr::_calcStartLSN()
    {
       DPS_LSN infoStartLSN ;
