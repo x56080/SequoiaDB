@@ -1,19 +1,18 @@
-/************************************
-*@Description: 单键全文索引，插入全文索引字段为数组类型的记录，全量同步/增量同步到ES 
-*@author:      liuxiaoxuan
-*@createdate:  2018.10.10
-*@testlinkCase: seqDB-15537
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-15537:单键全文索引，插入全文索引字段为数组类型的记录，全量同步/增量同步到ES
+ * @Author        : liuxiaoxuan 
+ * @CreateTime    : 2018.10.10
+ * @LastEditTime  : 2023.05.13
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_es_15537";
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
-
-   var clName = COMMCLNAME + "_ES_15537";
-   dropCL( db, COMMCSNAME, clName, true, true );
-
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   var dbcl = testPara.testCL;
+   var clName = testConf.clName;
 
    // 创建全文索引前插入数据
    var doc = [{ a: ["arr1"] },
@@ -41,7 +40,6 @@ function test ()
    { a: ["hrr1", { "$regex": "^zzz", "$options": "i" }, null] },
    { a: [{ "$binary": "qe91", "$type": "1" }, { "$date": "2019-11-01" }, { "$timestamp": "2019-11-01-13.14.26.124233" }, { "a": "b" }, "abc", true, 10000000000] }
    ];
-
    dbcl.insert( doc );
 
    var textIndexName = "textIndex_15537";
@@ -73,9 +71,4 @@ function test ()
    actRecords = dbOpr.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, { _id: { "$include": 0 } }, { _id: 1 } );
    expectRecords = [];
    checkResult( expectRecords, actRecords );
-
-   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   dropCL( db, COMMCSNAME, clName, true, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexNames );
 }

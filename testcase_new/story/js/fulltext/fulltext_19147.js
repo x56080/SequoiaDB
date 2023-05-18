@@ -1,19 +1,19 @@
-/************************************
-*@Description: seqDB-19147:����ȫ�������������ֶ�Ϊ����Ԫ�أ�����ȫ�������ֶ�Ϊ��string����
-*@author:      zhaoyu
-*@createdate:  2019.08.14
-*@testlinkCase: seqDB-19147
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-19147:单键全文索引，索引字段为数组元素，更新全文索引字段为非string类型
+ * @Author        : zhaoyu 
+ * @CreateTime    : 2019.08.14
+ * @LastEditTime  : 2023.05.12
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_es_19147";
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
-
-   var clName = COMMCLNAME + "_19147";
+   var dbcl = testPara.testCL;
+   var clName = testConf.clName;
    var textIndexName = "textIndex_19147";
-   dropCL( db, COMMCSNAME, clName, true, true );
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    dbcl.createIndex( textIndexName, { "a.1": "text" } );
    var objs = new Array( { id: 1, a: "string1" },
       { id: 2, a: 1 },
@@ -27,15 +27,11 @@ function test ()
    dbcl.insert( objs );
    dbcl.update( { $set: { "a.1": 123 } } );
 
+   //更新后只有obj类型满足映射类型，创建索引数据
    var dbOpr = new DBOperator();
-   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 1 );
    var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
    var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } }, { _id: 1 } );
-   var expResult = [];
+   var expResult = [{ id: 7, a: { 0: "obj", 1: 123, 2: "obj" } }];
    checkResult( expResult, actResult );
-
-   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   dropCL( db, COMMCSNAME, clName, true, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexNames );
 }

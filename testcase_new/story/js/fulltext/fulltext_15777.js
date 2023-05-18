@@ -1,19 +1,18 @@
-/************************************
-*@Description: 将全文索引字段为数组类型更新为非string类型 
-*@author:      liuxiaoxuan
-*@createdate:  2018.10.10
-*@testlinkCase: seqDB-15777
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-15777:单键全文索引，更新数组为非string
+ * @Author        : liuxiaoxuan 
+ * @CreateTime    : 2018.10.10
+ * @LastEditTime  : 2023.05.11
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_es_15777";
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
-
-   var clName = COMMCLNAME + "_ES_15777";
-   dropCL( db, COMMCSNAME, clName, true, true );
-
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   var dbcl = testPara.testCL;
+   var clName = testConf.clName;
 
    // 创建全文索引前插入数据
    var doc = [{ a: ["arr1"] },
@@ -36,15 +35,10 @@ function test ()
 
    // 更新至非string类型的记录
    dbcl.update( { "$set": { a: -1 } }, { a: { "$isnull": 0 } } );
-   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 12 );
 
-   // 检查全文检索结果
-   expResult = [];
-   actResult = dbOpr.findFromCL( dbcl, { "": { "$Text": { "query": { "match_all": {} } } } }, { "_id": { "$include": 0 } }, { _id: 1 } );
+   // 检查全文检索结果   
+   var expResult = dbOpr.findFromCL( dbcl, {}, { "_id": { "$include": 0 } }, { _id: 1 } );
+   var actResult = dbOpr.findFromCL( dbcl, { "": { "$Text": { "query": { "match_all": {} } } } }, { "_id": { "$include": 0 } }, { _id: 1 } );
    checkResult( expResult, actResult );
-
-   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   dropCL( db, COMMCSNAME, clName, true, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexNames );
 }

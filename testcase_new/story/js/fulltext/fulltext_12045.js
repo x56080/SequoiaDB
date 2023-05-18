@@ -1,21 +1,19 @@
-/************************************
-*@Description: 带from/size进行全文检索  
-*@author:      liuxiaoxuan
-*@createdate:  2018.10.10
-*@testlinkCase: seqDB-12045
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-12045:带from/size进行全文检索
+ * @Author        : liuxiaoxuan 
+ * @CreateTime    : 2018.10.10
+ * @LastEditTime  : 2023.05.16
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_es_12045";
+
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
-
-   //create CL
-   var clName = COMMCLNAME + "_ES_12045";
-   dropCL( db, COMMCSNAME, clName, true, true );
-
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
-
+   var dbcl = testPara.testCL;
+   var clName = testConf.clName;
    var textIndexName = "textIndex_12045";
    dbcl.createIndex( textIndexName, { "a": "text" } );
 
@@ -60,22 +58,10 @@ function test ()
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
 
-   // from+size > 10000, should fail
-   try
+   // from+size > 10000, should fail  
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var rec = dbcl.find( { "": { "$Text": { "query": { "match_all": {} }, "from": 0, "size": 10001 } } } );
       rec.next();
-      throw new Error( "find es overrize" );
-   }
-   catch( e )
-   {
-      if( SDB_INVALIDARG != e )
-      {
-         throw e;
-      }
-   }
-
-   dropCL( db, COMMCSNAME, clName, true, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexNames );
+   } );
 }

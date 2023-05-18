@@ -62,7 +62,7 @@ function ESOperator ()
       println( "countFromES() run CURL command, to get count info from elasticsearch by rest: " + info );
       //get json
       var json = eval( "(" + info + ")" );
-      println( "countFromES() eval info: " + json );
+      println( "countFromES() eval info: " + JSON.stringify( json ) );
       count = json["count"];
       return count;
    }
@@ -83,7 +83,7 @@ function ESOperator ()
       println( "getCommitIDFromES() run CURL command, to get SDBCOMMITID info from elasticsearch by rest: " + info );
       //get json
       var json = eval( "(" + info + ")" );
-      println( "getCommitIDFromES() eval info: " + json );
+      println( "getCommitIDFromES() eval info: " + JSON.stringify( json ) );
       var array = json["hits"]["hits"];
       if( array.length == 1 )
       {
@@ -111,10 +111,8 @@ function ESOperator ()
    {
       // get curl command
       var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "' 2>/dev/null";
-
       //the longest waiting time is 900s
       var isExist = false;
-      // var timeout = 300;
       var timeout = 900;
       var doTimes = 0;
       while( doTimes < timeout )
@@ -123,7 +121,7 @@ function ESOperator ()
          println( "isCreateIndexInES() run CURL command, to get index info from elasticsearch by rest: " + info );
          //get json
          var json = eval( "(" + info + ")" );
-         println( "isCreateIndexInES() eval info: " + json );
+         println( "isCreateIndexInES() eval info: " + JSON.stringify( json ) );
          var error = json["error"];
          if( typeof ( error ) == "undefined" )
          {
@@ -224,7 +222,20 @@ function DBOperator ()
    {
       // check cappedcl name is valid
       var dbcl = db.getCS( csName ).getCL( clName );
-      var cappedCLName = this.getCappedCLName( dbcl, textIndexName );
+      var clUniqueID;
+      var cursor = db.snapshot( 8, { Name: csName + "." + clName }, { UniqueID: 1 } );
+      while( cursor.next() )
+      {
+         clUniqueID = cursor.current().toObj().UniqueID;
+      }
+      cursor.close();
+
+      var idx = dbcl.getIndex( textIndexName ).toObj();
+      var clIdxInnerID = idx.IndexDef.UniqueID;
+
+      //索引名为 sdb_UniqueID_groupName，其中UniqueID为是由 clUniqueID 十六进制字符串和 indexUniqueID 后 32 位的 16 进制字符串组成的
+      var clUniqueIDHexStr = numToHexStr( clUniqueID, 16 );
+      var clIdxInnerIDHexStr = numToHexStr( clIdxInnerID & 0x00000000FFFFFFFF, 8 );
 
       // get es index names
       var esIndexNames = new Array();
@@ -234,11 +245,34 @@ function DBOperator ()
       clGroupNames.sort();
       for( var i in clGroupNames )
       {
-         esIndexNames.push( FULLTEXTPREFIX.toLowerCase() + cappedCLName.toLowerCase() + "_" + clGroupNames[i] );
+         esIndexNames.push( FULLTEXTPREFIX.toLowerCase() + "sdb_" + clUniqueIDHexStr.toLowerCase() + clIdxInnerIDHexStr.toLowerCase() + "_" + clGroupNames[i] );
       }
 
       // if sharding cl, return all indices
       return esIndexNames;
+   }
+
+   function numToHexStr ( num, totalStrlen )
+   {
+      var numHexStr = num.toString( 16 );
+      if( totalStrlen < numHexStr.length )
+      {
+         throw new Error( "Invalid total str len" );
+      }
+      else if( totalStrlen == numHexStr.length )
+      {
+         return numHexStr;
+      }
+      else 
+      {
+         var ret = "";
+         for( var i = 0; i < totalStrlen - numHexStr.length; i++ )
+         {
+            ret += "0";
+         }
+         ret += numHexStr;
+         return ret;
+      }
    }
 
    /*****************************************************************
@@ -291,9 +325,13 @@ function DBOperator ()
                 clName
                 expectCount
 ******************************************************************/
-function checkFullSyncToES ( csName, clName, textIndexName, expectCount )
+function checkFullSyncToES ( csName, clName, textIndexName, expectCount, esIndexNames )
 {
-   var esIndexNames = dbOpr.getESIndexNames( csName, clName, textIndexName );
+   if( typeof ( esIndexNames ) == "undefined" ) 
+   {
+      esIndexNames = dbOpr.getESIndexNames( csName, clName, textIndexName );
+   }
+
    var cappedCLs = dbOpr.getCappedCLs( csName, clName, textIndexName );
 
    // check indexnames sync to ES
@@ -375,7 +413,6 @@ function checkCountInES ( esIndexNames, expectCount )
 {
    //the longest waiting time is 900S
    var isSync = false;
-   // var timeout = 600;
    var timeout = 900;
    var doTimes = 0;
 
@@ -425,8 +462,7 @@ function checkLidInES ( esIndexNames, cappedCLs )
 
    //the longest waiting time is 900S
    var isSync = false;
-   // var timeout = 600;
-   var timeout = 900;
+   var timeout = 600;
    var doTimes = 0;
 
    // get all lids from all groups
@@ -498,7 +534,7 @@ function checkResult ( expectResult, actResult )
 {
    if( expectResult.length !== actResult.length )
    {
-      throw new Error( "checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length );
+      throw new Error( "checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length + "\nactual=" + JSON.stringify( actResult ) );
    }
 
    // compare array  
