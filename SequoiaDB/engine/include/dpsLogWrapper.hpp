@@ -254,6 +254,11 @@ namespace engine
          return _buf.checkSyncControl( reqLen, cb ) ;
       }
 
+      OSS_INLINE INT32 checkSeondarySyncControl( UINT32 reqLen, _pmdEDUCB *cb )
+      {
+         return _buf.checkSeondarySyncControl( reqLen, cb ) ;
+      }
+
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
    public:

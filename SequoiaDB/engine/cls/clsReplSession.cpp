@@ -1087,6 +1087,7 @@ namespace engine
       DPS_LSN completeLSN ;
       DPS_LSN_OFFSET firstOffset = DPS_INVALID_LSN_OFFSET ;
       BOOLEAN inRetry = FALSE ;
+
       num = 0 ;
 
    retry:
@@ -1212,6 +1213,13 @@ namespace engine
                     recordHeader->_length, len, log + len - logs ) ;
             SDB_ASSERT( FALSE, "record length is invalid" ) ;
             rc = SDB_DPS_CORRUPTED_LOG ;
+            goto error ;
+         }
+
+         rc = _logger->checkSeondarySyncControl( recordHeader->_length, eduCB() ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Check sync control failed, rc: %d", rc ) ;
             goto error ;
          }
 
