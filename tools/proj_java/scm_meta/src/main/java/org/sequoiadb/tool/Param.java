@@ -29,7 +29,7 @@ public class Param {
     public final static String ACTION_INITJOB = "initjob";
     public final static String ACTION_REPAIR = "repair";
     private final int THREADNUM_DEFAULT = 5;
-    private final int BATCHSIZE_DEFAULT = 10000;
+    private final int BATCHSIZE_DEFAULT = 1000;
 
     String[] args;
     private String host; // <hostname:port>

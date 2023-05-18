@@ -30,10 +30,7 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Worker implements Runnable {
 
@@ -106,9 +103,9 @@ public class Worker implements Runnable {
 //         2.2.4.1) 更新失败，将 Oid 写入 update_fail.list 文件
 //     3.4 用最后一次使用的 Oid 覆盖 jobInfo 中的 Oid
 //     3.5 将 jobInfo 更新回 JobMgr
+
     private void doit(Sequoiadb sdb, List<Sequoiadb> connList, JobInfo jobInfo) {
         String fullName = jobInfo.getCollectionName();
-        ObjectId lastOid = null;
         long startTM = System.currentTimeMillis();
         long lastTM = startTM;
         int totalFixedCount = 0;
@@ -120,108 +117,238 @@ public class Worker implements Runnable {
         DBCollection coll = getCollection(sdb, fullName);
         List<DBCollection> collList = getCollections(connList, fullName);
 
-        while (true) {
-            // 使用 LastOid + hint($oid) + limit 从主节点获取一批数据
-            DBCursor cursor = queryData(collList.get(0), jobInfo.getLastOid(), param.getBatchSize());
-            try {
-                if (!cursor.hasNext()) {
-                    // 数据集为空，说明所有数据已经处理完毕。将当前任务的状态标记为 "DONE"，并最后一次更新 jobInfo
-                    jobInfo.setLastOid(lastOid);
+        try {
+            while (Controller.isRunning()) {
+                // jobInfo 的 lastOid 会在底层运行过程，不断更新
+                ObjectId lastOid = jobInfo.getLastOid();
+                // 使用 LastOid + hint($oid) + limit 从主节点获取一批数据
+                DBCursor cursor = queryData(collList.get(0), lastOid, param.getBatchSize());
+
+                // 将主节点当前批次数据放到 list 容器
+                List<BSONObject> masterRecords = null;
+                try {
+                    masterRecords = getCursorRecords(cursor);
+                } finally {
+                    cursor.close();
+                }
+                if (masterRecords == null || masterRecords.isEmpty()) {
+                    // 说明所有数据已经处理完毕。将当前任务的状态标记为 "DONE"，并最后一次更新 jobInfo
                     jobInfo.setStatus(JobInfo.STATUS_DONE);
                     jobMgr.updateJobRecord(jobInfo);
                     logger.info("Finish job: " + jobInfo.getBaseInfo());
                     return;
                 }
-                // 循环处理这批数据
-                while (cursor.hasNext()) {
-                    totalFixedCount++;
-                    if (totalFixedCount % 100 == 0 && !Controller.isRunning()) {
-                        // 每循环 100 次，就检查一下是否需要终止退出。防止 kill -15 等操作后，线程长时间没有退出
-                        jobInfo.setLastOid(lastOid);
-                        jobMgr.updateJobRecord(jobInfo);
-                        logger.info("Interrupted job: " + jobInfo.getBaseInfo());
-                        return;
-                    }
-                    BSONObject masterRecord = cursor.getNext();
-                    ObjectId oid = (ObjectId) masterRecord.get("_id");
-                    List<BasicBSONList> siteLists = new ArrayList<>();
-                    try {
-                        /// 使用 Oid 把所有备节点记录查回来。如果备节点查询不到结果，或者主备节点记录没有 site_list 字段，
-                        /// 便将 Oid 写入 miss_record.list
-                        List<BasicBSONList> slaveSiteLists = getSlaveSiteList(collList, oid);
-                        BasicBSONList siteList = (BasicBSONList) masterRecord.get("site_list");
-                        /// 把所有节点返回的 site_list 都放在一起，供后续用于 比较一致性、合并去重、构造查询条件 等
-                        siteLists.add(siteList);
-                        siteLists.addAll(slaveSiteLists);
-                    } catch (Exception e) {
-                        logger.warn("Failed to extract site_list from record with oid: " + oid.toString()
-                                + "error: " + e.getMessage());
-                        // 检测连接是否还有效。如果有效，就继续循环。否则，进程异常退出
-                        if (isConnectionValid(sdb, connList)) {
-                            fileMgr.writeMissRecord(fullName, oid);
-                            lastOid = oid;
-                            continue;
-                        } else {
-                            jobInfo.setLastOid(lastOid);
-                            jobMgr.updateJobRecord(jobInfo);
-                            logger.error("Connection is broken for job: " + jobInfo.getBaseInfo());
-                            throw e;
-                        }
-                    }
-                    /// 比较及处理这些 site_list
-                    boolean isOk = isConsistentAndLegal(siteLists);
-                    if (isOk) {
-                        //// site_list 字段所有元素一致，且没有非法元素，跳过这条元数据记录
-                        lastOid = oid;
-                        continue;
-                    }
-                    //// 否则，剔除记录中非法元素，将剩余的元素合并、去重，得到一个新的 site_list （last_access_time 已更新为当前时间）
-                    BasicBSONList newSiteList = rebuildSiteList(siteLists);
-                    if (newSiteList.isEmpty()) {
-                        //// 如果新的 site_list 为空，将 Oid 输出到 empty_site.list 文件
-                        fileMgr.writeEmptySite(fullName, oid);
+
+                // 构建一个 map，用于存放当前批次所有副本的记录
+                int key = 0;
+                Map<Integer, List<BSONObject>> groupRecords = new HashMap<>();
+                groupRecords.put(key++, masterRecords);
+
+                // 获取当前批次在其它备节点的记录
+                for (int i = 1; i < collList.size(); i++) {
+                    DBCollection cl = collList.get(i);
+                    List<BSONObject> slaveRecords = getSlaveRecords(cl, masterRecords);
+                    if (slaveRecords != null && !slaveRecords.isEmpty()) {
+                        groupRecords.put(key++, slaveRecords);
                     } else {
-                        boolean isSucc = false;
-                        try {
-                            //// 如果这个 site_list 不为空
-                            //// 使用 $set + 新的 site_list 来构建 updater
-                            //// 使用 _id + $or + 原来所有副本的 site_list 来构建 matcher
-                            //// 连接 coord 进行更新
-                            isSucc = updateSiteList(coll, oid, newSiteList, siteLists);
-                        } catch (Exception e) {
-                            logger.warn("Failed to update in collection: " + fullName + ", e: " + e.getMessage());
-                            isSucc = false;
-                        }
-                        if (isSucc) {
-                            //// 更新成功，将结果 Oid 写入 update_succ.list 文件
-                            fileMgr.writeUpdateSucc(fullName, oid);
-                        } else {
-                            if (isConnectionValid(sdb, connList)) {
-                                //// 更新失败且连接还有效，将结果 Oid 写入 update_fail.list 文件
-                                fileMgr.writeUpdateFail(fullName, oid);
-                            } else {
-                                //// 否则，让进程异常退出
-                                jobInfo.setLastOid(lastOid);
-                                jobMgr.updateJobRecord(jobInfo);
-                                String errMsg = "Connection is broken for job: " + jobInfo.getBaseInfo();
-                                logger.error(errMsg);
-                                throw new BaseException(SDBError.SDB_SYS, errMsg);
-                            }
-                        }
+                        // 如果备节点没有数据返回，说明主备存在严重的数据不一致。这种情况无法处理，直接报错中止运行
+                        String errMsg = "No records in slave: " + connList.get(i).toString() +
+                                " for collection: " + fullName + ", lastOid is: " + lastOid;
+                        logger.error(errMsg);
+                        throw new BaseException(SDBError.SDB_SYS, errMsg);
                     }
-                    lastOid = oid;
                 }
-            } finally {
-                cursor.close();
+
+                // 比较、合并、更新当前批次
+                checkAndUpdateRecords(sdb, connList, coll, fullName, jobInfo, groupRecords);
+
+                // 尝试打印统计信息。每隔 5 min 打印一次
+                totalFixedCount += masterRecords.size();
+                lastTM = Helper.printStatistics(jobInfo.getBaseInfo(), startTM, lastTM, totalFixedCount);
             }
-            // 尝试打印统计信息。每隔 5 min 打印一次
-            lastTM = printStatistics(jobInfo, startTM, lastTM, totalFixedCount);
-            // 用最后一个更新记录的 Oid 覆盖 jobInfo 中的 Oid，并将 jobInfo 更新回 JobMgr
-            jobInfo.setLastOid(lastOid);
-            jobMgr.updateJobRecord(jobInfo);
-            fileMgr.flush(fullName);
+        } finally {
+            // 退出前再打印一次统计信息
+            Helper.printStatistics(jobInfo.getBaseInfo(), startTM, lastTM, totalFixedCount, 0);
         }
     }
+
+    private List<BSONObject> getCursorRecords(DBCursor cursor) {
+        List<BSONObject> recordList = new ArrayList<>();
+        while (cursor.hasNext()) {
+            recordList.add(cursor.getNext());
+        }
+        return recordList;
+    }
+
+    private List<BSONObject> getSlaveRecords(DBCollection coll, List<BSONObject> objectList) {
+        List<BSONObject> recordList = null;
+        BSONObject matcher = new BasicBSONObject();
+        BSONObject hint = new BasicBSONObject("", IDX_ID);
+        BasicBSONList bsonList = new BasicBSONList();
+        int index = 0;
+
+        // build matcher
+        for (BSONObject obj : objectList) {
+            bsonList.put(index++, obj.get("_id"));
+        }
+        matcher.put("_id", new BasicBSONObject("$in", bsonList));
+
+        // query from slave data node
+        DBCursor cursor = coll.query(matcher, null, null, hint);
+        try {
+            recordList = getCursorRecords(cursor);
+        } finally {
+            cursor.close();
+        }
+
+        return recordList;
+    }
+
+    private void checkAndUpdateRecords(Sequoiadb sdb, List<Sequoiadb> connList,
+                                       DBCollection coll, String fullName,
+                                       JobInfo jobInfo,
+                                       Map<Integer, List<BSONObject>> groupRecords) {
+        ObjectId lastOid = null;
+        int counter = 0;
+        int nodeCount = groupRecords.size();
+        List<BSONObject> masterRecords = groupRecords.get(0);
+        try {
+            for (int i = 0; i < masterRecords.size(); i++) {
+                if (++counter % 100 == 0 && !Controller.isRunning()) { // 定期检查是否需要提前退出
+                    if (lastOid != null) {
+                        jobInfo.setLastOid(lastOid);
+                        jobMgr.updateJobRecord(jobInfo);
+                    }
+                    return;
+                }
+                BSONObject masterRecord = masterRecords.get(i);
+                ObjectId oid = (ObjectId) masterRecord.get("_id");
+                List<BasicBSONList> bsonLists = null;
+                try {
+                    /// 把所有备节点记录拿出来。如果备节点缺少记录，或者主备 Oid 不相等，或者主备节点记录没有 site_list 字段，
+                    /// 便将 Oid 写入 miss_record.list
+                    bsonLists = getBSONList(masterRecord, i, nodeCount, fullName, groupRecords);
+                } catch (Exception e) {
+                    logger.warn("Failed to extract site_list from record with oid: " + oid.toString()
+                            + "error: " + e.getMessage());
+                    // 检测连接是否还有效。如果有效，就继续循环。否则，进程异常退出
+                    if (isConnectionValid(sdb, connList)) {
+                        fileMgr.writeMissRecord(fullName, oid);
+                        lastOid = oid;
+                        continue;
+                    } else {
+                        if (lastOid != null) {
+                            jobInfo.setLastOid(lastOid);
+                            jobMgr.updateJobRecord(jobInfo);
+                        }
+                        logger.error("Connection is broken for job: " + jobInfo.getBaseInfo());
+                        throw e;
+                    }
+                }
+                // check and update one record
+                checkAndUpdateOneRecord(sdb, connList, coll, fullName, jobInfo, oid, lastOid, bsonLists);
+                lastOid = oid;
+            }
+        } finally {
+            if (lastOid != null) {
+                // 用最后一个更新记录的 Oid 覆盖 jobInfo 中的 Oid，并将 jobInfo 更新回 JobMgr
+                jobInfo.setLastOid(lastOid);
+                jobMgr.updateJobRecord(jobInfo);
+                fileMgr.flush(fullName);
+            }
+        }
+    }
+
+    private List<BasicBSONList> getBSONList(BSONObject masterRecord,
+                                            int recordPosition,
+                                            int nodeCount,
+                                            String fullName,
+                                            Map<Integer, List<BSONObject>> groupRecords) {
+        List<BasicBSONList> bsonLists = new ArrayList<>();
+        // 获取主节点的记录，并把 site_list 放进 list 容器
+        ObjectId masterOid = (ObjectId) masterRecord.get("_id");
+        BasicBSONList siteList1 = (BasicBSONList) masterRecord.get("site_list");
+        if (siteList1 == null) {
+            String errMsg = "Master record which oid is [" + masterOid +
+                    "] does not have site_list field in collection: " + fullName;
+            logger.error(errMsg);
+            throw new BaseException(SDBError.SDB_SYS, errMsg);
+        }
+        bsonLists.add(siteList1);
+        // 获取备节点的记录 site_list，并比较记录的 oid 与主节点的是否相等
+        for (int index = 1; index < nodeCount; index++) {
+            List<BSONObject> slaveRecords = groupRecords.get(index);
+            BSONObject slaveRecord = slaveRecords.get(recordPosition);
+            ObjectId slaveOid = (ObjectId) slaveRecord.get("_id");
+            if (!masterOid.equals(slaveOid)) {
+                String errMsg = "Master oid[" + masterOid + "] does not equal to slave oid[" + slaveOid
+                        + "] in collection: " + fullName;
+                logger.error(errMsg);
+                throw new BaseException(SDBError.SDB_SYS, errMsg);
+            } else {
+                BasicBSONList siteList2 = (BasicBSONList) slaveRecord.get("site_list");
+                if (siteList2 == null) {
+                    String errMsg = "Slave record which oid is [" + masterOid +
+                            "] does not have site_list field in collection: " + fullName;
+                    logger.error(errMsg);
+                    throw new BaseException(SDBError.SDB_SYS, errMsg);
+                }
+                bsonLists.add(siteList2);
+            }
+        }
+        return bsonLists;
+    }
+
+    private void checkAndUpdateOneRecord(Sequoiadb sdb, List<Sequoiadb> connList,
+                                         DBCollection coll, String fullName,
+                                         JobInfo jobInfo,
+                                         ObjectId oid, ObjectId lastOid,
+                                         List<BasicBSONList> siteLists) {
+
+        /// 比较及处理这些 site_list
+        boolean isOk = isConsistentAndLegal(siteLists);
+        if (isOk) {
+            //// site_list 字段所有元素一致，且没有非法元素，跳过这条元数据记录
+            return;
+        }
+        //// 否则，剔除记录中非法元素，将剩余的元素合并、去重，得到一个新的 site_list （last_access_time 已更新为当前时间）
+        BasicBSONList newSiteList = rebuildSiteList(siteLists);
+        if (newSiteList.isEmpty()) {
+            //// 如果新的 site_list 为空，将 Oid 输出到 empty_site.list 文件
+            fileMgr.writeEmptySite(fullName, oid);
+        } else {
+            boolean isSucc = false;
+            try {
+                //// 如果这个 site_list 不为空
+                //// 使用 $set + 新的 site_list 来构建 updater
+                //// 使用 _id + $or + 原来所有副本的 site_list 来构建 matcher
+                //// 连接 coord 进行更新
+                isSucc = updateSiteList(coll, oid, newSiteList, siteLists);
+            } catch (Exception e) {
+                logger.warn("Failed to update in collection: " + fullName + ", e: " + e.getMessage());
+                isSucc = false;
+            }
+            if (isSucc) {
+                //// 更新成功，将结果 Oid 写入 update_succ.list 文件
+                fileMgr.writeUpdateSucc(fullName, oid);
+            } else {
+                if (isConnectionValid(sdb, connList)) {
+                    //// 更新失败且连接还有效，将结果 Oid 写入 update_fail.list 文件
+                    fileMgr.writeUpdateFail(fullName, oid);
+                } else {
+                    //// 否则，让进程异常退出
+                    if (lastOid != null) {
+                        jobInfo.setLastOid(lastOid);
+                        jobMgr.updateJobRecord(jobInfo);
+                    }
+                    String errMsg = "Connection is broken for job: " + jobInfo.getBaseInfo();
+                    logger.error(errMsg);
+                    throw new BaseException(SDBError.SDB_SYS, errMsg);
+                }
+            }
+        }
+    }
+
 
     private boolean isConnectionValid(Sequoiadb sdb, List<Sequoiadb> connList) {
         if (!sdb.isValid()) {
@@ -474,19 +601,4 @@ public class Worker implements Runnable {
 
         return true;
     }
-
-    private long printStatistics(JobInfo jobInfo, long startTM, long lastTM, int fixedCount) {
-        long currentTM = System.currentTimeMillis();
-        if ((currentTM - lastTM) >= 300000) { // 大于 5min 打印一次统计信息
-            long deltaTM = currentTM - startTM;
-            long sec = deltaTM / 1000;
-            long millSec = deltaTM % 1000;
-            logger.info("Job[" + jobInfo.getBaseInfo() + "] in worker [" + Thread.currentThread().getName() +
-                    "] " + "has run: " + sec + "." + millSec + "(secs), and has fixed: " + fixedCount + " records");
-            return currentTM;
-        } else {
-            return lastTM;
-        }
-    }
-
 }

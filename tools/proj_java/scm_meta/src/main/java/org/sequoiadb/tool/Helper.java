@@ -22,11 +22,14 @@ import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Helper {
+    private static final Logger logger = LoggerFactory.getLogger(Helper.class);
     public static final long timestamp = System.currentTimeMillis();
 
     public static List<String> getAllNode(Sequoiadb sdb, String groupName) {
@@ -91,4 +94,23 @@ public class Helper {
         }
         return nodeList1;
     }
+
+    public static long printStatistics(String taskInfo, long startTM, long lastTM, int fixedCount) {
+        return printStatistics(taskInfo, startTM, lastTM, fixedCount, 300); // 大于 5min 打印一次统计信息
+    }
+
+    public static long printStatistics(String taskInfo, long startTM, long lastTM, int fixedCount, int intervalSec) {
+        long currentTM = System.currentTimeMillis();
+        if ((currentTM - lastTM) >= (intervalSec * 1000L)) {
+            long deltaTM = currentTM - startTM;
+            long sec = deltaTM / 1000L;
+            long millSec = deltaTM % 1000L;
+            logger.info("Job[" + taskInfo + "] worker[" + Thread.currentThread().getName() +
+                    "] " + "has run: " + sec + "." + millSec + "(secs), and has handled: " + fixedCount + " records");
+            return currentTM;
+        } else {
+            return lastTM;
+        }
+    }
+
 }
