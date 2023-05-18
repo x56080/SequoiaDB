@@ -197,6 +197,8 @@ namespace engine
                                   DPS_LSN_VER expectVersion,
                                   DPS_MOMENT moment,
                                   INT32 errcode ) = 0 ;
+
+         virtual INT32 canAssignLogPageOnSecondary( UINT32 reqLen, _pmdEDUCB *cb ) = 0 ;
    } ;
    typedef _dpsEventHandler dpsEventHandler ;
 

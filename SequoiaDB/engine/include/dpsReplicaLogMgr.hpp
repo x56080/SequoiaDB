@@ -211,6 +211,8 @@ namespace engine
 
       INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
+      INT32 checkSeondarySyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
+
       /// any other interfaces should not be called
       /// when this interface is beging called.
       INT32 move( const DPS_LSN_OFFSET &offset,

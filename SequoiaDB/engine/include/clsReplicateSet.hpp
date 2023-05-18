@@ -338,6 +338,11 @@ namespace engine
             return ;
          }
 
+         virtual INT32 canAssignLogPageOnSecondary( UINT32 reqLen, _pmdEDUCB *cb )
+         {
+            return SDB_OK ;
+         }
+
       public:
          void  regSession ( _clsDataSrcBaseSession *pSession ) ;
          void  unregSession ( _clsDataSrcBaseSession *pSession ) ;

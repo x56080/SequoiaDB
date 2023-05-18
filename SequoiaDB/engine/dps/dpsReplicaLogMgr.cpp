@@ -1588,6 +1588,28 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_CHECKSECSYNCCONTROL, "_dpsReplicaLogMgr::checkSeondarySyncControl" )
+   INT32 _dpsReplicaLogMgr::checkSeondarySyncControl( UINT32 reqLen, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR_CHECKSECSYNCCONTROL ) ;
+
+      if ( _vecEventHandler.size() > 0 )
+      {
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            rc = _vecEventHandler[i]->canAssignLogPageOnSecondary( reqLen, cb ) ;
+            if ( rc )
+            {
+               break ;
+            }
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__DPSRPCMGR_CHECKSECSYNCCONTROL, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_COMMIT, "_dpsReplicaLogMgr::commit" )
    INT32 _dpsReplicaLogMgr::commit( BOOLEAN deeply, DPS_LSN *committedLsn )
    {

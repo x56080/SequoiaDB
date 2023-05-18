@@ -95,11 +95,13 @@ namespace engine
                                DPS_MOMENT moment,
                                INT32 errcode ) ;
 
+      virtual INT32 canAssignLogPageOnSecondary( UINT32 reqLen, _pmdEDUCB *cb ) ;
+
    private:
       DPS_LSN  _calcStartLSN() ;
       INT32    _buildGenerateArchiveEvent( BOOLEAN allowPartial = FALSE ) ;
       INT32    _processLogEvent( dpsArchiveEvent* event ) ;
-      INT32    _generateArchiveEvent( const DPS_LSN& startLSN, 
+      INT32    _generateArchiveEvent( const DPS_LSN& startLSN,
                                       const DPS_LSN& endLSN,
                                       BOOLEAN allowPartial = FALSE ) ;
 
