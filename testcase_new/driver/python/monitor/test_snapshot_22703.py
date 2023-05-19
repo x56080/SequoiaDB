@@ -32,7 +32,7 @@ class Snapshot_22703(testlib.SdbTestBase):
        collection_name = self.cs_name + "." + self.cl_name
 
        self.cl.create_index_with_option( index_def, index_name, option = None)
-       self.db.analyze( options = { "collection": collection_name } )
+       self.db.analyze( options = { "Collection": collection_name } )
        if testlib.is_standalone():
            snapshot_conditon = {"Index": index_name }
        else:
