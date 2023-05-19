@@ -403,7 +403,12 @@ namespace engine
 
                /// sync res is ok but remote has no more new data.
                /// we choose a new node to sync data.
-               _selector.addToBlackList( _syncSrc ) ;
+               /// But don't add location primary to the blackList.
+
+               if ( _repl->getLocationPrimary().value != _syncSrc.value )
+               {
+                  _selector.addToBlackList( _syncSrc ) ;
+               }
                _selector.clearSrc() ;
 
                // can't call _sendSyncReq, because the primary maybe
