@@ -92,7 +92,11 @@ v3.6.1 及以上版本
 > rg.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000})
 ```
 
+查看复制组 group1 中开启的 Critical 模式
 
+```lang-javascript
+> db.list(SDB_LIST_GROUPMODES, {GroupID: 1001})
+```
 
 [^_^]:
      本文使用的所有引用及链接

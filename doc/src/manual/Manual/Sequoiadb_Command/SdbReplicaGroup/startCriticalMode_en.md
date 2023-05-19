@@ -92,6 +92,11 @@ Start Critical mode in replication group "group1".
 > rg.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000})
 ```
 
+Get critical mode's detail in group1
+```lang-javascript
+> db.list(SDB_LIST_GROUPMODES, {GroupID: 1001})
+```
+
 [^_^]:
     Links
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

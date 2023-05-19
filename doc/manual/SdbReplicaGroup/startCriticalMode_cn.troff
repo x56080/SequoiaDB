@@ -220,3 +220,11 @@ v3.6.1 及以上版本
 > rg.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000})
 \f[]
 .fi
+.PP
+查看复制组 group1 中开启的 Critical 模式
+.IP
+.nf
+\f[C]
+> db.list(SDB_LIST_GROUPMODES, {GroupID: 1001})
+\f[]
+.fi

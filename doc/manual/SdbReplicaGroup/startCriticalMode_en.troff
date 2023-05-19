@@ -251,3 +251,11 @@ Start Critical mode in replication group "group1".
 > rg.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000})
 \f[]
 .fi
+.PP
+Get critical mode\[aq]s detail in group1
+.IP
+.nf
+\f[C]
+> db.list(SDB_LIST_GROUPMODES, {GroupID: 1001})
+\f[]
+.fi

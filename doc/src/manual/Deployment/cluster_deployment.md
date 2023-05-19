@@ -174,128 +174,108 @@
 
 ##高可用与容灾说明##
 
-如果用户采用[高可用与容灾部署方案][ha_dr_program]，在集群部署完成后需进行集群信息初始化，便于后续的灾难恢复。在多中心的部署方案中，为保证数据传输效率，用户需关闭自动全量同步功能，以控制 SequoiaDB 集群对网络宽带的占用。下述以同城三中心的部署方案为例，介绍具体操作步骤。
+如果用户采用[高可用与容灾部署方案][ha_dr_program]，在集群部署完成后需按数据中心手动划分[位置集][location]，便于后续的灾难恢复。在多中心的部署方案中，为保证数据传输效率，用户需关闭自动全量同步功能，以控制 SequoiaDB 集群对网络宽带的占用。下述以同城双中心的部署方案为例，介绍具体操作步骤。
 
-###集群信息初始化###
+###划分位置集###
 
-1. 根据数据中心划分子网，主中心为 SUB1，灾备中心为 SUB2
+1. 规划各数据中心对应的位置集
 
-    | 子网 | 主机 |
-    |------|------|
-    | SUB1 | sdbserver1 |
-    | SUB2 | sdbserver2、sdbserver3 |
+    ![划分位置集][location]
 
-2. 选择 SUB1 的主机，切换至容灾工具目录
+2. 选择主中心的任意一台主机，切换至 SequoiaDB 安装目录并启动 SDB Shell
 
     ```lang-bash
-    $ cd /opt/sequoiadb/tools/dr_ha
+    $ cd /opt/sequoiadb
+    $ ./bin/sdb
     ```
 
-3. 修改配置文件 `cluster_opr.js`
-
-    ```lang-bash
-    $ vim cluster_opr.js
-    ```
-
-    修改内容如下：
+3. 连接协调节点
 
     ```lang-javascript
-    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
-    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
-    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3" ] ; }
-    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver1:11810" ] }
-    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 1 ; }
-    if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
-    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
-    if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = false }
+    > var db = new Sdb("localhost", 11810)
     ```
 
-    >**Note:**
+4. 设置编目复制组 SYSCatalogGroup 中各节点的位置集属性
+
+    ```lang-javascript
+    > var cata1 = db.getRG("SYSCatalogGroup").getNode("sdbserver1", 11800)
+    > cata1.setLocation("Guangzhou.Nansha")
+    > var cata2 = db.getRG("SYSCatalogGroup").getNode("sdbserver2", 11800)
+    > cata2.setLocation("Guangzhou.Nansha")
+    > var cata3 = db.getRG("SYSCatalogGroup").getNode("sdbserver3", 11800)
+    > cata3.setLocation("Guangzhou.Panyu")
+    ```
+
+    > **Note:**
+    > 
+    > - 设置位置集属性时，需保证同中心内所有的节点同属一个位置集，同时保证同城的不同中心间具备[位置亲和性][location_principle]。
+    > - [node.setLocation()][node_setLocation] 用于设置单个节点的位置信息，[domain.setLocation()][domain_setLocation] 用于按[域][domain]批量设置节点的位置信息，用户可根据实际需求选择操作方式。
+
+5. 设置数据复制组 datagroup 中各节点的位置集属性
+
+    ```lang-javascript
+    > var data1 = db.getRG("datagroup").getNode("sdbserver1", 11820)
+    > data1.setLocation("Guangzhou.Nansha")
+    > var data2 = db.getRG("datagroup").getNode("sdbserver2", 11820)
+    > data2.setLocation("Guangzhou.Nansha")
+    > var data3 = db.getRG("datagroup").getNode("sdbserver3", 11820)
+    > data3.setLocation("Guangzhou.Panyu")
+    ```
+
+6. 设置编目复制组和数据复制组的 ActiveLocation
+
+    ```lang-javascript
+    > var cataRG = db.getRG("SYSCatalogGroup")
+    > cataRG.setActiveLocation("Guangzhou.Nansha")
+    > var dataRG = db.getRG("datagroup")
+    > dataRG.setActiveLocation("Guangzhou.Nansha")
+    ```
+
+    > **Note:**
     >
-    > 配置文件的参数说明可参考[容灾切换合并工具][split_merge]。
+    > - 如果将某一位置集设置为 ActiveLocation，表示优先从该位置集中选举复制组的主节点。ActiveLocation 需设置为主中心所在的位置集。
+    > - [rg.setActiveLocation()][rg_setActiveLocation] 用于设置单个复制组的 ActiveLocation，[domain.setActiveLocation()][domain_setActiveLocation] 用于按域批量设置复制组的 ActiveLocation，用户可根据实际需求选择操作方式。
 
-4. 集群信息初始化
-
-    ```lang-bash
-    $ sh init.sh 
-    ```
-
-5. 选择 SUB2 的任意一台主机，切换至容灾工具目录
-
-    ```lang-bash
-    $ cd /opt/sequoiadb/tools/dr_ha
-    ```
-
-6. 修改配置文件 `cluster_opr.js`
-
-    ```lang-bash
-    $ vim cluster_opr.js
-    ```
-
-    修改内容如下：
+7. 重新选举复制组的主节点，保证各复制组的主节点位于主中心
 
     ```lang-javascript
-    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
-    if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "sdbserver1" ] ; }
-    if ( typeof(SUB2HOSTS) == "undefined" ) { SUB2HOSTS = [ "sdbserver2", "sdbserver3" ] ; }
-    if ( typeof(COORDADDR) == "undefined" ) { COORDADDR = [ "sdbserver1:11810" ] }
-    if ( typeof(CURSUB) == "undefined" ) { CURSUB = 2 ; }
-    if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
-    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = false ; }
-    if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = true }
-    ```
-
-7. 集群信息初始化
-
-    ```lang-bash
-    $ sh init.sh 
+    > cataRG.reelect()
+    > dataRG.reelect()
     ```
 
 ###修改节点配置###
 
-1. 切换至节点配置目录
+对于未设置为 ActiveLocation 的位置集，用户需要在其关联的主机中修改节点配置，保证数据传输效率。 
+
+1. 逐一修改各主机的配置
 
     ```lang-bash
-    $ cd /opt/sequoiadb/conf
+    $ sed -i "s/AutoStart=.*/AutoStart=false/g" /opt/sequoiadb/conf/sdbcm.conf
+    $ sed -i "s/EnableWatch=.*/EnableWatch=false/g" /opt/sequoiadb/conf/sdbcm.conf
     ```
 
-2. 逐一修改 SUB2 下所有主机的配置文件 `sdbcm.conf`
-
-    ```lang-bash
-    $ vim sdbcm.conf 
-    ```
-
-    修改内容如下：
-
-    ```lang-ini
-    ...
-    AutoStart=false
-    EnableWatch=false
-    ...
-    ```
-
-3. 逐一重启 SUB2 下所有主机的 sdbcm 节点
+2. 重启各主机的 sdbcm 节点，使配置生效
 
     ```lang-bash
     $ sdbcmtop
     $ sdbcmart
     ```
 
-4. 检查是否配置成功
+3. 通过 SDB Shell 检查是否配置成功
 
     ```lang-javascript
     > var oma = new Oma("localhost", 11790)
     > oma.getOmaConfigs()
     ```
 
-5. 通过 SDB Shell 将参数 dataerrorop 配置为 2，并指定生效范围为 SUB2 下的主机
+4. 将参数 dataerrorop 配置为 2，并指定生效范围
 
     ```lang-javascript
     > var db = new Sdb("localhost", 11810)
-    > db.updateConf({"dataerrorop": 2, {HostName: ["sdbserver2, sdbserver3"]}})
+    > db.updateConf({"dataerrorop": 2}, {HostName: "sdbserver3"})
     ```
 
-6. 检查是否配置成功
+5. 检查是否配置成功
 
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CONFIGS, {}, {NodeName: null, dataerrorop: null})
@@ -308,3 +288,11 @@
 [coord_node]:manual/Distributed_Engine/Architecture/Node/coord_node.md
 [ha_dr_program]:manual/Deployment/ha_dr_program.md
 [split_merge]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/split_merge.md
+[location]:manual/Distributed_Engine/Architecture/Location/Readme.md
+[node_setLocation]:manual/Manual/Sequoiadb_Command/SdbNode/setLocation.md
+[rg_setActiveLocation]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setActiveLocation.md
+[domain_setActiveLocation]:manual/Manual/Sequoiadb_Command/SdbDomain/setActiveLocation.md
+[domain_setLocation]:manual/Manual/Sequoiadb_Command/SdbDomain/setLocation.md
+[domain]:manual/Distributed_Engine/Architecture/domain.md
+[location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
+[location]:images/Deployment/location.png
