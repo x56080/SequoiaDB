@@ -877,7 +877,7 @@ namespace engine
 
       UINT32 fullSyncNodes = 0 ;
 
-      DPS_LSN_OFFSET offsetMax = 0 ;
+      DPS_LSN_OFFSET offsetMin = DPS_INVALID_LSN_OFFSET - 1 ;
       utilReplSizePlan wakePlan ;
       UINT32 selfLocation = pmdGetLocationID() ;
       _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
@@ -888,16 +888,16 @@ namespace engine
          {
             ++ fullSyncNodes ;
          }
-         else if ( offsetMax < _notifyList[ i ].offset )
+         else if ( offsetMin > _notifyList[ i ].offset )
          {
-            offsetMax = _notifyList[ i ].offset ;
+            offsetMin = _notifyList[ i ].offset ;
          }
       }
 
       if ( fullSyncNodes == _validSync )
       {
          // All nodes are under full sync
-         offsetMax = DPS_INVALID_LSN_OFFSET - 1 ;
+         offsetMin = DPS_INVALID_LSN_OFFSET - 1 ;
       }
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
@@ -906,8 +906,8 @@ namespace engine
          if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
          {
             /// DPS_INVALID_LSN_OFFSET is for full sync, so ignore the node.
-            /// Save as max offset of other nodes
-            wakePlan.offset = offsetMax ;
+            /// Save as min offset of other nodes
+            wakePlan.offset = offsetMin ;
          }
          else
          {
