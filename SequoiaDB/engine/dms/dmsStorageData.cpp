@@ -411,20 +411,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
             goto error ;
          }
-         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
-         if ( SDB_OK == rc )
-         {
-            encryptionCTX.setKey( DEK ) ;
-            bDoEncryption = TRUE ;
-         }
-         else
-         {
-            PD_LOG( PDERROR,
-                    "Failed to initialize encryption context, rc:%d. "
-                    "Data encryption is disabled for this operation.",
-                    rc ) ;
-            rc = SDB_OK ;
-         }
+         bDoEncryption = TRUE ;
       }
 
       SDB_ASSERT ( !recordData.isEmpty(), "recordData can't be empty" ) ;
@@ -488,6 +475,10 @@ namespace engine
          {
             const CHAR *encryptedData = NULL ;
             INT32 encryptedDataSize = 0 ;
+
+            rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to initialize encryption context, rc:%d" ) ;
+            encryptionCTX.setKey( DEK ) ;
 
             if ( bDidCompression )
             {
@@ -1387,7 +1378,6 @@ namespace engine
       ossSM4Context encryptionCTX ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       ossSM4Key DEK ;
-      BOOLEAN bGotDEK = FALSE ;
 
       // check whether can do encryption
       if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_ENCRYPTED ) )
@@ -1396,17 +1386,6 @@ namespace engine
          {
             rc = SDB_SEC_DEK_NOT_EXIST ;
             PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
-            goto error ;
-         }
-         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
-         if ( SDB_OK == rc )
-         {
-            encryptionCTX.setKey( DEK ) ;
-            bGotDEK = TRUE ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to initialize encryption context, rc:%d. ", rc ) ;
             goto error ;
          }
       }
@@ -1447,12 +1426,9 @@ namespace engine
          const CHAR *decryptedData = NULL ;
          INT32 decryptedDataSize = 0 ;
 
-         if ( FALSE == bGotDEK )
-         {
-            rc = SDB_SEC_DEK_NOT_EXIST ;
-            PD_LOG( PDERROR, "Can't decrypt the record due to lack of DEK, rc:%d", rc ) ;
-            goto error ;
-         }
+         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize encryption context, rc:%d" ) ;
+         encryptionCTX.setKey( DEK ) ;
 
          recordData.setEncrypted() ;
 

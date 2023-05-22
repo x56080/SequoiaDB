@@ -3921,21 +3921,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to peek DEK, rc %d", rc ) ;
             goto error ;
          }
-         rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
-         if ( SDB_OK == rc )
-         {
-            encryptionCTX.setKey( DEK ) ;
-            bDoEncryption = TRUE ;
-         }
-         else
-         {
-            PD_LOG( PDERROR,
-                    "Failed to initialize encryption context, rc:%d. "
-                    "Data encryption will not be performed for "
-                    "insert operation this time",
-                    rc ) ;
-            rc = SDB_OK ;
-         }
+         bDoEncryption = TRUE ;
       }
 
       if ( !isTransSupport( context ) )
@@ -4036,6 +4022,10 @@ namespace engine
             {
                const CHAR *encryptedData = NULL ;
                INT32 encryptedDataSize = 0 ;
+
+               rc = ossSM4Init( &encryptionCTX, OSS_SM4_CBC ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to initialize encryption context, rc:%d" ) ;
+               encryptionCTX.setKey( DEK ) ;
 
                if ( bDidCompression )
                {
