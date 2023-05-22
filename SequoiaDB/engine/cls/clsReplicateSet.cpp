@@ -716,7 +716,7 @@ namespace engine
             {
                _info.primary.value = 0 ;
             }
-            PD_LOG( PDEVENT, "Replica Group: erase node[%d,%d]",
+            PD_LOG( PDEVENT, "Replica Group: erase node[%u,%u]",
                     tmp.columns.groupID, tmp.columns.nodeID ) ;
             _info.mtx.lock_w() ;
             _info.alives.erase( itr2->first ) ;
@@ -806,7 +806,7 @@ namespace engine
             {
                _locationInfo.primary.value = 0 ;
             }
-            PD_LOG( PDEVENT, "Location Set: erase node[%d,%d]",
+            PD_LOG( PDEVENT, "Location Set: erase node[%u,%u]",
                     tmp.columns.groupID, tmp.columns.nodeID ) ;
             _locationInfo.alives.erase( tmp.value ) ;
             _locationInfo.info.erase( infoItr++ ) ; // Using tmp.value may cause iterator invalidation
@@ -1223,7 +1223,7 @@ namespace engine
                                    ftStatStr,
                                    CLS_FORMART_STR_128 ) ;
 
-                  PD_LOG( PDEVENT, "Force to secondary due to %s",
+                  PD_LOG( PDEVENT, "Replica Group Vote: force to secondary due to %s",
                           ftStatStr ) ;
                   _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
                   _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN,
@@ -1250,7 +1250,7 @@ namespace engine
          rc = _handleStepDown( event->_userData ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "%s : failed to step down:%d",
+            PD_LOG( PDERROR, "%s Vote: failed to step down:%d",
                     event->_userData ? "Location Set" : "Replica Group", rc ) ;
             goto error ;
          }
@@ -1554,7 +1554,7 @@ namespace engine
                   }
                   status.deadtime += resetTimeout ;
 
-                  PD_LOG( PDEVENT, "Reset node[%d] sharing-beat time to %u(sec)",
+                  PD_LOG( PDEVENT, "Reset node[%u] sharing-beat time to %u(sec)",
                           status.beat.identity.columns.nodeID,
                           resetTimeout / OSS_ONE_SEC ) ;
                }
@@ -1691,7 +1691,7 @@ namespace engine
          {
             if ( itr->first == _info.primary.value )
             {
-               PD_LOG( PDERROR, "Replica Group vote: primary [node:%d] alive break(%s)",
+               PD_LOG( PDERROR, "Replica Group Vote: primary node[%u] break(%s) from alive status",
                        _info.primary.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
                          "shutdown" : "unknown" ) ) ;
@@ -1699,7 +1699,7 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDERROR, "Replica Group vote: [node:%d] alive break(%s)",
+               PD_LOG( PDERROR, "Replica Group Vote: node[%u] break(%s) from alive status",
                        pStatus->beat.identity.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
                          "shutdown" : "unknown" ) ) ;
@@ -1732,14 +1732,14 @@ namespace engine
          {
             if ( itr->first == _locationInfo.primary.value )
             {
-               PD_LOG( PDERROR, "Location Set Vote: primary [node:%d] break(%s) from alive status",
+               PD_LOG( PDERROR, "Location Set Vote: primary node[%u] break(%s) from alive status",
                        _locationInfo.primary.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
                _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
             }
             else
             {
-               PD_LOG( PDERROR, "Location Set Vote: [node:%d] break(%s) from alive status",
+               PD_LOG( PDERROR, "Location Set Vote: node[%u] break(%s) from alive status",
                        pStatus->beat.identity.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
             }
@@ -1810,7 +1810,7 @@ namespace engine
                _info.primary = beat.identity ;
                _info.mtx.release_w() ;
                _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-               PD_LOG( PDEVENT, "Replica Group vote:remote lsn[%d:%lld]"
+               PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
                        " higher(or equal) than local lsn[%d:%lld],"
                        " we change to silence.",
                        beat.endLsn.version, beat.endLsn.offset,
@@ -1841,7 +1841,7 @@ namespace engine
                                 oldStatStr, CLS_FORMART_STR_128 ) ;
                utilFTMaskToStr( beat.getFTConfirmStat(),
                                 newStatStr, CLS_FORMART_STR_128 ) ;
-               PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
+               PD_LOG( PDEVENT, "Node[%u]'s fault-tolerance confirm stat "
                        "changed: 0x%08x(%s) => 0x%08x(%s), indoubt error: %d",
                        beat.identity.columns.nodeID,
                        statusItem.beat.ftConfirmStat,
@@ -1853,7 +1853,7 @@ namespace engine
             /// Node start/stop changed
             if ( statusItem.beat.nodeRunStat != beat.nodeRunStat )
             {
-               PD_LOG( PDEVENT, "Node[%d]'s run stat changed: %d(%s) => %d(%s)",
+               PD_LOG( PDEVENT, "Node[%u]'s run stat changed: %d(%s) => %d(%s)",
                        beat.identity.columns.nodeID,
                        statusItem.beat.nodeRunStat,
                        clsNodeRunStat2String( statusItem.beat.nodeRunStat ),
@@ -1876,7 +1876,7 @@ namespace engine
                      _info.primary = beat.identity ;
                      _info.mtx.release_w() ;
                      _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                     PD_LOG( PDEVENT, "Replica Group vote:remote lsn[%d:%lld]"
+                     PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
                              " higher(or equal) than local lsn[%d:%lld],"
                              " we change to silence.",
                              beat.endLsn.version, beat.endLsn.offset,
@@ -1885,7 +1885,7 @@ namespace engine
                }
                else if ( _info.primary.value != beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Replica Group vote: the discovery of new primary[%d]",
+                  PD_LOG( PDEVENT, "Replica Group Vote: the discovery of new primary node[%u]",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
@@ -1911,7 +1911,7 @@ namespace engine
             {
                if ( _info.primary.value == beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Replica Group vote: primary node[%d] is down",
+                  PD_LOG( PDEVENT, "Replica Group Vote: primary node[%u] is down",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _info.mtx.lock_w() ;
@@ -1956,7 +1956,7 @@ namespace engine
                // Local node is not primary, need to update the primary
                else if ( _locationInfo.primary.value != beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Location Set Vote: discover a new primary[%d]",
+                  PD_LOG( PDEVENT, "Location Set Vote: discover a new primary[%u]",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
@@ -1999,7 +1999,7 @@ namespace engine
                // Local node is not primary, need to update the primary
                else if ( _locationInfo.primary.value == beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Location Set Vote: primary node[%d] is down",
+                  PD_LOG( PDEVENT, "Location Set Vote: primary node[%u] is down",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _locationInfo.mtx.lock_w() ;
@@ -2172,7 +2172,7 @@ namespace engine
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
          _info.mtx.release_w() ;
 
-         PD_LOG( PDEVENT, "Replica Group vote: [node:%d] aliving from %s",
+         PD_LOG( PDEVENT, "Replica Group Vote: node[%u] change to alive status from %s",
                  status.beat.identity.columns.nodeID,
                  ( CLS_NODE_STOP == status.beat.nodeRunStat ?
                    "shutdown" : "break" ) ) ;
@@ -2212,7 +2212,7 @@ namespace engine
             }
             _locationInfo.mtx.release_w() ;
 
-            PD_LOG( PDEVENT, "Location Set Vote: [node:%d] is alive, change from %s",
+            PD_LOG( PDEVENT, "Location Set Vote: node[%u] change to alive status from %s",
                     id.columns.nodeID, ( CLS_NODE_STOP == status.beat.nodeRunStat ?
                     "shutdown" : "break" ) ) ;
          }

@@ -86,7 +86,7 @@ namespace engine
                if ( _info()->groupSize() <= ( _accepted() + 1 ) )
                {
                   next =  CLS_ELECTION_STATUS_PRIMARY;
-                  PD_LOG( PDEVENT, "%s: change to primary by all accept", getScopeName() ) ;
+                  PD_LOG( PDEVENT, "%s Vote: change to primary by all accept", getScopeName() ) ;
                }
                // Node in critical mode which is only effective in group election( not in location election )
                else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode )
@@ -97,7 +97,7 @@ namespace engine
                      if ( _info()->enforcedGrpMode )
                      {
                         next = CLS_ELECTION_STATUS_PRIMARY ;
-                        PD_LOG( PDEVENT, "%s: Change to primary by all critical nodes accept "
+                        PD_LOG( PDEVENT, "%s Vote: change to primary by all critical nodes accept "
                                 "in critical mode", getScopeName() ) ;
                      }
                      // Node is not in enforced mode, need to check if all alive nodes and
@@ -105,7 +105,7 @@ namespace engine
                      else if ( _info()->aliveSize() <= ( _accepted() + 1 ) )
                      {
                         next = CLS_ELECTION_STATUS_PRIMARY ;
-                        PD_LOG( PDEVENT, "%s: Change to primary by all alive nodes accept "
+                        PD_LOG( PDEVENT, "%s Vote: change to primary by all alive nodes accept "
                                 "in critical mode", getScopeName() ) ;
                      }
                      else
@@ -160,18 +160,18 @@ namespace engine
             {
                if ( _info()->enforcedGrpMode )
                {
-                  PD_LOG( PDEVENT, "%s: Change to primary by timeout "
+                  PD_LOG( PDEVENT, "%s Vote: change to primary by timeout "
                           "in enforced critical mode", getScopeName() ) ;
                }
                else
                {
-                  PD_LOG( PDEVENT, "%s: Change to primary by timeout "
+                  PD_LOG( PDEVENT, "%s Vote: change to primary by timeout "
                           "in critical mode", getScopeName() ) ;
                }
             }
             else
             {
-               PD_LOG( PDEVENT, "%s: Change to primary by timeout", getScopeName() ) ;
+               PD_LOG( PDEVENT, "%s Vote: change to primary by timeout", getScopeName() ) ;
             }
          }
          else

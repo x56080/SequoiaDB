@@ -70,8 +70,8 @@ namespace engine
 
       if ( 0 != _groupInfo->primary.value )
       {
-         PD_LOG ( PDDEBUG, "Primary[%d] already exist, can't initial voting",
-                  _groupInfo->primary.columns.nodeID ) ;
+         PD_LOG ( PDDEBUG, "%s Vote: primary[%u] already exist, can't initial voting",
+                  getScopeName(), _groupInfo->primary.columns.nodeID ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
@@ -85,9 +85,9 @@ namespace engine
                     CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
                     CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) ) )
       {
-         PD_LOG ( PDINFO, "Alive nodes is not major, can't initial voting, "
+         PD_LOG ( PDINFO, "%s Vote: alive nodes is not major, can't initial voting, "
                   "alive size = %d, group size = %d",
-                  _groupInfo->aliveSize() , _groupInfo->groupSize() ) ;
+                  getScopeName(), _groupInfo->aliveSize() , _groupInfo->groupSize() ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
@@ -166,7 +166,8 @@ namespace engine
                // If iterator node is in critical node and lsn is greater than local's, stop initializing vote
                else if ( 0 > lsn.compare( status->beat.endLsn ) )
                {
-                  PD_LOG ( PDDEBUG, "DSP lsn is not max, can't initial voting" ) ;
+                  PD_LOG ( PDDEBUG, "%s Vote: DSP lsn is not max, can't initial voting",
+                           getScopeName() ) ;
                   rc = SDB_CLS_VOTE_FAILED ;
                   goto error ;
                }
@@ -183,7 +184,8 @@ namespace engine
                }
                if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
                {
-                  PD_LOG ( PDDEBUG, "DSP lsn is not max, can't initial voting" ) ;
+                  PD_LOG ( PDDEBUG, "%s Vote: DSP lsn is not max, can't initial voting",
+                           getScopeName() ) ;
                   rc = SDB_CLS_VOTE_FAILED ;
                   goto error ;
                }
@@ -191,7 +193,7 @@ namespace engine
          }
 
          _broadcastAlives( &msg ) ;
-         PD_LOG( PDEVENT, "%s: Broadcast vote[round:%d] to all alive nodes",
+         PD_LOG( PDEVENT, "%s Vote: broadcast vote[round:%d] to all alive nodes",
                  getScopeName(), round ) ;
       }
 
@@ -227,7 +229,7 @@ namespace engine
       /// unknown member
       if ( _groupInfo->info.end() == itrInfo )
       {
-         PD_LOG( PDWARNING, "unknown member [group:%d] [node:%d]",
+         PD_LOG( PDWARNING, "unknown member [group:%u] [node:%u]",
                  id.columns.groupID, id.columns.nodeID ) ;
          goto error ;
       }
@@ -243,7 +245,8 @@ namespace engine
       /// primary is exist. refuse
       if ( MSG_INVALID_ROUTEID !=_groupInfo->primary.value )
       {
-         PD_LOG( PDDEBUG, "vote:the primary still exist [group:%d] [node:%d]",
+         PD_LOG( PDDEBUG, "%s Vote: the primary still exist [group:%u] [node:%u]",
+                 getScopeName(),
                  _groupInfo->primary.columns.groupID,
                  _groupInfo->primary.columns.nodeID ) ;
          goto accepterr ;
@@ -253,7 +256,7 @@ namespace engine
       if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
            ! itrInfo->second.isInCriticalMode() )
       {
-         PD_LOG( PDDEBUG, "vote: sharing break whih majority" ) ;
+         PD_LOG( PDDEBUG, "%s Vote: sharing break whih majority", getScopeName() ) ;
          goto error ;
       }
       if ( NULL == _logger )
@@ -385,7 +388,7 @@ namespace engine
       }
 
    accept:
-      PD_LOG( PDEVENT, "%s Vote: Accept node[id:%d, lsn:%u.%lld, round:%d, "
+      PD_LOG( PDEVENT, "%s Vote: accept node[id:%u, lsn:%u.%lld, round:%d, "
               "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]", getScopeName(),
               id.columns.nodeID, lsn.version, lsn.offset, round,
               (peerAbnormal ? "TRUE":"FALSE"),
@@ -401,7 +404,7 @@ namespace engine
       rc = SDB_CLS_VOTE_FAILED ;
       goto done ;
    accepterr:
-      PD_LOG( PDDEBUG, "%s Vote: Refuse node[id:%d, lsn:%u.%lld, round:%d, "
+      PD_LOG( PDDEBUG, "%s Vote: refuse node[id:%u, lsn:%u.%lld, round:%d, "
               "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]", getScopeName(),
               id.columns.nodeID, lsn.version, lsn.offset, round,
               (peerAbnormal ? "TRUE":"FALSE"),

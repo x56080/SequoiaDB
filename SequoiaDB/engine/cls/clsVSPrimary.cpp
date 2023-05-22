@@ -177,7 +177,7 @@ namespace engine
 
          sdbGetReplCB()->reelectionDone() ;
 
-         PD_LOG ( PDEVENT, "Replica Group: Change to Primary" ) ;
+         PD_LOG ( PDEVENT, "%s Vote: change to primary", getScopeName() ) ;
 
          // after primary
          sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
@@ -194,7 +194,7 @@ namespace engine
 
          sdbGetReplCB()->locationReelectionDone() ;
 
-         PD_LOG ( PDEVENT, "Location Set: Node change to Primary" ) ;
+         PD_LOG ( PDEVENT, "%s Vote: node change to primary", getScopeName() ) ;
       }
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,

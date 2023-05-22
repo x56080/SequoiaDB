@@ -115,7 +115,7 @@ namespace engine
       {
          if ( _hasPrint )
          {
-            PD_LOG( PDEVENT, "%s: Begin to vote...", getScopeName() ) ;
+            PD_LOG( PDEVENT, "%s Vote: begin to vote...", getScopeName() ) ;
          }
          g_startShiftTime = -1 ;
          next = CLS_ELECTION_STATUS_VOTE ;
@@ -125,7 +125,7 @@ namespace engine
          if ( !_hasPrint && CLS_VOTE_CS_TIME <= _timeout() )
          {
             _hasPrint = TRUE ;
-            PD_LOG( PDEVENT, "%s: With waiting %u seconds or when all nodes beat "
+            PD_LOG( PDEVENT, "%s Vote: with waiting %u seconds or when all nodes beat "
                     "here, then begin to vote", getScopeName(),
                     ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
          }

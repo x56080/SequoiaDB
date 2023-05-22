@@ -60,7 +60,7 @@ namespace engine
                                      INT32 &next )
    {
       PD_TRACE_ENTRY ( SDB__CLSVSSL_HDINPUT ) ;
-      PD_LOG( PDDEBUG, "vote: silence status, ignore msg" ) ;
+      PD_LOG( PDDEBUG, "%s Vote: silence status, ignore msg", getScopeName() ) ;
       next = id() ;
       PD_TRACE_EXIT ( SDB__CLSVSSL_HDINPUT ) ;
       return SDB_OK ;
