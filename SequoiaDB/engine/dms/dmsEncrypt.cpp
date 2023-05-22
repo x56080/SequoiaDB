@@ -105,8 +105,8 @@ INT32 dmsBSONEncrypt( _pmdEDUCB *cb, ossSM4Context * ctx,
       goto error ;
    }
 
-   rc = ossSM4EncryptHybrid( ctx, (UINT8 *)( pInData + sizeof( int ) ), (UINT8 *)( pBuff ),
-                             inSize - sizeof( int ) ) ;
+   rc = ossSM4EncryptHybrid( ctx, (UINT8 *)( pInData + sizeof( INT32 ) ), (UINT8 *)( pBuff ),
+                             inSize - sizeof( INT32 ) ) ;
    if ( rc )
    {
       PD_LOG( PDERROR, "Failed to compress data, rc: %d", rc ) ;
@@ -191,8 +191,8 @@ INT32 dmsBSONDecrypt( _pmdEDUCB *cb, ossSM4Context * ctx,
 #if defined (_DEBUG)
    {
       BSONObj dbgObj( pBuff ) ;
-      PD_LOG( PDWARNING, "Decrypted BSON Obj:%s",
-              dbgObj.toString( FALSE, TRUE ).c_str() ) ;
+      PD_LOG( PDDEBUG, "Decrypted BSON Obj:%s", dbgObj.toString( FALSE, TRUE ).c_str() ) ;
+      SDB_ASSERT( dbgObj.valid(), "Invalid BSON" ) ;
    }
 #endif
 
