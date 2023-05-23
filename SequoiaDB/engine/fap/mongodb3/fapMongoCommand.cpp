@@ -82,7 +82,7 @@ error:
    goto done ;
 }
 
-static INT32 escapeDot( string& collectionFullName )
+static INT32 escapeDot( string& collectionFullName, BOOLEAN skipFirst )
 {
    INT32 rc = SDB_OK ;
    BOOLEAN firstLoop = TRUE ;
@@ -95,7 +95,7 @@ static INT32 escapeDot( string& collectionFullName )
       {
          break ;
       }
-      else if ( firstLoop )
+      else if ( skipFirst && firstLoop )
       {
          pos++ ;
          firstLoop = FALSE ;
@@ -225,6 +225,7 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
    INT32 rc = SDB_OK ;
    BSONObjBuilder builder ;
    BSONObj sdbIdxDef ;
+   string indexName ;
 
    // listIndexes command may send getMore message, we should convert fullname:
    //     foo.$cmd.listIndexes.bar => foo.bar
@@ -239,6 +240,9 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
    try
    {
       sdbIdxDef = indexObj.getObjectField( "IndexDef" ) ;
+      indexName = sdbIdxDef.getStringField( "name" ) ;
+      unescapeDot( indexName ) ;
+
       builder.append( "v", sdbIdxDef.getIntField( "v" ) ) ;
       if ( sdbIdxDef.getBoolField( "unique" ) &&
            sdbIdxDef.getBoolField( "enforced" ) )
@@ -246,7 +250,7 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
          builder.append( "unique", true ) ;
       }
       builder.append( "key", sdbIdxDef.getObjectField( "key" ) ) ;
-      builder.append( "name", sdbIdxDef.getStringField( "name" ) ) ;
+      builder.append( "name", indexName ) ;
       builder.append( "ns", clFullName.c_str() ) ;
 
       indexObj = builder.obj() ;
@@ -1245,7 +1249,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
       goto error ;
    }
 
-   rc = escapeDot( _clFullName ) ;
+   rc = escapeDot( _clFullName, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -1296,7 +1300,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
       goto error ;
    }
 
-   rc = escapeDot( _clFullName ) ;
+   rc = escapeDot( _clFullName, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -2432,7 +2436,7 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
       goto error ;
    }
 
-   rc = escapeDot( _clFullName ) ;
+   rc = escapeDot( _clFullName, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -4924,14 +4928,14 @@ INT32 _mongoRenameCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessi
       _csName.clear() ;
       _csName.assign( pSourceFullName, pSourceShort - pSourceFullName ) ;
 
-      rc = escapeDot( _clFullName ) ;
+      rc = escapeDot( _clFullName, TRUE ) ;
       if ( rc )
       {
          goto error ;
       }
 
       strDestFull = pDestFullName ;
-      rc = escapeDot( strDestFull ) ;
+      rc = escapeDot( strDestFull, TRUE ) ;
       if ( rc )
       {
          goto error ;
@@ -5153,6 +5157,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
    BSONObj objList, obj, indexObj ;
    BSONObjBuilder bob ;
+   string indexName ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -5214,6 +5219,13 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       obj = _msgVec[_msgIndex++].embeddedObject() ;
       _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
 
+      indexName = obj.getStringField( "name") ;
+      rc = escapeDot( indexName, FALSE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       // mongo unique index => sequoiadb unique enforce index
       // { key: {a:1}, name: "aIdx", unique: true } =>
       // { Index: { key: {a:1}, name: "aIdx", unique: true, enforced: true },
@@ -5221,7 +5233,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       indexObj = BSON( IXM_FIELD_NAME_KEY <<
                        obj.getObjectField( "key" ) <<
                        IXM_FIELD_NAME_NAME <<
-                       obj.getStringField( "name") <<
+                       indexName <<
                        IXM_FIELD_NAME_UNIQUE <<
                        obj.getBoolField( "unique" ) <<
                        IXM_FIELD_NAME_ENFORCED <<
@@ -5322,6 +5334,7 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
    BSONObj empty, cond ;
+   string indexName ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -5359,10 +5372,17 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       // mongo message:
       // { deleteIndexes: "bar", index: "aIdx" } or
       // { dropIndexes: "bar", index: "aIdx" }
+      indexName = _obj.getStringField( "index" ) ;
+      rc = escapeDot( indexName, FALSE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       cond = BSON( FIELD_NAME_COLLECTION <<
                    _clFullName.c_str() <<
                    FIELD_NAME_INDEX <<
-                   BSON( "" << _obj.getStringField( "index" ) ) ) ;
+                   BSON( "" << indexName ) ) ;
    }
    catch ( std::exception &e )
    {
