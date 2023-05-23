@@ -274,7 +274,7 @@ namespace engine
 
    protected:
       BOOLEAN _isDestNotify ;
-      UINT32 _timeout ;
+      INT32 _timeout ;
       UINT16 _nodeID ;
       CLS_REELECTION_LEVEL _level ;
    } ;

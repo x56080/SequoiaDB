@@ -97,7 +97,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_RUN, "_clsReelection::run" )
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
-                              UINT32 seconds,
+                              INT32 seconds,
                               pmdEDUCB *cb,
                               UINT16 destID )
    {
@@ -117,7 +117,7 @@ namespace engine
       if ( seconds < 10 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "seconds of reelection should over 10" ) ;
+         PD_LOG_MSG( PDERROR, "Seconds[%d] of reelection should be greater than 10", seconds ) ;
          goto error ;
       }
 

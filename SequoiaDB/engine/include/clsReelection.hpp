@@ -51,7 +51,7 @@ namespace engine
 
    public:
       INT32 run( CLS_REELECTION_LEVEL lvl,
-                 UINT32 seconds,
+                 INT32 seconds,
                  pmdEDUCB *cb,
                  UINT16 destID = 0 ) ;
 

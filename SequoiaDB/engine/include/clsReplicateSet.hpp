@@ -529,14 +529,14 @@ namespace engine
          INT64 netOut() ;
 
          INT32 reelect( CLS_REELECTION_LEVEL lvl,
-                        UINT32 seconds,
+                        INT32 seconds,
                         pmdEDUCB *cb,
                         UINT16 destID = 0 ) ;
 
          void reelectionDone() ;
 
          INT32 locationReelect( CLS_REELECTION_LEVEL lvl,
-                                UINT32 seconds,
+                                INT32 seconds,
                                 pmdEDUCB *cb,
                                 UINT16 destID = 0 ) ;
 
