@@ -13,10 +13,9 @@ SequoiaDB 巨杉数据库是一款金融级分布式数据库，产品引擎采�
 **接口变更：**
 
 - 存储引擎
-  - 删除集合空间时，支持添加 option 参数
+  - 使用 REST 驱动删除集合空间时，支持添加 option 参数
   - insert 接口新增 flag，用于控制发生唯一键冲突时的行为
-  - getIndexStat 接口支持 Detail 参数
-  - 支持通过密码文件方式建立数据库连接
+  - PHP 驱动 getIndexStat 接口支持 Detail 参数
 
 **主要特性：**
 
