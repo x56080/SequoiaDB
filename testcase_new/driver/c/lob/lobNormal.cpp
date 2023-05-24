@@ -129,6 +129,8 @@ TEST_F( lobNormalTest, getLobCreateTime )
    // get system current time
    struct timeval tv ;
    gettimeofday( &tv, NULL ) ;
+   // sleep 100ms 
+   usleep( 1000 * 100 ) ; 
 
    // open lob, write lob, close lob
    bson_oid_t oid ;
