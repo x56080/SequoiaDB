@@ -122,6 +122,7 @@ function toolMigrationLob ( csName, clName, clName1 )
    {
       println( "\n---Begin to Migration lob" );
       var migratOption = installDir + 'bin/sdblobtool --operation migration --hostname ' + COORDHOSTNAME + ' --svcname ' + COORDSVCNAME
+         + ' --dsthost ' + COORDHOSTNAME + ' --dstservice ' + COORDSVCNAME
          + ' --collection ' + csName + '.' + clName
          + ' --dstcollection ' + csName + "." + clName1
          + ' --ssl true';
