@@ -678,6 +678,7 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
       {
          continue;
       }
+      if ( tmpObj.Group.length == 0 ) continue ;
       tmpArray[index] = Array();
       tmpArray[index][0] = new Object();
       tmpArray[index][0].GroupName = tmpObj.GroupName;         // GroupName
