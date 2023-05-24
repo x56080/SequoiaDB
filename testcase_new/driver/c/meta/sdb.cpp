@@ -53,20 +53,39 @@ TEST_F(sdbTest, sdbConnect_with_several_address_10409)
    sdbConnectionHandle connection = 0 ;
    sdbCursorHandle cursor = 0 ;
    INT32 rc                       = SDB_OK ;
+   INT32 len = strlen( ARGS->hostName() ) ;
+   INT32 totalLen = len + 6 ;
+
+   CHAR* connArr1 = ( CHAR* )malloc( ( totalLen + 1 ) * sizeof( CHAR ) ) ;
+   strcpy( connArr1, ARGS->hostName() ) ;
+   strcat( connArr1, ":50000" ) ;
+
+   CHAR* connArr2 = ( CHAR* )malloc( ( totalLen + 1 ) * sizeof( CHAR ) ) ;
+   strcpy( connArr2, ARGS->hostName() ) ;
+   strcat( connArr2, ":12340" ) ;
+
+   CHAR* connArr3 = ( CHAR* )malloc( ( totalLen + 1 ) * sizeof( CHAR ) ) ;
+   strcpy( connArr3, ARGS->hostName() ) ;
+   strcat( connArr3, ":" ) ;
+   strcat( connArr3, ARGS->svcName() ) ;
+
    const CHAR* connArr[9] = {"192.168.20.35:12340",
                               "192.168.20.36:12340",
                               "123:123",
                               "",
                               ":12340",
                               "192.168.20.40",
-                              "localhost:50000",
-                              "localhost:12340",
-                              "localhost:11810"} ;
+                              connArr1,
+                              connArr2,
+                              connArr3} ;
    // connect to database
    rc = sdbConnect1 ( connArr, 9, ARGS->user(), ARGS->passwd(), &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( connection, 4, NULL, NULL, NULL, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   free( connArr1 ) ;
+   free( connArr2 ) ;
+   free( connArr3 ) ;
    sdbDisconnect ( connection ) ;
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseConnection ( connection ) ;
