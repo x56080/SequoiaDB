@@ -740,7 +740,7 @@ namespace engine
 
             if ( 0 != status.beat.getFTConfirmStat() ||
                  SERVICE_NORMAL!= status.beat.serviceStatus ||
-                 CLS_NODE_RUNNING != status.beat.nodeRunStat )
+                 CLS_NODE_STOP == status.beat.nodeRunStat )
             {
                continue ;
             }
