@@ -473,10 +473,12 @@ namespace engine
       ~_clsGrpModeItem()
       {
          location.clear() ;
+         nodeName.clear() ;
       }
 
       ossPoolString              location ;
       UINT32                     locationID ;
+      ossPoolString              nodeName ;
       UINT16                     nodeID ;
       ossTimestamp               minKeepTime ;
       ossTimestamp               maxKeepTime ;

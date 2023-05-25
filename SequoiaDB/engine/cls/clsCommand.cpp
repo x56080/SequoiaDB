@@ -1941,6 +1941,8 @@ namespace engine
             // If nodeName and location are both in options, we just use nodeName
             if ( _option.hasField( FIELD_NAME_NODE_NAME ) )
             {
+               optionEle = _option.getField( FIELD_NAME_NODE_NAME ) ;
+               tmpGrpModeItem.nodeName = optionEle.valuestrsafe() ;
                tmpGrpModeItem.nodeID = sdbGetClsCB()->getNodeID().columns.nodeID ;
             }
             else if ( _option.hasField( CAT_LOCATION_NAME ) )

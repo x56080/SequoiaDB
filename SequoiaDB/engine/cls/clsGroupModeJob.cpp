@@ -102,7 +102,7 @@ namespace engine
          const _clsGrpModeItem &grpModeItem = grpMode.grpModeInfo[0] ;
 
          // Check if grpMode in clsReplicaSet is valid,
-         // if effective node in critical is not me, stop critical mode
+         // if effective node in critical is not primary, stop critical mode
          if ( ( INVALID_NODEID == _info->local.columns.nodeID ||
                _info->local.columns.nodeID != grpMode.grpModeInfo[0].nodeID ) &&
               ( MSG_INVALID_LOCATIONID == grpModeItem.locationID ||
@@ -119,10 +119,14 @@ namespace engine
             else
             {
                result = UTIL_LJOB_DO_FINISH ;
+               PD_LOG( PDEVENT, "Stop critical mode: primary[nodeID: %u, Location: %s] "
+                       "is not in effective nodes[nodeID: %u, Location: %s]",
+                       _info->local.columns.nodeID, pmdGetLocation(),
+                       grpMode.grpModeInfo[0].nodeID, grpMode.grpModeInfo[0].location.c_str() ) ;
             }
          }
          // Check if this job is expired
-         else if ( grpModeItem.location == _grpModeItem.location &&
+         else if ( grpModeItem.locationID == _grpModeItem.locationID &&
                    grpModeItem.nodeID == _grpModeItem.nodeID &&
                    grpModeItem.updateTime.time == _grpModeItem.updateTime.time )
          {
@@ -189,6 +193,8 @@ namespace engine
                else
                {
                   result = UTIL_LJOB_DO_FINISH ;
+                  PD_LOG( PDEVENT, "Stop critical mode: majority "
+                          "of group nodes are in normal status" ) ;
                }
             }
          }
@@ -212,6 +218,12 @@ namespace engine
          else
          {
             result = UTIL_LJOB_DO_FINISH ;
+
+            CHAR maxTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+            ossTimestampToString( const_cast< ossTimestamp& >( _grpModeItem.maxKeepTime ),
+                                  maxTimeStr ) ;
+            PD_LOG( PDEVENT, "Stop critical mode: current time reach the MaxKeepTime[%s]",
+                    maxTimeStr ) ;
          }
       }
 

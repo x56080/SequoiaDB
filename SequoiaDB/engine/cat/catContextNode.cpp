@@ -670,20 +670,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXALTERGRP_CHECK_INT ) ;
 
       BSONObjIterator itr ;
-      string groupName ;
 
       // Get group obj by group id
       rc = catGetGroupObj( _groupID, _boTarget, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group [%u] obj, rc: %d", _groupID, rc ) ;
 
       // Get group name
-      rc = rtnGetSTDStringElement( _boTarget, FIELD_NAME_GROUPNAME, groupName ) ;
+      rc = rtnGetSTDStringElement( _boTarget, FIELD_NAME_GROUPNAME, _targetName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group name, rc: %d", rc ) ;
 
       // Lock group
-      PD_CHECK( _lockMgr.tryLockGroup( groupName, EXCLUSIVE ),
+      PD_CHECK( _lockMgr.tryLockGroup( _targetName, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock group [%s]", groupName.c_str() ) ;
+                "Failed to lock group [%s]", _targetName.c_str() ) ;
 
       try
       {
@@ -705,7 +704,7 @@ namespace engine
                {
                   rc = _setActiveLocation() ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to set active location in group[%s], rc: %d",
-                               groupName.c_str(),  rc ) ;
+                               _targetName.c_str(),  rc ) ;
                }
                else
                {
@@ -777,16 +776,16 @@ namespace engine
          // In alter group command, the return msg of all actions should contain groupID
          builder.append( FIELD_NAME_GROUPID, _groupID ) ;
 
-         // If the action is start critical mode, location or nodeID should also be returned
+         // If the action is start critical mode, locationID or nodeID should also be returned
          if ( CLS_GROUP_MODE_CRITICAL == _grpMode.mode )
          {
             if ( CAT_INVALID_NODEID != _grpMode.grpModeInfo[0].nodeID )
             {
                builder.append( CAT_NODEID_NAME, _grpMode.grpModeInfo[0].nodeID ) ;
             }
-            else if ( ! _grpMode.grpModeInfo[0].location.empty() )
+            else if ( CAT_INVALID_LOCATIONID != _grpMode.grpModeInfo[0].locationID )
             {
-               builder.append( CAT_LOCATION_NAME, _grpMode.grpModeInfo[0].location.c_str() ) ;
+               builder.append( CAT_LOCATIONID_NAME, _grpMode.grpModeInfo[0].locationID ) ;
             }
          }
       }
@@ -1034,11 +1033,12 @@ namespace engine
             PD_LOG_MSG( PDERROR, "NodeName: [%s] is not exist", tmpNodeName.c_str() ) ;
             goto error ;
          }
+         tmpGrpModeItem.nodeName = tmpNodeName.c_str() ;
          tmpGrpModeItem.nodeID = tmpNodeID ;
       }
       else if ( hasLocation )
       {
-         BOOLEAN isExists = FALSE ;
+         UINT32 tmpLocationID = CAT_INVALID_LOCATIONID ;
 
          if ( tmpLocation.empty() )
          {
@@ -1053,11 +1053,11 @@ namespace engine
             goto error ;
          }
 
-         rc = catCheckLocationExists( _boTarget, tmpLocation.c_str(), isExists ) ;
+         rc = catGetLocationID( _boTarget, tmpLocation.c_str(), tmpLocationID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check location[%s] info in group[%u]",
                       tmpLocation.c_str(), _groupID ) ;
 
-         if ( ! isExists )
+         if ( CAT_INVALID_LOCATIONID == tmpLocationID )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
@@ -1065,6 +1065,7 @@ namespace engine
             goto error ;
          }
          tmpGrpModeItem.location = tmpLocation.c_str() ;
+         tmpGrpModeItem.locationID = tmpLocationID ;
       }
 
       // If we start critical mode in cata group, we must ensure that cata primary is in effective nodes
@@ -1138,7 +1139,7 @@ namespace engine
          catSetSyncW( 1 ) ;
       }
 
-      rc = _pCatNodeMgr->startCriticalMode( _grpMode, _boTarget, w ) ;
+      rc = _pCatNodeMgr->startCriticalMode( _grpMode, _targetName, _boTarget, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start critical mode, rc: %d", rc ) ;
 
    done:

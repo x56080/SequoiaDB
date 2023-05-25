@@ -3662,8 +3662,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_ALTERRG_START_CRITICAL_MODE_ON_DATA ) ;
 
-      UINT16         tarNodeID = INVALID_NODEID ;
-      UINT32         tarLocationID = MSG_INVALID_LOCATIONID ;
+      UINT16 tarNodeID = INVALID_NODEID ;
+      UINT32 tarLocationID = MSG_INVALID_LOCATIONID ;
 
       if ( CATALOG_GROUPID == _groupID )
       {
@@ -3677,11 +3677,11 @@ namespace engine
 
       try
       {
-         // Get effective node/location, we don't need to check if the nodeID or location is valid,
+         // Get effective node/location, we don't need to check if the nodeID or locationID is valid,
          // because these parameters has been validated in catalog node
          if ( ! cataObjs.empty() )
          {
-            // replyObj: { Location: "XX" } | { NodeID: 1000 }
+            // replyObj: { LocationID: 1 } | { NodeID: 1000 }
             const BSONObj &replyObj = cataObjs[0] ;
             BSONElement replyEle ;
 
@@ -3698,18 +3698,18 @@ namespace engine
                }
                tarNodeID = replyEle.numberInt() ;
             }
-            else if ( replyObj.hasField( FIELD_NAME_LOCATION ) )
+            else if ( replyObj.hasField( FIELD_NAME_NODE_LOCATIONID ) )
             {
                // Get effective locationID
-               replyEle = replyObj.getField( FIELD_NAME_LOCATION ) ;
-               if ( String != replyEle.type() )
+               replyEle = replyObj.getField( FIELD_NAME_NODE_LOCATIONID ) ;
+               if ( ! replyEle.isNumber() )
                {
                   rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "Failed to get [%s] from cata reply, type[%d] is not String",
-                          FIELD_NAME_LOCATION, replyEle.type() ) ;
+                  PD_LOG( PDERROR, "Failed to get [%s] from cata reply, type[%d] is not Number",
+                          FIELD_NAME_NODE_LOCATIONID, replyEle.type() ) ;
                   goto error ;
                }
-               tarLocationID = _groupInfoPtr->getLocationID( replyEle.valuestrsafe() ) ;
+               tarLocationID = replyEle.numberInt() ;
             }
             else
             {

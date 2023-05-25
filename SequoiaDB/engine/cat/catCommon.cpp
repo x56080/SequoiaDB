@@ -5183,10 +5183,17 @@ namespace engine
                           CAT_NODEID_NAME, propObj.toPoolString().c_str() ) ;
                   goto error ;
                }
-               else
+               tmpGrpModeItem.nodeID = propEle.numberInt() ;
+
+               propEle = propObj.getField( FIELD_NAME_NODE_NAME ) ;
+               if ( String != propEle.type() )
                {
-                  tmpGrpModeItem.nodeID = propEle.numberInt() ;
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                          FIELD_NAME_NODE_NAME, propObj.toPoolString().c_str() ) ;
+                  goto error ;
                }
+               tmpGrpModeItem.nodeName = propEle.valuestrsafe() ;
             }
             // Get location field
             else if ( propObj.hasField( CAT_LOCATION_NAME ) )
@@ -5199,23 +5206,17 @@ namespace engine
                           CAT_LOCATION_NAME, propObj.toPoolString().c_str() ) ;
                   goto error ;
                }
-               else
-               {
-                  tmpGrpModeItem.location = propEle.valuestrsafe() ;
+               tmpGrpModeItem.location = propEle.valuestrsafe() ;
 
-                  // Assign locationID
-                  CLS_LOC_INFO_MAP::const_iterator locItr = locMap.begin() ;
-                  while ( locMap.end() != locItr )
-                  {
-                     if ( 0 == ossStrcmp( propEle.valuestrsafe(),
-                                          locItr->second._location.c_str() ) )
-                     {
-                        tmpGrpModeItem.locationID = locItr->second._locationID ;
-                        break ;
-                     }
-                     ++locItr ;
-                  }
+               propEle = propObj.getField( CAT_LOCATIONID_NAME ) ;
+               if ( ! propEle.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDWARNING, "Failed to get field[%s] from Properties obj[%s]",
+                          CAT_LOCATIONID_NAME, propObj.toPoolString().c_str() ) ;
+                  goto error ;
                }
+               tmpGrpModeItem.locationID = propEle.numberInt() ;
             }
 
             // Get MinKeepTime
@@ -5231,6 +5232,7 @@ namespace engine
             ossStringToTimestamp( timeStr, tmpTime ) ;
             tmpGrpModeItem.minKeepTime.time =
                OSS_MIN( tmpTime.time, curTime.time + CLS_GROUP_MODE_KEEP_TIME_MAX * 60 ) ;
+            tmpGrpModeItem.minKeepTime.microtm = tmpTime.microtm ;
 
             // Get MaxKeepTime
             propEle = propObj.getField( CAT_MAX_KEEP_TIME_NAME ) ;
@@ -5245,6 +5247,7 @@ namespace engine
             ossStringToTimestamp( timeStr, tmpTime ) ;
             tmpGrpModeItem.maxKeepTime.time =
                OSS_MIN( tmpTime.time, curTime.time + CLS_GROUP_MODE_KEEP_TIME_MAX * 60 ) ;
+            tmpGrpModeItem.maxKeepTime.microtm = tmpTime.microtm ;
 
 
             // Get UpdateTime

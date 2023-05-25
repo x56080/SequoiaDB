@@ -2842,6 +2842,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STARTCRITICALMODE, "catNodeManager::startCriticalMode" )
    INT32 catNodeManager::startCriticalMode( const clsGroupMode &grpMode,
+                                            const string &groupName,
                                             const BSONObj &groupObj,
                                             INT16 w )
    {
@@ -2888,7 +2889,7 @@ namespace engine
          CHAR maxTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          CHAR updateTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
 
-         // grpMode.minKeepTime and grpMode.miaxKeepTime are not const value, so we can use const_cast
+         // grpMode.minKeepTime and grpMode.mixKeepTime are not const value, so we can use const_cast
          ossTimestampToString( const_cast< ossTimestamp& >( grpMode.grpModeInfo[0].minKeepTime ),
                                minTimeStr ) ;
          ossTimestampToString( const_cast< ossTimestamp& >( grpMode.grpModeInfo[0].maxKeepTime ),
@@ -2900,12 +2901,14 @@ namespace engine
             modeObj:
                {
                   GroupID: 1001,
+                  GroupName: "group1",
                   GroupMode: "critical",
                   Properties: [
                      {
-                        NodeID: 1002, || Location: "xxx",
+                        NodeID: 1002, NodeName: "xx:xx", || LocationID: 1, Location: "xxx",
                         MinKeepTime: "2023-01-01-13.14.10",
-                        MaxKeepTime: "2023-01-01-20.14.10"
+                        MaxKeepTime: "2023-01-01-20.14.10",
+                        UpdateTime: "2023-01-01-13.14.10"
                      }
                   ]
                }
@@ -2922,6 +2925,7 @@ namespace engine
             BSONObjBuilder insertBuilder ;
 
             insertBuilder.append( CAT_GROUPID_NAME, grpMode.groupID ) ;
+            insertBuilder.append( CAT_GROUPNAME_NAME, groupName ) ;
             insertBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
 
             // Properties builder
@@ -2934,9 +2938,11 @@ namespace engine
             if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
             {
                sub.append( CAT_NODEID_NAME, grpMode.grpModeInfo[0].nodeID ) ;
+               sub.append( FIELD_NAME_NODE_NAME, grpMode.grpModeInfo[0].nodeName.c_str() ) ;
             }
-            else if ( ! grpMode.grpModeInfo[0].location.empty() )
+            else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
             {
+               sub.append( CAT_LOCATIONID_NAME, grpMode.grpModeInfo[0].locationID ) ;
                sub.append( CAT_LOCATION_NAME, grpMode.grpModeInfo[0].location.c_str() ) ;
             }
 
@@ -3027,22 +3033,27 @@ namespace engine
                   // Set NodeID(old) -> NodeID(new)
                   else if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
                   {
-                     // If nodeID is not equal, update to grpMode.nodeID
-                     if ( grpMode.grpModeInfo[0].nodeID != propEle.numberInt() )
+                     // If nodeID is not equal, update to grpMode.nodeID and grpMode.NodeName
+                     if ( grpMode.grpModeInfo[0].nodeID != ( UINT16 )propEle.numberInt() )
                      {
                         setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME,
                                            grpMode.grpModeInfo[0].nodeID ) ;
+                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME,
+                                           grpMode.grpModeInfo[0].nodeName.c_str() ) ;
                      }
                   }
                   // Set NodeID(old) -> Location(new)
-                  else if ( ! grpMode.grpModeInfo[0].location.empty() )
+                  else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
                   {
-                     // Set new Location field
+                     // Set new Location and LocationID field
                      setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME,
                                         grpMode.grpModeInfo[0].location.c_str() ) ;
+                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
+                                        grpMode.grpModeInfo[0].locationID ) ;
 
-                     // Remove NodeID field
-                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME << "" ) ;
+                     // Remove NodeID and NodeName field
+                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME << "" <<
+                                      CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME << "" ) ;
                   }
 
                   // Set properties matcher
@@ -3050,41 +3061,45 @@ namespace engine
                                          propEle.numberInt() ) ;
                }
                // Get location field
-               else if ( propObj.hasField( CAT_LOCATION_NAME ) )
+               else if ( propObj.hasField( CAT_LOCATIONID_NAME ) )
                {
-                  propEle = propObj.getField( CAT_LOCATION_NAME ) ;
-                  if ( String != propEle.type() )
+                  propEle = propObj.getField( CAT_LOCATIONID_NAME ) ;
+                  if ( ! propEle.isNumber() )
                   {
                      rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATION_NAME,
+                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATIONID_NAME,
                              propObj.toPoolString().c_str() ) ;
                      goto error ;
                   }
                   // Set Location(old) -> Location(new)
-                  else if ( ! grpMode.grpModeInfo[0].location.empty() )
+                  else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
                   {
-                     // If location is not equal, update to grpMode.location
-                     if ( 0 != ossStrcmp( propEle.valuestrsafe(),
-                                          grpMode.grpModeInfo[0].location.c_str() ) )
+                     // If locationID is not equal, update to grpMode.location and grpMode.locationID
+                     if ( grpMode.grpModeInfo[0].locationID != ( UINT32 )propEle.numberInt() )
                      {
                         setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME,
                                            grpMode.grpModeInfo[0].location.c_str() ) ;
+                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
+                                           grpMode.grpModeInfo[0].locationID ) ;
                      }
                   }
                   // Set Location(old) -> NodeID(new)
                   else if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
                   {
-                     // Set new NodeID field
+                     // Set new NodeID and NodeName field
                      setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME,
                                         grpMode.grpModeInfo[0].nodeID ) ;
+                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME,
+                                        grpMode.grpModeInfo[0].nodeName.c_str() ) ;
 
-                     // Remove Location field
-                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME << "" ) ;
+                     // Remove Location and LocationID field
+                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME << "" <<
+                                      CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME << "" ) ;
                   }
 
                   // Set properties matcher
-                  matcherBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME,
-                                         propEle.valuestrsafe() ) ;
+                  matcherBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
+                                         propEle.numberInt() ) ;
                }
                else
                {
@@ -3122,10 +3137,12 @@ namespace engine
                if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
                {
                   propBuilder.append( CAT_NODEID_NAME, grpMode.grpModeInfo[0].nodeID ) ;
+                  propBuilder.append( FIELD_NAME_NODE_NAME, grpMode.grpModeInfo[0].nodeName.c_str() ) ;
                }
-               else if ( ! grpMode.grpModeInfo[0].location.empty() )
+               else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
                {
                   propBuilder.append( CAT_LOCATION_NAME, grpMode.grpModeInfo[0].location.c_str() ) ;
+                  propBuilder.append( CAT_LOCATIONID_NAME, grpMode.grpModeInfo[0].locationID ) ;
                }
 
                // Append MinKeepTime and MaxKeepTime
@@ -3262,20 +3279,20 @@ namespace engine
                      pullBuilder.doneFast() ;
                   }
                }
-               // Get location field
-               else if ( propObj.hasField( CAT_LOCATION_NAME ) )
+               // Get locationID field
+               else if ( propObj.hasField( CAT_LOCATIONID_NAME ) )
                {
-                  propEle = propObj.getField( CAT_LOCATION_NAME ) ;
-                  if ( String != propEle.type() )
+                  propEle = propObj.getField( CAT_LOCATIONID_NAME ) ;
+                  if ( ! propEle.isNumber() )
                   {
                      rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATION_NAME,
+                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATIONID_NAME,
                              propObj.toPoolString().c_str() ) ;
                      goto error ;
                   }
                   else
                   {
-                     propBuilder.append( CAT_LOCATION_NAME, propEle.valuestrsafe() ) ;
+                     propBuilder.append( CAT_LOCATIONID_NAME, propEle.numberInt() ) ;
                      propBuilder.doneFast() ;
                      pullBuilder.doneFast() ;
                   }

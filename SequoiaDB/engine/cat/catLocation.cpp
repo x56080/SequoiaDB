@@ -125,9 +125,9 @@ namespace engine
       goto done ;
    }
 
-   INT32 catCheckLocationExists( const BSONObj &groupObj,
-                                 const CHAR *pLocation,
-                                 BOOLEAN &isExists )
+   INT32 catGetLocationID( const BSONObj &groupObj,
+                           const CHAR *pLocation,
+                           UINT32 &locationID )
    {
       INT32 rc = SDB_OK ;
 
@@ -142,7 +142,7 @@ namespace engine
       {
          if ( 0 == ossStrcmp( pLocation, itr->second._location.c_str() ) )
          {
-            isExists = TRUE ;
+            locationID = itr->second._locationID ;
             break ;
          }
          ++itr ;
@@ -150,7 +150,7 @@ namespace engine
 
       if ( locMap.end() == itr )
       {
-         isExists = FALSE ;
+         locationID = CAT_INVALID_LOCATIONID ;
       }
 
    done:
@@ -169,7 +169,7 @@ namespace engine
       try
       {
          BSONElement optionEle ;
-         BOOLEAN isExists = FALSE ;
+         UINT32 locationID = CAT_INVALID_LOCATIONID ;
 
          // Check the groupID, only the node in cata and data group can set active location
          if ( CATALOG_GROUPID != groupID &&
@@ -183,10 +183,10 @@ namespace engine
          // If the new active location is not "", need to get and check if the new location exists
          if ( ! newActLoc.empty() )
          {
-            rc = catCheckLocationExists( groupObj, newActLoc.c_str(), isExists ) ;
+            rc = catGetLocationID( groupObj, newActLoc.c_str(), locationID ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check location[%s] info in group[%u]",
                          newActLoc.c_str(), groupID ) ;
-            if ( ! isExists )
+            if ( CAT_INVALID_LOCATIONID == locationID )
             {
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",

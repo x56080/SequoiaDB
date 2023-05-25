@@ -48,9 +48,9 @@ namespace engine
    INT32 catGetLocationInfo( const BSONObj &groupObj,
                              CLS_LOC_INFO_MAP *pLocationInfo ) ;
 
-   INT32 catCheckLocationExists( const BSONObj &groupObj,
-                                 const CHAR *pLocation,
-                                 BOOLEAN &isExists ) ;
+   INT32 catGetLocationID( const BSONObj &groupObj,
+                           const CHAR *pLocation,
+                           UINT32 &locationID ) ;
 
    INT32 catCheckAndGetActiveLocation( const BSONObj &groupObj,
                                        const UINT32 groupID,

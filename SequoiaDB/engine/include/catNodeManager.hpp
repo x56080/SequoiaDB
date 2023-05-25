@@ -152,6 +152,7 @@ namespace engine
                               const ossPoolString &hostName ) ;
 
       INT32 startCriticalMode( const clsGroupMode &grpMode,
+                               const string &groupName,
                                const BSONObj &groupObj,
                                INT16 w ) ;
 
