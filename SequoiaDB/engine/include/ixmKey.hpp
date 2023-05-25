@@ -75,6 +75,10 @@ namespace engine
          // first byte is reserved for isCompact
          return BSONObj((const CHAR *)_keyData + 1) ;
       }
+
+      // helper for hash key values
+      UINT32 _hashCompact() const ;
+      UINT32 _hashBSON() const ;
    private:
       INT32 _compareHybrid ( const _ixmKey &r, const Ordering &order) const ;
    public:
@@ -122,6 +126,10 @@ namespace engine
 
       // get the size of key
       INT32 dataSize() const ;
+
+      // calculate hash value for index key
+      UINT32 toHash() const ;
+
       // check if a key is valid
       OSS_INLINE BOOLEAN isValid() const
       {

@@ -2316,7 +2316,7 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !allUndefined || indexCB->enforced() ) )
             {
-               pUnqIdxHashArray->saveKey( *it ) ;
+               pUnqIdxHashArray->saveKey( ko.toHash() ) ;
                hashSaved = TRUE ;
             }
          }
@@ -2786,7 +2786,7 @@ namespace engine
                     !indexCB->isIDIndex() &&
                     ( !oriAllUndefined || indexCB->enforced() ) )
                {
-                  pOldUnqIdxHashArray->saveKey( *itori ) ;
+                  pOldUnqIdxHashArray->saveKey( ko.toHash() ) ;
                   oldHashSaved = TRUE ;
                }
 
@@ -2848,7 +2848,7 @@ namespace engine
                     !indexCB->isIDIndex() &&
                     ( !newAllUndefined || indexCB->enforced() ) )
                {
-                  pNewUnqIdxHashArray->saveKey( *itnew ) ;
+                  pNewUnqIdxHashArray->saveKey( ko.toHash() ) ;
                   newHashSaved = TRUE ;
                }
 
@@ -2883,7 +2883,7 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !oriAllUndefined || indexCB->enforced() ) )
             {
-               pOldUnqIdxHashArray->saveKey( *itori ) ;
+               pOldUnqIdxHashArray->saveKey( ko.toHash() ) ;
                oldHashSaved = TRUE ;
             }
 
@@ -2946,7 +2946,7 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !newAllUndefined || indexCB->enforced() ) )
             {
-               pNewUnqIdxHashArray->saveKey( *itnew ) ;
+               pNewUnqIdxHashArray->saveKey( ko.toHash() ) ;
                newHashSaved = TRUE ;
             }
 
@@ -3332,7 +3332,7 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !allUndefined || indexCB->enforced() ) )
             {
-               pUnqIdxHashArray->saveKey( *it ) ;
+               pUnqIdxHashArray->saveKey( ko.toHash() ) ;
                hashSaved = TRUE ;
             }
 

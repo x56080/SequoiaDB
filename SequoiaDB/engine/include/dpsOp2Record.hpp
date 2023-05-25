@@ -87,7 +87,7 @@ namespace engine
       }
 
       INT32 prepare( UINT32 unqIdxNum, BOOLEAN isNew ) ;
-      void saveKey( const bson::BSONObj &key ) ;
+      void saveKey( UINT32 hashValue ) ;
       INT32 pushToRecord( dpsLogRecord &record ) const ;
       INT32 parseFromRecord( const dpsLogRecord &record, BOOLEAN isNew ) ;
 

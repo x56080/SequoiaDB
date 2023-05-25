@@ -41,6 +41,7 @@
 #include "ixmKey.hpp"
 #include "../bson/ordering.h"
 #include "ossUtil.hpp"
+#include "utilBsonHash.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
 
@@ -97,6 +98,27 @@ namespace engine
    INT32 binDataCodeToLength ( INT32 codeByte )
    {
       return BinDataCodeToLength[codeByte >> 4];
+   }
+
+   #define IXM_HASH_BIT ( 5 )
+   OSS_INLINE static UINT32 _ixmHashUINT8( UINT32 hash,
+                                           UINT8 value )
+   {
+      return ( hash << IXM_HASH_BIT ) + hash + value ;
+   }
+
+   OSS_INLINE static UINT32 _ixmHashUINT8Arr( UINT32 hash,
+                                              const UINT8 *ptr,
+                                              UINT32 size )
+   {
+      SDB_ASSERT( NULL != ptr, "ptr is invalid" ) ;
+
+      for ( UINT32 i = 0 ; i < size ; ++ i, ++ ptr )
+      {
+         hash = _ixmHashUINT8( hash, *ptr ) ;
+      }
+
+      return hash ;
    }
 
    // convert from BSON to index key
@@ -842,5 +864,299 @@ namespace engine
          p += sizeOfElement(p) ;
       } while ( more ) ;
       return p - _keyData ;
+   }
+
+   UINT32 _ixmKey::_hashCompact() const
+   {
+      UINT32 hashValue = 5381 ;
+
+      // loop to calculate hash value of index key
+      const UINT8 *p = _keyData ;
+      while ( TRUE )
+      {
+         UINT32 fieldSize = sizeOfElement( p ) ;
+         BOOLEAN more = ( *p & cHASMORE ) != 0 ;
+
+         // calculate with type, but skip canonical type
+         hashValue = _ixmHashUINT8( hashValue, ( *p ) & cCANONTYPEMASK ) ;
+
+         // calculate with value ( skip first byte with type )
+         hashValue = _ixmHashUINT8Arr( hashValue, p + 1, fieldSize - 1 ) ;
+
+         // break when ends
+         if ( !more )
+         {
+            break ;
+         }
+
+         // move to next
+         p = p + fieldSize ;
+      }
+
+      return hashValue ;
+   }
+
+   UINT32 _ixmKey::_hashBSON() const
+   {
+      UINT32 hashValue = 5381 ;
+
+      BSONObj keyObj = _bson() ;
+      BSONObjIterator iter( keyObj ) ;
+      while ( iter.more() )
+      {
+         BSONElement ele = iter.next() ;
+         const UINT8 *eleValue = (const UINT8 *)( ele.value() ) ;
+         UINT32 eleSize = (UINT32)( ele.valuesize() ) ;
+
+         switch ( ele.type() )
+         {
+            case MinKey :
+            {
+               // minimum key, only type
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cminkey ) ;
+               break ;
+            }
+            case jstNULL :
+            {
+               // null, only type
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cnull ) ;
+               break ;
+            }
+            case Undefined :
+            {
+               // undefined, only type
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cundefined ) ;
+               break ;
+            }
+            case MaxKey :
+            {
+               // maximum key, only type
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cmaxkey ) ;
+               break ;
+            }
+            case Bool :
+            {
+               // boolean, one byte for true or false
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)( ele.boolean() ?
+                                                   ctrue :
+                                                   cfalse ) ) ;
+               break ;
+            }
+            case jstOID :
+            {
+               // oid, type and OID structure
+               const bson::OID &eleOID = ele.__oid() ;
+               hashValue = _ixmHashUINT8( hashValue, (UINT8)coid ) ;
+               hashValue = _ixmHashUINT8Arr( hashValue,
+                                             (const UINT8 *)( &eleOID ),
+                                             sizeof( OID ) ) ;
+               break;
+            }
+            case BinData :
+            {
+               // binary data, 1 byte type + 1 byte code + x bytes data
+               BOOLEAN isDone = FALSE ;
+               INT32 t = ele.binDataType() ;
+
+               // 0-7 and 0x80 to 0x87 are supported by Key
+               if ( ( t & 0x78 ) == 0 && t != ByteArrayDeprecated )
+               {
+                  INT32 len ;
+                  const UINT8 *d = (const UINT8 *)( ele.binData( len ) ) ;
+                  if ( len <= BinDataLenMax )
+                  {
+                     INT32 code = BinDataLengthToCode[ len ] ;
+                     if ( code >= 0 )
+                     {
+                        if ( t >= 128 )
+                        {
+                             t = ( t - 128 ) | 0x08 ;
+                        }
+                        if ( ( code & t ) == 0 )
+                        {
+                           hashValue = _ixmHashUINT8( hashValue,
+                                                      (UINT8)cbindata ) ;
+                           hashValue = _ixmHashUINT8( hashValue,
+                                                      code | t ) ;
+                           hashValue = _ixmHashUINT8Arr( hashValue,
+                                                         d,
+                                                         len ) ;
+                           isDone = TRUE ;
+                        }
+                     }
+                  }
+               }
+               // can not compact, use the origin value
+               if ( !isDone )
+               {
+                  hashValue = _ixmHashUINT8( hashValue,
+                                             (UINT8)BinData ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                eleValue,
+                                                eleSize ) ;
+               }
+               break ;
+            }
+            case Date :
+            {
+               // for date, type and date structure
+               Date_t eleDate = ele.date() ;
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cdate ) ;
+               hashValue = _ixmHashUINT8Arr( hashValue,
+                                             (const UINT8 *)( &eleDate ),
+                                             sizeof( Date_t ) ) ;
+               break ;
+            }
+            case String :
+            {
+               // string, compact for short string if possible
+               // NOTE: we don't store the terminating null
+               UINT32 len = (UINT32)( ele.valuestrsize() - 1 ) ;
+               if ( len > 255 )
+               {
+                  // too large, use the origin value
+                  hashValue = _ixmHashUINT8( hashValue,
+                                             (UINT8)String ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                eleValue,
+                                                eleSize  ) ;
+               }
+               else
+               {
+                  hashValue = _ixmHashUINT8( hashValue,
+                                             (UINT8)cstring ) ;
+                  hashValue = _ixmHashUINT8( hashValue,
+                                             (UINT8)len ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( ele.valuestr() ),
+                                                len ) ;
+               }
+               break ;
+            }
+            case NumberInt :
+            {
+               // number integer, convert to double
+               FLOAT64 eleDouble = (FLOAT64)( ele._numberInt() ) ;
+               hashValue = _ixmHashUINT8( hashValue,
+                                          (UINT8)cdouble ) ;
+               hashValue = _ixmHashUINT8Arr( hashValue,
+                                             (const UINT8 *)( &eleDouble ),
+                                             sizeof( FLOAT64 ) ) ;
+               break ;
+            }
+            case NumberLong :
+            {
+               // number long, convert to double if possible
+               static INT64 _m = 2LL << 52 ;
+               INT64 eleLong = ele._numberLong() ;
+               if ( eleLong >= _m || eleLong <= - _m )
+               {
+                  // lose precision to double, use origin value
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)NumberLong ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( &eleLong ),
+                                                sizeof( INT64 ) ) ;
+               }
+               else
+               {
+                  // safe to convert to double
+                  FLOAT64 eleDouble = (FLOAT64)eleLong ;
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)cdouble ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( &eleDouble ),
+                                                sizeof( FLOAT64 ) ) ;
+               }
+               break ;
+            }
+            case NumberDouble :
+            {
+               // number double, use origin value if possible
+               FLOAT64 eleDouble = ele._numberDouble() ;
+               if ( isNaN( eleDouble ) )
+               {
+                  // special case for NAN
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)NumberDouble ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( &eleDouble ),
+                                                sizeof( FLOAT64 ) ) ;
+               }
+               else
+               {
+                  // type and double value
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)cdouble ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( &eleDouble ),
+                                                sizeof( FLOAT64 ) ) ;
+               }
+               break ;
+            }
+            case NumberDecimal :
+            {
+               // number decimal, convert to double if possible
+               bsonDecimal eleDecimal = ele.numberDecimal() ;
+               bsonDecimal maxFloat ;
+               bsonDecimal minFloat ;
+               maxFloat.fromDouble( numeric_limits<double>::max() ) ;
+               minFloat.fromDouble( -numeric_limits<double>::max() ) ;
+
+               if ( eleDecimal.compare( maxFloat ) > 0 ||
+                    eleDecimal.compare( minFloat ) < 0 )
+               {
+                  // lose precision to double, use origin value
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)NumberDecimal ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                eleValue,
+                                                eleSize  ) ;
+               }
+               else
+               {
+                  // safe to convert to double
+                  FLOAT64 eleDouble = 0.0 ;
+                  eleDecimal.toDouble( &eleDouble ) ;
+                  hashValue = _ixmHashUINT8( hashValue, (UINT8)cdouble ) ;
+                  hashValue = _ixmHashUINT8Arr( hashValue,
+                                                (const UINT8 *)( &eleDouble ),
+                                                sizeof( FLOAT64 ) ) ;
+               }
+               break ;
+            }
+            default :
+            {
+               // type can not compact, use origin value
+               hashValue = _ixmHashUINT8( hashValue, (UINT8)( ele.type() ) ) ;
+               hashValue = _ixmHashUINT8Arr( hashValue,
+                                             eleValue,
+                                             eleSize  ) ;
+               break ;
+            }
+         }
+      }
+
+      return hashValue ;
+   }
+
+   UINT32 _ixmKey::toHash() const
+   {
+      UINT32 hashValue = 0 ;
+
+      if ( NULL != _keyData )
+      {
+         if ( isCompactFormat() )
+         {
+            hashValue = _hashCompact() ;
+         }
+         else
+         {
+            hashValue = _hashBSON() ;
+         }
+      }
+
+      return hashValue ;
    }
 }
