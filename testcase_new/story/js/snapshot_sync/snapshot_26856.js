@@ -2,13 +2,14 @@
  * @Description   : seqDB-26856:System对象获取cpu和memory消息
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.02
- * @LastEditTime  : 2022.10.20
+ * @LastEditTime  : 2023.05.26
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 main( test );
 function test ()
 {
-   var cmd = new Cmd();
+   var remoteObj = new Remote( COORDHOSTNAME, CMSVCNAME );
+   var cmd = remoteObj.getCmd();
    //cpu
    var strCpu = "cat /proc/stat | grep cpu | awk '{print $6,$7,$8}'";
    var resultCpu = cmd.run( strCpu );
@@ -28,16 +29,18 @@ function test ()
    var memExpect = { "FreeRAM": free, "AvailableRAM": available };
    if( typeof ( resultMem ) == "undefined" || resultMem == '' || resultMem == null )
    {
-      checkSnapshot( cpuExpect, null );
+      checkSnapshot( cpuExpect, null, remoteObj );
    } else
    {
-      checkSnapshot( cpuExpect, memExpect );
+      checkSnapshot( cpuExpect, memExpect, remoteObj );
    }
+   remoteObj.close();
 }
 
-function checkSnapshot ( cpuExpect, memExpect )
+function checkSnapshot ( cpuExpect, memExpect, remoteObj )
 {
    // 通过sdbshell的System相关接口获取cpu消息
+   var System = remoteObj.getSystem();
    var cpuInfo1 = System.getCpuInfo().toObj();
    var cpuInfo2 = System.snapshotCpuInfo().toObj();
    for( var key in cpuExpect )
