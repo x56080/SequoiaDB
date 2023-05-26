@@ -63,6 +63,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_UPSERT          "upsert"
 #define FAP_MONGO_FIELD_NAME_TO              "to"
 #define FAP_MONGO_FIELD_NAME_ID              "_id"
+#define FAP_MONGO_FIELD_NAME_MAXTIMEMS       "maxTimeMS"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"

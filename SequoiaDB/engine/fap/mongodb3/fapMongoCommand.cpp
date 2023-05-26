@@ -753,6 +753,8 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
          }
          goto error ;
       }
+      /// set max time
+      sessCtx.maxTimeMS = req.maxTimeMS() ;
    }
    else if ( MONGO_OP_GET_MORE == mongoMsg.opCode() )
    {

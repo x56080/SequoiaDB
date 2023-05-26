@@ -99,6 +99,12 @@ namespace engine
          eduMgr->activateEDU( eduCB() ) ;
          eduCB()->incEventCount() ;
 
+         // clear interrupt flag
+         eduCB()->resetInterrupt() ;
+         eduCB()->resetInfo( EDU_INFO_ERROR ) ;
+         eduCB()->resetLsn() ;
+         pdClearLastError() ;
+
          if ( !request._context )
          {
             continue ;

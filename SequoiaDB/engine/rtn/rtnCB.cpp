@@ -303,6 +303,19 @@ namespace engine
       }
    }
 
+   BOOLEAN _SDB_RTNCB::contextFind( INT64 contextID, UINT64 &ownedEDUID )
+   {
+      RTN_CTX_MAP::Bucket &blk = _contextMap.getBucket( contextID ) ;
+      ossScopedLock lock( &blk, SHARED ) ;
+      RTN_CTX_MAP::map_const_iterator cit = blk.find( contextID ) ;
+      if ( cit != blk.end() )
+      {
+         ownedEDUID = cit->second->eduID() ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    INT32 _SDB_RTNCB::contextFind( INT64 contextID,
                                   rtnContextPtr &context,
                                   _pmdEDUCB *cb )
@@ -711,6 +724,7 @@ namespace engine
       }
       context->setOpID( pEDUCB->getWritingID() ) ;
 
+<<<<<<< HEAD
       // only check timeout for contexts from local service
       if ( !pEDUCB->isFromLocal() )
       {
@@ -718,6 +732,10 @@ namespace engine
       }
 
       context->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
+=======
+      (*context)->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
+      (*context)->_setRemainingMaxTime( pEDUCB->getOperator()->getRemainingMaxTime() ) ;
+>>>>>>> 58b7cfde14... SEQUOIADBMAINSTREAM-9420: 命令支持 maxTimeMS 参数
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",

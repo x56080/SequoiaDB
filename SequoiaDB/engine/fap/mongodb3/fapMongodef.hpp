@@ -55,6 +55,9 @@ enum MONGO_CLIENT_TYPE
    OTHER         = 255
 } ;
 
+/*
+   mongoAuthInfo define
+*/
 struct mongoAuthInfo
 {
    string nonce ;
@@ -63,6 +66,9 @@ struct mongoAuthInfo
    INT32 type ;
 } ;
 
+/*
+   mongoClientInfo define
+*/
 struct mongoClientInfo
 {
    INT32 version ;
@@ -71,20 +77,26 @@ struct mongoClientInfo
    MONGO_CLIENT_TYPE type ;
 } ;
 
+/*
+   mongoSessionCtx define
+*/
 struct mongoSessionCtx
 {
-   mongoClientInfo clientInfo ;
-   BOOLEAN hasParsedClientInfo ;
-   BSONObj errorObj ;
-   BSONObj lastErrorObj ;
-   string userName ;
-   mongoAuthInfo authInfo ;
-   const CHAR* sessionName ;
-   UINT64 eduID ;
+   mongoClientInfo   clientInfo ;
+   BOOLEAN           hasParsedClientInfo ;
+   BSONObj           errorObj ;
+   BSONObj           lastErrorObj ;
+   string            userName ;
+   mongoAuthInfo     authInfo ;
+   const CHAR*       sessionName ;
+   UINT64            eduID ;
+   UINT64            maxTimeMS ;
 
    mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) 
    {
       sessionName = NULL ;
+      eduID = 0 ;
+      maxTimeMS = 0 ;
    }
 
    void setError( INT32 errCode, const CHAR* pErrMsg )
@@ -160,4 +172,5 @@ struct mongoSessionCtx
 #define SDBCTXID_TO_MGCURSOID( sdbCtxId ) \
         ( sdbCtxId + 1 )
 }
-#endif
+
+#endif // _SDB_MONGO_DEFINITION_HPP_

@@ -310,6 +310,13 @@ namespace engine
       virtual const MsgHeader* getMsg() const = 0 ;
       virtual const MsgGlobalID& getGlobalID() const = 0 ;
       virtual void  updateGlobalID( const MsgGlobalID &globalID ) = 0 ;
+
+      virtual INT64 getRemainingMaxTime() const = 0 ;
+      virtual INT64 getMaxTime() const = 0 ;
+      virtual void  setMaxTime( INT64 maxTime ) = 0 ;
+
+      virtual BOOLEAN needInterrupt() const = 0 ;
+      virtual BOOLEAN isInterruptOnTimeLimit() const = 0 ;
    } ;
    typedef _IOperator IOperator ;
 
@@ -572,7 +579,8 @@ namespace engine
          virtual ~_IContextMgr() {}
 
       public:
-         virtual void contextDelete( INT64 contextID, IExecutor *pExe ) = 0 ;
+         virtual void      contextDelete( INT64 contextID, IExecutor *pExe ) = 0 ;
+         virtual BOOLEAN   contextFind( INT64 contextID, UINT64 &ownedEDUID ) = 0 ;
    } ;
    typedef _IContextMgr IContextMgr ;
 

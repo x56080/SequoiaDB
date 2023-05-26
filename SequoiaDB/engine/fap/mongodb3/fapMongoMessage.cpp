@@ -247,6 +247,10 @@ done:
       try
       {
          BSONObj queryObj( _pQuery ) ;
+         PD_LOG( PDDEBUG, "Recieve query request(ns: %s, flag: %d(0x%08x), skip: %d, "
+                 "return: %d, query: %s", _pCollectionFullName, _flags, _flags,
+                 _nToSkip, _nToReturn, queryObj.toString().c_str() ) ;
+
          BSONElement e = queryObj.firstElement() ;
          if ( Object == e.type() &&
               0 == ossStrcmp( e.fieldName(), FAP_MONGO_FIELD_NAME_CMDQUERY ) )
@@ -265,6 +269,36 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT64 _mongoQueryRequest::maxTimeMS() const
+{
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+
+   if ( !_hasGetMaxTime )
+   {
+      _hasGetMaxTime = TRUE ;
+
+      try
+      {
+         BSONObj obj( _pQuery ) ;
+         BSONElement e = obj.getField( FAP_MONGO_FIELD_NAME_MAXTIMEMS ) ;
+         if ( e.isNumber() )
+         {
+            _maxTimeMS = e.numberLong() ;
+         }
+      }
+      catch( ... )
+      {
+      }
+
+      if ( 0 == _maxTimeMS )
+      {
+         _maxTimeMS = -1 ;
+      }
+   }
+
+   return _maxTimeMS ;
 }
 
 INT32 _mongoGetmoreRequest::init( const CHAR* pMsg )

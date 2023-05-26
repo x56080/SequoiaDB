@@ -105,12 +105,11 @@ error:
 // implement for mongo processor
 
 _mongoSession::_mongoSession( SOCKET fd, engine::IResource *pResource )
-                : engine::pmdSession( fd ), _masterRead( FALSE ),
-                  _pResource( pResource ),
-                  _isAuthed( FALSE ), _requestIDOfPostEvent( 0 ),
-                  _opCodeOfPostEvent( 0 ),
-                  _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID ),
-                  _clFullName( NULL )
+: engine::pmdSession( fd ), _pResource( pResource ),
+  _isAuthed( FALSE ), _requestIDOfPostEvent( 0 ),
+  _opCodeOfPostEvent( 0 ),
+  _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID ),
+  _clFullName( NULL )
 {
 }
 
@@ -299,6 +298,9 @@ INT32 _mongoSession::_processClientMsg( const CHAR* pMsg,
    {
       goto error ;
    }
+
+   /// set operation max time
+   eduCB()->getOperator()->setMaxTime( sessCtx.maxTimeMS ) ;
 
    // receive message from socket, check this operation is owned by
    // current session or not

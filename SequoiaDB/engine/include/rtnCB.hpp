@@ -103,6 +103,7 @@ namespace engine
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
+      virtual BOOLEAN contextFind( INT64 contextID, UINT64 &ownedEDUID ) ;
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
 
       virtual void   onPrimaryChange( BOOLEAN primary,

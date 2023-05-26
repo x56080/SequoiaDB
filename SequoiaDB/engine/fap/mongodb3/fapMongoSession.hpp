@@ -139,7 +139,6 @@ private:
 
 private:
    MsgOpReply              _replyHeader ;
-   BOOLEAN                 _masterRead ;
    engine::rtnContextBuf   _contextBuff ;
    mongoMsgBuffer          _inBuffer ;
    mongoMsgBuffer          _tmpBuffer ;

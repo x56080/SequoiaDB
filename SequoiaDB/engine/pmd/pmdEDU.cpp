@@ -244,7 +244,7 @@ namespace engine
          _pMemPool->setName( "PoolIdle" ) ;
       }
 
-      _operator.clearMsg() ;
+      _operator.reset() ;
    }
 
    void _pmdEDUCB::shrink()
@@ -361,6 +361,8 @@ namespace engine
       _ctrlFlag &= ~EDU_CTRL_INTERRUPTED ;
       _isInterruptSelf = FALSE ;
       _interruptRC = SDB_OK ;
+
+      _operator.reset() ;
    }
 
    void _pmdEDUCB::resetDisconnect ()
@@ -687,6 +689,7 @@ namespace engine
          {
             _ctrlFlag |= ( EDU_CTRL_INTERRUPTED | EDU_CTRL_DISCONNECTED ) ;
             _isInterruptSelf = FALSE ;
+            _interruptRC = SDB_NETWORK_CLOSE ;
             ret = TRUE ;
          }
          else
@@ -715,6 +718,7 @@ namespace engine
             {
                _ctrlFlag |= ( EDU_CTRL_INTERRUPTED | EDU_CTRL_DISCONNECTED ) ;
                _isInterruptSelf = FALSE ;
+               _interruptRC = rc ;
                ret = TRUE ;
             }
             else if ( receivedLen >= headerLen &&
@@ -728,6 +732,18 @@ namespace engine
             }
          }
       }
+
+      if ( !ret && !onlyFlag )
+      {
+         if ( _operator.needInterrupt() )
+         {
+            _ctrlFlag |= EDU_CTRL_INTERRUPTED ;
+            _isInterruptSelf = TRUE ;
+            printInfo( EDU_INFO_ERROR, "Operation exceeded time limit" ) ;
+            ret = TRUE ;
+         }
+      }
+
    done :
       PD_TRACE1 ( SDB__PMDEDUCB_ISINT, PD_PACK_INT(ret) );
       PD_TRACE_EXIT ( SDB__PMDEDUCB_ISINT );

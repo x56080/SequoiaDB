@@ -163,6 +163,8 @@ public:
      _pCollectionFullName( NULL ),
      _nToSkip( 0 ),
      _nToReturn( 0 ),
+     _maxTimeMS( -1 ),
+     _hasGetMaxTime( FALSE ),
      _pQuery( NULL ),
      _pSelector( NULL ),
      _isInitialized( FALSE )
@@ -194,6 +196,7 @@ public:
       SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
       return _nToReturn ;
    }
+   INT64 maxTimeMS() const ;
    const CHAR* query() const
    {
       SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -210,6 +213,8 @@ private:
    const CHAR* _pCollectionFullName ;
    INT32       _nToSkip ;
    INT32       _nToReturn ;
+   mutable INT64 _maxTimeMS ;
+   mutable BOOLEAN _hasGetMaxTime ;
    const CHAR* _pQuery ;
    const CHAR* _pSelector ;
    BOOLEAN     _isInitialized ;
