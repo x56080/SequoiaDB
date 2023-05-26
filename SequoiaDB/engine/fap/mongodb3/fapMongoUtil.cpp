@@ -315,8 +315,23 @@ error:
    goto done ;
 }
 
-BSONObj mongoGetErrorBson( INT32 errorCode )
+BSONObj mongoGetErrorBson( INT32 errorCode, const CHAR *pErrMsg )
 {
+   if ( pErrMsg && '\0' != *pErrMsg )
+   {
+      try
+      {
+         BSONObjBuilder berror ;
+         berror.append ( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         berror.append ( FAP_MONGO_FIELD_NAME_CODE, errorCode ) ;
+         berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
+         return berror.obj() ;
+      }
+      catch( ... )
+      {
+      }
+   }
+
    return errorObjAssit.getErrorObj( errorCode ) ;
 }
 

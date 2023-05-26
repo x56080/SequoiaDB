@@ -1146,7 +1146,7 @@ done:
    return rc ;
 error:
    _replyHeader.flags = rc ;
-   errorObj = mongoGetErrorBson( rc ) ;
+   errorObj = mongoGetErrorBson( rc, eduCB()->getInfo( EDU_INFO_ERROR ) ) ;
    _contextBuff = engine::rtnContextBuf( errorObj ) ;
    goto done ;
 }
@@ -1550,7 +1550,7 @@ error:
    _replyHeader.flags = rc ;
    if ( errorObj.isEmpty() )
    {
-      errorObj = mongoGetErrorBson( rc ) ;
+      errorObj = mongoGetErrorBson( rc, eduCB()->getInfo( EDU_INFO_ERROR ) ) ;
    }
    _contextBuff = engine::rtnContextBuf( errorObj ) ;
    goto done ;
@@ -1645,7 +1645,7 @@ void _mongoSession::_buildErrorObj( const engine::rtnContextBuf &contextBuff,
 done:
    if ( errObj.isEmpty() )
    {
-      errObj = mongoGetErrorBson( errCode ) ;
+      errObj = mongoGetErrorBson( errCode, eduCB()->getInfo( EDU_INFO_ERROR ) ) ;
    }
    return ;
 error:
@@ -1735,7 +1735,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
    {
       if ( errObj.isEmpty() )
       {
-         errObj = mongoGetErrorBson( errCode ) ;
+         errObj = mongoGetErrorBson( errCode, eduCB()->getInfo( EDU_INFO_ERROR ) ) ;
       }
 
       _contextBuff = engine::rtnContextBuf( errObj ) ;
@@ -1850,7 +1850,7 @@ void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
                                           INT32 &msgLen )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDERRRESPONSEMSG ) ;
-   BSONObj errorBson = mongoGetErrorBson( errorCode ) ;
+   BSONObj errorBson = mongoGetErrorBson( errorCode, eduCB()->getInfo( EDU_INFO_ERROR ) ) ;
 
    if ( MONGO_OP_QUERY == _opCodeOfPostEvent ||
         MONGO_OP_GET_MORE == _opCodeOfPostEvent )

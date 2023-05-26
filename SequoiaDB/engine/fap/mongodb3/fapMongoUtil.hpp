@@ -124,7 +124,7 @@ INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                               const BSONObj &updatorObj,
                               BSONObj &target ) ;
 
-BSONObj mongoGetErrorBson( INT32 errorCode ) ;
+BSONObj mongoGetErrorBson( INT32 errorCode, const CHAR *pErrMsg = NULL ) ;
 
 CHAR* mongoGetOOMErrResHeader() ;
 
