@@ -16,37 +16,47 @@ var InstallPath = null;         // 安装目录
 *@Description : when run these testcase in sequoiadb or trunk fold that not
 *               installed, get home fold.   <?how to get sequoiadb home fold?>
 ******************************************************************************/
-function toolGetToolPath() {
-   try {
-      var local = cmd.run("pwd").split("\n");
+function toolGetToolPath ()
+{
+   try
+   {
+      var local = cmd.run( "pwd" ).split( "\n" );
       LocalPath = local[0];
    }
-   catch (e) {
-      throw new Error(e);
+   catch( e )
+   {
+      throw new Error( e );
    }
 
-   try {
-      var folder = cmd.run('ls ' + LocalPath).split('\n');
+   try
+   {
+      var folder = cmd.run( 'ls ' + LocalPath ).split( '\n' );
    }
-   catch (e) {
-      throw new Error(e);
+   catch( e )
+   {
+      throw new Error( e );
    }
 
    var fcnt = 0;
-   for (var i = 0; i < folder.length; ++i) {
-      if ("bin" == folder[i] || "SequoiaDB" == folder[i] || "runtest.sh" == folder[i]) {
+   for( var i = 0; i < folder.length; ++i )
+   {
+      if( "bin" == folder[i] || "SequoiaDB" == folder[i] || "runtest.sh" == folder[i] )
+      {
          fcnt++;
       }
 
-      if (fcnt == 3) {
+      if( fcnt == 3 )
+      {
          break;
       }
    }
 
-   if (fcnt >= 3) {
+   if( fcnt >= 3 )
+   {
       InstallPath = LocalPath;
    }
-   else {
+   else
+   {
       InstallPath = "";
    }
 }
@@ -55,37 +65,44 @@ function toolGetToolPath() {
 *@Description : initalize the global variable in the begninning.
                 初始化全局变量LocalPath、InstallPath
 ******************************************************************************/
-function initPath() {
+function initPath ()
+{
    toolGetToolPath();
-   if (InstallPath !== "") {
+   if( InstallPath !== "" )
+   {
       return;
    }
 
-   try {
-      var install = cmd.run("sed -n '3p'  /etc/default/sequoiadb").split("=")[1].split("\n");
+   try
+   {
+      var install = cmd.run( "grep INSTALL_DIR  /etc/default/sequoiadb" ).split( "=" )[1].split( "\n" );
       InstallPath = install[0];   //获得默认安装目录 /opt/sequoiadb
    }
-   catch (e) {
-      throw new Error("failed to excute : sed -n '3p'  /etc/default/sequoiadb,rc = " + e);
+   catch( e )
+   {
+      throw new Error( "failed to excute : grep INSTALL_DIR  /etc/default/sequoiadb,rc = " + e );
    }
-   println("LocalPath: " + LocalPath);
-   println("InstallPath: " + InstallPath);
+   println( "LocalPath: " + LocalPath );
+   println( "InstallPath: " + InstallPath );
 }
 
 /******************************************************************************
 *@Description : check sdblobtool exists or not
 *               检查sdblobtool工具是否存在
 ******************************************************************************/
-function IsLobtoolExist() {
-   try {
+function IsLobtoolExist ()
+{
+   try
+   {
       var command = InstallPath + "/bin/sdblobtool -v";
-      cmd.run(command);
+      cmd.run( command );
    }
-   catch (e) {
-      if (e == 127)
-         println(">No sdblobtool in the computer!!!");
+   catch( e )
+   {
+      if( e == 127 )
+         println( ">No sdblobtool in the computer!!!" );
       else
-         println(">fail to check sdblobtool,rc = " + e);
+         println( ">fail to check sdblobtool,rc = " + e );
       return false;
    }
    return true;
@@ -95,28 +112,36 @@ function IsLobtoolExist() {
 *@Description : command for sdblobtool
 *               stdlobtool命令执行语句的生成
 ******************************************************************************/
-function toolGetCmdstr(Args) {
+function toolGetCmdstr ( Args )
+{
    var command = InstallPath + "/bin/sdblobtool";
-   for (var k in Args) {
-      if (k == "prefer") {
+   for( var k in Args )
+   {
+      if( k == "prefer" )
+      {
          command += " --" + k + " " + Args[k];
       }
-      else if (Args[k] == true) {
+      else if( Args[k] == true )
+      {
          command += " --" + k;
       }
-      else if (Args[k] != false) {
+      else if( Args[k] != false )
+      {
          command += " --" + k + " " + Args[k];
       }
    }
    return command;
 }
 
-function execCommand(cmd, command) {
-   println("> " + command);
-   try {
-      cmd.run(command);
-   } catch (e) {
-      throw new Error(e);
+function execCommand ( cmd, command )
+{
+   println( "> " + command );
+   try
+   {
+      cmd.run( command );
+   } catch( e )
+   {
+      throw new Error( e );
    }
 }
 
@@ -124,20 +149,24 @@ function execCommand(cmd, command) {
 *@Description : test lob export/import/migration with wrong parameter
 *               大对象工具sdblobtool的导出导入迁移操作
 ******************************************************************************/
-function execLobToolCommand(Args) {
+function execLobToolCommand ( Args )
+{
    // 执行导出操作
-   if (Args.operation === "export") {
-      execCommand(cmd, "rm -rf " + Args["file"]);
+   if( Args.operation === "export" )
+   {
+      execCommand( cmd, "rm -rf " + Args["file"] );
    }
 
-   var command = toolGetCmdstr(Args);
-   println(">" + command);
-   try {
-      cmd.run(command);
-      println(">exec successful");
+   var command = toolGetCmdstr( Args );
+   println( ">" + command );
+   try
+   {
+      cmd.run( command );
+      println( ">exec successful" );
    }
-   catch (e) {
-      throw new Error(e);
+   catch( e )
+   {
+      throw new Error( e );
    }
 }
 
@@ -145,20 +174,24 @@ function execLobToolCommand(Args) {
 *@Description : the function of make lobfile to be a lob  
                 创建lobfile文件作为大对象
 ******************************************************************************/
-function toolMakeLobfile() {
+function toolMakeLobfile ()
+{
    var fileName = CHANGEDPREFIX + "_toolFile.txt";
    var lobfile = LocalPath + "/" + fileName;
-   try {
-      var file = new File(lobfile);
+   try
+   {
+      var file = new File( lobfile );
       var loopNum = 10;
       var content = null;
-      for (var i = 0; i < loopNum; ++i) {
+      for( var i = 0; i < loopNum; ++i )
+      {
          content = content + i + "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ";
       }
-      file.write(content);
+      file.write( content );
       file.close();
-   } catch (e) {
-      throw new Error(e);
+   } catch( e )
+   {
+      throw new Error( e );
    }
 
    return lobfile;
@@ -169,17 +202,21 @@ function toolMakeLobfile() {
 *@Description : the function of write lob to the collection with db 
                 向集合cl中插入lobNum条lobfile大对象
 ******************************************************************************/
-function toolPutLobs(cl, lobfile, lobNum) {
-   try {
+function toolPutLobs ( cl, lobfile, lobNum )
+{
+   try
+   {
       var oids = [];
-      for (var i = 0; i < lobNum; i++) {
-         oids[i] = cl.putLob(lobfile);     // putLob上传大对象成功后返回其OID
+      for( var i = 0; i < lobNum; i++ )
+      {
+         oids[i] = cl.putLob( lobfile );     // putLob上传大对象成功后返回其OID
       }
       return oids;
    }
-   catch (e) {
-      println("fail to put " + i + "th " + "lobs, rc = " + e);
-      throw new Error(e);
+   catch( e )
+   {
+      println( "fail to put " + i + "th " + "lobs, rc = " + e );
+      throw new Error( e );
    }
 }
 
@@ -187,52 +224,64 @@ function toolPutLobs(cl, lobfile, lobNum) {
 *@Description : the function of check lob in the collection 
                 检查集合中的lob数和oid值是否正确
 ******************************************************************************/
-function toolCheckLob(cl, lobnum, oids) {
-   try {
+function toolCheckLob ( cl, lobnum, oids )
+{
+   try
+   {
       var cursor = cl.listLobs();
       var i = 0;
       var failedPos = -1;
       var failedOid;
-      while (cursor.next()) {
+      while( cursor.next() )
+      {
          var obj = cursor.current().toObj();
          var oid = obj["Oid"]["$oid"]
-         if (oid != oids[i]) {
+         if( oid != oids[i] )
+         {
             failedPos = i;
             failedOid = oid;
          }
          ++i;
       }
-   } catch (e) {
-      throw new Error(e);
+   } catch( e )
+   {
+      throw new Error( e );
    }
 
-   if (failedPos !== -1) {
-      throw (">" + "expect lobnum: " + lobnum + "real lobnum:" + i + "fail to check lob oid,oid = " + failedOid + ",OID = " + OID[failedPos]);
+   if( failedPos !== -1 )
+   {
+      throw ( ">" + "expect lobnum: " + lobnum + "real lobnum:" + i + "fail to check lob oid,oid = " + failedOid + ",OID = " + OID[failedPos] );
    }
 
-   if (i !== lobnum) {
-      throw new Error(">fail to check lob num,num = " + i + ",lobnum = " + lobnum);
+   if( i !== lobnum )
+   {
+      throw new Error( ">fail to check lob num,num = " + i + ",lobnum = " + lobnum );
    }
 
-   println(">success to check lobnum and oid");
+   println( ">success to check lobnum and oid" );
 }
 
 /******************************************************************************
 *@Description : the function of get ErrNumber from e
                 从返回的错误码中获得真实的错误参数，错误码转换
 ******************************************************************************/
-function getErrMessage(e) {
-   try {
-      var errMessage = cmd.run("grep 'shell rc: " + e + "' sdblobtool.log |tail -n 1|cut -d , -f1|cut -d ' ' -f4").split("\n");
+function getErrMessage ( e )
+{
+   try
+   {
+      var errMessage = cmd.run( "grep 'shell rc: " + e + "' sdblobtool.log |tail -n 1|cut -d , -f1|cut -d ' ' -f4" ).split( "\n" );
       return errMessage[0];
-   } catch (e) {
-      throw new Error(e);
+   } catch( e )
+   {
+      throw new Error( e );
    }
 }
 
-function buildImportOrExprtArgs(operator, clFullName, file, user, password, useSsl) {
+function buildImportOrExprtArgs ( operator, clFullName, file, user, password, useSsl )
+{
 
-   if (useSsl === undefined) {
+   if( useSsl === undefined )
+   {
       var useSsl = false;
    }
 
@@ -246,15 +295,18 @@ function buildImportOrExprtArgs(operator, clFullName, file, user, password, useS
    args["collection"] = clFullName;
    args["file"] = file;
    args["prefer"] = "M";               //  优先选择的实例
-   if (useSsl) {
+   if( useSsl )
+   {
       args["ssl"] = true;                 //  使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
    }
    args["ignorefe"] = false;           //  大对象已经存在于集合中，忽略
    return args;
 }
 
-function buildMigrationArgs(srcFullCL, dstFullCL, srcUsr, srcPwd, destUsr, destPwd, useSsl) {
-   if (useSsl === undefined) {
+function buildMigrationArgs ( srcFullCL, dstFullCL, srcUsr, srcPwd, destUsr, destPwd, useSsl )
+{
+   if( useSsl === undefined )
+   {
       var useSsl = false;
    }
    var args = {};
@@ -264,7 +316,8 @@ function buildMigrationArgs(srcFullCL, dstFullCL, srcUsr, srcPwd, destUsr, destP
    args["passwd"] = srcPwd;
    args["operation"] = "migration";
    args["collection"] = srcFullCL;
-   if (useSsl) {
+   if( useSsl )
+   {
       args["ssl"] = true;                      // 使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
    }
 
@@ -277,68 +330,89 @@ function buildMigrationArgs(srcFullCL, dstFullCL, srcUsr, srcPwd, destUsr, destP
    return args;
 }
 
-function getFileMd5(cmd, file) {
-   try {
-      var output = cmd.run("md5sum " + file).split(" ");
-   } catch (e) {
-      throw new Error(e);
+function getFileMd5 ( cmd, file )
+{
+   try
+   {
+      var output = cmd.run( "md5sum " + file ).split( " " );
+   } catch( e )
+   {
+      throw new Error( e );
    }
 
    return output[0];
 }
 
-function getLob(cl, oid, file) {
-   try {
-      cl.getLob(oid, file);
-   } catch (e) {
-      throw new Error(e);
+function getLob ( cl, oid, file )
+{
+   try
+   {
+      cl.getLob( oid, file );
+   } catch( e )
+   {
+      throw new Error( e );
    }
 }
 
-function createUsr(db, usr, pwd) {
-   try {
-      db.createUsr(usr, pwd);
-   } catch (e) {
-      throw new Error(e);
+function createUsr ( db, usr, pwd )
+{
+   try
+   {
+      db.createUsr( usr, pwd );
+   } catch( e )
+   {
+      throw new Error( e );
    }
 }
 
-function dropUsr(db, usr, pwd) {
-   try {
-      db.dropUsr(usr, pwd);
-   } catch (e) {
-      throw new Error(e);
+function dropUsr ( db, usr, pwd )
+{
+   try
+   {
+      db.dropUsr( usr, pwd );
+   } catch( e )
+   {
+      throw new Error( e );
    }
 }
 
-function handleToolError(args, errcode) {
-   try {
-      execLobToolCommand(args);
+function handleToolError ( args, errcode )
+{
+   try
+   {
+      execLobToolCommand( args );
       throw "expect:" + errcode + "real 0 ";
    }
-   catch (e) {
-      var errNumber = getErrMessage(e.message);
-      if (errNumber == errcode) {
-         println(">success to test export with illegal usrname.");
+   catch( e )
+   {
+      var errNumber = getErrMessage( e.message );
+      if( errNumber == errcode )
+      {
+         println( ">success to test export with illegal usrname." );
       }
-      else {
-         println(">fail to test export with illegal usrname. rc = " + errNumber);
-         throw new Error(errNumber);
+      else
+      {
+         println( ">fail to test export with illegal usrname. rc = " + errNumber );
+         throw new Error( errNumber );
       }
    }
 }
 
-function LobToolTest() {
+function LobToolTest ()
+{
 
 }
 
-LobToolTest.prototype.checkEnv = function (paras) {
-   if (paras !== undefined && paras.user !== undefined && paras.passwd != undefined) {
-      if (commIsStandalone(db)) { // 独立模式下不能创建用户，直接跳过
+LobToolTest.prototype.checkEnv = function( paras )
+{
+   if( paras !== undefined && paras.user !== undefined && paras.passwd != undefined )
+   {
+      if( commIsStandalone( db ) )
+      { // 独立模式下不能创建用户，直接跳过
          return false;
       }
-      createUsr(db, paras.user, paras.passwd);
-      db = new Sdb(hostName, coordPort, paras.user, paras.passwd);
+      createUsr( db, paras.user, paras.passwd );
+      db = new Sdb( hostName, coordPort, paras.user, paras.passwd );
    }
 
    initPath();
@@ -347,27 +421,32 @@ LobToolTest.prototype.checkEnv = function (paras) {
    return IsLobtoolExist();
 }
 
-LobToolTest.prototype.setUp = function (paras) {
+LobToolTest.prototype.setUp = function( paras )
+{
 
 }
 
-LobToolTest.prototype.test = function () {
+LobToolTest.prototype.test = function()
+{
 
 }
 
-LobToolTest.prototype.checkResult = function () {
+LobToolTest.prototype.checkResult = function()
+{
    // 获得getLob文件的Md5值，检验导入是否成功
    this.tempfile = LocalPath + "/_temp.file";
-   for (var i = 0; i < this.oids.length; ++i) {
-      execCommand(cmd, "rm -rf " + this.tempfile);
-      getLob(this.otherCl, this.oids[i], this.tempfile);
-      var rMd5 = getFileMd5(cmd, this.tempfile);
-      if (rMd5 != this.wMd5) {
-         throw (">putlob file have md5: " + this.wMd5 +
-            " not equal to getlob file md5: " + rMd5);
+   for( var i = 0; i < this.oids.length; ++i )
+   {
+      execCommand( cmd, "rm -rf " + this.tempfile );
+      getLob( this.otherCl, this.oids[i], this.tempfile );
+      var rMd5 = getFileMd5( cmd, this.tempfile );
+      if( rMd5 != this.wMd5 )
+      {
+         throw ( ">putlob file have md5: " + this.wMd5 +
+            " not equal to getlob file md5: " + rMd5 );
       }
       else
-         println(">success to import " + i + "th lob.");
+         println( ">success to import " + i + "th lob." );
    }
 
    // 检验导入大对象的条数是否正确
@@ -375,44 +454,54 @@ LobToolTest.prototype.checkResult = function () {
    //println(">success to test eximport Normal Condition.\n\n");
 }
 
-LobToolTest.prototype.tearDown = function (paras) {
-   if (this.lobfile !== undefined) {
-      execCommand(cmd, "rm -rf " + this.lobfile);
+LobToolTest.prototype.tearDown = function( paras )
+{
+   if( this.lobfile !== undefined )
+   {
+      execCommand( cmd, "rm -rf " + this.lobfile );
    }
 
-   if (this.tempfile !== undefined) {
-      execCommand(cmd, "rm -rf " + this.tempfile);
+   if( this.tempfile !== undefined )
+   {
+      execCommand( cmd, "rm -rf " + this.tempfile );
    }
-   println("####" + this.otherCLName);
-   if (this.otherCLName !== undefined) {
-      commDropCL(db, COMMCSNAME, this.otherCLName, true, true, "clean collection in the end.");
+   println( "####" + this.otherCLName );
+   if( this.otherCLName !== undefined )
+   {
+      commDropCL( db, COMMCSNAME, this.otherCLName, true, true, "clean collection in the end." );
    }
-   if (paras !== undefined && paras.user !== null && paras.passwd != null) {
-      dropUsr(db, paras.user, paras.passwd);
+   if( paras !== undefined && paras.user !== null && paras.passwd != null )
+   {
+      dropUsr( db, paras.user, paras.passwd );
    }
 }
 
-function lobToolMain(main, paras) {
-   println("call lobToolMain");
-   try {
-      commDropCL(db, COMMCSNAME, COMMCLNAME, true, true,
-         "clean collection in the beginning");
+function lobToolMain ( main, paras )
+{
+   println( "call lobToolMain" );
+   try
+   {
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+         "clean collection in the beginning" );
 
-      main(db, paras);
-      execCommand(cmd, "rm -rf sdblobtool.log");
+      main( db, paras );
+      execCommand( cmd, "rm -rf sdblobtool.log" );
    }
-   catch (e) {
-      execCommand(cmd, "mkdir -p /tmp/lobtool");
-      execCommand(cmd, "mv sdblobtool.log /tmp/lobtool/migrationSSL.log");
+   catch( e )
+   {
+      execCommand( cmd, "mkdir -p /tmp/lobtool" );
+      execCommand( cmd, "mv sdblobtool.log /tmp/lobtool/migrationSSL.log" );
 
-      if (e.constructor === Error) {
-         println(e.stack);
+      if( e.constructor === Error )
+      {
+         println( e.stack );
       }
       throw e;
    }
-   finally {
-      commDropCL(db, COMMCSNAME, COMMCLNAME, true, true,
-         "clean collection in the end, wrong");
+   finally
+   {
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+         "clean collection in the end, wrong" );
 
       db.close();
    }

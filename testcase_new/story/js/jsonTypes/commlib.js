@@ -26,7 +26,7 @@ function initPath ()
    LocalPath = local[0];
    try
    {
-      var install = cmd.run( "sed -n '3p'  /etc/default/sequoiadb" ).split( "=" ); // 命令返回结果为 INSTALL_DIR = /opt/sequoiadb
+      var install = cmd.run( "grep INSTALL_DIR  /etc/default/sequoiadb" ).split( "=" ); // 命令返回结果为 INSTALL_DIR = /opt/sequoiadb
       var installPath = install[1].split( "\n" );
       InstallPath = installPath[0]; //获得默认安装目录 /opt/sequoiadb
    }
