@@ -679,8 +679,124 @@ namespace seadapter
       goto done ;
    }
 
-   template <typename T>
-   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, T& builder, BOOLEAN &found )
+   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, BSONArrayBuilder& builder,
+                                                 BOOLEAN &found )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( !_isSupportType( ele.type() ) )
+         {
+            PD_LOG( PDWARNING, "Record has field of unsupported type[%d]", ele.type() ) ;
+            goto done ;
+         }
+
+         if ( Array == ele.type() )
+         {
+            // ES dose not support mixed type of array
+            BSONType type = EOO ;
+            BOOLEAN mixedType = FALSE ;
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while ( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( type != EOO && type != e.type() )
+               {
+                  mixedType = TRUE ;
+                  break ;
+               }
+               type = e.type() ;
+            }
+
+            if ( !mixedType )
+            {
+               BSONArrayBuilder subBuilder( builder.subarrayStart() ) ;
+               BSONObjIterator itr( ele.embeddedObject() ) ;
+               while( itr.more() )
+               {
+                  rc = _rebuildRecordEle( itr.next(), subBuilder, found ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to rebuild array field, rc: %d", rc ) ;
+                     goto error ;
+                  }
+               }
+               subBuilder.done() ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Array can't have elements of diferent types" ) ;
+            }
+         }
+         else if ( ( Date == ele.type() || Timestamp == ele.type() ) )
+         {
+            BSONObj dstObj ;
+
+            rc = _rebuildDateField( ele, dstObj ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to rebuild date field, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            builder.append( dstObj.firstElement() ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
+         }
+         else if ( Object == ele.type() )
+         {
+            BSONObj tmpObj ;
+            BSONObjBuilder tmpBuilder ;
+            BSONObjBuilder subBuilder( tmpBuilder.subobjStart( ele.fieldName() ) ) ;
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               rc = _rebuildRecordEle( itr.next(), subBuilder, found ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to rebuild object field, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            subBuilder.done() ;
+            tmpObj = tmpBuilder.obj() ;
+            builder.append( tmpObj.firstElement() ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
+         }
+         else
+         {
+            builder.append( ele ) ;
+
+            if ( !found )
+            {
+               found = TRUE ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when rebuilding record element: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptIndexerState::_rebuildRecordEle( const BSONElement &ele, BSONObjBuilder& builder,
+                                                 BOOLEAN &found )
    {
       INT32 rc = SDB_OK ;
 
