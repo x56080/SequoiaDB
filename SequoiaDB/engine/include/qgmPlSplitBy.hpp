@@ -53,7 +53,10 @@ namespace engine
    {
    public:
       _qgmPlSplitBy( const _qgmDbAttr &split,
-                     const _qgmField &alias ) ;
+                     const _qgmField &alias,
+                     BOOLEAN strict = FALSE,
+                     const ossPoolString& arrayIdxName = "" ) ;
+
       virtual ~_qgmPlSplitBy() ;
 
    public:
@@ -75,6 +78,8 @@ namespace engine
       void     _appendReplace( BSONArrayBuilder &b,
                                const BSONElement &replace ) ;
 
+      BOOLEAN  _shouldSkip( const BSONElement &ele ) ;
+
    private:
       _qgmDbAttr        _splitby ;
       qgmFetchOut       _fetch ;
@@ -82,7 +87,12 @@ namespace engine
       BSONElement       _splitEle ;
       ossPoolString     _fieldName ;
       BOOLEAN           _replaced ;
-
+      INT64             _currentIdx ;        // Note: Keep the type of _currentIdx as INT64, to be
+                                             // compatible with mongodb.
+      BOOLEAN           _strict ;            // Only return records when the split by field is an
+                                             // non-empty array.
+      ossPoolString     _arrayIndexName ;    // Name of the field to return the index in the array.
+                                             // When it's empty, no index field returned.
    } ;
    typedef class _qgmPlSplitBy qgmPlSplitBy ;
 }

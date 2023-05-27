@@ -625,9 +625,13 @@ namespace engine
          {
             SDB_ASSERT( 1 == logicalTree->getSubNodeCount(), "impossible" ) ;
             _qgmPlan *split = NULL ;
+            const qgmSplitByArgs *args = ((_qgmOptiSplit *)logicalTree)->getArguments() ;
+            SDB_ASSERT( NULL != args, "Split arguments are null" ) ;
+
             split = SDB_OSS_NEW _qgmPlSplitBy(
                                   ((_qgmOptiSplit *)logicalTree)->_splitby,
-                                  logicalTree->getSubNode(0)->getAlias()  ) ;
+                                  logicalTree->getSubNode(0)->getAlias(),
+                                  args->strict, args->arrayIndexAlias ) ;
             if ( NULL == split )
             {
                PD_LOG( PDERROR, "Failed to allocate mem." ) ;

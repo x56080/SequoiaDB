@@ -37,6 +37,7 @@
 ******************************************************************************/
 
 #include "qgmOptiSplit.hpp"
+#include "msgDef.hpp"
 
 namespace engine
 {
@@ -46,7 +47,6 @@ namespace engine
    :_qgmOptiTreeNode(QGM_OPTI_TYPE_SPLIT, table, param ),
     _splitby(splitby)
    {
-      
    }
 
    _qgmOptiSplit::~_qgmOptiSplit()
@@ -66,5 +66,45 @@ namespace engine
       ss << "{" << this->_qgmOptiTreeNode::toString() ;
       ss << ", split by[" << _splitby.toString() << "]}" ;
       return ss.str() ;
+   }
+
+   INT32 _qgmOptiSplit::parseArguments( const BSONObj &hints )
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement ele = hints.getField( FIELD_NAME_STRICT ) ;
+      if ( !ele.eoo() )
+      {
+         if ( !ele.isBoolean() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid value for strict[%s], rc: %d",
+                    ele.toString( TRUE, TRUE ).c_str(), rc ) ;
+            goto error ;
+         }
+         _arguments.strict = ele.Bool() ;
+      }
+
+      ele = hints.getField( FIELD_NAME_ARRAY_INDEX_ALIAS ) ;
+      if ( !ele.eoo() )
+      {
+         if ( String != ele.type() || 0 == ele.valuestrsize() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid value for array index alias[%s], rc: %d",
+                    ele.toString( TRUE, TRUE ).c_str(), rc ) ;
+            goto error ;
+         }
+         _arguments.arrayIndexAlias = ele.valuestr() ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   const qgmSplitByArgs* _qgmOptiSplit::getArguments() const
+   {
+      return &_arguments ;
    }
 }

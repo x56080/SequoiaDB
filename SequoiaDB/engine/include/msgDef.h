@@ -708,6 +708,9 @@
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"
 
+#define FIELD_NAME_STRICT                    "Strict"
+#define FIELD_NAME_ARRAY_INDEX_ALIAS         "ArrayIndexAlias"
+
 /// strategy field begin
 #define FIELD_NAME_NICE                      "Nice"
 #define FIELD_NAME_TASK_NAME                 "TaskName"

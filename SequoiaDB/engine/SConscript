@@ -665,7 +665,8 @@ aggrFiles = [
       "aggr/aggrLimit.cpp",
       "aggr/aggrSkip.cpp",
       "aggr/aggrSort.cpp",
-      "aggr/aggrProject.cpp"
+      "aggr/aggrProject.cpp",
+      "aggr/aggrUnwind.cpp"
       ]
 
 netFiles = [

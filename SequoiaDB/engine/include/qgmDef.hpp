@@ -246,13 +246,14 @@ namespace engine
 
    /*
       _qgmOpField define
+      Define a 'field' in the SQL grammar.
    */
    struct _qgmOpField : public SDBObject
    {
-      qgmDbAttr value ;
-      qgmField alias ;
-      INT32 type ;
-      _qgmSelectorExpr expr ;
+      qgmDbAttr value ;          // Generally the name of the field.
+      qgmField alias ;           // Alias name, select a as T1 from tbl;
+      INT32 type ;               // Keyword type in SQL grammar
+      _qgmSelectorExpr expr ;    // For expressions in selector, eg, select a + b from tbl;
 
       _qgmOpField()
       :type(SQL_GRAMMAR::SQLMAX)
@@ -286,7 +287,7 @@ namespace engine
       {
          return value == field.value
                 && alias == field.alias
-                && type == field.type ; 
+                && type == field.type ;
       }
 
 
@@ -324,7 +325,7 @@ namespace engine
    typedef struct _qgmOpField qgmOpField ;
    typedef ossPoolVector< qgmOpField >    qgmOPFieldVec ;
    typedef ossPoolVector< qgmOpField* >   qgmOPFieldPtrVec ;
-   
+
    typedef ossPoolVector<BSONElement>     qgmFOElementVec ;
    /*
       _qgmFetchOut define
@@ -420,9 +421,9 @@ namespace engine
    public:
       INT32 add( const _qgmValueTuple &right, _qgmValueTuple &result ) const ;
       INT32 sub( const _qgmValueTuple &right, _qgmValueTuple &result ) const ;
-      INT32 multiply( const _qgmValueTuple &right, 
+      INT32 multiply( const _qgmValueTuple &right,
                       _qgmValueTuple &result ) const;
-      INT32 divide( const _qgmValueTuple &right, 
+      INT32 divide( const _qgmValueTuple &right,
                     _qgmValueTuple &result ) const ;
       INT32 mod( const _qgmValueTuple &right, _qgmValueTuple &result ) const ;
 

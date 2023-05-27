@@ -170,6 +170,10 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
+
+         rc = split->parseArguments( select->getHint() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse arguments for $unwind, rc: %d", rc ) ;
+
          extended = split ;
       }
       else

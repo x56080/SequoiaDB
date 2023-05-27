@@ -631,6 +631,9 @@ class _mongoAggregateCommand : public _mongoCollectionCommand
                                    BSONObjBuilder& builder ) ;
       INT32 _convertAggrGroup( const BSONObj& groupObj,
                               vector<BSONObj>& newStageList ) ;
+      INT32 _convertAggrUnwind( const BSONObj& unwindObj,
+                                BSONObj& sdbUnWindObj,
+                                BSONObj& errorObj ) ;
 } ;
 typedef _mongoAggregateCommand mongoAggregateCommand ;
 

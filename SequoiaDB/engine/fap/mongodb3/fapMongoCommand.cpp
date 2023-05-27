@@ -44,6 +44,7 @@
 #include "fapMongoDecimal.hpp"
 #include "fapMongoTrace.hpp"
 #include "pdTrace.hpp"
+#include "aggrDef.hpp"
 
 using namespace bson ;
 using namespace engine ;
@@ -4036,14 +4037,14 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
     */
    INT32 rc = SDB_OK ;
 
-   if ( 0 != ossStrcmp( groupObj.firstElementFieldName(), "$group" ) )
+   if ( 0 != ossStrcmp( groupObj.firstElementFieldName(), FAP_MONGO_AGGR_PIPELINE_STAGE_GROUP ) )
    {
       goto done ;
    }
 
    try
    {
-      BSONObj groupValue = groupObj.getObjectField( "$group" ) ;
+      BSONObj groupValue = groupObj.getObjectField( FAP_MONGO_AGGR_PIPELINE_STAGE_GROUP ) ;
       const CHAR* pIdValue = groupValue.getStringField( "_id" ) ;
 
       if ( '$' == pIdValue[0] )
@@ -4070,8 +4071,8 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
          }
          bobGroup.append( "tmp_id_field", pIdValue ) ;
 
-         newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
-         newStageList.push_back( BSON( "$project" << bobProj.obj() ) ) ;
+         newStageList.push_back( BSON( AGGR_OPR_GROUP_NAME << bobGroup.obj() ) ) ;
+         newStageList.push_back( BSON( AGGR_OPR_PROJECT_NAME << bobProj.obj() ) ) ;
       }
       else
       {
@@ -4101,7 +4102,7 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
                goto error ;
             }
          }
-         newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
+         newStageList.push_back( BSON( AGGR_OPR_GROUP_NAME << bobGroup.obj() ) ) ;
       }
    }
    catch ( std::exception &e )
@@ -4118,12 +4119,120 @@ error:
    goto done ;
 }
 
+INT32 _mongoAggregateCommand::_convertAggrUnwind( const BSONObj& unwindObj,
+                                                  BSONObj& sdbUnwindObj,
+                                                  BSONObj& errorObj )
+{
+   INT32 rc = SDB_OK ;
+   ossPoolString errMsg ;
+   BSONElement ele = unwindObj.firstElement() ;
+
+   if ( 0 != ossStrcmp( ele.fieldName(), FAP_MONGO_AGGR_PIPELINE_STAGE_UNWIND ) )
+   {
+      goto done ;
+   }
+
+   // Operand field names in MongoDB and SequoiaDB are different. If 'preserveNullAndEmptyArrays'
+   // is not true, we should always set 'Strict' to true explicitly, as in internal SQL, the default
+   // value of 'Strict' is false.
+   // eg:
+   //     { $unwind: "$a" } ==> { $unwind: { Path: "$a", Strict: true } }
+   //
+   //     { $unwind: { path: "$a", includeArrayIndex: "b", preserveNullAndEmptyArrays: true } }
+   //     ==>
+   //     { $unwind: { Path: "$a", ArrayIndexAlias: "b", Strict: true } }
+   try
+   {
+      BSONObjBuilder builder ;
+      BOOLEAN strictDecided = FALSE ;
+      BSONObjBuilder subBuilder( builder.subobjStart( AGGR_OPR_UNWIND_NAME ) ) ;
+      if ( String == ele.type() )
+      {
+         subBuilder.append( FIELD_NAME_PATH, ele.valuestr() ) ;
+      }
+      else if ( ele.isABSONObj() )
+      {
+         BSONObjIterator itr( ele.embeddedObject() ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcasecmp( e.fieldName(), FAP_MONGO_FIELD_NAME_PATH ) )
+            {
+               if ( String != e.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  errMsg = "Expected a string as the path for $unwind stage" ;
+                  PD_LOG( PDERROR, "%s, rc: %d", errMsg.c_str(), rc ) ;
+                  goto error ;
+               }
+               subBuilder.appendAs( e, FIELD_NAME_PATH ) ;
+            }
+            else if ( 0 == ossStrcasecmp( e.fieldName(), FAP_MONGO_FIELD_NAME_INCLUDEARRAYINDEX ) )
+            {
+               subBuilder.appendAs( e, FIELD_NAME_ARRAY_INDEX_ALIAS ) ;
+            }
+            else if ( 0 == ossStrcasecmp( e.fieldName(),
+                                          FAP_MONGO_FIELD_NAME_PRESERVENULLANDEMPTYARRAYS ) )
+            {
+               if ( !e.isBoolean() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  errMsg = "Expected a boolean for the preserveNullAndEmptyArrays option to "
+                           "$unwind stage" ;
+                  PD_LOG( PDERROR, "%s, rc: %d", errMsg.c_str(), rc ) ;
+                  goto error ;
+               }
+
+               strictDecided = TRUE ;
+               // Note: If 'preserveNullAndEmptyArrays' is true, 'Strict' is false.
+               subBuilder.appendBool( FIELD_NAME_STRICT, !e.boolean() ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               errMsg = "Unrecognized option to $unwind stage: " + ossPoolString( e.fieldName() ) ;
+               PD_LOG( PDERROR, "%s, rc: %d", errMsg.c_str(), rc ) ;
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         errMsg = "Expected either a string or an object as specification for $unwind stage" ;
+         PD_LOG( PDERROR, "%s, rc: %d", errMsg.c_str(), rc ) ;
+         goto error ;
+      }
+
+      if ( !strictDecided )
+      {
+         subBuilder.appendBool( FIELD_NAME_STRICT, TRUE ) ;
+      }
+
+      subBuilder.done() ;
+      sdbUnwindObj = builder.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when coverting mongo $unwind to sdb"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   errorObj = mongoGetErrorBson( rc, errMsg.empty() ? NULL : errMsg.c_str() ) ;
+   goto done ;
+}
+
 INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
                                                    BSONObj& errorObj )
 {
    INT32 rc = SDB_OK ;
 
-   if ( 0 != ossStrcmp( projectObj.firstElementFieldName(), "$project" ) )
+   if ( 0 != ossStrcmp( projectObj.firstElementFieldName(), FAP_MONGO_AGGR_PIPELINE_STAGE_PROJECT ) )
    {
       goto done ;
    }
@@ -4138,7 +4247,7 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
        * { $project: { a: 0, b: 0 } } is not supported.
        * { $project: { a: 1, _id: 0 } } is supported.
        */
-      BSONObj projValue = projectObj.getObjectField( "$project" ) ;
+      BSONObj projValue = projectObj.getObjectField( FAP_MONGO_AGGR_PIPELINE_STAGE_PROJECT ) ;
       BOOLEAN foundId = FALSE ;
       BOOLEAN foundInclude = FALSE ;
       BSONObjIterator i( projValue );
@@ -4239,7 +4348,7 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       /* eg: { pipeline: [ { $match: { b: 1 } },
                            { $group: { _id: "$a", b: { $sum: "$b" } } }
                          ] } */
-      BSONObjIterator it( _obj.getObjectField( "pipeline" ) ) ;
+      BSONObjIterator it( _obj.getObjectField( FAP_MONGO_FIELD_NAME_PIPELINE ) ) ;
       while ( it.more() )
       {
          BSONElement ele = it.next() ;
@@ -4254,7 +4363,8 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          }
 
          BSONObj oneStage = ele.Obj() ;
-         if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$project" ) )
+         if ( 0 == ossStrcmp( oneStage.firstElementFieldName(),
+                              FAP_MONGO_AGGR_PIPELINE_STAGE_PROJECT ) )
          {
             rc = _convertAggrProject( oneStage, ctx.errorObj ) ;
             if ( rc )
@@ -4268,7 +4378,8 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                goto error;
             }
          }
-         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$group" ) )
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(),
+                                   FAP_MONGO_AGGR_PIPELINE_STAGE_GROUP ) )
          {
             std::vector<BSONObj> newStageList ;
 
@@ -4288,7 +4399,8 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                }
             }
          }
-         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$match" ) )
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(),
+                                   FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH ) )
          {
             BSONObjBuilder operatorBob ;
 
@@ -4298,6 +4410,22 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                          "rc: %d", rc ) ;
 
             rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(),
+                                   FAP_MONGO_AGGR_PIPELINE_STAGE_UNWIND ) )
+         {
+            BSONObj sdbUnwindObj ;
+            rc = _convertAggrUnwind( oneStage, sdbUnwindObj, ctx.errorObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+
+            rc = sdbMsg.write( sdbUnwindObj, TRUE ) ;
             if ( rc )
             {
                goto error ;

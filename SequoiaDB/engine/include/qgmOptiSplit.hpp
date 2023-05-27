@@ -43,6 +43,18 @@
 
 namespace engine
 {
+   struct _qgmSplitByArgs
+   {
+      BOOLEAN        strict ;
+      ossPoolString  arrayIndexAlias ;
+
+      _qgmSplitByArgs()
+      : strict( FALSE )
+      {
+      }
+   } ;
+   typedef _qgmSplitByArgs qgmSplitByArgs ;
+
    class _qgmOptiSplit : public qgmOptiTreeNode
    {
    public:
@@ -53,13 +65,18 @@ namespace engine
 
    public:
       virtual INT32 outputStream( qgmOpStream &stream ) ;
-   
+
       virtual string toString() const ;
 
       virtual BOOLEAN isEmpty() { return FALSE ;}
 
+      INT32 parseArguments( const BSONObj &hints ) ;
+
+      const qgmSplitByArgs* getArguments() const ;
+
    public:
-      qgmDbAttr _splitby ;    
+      qgmDbAttr         _splitby ;
+      qgmSplitByArgs    _arguments ;
    } ;
    typedef class _qgmOptiSplit qgmOptiSplit ;
 }

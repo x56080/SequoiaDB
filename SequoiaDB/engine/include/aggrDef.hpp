@@ -42,11 +42,14 @@
 #define AGGR_CL_DEFAULT_ALIAS             "SYS_AGGR_ALIAS"
 
 #define AGGR_KEYWORD_PREFIX_STR           "$"
-#define AGGR_GROUP_PARSER_NAME            AGGR_KEYWORD_PREFIX_STR"group"
-#define AGGR_MATCH_PARSER_NAME            AGGR_KEYWORD_PREFIX_STR"match"
-#define AGGR_SKIP_PARSER_NAME             AGGR_KEYWORD_PREFIX_STR"skip"
-#define AGGR_LIMIT_PARSER_NAME            AGGR_KEYWORD_PREFIX_STR"limit"
-#define AGGR_SORT_PARSER_NAME             AGGR_KEYWORD_PREFIX_STR"sort"
-#define AGGR_PROJECT_PARSER_NAME          AGGR_KEYWORD_PREFIX_STR"project"
+
+// Aggregation operations
+#define AGGR_OPR_GROUP_NAME               AGGR_KEYWORD_PREFIX_STR"group"
+#define AGGR_OPR_MATCH_NAME               AGGR_KEYWORD_PREFIX_STR"match"
+#define AGGR_OPR_SKIP_NAME                AGGR_KEYWORD_PREFIX_STR"skip"
+#define AGGR_OPR_LIMIT_NAME               AGGR_KEYWORD_PREFIX_STR"limit"
+#define AGGR_OPR_SORT_NAME                AGGR_KEYWORD_PREFIX_STR"sort"
+#define AGGR_OPR_PROJECT_NAME             AGGR_KEYWORD_PREFIX_STR"project"
+#define AGGR_OPR_UNWIND_NAME              AGGR_KEYWORD_PREFIX_STR"unwind"
 
 #endif

@@ -47,7 +47,9 @@ using namespace bson ;
 namespace engine
 {
    _qgmPlSplitBy::_qgmPlSplitBy( const _qgmDbAttr &splitby,
-                                 const _qgmField &alias )
+                                 const _qgmField &alias,
+                                 BOOLEAN strict,
+                                 const ossPoolString& arrayIndexName )
    :_qgmPlan( QGM_PLAN_TYPE_SPLIT, alias ),
    _splitby(splitby),
    _itr(_fetch.obj),
@@ -55,6 +57,9 @@ namespace engine
    {
       _initialized = TRUE ;
       _replaced = FALSE ;
+      _currentIdx = 0 ;
+      _strict = strict ;
+      _arrayIndexName = arrayIndexName ;
    }
 
    _qgmPlSplitBy::~_qgmPlSplitBy()
@@ -96,19 +101,41 @@ namespace engine
          SDB_ASSERT( NULL == _fetch.next, "impossible" ) ;
 
          _splitEle = _fetch.obj.getFieldDotted( _fieldName.c_str() ) ;
+         if ( _shouldSkip( _splitEle ) )
+         {
+            _clear() ;
+            goto fetch ;
+         }
+
          if ( Array != _splitEle.type() ) /// not array
          {
-            next = _fetch ;
+            if ( _arrayIndexName.size() > 0 )
+            {
+               // Need to rebuild the record, add the array index name with value null.
+               BSONObjBuilder builder ;
+               builder.appendElements( _fetch.obj ) ;
+               builder.appendNull( _arrayIndexName ) ;
+               next.obj = builder.obj() ;
+               next.alias = _fetch.alias ;
+            }
+            else
+            {
+               next = _fetch ;
+            }
             _clear() ;
             goto done ;
          }
-         else if ( 0 == _splitEle.embeddedObject().nFields() )
+         else if ( _splitEle.embeddedObject().firstElement().eoo() )
          {
             BSONObjBuilder build ;
             BSONObjIterator itr( _fetch.obj ) ;
             rc = _buildNewObj( build, itr, BSONElement() ) ;
             PD_RC_CHECK( rc, PDERROR, "Build new object failed, rc: %d",
                          rc ) ;
+            if ( !_arrayIndexName.empty() )
+            {
+               build.appendNull( _arrayIndexName ) ;
+            }
             next.obj = build.obj() ;
             next.alias = _fetch.alias ;
             _clear() ;
@@ -128,6 +155,12 @@ namespace engine
          rc = _buildNewObj( build, itr, _itr.next() ) ;
          PD_RC_CHECK( rc, PDERROR, "Build new object failed, rc: %d",
                       rc ) ;
+
+         if ( _arrayIndexName.size() > 0 )
+         {
+            build.append( _arrayIndexName, _currentIdx ) ;
+            ++_currentIdx ;
+         }
          next.obj = build.obj() ;
          next.alias = _fetch.alias ;
       }
@@ -244,6 +277,7 @@ namespace engine
       _fetch.obj = BSONObj() ;
       _splitEle = BSONElement() ;
       _fetch.alias.clear() ;
+      _currentIdx = 0 ;
    }
 
    string _qgmPlSplitBy::toString() const
@@ -251,5 +285,32 @@ namespace engine
       stringstream ss ;
       ss << "split by [" << _splitby.toString() << "]" << "\n" ;
       return ss.str();
+   }
+
+   BOOLEAN _qgmPlSplitBy::_shouldSkip( const BSONElement &ele )
+   {
+      BOOLEAN result = FALSE ;
+
+      if ( _strict )
+      {
+         // Do not preserve, so in some cases we need to skip the current record.
+         if ( ele.eoo() || ele.isNull() )
+         {
+            result = TRUE ;
+            goto done ;
+         }
+
+         if ( Array == ele.type() )
+         {
+            if ( ele.embeddedObject().firstElement().eoo() )
+            {
+               return TRUE ;
+               goto done ;
+            }
+         }
+      }
+
+   done:
+      return result ;
    }
 }

@@ -49,6 +49,7 @@
 #include "aggrLimit.hpp"
 #include "aggrSort.hpp"
 #include "aggrProject.hpp"
+#include "aggrUnwind.hpp"
 #include "monDump.hpp"
 #include "aggrTrace.h"
 
@@ -56,13 +57,16 @@ using namespace bson;
 
 namespace engine
 {
+   // For aggregation operations, use names of the operations as the parser name. As during
+   // parsing phase, we will use the name to find the corresponding parser.
    AGGR_PARSER_BEGIN
-   AGGR_PARSER_ADD( AGGR_GROUP_PARSER_NAME, aggrGroupParser )
-   AGGR_PARSER_ADD( AGGR_MATCH_PARSER_NAME, aggrMatchParser )
-   AGGR_PARSER_ADD( AGGR_SKIP_PARSER_NAME, aggrSkipParser )
-   AGGR_PARSER_ADD( AGGR_LIMIT_PARSER_NAME, aggrLimitParser )
-   AGGR_PARSER_ADD( AGGR_SORT_PARSER_NAME, aggrSortParser )
-   AGGR_PARSER_ADD( AGGR_PROJECT_PARSER_NAME, aggrProjectParser )
+   AGGR_PARSER_ADD( AGGR_OPR_GROUP_NAME, aggrGroupParser )
+   AGGR_PARSER_ADD( AGGR_OPR_MATCH_NAME, aggrMatchParser )
+   AGGR_PARSER_ADD( AGGR_OPR_SKIP_NAME, aggrSkipParser )
+   AGGR_PARSER_ADD( AGGR_OPR_LIMIT_NAME, aggrLimitParser )
+   AGGR_PARSER_ADD( AGGR_OPR_SORT_NAME, aggrSortParser )
+   AGGR_PARSER_ADD( AGGR_OPR_PROJECT_NAME, aggrProjectParser )
+   AGGR_PARSER_ADD( AGGR_OPR_UNWIND_NAME, aggrUnwindParser )
    AGGR_PARSER_END
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AGGRBUILDER_AGGRBUILDER, "aggrBuilder::aggrBuilder" )

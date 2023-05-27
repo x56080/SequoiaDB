@@ -74,6 +74,9 @@ namespace engine
       virtual ~_qgmPtrTable() ;
 
    public:
+      // Get the field from the ptr table. If it's not there, construct a qgmField object and insert
+      // into the table. Generally the table only stores
+      // The 'Own' functions will copy the string into the table.
       INT32 getField( const SQL_CON_ITR &itr,
                       qgmField &field ) ;
 

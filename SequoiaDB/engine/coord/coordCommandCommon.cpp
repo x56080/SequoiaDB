@@ -677,7 +677,7 @@ namespace engine
          /// add nodes matcher to the botton
          if ( !nodeMatcher.isEmpty() )
          {
-            rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << nodeMatcher ),
+            rc = appendObj( BSON( AGGR_OPR_MATCH_NAME << nodeMatcher ),
                             pOutBuff, buffSize, buffUsedSize,
                             buffObjNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Append node matcher failed, rc: %d",
@@ -695,7 +695,7 @@ namespace engine
          /// add new matcher
          if ( !newMatcher.isEmpty() )
          {
-            rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << newMatcher ),
+            rc = appendObj( BSON( AGGR_OPR_MATCH_NAME << newMatcher ),
                             pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Append new matcher failed, rc: %d",
                          rc ) ;
@@ -704,7 +704,7 @@ namespace engine
          /// order by
          if ( !queryOption.isOrderByEmpty() )
          {
-            rc = appendObj( BSON( AGGR_SORT_PARSER_NAME <<
+            rc = appendObj( BSON( AGGR_OPR_SORT_NAME <<
                                   queryOption.getOrderBy() ),
                             pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Append order by failed, rc: %d",
@@ -723,7 +723,7 @@ namespace engine
          /// offset
          if ( queryOption.getSkip() > 0 )
          {
-            rc = appendObj( BSON( AGGR_SKIP_PARSER_NAME <<
+            rc = appendObj( BSON( AGGR_OPR_SKIP_NAME <<
                                   queryOption.getSkip() ),
                             pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Append skip failed, rc: %d", rc ) ;
@@ -732,7 +732,7 @@ namespace engine
          /// limit
          if ( queryOption.getLimit() != -1 )
          {
-            rc = appendObj( BSON( AGGR_LIMIT_PARSER_NAME <<
+            rc = appendObj( BSON( AGGR_OPR_LIMIT_NAME <<
                                   queryOption.getLimit() ),
                             pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
             PD_RC_CHECK( rc, PDERROR, "Append limit failed, rc: %d", rc ) ;

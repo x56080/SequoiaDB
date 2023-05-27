@@ -64,6 +64,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_TO              "to"
 #define FAP_MONGO_FIELD_NAME_ID              "_id"
 #define FAP_MONGO_FIELD_NAME_MAXTIMEMS       "maxTimeMS"
+#define FAP_MONGO_FIELD_NAME_PIPELINE        "pipeline"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"
@@ -89,6 +90,10 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_CONVERID   "conversationId"
 #define FAP_MONGO_FIELD_NAME_MECHANISMS "mechanisms"
 
+#define FAP_MONGO_FIELD_NAME_PATH                           "path"
+#define FAP_MONGO_FIELD_NAME_INCLUDEARRAYINDEX              "includeArrayIndex"
+#define FAP_MONGO_FIELD_NAME_PRESERVENULLANDEMPTYARRAYS     "preserveNullAndEmptyArrays"
+
 #define FAP_MONGO_SASL_MSG_RANDOM   "r"
 #define FAP_MONGO_SASL_MSG_SALT     "s"
 #define FAP_MONGO_SASL_MSG_ITERATE  "i"
@@ -103,6 +108,16 @@ namespace fap
 #define FAP_MONGO_OPERATOR_REPLACE   "$replace"
 #define FAP_MONGO_OPERATOR_ISNULL    "$isnull"
 
+// MongoDB aggregation pipeline stages
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX          "$"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH           FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "match"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_PROJECT         FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "project"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_GROUP           FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "group"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_SORT            FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "sort"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_SKIP            FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "skip"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_LIMIT           FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "limit"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_COUNT           FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "count"
+#define FAP_MONGO_AGGR_PIPELINE_STAGE_UNWIND          FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "unwind"
 
 }
 #endif
