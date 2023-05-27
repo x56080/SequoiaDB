@@ -5,7 +5,7 @@
 
 [^_^]:
     一句话说明巨杉数据库的定位与本文的价值。
-欢迎来到 [**SequoiaDB 巨杉数据库**][intro] 文档中心。SequoiaDB 巨杉数据库是一款金融级分布式数据库。
+欢迎来到 [**SequoiaDB 巨杉数据库**][intro] 文档中心。SequoiaDB 巨杉数据库是一款基于湖仓一体架构的金融级分布式数据库。
 
 本文档中心旨在介绍 SequoiaDB 巨杉数据库的基本概念、数据库实例创建与管理方式、数据增删改查的基本语法、数据库集群管理的基本策略、以及性能调优和问题诊断的基本思路。
 
@@ -31,21 +31,18 @@
 - [SequoiaDB 安装包][download]
 - [SequoiaDB 驱动及社区工具][tool]
 
-同时，用户可以前往 [github][github] 下载 SequoiaDB 巨杉数据库源代码。
-
 ##技术支持##
 
-+ 社区服务热线400-8038-339，或微信添加社区管理员 **sequoiadb111** 和 **sequoiadb333** 加入巨杉技术社区
-+ 企业服务热线400-8038-339，或直接发送邮件至 sales_support@sequoiadb.com
+在使用 SequoiaDB 时遇到了问题，可通过以下方式寻求帮助：
 
-##问题提交##
-
-社区用户可以直接通过 [github][github] 提交在使用过程中所遇到的问题或修复代码。
++ 服务电话：400-8038-339
++ 微信客服：sequoiadb111 或 sequoiadb333
++ 商务与技术支持：发送邮件至 sales_support@sequoiadb.com
 
 ##学习巨杉数据库##
 
 + [技术博客][blog]
-+ [巨杉大学][university]
++ [巨杉学][university]
 + [文档中心][infocenter]
 + [巨杉问答][idea]
 + 微信添加社区管理员 **sequoiadb111** 和 **sequoiadb333** 加入巨杉技术社区
@@ -77,7 +74,6 @@ SequoiaDB 巨杉数据库社区版使用 [AGPL-3.0][licensing] 协议授权。
 [^_^]:
     TODO:change to tools
 [sac]:manual/SAC/Readme.md
-[github]:https://github.com/sequoiadb/sequoiadb
 [blog]:http://blog.sequoiadb.com/
 [university]:http://www.sequoiadb.com/cn/university
 [idea]:http://idea.sequoiadb.com/cn/
