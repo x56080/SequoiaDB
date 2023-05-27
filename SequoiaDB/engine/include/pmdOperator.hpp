@@ -55,7 +55,7 @@ namespace engine
       _pmdOperator()
       {
          _pMsg = NULL ;
-         _maxTime = 0 ;
+         _maxTime = -1 ;
          _beginTick = 0 ;
          _hasInterruptOnTimeLimit = FALSE ;
       }
