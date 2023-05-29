@@ -6,13 +6,14 @@ import os
 from multiprocessing import Pool, Lock, Manager
 from dataopeartion.insert.commlib import *
 from lib import testlib
+from lib import sdbconfig
 from pysequoiadb import client
 from pysequoiadb.error import (SDBBaseError)
 from pysequoiadb.collection import (INSERT_FLG_DEFAULT, INSERT_FLG_CONTONDUP, INSERT_FLG_RETURN_OID, INSERT_FLG_REPLACEONDUP, INSERT_FLG_RETURNNUM)
 from bson import ObjectId
 
 def writeDataWithBulkInsert(params):
-   sdb =  client()
+   sdb = client(sdbconfig.sdb_config.host_name, sdbconfig.sdb_config.service)
    # each child process inserts data separately
    _, lock = params
    lock.acquire()
@@ -29,7 +30,7 @@ def getData(recNum):
    return records
 
 def writeDataWithInsert(params):
-   sdb = client()
+   sdb = client(sdbconfig.sdb_config.host_name, sdbconfig.sdb_config.service)
    # each child process inserts data separately
    _, lock = params
    lock.acquire()
