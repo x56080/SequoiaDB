@@ -141,12 +141,12 @@ public class SDBSinkClient implements SDBClient {
     public static List<HashSet<String>> checkUniqueIndex(
             List<String> hosts, String collectionSpace, String collection, String username, String password) {
         ConfigOptions options = new ConfigOptions();
-        Sequoiadb db = new Sequoiadb(hosts, username, password, options);
         Boolean unique = false;
         List<HashSet<String>> unique_indexes = new ArrayList<HashSet<String>>();
         LOG.info("check idempotent");
-        try {
-            DBCursor indexes = db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes();
+        try(Sequoiadb db = new Sequoiadb(hosts, username, password, options);
+            DBCursor indexes = db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes()) {
+
             while (indexes.hasNext()) {
                 BSONObject index = (BSONObject) indexes.getNext().get(SDBConstant.INDEX_DEF);
                 unique = (Boolean) index.get(SDBConstant.UNIQUE);
@@ -158,8 +158,6 @@ public class SDBSinkClient implements SDBClient {
             db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);
         } catch (BaseException e) {
             throw e;
-        } finally {
-            db.close();
         }
 
         return unique_indexes;

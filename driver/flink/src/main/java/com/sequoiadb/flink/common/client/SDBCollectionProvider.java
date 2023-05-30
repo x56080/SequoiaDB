@@ -216,123 +216,118 @@ public class SDBCollectionProvider implements SDBClientProvider {
      */
     public static void ensureCollectionSpaceWithCollection(SDBSinkOptions sinkOptions) {
 
-        Sequoiadb sdb = new Sequoiadb(
-                sinkOptions.getHosts(),
-                sinkOptions.getUsername(),
-                sinkOptions.getPassword(),
-                new ConfigOptions()
-        );
+        try (Sequoiadb sdb = new Sequoiadb(sinkOptions.getHosts(), sinkOptions.getUsername(),
+                sinkOptions.getPassword(), new ConfigOptions())) {
 
-        boolean isCreatedCS = false;
+            boolean isCreatedCS = false;
 
-        BSONObject optionsCS = new BasicBSONObject();
-        optionsCS.put(SDBConstant.PAGE_SIZE, sinkOptions.getPageSize());
+            BSONObject optionsCS = new BasicBSONObject();
+            optionsCS.put(SDBConstant.PAGE_SIZE, sinkOptions.getPageSize());
 
-        String domain = sinkOptions.getDomain();
-        if (domain != null) {
-            optionsCS.put(SDBConstant.DOMAIN, domain);
-        }
-
-        CollectionSpace collectionSpace = null;
-        try {
-            collectionSpace = sdb.createCollectionSpace(sinkOptions.getCollectionSpace(), optionsCS);
-            isCreatedCS = true;
-        } catch (BaseException ex) {
-            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
-                collectionSpace = sdb.getCollectionSpace(sinkOptions.getCollectionSpace());
-            } else {
-                throw ex;
+            String domain = sinkOptions.getDomain();
+            if (domain != null) {
+                optionsCS.put(SDBConstant.DOMAIN, domain);
             }
-        }
 
-        BSONObject optionsCL = new BasicBSONObject();
-        String shardingKey = sinkOptions.getShardingKey();
-        String[] primaryKey = sinkOptions.getUpsertKey();
-
-        // using primary key which defines in flink table to build pk bson,
-        // pk bson is like {id: 1, name: 1}
-        BSONObject pkBson = new BasicBSONObject();
-        if (primaryKey != null && primaryKey.length != 0) {
-            for (String upsertKey : primaryKey) {
-                pkBson.put(upsertKey, 1);
-            }
-        }
-
-        if (sinkOptions.getAutoPartition()) {
-            if (shardingKey != null) {
-                BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
-                //verity pk contain all fields in sharding key
-                if (!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson, skBson)) {
-                    throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
-                            "primary key:%s, sharding key:%s,please drop flink mapping table and select appropriate " +
-                            "primary key to create a new table", pkBson, skBson));
+            CollectionSpace collectionSpace = null;
+            try {
+                collectionSpace = sdb.createCollectionSpace(sinkOptions.getCollectionSpace(), optionsCS);
+                isCreatedCS = true;
+            } catch (BaseException ex) {
+                if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
+                    collectionSpace = sdb.getCollectionSpace(sinkOptions.getCollectionSpace());
+                } else {
+                    throw ex;
                 }
-
-                optionsCL.put(SDBConstant.SHARDING_KEY, skBson);
-                optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-                optionsCL.put(SDBConstant.AUTO_SPLIT, true);
-            } else if (!pkBson.isEmpty()) {
-                // if user don't specify sharding key, using primary key as sharding key.
-                optionsCL.put(SDBConstant.SHARDING_KEY, pkBson);
-                optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-                optionsCL.put(SDBConstant.AUTO_SPLIT, true);
             }
-        } else {
-            if (shardingKey != null) {
-                throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
-                        "while shardingkey(%s) is specified. ", shardingKey));
+
+            BSONObject optionsCL = new BasicBSONObject();
+            String shardingKey = sinkOptions.getShardingKey();
+            String[] primaryKey = sinkOptions.getUpsertKey();
+
+            // using primary key which defines in flink table to build pk bson,
+            // pk bson is like {id: 1, name: 1}
+            BSONObject pkBson = new BasicBSONObject();
+            if (primaryKey != null && primaryKey.length != 0) {
+                for (String upsertKey : primaryKey) {
+                    pkBson.put(upsertKey, 1);
+                }
             }
-        }
-        optionsCL.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
-        optionsCL.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
 
-        String Group = sinkOptions.getGroup();
-        if (Group != null) {
-            optionsCL.put(SDBConstant.GROUP, Group);
-        }
-
-        DBCollection collection = null;
-        try {
-            collection = collectionSpace.createCollection(sinkOptions.getCollection(), optionsCL);
-        } catch (BaseException ex) {
-            if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
-                collection = collectionSpace.getCollection(sinkOptions.getCollection());
-                return;
-            } else {
-                try{
-                    // delete collectionSpace when it failed to create collection
-                    if(isCreatedCS){
-                        sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
+            if (sinkOptions.getAutoPartition()) {
+                if (shardingKey != null) {
+                    BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
+                    //verity pk contain all fields in sharding key
+                    if (!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson, skBson)) {
+                        throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
+                                "primary key:%s, sharding key:%s,please drop flink mapping table and select appropriate " +
+                                "primary key to create a new table", pkBson, skBson));
                     }
-                } catch (BaseException e) {
-                    throw new SDBException("cleanup collectionSpace or collection failed.",e);
-                }
-                throw ex;
-            }
-        }
 
-        try {
-            if (collection != null && !pkBson.isEmpty()) {
-                collection.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
-            }
-        } catch (BaseException ex) {
-            if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
-                // ignore when primary key is already exist
-            } else {
-                // directly delete collection
-                // there isn't the collection that exists in the first place
-                try{
-                    collectionSpace.dropCollection(sinkOptions.getCollection());
-                    if(isCreatedCS){
-                        sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
-                    }
-                } catch (BaseException e) {
-                    throw new SDBException("cleanup collectionSpace or collection failed.",e);
+                    optionsCL.put(SDBConstant.SHARDING_KEY, skBson);
+                    optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+                    optionsCL.put(SDBConstant.AUTO_SPLIT, true);
+                } else if (!pkBson.isEmpty()) {
+                    // if user don't specify sharding key, using primary key as sharding key.
+                    optionsCL.put(SDBConstant.SHARDING_KEY, pkBson);
+                    optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+                    optionsCL.put(SDBConstant.AUTO_SPLIT, true);
                 }
-                throw ex;
+            } else {
+                if (shardingKey != null) {
+                    throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
+                            "while shardingkey(%s) is specified. ", shardingKey));
+                }
             }
-        } finally {
-            sdb.close();
+            optionsCL.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
+            optionsCL.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
+
+            String Group = sinkOptions.getGroup();
+            if (Group != null) {
+                optionsCL.put(SDBConstant.GROUP, Group);
+            }
+
+            DBCollection collection = null;
+            try {
+                collection = collectionSpace.createCollection(sinkOptions.getCollection(), optionsCL);
+            } catch (BaseException ex) {
+                if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
+                    collection = collectionSpace.getCollection(sinkOptions.getCollection());
+                    return;
+                } else {
+                    try{
+                        // delete collectionSpace when it failed to create collection
+                        if(isCreatedCS){
+                            sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
+                        }
+                    } catch (BaseException e) {
+                        throw new SDBException("cleanup collectionSpace or collection failed.",e);
+                    }
+                    throw ex;
+                }
+            }
+
+            try {
+                if (collection != null && !pkBson.isEmpty()) {
+                    collection.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
+                }
+            } catch (BaseException ex) {
+                if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
+                    // ignore when primary key is already exist
+                } else {
+                    // directly delete collection
+                    // there isn't the collection that exists in the first place
+                    try{
+                        collectionSpace.dropCollection(sinkOptions.getCollection());
+                        if(isCreatedCS){
+                            sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
+                        }
+                    } catch (BaseException e) {
+                        throw new SDBException("cleanup collectionSpace or collection failed.",e);
+                    }
+                    throw ex;
+                }
+            }
         }
     }
 

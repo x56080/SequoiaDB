@@ -72,7 +72,7 @@ WITH(
 | token                   | string  | 使用 SequoiaDB 密码管理工具保存密码到密码文件时所指定的加密令牌    | 否   |
 | password                | string  | 与参数 username 对应的 SequoiaDB 用户密码                          | 否   |
 | bulksize                | int32   | 将数据从 Flink 插入 SequoiaDB 时，单次允许插入的记录条数，默认值为 500      | 否   |
-| maxbulkfilltime         | int64   | 当插入记录条数不满足参数 bulksize 的取值时，操作等待的超时时间，默认值为 300，单位为秒<br> 等待超时后数据将被写入，建议根据业务能容忍的最大延迟进行配置  | 否   |
+| maxbulkfilltime         | int64   | 当插入记录条数不满足参数 bulksize 的取值时，操作等待的超时时间，默认值为 300，单位为毫秒<br> 等待超时后数据将被写入，建议根据业务能容忍的最大延迟进行配置  | 否   |
 | splitmode               | string  | 分片生成模式，默认值为"auto"，取值如下：<br>"auto"：自动选择模式 <br>"sharding"：以分区为单位进行并发读取 <br> "datablock"：以集合为单位进行并发读取 <br> 该参数取值为"auto"时，如果查询使用了索引则自动选择"sharding"模式，未使用索引则选择"datablock"模式        | 否   |
 | preferredinstance       | string  | 分区优先选择的节点实例，默认值为"M"<br>取值说明可参考 [setSessionAttr()][setSessionAttr] 的参数 PreferredInstance  | 否   |
 | preferredinstancemode   | string  | 当多个实例符合参数 preferredinstance 条件时的选择模式，默认值为"random"<br>取值说明可参考 [setSessionAttr()][setSessionAttr] 的参数 PreferredInstanceMode | 否   |

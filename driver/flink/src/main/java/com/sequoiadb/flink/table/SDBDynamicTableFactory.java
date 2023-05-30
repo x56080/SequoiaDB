@@ -128,6 +128,16 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
                     "SequoiaDB collection does not have a unique index corresponding to flink table primary key.");
         }
 
+        if (sinkOptions.getMaxBulkFillTime() <= 0) {
+            throw new SDBException("optional '" + SDBConfigOptions.MAX_BULK_FILL_TIME.key()
+                    + "' should be greater than zero.");
+        }
+
+        if (sinkOptions.getStateTtl() <= 0) {
+            throw new SDBException("optional '" + SDBConfigOptions.SINK_RETRACT_STATE_TTL.key()
+                    + "' should be greater than zero.");
+        }
+
         LOG.info("creating sequoiadb dynamic table sink, sink options: {}",
                 sinkOptions);
 

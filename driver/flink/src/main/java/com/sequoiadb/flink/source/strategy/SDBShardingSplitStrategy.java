@@ -65,9 +65,12 @@ public class SDBShardingSplitStrategy implements SDBSplitStrategy {
             Map<String, List<NodeInfo>> dataGroups = SDBInfoUtil.getDataGroups(sdb);
             List<ShardingInfo> shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions, matcher, selector);
 
+            NodeSelector selector = new NodeSelector();
+            SDBSourceOptions.PreferredInstance preferredInstance = sourceOptions.getPreferredInstance();
+
             // traverse sharding infos and generate SDBSplits
             for (ShardingInfo shardingInfo : shardingInfos) {
-                List<String> urls = new ArrayList<>();
+                List<String> urls = new ArrayList<>(1);
                 if ("".equals(shardingInfo.groupName)) { // stand-alone mode
                     urls.add(shardingInfo.nodeName);
                 } else {
@@ -77,8 +80,9 @@ public class SDBShardingSplitStrategy implements SDBSplitStrategy {
                                 String.format("group %s has no normal nodes, please check replicas group's " +
                                         "health status.\n", shardingInfo.groupName));
                     }
-                    urls.addAll(nodeInfos.stream().map(nodeInfo -> nodeInfo.url)
-                            .collect(Collectors.toList()));
+
+                    NodeInfo nodeInfo = selector.select(nodeInfos, preferredInstance);
+                    urls.add(nodeInfo.url);
                 }
 
                 splits.add(new SDBSplit(
