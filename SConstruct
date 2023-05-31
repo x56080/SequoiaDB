@@ -359,7 +359,7 @@ env = Environment( BUILD_DIR=variantDir,
                    PYSYSPLATFORM=os.sys.platform,
                    )
 if guess_os == "linux":
-   env.Append( CXXFLAGS=" -std=c++11 " )
+    env.Append( CXXFLAGS=" -std=c++11 " )
 
 libdeps.setup_environment( env )
 
@@ -797,6 +797,11 @@ fapEnv = clientCppEnv.Clone()
 fapEnv["BUILD_DIR"] = fapVariantDir
 clientCppEnv["BUILD_DIR"] = clientCppVariantDir
 clientCEnv["BUILD_DIR"] = clientCVariantDir
+
+# To ensure compatibility, use the C++98 standard to compile the C++ driver
+if linux:
+    clientCppEnv[ 'CXXFLAGS' ].remove( '-std=c++11' )
+    clientCppEnv.Append( CXXFLAGS=" -std=c++98 " )
 
 # we do not want c/cpp client to have those "CPPFLAGS",
 # so just append them here
