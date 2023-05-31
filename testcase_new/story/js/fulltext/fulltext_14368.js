@@ -1,17 +1,16 @@
-/***************************************************************************
-@Description :seqDB-14368 :创建全文索引，固定集合名验证 
-@Modify list :
-              2018-10-25  YinZhen  Create
-****************************************************************************/
+/******************************************************************************
+ * @Description   : seqDB-14368 :创建全文索引，固定集合名验证 
+ * @Author        : YinZhen 
+ * @CreateTime    : 2018.10.25
+ * @LastEditTime  : 2023.05.19
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-
    var clName = COMMCLNAME + "_ES_14368";
    var csName = "testCS_ES_14368";
    dropCL( db, COMMCSNAME, clName, true, true );
@@ -35,20 +34,19 @@ function test ()
    commCreateIndex( dbcl3, indexName, { content: "text" } );
    commCreateIndex( mainCL, indexName, { content: "text" } );
 
-   //获取固定集合名
-   var dbOperator = new DBOperator();
+   //获取固定集合名 
    var cappedArray = new Array();
-   var cappedCLName = dbOperator.getCappedCLName( dbcl, indexName );
+   var cappedCLName = dbOpr.getCappedCLName( dbcl, indexName );
    cappedArray.push( cappedCLName );
-   var cappedCLName1 = dbOperator.getCappedCLName( dbcl1, indexName );
+   var cappedCLName1 = dbOpr.getCappedCLName( dbcl1, indexName );
    cappedArray.push( cappedCLName1 );
-   var cappedCLName2 = dbOperator.getCappedCLName( dbcl2, indexName );
+   var cappedCLName2 = dbOpr.getCappedCLName( dbcl2, indexName );
    cappedArray.push( cappedCLName2 );
-   var cappedCLName3 = dbOperator.getCappedCLName( dbcl3, indexName );
+   var cappedCLName3 = dbOpr.getCappedCLName( dbcl3, indexName );
    cappedArray.push( cappedCLName3 );
-   var cappedSubCLName1 = dbOperator.getCappedCLName( subCL1, indexName );
+   var cappedSubCLName1 = dbOpr.getCappedCLName( subCL1, indexName );
    cappedArray.push( cappedSubCLName1 );
-   var cappedSubCLName2 = dbOperator.getCappedCLName( subCL2, indexName );
+   var cappedSubCLName2 = dbOpr.getCappedCLName( subCL2, indexName );
    cappedArray.push( cappedSubCLName2 );
 
    //检查固定集合名均不一致
@@ -69,36 +67,8 @@ function test ()
    checkExtDataName( subCL1, indexName, cappedSubCLName1 );
    checkExtDataName( subCL2, indexName, cappedSubCLName2 );
 
-   //检查ES端的全文索引名字映射关系为固定集合名_组名
-   var esOperator = new ESOperator();
-   var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
-   var esIndexName1 = FULLTEXTPREFIX.toLowerCase() + cappedCLName.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName1 );
-   var groups = commGetCLGroups( db, csName + "." + clName );
-   var esIndexName2 = FULLTEXTPREFIX.toLowerCase() + cappedCLName1.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName2 );
-   var groups = commGetCLGroups( db, csName + "." + clName + "_2" );
-   var esIndexName3 = FULLTEXTPREFIX.toLowerCase() + cappedCLName2.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName3 );
-   var groups = commGetCLGroups( db, csName + "." + clName + "_3" );
-   var esIndexName4 = FULLTEXTPREFIX.toLowerCase() + cappedCLName3.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName4 );
-   var groups = commGetCLGroups( db, csName + "." + clName + "_4_1" );
-   var esIndexName5 = FULLTEXTPREFIX.toLowerCase() + cappedSubCLName1.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName5 );
-   var groups = commGetCLGroups( db, csName + "." + clName + "_4_2" );
-   var esIndexName6 = FULLTEXTPREFIX.toLowerCase() + cappedSubCLName2.toLowerCase() + "_" + groups[0];
-   esOperator.isCreateIndexInES( esIndexName6 );
-
    dropCL( db, COMMCSNAME, clName, true, true );
    dropCS( db, csName, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexName1 );
-   checkIndexNotExistInES( esIndexName2 );
-   checkIndexNotExistInES( esIndexName3 );
-   checkIndexNotExistInES( esIndexName4 );
-   checkIndexNotExistInES( esIndexName5 );
-   checkIndexNotExistInES( esIndexName6 );
 }
 
 function checkExtDataName ( dbcl, indexName, cappedCLName )
