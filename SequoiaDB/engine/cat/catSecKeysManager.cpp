@@ -337,6 +337,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATSECKEYSMGR_INIT_KEYS ) ;
       rtnContextBuf buf ;
       MsgOpReply replyHeader ;
+      BOOLEAN needRemoveSecDir = FALSE ;
       // init reply msg
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.contextID = -1 ;
@@ -406,6 +407,8 @@ namespace engine
             goto done ;
          }
 
+         needRemoveSecDir = TRUE ;
+
          rc = utilSecCreateKeyFiles( pmdGetOptionCB()->getDbPath() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create security key files, rc: %d", rc ) ;
 
@@ -451,7 +454,10 @@ namespace engine
       {
          replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
       }
-      utilSecRemoveSecDirectories( pmdGetOptionCB()->getDbPath() ) ;
+      if ( needRemoveSecDir )
+      {
+         utilSecRemoveSecDirectories( pmdGetOptionCB()->getDbPath() ) ;
+      }
       goto done ;
    }
 
