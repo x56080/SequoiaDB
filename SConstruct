@@ -26,6 +26,9 @@ import urllib2
 import stat
 from os.path import join, dirname, abspath
 import libdeps
+
+import scons_compiledb
+
 root_dir = dirname(File('SConstruct').rfile().abspath)
 db_dir = join(root_dir,'SequoiaDB')
 engine_dir = join(db_dir,'engine')
@@ -291,6 +294,9 @@ add_option("xlc", "use xlc in AIX", 0, False)
 #coverage option
 add_option( "cov" , "generate coverage information" , 0, False )
 
+#compiledb
+add_option( "compiledb", "generate compile_commands.json", 0, False )
+
 # don't run configure if user calls --help
 if GetOption('help'):
     Return()
@@ -360,6 +366,13 @@ env = Environment( BUILD_DIR=variantDir,
                    tools=["default", "gch", "mergelib" ],
                    PYSYSPLATFORM=os.sys.platform,
                    )
+
+needCompileDb = False
+needCompileDb = has_option( "compiledb" )
+if needCompileDb:
+    scons_compiledb.enable(env)
+    env.CompileDb()
+
 if guess_os == "linux":
     env.Append( CXXFLAGS=" -std=c++98 " )
 
