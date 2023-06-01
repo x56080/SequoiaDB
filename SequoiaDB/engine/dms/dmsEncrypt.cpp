@@ -534,10 +534,8 @@ INT32 dmsSecGetDEK( const CHAR * securityPath, UINT8 * pDEK )
       goto error ;
    }
 
-   if ( ( '\0' != mkFileName[0] ) && ( '\0' != dekFileName ) ) 
-   {
-      rc = dmsSecGetDekFromDEKFile( mkFileName, dekFileName, pDEK ) ;
-   }
+   rc = dmsSecGetDekFromDEKFile( mkFileName, dekFileName, pDEK ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to get DEK from file[%s], rc: %d", dekFileName, rc ) ;
 
 done:
    return rc ;
