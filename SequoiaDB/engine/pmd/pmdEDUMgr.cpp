@@ -675,7 +675,7 @@ namespace engine
          goto error ;
       }
 
-      cb->interrupt() ;
+      cb->interrupt( TRUE ) ;
 
    done:
       return rc ;
@@ -967,7 +967,7 @@ namespace engine
          if ( cb->isWritingDB() )
          {
             ++count ;
-            cb->interrupt( FALSE, interruptRC ) ;
+            cb->interrupt( TRUE, interruptRC ) ;
             PD_LOG ( PDDEBUG, "Interrupt edu[ID:%lld]", it->first ) ;
          }
 #if defined ( SDB_ENGINE )
@@ -976,7 +976,7 @@ namespace engine
                    cb->isTransaction() )
          {
             ++count ;
-            cb->interrupt( FALSE, interruptRC ) ;
+            cb->interrupt( TRUE, interruptRC ) ;
             PD_LOG ( PDDEBUG, "Interrupt edu[ID:%lld]", it->first ) ;
          }
 #endif
