@@ -124,26 +124,26 @@ namespace engine
          OSS_INLINE const UINT32 ailves( BOOLEAN isLocation = FALSE )
          {
             _clsGroupInfo &info = isLocation ? _locationInfo : _info ;
-            ossScopedRWLock( &info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &info.mtx, SHARED ) ;
             return info.aliveSize() ;
          }
 
          OSS_INLINE UINT32 groupSize( BOOLEAN isLocation = FALSE )
          {
             _clsGroupInfo &info = isLocation ? _locationInfo : _info ;
-            ossScopedRWLock( &info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &info.mtx, SHARED ) ;
             return info.groupSize() ;
          }
 
          OSS_INLINE UINT32 criticalSize()
          {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
             return _info.criticalSize() ;
          }
 
          OSS_INLINE UINT32 criticalAliveSize()
          {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
             return _info.criticalAliveSize() ;
          }
 
@@ -151,7 +151,7 @@ namespace engine
          {
             INT16 w = 0 ;
 
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
             if ( CLS_GROUP_MODE_CRITICAL == _info.curGrpMode )
             {
@@ -471,7 +471,7 @@ namespace engine
 
          BOOLEAN isMajorityAlive()
          {
-            ossScopedRWLock( &_info.mtx, SHARED ) ;
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
             return CLS_IS_MAJORITY( _info.getAlivesByTimeout( CLS_NODE_KEEPALIVE_TIMEOUT ),
                                     _info.groupSize() ) ||

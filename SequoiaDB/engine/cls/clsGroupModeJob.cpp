@@ -162,7 +162,7 @@ namespace engine
       // MinKeepTime <= curTime < MaxKeepTime
       else if ( curTime.time < _grpModeItem.maxKeepTime.time )
       {
-         ossScopedRWLock( &_info->mtx, SHARED ) ;
+         ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
          UINT32 aliveNum = _info->aliveSize() ;
          UINT32 nodeNum = _info->groupSize() ;

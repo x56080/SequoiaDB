@@ -43,7 +43,6 @@ namespace engine
 {
    #define CLS_CRITICALMODE_CHECK_INTERVAL      OSS_ONE_SEC * 60
 
-   class _clsGrpModeItem ;
    class _clsGroupInfo ;
    class _clsVoteMachine ;
 
@@ -85,7 +84,6 @@ namespace engine
 
       // This info stores group info, not location info
       _clsGroupInfo                    *_info ;
-      _clsVoteMachine                  *_vote ;
    } ;
    typedef _clsCriticalModeMonitorJob clsCriticalModeMonitorJob ;
 

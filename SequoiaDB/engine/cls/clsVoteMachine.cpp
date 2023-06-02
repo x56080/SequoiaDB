@@ -215,7 +215,7 @@ namespace engine
          // Remove group mode
          if ( _grpModeShadowTime <= 0 )
          {
-            ossScopedRWLock( &_groupInfo->mtx, EXCLUSIVE ) ;
+            ossScopedRWLock lock( &_groupInfo->mtx, EXCLUSIVE ) ;
             if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->grpMode.mode )
             {
                // Remove reelect targetNode flag, if this flag is use for critical mode instead of reelectGroup
@@ -294,7 +294,7 @@ namespace engine
       _grpModeShadowTime = shadowTime ;
 
       {
-         ossScopedRWLock( &_groupInfo->mtx, EXCLUSIVE ) ;
+         ossScopedRWLock lock( &_groupInfo->mtx, EXCLUSIVE ) ;
 
          _groupInfo->enforcedGrpMode = enforced ;
 
@@ -344,10 +344,10 @@ namespace engine
       return rc ;
    }
 
-   UINT32 _clsVoteMachine::startCriticalModeMonitor()
+   INT32 _clsVoteMachine::startCriticalModeMonitor()
    {
       INT32 rc = SDB_OK ;
-      ossScopedRWLock( &_groupInfo->mtx, SHARED ) ;
+      ossScopedRWLock lock( &_groupInfo->mtx, SHARED ) ;
 
       SDB_ASSERT( 1 == _groupInfo->grpMode.grpModeInfo.size(),
                   "grpModeInfo's item number should be 1" ) ;

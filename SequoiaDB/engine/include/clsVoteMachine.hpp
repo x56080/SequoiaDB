@@ -128,7 +128,7 @@ namespace engine
          return 0 < _grpModeShadowTime ;
       }
 
-      UINT32 startCriticalModeMonitor() ;
+      INT32 startCriticalModeMonitor() ;
 
    public:
       INT32 init() ;
