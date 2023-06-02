@@ -370,7 +370,8 @@ env = Environment( BUILD_DIR=variantDir,
 needCompileDb = False
 needCompileDb = has_option( "compiledb" )
 if needCompileDb:
-    scons_compiledb.enable(env)
+    compileDBConfig = scons_compiledb.Config( db = join( "#build", "compile_commands.json" ) )
+    scons_compiledb.enable( env, compileDBConfig )
     env.CompileDb()
 
 if guess_os == "linux":
