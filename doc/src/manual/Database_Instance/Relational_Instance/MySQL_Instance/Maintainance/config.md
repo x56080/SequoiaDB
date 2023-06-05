@@ -446,6 +446,15 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
+**information_schema_tables_stats_cache_first**
+
+该参数可以配置读取 information_schema.tables 中所涉及的统计信息字段时，是否优先从缓存中获取。
+
++ 类型：boolean
++ 默认值：OFF
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
 ##MySQL 常用系统配置##
 
 | 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
