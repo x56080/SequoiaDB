@@ -339,7 +339,7 @@ function checkFullSyncToES ( csName, clName, textIndexName, expectCount, esIndex
    {
       if( !esOpr.isCreateIndexInES( esIndexNames[i] ) )
       {
-         throw new Error( "checkFullSyncToES() index name:" + esIndexNames[i] + " not exsit" );
+         throw new Error( "checkFullSyncToES() index name " + testIndexName + ":" + esIndexNames[i] + "  not exsit" );
       }
    }
 
@@ -534,7 +534,7 @@ function checkResult ( expectResult, actResult )
 {
    if( expectResult.length !== actResult.length )
    {
-      throw new Error( "checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length + "\nactual=" + JSON.stringify( actResult ) );
+      throw new Error( "checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length + "\nexp=" + JSON.stringify( expectResult ) + "\nactual=" + JSON.stringify( actResult ) );
    }
 
    // compare array  
@@ -1128,3 +1128,71 @@ function dropIndex ( cl, name, ignoreNotExist )
       }
    }
 }
+
+/* *****************************************************************************
+@description: 获取索引快照，检查mapping信息是否正确              
+@author: wuyan
+@parameter
+   dbcl: 集合连接
+   indexName: 索引名 
+   expMappings: 预期的mappings信息
+***************************************************************************** */
+
+function snapshotIndexCheckMappings ( dbcl, indexName, expMappings )
+{
+   var cursor = dbcl.snapshotIndexes( { "IndexDef.name": indexName } );
+   var mappingsInfo = {};
+   while( cursor.next() )
+   {
+      var actIndexInfo = cursor.current().toObj();
+      var actIndexDef = actIndexInfo.IndexDef;
+      if( "Mappings" in actIndexDef )
+      {
+         mappingsInfo = actIndexDef.Mappings;
+      }
+   }
+   cursor.close();
+
+   //比较mappings信息正确性   
+   if( JSON.stringify( expMappings ) !== JSON.stringify( mappingsInfo ) )
+   {
+      throw new Error( "check mappings failed, expect: " + JSON.stringify( expMappings ) + ",actual mappings: " + JSON.stringify( mappingsInfo ) );
+   }
+}
+
+/* *****************************************************************************
+@description: 获取索引列表，检查mapping信息是否正确              
+@author: wuyan
+@parameter
+   dbcl: 集合连接
+   indexName: 索引名 
+   expMappings: 预期的mappings信息
+***************************************************************************** */
+function listIndexCheckMappings ( dbcl, indexName, expMappings )
+{
+   var cursor = dbcl.listIndexes();
+   var mappingsInfo = {};
+   while( cursor.next() )
+   {
+      var actIndexDef = cursor.current().toObj().IndexDef;
+      var actIndexName = actIndexDef.name;
+      if( actIndexName == indexName )
+      {
+         if( "Mappings" in actIndexDef )
+         {
+            mappingsInfo = actIndexDef.Mappings;
+         }
+         else
+         {
+            throw new Error( "mappings info is not exist!" );
+         }
+      }
+   }
+   cursor.close();
+   //比较mappings信息正确性   
+   if( JSON.stringify( expMappings ) !== JSON.stringify( mappingsInfo ) )
+   {
+      throw new Error( "check mappings failed, expect: " + JSON.stringify( expMappings ) + ",actual mappings: " + JSON.stringify( mappingsInfo ) );
+   }
+}
+

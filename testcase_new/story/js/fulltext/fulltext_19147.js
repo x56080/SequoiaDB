@@ -31,7 +31,7 @@ function test ()
    var dbOpr = new DBOperator();
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 1 );
    var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
-   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } }, { _id: 1 } );
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "_id": { "$include": 0 } }, { _id: 1 } );
    var expResult = [{ id: 7, a: { 0: "obj", 1: 123, 2: "obj" } }];
    checkResult( expResult, actResult );
 }

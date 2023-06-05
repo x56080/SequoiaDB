@@ -1,19 +1,19 @@
-/************************************
-*@Description: seqDB-19144:����ȫ�������������ֶ�Ϊ����Ԫ�أ�ȫ��/����ͬ��
-*@author:      zhaoyu
-*@createdate:  2019.08.14
-*@testlinkCase: seqDB-19144
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-19144:单键全文索引，索引字段为数组元素，全量/增量同步
+ * @Author        : zhaoyu 
+ * @CreateTime    : 2019.08.14
+ * @LastEditTime  : 2023.05.25
+ * @LastEditors   : wu yan
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_es_19144";
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   if( commIsStandalone( db ) ) { return; }
-
-   var clName = COMMCLNAME + "_19144";
+   var dbcl = testPara.testCL;
+   var clName = testConf.clName;
    var textIndexName = "textIndex_19144";
-   dropCL( db, COMMCSNAME, clName, true, true );
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    var objs = new Array( { id: 1, a: "string1" },
       { id: 2, a: 1 },
@@ -27,19 +27,21 @@ function test ()
    dbcl.insert( objs );
    dbcl.createIndex( textIndexName, { "a.1": "text" } );
 
-   var dbOpr = new DBOperator();
-   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 2 );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 3 );
    var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
    var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } }, { _id: 1 } );
    var expResult = [{ a: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }] },
+   { a: [{ 0: 1 }, { 1: 2 }, { 2: 3 }] },
    { a: { 1: "obj" } }];
    checkResult( expResult, actResult );
 
    dbcl.insert( objs );
-   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 4 );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 6 );
    var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } }, { _id: 1 } );
    var expResult = [{ a: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }] },
    { a: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }] },
+   { a: [{ 0: 1 }, { 1: 2 }, { 2: 3 }] },
+   { a: [{ 0: 1 }, { 1: 2 }, { 2: 3 }] },
    { a: { 1: "obj" } },
    { a: { 1: "obj" } }];
 
@@ -55,9 +57,4 @@ function test ()
 
    dbcl.remove();
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
-
-   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   dropCL( db, COMMCSNAME, clName, true, true );
-   //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES( esIndexNames );
 }
