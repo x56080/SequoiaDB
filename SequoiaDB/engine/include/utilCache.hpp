@@ -292,10 +292,12 @@ namespace engine
          }
 
          INT32       write( const CHAR* pBuf, UINT32 offset,
-                            UINT32 len, BOOLEAN &setDirty ) ;
-         INT32       load( const CHAR* pBuf, UINT32 offset, UINT32 len ) ;
+                            UINT32 len, BOOLEAN &setDirty, const utilELCryptor *cryptor = NULL ) ;
+         INT32       load( const CHAR* pBuf, UINT32 offset, UINT32 len,
+                           const utilELCryptor *cryptor = NULL ) ;
          INT32       loadWithoutData( UINT32 offset, UINT32 len ) ;
-         UINT32      read( CHAR* pBuf, UINT32 offset, UINT32 len ) ;
+         UINT32      read( CHAR* pBuf, UINT32 offset, UINT32 len,
+                           const utilELCryptor *cryptor = NULL ) ;
          INT32       copy( const _utilCachePage &right ) ;
 
          UINT32      beginBlock() const ;
@@ -313,7 +315,7 @@ namespace engine
 
       private:
          INT32       _write( const CHAR* pBuf, UINT32 offset,
-                             UINT32 len, BOOLEAN dirty ) ;
+                             UINT32 len, BOOLEAN dirty, const utilELCryptor *cryptor ) ;
 
       private:
          utilCacheBlock             _first ;
@@ -686,8 +688,7 @@ namespace engine
       protected:
          INT32    _loadPage( UINT32 offset,
                              UINT32 len,
-                             IExecutor *cb,
-                             const utilELCryptor *cryptor ) ;
+                             IExecutor *cb ) ;
 
       private:
          CHAR*             _pData ;
@@ -733,7 +734,7 @@ namespace engine
                                UINT32 len, UINT32 offset,
                                UINT32 newestMask,
                                IExecutor *cb,
-                               const utilELCryptor *cryptor= NULL ) = 0 ;
+                               const utilELCryptor *cryptor = NULL ) = 0 ;
 
          virtual INT32  prepareRead( INT32 pageID,
                                      CHAR *pData,
@@ -745,7 +746,7 @@ namespace engine
                               UINT32 len, UINT32 offset,
                               UINT32 &readLen,
                               IExecutor *cb,
-                              const utilELCryptor *cryptor ) = 0 ;
+                              const utilELCryptor *cryptor = NULL ) = 0 ;
 
          virtual INT64  pageID2Offset( INT32 pageID,
                                        UINT32 pageOffset = 0 ) const = 0 ;

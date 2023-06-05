@@ -219,7 +219,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEPAGE__WRITE, "_utilCachePage::_write" )
    INT32 _utilCachePage::_write( const CHAR *pBuf, UINT32 offset,
-                                 UINT32 len, BOOLEAN dirty )
+                                 UINT32 len, BOOLEAN dirty, const utilELCryptor *cryptor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHEPAGE__WRITE ) ;
@@ -231,12 +231,27 @@ namespace engine
       UINT32 lastOffset = offset ;
       UINT32 lastLen = len ;
       UINT32 onceWrite = 0 ;
+      CHAR *encryptedBuffer = NULL ;
 
       if ( size() < offset + len )
       {
          /// no space for write data
          rc = SDB_NOSPC ;
          goto error ;
+      }
+
+      if ( cryptor )
+      {
+         encryptedBuffer = (CHAR *)SDB_THREAD_ALLOC( len ) ;
+         if ( !encryptedBuffer )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for encryption" ) ;
+            goto error ;
+         }
+         rc = cryptor->encrypt( (UINT8 *)pBuf, len, (UINT8*)encryptedBuffer ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to encrypt cache page, rc: %d", rc ) ;
+         pBuf = encryptedBuffer ;
       }
 
       pos = beginBlock() ;
@@ -294,6 +309,10 @@ namespace engine
       }
 
    done:
+      if ( encryptedBuffer )
+      {
+         SDB_THREAD_FREE( encryptedBuffer ) ;
+      }
       PD_TRACE_EXITRC( SDB__UTILCACHEPAGE__WRITE, rc ) ;
       return rc ;
    error:
@@ -301,10 +320,10 @@ namespace engine
    }
 
    INT32 _utilCachePage::write( const CHAR *pBuf, UINT32 offset,
-                                UINT32 len, BOOLEAN &setDirty )
+                                UINT32 len, BOOLEAN &setDirty, const utilELCryptor *cryptor )
    {
       setDirty = FALSE ;
-      INT32 rc = _write( pBuf, offset, len, TRUE ) ;
+      INT32 rc = _write( pBuf, offset, len, TRUE, cryptor ) ;
       if ( SDB_OK == rc && !isDirty() )
       {
          makeDirty() ;
@@ -313,9 +332,9 @@ namespace engine
       return rc ;
    }
 
-   INT32 _utilCachePage::load( const CHAR *pBuf, UINT32 offset, UINT32 len )
+   INT32 _utilCachePage::load( const CHAR *pBuf, UINT32 offset, UINT32 len, const utilELCryptor *cryptor )
    {
-      return _write( pBuf, offset, len, FALSE ) ;
+      return _write( pBuf, offset, len, FALSE, cryptor ) ;
    }
 
    INT32 _utilCachePage::loadWithoutData( UINT32 offset, UINT32 len )
@@ -350,7 +369,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEPAGE_READ, "_utilCachePage::read" )
-   UINT32 _utilCachePage::read( CHAR *pBuf, UINT32 offset, UINT32 len )
+   UINT32 _utilCachePage::read( CHAR *pBuf, UINT32 offset, UINT32 len, const utilELCryptor *cryptor )
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEPAGE_READ ) ;
       ossTimestamp t ;
@@ -361,6 +380,16 @@ namespace engine
       UINT32 lastOffset = offset ;
       UINT32 lastRead = len ;
       UINT32 pos = 0 ;
+      CHAR *pReadBuf = NULL ;
+
+      if ( cryptor )
+      {
+         pReadBuf = (CHAR *)SDB_THREAD_ALLOC( len ) ;
+      }
+      else
+      {
+         pReadBuf = pBuf ;
+      }
 
       pos = beginBlock() ;
       while ( lastRead > 0 && NULL != ( pPage = nextBlock( blockSize, pos ) ) )
@@ -377,9 +406,18 @@ namespace engine
             lastOffset = 0 ;
          }
          onceRead = lastRead < blockSize ? lastRead : blockSize ;
-         ossMemcpy( pBuf + hasRead, pPage, onceRead ) ;
+         ossMemcpy( pReadBuf + hasRead, pPage, onceRead ) ;
          lastRead -= onceRead ;
          hasRead += onceRead ;
+      }
+
+      if ( cryptor )
+      {
+         cryptor->decrypt( (UINT8 *)pReadBuf, len, (UINT8*)pBuf ) ;
+         if ( pReadBuf )
+         {
+            SDB_THREAD_FREE( pReadBuf ) ;
+         }
       }
 
       /// update meta
@@ -404,7 +442,7 @@ namespace engine
       UINT32 rightPos = right.beginBlock() ;
       while( NULL != ( pData = right.nextBlock( blockSz, rightPos ) ) )
       {
-         rc = load( pData, offset, blockSz ) ;
+         rc = load( pData, offset, blockSz, NULL ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Copy data failed, rc: %d", rc ) ;
@@ -1761,7 +1799,7 @@ namespace engine
                   loadLen = offset - loadOffset ;
                }
 
-               rc = _loadPage( loadOffset, loadLen, cb, cryptor ) ;
+               rc = _loadPage( loadOffset, loadLen, cb ) ;
                if( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] failed, "
@@ -1863,7 +1901,7 @@ namespace engine
             /// load the data
             if ( offset < _pPage->start() )
             {
-               rc = _loadPage( offset, _pPage->start() - offset, cb, cryptor ) ;
+               rc = _loadPage( offset, _pPage->start() - offset, cb ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] data "
@@ -1875,7 +1913,7 @@ namespace engine
             if ( offset + len > _pPage->length() )
             {
                rc = _loadPage( _pPage->length(),
-                               offset + len - _pPage->length(), cb, cryptor ) ;
+                               offset + len - _pPage->length(), cb ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] data "
@@ -1969,7 +2007,7 @@ namespace engine
             {
                BOOLEAN setDirty = FALSE ;
                /// write to page
-               rc = _pPage->write( _pData, _offset, _len, setDirty ) ;
+               rc = _pPage->write( _pData, _offset, _len, setDirty, _cryptor ) ;
                if ( setDirty )
                {
                   _pUnit->incDirtyPages( _pBucket ) ;
@@ -2000,7 +2038,7 @@ namespace engine
             if ( _usePage )
             {
                /// read from page
-               len = _pPage->read( _pData, _offset, _len ) ;
+               len = _pPage->read( _pData, _offset, _len, _cryptor ) ;
             }
             else
             {
@@ -2016,7 +2054,7 @@ namespace engine
                /// write to cache page
                else if ( _writeBack && _pPage )
                {
-                  _pPage->load( _pData, _offset, len ) ;
+                  _pPage->load( _pData, _offset, len, _cryptor ) ;
                }
             }
             // monitor page read
@@ -2069,8 +2107,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX__LOADPAGE, "_utilCacheContext::_loadPage" )
    INT32 _utilCacheContext::_loadPage( UINT32 offset,
                                        UINT32 len,
-                                       IExecutor *cb,
-                                       const utilELCryptor *cryptor )
+                                       IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHECTX__LOADPAGE ) ;
@@ -2096,7 +2133,7 @@ namespace engine
          CHAR *ptr = _pPage->str() ;
          pFile = _pUnit->getCacheFile() ;
          /// read from file
-         rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb, cryptor ) ;
+         rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Read from file[%s] failed, rc: %d",
@@ -2124,7 +2161,7 @@ namespace engine
 
          pFile = _pUnit->getCacheFile() ;
          /// read from file
-         rc = pFile->read( _pageID, pBuff, len, offset, readLen, cb, cryptor ) ;
+         rc = pFile->read( _pageID, pBuff, len, offset, readLen, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Read from file[%s] failed, rc: %d",

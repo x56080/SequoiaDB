@@ -4,11 +4,25 @@
 
 namespace engine
 {
-   _dmsLobCryptor::_dmsLobCryptor( const ossSM4Key dek, const UINT8 *nonce, UINT32 offset ) : _offset( offset )
+   void copyUint64ToBigEndian( UINT64 num, UINT8 *buf )
+   {
+      #ifndef SDB_BIG_ENDIAN
+      num = ( ( num & 0xFF00000000000000 ) >> 56 ) | ( ( num & 0x00FF000000000000 ) >> 40 ) |
+            ( ( num & 0x0000FF0000000000 ) >> 24 ) | ( ( num & 0x000000FF00000000 ) >> 8 ) |
+            ( ( num & 0x00000000FF000000 ) << 8 ) | ( ( num & 0x0000000000FF0000 ) << 24 ) |
+            ( ( num & 0x000000000000FF00 ) << 40 ) | ( ( num & 0x00000000000000FF ) << 56 ) ;
+      #endif
+
+      *(UINT64 *)( buf ) = num ;
+   }
+
+   _dmsLobCryptor::_dmsLobCryptor( const ossSM4Key dek, const UINT8 *nonce, UINT32 offset )
+   : _offset( offset )
    {
       ossMemcpy( _dek, dek, OSS_SM4_KEY_SIZE ) ;
       ossMemcpy( _ctr, nonce, DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
-      *(UINT64 *)( _ctr + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) = offset / OSS_SM4_BLOCK_SIZE ;
+      copyUint64ToBigEndian( offset / OSS_SM4_BLOCK_SIZE,
+                             _ctr + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
    }
 
    INT32 _dmsLobCryptor::encrypt( const UINT8 *in, UINT32 ilen, UINT8 *out, UINT32 *olen ) const
