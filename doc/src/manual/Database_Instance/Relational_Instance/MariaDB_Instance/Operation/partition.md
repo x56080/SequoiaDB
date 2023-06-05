@@ -7,7 +7,7 @@
     该分区方式根据表达式进行范围分区，记录将根据表达式中值的范围决定坐落的分区，表达式的值必须是整数。以下示例是将 goods 表根据生产年份划分：
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -26,7 +26,7 @@
     该分区方式根据列进行范围分区，记录将根据列的值计算分区，可以指定一个列或多个列，不限制列的类型。一般推荐使用 `RANGE COLUMS(<column_list>)` 代替 `RANGE(<expression>)` 分区，因为前者可以达到更好的性能。以下示例是将 goods 表根据生产日期划分：
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -43,7 +43,7 @@
     指定多个列时可以使用如下方式：
 
     ```lang-sql
-    mysql> CREATE TABLE simple (
+    MariaDB [company]> CREATE TABLE simple (
         a INT,
         b INT,
         c CHAR(3),
@@ -64,7 +64,7 @@
     该分区方式根据表达式进行枚举值分区，表达式返回值必须是整数。以下示例是根据业务标签进行分区：
 
     ```lang-sql
-    mysql> CREATE TABLE business (
+    MariaDB [company]> CREATE TABLE business (
         id INT NOT NULL,
         start DATE NOT NULL DEFAULT '1970-01-01',
         end DATE NOT NULL DEFAULT '9999-12-31',
@@ -84,7 +84,7 @@
     该分区方式根据列进行枚举值分区，可以指定一个列或多个列，不限定列的类型。以下示例是根据业务得分进行分区：
 
     ```lang-sql
-    mysql> CREATE TABLE business (
+    MariaDB [company]> CREATE TABLE business (
         id INT NOT NULL,
         start DATE NOT NULL DEFAULT '1970-01-01',
         end DATE NOT NULL DEFAULT '9999-12-31',
@@ -105,7 +105,7 @@
     该分区方式根据表达式中的字段计算 hash 值，利用 hash 值进行分区从而均匀打散记录，表达式的返回值必须为整数。由于 SequoiaDB 有独立的 hash 算法，所以这种分区下 SequoiaDB 只取表达式中的列进行计算。一般推荐使用 `KEY(<column_list>)` 代替 `HASH(<expression>)` 语法，因为前者更易于使用。
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -118,7 +118,7 @@
     上述语句对应的 KEY 分区语句如下：
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -137,7 +137,7 @@
     该分区方式根据指定的列计算 hash 值，利用 hash 值进行分区从而均匀打散记录，可以指定一个列或多个列，不限制列的类型。以下示例是根据货物 id 进行分区：
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -152,7 +152,7 @@
  上述示例与以下语句对应：
 
     ```lang-sql
-    mysql> CREATE TABLE goods (
+    MariaDB [company]> CREATE TABLE goods (
         id INT NOT NULL,
         produced_date DATE,
         name VARCHAR(100),
@@ -166,7 +166,7 @@
 复合分区中，上层分区必须使用 RANGE 或者 LIST 分区，下层分区必须使用 HASH 或者 KEY 分区。以下示例是在 goods 表上先根据 produced_date 进行 RANGE 分区，再使用每个范围分区的 id 进行 HASH 分区。
 
 ```lang-sql
-mysql> CREATE TABLE goods (
+MariaDB [company]> CREATE TABLE goods (
     id INT NOT NULL,
     produced_date DATE,
     name VARCHAR(100),
