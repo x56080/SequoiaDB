@@ -150,9 +150,9 @@ namespace engine
                         builderOption ) ;
       builder.appendEx( OPT_FIELD_HINT, _key.getHint(),
                         builderOption ) ;
-
       builder.appendBool( OPT_FIELD_SORTED_IDX_REQURED,
                           _key.isSortedIdxRequired() ) ;
+      builder.appendBool( OPT_FIELD_IS_COUNT, _key.isCount() ) ;
       builder.appendBool( OPT_FIELD_EST_FROM_STAT, isEstimatedFromStat() ) ;
 
       builder.append( OPT_FIELD_HASH_CODE, getKeyCode() ) ;

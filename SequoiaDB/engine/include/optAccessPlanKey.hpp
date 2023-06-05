@@ -198,6 +198,11 @@ namespace engine
             return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
          }
 
+         OSS_INLINE BOOLEAN isCount() const
+         {
+            return testInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
+         }
+
          OSS_INLINE void setCollectionInfo ( dmsStorageUnit *su,
                                              dmsMBContext *mbContext )
          {

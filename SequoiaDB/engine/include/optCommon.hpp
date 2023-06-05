@@ -338,6 +338,7 @@ namespace engine
    #define OPT_FIELD_DATA_NODE_NUM        "DataNodeNum"
    #define OPT_FIELD_SUMMARY_NAME         FIELD_NAME_NAME
    #define OPT_FIELD_SUMMARY_EST_COST     "Est" OPT_FIELD_TOTAL_COST
+   #define OPT_FIELD_IS_COUNT             "IsCount"
 
    // Mask for explain info
    #define OPT_EXPINFO_MASK_RETURN_NUM    ( 0x0001 )

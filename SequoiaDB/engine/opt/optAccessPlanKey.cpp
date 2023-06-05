@@ -151,6 +151,16 @@ namespace engine
          }
       }
 
+      if ( getInternalFlag() != planKey.getInternalFlag() )
+      {
+         BOOLEAN lhsFlag = isCount() ;
+         BOOLEAN rhsFlag = planKey.isCount() ;
+         if ( lhsFlag != rhsFlag )
+         {
+            return FALSE ;
+         }
+      }
+
       /// Hint must compare field by field, and need ignore object field and
       /// field name
       BSONObjIterator itr( planKey.getHint() ) ;

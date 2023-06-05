@@ -842,6 +842,7 @@ namespace engine
       protected :
          void _evalPredEstimation ( optAccessPlanHelper & planHelper,
                                     const BSONObj & boOrder,
+                                    BOOLEAN canReadIndexOnly,
                                     BOOLEAN isBestIndex,
                                     const optIndexStat * indexStat ) ;
 
@@ -879,6 +880,7 @@ namespace engine
 
       private:
          void _evalIndexCover( const BSONObj &keyPattern,
+                               BOOLEAN canReadIndexOnly,
                                BSONObjIterator &restOrder,
                                mthMatchTree *matcher ) ;
 
@@ -891,11 +893,15 @@ namespace engine
          // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
 
+         // indicates this plan supports index cover
          // 1.plan   : index cover matcher orderby
+         //            need calculate with selector in runtime
          // 2.explain: index cover matcher orderby and selector
          BOOLEAN           _indexCover ;
-
+         // indicates the index has not array constraint
          BOOLEAN           _notArray ;
+         // indicates can read index only
+         BOOLEAN           _readIndexOnly ;
 
          // Number of matched fields in index
          UINT32            _matchedFields ;

@@ -198,6 +198,7 @@ namespace engine
             {
                copiedOptions.setFlag( FLG_FORCE_INDEX_SELECTOR ) ;
             }
+            copiedOptions.setInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
 
             rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
                             &pContextBase ) ;
