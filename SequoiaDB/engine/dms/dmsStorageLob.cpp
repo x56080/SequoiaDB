@@ -734,7 +734,7 @@ namespace engine
       cContext.makeNewest() ;
 
       pageID = DMS_LOB_INVALID_PAGEID ;
-
+      SAFE_OSS_DELETE( pCryptor );
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_WRITEWITHPAGE, rc ) ;
       return rc ;
    error:
