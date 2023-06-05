@@ -1449,6 +1449,7 @@ namespace engine
      _matchAll( FALSE ),
      _indexCover( FALSE ),
      _notArray( FALSE ),
+     _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1472,6 +1473,7 @@ namespace engine
      _matchAll( FALSE ),
      _indexCover( FALSE ),
      _notArray( FALSE ),
+     _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1500,7 +1502,8 @@ namespace engine
    : _optScanNode( node, context ),
      _direction( node._direction ),
      _matchAll( node._matchAll ),
-     _indexCover( FALSE ),
+     _indexCover( node._indexCover ),
+     _readIndexOnly( node._readIndexOnly ),
      _matchedFields( node._matchedFields ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1575,9 +1578,10 @@ namespace engine
       _indexLevels = indexStat->getIndexLevels() ;
 
       BOOLEAN isBestIndex = collectionStat->isBestIndex( indexStat ) ;
+      BOOLEAN canReadIndexOnly = queryOptions.testInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
 
-      _evalPredEstimation( planHelper, queryOptions.getOrderBy(), isBestIndex,
-                           indexStat ) ;
+      _evalPredEstimation( planHelper, queryOptions.getOrderBy(),
+                           canReadIndexOnly, isBestIndex, indexStat ) ;
 
       switch ( priority )
       {
@@ -1606,9 +1610,11 @@ namespace engine
          }
          default :
          {
-            // Either be sorted or scan selectivity smaller than threshold
-            if ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ||
-                 _sorted )
+            // Either be sorted, or can read index only, or scan selectivity
+            // smaller than threshold
+            if ( ( _readIndexOnly && _matchedFields > 0 ) ||
+                 ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
+                 ( _sorted ) )
             {
                _isCandidate = TRUE ;
             }
@@ -1692,12 +1698,20 @@ namespace engine
       _idxReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                      _scanSelectivity ) ) ;
 
-      // Number of data pages and records will be read ( based on _predSelectivity )
-      // which is also the number of items output from index
-      _readPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
-                                                _predSelectivity ) ) ;
-      _readRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
-                                                  _predSelectivity ) ) ;
+      if ( _readIndexOnly )
+      {
+         _readPages = 0 ;
+         _readRecords = 0 ;
+      }
+      else
+      {
+         // Number of data pages and records will be read ( based on _predSelectivity )
+         // which is also the number of items output from index
+         _readPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
+                                                   _predSelectivity ) ) ;
+         _readRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
+                                                     _predSelectivity ) ) ;
+      }
 
       _estIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                     _idxReadPages + _readPages ) ;
@@ -1746,27 +1760,38 @@ namespace engine
       idxNoLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                            _scanSelectivity ) ) ;
 
-      // Number of data pages and records will be read ( based on _predSelectivity )
-      // which is also the number of items output from index
-      noLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
-                                                      _predSelectivity ) ) ;
-      noLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
-                                                        _predSelectivity ) ) ;
-
       idxReadSkipPages = (UINT32)ceil( (double)idxNoLimitReadPages * skipRate ) ;
       idxReadSkipRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * skipRate ) ;
-      readSkipPages = (UINT32)ceil( (double)noLimitReadPages * skipRate ) ;
-      readSkipRecords = (UINT64)ceil( (double)noLimitReadRecords * skipRate ) ;
-
-      _idxReadPages = (UINT32)ceil( (double)idxNoLimitReadPages * scanRate ) ;
-      _idxReadRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * scanRate ) ;
-      _readPages = (UINT32)ceil( (double)noLimitReadPages * scanRate ) ;
-      _readRecords = (UINT64)ceil( (double)noLimitReadRecords * scanRate ) ;
 
       idxReadReturnPages = _idxReadPages - idxReadSkipPages ;
       idxReadReturnRecords = _idxReadRecords - idxReadSkipRecords ;
-      readReturnPages = _readPages - readSkipPages ;
-      readReturnRecords = _readRecords - readSkipRecords ;
+
+      _idxReadPages = (UINT32)ceil( (double)idxNoLimitReadPages * scanRate ) ;
+      _idxReadRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * scanRate ) ;
+
+      if ( _readIndexOnly )
+      {
+         _readPages = 0 ;
+         _readRecords = 0 ;
+      }
+      else
+      {
+         // Number of data pages and records will be read ( based on _predSelectivity )
+         // which is also the number of items output from index
+         noLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
+                                                         _predSelectivity ) ) ;
+         noLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
+                                                           _predSelectivity ) ) ;
+
+         readSkipPages = (UINT32)ceil( (double)noLimitReadPages * skipRate ) ;
+         readSkipRecords = (UINT64)ceil( (double)noLimitReadRecords * skipRate ) ;
+
+         _readPages = (UINT32)ceil( (double)noLimitReadPages * scanRate ) ;
+         _readRecords = (UINT64)ceil( (double)noLimitReadRecords * scanRate ) ;
+
+         readReturnPages = _readPages - readSkipPages ;
+         readReturnRecords = _readRecords - readSkipRecords ;
+      }
 
       scanSkipIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                         idxReadSkipPages + readSkipPages ) ;
@@ -1798,6 +1823,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_EVALPREDEST, "_optIxScanNode::_evalPredEstimation" )
    void _optIxScanNode::_evalPredEstimation ( optAccessPlanHelper & planHelper,
                                               const BSONObj & boOrder,
+                                              BOOLEAN canReadIndexOnly,
                                               BOOLEAN isBestIndex,
                                               const optIndexStat * indexStat )
    {
@@ -2062,7 +2088,7 @@ namespace engine
          _needMatch = FALSE ;
       }
 
-      _evalIndexCover( _keyPattern, iterOrder, matcher ) ;
+      _evalIndexCover( _keyPattern, canReadIndexOnly, iterOrder, matcher ) ;
 
       _matchedFields = matchedFields ;
       _matchedOrders = matchedOrders ;
@@ -2080,6 +2106,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_EVALINDEXCOVER, "_optIxScanNode::_evalIndexCover" )
    void _optIxScanNode::_evalIndexCover( const BSONObj &keyPattern,
+                                         BOOLEAN canReadIndexOnly,
                                          BSONObjIterator &restOrder,
                                          mthMatchTree *matcher )
    {
@@ -2087,8 +2114,13 @@ namespace engine
       ixmIndexCover index( keyPattern ) ;
       PD_TRACE_ENTRY( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
 
+      BOOLEAN indexCoverOn = pmdGetOptionCB()->isIndexCoverOn() ;
+
       _indexCover = FALSE ;
-      if( FALSE == _notArray || FALSE == pmdGetOptionCB()->isIndexCoverOn() )
+      _readIndexOnly = FALSE ;
+
+      if( ( !canReadIndexOnly ) &&
+          ( ( !_notArray ) || ( !indexCoverOn ) ) )
       {
          // if index support array, then can't be indexCover
          goto done ;
@@ -2132,7 +2164,15 @@ namespace engine
          }
       }
 
-      _indexCover =  TRUE ;
+      if ( canReadIndexOnly )
+      {
+         _readIndexOnly = TRUE ;
+      }
+      if ( _notArray && indexCoverOn )
+      {
+         _indexCover = TRUE ;
+      }
+
    done :
       PD_TRACE_EXIT( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
       return ;

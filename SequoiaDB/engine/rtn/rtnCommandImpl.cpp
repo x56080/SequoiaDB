@@ -189,6 +189,7 @@ namespace engine
             copiedOptions.setOrderBy( dummy ) ;
             copiedOptions.setSkip( 0 ) ;
             copiedOptions.setLimit( -1 ) ;
+            copiedOptions.setInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
 
             rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
                             &pContextBase ) ;
