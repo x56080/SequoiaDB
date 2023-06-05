@@ -76,7 +76,7 @@ public class Sequoiadb implements Closeable {
     // cache cs/cl name
     private Map<String, Long> nameCache = new HashMap<String, Long>();
     private static ClientOptions globalClientConf = new ClientOptions();
-
+    private int closeAllCursorMark = 0;
     private final int MAX_USERNAME_LENGTH = 256;
     private final int MAX_PASSWORD_LENGTH = 256;
 
@@ -2123,6 +2123,7 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void closeAllCursors() throws BaseException {
+        closeAllCursorMark++;
         interrupt();
     }
 
@@ -2910,6 +2911,10 @@ public class Sequoiadb implements Closeable {
             }
         }
         return result;
+    }
+
+    int getCloseAllCursorMark() {
+        return closeAllCursorMark;
     }
 
     private SysInfoResponse receiveSysInfoResponse() {

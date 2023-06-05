@@ -675,7 +675,7 @@ public class DBCollectionTest {
                 System.out.println("record is: " + cursor.getNext());
             }
         } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_RTN_CONTEXT_NOTEXIST.getErrorCode(), e.getErrorCode());
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
     }
 
