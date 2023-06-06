@@ -55,7 +55,8 @@ namespace engine
    _rtnReturnOptions::_rtnReturnOptions ()
    : _skip( 0 ),
      _limit( -1 ),
-     _flag( 0 )
+     _flag( 0 ),
+     _internalFlag( 0 )
    {
    }
 
@@ -66,7 +67,8 @@ namespace engine
    : _selector( selector ),
      _skip( skip ),
      _limit( limit ),
-     _flag( flag )
+     _flag( flag ),
+     _internalFlag( 0 )
    {
    }
 
@@ -77,7 +79,8 @@ namespace engine
    : _selector( selector ),
      _skip( skip ),
      _limit( limit ),
-     _flag( flag )
+     _flag( flag ),
+     _internalFlag( 0 )
    {
    }
 
@@ -85,7 +88,8 @@ namespace engine
    : _selector( options._selector ),
      _skip( options._skip ),
      _limit( options._limit ),
-     _flag( options._flag )
+     _flag( options._flag ),
+     _internalFlag( options._internalFlag )
    {
    }
 
@@ -99,6 +103,7 @@ namespace engine
       _skip = options._skip ;
       _limit = options._limit ;
       _flag = options._flag ;
+      _internalFlag = options._internalFlag ;
       return (*this) ;
    }
 
@@ -108,6 +113,7 @@ namespace engine
       _skip = 0 ;
       _limit = -1 ;
       _flag = 0 ;
+      _internalFlag = 0 ;
    }
 
    INT32 _rtnReturnOptions::getOwned ()

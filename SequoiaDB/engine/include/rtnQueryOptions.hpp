@@ -54,6 +54,9 @@ using namespace std ;
 namespace engine
 {
 
+   // indicates the query is for count
+   #define RTN_INTERNAL_QUERY_COUNT_FLAG ( 0x00000001 )
+
    /*
       _rtnReturnOptions define
     */
@@ -161,11 +164,37 @@ namespace engine
             return OSS_BIT_TEST( _flag, flag ) ? TRUE : FALSE ;
          }
 
+         OSS_INLINE void resetInternalFlag( INT32 internalFlag )
+         {
+            _internalFlag = internalFlag ;
+         }
+
+         OSS_INLINE void setInternalFlag( INT32 internalFlag )
+         {
+            OSS_BIT_SET( _internalFlag, internalFlag ) ;
+         }
+
+         OSS_INLINE void clearInternalFlag( INT32 internalFlag )
+         {
+            OSS_BIT_CLEAR( _internalFlag, internalFlag ) ;
+         }
+
+         OSS_INLINE INT32 getInternalFlag() const
+         {
+            return _internalFlag ;
+         }
+
+         OSS_INLINE BOOLEAN testInternalFlag( INT32 internalFlag ) const
+         {
+            return OSS_BIT_TEST( _internalFlag, internalFlag ) ? TRUE : FALSE ;
+         }
+
       public :
          BSONObj        _selector ;
          INT64          _skip ;
          INT64          _limit ;
          INT32          _flag ;
+         INT32          _internalFlag ;
    } ;
 
    typedef class _rtnReturnOptions rtnReturnOptions ;
