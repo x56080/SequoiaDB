@@ -2218,7 +2218,20 @@ namespace engine
       }
 
       timerid = timer->id() ;
-      timer->asyncWait() ;
+      try
+      {
+         timer->asyncWait() ;
+      }
+      catch( std::exception &e )
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _timers.erase( timer->id() ) ;
+         timerid = NET_INVALID_TIMER_ID ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to start async operation , occur exception: %s",
+                 e.what() ) ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_ADDTIMER, rc );
