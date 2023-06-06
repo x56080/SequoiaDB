@@ -3178,5 +3178,53 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_397</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_398</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_399</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_400</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_401</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_402</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
    </codelist>
 </rclist>
