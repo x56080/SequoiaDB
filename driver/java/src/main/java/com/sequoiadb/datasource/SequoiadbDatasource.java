@@ -1438,7 +1438,6 @@ public class SequoiadbDatasource {
     }
 
     private void _createConnections() {
-        log.info("Begin create connections task");
         int createNum = _dsOpt.getDeltaIncCount() ;
         int count = 0;
         int avgCount = (_dsOpt.getMinIdleCount() + _dsOpt.getMaxIdleCount()) / 2;
@@ -1507,7 +1506,7 @@ public class SequoiadbDatasource {
             createNum--;
             count++;
         }
-        log.info(String.format("Finish create connection task, increase idle connections: %d", count));
+        log.debug(String.format("Finish create connection task, increase idle connections: %d", count));
     }
 
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
