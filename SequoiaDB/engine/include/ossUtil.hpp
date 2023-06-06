@@ -1153,7 +1153,7 @@ public:
    UINT32   _alarm;
    UINT32   _startTime;
    UINT32   _vSize;
-   INT32    _rss;
+   INT64    _rss;
    UINT32   _rssRlim;
    UINT32   _startCode;
    UINT32   _endCode;
