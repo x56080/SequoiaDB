@@ -82,7 +82,7 @@ namespace engine
        */
       else if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
                 ! ( ! isLocation() &&
-                    CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+                    CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
                     CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) ) )
       {
          PD_LOG ( PDINFO, "%s Vote: alive nodes is not major, can't initial voting, "
@@ -145,7 +145,7 @@ namespace engine
 
          // Local node is in enforced critical mode, only replica group's election is effective
          if ( ! isLocation() &&
-              CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+              CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
               CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) )
          {
             while ( _groupInfo->alives.end() != itr )
@@ -268,7 +268,7 @@ namespace engine
 
       // Local node is in enforced critical mode
       if ( ! isLocation() &&
-           CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode &&
+           CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
            _groupInfo->enforcedGrpMode )
       {
          map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
@@ -437,7 +437,7 @@ namespace engine
          isAccept = TRUE ;
       }
       // Node in critical mode which is only effective in group election( not in location election )
-      else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _groupInfo->curGrpMode )
+      else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode )
       {
          if ( CLS_IS_MAJORITY( _criticalAcceptedNum + 1, _groupInfo->criticalSize() ) )
          {

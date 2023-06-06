@@ -153,7 +153,7 @@ namespace engine
             {
                continue ;
             }
-            if ( CLS_GROUP_MODE_CRITICAL == _info->curGrpMode && 
+            if ( CLS_GROUP_MODE_CRITICAL == _info->localGrpMode && 
                  INVALID_NODE_ID == _info->grpMode.grpModeInfo[0].nodeID )
             {
                map<UINT64, _clsSharingStatus *>::const_iterator itr = 

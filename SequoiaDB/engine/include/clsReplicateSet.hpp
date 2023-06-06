@@ -153,7 +153,7 @@ namespace engine
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
-            if ( CLS_GROUP_MODE_CRITICAL == _info.curGrpMode )
+            if ( CLS_GROUP_MODE_CRITICAL == _info.localGrpMode )
             {
                // If group is in critical mode, use critical size to calculate majority size
                w = (INT16)( _info.criticalSize() / 2 + 1 ) ;
@@ -341,7 +341,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN isInCriticalMode()
          {
-            return CLS_GROUP_MODE_CRITICAL == _info.curGrpMode ;
+            return CLS_GROUP_MODE_CRITICAL == _info.localGrpMode ;
          }
 
          OSS_INLINE BOOLEAN isInEnforcedGrpMode()
@@ -475,7 +475,7 @@ namespace engine
 
             return CLS_IS_MAJORITY( _info.getAlivesByTimeout( CLS_NODE_KEEPALIVE_TIMEOUT ),
                                     _info.groupSize() ) ||
-                   ( CLS_GROUP_MODE_CRITICAL == _info.curGrpMode &&
+                   ( CLS_GROUP_MODE_CRITICAL == _info.localGrpMode &&
                      CLS_IS_MAJORITY( _info.getCriticalAlivesByTimeout( CLS_NODE_KEEPALIVE_TIMEOUT ),
                                       _info.criticalSize() ) ) ;
          }

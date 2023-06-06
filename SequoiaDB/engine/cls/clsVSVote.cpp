@@ -107,7 +107,7 @@ namespace engine
                   PD_LOG( PDEVENT, "%s Vote: change to announce by all accept", getScopeName() ) ;
                }
                // Node in critical mode which is only effective in group election( not in location election )
-               else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode )
+               else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode )
                {
                   if ( _info()->criticalSize() <= ( _criticalAccepted() + 1 ) )
                   {
@@ -143,7 +143,7 @@ namespace engine
             }
             // If is in enforced critical mode, ignore the reject result, wait until timeout
             else if ( ! isLocation() && _info()->enforcedGrpMode &&
-                      CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode )
+                      CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode )
             {
                next = id() ;
             }
@@ -183,7 +183,7 @@ namespace engine
          {
             next = CLS_ELECTION_STATUS_ANNOUNCE ;
 
-            if ( CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode && ! isLocation() )
+            if ( CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode && ! isLocation() )
             {
                if ( _info()->enforcedGrpMode )
                {

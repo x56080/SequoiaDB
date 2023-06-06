@@ -147,6 +147,7 @@ namespace engine
 
       INT32 setGrpMode( const clsGroupMode &grpMode,
                         const INT32 &shadowTime,
+                        const BOOLEAN &isLocalMode,
                         const BOOLEAN &enforced = FALSE ) ;
 
    private:

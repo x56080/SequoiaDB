@@ -226,11 +226,11 @@ namespace engine
 
                // Remove critical mode info
                resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-               _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
+               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
                _groupInfo->grpMode.reset() ;
                _groupInfo->enforcedGrpMode = FALSE ;
-               _grpModeShadowTime = 0 ;
             }
+            _grpModeShadowTime = 0 ;
          }
       }
 
@@ -286,6 +286,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTMH_SETGRPMODE, "_clsVoteMachine::setGrpMode" )
    INT32 _clsVoteMachine::setGrpMode( const clsGroupMode &grpMode,
                                       const INT32 &shadowTime,
+                                      const BOOLEAN &isLocalMode,
                                       const BOOLEAN &enforced )
    {
       INT32 rc = SDB_OK ;
@@ -298,38 +299,51 @@ namespace engine
 
          _groupInfo->enforcedGrpMode = enforced ;
 
-         // Remove local group mode
-         if ( CLS_GROUP_MODE_NONE == grpMode.mode &&
-              grpMode.mode != _groupInfo->grpMode.mode )
+         // Remove local and global group mode
+         if ( CLS_GROUP_MODE_NONE == grpMode.mode )
          {
-            resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-            _groupInfo->grpMode.reset() ;
-            _groupInfo->curGrpMode = CLS_GROUP_MODE_NONE ;
+            if ( grpMode.mode != _groupInfo->grpMode.mode )
+            {
+               resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+               _groupInfo->grpMode.reset() ;
+               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
+            }
          }
          else
          {
-            // 0 != shadowTime means keep this mode forever or temporary, we need to set electionWeight.
-            if ( 0 != shadowTime )
+            // Set local group mode to CLS_GROUP_MODE_CRITICAL/CLS_GROUP_MODE_MAINTENANCE
+            if ( isLocalMode )
             {
                if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
                {
                   // Set critical mode flag
                   setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-                  _groupInfo->curGrpMode = CLS_GROUP_MODE_CRITICAL ;
+                  _groupInfo->localGrpMode = CLS_GROUP_MODE_CRITICAL ;
 
-                  // 0 > shadowTime means keep this mode forever, we need to remove targetNode flag
-                  if ( 0 > shadowTime )
+                  // shadowTime < 0 means keep this mode forever, we need to remove targetNode flag
+                  if ( shadowTime < 0 )
                   {
                      resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
                   }
-                  // 0 < shadowTime means keep this mode temporary, we need to add targetNode flag
+                  // shadowTime > 0 means keep this mode temporary, we need to add targetNode flag
                   else
                   {
                      setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
                   }
                }
             }
+            // Reset local group mode to CLS_GROUP_MODE_NONE
+            else
+            {
+               if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+               {
+                  // Reset critical mode flag
+                  resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+               }
+               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
+            }
 
+            // Save global group mode
             _groupInfo->grpMode = grpMode ;
          }
       }

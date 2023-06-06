@@ -450,13 +450,13 @@ namespace engine
                 pmdGetLocationID() == grpMode.grpModeInfo[0].locationID ) )
          {
             // Set shadowTime = -1, which means this node is in critical mode
-            rc = _vote->setGrpMode( grpMode, -1 ) ;
+            rc = _vote->setGrpMode( grpMode, -1, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
          else
          {
             // Set shadowTime = 0, which means this node is in normal mode
-            rc = _vote->setGrpMode( grpMode, 0 ) ;
+            rc = _vote->setGrpMode( grpMode, 0, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
       }

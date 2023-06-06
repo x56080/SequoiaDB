@@ -578,7 +578,7 @@ namespace engine
 
       clsGroupMode                       grpMode ;
       BOOLEAN                            enforcedGrpMode ;
-      CLS_GROUP_MODE                     curGrpMode ;
+      CLS_GROUP_MODE                     localGrpMode ;
 
    private:
       UINT32 _hashCode ;
@@ -587,7 +587,7 @@ namespace engine
       _clsGroupInfo()
       : localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
         localLocationID( MSG_INVALID_LOCATIONID ), enforcedGrpMode( FALSE),
-        curGrpMode( CLS_GROUP_MODE_NONE ), _hashCode( 0 )
+        localGrpMode( CLS_GROUP_MODE_NONE ), _hashCode( 0 )
       {
          local.value = 0 ;
          primary.value = 0 ;
@@ -613,7 +613,7 @@ namespace engine
          localLocation.clear() ;
          grpMode.reset() ;
          enforcedGrpMode = FALSE ;
-         curGrpMode = CLS_GROUP_MODE_NONE ;
+         localGrpMode = CLS_GROUP_MODE_NONE ;
       }
 
       UINT32 nextBeatID()

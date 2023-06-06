@@ -611,7 +611,7 @@ namespace engine
       }
       else
       {
-         rc = _vote.setGrpMode( clsGroupMode(), 0 ) ;
+         rc = _vote.setGrpMode( clsGroupMode(), 0, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to set group mode, rc: %d", rc ) ;

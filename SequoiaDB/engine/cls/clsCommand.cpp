@@ -2062,7 +2062,7 @@ namespace engine
       {
          _clsVoteMachine* vote = sdbGetReplCB()->voteMachine( FALSE ) ;
 
-         rc = vote->setGrpMode( _grpMode, CLS_REELECT_COMMAND_TIMEOUT_DFT * 1000, _enforced ) ;
+         rc = vote->setGrpMode( _grpMode, CLS_REELECT_COMMAND_TIMEOUT_DFT * 1000, TRUE, _enforced ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to do actionName: [%s] rc: %d", _pActionName, rc ) ;
 

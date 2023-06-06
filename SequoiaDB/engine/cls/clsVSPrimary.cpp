@@ -73,7 +73,7 @@ namespace engine
       {
          if ( CLS_IS_MAJORITY( _info()->aliveSize(), _info()->groupSize() ) ||
               ( ! isLocation() &&
-                CLS_GROUP_MODE_CRITICAL == _info()->curGrpMode &&
+                CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode &&
                 CLS_IS_MAJORITY( _info()->criticalAliveSize(), _info()->criticalSize() ) ) )
          {
             _timeout() = 0 ;
