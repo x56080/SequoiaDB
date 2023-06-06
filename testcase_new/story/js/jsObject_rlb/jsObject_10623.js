@@ -7,8 +7,29 @@ main( test );
 
 function test ()
 {
-   // 获取空闲端口
-   var svcName = toolGetIdleSvcName( COORDHOSTNAME, CMSVCNAME );
+   // 获取集群所有机器的主机名
+   var hostNames = [];
+   var cursor = db.snapshot( SDB_SNAP_DATABASE, { RawData: true } );
+   while( cursor.next() )
+   {
+      var obj = cursor.current().toObj();
+      var hostName1 = obj["HostName"];
+      if( hostNames.indexOf( hostName1 ) == -1 )
+      {
+         hostNames.push( hostName1 );
+      }
+   }
+   cursor.close();
+   // 获取当前机器的主机名
+   var hostName2 = System.getHostName();
+
+   // 集群中不包含当前机器的主机名跳过测试
+   if( hostNames.indexOf( hostName2 ) == -1 )
+   {
+      return;
+   }
+
+   var svcName = toolGetIdleSvcName( hostName2, CMSVCNAME );
    if( svcName === undefined )
    {
       return;
@@ -26,7 +47,7 @@ function test ()
       Oma.start( options );
 
       // 检查cm是否启动
-      var oma = new Oma( COORDHOSTNAME, svcName );
+      var oma = new Oma( hostName2, svcName );
       oma.close();
 
       sleep( 20 * 1000 );
@@ -40,7 +61,7 @@ function test ()
       options = { "port": svcName, "alivetime": 0, "standalone": false };
       Oma.start( options );
 
-      oma = new Oma( COORDHOSTNAME, svcName );
+      oma = new Oma( hostName2, svcName );
       oma.close();
 
       sleep( 20 * 1000 );
