@@ -13,7 +13,7 @@ namespace engine
       UINT64 counter = offset / OSS_SM4_BLOCK_SIZE ;
       #ifndef SDB_BIG_ENDIAN
       ossEndianConvert8( counter, _ctr + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
-      #elif
+      #else
       *(UINT64 *)( _ctr + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) = counter ;
       #endif
    }
