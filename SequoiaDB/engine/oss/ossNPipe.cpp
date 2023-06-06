@@ -1133,6 +1133,7 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
    }
    do
    {
+      rc = SDB_OK ;
       handle._handle = open ( pathName.c_str(), openMode ) ;
    }
    while ( ( -1 == handle._handle ) && ( (rc = ossGetLastError()) == EINTR ) ) ;
