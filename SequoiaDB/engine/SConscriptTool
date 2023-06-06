@@ -852,7 +852,7 @@ sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbmkgen = toolEnv.Program("sdbmkgen", sdbmkgenFiles,
-         LIBS=["crypto", "ssl", "boost_program_options", "dl" ],
+         LIBDEPS=["pd", "oss", "bson", "util" ],
          _LIBDEPS='$_LIBDEPS_OBJS' )
          
 if linux:

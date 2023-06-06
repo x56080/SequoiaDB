@@ -38,6 +38,8 @@
 *******************************************************************************/
 
 #include "ossGMCrypto.hpp"
+#include "ossVer.h"
+#include "openssl/err.h"
 #include <iostream>
 #include <boost/program_options.hpp>
 
@@ -51,25 +53,65 @@ struct options
    std::string file ;
 } OPTIONS ;
 
-void parseCommands( int argc, char **argv )
+INT32 parseCommands( int argc, char **argv )
 {
    using namespace boost::program_options ;
-   desc.add_options()( "help,h", "help info" )(
-      "file,f", value< std::string >( &OPTIONS.file ), "output file path" ) ;
+   INT32 rc = SDB_OK ;
+   try
+   {
+      desc.add_options()( "help,h", "help info" )(
+         "file,f", value< std::string >( &OPTIONS.file ),
+         "output file path" )( "version,v", "version" ) ;
 
-   store( parse_command_line( argc, argv, desc ), vm ) ;
-   notify( vm ) ;
+      store( parse_command_line( argc, argv, desc ), vm ) ;
+      notify( vm ) ;
+   }
+   catch ( unknown_option &e )
+   {
+      std::cerr <<  "Unknown argument: " << e.get_option_name () << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   catch ( invalid_option_value &e )
+   {
+      std::cerr <<  "Invalid argument: "
+                << e.get_option_name () << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   catch( error &e )
+   {
+      std::cerr << e.what () << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 int main( int argc, char **argv )
 {
-   parseCommands( argc, argv ) ;
    INT32 rc = SDB_OK ;
    EVP_PKEY *pkey = NULL ;
+   rc = parseCommands( argc, argv ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
 
    if ( vm.count( "help" ) )
    {
       std::cout << desc << std::endl ;
+      goto done ;
+   }
+
+   if ( vm.count( "version" ) )
+   {
+      ossPrintVersion( "SDB Master Key Generator" ) ;
+      rc = SDB_PMD_VERSION_ONLY ;
       goto done ;
    }
 
@@ -90,7 +132,11 @@ int main( int argc, char **argv )
    rc = ossSM2WriteKeyPairToFile( OPTIONS.file.c_str(), pkey ) ;
    if ( SDB_OK != rc )
    {
-      std::cerr << "Failed to write SM2 key pair to file" << std::endl ;
+      INT32 code = ERR_get_error();
+      CHAR msg[256];
+      ERR_error_string_n(code, msg, sizeof(msg));
+      std::cerr << "Failed to write SM2 key pair to file, reason: " << msg
+                << std::endl ;
       goto error ;
    }
 
