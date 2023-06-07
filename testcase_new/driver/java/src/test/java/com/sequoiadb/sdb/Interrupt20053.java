@@ -20,7 +20,7 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Descreption seqDB-20051:reelect()接口测试
+ * @Descreption seqDB-20053:interrupt()接口测试
  * @Author XiaoNi Huang
  * @Date 2019.10.22
  */
@@ -44,14 +44,13 @@ public class Interrupt20053 extends SdbTestBase {
 
         cl = cs.createCollection( clName );
         List< BSONObject > insertor = new ArrayList<>();
-        for ( int i = 0; i < 10; i++ ) {
+        for ( int i = 0; i < 2000; i++ ) {
             insertor.add( new BasicBSONObject( "a", i ) );
         }
         cl.insert( insertor );
     }
 
-    // 问题单SEQUOIADBMAINSTREAM-8175，屏蔽该用例
-    @Test(enabled = false)
+    @Test
     public void test() {
         DBCursor cursor = cl.query();
 
@@ -63,7 +62,9 @@ public class Interrupt20053 extends SdbTestBase {
             DBCursor curs = newCL.query();
             db.interrupt();
             try {
-                curs.getNext();
+                while( curs.hasNext() ) {
+                    curs.getNext();
+                }
                 Assert.fail( "expect fail but success." );
             } catch ( BaseException e ) {
                 Assert.assertFalse( curs.hasNext() );
