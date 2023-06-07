@@ -675,7 +675,6 @@ namespace engine
       }
 
    done :
-      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, rc ) ;
       return rc ;
    error :
@@ -1490,7 +1489,6 @@ namespace engine
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
 
    done:
-      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA_EXTRACTDATA, rc ) ;
       return rc ;
    error:

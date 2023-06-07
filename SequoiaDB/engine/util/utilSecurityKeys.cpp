@@ -329,7 +329,6 @@ namespace engine
       }
 
    done:
-      ossSM4Fin( &ctx ) ;
       return rc ;
    error:
       goto done ;
@@ -679,7 +678,6 @@ namespace engine
          ossClose( dekSignFile ) ;
          bFileOpened = FALSE ;
       }
-      ossSM4Fin( &ctx ) ;
       return rc ;
    error:
       goto done ;
@@ -933,7 +931,6 @@ namespace engine
       }
 
    done:
-      ossSM4Fin( &ctx ) ;
       return rc ;
    error:
       ossMemset( plainDEK, 0, OSS_SM4_KEY_SIZE ) ;
@@ -985,7 +982,6 @@ namespace engine
 
    done:
       ossSM2FreeKeyPair( mkPublic ) ;
-      ossSM4Fin( &ctx ) ;
       return rc ;
    error:
       goto done ;
@@ -1215,7 +1211,6 @@ namespace engine
          ossClose( dekVeriFile ) ;
          bFileOpened = FALSE ;
       }
-      ossSM4Fin( &ctx ) ;
       return rc ;
    error:
       goto done ;

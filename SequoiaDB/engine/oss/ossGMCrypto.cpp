@@ -185,18 +185,6 @@ INT32 _ossSM4Context::setVec( const ossSM4Vec iVec )
    return SDB_OK ;
 }
 
-
-void ossSM4Fin( ossSM4Context * pCtx )
-{
-   if ( ( NULL != pCtx ) && ( NULL != pCtx->ctx ) )
-   {
-      EVP_CIPHER_CTX_free( pCtx->ctx ) ;
-      pCtx->ctx = NULL ;
-   }
-   return ;
-}
-
-
 INT32 ossSM4Init( ossSM4Context * pCtx, OSS_SM4_ENCYPT_OP_MODE mode )
 {
    INT32 rc = SDB_OK ;

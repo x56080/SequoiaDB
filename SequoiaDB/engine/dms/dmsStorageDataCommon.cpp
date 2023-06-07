@@ -4336,7 +4336,6 @@ namespace engine
          cb->releaseBuff( pMergedData ) ;
       }
 
-      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
       return rc ;
    error:

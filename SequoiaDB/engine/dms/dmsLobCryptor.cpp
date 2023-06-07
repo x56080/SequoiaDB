@@ -23,39 +23,77 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 offset = _offset ;
       UINT32 len = ilen ;
-      UINT32 startBlockSeq = offset / OSS_SM4_BLOCK_SIZE ;
-      UINT32 startOffset = startBlockSeq * OSS_SM4_BLOCK_SIZE ;
-      UINT32 extraLen = offset - startOffset ;
+      UINT32 extraLen = offset % OSS_SM4_BLOCK_SIZE ;
+      UINT32 misalignedLen = ( offset + len ) / OSS_SM4_BLOCK_SIZE == offset / OSS_SM4_BLOCK_SIZE
+                                ? ( offset + len ) % OSS_SM4_BLOCK_SIZE - extraLen
+                                : OSS_SM4_BLOCK_SIZE - extraLen ;
       UINT8 *pNewInBuffer = NULL ;
+      UINT8 *pNewOutBuffer = NULL ;
+      SDB_ASSERT( len >= misalignedLen, "Must be greater" ) ;
 
       if ( extraLen > 0 )
       {
-         pNewInBuffer = (UINT8 *)SDB_THREAD_ALLOC( ilen + extraLen ) ;
-         ossMemcpy( pNewInBuffer + extraLen, in, ilen ) ;
-         in = pNewInBuffer + extraLen ;
-      }
-      ossSM4Context ctx( OSS_SM4_CTR ) ;
-      rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to initialize encryption context, rc:%d. "
-                   "Data encryption will not be performed for "
-                   "operation this time",
-                   rc ) ;
-      {
+         pNewInBuffer = (UINT8 *)SDB_THREAD_ALLOC( OSS_SM4_BLOCK_SIZE ) ;
+         pNewOutBuffer = (UINT8 *)SDB_THREAD_ALLOC( OSS_SM4_BLOCK_SIZE ) ;
+         ossMemcpy( pNewInBuffer + extraLen, in, misalignedLen ) ;
+         ossSM4Context ctx( OSS_SM4_CTR ) ;
+         rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize encryption context, rc:%d", rc ) ;
          ctx.setKey( _dek ) ;
          ctx.setVec( _ctr ) ;
          UINT32 outLen = 0 ;
-         rc = ossSM4Encrypt( &ctx, in - extraLen, len + extraLen, out, &outLen ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to encrypt data, rc: %d", rc ) ;
-         SDB_ASSERT( outLen == len + extraLen, "unexpected length" ) ;
+         rc = ossSM4Encrypt( &ctx, pNewInBuffer, OSS_SM4_BLOCK_SIZE, pNewOutBuffer, &outLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to encrypt data, rc: %d", rc ) ;
+         SDB_ASSERT( outLen == OSS_SM4_BLOCK_SIZE, "Unexpected length") ;
+         ossMemcpy( out, pNewOutBuffer + extraLen, misalignedLen ) ;
+         in = in + misalignedLen ;
+         len = len - misalignedLen ;
+         out = out + misalignedLen ;
          if ( olen )
          {
-            *olen = outLen ;
+            *olen = misalignedLen;
+         }
+      }
+
+      if ( len > 0 )
+      {
+         ossSM4Context ctx( OSS_SM4_CTR ) ;
+         rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize encryption context, rc:%d", rc ) ;
+         ctx.setKey( _dek ) ;
+         if ( extraLen > 0 )
+         {
+            ossMemcpy(ctx.iv, _ctr, DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE);
+            UINT64 counter = offset / OSS_SM4_BLOCK_SIZE + 1;
+            #ifndef SDB_BIG_ENDIAN
+            ossEndianConvert8( counter, ctx.iv + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
+            #else
+            *(UINT64 *)( ctx.iv + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) = counter ;
+            #endif
+         }
+         else
+         {
+            ctx.setVec( _ctr ) ;
+         }
+         UINT32 outLen = 0 ;
+         rc = ossSM4Encrypt( &ctx, in, len, out, &outLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to encrypt data, rc: %d", rc ) ;
+         SDB_ASSERT( outLen == len, "Unexpected length" ) ;
+         if ( olen )
+         {
+            *olen += outLen ;
          }
       }
 
    done:
-      ossSM4Fin( &ctx ) ;
+      if ( pNewInBuffer )
+      {
+         SDB_THREAD_FREE( pNewInBuffer ) ;
+      }
+      if ( pNewOutBuffer )
+      {
+         SDB_THREAD_FREE( pNewOutBuffer ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -66,39 +104,77 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 offset = _offset ;
       UINT32 len = ilen ;
-      UINT32 startBlockSeq = offset / OSS_SM4_BLOCK_SIZE ;
-      UINT32 startOffset = startBlockSeq * OSS_SM4_BLOCK_SIZE ;
-      UINT32 extraLen = offset - startOffset ;
+      UINT32 extraLen = offset % OSS_SM4_BLOCK_SIZE ;
+      UINT32 misalignedLen = ( offset + len ) / OSS_SM4_BLOCK_SIZE == offset / OSS_SM4_BLOCK_SIZE
+                                ? ( offset + len ) % OSS_SM4_BLOCK_SIZE - extraLen
+                                : OSS_SM4_BLOCK_SIZE - extraLen ;
       UINT8 *pNewInBuffer = NULL ;
+      UINT8 *pNewOutBuffer = NULL ;
+      SDB_ASSERT( len >= misalignedLen, "Must be greater" ) ;
 
       if ( extraLen > 0 )
       {
-         pNewInBuffer = (UINT8 *)SDB_THREAD_ALLOC( ilen + extraLen ) ;
-         ossMemcpy( pNewInBuffer + extraLen, in, ilen ) ;
-         in = pNewInBuffer + extraLen ;
-      }
-      ossSM4Context ctx( OSS_SM4_CTR ) ;
-      rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to initialize encryption context, rc:%d. "
-                   "Data encryption will not be performed for "
-                   "operation this time",
-                   rc ) ;
-      {
+         pNewInBuffer = (UINT8 *)SDB_THREAD_ALLOC( OSS_SM4_BLOCK_SIZE ) ;
+         pNewOutBuffer = (UINT8 *)SDB_THREAD_ALLOC( OSS_SM4_BLOCK_SIZE ) ;
+         ossMemcpy( pNewInBuffer + extraLen, in, misalignedLen ) ;
+         ossSM4Context ctx( OSS_SM4_CTR ) ;
+         rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize decryption context, rc:%d", rc ) ;
          ctx.setKey( _dek ) ;
          ctx.setVec( _ctr ) ;
          UINT32 outLen = 0 ;
-         rc = ossSM4Decrypt( &ctx, in - extraLen, len + extraLen, out, &outLen ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to encrypt data, rc: %d", rc ) ;
-         SDB_ASSERT( outLen == len + extraLen, "unexpected length" ) ;
+         rc = ossSM4Decrypt( &ctx, pNewInBuffer, OSS_SM4_BLOCK_SIZE, pNewOutBuffer, &outLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to decrypt data, rc: %d", rc ) ;
+         SDB_ASSERT( outLen == OSS_SM4_BLOCK_SIZE, "Unexpected length") ;
+         ossMemcpy( out, pNewOutBuffer + extraLen, misalignedLen ) ;
+         in = in + misalignedLen ;
+         len = len - misalignedLen ;
+         out = out + misalignedLen ;
          if ( olen )
          {
-            *olen = outLen ;
+            *olen = misalignedLen;
+         }
+      }
+
+      if ( len > 0 )
+      {
+         ossSM4Context ctx( OSS_SM4_CTR ) ;
+         rc = ossSM4Init( &ctx, OSS_SM4_CTR ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize decryption context, rc:%d", rc ) ;
+         ctx.setKey( _dek ) ;
+         if ( extraLen > 0 )
+         {
+            ossMemcpy(ctx.iv, _ctr, DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE);
+            UINT64 counter = offset / OSS_SM4_BLOCK_SIZE + 1;
+            #ifndef SDB_BIG_ENDIAN
+            ossEndianConvert8( counter, ctx.iv + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) ;
+            #else
+            *(UINT64 *)( ctx.iv + DMS_LOB_ENCRYPTION_CTR_NONCE_SIZE ) = counter ;
+            #endif
+         }
+         else
+         {
+            ctx.setVec( _ctr ) ;
+         }
+         UINT32 outLen = 0 ;
+         rc = ossSM4Decrypt( &ctx, in, len, out, &outLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to decrypt data, rc: %d", rc ) ;
+         SDB_ASSERT( outLen == len, "Unexpected length" ) ;
+         if ( olen )
+         {
+            *olen += outLen ;
          }
       }
 
    done:
-      ossSM4Fin( &ctx ) ;
+      if ( pNewInBuffer )
+      {
+         SDB_THREAD_FREE( pNewInBuffer ) ;
+      }
+      if ( pNewOutBuffer )
+      {
+         SDB_THREAD_FREE( pNewOutBuffer ) ;
+      }
       return rc ;
    error:
       goto done ;

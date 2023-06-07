@@ -2788,7 +2788,6 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
       flushOutput( gBuffer, len ) ;
    }
 
-   ossSM4Fin( &ctx ) ;
 }
 
 void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
@@ -2996,7 +2995,6 @@ retry_data :
    }
 
 done :
-   ossSM4Fin( &ctx ) ;
    return ;
 error :
    goto done ;

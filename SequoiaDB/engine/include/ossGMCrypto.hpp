@@ -97,7 +97,11 @@ public:
 
    virtual ~ _ossSM4Context()
    {
-      ctx    = NULL ;
+      if ( ctx )
+      {
+         EVP_CIPHER_CTX_free( ctx ) ;
+         ctx = NULL ;
+      }
       cipher = NULL ;
    }
 } ;
@@ -125,7 +129,6 @@ INT32 ossSM4DecryptHybrid( ossSM4Context * pctx,
                            const UINT8 * in, UINT8 * out, size_t len ) ; 
 
 INT32 ossSM4Init( ossSM4Context * pctx, OSS_SM4_ENCYPT_OP_MODE mode ) ;
-void  ossSM4Fin( ossSM4Context * pctx ) ;
 
 
 /*

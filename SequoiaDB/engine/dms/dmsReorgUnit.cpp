@@ -542,7 +542,6 @@ namespace engine
       }
 
    done :
-      ossSM4Fin( &encryptionCTX ) ;
       PD_TRACE_EXITRC ( SDB__DMSROUNIT_INSRCD, rc );
       return rc ;
    error :
