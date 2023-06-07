@@ -95,6 +95,9 @@
 //x86(Instruction Set) when convert an overflow double to unsigned long long ,
 //ull will give an "indefinite integer value" with (0x8000000000000000)
 #define OSS_INDEF_VAL_64 (0x8000000000000000uLL)
+//x86(Instruction Set) when convert an overflow double to long long ,
+//ll will give an "indefinite integer value" with (0x8000000000000000)
+#define OSS_INDEF_SINT64_VAL (0x8000000000000000LL)
 #define OSS_UINT64_MAX 0xFFFFFFFFFFFFFFFFuLL
 #define OSS_SINT64_MAX 0x7FFFFFFFFFFFFFFFLL
 #define OSS_SINT64_MIN (-9223372036854775807LL-1)

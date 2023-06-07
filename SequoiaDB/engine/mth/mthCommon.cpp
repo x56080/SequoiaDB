@@ -2752,9 +2752,14 @@ namespace engine
             break ;
          }
          case NumberLong :
-         case NumberDouble :
          {
             Date_t d( e.numberLong() ) ;
+            timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
+            break ;
+         }
+         case NumberDouble :
+         {
+            Date_t d( ossDoubleToINT64( e.numberDouble() ) ) ;
             timeValue = (time_t)( ( INT64 )( d ) / 1000 ) ;
             break ;
          }

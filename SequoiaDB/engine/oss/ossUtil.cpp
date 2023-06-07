@@ -164,6 +164,35 @@ UINT32 ossDoubleToUINT32( FLOAT64 num )
    return ans ;
 }
 
+// When a double value is out of the range of type int, the result of
+// converting it into a int value is different on x86 from arm. So when
+// it is out of range we handle the result as x86 did.
+INT64 ossDoubleToINT64( FLOAT64 num )
+{
+   // When double is out of the range of long long,it has four cases.
+   // case1: when double is special value, in NaN, INF and -INF case we give it an
+   //        "indefinite integer value"
+   // case2: when double is left overflow than the min value or right overflow than the max value
+   //        long long type can represent,we give it an "indefinite integer value"
+   // otherwise: we do nothing
+   INT64 ans = 0 ;
+
+   if ( ossIsNaN( num ) || ossIsInf( num ) )
+   {
+      ans = OSS_INDEF_SINT64_VAL ;
+   }
+   else if ( num < OSS_SINT64_MIN_D || num > OSS_SINT64_MAX_D )
+   {
+      ans = OSS_INDEF_SINT64_VAL ;
+   }
+   else
+   {
+      ans = num ;
+   }
+
+   return ans ;
+}
+
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 * pSquare )
 {
    BOOLEAN bPowered = ( ( 0 != num ) && ( 0 == ( num & ( num -1 ) ) ) ) ;

@@ -93,9 +93,11 @@ OSS_INLINE UINT32 ossHash( const BYTE *v1, UINT32 s1,
 
 #define OSS_FLOAT64_2_UINT64(x) ossDoubleToUINT64(x)
 #define OSS_FLOAT64_2_UINT32(x) ossDoubleToUINT32(x)
+#define OSS_FLOAT64_2_INT64(x)  ossDoubleToINT64(x)
 
 UINT64 ossDoubleToUINT64( FLOAT64 num );
 UINT32 ossDoubleToUINT32( FLOAT64 num );
+INT64 ossDoubleToINT64( FLOAT64 num );
 
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
 UINT64 ossNextPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
