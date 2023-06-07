@@ -16,9 +16,9 @@ import com.sequoiadb.testcommon.SdbTestBase;
 /**
  * @Descreption seqDB-23528 : MinIdleCount/MaxIdleCount参数校验验证
  * @Author Cheng Jingjing
- * @CreateDate 2023/4/11
+ * @CreateDate 2023/06/06
  * @UpdateUser Cheng Jingjing
- * @UpdateDate 2023/4/11
+ * @UpdateDate 2023/06/06
  * @UpdateRemark
  * @Version v1.0
  */
@@ -67,8 +67,7 @@ public class DataSource23528 extends SdbTestBase {
         dsOpt.setMaxIdleCount( max );
         dsOpt.setCheckInterval( 500 ); // 500ms
 
-        SequoiadbDatasource ds = SequoiadbDatasource.builder()
-                .serverAddress( addr ).datasourceOptions( dsOpt ).build();
+        SequoiadbDatasource ds = new SequoiadbDatasource( addr, "", "", dsOpt );
         try {
             checkIdleCount( ds, dsOpt );
         } finally {
@@ -77,7 +76,7 @@ public class DataSource23528 extends SdbTestBase {
     }
 
     private void checkIdleCount( SequoiadbDatasource ds,
-            DatasourceOptions dsOpt ) throws Exception {
+                                 DatasourceOptions dsOpt ) throws Exception {
         int avgCount = ( dsOpt.getMinIdleCount() + dsOpt.getMaxIdleCount() )
                 / 2;
         List< Sequoiadb > connList = new ArrayList<>();
@@ -116,8 +115,7 @@ public class DataSource23528 extends SdbTestBase {
         dsOpt.setCheckInterval( 500 );
         dsOpt.setMinIdleCount( 0 );
         dsOpt.setMaxIdleCount( 20 );
-        SequoiadbDatasource ds = SequoiadbDatasource.builder()
-                .serverAddress( addr ).datasourceOptions( dsOpt ).build();
+        SequoiadbDatasource ds = new SequoiadbDatasource( addr, "", "", dsOpt );
         try {
             // min = 0, max = 20
             checkIdleCount( ds, dsOpt );
