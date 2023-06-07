@@ -1001,7 +1001,7 @@ namespace engine
       {
          PD_LOG( PDINFO, "Session[%s] recieved interrupt self message",
                  pSession->sessionName() ) ;
-         pSession->eduCB()->interrupt() ;
+         pSession->eduCB()->interrupt( TRUE ) ;
          goto done ;
       }
 
