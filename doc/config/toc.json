@@ -1289,6 +1289,20 @@
                      "file": "compression_encryption",
                      "cn": "数据压缩",
                      "en": "Compression Encryption"
+                  },
+                  {
+                     "id": 1580978421,
+                     "dir": "Foreign_Protocol",
+                     "cn": "外部数据库协议兼容",
+                     "en": "foreign database protocol compatible",
+                     "contents": [
+                        {
+                           "id": 1580978422,
+                           "file": "mongodb_protocol",
+                           "cn": "MongoDB协议兼容",
+                           "en": "MongoDB protocol compatible"
+                        }
+                     ]
                   }
                ]
             },
