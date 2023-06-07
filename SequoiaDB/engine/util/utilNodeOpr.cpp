@@ -577,6 +577,17 @@ namespace engine
       info._dataSvcname = "" ;
       info._mode        = "" ;
 
+      // start time
+      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                               ENGINE_NPIPE_MSG_STARTTIME,
+                               sizeof( ENGINE_NPIPE_MSG_STARTTIME ),
+                               (CHAR*)&info._startTime,
+                               sizeof( UINT64 ), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       if ( SDB_TYPE_SEADAPTER == info._type )
       {
          // data service name
@@ -701,16 +712,6 @@ namespace engine
          }
       }
 
-      // start time
-      rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
-                               ENGINE_NPIPE_MSG_STARTTIME,
-                               sizeof( ENGINE_NPIPE_MSG_STARTTIME ),
-                               (CHAR*)&info._startTime,
-                               sizeof( UINT64 ), TRUE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
    done:
       return rc ;
    error:
