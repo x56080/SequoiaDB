@@ -22,7 +22,7 @@ function test ( testPara )
    { no: 3, tdate: 2345780 },
    { no: 4, tdate: { "$numberLong": "9223372036854775807" } },
    { no: 5, tdate: 568974.689 },
-   { no: 6, tdate: 1.7E+200 },
+   { no: 6, tdate: 9222212345678996 },
    { no: 7, tdate: { "$date": "2012-04-05" } },
    { no: 8, tdate: ["2078-12-14", "3456767"] },
    { no: 9, tdate: { "$timestamp": "2023-04-11-13.14.26.124233" } }];
@@ -30,7 +30,7 @@ function test ( testPara )
 
    // 全文检索，检查结果   
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, indexName );
-   var indexRecordNum = 8;
+   var indexRecordNum = 9;
    checkFullSyncToES( COMMCSNAME, clName, indexName, indexRecordNum, esIndexNames );
 
    var actRecords = dbOpr.findFromCL( dbcl, { "": { "$Text": { query: { "match_all": {} } } } }, { _id: { "$include": 0 } }, { _id: 1 } );

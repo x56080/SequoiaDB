@@ -59,7 +59,6 @@ public class Fulltext15847 extends FullTestBase {
         Assert.assertTrue(
                 FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
         cappedName = FullTextDBUtils.getCappedName( cl, indexName );
-        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Test
@@ -72,6 +71,7 @@ public class Fulltext15847 extends FullTestBase {
         thread.addWorker( new DeleteThread() );
         thread.run();
 
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
         if ( indexExist ) {
             // 先校验索引的逻辑ID是否正常，再校验索引数据、主备节点数据的一致性
             Assert.assertTrue( FullTextUtils.isIdxLidSyncInES( esIndexName,
