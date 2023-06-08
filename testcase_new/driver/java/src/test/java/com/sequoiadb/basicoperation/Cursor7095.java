@@ -3,6 +3,7 @@ package com.sequoiadb.basicoperation;
 import java.util.ArrayList;
 import java.util.Date;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -88,9 +89,14 @@ public class Cursor7095 extends SdbTestBase {
             actualGetNextData.add( queryCursor.getCurrent() );
         }
         queryCursor.close();
+        try {
+            queryCursor.getNext();
+            Assert.fail( "expect fail but success." );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode() );
+        }
         Assert.assertEquals( actualGetCurrentData, insertData );
         Assert.assertEquals( actualGetCurrentData, actualGetNextData );
-
         // clear env
         if ( cs.isCollectionExist( clName ) ) {
             cs.dropCollection( clName );
