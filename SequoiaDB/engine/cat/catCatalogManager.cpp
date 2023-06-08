@@ -1219,12 +1219,12 @@ namespace engine
             builder.subarrayStart( MTH_OPERATOR_STR_AND ) ) ;
          subBuilder.append( BSON( FIELD_NAME_DATASOURCE_ID <<
                                   BSON( MTH_OPERATOR_STR_EXISTS << 1 ) ) ) ;
-         subBuilder.append( BSON( FIELD_NAME_CATALOGINFO"."FIELD_NAME_GROUPNAME
+         subBuilder.append( BSON( FIELD_NAME_CATALOGINFO "." FIELD_NAME_GROUPNAME
                                   << "DataSource" ) ) ;
          subBuilder.done() ;
          matcher = builder.done() ;
          updator = BSON( "$set" <<
-                         BSON( FIELD_NAME_CATALOGINFO".0."FIELD_NAME_GROUPNAME
+                         BSON( FIELD_NAME_CATALOGINFO ".0." FIELD_NAME_GROUPNAME
                                << CAT_DATASOURCE_GROUPNAME ) ) ;
 
          PD_LOG( PDDEBUG, "Update collection SYSCOLLECTIONS. Matcher: %s. "
@@ -1276,10 +1276,10 @@ namespace engine
       try
       {
          BSONObj dummyObj ;
-         BSONObj query = BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+         BSONObj query = BSON( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE <<
                                BSON( "$exists" << 0 ) ) ;
          BSONObj updator = BSON( "$set" <<
-            BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
+            BSON( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
          rc = rtnUpdate( AUTH_USR_COLLECTION, query, updator,
                          dummyObj, 0, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",

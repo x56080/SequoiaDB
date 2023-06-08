@@ -288,37 +288,37 @@ namespace engine
    // index for recycle name
    #define UTIL_RECYCLEBIN_NAME_INDEX_NAME      "SYSRECYBINNAMEIDX"
    #define UTIL_RECYCLEBIN_ITEM_NAME_INDEX \
-               "{ name : \""UTIL_RECYCLEBIN_NAME_INDEX_NAME"\", " \
-               "key : { \""FIELD_NAME_RECYCLE_NAME"\" : 1 }, " \
+               "{ name : \"" UTIL_RECYCLEBIN_NAME_INDEX_NAME "\", " \
+               "key : { \"" FIELD_NAME_RECYCLE_NAME "\" : 1 }, " \
                "unique : true, enforced : true }"
 
    // index for origin name
    #define UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME  "SYSRECYBINORIGNAMEIDX"
    #define UTIL_RECYCLEBIN_ORIGNAME_INDEX \
-               "{ name : \""UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME"\", " \
-               "key : { \""FIELD_NAME_ORIGIN_NAME"\" : 1 } }"
+               "{ name : \"" UTIL_RECYCLEBIN_ORIGNAME_INDEX_NAME "\", " \
+               "key : { \"" FIELD_NAME_ORIGIN_NAME "\" : 1 } }"
 
    // index for origin ID
    // NOTE: truncate will create duplicated items with the same origin ID,
    //       so should not have unique
    #define UTIL_RECYCLEBIN_ORIGID_INDEX_NAME    "SYSRECYBINORIGIDIDX"
    #define UTIL_RECYCLEBIN_ORIGID_INDEX \
-               "{ name : \""UTIL_RECYCLEBIN_ORIGID_INDEX_NAME"\", " \
-               "key : { \""FIELD_NAME_ORIGIN_ID"\" : 1 } }"
+               "{ name : \"" UTIL_RECYCLEBIN_ORIGID_INDEX_NAME "\", " \
+               "key : { \"" FIELD_NAME_ORIGIN_ID "\" : 1 } }"
 
    // index for unique ID of recycle item
    // locate recycle objects from the same recycle item
    #define UTIL_RECYCLEBIN_RECYID_INDEX_NAME    "SYSRECYBINRECYIDX"
    #define UTIL_RECYCLEBIN_RECYID_INDEX \
-               "{ name : \""UTIL_RECYCLEBIN_RECYID_INDEX_NAME"\", " \
-               "key : { \""FIELD_NAME_RECYCLE_ID"\" : 1 } }"
+               "{ name : \"" UTIL_RECYCLEBIN_RECYID_INDEX_NAME "\", " \
+               "key : { \"" FIELD_NAME_RECYCLE_ID "\" : 1 } }"
 
    // index for unique ID of object
    // locate recycle objects from its own unique ID
    #define UTIL_RECYCLEBIN_UID_INDEX_NAME       "SYSRECYBINUIDIDX"
    #define UTIL_RECYCLEBIN_UID_INDEX \
-               "{ name : \""UTIL_RECYCLEBIN_UID_INDEX_NAME"\", " \
-               "key : { \""FIELD_NAME_UNIQUEID"\" : 1 } }"
+               "{ name : \"" UTIL_RECYCLEBIN_UID_INDEX_NAME "\", " \
+               "key : { \"" FIELD_NAME_UNIQUEID "\" : 1 } }"
 
 }
 

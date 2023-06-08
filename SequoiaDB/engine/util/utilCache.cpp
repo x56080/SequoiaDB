@@ -3728,34 +3728,34 @@ namespace engine
       CHAR text[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       ossSnprintf( text, OSS_MAX_PATHSIZE,
                    OSS_NEWLINE
-                   "Unit Name         : %s"OSS_NEWLINE
-                   "Total Time(Sec)   : %u"OSS_NEWLINE
-                   "Cache Total Sz(MB): %.2f"OSS_NEWLINE
-                   "Cache Free Sz(MB) : %.2f"OSS_NEWLINE
-                   "Total Page        : %u"OSS_NEWLINE
-                   "Dirty Page        : %u"OSS_NEWLINE
-                   "Alloc Num         : %u"OSS_NEWLINE
-                   "Alloc Null Num    : %u"OSS_NEWLINE
-                   "Alloc Wait Num    : %u"OSS_NEWLINE
-                   "Alloc Blk Num     : %u"OSS_NEWLINE
-                   "Hit Cache Num     : %u"OSS_NEWLINE
-                   "Merge Num         : %u"OSS_NEWLINE
-                   "Merge Sync        : %u"OSS_NEWLINE
-                   "Sync Num          : %u"OSS_NEWLINE
-                   "Recycle Num       : %u"OSS_NEWLINE
-                   "Total Wait Tm(ms) : %llu"OSS_NEWLINE
-                   "Max Wait Tm(ms)   : %u"OSS_NEWLINE
-                   "Avg Wait Tm(ms)   : %.2f"OSS_NEWLINE
-                   "Dirty ratio       : %.2f %%"OSS_NEWLINE
-                   "Alloc Speed       : %.2f /s"OSS_NEWLINE
-                   "Alloc Null Speed  : %.2f /s"OSS_NEWLINE
-                   "Alloc Wait Speed  : %.2f /s"OSS_NEWLINE
-                   "Alloc Blk Speed   : %.2f /s"OSS_NEWLINE
-                   "Hit Cache Speed   : %.2f /s"OSS_NEWLINE
-                   "Merge Speed       : %.2f /s"OSS_NEWLINE
-                   "Merge Sync Avg Len: %.2f"OSS_NEWLINE
-                   "Sync Speed        : %.2f /s"OSS_NEWLINE
-                   "Recycle Speed     : %.2f /s"OSS_NEWLINE,
+                   "Unit Name         : %s" OSS_NEWLINE
+                   "Total Time(Sec)   : %u" OSS_NEWLINE
+                   "Cache Total Sz(MB): %.2f" OSS_NEWLINE
+                   "Cache Free Sz(MB) : %.2f" OSS_NEWLINE
+                   "Total Page        : %u" OSS_NEWLINE
+                   "Dirty Page        : %u" OSS_NEWLINE
+                   "Alloc Num         : %u" OSS_NEWLINE
+                   "Alloc Null Num    : %u" OSS_NEWLINE
+                   "Alloc Wait Num    : %u" OSS_NEWLINE
+                   "Alloc Blk Num     : %u" OSS_NEWLINE
+                   "Hit Cache Num     : %u" OSS_NEWLINE
+                   "Merge Num         : %u" OSS_NEWLINE
+                   "Merge Sync        : %u" OSS_NEWLINE
+                   "Sync Num          : %u" OSS_NEWLINE
+                   "Recycle Num       : %u" OSS_NEWLINE
+                   "Total Wait Tm(ms) : %llu" OSS_NEWLINE
+                   "Max Wait Tm(ms)   : %u" OSS_NEWLINE
+                   "Avg Wait Tm(ms)   : %.2f" OSS_NEWLINE
+                   "Dirty ratio       : %.2f %%" OSS_NEWLINE
+                   "Alloc Speed       : %.2f /s" OSS_NEWLINE
+                   "Alloc Null Speed  : %.2f /s" OSS_NEWLINE
+                   "Alloc Wait Speed  : %.2f /s" OSS_NEWLINE
+                   "Alloc Blk Speed   : %.2f /s" OSS_NEWLINE
+                   "Hit Cache Speed   : %.2f /s" OSS_NEWLINE
+                   "Merge Speed       : %.2f /s" OSS_NEWLINE
+                   "Merge Sync Avg Len: %.2f" OSS_NEWLINE
+                   "Sync Speed        : %.2f /s" OSS_NEWLINE
+                   "Recycle Speed     : %.2f /s" OSS_NEWLINE,
                    _pCacheFile->getFileName(),
                    diff / 1000,
                    (FLOAT64)_pMgr->totalSize() / 1048576,

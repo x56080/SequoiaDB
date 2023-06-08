@@ -159,19 +159,19 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < procs.size() ; ++i )
       {
-         ossPrintf( "Terminating process %d: %s"OSS_NEWLINE,
+         ossPrintf( "Terminating process %d: %s" OSS_NEWLINE,
                     procs[ i ]._pid, PMDDMN_SVCNAME_DEFAULT ) ;
          rctmp = _terminateWithTimeout( procs[ i ]._pid ) ;
          if ( rctmp )
          {
-            ossPrintf ( "FAILED"OSS_NEWLINE ) ;
+            ossPrintf ( "FAILED" OSS_NEWLINE ) ;
             PD_LOG ( PDERROR, "Failed to terminate process %d, rc = %d",
                      procs[ i ]._pid, rctmp ) ;
             rc = rctmp ;
          }
          else
          {
-            ossPrintf ( "DONE"OSS_NEWLINE ) ;
+            ossPrintf ( "DONE" OSS_NEWLINE ) ;
          }
       }
 
@@ -190,18 +190,18 @@ namespace engine
       for ( UINT32 i = 0 ; i < nodes.size() ; ++i )
       {
          utilNodeInfo &info = nodes[ i ] ;
-         ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+         ossPrintf ( "Terminating process %d: %s(%s)" OSS_NEWLINE,
                      info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                      info._svcname.c_str() ) ;
          rctmp = utilStopNode( info ) ;
          if ( SDB_OK == rctmp )
          {
-            ossPrintf ( "DONE"OSS_NEWLINE ) ;
+            ossPrintf ( "DONE" OSS_NEWLINE ) ;
          }
          else
          {
             rc = rctmp ;
-            ossPrintf ( "FAILED"OSS_NEWLINE ) ;
+            ossPrintf ( "FAILED" OSS_NEWLINE ) ;
          }
       }
 
@@ -330,20 +330,20 @@ namespace engine
       if ( rc )
       {
          ossPrintf ( "Failed to get excutable file's working "
-                     "directory"OSS_NEWLINE ) ;
+                     "directory" OSS_NEWLINE ) ;
          goto error ;
       }
       rc = engine::utilCatPath( dialogFile, OSS_MAX_PATHSIZE, SDBCM_LOG_PATH ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog dir[%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          goto error ;
       }
@@ -351,7 +351,7 @@ namespace engine
                                 SDBCMTOP_LOG_FILE_NAME ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // enable pd log
@@ -366,12 +366,12 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to stop sdbcm, rc: %d", rc ) ;
-         ossPrintf ( "Failed to stop sdbcm, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf ( "Failed to stop sdbcm, rc: %d" OSS_NEWLINE, rc ) ;
       }
       else
       {
          PD_LOG ( PDEVENT, "Successful to stop sdbcm" ) ;
-         ossPrintf ( "Successful to stop sdbcm"OSS_NEWLINE ) ;
+         ossPrintf ( "Successful to stop sdbcm" OSS_NEWLINE ) ;
       }
 
    done:

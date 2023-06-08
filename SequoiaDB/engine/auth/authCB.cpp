@@ -2554,7 +2554,7 @@ namespace engine
             BSONObj query =
                BSON( "$and" << BSON_ARRAY(
                   BSON( FIELD_NAME_USER << BSON( "$ne" << username ) ) <<
-                  BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+                  BSON( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE <<
                         VALUE_NAME_ADMIN ) ) ) ;
 
             queryOption.setQuery( query ) ;

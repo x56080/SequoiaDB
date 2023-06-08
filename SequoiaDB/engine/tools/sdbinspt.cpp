@@ -289,11 +289,11 @@ INT32 switchFile( OSSFILE& file, const INT32 size )
          ++retryCount ;
          if( RETRY_COUNT < retryCount )
          {
-            ossPrintf( "retry times more than %d, return"OSS_NEWLINE,
+            ossPrintf( "retry times more than %d, return" OSS_NEWLINE,
                        RETRY_COUNT ) ;
             goto error ;
          }
-         ossPrintf( "retry again. times : %d"OSS_NEWLINE, retryCount ) ;
+         ossPrintf( "retry again. times : %d" OSS_NEWLINE, retryCount ) ;
          ossMemset ( newFile, 0, OSS_MAX_PATHSIZE + 1 ) ;
          goto retry;
       }
@@ -331,14 +331,14 @@ INT32 parseRepaireString( const std::string &str )
    CHAR *pos = (CHAR*)ossStrchr( pin, ':' ) ;
    if ( NULL == pos )
    {
-      ossPrintf( "repaire format must be: mb:xx=y,dd=k"OSS_NEWLINE ) ;
+      ossPrintf( "repaire format must be: mb:xx=y,dd=k" OSS_NEWLINE ) ;
       return SDB_INVALIDARG ;
    }
    *pos = 0 ;
    if ( 0 != ossStrcasecmp( pin, "mb" ) )
    {
       *pos = ':' ;
-      ossPrintf( "repaire only support for type mb"OSS_NEWLINE ) ;
+      ossPrintf( "repaire only support for type mb" OSS_NEWLINE ) ;
       return SDB_INVALIDARG ;
    }
    *pos = ':' ;
@@ -349,7 +349,7 @@ INT32 parseRepaireString( const std::string &str )
    INT32 rc = opt.parseAddressLine( pos + 1, items, ",", "=", 0 ) ;
    if ( SDB_OK != rc )
    {
-      ossPrintf( "Parse repaire value failed: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Parse repaire value failed: %d" OSS_NEWLINE, rc ) ;
       return rc ;
    }
    UINT64 value = 0 ;
@@ -360,7 +360,7 @@ INT32 parseRepaireString( const std::string &str )
       /// must be nubmer
       if ( !ossIsInteger( aItem._service ) )
       {
-         ossPrintf( "Field[%s]'s value is not number[%s]"OSS_NEWLINE,
+         ossPrintf( "Field[%s]'s value is not number[%s]" OSS_NEWLINE,
                     aItem._host, aItem._service ) ;
          return SDB_INVALIDARG ;
       }
@@ -458,7 +458,7 @@ INT32 parseRepaireString( const std::string &str )
       }
       else
       {
-         ossPrintf( "Unknow mb key: %s"OSS_NEWLINE, aItem._host ) ;
+         ossPrintf( "Unknow mb key: %s" OSS_NEWLINE, aItem._host ) ;
          return SDB_INVALIDARG ;
       }
    }
@@ -619,7 +619,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                gOutputFile[ len ] = '\0' ;
             }
 
-            ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s"DMS_DUMPFILE".%d",
+            ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s" DMS_DUMPFILE ".%d",
                          gOutputFile, gCurFileIndex ) ;
          }
          else
@@ -759,7 +759,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       // if action options is not valid, let's display help
       else
       {
-         dumpAndShowPrintf ( "Invalid Action Option: %s"OSS_NEWLINE,
+         dumpAndShowPrintf ( "Invalid Action Option: %s" OSS_NEWLINE,
                              action ) ;
          displayArg ( desc ) ;
          rc = SDB_PMD_HELP_ONLY ;
@@ -768,7 +768,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    }
    else if ( !vm.count( OPTION_REPAIRE ) )
    {
-      dumpAndShowPrintf ( "Action or repaire must be specified"OSS_NEWLINE ) ;
+      dumpAndShowPrintf ( "Action or repaire must be specified" OSS_NEWLINE ) ;
       // if no action specified, let's display help
       displayArg ( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
@@ -807,14 +807,14 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       }
       if ( gAction != 0 )
       {
-         ossPrintf( "Repaire can't use with other action"OSS_NEWLINE ) ;
+         ossPrintf( "Repaire can't use with other action" OSS_NEWLINE ) ;
          rc = SDB_INVALIDARG ;
          goto done ;
       }
       if ( 0 == ossStrlen( gCLName ) || 0 == ossStrlen( gCSName ) )
       {
          ossPrintf( "Repaire must specify the collection space and "
-                    "collection"OSS_NEWLINE ) ;
+                    "collection" OSS_NEWLINE ) ;
          rc = SDB_INVALIDARG ;
          goto done ;
       }
@@ -823,45 +823,45 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
 
    // show input parameters on screen so people can see it
    // save them into output as well
-   dumpAndShowPrintf ( "Run Options   :"OSS_NEWLINE ) ;
-   dumpAndShowPrintf ( "Database Path : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Run Options   :" OSS_NEWLINE ) ;
+   dumpAndShowPrintf ( "Database Path : %s" OSS_NEWLINE,
                        gDatabasePath ) ;
-   dumpAndShowPrintf ( "Index path    : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Index path    : %s" OSS_NEWLINE,
                        gIndexPath ) ;
-   dumpAndShowPrintf ( "Lobm path     : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Lobm path     : %s" OSS_NEWLINE,
                        gLobmPath) ;
-   dumpAndShowPrintf ( "Lob path      : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Lob path      : %s" OSS_NEWLINE,
                        gLobPath ) ;
-   dumpAndShowPrintf ( "Output File   : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Output File   : %s" OSS_NEWLINE,
                        ossStrlen(gOutputFile)?gOutputFile:"{stdout}" ) ;
-   dumpAndShowPrintf ( "Verbose       : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Verbose       : %s" OSS_NEWLINE,
                        gVerbose?"True":"False" ) ;
-   dumpAndShowPrintf ( "CS Name       : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "CS Name       : %s" OSS_NEWLINE,
                        ossStrlen(gCSName)?gCSName:"{all}" ) ;
-   dumpAndShowPrintf ( "CL Name       : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "CL Name       : %s" OSS_NEWLINE,
                        ossStrlen(gCLName)?gCLName:"{all}" ) ;
-   dumpAndShowPrintf ( "Action        : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Action        : %s" OSS_NEWLINE,
                        actionString ) ;
-   dumpAndShowPrintf ( "Repaire       : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Repaire       : %s" OSS_NEWLINE,
                        gRepairStr.c_str() ) ;
-   dumpAndShowPrintf ( "Dump Options  :"OSS_NEWLINE ) ;
-   dumpAndShowPrintf ( "   Dump Data  : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "Dump Options  :" OSS_NEWLINE ) ;
+   dumpAndShowPrintf ( "   Dump Data  : %s" OSS_NEWLINE,
                        gDumpData?"True":"False" ) ;
-   dumpAndShowPrintf ( "   Dump Index : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Dump Index : %s" OSS_NEWLINE,
                        gDumpIndex?"True":"False" ) ;
-   dumpAndShowPrintf ( "   Dump Lob   : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Dump Lob   : %s" OSS_NEWLINE,
                        gDumpLob?"True":"False" ) ;
-   dumpAndShowPrintf ( "   Start Page : %d"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Start Page : %d" OSS_NEWLINE,
                        gStartingPage ) ;
-   dumpAndShowPrintf ( "   Num Pages  : %d"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Num Pages  : %d" OSS_NEWLINE,
                        gNumPages ) ;
-   dumpAndShowPrintf ( "   Show record: %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Show record: %s" OSS_NEWLINE,
                        gShowRecordContent ? "True":"False") ;
-   dumpAndShowPrintf ( "   Only Meta  : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Only Meta  : %s" OSS_NEWLINE,
                        gOnlyMeta ? "True":"False" ) ;
-   dumpAndShowPrintf ( "   Balance    : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Balance    : %s" OSS_NEWLINE,
                        gBalance? "True":"False" ) ;
-   dumpAndShowPrintf ( "   force      : %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   force      : %s" OSS_NEWLINE,
                        gForce ? "True":"False" ) ;
    dumpAndShowPrintf ( OSS_NEWLINE ) ;
 done :
@@ -907,7 +907,7 @@ void flushOutput ( const CHAR *pBuffer, INT32 size )
    } while ( writtenSize < size ) ;
    if ( rc )
    {
-      ossPrintf ( "Error: Failed to write into file, rc = %d"OSS_NEWLINE,
+      ossPrintf ( "Error: Failed to write into file, rc = %d" OSS_NEWLINE,
                   rc ) ;
       goto error ;
    }
@@ -949,7 +949,7 @@ INT32 reallocBuffer ()
    {
       if ( gBufferSize > 0x7FFFFFFF )
       {
-         dumpPrintf ( "Error: Cannot allocate more than 2GB"OSS_NEWLINE ) ;
+         dumpPrintf ( "Error: Cannot allocate more than 2GB" OSS_NEWLINE ) ;
          rc = SDB_OOM ;
          goto error ;
       }
@@ -966,7 +966,7 @@ INT32 reallocBuffer ()
    gBuffer = (CHAR*)SDB_OSS_MALLOC ( gBufferSize ) ;
    if ( !gBuffer )
    {
-      dumpPrintf ( "Error: Failed to allocate memory for %d bytes"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to allocate memory for %d bytes" OSS_NEWLINE,
                    gBufferSize ) ;
       rc = SDB_OOM ;
       gBufferSize = 0 ;
@@ -1036,7 +1036,7 @@ INT32 inspectLobmHeader ( OSSFILE &file, INT64 &fileSize, SINT32 &err )
     if ( rc || lenRead != DMS_HEADER_SZ )
     {
       dumpPrintf("  Error: Failed to read header, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
 
       goto error ;
     }
@@ -1085,7 +1085,7 @@ INT32 inspectLobdHeader (UINT64 fileSize, SINT32 &totalErr)
    if ( rc || lenRead != DMS_HEADER_SZ )
    {
       dumpPrintf ( "Error: Failed to read header, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
    // attempt to format, note if len is gBufferSize - 1, that means we write to
@@ -1135,7 +1135,7 @@ void inspectHeader ( OSSFILE &file, UINT32 &pageSize, SINT32 &err )
    if ( rc || lenRead != DMS_HEADER_SZ )
    {
       dumpPrintf ( "Error: Failed to read header, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       ++err ;
       goto error ;
    }
@@ -1166,19 +1166,19 @@ retry :
    // check
    if ( secretValue != gSecretValue )
    {
-      dumpPrintf ( "Error: Secret value[%llu] is not expected[%llu]"OSS_NEWLINE,
+      dumpPrintf ( "Error: Secret value[%llu] is not expected[%llu]" OSS_NEWLINE,
                     secretValue, gSecretValue ) ;
       ++err ;
    }
    if ( (UINT32)pageSize != gPageSize )
    {
-      dumpPrintf ( "Error: Page size[%d] is not expected[%d]"OSS_NEWLINE,
+      dumpPrintf ( "Error: Page size[%d] is not expected[%d]" OSS_NEWLINE,
                     pageSize, gPageSize ) ;
       ++err ;
    }
    if ( segmentSize != gSegmentSize )
    {
-      dumpPrintf ( "Error: Segment size[%d] is not expected[%d]"OSS_NEWLINE,
+      dumpPrintf ( "Error: Segment size[%d] is not expected[%d]" OSS_NEWLINE,
                    segmentSize, gSegmentSize ) ;
       ++err ;
    }
@@ -1201,7 +1201,7 @@ void dumpHeader ( OSSFILE &file, UINT32 &pageSize )
    if ( rc || lenRead != DMS_HEADER_SZ )
    {
       dumpPrintf ( "Error: Failed to read header, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
    // attempt to format, note if len is gBufferSize - 1, that means we write to
@@ -1258,7 +1258,7 @@ void inspectSME ( OSSFILE &file, const CHAR *pExpBuf, SINT32 &hwm, SINT32 &err )
    if ( rc || lenRead != DMS_SME_SZ )
    {
       dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
 
       goto error ;
    }
@@ -1349,7 +1349,7 @@ INT32 getExtentHead ( OSSFILE &file, dmsExtentID extentID, UINT32 pageSize,
    if ( rc || lenRead != DMS_EXTENT_METADATA_SZ )
    {
       dumpPrintf ( "Error: Failed to read extent head, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       if ( !rc )
          rc = SDB_IO ;
    }
@@ -1397,7 +1397,7 @@ INT32 getExtent ( OSSFILE &file, dmsExtentID extentID, UINT32 pageSize,
    if ( rc || lenRead != extentSize * pageSize )
    {
       dumpPrintf ( "Error: Failed to read extent , read %lld bytes, "
-                   "expect %d bytes, rc = %d"OSS_NEWLINE, lenRead,
+                   "expect %d bytes, rc = %d" OSS_NEWLINE, lenRead,
                    extentSize * pageSize, rc ) ;
       // out of range, should jump out of loop to avoid printing valid log
       gReachEnd = TRUE ;
@@ -1443,7 +1443,7 @@ retry :
       if ( extentHead._eyeCatcher[0] != DMS_EXTENT_EYECATCHER0 ||
            extentHead._eyeCatcher[1] != DMS_EXTENT_EYECATCHER1 )
       {
-         dumpPrintf ( "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+         dumpPrintf ( "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                       extentHead._eyeCatcher[0],
                       extentHead._eyeCatcher[1] ) ;
          result = FALSE ;
@@ -1459,14 +1459,14 @@ retry :
       // make sure the collection id is what we want
       if ( extentHead._mbID != expID )
       {
-         dumpPrintf ( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Unexpected id: %d, expected %d" OSS_NEWLINE,
                       extentHead._mbID, expID ) ;
          result = FALSE ;
       }
       // make sure the version is not rediculous
       if ( extentHead._version > DMS_EXTENT_CURRENT_V )
       {
-         dumpPrintf ( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Invalid version: %d, current %d" OSS_NEWLINE,
                       extentHead._version, DMS_EXTENT_CURRENT_V ) ;
          result = FALSE ;
       }
@@ -1476,7 +1476,7 @@ retry :
            ( extentHead._firstRecordOffset == DMS_INVALID_OFFSET &&
              extentHead._lastRecordOffset != DMS_INVALID_OFFSET ) )
       {
-         dumpPrintf ( "Error: Bad first/last offset: %d:%d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Bad first/last offset: %d:%d" OSS_NEWLINE,
                       extentHead._firstRecordOffset,
                       extentHead._lastRecordOffset ) ;
          result = FALSE ;
@@ -1485,7 +1485,7 @@ retry :
       if ( extentHead._firstRecordOffset >=
             extentHead._blockSize * (SINT32)pageSize )
       {
-         dumpPrintf ( "Error: Bad first record offset: %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Bad first record offset: %d" OSS_NEWLINE,
                       extentHead._firstRecordOffset ) ;
          result = FALSE ;
       }
@@ -1493,7 +1493,7 @@ retry :
       if ( extentHead._lastRecordOffset >=
            extentHead._blockSize * (SINT32)pageSize )
       {
-         dumpPrintf ( "Error: Bad last record offset: %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Bad last record offset: %d" OSS_NEWLINE,
                       extentHead._lastRecordOffset ) ;
          result = FALSE ;
       }
@@ -1522,7 +1522,7 @@ retry :
       if ( metaExt->_eyeCatcher[0] != DMS_META_EXTENT_EYECATCHER0 ||
            metaExt->_eyeCatcher[1] != DMS_META_EXTENT_EYECATCHER1 )
       {
-         dumpPrintf ( "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+         dumpPrintf ( "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                       metaExt->_eyeCatcher[0],
                       metaExt->_eyeCatcher[1] ) ;
          result = FALSE ;
@@ -1538,14 +1538,14 @@ retry :
       // make sure the collection id is what we want
       if ( metaExt->_mbID != expID )
       {
-         dumpPrintf ( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Unexpected id: %d, expected %d" OSS_NEWLINE,
                       metaExt->_mbID, expID ) ;
          result = FALSE ;
       }
       // make sure the version is not rediculous
       if ( metaExt->_version > DMS_META_EXTENT_CURRENT_V )
       {
-         dumpPrintf ( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Invalid version: %d, current %d" OSS_NEWLINE,
                       metaExt->_version, DMS_META_EXTENT_CURRENT_V ) ;
          result = FALSE ;
       }
@@ -1556,7 +1556,7 @@ retry :
       if ( dictExt->_eyeCatcher[0] != DMS_DICT_EXTENT_EYECATCHER0 ||
            dictExt->_eyeCatcher[1] != DMS_DICT_EXTENT_EYECATCHER1 )
       {
-         dumpPrintf( "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                      dictExt->_eyeCatcher[0],
                      dictExt->_eyeCatcher[1] ) ;
          result = FALSE ;
@@ -1564,19 +1564,19 @@ retry :
       if ( dictExt->_blockSize <= 0 ||
            dictExt->_blockSize * pageSize > gSegmentSize )
       {
-         dumpPrintf( "Error: Invalid block size: %d, pageSize: %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid block size: %d, pageSize: %d" OSS_NEWLINE,
                      dictExt->_blockSize, pageSize ) ;
          result = FALSE ;
       }
       if ( dictExt->_mbID != expID )
       {
-         dumpPrintf( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Unexpected id: %d, expected %d" OSS_NEWLINE,
                      dictExt->_mbID, expID ) ;
          result = FALSE ;
       }
       if ( dictExt->_version > DMS_DICT_EXTENT_CURRENT_V )
       {
-         dumpPrintf( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid version: %d, current %d" OSS_NEWLINE,
                      dictExt->_version, DMS_DICT_EXTENT_CURRENT_V ) ;
          result = FALSE ;
       }
@@ -1587,7 +1587,7 @@ retry :
       if ( extent->_eyeCatcher[0] != DMS_OPT_EXTENT_EYECATCHER0 ||
            extent->_eyeCatcher[1] != DMS_OPT_EXTENT_EYECATCHER1 )
       {
-         dumpPrintf( "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                      extent->_eyeCatcher[0],
                      extent->_eyeCatcher[1] ) ;
          result = FALSE ;
@@ -1595,19 +1595,19 @@ retry :
       if ( extent->_blockSize <= 0 ||
            extent->_blockSize * pageSize > gSegmentSize )
       {
-         dumpPrintf( "Error: Invalid block size: %d, pageSize: %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid block size: %d, pageSize: %d" OSS_NEWLINE,
                      extent->_blockSize, pageSize ) ;
          result = FALSE ;
       }
       if ( extent->_mbID != expID )
       {
-         dumpPrintf( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Unexpected id: %d, expected %d" OSS_NEWLINE,
                      extent->_mbID, expID ) ;
          result = FALSE ;
       }
       if ( extent->_version > DMS_OPT_EXTENT_CURRENT_V )
       {
-         dumpPrintf( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
+         dumpPrintf( "Error: Invalid version: %d, current %d" OSS_NEWLINE,
                      extent->_version, DMS_OPT_EXTENT_CURRENT_V ) ;
          result = FALSE ;
       }
@@ -1657,7 +1657,7 @@ retry :
       else
       {
          // we don't know the type, let's get out of here
-         dumpPrintf ( "Error: Unknown eye catcher: %c%c"OSS_NEWLINE,
+         dumpPrintf ( "Error: Unknown eye catcher: %c%c" OSS_NEWLINE,
                       extentHead._eyeCatcher[0],
                       extentHead._eyeCatcher[1] ) ;
          result = FALSE ;
@@ -1700,7 +1700,7 @@ INT32 loadExtent ( OSSFILE &file, INSPECT_EXTENT_TYPE &type,
    rc = getExtentHead ( file, extentID, pageSize, extentHead ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to get extent head, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to get extent head, rc = %d" OSS_NEWLINE,
                    rc ) ;
       goto error ;
    }
@@ -1767,7 +1767,7 @@ void inspectOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
       if ( rid._extent > (SINT32)gPageNum )
       {
          dumpPrintf ( "Error: overflowed rid extent is out of range: "
-                      "0x08lx (%d) 0x08lx (%d)"OSS_NEWLINE,
+                      "0x08lx (%d) 0x08lx (%d)" OSS_NEWLINE,
                       rid._extent, rid._extent,
                       rid._offset, rid._offset ) ;
          ++err ;
@@ -1781,7 +1781,7 @@ void inspectOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
                            collectionID ) ;
          if ( rc )
          {
-            dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+            dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                          rid._extent, rc ) ;
             ++err ;
             goto error ;
@@ -1823,13 +1823,13 @@ done :
    if ( oldErr == err )
    {
       dumpPrintf ( " Inspect Overflow-Records for Collection [%d]' extent [%d] "
-                   "done without Error"OSS_NEWLINE, collectionID,
+                   "done without Error" OSS_NEWLINE, collectionID,
                    ovfFromExtent ) ;
    }
    else
    {
       dumpPrintf ( " Inspect Overflow-Records for Collection [%d]' extent [%d] "
-                   "done with error: %d"OSS_NEWLINE, collectionID,
+                   "done with error: %d" OSS_NEWLINE, collectionID,
                    ovfFromExtent, err-oldErr ) ;
    }
    return ;
@@ -1861,7 +1861,7 @@ void dumpOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
                            collectionID ) ;
          if ( rc )
          {
-            dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+            dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                          rid._extent, rc ) ;
             goto error ;
          }
@@ -1871,7 +1871,7 @@ void dumpOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
 retry :
       // attempt to format the record
       offset = rid._offset ;
-      dumpPrintf ( "    OvfRecord 0x%08x : 0x%08x:"OSS_NEWLINE,
+      dumpPrintf ( "    OvfRecord 0x%08x : 0x%08x:" OSS_NEWLINE,
                    rid._extent, rid._offset ) ;
       len = dmsDump::dumpDataRecord ( cb, gExtentBuffer + offset,
                  ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
@@ -1910,7 +1910,7 @@ void inspectIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
    // first let's see how many indexes we have
    if ( mb->_numIndexes > DMS_COLLECTION_MAX_INDEX )
    {
-      dumpPrintf ( "Error: numIdx is out of range, max: %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: numIdx is out of range, max: %d" OSS_NEWLINE,
                    DMS_COLLECTION_MAX_INDEX ) ;
       ++err ;
       mb->_numIndexes = DMS_COLLECTION_MAX_INDEX ;
@@ -1945,7 +1945,7 @@ void inspectIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
                         collectionID ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent, rc = %d" OSS_NEWLINE,
                       rc ) ;
          ++err ;
          continue ;
@@ -2017,12 +2017,12 @@ void dumpIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
    UINT32 len = 0 ;
    INT32 rc = SDB_OK ;
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX_CB ;
-   dumpPrintf ( " Dump Index Def for Collection [%u]"OSS_NEWLINE,
+   dumpPrintf ( " Dump Index Def for Collection [%u]" OSS_NEWLINE,
                 collectionID ) ;
    // first let's see how many indexes we have
    if ( mb->_numIndexes > DMS_COLLECTION_MAX_INDEX )
    {
-      dumpPrintf ( "Error: numIdx is out of range, max: %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: numIdx is out of range, max: %d" OSS_NEWLINE,
                    DMS_COLLECTION_MAX_INDEX ) ;
       mb->_numIndexes = DMS_COLLECTION_MAX_INDEX ;
    }
@@ -2032,7 +2032,7 @@ void dumpIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
       dmsExtentID indexCBExtentID = mb->_indexExtent[i] ;
       dmsExtentID indexRoot = DMS_INVALID_EXTENT ;
       // dump index cb extent
-      dumpPrintf ( "    Index [ %u ] : 0x%08lx"OSS_NEWLINE,
+      dumpPrintf ( "    Index [ %u ] : 0x%08lx" OSS_NEWLINE,
                    i, indexCBExtentID ) ;
       // sanity check
       if ( indexCBExtentID == DMS_INVALID_EXTENT ||
@@ -2047,7 +2047,7 @@ void dumpIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
                         collectionID ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent, rc = %d" OSS_NEWLINE,
                       rc ) ;
          continue ;
       }
@@ -2124,7 +2124,7 @@ void inspectIndexExtents ( OSSFILE &file, UINT32 pageSize,
       rc = loadExtent ( file, extentType, pageSize, childID, collectionID ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                       childID, rc ) ;
          ++err ;
          continue ;
@@ -2178,7 +2178,7 @@ void dumpIndexExtents ( OSSFILE &file, UINT32 pageSize,
       childExtents.pop_front() ;
       ++count ;
 
-      dumpPrintf ( "    Dump Index Page %d:"OSS_NEWLINE, childID ) ;
+      dumpPrintf ( "    Dump Index Page %d:" OSS_NEWLINE, childID ) ;
       if ( childID == DMS_INVALID_EXTENT || (UINT32)childID >= gPageNum )
       {
          dumpPrintf ( "Error: index extent ID is not valid: 0x%08lx (%d)"
@@ -2189,7 +2189,7 @@ void dumpIndexExtents ( OSSFILE &file, UINT32 pageSize,
                         pageSize, childID, collectionID ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                       childID, rc ) ;
          continue ;
       }
@@ -2215,7 +2215,7 @@ retry :
       flushOutput ( gBuffer, len ) ;
       dumpPrintf ( OSS_NEWLINE ) ;
    }
-   dumpPrintf ( "    Total: %u pages"OSS_NEWLINE, count ) ;
+   dumpPrintf ( "    Total: %u pages" OSS_NEWLINE, count ) ;
    dumpPrintf ( OSS_NEWLINE ) ;
 
 done :
@@ -2234,7 +2234,7 @@ void inspectDictPageState( CHAR *pExpBuffer, dmsExtentID extentID,
       if ( sme->getBitMask( extentID + i ) != DMS_SME_FREE )
       {
          dumpPrintf( "Error: Compression Dictionary extent 0x%08lx (%d) "
-                     "is not free"OSS_NEWLINE, extentID + i, extentID + i ) ;
+                     "is not free" OSS_NEWLINE, extentID + i, extentID + i ) ;
          ++err ;
       }
       else
@@ -2260,7 +2260,7 @@ INT32 inspectLobdCollection( OSSFILE &file, UINT32 pageId,
    if ( SDB_OK != rc)
    {
       dumpPrintf ( "Error: Failed to read lobd dmsLobMeta , read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, len, rc ) ;
+                   "rc = %d" OSS_NEWLINE, len, rc ) ;
       if ( !rc )
       {
          rc = SDB_IO ;
@@ -2272,7 +2272,7 @@ INT32 inspectLobdCollection( OSSFILE &file, UINT32 pageId,
    {
       ossSnprintf ( gBuffer, gBufferSize,
                     "Error: LobMeta size (%d) in lobd file is too small "
-                    "expected over size (%d)"OSS_NEWLINE,
+                    "expected over size (%d)" OSS_NEWLINE,
                     len, sizeof(dmsLobMeta) ) ;
       goto error;
    }
@@ -2318,7 +2318,7 @@ INT32 inspectLobmMeta(OSSFILE &file,
     if ( SDB_OK != rc || len < pageSize)
     {
        dumpPrintf ( "Error: Failed to read lobm dmsLobDataMapBlk , read %u bytes, "
-                    "rc = %d"OSS_NEWLINE, len, rc ) ;
+                    "rc = %d" OSS_NEWLINE, len, rc ) ;
        if ( !rc )rc = SDB_IO ;
        goto error;
     }
@@ -2345,7 +2345,7 @@ retry_dmsLobDataMapBlk:
        if ( pSME->getBitMask( pageId ) != DMS_SME_FREE )
        {
           dumpPrintf ( "Error: dmsLobDataMapBlk 0x%08lx (%d) is refered by two. this maybe caused a loop "
-                     "(prev page id :%d)"OSS_NEWLINE, pageId , pageId, blk->_prevPageInBucket) ;
+                     "(prev page id :%d)" OSS_NEWLINE, pageId , pageId, blk->_prevPageInBucket) ;
           ++err ;
        }
        pSME->setBitMask( pageId ) ;
@@ -2381,7 +2381,7 @@ void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
    rc = loadMB ( id, mb ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d" OSS_NEWLINE,
                    rc ) ;
       ++err ;
       goto error ;
@@ -2390,7 +2390,7 @@ void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
    capped = OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_CAPPED ) ;
    firstExtent = mb->_firstExtentID ;
    ossStrncpy( collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
-   dumpPrintf ( "Inspect Data for collection [%d : %s]"OSS_NEWLINE,
+   dumpPrintf ( "Inspect Data for collection [%d : %s]" OSS_NEWLINE,
                 id, collectionName ) ;
 
    if ( !OSS_BIT_TEST( gAction, ACTION_STAT ) &&
@@ -2447,7 +2447,7 @@ void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
       rc = loadExtent ( file, extentType, pageSize, firstExtent, id ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                       firstExtent, rc ) ;
          ++err ;
          goto error ;
@@ -2543,7 +2543,7 @@ retry_data :
         0 != compressedNum )
    {
       dumpPrintf ( "Error: Collection is not compressed, but has %llu "
-                   "compressed records"OSS_NEWLINE, compressedNum ) ;
+                   "compressed records" OSS_NEWLINE, compressedNum ) ;
    }
    else if ( gMBStat._totalRecords != mb->_totalRecords )
    {
@@ -2577,7 +2577,7 @@ void inspectCollectionIndex( OSSFILE &file, UINT32 pageSize, UINT16 id,
    rc = loadMB ( id, mb ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d" OSS_NEWLINE,
                    rc ) ;
       ++err ;
       goto error ;
@@ -2585,7 +2585,7 @@ void inspectCollectionIndex( OSSFILE &file, UINT32 pageSize, UINT16 id,
    ossStrncpy( collectionName, mb->_collectionName,
                DMS_COLLECTION_NAME_SZ ) ;
 
-   dumpPrintf ( "Inspect Index for collection [%d : %s]"OSS_NEWLINE,
+   dumpPrintf ( "Inspect Index for collection [%d : %s]" OSS_NEWLINE,
                 id, collectionName ) ;
 
    inspectIndexDef ( file, pageSize, id, mb, pExpBuffer, indexRoots, err ) ;
@@ -2634,12 +2634,12 @@ void inspectCollectionLob( OSSFILE &lobmFile, UINT32 pageSize,
    rc = loadMB ( clId, mb ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d" OSS_NEWLINE,
                    rc ) ;
       ++err ;
    }
 
-   dumpPrintf ( "Inspect Lob for collection [%d : %s]"OSS_NEWLINE,
+   dumpPrintf ( "Inspect Lob for collection [%d : %s]" OSS_NEWLINE,
                 clId, mb->_collectionName ) ;
 
    //dump collection objects
@@ -2691,13 +2691,13 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                              compressedNum, deletingNum ) ;
       /// flush data info
       len = ossSnprintf( gBuffer, gBufferSize,
-                         " ****The collection data info****"OSS_NEWLINE
-                         "   Total Record           : %llu"OSS_NEWLINE
-                         "   Total Data Pages       : %u"OSS_NEWLINE
-                         "   Total Data Free Space  : %llu"OSS_NEWLINE
-                         "   Total OVF Record       : %llu"OSS_NEWLINE
-                         "   Total Compressed Record: %llu"OSS_NEWLINE
-                         "   Total Deleting Record  : %llu"OSS_NEWLINE,
+                         " ****The collection data info****" OSS_NEWLINE
+                         "   Total Record           : %llu" OSS_NEWLINE
+                         "   Total Data Pages       : %u" OSS_NEWLINE
+                         "   Total Data Free Space  : %llu" OSS_NEWLINE
+                         "   Total OVF Record       : %llu" OSS_NEWLINE
+                         "   Total Compressed Record: %llu" OSS_NEWLINE
+                         "   Total Deleting Record  : %llu" OSS_NEWLINE,
                          gMBStat._totalRecords,
                          gMBStat._totalDataPages,
                          gMBStat._totalDataFreeSpace,
@@ -2712,11 +2712,11 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
       inspectCollectionIndex( file, pageSize, id, hwm, pExpBuffer, err ) ;
       /// flush index info
       len = ossSnprintf( gBuffer, gBufferSize,
-                         " ****The collection index info****"OSS_NEWLINE
-                         "   Total Index Pages      : %u"OSS_NEWLINE
-                         "   Total Index Free Space : %llu"OSS_NEWLINE
-                         "   Unique Index Number    : %u"OSS_NEWLINE
-                         "   Global Index Number    : %u"OSS_NEWLINE,
+                         " ****The collection index info****" OSS_NEWLINE
+                         "   Total Index Pages      : %u" OSS_NEWLINE
+                         "   Total Index Free Space : %llu" OSS_NEWLINE
+                         "   Unique Index Number    : %u" OSS_NEWLINE
+                         "   Global Index Number    : %u" OSS_NEWLINE,
                          gMBStat._totalIndexPages,
                          gMBStat._totalIndexFreeSpace,
                          gMBStat._uniqueIdxNum,
@@ -2732,10 +2732,10 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
       /// flush index info
 
       len = ossSnprintf( gBuffer, gBufferSize,
-                         "****The collection lob info****"OSS_NEWLINE
-                         "   Collection ID            : %u"OSS_NEWLINE
-                         "   Total Lob Pages          : %u"OSS_NEWLINE
-                         "   Total Lobs               : %u"OSS_NEWLINE,
+                         "****The collection lob info****" OSS_NEWLINE
+                         "   Collection ID            : %u" OSS_NEWLINE
+                         "   Total Lob Pages          : %u" OSS_NEWLINE
+                         "   Total Lobs               : %u" OSS_NEWLINE,
                          id,
                          lobPageCount,
                          lobCount);
@@ -2760,7 +2760,7 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
    rc = loadMB ( id, mb ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d" OSS_NEWLINE,
                    rc ) ;
       goto error ;
    }
@@ -2773,7 +2773,7 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
       UINT32 size = 0 ;
       extentType = INSPECT_EXTENT_TYPE_MBEX ;
 
-      dumpPrintf ( " Dump Meta Extent for Collection [%d]"OSS_NEWLINE, id ) ;
+      dumpPrintf ( " Dump Meta Extent for Collection [%d]" OSS_NEWLINE, id ) ;
 
       rc = loadExtent( file, extentType, pageSize, mb->_mbExExtentID, id ) ;
       if ( rc )
@@ -2846,7 +2846,7 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
    {
       UINT32 size = 0 ;
       extentType = INSPECT_EXTENT_TYPE_EXTOPT ;
-      dumpPrintf( "Dump extend option extent for collection [%d]"OSS_NEWLINE,
+      dumpPrintf( "Dump extend option extent for collection [%d]" OSS_NEWLINE,
                   id ) ;
       rc = loadExtent( file, extentType, pageSize, mb->_mbOptExtentID, id ) ;
       if ( rc )
@@ -2879,7 +2879,7 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
 
    extentType = INSPECT_EXTENT_TYPE_DATA ;
    firstExtent = mb->_firstExtentID ;
-   dumpPrintf ( " Dump Data for Collection [%d]"OSS_NEWLINE, id ) ;
+   dumpPrintf ( " Dump Data for Collection [%d]" OSS_NEWLINE, id ) ;
    // loop through all extents
    while ( DMS_INVALID_EXTENT != firstExtent )
    {
@@ -2887,7 +2887,7 @@ void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
       rc = loadExtent ( file, extentType, pageSize, firstExtent, id ) ;
       if ( rc )
       {
-         dumpPrintf ( "Error: Failed to load extent %d, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to load extent %d, rc = %d" OSS_NEWLINE,
                       firstExtent, rc ) ;
          goto error ;
       }
@@ -2944,7 +2944,7 @@ void dumpCollectionIndex( OSSFILE &file, UINT32 pageSize, UINT16 id )
    rc = loadMB ( id, mb ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d" OSS_NEWLINE,
                    rc ) ;
       goto error ;
    }
@@ -2970,7 +2970,7 @@ void dumpCollectionIndex( OSSFILE &file, UINT32 pageSize, UINT16 id )
       }
       else
       {
-         dumpPrintf ( "       Root extent does not exist"OSS_NEWLINE ) ;
+         dumpPrintf ( "       Root extent does not exist" OSS_NEWLINE ) ;
       }
    }
 
@@ -2992,7 +2992,7 @@ INT32 getBME(OSSFILE &lobmFile, CHAR *pBME)
     if ( rc || lenRead != DMS_BME_SZ )
     {
        dumpPrintf ( "Error: Failed to read lobm buckets , read %lld bytes, "
-                    "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                    "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
        if ( !rc )
           rc = SDB_IO ;
     }
@@ -3046,7 +3046,7 @@ INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
         {
             msgLen += ossSnprintf(outBuf + msgLen, outSize - msgLen,
                     "Error: Failed to load lobm buckets , because there was a loop in bucket"
-                    "about page(%u)"OSS_NEWLINE, nextPageId);
+                    "about page(%u)" OSS_NEWLINE, nextPageId);
            return SDB_DMS_RECORD_INVALID;
         }
 
@@ -3057,7 +3057,7 @@ INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
         if ( SDB_OK != rc || lenRead != pageSize )
         {
            dumpPrintf ( "Error: Failed to read lobm buckets , read %lld bytes, "
-                        "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                        "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
            return rc;
         }
 
@@ -3123,13 +3123,13 @@ retry_summary:
    {
       msgLen += ossSnprintf ( gBuffer + len, gBufferSize - len,
                         " Inspect Bucket Management Exent Done "
-                        "without Error"OSS_NEWLINE ) ;
+                        "without Error" OSS_NEWLINE ) ;
    }
    else
    {
       msgLen += ossSnprintf ( gBuffer + len, gBufferSize - len,
                         " Inspect Bucket Management Exent Done "
-                        "with Error: %d"OSS_NEWLINE, localErr ) ;
+                        "with Error: %d" OSS_NEWLINE, localErr ) ;
    }
 
    if ( msgLen >= gBufferSize - 1 )
@@ -3158,7 +3158,7 @@ INT32 dumpLobmMeta(OSSFILE &file, UINT32 pageId, CHAR *pageBuf, UINT32 pageSize)
     if ( SDB_OK != rc || len < pageSize)
     {
        dumpPrintf ( "Error: Failed to read lobm dmsLobDataMapBlk , read %u bytes, "
-                    "rc = %d"OSS_NEWLINE, len, rc ) ;
+                    "rc = %d" OSS_NEWLINE, len, rc ) ;
        goto error;
     }
 
@@ -3201,7 +3201,7 @@ INT32 dumpLobdCollection( OSSFILE &file, UINT32 pageId,
    if ( SDB_OK != rc)
    {
       dumpPrintf ( "Error: Failed to read lobd dmsLobMeta , read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, len, rc ) ;
+                   "rc = %d" OSS_NEWLINE, len, rc ) ;
       if ( !rc )
       {
          rc = SDB_IO ;
@@ -3215,7 +3215,7 @@ INT32 dumpLobdCollection( OSSFILE &file, UINT32 pageId,
       {
          ossSnprintf ( gBuffer, gBufferSize,
                        "Error: LobMeta size (%d) in lobd file is too small "
-                       "expected size (%d)"OSS_NEWLINE,
+                       "expected size (%d)" OSS_NEWLINE,
                        len, sizeof(dmsLobMeta)) ;
          goto error;
       }
@@ -3228,7 +3228,7 @@ INT32 dumpLobdCollection( OSSFILE &file, UINT32 pageId,
       {
          ossSnprintf ( gBuffer, gBufferSize,
                        "Error: LobMeta size (%d) in lobd file is too small "
-                       "expected size (%d)"OSS_NEWLINE,
+                       "expected size (%d)" OSS_NEWLINE,
                        len, metaSize ) ;
          goto error;
       }
@@ -3414,7 +3414,7 @@ void inspectCollections ( OSSFILE &file, UINT32 pageSize, SINT32 hwm,
       if ( rc || lenRead != DMS_MME_SZ )
       {
          dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                      "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                      "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
          ++err ;
          goto error ;
       }
@@ -3495,23 +3495,23 @@ UINT32 inspectBalance(CHAR *outBuf, INT64 outSize)
 
     variance = (value - (double)(sum *sum /DMS_BUCKETS_NUM)) / DMS_BUCKETS_NUM;
 
-    len += ossSnprintf(outBuf + len, outSize -len, "Inspect Lobd Balance:"OSS_NEWLINE);
+    len += ossSnprintf(outBuf + len, outSize -len, "Inspect Lobd Balance:" OSS_NEWLINE);
 
     len += ossSnprintf(outBuf+ len, outSize -len,
-                                 " Average Bucket Depth   :%.6f"OSS_NEWLINE,
+                                 " Average Bucket Depth   :%.6f" OSS_NEWLINE,
                                  (float)sum/DMS_BUCKETS_NUM);
 
     len += ossSnprintf(outBuf+ len, outSize -len,
-                                 " Max Bucket Depth       :%u"OSS_NEWLINE, maxDep);
+                                 " Max Bucket Depth       :%u" OSS_NEWLINE, maxDep);
 
     len += ossSnprintf(outBuf+ len, outSize -len,
-                                 " Min Bucket Depth       :%u"OSS_NEWLINE,minDep);
+                                 " Min Bucket Depth       :%u" OSS_NEWLINE,minDep);
 
     len += ossSnprintf(outBuf+ len, outSize -len,
-                                 " Zero-Depth Number      :%u"OSS_NEWLINE, zeroDepCount);
+                                 " Zero-Depth Number      :%u" OSS_NEWLINE, zeroDepCount);
 
     len += ossSnprintf(outBuf+ len, outSize -len,
-                                 " Variance               :%.6f (%s)"OSS_NEWLINE,(float)variance, "Less is Better");
+                                 " Variance               :%.6f (%s)" OSS_NEWLINE,(float)variance, "Less is Better");
 
     len += ossSnprintf(outBuf+ len, outSize -len, OSS_NEWLINE);
     return len;
@@ -3537,7 +3537,7 @@ INT32 loadPages(OSSFILE &lobmFile, CHAR *pCache,
       default:
       {
          dumpPrintf ( "Error: Failed to read lobm pages , read %lld bytes, "
-                 "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                 "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       }
    }
    return rc ;
@@ -3581,7 +3581,7 @@ INT32 loadLobMetaData(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pSME)
    rc = ossSeek(&lobmFile, DMS_BME_OFFSET + DMS_BME_SZ, OSS_SEEK_SET);
    if ( rc != SDB_OK )
    {
-      dumpPrintf ( "Error: Failed to seek lobm pages "OSS_NEWLINE);
+      dumpPrintf ( "Error: Failed to seek lobm pages " OSS_NEWLINE);
       goto error;
    }
 
@@ -3590,7 +3590,7 @@ INT32 loadLobMetaData(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pSME)
       rc = loadPages(lobmFile, pCache, cacheSize, pageSize, pageCount);
       if ( rc != SDB_OK )
       {
-         dumpPrintf ( "Error: Failed to load lobm buckets, rc = %d"OSS_NEWLINE,  rc ) ;
+         dumpPrintf ( "Error: Failed to load lobm buckets, rc = %d" OSS_NEWLINE,  rc ) ;
          goto error ;
       }
 
@@ -3619,7 +3619,7 @@ INT32 InspectBME(OSSFILE &file, UINT32 pageSize)
    rc = getBME(file,pBME);
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to load lobm buckets, rc = %d"OSS_NEWLINE,  rc ) ;
+      dumpPrintf ( "Error: Failed to load lobm buckets, rc = %d" OSS_NEWLINE,  rc ) ;
       goto error ;
    }
 
@@ -3627,7 +3627,7 @@ INT32 InspectBME(OSSFILE &file, UINT32 pageSize)
    rc = parseBME(file, pageSize,  pBME);
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to parse lobm buckets, rc = %d"OSS_NEWLINE,  rc ) ;
+      dumpPrintf ( "Error: Failed to parse lobm buckets, rc = %d" OSS_NEWLINE,  rc ) ;
       goto error ;
    }
 
@@ -3683,7 +3683,7 @@ void inspectLobCollections ( OSSFILE &file, UINT32 pageSize, SINT32 hwm,
       if ( rc || lenRead != DMS_MME_SZ )
       {
          dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-         "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+         "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
          goto error ;
       }
       gInitMME = TRUE ;
@@ -3758,113 +3758,113 @@ error :
 void repaireCollection( OSSFILE &file, dmsMB *pMB,
                         UINT32 id )
 {
-   dumpPrintf( "Begin to repaire collection: %s.%s, ID: %u"OSS_NEWLINE,
+   dumpPrintf( "Begin to repaire collection: %s.%s, ID: %u" OSS_NEWLINE,
                gCSName, gCLName, id ) ;
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_FLAG )
    {
-      dumpPrintf( "   Flag[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   Flag[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_flag, gRepaireMB._flag ) ;
       pMB->_flag = gRepaireMB._flag ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_ATTR )
    {
-      dumpPrintf( "   Attr[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   Attr[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_attributes, gRepaireMB._attributes ) ;
       pMB->_attributes = gRepaireMB._attributes ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LID )
    {
-      dumpPrintf( "   LID[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   LID[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_logicalID, gRepaireMB._logicalID ) ;
       pMB->_logicalID = gRepaireMB._logicalID ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_RECORD )
    {
-      dumpPrintf( "   Record[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   Record[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_totalRecords, gRepaireMB._totalRecords ) ;
       pMB->_totalRecords = gRepaireMB._totalRecords ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_DATAPAGE )
    {
-      dumpPrintf( "   DataPages[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   DataPages[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_totalDataPages, gRepaireMB._totalDataPages ) ;
       pMB->_totalDataPages = gRepaireMB._totalDataPages ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXPAGE )
    {
-      dumpPrintf( "   IndexPages[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   IndexPages[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_totalIndexPages, gRepaireMB._totalIndexPages ) ;
       pMB->_totalIndexPages = gRepaireMB._totalIndexPages ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOBPAGE )
    {
-      dumpPrintf( "   LobPages[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   LobPages[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_totalLobPages, gRepaireMB._totalLobPages ) ;
       pMB->_totalLobPages = gRepaireMB._totalLobPages ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_DATAFREE )
    {
-      dumpPrintf( "   DataFreeSpace[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   DataFreeSpace[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_totalDataFreeSpace, gRepaireMB._totalDataFreeSpace ) ;
       pMB->_totalDataFreeSpace = gRepaireMB._totalDataFreeSpace ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXFREE )
    {
-      dumpPrintf( "   IndexFreeSpace[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   IndexFreeSpace[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_totalIndexFreeSpace, gRepaireMB._totalIndexFreeSpace ) ;
       pMB->_totalIndexFreeSpace = gRepaireMB._totalIndexFreeSpace ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXNUM )
    {
-      dumpPrintf( "   IndexNum[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   IndexNum[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_numIndexes, gRepaireMB._numIndexes ) ;
       pMB->_numIndexes = gRepaireMB._numIndexes ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMPRESSTYPE )
    {
-      dumpPrintf( "   CompressType[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   CompressType[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_compressorType, gRepaireMB._compressorType ) ;
       pMB->_compressorType = gRepaireMB._compressorType ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOBS )
    {
-      dumpPrintf( "   Lobs[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   Lobs[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_totalLobs, gRepaireMB._totalLobs ) ;
       pMB->_totalLobs = gRepaireMB._totalLobs ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMMITFLAG )
    {
-      dumpPrintf( "   CommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   CommitFlag[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_commitFlag, gRepaireMB._commitFlag ) ;
       pMB->_commitFlag = gRepaireMB._commitFlag ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMMITLSN )
    {
-      dumpPrintf( "   CommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   CommitLSN[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_commitLSN, gRepaireMB._commitLSN ) ;
       pMB->_commitLSN = gRepaireMB._commitLSN ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDX_COMMITFLAG )
    {
-      dumpPrintf( "   IdxCommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   IdxCommitFlag[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_idxCommitFlag, gRepaireMB._idxCommitFlag ) ;
       pMB->_idxCommitFlag = gRepaireMB._idxCommitFlag ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDX_COMMITLSN )
    {
-      dumpPrintf( "   IdxCommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   IdxCommitLSN[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_idxCommitLSN, gRepaireMB._idxCommitLSN ) ;
       pMB->_idxCommitLSN = gRepaireMB._idxCommitLSN ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOB_COMMITFLAG )
    {
-      dumpPrintf( "   LobCommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+      dumpPrintf( "   LobCommitFlag[%u] ==> [%u]" OSS_NEWLINE,
                   pMB->_lobCommitFlag, gRepaireMB._lobCommitFlag ) ;
       pMB->_lobCommitFlag = gRepaireMB._lobCommitFlag ;
    }
    if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOB_COMMITLSN )
    {
-      dumpPrintf( "   LobCommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+      dumpPrintf( "   LobCommitLSN[%llu] ==> [%llu]" OSS_NEWLINE,
                   pMB->_lobCommitLSN, gRepaireMB._lobCommitLSN ) ;
       pMB->_lobCommitLSN = gRepaireMB._lobCommitLSN ;
    }
@@ -3874,12 +3874,12 @@ void repaireCollection( OSSFILE &file, dmsMB *pMB,
                                 (const CHAR*)pMB, sizeof( dmsMB ), written ) ;
    if ( rc )
    {
-      dumpPrintf( " *****Save collection to file failed: %d"OSS_NEWLINE,
+      dumpPrintf( " *****Save collection to file failed: %d" OSS_NEWLINE,
                   rc ) ;
    }
    else
    {
-      dumpPrintf( " Save collection info to file succeed"OSS_NEWLINE ) ;
+      dumpPrintf( " Save collection info to file succeed" OSS_NEWLINE ) ;
    }
 }
 
@@ -3897,7 +3897,7 @@ void repaireCollections( OSSFILE &file )
       if ( rc || lenRead != DMS_MME_SZ )
       {
          dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                      "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                      "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
          goto error ;
       }
       gInitMME = TRUE ;
@@ -3916,7 +3916,7 @@ void repaireCollections( OSSFILE &file )
       }
    }
 
-   dumpPrintf( "Not found collection[%s] in space[%s]"OSS_NEWLINE,
+   dumpPrintf( "Not found collection[%s] in space[%s]" OSS_NEWLINE,
                gCLName, gCSName ) ;
 
 done:
@@ -3939,7 +3939,7 @@ void dumpCollections ( OSSFILE &file, UINT32 pageSize, CHAR *pSmeBuffer)
       if ( rc || lenRead != DMS_MME_SZ )
       {
          dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                      "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                      "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
          goto error ;
       }
       gInitMME = TRUE ;
@@ -4104,13 +4104,13 @@ void inspectData(OSSFILE &file, const CHAR*pFileName)
         csPageSize != DMS_PAGE_SIZE32K &&
         csPageSize != DMS_PAGE_SIZE64K )
    {
-      dumpPrintf ( "Error: %s page size is not valid: %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: %s page size is not valid: %d" OSS_NEWLINE,
                    pFileName, csPageSize ) ;
       return ;
    }
    if ( !DMS_IS_VALID_SEGMENT( gSegmentSize ) )
    {
-      dumpPrintf( "Error: %s segment size is invalid: %d"OSS_NEWLINE,
+      dumpPrintf( "Error: %s segment size is invalid: %d" OSS_NEWLINE,
                   pFileName, gSegmentSize ) ;
       return ;
    }
@@ -4183,7 +4183,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
    rc = ossOpen ( pFileName, iMode, OSS_RU | OSS_WU | OSS_RG, file ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to open %s, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to open %s, rc = %d" OSS_NEWLINE,
                    pFileName, rc ) ;
       goto error ;
    }
@@ -4198,7 +4198,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
       rc = ossRead ( &file, eyeCatcher + readPos, restLen, &readSize ) ;
       if ( rc && SDB_INTERRUPT != rc )
       {
-         dumpPrintf ( "Error: Failed to read %s, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to read %s, rc = %d" OSS_NEWLINE,
                       pFileName, rc ) ;
          goto error ;
       }
@@ -4224,7 +4224,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
       // not a valid SU file
       if ( specific )
       {
-         dumpPrintf ( "Error: %s is not a valid storage unit"OSS_NEWLINE,
+         dumpPrintf ( "Error: %s is not a valid storage unit" OSS_NEWLINE,
                       pFileName ) ;
       }
       goto done ;
@@ -4254,7 +4254,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
       if ( gStartingPage < 0 )
       {
          // entire collection space dump
-         dumpPrintf ( " Dump collection space %s"OSS_NEWLINE, pFileName ) ;
+         dumpPrintf ( " Dump collection space %s" OSS_NEWLINE, pFileName ) ;
          dumpHeader ( file, csPageSize ) ;
          // page size sanity check, should we need header sanity check function?
          // hmm.. maybe later :)
@@ -4265,7 +4265,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
               csPageSize != DMS_PAGE_SIZE64K &&
               gCurInsptType != SDB_INSPT_LOB)
         {
-            dumpPrintf ( "Error: %s page size is not valid: %d"OSS_NEWLINE,
+            dumpPrintf ( "Error: %s page size is not valid: %d" OSS_NEWLINE,
                          pFileName, csPageSize ) ;
             goto error ;
         }
@@ -4281,7 +4281,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
         dumpSME ( file, pSmeBuffer ) ;
 
         dumpCollections ( file, csPageSize, pSmeBuffer ) ;
-        dumpPrintf ( "Dump collection space is done"OSS_NEWLINE ) ;
+        dumpPrintf ( "Dump collection space is done" OSS_NEWLINE ) ;
 
         SAFE_OSS_FREE ( pSmeBuffer ) ;
       }
@@ -4292,7 +4292,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
          // specific pages dump
          for ( SINT32 i = 0; i < gNumPages && !gReachEnd; ++i )
          {
-            dumpPrintf ( " Dump page %d"OSS_NEWLINE, gStartingPage + i ) ;
+            dumpPrintf ( " Dump page %d" OSS_NEWLINE, gStartingPage + i ) ;
             dumpRawPage ( file, csPageSize, gStartingPage + i ) ;
          }
 
@@ -4303,7 +4303,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
             gDataOffset = DMS_SME_OFFSET;
             for ( SINT32 i = 0; i < gNumPages && !gReachEnd; ++i )
             {
-               dumpPrintf ( " Dump page %d"OSS_NEWLINE, gStartingPage + i ) ;
+               dumpPrintf ( " Dump page %d" OSS_NEWLINE, gStartingPage + i ) ;
                dumpRawPage ( gLobdFile, gLobdPageSize, gStartingPage + i ) ;
             }
          }
@@ -4312,7 +4312,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
       break ;
     case SDB_INSPT_ACTION_INSPECT :
     {
-        dumpPrintf ( "Inspect collection space %s"OSS_NEWLINE, pFileName ) ;
+        dumpPrintf ( "Inspect collection space %s" OSS_NEWLINE, pFileName ) ;
 
         (gCurInsptType == SDB_INSPT_LOB)
                 ? inspectLob(file, pFileName)
@@ -4321,7 +4321,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
         break;
     }
    default :
-      dumpPrintf ( "Error: unexpected action"OSS_NEWLINE ) ;
+      dumpPrintf ( "Error: unexpected action" OSS_NEWLINE ) ;
       goto error ;
    }
    dumpPrintf ( OSS_NEWLINE ) ;
@@ -4353,7 +4353,7 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
                   OSS_RU | OSS_WU | OSS_RG, file ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to open %s, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to open %s, rc = %d" OSS_NEWLINE,
                    csFullName.c_str(), rc ) ;
       goto error ;
    }
@@ -4366,7 +4366,7 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
    if ( rc || lenRead != DMS_HEADER_SZ )
    {
       dumpPrintf ( "Error: Failed to read header, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
    if ( 0 != ossStrncmp( dataHeader._eyeCatcher, DMS_DATASU_EYECATCHER,
@@ -4399,7 +4399,7 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
    if ( rc || lenRead != DMS_MME_SZ )
    {
       dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
    gInitMME = TRUE ;
@@ -4486,7 +4486,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
            rc = ossOpen (gLobdFileName.c_str(), iMode, OSS_RU | OSS_WU | OSS_RG,   gLobdFile);
            if ( rc != SDB_OK)
            {
-              dumpPrintf ( "Error: Failed to open %s, rc = %d"OSS_NEWLINE, gLobdFileName.c_str(), rc ) ;
+              dumpPrintf ( "Error: Failed to open %s, rc = %d" OSS_NEWLINE, gLobdFileName.c_str(), rc ) ;
               return;
            }
         }
@@ -4505,7 +4505,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
             rc = ossClose (gLobdFile);
             if ( rc != SDB_OK)
             {
-              dumpPrintf ( "Error: Failed to close %s, rc = %d"OSS_NEWLINE, gLobdFileName.c_str(), rc ) ;
+              dumpPrintf ( "Error: Failed to close %s, rc = %d" OSS_NEWLINE, gLobdFileName.c_str(), rc ) ;
             }
         }
    }
@@ -4551,7 +4551,7 @@ void dumpPages ()
    else
    {
       // if we can't find the path, let's show error
-      dumpPrintf ( "Error: dump path %s is not a valid directory"OSS_NEWLINE,
+      dumpPrintf ( "Error: dump path %s is not a valid directory" OSS_NEWLINE,
                    gDatabasePath ) ;
    }
 
@@ -4595,7 +4595,7 @@ void inspectDB( SDB_INSPT_ACTION action )
    else
    {
       // if we can't find the path, let's show error
-      dumpPrintf ( "Error: inspect path %s is not a valid directory"OSS_NEWLINE,
+      dumpPrintf ( "Error: inspect path %s is not a valid directory" OSS_NEWLINE,
                    gDatabasePath ) ;
    }
 }
@@ -4649,7 +4649,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    {
       if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
       {
-         dumpPrintf ( "Error: Invalid arguments"OSS_NEWLINE ) ;
+         dumpPrintf ( "Error: Invalid arguments" OSS_NEWLINE ) ;
          displayArg ( desc ) ;
       }
       goto done ;
@@ -4671,7 +4671,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    gMMEBuff = (CHAR*)SDB_OSS_MALLOC( DMS_MME_SZ ) ;
    if ( !gMMEBuff )
    {
-      dumpPrintf ( "Error: Failed to allocate mme buffer, exit"OSS_NEWLINE ) ;
+      dumpPrintf ( "Error: Failed to allocate mme buffer, exit" OSS_NEWLINE ) ;
       goto done ;
    }
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;
@@ -4680,7 +4680,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    if ( !gDictBuffer )
    {
       dumpPrintf( "Error: Failed to allocate dictionary buffer, "
-                  "exit"OSS_NEWLINE ) ;
+                  "exit" OSS_NEWLINE ) ;
       goto done ;
    }
    ossMemset( gDictBuffer, 0, UTIL_MAX_DICT_TOTAL_SIZE ) ;
@@ -4689,14 +4689,14 @@ INT32 main ( INT32 argc, CHAR **argv )
    rc = reallocBuffer () ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to realloc buffer, exit"OSS_NEWLINE ) ;
+      dumpPrintf ( "Error: Failed to realloc buffer, exit" OSS_NEWLINE ) ;
       goto done ;
    }
    // allocate a fake EDUCB
    cb = SDB_OSS_NEW pmdEDUCB ( NULL, EDU_TYPE_AGENT ) ;
    if ( !cb )
    {
-      dumpPrintf ( "Failed to allocate memory for educb"OSS_NEWLINE ) ;
+      dumpPrintf ( "Failed to allocate memory for educb" OSS_NEWLINE ) ;
       goto done ;
    }
    // are we doing database inspection?
@@ -4730,7 +4730,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    if ( 0 != ossStrlen( gCSName ) && !gHitCS )
    {
       dumpPrintf( "Warning: Cannot find any collection space "
-                  "named %s"OSS_NEWLINE, gCSName ) ;
+                  "named %s" OSS_NEWLINE, gCSName ) ;
    }
 
 done :

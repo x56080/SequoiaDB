@@ -806,14 +806,14 @@ namespace engine
       if ( rc )
       {
          ossPrintf ( "Failed to get excutable file's working "
-                     "directory"OSS_NEWLINE ) ;
+                     "directory" OSS_NEWLINE ) ;
          goto error ;
       }
       rc = utilBuildFullPath( rootPath, FAP_MODULE_PATH,
                               OSS_MAX_PATHSIZE, path );
       if ( rc )
       {
-         ossPrintf( "Failed to build module path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build module path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       rc = _fapMongo->load( moduleName, path ) ;

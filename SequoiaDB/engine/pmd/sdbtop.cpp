@@ -386,16 +386,16 @@ const string DISPLAYMODECHOOSER[DISPLAYMODENUMBER] = { ABSOLUTE,
 CHAR* HELP_DETAIL = "[Help for SDBTOP]";
 //DISPLAYTYPE_STATICTEXT_HELP_Header outputText
 CHAR* SDB_TOP_LICENSE =
-      "Licensed Materials - Property of SequoiaDB"OSS_NEWLINE
+      "Licensed Materials - Property of SequoiaDB" OSS_NEWLINE
       "Copyright SequoiaDB Corp. 2013-2015 All Rights Reserved.";
 CHAR* SDB_TOP_DESC =
-" #### ####  ####  #####  ###  ####   For help type h or ..."OSS_NEWLINE
-"#     #   # #   #   #   #   # #   #  sdbtop -h: usage"OSS_NEWLINE
-" ###  #   # ####    #   #   # ####"OSS_NEWLINE
-"    # #   # #   #   #   #   # #"OSS_NEWLINE
-"####  ####  ####    #    ###  #"OSS_NEWLINE
+" #### ####  ####  #####  ###  ####   For help type h or ..." OSS_NEWLINE 
+"#     #   # #   #   #   #   # #   #  sdbtop -h: usage" OSS_NEWLINE 
+" ###  #   # ####    #   #   # ####" OSS_NEWLINE 
+"    # #   # #   #   #   #   # #" OSS_NEWLINE 
+"####  ####  ####    #    ###  #" OSS_NEWLINE 
 OSS_NEWLINE
-"SDB Interactive Snapshot Monitor V2.0"OSS_NEWLINE
+"SDB Interactive Snapshot Monitor V2.0" OSS_NEWLINE 
 "Use these keys to ENTER:";
 
 #define SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_STR_MAX_LEN   2048
@@ -1072,7 +1072,7 @@ static OSS_INLINE INT32 formattingOutput( CHAR *pBuffer, const INT32 fixedLength
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s SNPRINTF_TOP failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1111,7 +1111,7 @@ static OSS_INLINE INT32 MVPRINTW( const INT32 start_row, INT32 start_col,
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s MVPRINTW wrong alignment:%s"OSS_NEWLINE,
+                   "%s MVPRINTW wrong alignment:%s" OSS_NEWLINE,
                    errStrBuf, alignment.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1142,7 +1142,7 @@ INT32 storePosition( ptree pt_position, Position& position )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s readPosition failed,"
-                   "e.what():%s"OSS_NEWLINE, errStrBuf, e.what() ) ;
+                   "e.what():%s" OSS_NEWLINE, errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
    }
@@ -1205,7 +1205,7 @@ INT32 storeDE( ptree pt_display,
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s readDisplayContent failed"
-                            "expressionLength too short:%d"OSS_NEWLINE,
+                            "expressionLength too short:%d" OSS_NEWLINE,
                             errStrBuf,
                             pEContent->expressionLength ) ;
                goto error ;
@@ -1229,7 +1229,7 @@ INT32 storeDE( ptree pt_display,
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s readDisplayContent failed"
-                            "expressionType == %s"OSS_NEWLINE,
+                            "expressionType == %s" OSS_NEWLINE,
                             errStrBuf,
                             pEContent->expressionType.c_str() ) ;
                rc = SDB_ERROR ;
@@ -1245,7 +1245,7 @@ INT32 storeDE( ptree pt_display,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,"%s readDisplayContent failed"
                    "(displayType == DISPLAYTYPE_DYNAMIC_EXPRESSION),"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1312,7 +1312,7 @@ INT32 storeDS( ptree pt_display,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,"%s readDisplayContent failed"
                    "(displayType == DISPLAYTYPE_DYNAMIC_SNAPSHOT),"
-                   "e.what():%s"OSS_NEWLINE, errStrBuf, e.what() ) ;
+                   "e.what():%s" OSS_NEWLINE, errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error;
    }
@@ -1591,7 +1591,7 @@ INT32 storeDisplayContent( ptree pt_displayContent,
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,"%s readDisplayContent failed"
                       "(displayType == DISPLAYTYPE_STATICTEXT_HELP_Header), "
-                      "e.what():%s"OSS_NEWLINE,
+                      "e.what():%s" OSS_NEWLINE,
                       errStrBuf, e.what() ) ;
          rc = SDB_ERROR ;
          goto error ;
@@ -1622,7 +1622,7 @@ INT32 storeDisplayContent( ptree pt_displayContent,
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,"%s readDisplayContent failed"
                       "(displayType == DISPLAYTYPE_DYNAMIC_HELP),"
-                      "e.what():%s"OSS_NEWLINE,
+                      "e.what():%s" OSS_NEWLINE,
                       errStrBuf, e.what() ) ;
          rc = SDB_ERROR ;
          goto error ;
@@ -1769,7 +1769,7 @@ INT32 storeHeaders( ptree pt_HDs, RootWindow &root )
                    "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s readConfiguration failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1788,7 +1788,7 @@ INT32 storeHeaders( ptree pt_HDs, RootWindow &root )
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
                          "scope: headerLength>="
-                         "root.headerLength"OSS_NEWLINE,
+                         "root.headerLength" OSS_NEWLINE,
                          errStrBuf ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -1802,7 +1802,7 @@ INT32 storeHeaders( ptree pt_HDs, RootWindow &root )
             ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
-                         "e.what():%s"OSS_NEWLINE,
+                         "e.what():%s" OSS_NEWLINE,
                       errStrBuf, e.what() ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -1848,7 +1848,7 @@ INT32 storeBodies( ptree pt_BDs, RootWindow &root )
                    "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s readConfiguration failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1868,7 +1868,7 @@ INT32 storeBodies( ptree pt_BDs, RootWindow &root )
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
                          "scope: bodyLength>="
-                         "root.bodyLength"OSS_NEWLINE,
+                         "root.bodyLength" OSS_NEWLINE,
                          errStrBuf ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -1921,7 +1921,7 @@ INT32 storeBodies( ptree pt_BDs, RootWindow &root )
                          "%s", errStr ) ;
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
-                         "e.what():%s"OSS_NEWLINE,
+                         "e.what():%s" OSS_NEWLINE,
                          errStrBuf, e.what() ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -1968,7 +1968,7 @@ INT32 storeFooters( ptree pt_FTs, RootWindow &root )
                    "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s readConfiguration failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -1987,7 +1987,7 @@ INT32 storeFooters( ptree pt_FTs, RootWindow &root )
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
                          "scope: footerLength >="
-                         "root.footerLength"OSS_NEWLINE,
+                         "root.footerLength" OSS_NEWLINE,
                          errStrBuf ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -2038,7 +2038,7 @@ INT32 storeKeySuites( ptree pt_KSs, RootWindow &root )
       ossSnprintf( errStr, errStrLength,
                    "%s readConfiguration failed,"
                    " scope: child_root->first ==..... "
-                   ",e.what():%s"OSS_NEWLINE,
+                   ",e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -2057,7 +2057,7 @@ INT32 storeKeySuites( ptree pt_KSs, RootWindow &root )
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
                          " keySuiteLength >="
-                         "root.keySuiteLength"OSS_NEWLINE,
+                         "root.keySuiteLength" OSS_NEWLINE,
                          errStrBuf ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -2187,7 +2187,7 @@ INT32 storeRootWindow( RootWindow &root )
                    "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s readConfiguration failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -2257,7 +2257,7 @@ INT32 storeRootWindow( RootWindow &root )
             ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
             ossSnprintf( errStr, errStrLength,
                          "%s readConfiguration failed,"
-                         "e.what():%s"OSS_NEWLINE,
+                         "e.what():%s" OSS_NEWLINE,
                          errStrBuf, e.what() ) ;
             rc = SDB_ERROR ;
             goto error ;
@@ -2533,7 +2533,7 @@ INT32 Event::getActivatedHeadTailMap( BodyMap *activatedPanel,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s getActivatedHeadTailMap failed,"
-                   "SDB_HEADER_NULL"OSS_NEWLINE,
+                   "SDB_HEADER_NULL" OSS_NEWLINE,
                    errStrBuf ) ;
       rc = SDB_ERROR;
       goto error ;
@@ -2587,7 +2587,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s Minimum window size:"
-                   "%dx%d, found %dx%d"OSS_NEWLINE,
+                   "%dx%d, found %dx%d" OSS_NEWLINE,
                    errStrBuf, root.actualWindowMinRow,
                    root.actualWindowMinColumn, row, col ) ;
       rc = SDB_ERROR ;
@@ -2761,7 +2761,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                 "%s getActualPosition failed:"
-                "wrong zoomMode:%s"OSS_NEWLINE,
+                "wrong zoomMode:%s" OSS_NEWLINE,
                 errStrBuf, zoomMode.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -2780,7 +2780,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
                       "%s getActualPosition failed:"
-                      "wrong occupyMode:%s"OSS_NEWLINE,
+                      "wrong occupyMode:%s" OSS_NEWLINE,
                       errStrBuf, occupyMode.c_str() ) ;
          rc = SDB_ERROR ;
          goto error ;
@@ -2829,7 +2829,7 @@ INT32 Event::getActivatedKeySuite( KeySuite **keySuite )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s getActivatedKeySuite failed,"
-                   "e.what():%s"OSS_NEWLINE,
+                   "e.what():%s" OSS_NEWLINE,
                    errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -2854,7 +2854,7 @@ INT32 Event::mvprintw_SDBTOP( const string &expression, INT32 expressionLength,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s MVPRINTW_TOP failed,"
-                   "SNPRINTF_TOP failed"OSS_NEWLINE,
+                   "SNPRINTF_TOP failed" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -2885,7 +2885,7 @@ INT32 Event::mvprintw_SDBTOP( const char *expression, INT32 expressionLength,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s MVPRINTW_TOP failed,"
-                   "SNPRINTF_TOP failed"OSS_NEWLINE,
+                   "SNPRINTF_TOP failed" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -3069,7 +3069,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s getResultFromBSONobj failed,"
-                            "displayMode = %s"OSS_NEWLINE,
+                            "displayMode = %s" OSS_NEWLINE,
                             errStrBuf, displayMode.c_str() ) ;
                rc = SDB_ERROR ;
                goto error ;
@@ -3214,7 +3214,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s getResultFromBSONobj failed,"
-                            "displayMode = %s"OSS_NEWLINE,
+                            "displayMode = %s" OSS_NEWLINE,
                             errStrBuf, displayMode.c_str() ) ;
                rc = SDB_ERROR ;
                goto error ;
@@ -3227,7 +3227,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s getResultFromBSONobj failed, e.what():%s ,"
-                   "sourceField = %s"OSS_NEWLINE,
+                   "sourceField = %s" OSS_NEWLINE,
                    errStrBuf, e.what(), sourceField.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3328,7 +3328,7 @@ INT32 Event::getExpression( string& expression, string& result )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s getExpression failed,"
-                   "wrong expression:%s"OSS_NEWLINE,
+                   "wrong expression:%s" OSS_NEWLINE,
                    errStrBuf, expression.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3369,7 +3369,7 @@ INT32 Event::getCurSnapshot()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get current snapshot exception: %s"
-                   "rc: %d"OSS_NEWLINE,
+                   "rc: %d" OSS_NEWLINE,
                    errStrBuf, e.what(), rc ) ;
       goto error ;
    }
@@ -3379,7 +3379,7 @@ INT32 Event::getCurSnapshot()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get current snapshot exception: %s"
-                   "rc: %d"OSS_NEWLINE,
+                   "rc: %d" OSS_NEWLINE,
                    errStrBuf, e.what(), rc ) ;
       goto error ;
    }
@@ -3489,7 +3489,7 @@ INT32 Event::getCurSnapshotCLByBuildInSQL()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get snapshot by build-in sql failed,"
-                   "wrong snapshotModeChooser = %s"OSS_NEWLINE,
+                   "wrong snapshotModeChooser = %s" OSS_NEWLINE,
                    errStrBuf, root.input.snapshotModeChooser.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3543,7 +3543,7 @@ INT32 Event::getCurSnapshotCLByBuildInSQL()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get snapshot by build-in sql failed,"
-                   "wrong sortingWay: %s"OSS_NEWLINE,
+                   "wrong sortingWay: %s" OSS_NEWLINE,
                    errStrBuf, root.input.sortingWay.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3570,7 +3570,7 @@ INT32 Event::getCurSnapshotCLByBuildInSQL()
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
                       "%s get snapshot by build-in sql failed, can't get "
-                      "snapshot, rc = %d"OSS_NEWLINE,
+                      "snapshot, rc = %d" OSS_NEWLINE,
                       errStrBuf, rc ) ;
          goto error ;
       }
@@ -3623,7 +3623,7 @@ INT32 Event::getCurSnapshotCLByBuildInSQL()
          ossSnprintf( errStr, errStrLength,
                       "%s refreshDisplayContent failed, "
                       "cursor.next( bsonobj ) failed,"
-                      "rc = %d"OSS_NEWLINE,
+                      "rc = %d" OSS_NEWLINE,
                       errStrBuf, rc ) ;
          goto error ;
       }
@@ -3763,7 +3763,7 @@ INT32 Event::getCurSnapshotBySnapshotCommand()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get snapshot by snapshot command failed,"
-                   "wrong sortingWay: %s"OSS_NEWLINE,
+                   "wrong sortingWay: %s" OSS_NEWLINE,
                    errStrBuf, root.input.sortingWay.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3850,7 +3850,7 @@ INT32 Event::getCurSnapshotBySnapshotCommand()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s get snapshot by snapshot command failed,"
-                   "wrong snapshotModeChooser = %s"OSS_NEWLINE,
+                   "wrong snapshotModeChooser = %s" OSS_NEWLINE,
                    errStrBuf, root.input.snapshotModeChooser.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -3879,7 +3879,7 @@ INT32 Event::getCurSnapshotBySnapshotCommand()
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
                       "%s get snapshot by snapshot command failed, can't "
-                      "get snapshot, rc = %d"OSS_NEWLINE,
+                      "get snapshot, rc = %d" OSS_NEWLINE,
                       errStrBuf, rc ) ;
          goto error ;
       }
@@ -3925,7 +3925,7 @@ INT32 Event::getCurSnapshotBySnapshotCommand()
          ossSnprintf( errStr, errStrLength,
                       "%s refreshDisplayContent failed, "
                       "cursor.next( bsonobj ) failed,"
-                      "rc = %d"OSS_NEWLINE,
+                      "rc = %d" OSS_NEWLINE,
                       errStrBuf, rc ) ;
          goto error ;
       }
@@ -4012,7 +4012,7 @@ INT32 Event::fixedOutputLocation( INT32 start_row, INT32 start_col,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s fixedOutputLocation failed,"
-                   "wrong autoSetType:%s"OSS_NEWLINE,
+                   "wrong autoSetType:%s" OSS_NEWLINE,
                    errStrBuf, autoSetType.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -4059,7 +4059,7 @@ INT32 Event::getFieldNameAndColour( const FieldStruct &fieldStruct,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s getFieldStructNameAndColour failed,"
-                   "wrong displayMode:%s"OSS_NEWLINE,
+                   "wrong displayMode:%s" OSS_NEWLINE,
                    errStrBuf, displayMode.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -4102,7 +4102,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s MVPRINTW_TOP failed,"
-                   "can't malloc memory for printfstr :%d"OSS_NEWLINE,
+                   "can't malloc memory for printfstr :%d" OSS_NEWLINE,
                    errStrBuf, cellLength ) ;
       rc = SDB_OOM ;
       goto error ;
@@ -4113,7 +4113,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s refreshDisplayContent failed,"
-                   "tableRow is too small"OSS_NEWLINE,
+                   "tableRow is too small" OSS_NEWLINE,
                    errStrBuf ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -4444,7 +4444,7 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s refreshDisplayContent failed,"
-                            "getExpression failed"OSS_NEWLINE,
+                            "getExpression failed" OSS_NEWLINE,
                             errStrBuf ) ;
                goto error ;
             }
@@ -5105,7 +5105,7 @@ INT32 Event::refreshDS( DynamicSnapshotOutPut &DS, Position &position )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s refreshDisplayContent failed, "
-                   "wrong snapshotModeChooser: %s"OSS_NEWLINE,
+                   "wrong snapshotModeChooser: %s" OSS_NEWLINE,
                    errStrBuf,
                    input.snapshotModeChooser.c_str() ) ;
       rc = SDB_ERROR ;
@@ -5190,7 +5190,7 @@ INT32 Event::refreshDisplayContent( DisplayContent &displayContent,
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                   "%s refreshDisplayContent failed,"
-                  "wrong displayType:%s"OSS_NEWLINE,
+                  "wrong displayType:%s" OSS_NEWLINE,
                   errStrBuf, displayType.c_str() ) ;
       rc = SDB_ERROR;
       goto error ;
@@ -5223,7 +5223,7 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s refreshNodeWindow failed,"
-                   "getActualPosition failed"OSS_NEWLINE,
+                   "getActualPosition failed" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -5242,7 +5242,7 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
 
       ossSnprintf( errStrBuf, errStrLength, "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength, "%s refreshNodeWindow failed,"
-                   "refreshDisplayContent failed"OSS_NEWLINE,
+                   "refreshDisplayContent failed" OSS_NEWLINE,
                    errStrBuf );
       goto error;
    }
@@ -5271,7 +5271,7 @@ INT32 Event::refreshHT( HeadTailMap *headtail )
          ossSnprintf( errStrBuf, errStrLength, "%s", errStr ) ;
          ossSnprintf( errStr, errStrLength, "%s refreshHeadTail failed,"
                       "refreshNodeWindow failed,"
-                      "numOfSubWindow = %d"OSS_NEWLINE,
+                      "numOfSubWindow = %d" OSS_NEWLINE,
                       errStrBuf, numOfSubWindow ) ;
          goto error ;
       }
@@ -5300,7 +5300,7 @@ INT32 Event::refreshBD( BodyMap *body )
          ossSnprintf( errStr, errStrLength,
                       "%s refreshBody failed,"
                       "refreshNodeWindow failed,"
-                      "numOfSubWindow = %d"OSS_NEWLINE,
+                      "numOfSubWindow = %d" OSS_NEWLINE,
                       errStrBuf, numOfSubWindow ) ;
          goto error ;
       }
@@ -5681,7 +5681,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
 
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
-                            "%s assignPanelByLabelName failed"OSS_NEWLINE,
+                            "%s assignPanelByLabelName failed" OSS_NEWLINE,
                             errStrBuf ) ;
                goto error ;
             }
@@ -5782,7 +5782,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                   ossSnprintf( errStr, errStrLength,
                                "%s buttonManagement failed,"
                                "select ( maxfd, &fds, NULL, NULL, NULL) "
-                               "failed"OSS_NEWLINE,
+                               "failed" OSS_NEWLINE,
                                errStrBuf ) ;
                   goto error ;
                }
@@ -6131,7 +6131,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s readConfiguration failed"OSS_NEWLINE,
+                   "%s readConfiguration failed" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -6141,7 +6141,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
    {
 
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
-      ossSnprintf( errStr, errStrLength, "%s addFixedHotKey failed"OSS_NEWLINE,
+      ossSnprintf( errStr, errStrLength, "%s addFixedHotKey failed" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -6151,7 +6151,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
 
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s assignActivatedPanel failed"OSS_NEWLINE, errStrBuf ) ;
+                   "%s assignActivatedPanel failed" OSS_NEWLINE, errStrBuf ) ;
       goto error ;
    }
    try
@@ -6169,7 +6169,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength, "%s can't connect to the coord:"
-                   "e.what() =%d"OSS_NEWLINE, errStrBuf, e.what() ) ;
+                   "e.what() =%d" OSS_NEWLINE, errStrBuf, e.what() ) ;
       rc = SDB_ERROR ;
       goto error ;
 
@@ -6179,7 +6179,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
 
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s can't connect to %s:%s, rc: %d"OSS_NEWLINE,
+                   "%s can't connect to %s:%s, rc: %d" OSS_NEWLINE,
                    errStrBuf, hostname.c_str(), serviceName.c_str(), rc ) ;
       goto error ;
    }
@@ -6194,7 +6194,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
 
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
-                   "%s getActivatedHeadTailMap failed"OSS_NEWLINE,
+                   "%s getActivatedHeadTailMap failed" OSS_NEWLINE,
                    errStrBuf ) ;
          goto error ;
       }
@@ -6380,7 +6380,7 @@ INT32 resolveArgument ( po::options_description &desc,
       pathLen = ossStrlen( progPath ) + ossStrlen( SDBTOP_DEFAULT_CONFPATH ) ;
       if ( OSS_MAX_PATHSIZE < pathLen )
       {
-         ossPrintf( "The program's path is too long"OSS_NEWLINE ) ;
+         ossPrintf( "The program's path is too long" OSS_NEWLINE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -6501,7 +6501,7 @@ INT32 main( INT32 argc, CHAR **argv)
    rc = getProgramPath( progPath, OSS_MAX_PATHSIZE ) ;
    if ( rc )
    {
-      ossPrintf( "Failed to get program's path"OSS_NEWLINE ) ;
+      ossPrintf( "Failed to get program's path" OSS_NEWLINE ) ;
       goto error ;
    }
    rc = resolveArgument ( desc, argc, argv ) ;
@@ -6509,7 +6509,7 @@ INT32 main( INT32 argc, CHAR **argv)
    {
       if ( SDB_PMD_HELP_ONLY != rc )
       {
-         std::cerr<< "Error: Invalid arguments"OSS_NEWLINE ;
+         std::cerr<< "Error: Invalid arguments" OSS_NEWLINE ;
          displayArg ( desc ) ;
       }
       goto done ;
@@ -6519,7 +6519,7 @@ INT32 main( INT32 argc, CHAR **argv)
    {
       ossSnprintf( errStrBuf, errStrLength, "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s Your terminal can't support color"OSS_NEWLINE,
+                   "%s Your terminal can't support color" OSS_NEWLINE,
                    errStrBuf ) ;
       rc = SDB_ERROR ;
       goto error ;
@@ -6534,7 +6534,7 @@ INT32 main( INT32 argc, CHAR **argv)
    {
       ossSnprintf( errStrBuf, errStrLength, "%s",  errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s can't runSDBTOP"OSS_NEWLINE,
+                   "%s can't runSDBTOP" OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }

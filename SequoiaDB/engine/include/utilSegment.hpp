@@ -303,18 +303,18 @@ namespace engine
 
          len = ossSnprintf( pBuff, buffLen,
                             OSS_NEWLINE
-                            "       Pool ID : %u"OSS_NEWLINE
-                            "   Max Objects : %u"OSS_NEWLINE
-                            "         Delta : %u"OSS_NEWLINE
-                            "   Objects Num : %u"OSS_NEWLINE
-                            "   Segment Num : %u"OSS_NEWLINE
-                            "     Begin Pos : %u"OSS_NEWLINE
-                            " High Watermark: %u"OSS_NEWLINE
-                            " Acquire Times : %llu"OSS_NEWLINE
-                            " Release Times : %llu"OSS_NEWLINE
-                            "     OOM Times : %llu"OSS_NEWLINE
-                            "     OOL Times : %llu"OSS_NEWLINE
-                            "   Shrink Size : %llu"OSS_NEWLINE,
+                            "       Pool ID : %u" OSS_NEWLINE
+                            "   Max Objects : %u" OSS_NEWLINE
+                            "         Delta : %u" OSS_NEWLINE
+                            "   Objects Num : %u" OSS_NEWLINE
+                            "   Segment Num : %u" OSS_NEWLINE
+                            "     Begin Pos : %u" OSS_NEWLINE
+                            " High Watermark: %u" OSS_NEWLINE
+                            " Acquire Times : %llu" OSS_NEWLINE
+                            " Release Times : %llu" OSS_NEWLINE
+                            "     OOM Times : %llu" OSS_NEWLINE
+                            "     OOL Times : %llu" OSS_NEWLINE
+                            "   Shrink Size : %llu" OSS_NEWLINE,
                             _poolId,
                             _maxNumOfObjs,
                             _delta,
@@ -714,12 +714,12 @@ namespace engine
             rc = SDB_OOM ;
 #ifdef _DEBUG
             PD_LOG( PDERROR,
-                    "Out of memory when expand : %d"OSS_NEWLINE
-                    " Delta         : %u"OSS_NEWLINE
-                    " MaxNumOfObjs  : %u"OSS_NEWLINE
-                    " NewSize       : %u"OSS_NEWLINE
-                    " ObjT Size     : %u"OSS_NEWLINE
-                    " ObjX Size     : %u"OSS_NEWLINE,
+                    "Out of memory when expand : %d" OSS_NEWLINE
+                    " Delta         : %u" OSS_NEWLINE
+                    " MaxNumOfObjs  : %u" OSS_NEWLINE
+                    " NewSize       : %u" OSS_NEWLINE
+                    " ObjT Size     : %u" OSS_NEWLINE
+                    " ObjX Size     : %u" OSS_NEWLINE,
                     rc,
                     _maxNumOfObjs,
                     newSize,
@@ -982,12 +982,12 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR,
-                 "Failed initialize due to invalid arguments, rc:%d"OSS_NEWLINE
-                 "   PoolID          : %d"OSS_NEWLINE
-                 "   NumberOfObjs    : %u"OSS_NEWLINE
-                 "   MaxNumberOfObjs : %u"OSS_NEWLINE
-                 "   ObjT Size       : %u"OSS_NEWLINE
-                 "   ObjX Size       : %u"OSS_NEWLINE,
+                 "Failed initialize due to invalid arguments, rc:%d" OSS_NEWLINE
+                 "   PoolID          : %d" OSS_NEWLINE
+                 "   NumberOfObjs    : %u" OSS_NEWLINE
+                 "   MaxNumberOfObjs : %u" OSS_NEWLINE
+                 "   ObjT Size       : %u" OSS_NEWLINE
+                 "   ObjX Size       : %u" OSS_NEWLINE,
                  rc,
                  poolId,
                  numberOfObjs,
@@ -1055,14 +1055,14 @@ namespace engine
                rc = SDB_OSS_UP_TO_LIMIT ;
                PD_LOG( PDINFO,
                        "Exceed resource limitation "
-                       "when attempt to expand: %d"OSS_NEWLINE
-                       "  PoolID        : %u"OSS_NEWLINE
-                       "  Delta         : %u"OSS_NEWLINE
-                       "  MaxNumOfObjs  : %u"OSS_NEWLINE
-                       "  NumOfObjs     : %u"OSS_NEWLINE
-                       "  BeginPos      : %u"OSS_NEWLINE
-                       "  ObjT Size     : %u"OSS_NEWLINE
-                       "  ObjX Size     : %u"OSS_NEWLINE,
+                       "when attempt to expand: %d" OSS_NEWLINE
+                       "  PoolID        : %u" OSS_NEWLINE
+                       "  Delta         : %u" OSS_NEWLINE
+                       "  MaxNumOfObjs  : %u" OSS_NEWLINE
+                       "  NumOfObjs     : %u" OSS_NEWLINE
+                       "  BeginPos      : %u" OSS_NEWLINE
+                       "  ObjT Size     : %u" OSS_NEWLINE
+                       "  ObjX Size     : %u" OSS_NEWLINE,
                        rc,
                        _poolId,
                        _delta,
@@ -1091,14 +1091,14 @@ namespace engine
                {
                   ++_oomTimes ;
                   PD_LOG( PDWARNING,
-                          "Failed to expand : %d"OSS_NEWLINE
-                          "  PoolID         : %u"OSS_NEWLINE
-                          "  Delta          : %u"OSS_NEWLINE
-                          "  MaxNumOfObjs   : %u"OSS_NEWLINE
-                          "  NumOfObjs      : %u"OSS_NEWLINE
-                          "  BeginPos       : %u"OSS_NEWLINE
-                          "  ObjT Size      : %u"OSS_NEWLINE
-                          "  ObjX Size      : %u"OSS_NEWLINE,
+                          "Failed to expand : %d" OSS_NEWLINE
+                          "  PoolID         : %u" OSS_NEWLINE
+                          "  Delta          : %u" OSS_NEWLINE
+                          "  MaxNumOfObjs   : %u" OSS_NEWLINE
+                          "  NumOfObjs      : %u" OSS_NEWLINE
+                          "  BeginPos       : %u" OSS_NEWLINE
+                          "  ObjT Size      : %u" OSS_NEWLINE
+                          "  ObjX Size      : %u" OSS_NEWLINE,
                           rc,
                           _poolId,
                           _delta,
@@ -1137,15 +1137,15 @@ namespace engine
             if ( pObjX )
             {
                PD_LOG( PDSEVERE,
-                       "Sanity check failed: "OSS_NEWLINE
-                       "  PoolID    : %u"OSS_NEWLINE
-                       "  Obj Idx   : %u"OSS_NEWLINE
-                       "  EyeCatcher: %x"OSS_NEWLINE
-                       "  Flag      : %x"OSS_NEWLINE
-                       "  ObjX addr : %p"OSS_NEWLINE
-                       "  ObjT addr : %p"OSS_NEWLINE
-                       "  ObjT Size : %u"OSS_NEWLINE
-                       "  ObjX Size : %u"OSS_NEWLINE,
+                       "Sanity check failed: " OSS_NEWLINE
+                       "  PoolID    : %u" OSS_NEWLINE
+                       "  Obj Idx   : %u" OSS_NEWLINE
+                       "  EyeCatcher: %x" OSS_NEWLINE
+                       "  Flag      : %x" OSS_NEWLINE
+                       "  ObjX addr : %p" OSS_NEWLINE
+                       "  ObjT addr : %p" OSS_NEWLINE
+                       "  ObjT Size : %u" OSS_NEWLINE
+                       "  ObjX Size : %u" OSS_NEWLINE,
                        _poolId,
                        _list[ _begin ],
                        pObjX->_eyeCatcher,
@@ -1158,12 +1158,12 @@ namespace engine
             else
             {
                PD_LOG( PDSEVERE,
-                       "Sanity check failed: "OSS_NEWLINE
-                       "  PoolID    : %u"OSS_NEWLINE
-                       "  Obj Idx   : %u"OSS_NEWLINE
-                       "  ObjX addr : %p"OSS_NEWLINE
-                       "  ObjT Size : %u"OSS_NEWLINE
-                       "  ObjX Size : %u"OSS_NEWLINE,
+                       "Sanity check failed: " OSS_NEWLINE
+                       "  PoolID    : %u" OSS_NEWLINE
+                       "  Obj Idx   : %u" OSS_NEWLINE
+                       "  ObjX addr : %p" OSS_NEWLINE
+                       "  ObjT Size : %u" OSS_NEWLINE
+                       "  ObjX Size : %u" OSS_NEWLINE,
                        _poolId,
                        _list[ _begin ],
                        pObjX,
@@ -1292,15 +1292,15 @@ namespace engine
                if ( NULL != pObjX  )
                {
                   PD_LOG( PDSEVERE,
-                          "Sanity check failed: "OSS_NEWLINE
-                          "  PoolID    : %u"OSS_NEWLINE
-                          "  Obj Idx   : %u"OSS_NEWLINE
-                          "  EyeCatcher: %x"OSS_NEWLINE
-                          "  Flag      : %x"OSS_NEWLINE
-                          "  ObjX addr : %p"OSS_NEWLINE
-                          "  ObjT addr : %p"OSS_NEWLINE
-                          "  ObjT Size : %u"OSS_NEWLINE
-                          "  ObjX Size : %u"OSS_NEWLINE,
+                          "Sanity check failed: " OSS_NEWLINE
+                          "  PoolID    : %u" OSS_NEWLINE
+                          "  Obj Idx   : %u" OSS_NEWLINE
+                          "  EyeCatcher: %x" OSS_NEWLINE
+                          "  Flag      : %x" OSS_NEWLINE
+                          "  ObjX addr : %p" OSS_NEWLINE
+                          "  ObjT addr : %p" OSS_NEWLINE
+                          "  ObjT Size : %u" OSS_NEWLINE
+                          "  ObjX Size : %u" OSS_NEWLINE,
                           _poolId,
                           idx,
                           pObjX->_eyeCatcher,
@@ -1313,12 +1313,12 @@ namespace engine
                else
                {
                   PD_LOG( PDSEVERE,
-                          "Sanity check failed: "OSS_NEWLINE
-                          "  PoolID    : %u"OSS_NEWLINE
-                          "  Obj Idx   : %u"OSS_NEWLINE
-                          "  ObjX addr : %p"OSS_NEWLINE
-                          "  ObjT Size : %u"OSS_NEWLINE
-                          "  ObjX Size : %u"OSS_NEWLINE,
+                          "Sanity check failed: " OSS_NEWLINE
+                          "  PoolID    : %u" OSS_NEWLINE
+                          "  Obj Idx   : %u" OSS_NEWLINE
+                          "  ObjX addr : %p" OSS_NEWLINE
+                          "  ObjT Size : %u" OSS_NEWLINE
+                          "  ObjX Size : %u" OSS_NEWLINE,
                           _poolId,
                           idx,
                           pObjX,
@@ -1656,9 +1656,9 @@ namespace engine
 
             len = ossSnprintf( pBuff, buffLen,
                                OSS_NEWLINE
-                               "---- Segment Name( %s ) ----"OSS_NEWLINE
-                               "      Pool Num : %u"OSS_NEWLINE
-                               "    Total Size : %llu"OSS_NEWLINE,
+                               "---- Segment Name( %s ) ----" OSS_NEWLINE
+                               "      Pool Num : %u" OSS_NEWLINE
+                               "    Total Size : %llu" OSS_NEWLINE,
                                _name,
                                _poolNum,
                                (UINT64)getNumOfObjAllocated() *
@@ -1697,12 +1697,12 @@ namespace engine
 
             len += ossSnprintf( pBuff + len, buffLen - len,
                                 OSS_NEWLINE
-                                "Segment Stat"OSS_NEWLINE
-                                " Acquire Times : %llu (Inc: %lld )"OSS_NEWLINE
-                                " Release Times : %llu (Inc: %lld )"OSS_NEWLINE
-                                "     OOM Times : %llu (Inc: %lld )"OSS_NEWLINE
-                                "     OOL Times : %llu (Inc: %lld )"OSS_NEWLINE
-                                "   Shrink Size : %llu (Inc: %lld )"OSS_NEWLINE,
+                                "Segment Stat" OSS_NEWLINE
+                                " Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
+                                " Release Times : %llu (Inc: %lld )" OSS_NEWLINE
+                                "     OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
+                                "     OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
+                                "   Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
                                 acquireTimes,
                                 acquireTimes - _acquireTimes,
                                 releaseTimes,

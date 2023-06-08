@@ -185,7 +185,7 @@ INT32 listCollections(sdb &db)
    rc=db.listCollections( cursor);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to list collection, rc=%d"OSS_NEWLINE, rc);
+      ossPrintf("Failed to list collection, rc=%d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -194,7 +194,7 @@ INT32 listCollections(sdb &db)
    {
       if(SDB_OK != rc)
       {
-          ossPrintf("Failed to get record in cursor, rc=%d"OSS_NEWLINE, rc);
+          ossPrintf("Failed to get record in cursor, rc=%d" OSS_NEWLINE, rc);
           goto error;
       }
       else
@@ -331,7 +331,7 @@ INT32 sequoiaFS::initDataSource(const CHAR *userName,
    rc = _ds.init( _coordHostPort, _conf);
    if (SDB_OK != rc)
    {
-      ossPrintf("Fail to init sdbDataSouce, rc=%d"OSS_NEWLINE, rc);
+      ossPrintf("Fail to init sdbDataSouce, rc=%d" OSS_NEWLINE, rc);
       goto error;
    }
    
@@ -673,7 +673,7 @@ INT32 sequoiaFS::_initMountID(sdb *db)
    {
       PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d", 
                        SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                  SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
@@ -781,7 +781,7 @@ INT32 sequoiaFS::_addMountID(sdb *db)
    {
       PD_LOG(PDERROR, "Failed to create collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, rc);
-      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, rc);
       goto error;
    }
@@ -894,7 +894,7 @@ INT32 sequoiaFS::_addMountID(sdb *db)
                                   ele.valuestrsafe(), _mountpoint.c_str());
                   ossPrintf("The mountpoint must be the same as the "
                             "existing mountpoint using the same collection,"
-                            " existing mountpoint=%s, new mountpoint=%s. exit."OSS_NEWLINE,
+                            " existing mountpoint=%s, new mountpoint=%s. exit." OSS_NEWLINE,
                             ele.valuestrsafe(), _mountpoint.c_str());                
                   rc = SDB_INVALIDARG;
                   goto error;
@@ -1048,7 +1048,7 @@ INT32 sequoiaFS::buildDialogPathStartPD()
    rc = buildDialogPath(diaglogPath, _optionMgr.getDiaglogPath(), OSS_MAX_PATHSIZE + 1);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1057,7 +1057,7 @@ INT32 sequoiaFS::buildDialogPathStartPD()
                             SDB_SEQUOIAFS_LOG_FILE_NAME);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1103,7 +1103,7 @@ INT32 sequoiaFS::init()
    if(SDB_OK != rc)
    {
       PD_LOG( PDERROR, "Failed to init connection pool, rc=%d", rc ) ;
-      ossPrintf("Failed to init connection pool(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init connection pool(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1111,7 +1111,7 @@ INT32 sequoiaFS::init()
    rc=getConnection(&db);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to get a connection(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to get a connection(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1122,7 +1122,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to init collection, cs.cl=%s, rc=%d", 
              _collection.c_str(), rc);
-      ossPrintf("Failed to init collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init collection, cs.cl=%s, rc=%d, exit." OSS_NEWLINE,
                 _collection.c_str(), rc);
       goto error;
    }
@@ -1136,7 +1136,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to parse dir meta collection, cs.cl=%s, rc=%d", 
              _sysDirMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, rc=%d, exit." OSS_NEWLINE,
                 _sysDirMetaCLFullName.c_str(), rc);
       goto error;
    }
@@ -1147,7 +1147,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to parse file meta collection, cs.cl=%s, rc=%d", 
              _sysFileMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse file meta collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse file meta collection, cs.cl=%s, rc=%d, exit." OSS_NEWLINE,
                 _sysFileMetaCLFullName.c_str(), rc);
       goto error;
    }
@@ -1161,7 +1161,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create nameIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
-         ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1182,7 +1182,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
-         ossPrintf("Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1203,7 +1203,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
-         ossPrintf("Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1219,7 +1219,7 @@ INT32 sequoiaFS::init()
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to init root path, rc=%d", rc);
-      ossPrintf("Failed to init root path, rc=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init root path, rc=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1232,7 +1232,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create nameIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-         ossPrintf("Failed to init create nameIdx for meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to init create nameIdx for meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1253,7 +1253,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create lobidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-         ossPrintf("Failed to init create lobidIdx for meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to init create lobidIdx for meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1274,7 +1274,7 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-         ossPrintf("Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+         ossPrintf("Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
          goto error;
       }
@@ -1292,7 +1292,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to create maphistory collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
-      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
       goto error;
    }
@@ -1302,7 +1302,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
@@ -1312,7 +1312,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to init sequenceid collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
@@ -1322,7 +1322,7 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to init mountid, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to init mountid, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init mountid, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
@@ -1345,7 +1345,7 @@ INT32 sequoiaFS::init()
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to init fileCreatingMgr. rc=%d", rc);
-      ossPrintf("Failed to init fileCreatingMgr. rc=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init fileCreatingMgr. rc=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1356,7 +1356,7 @@ INT32 sequoiaFS::init()
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to init fileLobMgr. rc=%d", rc);
-      ossPrintf("Failed to init fileLobMgr. rc=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init fileLobMgr. rc=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1370,7 +1370,7 @@ INT32 sequoiaFS::init()
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to init metaCache. rc=%d", rc);
-      ossPrintf("Failed to init metaCache. rc=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init metaCache. rc=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 

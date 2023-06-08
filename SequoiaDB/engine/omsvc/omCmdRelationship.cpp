@@ -180,7 +180,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "business[%s] is exist "
-                             "in task["OSS_LL_PRINT_FORMAT"]",
+                             "in task[" OSS_LL_PRINT_FORMAT "]",
                              _fromBuzName.c_str(), taskID ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
@@ -191,7 +191,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "business[%s] is exist "
-                             "in task["OSS_LL_PRINT_FORMAT"]",
+                             "in task[" OSS_LL_PRINT_FORMAT "]",
                              _toBuzName.c_str(), taskID ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
@@ -557,7 +557,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "business[%s] is exist "
-                             "in task["OSS_LL_PRINT_FORMAT"]",
+                             "in task[" OSS_LL_PRINT_FORMAT "]",
                              _fromBuzName.c_str(), taskID ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
@@ -568,7 +568,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "business[%s] is exist "
-                             "in task["OSS_LL_PRINT_FORMAT"]",
+                             "in task[" OSS_LL_PRINT_FORMAT "]",
                              _toBuzName.c_str(), taskID ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;

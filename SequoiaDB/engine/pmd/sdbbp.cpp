@@ -437,7 +437,7 @@ int main ( int argc , const char * argv[] )
       // share the same terminal, but in window, the follow info display in
       // a terminal where we can't see
       ossPrintf( "warning: failed to freopen stdout to log "
-                 "file[%s]"OSS_NEWLINE, SDB_BP_LOG_FILE ) ;
+                 "file[%s]" OSS_NEWLINE, SDB_BP_LOG_FILE ) ;
    }
 
 #if defined( _LINUX )

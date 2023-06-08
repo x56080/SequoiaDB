@@ -1062,7 +1062,7 @@ namespace exprt
          _dir = _get<string>(OPTION_DIRNAME) ;
          if ( _dir.empty() )
          {
-            _dir = "."OSS_FILE_SEP ;
+            _dir = "." OSS_FILE_SEP ;
          }
          else if( OSS_FILE_SEP_CHAR != _dir[ _dir.size() - 1 ] )
          {
@@ -1374,7 +1374,7 @@ namespace exprt
          {
             cerr << "Invalid value for option "
                  << OPTION_FILELIMIT <<endl;
-            PD_LOG( PDERROR, "Invalid value for option "OPTION_FILELIMIT);
+            PD_LOG( PDERROR, "Invalid value for option " OPTION_FILELIMIT);
             goto error ;
          }
       }

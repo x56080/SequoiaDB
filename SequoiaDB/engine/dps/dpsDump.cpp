@@ -78,7 +78,7 @@ namespace engine
           */
          len += ossSnprintf ( outBuf + len, outSize - len,
                               OSS_NEWLINE
-                              " Head   : %c%c%c%c%c%c%c%c"OSS_NEWLINE,
+                              " Head   : %c%c%c%c%c%c%c%c" OSS_NEWLINE,
                               logHead->_eyeCatcher[0],
                               logHead->_eyeCatcher[1],
                               logHead->_eyeCatcher[2],
@@ -91,15 +91,15 @@ namespace engine
                           DPS_LOG_HEADER_EYECATCHER_LEN ) != 0 )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: Invalid Eye Catcher"OSS_NEWLINE ) ;
+                                 "Error: Invalid Eye Catcher" OSS_NEWLINE ) ;
             goto exit ;
          }
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " FirstLSN: 0x%016lx(%lld)"OSS_NEWLINE,
+                              " FirstLSN: 0x%016lx(%lld)" OSS_NEWLINE,
                               logHead->_firstLSN.offset,
                               logHead->_firstLSN.offset ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " LogID  : %d"OSS_NEWLINE,
+                              " LogID  : %d" OSS_NEWLINE,
                               logHead->_logID ) ;
       }
 

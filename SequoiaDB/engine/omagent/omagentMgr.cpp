@@ -1263,7 +1263,7 @@ namespace engine
                   INT32 tmpRc = _startTask ( tmpObj ) ;
                   if ( SDB_OK != tmpRc )
                   {
-                     PD_LOG( PDERROR, "Failed to start task["OSS_LL_PRINT_FORMAT
+                     PD_LOG( PDERROR, "Failed to start task[" OSS_LL_PRINT_FORMAT
                              "]rc = %d", taskID, rc ) ;
                   }
                }

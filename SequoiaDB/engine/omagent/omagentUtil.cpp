@@ -398,7 +398,7 @@ namespace engine
                     "out info:===>", pSvcName,
                     cmdline.c_str() ) ;
             PD_LOG_RAW( PDERROR, nodeOut.c_str() ) ;
-            PD_LOG_RAW( PDERROR, OSS_NEWLINE"<==="OSS_NEWLINE OSS_NEWLINE ) ;
+            PD_LOG_RAW( PDERROR, OSS_NEWLINE "<===" OSS_NEWLINE OSS_NEWLINE ) ;
          }
       }
 

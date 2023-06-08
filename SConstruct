@@ -359,7 +359,11 @@ env = Environment( BUILD_DIR=variantDir,
                    PYSYSPLATFORM=os.sys.platform,
                    )
 if guess_os == "linux":
-    env.Append( CXXFLAGS=" -std=c++11 " )
+   env.Append( CXXFLAGS=" -std=c++11 " )
+   # Ignore warnings caused by the C++11 standard in debug version,
+   # 'template<class> class std::auto_ptr' is deprecated.
+   if debugBuild:
+      env.Append( CXXFLAGS=" -Wno-deprecated-declarations " )
 
 libdeps.setup_environment( env )
 

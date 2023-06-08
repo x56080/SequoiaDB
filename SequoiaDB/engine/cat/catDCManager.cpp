@@ -599,7 +599,7 @@ namespace engine
       string address ;
 
       BSONElement eleAddr = objQuery.getFieldDotted(
-         FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS ) ;
+         FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS ) ;
 
       if ( !pBaseInfo->hasImage() )
       {
@@ -607,7 +607,7 @@ namespace engine
               0 == ossStrlen( eleAddr.valuestr() ) )
          {
             PD_LOG( PDERROR, "Param[%s] is invalid in obj[%s]",
-                    FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS,
+                    FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS,
                     objQuery.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -621,7 +621,7 @@ namespace engine
          if ( String != eleAddr.type() )
          {
             PD_LOG( PDERROR, "Param[%s] is invalid in obj[%s]",
-                    FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS,
+                    FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS,
                     objQuery.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -659,17 +659,17 @@ namespace engine
          BSONObjBuilder builder ;
          if ( clusterName )
          {
-            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_CLUSTERNAME,
+            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_CLUSTERNAME,
                             clusterName ) ;
          }
          if ( businessName )
          {
-            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_BUSINESSNAME,
+            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_BUSINESSNAME,
                             businessName ) ;
          }
          if ( !address.empty() )
          {
-            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_ADDRESS,
+            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_ADDRESS,
                             address ) ;
          }
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
@@ -763,7 +763,7 @@ namespace engine
 
       // analysis groups
       eleGroups = objQuery.getFieldDotted(
-         FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS ) ;
+         FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS ) ;
       if ( Array == eleGroups.type() )
       {
          objGroups = eleGroups.embeddedObject() ;
@@ -771,7 +771,7 @@ namespace engine
       else if ( !eleGroups.eoo() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                 FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS,
+                 FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS,
                  objQuery.toString().c_str() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -836,7 +836,7 @@ namespace engine
       {
          BSONObjBuilder builder ;
          _dcBaseInfoGroups2Obj( pBaseInfo, builder,
-                                FIELD_NAME_IMAGE"."FIELD_NAME_GROUPS ) ;
+                                FIELD_NAME_IMAGE "." FIELD_NAME_GROUPS ) ;
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
          BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                                  CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -880,7 +880,7 @@ namespace engine
       }
 
       // analysis groups
-      eleGroups = objQuery.getField( FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS ) ;
+      eleGroups = objQuery.getField( FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS ) ;
       if ( Array == eleGroups.type() )
       {
          objGroups = eleGroups.embeddedObject() ;
@@ -888,7 +888,7 @@ namespace engine
       else if ( !eleGroups.eoo() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                 FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS,
+                 FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS,
                  objQuery.toString().c_str() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -930,7 +930,7 @@ namespace engine
       {
          BSONObjBuilder builder ;
          _dcBaseInfoGroups2Obj( pBaseInfo, builder,
-                                FIELD_NAME_IMAGE"."FIELD_NAME_GROUPS ) ;
+                                FIELD_NAME_IMAGE "." FIELD_NAME_GROUPS ) ;
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
          BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                                  CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -1441,8 +1441,8 @@ namespace engine
                        "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
                        clusterName.c_str(), businessName.c_str() ) ;
                BSONObj updator = BSON( "$set" << BSON(
-                 FIELD_NAME_DATACENTER"."FIELD_NAME_CLUSTERNAME << clusterName <<
-                 FIELD_NAME_DATACENTER"."FIELD_NAME_BUSINESSNAME << businessName )
+                 FIELD_NAME_DATACENTER "." FIELD_NAME_CLUSTERNAME << clusterName <<
+                 FIELD_NAME_DATACENTER "." FIELD_NAME_BUSINESSNAME << businessName )
                                       ) ;
                BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                                        CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -1547,13 +1547,13 @@ namespace engine
          if ( 0 != ossStrcmp( pBaseInfo->getImageClusterName(),
                               imageClsName ) )
          {
-            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_CLUSTERNAME,
+            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_CLUSTERNAME,
                             imageClsName ) ;
          }
          if ( 0 != ossStrcmp( pBaseInfo->getImageBusinessName(),
                               imageBsName ) )
          {
-            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_BUSINESSNAME,
+            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_BUSINESSNAME,
                             imageBsName ) ;
          }
          newObj = builder.obj() ;

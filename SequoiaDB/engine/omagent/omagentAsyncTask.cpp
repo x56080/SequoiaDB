@@ -56,7 +56,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
 
-      ss << "var "OMA_STR_STEP_ARG" = \"" << value << "\";" ;
+      ss << "var " OMA_STR_STEP_ARG " = \"" << value << "\";" ;
 
       rc = cmd->addUserDefineVar( ss.str().c_str() ) ;
       if( rc )

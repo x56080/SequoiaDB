@@ -136,20 +136,20 @@ namespace engine
       rc = ossGetEWD( dialogFile, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to get working directory, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to get working directory, rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       rc = engine::utilCatPath( dialogFile, OSS_MAX_PATHSIZE, SDBCM_LOG_PATH ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to make dialog path, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to make dialog path, rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog dir[%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          goto error ;
       }
@@ -157,7 +157,7 @@ namespace engine
                                 PMDDMN_DIALOG_FILE_NAME ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to make dialog path, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to make dialog path, rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 

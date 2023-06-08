@@ -72,8 +72,8 @@ namespace engine
       void toString( CHAR* strLog, UINT32 size ) const
       {
          ossSnprintf( strLog, size - 1,
-                      "%s%c%s"OSS_NEWLINE
-                      "%s%c%s"OSS_NEWLINE,
+                      "%s%c%s" OSS_NEWLINE
+                      "%s%c%s" OSS_NEWLINE,
                       UTIL_RENAME_LOG_OLDNAME, UTIL_RENAME_LOG_SEP, oldName,
                       UTIL_RENAME_LOG_NEWNAME, UTIL_RENAME_LOG_SEP, newName ) ;
       }

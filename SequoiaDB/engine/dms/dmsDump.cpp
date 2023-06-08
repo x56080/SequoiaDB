@@ -85,12 +85,12 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpHeader input size (%d) doesn't match "
-                              "expected size (%d)"OSS_NEWLINE,
+                              "expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_HEADER_SZ ) ;
          goto exit ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Storage Unit Header Dump:"OSS_NEWLINE ) ;
+                           "Storage Unit Header Dump:" OSS_NEWLINE ) ;
 
       ossMemcpy ( eyeCatcher, header->_eyeCatcher, DMS_HEADER_EYECATCHER_LEN ) ;
       pageSize = header->_pageSize ;
@@ -118,68 +118,68 @@ namespace engine
          ossTimestampToString( commitTm, strTime ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Eye Catcher : %s"OSS_NEWLINE,
+                              " Eye Catcher : %s" OSS_NEWLINE,
                               eyeCatcher ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Version     : %d"OSS_NEWLINE,
+                              " Version     : %d" OSS_NEWLINE,
                               header->_version ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Page Size   : %d"OSS_NEWLINE,
+                              " Page Size   : %d" OSS_NEWLINE,
                               header->_pageSize ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Total Size  : %d"OSS_NEWLINE,
+                              " Total Size  : %d" OSS_NEWLINE,
                               header->_storageUnitSize ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " SU Name     : %s"OSS_NEWLINE,
+                              " SU Name     : %s" OSS_NEWLINE,
                               header->_name ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Sequence    : %d"OSS_NEWLINE,
+                              " Sequence    : %d" OSS_NEWLINE,
                               header->_sequence ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Num of Col  : %d"OSS_NEWLINE,
+                              " Num of Col  : %d" OSS_NEWLINE,
                               header->_numMB ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " HWM of Col  : %d"OSS_NEWLINE,
+                              " HWM of Col  : %d" OSS_NEWLINE,
                               header->_MBHWM ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Page Num    : %d"OSS_NEWLINE,
+                              " Page Num    : %d" OSS_NEWLINE,
                               header->_pageNum ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Secret value: 0x%016lx (%llu)"OSS_NEWLINE,
+                              " Secret value: 0x%016lx (%llu)" OSS_NEWLINE,
                               header->_secretValue, header->_secretValue ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Lob Page Sz : %d"OSS_NEWLINE,
+                              " Lob Page Sz : %d" OSS_NEWLINE,
                               header->_lobdPageSize ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Lob Flag    : %d"OSS_NEWLINE,
+                              " Lob Flag    : %d" OSS_NEWLINE,
                               header->_createLobs ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Commit Flag : %d"OSS_NEWLINE,
+                              " Commit Flag : %d" OSS_NEWLINE,
                               header->_commitFlag ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Commit LSN  : 0x%016lx (%lld)"OSS_NEWLINE,
+                              " Commit LSN  : 0x%016lx (%lld)" OSS_NEWLINE,
                               header->_commitLsn, header->_commitLsn ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Commit Time : %s (%llu)"OSS_NEWLINE,
+                              " Commit Time : %s (%llu)" OSS_NEWLINE,
                               strTime, header->_commitTime ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Unique ID   : 0x%08x (%u)"OSS_NEWLINE,
+                              " Unique ID   : 0x%08x (%u)" OSS_NEWLINE,
                               header->_csUniqueID, header->_csUniqueID ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Segment Size: %u"OSS_NEWLINE,
+                              " Segment Size: %u" OSS_NEWLINE,
                               header->_segmentSize ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " HWM of IdxInnerID: 0x%08x (%u)"OSS_NEWLINE,
+                              " HWM of IdxInnerID: 0x%08x (%u)" OSS_NEWLINE,
                               header->_idxInnerHWM, header->_idxInnerHWM ) ;
 
          ossMillisecondsToString( header->_createTime, strTime ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Create Timestamp : %s (%llu)"OSS_NEWLINE,
+                              " Create Timestamp : %s (%llu)" OSS_NEWLINE,
                               strTime, header->_createTime ) ;
 
          ossMillisecondsToString( header->_updateTime, strTime ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Update Timestamp : %s (%llu)"OSS_NEWLINE,
+                              " Update Timestamp : %s (%llu)" OSS_NEWLINE,
                               strTime, header->_updateTime ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -211,14 +211,14 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpSME input size (%d) doesn't match "
-                              "expected size (%d)"OSS_NEWLINE,
+                              "expected size (%d)" OSS_NEWLINE,
                               inSize,
                               DMS_SME_SZ ) ;
          goto exit ;
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Space Management Extent Dump:"OSS_NEWLINE ) ;
+                           "Space Management Extent Dump:" OSS_NEWLINE ) ;
 
       {
          totalPages  = DMS_MAX_PG ;
@@ -236,7 +236,7 @@ namespace engine
                smeMask2String ( currentState, stateBuf,
                                 DMS_DUMP_SME_STATE_BUFSZ ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " %010d - %010d [ 0x%02x (%s) ]"OSS_NEWLINE,
+                                    " %010d - %010d [ 0x%02x (%s) ]" OSS_NEWLINE,
                                     beginPage, endPage, currentState,
                                     stateBuf ) ;
                beginPage = i ;
@@ -257,13 +257,13 @@ namespace engine
                           DMS_DUMP_SME_STATE_BUFSZ ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " %010d - %010d [ 0x%02x (%s) ]"OSS_NEWLINE,
+                              " %010d - %010d [ 0x%02x (%s) ]" OSS_NEWLINE,
                               beginPage, endPage, currentState,
                               stateBuf ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Total: %d, Allocated: %d, Used: %d"OSS_NEWLINE
-                           " Has errors: %s"OSS_NEWLINE,
+                           " Total: %d, Allocated: %d, Used: %d" OSS_NEWLINE
+                           " Has errors: %s" OSS_NEWLINE,
                            totalPages, pageNum, usedPages,
                            hasError ? "TRUE" : "FALSE" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -292,13 +292,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpMME input size (%d) doesn't match "
-                              "expected size (%d)"OSS_NEWLINE,
+                              "expected size (%d)" OSS_NEWLINE,
                               inSize,
                               DMS_MME_SZ ) ;
          goto exit ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Metadata Management Extent Dump:"OSS_NEWLINE ) ;
+                           "Metadata Management Extent Dump:" OSS_NEWLINE ) ;
 
       for ( INT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
@@ -343,7 +343,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpMMEMetadataBlock input size (%d) "
-                              "doesn't match expected size (%d)"OSS_NEWLINE,
+                              "doesn't match expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_MB_SIZE ) ;
          goto exit ;
       }
@@ -389,24 +389,24 @@ namespace engine
          mbFlag2String ( mb->_flag, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             OSS_NEWLINE" Collection name   : %s"OSS_NEWLINE,
+                             OSS_NEWLINE" Collection name   : %s" OSS_NEWLINE,
                              mb->_collectionName ) ;
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " CL Unique ID      : %ld"OSS_NEWLINE,
+                             " CL Unique ID      : %ld" OSS_NEWLINE,
                              mb->_clUniqueID ) ;
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Flag              : 0x%04lx (%s)"OSS_NEWLINE,
+                             " Flag              : 0x%04lx (%s)" OSS_NEWLINE,
                              mb->_flag, tmpStr ) ;
 
          mbAttr2String ( mb->_attributes, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Attributes        : 0x%04lx (%s)"OSS_NEWLINE,
+                             " Attributes        : 0x%04lx (%s)" OSS_NEWLINE,
                              mb->_attributes, tmpStr ) ;
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Collection ID     : %u"OSS_NEWLINE,
+                             " Collection ID     : %u" OSS_NEWLINE,
                               mb->_blockID ) ;
 
          const CHAR *compressorType = NULL ;
@@ -428,14 +428,14 @@ namespace engine
          }
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " First extent ID   : 0x%08x (%d)"OSS_NEWLINE
-                             " Last extent ID    : 0x%08x (%d)"OSS_NEWLINE
-                             " Logical ID        : 0x%08x (%d)"OSS_NEWLINE
-                             " Index HWM         : %u"OSS_NEWLINE
-                             " Number of indexes : %u"OSS_NEWLINE
-                             " First Load ExtID  : 0x%08x (%d)"OSS_NEWLINE
-                             " Last Load ExtID   : 0x%08x (%d)"OSS_NEWLINE
-                             " Expand extent ID  : 0x%08x (%d)"OSS_NEWLINE,
+                             " First extent ID   : 0x%08x (%d)" OSS_NEWLINE
+                             " Last extent ID    : 0x%08x (%d)" OSS_NEWLINE
+                             " Logical ID        : 0x%08x (%d)" OSS_NEWLINE
+                             " Index HWM         : %u" OSS_NEWLINE
+                             " Number of indexes : %u" OSS_NEWLINE
+                             " First Load ExtID  : 0x%08x (%d)" OSS_NEWLINE
+                             " Last Load ExtID   : 0x%08x (%d)" OSS_NEWLINE
+                             " Expand extent ID  : 0x%08x (%d)" OSS_NEWLINE,
                              mb->_firstExtentID, mb->_firstExtentID,
                              mb->_lastExtentID, mb->_lastExtentID,
                              mb->_logicalID, mb->_logicalID,
@@ -447,15 +447,15 @@ namespace engine
 
          /// stat
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Total records     : %llu"OSS_NEWLINE
-                             " Total lobs        : %llu"OSS_NEWLINE
-                             " Total data pages  : %u"OSS_NEWLINE
-                             " Total data free sp: %llu"OSS_NEWLINE
-                             " Total index pages : %u"OSS_NEWLINE
-                             " Total idx free sp : %llu"OSS_NEWLINE
-                             " Total lob pages   : %u"OSS_NEWLINE
-                             " Total org data len: %llu"OSS_NEWLINE
-                             " total data len    : %llu"OSS_NEWLINE,
+                             " Total records     : %llu" OSS_NEWLINE
+                             " Total lobs        : %llu" OSS_NEWLINE
+                             " Total data pages  : %u" OSS_NEWLINE
+                             " Total data free sp: %llu" OSS_NEWLINE
+                             " Total index pages : %u" OSS_NEWLINE
+                             " Total idx free sp : %llu" OSS_NEWLINE
+                             " Total lob pages   : %u" OSS_NEWLINE
+                             " Total org data len: %llu" OSS_NEWLINE
+                             " total data len    : %llu" OSS_NEWLINE,
                              mb->_totalRecords,
                              mb->_totalLobs,
                              mb->_totalDataPages,
@@ -468,12 +468,12 @@ namespace engine
 
          /// compress
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Dict extent ID    : 0x%08x (%d)"OSS_NEWLINE
-                             " New Dict extent ID: 0x%08x (%d)"OSS_NEWLINE
-                             " Dict stat page ID : 0x%08x (%d)"OSS_NEWLINE
-                             " Dictionary version: %u"OSS_NEWLINE
-                             " Compression Type  : 0x%02x (%s)"OSS_NEWLINE
-                             " Last comp ratio   : %d"OSS_NEWLINE,
+                             " Dict extent ID    : 0x%08x (%d)" OSS_NEWLINE
+                             " New Dict extent ID: 0x%08x (%d)" OSS_NEWLINE
+                             " Dict stat page ID : 0x%08x (%d)" OSS_NEWLINE
+                             " Dictionary version: %u" OSS_NEWLINE
+                             " Compression Type  : 0x%02x (%s)" OSS_NEWLINE
+                             " Last comp ratio   : %d" OSS_NEWLINE,
                              mb->_dictExtentID, mb->_dictExtentID,
                              mb->_newDictExtentID, mb->_newDictExtentID,
                              mb->_dictStatPageID, mb->_dictStatPageID,
@@ -501,15 +501,15 @@ namespace engine
 
          /// commit info
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Data Commit Flag  : %d"OSS_NEWLINE
-                             " Data Commit LSN   : 0x%016lx (%lld)"OSS_NEWLINE
-                             " Data Commit Time  : %s (%llu)"OSS_NEWLINE
-                             " Idx Commit Flag   : %d"OSS_NEWLINE
-                             " Idx Commit LSN    : 0x%016lx (%lld)"OSS_NEWLINE
-                             " Idx Commit Time   : %s (%llu)"OSS_NEWLINE
-                             " Lob Commit Flag   : %d"OSS_NEWLINE
-                             " Lob Commit LSN    : 0x%016lx (%lld)"OSS_NEWLINE
-                             " Lob Commit Time   : %s (%llu)"OSS_NEWLINE,
+                             " Data Commit Flag  : %d" OSS_NEWLINE
+                             " Data Commit LSN   : 0x%016lx (%lld)" OSS_NEWLINE
+                             " Data Commit Time  : %s (%llu)" OSS_NEWLINE
+                             " Idx Commit Flag   : %d" OSS_NEWLINE
+                             " Idx Commit LSN    : 0x%016lx (%lld)" OSS_NEWLINE
+                             " Idx Commit Time   : %s (%llu)" OSS_NEWLINE
+                             " Lob Commit Flag   : %d" OSS_NEWLINE
+                             " Lob Commit LSN    : 0x%016lx (%lld)" OSS_NEWLINE
+                             " Lob Commit Time   : %s (%llu)" OSS_NEWLINE,
                              mb->_commitFlag,
                              mb->_commitLSN, mb->_commitLSN,
                              strDataTime, mb->_commitTime,
@@ -521,7 +521,7 @@ namespace engine
                              strLobTime, mb->_lobCommitTime ) ;
          // Extent option extent id
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Extend option extent ID: 0x%08x (%d)"OSS_NEWLINE,
+                             " Extend option extent ID: 0x%08x (%d)" OSS_NEWLINE,
                              mb->_mbOptExtentID, mb->_mbOptExtentID ) ;
 
          // create timestamp
@@ -529,7 +529,7 @@ namespace engine
          ossMillisecondsToString( mb->_createTime, strCreateTime ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Create Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              " Create Timestamp  : %s (%llu)" OSS_NEWLINE,
                               strCreateTime, mb->_createTime ) ;
 
          // update timestamp
@@ -537,12 +537,12 @@ namespace engine
          ossMillisecondsToString( mb->_updateTime, strUpdateTime ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Update Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              " Update Timestamp  : %s (%llu)" OSS_NEWLINE,
                               strUpdateTime, mb->_updateTime ) ;
 
          // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Deleted list :"OSS_NEWLINE ) ;
+                             " Deleted list :" OSS_NEWLINE ) ;
          tmpInt = 16 ;
          for ( UINT16 i = 0 ; i < dmsMB::_max ; i++ )
          {
@@ -569,7 +569,7 @@ namespace engine
                continue ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   %3u%c : %08x %08x"OSS_NEWLINE,
+                                "   %3u%c : %08x %08x" OSS_NEWLINE,
                                 tmpSize, uom,
                                 mb->_deleteList[i]._extent,
                                 mb->_deleteList[i]._offset ) ;
@@ -577,7 +577,7 @@ namespace engine
 
          // index list
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " Index extent:"OSS_NEWLINE ) ;
+                             " Index extent:" OSS_NEWLINE ) ;
 
          for ( UINT16 i = 0 ; i < DMS_COLLECTION_MAX_INDEX ; i++ )
          {
@@ -586,7 +586,7 @@ namespace engine
                continue ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   %2u : 0x%08x"OSS_NEWLINE,
+                                "   %2u : 0x%08x" OSS_NEWLINE,
                                 i, mb->_indexExtent[i] ) ;
          }
       }
@@ -624,7 +624,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpMBEx input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -633,14 +633,14 @@ namespace engine
            mbEx->_header._eyeCatcher[1] != DMS_META_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               mbEx->_header._eyeCatcher[0],
                               mbEx->_header._eyeCatcher[1] ) ;
          goto exit ;
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " ExtentID: 0x%08x (%d)"OSS_NEWLINE,
+                           " ExtentID: 0x%08x (%d)" OSS_NEWLINE,
                            extID, extID ) ;
 
       if ( DMS_SU_DMP_OPT_HEX & options )
@@ -665,19 +665,19 @@ namespace engine
          BOOLEAN hasError    = FALSE ;
 
          len += ossSnprintf ( outBuf + len, outSize -len,
-                              " Meta Extent Header :"OSS_NEWLINE ) ;
+                              " Meta Extent Header :" OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
          // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == mbEx->_header._flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: Extent is not in use"OSS_NEWLINE ) ;
+                                 "Error: Extent is not in use" OSS_NEWLINE ) ;
             goto exit ;
          }
 
          len += ossSnprintf ( outBuf + len, outSize -len,
-                              " Segment extent info :"OSS_NEWLINE ) ;
+                              " Segment extent info :" OSS_NEWLINE ) ;
          for ( UINT32 i = 0 ; i < mbEx->_header._segNum ; ++i )
          {
             mbEx->getFirstExtentID( i, firstID ) ;
@@ -694,12 +694,12 @@ namespace engine
                }
 
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "  %6u : [0x%08x, 0x%08x]"OSS_NEWLINE,
+                                    "  %6u : [0x%08x, 0x%08x]" OSS_NEWLINE,
                                     i, firstID, lastID ) ;
             }
          } // end for
          len += ossSnprintf ( outBuf + len, outSize -len,
-                              " Used segment num: %d, has error: %s"OSS_NEWLINE,
+                              " Used segment num: %d, has error: %s" OSS_NEWLINE,
                               usedSegNum, hasError ? "TRUE" : "FALSE" ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -730,18 +730,18 @@ namespace engine
          {
             getDictionaryDetail( (void *)head, detail ) ;
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "Dictionary detail:"OSS_NEWLINE ) ;
+                                "Dictionary detail:" OSS_NEWLINE ) ;
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   Type: %s"OSS_NEWLINE,
+                                "   Type: %s" OSS_NEWLINE,
                                 VALUE_NAME_LZW ) ;
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   Version: %u"OSS_NEWLINE,
+                                "   Version: %u" OSS_NEWLINE,
                                 detail._version ) ;
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   Maximum code: %u"OSS_NEWLINE,
+                                "   Maximum code: %u" OSS_NEWLINE,
                                 detail._maxCode ) ;
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   Code size: %u"OSS_NEWLINE,
+                                "   Code size: %u" OSS_NEWLINE,
                                 detail._codeSize ) ;
          }
       }
@@ -769,13 +769,13 @@ namespace engine
          dmsCappedCLOptions *options =
             (dmsCappedCLOptions *)(inBuf + DMS_OPTEXTENT_HEADER_SZ) ;
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "Extend option detail:"OSS_NEWLINE ) ;
+                             "Extend option detail:" OSS_NEWLINE ) ;
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Size: %lld"OSS_NEWLINE, options->_maxSize ) ;
+                             "   Size: %lld" OSS_NEWLINE, options->_maxSize ) ;
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Max: %lld"OSS_NEWLINE, options->_maxRecNum ) ;
+                             "   Max: %lld" OSS_NEWLINE, options->_maxRecNum ) ;
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "   Overwrite: %s"OSS_NEWLINE,
+                             "   Overwrite: %s" OSS_NEWLINE,
                              (options->_overwrite) ? "true" : "false" ) ;
       }
 
@@ -803,7 +803,7 @@ namespace engine
       {
          len = ossSnprintf( outBuf, outSize,
                             "Error: dumpDictExtent input size (%d) is too "
-                            "small or not aligned with 4K"OSS_NEWLINE,
+                            "small or not aligned with 4K" OSS_NEWLINE,
                             inSize ) ;
          goto exit ;
       }
@@ -812,14 +812,14 @@ namespace engine
            || extent->_eyeCatcher[1] != DMS_DICT_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                             "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                              extent->_eyeCatcher[0],
                              extent->_eyeCatcher[1] ) ;
          goto exit ;
       }
 
       len += ossSnprintf( outBuf + len, outSize - len,
-                          " ExtentId: 0x%08x (%d)"OSS_NEWLINE,
+                          " ExtentId: 0x%08x (%d)" OSS_NEWLINE,
                           extID, extID ) ;
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
@@ -838,12 +838,12 @@ namespace engine
       if ( DMS_SU_DMP_OPT_FORMATTED & options )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                         " Compression Dictionary Extent Header :"OSS_NEWLINE ) ;
+                         " Compression Dictionary Extent Header :" OSS_NEWLINE ) ;
          len += dumpExtentHeader( inBuf, inSize, outBuf + len, outSize - len ) ;
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "Error: Extent is not in use"OSS_NEWLINE ) ;
+                                "Error: Extent is not in use" OSS_NEWLINE ) ;
             goto exit ;
          }
 
@@ -877,14 +877,14 @@ namespace engine
            || extent->_eyeCatcher[1] != DMS_OPT_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                             "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                             "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                              extent->_eyeCatcher[0],
                              extent->_eyeCatcher[1] ) ;
          goto exit ;
       }
 
       len += ossSnprintf( outBuf + len, outSize - len,
-                          " ExtentId: 0x%08x (%d)"OSS_NEWLINE,
+                          " ExtentId: 0x%08x (%d)" OSS_NEWLINE,
                           extID, extID ) ;
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
@@ -902,12 +902,12 @@ namespace engine
       if ( DMS_SU_DMP_OPT_FORMATTED & options )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                         " Extend Option Extent Header :"OSS_NEWLINE ) ;
+                         " Extend Option Extent Header :" OSS_NEWLINE ) ;
          len += dumpExtentHeader( inBuf, inSize, outBuf + len, outSize - len ) ;
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "Error: Extent is not in use"OSS_NEWLINE ) ;
+                                "Error: Extent is not in use" OSS_NEWLINE ) ;
             goto exit ;
          }
          len += _dumpExtOptionDetail( inBuf, inSize, outBuf + len,
@@ -944,7 +944,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpDataExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          nextExtent = DMS_INVALID_EXTENT ;
          goto exit ;
@@ -954,7 +954,7 @@ namespace engine
            extent->_eyeCatcher[1] != DMS_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          nextExtent = DMS_INVALID_EXTENT ;
          goto exit ;
@@ -963,7 +963,7 @@ namespace engine
       if ( DMS_INVALID_EXTENT != nextExtent )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " ExtentID: 0x%08x (%d)"OSS_NEWLINE,
+                              " ExtentID: 0x%08x (%d)" OSS_NEWLINE,
                               nextExtent, nextExtent ) ;
       }
       nextExtent = extent->_nextExtent ;
@@ -985,14 +985,14 @@ namespace engine
       if ( DMS_SU_DMP_OPT_FORMATTED & options )
       {
          len += ossSnprintf ( outBuf + len, outSize -len,
-                              " Data Extent Header:"OSS_NEWLINE ) ;
+                              " Data Extent Header:" OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
          // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: Extent is not in use"OSS_NEWLINE ) ;
+                                 "Error: Extent is not in use" OSS_NEWLINE ) ;
             goto exit ;
          }
 
@@ -1033,7 +1033,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -1071,7 +1071,7 @@ namespace engine
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0],
                               extent->_eyeCatcher[1] ) ;
       }
@@ -1094,20 +1094,20 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf, outSize,
-                           "    Eye Catcher  : %c%c"OSS_NEWLINE,
+                           "    Eye Catcher  : %c%c" OSS_NEWLINE,
                            extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Extent Size  : %u"OSS_NEWLINE,
+                           "    Extent Size  : %u" OSS_NEWLINE,
                            extent->_blockSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    CollectionID : %u"OSS_NEWLINE,
+                           "    CollectionID : %u" OSS_NEWLINE,
                            extent->_mbID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Flag         : 0x%02x (%s)"OSS_NEWLINE,
+                           "    Flag         : 0x%02x (%s)" OSS_NEWLINE,
                            extent->_flag, extent->_flag==DMS_EXTENT_FLAG_INUSE ?
                            "InUse" : "Free" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Version      : %d"OSS_NEWLINE,
+                           "    Version      : %d" OSS_NEWLINE,
                            extent->_version ) ;
    exit:
       return len ;
@@ -1130,7 +1130,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -1138,27 +1138,27 @@ namespace engine
       len += _dmsDump::_dumpExtentHeaderComm( (dmsExtent *)extent,
                                               outBuf, outSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Logic ID     : %d"OSS_NEWLINE,
+                           "    Logic ID     : %d" OSS_NEWLINE,
                            extent->_logicID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    PrevExtent   : 0x%08x (%d)"OSS_NEWLINE,
+                           "    PrevExtent   : 0x%08x (%d)" OSS_NEWLINE,
                            extent->_prevExtent, extent->_prevExtent ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    NextExtent   : 0x%08x (%d)"OSS_NEWLINE,
+                           "    NextExtent   : 0x%08x (%d)" OSS_NEWLINE,
                            extent->_nextExtent, extent->_nextExtent ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Record Count : %u"OSS_NEWLINE,
+                           "    Record Count : %u" OSS_NEWLINE,
                            extent->_recCount ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    First Record : 0x%08x (%d)"OSS_NEWLINE,
+                           "    First Record : 0x%08x (%d)" OSS_NEWLINE,
                            extent->_firstRecordOffset,
                            extent->_firstRecordOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Last Record  : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Last Record  : 0x%08x (%d)" OSS_NEWLINE,
                            extent->_lastRecordOffset,
                            extent->_lastRecordOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Free Space   : %d"OSS_NEWLINE,
+                           "    Free Space   : %d" OSS_NEWLINE,
                            extent->_freeSpace ) ;
 
    exit :
@@ -1182,7 +1182,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -1190,10 +1190,10 @@ namespace engine
       len += _dmsDump::_dumpExtentHeaderComm( (dmsExtent *)extent,
                                               outBuf, outSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Segment num  : %d"OSS_NEWLINE,
+                           "    Segment num  : %d" OSS_NEWLINE,
                            extent->_segNum ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Used seg num : %d"OSS_NEWLINE,
+                           "    Used seg num : %d" OSS_NEWLINE,
                            extent->_usedSegNum ) ;
 
    exit :
@@ -1217,14 +1217,14 @@ namespace engine
       {
          len = ossSnprintf( outBuf, outSize,
                             "Error: dumpDictExtentHeader input size (%d) is "
-                            "too small"OSS_NEWLINE, inSize ) ;
+                            "too small" OSS_NEWLINE, inSize ) ;
          goto exit ;
       }
 
       len += _dmsDump::_dumpExtentHeaderComm( (dmsExtent *)extent,
                                               outBuf, outSize ) ;
       len += ossSnprintf( outBuf + len, outSize - len,
-                          "    Dictionary size: %u"OSS_NEWLINE,
+                          "    Dictionary size: %u" OSS_NEWLINE,
                           extent->_dictLen ) ;
    exit:
       return len ;
@@ -1247,14 +1247,14 @@ namespace engine
       {
          len = ossSnprintf( outBuf, outSize,
                             "Error: dumpExtOptExtentHeader input size (%d) "
-                            "is too small"OSS_NEWLINE, inSize ) ;
+                            "is too small" OSS_NEWLINE, inSize ) ;
          goto exit ;
       }
 
       len += _dmsDump::_dumpExtentHeaderComm( (dmsExtent *)extent,
                                               outBuf, outSize ) ;
       len += ossSnprintf( outBuf + len, outSize - len,
-                          "    Extend option size: %u"OSS_NEWLINE,
+                          "    Extend option size: %u" OSS_NEWLINE,
                           extent->_optSize ) ;
    exit:
       return len ;
@@ -1292,7 +1292,7 @@ namespace engine
             goto exit ;
          }
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "    Record %d:"OSS_NEWLINE,
+                              "    Record %d:" OSS_NEWLINE,
                               recordCount ) ;
          len += dumpDataRecord ( cb, ((CHAR*)extent)+nextRecord,
                                  inSize - nextRecord,
@@ -1330,7 +1330,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpCappedDataRecord input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
@@ -1366,7 +1366,7 @@ namespace engine
             if ( nextRecord <= lastRecord )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   "Error: logicalID (%lld) is invalid"OSS_NEWLINE,
+                                   "Error: logicalID (%lld) is invalid" OSS_NEWLINE,
                                    logicalID ) ;
                nextRecord = DMS_INVALID_OFFSET ;
             }
@@ -1388,7 +1388,7 @@ namespace engine
                {
                   len += ossSnprintf( outBuf + len, outSize - len,
                                       "Error: logicalID (%lld) and offset (%u) "
-                                      "dose not match"OSS_NEWLINE,
+                                      "dose not match" OSS_NEWLINE,
                                       logicalID, nextRecord ) ;
                   nextRecord = DMS_INVALID_OFFSET ;
                }
@@ -1401,7 +1401,7 @@ namespace engine
          }
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "    Record %d:"OSS_NEWLINE,
+                              "    Record %d:" OSS_NEWLINE,
                               recordCount ) ;
 
          len += dumpCappedDataRecord ( cb, record,
@@ -1450,7 +1450,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpDataRecord input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
@@ -1487,38 +1487,38 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Flag         : 0x%02x (%s)"OSS_NEWLINE,
+                           "       Flag         : 0x%02x (%s)" OSS_NEWLINE,
                            flag, flagText ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Compressed   : %s"OSS_NEWLINE,
+                           "       Compressed   : %s" OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
                            "True":"False" ) ;
       if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_COMPRESSED ) &&
            OSS_BIT_TEST( compressorEntry->getFlags(), UTIL_COMPRESS_ALTERABLE_FLAG ) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       CompressType : 0x%02x (%s)"OSS_NEWLINE,
+                              "       CompressType : 0x%02x (%s)" OSS_NEWLINE,
                               record->getCompressType(),
                               utilCompressType2String( record->getCompressType() ) ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Size  : %u"OSS_NEWLINE,
+                           "       Record Size  : %u" OSS_NEWLINE,
                            recordSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       My Offset    : 0x%08x (%d)"OSS_NEWLINE,
+                           "       My Offset    : 0x%08x (%d)" OSS_NEWLINE,
                            record->_myOffset, record->_myOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Prev Offset  : 0x%08x (%d)"OSS_NEWLINE,
+                           "       Prev Offset  : 0x%08x (%d)" OSS_NEWLINE,
                            record->_previousOffset, record->_previousOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Next Offset  : 0x%08x (%d)"OSS_NEWLINE,
+                           "       Next Offset  : 0x%08x (%d)" OSS_NEWLINE,
                            record->_nextOffset, record->_nextOffset ) ;
 
       if ( DMS_INVALID_OFFSET != nextRecord &&  record->_myOffset!= nextRecord )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: my offset (0x%08x) does not match "
-                              "expected ( 0x%08x)"OSS_NEWLINE,
+                              "expected ( 0x%08x)" OSS_NEWLINE,
                               record->_myOffset, nextRecord ) ;
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
@@ -1536,7 +1536,7 @@ namespace engine
          dmsRecordID rid = record->getOvfRID() ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Overflowed To: 0x%08x : 0x%08x ( "
-                              "extent %d offset %d )"OSS_NEWLINE,
+                              "extent %d offset %d )" OSS_NEWLINE,
                               rid._extent, rid._offset, rid._extent,
                               rid._offset ) ;
          if ( ridList )
@@ -1554,14 +1554,14 @@ namespace engine
                                      compressorEntry ) ;
             BSONObj obj ( (CHAR*)recordPtr ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "       Record: %s"OSS_NEWLINE,
+                                 "       Record: %s" OSS_NEWLINE,
                                  obj.toString( FALSE, TRUE ).c_str() ) ;
          }
          catch ( std::exception &e )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Failed to format "
-                                 "record: %s"OSS_NEWLINE,
+                                 "record: %s" OSS_NEWLINE,
                                  e.what() ) ;
          }
       }
@@ -1598,27 +1598,27 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Flag          : 0x%02x (%s)"OSS_NEWLINE,
+                           "       Flag          : 0x%02x (%s)" OSS_NEWLINE,
                            flag, flagText ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Compressed    : %s"OSS_NEWLINE,
+                           "       Compressed    : %s" OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
                            "True":"False" ) ;
       if ( OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       CompressType  : 0x%02x (%s)"OSS_NEWLINE,
+                              "       CompressType  : 0x%02x (%s)" OSS_NEWLINE,
                               record->getCompressType(),
                               utilCompressType2String( record->getCompressType() ) ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Size   : %u"OSS_NEWLINE,
+                           "       Record Size   : %u" OSS_NEWLINE,
                            record->getSize() ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Number : %u"OSS_NEWLINE,
+                           "       Record Number : %u" OSS_NEWLINE,
                            record->getRecordNo() ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       LogicalID     : %lld"OSS_NEWLINE,
+                           "       LogicalID     : %lld" OSS_NEWLINE,
                            record->getLogicalID() ) ;
 
       try
@@ -1628,14 +1628,14 @@ namespace engine
                                   compressorEntry ) ;
          BSONObj obj ( (CHAR*)recordPtr ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Record: %s"OSS_NEWLINE,
+                              "       Record: %s" OSS_NEWLINE,
                               obj.toString( FALSE, TRUE ).c_str() ) ;
       }
       catch ( std::exception &e )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Failed to format "
-                              "record: %s"OSS_NEWLINE,
+                              "record: %s" OSS_NEWLINE,
                               e.what() ) ;
       }
 
@@ -1667,7 +1667,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpIndexExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -1676,7 +1676,7 @@ namespace engine
            extentHead->_eyeCatcher[1] != IXM_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extentHead->_eyeCatcher[0],
                               extentHead->_eyeCatcher[1] ) ;
          goto exit ;
@@ -1691,7 +1691,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: key offset is out of range: %d, "
-                                 "extent size: %d, key pos: %d"OSS_NEWLINE,
+                                 "extent size: %d, key pos: %d" OSS_NEWLINE,
                                  keyOffset, inSize, i ) ;
             goto exit ;
          }
@@ -1723,14 +1723,14 @@ namespace engine
       if ( DMS_SU_DMP_OPT_FORMATTED & options )
       {
          len += ossSnprintf ( outBuf + len, outSize -len,
-                              " Index Extent Header:"OSS_NEWLINE ) ;
+                              " Index Extent Header:" OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
          // make sure extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extentHead->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: Extent is not in use"OSS_NEWLINE ) ;
+                                 "Error: Extent is not in use" OSS_NEWLINE ) ;
             goto exit ;
          }
 
@@ -1745,12 +1745,12 @@ namespace engine
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
                                        "Error: key offset is out of range: %d, "
-                                       "extent size: %d, key pos: %d"OSS_NEWLINE,
+                                       "extent size: %d, key pos: %d" OSS_NEWLINE,
                                        keyOffset, inSize, i ) ;
                   goto exit ;
                }
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "    Key %d:"OSS_NEWLINE,
+                                    "    Key %d:" OSS_NEWLINE,
                                     i ) ;
                len += dumpIndexRecord ( ((CHAR*)inBuf),
                                         inSize,
@@ -1782,41 +1782,41 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpIndexExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Eye Catcher  : %c%c"OSS_NEWLINE,
+                           "    Eye Catcher  : %c%c" OSS_NEWLINE,
                            header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Total Keys   : %u"OSS_NEWLINE,
+                           "    Total Keys   : %u" OSS_NEWLINE,
                            header->_totalKeyNodeNum ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    CollectionID : %u"OSS_NEWLINE,
+                           "    CollectionID : %u" OSS_NEWLINE,
                            header->_mbID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Flag         : 0x%02x (%s)"OSS_NEWLINE,
+                           "    Flag         : 0x%02x (%s)" OSS_NEWLINE,
                            header->_flag, header->_flag==DMS_EXTENT_FLAG_INUSE ?
                            "InUse" : "Free" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Version      : %d"OSS_NEWLINE,
+                           "    Version      : %d" OSS_NEWLINE,
                            header->_version ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Parent Ext   : 0x%08x (%d)%s"OSS_NEWLINE,
+                           "    Parent Ext   : 0x%08x (%d)%s" OSS_NEWLINE,
                            header->_parentExtentID , header->_parentExtentID,
                            DMS_INVALID_EXTENT == header->_parentExtentID ?
                            " (root)":"" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Free Offset  : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Free Offset  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_beginFreeOffset,
                            header->_beginFreeOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Total Free   : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Total Free   : 0x%08x (%d)" OSS_NEWLINE,
                            header->_totalFreeSize, header->_totalFreeSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Right Child  : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Right Child  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_right, header->_right ) ;
 
    exit :
@@ -1855,25 +1855,25 @@ namespace engine
       keyOfst   = keyNode->_keyOffset ;
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Left Ptr     : 0x%08x (%d)"OSS_NEWLINE,
+                           "       Left Ptr     : 0x%08x (%d)" OSS_NEWLINE,
                            left, left ) ;
       if ( rid._offset & 1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Record ID    : 0x%08x : 0x%08x "
-                              "(Unused)"OSS_NEWLINE,
+                              "(Unused)" OSS_NEWLINE,
                               rid._extent, rid._offset ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Record ID    : 0x%08x : 0x%08x "
-                              "(extent: %d; offset: %d)"OSS_NEWLINE,
+                              "(extent: %d; offset: %d)" OSS_NEWLINE,
                               rid._extent, rid._offset, rid._extent,
                               rid._offset ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Key Offset   : 0x%04x (%u)"OSS_NEWLINE,
+                           "       Key Offset   : 0x%04x (%u)" OSS_NEWLINE,
                            keyOfst, keyOfst ) ;
       if ( keyOfst > inSize )
       {
@@ -1887,7 +1887,7 @@ namespace engine
       {
          ixmKey key ( ((CHAR*)inBuf)+keyOfst ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Key Value    : %s"OSS_NEWLINE,
+                              "       Key Value    : %s" OSS_NEWLINE,
                               key.toString().c_str() ) ;
       }
       catch ( std::exception &e )
@@ -1922,7 +1922,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpIndexCBExtentHeader input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -1931,49 +1931,49 @@ namespace engine
            header->_eyeCatcher[1] != IXM_EXTENT_CB_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
          goto exit ;
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Eye Catcher  : %c%c"OSS_NEWLINE,
+                           "    Eye Catcher  : %c%c" OSS_NEWLINE,
                            header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
 
       ossStrncpy ( tmpBuff, ixmGetIndexFlagDesp(header->_indexFlag),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Index Flags  : %d (%s)"OSS_NEWLINE,
+                           "    Index Flags  : %d (%s)" OSS_NEWLINE,
                            header->_indexFlag, tmpBuff ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    CollectionID : %u"OSS_NEWLINE,
+                           "    CollectionID : %u" OSS_NEWLINE,
                            header->_mbID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Flag         : 0x%02x (%s)"OSS_NEWLINE,
+                           "    Flag         : 0x%02x (%s)" OSS_NEWLINE,
                            header->_flag, header->_flag==DMS_EXTENT_FLAG_INUSE ?
                            "InUse" : "Free" ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Version      : %d"OSS_NEWLINE,
+                           "    Version      : %d" OSS_NEWLINE,
                            header->_version ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "  Logical ID     : %d"OSS_NEWLINE,
+                           "  Logical ID     : %d" OSS_NEWLINE,
                            header->_logicID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Root Ext     : 0x%08x (%d)"OSS_NEWLINE,
+                           "    Root Ext     : 0x%08x (%d)" OSS_NEWLINE,
                            header->_rootExtentID, header->_rootExtentID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Scan extent LID  : 0x%08x (%d)"OSS_NEWLINE,
+                           "Scan extent LID  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_scanExtLID, header->_scanExtLID ) ;
       ossStrncpy ( tmpBuff, ixmGetIndexTypeDesp(header->_type).c_str(),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "     Type        : %d (%s)"OSS_NEWLINE,
+                           "     Type        : %d (%s)" OSS_NEWLINE,
                            header->_type, tmpBuff ) ;
       try
       {
          BSONObj indexDef ( ((CHAR*)inBuf+sizeof(ixmIndexCBExtent)) ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "    Index Def    : %s"OSS_NEWLINE,
+                              "    Index Def    : %s" OSS_NEWLINE,
                               indexDef.toString().c_str() ) ;
       }
       catch ( std::exception &e )
@@ -2009,7 +2009,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: dumpIndexCBExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          goto exit ;
       }
@@ -2018,7 +2018,7 @@ namespace engine
            extent->_eyeCatcher[1] != IXM_EXTENT_CB_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          goto exit ;
       }
@@ -2083,22 +2083,22 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
    {
       dmsLobMeta *lobMeta = (dmsLobMeta*)inBuf;
       const char *tag = NULL;
-      len += ossSnprintf(outBuf + len, outSize -len, "Lobd Meta:"OSS_NEWLINE) ;
+      len += ossSnprintf(outBuf + len, outSize -len, "Lobd Meta:" OSS_NEWLINE) ;
 
       len += ossSnprintf(outBuf + len, outSize - len,
-                                    " Lob Len        :%lld"OSS_NEWLINE,
+                                    " Lob Len        :%lld" OSS_NEWLINE,
                                     lobMeta->_lobLen);
 
       CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
       ossTimestamp tm(lobMeta->_createTime);
       ossTimestampToString(tm , strTime ) ;
       len += ossSnprintf(outBuf + len, outSize - len,
-                                    " Create Time    :%s (%llu)"OSS_NEWLINE,
+                                    " Create Time    :%s (%llu)" OSS_NEWLINE,
                                     strTime, lobMeta->_createTime) ;
 
       tag = lobMeta->isDone()? "DMS_LOB_COMPLETE":"DMS_LOB_UNCOMPLETE";
       len += ossSnprintf(outBuf + len, outSize - len,
-                                    " Status         :%s (%u)"OSS_NEWLINE,
+                                    " Status         :%s (%u)" OSS_NEWLINE,
                                     tag, lobMeta->_status);
 
       tag = (lobMeta->_version == DMS_LOB_META_CURRENT_VERSION )
@@ -2106,24 +2106,24 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
                           : NULL;
 
       len += ossSnprintf(outBuf + len, outSize - len,
-                                    " Version        :%s (%u)"OSS_NEWLINE,
+                                    " Version        :%s (%u)" OSS_NEWLINE,
                                     tag, lobMeta->_version) ;
 
       tm = lobMeta->_createTime;
       ossTimestampToString(tm , strTime ) ;
       len += ossSnprintf(outBuf + len, outSize - len,
-                                    " Mod Time       :%s (%llu)"OSS_NEWLINE,
+                                    " Mod Time       :%s (%llu)" OSS_NEWLINE,
                                     strTime, lobMeta->_modificationTime);
 
       tag = lobMeta->hasPiecesInfo()
                        ? "DMS_LOB_META_FLAG_PIECESINFO_INSIDE"
                        : "NO PIECESINFO";
 
-      len += ossSnprintf(outBuf + len, outSize - len, " Flag           :%s (%u)"OSS_NEWLINE, tag, lobMeta->_flag);
+      len += ossSnprintf(outBuf + len, outSize - len, " Flag           :%s (%u)" OSS_NEWLINE, tag, lobMeta->_flag);
 
       len += ossSnprintf(outBuf + len,
                                    outSize - len,
-                                   " PiecesInfo Num :%d"OSS_NEWLINE,
+                                   " PiecesInfo Num :%d" OSS_NEWLINE,
                                    lobMeta->_piecesInfoNum);
 
       if ( (lobMeta->_piecesInfoNum <=  0) ||
@@ -2136,7 +2136,7 @@ UINT32 _dmsDump::dumpDmsLobMeta( CHAR *inBuf, UINT32 inSize,
       for(INT32 i = 0; i < lobMeta->_piecesInfoNum; i ++)
       {
          len += ossSnprintf ( outBuf+len, outSize-len,
-                                          "      { first:%u; last:%u }"OSS_NEWLINE,
+                                          "      { first:%u; last:%u }" OSS_NEWLINE,
                                           piecesInfoBuf[i].first,
                                           piecesInfoBuf[i].last);
       }
@@ -2221,22 +2221,22 @@ UINT32 _dmsDump::dumpDmsLobDataMapBlk(dmsLobDataMapBlk *blk, CHAR * outBuf,
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
       const char *tag = NULL;
-      len += ossSnprintf(outBuf + len, outSize -len, "Lobm dmsLobDataMapBlk:"OSS_NEWLINE);
+      len += ossSnprintf(outBuf + len, outSize -len, "Lobm dmsLobDataMapBlk:" OSS_NEWLINE);
       bson::OID oid;
       ossMemcpy(&oid, blk->_oid, DMS_LOB_OID_LEN);
-      len += ossSnprintf(outBuf + len, outSize -len,  " Oid            :%s"OSS_NEWLINE, oid.str().c_str());
-      len += ossSnprintf(outBuf + len, outSize - len, " Sequence       :%u"OSS_NEWLINE, blk->_sequence);
-      len += ossSnprintf(outBuf + len, outSize - len, " Data Len       :%u"OSS_NEWLINE, blk->_dataLen);
-      len += ossSnprintf(outBuf + len, outSize - len, " Prev PageId    :%d"OSS_NEWLINE, blk->_prevPageInBucket);
-      len += ossSnprintf(outBuf + len, outSize - len, " Next PageId    :%d"OSS_NEWLINE, blk->_nextPageInBucket);
-      len += ossSnprintf(outBuf + len, outSize - len, " CL LogicId     :%u"OSS_NEWLINE, blk->_clLogicalID);
-      len += ossSnprintf(outBuf + len, outSize - len, " MB Id          :%u"OSS_NEWLINE, blk->_mbID);
+      len += ossSnprintf(outBuf + len, outSize -len,  " Oid            :%s" OSS_NEWLINE, oid.str().c_str());
+      len += ossSnprintf(outBuf + len, outSize - len, " Sequence       :%u" OSS_NEWLINE, blk->_sequence);
+      len += ossSnprintf(outBuf + len, outSize - len, " Data Len       :%u" OSS_NEWLINE, blk->_dataLen);
+      len += ossSnprintf(outBuf + len, outSize - len, " Prev PageId    :%d" OSS_NEWLINE, blk->_prevPageInBucket);
+      len += ossSnprintf(outBuf + len, outSize - len, " Next PageId    :%d" OSS_NEWLINE, blk->_nextPageInBucket);
+      len += ossSnprintf(outBuf + len, outSize - len, " CL LogicId     :%u" OSS_NEWLINE, blk->_clLogicalID);
+      len += ossSnprintf(outBuf + len, outSize - len, " MB Id          :%u" OSS_NEWLINE, blk->_mbID);
 
       tag = blk->isNormal()? "DMS_LOB_PAGE_NORMAL":"DMS_LOB_PAGE_REMOVED";
-      len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)"OSS_NEWLINE,tag, blk->_status);
+      len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)" OSS_NEWLINE,tag, blk->_status);
 
       tag = blk->isNew()? "DMS_LOB_PAGE_NEW":"DMS_LOB_PAGE_OLD";
-      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)"OSS_NEWLINE,tag, blk->_newFlag);
+      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)" OSS_NEWLINE,tag, blk->_newFlag);
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;

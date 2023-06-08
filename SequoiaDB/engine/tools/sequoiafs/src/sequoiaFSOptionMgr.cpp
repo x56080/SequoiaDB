@@ -102,7 +102,7 @@ INT32 _sequoiafsOptionMgr::parseCollection( const string collection,
    {
      rc = SDB_INVALIDARG;
      ossPrintf( "The input collection's pattern is wrong( error=%d ), "
-                "collecion:%s, exit."OSS_NEWLINE, rc, clFullName.c_str() );
+                "collecion:%s, exit." OSS_NEWLINE, rc, clFullName.c_str() );
      goto error;
    }
 

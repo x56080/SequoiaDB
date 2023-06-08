@@ -367,7 +367,7 @@ namespace engine
       rc = queryOneTask( selector, matcher, orderBy, hint, taskInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "get task info failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "get task info failed:taskID=" OSS_LL_PRINT_FORMAT
                  ",rc=%d", _taskID, rc ) ;
          goto error ;
       }
@@ -547,7 +547,7 @@ namespace engine
          rc = queryOneTask( selector, matcher, orderBy, hint, localTask ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "query task failed:taskID="OSS_LL_PRINT_FORMAT
+            PD_LOG( PDERROR, "query task failed:taskID=" OSS_LL_PRINT_FORMAT
                     ",rc=%d", _taskID, rc ) ;
             goto error ;
          }
@@ -660,7 +660,7 @@ namespace engine
       rc = queryOneTask( selector, matcher, orderBy, hint, taskInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "get task info failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "get task info failed:taskID=" OSS_LL_PRINT_FORMAT
                  ",rc=%d", _taskID, rc ) ;
          goto error ;
       }
@@ -739,7 +739,7 @@ namespace engine
          rc = queryOneTask( selector, matcher, orderBy, hint, localTask ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "query task failed:taskID="OSS_LL_PRINT_FORMAT
+            PD_LOG( PDERROR, "query task failed:taskID=" OSS_LL_PRINT_FORMAT
                     ",rc=%d", _taskID, rc ) ;
             goto error ;
          }
@@ -1760,7 +1760,7 @@ namespace engine
       rc = queryOneTask( selector, matcher, orderBy, hint, taskInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "get task info failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "get task info failed:taskID=" OSS_LL_PRINT_FORMAT
                  ",rc=%d", _taskID, rc ) ;
          goto error ;
       }
@@ -2030,7 +2030,7 @@ namespace engine
       if ( !isExist || isFinish )
       {
          rc = SDB_OM_TASK_NOT_EXIST ;
-         PD_LOG( PDERROR, "task status error:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "task status error:taskID=" OSS_LL_PRINT_FORMAT
                  ",isExist[%d],isFinish[%d]",  taskID, isExist, isFinish ) ;
          goto error ;
       }
@@ -2070,7 +2070,7 @@ namespace engine
          pTask = SDB_OSS_NEW omRestartBusinessTask( taskID ) ;
          break ;
       default :
-         PD_LOG( PDERROR, "unknown task type:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "unknown task type:taskID=" OSS_LL_PRINT_FORMAT
                  ",taskType=%d", taskID, taskType ) ;
          SDB_ASSERT( FALSE, "unknown task type" ) ;
          rc = SDB_INVALIDARG ;
@@ -2107,7 +2107,7 @@ namespace engine
             rc = pTask->finish( resultInfo ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "finish task failed:taskID="OSS_LL_PRINT_FORMAT
+               PD_LOG( PDERROR, "finish task failed:taskID=" OSS_LL_PRINT_FORMAT
                        ",rc=%d", pTask->getTaskID(), rc ) ;
                goto error ;
             }
@@ -2117,7 +2117,7 @@ namespace engine
       rc = _updateTask( pTask, taskID, taskUpdateInfo, isFinish ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "update task failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "update task failed:taskID=" OSS_LL_PRINT_FORMAT
                  ",rc=%d", taskID, rc ) ;
          goto error ;
       }

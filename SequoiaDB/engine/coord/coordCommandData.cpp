@@ -4939,8 +4939,8 @@ namespace engine
          rc = keyGen.getKeys ( obj, keys, NULL, TRUE ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Gen key failed, rc: %d"OSS_NEWLINE
-                    "record: %s"OSS_NEWLINE"keyDef: %s", rc,
+            PD_LOG( PDERROR, "Gen key failed, rc: %d" OSS_NEWLINE 
+                    "record: %s" OSS_NEWLINE "keyDef: %s", rc,
                     obj.toString().c_str(),
                     shardingKey.toString().c_str() ) ;
             goto error ;
@@ -4948,7 +4948,7 @@ namespace engine
          if ( 1 != keys.size() )
          {
             PD_LOG( PDERROR, "There must be a single key generate for "
-                    "sharding"OSS_NEWLINE"record: %s"OSS_NEWLINE"keyDef: %s",
+                    "sharding" OSS_NEWLINE "record: %s" OSS_NEWLINE "keyDef: %s",
                     obj.toString().c_str(),
                     shardingKey.toString().c_str() ) ;
             rc = SDB_INVALID_SHARDINGKEY ;

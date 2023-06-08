@@ -62,9 +62,9 @@ using namespace engine;
 #define REPLOG_NAME_PREFIX "sequoiadbLog."
 #define LOG_FILE_NAME "dpsDumpLog.log"
 OSSFILE logFile ;
-const static CHAR *logFMT = "Level: %s"OSS_NEWLINE"Function: %-32s"OSS_NEWLINE
-                            "File: %s"OSS_NEWLINE"Line: %d"OSS_NEWLINE
-                            "Message:"OSS_NEWLINE"%s"OSS_NEWLINE""OSS_NEWLINE;
+const static CHAR *logFMT = "Level: %s" OSS_NEWLINE "Function: %-32s" OSS_NEWLINE
+                            "File: %s" OSS_NEWLINE "Line: %d" OSS_NEWLINE
+                            "Message:" OSS_NEWLINE "%s" OSS_NEWLINE "" OSS_NEWLINE;
 
 void writeLog( BOOLEAN console, const CHAR *type, const CHAR *func,
                const CHAR *file, const int line, const CHAR *fmt, ... )
@@ -819,7 +819,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
    CHAR *pos = (CHAR*)ossStrchr( pin, ':' ) ;
    if ( NULL == pos )
    {
-      ossPrintf( "repaire format must be: header:xx=y,dd=k"OSS_NEWLINE ) ;
+      ossPrintf( "repaire format must be: header:xx=y,dd=k" OSS_NEWLINE ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
@@ -827,7 +827,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
    if ( 0 != ossStrcasecmp( pin, "header" ) )
    {
       *pos = ':' ;
-      ossPrintf( "repaire only support for type header"OSS_NEWLINE ) ;
+      ossPrintf( "repaire only support for type header" OSS_NEWLINE ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
@@ -837,7 +837,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
    rc = opt.parseAddressLine( pos + 1, items, ",", "=", 0 ) ;
    if ( SDB_OK != rc )
    {
-      ossPrintf( "Parse repaire value failed: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Parse repaire value failed: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -900,7 +900,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
       /// must be nubmer
       if ( !ossIsInteger( aItem._service ) )
       {
-         ossPrintf( "Field[%s]'s value is not number[%s]"OSS_NEWLINE,
+         ossPrintf( "Field[%s]'s value is not number[%s]" OSS_NEWLINE,
                     aItem._host, aItem._service ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -929,7 +929,7 @@ INT32 _dpsDumper::repaireHeader( const std::string &str )
       }
       else
       {
-         ossPrintf( "Unknow header key: %s"OSS_NEWLINE, aItem._host ) ;
+         ossPrintf( "Unknow header key: %s" OSS_NEWLINE, aItem._host ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -1508,28 +1508,28 @@ INT64 _dpsDumper::_dumpMeta( const dpsMetaData& meta,
    UINT32 lastFileId = 0;
 
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "======================================="OSS_NEWLINE
+                       "=======================================" OSS_NEWLINE
                        ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    Log Files in total: %d"OSS_NEWLINE,
+                       "    Log Files in total: %d" OSS_NEWLINE,
                        meta.fileCount ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    LogFile begin     : sequoiadbLog.%d"OSS_NEWLINE,
+                       "    LogFile begin     : sequoiadbLog.%d" OSS_NEWLINE,
                        meta.metaList[_meta.fileBegin].index ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    LogFile work      : sequoiadbLog.%d"OSS_NEWLINE,
+                       "    LogFile work      : sequoiadbLog.%d" OSS_NEWLINE,
                        meta.metaList[ meta.fileWork ].index ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    Begin Lsn         : 0x%08lx"OSS_NEWLINE,
+                       "    Begin Lsn         : 0x%08lx" OSS_NEWLINE,
                        meta.metaList[ meta.fileBegin].firstLSN ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    Current Lsn       : 0x%08lx"OSS_NEWLINE,
+                       "    Current Lsn       : 0x%08lx" OSS_NEWLINE,
                        meta.metaList[ meta.fileWork ].lastLSN ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "    Expect Lsn        : 0x%08lx"OSS_NEWLINE,
+                       "    Expect Lsn        : 0x%08lx" OSS_NEWLINE,
                        ( meta.metaList[ meta.fileWork ].expectLSN ) ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "======================================="OSS_NEWLINE
+                       "=======================================" OSS_NEWLINE
                        ) ;
 
    // print lost file name
@@ -1545,8 +1545,8 @@ INT64 _dpsDumper::_dumpMeta( const dpsMetaData& meta,
          for( lastFileId++ ; lastFileId < fMeta.index ; lastFileId++ )
          {
             len += ossSnprintf( pBuffer + len, bufferSize - len,
-                                OSS_NEWLINE"ERROR: Log File Name "
-                                "(sequoiadbLog.%d) is Missing"OSS_NEWLINE,
+                                OSS_NEWLINE "ERROR: Log File Name "
+                                "(sequoiadbLog.%d) is Missing" OSS_NEWLINE,
                                 lastFileId ) ;
          }
       }
@@ -1557,30 +1557,30 @@ INT64 _dpsDumper::_dumpMeta( const dpsMetaData& meta,
          for ( UINT32 j = 0; j < lostFileNum; j++ )
          {
             len += ossSnprintf( pBuffer + len, bufferSize - len,
-                                OSS_NEWLINE"ERROR: Log File Name "
-                                "(sequoiadbLog.%d) is Missing"OSS_NEWLINE,
+                                OSS_NEWLINE "ERROR: Log File Name "
+                                "(sequoiadbLog.%d) is Missing" OSS_NEWLINE,
                                 lastFileId + 1 + j) ;
          }
       }
 
       // foreach file meta
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          OSS_NEWLINE"Log File Name: sequoiadbLog.%d"
+                          OSS_NEWLINE "Log File Name: sequoiadbLog.%d"
                           OSS_NEWLINE,
                           fMeta.index) ;
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          "Logic ID     : %d"OSS_NEWLINE, fMeta.logID ) ;
+                          "Logic ID     : %d" OSS_NEWLINE, fMeta.logID ) ;
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          "First LSN    : 0x%08lx"OSS_NEWLINE,
+                          "First LSN    : 0x%08lx" OSS_NEWLINE,
                           fMeta.firstLSN ) ;
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          "Last  LSN    : 0x%08lx"OSS_NEWLINE,
+                          "Last  LSN    : 0x%08lx" OSS_NEWLINE,
                           fMeta.lastLSN ) ;
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          "Valid Size   : %lld bytes"OSS_NEWLINE,
+                          "Valid Size   : %lld bytes" OSS_NEWLINE,
                           fMeta.validSize ) ;
       len += ossSnprintf( pBuffer + len, bufferSize - len,
-                          "Rest Size    : %lld bytes"OSS_NEWLINE,
+                          "Rest Size    : %lld bytes" OSS_NEWLINE,
                           fMeta.restSize ) ;
       lastIndex = fileIndex;
       lastFileId = fMeta.index;
@@ -1879,9 +1879,9 @@ INT32 _dpsDumper::filte( dpsDumpFilter *filter,
    BOOLEAN printLogHead= FALSE ;
 
    CHAR parseBegin[ BLOCK_SIZE ] = { 0 } ;
-   len  = ossSnprintf( parseBegin, BLOCK_SIZE, OSS_NEWLINE""OSS_NEWLINE ) ;
+   len  = ossSnprintf( parseBegin, BLOCK_SIZE, OSS_NEWLINE "" OSS_NEWLINE ) ;
    len += ossSnprintf( parseBegin + len, BLOCK_SIZE - len,
-                       "parse file : [%s]"OSS_NEWLINE, filename ) ;
+                       "parse file : [%s]" OSS_NEWLINE, filename ) ;
 
    rc = ossOpen( filename, OSS_DEFAULT | OSS_READONLY,
                  OSS_RU | OSS_WU | OSS_RG, in ) ;
@@ -2226,7 +2226,7 @@ INT32 main( INT32 argc, CHAR **argv )
                  OSS_RU|OSS_WU|OSS_RG|OSS_RO, logFile ) ;
    if ( SDB_OK != rc )
    {
-      std::cout << "Failed to open the file "LOG_FILE_NAME ;
+      std::cout << "Failed to open the file " LOG_FILE_NAME ;
       if ( SDB_PERM == rc )
       {
          cout << " : permission error" ;

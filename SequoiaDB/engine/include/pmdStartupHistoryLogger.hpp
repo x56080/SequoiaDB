@@ -53,7 +53,7 @@ namespace engine
       start-up history logger
    */
    #define PMD_STARTUP_LOG_LEN_MAX     ( 64 )
-   #define PMD_STARTUP_LOG_HEADER      "pid, startTime, startType, version"OSS_NEWLINE
+   #define PMD_STARTUP_LOG_HEADER      "pid, startTime, startType, version" OSS_NEWLINE
    #define PMD_STARTUP_LOG_HEADER_SIZE ( sizeof( PMD_STARTUP_LOG_HEADER ) - 1 )
    #define PMD_STARTUP_LOG_FIELD_NUM   ( 4 )
    #define PMD_STARTUP_FILESIZE_LIMIT  ( 1000 * 1024 )
@@ -77,7 +77,7 @@ namespace engine
 
          ossTimestampToString( _time, strTime ) ;
 
-         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%s,%s"OSS_NEWLINE,
+         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%s,%s" OSS_NEWLINE,
                       _pid,
                       strTime,
                       pmdGetStartTypeStr( _type ),

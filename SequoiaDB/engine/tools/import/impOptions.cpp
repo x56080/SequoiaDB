@@ -480,7 +480,7 @@ namespace import
       }
       if (SDB_OK != rc)
       {
-         ossPrintf("Failed to connect to database, rc = %d"OSS_NEWLINE, rc);
+         ossPrintf("Failed to connect to database, rc = %d" OSS_NEWLINE, rc);
          goto error;
       }
 

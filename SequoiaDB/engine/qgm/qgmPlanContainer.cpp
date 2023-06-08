@@ -78,7 +78,7 @@ namespace engine
          rc = qgmDump ( this, pBuffer, bufferSize ) ;
          if ( SDB_OK == rc )
          {
-            PD_LOG ( PDEVENT, "Plan:"OSS_NEWLINE"%s", pBuffer ) ;
+            PD_LOG ( PDEVENT, "Plan:" OSS_NEWLINE "%s", pBuffer ) ;
          }
          SDB_OSS_FREE ( pBuffer ) ;
       }

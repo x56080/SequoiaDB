@@ -907,7 +907,7 @@ namespace engine
       // check whether 'localhost' or '127.0.0.1' is used
       // {"Group.HostName":{"$in":["localhost","127.0.0.1"]}}
       matcher = BSON(
-            CAT_GROUP_NAME"."CAT_HOST_FIELD_NAME <<
+            CAT_GROUP_NAME "." CAT_HOST_FIELD_NAME <<
             BSON ( "$in" << BSON_ARRAY( OSS_LOCALHOST << OSS_LOOPBACK_IP ) ) ) ;
       rc = _countNodes( CAT_NODE_INFO_COLLECTION, matcher, count, cb ) ;
       PD_RC_CHECK( rc, PDERROR,

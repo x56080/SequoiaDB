@@ -206,7 +206,7 @@ namespace engine
       rc = pmdResolveArguments ( argc, argv ) ;
       if ( rc )
       {
-         ossPrintf( "Failed resolving arguments(error=%d), exit"OSS_NEWLINE,
+         ossPrintf( "Failed resolving arguments(error=%d), exit" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
