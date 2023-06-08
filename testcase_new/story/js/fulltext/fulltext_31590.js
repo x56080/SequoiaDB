@@ -17,7 +17,7 @@ function test ( testPara )
    // 创建全文索引
    var idxName = "idx_31589";
    var mappingsInfo = { "Fields": { "tstr": { "Type": "keyword" }, "tdate": { "Index": false } } };
-   dbcl.createIndex( idxName, { "tstr": "text", "tdate": "text", "tint": "text", "tobj": "text" }, { "Mappings": { mappingsInfo }} );
+   dbcl.createIndex( idxName, { "tstr": "text", "tdate": "text", "tint": "text", "tobj": "text" }, { "Mappings": mappingsInfo } );
    listIndexCheckMappings( dbcl, idxName, mappingsInfo );
    snapshotIndexCheckMappings( dbcl, idxName, mappingsInfo );
    
