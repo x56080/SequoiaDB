@@ -2,8 +2,8 @@
  * @Description   : seqDB-30937:通过快照/列表查看RecycleTime字段类型
  * @Author        : Bi Qin
  * @CreateTime    : 2023.03.25
- * @LastEditTime  : 2023.03.31
- * @LastEditors   : Bi Qin
+ * @LastEditTime  : 2023.06.08
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -38,6 +38,9 @@ function test ()
 
 function checkCursor ( cursor )
 {
-   assert.equal( cursor.current().toObj().RecycleTime, "string" );
+   while( cursor.next() )
+   {
+      assert.equal( cursor.current().toObj().RecycleTime, "string", JSON.stringify( cursor.current().toObj() ) );
+   }
    cursor.close();
 }
