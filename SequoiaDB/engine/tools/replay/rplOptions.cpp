@@ -232,13 +232,13 @@ namespace replay
 
       for (INT32 i = 0; i < argc; i++)
       {
-         if (argv[i] == string("--"RPL_OPTION_PASSWD))
+         if (argv[i] == string("--" RPL_OPTION_PASSWD))
          {
             i++; // ignore password
             continue;
          }
 
-         if (i > 0 && argv[i - 1] == string("--"RPL_OPTION_FILTER))
+         if (i > 0 && argv[i - 1] == string("--" RPL_OPTION_FILTER))
          {
             ss << "'" << argv[i] << "'" << " ";
          }
@@ -257,13 +257,13 @@ namespace replay
 
       for (INT32 i = 0; i < argc; i++)
       {
-         if (argv[i] == string("--"RPL_OPTION_DAEMON))
+         if (argv[i] == string("--" RPL_OPTION_DAEMON))
          {
             i++; // ignore daemon value
             continue;
          }
 
-         if (i > 0 && argv[i - 1] == string("--"RPL_OPTION_FILTER))
+         if (i > 0 && argv[i - 1] == string("--" RPL_OPTION_FILTER))
          {
             ss << "'" << argv[i] << "'" << " ";
          }

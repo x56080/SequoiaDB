@@ -587,12 +587,12 @@ namespace engine
                                                    _mbContext->mbID(),
                                                    NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction-lock of "
-                      "collection [%s], rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "collection [%s], rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       collection, rc,
                       lockConflict._eduID,
                       lockConflict._tid,

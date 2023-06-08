@@ -395,19 +395,19 @@ namespace engine
           */
          len += ossSnprintf ( outBuf + len, outSize - len,
                               OSS_NEWLINE
-                              " Version: 0x%08lx(%d)"OSS_NEWLINE,
+                              " Version: 0x%08lx(%d)" OSS_NEWLINE,
                               _head._version, _head._version ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " LSN    : 0x%016lx(%lld)"OSS_NEWLINE,
+                              " LSN    : 0x%016lx(%lld)" OSS_NEWLINE,
                               _head._lsn, _head._lsn ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " PreLSN : 0x%016lx(%lld)"OSS_NEWLINE,
+                              " PreLSN : 0x%016lx(%lld)" OSS_NEWLINE,
                               _head._preLsn, _head._preLsn ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Length : %d"OSS_NEWLINE,
+                              " Length : %d" OSS_NEWLINE,
                               _head._length ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Flags  : 0x%04hx(%s)"OSS_NEWLINE, _head._flags,
+                              " Flags  : 0x%04hx(%s)" OSS_NEWLINE, _head._flags,
                               tmpStr ) ;
 
          itrTime = this->find( DPS_LOG_PUBLIC_TIME ) ;
@@ -421,7 +421,7 @@ namespace engine
             timestamp = ossMicrosecondsToTimestamp( microSeconds ) ;
             ossTimestampToString( timestamp, timeStr ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Time   : %s"OSS_NEWLINE,
+                                 " Time   : %s" OSS_NEWLINE,
                                  timeStr ) ;
          }
 
@@ -434,7 +434,7 @@ namespace engine
          case LOG_TYPE_DUMMY :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "PAD", LOG_TYPE_DUMMY ) ;
             break ;
          }
@@ -444,26 +444,26 @@ namespace engine
 
             dpsLogRecord::iterator itrName, itrObj ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "INSERT", LOG_TYPE_DATA_INSERT ) ;
             itrName = this->find(DPS_LOG_PUBLIC_FULLNAME) ;
             if ( !itrName.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName : %s" OSS_NEWLINE,
                                  itrName.value() ) ;
             itrObj = this->find( DPS_LOG_INSERT_OBJ ) ;
             if ( !itrObj.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find obj in record" ) ;
                PD_LOG( PDERROR, "Failed to find obj in record" ) ;
                goto done ;
@@ -473,13 +473,13 @@ namespace engine
             {
                BSONObj obj( itrObj.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Insert : %s"OSS_NEWLINE,
+                                    " Insert : %s" OSS_NEWLINE,
                                     obj.toString().c_str() ) ;
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid insert record", e.what() ) ;
                goto done ;
             }
@@ -488,7 +488,7 @@ namespace engine
             if ( !unqIdxHashArray.empty() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   " NewUnqIdxHash : %s"OSS_NEWLINE,
+                                   " NewUnqIdxHash : %s" OSS_NEWLINE,
                                    unqIdxHashArray.toString().c_str() ) ;
             }
 
@@ -499,7 +499,7 @@ namespace engine
             dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "UPDATE", LOG_TYPE_DATA_UPDATE ) ;
 
             dpsLogRecord::iterator itrFullName, itrOldM, itrOldO,
@@ -510,21 +510,21 @@ namespace engine
             if ( !itrFullName.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName : %s" OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
             itrWriteMode = this->find( DPS_LOG_UPDATE_WRITEMODE ) ;
             if ( itrWriteMode.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " WriteMode : %d"OSS_NEWLINE,
+                                    " WriteMode : %d" OSS_NEWLINE,
                                     *(( UINT32 *)itrWriteMode.value()) ) ;
             }
 
@@ -532,7 +532,7 @@ namespace engine
             if ( !itrOldM.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find oldmatch in record" ) ;
                PD_LOG( PDERROR, "Failed to find oldmatch in record" ) ;
                goto done ;
@@ -549,7 +549,7 @@ namespace engine
             if ( !itrNewM.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find newmatch in record" ) ;
                PD_LOG( PDERROR, "Failed to find newmatch in record" ) ;
                goto done ;
@@ -559,7 +559,7 @@ namespace engine
             if ( !itrNewO.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find newobj in record" ) ;
                PD_LOG( PDERROR, "Failed to find newobj in record" ) ;
                goto done ;
@@ -575,36 +575,36 @@ namespace engine
                BSONObj newM( itrNewM.value() ) ;
                BSONObj newO( itrNewO.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Orig id: %s"OSS_NEWLINE,
+                                    " Orig id: %s" OSS_NEWLINE,
                                     oldM.toString().c_str() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Orig   : %s"OSS_NEWLINE,
+                                    " Orig   : %s" OSS_NEWLINE,
                                     oldO.toString().c_str() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " New id : %s"OSS_NEWLINE,
+                                    " New id : %s" OSS_NEWLINE,
                                     newM.toString().c_str() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " New    : %s"OSS_NEWLINE,
+                                    " New    : %s" OSS_NEWLINE,
                                     newO.toString().c_str() ) ;
                if ( itrOldSK.valid() )
                {
                   BSONObj oldSK( itrOldSK.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Old ShardingKey: %s"OSS_NEWLINE,
+                                       " Old ShardingKey: %s" OSS_NEWLINE,
                                        oldSK.toString().c_str() ) ;
                }
                if ( itrNewSK.valid() )
                {
                   BSONObj newSK( itrNewSK.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " New ShardingKey: %s"OSS_NEWLINE,
+                                       " New ShardingKey: %s" OSS_NEWLINE,
                                        newSK.toString().c_str() ) ;
                }
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid update record", e.what() ) ;
                goto done ;
             }
@@ -613,7 +613,7 @@ namespace engine
             if ( !newUnqIdxHashArray.empty() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   " NewUnqIdxHash : %s"OSS_NEWLINE,
+                                   " NewUnqIdxHash : %s" OSS_NEWLINE,
                                    newUnqIdxHashArray.toString().c_str() ) ;
             }
 
@@ -621,7 +621,7 @@ namespace engine
             if ( !oldUnqIdxHashArray.empty() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   " OldUnqIdxHash : %s"OSS_NEWLINE,
+                                   " OldUnqIdxHash : %s" OSS_NEWLINE,
                                    oldUnqIdxHashArray.toString().c_str() ) ;
             }
 
@@ -632,7 +632,7 @@ namespace engine
             dpsUnqIdxHashArray unqIdxHashArray ;
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "DELETE", LOG_TYPE_DATA_DELETE ) ;
             dpsLogRecord::iterator itrFullName, itrM, itrRID ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
@@ -642,7 +642,7 @@ namespace engine
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
             itrM = this->find( DPS_LOG_DELETE_OLDOBJ ) ;
@@ -655,7 +655,7 @@ namespace engine
             {
                BSONObj objOld ( itrM.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Orig   : %s"OSS_NEWLINE,
+                                    " Orig   : %s" OSS_NEWLINE,
                                     objOld.toString().c_str() ) ;
             }
             catch ( std::exception &e )
@@ -672,7 +672,7 @@ namespace engine
             if ( !unqIdxHashArray.empty() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   " OldUnqIdxHash : %s"OSS_NEWLINE,
+                                   " OldUnqIdxHash : %s" OSS_NEWLINE,
                                    unqIdxHashArray.toString().c_str() ) ;
             }
 
@@ -689,7 +689,7 @@ namespace engine
 
                len += ossSnprintf( outBuf + len, outSize - len,
                                    " Record ID : "
-                                   "(extent: %d; offset: %d)"OSS_NEWLINE,
+                                   "(extent: %d; offset: %d)" OSS_NEWLINE,
                                    extentID, offset ) ;
             }
 
@@ -698,7 +698,7 @@ namespace engine
          case LOG_TYPE_DATA_POP:
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                 "POP", LOG_TYPE_DATA_POP ) ;
             dpsLogRecord::iterator itrFullName, itrLID, itrDirect ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
@@ -708,7 +708,7 @@ namespace engine
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " CLName : %s"OSS_NEWLINE,
+                                " CLName : %s" OSS_NEWLINE,
                                 itrFullName.value() ) ;
             itrLID = this->find( DPS_LOG_POP_LID ) ;
             if ( !itrLID.valid() )
@@ -718,7 +718,7 @@ namespace engine
             }
 
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " LogicalID: %u"OSS_NEWLINE,
+                                " LogicalID: %u" OSS_NEWLINE,
                                 *( (INT64*)itrLID.value() ) ) ;
 
             itrDirect = this->find( DPS_LOG_POP_DIRECTION ) ;
@@ -728,35 +728,35 @@ namespace engine
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Direction: %d"OSS_NEWLINE,
+                                " Direction: %d" OSS_NEWLINE,
                                 *( (INT8*)itrDirect.value() ) ) ;
             break ;
          }
          case LOG_TYPE_CS_CRT:
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CS CREATE", LOG_TYPE_CS_CRT ) ;
             dpsLogRecord::iterator itrCS, itrID, itrPageSize ;
             itrCS = this->find( DPS_LOG_CSCRT_CSNAME ) ;
             if ( !itrCS.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find csname in record" ) ;
                PD_LOG( PDERROR, "Failed to find csname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
+                                 " CSName : %s" OSS_NEWLINE,
                                  itrCS.value() ) ;
 
             itrID = this->find( DPS_LOG_CSCRT_CSUNIQUEID ) ;
             if ( itrID.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " UniqueID : %u"OSS_NEWLINE,
+                                    " UniqueID : %u" OSS_NEWLINE,
                                     *( (utilCSUniqueID *)itrID.value() ) ) ;
             }
 
@@ -764,35 +764,35 @@ namespace engine
             if ( !itrPageSize.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find pagesize in record" ) ;
                PD_LOG( PDERROR, "Failed to find pagesize in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " PageSize : %d"OSS_NEWLINE,
+                                 " PageSize : %d" OSS_NEWLINE,
                                  *((UINT32 *)itrPageSize.value()) ) ;
             break ;
          }
          case LOG_TYPE_CS_DELETE :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CS DROP", LOG_TYPE_CS_DELETE ) ;
             dpsLogRecord::iterator itrCS, itrOptions ;
             itrCS = this->find( DPS_LOG_CSCRT_CSNAME ) ;
             if ( !itrCS.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find csname in record" ) ;
                PD_LOG( PDERROR, "Failed to find csname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
+                                 " CSName : %s" OSS_NEWLINE,
                                  itrCS.value() ) ;
 
             itrOptions = find( DPS_LOG_CSDEL_OPTIONS ) ;
@@ -802,13 +802,13 @@ namespace engine
                {
                   BSONObj boOptions( itrOptions.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Options : %s"OSS_NEWLINE,
+                                       " Options : %s" OSS_NEWLINE,
                                        boOptions.toPoolString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid drop collection space record",
                                        e.what() ) ;
                   goto done ;
@@ -820,35 +820,35 @@ namespace engine
          case LOG_TYPE_CS_RENAME:
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CS RENAME", LOG_TYPE_CS_RENAME ) ;
             dpsLogRecord::iterator itrCS, itrNewCS ;
             itrCS = this->find( DPS_LOG_CSRENAME_CSNAME ) ;
             if ( !itrCS.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find csname in record" ) ;
                PD_LOG( PDERROR, "Failed to find csname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
+                                 " CSName : %s" OSS_NEWLINE,
                                  itrCS.value() ) ;
 
             itrNewCS = this->find( DPS_LOG_CSRENAME_NEWNAME ) ;
             if ( !itrNewCS.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find new csname in record" ) ;
                PD_LOG( PDERROR, "Failed to find new csname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "New CSName : %s"OSS_NEWLINE,
+                                 "New CSName : %s" OSS_NEWLINE,
                                  itrNewCS.value() ) ;
 
             break ;
@@ -856,28 +856,28 @@ namespace engine
          case LOG_TYPE_CL_CRT :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CL CREATE", LOG_TYPE_CL_CRT ) ;
             dpsLogRecord::iterator itrCL =
                       this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find clname in record" ) ;
                PD_LOG( PDERROR, "Failed to find clname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrCL.value() ) ;
 
             itrCL = this->find( DPS_LOG_CLCRT_CLUNIQUEID ) ;
             if ( itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " UniqueID : %llu"OSS_NEWLINE,
+                                    " UniqueID : %llu" OSS_NEWLINE,
                                     *( (utilCLUniqueID *)itrCL.value() ) ) ;
             }
 
@@ -886,7 +886,7 @@ namespace engine
             {
                UINT32 attribute = *((UINT32 *)itrCL.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Attr   : 0x%08x (%u)"OSS_NEWLINE,
+                                    " Attr   : 0x%08x (%u)" OSS_NEWLINE,
                                     attribute, attribute ) ;
             }
 
@@ -895,7 +895,7 @@ namespace engine
             {
                UINT8 comType = *((UINT8 *)itrCL.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " ComType: 0x%02x (%u)"OSS_NEWLINE,
+                                    " ComType: 0x%02x (%u)" OSS_NEWLINE,
                                     comType, comType ) ;
             }
 
@@ -906,13 +906,13 @@ namespace engine
                {
                   BSONObj obj( itrCL.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Ext Options: %s"OSS_NEWLINE,
+                                       " Ext Options: %s" OSS_NEWLINE,
                                        obj.toString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid create cl record", e.what() ) ;
                   goto done ;
                }
@@ -925,13 +925,13 @@ namespace engine
                {
                   BSONObj obj( itrCL.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Id Index: %s"OSS_NEWLINE,
+                                       " Id Index: %s" OSS_NEWLINE,
                                        obj.toString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid create cl record", e.what() ) ;
                   goto done ;
                }
@@ -942,21 +942,21 @@ namespace engine
          case LOG_TYPE_CL_DELETE :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CL DROP", LOG_TYPE_CL_DELETE ) ;
             dpsLogRecord::iterator itrCL =
                       this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find clname in record" ) ;
                PD_LOG( PDERROR, "Failed to find clname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrCL.value() ) ;
 
             dpsLogRecord::iterator itrOptions = find( DPS_LOG_CLDEL_OPTIONS ) ;
@@ -966,13 +966,13 @@ namespace engine
                {
                   BSONObj boOptions( itrOptions.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Options : %s"OSS_NEWLINE,
+                                       " Options : %s" OSS_NEWLINE,
                                        boOptions.toPoolString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid drop collection record",
                                        e.what() ) ;
                   goto done ;
@@ -985,7 +985,7 @@ namespace engine
          case LOG_TYPE_IX_CRT :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "IX CREATE", LOG_TYPE_IX_CRT ) ;
 
             dpsLogRecord::iterator itrFullName, itrIX, itrOpt ;
@@ -993,21 +993,21 @@ namespace engine
             if ( !itrFullName.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
             itrIX = this->find( DPS_LOG_IXCRT_IX ) ;
             if ( !itrIX.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find ix in record" ) ;
                PD_LOG( PDERROR, "Failed to find ix in record" ) ;
                goto done ;
@@ -1019,21 +1019,21 @@ namespace engine
             {
                BSONObj ix ( itrIX.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " IXDef  : %s"OSS_NEWLINE,
+                                    " IXDef  : %s" OSS_NEWLINE,
                                     ix.toString().c_str() ) ;
 
                if ( itrOpt.valid() )
                {
                   BSONObj opt ( itrOpt.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Option : %s"OSS_NEWLINE,
+                                       " Option : %s" OSS_NEWLINE,
                                        opt.toString().c_str() ) ;
                }
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid create index record", e.what() ) ;
                goto done ;
             }
@@ -1042,7 +1042,7 @@ namespace engine
          case LOG_TYPE_IX_DELETE :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "IX DROP", LOG_TYPE_IX_DELETE ) ;
 
             dpsLogRecord::iterator itrFullName, itrIX, itrOpt ;
@@ -1050,21 +1050,21 @@ namespace engine
             if ( !itrFullName.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
             itrIX = this->find( DPS_LOG_IXDEL_IX ) ;
             if ( !itrIX.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find ix in record" ) ;
                PD_LOG( PDERROR, "Failed to find ix in record" ) ;
                goto done ;
@@ -1076,21 +1076,21 @@ namespace engine
             {
                BSONObj obj ( itrIX.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " IXDef  : %s"OSS_NEWLINE,
+                                    " IXDef  : %s" OSS_NEWLINE,
                                     obj.toString().c_str() ) ;
 
                if ( itrOpt.valid() )
                {
                   BSONObj opt ( itrOpt.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Option : %s"OSS_NEWLINE,
+                                       " Option : %s" OSS_NEWLINE,
                                        opt.toString().c_str() ) ;
                }
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid drop index record", e.what() ) ;
                goto done ;
             }
@@ -1099,70 +1099,70 @@ namespace engine
          case LOG_TYPE_CL_RENAME :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CL RENAME", LOG_TYPE_CL_RENAME ) ;
             dpsLogRecord::iterator itrCS, itrO, itrN ;
             itrCS = this->find( DPS_LOG_CLRENAME_CSNAME ) ;
             if ( !itrCS.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find cs in record" ) ;
                PD_LOG( PDERROR, "Failed to find cs in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
+                                 " CSName : %s" OSS_NEWLINE,
                                  itrCS.value() ) ;
 
             itrO = this->find( DPS_LOG_CLRENAME_CLOLDNAME ) ;
             if ( !itrO.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find oldname in record" ) ;
                PD_LOG( PDERROR, "Failed to find oldname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Orig   : %s"OSS_NEWLINE,
+                                 " Orig   : %s" OSS_NEWLINE,
                                  itrO.value() ) ;
 
             itrN = this->find( DPS_LOG_CLRENAME_CLNEWNAME ) ;
             if ( !itrN.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find newname in record" ) ;
                PD_LOG( PDERROR, "Failed to find newname in record" ) ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " New    : %s"OSS_NEWLINE,
+                                 " New    : %s" OSS_NEWLINE,
                                  itrN.value() ) ;
             break ;
          }
          case LOG_TYPE_CL_TRUNC :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "CL TRUNCATE", LOG_TYPE_CL_TRUNC ) ;
             dpsLogRecord::iterator itrCL =
                                        this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record") ;
                goto done ;
             }
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CLName : %s"OSS_NEWLINE,
+                                 " CLName : %s" OSS_NEWLINE,
                                  itrCL.value() ) ;
 
             dpsLogRecord::iterator itrOptions = find( DPS_LOG_CLTRUNC_OPTIONS ) ;
@@ -1172,13 +1172,13 @@ namespace engine
                {
                   BSONObj boOptions( itrOptions.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Options : %s"OSS_NEWLINE,
+                                       " Options : %s" OSS_NEWLINE,
                                        boOptions.toPoolString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid truncate collection record",
                                        e.what() ) ;
                   goto done ;
@@ -1190,7 +1190,7 @@ namespace engine
          case LOG_TYPE_INVALIDATE_CATA :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type    : %s(%d)"OSS_NEWLINE,
+                                 " Type    : %s(%d)" OSS_NEWLINE,
                                  "INVALIDATE CATA", LOG_TYPE_INVALIDATE_CATA ) ;
             dpsLogRecord::iterator itrType, itrCL, itrIX ;
             UINT8 invType = 0 ;
@@ -1199,7 +1199,7 @@ namespace engine
             {
                invType = *( ( UINT8 * )( itrType.value() ) ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " InvType : 0x%02x (%u)"OSS_NEWLINE,
+                                    " InvType : 0x%02x (%u)" OSS_NEWLINE,
                                     invType, invType ) ;
             }
 
@@ -1207,7 +1207,7 @@ namespace engine
             if ( !itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR*  : %s"OSS_NEWLINE,
+                                    "*ERROR*  : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record") ;
                goto done ;
@@ -1215,7 +1215,7 @@ namespace engine
             else
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Name    : %s"OSS_NEWLINE,
+                                    " Name    : %s" OSS_NEWLINE,
                                     itrCL.value() ) ;
             }
 
@@ -1223,7 +1223,7 @@ namespace engine
             if ( itrIX.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " IXName  : %s"OSS_NEWLINE,
+                                    " IXName  : %s" OSS_NEWLINE,
                                     itrIX.value() ) ;
             }
             break ;
@@ -1232,13 +1232,13 @@ namespace engine
          {
             UINT32 nodeNum = 0 ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "COMMIT", LOG_TYPE_TS_COMMIT ) ;
             dpsLogRecord::iterator itr ;
              if ( !itrTransID.valid() )
              {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find transid in record" ) ;
                 PD_LOG( PDERROR, "Failed to find transid in record" ) ;
                 goto done ;
@@ -1248,7 +1248,7 @@ namespace engine
              if ( itr.valid() )
              {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   " FirstLSN : 0x%016lx"OSS_NEWLINE,
+                                   " FirstLSN : 0x%016lx" OSS_NEWLINE,
                                    *((DPS_LSN_OFFSET *)itr.value()) ) ;
              }
 
@@ -1257,7 +1257,7 @@ namespace engine
              {
                 UINT8 attr = *((UINT8 *)itr.value()) ;
                 len += ossSnprintf( outBuf + len, outSize - len,
-                                    " Attr    : %d(%s)"OSS_NEWLINE,
+                                    " Attr    : %d(%s)" OSS_NEWLINE,
                                     attr, dpsTSCommitAttr2String( attr ) ) ;
              }
 
@@ -1266,7 +1266,7 @@ namespace engine
              {
                 nodeNum = *(UINT32 *)itr.value() ;
                 len += ossSnprintf( outBuf + len, outSize - len,
-                                    " NodeNum : %u"OSS_NEWLINE,
+                                    " NodeNum : %u" OSS_NEWLINE,
                                     nodeNum ) ;
              }
 
@@ -1308,12 +1308,12 @@ namespace engine
          case LOG_TYPE_TS_ROLLBACK:
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)" OSS_NEWLINE,
                                  "ROLLBACK", LOG_TYPE_TS_ROLLBACK ) ;
              if ( !itrTransID.valid() )
              {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find transid in record" ) ;
                 PD_LOG( PDERROR, "Failed to find transid in record" ) ;
                 goto done ;
@@ -1323,7 +1323,7 @@ namespace engine
          case LOG_TYPE_LOB_WRITE :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                  "LOB_W", LOG_TYPE_LOB_WRITE ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1331,20 +1331,20 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName : %s" OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_LOB_OID ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find oid in record" ) ;
                PD_LOG( PDERROR, "Failed to find oid in record" ) ;
                goto done ;
@@ -1353,7 +1353,7 @@ namespace engine
             {
             bson::OID *oid = ( bson::OID * )( itr.value() ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Oid    : %s"OSS_NEWLINE,
+                                 " Oid    : %s" OSS_NEWLINE,
                                  oid->str().c_str() ) ;
             }
 
@@ -1361,59 +1361,59 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find sequence in record" ) ;
                PD_LOG( PDERROR, "Failed to find sequence in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Sequence : %d"OSS_NEWLINE,
+                                " Sequence : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_OFFSET ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find offset in record" ) ;
                PD_LOG( PDERROR, "Failed to find offset in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Offset : %d"OSS_NEWLINE,
+                                " Offset : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_LEN ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find len in record" ) ;
                PD_LOG( PDERROR, "Failed to find len in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Len    : %d"OSS_NEWLINE,
+                                " Len    : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find page in record" ) ;
                PD_LOG( PDERROR, "Failed to find page in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Page   : %d"OSS_NEWLINE,
+                                " Page   : %d" OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
             if ( itr.valid() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
+                                " PageSize : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
             }
 
@@ -1422,7 +1422,7 @@ namespace engine
          case LOG_TYPE_LOB_REMOVE :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                  "LOB_REMOVE", LOG_TYPE_LOB_REMOVE ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1430,20 +1430,20 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName : %s" OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_LOB_OID ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find oid in record" ) ;
                PD_LOG( PDERROR, "Failed to find oid in record" ) ;
                goto done ;
@@ -1452,7 +1452,7 @@ namespace engine
             {
             bson::OID *oid = ( bson::OID * )( itr.value() ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Oid    : %s"OSS_NEWLINE,
+                                 " Oid    : %s" OSS_NEWLINE,
                                  oid->str().c_str() ) ;
             }
 
@@ -1460,59 +1460,59 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find sequence in record" ) ;
                PD_LOG( PDERROR, "Failed to find sequence in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Sequence : %d"OSS_NEWLINE,
+                                " Sequence : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_OFFSET ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find offset in record" ) ;
                PD_LOG( PDERROR, "Failed to find offset in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Offset : %d"OSS_NEWLINE,
+                                " Offset : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_LEN ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find len in record" ) ;
                PD_LOG( PDERROR, "Failed to find len in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Len    : %d"OSS_NEWLINE,
+                                " Len    : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find page in record" ) ;
                PD_LOG( PDERROR, "Failed to find page in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Page   : %d"OSS_NEWLINE,
+                                " Page   : %d" OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
             if ( itr.valid() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
+                                " PageSize : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
             }
 
@@ -1521,7 +1521,7 @@ namespace engine
          case LOG_TYPE_LOB_UPDATE :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                  "LOB_U", LOG_TYPE_LOB_UPDATE ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1529,20 +1529,20 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName : %s" OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_LOB_OID ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find oid in record" ) ;
                PD_LOG( PDERROR, "Failed to find oid in record" ) ;
                goto done ;
@@ -1551,7 +1551,7 @@ namespace engine
             {
             bson::OID *oid = ( bson::OID * )( itr.value() ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Oid    : %s"OSS_NEWLINE,
+                                 " Oid    : %s" OSS_NEWLINE,
                                  oid->str().c_str() ) ;
             }
 
@@ -1559,72 +1559,72 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find sequence in record" ) ;
                PD_LOG( PDERROR, "Failed to find sequence in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Sequence : %d"OSS_NEWLINE,
+                                " Sequence : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_OFFSET ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find offset in record" ) ;
                PD_LOG( PDERROR, "Failed to find offset in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Offset : %d"OSS_NEWLINE,
+                                " Offset : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_LEN ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find len in record" ) ;
                PD_LOG( PDERROR, "Failed to find len in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Len    : %d"OSS_NEWLINE,
+                                " Len    : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_OLD_LEN ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find old len in record" ) ;
                PD_LOG( PDERROR, "Failed to find old len in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Old Len: %d"OSS_NEWLINE,
+                                " Old Len: %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find page in record" ) ;
                PD_LOG( PDERROR, "Failed to find page in record" ) ;
                goto done ;
             }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Page   : %d"OSS_NEWLINE,
+                                " Page   : %d" OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
 
             itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
             if ( itr.valid() )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
+                                " PageSize : %d" OSS_NEWLINE,
                                 *( ( UINT32 * )( itr.value() ) ) ) ;
             }
 
@@ -1633,7 +1633,7 @@ namespace engine
          case LOG_TYPE_ALTER :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                 "ALTER", LOG_TYPE_ALTER ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1641,20 +1641,20 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName  : %s"OSS_NEWLINE,
+                                 " FullName  : %s" OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_ALTER_OBJECT_TYPE ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find alter type in record" ) ;
                PD_LOG( PDERROR, "Failed to find alter object type in record" ) ;
                goto done ;
@@ -1663,7 +1663,7 @@ namespace engine
             {
                INT32 type = *( INT32 * )( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " AlterType : %d"OSS_NEWLINE,
+                                    " AlterType : %d" OSS_NEWLINE,
                                     type ) ;
             }
 
@@ -1671,7 +1671,7 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find alter object in record" ) ;
                PD_LOG( PDERROR, "Failed to find alter object in record" ) ;
                goto done ;
@@ -1681,13 +1681,13 @@ namespace engine
             {
                BSONObj obj( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Alter : %s"OSS_NEWLINE,
+                                    " Alter : %s" OSS_NEWLINE,
                                     obj.toString().c_str() ) ;
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid alter record", e.what() ) ;
                goto done ;
             }
@@ -1697,7 +1697,7 @@ namespace engine
          case LOG_TYPE_ADDUNIQUEID :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                 "ADD UNIQUEID", LOG_TYPE_ADDUNIQUEID ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1705,20 +1705,20 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find cs name in record" ) ;
                PD_LOG( PDERROR, "Failed to find cs name in record" ) ;
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
+                                 " CSName : %s" OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_ADDUNIQUEID_CSUNIQUEID ) ;
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find cs unique id in record" ) ;
                PD_LOG( PDERROR, "Failed to find cs unique id in record" ) ;
                goto done ;
@@ -1727,7 +1727,7 @@ namespace engine
             {
                utilCSUniqueID csUniqueID = *(utilCSUniqueID *)( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " CSUniqueID : %u"OSS_NEWLINE,
+                                    " CSUniqueID : %u" OSS_NEWLINE,
                                     csUniqueID ) ;
             }
 
@@ -1735,7 +1735,7 @@ namespace engine
             if ( !itr.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find cl info in record" ) ;
                PD_LOG( PDERROR, "Failed to find cl info in record" ) ;
                goto done ;
@@ -1745,13 +1745,13 @@ namespace engine
             {
                BSONObj clInfoObj( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " CLInfo :%s"OSS_NEWLINE,
+                                    " CLInfo :%s" OSS_NEWLINE,
                                     clInfoObj.toString( TRUE ).c_str() ) ;
             }
             catch ( std::exception &e )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
+                                    "*ERROR* : %s: %s" OSS_NEWLINE,
                                     "Invalid add unique id record", e.what() ) ;
                goto done ;
             }
@@ -1761,7 +1761,7 @@ namespace engine
          case LOG_TYPE_RETURN:
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                 "RETURN", LOG_TYPE_RETURN ) ;
 
             dpsLogRecord::iterator itrOptions = find( DPS_LOG_RETURN_OPTIONS ) ;
@@ -1771,13 +1771,13 @@ namespace engine
                {
                   BSONObj boOptions( itrOptions.value() ) ;
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Options : %s"OSS_NEWLINE,
+                                       " Options : %s" OSS_NEWLINE,
                                        boOptions.toPoolString().c_str() ) ;
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
-                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "*ERROR* : %s: %s" OSS_NEWLINE,
                                        "Invalid truncate collection record",
                                        e.what() ) ;
                   goto done ;
@@ -1786,7 +1786,7 @@ namespace engine
             else
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: no return options"OSS_NEWLINE,
+                                    "*ERROR* : %s: no return options" OSS_NEWLINE,
                                     "Invalid truncate collection record" ) ;
                goto done ;
             }
@@ -1796,7 +1796,7 @@ namespace engine
          case LOG_TYPE_SEC_KEY_CRT :
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
+                                " Type   : %s(%d)" OSS_NEWLINE,
                                 "CREATE KEY FILES", LOG_TYPE_SEC_KEY_CRT ) ;
 
             dpsLogRecord::iterator itr ;
@@ -1807,13 +1807,13 @@ namespace engine
                {
                   BSONObj oldKeyFile( itr.value() ) ;
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      " Old Key Files :%s"OSS_NEWLINE,
+                                      " Old Key Files :%s" OSS_NEWLINE,
                                       oldKeyFile.toString(FALSE, TRUE).c_str());
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "*ERROR* : %s: %s" OSS_NEWLINE,
                                       "Invalid Create Key File record", e.what() ) ;
                   goto done ;
                }
@@ -1824,13 +1824,13 @@ namespace engine
                {
                   BSONObj oldKeyFile ;
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      " Old Key Files :%s"OSS_NEWLINE,
+                                      " Old Key Files :%s" OSS_NEWLINE,
                                       oldKeyFile.toString(FALSE, TRUE).c_str());
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "*ERROR* : %s: %s" OSS_NEWLINE,
                                       "Invalid Create Key File record", e.what() ) ;
                   goto done ;
                }
@@ -1843,13 +1843,13 @@ namespace engine
                {
                   BSONObj newKeyFile( itr.value() ) ;
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      " New Key Files :%s"OSS_NEWLINE,
+                                      " New Key Files :%s" OSS_NEWLINE,
                                       newKeyFile.toString(FALSE, TRUE).c_str());
                }
                catch ( std::exception &e )
                {
                   len += ossSnprintf( outBuf + len, outSize - len,
-                                      "*ERROR* : %s: %s"OSS_NEWLINE,
+                                      "*ERROR* : %s: %s" OSS_NEWLINE,
                                       "Invalid Create Key File record", e.what() ) ;
                   goto done ;
                }
@@ -1857,7 +1857,7 @@ namespace engine
             else
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   "*ERROR* : %s: no new key files"OSS_NEWLINE,
+                                   "*ERROR* : %s: no new key files" OSS_NEWLINE,
                                    "Invalid Create Key File record" ) ;
                goto done ;
             }
@@ -1867,7 +1867,7 @@ namespace engine
          {
             // something goes wrong here, but let's just continue
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type   : %s"OSS_NEWLINE,
+                                 " Type   : %s" OSS_NEWLINE,
                                  "UNKNOWN" ) ;
             break ;
          }
@@ -1880,8 +1880,8 @@ namespace engine
             DPS_TRANS_ID transID = *((DPS_TRANS_ID *)itrTransID.value()) ;
 
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " TransID : %s"OSS_NEWLINE
-                                 " IDAttr  : %s"OSS_NEWLINE,
+                                 " TransID : %s" OSS_NEWLINE
+                                 " IDAttr  : %s" OSS_NEWLINE,
                                  dpsTransIDToString( transID, tmpID,
                                                      DPS_TRANS_STR_LEN ),
                                  dpsTransIDAttrToString( transID, tmpAttr,
@@ -1890,13 +1890,13 @@ namespace engine
          if ( itrTransLsn.valid() )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " TransPreLSN : 0x%016lx"OSS_NEWLINE,
+                                 " TransPreLSN : 0x%016lx" OSS_NEWLINE,
                                  *((DPS_LSN_OFFSET *)itrTransLsn.value()) ) ;
          }
          if ( itrTransRel.valid() )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " TransRelatedLSN : 0x%016lx"OSS_NEWLINE,
+                                 " TransRelatedLSN : 0x%016lx" OSS_NEWLINE,
                                  *((DPS_LSN_OFFSET *)itrTransRel.value()) ) ;
          }
       }
@@ -1904,7 +1904,7 @@ namespace engine
       if ( SDB_OK != _result )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                             OSS_NEWLINE"*ERROR* : %d(%s)"OSS_NEWLINE,
+                             OSS_NEWLINE"*ERROR* : %d(%s)" OSS_NEWLINE,
                              _result, getErrDesp( _result ) ) ;
       }
 

@@ -218,7 +218,7 @@ namespace engine
       rc = rtnDelete( OM_CS_DEPLOY_CL_TASKINFO, deletor, hint, 0, cb ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "rtnDelete task failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "rtnDelete task failed:taskID=" OSS_LL_PRINT_FORMAT 
                  ",rc=%d", taskID, rc ) ;
          goto error ;
       }
@@ -409,7 +409,7 @@ namespace engine
 
       if( operationType == OM_FIELD_OPERATION_EXTEND )
       {
-         templateFile = templateFile + "_"OM_FIELD_OPERATION_EXTEND ;
+         templateFile = templateFile + "_" OM_FIELD_OPERATION_EXTEND ;
       }
 
       templateFile = templateFile + OM_TEMPLATE_FILE_NAME + _languageFileSep
@@ -659,7 +659,7 @@ namespace engine
       arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
       BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
 
-      businessKey = OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ;
+      businessKey = OM_TASKINFO_FIELD_INFO "." OM_BSON_BUSINESS_NAME ;
       matcher = BSON( businessKey << businessName
                       << OM_TASKINFO_FIELD_STATUS << status ) ;
       rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint,
@@ -858,7 +858,7 @@ namespace engine
       rc = rtnDelete( OM_CS_DEPLOY_CL_TASKINFO, deletor, hint, 0, _cb ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "rtnDelete task failed:taskID="OSS_LL_PRINT_FORMAT
+         PD_LOG( PDERROR, "rtnDelete task failed:taskID=" OSS_LL_PRINT_FORMAT 
                           ",rc=%d",
                  taskID, rc ) ;
          goto error ;
@@ -2742,7 +2742,7 @@ namespace engine
       BSONObj hostInfo ;
 
       matcher = BSON( OM_HOST_FIELD_NAME << hostName <<
-                      OM_HOST_FIELD_PACKAGES"."OM_HOST_FIELD_PACKAGENAME <<
+                      OM_HOST_FIELD_PACKAGES "." OM_HOST_FIELD_PACKAGENAME <<
                             packageName ) ;
 
       rc = _getOneHostInfo( matcher, selector, hostInfo ) ;
@@ -2765,7 +2765,7 @@ namespace engine
       BSONObj hostInfo ;
 
       matcher = BSON( OM_HOST_FIELD_NAME << hostName <<
-                      OM_HOST_FIELD_PACKAGES"."OM_HOST_FIELD_PACKAGENAME <<
+                      OM_HOST_FIELD_PACKAGES "." OM_HOST_FIELD_PACKAGENAME <<
                             packageName ) ;
 
       rc = _getOneHostInfo( matcher, selector, hostInfo ) ;

@@ -133,7 +133,7 @@ namespace engine
       po::variables_map::iterator it = vm.begin() ;
       while( it != vm.end() )
       {
-         ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, it->first.data(),
+         ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, it->first.data(),
                     it->second.as<string>().c_str() ) ;
          ++it ;
       }
@@ -168,32 +168,32 @@ namespace engine
             BSONElement e = it.next() ;
             if( e.type() == String )
             {
-               ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(),
+               ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(),
                           e.valuestr() ) ;
             }
             else if( e.type() == NumberInt )
             {
-               ossPrintf( "   %-18.18s: %d"OSS_NEWLINE, e.fieldName(),
+               ossPrintf( "   %-18.18s: %d" OSS_NEWLINE, e.fieldName(),
                           e.numberInt() ) ;
             }
             else if( e.type() == NumberLong )
             {
-               ossPrintf( "   %-18.18s: %lld"OSS_NEWLINE, e.fieldName(),
+               ossPrintf( "   %-18.18s: %lld" OSS_NEWLINE, e.fieldName(),
                           e.numberLong() ) ;
             }
             else if( e.type() == NumberDouble )
             {
-               ossPrintf( "   %-18.18s: %f"OSS_NEWLINE, e.fieldName(),
+               ossPrintf( "   %-18.18s: %f" OSS_NEWLINE, e.fieldName(),
                           e.numberDouble() ) ;
             }
             else if( e.type() == Bool )
             {
-               ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(),
+               ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(),
                           (e.boolean() ? "TRUE" : "FALSE" ) ) ;
             }
             else
             {
-               ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(), "-" ) ;
+               ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(), "-" ) ;
             }
          }
       }
@@ -301,7 +301,7 @@ namespace engine
       }
       else
       {
-         ossPrintf( "%s(%s) (%s) %s"OSS_NEWLINE,
+         ossPrintf( "%s(%s) (%s) %s" OSS_NEWLINE,
                     utilDBTypeStr( (SDB_TYPE)node._type ),
                     node._svcname.c_str(), tmpPID,
                     utilDBRoleShortStr( (SDB_ROLE)node._role ) ) ;
@@ -506,14 +506,14 @@ namespace engine
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if( rc )
       {
-        ossPrintf( "Error:Get module self path failed: %d"OSS_NEWLINE, rc ) ;
+        ossPrintf( "Error:Get module self path failed: %d" OSS_NEWLINE, rc ) ;
         goto error ;
       }
       rc = utilBuildFullPath( rootPath, SDBCM_LOCAL_PATH, OSS_MAX_PATHSIZE,
                               localPath ) ;
       if ( rc )
       {
-         ossPrintf( "Error: Build local config path failed: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Build local config path failed: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -621,12 +621,12 @@ namespace engine
       if ( showLocation )
       {
          // print Location title
-         ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_LOCATION_TITLE ) ;
+         ossPrintf( "%s" OSS_NEWLINE, PMD_LIST_LOCATION_TITLE ) ;
       }
       else if ( showLong )
       {
          // print title
-         ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_TITLE ) ;
+         ossPrintf( "%s" OSS_NEWLINE, PMD_LIST_TITLE ) ;
       }
       // print
       for ( UINT32 i = 0 ; i < listNodes.size() ; ++i )
@@ -666,12 +666,12 @@ namespace engine
             }
             else
             {
-               ossPrintf( "%s (%d)"OSS_NEWLINE, PMDDMN_SVCNAME_DEFAULT,
+               ossPrintf( "%s (%d)" OSS_NEWLINE, PMDDMN_SVCNAME_DEFAULT,
                           procs[ i ]._pid ) ;
             }
          }
       }
-      ossPrintf ( "Total: %d"OSS_NEWLINE, total ) ;
+      ossPrintf ( "Total: %d" OSS_NEWLINE, total ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_SDBLIST_MAIN, rc );

@@ -567,7 +567,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATGETGROUPOBJ2 ) ;
       BSONObj dummyObj ;
       BSONObj boMatcher = BSON(
-            FIELD_NAME_GROUP"."FIELD_NAME_NODEID << nodeID );
+            FIELD_NAME_GROUP "." FIELD_NAME_NODEID << nodeID );
 
       rc = catGetOneObj( CAT_NODE_INFO_COLLECTION, dummyObj, boMatcher,
                          dummyObj, cb, obj ) ;
@@ -620,7 +620,7 @@ namespace engine
       BSONObj groupInfo ;
       BSONObj dummyObj ;
       BSONObj match = BSON( FIELD_NAME_GROUP << BSON( "$elemMatch" <<
-                            BSON( FIELD_NAME_SERVICE"."FIELD_NAME_NAME <<
+                            BSON( FIELD_NAME_SERVICE "." FIELD_NAME_NAME <<
                                   serviceName << FIELD_NAME_HOST <<
                                   hostName )) ) ;
 
@@ -1124,7 +1124,7 @@ namespace engine
       // remove from all domain
       else
       {
-         matcher = BSON( CAT_GROUPS_NAME"."CAT_GROUPID_NAME <<
+         matcher = BSON( CAT_GROUPS_NAME "." CAT_GROUPID_NAME <<
                          (INT32)groupID ) ;
       }
 
@@ -4604,12 +4604,12 @@ namespace engine
 
       if ( enable )
       {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE "." FIELD_NAME_ENABLE
                                          << true ) ) ;
       }
       else
       {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE "." FIELD_NAME_ENABLE
                                          << false ) ) ;
       }
       rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
@@ -9274,35 +9274,35 @@ namespace engine
               oldConf.getEnable() != newConf.getEnable() )
          {
             subBuilder.appendBool(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_ENABLE,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_ENABLE,
                   newConf.getEnable() ) ;
          }
          if ( rewriteAll ||
               oldConf.getExpireTime() != newConf.getExpireTime() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_EXPIRETIME,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_EXPIRETIME,
                   newConf.getExpireTime() ) ;
          }
          if ( rewriteAll ||
               oldConf.getMaxItemNum() != newConf.getMaxItemNum() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXITEMNUM,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXITEMNUM,
                   newConf.getMaxItemNum() ) ;
          }
          if ( rewriteAll ||
               oldConf.getMaxVersionNum() != newConf.getMaxVersionNum() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXVERNUM,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXVERNUM,
                   newConf.getMaxVersionNum() ) ;
          }
          if ( rewriteAll ||
               oldConf.getAutoDrop() != newConf.getAutoDrop() )
          {
             subBuilder.appendBool(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_AUTODROP,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_AUTODROP,
                   newConf.getAutoDrop() ) ;
          }
          subBuilder.doneFast() ;
@@ -9686,7 +9686,7 @@ namespace engine
          recycleID += 1 ;
 
          updator = BSON( "$set" <<
-                         BSON( FIELD_NAME_RECYCLEBIN"."FIELD_NAME_RECYCLEIDHWM <<
+                         BSON( FIELD_NAME_RECYCLEBIN "." FIELD_NAME_RECYCLEIDHWM <<
                                (INT64)recycleID ) ) ;
          rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
                          dummy, 0, cb, dmsCB, dpsCB, w ) ;

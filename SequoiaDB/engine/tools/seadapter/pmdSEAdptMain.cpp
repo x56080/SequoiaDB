@@ -117,7 +117,7 @@ namespace seadapter
          // use setting work path
          if ( !ossGetRealPath( logPath, dialogPath, OSS_MAX_PATHSIZE ) )
          {
-            ossPrintf( "Invalid log path: %s"OSS_NEWLINE, logPath ) ;
+            ossPrintf( "Invalid log path: %s" OSS_NEWLINE, logPath ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -128,7 +128,7 @@ namespace seadapter
          rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
          if ( rc )
          {
-            ossPrintf( "Get working directory failed: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Get working directory failed: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
@@ -139,7 +139,7 @@ namespace seadapter
                                  OSS_MAX_PATHSIZE, dialogPath ) ;
          if ( rc )
          {
-            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Build log path failed: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
@@ -147,7 +147,7 @@ namespace seadapter
          rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE, SEADPT_LOG_DIR ) ;
          if ( rc )
          {
-            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Build log path failed: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
          // conf/log/seadapterlog/svcname
@@ -155,7 +155,7 @@ namespace seadapter
                            sdbGetSeAdptOptions()->getSvcName() ) ;
          if ( rc )
          {
-            ossPrintf( "Build log path failed: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Build log path failed: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
       }
@@ -165,7 +165,7 @@ namespace seadapter
       {
          if ( SDB_FE != rc )
          {
-            ossPrintf( "Make dialog path[ %s ] failed: %d"OSS_NEWLINE, dialogPath, rc ) ;
+            ossPrintf( "Make dialog path[ %s ] failed: %d" OSS_NEWLINE, dialogPath, rc ) ;
             goto error ;
          }
          else
@@ -208,7 +208,7 @@ namespace seadapter
       }
       else if ( rc )
       {
-         ossPrintf( "Failed resolving arguments(error=%d), exit"OSS_NEWLINE,
+         ossPrintf( "Failed resolving arguments(error=%d), exit" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -216,7 +216,7 @@ namespace seadapter
       rc = buildDialogPath( dialogPath ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog path(error=%d), exit"OSS_NEWLINE,
+         ossPrintf( "Failed to build dialog path(error=%d), exit" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -226,7 +226,7 @@ namespace seadapter
       if ( rc )
       {
          ossPrintf( "Failed to build dialog path failed(error=%d), "
-                    "exit"OSS_NEWLINE, rc ) ;
+                    "exit" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 

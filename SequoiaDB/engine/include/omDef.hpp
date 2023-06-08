@@ -170,7 +170,7 @@ namespace engine
    #define OM_CLUSTER_FIELD_ROOTUSER            "RootUser"
 
    #define OM_CS_DEPLOY_CL_CLUSTERIDX1          "{name:\"SYSDEPLOY_CLUSTER_IDX1\"\
-,key:{"OM_CLUSTER_FIELD_NAME":1}, unique: true, enforced: true }"
+,key:{" OM_CLUSTER_FIELD_NAME ":1}, unique: true, enforced: true }"
 
    /******* SYSBUSINESS *******/
    #define OM_CS_DEPLOY_CL_BUSINESS             OM_CS_DEPLOY".SYSBUSINESS"
@@ -189,7 +189,7 @@ namespace engine
    #define OM_BUSINESS_ADDTYPE_INSTALL          0
 
    #define OM_CS_DEPLOY_CL_BUSINESSIDX1         "{name:\"SYSDEPLOY_BUSINESS_IDX1\"\
-,key:{"OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true }"
+,key:{" OM_BUSINESS_FIELD_NAME ":1}, unique: true, enforced: true }"
 
    /******* SYSCONFIGURE *******/
    #define OM_CS_DEPLOY_CL_CONFIGURE            OM_CS_DEPLOY".SYSCONFIGURE"
@@ -249,10 +249,10 @@ namespace engine
    #define OM_HOST_FIELD_SSHPORT                OM_PUBLIC_FIELD_SSHPORT
 
    #define OM_CS_DEPLOY_CL_HOSTIDX1             "{name:\"SYSDEPLOY_HOST_IDX1\",\
-key: {"OM_HOST_FIELD_NAME":1}, unique: true, enforced: true }"
+key: {" OM_HOST_FIELD_NAME ":1}, unique: true, enforced: true }"
 
    #define OM_CS_DEPLOY_CL_HOSTIDX2             "{name:\"SYSDEPLOY_HOST_IDX2\",\
-key: {"OM_HOST_FIELD_IP":1}, unique: true, enforced: true }"
+key: {" OM_HOST_FIELD_IP ":1}, unique: true, enforced: true }"
 
    /******* SYSTASKINFO *******/
    #define OM_CS_DEPLOY_CL_TASKINFO             OM_CS_DEPLOY".SYSTASKINFO"
@@ -297,7 +297,7 @@ key: {"OM_HOST_FIELD_IP":1}, unique: true, enforced: true }"
    #define OM_TASKINFO_FIELD_DBNAME             OM_PUBLIC_FIELD_DBNAME
 
    #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
-OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
+ OM_TASKINFO_FIELD_TASKID ":1}, unique: true, enforced: true } "
 
    /******* SYSBUSINESSAUTH *******/
    #define OM_CS_DEPLOY_CL_BUSINESS_AUTH        OM_CS_DEPLOY".SYSBUSINESSAUTH"
@@ -306,7 +306,7 @@ OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
    #define OM_AUTH_FIELD_PASSWD                 OM_PUBLIC_FIELD_PASSWD
    #define OM_AUTH_FIELD_ENCRYPTION             OM_PUBLIC_FIELD_ENCRYPTION
    #define OM_CS_DEPLOY_CL_BUSINESSAUTHIDX1     "{name:\"SYSDEPLOY_BUSINESSAUTH\
-_IDX1\",key: {"OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true }"
+_IDX1\",key: {" OM_BUSINESS_FIELD_NAME ":1}, unique: true, enforced: true }"
 
    /******* SYSRELATIONSHIP *******/
    #define OM_CS_DEPLOY_CL_RELATIONSHIP         OM_CS_DEPLOY".SYSRELATIONSHIP"
@@ -316,7 +316,7 @@ _IDX1\",key: {"OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_RELATIONSHIP_FIELD_OPTIONS        "Options"
    #define OM_RELATIONSHIP_FIELD_CREATETIME     "CreateTime"
    #define OM_CS_DEPLOY_CL_RELATIONSHIPIDX1     "{name:\"SYSDEPLOY_RELATIONSHIP\
-_IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
+_IDX1\",key: {" OM_RELATIONSHIP_FIELD_NAME ":1}, unique: true, enforced: true }"
 
    /******* SYSPLUGINS *******/
    #define OM_CS_DEPLOY_CL_PLUGINS              OM_CS_DEPLOY".SYSPLUGINS"
@@ -325,17 +325,17 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_PLUGINS_FIELD_SERVICENAME         "ServiceName"
    #define OM_PLUGINS_FIELD_UPDATETIME          "UpdateTime"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX1          "{name:\"SYSDEPLOY_PLUGINS_IDX1\
-\",key: {"OM_PLUGINS_FIELD_NAME":1,"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, \
+\",key: {" OM_PLUGINS_FIELD_NAME ":1," OM_PLUGINS_FIELD_BUSINESSTYPE ":1}, \
 unique: true, enforced: true }"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX2          "{name:\"SYSDEPLOY_PLUGINS_IDX2\
-\",key: {"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, unique: true, enforced: true }"
+\",key: {" OM_PLUGINS_FIELD_BUSINESSTYPE ":1}, unique: true, enforced: true }"
 
    /******* SYSSETTINGS *******/
    #define OM_CS_DEPLOY_CL_SETTINGS             OM_CS_DEPLOY".SYSSETTINGS"
    #define OM_SETTINGS_FIELD_KEY                "Key"
    #define OM_SETTINGS_FIELD_VALUE              "Value"
    #define OM_CS_DEPLOY_CL_SETTINGSIDX          "{name:\"\
-OM_CS_DEPLOY_CL_SETTINGSIDX\",key: {"OM_SETTINGS_FIELD_KEY":1}, unique: true, \
+OM_CS_DEPLOY_CL_SETTINGSIDX\",key: {" OM_SETTINGS_FIELD_KEY ":1}, unique: true, \
 enforced: true }"
 
    #define OM_SETTINGS_CONFIG_MAXEXECTIME       "max_execution_time"
@@ -348,7 +348,7 @@ enforced: true }"
    #define OM_HISTORY_FIELD_DETAIL              "Detail"
    #define OM_HISTORY_FIELD_SUCCESS             "Success"
    #define OM_CS_DEPLOY_CL_HISTORYIDX1          "{name:\"\
-OM_CS_DEPLOY_CL_HISTORYIDX\",key: {"OM_HISTORY_FIELD_TIME":1} }"
+OM_CS_DEPLOY_CL_HISTORYIDX\",key: {" OM_HISTORY_FIELD_TIME ":1} }"
 
    /********** SYSSTRATEGY **********/
    #define OM_CS_STRATEGY                       "SYSSTRATEGY"
@@ -845,7 +845,7 @@ OM_CS_DEPLOY_CL_HISTORYIDX\",key: {"OM_HISTORY_FIELD_TIME":1} }"
    #define  OM_XMLATTR_KEY                   "<xmlattr>"
    #define  OM_XMLATTR_TYPE                  "<xmlattr>.type"
    #define  OM_XMLATTR_TYPE_ARRAY            "array"
-   #define  OM_EXTEND_TEMPLATE_FILE_NAME     "_"OM_FIELD_OPERATION_EXTEND
+   #define  OM_EXTEND_TEMPLATE_FILE_NAME     "_" OM_FIELD_OPERATION_EXTEND
    #define  OM_TEMPLATE_FILE_NAME            "_template"
    #define  OM_REST_BUSINESS_TYPE            OM_BSON_BUSINESS_TYPE
    #define  OM_BSON_DEPLOY_MOD_LIST          "DeployModList"

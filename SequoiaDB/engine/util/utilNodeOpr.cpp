@@ -1223,7 +1223,7 @@ namespace engine
             {
                if ( 0 != ossStrcmp( doing, lastdoing ) )
                {
-                  ossPrintf( "(%s): %s"OSS_NEWLINE,
+                  ossPrintf( "(%s): %s" OSS_NEWLINE,
                              node._svcname.c_str(), doing ) ;
                   ossStrcpy( lastdoing, doing ) ;
                }

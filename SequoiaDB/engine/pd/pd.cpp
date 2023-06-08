@@ -280,10 +280,10 @@ BOOLEAN sdbIsPDEnabled ()
  * 13) Line number (UINT32)
  * 14) Message
  */
-const static CHAR *PD_LOG_HEADER_FORMAT="%04d-%02d-%02d-%02d.%02d.%02d.%06d\
+const static CHAR *PD_LOG_HEADER_FORMAT = "%04d-%02d-%02d-%02d.%02d.%02d.%06d\
                \
-Level:%s"OSS_NEWLINE"PID:%-37dTID:%d"OSS_NEWLINE"Function:%-32sLine:%d"\
-OSS_NEWLINE"File:%s"OSS_NEWLINE"Message:"OSS_NEWLINE"%s"OSS_NEWLINE OSS_NEWLINE;
+Level:%s" OSS_NEWLINE "PID:%-37dTID:%d" OSS_NEWLINE "Function:%-32sLine:%d" \
+OSS_NEWLINE "File:%s" OSS_NEWLINE "Message:" OSS_NEWLINE "%s" OSS_NEWLINE OSS_NEWLINE;
 /* extern variables */
 
 // driver don't use the code
@@ -344,7 +344,7 @@ static INT32 _pdLogArchive( pdCfgInfo &info )
       rc = ossDelete( fileName ) ;
       if ( rc )
       {
-         ossPrintf( "Delete file %s failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Delete file %s failed, rc: %d" OSS_NEWLINE,
                     fileName, rc ) ;
       }
    }
@@ -352,7 +352,7 @@ static INT32 _pdLogArchive( pdCfgInfo &info )
    rc = ossRenamePath( info._pdLogFile, fileName ) ;
    if ( rc )
    {
-      ossPrintf( "Rename %s to %s failed, rc: %d"OSS_NEWLINE,
+      ossPrintf( "Rename %s to %s failed, rc: %d" OSS_NEWLINE,
                  info._pdLogFile, fileName, rc ) ;
       ossDelete( info._pdLogFile ) ;
    }
@@ -404,7 +404,7 @@ open:
       rc = logFile._logFile.Open ( info._pdLogFile ) ;
       if ( rc )
       {
-         ossPrintf ( "Failed to open log file, errno = %d"OSS_NEWLINE, rc ) ;
+         ossPrintf ( "Failed to open log file, errno = %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       else
@@ -413,7 +413,7 @@ open:
          rc = logFile._logFile.getSize( &fileSize ) ;
          if ( rc )
          {
-            ossPrintf( "Failed to get log file size, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Failed to get log file size, rc: %d" OSS_NEWLINE, rc ) ;
             logFile._fileSize = 0 ;
          }
          else
@@ -438,7 +438,7 @@ open:
    rc = logFile._logFile.Write ( pData, dataSize ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to write log file, rc: %d"OSS_NEWLINE,
+      ossPrintf ( "Failed to write log file, rc: %d" OSS_NEWLINE,
                   rc ) ;
       goto error ;
    } // if ( rc )
@@ -564,8 +564,8 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
       rc = pdLogFileWrite ( PD_DIAGLOG, pData ) ;
       if ( rc )
       {
-         ossPrintf ( "Failed to write into log file, rc: %d"OSS_NEWLINE, rc ) ;
-         ossPrintf ( "%s"OSS_NEWLINE, pData ) ;
+         ossPrintf ( "Failed to write into log file, rc: %d" OSS_NEWLINE, rc ) ;
+         ossPrintf ( "%s" OSS_NEWLINE, pData ) ;
       }
    }
 
@@ -1338,9 +1338,9 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
       rc = pdLogFileWrite ( PD_AUDIT, pData ) ;
       if ( rc )
       {
-         ossPrintf ( "Failed to write into audit log file, rc: %d"OSS_NEWLINE,
+         ossPrintf ( "Failed to write into audit log file, rc: %d" OSS_NEWLINE,
                      rc ) ;
-         ossPrintf ( "%s"OSS_NEWLINE, pData ) ;
+         ossPrintf ( "%s" OSS_NEWLINE, pData ) ;
       }
    }
 
@@ -1387,15 +1387,15 @@ void pdAudit( AUDIT_TYPE type, const CHAR *pUserName,
  * 21) Message
  */
 const static CHAR *PD_AUDIT_LOG_HEADER_FORMAT="%04d-%02d-%02d-%02d.%02d.%02d.%06d\
-               Type:%s"OSS_NEWLINE
-"PID:%-37dTID:%d"OSS_NEWLINE
-"UserName:%-32sFrom:%s"OSS_NEWLINE
-"Action:%-34sResult:%s(%d)"OSS_NEWLINE
-"ObjectType:%-30sObjectName:%s"OSS_NEWLINE
+               Type:%s" OSS_NEWLINE
+"PID:%-37dTID:%d" OSS_NEWLINE
+"UserName:%-32sFrom:%s" OSS_NEWLINE
+"Action:%-34sResult:%s(%d)" OSS_NEWLINE
+"ObjectType:%-30sObjectName:%s" OSS_NEWLINE
 #ifdef _DEBUG
-"Function:%-32sLine:%d"OSS_NEWLINE"File:%s"OSS_NEWLINE
+"Function:%-32sLine:%d" OSS_NEWLINE "File:%s" OSS_NEWLINE
 #endif //_DEBUG
-"Message:"OSS_NEWLINE"%s"OSS_NEWLINE OSS_NEWLINE ;
+"Message:" OSS_NEWLINE "%s" OSS_NEWLINE OSS_NEWLINE ;
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_PDAUDIT, "pdAudit" )
 void pdAudit( AUDIT_TYPE type, const CHAR *pUserName,

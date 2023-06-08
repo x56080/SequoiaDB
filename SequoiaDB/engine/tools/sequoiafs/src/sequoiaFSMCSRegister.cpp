@@ -356,7 +356,7 @@ INT32 mcsRegService::_insertMCSService(fsConnectionDao* db)
        goto error;
    }
 
-   PD_LOG(PDERROR, "insert mcsinfo port:%s. curtime:%ld, timeoutTimeStamp:%ld."OSS_NEWLINE, _port, ossGetCurrentMilliseconds(), timeoutTimeStamp);
+   PD_LOG(PDERROR, "insert mcsinfo port:%s. curtime:%ld, timeoutTimeStamp:%ld." OSS_NEWLINE, _port, ossGetCurrentMilliseconds(), timeoutTimeStamp);
 
 done:
    return rc;
@@ -401,7 +401,7 @@ INT32 mcsRegService::_updateMCSService(fsConnectionDao* db)
        goto error;
    }
 
-   PD_LOG(PDERROR, "insert mcsinfo port:%s. curtime:%ld, timeoutTimeStamp:%ld."OSS_NEWLINE, _port, ossGetCurrentMilliseconds(), timeoutTimeStamp);
+   PD_LOG(PDERROR, "insert mcsinfo port:%s. curtime:%ld, timeoutTimeStamp:%ld." OSS_NEWLINE, _port, ossGetCurrentMilliseconds(), timeoutTimeStamp);
 
 done:
    return rc;

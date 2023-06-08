@@ -77,7 +77,7 @@
 #define CAT_TASK_INFO_NAMEIDX             "{name:\"SYSIDX3\",key: {"\
                                           FIELD_NAME_NAME":1} }"
 #define CAT_INDEX_INFO_NAMEIDX            "{name:\"SYSIDX1\",key: {"\
-                                          FIELD_NAME_COLLECTION":1, "FIELD_NAME_NAME":1 }, unique: true }"
+                                          FIELD_NAME_COLLECTION":1, " FIELD_NAME_NAME":1 }, unique: true }"
 #define CAT_DOMAIN_NAMEIDX                "{name:\"SYSIDX1\",key: {"\
                                           CAT_DOMAINNAME_NAME":1}, unique: true, enforced: true } "
 #define CAT_HISTORY_BUCKETID_IDX          "{name:\"SYSIDX1\",key: {"\
@@ -86,8 +86,8 @@
                                           CAT_GROUPID_NAME":1}, unique: true, enforced: true } "
 
 #define CAT_MATCHER_HOST_NAME             CAT_HOST_FIELD_NAME
-#define CAT_MATCHER_NODEID_NAME           CAT_GROUP_NAME"."CAT_NODEID_NAME
-#define CAT_MATCHER_SERVICE_NAME          CAT_SERVICE_FIELD_NAME"."CAT_SERVICE_NAME_FIELD_NAME
+#define CAT_MATCHER_NODEID_NAME           CAT_GROUP_NAME "." CAT_NODEID_NAME
+#define CAT_MATCHER_SERVICE_NAME          CAT_SERVICE_FIELD_NAME "." CAT_SERVICE_NAME_FIELD_NAME
 
 #define READ_BUFFER_SIZE                  8192
 

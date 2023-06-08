@@ -401,7 +401,7 @@ namespace engine
       {
          if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
          {
-            ossPrintf( "Error: Invalid argument: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Error: Invalid argument: %d" OSS_NEWLINE, rc ) ;
             displayArg ( desc ) ;
          }
          else
@@ -437,7 +437,7 @@ namespace engine
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
-         ossPrintf( "Error: Get module self path failed:  %d"OSS_NEWLINE,
+         ossPrintf( "Error: Get module self path failed:  %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -445,7 +445,7 @@ namespace engine
                               enginePathName ) ;
       if ( rc )
       {
-         ossPrintf( "Error: Build engine path name failed: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Build engine path name failed: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -455,14 +455,14 @@ namespace engine
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog dir[%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
@@ -471,7 +471,7 @@ namespace engine
                                 SDBSTART_LOG_FILE_NAME ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
       }
@@ -498,7 +498,7 @@ namespace engine
                                  OSS_MAX_PATHSIZE, localPath ) ;
          if ( rc )
          {
-            ossPrintf( "Error: Build local config path failed: %d"OSS_NEWLINE,
+            ossPrintf( "Error: Build local config path failed: %d" OSS_NEWLINE,
                        rc ) ;
             goto error ;
          }
@@ -506,7 +506,7 @@ namespace engine
                              NULL, roleFilter ) ;
          if ( rc )
          {
-            ossPrintf( "Error: Enum [%s] sub dirs failed: %d"OSS_NEWLINE,
+            ossPrintf( "Error: Enum [%s] sub dirs failed: %d" OSS_NEWLINE,
                        localPath, rc ) ;
             goto error ;
          }
@@ -545,7 +545,7 @@ namespace engine
          if ( SDB_OK == rc && !svcname.empty() &&
               serviceExists( svcname.c_str(), info ) )
          {
-            ossPrintf ( "Success: %s(%s) is already started (%d)"OSS_NEWLINE,
+            ossPrintf ( "Success: %s(%s) is already started (%d)" OSS_NEWLINE,
                         utilDBTypeStr( (SDB_TYPE)info._type ),
                         info._svcname.c_str(), info._pid ) ;
             ++succeedNum ;
@@ -569,7 +569,7 @@ namespace engine
          if ( tmpRC )
          {
             rc = tmpRC ;
-            ossPrintf( "Error: Start [%s] failed, rc: %d(%s)"OSS_NEWLINE,
+            ossPrintf( "Error: Start [%s] failed, rc: %d(%s)" OSS_NEWLINE,
                        configs[ j ].c_str(), tmpRC, getErrDesp( rc ) ) ;
             ++failedNum ;
             continue ;
@@ -624,7 +624,7 @@ namespace engine
 #endif // _WINDOWS
                if ( !outString.empty() )
                {
-                  ossPrintf( "%s: %u bytes out==>%s%s%s<=="OSS_NEWLINE,
+                  ossPrintf( "%s: %u bytes out==>%s%s%s<==" OSS_NEWLINE,
                              info._svcname.c_str(),
                              (UINT32)(outString.length() + ossStrlen( OSS_NEWLINE ) * 2 ),
                              OSS_NEWLINE,
@@ -643,7 +643,7 @@ namespace engine
                     isServiceHasBeenStarted( info._svcname, info ) )
                {
                   ossPrintf ( "Success: %s(%s) is already started "
-                              "(%d)"OSS_NEWLINE,
+                              "(%d)" OSS_NEWLINE,
                               utilDBTypeStr( (SDB_TYPE)info._type ),
                               info._svcname.c_str(), info._pid ) ;
                   ++succeedNum ;
@@ -652,7 +652,7 @@ namespace engine
                   continue ;
                }
             }
-            ossPrintf( "Error: Start [%s] failed, rc: %d(%s)"OSS_NEWLINE,
+            ossPrintf( "Error: Start [%s] failed, rc: %d(%s)" OSS_NEWLINE,
                        configs[ j ].c_str(), rc,
                        getErrDesp( utilShellRC2RC( rc ) ) ) ;
             ++failedNum ;
@@ -663,12 +663,12 @@ namespace engine
 
       if ( 0 == total )
       {
-         ossPrintf( "No node configs"OSS_NEWLINE ) ;
+         ossPrintf( "No node configs" OSS_NEWLINE ) ;
          rc = SDB_INVALIDARG ;
       }
       else
       {
-         ossPrintf( "Total: %d; Succeed: %d; Failed: %d"OSS_NEWLINE,
+         ossPrintf( "Total: %d; Succeed: %d; Failed: %d" OSS_NEWLINE,
                     total, succeedNum, failedNum ) ;
       }
 

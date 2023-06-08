@@ -131,67 +131,67 @@ retry:
 
    len = 0 ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Tool Name    : sdbInspect"OSS_NEWLINE ) ;
+                       "Tool Name    : sdbInspect" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Tool Version : %d.%d"OSS_NEWLINE,
+                       "Tool Version : %d.%d" OSS_NEWLINE,
                        header->_mainVersion, header->_subVersion ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
                        "------------------------------"
-                       OSS_NEWLINE""OSS_NEWLINE ) ;
+                       OSS_NEWLINE "" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Parameters:"OSS_NEWLINE ) ;
+                       "Parameters:" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Loop        : %d"OSS_NEWLINE,
+                       "Loop        : %d" OSS_NEWLINE,
                        header->_loop ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "action      : %s"OSS_NEWLINE,
+                       "action      : %s" OSS_NEWLINE,
                        header->_action ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "coorAddress : %s"OSS_NEWLINE,
+                       "coorAddress : %s" OSS_NEWLINE,
                        header->_coordAddr ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "serviceName : %s"OSS_NEWLINE,
+                       "serviceName : %s" OSS_NEWLINE,
                        header->_serviceName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "username    : %s"OSS_NEWLINE,
+                       "username    : %s" OSS_NEWLINE,
                        g_username ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "group       : %s"OSS_NEWLINE,
+                       "group       : %s" OSS_NEWLINE,
                        header->_groupName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "cs name     : %s"OSS_NEWLINE,
+                       "cs name     : %s" OSS_NEWLINE,
                        header->_csName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "cl name     : %s"OSS_NEWLINE,
+                       "cl name     : %s" OSS_NEWLINE,
                        header->_clName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "file path   : %s"OSS_NEWLINE,
+                       "file path   : %s" OSS_NEWLINE,
                        header->_filepath ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "output file : %s"OSS_NEWLINE,
+                       "output file : %s" OSS_NEWLINE,
                        header->_outfile ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "view        : %s"OSS_NEWLINE,
+                       "view        : %s" OSS_NEWLINE,
                        header->_view ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
                        "------------------------------"
-                       OSS_NEWLINE""OSS_NEWLINE ) ;
+                       OSS_NEWLINE "" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    validSize = len ;
 
@@ -220,18 +220,18 @@ retry:
 
    len = 0 ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Replica Group:"OSS_NEWLINE ) ;
+                       "  Replica Group:" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Group ID     : %d"OSS_NEWLINE,
+                       "  Group ID     : %d" OSS_NEWLINE,
                        header->_groupID ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Group Name   : %s"OSS_NEWLINE,
+                       "  Group Name   : %s" OSS_NEWLINE,
                        header->_groupName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Nodes count  : %d"OSS_NEWLINE,
+                       "  Nodes count  : %d" OSS_NEWLINE,
                        header->_nodeCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -310,23 +310,23 @@ retry:
    while ( NULL != node )
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    Node index       : %d"OSS_NEWLINE,
+                          "    Node index       : %d" OSS_NEWLINE,
                           node->_index) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    Node ID          : %d"OSS_NEWLINE,
+                          "    Node ID          : %d" OSS_NEWLINE,
                           node->_nodeID ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    Node HostName    : %s"OSS_NEWLINE,
+                          "    Node HostName    : %s" OSS_NEWLINE,
                           node->_hostname ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    Node ServiceName : %s"OSS_NEWLINE,
+                          "    Node ServiceName : %s" OSS_NEWLINE,
                           node->_serviceName ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    Node State       : %s"OSS_NEWLINE,
+                          "    Node State       : %s" OSS_NEWLINE,
                           ciNode::stateDesc[ node->_state ] ) ;
       len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
@@ -361,18 +361,18 @@ retry:
 
    len = 0 ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Collection Full Name  : %s"OSS_NEWLINE,
+                       "  Collection Full Name  : %s" OSS_NEWLINE,
                        header->_fullname ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "  Main Collection Name  : %s"OSS_NEWLINE,
+                       "  Main Collection Name  : %s" OSS_NEWLINE,
                        header->_mainClName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
    if ( header->_recordCount <= 0 )
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "    There is no record different"OSS_NEWLINE ) ;
+                          "    There is no record different" OSS_NEWLINE ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    }
    len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
@@ -412,13 +412,13 @@ INT32 archiveCiRecord( ciLinkList< ciNode > &nodes,
                                  OSS_NEWLINE
                                  "    There is [%d] piece of records that haven't been"
                                  " synchronized."
-                                 OSS_NEWLINE""OSS_NEWLINE, link.count() ) ;
+                                 OSS_NEWLINE "" OSS_NEWLINE, link.count() ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    }
    else
    {
       rc = rBuffer->writeBuffer( "   There is no record different"
-                                 OSS_NEWLINE""OSS_NEWLINE ) ;
+                                 OSS_NEWLINE "" OSS_NEWLINE ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    }
 
@@ -426,7 +426,7 @@ INT32 archiveCiRecord( ciLinkList< ciNode > &nodes,
    rd = link.getHead() ;
    while ( NULL != rd )
    {
-      rc = rBuffer->writeBuffer( "  -record     : %s"OSS_NEWLINE,
+      rc = rBuffer->writeBuffer( "  -record     : %s" OSS_NEWLINE,
                                  rd->_bson.toString().c_str() ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
       rc = rBuffer->writeBuffer(  "  -Node State : " ) ;
@@ -492,26 +492,26 @@ retry:
    }
 
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Inspect result:"OSS_NEWLINE ) ;
+                       "Inspect result:" OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected group count       : %d"OSS_NEWLINE,
+                       "Total inspected group count       : %d" OSS_NEWLINE,
                        tail._groupCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected collection        : %d"OSS_NEWLINE,
+                       "Total inspected collection        : %d" OSS_NEWLINE,
                        tail._clCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total different collections count : %d"OSS_NEWLINE,
+                       "Total different collections count : %d" OSS_NEWLINE,
                        tail._diffCLCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total different records count     : %d"OSS_NEWLINE,
+                       "Total different records count     : %d" OSS_NEWLINE,
                        tail._recordCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total time cost                   : %d ms"OSS_NEWLINE,
+                       "Total time cost                   : %d ms" OSS_NEWLINE,
                        tail._timeCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -519,18 +519,18 @@ retry:
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
                           "Reason for exit : exit with no records "
-                          "different"OSS_NEWLINE ) ;
+                          "different" OSS_NEWLINE ) ;
    }
    else if ( 1 == tail._exitCode )
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
                           "Reason for exit : exit with less than 1%% of "
-                          "records not synchronized"OSS_NEWLINE ) ;
+                          "records not synchronized" OSS_NEWLINE ) ;
    }
    else
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
-                          "Reason for exit : loop is limited"OSS_NEWLINE ) ;
+                          "Reason for exit : loop is limited" OSS_NEWLINE ) ;
    }
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -2689,7 +2689,7 @@ void makeTmpFileName( const CHAR *outFile, UINT32 loopIndex, CHAR *tmpFile, UINT
    SDB_ASSERT( NULL != outFile && NULL != tmpFile, "outFile & tmpFile can't be NULL" ) ;
 
    ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
-   ossSnprintf( tmpFile, len, "%s"CI_TMP_FILE_SUFFIX, outFile, loopIndex ) ;
+   ossSnprintf( tmpFile, len, "%s" CI_TMP_FILE_SUFFIX, outFile, loopIndex ) ;
 }
 
 /**

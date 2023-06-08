@@ -3028,8 +3028,8 @@ nextLock:
       if ( bPrintLog )
       {
          PD_LOG( PDDEBUG,
-                 "%s"OSS_NEWLINE
-                 "Number of locks:%d"OSS_NEWLINE"%s",
+                 "%s" OSS_NEWLINE
+                 "Number of locks:%d" OSS_NEWLINE "%s",
                  ( memoStr ? memoStr : "" ),
                  lockCount,
                  lockInfo.str().c_str() ) ;
@@ -3515,37 +3515,37 @@ nextLock:
          delta.convertToTime( factor, seconds, microseconds ) ;
 
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sEDU          : %llu"OSS_NEWLINE, pStr,
+                               "%sEDU          : %llu" OSS_NEWLINE, pStr,
                                pLRB->dpsTxExectr->getEDUID() ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sLRB          : %p"OSS_NEWLINE, pStr,
+                               "%sLRB          : %p" OSS_NEWLINE, pStr,
                                pLRB ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sdpsTxExectr  : %p"OSS_NEWLINE, pStr,
+                               "%sdpsTxExectr  : %p" OSS_NEWLINE, pStr,
                                pLRB->dpsTxExectr ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%seduLrbNext   : %p"OSS_NEWLINE, pStr,
+                               "%seduLrbNext   : %p" OSS_NEWLINE, pStr,
                                pLRB->eduLrbNext ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%seduLrbPrev   : %p"OSS_NEWLINE, pStr,
+                               "%seduLrbPrev   : %p" OSS_NEWLINE, pStr,
                                pLRB->eduLrbPrev ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%slrbHdr       : %p"OSS_NEWLINE, pStr,
+                               "%slrbHdr       : %p" OSS_NEWLINE, pStr,
                                pLRB->lrbHdr ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%snextLRB      : %p"OSS_NEWLINE, pStr,
+                               "%snextLRB      : %p" OSS_NEWLINE, pStr,
                                pLRB->nextLRB ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sprevLRB      : %p"OSS_NEWLINE, pStr,
+                               "%sprevLRB      : %p" OSS_NEWLINE, pStr,
                                pLRB->prevLRB ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%srefCounter   : %llu"OSS_NEWLINE, pStr,
+                               "%srefCounter   : %llu" OSS_NEWLINE, pStr,
                                pLRB->refCounter ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%slockMode     : %s"OSS_NEWLINE, pStr,
+                               "%slockMode     : %s" OSS_NEWLINE, pStr,
                                lockModeToString( pLRB->lockMode ) ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sduration     : %llu"OSS_NEWLINE, pStr,
+                               "%sduration     : %llu" OSS_NEWLINE, pStr,
                                (UINT64)(seconds*1000 + microseconds / 1000 ) ) ;
       }
       return pBuf ;
@@ -3599,28 +3599,28 @@ nextLock:
       if ( pLRBHdr )
       {
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sLRB Header : %p"OSS_NEWLINE, pStr,
+                               "%sLRB Header : %p" OSS_NEWLINE, pStr,
                                pLRBHdr ) ;
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%snextLRBHdr : %p"OSS_NEWLINE, pStr,
+                               "%snextLRBHdr : %p" OSS_NEWLINE, pStr,
                               pLRBHdr->nextLRBHdr );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sownerLRB   : %p"OSS_NEWLINE, pStr,
+                               "%sownerLRB   : %p" OSS_NEWLINE, pStr,
                                pLRBHdr->ownerLRB );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%swaiterLRB  : %p"OSS_NEWLINE, pStr,
+                               "%swaiterLRB  : %p" OSS_NEWLINE, pStr,
                                pLRBHdr->waiterLRB );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%supgradeLRB : %p"OSS_NEWLINE, pStr,
+                               "%supgradeLRB : %p" OSS_NEWLINE, pStr,
                                pLRBHdr->upgradeLRB );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sISOwner    : %p"OSS_NEWLINE, pStr,
+                               "%sISOwner    : %p" OSS_NEWLINE, pStr,
                                pLRBHdr->newestISOwner );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%sIXOwner    : %p"OSS_NEWLINE, pStr,
+                               "%sIXOwner    : %p" OSS_NEWLINE, pStr,
                                pLRBHdr->newestIXOwner );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
-                               "%slockId     : ( %s )"OSS_NEWLINE, pStr,
+                               "%slockId     : ( %s )" OSS_NEWLINE, pStr,
                                pLRBHdr->lockId.toString().c_str() ) ;
       }
       return pBuf;
@@ -3671,7 +3671,7 @@ nextLock:
                pStr = (CHAR*) _LRBToString( pLRB, szBuffer,
                                             sizeof(szBuffer), prefixStr ) ;
             }
-            fprintf( fp, "%s"OSS_NEWLINE, pStr ) ;
+            fprintf( fp, "%s" OSS_NEWLINE, pStr ) ;
             pLRB = pLRB->eduLrbPrev ;
          }
 
@@ -3745,8 +3745,8 @@ nextLock:
             pStr = "( Container Lock )" ;
          }
 
-         fprintf( fp, " %s"OSS_NEWLINE, pStr ) ;
-         fprintf( fp, "%s", "-------------------------------"OSS_NEWLINE ) ;
+         fprintf( fp, " %s" OSS_NEWLINE, pStr ) ;
+         fprintf( fp, "%s", "-------------------------------" OSS_NEWLINE ) ;
          if ( bOutputInPlainMode )
          {
             pStr = (CHAR*) _LRBHdrToString(pLRBHdr, szBuffer, sizeof(szBuffer));
@@ -3756,18 +3756,18 @@ nextLock:
             pStr = (CHAR*) _LRBHdrToString(pLRBHdr, szBuffer, sizeof(szBuffer),
                                            NULL );
          }
-         fprintf( fp, "%s"OSS_NEWLINE OSS_NEWLINE, pStr ) ;
+         fprintf( fp, "%s" OSS_NEWLINE OSS_NEWLINE, pStr ) ;
          if ( pLRBHdr->ownerLRB )
          {
             if ( bOutputInPlainMode )
             {
-               fprintf( fp, "%s", "Owner list:"OSS_NEWLINE ) ;
-               fprintf( fp, "%s", "-----------"OSS_NEWLINE ) ;
+               fprintf( fp, "%s", "Owner list:" OSS_NEWLINE ) ;
+               fprintf( fp, "%s", "-----------" OSS_NEWLINE ) ;
             }
             else
             {
-               fprintf( fp, "%sOwner list:"OSS_NEWLINE, prefixStr ) ;
-               fprintf( fp, "%s-----------"OSS_NEWLINE, prefixStr ) ;
+               fprintf( fp, "%sOwner list:" OSS_NEWLINE, prefixStr ) ;
+               fprintf( fp, "%s-----------" OSS_NEWLINE, prefixStr ) ;
             }
             pLRB = pLRBHdr->ownerLRB ;
             while ( pLRB )
@@ -3782,15 +3782,15 @@ nextLock:
                   pStr = (CHAR*) _LRBToString( pLRB, szBuffer,
                                                sizeof(szBuffer), prefixStr ) ;
                }
-               fprintf( fp, "%s"OSS_NEWLINE, pStr ) ;
+               fprintf( fp, "%s" OSS_NEWLINE, pStr ) ;
                pLRB = pLRB->nextLRB ;
             }
             fprintf( fp, "%s", OSS_NEWLINE ) ;
          }
          if ( pLRBHdr->upgradeLRB )
          {
-            fprintf( fp, "%sUpgrade list:"OSS_NEWLINE, prefixStr ) ;
-            fprintf( fp, "%s-------------"OSS_NEWLINE, prefixStr ) ;
+            fprintf( fp, "%sUpgrade list:" OSS_NEWLINE, prefixStr ) ;
+            fprintf( fp, "%s-------------" OSS_NEWLINE, prefixStr ) ;
             pLRB = pLRBHdr->upgradeLRB ;
             while ( pLRB )
             {
@@ -3804,15 +3804,15 @@ nextLock:
                   pStr = (CHAR*) _LRBToString( pLRB, szBuffer,
                                                sizeof(szBuffer), prefixStr );
                }
-               fprintf( fp, "%s"OSS_NEWLINE, pStr ) ;
+               fprintf( fp, "%s" OSS_NEWLINE, pStr ) ;
                pLRB = pLRB->nextLRB ;
             }
             fprintf( fp, "%s", OSS_NEWLINE ) ;
          }
          if ( pLRBHdr->waiterLRB != NULL )
          {
-            fprintf( fp, "%sWaiter list:"OSS_NEWLINE, prefixStr ) ;
-            fprintf( fp, "%s------------"OSS_NEWLINE, prefixStr ) ;
+            fprintf( fp, "%sWaiter list:" OSS_NEWLINE, prefixStr ) ;
+            fprintf( fp, "%s------------" OSS_NEWLINE, prefixStr ) ;
             pLRB = pLRBHdr->waiterLRB ;
             while ( pLRB )
             {
@@ -3826,7 +3826,7 @@ nextLock:
                   pStr = (CHAR*) _LRBToString( pLRB, szBuffer,
                                                sizeof(szBuffer), prefixStr );
                }
-               fprintf( fp, "%s"OSS_NEWLINE, pStr ) ;
+               fprintf( fp, "%s" OSS_NEWLINE, pStr ) ;
                pLRB = pLRB->nextLRB ;
             }
             fprintf( fp, "%s", OSS_NEWLINE ) ;

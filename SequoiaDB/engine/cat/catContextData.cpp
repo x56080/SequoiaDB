@@ -1938,7 +1938,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_GETBOUND ) ;
 
       BSONElement upBound =
-            clObj.getFieldDotted( CAT_CATALOGINFO_NAME".0."CAT_UPBOUND_NAME ) ;
+            clObj.getFieldDotted( CAT_CATALOGINFO_NAME ".0." CAT_UPBOUND_NAME ) ;
 
       if ( Object != upBound.type() )
       {

@@ -2212,7 +2212,7 @@ namespace engine
          if ( 0 == _fullNames.size() )
          {
             // make sure we can get log from the src node.
-            static string dummpyCL( SYS_INEXISTENCE_CS"."SYS_INEXISTENCE_CL ) ;
+            static string dummpyCL( SYS_INEXISTENCE_CS "." SYS_INEXISTENCE_CL ) ;
             _fullNames.push_back( dummpyCL ) ;
          }
       }

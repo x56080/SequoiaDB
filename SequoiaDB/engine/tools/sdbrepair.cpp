@@ -271,12 +271,12 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
 
    // show input parameters on screen so people can see it
    // save them into output as well
-   dumpPrintf( "Run Options   :"OSS_NEWLINE ) ;
-   dumpPrintf ( "Database Path : %s"OSS_NEWLINE,
+   dumpPrintf( "Run Options   :" OSS_NEWLINE ) ;
+   dumpPrintf ( "Database Path : %s" OSS_NEWLINE,
                 gDatabasePath ) ;
-   dumpPrintf ( "CS Name       : %s"OSS_NEWLINE,
+   dumpPrintf ( "CS Name       : %s" OSS_NEWLINE,
                 ossStrlen(gCSName)?gCSName:"{all}" ) ;
-   dumpPrintf ( "CL Name       : %s"OSS_NEWLINE,
+   dumpPrintf ( "CL Name       : %s" OSS_NEWLINE,
                 ossStrlen(gCLName)?gCLName:"{all}" ) ;
    dumpPrintf ( OSS_NEWLINE ) ;
 
@@ -298,7 +298,7 @@ void inspectCollections ( OSSFILE &file )
    if ( rc || lenRead != DMS_MME_SZ )
    {
       dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
-                   "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+                   "rc = %d" OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
 
@@ -344,7 +344,7 @@ void inspectCollections ( OSSFILE &file )
       if ( rc || lenWrite != DMS_MME_SZ )
       {
          dumpPrintf ( "Error: Failed to write sme, write %lld bytes, "
-                      "rc = %d"OSS_NEWLINE, lenWrite, rc ) ;
+                      "rc = %d" OSS_NEWLINE, lenWrite, rc ) ;
          goto error ;
       }
    }
@@ -370,7 +370,7 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
    rc = ossOpen ( pFile, OSS_READWRITE , OSS_RU | OSS_WU | OSS_RG, file ) ;
    if ( rc )
    {
-      dumpPrintf ( "Error: Failed to open %s, rc = %d"OSS_NEWLINE,
+      dumpPrintf ( "Error: Failed to open %s, rc = %d" OSS_NEWLINE,
                    pFile, rc ) ;
       goto error ;
    }
@@ -385,7 +385,7 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       rc = ossRead ( &file, eyeCatcher + readPos, restLen, &readSize ) ;
       if ( rc && SDB_INTERRUPT != rc )
       {
-         dumpPrintf ( "Error: Failed to read %s, rc = %d"OSS_NEWLINE,
+         dumpPrintf ( "Error: Failed to read %s, rc = %d" OSS_NEWLINE,
                       pFile, rc ) ;
          goto error ;
       }
@@ -401,7 +401,7 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       // not a valid SU file
       if ( specific )
       {
-         dumpPrintf ( "Error: %s is not a valid storage unit"OSS_NEWLINE,
+         dumpPrintf ( "Error: %s is not a valid storage unit" OSS_NEWLINE,
                       pFile ) ;
       }
       goto done ;
@@ -483,7 +483,7 @@ void repairDB ()
    else
    {
       // if we can't find the path, let's show error
-      dumpPrintf ( "Error: db path %s is not a valid directory"OSS_NEWLINE,
+      dumpPrintf ( "Error: db path %s is not a valid directory" OSS_NEWLINE,
                    gDatabasePath ) ;
    }
 }
@@ -499,7 +499,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    {
       if ( SDB_PMD_HELP_ONLY != rc )
       {
-         dumpPrintf ( "Error: Invalid arguments"OSS_NEWLINE ) ;
+         dumpPrintf ( "Error: Invalid arguments" OSS_NEWLINE ) ;
          displayArg ( desc ) ;
       }
       goto done ;
@@ -509,7 +509,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    gMMEBuff = (CHAR*)SDB_OSS_MALLOC( DMS_MME_SZ ) ;
    if ( !gMMEBuff )
    {
-      dumpPrintf ( "Error: Failed to allocate mme buffer, exit"OSS_NEWLINE ) ;
+      dumpPrintf ( "Error: Failed to allocate mme buffer, exit" OSS_NEWLINE ) ;
       goto done ;
    }
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;

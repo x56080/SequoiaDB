@@ -278,7 +278,7 @@ namespace engine
       rc = ossGetEWD( dialogFile, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
-         ossPrintf( "Error: Get module self path failed:  %d"OSS_NEWLINE,
+         ossPrintf( "Error: Get module self path failed:  %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -286,14 +286,14 @@ namespace engine
       rc = utilCatPath( dialogFile, OSS_MAX_PATHSIZE, SDBCM_LOG_PATH ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog dir[%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
@@ -302,7 +302,7 @@ namespace engine
                                 SDBSTOP_LOG_FILE_NAME ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
       }
@@ -360,18 +360,18 @@ namespace engine
             rc = utilAsyncStopNode( info ) ;
             if ( rc )
             {
-               ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+               ossPrintf ( "Terminating process %d: %s(%s)" OSS_NEWLINE,
                            info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                            info._svcname.c_str() ) ;
                if ( SDB_CLS_NODE_NOT_EXIST == rc )
                {
                   rc = SDB_OK ;
                   ++success ;
-                  ossPrintf ( "DONE"OSS_NEWLINE ) ;
+                  ossPrintf ( "DONE" OSS_NEWLINE ) ;
                }
                else
                {
-                  ossPrintf ( "FAILED"OSS_NEWLINE ) ;
+                  ossPrintf ( "FAILED" OSS_NEWLINE ) ;
                }
 
                itrNode = listNodes.erase( itrNode ) ;
@@ -392,7 +392,7 @@ namespace engine
       {
          utilNodeInfo &info = *itrNode ;
 
-         ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+         ossPrintf ( "Terminating process %d: %s(%s)" OSS_NEWLINE,
                      info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                      info._svcname.c_str() ) ;
 
@@ -401,16 +401,16 @@ namespace engine
          if ( SDB_OK == rc )
          {
             ++success ;
-            ossPrintf ( "DONE"OSS_NEWLINE ) ;
+            ossPrintf ( "DONE" OSS_NEWLINE ) ;
          }
          else
          {
-            ossPrintf ( "FAILED"OSS_NEWLINE ) ;
+            ossPrintf ( "FAILED" OSS_NEWLINE ) ;
          }
          ++itrNode ;
       }
 
-      ossPrintf ( "Total: %d; Success: %d; Failed: %d"OSS_NEWLINE,
+      ossPrintf ( "Total: %d; Success: %d; Failed: %d" OSS_NEWLINE,
                   total, success, total - success ) ;
 
       if ( total == success )

@@ -973,7 +973,7 @@ UINT32 ossHexDumpLine
       if ( flags & OSS_HEXDUMP_INCLUDE_ADDR )
       {
          offInBuf = ossSnprintf( szOutBuf, bytesRemain,
-                                 "0x"OSS_PRIXPTR " : ", (UintPtr)cPtr) ;
+                                 "0x" OSS_PRIXPTR " : ", (UintPtr)cPtr) ;
          bytesRemain -= offInBuf ;
       }
 
@@ -1131,7 +1131,7 @@ UINT32 ossHexDumpBuffer
             if ( flags & OSS_HEXDUMP_PREFIX_AS_ADDR )
             {
                ossSnprintf( szAddrStr, sizeof( szAddrStr ),
-                            "0x"OSS_PRIXPTR OSS_HEXDUMP_SPLITER,
+                            "0x" OSS_PRIXPTR OSS_HEXDUMP_SPLITER,
                             (UintPtr)addrPtr ) ;
                ossStrncpy(curPos, szAddrStr, prefixLength + 1) ;
                curPos += prefixLength ;
@@ -1153,9 +1153,9 @@ UINT32 ossHexDumpBuffer
          {
             if ( ! bPrinted )
             {
-               ossStrncpy(curPos, "*"OSS_NEWLINE, sizeof( "*"OSS_NEWLINE )) ;
-               curPos += sizeof( "*"OSS_NEWLINE ) - sizeof( '\0' ) ;
-               outBufSz -= sizeof( "*"OSS_NEWLINE ) - sizeof( '\0' ) ;
+               ossStrncpy(curPos, "*" OSS_NEWLINE, sizeof( "*" OSS_NEWLINE )) ;
+               curPos += sizeof( "*" OSS_NEWLINE ) - sizeof( '\0' ) ;
+               outBufSz -= sizeof( "*" OSS_NEWLINE ) - sizeof( '\0' ) ;
                bPrinted = true ;
             }
          }

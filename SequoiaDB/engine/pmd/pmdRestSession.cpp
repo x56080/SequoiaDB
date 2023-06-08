@@ -4179,7 +4179,7 @@ namespace engine
                      ossRoundUpToMultipleX( sqlLen, 4 ) ;
          if ( len < 0 )
          {
-            ossPrintf ( "Packet size overflow"OSS_NEWLINE ) ;
+            ossPrintf ( "Packet size overflow" OSS_NEWLINE ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4187,7 +4187,7 @@ namespace engine
          rc = msgCheckBuffer( ppBuffer, bufferSize, len ) ;
          if ( rc )
          {
-            ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
+            ossPrintf ( "Failed to check buffer, rc = %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 

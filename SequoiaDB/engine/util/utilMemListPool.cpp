@@ -309,13 +309,13 @@ namespace engine
 
          len = ossSnprintf( pBuff, buffSize,
                             OSS_NEWLINE
-                            "   BlockSize : %u"OSS_NEWLINE
-                            "   CacheSize : %llu"OSS_NEWLINE
-                            "  AllocCount : %llu"OSS_NEWLINE
-                            "DeallocCount : %llu"OSS_NEWLINE
-                            "  ShrinkSize : %llu"OSS_NEWLINE
-                            "    HitCount : %llu (%.2f%%)"OSS_NEWLINE
-                            "   PushCount : %llu (%.2f%%)"OSS_NEWLINE,
+                            "   BlockSize : %u" OSS_NEWLINE
+                            "   CacheSize : %llu" OSS_NEWLINE
+                            "  AllocCount : %llu" OSS_NEWLINE
+                            "DeallocCount : %llu" OSS_NEWLINE
+                            "  ShrinkSize : %llu" OSS_NEWLINE
+                            "    HitCount : %llu (%.2f%%)" OSS_NEWLINE
+                            "   PushCount : %llu (%.2f%%)" OSS_NEWLINE,
                             _blockSize, _cachedSize,
                             _allocCount, _deallocCount, _shrinkSize,
                             _hitCount, hitRatio,
@@ -899,18 +899,18 @@ namespace engine
 
       /// dump self
       len = ossSnprintf( pBuff, buffSize,
-                         "   CacheSize : %llu"OSS_NEWLINE
-                         "    EBB Size : %u"OSS_NEWLINE
-                         "  AllocCount : %llu"OSS_NEWLINE
-                         "   OOR Alloc : %llu"OSS_NEWLINE
-                         "   EBB Alloc : %llu"OSS_NEWLINE
-                         "ReallocCount : %llu"OSS_NEWLINE
-                         "DeallocCount : %llu"OSS_NEWLINE
-                         " OOR Dealloc : %llu"OSS_NEWLINE
-                         "  ShrinkSize : %llu"OSS_NEWLINE
-                         "    HitCount : %llu (%.2f%%)"OSS_NEWLINE
-                         "   PushCount : %llu (%.2f%%)"OSS_NEWLINE
-                         "   CopyCount : %llu (%.2f%%)"OSS_NEWLINE,
+                         "   CacheSize : %llu" OSS_NEWLINE
+                         "    EBB Size : %u" OSS_NEWLINE
+                         "  AllocCount : %llu" OSS_NEWLINE
+                         "   OOR Alloc : %llu" OSS_NEWLINE
+                         "   EBB Alloc : %llu" OSS_NEWLINE
+                         "ReallocCount : %llu" OSS_NEWLINE
+                         "DeallocCount : %llu" OSS_NEWLINE
+                         " OOR Dealloc : %llu" OSS_NEWLINE
+                         "  ShrinkSize : %llu" OSS_NEWLINE
+                         "    HitCount : %llu (%.2f%%)" OSS_NEWLINE
+                         "   PushCount : %llu (%.2f%%)" OSS_NEWLINE
+                         "   CopyCount : %llu (%.2f%%)" OSS_NEWLINE,
                          _cachedSize,
                          _EBBSize,
                          _allocCount, _outrangeAlloc, _allocEBBCount,
@@ -1000,9 +1000,9 @@ namespace engine
          CHAR buff[ UTIL_DUMP_BUFFSIZE ] = { 0 } ;
          g_thdMemPool->dump( buff, UTIL_DUMP_BUFFSIZE - 1 ) ;
 
-         PD_LOG( PDEVENT, "Dump thread memory info:"OSS_NEWLINE
-                          " Thread Type : %s"OSS_NEWLINE
-                          " Thread Name : %s"OSS_NEWLINE
+         PD_LOG( PDEVENT, "Dump thread memory info:" OSS_NEWLINE
+                          " Thread Type : %s" OSS_NEWLINE
+                          " Thread Name : %s" OSS_NEWLINE
                           "%s",
                  pType, pName, buff ) ;
       }
@@ -1038,7 +1038,7 @@ namespace engine
 
          len = ossSnprintf( buff, UTIL_DUMP_BUFFSIZE,
                             OSS_NEWLINE
-                            "---- Thread( ID: %u, Name: %s ) ----"OSS_NEWLINE,
+                            "---- Thread( ID: %u, Name: %s ) ----" OSS_NEWLINE,
                             ossGetCurrentThreadID(),
                             g_thdMemPool->getName() ) ;
          len += g_thdMemPool->dump( buff + len, UTIL_DUMP_BUFFSIZE - len ) ;
