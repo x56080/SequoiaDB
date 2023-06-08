@@ -56,7 +56,7 @@ function test ( testPara )
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 
    testExplain( conds1, dbcl, indexName1, scanType1 );
-   testExplain( conds2, dbcl, indexName2, scanType );
+   testExplain( conds2, dbcl, indexName, scanType );
    testExplain( conds3, dbcl, indexName, scanType );
 }
 
