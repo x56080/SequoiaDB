@@ -529,6 +529,7 @@ namespace engine
 
       _countOnly           = FALSE ;
       _pDpsCB              = NULL ;
+      _endLSN              = DPS_INVALID_LSN_OFFSET ;
       _w                   = 1 ;
 
       _canPrepareMore      = FALSE ;
@@ -1726,11 +1727,11 @@ namespace engine
       _releaseContextInfos() ;
    }
 
-   rtnContextPtr _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
-                                              INT64 contextId,
-                                              EDUID eduId )
+   rtnContextInternalPtr _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
+                                                      INT64 contextId,
+                                                      EDUID eduId )
    {
-      rtnContextPtr ctx ;
+      rtnContextInternalPtr ctx ;
       const _rtnContextInfo* info = find( type ) ;
       if ( NULL != info )
       {

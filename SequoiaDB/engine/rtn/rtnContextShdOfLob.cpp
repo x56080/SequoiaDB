@@ -53,9 +53,7 @@ namespace engine
     _mode( SDB_LOB_MODE_READ ),
     _flags( 0 ),
     _isMainShd( FALSE ),
-    _w( 1 ),
     _version( 0 ),
-    _dpsCB( NULL ),
     _closeWithException( TRUE ),
     _buf( NULL ),
     _bufLen( 0 ),
@@ -89,8 +87,8 @@ namespace engine
          else if ( SDB_LOB_MODE_REMOVE == _mode && _isMainShd )
          {
             rtnQueryAndInvalidateLob( _getRealCLName(),
-                                      _oid, cb, _w,
-                                      _dpsCB, _meta,
+                                      _oid, cb, 1,
+                                      _pDpsCB, _meta,
                                       _su, _mbContext ) ;
          }
          else
@@ -174,8 +172,7 @@ namespace engine
          goto error ;
       }
 
-      _w = w ;
-      _dpsCB = dpsCB ;
+      setWriteInfo( dpsCB, w ) ;
       _version = version ;
       _flags = flag ;
 
@@ -254,7 +251,7 @@ namespace engine
          rc = rtnWriteOrUpdateLob( _getRealCLName(),
                                    _oid, sequence,
                                    offset, len, data, cb,
-                                   _w, _dpsCB, _su, _mbContext,
+                                   1, _pDpsCB, _su, _mbContext,
                                    &updated ) ;
       }
       else
@@ -262,7 +259,7 @@ namespace engine
          rc = rtnWriteLob( _getRealCLName(),
                            _oid, sequence,
                            offset, len, data, cb,
-                           _w, _dpsCB, _su, _mbContext ) ;
+                           1, _pDpsCB, _su, _mbContext ) ;
       }
 
       if ( SDB_OK != rc )
@@ -451,7 +448,7 @@ namespace engine
          rc = rtnUpdateLob( _getRealCLName(),
                             _oid, sequence,
                             offset, len, data, cb,
-                            _w, _dpsCB, _su, _mbContext ) ;
+                            1, _pDpsCB, _su, _mbContext ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to update lob:%d", rc ) ;
@@ -482,7 +479,7 @@ namespace engine
          rc = rtnUpdateLob( _getRealCLName(),
                             _oid, sequence,
                             offset, len, data, cb,
-                            _w, _dpsCB, _su, _mbContext ) ;
+                            1, _pDpsCB, _su, _mbContext ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to update lob:%d", rc ) ;
@@ -1162,7 +1159,7 @@ namespace engine
 
       rc = rtnRemoveLobPiece( _getRealCLName(),
                                 _oid, sequence, cb,
-                                _w, _dpsCB, _su, _mbContext ) ;
+                                1, _pDpsCB, _su, _mbContext ) ;
       if ( rc )
       {
          goto error ;
@@ -1287,6 +1284,27 @@ error:
          _su = NULL ;
       }
 
+      /// wait for sync
+      if ( isWrite() && getDPSCB() && getW() > 1 )
+      {
+         if ( DPS_INVALID_LSN_OFFSET == cb->getEndLsn() &&
+              DPS_INVALID_LSN_OFFSET != getEndLSN() )
+         {
+            cb->insertLsn( (UINT64)( getEndLSN() ) ) ;
+         }
+         cb->setOrgReplSize( getW() ) ;
+         // For now we don't report error, since the user will not be able to
+         // due with the situation, in which case primary node is done but the
+         // secondary nodes are not synchronized
+         INT32 tmpRC = getDPSCB()->completeOpr( cb, getW() ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to wait LSN [%llu] to be completed "
+                    "with repl size [%d], rc: %d", cb->getEndLsn(), getW(), tmpRC ) ;
+         }
+      }
+      resetEndLSN() ;
+
       PD_TRACE_EXIT( SDB__RTNCONTEXTSHDOFLOB_CLOSE ) ;
       return SDB_OK ;
    }
@@ -1308,7 +1326,7 @@ error:
 
          rc = rtnRemoveLobPiece( _getRealCLName(),
                                  _oid, *itr, cb,
-                                 _w, _dpsCB, _su, _mbContext, TRUE ) ;
+                                 1, _pDpsCB, _su, _mbContext, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove piece[%d] of lob, rc:%d",
