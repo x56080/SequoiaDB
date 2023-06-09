@@ -1300,7 +1300,7 @@ namespace engine
                 strNodes += " ]" ;
 
                 len += ossSnprintf( outBuf + len, outSize - len,
-                                    " Nodes   : %s"OSS_NEWLINE,
+                                    " Nodes   : %s" OSS_NEWLINE,
                                     strNodes.c_str() ) ;
              }
              break ;
@@ -1904,7 +1904,7 @@ namespace engine
       if ( SDB_OK != _result )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
-                             OSS_NEWLINE"*ERROR* : %d(%s)" OSS_NEWLINE,
+                             OSS_NEWLINE "*ERROR* : %d(%s)" OSS_NEWLINE,
                              _result, getErrDesp( _result ) ) ;
       }
 
