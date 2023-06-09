@@ -724,7 +724,6 @@ namespace engine
       }
       context->setOpID( pEDUCB->getWritingID() ) ;
 
-<<<<<<< HEAD
       // only check timeout for contexts from local service
       if ( !pEDUCB->isFromLocal() )
       {
@@ -732,10 +731,7 @@ namespace engine
       }
 
       context->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
-=======
-      (*context)->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
-      (*context)->_setRemainingMaxTime( pEDUCB->getOperator()->getRemainingMaxTime() ) ;
->>>>>>> 58b7cfde14... SEQUOIADBMAINSTREAM-9420: 命令支持 maxTimeMS 参数
+      context->_setRemainingMaxTime( pEDUCB->getOperator()->getRemainingMaxTime() ) ;
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",

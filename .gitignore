@@ -41,6 +41,7 @@ sdbload2
 sdbmemcheck
 sdbrepair
 *.dblite
+.vscode/
 
 # C & C++ ignore
 # Prerequisites
