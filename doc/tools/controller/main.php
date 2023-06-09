@@ -215,7 +215,7 @@ if( $param['m'] == "doc" || $param['m'] == "pdf" )
 }
 
 //2. word
-if( ( $param['m'] == "doc" || $param['m'] == "word" ) && $os == 'windows' )
+if(  $param['m'] == "word" && $os == 'windows' )
 {
    printLog( "Generate word", "Event" ) ;
    if( clearDir( "$root/build/mid" )  == false )
