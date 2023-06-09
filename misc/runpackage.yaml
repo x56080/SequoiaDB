@@ -72,6 +72,16 @@ runtimeCheck:
         - '${SYS_PERV_PRODUCT_VERSION} ${SYS_PERV_PRODUCT_TYPE} ${SYS_PRODUCT_VERSION} ${SYS_PRODUCT_TYPE} --db'
       enable: true
       scope: upgrade
+    - name: createDir
+      cmd: '${SYS_TMP_DIR}/service_control.sh'
+      parameters:
+        - name: createDir
+        - name: userName
+          value: '${SYS_USERNAME}'
+        - name: groupName
+          value: '${SYS_GROUPNAME}'
+      scope: all
+      enable: true
     - name: stopService
       cmd: '${SYS_TMP_DIR}/service_control.sh'
       parameters:
