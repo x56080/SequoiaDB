@@ -1523,8 +1523,19 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
-               _renameCollection( originFullName, recyFullName, replayRC ) ;
-               replayRC = SDB_OK ;
+               // truncate will rename the old collections, and create a new
+               // empty collection with the same name, both collections
+               // should be synchronized
+               if ( !_findCollection( itrName.value() ) )
+               {
+                  // let it restart
+                  replayRC = SDB_DMS_TRUNCATED ;
+                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
+                           "[rc:%d]", sessionName(), replayRC ) ;
+                  rc = replayRC ;
+                  goto error ;
+               }
+               _addCollection( recyFullName ) ;
             }
 
             if ( SDB_OK != replayRC )
@@ -1543,6 +1554,7 @@ namespace engine
             }
             else
             {
+               // make sure the collection will be synchronized
                _addCollection ( itrName.value() ) ;
             }
          }
@@ -1592,7 +1604,10 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
-               _renameCollection( originFullName, recyFullName, replayRC ) ;
+               rc = _renameCollection( originFullName, recyFullName, replayRC ) ;
+               PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
+                            "collection DPS log record, rc: %d", sessionName(),
+                            rc ) ;
             }
             else
             {
@@ -1632,9 +1647,12 @@ namespace engine
             if ( options._recycleItem.isValid() )
             {
                // if recycle name is valid, check rename collection
-               _renameCollectionSpace( options._recycleItem.getOriginName(),
-                                       options._recycleItem.getRecycleName(),
-                                       replayRC ) ;
+               rc = _renameCollectionSpace( options._recycleItem.getOriginName(),
+                                            options._recycleItem.getRecycleName(),
+                                            replayRC ) ;
+               PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
+                            "collection space DPS log record, rc: %d",
+                            sessionName(), rc ) ;
             }
             else
             {

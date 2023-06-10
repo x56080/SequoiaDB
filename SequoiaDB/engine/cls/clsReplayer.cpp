@@ -1087,7 +1087,9 @@ namespace engine
                }
                break ;
             }
-            if ( SDB_DMS_CS_NOTEXIST == rc )
+            // if recycle item is valid, must be reported
+            if ( ( SDB_DMS_CS_NOTEXIST == rc ) &&
+                 !( options._recycleItem.isValid() ) )
             {
                PD_LOG( PDWARNING, "Collection space[%s] not exist when "
                        "drop", cs ) ;
@@ -1175,7 +1177,9 @@ namespace engine
                          "options, rc: %d", rc ) ;
             rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
                                            UTIL_UNIQUEID_NULL, &options ) ;
-            if ( SDB_DMS_NOTEXIST == rc )
+            // if recycle item is valid, must be reported
+            if ( ( SDB_DMS_NOTEXIST == rc ) &&
+                 !( options._recycleItem.isValid() )  )
             {
                PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
                rc = SDB_OK ;
