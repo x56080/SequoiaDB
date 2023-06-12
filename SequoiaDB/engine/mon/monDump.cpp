@@ -6660,7 +6660,7 @@ namespace engine
          if ( UTIL_RECYCLE_CS == item.getType() )
          {
             rc = _fillRecycleCSStats( item ) ;
-            if ( SDB_DMS_CS_NOTEXIST == rc )
+            if ( SDB_DMS_CS_NOTEXIST == rc || SDB_RECYCLE_ITEM_NOTEXIST == rc )
             {
                // not exist anymore
                rc = SDB_OK ;
@@ -6674,7 +6674,8 @@ namespace engine
          else if ( UTIL_RECYCLE_CL == item.getType() )
          {
             rc = _fillRecycleCLStats( item ) ;
-            if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+            if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc ||
+                 SDB_RECYCLE_ITEM_NOTEXIST == rc )
             {
                // not exist anymore
                rc = SDB_OK ;
@@ -6718,11 +6719,11 @@ namespace engine
 
       rc = dmsCB->idToSUAndLock( (utilCSUniqueID)( item.getOriginID() ),
                                  suID, &su ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
+      PD_RC_CHECK( rc, PDWARNING, "Failed to lock storage unit [%s], rc: %d",
                    item.getRecycleName(), rc ) ;
 
       rc = su->dumpRecycleInfo( item ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], rc: %d",
+      PD_RC_CHECK( rc, PDWARNING, "Failed to dump recycle item [%s], rc: %d",
                    item.getRecycleName(), rc ) ;
 
    done:
@@ -6753,11 +6754,11 @@ namespace engine
             utilGetCSUniqueID( (utilCLUniqueID)( item.getOriginID() ) ) ;
 
       rc = dmsCB->idToSUAndLock( csUniqueID, suID, &su ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
+      PD_RC_CHECK( rc, PDWARNING, "Failed to lock storage unit [%s], rc: %d",
                    item.getRecycleName(), rc ) ;
 
       rc = su->dumpRecycleInfo( item ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], rc: %d",
+      PD_RC_CHECK( rc, PDWARNING, "Failed to dump recycle item [%s], rc: %d",
                    item.getRecycleName(), rc ) ;
 
    done:
