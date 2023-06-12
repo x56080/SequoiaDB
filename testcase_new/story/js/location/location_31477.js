@@ -2,10 +2,11 @@
  * @Description   : seqDB-31477: 三副本环境修改主节点的location
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.23
- * @LastEditTime  : 2023.06.09
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.06.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 function test ()

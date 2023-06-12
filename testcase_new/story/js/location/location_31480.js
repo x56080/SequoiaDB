@@ -2,10 +2,11 @@
  * @Description   : seqDB-31480: 使用reelectLocation()指定错误的Location参数
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.22
- * @LastEditTime  : 2023.06.07
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.06.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 function test ()

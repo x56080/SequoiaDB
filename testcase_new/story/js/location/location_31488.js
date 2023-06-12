@@ -2,10 +2,11 @@
  * @Description   : seqDB-31488: reelectLocation()接口中的NodeID参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.11
- * @LastEditTime  : 2023.06.02
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.06.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 function test ()
