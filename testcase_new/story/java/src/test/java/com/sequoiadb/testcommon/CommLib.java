@@ -2,7 +2,6 @@ package com.sequoiadb.testcommon;
 
 import java.util.*;
 
-import com.jcraft.jsch.JSchException;
 import com.sequoiadb.base.*;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;

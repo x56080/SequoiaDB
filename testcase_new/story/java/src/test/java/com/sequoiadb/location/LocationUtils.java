@@ -3,7 +3,6 @@ package com.sequoiadb.location;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
-import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
 import com.sequoiadb.base.*;
@@ -12,7 +11,6 @@ import org.testng.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class LocationUtils {
 
