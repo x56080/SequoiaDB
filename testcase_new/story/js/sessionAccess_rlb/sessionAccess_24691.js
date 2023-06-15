@@ -7,14 +7,18 @@
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
-testConf.clName = COMMCLNAME + "_24691";
-testConf.useSrcGroup = true;
 
 main( test )
-function test ( args )
+function test ()
 {
-   var dbcl = args.testCL;
-   var srcGroup = args.srcGroupName;
+   var csName = "sessionAccess_24691";
+   var clName = "sessionAccess_24691";
+   var options = { SkipRecycleBin: true };
+   commDropCS( db, csName, true, "", options );
+
+   var dbcl = commCreateCL( db, csName, clName );
+   var groupName = commGetCLGroups( db, csName + "." + clName );
+   var srcGroup = groupName[0];
 
    var docs = [];
    for( var i = 0; i < 1000; i++ )
@@ -26,6 +30,7 @@ function test ( args )
    // 获取CL所在的节点
    var nodes = db.getRG( srcGroup ).getSlave();
    var nodeName = nodes.getHostName() + ":" + nodes.getServiceName();
+
    try
    {
       // 节点配置instanceid
@@ -42,23 +47,25 @@ function test ( args )
       db.setSessionAttr( { "PreferedInstance": ["S", instanceid], "PreferedStrict": true } );
 
       // 查询访问计划并校验节点
-      var dbcl = db.getCS( COMMCSNAME ).getCL( testConf.clName );
+      var dbcl = db.getCS( csName ).getCL( clName );
       var explain = dbcl.find().explain();
       var actNodeName = explain.current().toObj()["NodeName"];
       assert.equal( actNodeName, nodeName );
 
       var dropClDB = new Sdb( nodes.getHostName(), nodes.getServiceName() );
-      var cs = dropClDB.getCS( COMMCSNAME );
-      cs.dropCL( testConf.clName );
+      var cs = dropClDB.getCS( csName );
+      cs.dropCL( clName );
+      dropClDB.close();
 
       assert.tryThrow( -338, function()
       {
          dbcl.find().toArray();
       } );
+
    }
    finally
    {
-      dropClDB.close();
+      commDropCS( db, csName, true, "", options );
       deleteConf( db, { instanceid: 1 }, { NodeName: nodeName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
       db.getRG( srcGroup ).getNode( nodeName ).stop();
       db.getRG( srcGroup ).getNode( nodeName ).start();
