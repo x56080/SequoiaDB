@@ -28,6 +28,14 @@
     <parameter name="CONFTOOL"          value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     <!--是否开启事务-->
     <parameter name="ENABLETRANSACTION" value="true" />
+    <!--用例新增节点备份日志文件路径-->
+    <parameter name="BACKUPPATH"      value="${BACKUPPATH}" />
+    <!--远程机器root用户密码-->
+    <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
+    <!--远程机器用户名-->
+    <parameter name="REMOTEUSER"      value="${REMOTEUSER}" />
+    <!--远程机器用户密码-->
+    <parameter name="REMOTEPASSWD"    value="${REMOTEPASSWD}" />
 
     <listeners>
         <listener
@@ -165,6 +173,18 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.recyclebin" />
+        </packages>
+    </test>
+
+    <test name="location7" parallel="classes" thread-count="5">
+        <parameter name="EXPANDNODENUM" value="7" />
+        <groups>
+            <run>
+                <include name="location" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.location" />
         </packages>
     </test>
 

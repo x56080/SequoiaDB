@@ -1,10 +1,12 @@
 package com.sequoiadb.commlib;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -35,6 +37,7 @@ public class SdbTestBase {
     public static int reservedPortEnd;
     public static String reservedDir;
     public static String workDir;
+    public static String backupPath;
     public static String rootPwd;
     public static String remoteUser;
     public static String remotePwd;
@@ -42,6 +45,8 @@ public class SdbTestBase {
     public static String esHostName;
     public static String esServiceName;
     public static String sdbseadapterDir;
+    public static String expandGroupName;
+    public static int expandNodeNum;
     private static boolean srcdbExist = false;
 
     private static final String TRANSISOLATION = "transisolation";
@@ -53,6 +58,10 @@ public class SdbTestBase {
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String NODENAME = "NodeName";
+    public static final String LOCATION = "location";
+    public static ArrayList< String > expandGroupNames = new ArrayList<>();
+    public static ArrayList< BasicBSONObject > expandNodeInfos = null;
+
     private static final Map< String, BSONObject > group2Conf = new HashMap<>();
     private static final Map< String, BSONObject > node2Conf = new HashMap<>();
     private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
@@ -84,13 +93,15 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
-            "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME",
-            "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME", "DSSVCNAME" })
+            "REMOTEPASSWD", "SCRIPTDIR", "BACKUPPATH", "ESHOSTNAME",
+            "ESSVCNAME", "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME",
+            "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
             String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR,
+            @Optional("") String BACKUPPATH,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
             @Optional("") String FULLTEXTPREFIX,
@@ -101,6 +112,7 @@ public class SdbTestBase {
         serviceName = SVCNAME;
         csName = COMMCSNAME;
         cappedCSName = COMMCSNAME + "_capped";
+        expandGroupName = COMMCSNAME + "_group";
         reservedPortBegin = RSRVPORTBEGIN;
         reservedPortEnd = RSRVPORTEND;
         reservedDir = RSRVNODEDIR;
@@ -110,6 +122,7 @@ public class SdbTestBase {
         remoteUser = REMOTEUSER;
         remotePwd = REMOTEPASSWD;
         scriptDir = SCRIPTDIR;
+        backupPath = BACKUPPATH;
         esHostName = ESHOSTNAME;
         esServiceName = ESSVCNAME;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
@@ -168,6 +181,7 @@ public class SdbTestBase {
                 }
             }
         }
+        groupName2Count.put( LOCATION, new AtomicInteger( 0 ) );
     }
 
     private static void modifyNodeConf( BSONObject cfg, BSONObject object ) {
@@ -183,8 +197,10 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RC, RCAUTO })
-    public static synchronized void initTestGroups() {
+    @Parameters({ "EXPANDNODENUM" })
+    @BeforeTest(groups = { RC, RCAUTO, LOCATION })
+    public static synchronized void initTestGroups(
+            @Optional("0") int EXPANDNODENUM ) {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }
@@ -192,19 +208,80 @@ public class SdbTestBase {
         if ( groupName2Count.get( testGroupOfCurrent ).getAndIncrement() > 0 ) {
             return;
         }
+        // 对需要扩容的测试用例选择一个复制组进行扩容
+        if ( testGroupOfCurrent.equals( LOCATION ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                expandNodeNum = EXPANDNODENUM;
+                if ( sdb.isReplicaGroupExist( expandGroupName ) ) {
+                    try {
+                        sdb.getReplicaGroup( expandGroupName ).start();
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() != SDBError.SDB_CLS_EMPTY_GROUP
+                                .getErrorCode() ) {
+                            throw e;
+                        }
+                    }
+                } else {
+                    sdb.createReplicaGroup( expandGroupName );
+                }
+                System.err.println( "expandNodeNum -- " + expandNodeNum );
+                expandGroupNames.add( expandGroupName );
+                expandNodeInfos = CommLib.createNode( sdb, expandGroupName,
+                        expandNodeNum );
+                System.out.println( "expandNodeInfos -- " + expandNodeInfos );
+                // 扩容完成后校验LSN一致
+                CommLib.waitGroupSelectPrimaryNode( sdb, expandGroupName, 60 );
+                CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName );
+            }
+        }
+
         System.out
                 .println( "init " + testGroupOfCurrent + " Groups..........." );
         modifyNodeConf( group2Conf.get( testGroupOfCurrent ), null );
     }
 
-    @AfterTest(groups = { RC, RCAUTO }, alwaysRun = true)
-    public static synchronized void finiTestGroups() {
+    @Parameters({ "EXPANDNODENUM" })
+    @AfterTest(groups = { RC, RCAUTO, LOCATION }, alwaysRun = true)
+    public static synchronized void finiTestGroups(
+            @Optional("0") int EXPANDNODENUM ) {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }
 
         if ( groupName2Count.get( testGroupOfCurrent ).decrementAndGet() < 0 ) {
             return;
+        }
+
+        // 移除扩容的节点
+        if ( testGroupOfCurrent.equals( LOCATION ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                for ( String expandGroupName : expandGroupNames ) {
+                    CommLib.isLSNConsistency( sdb, expandGroupName );
+                    System.out.println( "backupPath -- " + backupPath );
+                    System.out.println( "backupPath.equals -- "
+                            + ( !backupPath.equals( "" ) ) );
+                    if ( !backupPath.equals( "" ) ) {
+                        String backupPathFull = backupPath + "/" + LOCATION
+                                + EXPANDNODENUM;
+                        System.out.println(
+                                "backupPathFull -- " + backupPathFull );
+                        BasicBSONObject matcher = new BasicBSONObject(
+                                "GroupName", expandGroupName );
+                        String user = "root";
+                        try {
+                            CommLib.copyNodeLogs( sdb, matcher, user,
+                                    SdbTestBase.rootPwd, backupPathFull );
+                        } catch ( Exception e ) {
+                            e.printStackTrace();
+                            throw new RuntimeException( e );
+                        }
+                    }
+                    CommLib.cleanUpCSInGroup( sdb, expandGroupName );
+                    sdb.removeReplicaGroup( expandGroupName );
+                }
+            }
         }
 
         System.out

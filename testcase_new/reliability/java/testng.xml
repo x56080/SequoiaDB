@@ -24,6 +24,8 @@
     <parameter name="RSRVNODEDIR"     value="/data/sequoiadb/cidatabase" />
     <!--用例临时文件存放路径 -->
     <parameter name="WORKDIR"         value="/tmp/ci_reliability" />
+    <!--用例新增节点备份日志文件路径-->
+    <parameter name="BACKUPPATH"      value="${BACKUPPATH}" />
     <!--远程机器root用户密码-->
     <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
     <!--远程机器用户名-->
@@ -109,6 +111,18 @@
             <package name="com.sequoiadb.transaction.brokennetwork" />
             <package name="com.sequoiadb.transaction.killnode" />
             <package name="com.sequoiadb.transaction.restartnode" />
+        </packages>
+    </test>
+
+    <test name="location7" preserve-order="true">
+        <parameter name="EXPANDNODENUM" value="7" />
+        <groups>
+            <run>
+                <include name="location" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.location.killnode" />
         </packages>
     </test>
 </suite>

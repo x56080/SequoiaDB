@@ -1,12 +1,9 @@
 package com.sequoiadb.testcommon;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
+import com.jcraft.jsch.JSchException;
+import com.sequoiadb.base.*;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -14,10 +11,6 @@ import org.testng.Assert;
 import org.testng.ITestResult;
 import org.testng.Reporter;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.ReplicaGroup;
-import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 
@@ -849,13 +842,13 @@ public class CommLib {
     /**
      * @description: 获取group下的所有节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
      * @param db
-     *          db连接
+     *            db连接
      * @param groupName
-     *          需要获取的group名
+     *            需要获取的group名
      * @return
      */
     public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
-                                                         String groupName ) {
+            String groupName ) {
 
         List< BasicBSONObject > nodeAddrs = new ArrayList<>();
         try {
@@ -884,15 +877,15 @@ public class CommLib {
     /**
      * @description: 获取CL所在的所有节点
      * @param db
-     *          db连接
+     *            db连接
      * @param csName
-     *          需要获取的CS名
+     *            需要获取的CS名
      * @param clName
-     *          需要获取的CL名
+     *            需要获取的CL名
      * @return
      */
     public static List< BasicBSONObject > getCLNodes( Sequoiadb db,
-                                                      String csName, String clName ) {
+            String csName, String clName ) {
         List< String > groupName = new ArrayList<>();
         List< BasicBSONObject > nodeAddrs = new ArrayList<>();
         List< BasicBSONObject > nodeInfo = new ArrayList<>();
@@ -911,15 +904,15 @@ public class CommLib {
     /**
      * @description: 循环获取CL,超过60s未获取到报超时
      * @param db
-     *          需要获取CL的db连接
+     *            需要获取CL的db连接
      * @param csName
-     *          对应的CS名
+     *            对应的CS名
      * @param clName
-     *          需要获取的CL名
+     *            需要获取的CL名
      * @return
      */
     public static DBCollection getCL( Sequoiadb db, String csName,
-                                      String clName ) {
+            String clName ) {
         int doTime = 0;
         int timeOut = 60;
         DBCollection dbcl = null;
@@ -931,7 +924,7 @@ public class CommLib {
                 if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
                         .getErrorType()
                         && e.getErrorType() != SDBError.SDB_DMS_CS_NOTEXIST
-                        .getErrorType() ) {
+                                .getErrorType() ) {
                     throw e;
                 }
             }
@@ -946,5 +939,336 @@ public class CommLib {
             Assert.fail( "get collection time out" );
         }
         return dbcl;
+    }
+
+    /**
+     * @description: 获取group中的节点数量
+     * @param db
+     *            需要获取group的db连接
+     * @param groupName
+     *            对应的group名
+     * @return
+     */
+    public static int getNodeNum( Sequoiadb db, String groupName ) {
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+        BSONObject object = rg.getDetail();
+        ArrayList rgInfo = ( ArrayList ) object.get( "Group" );
+        return rgInfo.size();
+    }
+
+    /**
+     * @description: 获取集群所在所有集群的主机名
+     * @param db
+     *            需要获取集群的db连接
+     */
+    public static ArrayList< String > getHostNames( Sequoiadb db ) {
+        ArrayList< String > hostNames = new ArrayList();
+        String hostName = "";
+        BasicBSONObject matcher = new BasicBSONObject( "RawData", true );
+        BasicBSONObject selector = new BasicBSONObject( "HostName", 1 );
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE, matcher,
+                selector, null );
+        while ( cursor.hasNext() ) {
+            BSONObject obj = cursor.getNext();
+            hostName = ( String ) obj.get( "HostName" );
+            // 已存在的主机名不重复加入
+            if ( !hostNames.contains( hostName ) ) {
+                hostNames.add( hostName );
+            }
+        }
+        cursor.close();
+        return hostNames;
+    }
+
+    /**
+     * @description: 在指定group中创建一定数量的节点
+     * @param db
+     *            需要获取group的db连接
+     * @param groupName
+     *            对应的group名
+     * @param expNodeNum
+     *            期望最终的节点数量
+     * @return
+     */
+    public static ArrayList< BasicBSONObject > createNode( Sequoiadb db,
+            String groupName, int expNodeNum ) {
+        ArrayList< BasicBSONObject > nodeInfos = new ArrayList();
+        int actNodeNum = getNodeNum( db, groupName );
+        // 期望节点数量小于实际节点数量时直接报错
+        if ( expNodeNum < actNodeNum ) {
+            Assert.fail(
+                    "expected number of nodes is less than actual number of nodes, act:"
+                            + actNodeNum + ", exp:" + expNodeNum );
+        } else if ( expNodeNum == actNodeNum ) {
+            // 期望节点数量等于实际节点数量时直接返回
+            return nodeInfos;
+        }
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+
+        ArrayList< String > hostNames = getHostNames( db );
+        Random random = new Random();
+        BasicBSONObject configure = new BasicBSONObject( "diaglevel", 5 );
+        // 创建节点，并保存创建节点的主机名和端口号
+        for ( int i = 0; i < expNodeNum - actNodeNum; i++ ) {
+            int randomIndex = random.nextInt( hostNames.size() );
+            int port = SdbTestBase.reservedPortBegin + i * 10;
+            String dbPath = SdbTestBase.reservedDir + port + "/";
+            String hostName = hostNames.get( randomIndex );
+            rg.createNode( hostName, port, dbPath, configure );
+            System.out.println( hostName + port + dbPath + configure );
+
+            BasicBSONObject nodeInfo = new BasicBSONObject();
+            nodeInfo.put( "hostName", hostName );
+            nodeInfo.put( "port", port );
+            nodeInfos.add( nodeInfo );
+        }
+        rg.start();
+        return nodeInfos;
+    }
+
+    /**
+     * @description: 移除group中的指定节点，并确保移除后的主节点位置
+     * @param db
+     *            需要获取group的db连接
+     * @param groupName
+     *            对应的group名
+     * @param expMasterNodeID
+     *            期望的主节点ID
+     * @param nodeInfos
+     *            期望移除的节点
+     * @return
+     */
+    public static void removeNode( Sequoiadb db, String groupName,
+            Integer expMasterNodeID, ArrayList< BasicBSONObject > nodeInfos ) {
+        System.out.println( "nodeInfos -- " + nodeInfos.toString() );
+        if ( nodeInfos.size() == 0 ) {
+            return;
+        }
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+
+        Integer actMasterNodeID = null;
+        int doTime = 0;
+        int timeOut = 180;
+        actMasterNodeID = rg.getMaster().getNodeId();
+
+        System.out.println( "doTime > timeOut -- " + ( doTime > timeOut ) );
+        System.out.println(
+                "Objects.equals( actMasterNodeID, expMasterNodeID ) -- "
+                        + actMasterNodeID.equals( expMasterNodeID ) );
+
+        // 保证主节点和测试前一致
+        while ( doTime > timeOut
+                || !actMasterNodeID.equals( expMasterNodeID ) ) {
+            rg.reelect( new BasicBSONObject( "NodeID", expMasterNodeID ) );
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                throw new RuntimeException( e );
+            }
+            doTime++;
+            actMasterNodeID = rg.getMaster().getNodeId();
+        }
+
+        if ( doTime >= timeOut ) {
+            Assert.fail(
+                    "failed to select the master within the expected time" );
+        }
+
+        for ( BasicBSONObject nodeInfo : nodeInfos ) {
+            String hostname = nodeInfo.getString( "hostName" );
+            int port = ( int ) nodeInfo.get( "port" );
+            rg.removeNode( hostname, port, null );
+        }
+    }
+
+    /**
+     * 检查CL主备节点集合CompleteLSN一致 *
+     *
+     * @param db
+     *            new db连接
+     * @param groupName
+     *            组名
+     * @return boolean 如果主节点CompleteLSN小于等于备节点CompleteLSN返回true,否则返回false
+     * @throws Exception
+     * @author luweikang
+     */
+    public static boolean isLSNConsistency( Sequoiadb db, String groupName ) {
+        boolean isConsistency = false;
+        List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+        Node masterNode = rg.getMaster();
+        try ( Sequoiadb masterSdb = new Sequoiadb(
+                masterNode.getHostName() + ":" + masterNode.getPort(), "",
+                "" )) {
+            long completeLSN = -2;
+            DBCursor cursor = masterSdb.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
+                    null, "{CompleteLSN: ''}", null );
+            if ( cursor.hasNext() ) {
+                BasicBSONObject snapshot = ( BasicBSONObject ) cursor.getNext();
+                if ( snapshot.containsField( "CompleteLSN" ) ) {
+                    completeLSN = ( long ) snapshot.get( "CompleteLSN" );
+                }
+            } else {
+                Assert.fail( masterSdb.getNodeName()
+                        + " can't not find system snapshot" );
+            }
+            cursor.close();
+
+            for ( String nodeName : nodeNames ) {
+                if ( masterNode.getNodeName().equals( nodeName ) ) {
+                    continue;
+                }
+                isConsistency = false;
+                try ( Sequoiadb nodeConn = new Sequoiadb( nodeName, "", "" )) {
+                    DBCursor cur = null;
+                    long checkCompleteLSN = -3;
+                    for ( int i = 0; i < 600; i++ ) {
+                        cur = nodeConn.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
+                                null, "{CompleteLSN: ''}", null );
+                        if ( cur.hasNext() ) {
+                            BasicBSONObject checkSnapshot = ( BasicBSONObject ) cur
+                                    .getNext();
+                            if ( checkSnapshot
+                                    .containsField( "CompleteLSN" ) ) {
+                                checkCompleteLSN = ( long ) checkSnapshot
+                                        .get( "CompleteLSN" );
+                            }
+                        }
+                        cur.close();
+
+                        if ( completeLSN <= checkCompleteLSN ) {
+                            isConsistency = true;
+                            break;
+                        }
+                        try {
+                            Thread.sleep( 1000 );
+                        } catch ( InterruptedException e ) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if ( !isConsistency ) {
+                        System.out.println( "Group [" + groupName
+                                + "] node system snapshot is not the same, masterNode "
+                                + masterNode.getNodeName() + " CompleteLSN: "
+                                + completeLSN + ", " + nodeName
+                                + " CompleteLSN: " + checkCompleteLSN );
+                    }
+                }
+            }
+        }
+
+        return isConsistency;
+    }
+
+    /**
+     * @description: 等待group中选出主节点
+     * @param db
+     *            需要获取group的db连接
+     * @param groupName
+     *            对应的group名
+     * @param timeOut
+     *            等待超时时间
+     * @return
+     */
+    public static void waitGroupSelectPrimaryNode( Sequoiadb db,
+            String groupName, int timeOut ) {
+        int doTime = 0;
+        while ( doTime < timeOut ) {
+
+            ReplicaGroup rg = db.getReplicaGroup( groupName );
+            try {
+                rg.getMaster();
+                break;
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_RTN_NO_PRIMARY_FOUND
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        if ( doTime >= timeOut ) {
+            Assert.fail(
+                    "there is no primary node in group, group : " + groupName );
+        }
+    }
+
+    /**
+     * @description: 清理复制组下所有集合空间
+     * @param db
+     *            需要获取group的db连接
+     * @param groupName
+     *            对应的group名
+     * @return
+     */
+    public static void cleanUpCSInGroup( Sequoiadb db, String groupName ) {
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_COLLECTIONSPACES,
+                new BasicBSONObject( "GroupName", groupName ), null, null );
+        while ( cursor.hasNext() ) {
+            String csName = ( String ) cursor.getNext().get( "Name" );
+            db.dropCollectionSpace( csName );
+        }
+        cursor.close();
+    }
+
+    /**
+     * @description: 备份节点诊断日志，日志已nodeName/diaglog的形式存放在backupPath路径下
+     * @param db
+     *            指定一个可用的db连接
+     * @param matcher
+     *            匹配需要备份的节点
+     * @param user
+     *            远程连接用户名
+     * @param passwd
+     *            远程连接用户对应密码
+     * @param backupPath
+     *            备份日志存放路径
+     * @return
+     */
+    public static void copyNodeLogs( Sequoiadb db, BasicBSONObject matcher,
+            String user, String passwd, String backupPath ) throws Exception {
+        Ssh ssh = null;
+        // 清理备份目录
+        ArrayList< String > hostNames = getHostNames( db );
+        for ( String hostName : hostNames ) {
+            try {
+                ssh = new Ssh( hostName, user, passwd );
+                String cleanPath = "rm -rf " + backupPath;
+                ssh.exec( cleanPath );
+            } finally {
+                if ( ssh != null ) {
+                    ssh.disconnect();
+                }
+            }
+        }
+
+        // 备份日志
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, matcher,
+                null, null );
+        while ( cursor.hasNext() ) {
+            BSONObject obj = cursor.getNext();
+            try {
+                String nodeName = ( String ) obj.get( "NodeName" );
+                String[] parts = nodeName.split( ":" );
+                System.out.println( "parts[ 0 ] -- " + parts[ 0 ] );
+                ssh = new Ssh( parts[ 0 ], user, passwd );
+                String backupPathFull = backupPath + "/" + nodeName;
+                // 创建备份目录
+                String createFolderCmd = "mkdir -p " + backupPathFull;
+                System.out.println( "createFolderCmd -- " + createFolderCmd );
+                ssh.exec( createFolderCmd );
+                // 备份日志
+                String diagpath = ( String ) obj.get( "diagpath" );
+                String copyCmd = "cp -r " + diagpath + " " + backupPathFull;
+                System.out.println( "copyCmd -- " + copyCmd );
+                System.out.println( "copyCmd -- " + copyCmd );
+                ssh.exec( copyCmd );
+            } finally {
+                if ( ssh != null ) {
+                    ssh.disconnect();
+                }
+            }
+        }
+        cursor.close();
     }
 }
