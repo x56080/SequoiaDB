@@ -68,6 +68,7 @@ class CompileBaseModuleMgr:
       print_log("Finish compile base module")
 
    def compile_driver(self, db_version):
+      self.deploy_java_driver(db_version)
       self.compile_java_driver(db_version)
       self.compile_php_driver()
       self.compile_python_driver()
@@ -81,6 +82,17 @@ class CompileBaseModuleMgr:
       compile_java_cmd = 'mvn clean install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true'
       self.run_in_dir(compile_java_cmd, java_dir, self.jdk_env)
       print_log('Finish compile java driver')
+
+   def deploy_java_driver(self, db_version):
+      print_log('Begine deploy java driver')
+      java_dir = os.path.join(self.root_dir, 'driver/java')
+      # reset version to snapshot
+      snapshot_version = db_version + '-SNAPSHOT'
+      self.set_pom_version(snapshot_version, java_dir)
+      # donot use -P release, because it need gpg sign
+      deploy_java_cmd = 'mvn clean deploy -Dmaven.test.skip=true'
+      self.run_in_dir(deploy_java_cmd, java_dir, self.jdk_env)
+      print_log('Finish deploy java driver')
 
    def compile_php_driver(self):
       print_log('Begine compile php driver')
