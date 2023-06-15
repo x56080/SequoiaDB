@@ -44,4 +44,4 @@ DEK 密钥文件说明如下：
 [encryption_and_decrypt]:images/Distributed_Engine/Architecture/encryption_and_decrypt.png
 [encryption]:images/Distributed_Engine/Architecture/encryption.png
 [decrypt]:images/Distributed_Engine/Architecture/decrypt.png
-[data_encryption]:manual/Distributed_Engine/operation/open_encryption.md
+[data_encryption]:manual/Distributed_Engine/Operation/open_encryption.md
