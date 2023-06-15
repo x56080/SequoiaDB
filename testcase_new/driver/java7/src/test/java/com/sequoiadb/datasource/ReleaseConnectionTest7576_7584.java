@@ -1,5 +1,6 @@
 package com.sequoiadb.datasource;
 
+import com.sequoiadb.exception.SDBError;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -298,13 +299,13 @@ public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
             DBCursor cursor = sdb.listReplicaGroups();
             datasource.releaseConnection( sdb );
             cursor.getNext();
-            Assert.fail("must throw exception!") ;
+            Assert.fail("expect fail but success.") ;
         } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
             Assert.fail(e.getMessage());
         } catch ( BaseException e ) {
-            judegeErrCode( "SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode() );
+            Assert.assertEquals( SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode() );
         }
     }
 }
