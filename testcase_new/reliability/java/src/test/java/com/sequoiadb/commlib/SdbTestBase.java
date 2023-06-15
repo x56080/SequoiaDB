@@ -210,6 +210,7 @@ public class SdbTestBase {
         }
         // 对需要扩容的测试用例选择一个复制组进行扩容
         if ( testGroupOfCurrent.equals( LOCATION ) ) {
+            int timeout = 300;
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 expandNodeNum = EXPANDNODENUM;
@@ -232,7 +233,8 @@ public class SdbTestBase {
                 System.out.println( "expandNodeInfos -- " + expandNodeInfos );
                 // 扩容完成后校验LSN一致
                 CommLib.waitGroupSelectPrimaryNode( sdb, expandGroupName, 60 );
-                CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName );
+                CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName,
+                        timeout );
             }
         }
 
@@ -255,10 +257,11 @@ public class SdbTestBase {
 
         // 移除扩容的节点
         if ( testGroupOfCurrent.equals( LOCATION ) ) {
+            int timeout = 300;
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 for ( String expandGroupName : expandGroupNames ) {
-                    CommLib.isLSNConsistency( sdb, expandGroupName );
+                    CommLib.waitLSNConsistency( sdb, expandGroupName, timeout );
                     System.out.println( "backupPath -- " + backupPath );
                     System.out.println( "backupPath.equals -- "
                             + ( !backupPath.equals( "" ) ) );

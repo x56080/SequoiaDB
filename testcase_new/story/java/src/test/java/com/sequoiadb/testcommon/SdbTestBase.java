@@ -236,7 +236,8 @@ public class SdbTestBase {
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
             String REMOTEUSER, String REMOTEPASSWD,
-            @Optional("") String BACKUPPATH, @Optional("") String CONFTOOL,
+            @Optional("${BACKUPPATH}") String BACKUPPATH,
+            @Optional("") String CONFTOOL,
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
@@ -438,7 +439,7 @@ public class SdbTestBase {
                     System.out.println( "backupPath -- " + backupPath );
                     System.out.println( "backupPath.equals -- "
                             + ( !backupPath.equals( "" ) ) );
-                    if ( !backupPath.equals( "" ) ) {
+                    if ( !"${BACKUPPATH}".equals( backupPath ) ) {
                         String backupPathFull = backupPath + "/" + LOCATION
                                 + EXPANDNODENUM;
                         System.out.println(

@@ -957,7 +957,7 @@ public class CommLib {
     }
 
     /**
-     * @description: 获取集群所在所有集群的主机名
+     * @description: 获取集群所在所有机器的主机名
      * @param db
      *            需要获取集群的db连接
      */
@@ -1174,7 +1174,6 @@ public class CommLib {
             String groupName, int timeOut ) {
         int doTime = 0;
         while ( doTime < timeOut ) {
-
             ReplicaGroup rg = db.getReplicaGroup( groupName );
             try {
                 rg.getMaster();
@@ -1185,6 +1184,12 @@ public class CommLib {
                     throw e;
                 }
             }
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                throw new RuntimeException( e );
+            }
+            doTime++;
         }
 
         if ( doTime >= timeOut ) {
@@ -1270,5 +1275,85 @@ public class CommLib {
             }
         }
         cursor.close();
+    }
+
+    public static ArrayList< BSONObject > insertData( DBCollection dbcl,
+            int recordNum, int length ) {
+        ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
+        int batchNum = 5000;
+        if ( recordNum < batchNum ) {
+            batchNum = recordNum;
+        }
+        int count = 0;
+        for ( int i = 0; i < recordNum / batchNum; i++ ) {
+            List< BSONObject > batchRecords = new ArrayList< BSONObject >();
+            for ( int j = 0; j < batchNum; j++ ) {
+                String stringValue = getRandomString( length );
+                int value = count++;
+                BSONObject obj = new BasicBSONObject();
+                obj.put( "testa", stringValue );
+                obj.put( "testb", value );
+                obj.put( "no", value );
+                obj.put( "testno", value );
+                obj.put( "a", value );
+                obj.put( "teststr", "teststr" + value );
+                batchRecords.add( obj );
+            }
+            dbcl.bulkInsert( batchRecords );
+            insertRecord.addAll( batchRecords );
+            batchRecords.clear();
+        }
+        return insertRecord;
+    }
+
+    public static void checkRecords( DBCollection dbcl,
+            List< BSONObject > expRecords, BasicBSONObject orderBy ) {
+        DBCursor cursor = dbcl.query( null, null, orderBy, null );
+
+        int count = 0;
+        while ( cursor.hasNext() ) {
+
+            BSONObject record = cursor.getNext();
+            BSONObject expRecord = expRecords.get( count++ );
+            if ( !expRecord.equals( record ) ) {
+                Assert.fail( "record: " + record.toString() + "\nexp: "
+                        + expRecord.toString() );
+            }
+            Assert.assertEquals( record, expRecord );
+        }
+        if ( count != expRecords.size() ) {
+            Assert.fail(
+                    "actNum: " + count + "\nexpNum: " + expRecords.size() );
+        }
+    }
+
+    public static ArrayList< BSONObject > insertData( DBCollection dbcl,
+            int recordNum ) {
+        return insertData( dbcl, recordNum, 50 );
+    }
+
+    public static String getRandomString( int length ) {
+        String str = "ABCDEFGHIJKLMNOPQRATUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^asssgggg!@#$";
+        StringBuilder sbBuilder = new StringBuilder();
+
+        // random generation 80-length string.
+        Random random = new Random();
+        StringBuilder subBuilder = new StringBuilder();
+        int strLen = str.length();
+        for ( int i = 0; i < strLen; i++ ) {
+            int number = random.nextInt( strLen );
+            subBuilder.append( str.charAt( number ) );
+        }
+
+        // generate a string at a specified length by subBuffer
+        int times = length / str.length();
+        for ( int i = 0; i < times; i++ ) {
+            sbBuilder.append( subBuilder );
+        }
+        int subTimes = length % str.length();
+        if ( subTimes != 0 ) {
+            sbBuilder.append( str.substring( 0, subTimes ) );
+        }
+        return sbBuilder.toString();
     }
 }

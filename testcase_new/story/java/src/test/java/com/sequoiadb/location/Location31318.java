@@ -48,7 +48,7 @@ public class Location31318 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        LocationUtils.setTwoLocationsAndThreeCenters( sdb, expandGroupName,
+        LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
                 primaryLocation, sameCityLocation, offsiteLocation );
 
         CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName );
@@ -97,24 +97,24 @@ public class Location31318 extends SdbTestBase {
         System.out.println( "offsiteLocation -- " + offsiteLocation );
         System.out.println( "primaryLocation -- " + primaryLocation );
 
-        List< BSONObject > batchRecords1 = LocationUtils.insertData( dbcl1,
+        List< BSONObject > batchRecords1 = CommLib.insertData( dbcl1,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName1, recordNum,
                 sameCityLocationNodes );
 
-        List< BSONObject > batchRecords2 = LocationUtils.insertData( dbcl2,
+        List< BSONObject > batchRecords2 = CommLib.insertData( dbcl2,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName2, recordNum,
                 primaryLocationSlaveNodes );
 
-        List< BSONObject > batchRecords3 = LocationUtils.insertData( dbcl3,
+        List< BSONObject > batchRecords3 = CommLib.insertData( dbcl3,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName3, recordNum,
                 sameCityLocationNodes );
         LocationUtils.checkRecordSync( csName, clName3, recordNum,
                 primaryLocationSlaveNodes );
 
-        List< BSONObject > batchRecords4 = LocationUtils.insertData( dbcl4,
+        List< BSONObject > batchRecords4 = CommLib.insertData( dbcl4,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName4, recordNum,
                 primaryLocationSlaveNodes );
@@ -122,10 +122,10 @@ public class Location31318 extends SdbTestBase {
                 sameCityLocationNodes );
 
         BasicBSONObject orderBy = new BasicBSONObject( "a", 1 );
-        LocationUtils.checkRecords( dbcl1, batchRecords1, orderBy );
-        LocationUtils.checkRecords( dbcl2, batchRecords2, orderBy );
-        LocationUtils.checkRecords( dbcl3, batchRecords3, orderBy );
-        LocationUtils.checkRecords( dbcl4, batchRecords4, orderBy );
+        CommLib.checkRecords( dbcl1, batchRecords1, orderBy );
+        CommLib.checkRecords( dbcl2, batchRecords2, orderBy );
+        CommLib.checkRecords( dbcl3, batchRecords3, orderBy );
+        CommLib.checkRecords( dbcl4, batchRecords4, orderBy );
     }
 
     @AfterClass

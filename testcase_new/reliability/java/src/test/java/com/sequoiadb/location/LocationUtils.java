@@ -32,9 +32,9 @@ public class LocationUtils {
      *            同城备中心Location
      * @param offsiteLocation
      *            异地备中心Location
-     * @return 以["Location":[{"nodeName":nodeName}]]的形式返回
+     * @return 以["Location":[{"hostName":hostName,"svcName":svcName}]]的形式返回
      */
-    public static ArrayList< BasicBSONObject > setTwoLocationsAndThreeCenters(
+    public static ArrayList< BasicBSONObject > setTwoCityAndThreeLocation(
             Sequoiadb db, String groupName, String primaryLocation,
             String sameCityLocation, String offsiteLocation ) {
         ArrayList< BasicBSONObject > locationNodeAddrs = new ArrayList<>();
@@ -124,9 +124,9 @@ public class LocationUtils {
      *            主中心Location
      * @param sameCityLocation
      *            同城备中心Location
-     * @return 以["Location":[{"nodeName":nodeName}]]的形式返回
+     * @return 以["Location":[{"hostName":hostName,"svcName":svcName}]]的形式返回
      */
-    public static ArrayList< BasicBSONObject > setTwoCentersInSameCity(
+    public static ArrayList< BasicBSONObject > setTwoLocationInSameCity(
             Sequoiadb db, String groupName, String primaryLocation,
             String sameCityLocation ) {
         ArrayList< BasicBSONObject > locationNodeAddrs = new ArrayList<>();
@@ -252,7 +252,7 @@ public class LocationUtils {
     }
 
     /**
-     * @description: 获取group下的所有备节点节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
+     * @description: 获取group下的所有备节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
      * @param db
      *            db连接
      * @param groupName
@@ -309,7 +309,6 @@ public class LocationUtils {
 
         int locationPrimaryNode = 0;
         for ( BasicBSONObject location : locations ) {
-            System.out.println( "location -- " + location );
             String actLocationName = ( String ) location.get( "Location" );
             if ( actLocationName.equals( locationName ) ) {
                 locationPrimaryNode = ( int ) location.get( "PrimaryNode" );
@@ -531,8 +530,7 @@ public class LocationUtils {
                 count.add( 0 );
             }
         }
-        System.out.println( "expect at least one node to sync, count : " + count
-                + ",nodeAddrs : " + nodeAddrs );
+
         if ( !count.contains( recordNum ) ) {
             Assert.fail( "expect at least one node to sync, count : " + count
                     + ",nodeAddrs : " + nodeAddrs );
@@ -573,86 +571,6 @@ public class LocationUtils {
             }
         }
         return count;
-    }
-
-    public static ArrayList< BSONObject > insertData( DBCollection dbcl,
-            int recordNum, int length ) {
-        ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
-        int batchNum = 5000;
-        if ( recordNum < batchNum ) {
-            batchNum = recordNum;
-        }
-        int count = 0;
-        for ( int i = 0; i < recordNum / batchNum; i++ ) {
-            List< BSONObject > batchRecords = new ArrayList< BSONObject >();
-            for ( int j = 0; j < batchNum; j++ ) {
-                String stringValue = getRandomString( length );
-                int value = count++;
-                BSONObject obj = new BasicBSONObject();
-                obj.put( "testa", stringValue );
-                obj.put( "testb", value );
-                obj.put( "no", value );
-                obj.put( "testno", value );
-                obj.put( "a", value );
-                obj.put( "teststr", "teststr" + value );
-                batchRecords.add( obj );
-            }
-            dbcl.bulkInsert( batchRecords );
-            insertRecord.addAll( batchRecords );
-            batchRecords.clear();
-        }
-        return insertRecord;
-    }
-
-    public static void checkRecords( DBCollection dbcl,
-            List< BSONObject > expRecords, BasicBSONObject orderBy ) {
-        DBCursor cursor = dbcl.query( null, null, orderBy, null );
-
-        int count = 0;
-        while ( cursor.hasNext() ) {
-
-            BSONObject record = cursor.getNext();
-            BSONObject expRecord = expRecords.get( count++ );
-            if ( !expRecord.equals( record ) ) {
-                Assert.fail( "record: " + record.toString() + "\nexp: "
-                        + expRecord.toString() );
-            }
-            Assert.assertEquals( record, expRecord );
-        }
-        if ( count != expRecords.size() ) {
-            Assert.fail(
-                    "actNum: " + count + "\nexpNum: " + expRecords.size() );
-        }
-    }
-
-    public static ArrayList< BSONObject > insertData( DBCollection dbcl,
-            int recordNum ) {
-        return insertData( dbcl, recordNum, 50 );
-    }
-
-    public static String getRandomString( int length ) {
-        String str = "ABCDEFGHIJKLMNOPQRATUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^asssgggg!@#$";
-        StringBuilder sbBuilder = new StringBuilder();
-
-        // random generation 80-length string.
-        Random random = new Random();
-        StringBuilder subBuilder = new StringBuilder();
-        int strLen = str.length();
-        for ( int i = 0; i < strLen; i++ ) {
-            int number = random.nextInt( strLen );
-            subBuilder.append( str.charAt( number ) );
-        }
-
-        // generate a string at a specified length by subBuffer
-        int times = length / str.length();
-        for ( int i = 0; i < times; i++ ) {
-            sbBuilder.append( subBuilder );
-        }
-        int subTimes = length % str.length();
-        if ( subTimes != 0 ) {
-            sbBuilder.append( str.substring( 0, subTimes ) );
-        }
-        return sbBuilder.toString();
     }
 
     public static String getDBPath( Sequoiadb sdb, String nodeName ) {
@@ -841,9 +759,6 @@ public class LocationUtils {
     public static void validateWaitTime( Date beginTime, int waitTime ) {
         // 获取当前时间
         Date currentTime = new Date();
-        System.out.println( "当前时间 -- " + currentTime );
-        System.out.println( "beginTime -- " + beginTime );
-
         // 检查 beginTime 是否大于当前时间
         if ( beginTime.compareTo( currentTime ) > 0 ) {
             Assert.fail( "开始时间大于当前时间" );
@@ -858,7 +773,6 @@ public class LocationUtils {
 
             // 检查当前时间是否超过等待时间
             if ( currentTime.compareTo( endTime ) >= 0 ) {
-                System.out.println( "currentTime -- " + currentTime );
                 return;
             }
 

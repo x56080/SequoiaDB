@@ -44,7 +44,7 @@ public class Location31334 extends SdbTestBase {
     private String sameCityLocation = "guangzhou.panyu_31314";
     private String offsiteLocation = "shenzhan.nanshan_31314";
     private List< BSONObject > batchRecords;
-    private int recordNum = 500000;
+    private int recordNum = 200000;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -52,17 +52,13 @@ public class Location31334 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        System.out.println( "groupMgr" );
         groupMgr = GroupMgr.getInstance();
-        System.out.println( "group -- " + groupMgr.getAllDataGroup() );
         if ( !groupMgr.checkBusiness( 120, true, SdbTestBase.coordUrl ) ) {
             throw new SkipException( "checkBusiness return false" );
         }
-        System.out.println( "setTwoLocationsAndThreeCenters" );
-        LocationUtils.setTwoLocationsAndThreeCenters( sdb, expandGroupName,
+        LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
                 primaryLocation, sameCityLocation, offsiteLocation );
-        System.out.println( "isLSNConsistency" );
-        CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName );
+        CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName, 120 );
 
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
@@ -101,7 +97,7 @@ public class Location31334 extends SdbTestBase {
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );
         BasicBSONObject orderBy = new BasicBSONObject( "a", 1 );
-        LocationUtils.checkRecords( dbcl, batchRecords, orderBy );
+        CommLib.checkRecords( dbcl, batchRecords, orderBy );
     }
 
     @AfterClass
@@ -128,7 +124,7 @@ public class Location31334 extends SdbTestBase {
                     "" )) {
                 DBCollection dbcl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                batchRecords = LocationUtils.insertData( dbcl, recordNum );
+                batchRecords = CommLib.insertData( dbcl, recordNum );
                 // 校验数据已经同步到具有亲和性的Location
                 LocationUtils.checkRecordSync( csName, clName, recordNum,
                         nodes );

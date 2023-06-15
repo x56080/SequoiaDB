@@ -40,7 +40,7 @@ public class Location31325 extends SdbTestBase {
     private CollectionSpace cs = null;
     private GroupMgr groupMgr = null;
     private String groupName = null;
-    private int[] replSizes = { 0, -1, 1, 2 };
+    private int[] replSizes = { 0, -1, 3 };
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -108,7 +108,6 @@ public class Location31325 extends SdbTestBase {
         FaultToleranceUtils.insertError( csName, clName + "_0", 0 );
         FaultToleranceUtils.insertError( csName, clName + "_1", 0 );
         FaultToleranceUtils.insertError( csName, clName + "_2", 0 );
-        FaultToleranceUtils.insertError( csName, clName + "_3", 0 );
 
         diskFull.restore();
         diskFull.checkRestoreResult();
@@ -119,7 +118,6 @@ public class Location31325 extends SdbTestBase {
         FaultToleranceUtils.insertError( csName, clName + "_0", 0 );
         FaultToleranceUtils.insertError( csName, clName + "_1", 0 );
         FaultToleranceUtils.insertError( csName, clName + "_2", 0 );
-        FaultToleranceUtils.insertError( csName, clName + "_3", 0 );
 
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 600 ) );
         Assert.assertTrue( dataGroup.checkInspect( 1 ) );
