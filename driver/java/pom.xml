@@ -157,13 +157,25 @@
     </build>
 
     <distributionManagement>
+    <!-- official repository, disable it in case accidental deploy into official repository -->
+    <!--
         <snapshotRepository>
-            <id>ossrh</id>
+            <id>ossrh-official</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>ossrh</id>
+            <id>ossrh-official</id>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+    -->
+    <!-- sdb local network repository -->
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>http://192.168.20.204:8082/repository/maven-snapshots/</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>http://192.168.20.204:8082/repository/maven-releases/</url>
         </repository>
     </distributionManagement>
 
