@@ -1695,7 +1695,7 @@ namespace engine
                        OSS_DEFAULTFILE ) ;
       if ( rc != SDB_OK )
       {
-         err = "Can't open file: %s" + filename ;
+         err = "Can't open file: " + filename ;
          goto error ;
       }
 

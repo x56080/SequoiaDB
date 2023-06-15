@@ -36,8 +36,7 @@
 #include "ossIO.hpp"
 #include "ossUtil.hpp"
 #include "utilSecurityKeys.hpp"
-// #include "pmd.hpp"
-// #include "pmdOptionsMgr.hpp"
+#include "pmdEDU.hpp"
 #include "../bson/lib/base64.h" // base64
 #include "../bson/bson.h"
 #include "msgDef.h"
@@ -763,7 +762,7 @@ namespace engine
          if ( !PEM_read_bio_PrivateKey( bio, ppKey, NULL, (void *)OSS_SM2_KEYFILE_PASSPHRASE ) )
          {
             rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Failed to read private key, rc: %d", rc ) ;
+            PD_LOG_MSG( PDERROR, "Failed to read private master key" ) ;
             goto error ;
          }
       }
@@ -773,7 +772,7 @@ namespace engine
          if ( !PEM_read_bio_PUBKEY( bio, ppKey, NULL, NULL ) )
          {
             rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Failed to read public key, rc: %d", rc ) ;
+            PD_LOG_MSG( PDERROR, "Failed to read public master key" ) ;
             goto error ;
          }
       }
