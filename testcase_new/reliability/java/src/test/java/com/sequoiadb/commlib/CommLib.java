@@ -18,7 +18,7 @@ public class CommLib {
 
     /**
      * Judge the mode
-     * 
+     *
      * @param sdb
      * @return true/false, true is standalone, false is cluster
      */
@@ -27,7 +27,7 @@ public class CommLib {
             sdb.listReplicaGroups();
         } catch ( BaseException e ) {
             if ( e.getErrorCode() == -159 ) { // -159:The operation is for coord
-                                              // node only
+                // node only
                 // System.out.printf("The mode is standalone.");
                 return true;
             }
@@ -37,7 +37,7 @@ public class CommLib {
 
     /**
      * Judge the group number
-     * 
+     *
      * @param sdb
      * @return true/false, true is only on group, false is multiple group
      */
@@ -51,7 +51,7 @@ public class CommLib {
 
     /**
      * get dataGroupNames
-     * 
+     *
      * @param sdb
      * @return dataGroupNames
      */
@@ -70,7 +70,7 @@ public class CommLib {
 
     /**
      * get node address
-     * 
+     *
      * @param sdb
      * @param rgName
      * @return nodeAddrs, eg.[host1:11840, host2:11850]
@@ -102,7 +102,7 @@ public class CommLib {
 
     /**
      * get cs info by catalog master
-     * 
+     *
      * @param sdb
      * @return csInfoOfCata
      */
@@ -134,7 +134,7 @@ public class CommLib {
 
     /**
      * check domain results of catalog, compare each node in catalog
-     * 
+     *
      * @param sdb
      * @return true/false, true is success, false is failed
      */
@@ -160,7 +160,7 @@ public class CommLib {
 
     /**
      * check cs results of catalog, compare each node in catalog
-     * 
+     *
      * @param sdb
      * @return true/false, true is success, false is failed
      */
@@ -187,7 +187,7 @@ public class CommLib {
 
     /**
      * check cl results of catalog, compare each node in catalog
-     * 
+     *
      * @param sdb
      * @return true/false, true is success, false is failed
      */
@@ -215,7 +215,7 @@ public class CommLib {
 
     /**
      * check cl results of dataRG, compare each node in dataRG
-     * 
+     *
      * @param sdb
      * @param csName
      * @param clName
@@ -292,7 +292,7 @@ public class CommLib {
 
     /**
      * check result for cl
-     * 
+     *
      * @param sdb
      * @param csName
      * @param clName
@@ -312,7 +312,7 @@ public class CommLib {
 
     /**
      * check index between all dataRG node
-     * 
+     *
      * @param sdb
      * @param csName
      * @param clName
@@ -400,7 +400,7 @@ public class CommLib {
 
     /**
      * compare cl info between dataMaster and cataMaster
-     * 
+     *
      * @param sdb
      * @param csName
      * @param clName
@@ -497,7 +497,7 @@ public class CommLib {
 
     /**
      * compare node's data within the group
-     * 
+     *
      * @param rgName
      * @param matcher,
      *            matching condition for query
@@ -565,7 +565,7 @@ public class CommLib {
 
     /**
      * clear domain, remove all domains that match domainName
-     * 
+     *
      * @param sdb
      * @param domainName
      */
@@ -608,7 +608,7 @@ public class CommLib {
 
     /**
      * clear CS, remove all CS that match csName
-     * 
+     *
      * @param sdb
      * @param csName
      */
@@ -625,7 +625,7 @@ public class CommLib {
             cursor.close();
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != -34 ) { // -34:Collection space does not
-                                             // exist
+                // exist
                 Assert.fail( "Failed to drop CS in the beginning. "
                         + "ErrorMsg:\n" + e.getMessage() );
             }
@@ -634,7 +634,7 @@ public class CommLib {
 
     /**
      * clear CL, remove all CL that match the clName
-     * 
+     *
      * @param sdb
      * @param clName
      */
@@ -662,7 +662,7 @@ public class CommLib {
 
     /**
      * clear group, remove all groups that match rgName
-     * 
+     *
      * @param sdb
      * @param rgName
      */
@@ -685,7 +685,7 @@ public class CommLib {
 
     /**
      * createNode
-     * 
+     *
      * @param sdb
      */
     public void createNode( Sequoiadb sdb, String rgName, int portStart,
@@ -711,10 +711,10 @@ public class CommLib {
                     break;
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() == -157 // -157:Invalid node
-                                                  // configuration(Port is
-                                                  // occupied)
+                            // configuration(Port is
+                            // occupied)
                             && e.getErrorCode() != -145 ) { // -145:Node already
-                                                            // exists
+                        // exists
                         svnName = svnName + 10;
                     }
                 }
@@ -723,7 +723,7 @@ public class CommLib {
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != -153 // -153:Group already exist;
                     && e.getErrorCode() != -156 ) { // -156: Failed to start the
-                                                    // node
+                // node
                 Assert.fail( e.getMessage() );
             }
         }
@@ -731,9 +731,9 @@ public class CommLib {
 
     /**
      * 获取一个除开brokenNetHost的主机名
-     * 
+     *
      * @param brokenNetHost
-     * 
+     *
      * @return
      * @throws ReliabilityException
      */
@@ -750,7 +750,7 @@ public class CommLib {
 
     /**
      * 获取一个除开brokenNetHost主机的coordUrl
-     * 
+     *
      * @param brokenNetHost
      * @return
      * @throws ReliabilityException
@@ -771,13 +771,13 @@ public class CommLib {
      * 例子：切分时cata组主节点所在服务器磁盘耗尽: 1、磁盘满 ;2、fillUpCL（SYSCAT.SYSCOLLECTIONS,256）;
      * 3、切分和fillUpCL（SYSCAT.SYSCOLLECTIONS,128）并发;4、磁盘恢复，执行cl.delete(
      * "{deleteFlag:1}");5、结果检验. 步骤2是为了让步骤3的fillUpCL快速返回，以达到SYSCL无法写入记录与切分并发的目的
-     * 
+     *
      * @param cl
      *            SYSCOLLECTIONS，SYSCOLLECTIONSPACES，SYSDOMAINS（不支持SYSNODES）
      * @param recordSizeByte
      *            插入单条记录的大小(1024*1024Byte,512*1024Byte,1024Byte,512Byte,256Byte,
      *            128Byte)
-     * 
+     *
      */
     public static void fillUpCL( DBCollection cl, int recordSizeByte ) {
         if ( recordSizeByte <= 1024 * 1024 ) {
@@ -829,7 +829,7 @@ public class CommLib {
 
     /**
      * 清理残留在节点上的session和context
-     * 
+     *
      * @author luweikang
      * @param db
      * @param match
@@ -883,7 +883,7 @@ public class CommLib {
 
     /**
      * 清理集合空间
-     * 
+     *
      * @param db
      * @param csName
      * @throws Exception
@@ -910,7 +910,7 @@ public class CommLib {
 
     /**
      * 清理集合
-     * 
+     *
      * @param db
      * @param csName
      * @throws Exception
@@ -938,7 +938,7 @@ public class CommLib {
 
     /**
      * 在指定时间内检测context是否被关闭
-     * 
+     *
      * @param db
      * @param match
      *            匹配context正则表达式
@@ -1009,7 +1009,7 @@ public class CommLib {
 
     /**
      * 在5分钟时间内检测数据节点context是否被关闭
-     * 
+     *
      * @param db
      * @param match
      *            匹配context正则表达式
@@ -1386,6 +1386,38 @@ public class CommLib {
         }
 
         return isConsistency;
+    }
+
+    /**
+     * 等待复制组所在主备节点CompleteLSN一致 *
+     *
+     * @param db
+     *            new db连接
+     * @param groupName
+     *            组名
+     * @param timeOut
+     *            等待超时时间
+     */
+    public static void waitLSNConsistency( Sequoiadb db, String groupName,
+            int timeOut ) {
+        boolean isConsistency = false;
+        int doTime = 0;
+        while ( doTime < timeOut ) {
+            isConsistency = isLSNConsistency( db, groupName );
+            if ( isConsistency ) {
+                break;
+            }
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                throw new RuntimeException( e );
+            }
+            doTime++;
+        }
+        if ( doTime >= timeOut ) {
+            Assert.fail(
+                    "failed to wait LSN consistency within the expected time" );
+        }
     }
 
     /**
