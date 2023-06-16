@@ -2,7 +2,7 @@
  * @Description   : seqDB-31343:transconsistencystrategy参数校验
  * @Author        : Bi Qin
  * @CreateTime    : 2023.04.28
- * @LastEditTime  : 2023.05.06
+ * @LastEditTime  : 2023.06.16
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -62,6 +62,8 @@ function test ()
    db.updateConf( config );
    var expConfig = { transconsistencystrategy: 1 };
    checkSnapshot( db, expConfig );
+
+   db.deleteConf( { transconsistencystrategy: 1 } );
 }
 
 function checkSnapshot ( sdb, option )
