@@ -736,6 +736,13 @@ namespace engine
       else if ( jstOID == oidEle.type() )
       {
          oid = oidEle.OID() ;
+         if ( !oid.isSet() )
+         {
+            PD_LOG( PDERROR, "invalid oid in meta bsonobj:%s",
+                  metaObj.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
       else
       {
