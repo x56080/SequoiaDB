@@ -1640,8 +1640,9 @@ namespace engine
          rc = SDB_OK ;
          if ( pmdIsPrimary() )
          {
-            if (  0 != expect.compareOffset( req->next.offset ) ||
-                  0 > expect.compareVersion( req->next.version ) )
+            if ( 0 != expect.compareOffset( req->next.offset ) ||
+                 ( 0 > expect.compareVersion( req->next.version ) &&
+                   0 != expect.offset ) )
             {
                msg.header.res = SDB_CLS_SYNC_FAILED ;
                rc = SDB_CLS_SYNC_FAILED ;
