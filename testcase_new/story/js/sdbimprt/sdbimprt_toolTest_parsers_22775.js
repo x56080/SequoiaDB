@@ -2,8 +2,8 @@
 *@Description:   seqDB-22775:--parsers并发解析任务数
 *@Author:        2020-9-25  huangxiaoni
 ************************************************************************/
-
-main( test );
+// CI-2133 该用例占用内存太大，注释掉不执行
+// main( test );
 
 function test ()
 {
