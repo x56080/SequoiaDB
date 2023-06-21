@@ -2431,9 +2431,9 @@ namespace engine
 
       // check recycle bin
       queryOptions.setCLFullName( CAT_SYSRECYCLEBIN_CL_COLLECTION ) ;
-      rc = rtnGetCount( queryOptions, dmsCB, cb, rtnCB, &curCount ) ;
+      rc = rtnGetCount( queryOptions, dmsCB, cb, rtnCB, &recycledCount ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query collection [%s], "
-                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+                   "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
 
       count = (UINT32)curCount + (UINT32)recycledCount ;
 
