@@ -7,7 +7,6 @@
 *******************************************************************************/
 import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
-testConf.skipTest = true; // CI-1973
 
 var csName = COMMCSNAME;
 var clName = COMMCLNAME;
