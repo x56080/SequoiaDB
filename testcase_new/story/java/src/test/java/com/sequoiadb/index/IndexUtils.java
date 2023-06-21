@@ -497,21 +497,20 @@ public class IndexUtils {
         matcher.put( "Name", csName + '.' + clName );
         matcher.put( "TaskTypeDesc", taskTypeDesc );
         matcher.put( "IndexName", indexName );
+        matcher.put( "ResultCode", resultCode );
         DBCursor cursor = db.listTasks( matcher, null, null, null );
 
+        ArrayList< BSONObject > taskInfos = new ArrayList< BSONObject >();
         BSONObject taskInfo = null;
         int taskNum = 0;
         while ( cursor.hasNext() ) {
             taskInfo = cursor.getNext();
+            taskInfos.add( taskInfo );
             taskNum++;
         }
         cursor.close();
         Assert.assertEquals( taskNum, 1,
-                "index task num should be 1!" + taskInfo );
-        // 校验结果状态码
-        int actResultCode = ( int ) taskInfo.get( "ResultCode" );
-        Assert.assertEquals( actResultCode, resultCode,
-                "actTaskInfo= " + taskInfo );
+                "index task num should be 1!" + taskInfos );
 
         int status = 9;
         int actStatus = ( int ) taskInfo.get( "Status" );
@@ -565,15 +564,17 @@ public class IndexUtils {
         matcher.put( "ResultCode", resultCode );
         DBCursor cursor = db.listTasks( matcher, null, null, null );
 
+        ArrayList< BSONObject > taskInfos = new ArrayList< BSONObject >();
         BSONObject taskInfo = null;
         int taskNum = 0;
         while ( cursor.hasNext() ) {
             taskInfo = cursor.getNext();
+            taskInfos.add( taskInfo );
             taskNum++;
         }
         cursor.close();
         Assert.assertEquals( taskNum, 1,
-                "index task num should be 1!" + taskInfo );
+                "index task num should be 1!" + taskInfos );
 
         int status = 9;
         int actStatus = ( int ) taskInfo.get( "Status" );
