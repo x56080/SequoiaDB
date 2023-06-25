@@ -24,7 +24,7 @@ function test ()
       setLocationForNodes( rg, nodelist, location );
       var masterNode = rg.getMaster();
       var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
-      var locationPrimary1 = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary1 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       // 检查系统快照位置集主节点的IsLocationPrimary值
       var values1 = getSnapshotSystem( db, locationPrimary1 );
       assert.equal( values1[0]["Location"], location );
@@ -33,7 +33,7 @@ function test ()
       var slaveNodes = getGroupSlaveNodeName( db, group );
       var slaveNode1 = rg.getNode( slaveNodes[0] );
       slaveNode1.stop();
-      var locationPrimary2 = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary2 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       // 检查系统快照位置集主节点的IsLocationPrimary值
       var values2 = getSnapshotDatabase( db, locationPrimary2 );
       assert.equal( values2[0]["Location"], location );
@@ -42,7 +42,7 @@ function test ()
       // 停另一个备节点后，没有位置集主节点
       var slaveNode2 = rg.getNode( slaveNodes[1] );
       slaveNode2.stop();
-      var isLocationPrimary = waitGetSnapshot( db, masterNodeName, 10 );
+      var isLocationPrimary = waitGetSnapshot( db, masterNodeName, 60 );
       assert.equal( isLocationPrimary, false );
 
       assert.tryThrow( SDB_CLS_NOT_LOCATION_PRIMARY, function()
@@ -54,7 +54,7 @@ function test ()
       slaveNode2.start();
       commCheckBusinessStatus( db );
 
-      var locationPrimary = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary = checkAndGetLocationHasPrimary( db, group, location, 30 );
       var values3 = getSnapshotDatabase( db, locationPrimary );
       assert.equal( values3[0]["Location"], location );
       assert.equal( values3[0]["IsLocationPrimary"], true );

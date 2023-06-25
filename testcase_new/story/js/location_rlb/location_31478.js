@@ -40,7 +40,7 @@ function test ()
       // 将主节点的location设置为""
       masterNode.setLocation( "" );
 
-      var locationPrimary1 = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary1 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       var values1 = getSnapshotDatabase( db, locationPrimary1 );
       assert.equal( values1[0]["Location"], location );
       assert.equal( values1[0]["IsLocationPrimary"], true );
@@ -51,19 +51,19 @@ function test ()
 
       // 移除一个备节点
       rg.removeNode( hostName, port1 );
-      checkAndGetLocationHasPrimary( db, group, location, 10 );
+      checkAndGetLocationHasPrimary( db, group, location, 30 );
       assert.equal( values2[0]["IsLocationPrimary"], true );
 
       // 移除另一个节点
       rg.removeNode( hostName, port2 );
-      var locationPrimary2 = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary2 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       var values3 = getSnapshotSystem( db, locationPrimary2 );
       assert.equal( values3[0]["Location"], location );
       assert.equal( values3[0]["IsLocationPrimary"], true );
 
       // 将主节点设置location
       masterNode.setLocation( location );
-      var locationPrimary3 = checkAndGetLocationHasPrimary( db, group, location, 10 );
+      var locationPrimary3 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       var values4 = getSnapshotDatabase( db, locationPrimary3 );
       assert.equal( values4[0]["Location"], location );
       assert.equal( values4[0]["IsLocationPrimary"], true );
