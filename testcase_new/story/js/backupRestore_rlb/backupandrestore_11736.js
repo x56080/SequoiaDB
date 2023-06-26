@@ -107,7 +107,7 @@ backupTestCase11736.prototype.tearDown =
       db.removeRG( backupandrestoreGroup );
    }
 
-//main( test );
+main( test );
 
 function test ()
 {
