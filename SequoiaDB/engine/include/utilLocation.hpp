@@ -47,12 +47,14 @@ namespace engine
       UINT8 primaryLocationNodes ;
       UINT8 locations ;
       UINT8 affinitiveLocations ;
+      UINT8 affinitiveNodes ;
 
       _utilLocationInfo()
       {
          primaryLocationNodes = 0 ;
          locations = 0 ;
          affinitiveLocations = 0 ;
+         affinitiveNodes = 0 ;
       }
    } ;
 

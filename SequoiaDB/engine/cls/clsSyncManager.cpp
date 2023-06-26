@@ -920,6 +920,7 @@ namespace engine
             if ( selfLocation == _notifyList[i].locationID )
             {
                wakePlan.primaryLocationNodes = 1 ;
+               wakePlan.affinitiveNodes = 1 ;
                isMarked.setBit( _notifyList[i].locationIndex ) ;
             }
             else if ( !isMarked.testBit( _notifyList[i].locationIndex ) )
@@ -928,6 +929,7 @@ namespace engine
                if ( _notifyList[i].affinitive )
                {
                   wakePlan.affinitiveLocations = 1 ;
+                  wakePlan.affinitiveNodes = 1 ;
                }
                isMarked.setBit( _notifyList[i].locationIndex ) ;
             }
@@ -940,15 +942,18 @@ namespace engine
       {
          CLS_WAKE_PLAN::reverse_iterator ritr = plan.rbegin() ;
          wakePlan.reset() ;
+         wakePlan.affinitiveNodes = 1 ;
          while ( ritr != plan.rend() )
          {
             wakePlan.affinitiveLocations += (*ritr).affinitiveLocations ;
             wakePlan.primaryLocationNodes += (*ritr).primaryLocationNodes ;
             wakePlan.locations += (*ritr).locations ;
+            wakePlan.affinitiveNodes += (*ritr).affinitiveNodes ;
 
             (*ritr).affinitiveLocations = wakePlan.affinitiveLocations ;
             (*ritr).primaryLocationNodes = wakePlan.primaryLocationNodes ;
             (*ritr).locations = wakePlan.locations ;
+            (*ritr).affinitiveNodes = wakePlan.affinitiveNodes ;
             ++ritr ;
          }
       }

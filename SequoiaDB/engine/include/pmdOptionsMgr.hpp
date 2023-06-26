@@ -712,6 +712,7 @@ namespace engine
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
          OSS_INLINE BOOLEAN isEnableAsyncRead() const { return _enableAsyncRead ; }
+         OSS_INLINE BOOLEAN isRemoteLocationConsistency() const { return _remoteLocationConsistency ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -861,6 +862,7 @@ namespace engine
 
          UINT32      _statMCVLimit ;
          BOOLEAN     _enableAsyncRead ;
+         BOOLEAN     _remoteLocationConsistency ;
 
 #ifdef SDB_ENTERPRISE
 

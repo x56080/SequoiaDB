@@ -2038,6 +2038,8 @@ done:
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
       _enableAsyncRead = TRUE ;
 
+      _remoteLocationConsistency = TRUE ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2618,6 +2620,10 @@ done:
       // --enableasyncread
       rdxBooleanS( pEX, PMD_OPTION_ENABLE_ASYNC_READ, _enableAsyncRead, FALSE,
                    PMD_CFG_CHANGE_RUN, PMD_DFT_ENABLE_ASYNC_READ, TRUE ) ;
+
+      // --remotelocationconsistency
+      rdxBooleanS( pEX, PMD_OPTION_REMOTE_LOCATION_CONSISTENCY, _remoteLocationConsistency, FALSE,
+                   PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
 
       // end map
 

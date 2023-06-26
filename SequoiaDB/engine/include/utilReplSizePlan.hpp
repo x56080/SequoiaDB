@@ -53,6 +53,7 @@ namespace engine
       mutable UINT8  affinitiveLocations ;
       mutable UINT8  primaryLocationNodes ;
       mutable UINT8  locations ;
+      mutable UINT8  affinitiveNodes ;
 
       _utilReplSizePlan()
       {
@@ -62,12 +63,14 @@ namespace engine
       _utilReplSizePlan( const DPS_LSN_OFFSET offset,
                          const UINT8 affinitiveLocations,
                          const UINT8 primaryLocationNodes,
-                         const UINT8 locations )
+                         const UINT8 locations,
+                         const UINT8 affinitiveNodes )
       {
          this->offset = offset ;
          this->affinitiveLocations = affinitiveLocations ;
          this->primaryLocationNodes = primaryLocationNodes ;
          this->locations = locations ;
+         this->affinitiveNodes = affinitiveNodes ;
       }
 
       ~_utilReplSizePlan()
@@ -80,17 +83,21 @@ namespace engine
          affinitiveLocations = 0 ;
          primaryLocationNodes = 0 ;
          locations = 0 ;
+         affinitiveNodes = 0 ;
       }
 
-      void setNodeReplSizePlan()
+      void setNodeReplSizePlan( const UINT8 nodes,
+                                const UINT8 affinitiveNodes )
       {
          reset() ;
+         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
       }
 
       void setLocMajorReplSizePlan( const UINT8 nodes,
                                     const UINT8 affinitiveLocations,
                                     const UINT8 primaryLocationNodes,
-                                    const UINT8 locations )
+                                    const UINT8 locations,
+                                    const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
          this->locations = OSS_MIN( nodes, ( locations + 1 ) / 2 ) ;
@@ -99,12 +106,14 @@ namespace engine
          this->primaryLocationNodes
                   = OSS_MIN( nodes - this->locations,
                              ( primaryLocationNodes + 1 ) / 2 ) ;
+         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
       }
 
       void setPryLocMajorReplSizePlan( const UINT8 nodes,
                                        const UINT8 affinitiveLocations,
                                        const UINT8 primaryLocationNodes,
-                                       const UINT8 locations )
+                                       const UINT8 locations,
+                                       const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
          this->primaryLocationNodes
@@ -114,6 +123,7 @@ namespace engine
                              ( locations + 1 ) / 2 ) ;
          this->affinitiveLocations
                   = OSS_MIN( this->locations, affinitiveLocations ) ;
+         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
       }
 
       BOOLEAN isPassed( const _utilReplSizePlan &item ) const
@@ -123,7 +133,8 @@ namespace engine
          return offset < item.offset &&
                 primaryLocationNodes <= item.primaryLocationNodes &&
                 affinitiveLocations <= item.affinitiveLocations &&
-                locations <= item.locations ;
+                locations <= item.locations &&
+                affinitiveNodes <= item.affinitiveNodes ;
       }
 
       BOOLEAN operator <=( const _utilReplSizePlan &right ) const
@@ -146,6 +157,10 @@ namespace engine
             result = TRUE ;
          }
          else if ( right.locations > locations )
+         {
+            result = TRUE ;
+         }
+         else if ( right.affinitiveNodes > affinitiveNodes )
          {
             result = TRUE ;
          }
@@ -179,6 +194,10 @@ namespace engine
          {
             result = TRUE ;
          }
+         else if ( right.affinitiveNodes > affinitiveNodes )
+         {
+            result = TRUE ;
+         }
          return result ;
       }
 
@@ -187,7 +206,8 @@ namespace engine
          return ( right.offset == offset ) &&
                 ( right.primaryLocationNodes == primaryLocationNodes ) &&
                 ( right.affinitiveLocations == affinitiveLocations ) &&
-                ( right.locations == locations ) ;
+                ( right.locations == locations ) &&
+                ( right.affinitiveNodes == affinitiveNodes ) ;
       }
 
       BOOLEAN operator >=( const _utilReplSizePlan &right  ) const

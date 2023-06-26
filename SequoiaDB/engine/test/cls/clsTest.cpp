@@ -565,7 +565,7 @@ TEST(clsTest, clsSyncManager_7)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 2 ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -647,7 +647,7 @@ TEST(clsTest, clsSyncManager_8)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 2 ;
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -729,7 +729,7 @@ TEST(clsTest, clsSyncManager_9)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 3 ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -809,7 +809,7 @@ TEST(clsTest, clsSyncManager_10)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 3 ;
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -900,7 +900,7 @@ TEST(clsTest, clsSyncManager_11)
    for ( UINT32 w = 2; w <= num; w++ )
    {
       _clsSyncSession session ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 2 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 2, 0 ) ;
       if ( 2 == w )
       {
          ASSERT_TRUE( session.waitPlan == _locationMajority[0] ) ;
@@ -910,7 +910,7 @@ TEST(clsTest, clsSyncManager_11)
          ASSERT_TRUE( session.waitPlan == _locationMajority[1] ) ;
       }
 
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 2 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 2, 0 ) ;
       if ( 2 == w )
       {
          ASSERT_TRUE( session.waitPlan == _primaryLocationMajority[0] ) ;
@@ -918,6 +918,558 @@ TEST(clsTest, clsSyncManager_11)
       else
       {
          ASSERT_TRUE( session.waitPlan == _primaryLocationMajority[1] ) ;
+      }
+   }
+}
+
+// node priority strategy
+TEST(clsTest, clsSyncManager_12)
+{
+   const UINT32 num = 3 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _pmdEDUMgr mgr ;
+
+   for ( UINT32 i = 0; i < 3; i++ )
+   {
+      _clsGroupInfo info ;
+      _clsSharingStatus status ;
+      MsgRouteID id ;
+      id.columns.groupID = 1 ;
+      id.columns.nodeID = 1 ;
+      info.primary = id ;
+      info.local = id ;
+      info.localLocationID = 1 ;
+      pmdSetLocationID( 1 ) ;
+      // primary location node
+      ++id.columns.nodeID ;
+      status.locationID = 1 ;
+      status.locationIndex = 1 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // affinitive location node
+      ++id.columns.nodeID ;
+      status.locationID = 2 ;
+      status.locationIndex = 2 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // other location node
+      ++id.columns.nodeID ;
+      status.locationID = 3 ;
+      status.locationIndex = 3 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      _clsSyncManager sync( &agent, &info ) ;
+      sync.updateNotifyList( TRUE ) ;
+      ossAtomic32 complete( 0 ) ;
+
+      // case 1: the remote node lsn less than all local node.
+      if ( i == 0 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num - 1; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            lsn.offset = 2 ;
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 2: the remote node lsn more than all local node.
+      else if ( i == 1 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 0 )
+            {
+               lsn.offset = 2 ;
+            }
+            else if ( i == 1 )
+            {
+               lsn.offset = 4 ;
+            }
+            else
+            {
+               lsn.offset = 3 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 3: w < affinitiveNodes
+      else if ( i == 2 )
+      {
+         UINT32 w = 2 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 0 )
+            {
+               lsn.offset = 3 ;
+            }
+            else
+            {
+               lsn.offset = 0 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+   }
+}
+
+// location majority strategy
+TEST(clsTest, clsSyncManager_13)
+{
+   const UINT32 num = 6 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _pmdEDUMgr mgr ;
+   for ( UINT32 i = 0; i < 4; i++ )
+   {
+      _clsGroupInfo info ;
+      _clsSharingStatus status ;
+      MsgRouteID id ;
+      id.columns.groupID = 1 ;
+      id.columns.nodeID = 1 ;
+      info.primary = id ;
+      info.local = id ;
+      info.localLocationID = 1 ;
+      pmdSetLocationID( 1 ) ;
+      // primary location node
+      ++id.columns.nodeID ;
+      status.locationID = 1 ;
+      status.locationIndex = 1 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // affinitive location node
+      ++id.columns.nodeID ;
+      status.locationID = 2 ;
+      status.locationIndex = 2 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // other location node
+      ++id.columns.nodeID ;
+      status.locationID = 3 ;
+      status.locationIndex = 3 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      ++id.columns.nodeID ;
+      status.locationID = 3 ;
+      status.locationIndex = 3 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      ++id.columns.nodeID ;
+      status.locationID = 4 ;
+      status.locationIndex = 4 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      ++id.columns.nodeID ;
+      status.locationID = 5 ;
+      status.locationIndex = 5 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      _clsSyncManager sync( &agent, &info ) ;
+      sync.updateNotifyList( TRUE ) ;
+      ossAtomic32 complete( 0 ) ;
+
+      // case 1: the remote node lsn less than all local node.
+      if ( i == 0 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i > 1 )
+            {
+               lsn.offset = 3 ;
+            }
+            else if ( i == 0 )
+            {
+               lsn.offset = 2 ;
+            }
+            else
+            {
+               lsn.offset = 5 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 2: the remote node lsn more than local node.
+      else if ( i == 1 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == num - 1 )
+            {
+               lsn.offset = 3 ;
+            }
+            else
+            {
+               lsn.offset = 2 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 3: need write affinitive location node
+      else if ( i == 2 )
+      {
+         UINT32 w = 2 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 1 )
+            {
+               lsn.offset = 3 ;
+            }
+            else
+            {
+               lsn.offset = 0 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         boost::chrono::milliseconds timeOut( 1000 ) ;
+         boost::this_thread::sleep_for( timeOut ) ;
+         if ( t->joinable() )
+         {
+            t->interrupt() ;
+            t->join() ;
+         }
+         ASSERT_TRUE( 0 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 4: need wait
+      else if ( i == 3 )
+      {
+         UINT32 w = 2 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 1 )
+            {
+               lsn.offset = 0 ;
+            }
+            else
+            {
+               lsn.offset = 4 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         boost::chrono::milliseconds timeOut( 1000 ) ;
+         boost::this_thread::sleep_for( timeOut ) ;
+         if ( t->joinable() )
+         {
+            t->interrupt() ;
+            t->join() ;
+         }
+         // cout << complete.peek() << endl ;
+         ASSERT_TRUE( 0 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+   }
+}
+
+// primary Location strategy
+TEST(clsTest, clsSyncManager_14)
+{
+   const UINT32 num = 5 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _pmdEDUMgr mgr ;
+
+
+   for ( UINT32 i = 0; i < 4; i++ )
+   {
+      _clsGroupInfo info ;
+      _clsSharingStatus status ;
+      MsgRouteID id ;
+      id.columns.groupID = 1 ;
+      id.columns.nodeID = 1 ;
+      info.primary = id ;
+      info.local = id ;
+      info.localLocationID = 1 ;
+      pmdSetLocationID( 1 ) ;
+      // primary location node
+      ++id.columns.nodeID ;
+      status.locationID = 1 ;
+      status.locationIndex = 1 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // affinitive location node
+      ++id.columns.nodeID ;
+      status.locationID = 2 ;
+      status.locationIndex = 2 ;
+      status.isAffinitiveLocation = TRUE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      // other location node
+      ++id.columns.nodeID ;
+      status.locationID = 3 ;
+      status.locationIndex = 3 ;
+      status.isAffinitiveLocation = FALSE ;
+      info.info.insert( std::make_pair( id.value, status ) ) ;
+      info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
+      _clsSyncManager sync( &agent, &info ) ;
+      sync.updateNotifyList( TRUE ) ;
+      ossAtomic32 complete( 0 ) ;
+
+      // case 1: the remote node lsn less than all local node.
+      if ( i == 0 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i > 1 )
+            {
+               lsn.offset = 3 ;
+            }
+            else if ( i == 0 )
+            {
+               lsn.offset = 2 ;
+            }
+            else
+            {
+               lsn.offset = 5 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 2: the remote node lsn more than local node.
+      else if ( i == 1 )
+      {
+         UINT32 w = 3 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == num - 1 )
+            {
+               lsn.offset = 3 ;
+            }
+            else
+            {
+               lsn.offset = 2 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         t->join() ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 3: need write primary location node
+      else if ( i == 2 )
+      {
+         UINT32 w = 2 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 0 )
+            {
+               lsn.offset = 3 ;
+            }
+            else
+            {
+               lsn.offset = 0 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         //cout << complete.peek() << endl ;
+         boost::chrono::milliseconds timeOut( 1000 ) ;
+         boost::this_thread::sleep_for( timeOut ) ;
+         if ( t->joinable() )
+         {
+            t->interrupt() ;
+            t->join() ;
+         }
+         ASSERT_TRUE( 0 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
+      }
+      // case 4: need wait
+      else if ( i == 3 )
+      {
+         UINT32 w = 2 ;
+         pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+         _clsSyncSession session ;
+         session.eduCB = eduCBs ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.offset = 1 ;
+         id.columns.nodeID = 2 ;
+         for ( UINT32 i = 0 ; i < num ; i++ )
+         {
+            DPS_LSN lsn ;
+            lsn.version = 1 ;
+            if ( i == 0 )
+            {
+               lsn.offset = 0 ;
+            }
+            else
+            {
+               lsn.offset = 2 ;
+            }
+            sync.complete( id, lsn, 1 ) ;
+            id.columns.nodeID++ ;
+         }
+         boost::thread *t = new boost::thread( fun, &sync, session, w, &complete ) ;
+         boost::chrono::milliseconds timeOut( 1000 ) ;
+         boost::this_thread::sleep_for( timeOut ) ;
+         if ( t->joinable() )
+         {
+            t->interrupt() ;
+            t->join() ;
+         }
+         //cout << complete.peek() << endl ;
+         ASSERT_TRUE( 0 == complete.peek() ) ;
+         delete t ;
+         delete eduCBs ;
       }
    }
 }

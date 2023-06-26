@@ -109,6 +109,11 @@ namespace engine
             return _locationVote.primaryIsMe() ;
          }
 
+         OSS_INLINE BOOLEAN isActiveLocation()
+         {
+            return _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+         }
+
          OSS_INLINE clsBucket* getBucket ()
          {
             return &_replBucket ;
@@ -195,6 +200,7 @@ namespace engine
             UINT8 locations = 0 ;
             _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
             BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
+            UINT32 remoteNodeCnt = 0 ;
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
@@ -227,6 +233,19 @@ namespace engine
                pStatus = it->second ;
                ++it ;
 
+               // If the remoteLocationConsistency is false,
+               // don't care whether the remote node failed.
+               locationID = pStatus->beat.locationID ;
+               if ( MSG_INVALID_LOCATIONID != selfLocationID &&
+                    isActiveLocation() &&
+                    selfLocationID != locationID &&
+                    !pStatus->isAffinitiveLocation &&
+                    !_remoteLocationConsistency )
+               {
+                  ++remoteNodeCnt ;
+                  continue ;
+               }
+
                if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
                {
                   --aliveCnt ;
@@ -250,7 +269,6 @@ namespace engine
 
                if ( needLocInfo )
                {
-                  locationID = pStatus->beat.locationID ;
                   if ( MSG_INVALID_LOCATIONID != selfLocationID &&
                        MSG_INVALID_LOCATIONID != locationID )
                   {
@@ -258,23 +276,39 @@ namespace engine
                      {
                         primaryLocationNodes++ ;
                      }
-                     else if ( !isMarked.testBit( pStatus->locationIndex ) )
+                     else if ( !isMarked.testBit( pStatus->locationIndex ) &&
+                               pStatus->isAffinitiveLocation )
                      {
                         locations++ ;
-                        if ( pStatus->isAffinitiveLocation )
-                        {
-                           affinitiveLocations++ ;
-                        }
+                        affinitiveLocations++ ;
+                        isMarked.setBit( pStatus->locationIndex ) ;
+                     }
+                     // If the remoteLocationConsistency is false, we ignore the impact
+                     // of remote nodes on synchronization consistency.
+                     else if ( !isMarked.testBit( pStatus->locationIndex ) &&
+                               _remoteLocationConsistency )
+                     {
+                        locations++ ;
                         isMarked.setBit( pStatus->locationIndex ) ;
                      }
                   }
                }
             }
-            if ( needLocInfo )
+            if ( needLocInfo && NULL != locationInfo )
             {
                locationInfo->primaryLocationNodes = primaryLocationNodes ;
                locationInfo->locations = locations ;
                locationInfo->affinitiveLocations = affinitiveLocations ;
+            }
+
+            if ( !_remoteLocationConsistency && remoteNodeCnt > 0 )
+            {
+               nodeCnt -= remoteNodeCnt ;
+               aliveCnt -= remoteNodeCnt ;
+               if ( NULL != locationInfo )
+               {
+                  locationInfo->affinitiveNodes = nodeCnt ;
+               }
             }
          }
 
@@ -658,6 +692,7 @@ namespace engine
          ossEvent                _heartbeatEvent ;
 
          ossAtomic64             _lastLogMoveTick ;
+         BOOLEAN                 _remoteLocationConsistency ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

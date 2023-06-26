@@ -3009,4 +3009,28 @@
       <hidden>true</hidden>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_REMOTE_LOCATION_CONSISTENCY</name>
+      <long>remotelocationconsistency</long>
+      <description>
+         <en>Whether the remote node participates in synchronous consistency calculation. Default is true.</en>
+         <cn>异地节点是否参与同步一致性计算。默认为true。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next write</en>
+         <cn>下次写操作生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>Whether the remote node participates in synchronous consistency calculation. Default is true.This parameter only takes effect if the primary node in activelocation.</en>
+         <cn>异地节点是否参与同步一致性计算。默认为true。该参数只有主节点在ActiveLocation才生效。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+      <hidden>true</hidden>
+  </opt>
+
 </optlist>
