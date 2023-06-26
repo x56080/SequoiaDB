@@ -52,7 +52,7 @@ public class Node10234 extends SdbTestBase {
         nodes = MetaDataUtils.getNodeAddress( sdb, rgName );
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDown() {
         try {
             this.attachNodeForCleanEnv();

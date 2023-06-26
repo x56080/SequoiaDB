@@ -40,7 +40,7 @@ public class Group10221 extends SdbTestBase {
         MetaDataUtils.clearGroup( sdb, rgName );
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDown() {
         try {
             MetaDataUtils.clearGroup( sdb, rgName );
