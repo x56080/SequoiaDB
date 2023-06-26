@@ -42,7 +42,7 @@ public class Node10230 extends SdbTestBase {
 
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDown() {
         try {
             MetaDataUtils.clearGroup( sdb, rgName );

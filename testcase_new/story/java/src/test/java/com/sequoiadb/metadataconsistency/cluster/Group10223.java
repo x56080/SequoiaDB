@@ -57,7 +57,7 @@ public class Group10223 extends SdbTestBase {
         createDomain( sdb );
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDown() {
         try {
             MetaDataUtils.clearDomain( sdb, domainName );
