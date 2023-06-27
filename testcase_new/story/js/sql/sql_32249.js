@@ -2,7 +2,7 @@
  * @Description   : seqDB-32249:执行 left join查询
  * @Author        : liuli
  * @CreateTime    : 2023.06.21
- * @LastEditTime  : 2023.06.21
+ * @LastEditTime  : 2023.06.27
  * @LastEditors   : liuli
  ******************************************************************************/
 main( test );
@@ -24,6 +24,7 @@ function test ()
    dbcl2.insert( { a: 1, c: 30 } );
    dbcl2.insert( { a: 2, c: 40 } );
 
+   // left join查询，where 按照右表的条件过滤，使用 > 过滤
    var sqlCommand = "select T1.a, T1.b, T2.c from " + COMMCSNAME + "." + clName1 +
       " as T1 left outer join " + COMMCSNAME + "." + clName2 +
       " as T2 on T1.a = T2.a where T2.a > 1";
@@ -32,6 +33,7 @@ function test ()
    var expResult = [{ "a": 2, "b": 20, "c": 40 }];
    commCompareResults( actResult, expResult );
 
+   // left join查询，where 按照右表的条件过滤，使用 < 过滤
    sqlCommand = "select T1.a, T1.b, T2.c from " + COMMCSNAME + "." + clName1 +
       " as T1 left outer join " + COMMCSNAME + "." + clName2 +
       " as T2 on T1.a = T2.a where T2.a < 2";
@@ -40,6 +42,7 @@ function test ()
    var expResult = [{ "a": 1, "b": 10, "c": 30 }];
    commCompareResults( actResult, expResult );
 
+   // left join查询，where 按照左表的条件过滤，使用 < 过滤
    sqlCommand = "select T1.a, T1.b, T2.c from " + COMMCSNAME + "." + clName1 +
       " as T1 left outer join " + COMMCSNAME + "." + clName2 +
       " as T2 on T1.a = T2.a where T1.a < 2";
