@@ -3191,8 +3191,8 @@ namespace engine
             if ( setItem.empty() )
             {
                rc = SDB_CAT_NO_MATCH_CATALOG ;
-               PD_LOG( PDWARNING, "Couldn't find the match catalog, rc: %d",
-                       rc ) ;
+               PD_LOG( PDWARNING, "Couldn't find the match catalog for collection[%s] by "
+                       "matcher[%s], rc: %d", name(), matcher.toString().c_str(), rc ) ;
                goto error ;
             }
 
