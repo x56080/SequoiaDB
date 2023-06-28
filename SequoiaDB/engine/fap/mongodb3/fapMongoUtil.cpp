@@ -316,7 +316,7 @@ namespace fap
             BSONObj newTarget ;
             BSONObj setObj ;
             BSONObjBuilder builder ;
-            builder.append( "$set", setOnInsert ) ;
+            builder.append( FAP_MONGO_UPDATOR_SET, setOnInsert ) ;
             setObj = builder.obj() ;
 
             mthModifier setModifier ;
@@ -325,7 +325,7 @@ namespace fap
                          "rc: %d", PD_SECURE_STR( setOnInsert.toString() ), rc ) ;
             rc = setModifier.modify( target, newTarget ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
-                         "record(rc=%d) by " FIELD_NAME_SET_ON_INSERT, rc ) ;
+                         "record(rc=%d) by " FAP_MONGO_UPDATOR_SETINSERT, rc ) ;
             
             target = newTarget ;
          }
@@ -675,12 +675,17 @@ namespace fap
             BSONElement ele = itr.next() ;
             if ( '$' == ele.fieldName()[0] )
             {
+               hasOp = TRUE ;
                if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_UPDATOR_SETINSERT ) )
                {
                   needBuild = TRUE ;
                   break ;
                }
-               hasOp = TRUE ;
+            }
+            else
+            {
+               /// when first is not operation, it's {a:x,b:y} for replace
+               break ;
             }
          }
 
@@ -693,6 +698,7 @@ namespace fap
                BSONElement ele = itr.next() ;
                if ( '$' == ele.fieldName()[0] )
                {
+                  hasOp = TRUE ;
                   if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_UPDATOR_SETINSERT ) )
                   {
                      if ( Object == ele.type() )
@@ -701,13 +707,14 @@ namespace fap
                      }
                      continue ;
                   }
-                  else
-                  {
-                     hasOp = TRUE ;
-                  }
                }
 
                builder.append( ele ) ;
+            }
+
+            if ( builder.isEmpty() )
+            {
+               builder.append( FAP_MONGO_UPDATOR_SET, BSONObj() ) ;
             }
             updator = builder.obj() ;
          }

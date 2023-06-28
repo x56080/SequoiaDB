@@ -2187,10 +2187,10 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          if ( updateMulti )
          {
             rc = SDB_OPTION_NOT_SUPPORT ;
-            ctx.setError( 9, "Multi update only works with $ operators" ) ;
+            ctx.setError( 9, "multi update is not supported for replacement-style update" ) ;
             goto error ;
          }
-         updator = BSON( "$replace" << updator ) ;
+         updator = BSON( FAP_MONGO_OPERATOR_REPLACE << updator ) ;
       }
 
       // upsert operation requires _id to return
@@ -2198,7 +2198,7 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       {
          _idObj = BSONObj() ;
          // get the _id from the query condition or the update condition
-         rc = _getId( query, updator, ctx, _idObj ) ;
+         rc = _getId( query, updator, setOnObj, ctx, _idObj ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to get _id from the query condition[%s] "
@@ -2222,12 +2222,6 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          {
             hint = BSON( FIELD_NAME_SET_ON_INSERT << setOnObj ) ;
          }
-      }
-      else if ( updator.hasField( FAP_MONGO_UPDATOR_SETINSERT ) )
-      {
-         /// ignore it
-         updator = updator.filterFieldsUndotted( BSON( FAP_MONGO_UPDATOR_SETINSERT << 1 ),
-                                                 false ) ;
       }
 
       rc = convertMongoOperator2Sdb( query, operatorBob ) ;
@@ -2446,6 +2440,7 @@ error:
 
 INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
                                    const BSONObj &updatorObj,
+                                   const BSONObj &setOnInsert,
                                    mongoSessionCtx &ctx,
                                    BSONObj &idObj )
 {
@@ -2453,20 +2448,32 @@ INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
 
    try
    {
-      // find _id field from the update condition
-      BSONObjIterator i( updatorObj ) ;
-      while ( i.more() )
+      if ( !setOnInsert.isEmpty() )
       {
-         BSONElement ele = i.next() ;
-
-         if ( Object == ele.type() )
+         BSONElement e = setOnInsert.getField( FAP_MONGO_FIELD_NAME_ID ) ;
+         if ( !e.eoo() )
          {
-            BSONElement e = ele.Obj().getField( FAP_MONGO_FIELD_NAME_ID ) ;
+            idObj = BSON( FAP_MONGO_FIELD_NAME_ID << e ) ;
+         }
+      }
 
-            if ( EOO != e.type() )
+      // find _id field from the update condition
+      if ( idObj.isEmpty() )
+      {
+         BSONObjIterator i( updatorObj ) ;
+         while ( i.more() )
+         {
+            BSONElement ele = i.next() ;
+
+            if ( Object == ele.type() )
             {
-               idObj = BSON( FAP_MONGO_FIELD_NAME_ID << e ) ;
-               break ;
+               BSONElement e = ele.Obj().getField( FAP_MONGO_FIELD_NAME_ID ) ;
+
+               if ( EOO != e.type() )
+               {
+                  idObj = BSON( FAP_MONGO_FIELD_NAME_ID << e ) ;
+                  break ;
+               }
             }
          }
       }

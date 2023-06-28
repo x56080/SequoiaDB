@@ -394,7 +394,8 @@ class _mongoUpdateCommand : public _mongoCollectionCommand
 
    private:
       INT32   _getId( const BSONObj &queryObj, const BSONObj &updatorObj,
-                      mongoSessionCtx &ctx, BSONObj &idObj ) ;
+                      const BSONObj &setOnInsert, mongoSessionCtx &ctx,
+                      BSONObj &idObj ) ;
       INT32   _getIdFromQuery( const BSONObj &queryObj, mongoSessionCtx &ctx,
                                BSONObj &idObj ) ;
 
