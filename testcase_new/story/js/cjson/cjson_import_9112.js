@@ -23,7 +23,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check {date1:SdbDate2015-06-05)} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Not enough arguments in call to function"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Not enough arguments in call to function"';
    var expLogInfo = 'Not enough arguments in call to function';
    checkSdbimportLog( matchInfos, expLogInfo );
 
@@ -38,7 +38,7 @@ function test ()
    var importRes = 0;
    checkImportReturn( rcInfos, parseFail, importRes );
 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "The \'bin\' value binary format error"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "The \'bin\' value binary format error"';
    var expLogInfo = 'The \'bin\' value binary format error';
    checkSdbimportLog( matchInfos, expLogInfo );
 

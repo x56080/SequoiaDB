@@ -23,12 +23,12 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check {number:NumberLong(abc123)} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'abc123\' is not defined"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'abc123\' is not defined"';
    var expLogInfo = 'ReferenceError: \'abc123\' is not defined';
    checkSdbimportLog( matchInfos, expLogInfo );
 
    //check {number:NumberLong(123,234)} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Failed to parse the No. 1 argument"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Failed to parse the No. 1 argument"';
    var expLogInfo = 'Failed to parse the No. 1 argument';
    checkSdbimportLog( matchInfos, expLogInfo );
 
