@@ -4842,7 +4842,14 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags )
       {
          BSONObjBuilder bob ;
-         bob.appendElements( BSONObj( bodyBuf.data() ) ) ;
+         if ( bodyBuf.size() > 0 )
+         {
+            bob.appendElements( BSONObj( bodyBuf.data() ) ) ;
+         }
+         else
+         {
+            bob.append( "values", BSONArray() ) ;
+         }
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
       }
@@ -6725,12 +6732,17 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
    stringstream ss ;
    string payload ;
    BSONObjBuilder bob ;
-   BSONObj replyObj( bodyBuf.data() ) ;
+   BSONObj replyObj ;
    BOOLEAN rebuildBuf = FALSE ;
    INT32 rc = SDB_OK ;
 
    try
    {
+      if ( bodyBuf.size() > 0 )
+      {
+         replyObj = BSONObj( bodyBuf.data() ) ;
+      }
+
       if ( replyObj.isEmpty() )
       {
          bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
