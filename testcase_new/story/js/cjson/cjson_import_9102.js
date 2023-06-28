@@ -21,11 +21,11 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'aObjectId(\'55713f7953e6769804000001\')\' is not defined"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'aObjectId(\'55713f7953e6769804000001\')\' is not defined"';
    var expLogInfo = 'ReferenceError: \'aObjectId(\'55713f7953e6769804000001\')\' is not defined';
    checkSdbimportLog( matchInfos, expLogInfo );
 
-   var matchInfos1 = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'ObjectIdbc()\' is not defined"';
+   var matchInfos1 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'ObjectIdbc()\' is not defined"';
    var expLogInfo1 = 'ReferenceError: \'ObjectIdbc()\' is not defined';
    checkSdbimportLog( matchInfos1, expLogInfo1 );
 

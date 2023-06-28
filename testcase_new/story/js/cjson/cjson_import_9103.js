@@ -24,7 +24,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "argument ObjectId must be a string of length 24"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "argument ObjectId must be a string of length 24"';
    var expLogInfo = 'argument ObjectId must be a string of length 24';
    checkSdbimportLog( matchInfos, expLogInfo );
 

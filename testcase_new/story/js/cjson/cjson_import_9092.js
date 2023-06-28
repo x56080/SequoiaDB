@@ -21,7 +21,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
    var expLogInfo = "ReferenceError: \'\' is not defined";
    checkSdbimportLog( matchInfos, expLogInfo );
 

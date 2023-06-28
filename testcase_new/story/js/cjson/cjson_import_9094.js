@@ -24,7 +24,7 @@ function test ()
    checkImportReturn( rcInfos1, parseFail1, importRes1 );
 
    //check sdbimport.log 
-   var matchInfos1 = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: JSON key \'a\' missing \',\' or \'\}\'"';
+   var matchInfos1 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: JSON key \'a\' missing \',\' or \'\}\'"';
    var expLogInfo1 = 'Syntax Error: JSON key \'a\' missing \',\' or \'\}\'';
    checkSdbimportLog( matchInfos1, expLogInfo1 );
 
@@ -40,7 +40,7 @@ function test ()
    checkImportReturn( rcInfos2, parseFail2, importRes2 );
 
    //check sdbimport.log 
-   var matchInfos2 = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: JSON is missing \'{\'"';
+   var matchInfos2 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: JSON is missing \'{\'"';
    var expLogInfo2 = 'Syntax Error: JSON is missing \'{\'';
    checkSdbimportLog( matchInfos2, expLogInfo2 );
 
@@ -57,7 +57,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: JSON array missing \',\' or \']\'"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: JSON array missing \',\' or \']\'"';
    var expLogInfo = 'Syntax Error: JSON array missing \',\' or \']\'';
    checkSdbimportLog( matchInfos, expLogInfo );
 
@@ -73,7 +73,7 @@ function test ()
    checkImportReturn( rcInfos3, parseFail3, importRes3 );
 
    //check sdbimport.log 
-   var matchInfos3 = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: \'2,3]}\' missing \':\'"';
+   var matchInfos3 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: \'2,3]}\' missing \':\'"';
    var expLogInfo3 = 'Syntax Error: \'2,3]}\' missing \':\'';
    checkSdbimportLog( matchInfos3, expLogInfo3 );
 
@@ -89,7 +89,7 @@ function test ()
    checkImportReturn( rcInfos4, parseFail4, importRes4 );
 
    //check sdbimport.log 
-   var matchInfos4 = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'test0a\'\' is not defined"';
+   var matchInfos4 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'test0a\'\' is not defined"';
    var expLogInfo4 = 'ReferenceError: \'test0a\'\' is not defined';
    checkSdbimportLog( matchInfos4, expLogInfo4 );
 
@@ -105,7 +105,7 @@ function test ()
    checkImportReturn( rcInfos5, parseFail5, importRes5 );
 
    //check sdbimport.log 
-   var matchInfos5 = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: JSON string is missing \'"';
+   var matchInfos5 = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: JSON string is missing \'"';
    var expLogInfo5 = 'Syntax Error: JSON string is missing \'';
    checkSdbimportLog( matchInfos5, expLogInfo5 );
 
