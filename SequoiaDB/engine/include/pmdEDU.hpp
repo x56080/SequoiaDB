@@ -298,7 +298,7 @@ namespace engine
          pmdOperator*      getOperator() { return &_operator ; }
 
    public:
-      _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type, _IResource *pResource ) ;
+      _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type, _IResource *pResource = NULL ) ;
       ~_pmdEDUCB() ;
 
       void        clear() ;
