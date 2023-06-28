@@ -262,7 +262,7 @@ namespace engine
       _lastRecvTick = pmdGetDBTick() ;
       _lastBeatTick = _lastRecvTick ;
 
-      if ( SDB_PROTOCOL_VER_2 == _peerVersion )
+      if ( SDB_PROTOCOL_VER_CUR == _peerVersion )
       {
          PD_LOG( PDDEBUG, "UDP connection[Handle:%d] received "
                           "message[%s] from %s:%d", _handle,

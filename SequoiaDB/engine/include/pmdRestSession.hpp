@@ -550,6 +550,8 @@ namespace engine
          virtual void      _onDetach () ;
 
          void              restoreSession() ;
+         INT32             _onMsgBegin( MsgHeader *msg ) ;
+         void              _onMsgEnd( INT32 result, MsgHeader *msg ) ;
 
       protected:
 

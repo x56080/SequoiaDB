@@ -1272,7 +1272,6 @@ namespace engine
       pmdSubSession *pSubSession    = NULL ;
       _sessionChange                = FALSE ;
       IRemoteSiteHandle *pSiteHandle= _pSite->getHandle() ;
-      IRemoteMsgPreprocessor *pPreProcessor = _pSite->getPreprocessor() ;
       BOOLEAN gotEvent              = FALSE ;
       monClassQuery *monQuery       = getEDUCB()->getMonQueryCB() ;
       _milliTimeout = _milliTimeoutHard ;
@@ -1396,11 +1395,6 @@ namespace engine
                   }
                }
             }
-            continue ;
-         }
-
-         if ( pPreProcessor && pPreProcessor->preProcess( event ) )
-         {
             continue ;
          }
 
@@ -1561,7 +1555,6 @@ namespace engine
       _pAgent = NULL ;
       _pLatch = NULL ;
       _pHandler = NULL ;
-      _pPreProcessor = NULL ;
 
       ossMemset( _assitNodeBuff, 0, sizeof( _assitNodeBuff ) ) ;
 
@@ -1737,7 +1730,7 @@ namespace engine
          {
             pMsg->header.messageLength = sizeof( MsgOpReply ) ;
             pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
-            pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+            pMsg->header.version = SDB_PROTOCOL_VER_CUR ;
             pMsg->header.flags = 0 ;
             pMsg->header.opCode = MSG_BS_DISCONNECT ;
             // WARNING: could not use incCurRequestID()
@@ -2097,8 +2090,7 @@ namespace engine
    } ;
    typedef class _pmdImmediateRespEventFilter pmdImmediateRespEventFilter ;
 
-   INT32 _pmdRemoteSessionSite::checkImmediateRespEvents(
-                                             IRemoteSessionHandler *pHandle )
+   INT32 _pmdRemoteSessionSite::checkImmediateRespEvents( IRemoteSessionHandler *pHandle )
    {
       INT32 rc = SDB_OK ;
 

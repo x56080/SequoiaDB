@@ -52,6 +52,8 @@
 #include "mongoReplyHelper.hpp"
 #include "utilUniqueID.hpp"
 
+using namespace engine ;
+
 /////////////////////////////////////////////////////////////////
 // implement for mongo processor
 _mongoSession::_mongoSession( SOCKET fd, engine::IResource *resource )
@@ -403,17 +405,24 @@ error:
 INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
 {
    INT32 rc = SDB_OK ;
+   pmdOperator *pOperator = (pmdOperator*)getOperator() ;
+
+   _pEDUCB->clearProcessInfo() ;
+   if ( msg->globalID.getQueryID().isInvalid() )
+   {
+      MsgGlobalID globalID = pOperator->getGlobalID() ;
+      globalID.incQueryID() ;
+      msg->globalID = globalID ;
+   }
+   pOperator->setMsg( msg, eduCB() ) ;
+   getClient()->registerInMsg( msg ) ;
+
    // set reply header ( except flags, length )
-   _replyHeader.contextID          = -1 ;
-   _replyHeader.numReturned        = 0 ;
-   _replyHeader.startFrom          = 0 ;
-   _replyHeader.header.opCode      = MAKE_REPLY_TYPE(msg->opCode) ;
-   _replyHeader.header.requestID   = msg->requestID ;
-   _replyHeader.header.TID         = msg->TID ;
-   _replyHeader.header.routeID     = engine::pmdGetNodeID() ;
+   msgFillReplyByReq( _replyHeader, msg, engine::pmdGetNodeID().value ) ;
 
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+   _pEDUCB->getMonAppCB()->setLastOpType( msg->opCode ) ;
 
    rc = getClient()->checkPrivilege( msg ) ;
    PD_RC_CHECK( rc, PDERROR, "Check privilege for operation[opCode: %d] "
@@ -427,8 +436,8 @@ error:
 
 void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
 {
-   // release buff context
-   //_contextBuff.release() ;
+   pmdOperator *pOperator = (pmdOperator*)getOperator() ;
+
    if ( result && SDB_DMS_EOC != result )
    {
       PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "
@@ -437,8 +446,18 @@ void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
               msg->requestID, result ) ;
    }
 
+   if ( result != SDB_OK )
+   {
+      pmdIncErrNum( result ) ;
+   }
+
    // end operator
    MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+
+   getClient()->unregisterInMsg() ;
+
+   _pEDUCB->clearProcessInfo() ;
+   pOperator->reset() ;
 }
 
 INT32 _mongoSession::_reply( MsgOpReply *replyHeader,

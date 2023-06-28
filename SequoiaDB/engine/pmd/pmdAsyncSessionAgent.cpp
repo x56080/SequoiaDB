@@ -83,7 +83,7 @@ namespace engine
       NET_HANDLE netHandle = 0 ;
       UINT32 poolType = 0 ;
       pmdAsyncSessionScope assitScope( pSession, cb ) ;
-      IOperator *pSdbOp = pSession->getOperator() ;
+      pmdOperator *pSdbOp = (pmdOperator*)pSession->getOperator() ;
 
       while ( TRUE )
       {
@@ -147,7 +147,8 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
-               ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
+               pSession->getClient()->registerInMsg( pMsg ) ;
+               pSdbOp->setMsg( pMsg, cb ) ;
 
                pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
                pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
@@ -168,7 +169,8 @@ namespace engine
                   pBuffInfo->setFree () ;
                }
 
-               ((pmdOperator*)pSdbOp)->reset() ;
+               pSdbOp->reset() ;
+               pSession->getClient()->unregisterInMsg() ;
             }
             else
             {

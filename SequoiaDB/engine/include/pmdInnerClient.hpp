@@ -88,6 +88,8 @@ namespace engine
          virtual const CHAR*  getPeerIPAddr() const ;
          virtual const CHAR*  getUsername() const ;
          virtual const CHAR*  getPassword() const ;
+         virtual const std::string& getUsernameStr() const ;
+         virtual const std::string& getPasswordStr() const ;
 
          virtual const CHAR*  getFromIPAddr() const ;
          virtual UINT16       getFromPort() const ;

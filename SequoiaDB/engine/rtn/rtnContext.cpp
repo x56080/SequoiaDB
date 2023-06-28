@@ -514,6 +514,7 @@ namespace engine
    {
       _contextID           = contextID ;
       _eduID               = eduID ;
+      _createEduID         = _eduID ;
       _opID                = 0 ;
 
       _totalRecords        = 0 ;
@@ -548,7 +549,9 @@ namespace engine
       _lastProcessTick     = pmdGetDBTick() ;
       _needTimeout         = TRUE ;
       _needCloseOnEOF      = FALSE ;
+      _detachMode          = FALSE ;
       _remainingMaxTime    = -1 ;
+      _needAuth            = FALSE ;
 
       _buffer.setContextValidator( this ) ;
    }
@@ -1171,6 +1174,9 @@ namespace engine
       BSONObj objValue ;
       ixmIndexKeyGen keyGen ;
 
+      /// set the operation remaining max time
+      cb->getOperator()->setMaxTime( _remainingMaxTime ) ;
+
       if ( !isOpened() )
       {
          rc = SDB_OK ;
@@ -1411,6 +1417,9 @@ namespace engine
          _dataLock.release_r() ;
       }
       updateLastProcessTick() ;
+      /// update remaining max time
+      _setRemainingMaxTime( cb->getOperator()->getRemainingMaxTime() ) ;
+
       PD_TRACE_EXITRC ( SDB_RTNCTXBASE__ADVANCE, rc ) ;
       return rc ;
    error:

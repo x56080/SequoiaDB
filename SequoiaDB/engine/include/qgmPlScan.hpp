@@ -47,6 +47,9 @@ namespace engine
 {
    struct _qgmConditionNode ;
 
+   /*
+      _qgmPlScan define
+   */
    class _qgmPlScan : public _qgmPlan
    {
    public:

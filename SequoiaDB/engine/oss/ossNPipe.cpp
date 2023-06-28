@@ -163,7 +163,7 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
    // make sure the function pointer is valid
    if ( !NtQueryDirectoryFile )
    {
-      PD_LOG ( PDERROR, "Failed to load "OSS_NPIPE_NTQUERYDIRECTORYFILE ) ;
+      PD_LOG ( PDERROR, "Failed to load " OSS_NPIPE_NTQUERYDIRECTORYFILE ) ;
       rc = SDB_SYS ;
       goto done ;
    }

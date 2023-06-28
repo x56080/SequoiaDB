@@ -239,7 +239,7 @@ namespace engine
 
       // Rest request is not affacted by the common message formant change. So
       // we always think it's in the 'new' format.
-      _client.setClientVersion( SDB_PROTOCOL_VER_2 ) ;
+      _client.setClientVersion( SDB_PROTOCOL_VER_CUR ) ;
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
@@ -566,6 +566,90 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdRestSession::_onMsgBegin( MsgHeader *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+      pmdOperator *pOperator = (pmdOperator*)getOperator() ;
+
+      _pEDUCB->clearProcessInfo() ;
+      /// check globalID
+      if ( !pMsg )
+      {
+         MsgGlobalID globalID = pOperator->getGlobalID() ;
+         globalID.incQueryID() ;
+         pOperator->updateGlobalID( globalID ) ;
+      }
+      else if ( pMsg->globalID.getQueryID().isInvalid() )
+      {
+         MsgGlobalID globalID = pOperator->getGlobalID() ;
+         globalID.incQueryID() ;
+         pMsg->globalID = globalID ;
+      }
+
+      if ( pMsg )
+      {
+         pOperator->setMsg( pMsg, eduCB() ) ;
+         getClient()->registerInMsg( pMsg ) ;
+      }
+
+      // start operator
+      MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+      if ( pMsg )
+      {
+         _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
+      }
+
+      if ( pMsg )
+      {
+         rc = getClient()->checkPrivilege( pMsg ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _pmdRestSession::_onMsgEnd( INT32 result, MsgHeader *msg )
+   {
+      pmdOperator *pOperator = (pmdOperator*)getOperator() ;
+
+      if ( result && SDB_DMS_EOC != result )
+      {
+         if ( msg )
+         {
+            PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "
+                    "TID: %d, requestID: %llu] failed, rc: %d",
+                    sessionName(), msg->opCode, msg->messageLength, msg->TID,
+                    msg->requestID, result ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Session[%s] process msg failed, rc: %d",
+                    sessionName(), result ) ;
+         }
+      }
+
+      if ( result != SDB_OK )
+      {
+         pmdIncErrNum( result ) ;
+      }
+
+      // end operator
+      MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+
+      getClient()->unregisterInMsg() ;
+
+      _pEDUCB->clearProcessInfo() ;
+      pOperator->reset() ;
+   }
+
    INT32 _pmdRestSession::_processBusinessMsg( restAdaptor *pAdaptor,
                                                restRequest &request,
                                                restResponse &response )
@@ -577,6 +661,7 @@ namespace engine
       BOOLEAN needReplay = FALSE ;
       BOOLEAN needRollback = FALSE ;
       MsgHeader *msg = NULL ;
+      BOOLEAN hasBegin = FALSE ;
       BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
 
       rc = _translateMSG( pAdaptor, request, &msg ) ;
@@ -600,13 +685,13 @@ namespace engine
          goto error ;
       }
 
-      rc = getClient()->checkPrivilege( msg ) ;
-      if ( SDB_OK != rc )
+      rc = _onMsgBegin( msg ) ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "operation authorization failed:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
          goto error ;
       }
+      hasBegin = TRUE ;
 
       rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
                                             needReplay, needRollback,
@@ -744,6 +829,10 @@ namespace engine
       {
          _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
          contextID = -1 ;
+      }
+      if ( hasBegin )
+      {
+         _onMsgEnd( rc,  msg ) ;
       }
       if ( NULL != msg )
       {
@@ -4194,7 +4283,7 @@ namespace engine
          sqlMsg->header.opCode        = MSG_BS_SQL_REQ ;
          sqlMsg->header.messageLength = sizeof( MsgOpSql ) + sqlLen ;
          sqlMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-         sqlMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+         sqlMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
          sqlMsg->header.flags         = 0 ;
          sqlMsg->header.routeID.value = 0 ;
          sqlMsg->header.TID           = ossGetCurrentThreadID() ;

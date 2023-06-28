@@ -49,6 +49,9 @@
 namespace fap
 {
 
+/*
+   _mongoMsgBuffer define
+*/
 class _mongoMsgBuffer : public engine::_utilPooledObject
 {
 public:
@@ -103,6 +106,8 @@ private:
 } ;
 typedef _mongoMsgBuffer mongoMsgBuffer ;
 
+void mongoInitMsgHeader( MsgHeader *pMsg, INT32 opCode, UINT64 reqID = 0, UINT32 tid = 0 ) ;
+
 class _mongoErrorObjAssit : public SDBObject
 {
 public:
@@ -122,11 +127,14 @@ typedef _mongoErrorObjAssit mongoErrorObjAssit ;
 
 INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                               const BSONObj &updatorObj,
+                              const BSONObj &setOnInsert,
                               BSONObj &target ) ;
 
 BSONObj mongoGetErrorBson( INT32 errorCode, const CHAR *pErrMsg = NULL ) ;
 
-CHAR* mongoGetOOMErrResHeader() ;
+void    mongoBuildErrorBson( BSONObjBuilder &builder, INT32 errorCode,
+                             const CHAR *pErrMsg = NULL,
+                             const BSONObj &objDetail = BSONObj() ) ;
 
 BOOLEAN mongoCheckBigEndian() ;
 
@@ -144,7 +152,9 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj,
                                   INT64 &value ) ;
 
 INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
-                              BSONObj &mongoErrObj ) ;
+                              BSONObjBuilder &builder ) ;
+
+INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert ) ;
 
 std::string mongoGetNonce() ;
 

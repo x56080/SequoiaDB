@@ -187,7 +187,6 @@ namespace engine
 
    // tool functions
    protected:
-      void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
       INT32 _checkTaskHWM() ;
 

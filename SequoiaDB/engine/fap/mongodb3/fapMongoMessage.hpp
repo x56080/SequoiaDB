@@ -57,7 +57,6 @@ enum MONGO_MSG_TYPE
 
 enum MONGO_MSG_OPCODE
 {
-   MONGO_OP_INNER_REPLY   = 0, // It's only used inside fap
    MONGO_OP_REPLY         = 1,
    MONGO_OP_UPDATE        = 2001,
    MONGO_OP_INSERT        = 2002,
@@ -383,40 +382,6 @@ typedef _mongoResponse mongoResponse ;
 #pragma pack()
 
 #pragma pack(1)
-
-// the length of sizeof( _fapMongoInnerHeader ) and
-// sizeof( _mongoResponse ) must both be 36
-// WARNING: _fapMongoInnerHeader is only used inside fap
-#define FAP_MONGO_INNER_RESPONSE_ID -1
-
-struct _fapMongoInnerHeader
-{
-   mongoMsgHeader header ;
-   INT32 errorCode ;
-   CHAR  pad[ 16 ] ;
-
-   _fapMongoInnerHeader()
-   {
-      header.msgLen = 0 ;
-      header.requestId = 0 ;
-      header.responseTo = FAP_MONGO_INNER_RESPONSE_ID ;
-      header.opCode = MONGO_OP_INNER_REPLY ;
-      errorCode = 0 ;
-      ossMemset( pad, 0, 16 ) ;
-   }
-
-   _fapMongoInnerHeader( INT32 code )
-   {
-      header.msgLen = 0 ;
-      header.requestId = 0 ;
-      header.responseTo = FAP_MONGO_INNER_RESPONSE_ID ;
-      header.opCode = MONGO_OP_INNER_REPLY ;
-      errorCode = code ;
-      ossMemset( pad, 0, 16 ) ;
-   }
-} ;
-typedef _fapMongoInnerHeader fapMongoInnerHeader ;
-#pragma pack()
 
 struct _mongoCommandResponse
 {

@@ -212,7 +212,6 @@ namespace engine
    typedef _rtnRebuildJob rtnRebuildJob ;
 
    INT32    rtnStartRebuildJob( RTN_ON_REBUILD_DONE_FUNC pFunc = NULL ) ;
-
 }
 
 #endif //RTN_BACKGROUND_JOB_HPP_

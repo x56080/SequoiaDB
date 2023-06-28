@@ -810,6 +810,8 @@ namespace engine
       if ( NULL == pCommand )
       {
          rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate omForwardPluginCommand failed" ) ;
+         _sendOpError2Web( rc, pAdptor, response, this, eduCB() ) ;
          goto error ;
       }
 
@@ -831,9 +833,18 @@ namespace engine
                                      restResponse &response )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasDoInMsg = FALSE ;
       restAdaptor *pAdaptor = sdbGetPMDController()->getRestAdptor() ;
       string clusterName ;
       string businessName ;
+
+      rc = _onMsgBegin( NULL ) ;
+      if ( rc )
+      {
+         _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
+         goto error ;
+      }
+      hasDoInMsg = TRUE ;
 
       clusterName  = request.getHeader( OM_REST_HEAD_CLUSTERNAME ) ;
       businessName = request.getHeader( OM_REST_HEAD_BUSINESSNAME ) ;
@@ -871,6 +882,10 @@ namespace engine
       }
 
    done:
+      if ( hasDoInMsg )
+      {
+         _onMsgEnd( rc, NULL ) ;
+      }
       return rc ;
    error:
       goto done ;

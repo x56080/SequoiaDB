@@ -379,6 +379,9 @@ namespace engine
       QGM_JOIN_ACHIEVE_MERGE,
    } ;
 
+   /*
+      _qgmValueTuple define
+   */
    class _qgmValueTuple
    {
    public:

@@ -39,14 +39,19 @@
 #include "mthMatchTree.hpp"
 #include "mthModifier.hpp"
 #include "fapMongoMessage.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
+using namespace engine ;
 
 namespace fap
 {
 
    static _mongoErrorObjAssit errorObjAssit ;
 
+   /*
+      _mongoMsgBuffer implement
+   */
    _mongoMsgBuffer::_mongoMsgBuffer()
    {
       _pData = NULL ;
@@ -62,17 +67,17 @@ namespace fap
          SDB_OSS_FREE( _pData ) ;
          _pData = NULL ;
       }
+      _size = 0 ;
+      _capacity = 0 ;
    }
 
    INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
    {
       INT32 rc = SDB_OK ;
 
-      if( 0 ==  size )
+      if( size <= _capacity )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Malloc size can't be 0, rc: %d", rc ) ;
-         goto error ;
+         goto done ;
       }
 
       _pData = ( CHAR *) SDB_OSS_MALLOC( size ) ;
@@ -95,12 +100,6 @@ namespace fap
    {
       INT32 rc = SDB_OK ;
       CHAR* ptr = NULL ;
-      if ( 0 == size )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Realloc size can't be 0, rc: %d", rc ) ;
-         goto error ;
-      }
 
       if ( size <= _capacity )
       {
@@ -176,6 +175,7 @@ namespace fap
       INT32 size = 0 ;        // new size to realloc
       INT32 num  = 0 ;        // number of memory block
       UINT32 objsize = obj.objsize() ;
+
       if( objsize > _capacity - _size )
       {
          // digit size of memory needed
@@ -252,6 +252,24 @@ namespace fap
       _size = 0 ;
    }
 
+   void mongoInitMsgHeader( MsgHeader *pMsg, INT32 opCode, UINT64 reqID, UINT32 tid )
+   {
+      pMsg->messageLength = sizeof( MsgHeader ) ;
+      pMsg->eye = MSG_COMM_EYE_DEFAULT ;
+      pMsg->opCode = opCode  ;
+      pMsg->version = SDB_PROTOCOL_VER_CUR ;
+      pMsg->flags = 0 ;
+      pMsg->requestID = reqID ;
+      pMsg->routeID.value = 0 ;
+      pMsg->TID = tid ;
+
+      ossMemset( &(pMsg->globalID), 0, sizeof(pMsg->globalID) ) ;
+      ossMemset( pMsg->reserve, 0, sizeof( pMsg->reserve ) ) ;
+   }
+
+   /*
+      _mongoErrorObjAssit implement
+   */
    _mongoErrorObjAssit::_mongoErrorObjAssit()
    {
       for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
@@ -259,6 +277,7 @@ namespace fap
          BSONObjBuilder berror ;
          berror.append ( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
          berror.append ( FAP_MONGO_FIELD_NAME_CODE, i ) ;
+         berror.append ( FAP_MONGO_FIELD_NAME_CODENAME, getErrDesp ( i ) ) ;
          berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp ( i ) ) ;
          _errorObjsArray[ i + SDB_MAX_ERROR ] = berror.obj() ;
       }
@@ -267,36 +286,55 @@ namespace fap
    // generate a new record based on matcher condition and update condition
    INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                                  const BSONObj &updatorObj,
+                                 const BSONObj &setOnInsert,
                                  BSONObj &target )
    {
       INT32 rc = SDB_OK ;
-      engine::mthMatchTree matcherTree ;
-      engine::mthModifier modifier ;
+      mthMatchTree matcherTree ;
+      mthModifier modifier ;
 
       try
       {
-         bson::BSONElement setOnInsert ;
          BSONObj source ;
 
          rc = matcherTree.loadPattern ( matcher ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to load matcher[%s], rc: %d",
-                       matcher.toString().c_str(), rc ) ;
+                       PD_SECURE_OBJ( matcher ), rc ) ;
 
          source = matcherTree.getEqualityQueryObject( NULL ) ;
 
          rc = modifier.loadPattern( updatorObj, NULL, TRUE, NULL, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to load updator[%s], rc: %d",
-                      updatorObj.toString().c_str(), rc ) ;
+                      PD_SECURE_OBJ( updatorObj ), rc ) ;
 
          rc = modifier.modify( source, target ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate new record, rc: %d",
                       rc ) ;
 
+         if ( !setOnInsert.isEmpty() )
+         {
+            BSONObj newTarget ;
+            BSONObj setObj ;
+            BSONObjBuilder builder ;
+            builder.append( "$set", setOnInsert ) ;
+            setObj = builder.obj() ;
+
+            mthModifier setModifier ;
+            rc = setModifier.loadPattern( setObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected: { %s }, "
+                         "rc: %d", PD_SECURE_STR( setOnInsert.toString() ), rc ) ;
+            rc = setModifier.modify( target, newTarget ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
+                         "record(rc=%d) by " FIELD_NAME_SET_ON_INSERT, rc ) ;
+            
+            target = newTarget ;
+         }
+
          // check if have oid
-         if ( !target.hasElement( "_id" ) )
+         if ( !target.hasElement( FAP_MONGO_FIELD_NAME_ID ) )
          {
             BSONObjBuilder builder ;
-            builder.appendOID( "_id", NULL, TRUE ) ;
+            builder.appendOID( FAP_MONGO_FIELD_NAME_ID, NULL, TRUE ) ;
             builder.appendElements( target ) ;
             target = builder.obj() ;
          }
@@ -335,10 +373,69 @@ namespace fap
       return errorObjAssit.getErrorObj( errorCode ) ;
    }
 
-   CHAR* mongoGetOOMErrResHeader()
+   void mongoBuildErrorBson( BSONObjBuilder &builder, INT32 errorCode,
+                             const CHAR *pErrMsg, const BSONObj &objDetail )
    {
-      static _fapMongoInnerHeader OOMResHeader( SDB_OOM ) ;
-      return (CHAR*)&OOMResHeader ;
+      BOOLEAN addCodeName = FALSE ;
+      BOOLEAN addErrMsg = FALSE ;
+
+      try
+      {
+         builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODE, errorCode ) ;
+
+         if ( !objDetail.isEmpty() )
+         {
+            BSONObjIterator itr( objDetail ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( 0 == ossStrcmp( e.fieldName(), OP_ERRNOFIELD ) )
+               {
+                  /// ignore it
+               }
+               else if ( 0 == ossStrcmp( e.fieldName(), OP_ERRDESP_FIELD ) )
+               {
+                  builder.appendAs( e, FAP_MONGO_FIELD_NAME_CODENAME ) ;
+                  addCodeName = TRUE ;
+               }
+               else if ( 0 == ossStrcmp( e.fieldName(), OP_ERR_DETAIL ) )
+               {
+                  if ( !addErrMsg )
+                  {
+                     builder.appendAs( e, FAP_MONGO_FIELD_NAME_ERRMSG ) ;
+                     addErrMsg = TRUE ;
+                  }
+               }
+               else
+               {
+                  /// append other
+                  builder.append( e ) ;
+               }
+            }
+         }
+
+         if ( !addCodeName )
+         {
+            builder.append( FAP_MONGO_FIELD_NAME_CODENAME, getErrDesp( errorCode ) ) ;
+            addCodeName = TRUE ;
+         }
+         if ( !addErrMsg )
+         {
+            if ( pErrMsg && *pErrMsg )
+            {
+               builder.append ( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
+            }
+            else
+            {
+               builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp( errorCode ) ) ;
+            }
+            addErrMsg = TRUE ;
+         }
+      }
+      catch ( ... )
+      {
+      }
    }
 
    BOOLEAN mongoCheckBigEndian()
@@ -371,10 +468,10 @@ namespace fap
          PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                     "Can't locate field '%s': %s",
                     pFieldName,
-                    obj.toString().c_str() ) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
                     "Unexpected field type : %s, supposed to be Integer",
-                    obj.toString().c_str()) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          value = ele.numberInt() ;
       }
       catch ( std::exception &e )
@@ -403,10 +500,10 @@ namespace fap
          PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                     "Can't locate field '%s': %s",
                     pFieldName,
-                    obj.toString().c_str() ) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                     "Unexpected field type : %s, supposed to be String",
-                    obj.toString().c_str()) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          pValue = ele.valuestr() ;
       }
       catch ( std::exception &e )
@@ -435,10 +532,10 @@ namespace fap
          PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                     "Can't locate field '%s': %s",
                     pFieldName,
-                    obj.toString().c_str() ) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                     "Unexpected field type : %s, supposed to be Array",
-                    obj.toString().c_str()) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          value = ele.embeddedObject() ;
       }
       catch ( std::exception &e )
@@ -467,10 +564,10 @@ namespace fap
          PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
                     "Can't locate field '%s': %s",
                     pFieldName,
-                    obj.toString().c_str() ) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
                     "Unexpected field type : %s, supposed to be number",
-                    obj.toString().c_str()) ;
+                    PD_SECURE_OBJ( obj ) ) ;
          value = ele.numberLong() ;
       }
       catch ( std::exception &e )
@@ -488,23 +585,50 @@ namespace fap
    }
 
    INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
-                                 BSONObj &mongoErrObj )
+                                 BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
-      BSONObjBuilder berror ;
       BSONElement indexNameEle ;
       BSONElement indexValueEle ;
       stringstream ss ;
 
       try
       {
-         berror.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-         berror.append( FAP_MONGO_FIELD_NAME_CODE, SDB_IXM_DUP_KEY ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODE, SDB_IXM_DUP_KEY ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODENAME, getErrDesp( SDB_IXM_DUP_KEY ) ) ;
 
          ss << getErrDesp( SDB_IXM_DUP_KEY ) ;
 
-         indexNameEle = sdbErrobj.getField( FIELD_NAME_INDEXNAME ) ;
-         indexValueEle = sdbErrobj.getField( FIELD_NAME_INDEXVALUE ) ;
+         BSONObjIterator itr( sdbErrobj ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_INDEXNAME ) )
+            {
+               indexNameEle = e ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_INDEXVALUE ) )
+            {
+               indexValueEle = e ;
+               builder.appendAs( e, FAP_MONGO_FIELD_NAME_KEYVAL ) ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_INDEX ) )
+            {
+               builder.appendAs( e, FAP_MONGO_FIELD_NAME_KEYDEF ) ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), OP_ERRNOFIELD ) ||
+                      0 == ossStrcmp( e.fieldName(), OP_ERRDESP_FIELD ) ||
+                      0 == ossStrcmp( e.fieldName(), OP_ERR_DETAIL ) )
+            {
+               /// ignore it
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
 
          if ( clFullName )
          {
@@ -521,9 +645,7 @@ namespace fap
             ss << " dup key: " << indexValueEle.embeddedObject().toString() ;
          }
 
-         berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, ss.str().c_str() ) ;
-
-         mongoErrObj = berror.obj() ;
+         builder.append ( FAP_MONGO_FIELD_NAME_ERRMSG, ss.str().c_str() ) ;
       }
       catch ( std::exception &e )
       {
@@ -536,6 +658,71 @@ namespace fap
    done :
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert )
+   {
+      INT32 rc = SDB_OK ;
+      hasOp = FALSE ;
+      BOOLEAN needBuild = FALSE ;
+
+      try
+      {
+         BSONObjIterator itr( updator ) ;
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            if ( '$' == ele.fieldName()[0] )
+            {
+               if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_UPDATOR_SETINSERT ) )
+               {
+                  needBuild = TRUE ;
+                  break ;
+               }
+               hasOp = TRUE ;
+            }
+         }
+
+         if ( needBuild )
+         {
+            BSONObjBuilder builder( updator.objsize() ) ;
+            BSONObjIterator itr( updator ) ;
+            while ( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               if ( '$' == ele.fieldName()[0] )
+               {
+                  if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_UPDATOR_SETINSERT ) )
+                  {
+                     if ( Object == ele.type() )
+                     {
+                        setOnInsert = ele.embeddedObject() ;
+                     }
+                     continue ;
+                  }
+                  else
+                  {
+                     hasOp = TRUE ;
+                  }
+               }
+
+               builder.append( ele ) ;
+            }
+            updator = builder.obj() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when checking if cond has op: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

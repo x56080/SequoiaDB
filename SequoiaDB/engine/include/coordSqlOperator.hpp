@@ -56,8 +56,8 @@ namespace engine
 
          virtual BOOLEAN      needRollback() const ;
 
-      public:
-         BOOLEAN        _needRollback ;
+      private:
+         BOOLEAN              _needRollback ;
 
    } ;
    typedef _coordSqlOperator coordSqlOperator ;

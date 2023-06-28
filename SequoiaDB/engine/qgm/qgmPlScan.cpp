@@ -403,7 +403,9 @@ namespace engine
       return rc ;
    error:
       if ( SDB_DMS_EOC == rc )
+      {
          _contextID = -1 ;
+      }
       goto done ;
    }
 

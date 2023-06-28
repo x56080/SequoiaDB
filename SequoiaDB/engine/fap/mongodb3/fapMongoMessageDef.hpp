@@ -44,6 +44,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_CMD             ".$cmd"
 #define FAP_MONGO_FIELD_NAME_CMDQUERY        "$query"
 #define FAP_MONGO_FIELD_NAME_DOCUMENTS       "documents"
+#define FAP_MONGO_FIELD_NAME_ORDERED         "ordered"
 #define FAP_MONGO_FIELD_NAME_DELETES         "deletes"
 #define FAP_MONGO_FIELD_NAME_UPDATES         "updates"
 #define FAP_MONGO_FIELD_NAME_INDEXES         "indexes"
@@ -76,10 +77,15 @@ namespace fap
 #define FAP_MONGO_DOT    "."
 #define FAP_MONGO_DOLLAR "$"
 
-#define FAP_MONGO_FIELD_NAME_CODE   "code"
-#define FAP_MONGO_FIELD_NAME_ERRMSG "errmsg"
-#define FAP_MONGO_FIELD_NAME_OK     "ok"
-#define FAP_MONGO_FIELD_NAME_ERR    "err"
+#define FAP_MONGO_FIELD_NAME_CODE      "code"
+#define FAP_MONGO_FIELD_NAME_CODENAME  "codeName"
+#define FAP_MONGO_FIELD_NAME_ERRMSG    "errmsg"
+#define FAP_MONGO_FIELD_NAME_OK        "ok"
+#define FAP_MONGO_FIELD_NAME_ERR       "err"
+#define FAP_MONGO_FIELD_NAME_KEYDEF    "keyPattern"
+#define FAP_MONGO_FIELD_NAME_KEYVAL    "keyValue"
+#define FAP_MONGO_FIELD_NAME_WRITEERR  "writeErrors"
+#define FAP_MONGO_FIELD_NAME_INDEX     "index"
 
 #define FAP_MONGO_FIELD_NAME_USER       "user"
 #define FAP_MONGO_FIELD_NAME_USERS      "users"
@@ -107,6 +113,8 @@ namespace fap
 #define FAP_MONGO_OPERATOR_ET        "$et"
 #define FAP_MONGO_OPERATOR_REPLACE   "$replace"
 #define FAP_MONGO_OPERATOR_ISNULL    "$isnull"
+#define FAP_MONGO_UPDATOR_SETINSERT  "$setOnInsert"
+#define FAP_MONGO_UPDATOR_SET        "$set"
 
 // MongoDB aggregation pipeline stages
 #define FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX          "$"

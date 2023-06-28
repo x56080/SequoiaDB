@@ -69,6 +69,9 @@ namespace engine
 
    class _pmdEDUCB ;
 
+   /*
+      _qgmPlan define
+   */
    class _qgmPlan : public _utilPooledObject
    {
    public:
@@ -146,18 +149,18 @@ namespace engine
       }
 
    protected:
-      QGM_VARLIST _varlist ;
-      QGM_PINPUT _input ;
-      QGM_PLAN_TYPE _type ;
-      _pmdEDUCB *_eduCB ;
-      qgmField _alias ;
-      BOOLEAN _executed ;
-      BOOLEAN _initialized ;
-      BOOLEAN _merge ;
+      QGM_VARLIST    _varlist ;
+      QGM_PINPUT     _input ;
+      QGM_PLAN_TYPE  _type ;
+      _pmdEDUCB      *_eduCB ;
+      qgmField       _alias ;
+      BOOLEAN        _executed ;
+      BOOLEAN        _initialized ;
+      BOOLEAN        _merge ;
       _qgmParamTable *_param ;
 
    private:
-      BOOLEAN _authorized ;
+      BOOLEAN        _authorized ;
    } ;
 
    typedef class _qgmPlan qgmPlan ;

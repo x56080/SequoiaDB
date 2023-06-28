@@ -70,7 +70,7 @@ protected:
                            engine::rtnContextBuf &buff ) ;
    INT32 _processMsg( const CHAR *pMsg ) ;
    INT32 _onMsgBegin( MsgHeader *msg ) ;
-   INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+   void  _onMsgEnd( INT32 result, MsgHeader *msg ) ;
    INT32 _reply( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;
    INT32 _replyOpQuery( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;
    INT32 _replyOpMsg( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;

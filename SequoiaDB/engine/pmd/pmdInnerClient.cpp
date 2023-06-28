@@ -235,6 +235,16 @@ namespace engine
       return _password.c_str() ;
    }
 
+   const std::string& _pmdInnerClient::getUsernameStr() const
+   {
+      return _username ;
+   }
+
+   const std::string& _pmdInnerClient::getPasswordStr() const
+   {
+      return _password ;
+   }
+
    void _pmdInnerClient::_makeName()
    {
       if ( 0 == _peerIP[ 0 ] )

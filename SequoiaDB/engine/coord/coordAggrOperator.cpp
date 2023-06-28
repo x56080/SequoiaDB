@@ -53,6 +53,7 @@ namespace engine
    */
    _coordAggrOperator::_coordAggrOperator()
    {
+      _needRollback = FALSE ;
    }
 
    _coordAggrOperator::~_coordAggrOperator()
@@ -64,9 +65,9 @@ namespace engine
       return "Arrg" ;
    }
 
-   BOOLEAN _coordAggrOperator::isReadOnly() const
+   BOOLEAN _coordAggrOperator::needRollback() const
    {
-      return TRUE ;
+      return _needRollback ;
    }
 
    INT32 _coordAggrOperator::execute( MsgHeader *pMsg,
@@ -84,6 +85,7 @@ namespace engine
       INT32 flags = 0 ;
       INT32 cataVer = 0;
       BSONObj obj ;
+      BSONObjBuilder retBuilder ;
 
       contextID = -1 ;
 
@@ -123,20 +125,9 @@ namespace engine
 
          rc = pAggrBuilder->build( objs, count, pCollectionName,
                                    BSONObj(), cb, contextID,
+                                   _needRollback, &retBuilder,
                                    ((MsgOpAggregate*)pMsg)->version,
                                    &cataVer ) ;
-
-         if ( buf && CATALOG_INVALID_VERSION != cataVer )
-         {
-            // DDL operation return SDB_OK, no need to set error bson
-            if( ( SDB_CLIENT_CATA_VER_OLD == rc ) && ( 0 == buf->size() ) )
-            {
-                obj = utilGetErrorBson( rc, NULL, NULL ) ;
-               *buf = rtnContextBuf( obj ) ;
-            }
-
-            buf->setStartFrom( cataVer );
-         }
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DQL, pMsg->opCode, AUDIT_OBJ_CL,
                       pCollectionName, rc,
@@ -155,12 +146,28 @@ namespace engine
       }
 
    done:
+      if ( buf )
+      {
+         if ( !retBuilder.isEmpty() )
+         {
+            *buf = rtnContextBuf( retBuilder.obj() ) ;
+         }
+
+         if ( SDB_CLIENT_CATA_VER_OLD == rc && CATALOG_INVALID_VERSION != cataVer )
+         {
+            buf->setStartFrom( cataVer );
+         }
+      }
       return rc ;
    error:
       if ( contextID >= 0 )
       {
          rtnCB->contextDelete( contextID, cb ) ;
          contextID = -1 ;
+      }
+      if ( buf )
+      {
+         utilBuildErrorBson( retBuilder, rc, cb->getInfo( EDU_INFO_ERROR ) ) ;
       }
       goto done ;
    }

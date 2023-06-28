@@ -60,11 +60,11 @@ namespace engine
    // context idle timeout in minutes
    #define RTN_CTX_TIMEOUT_MIN         ( 0 )
    #define RTN_CTX_TIMEOUT_MAX         ( OSS_SINT32_MAX )
-   // default is 1440 minutes ( about one day )
-   #define RTN_CTX_TIMEOUT_DFT         ( 1440 )
+   // default is 30 minutes
+   #define RTN_CTX_TIMEOUT_DFT         ( 30 )
 
-   // 60 seconds ( in microseconds )
-   #define RTN_CTX_CHECK_INTERVAL      ( 60000000 )
+   // 30 seconds ( in ms )
+   #define RTN_CTX_CHECK_INTERVAL      ( 30000 )
 
 }
 

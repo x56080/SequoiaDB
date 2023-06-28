@@ -106,7 +106,7 @@ namespace engine
       msg->header.messageLength = msgLen ;
       msg->header.routeID.value = 0 ;
       msg->header.TID           = ossGetCurrentThreadID() ;
-      msg->header.version       = SDB_PROTOCOL_VER_2 ;
+      msg->header.version       = SDB_PROTOCOL_VER_CUR ;
       msg->header.flags         = 0 ;
       ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
       ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;

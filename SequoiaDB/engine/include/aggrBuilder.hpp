@@ -86,6 +86,8 @@ namespace engine
                    const BSONObj &hint,
                    _pmdEDUCB *cb,
                    SINT64 &contextID,
+                   BOOLEAN &needRollback,
+                   BSONObjBuilder *pBuilder = NULL,
                    INT32  clientVer = 0,
                    INT32* pCataVer = NULL) ;
 

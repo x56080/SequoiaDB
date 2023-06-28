@@ -510,7 +510,7 @@ namespace engine
                                            SET_RC &ignoreRCList )
    {
       // Return data during QUERY to reduce GETMORE operation.
-      ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
+      ((MsgOpQuery*)pMsg)->flags |= ( FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX ) ;
       return SDB_OK ;
    }
 
@@ -649,7 +649,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       // Return data during QUERY to reduce GETMORE operation.
-      ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
+      ((MsgOpQuery*)pMsg)->flags |= ( FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX ) ;
 
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract command failed, rc: %d", rc ) ;
@@ -963,7 +963,7 @@ namespace engine
          {
             queryOpt.setCLFullName( clName.c_str() ) ;
          }
-         queryOpt.setFlag( FLG_QUERY_WITH_RETURNDATA ) ;
+         queryOpt.setFlag( FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX ) ;
 
          // query on catalog
          rc = queryOnCatalog( queryOpt, cb, contextID, buf ) ;

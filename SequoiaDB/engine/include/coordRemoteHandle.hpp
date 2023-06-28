@@ -206,6 +206,8 @@ namespace engine
          _coordNoSessionInitHandler() ;
          virtual ~_coordNoSessionInitHandler() ;
 
+         void  enableReconnect() ;
+
       public:
          /*
             if return SDB_OK, will continue
@@ -214,6 +216,9 @@ namespace engine
          virtual INT32  onSendConnect( _pmdSubSession *pSub,
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst ) ;
+
+      private:
+         BOOLEAN              _allowReconnect ;
    } ;
    typedef _coordNoSessionInitHandler coordNoSessionInitHandler ;
 

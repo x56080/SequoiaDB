@@ -677,6 +677,16 @@ namespace engine
       return _password.c_str() ;
    }
 
+   const std::string& _pmdExternClient::getUsernameStr() const
+   {
+      return _username ;
+   }
+
+   const std::string& _pmdExternClient::getPasswordStr() const
+   {
+      return _password ;
+   }
+
    const CHAR* _pmdExternClient::getFromIPAddr() const
    {
       return _fromIP ;

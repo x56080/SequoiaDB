@@ -352,7 +352,7 @@ namespace engine
 
    BOOLEAN _pmdLocalSession::_clientVersionMatch() const
    {
-      return ( SDB_PROTOCOL_VER_2 == _client.getClientVersion() ) ;
+      return ( SDB_PROTOCOL_VER_CUR == _client.getClientVersion() ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__PREPROCESSMSG, "_pmdLocalSession::_preprocessMsg" )
@@ -412,7 +412,7 @@ namespace engine
    void _pmdLocalSession::_saveOrSetMsgGlobalID( MsgHeader *pMsg )
    {
       SDB_ASSERT( pMsg, "msg can't be NULL" ) ;
-      IOperator *pOperator = getOperator() ;
+      pmdOperator *pOperator = (pmdOperator*)getOperator() ;
       MsgGlobalID globalID = pOperator->getGlobalID() ;
 
       if ( pMsg->globalID.getQueryID().getIdentifyID() != globalID.getQueryID().getIdentifyID() )
@@ -423,7 +423,7 @@ namespace engine
          pMsg->globalID = globalID ;
       }
 
-      ((pmdOperator*)pOperator)->setMsg( pMsg ) ;
+      pOperator->setMsg( pMsg, eduCB() ) ;
 
       return ;
    }
@@ -433,25 +433,11 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       _pEDUCB->clearProcessInfo() ;
-
       _saveOrSetMsgGlobalID( pMsg ) ;
+      getClient()->registerInMsg( pMsg ) ;
 
       // set reply header ( except flags, length )
-      getClient()->registerInMsg( pMsg ) ;
-      _replyHeader.contextID          = -1 ;
-      _replyHeader.numReturned        = 0 ;
-      _replyHeader.startFrom          = 0 ;
-      _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
-      _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
-      _replyHeader.header.requestID   = pMsg->requestID ;
-      _replyHeader.header.TID         = pMsg->TID ;
-      _replyHeader.header.routeID     = pmdGetNodeID() ;
-      _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
-      _replyHeader.header.flags       = 0 ;
-      _replyHeader.header.globalID    = pMsg->globalID ;
-      ossMemset( _replyHeader.header.reserve, 0,
-                 sizeof(_replyHeader.header.reserve) ) ;
-      _replyHeader.returnMask         = 0 ;
+      msgFillReplyByReq( _replyHeader, pMsg, pmdGetNodeID().value ) ;
 
       if ( isNoReplyMsg( pMsg->opCode ) )
       {
@@ -482,6 +468,8 @@ namespace engine
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )
    {
+      pmdOperator *pOperator = (pmdOperator*)getOperator() ;
+
       if ( result && SDB_DMS_EOC != result )
       {
          PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "
@@ -501,8 +489,7 @@ namespace engine
       getClient()->unregisterInMsg() ;
 
       _pEDUCB->clearProcessInfo() ;
-
-      ((pmdOperator*)getOperator())->reset() ;
+      pOperator->reset() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )
@@ -598,8 +585,8 @@ namespace engine
                  SDB_OK != _pEDUCB->getInterruptRC() )
             {
                rc = _pEDUCB->getInterruptRC() ;
-               PD_LOG ( PDDEBUG, "Interrupted EDU [%llu] with return code %d",
-                        _pEDUCB->getID(), rc ) ;
+               PD_LOG_MSG ( PDDEBUG, "Interrupted EDU [%llu] with return code %d",
+                            _pEDUCB->getID(), rc ) ;
             }
 
             if ( 0 == bodyLen )

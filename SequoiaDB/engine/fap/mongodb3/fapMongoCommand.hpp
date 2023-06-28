@@ -278,6 +278,9 @@ class _mongoCollectionCommand : public _mongoCommand
       INT32 _buildFirstBatch( const MsgOpReply &sdbReply,
                               engine::rtnContextBuf &bodyBuf ) ;
 
+      INT32 _buildWriteErrResult( BSONObjBuilder &builder, INT32 ok, INT32 index,
+                                  const CHAR *pErrData ) ;
+
    private:
       INT32 _init( const _mongoQueryRequest *pReq ) ;
       INT32 _init( const _mongoCommandRequest *pReq ) ;
@@ -297,7 +300,11 @@ class _mongoInsertCommand : public _mongoCollectionCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoInsertCommand() {}
+      _mongoInsertCommand()
+      {
+         _insertedNum = 0 ;
+         _index = 0 ;
+      }
       virtual ~_mongoInsertCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_INSERT ; }
@@ -306,12 +313,19 @@ class _mongoInsertCommand : public _mongoCollectionCommand
 
       virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
 
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
 
    protected:
       INT32 _fixObject( const BSONObj &obj, BSONObj &out, BSONObjBuilder &builder ) ;
+
+   private:
+      INT64    _insertedNum ;
+      INT32    _index ;
 
 } ;
 typedef _mongoInsertCommand mongoInsertCommand ;
@@ -1204,6 +1218,7 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
 
       const BSONObj& getCond() { return _cond ; }
       const BSONObj& getUpdater() { return _updater ; }
+      const BSONObj& getSetOnInsert() { return _setOnInsert ; }
       BSONObj& getUpsertReturnRecord(){ return _upsertReturnRecord ; }
       BOOLEAN isUpsert() { return _isUpsert ; }
       void    setHasInsertRecord( BOOLEAN hasInsertRecord )
@@ -1212,11 +1227,9 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
       }
 
    private:
-      INT32 _isCondHasOp( const BSONObj &cond, BOOLEAN &hasOp ) ;
-
-   private:
       BSONObj _cond ;
       BSONObj _updater ;
+      BSONObj _setOnInsert ;
       BOOLEAN _isUpsert ;
       BOOLEAN _isReturnNew ;
       BSONObj _upsertReturnRecord ;

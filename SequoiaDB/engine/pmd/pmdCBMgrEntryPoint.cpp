@@ -58,7 +58,7 @@ namespace engine
       INT64 *pEventTimeSpan = maxEventTime >= 0 ? &timeSpan : NULL ;
       BOOLEAN attachedDummySession = FALSE ;
       pmdDummySession session ;
-      IOperator *pSdbOp = NULL ;
+      pmdOperator *pSdbOp = NULL ;
 
       if ( NULL == cb->getSession() )
       {
@@ -66,7 +66,7 @@ namespace engine
          attachedDummySession = TRUE ;
       }
 
-      pSdbOp = session.getOperator() ;
+      pSdbOp = (pmdOperator*)session.getOperator() ;
 
       pObj->attachCB( cb ) ;
 
@@ -104,7 +104,7 @@ namespace engine
             {
                MsgHeader *pMsg = ((MsgHeader*)(eventData._Data)) ;
 
-               ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
+               pSdbOp->setMsg( pMsg, cb ) ;
 
                //restore handle
                pObj->dispatchMsg( (NET_HANDLE)eventData._userData,
@@ -120,7 +120,7 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeSpan ) ;
                }
 
-               ((pmdOperator*)pSdbOp)->reset() ;
+               pSdbOp->reset() ;
             }
             else
             {

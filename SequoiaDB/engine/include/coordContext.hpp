@@ -158,7 +158,13 @@ namespace engine
       protected:
          virtual void _toString( stringstream &ss ) ;
 
-         void     _setPreRead ( BOOLEAN preRead ) { _preRead = preRead ; }
+         void     _setPreRead ( BOOLEAN preRead )
+         {
+            if ( !isDetachMode() )
+            {
+               _preRead = preRead ;
+            }
+         }
          BOOLEAN  _enabledPreRead () const { return _preRead ; }
 
       protected:
@@ -179,6 +185,9 @@ namespace engine
                                             const BSONObj &arg,
                                             _pmdEDUCB *cb ) ;
          virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
+
+         virtual void    _onReturn() ;
+         virtual INT32   _onRebind() ;
 
       private:
          INT32    _appendSubData ( const pmdEDUEvent &event,
@@ -212,6 +221,7 @@ namespace engine
          _pmdRemoteSession          *_pSession ;
 
          BOOLEAN                    _isModify ;
+         INT64                      _oprTimeout ;
    } ;
    typedef _rtnContextCoord rtnContextCoord ;
 

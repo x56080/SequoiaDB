@@ -61,8 +61,8 @@ namespace engine
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
          INT32          _preprocessMsg( MsgHeader *&msg ) ;
-         virtual INT32  _onMsgBegin( MsgHeader *msg ) ;
-         virtual void   _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+         INT32          _onMsgBegin( MsgHeader *msg ) ;
+         void           _onMsgEnd( INT32 result, MsgHeader *msg ) ;
 
          INT32          _recvSysInfoMsg( UINT32 msgSize, CHAR **ppBuff,
                                          INT32 &buffLen ) ;

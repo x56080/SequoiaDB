@@ -1717,7 +1717,7 @@ namespace engine
       pEvent->reset() ;
       ePtr = pmdEventPtr( pEvent ) ;
 
-      cb = SDB_OSS_NEW pmdEDUCB ( this, EDU_TYPE_UNKNOWN ) ;
+      cb = SDB_OSS_NEW pmdEDUCB ( this, EDU_TYPE_UNKNOWN, pmdGetKRCB() ) ;
       if ( !cb )
       {
          PD_LOG( PDERROR, "Failed to allocate cb" ) ;
@@ -1840,7 +1840,7 @@ namespace engine
       pEvent->reset() ;
       ePtr = pmdEventPtr( pEvent ) ;
 
-      cb = SDB_OSS_NEW pmdEDUCB ( this, type ) ;
+      cb = SDB_OSS_NEW pmdEDUCB ( this, type, pmdGetKRCB() ) ;
       if ( !cb )
       {
          PD_LOG( PDERROR, "Failed to allocate cb" ) ;

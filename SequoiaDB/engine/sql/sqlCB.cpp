@@ -99,22 +99,21 @@ namespace engine
       rc = utilStrTrim( (CHAR *)sql, trimedSql ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to trim sql, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to trim sql, rc: %d", rc ) ;
          goto error ;
       }
 
       container = SDB_OSS_NEW qgmPlanContainer() ;
       if ( NULL == container )
       {
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         PD_LOG( PDERROR, "Failed to allocate mem." ) ;
          rc = SDB_OOM ;
          goto error ;
       }
 
       /// step 1: ast parse
       container->ast() = SQL_PARSE( trimedSql, _grammar ) ;
-      if ( !container->ast().match
-           || !container->ast().full )
+      if ( !container->ast().match || !container->ast().full )
       {
          PD_LOG( PDERROR, "syntax error [%s]", container->ast().stop ) ;
          rc = SDB_SQL_SYNTAX_ERROR ;
@@ -122,81 +121,81 @@ namespace engine
       }
 
       {
-      /// step 2: build opti tree
-      qgmBuilder builder( container->ptrTable(),
-                          container->paramTable()) ;
-      rc = builder.build( container->ast().trees, opti ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to build qgm tree:%d", rc ) ;
-         goto error ;
-      }
-
-      /// step 3: extend
-      rc = opti->extend( extend ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to extend qgm tree:%d", rc ) ;
-         goto error ;
-      }
-
-      /// step 4: optimize
-      {
-      _qgmOptTree tree( extend ) ;
-      _optQgmOptimizer optimizer ;
-      rc = optimizer.adjust( tree ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to rewrite sql:%d", rc ) ;
-         goto error ;
-      }
-
-      extend = tree.getRoot() ;
-      }
-
-      /// step 5:build physical plan.
-      rc = builder.build( extend, container->plan() ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to build phy tree:%d", rc ) ;
-         goto error ;
-      }
-
-      SDB_ASSERT( QGM_PLAN_TYPE_MAX != container->type(),
-                  "impossible" ) ;
-
-      /// step 6: if it is a query. create context.
-      if ( QGM_PLAN_TYPE_RETURN == container->type() )
-      {
-         rc = _createContext( container, cb, contextID ) ;
+         /// step 2: build opti tree
+         qgmBuilder builder( container->ptrTable(),
+                             container->paramTable()) ;
+         rc = builder.build( container->ast().trees, opti ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to create context:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build qgm tree, rc: %d", rc ) ;
             goto error ;
          }
-         containerOwnned = FALSE ;
+
+         /// step 3: extend
+         rc = opti->extend( extend ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to extend qgm tree, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         /// step 4: optimize
+         {
+            _qgmOptTree tree( extend ) ;
+            _optQgmOptimizer optimizer ;
+            rc = optimizer.adjust( tree ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to rewrite sql, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            extend = tree.getRoot() ;
+         }
+
+         /// step 5:build physical plan.
+         rc = builder.build( extend, container->plan() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to build phy tree, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         SDB_ASSERT( QGM_PLAN_TYPE_MAX != container->type(),
+                     "impossible" ) ;
+
+         /// step 6: if it is a query. create context.
+         if ( QGM_PLAN_TYPE_RETURN == container->type() )
+         {
+            rc = _createContext( container, cb, contextID ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to create context, rc: %d", rc ) ;
+               goto error ;
+            }
+            containerOwnned = FALSE ;
+         }
+
+         /// step 7: execute.
+         rc = container->execute( cb ) ;
+         needRollback = container->needRollback() ;
+         if ( pBuilder )
+         {
+            container->buildRetInfo( *pBuilder ) ;
+         }
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to execute qgm tree, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         /// step 8: set cur trans context id
+         if ( -1 != contextID && cb->isAutoCommitTrans() )
+         {
+            cb->setCurAutoTransCtxID( contextID ) ;
+         }
       }
 
-      /// step 7: execute.
-      rc = container->execute( cb ) ;
-      needRollback = container->needRollback() ;
-      if ( pBuilder )
-      {
-         container->buildRetInfo( *pBuilder ) ;
-      }
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to execute qgm tree, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      /// step 8: set cur trans context id
-      if ( -1 != contextID && cb->isAutoCommitTrans() )
-      {
-         cb->setCurAutoTransCtxID( contextID ) ;
-      }
-
-      }
    done:
       /// if extended, we noly need release extended root.
       if ( NULL != extend )
@@ -207,10 +206,10 @@ namespace engine
       {
          SAFE_OSS_DELETE( opti ) ;
       }
-      if ( container && containerOwnned &&
-           QGM_PLAN_TYPE_RETURN != container->type() )
+      if ( container && containerOwnned )
       {
          SDB_OSS_DEL container ;
+         container = NULL ;
       }
       return rc ;
    error:
@@ -218,11 +217,6 @@ namespace engine
       {
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-      }
-      if ( container && containerOwnned )
-      {
-         SDB_OSS_DEL container ;
-         container = NULL ;
       }
       goto done ;
    }

@@ -396,7 +396,7 @@ namespace engine
          goto error ;
       }
 
-      _mainEDU = SDB_OSS_NEW pmdEDUCB( &_eduMgr, EDU_TYPE_MAIN ) ;
+      _mainEDU = SDB_OSS_NEW pmdEDUCB( &_eduMgr, EDU_TYPE_MAIN, this ) ;
       if ( !_mainEDU )
       {
          PD_LOG( PDERROR, "Malloc main educb failed" ) ;

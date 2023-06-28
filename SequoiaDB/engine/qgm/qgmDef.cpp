@@ -543,7 +543,9 @@ namespace engine
              this->obj.getOwned() : qgmMerge( obj, next->mergedObj() ) ;
    }
 
-////////////////// _qgmValueTuple
+   /*
+      _qgmValueTuple implement
+   */
    _qgmValueTuple::_qgmValueTuple( CHAR *data, UINT32 len, BOOLEAN format )
    :_row( data ),
     _len( len ),

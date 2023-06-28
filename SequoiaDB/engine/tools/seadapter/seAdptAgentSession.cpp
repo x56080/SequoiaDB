@@ -131,12 +131,7 @@ namespace seadapter
          }
       }
 
-      reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
-      reply.header.messageLength = sizeof( MsgOpReply ) ;
-      reply.header.requestID = msg->requestID ;
-      reply.header.TID = msg->TID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.globalID = msg->globalID ;
+      msgFillReplyByReq( reply, msg ) ;
 
       if ( objBuff.valid() )
       {
@@ -144,8 +139,7 @@ namespace seadapter
          {
             if ( 0 == objBuff.getObjNum() )
             {
-               _errorInfo =
-                  utilGetErrorBson( rc, _pEDUCB->getInfo( EDU_INFO_ERROR ) ) ;
+               _errorInfo = utilGetErrorBson( rc, _pEDUCB->getInfo( EDU_INFO_ERROR ) ) ;
                objBuff.appendObj( _errorInfo ) ;
             }
          }

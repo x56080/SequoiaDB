@@ -21,7 +21,6 @@ fapMongo3Files = [
       "fap/mongodb3/fapMongoUtil.cpp",
       "fap/mongodb3/fapMongoMessage.cpp",
       "fap/mongodb3/fapMongoCommand.cpp",
-      "fap/mongodb3/fapMongoCursor.cpp",
       "fap/mongodb3/fapMongoDecimal.cpp"
       ]      
      

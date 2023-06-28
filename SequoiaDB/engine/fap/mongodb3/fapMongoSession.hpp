@@ -44,9 +44,6 @@
 #include "fapMongoMessage.hpp"
 #include "fapMongoUtil.hpp"
 #include "fapMongoCommand.hpp"
-#include "pmdRemoteSession.hpp"
-#include "fapMongoCursor.hpp"
-#include "ossQueue.hpp"
 
 namespace fap
 {
@@ -54,7 +51,7 @@ namespace fap
 /*
    _mongoSession define
 */
-class _mongoSession : public engine::pmdSession, public engine::IRemoteMsgPreprocessor
+class _mongoSession : public engine::pmdSession
 {
 public:
    _mongoSession( SOCKET fd, engine::IResource *pResource ) ;
@@ -64,8 +61,6 @@ public:
    virtual engine::SDB_SESSION_TYPE sessionType() const ;
 
    virtual INT32 run() ;
-
-   virtual BOOLEAN preProcess( engine::pmdEDUEvent &event ) ;
 
 protected:
    virtual void  _onAttach() {}
@@ -79,63 +74,39 @@ private:
    INT32 _onMsgBegin( MsgHeader *pMsg ) ;
    void  _onMsgEnd( INT32 result, MsgHeader *pMsg ) ;
 
-   INT32 _recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg ) ;
-   INT32 _recvMsgFromInterior( engine::pmdEDUEvent &event, BOOLEAN &hasMsg ) ;
+   INT32 _recvMsgFromClient( CHAR *&pMsg ) ;
 
-   INT32 _buildResponse( _mongoCommand *pCommand,
-                         CHAR *&pRes ) ;
    INT32 _reply( _mongoCommand *pCommand, const CHAR* pMsg,
                  INT32 errCode, BSONObj &errObj ) ;
-   INT32 _reply( engine::pmdEDUEvent &event ) ;
 
    void  _resetBuffers() ;
    INT32 _autoCreateCS( const CHAR *pCsName, BSONObj &errorObj ) ;
    INT32 _autoCreateCL( const CHAR *pCSName, const CHAR *pClFullName,
                         BSONObj &errorObj ) ;
    INT32 _autoInsert( const CHAR *pClFullName, const BSONObj &matcher,
-                      const BSONObj &updatorObj, BSONObj &target,
-                      BSONObj &errorObj ) ;
+                      const BSONObj &updatorObj, const BSONObj &setOnInsert,
+                      BSONObj &target, BSONObj &errorObj ) ;
    INT32 _autoKillCursor( UINT64 requestID, INT64 contextID ) ;
-
-   void  _getCursorInfo( const _mongoCommand *pCommand,
-                         mongoCursorInfo &cursorInfo,
-                         BOOLEAN &isOwned ) ;
-   INT32 _manageCursor( const _mongoCommand *pCommand,
-                        const MsgOpReply &sdbReply ) ;
 
    BOOLEAN _shouldAutoCrtCS( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldBuildGetMoreMsg( const _mongoCommand *pCommand ) ;
 
-   void    _postInnerErrorEvent( INT32 errorCode,
-                                 engine::pmdEDUEvent &event ) ;
-   void    _eduEventRelease( engine::pmdEDUEvent &event ) ;
-   void    _buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
-                                 INT32 &msgLen ) ;
-
    INT32   _processClientMsg( const CHAR* pMsg,
                               _mongoCommand *&pCommand,
-                              mongoSessionCtx &sessCtx,
-                              BOOLEAN &msgForwarded ) ;
+                              mongoSessionCtx &sessCtx ) ;
+
    INT32   _processOwnedClientMsg( const CHAR* pMsg,
+                                   mongoMsgBuffer *pSdbMsgBuff,
                                    _mongoCommand *pCommand,
                                    mongoSessionCtx &sessCtx,
                                    BOOLEAN &needNext ) ;
-   INT32   _processNonOwnedClientMsg( const CHAR* pMsg,
-                                      _mongoCommand *pCommand,
-                                      mongoCursorInfo cursorInfo,
-                                      mongoSessionCtx &sessCtx ) ;
-
-   INT32   _processInteriorMsg( _mongoCommand *&pCommand,
-                                engine::pmdEDUEvent &event,
-                                mongoSessionCtx &sessCtx,
-                                BOOLEAN &hasRecvResponse ) ;
-   void    _processRequestMsg( _mongoCommand *&pCommand,
-                               engine::pmdEDUEvent &event,
-                               mongoSessionCtx &sessCtx ) ;
 
    void    _buildErrorObj( const engine::rtnContextBuf &contextBuff,
-                           INT32 errCode, BSONObj &errObj ) ;
+                           INT32 errCode, BSONObjBuilder &builder ) ;
+private:
+   void    _saveOrSetMsgGlobalID( MsgHeader *pMsg ) ;
+   void    _clearErrorInfo( BSONObj &errObj, mongoSessionCtx *pSessCtx = NULL ) ;
 
 private:
    MsgOpReply              _replyHeader ;
@@ -143,13 +114,6 @@ private:
    mongoMsgBuffer          _inBuffer ;
    mongoMsgBuffer          _tmpBuffer ;
    engine::IResource      *_pResource ;
-   std::set<INT64>         _cursorList ;
-   BOOLEAN                 _isAuthed ;
-   INT32                   _requestIDOfPostEvent ;
-   INT32                   _opCodeOfPostEvent ;
-   INT64                   _cursorIdOfPostEvent ;
-   ossQueue<engine::pmdEDUEvent> _fapEvents ;
-   ossQueue<engine::pmdEDUEvent> _coordEvents ;
    const CHAR*             _clFullName ;
 } ;
 

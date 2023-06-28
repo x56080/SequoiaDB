@@ -51,18 +51,39 @@
 #include "sdbInterface.hpp"
 #include "utilConcurrentMap.hpp"
 #include "optAPM.hpp"
-#include <map>
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
 #include "rtnIxmKeySorter.hpp"
 #include "rtnScannerChecker.hpp"
 #include "dmsTaskStatus.hpp"
+#include "rtnBackgroundJobBase.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
 namespace engine
 {
+
+   /*
+      _rtnClearExpireContextJob define
+   */
+   class _rtnClearExpireContextJob : public _rtnBaseJob
+   {
+      public:
+         _rtnClearExpireContextJob() ;
+         virtual ~_rtnClearExpireContextJob() ;
+
+      public:
+         virtual RTN_JOB_TYPE type () const ;
+         virtual const CHAR* name () const ;
+         virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
+         virtual INT32 doit () ;
+
+         virtual BOOLEAN isSystem() const { return TRUE ; }
+
+   } ;
+   typedef _rtnClearExpireContextJob rtnClearExpireContextJob ;
+
    /*
       _SDB_RTNCB define
    */
@@ -101,9 +122,13 @@ namespace engine
       rtnIxmKeySorterCreator    _sorterCreator ;
       rtnScannerCheckerCreator  _checkerCreator ;
 
+      ossEvent                  _event ;
+
    public:
-      virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
-      virtual BOOLEAN contextFind( INT64 contextID, UINT64 &ownedEDUID ) ;
+      virtual void      contextDelete( INT64 contextID, IExecutor *pExe ) ;
+      virtual BOOLEAN   contextFind( INT64 contextID, UINT64 &ownedEDUID ) ;
+      virtual BOOLEAN   returnContext( INT64 contextID ) ;
+
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
 
       virtual void   onPrimaryChange( BOOLEAN primary,
@@ -142,7 +167,9 @@ namespace engine
       // try notify context owners to kill contexts of given collection space
       UINT32 preDelContext( const CHAR *csName, UINT32 suLogicalID ) ;
       // try notify context owners to kill expired contexts
-      UINT32 preDelExpiredContext() ;
+      UINT32 preDelExpiredContext( IExecutor *cb, BOOLEAN forceDetached = FALSE ) ;
+
+      ossEvent* getEvent() { return &_event ; }
 
       INT32 dumpWritingContext( RTN_CTX_PROCESS_LIST &contextProcessList,
                                 EDUID filterEDUID = PMD_INVALID_EDUID,
@@ -272,8 +299,8 @@ namespace engine
       BOOLEAN hasUnloadCS( const CHAR* csName ) ;
 
    private:
-      void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
-      void  _setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext ) ;
+      void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts, IExecutor *cb ) ;
+      INT32 _fixContextInfo( _pmdEDUCB *cb, rtnContextInternalPtr &pContext ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

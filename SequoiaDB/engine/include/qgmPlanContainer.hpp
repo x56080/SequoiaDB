@@ -94,19 +94,19 @@ namespace engine
          return _ast ;
       }
 
-      INT32 execute( _pmdEDUCB *cb ) ;
+      INT32   execute( _pmdEDUCB *cb ) ;
       BOOLEAN needRollback() const ;
       void    buildRetInfo( BSONObjBuilder &builder ) const ;
       void    setClientVersion( INT32 version ) ;
       INT32   getCatalogVersion() const ;
 
-      INT32 fetch( BSONObj &obj ) ;
+      INT32   fetch( BSONObj &obj ) ;
 
    private:
-      SQL_AST _ast ;
-      qgmParamTable _paramT ;
-      qgmPtrTable _ptrT ;
-      qgmPlan *_plan ;
+      SQL_AST        _ast ;
+      qgmParamTable  _paramT ;
+      qgmPtrTable    _ptrT ;
+      qgmPlan        *_plan ;
    } ;
 
    typedef class _qgmPlanContainer qgmPlanContainer ;

@@ -279,12 +279,7 @@ namespace engine
       MsgCatPrimaryChangeRes replyHeader;
 
       /// fill reply header
-      _fillRspHeader( &replyHeader.header, pMsg ) ;
-      replyHeader.contextID = -1 ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
-      replyHeader.header.messageLength = sizeof( MsgCatPrimaryChangeRes ) ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       // the msg is send by timer, don't use _pCatCB->primaryCheck()
       if ( !pmdIsPrimary() )
@@ -390,12 +385,7 @@ namespace engine
       const CHAR *name = NULL ;
 
       /// fill reply header
-      _fillRspHeader( &(replyHeader.header), &(pGrpReq->header) ) ;
-      replyHeader.contextID = -1 ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
-      replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       if ( 0 == groupID )
       {
@@ -518,16 +508,6 @@ namespace engine
       goto done;
    }
 
-   void catNodeManager::_fillRspHeader( MsgHeader * rspMsg,
-                                        const MsgHeader * reqMsg )
-   {
-      rspMsg->opCode = MAKE_REPLY_TYPE( reqMsg->opCode ) ;
-      rspMsg->requestID = reqMsg->requestID ;
-      rspMsg->routeID.value = 0 ;
-      rspMsg->TID = reqMsg->TID ;
-      rspMsg->globalID = reqMsg->globalID ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_REGREQ, "catNodeManager::processRegReq" )
    INT32 catNodeManager::processRegReq( const NET_HANDLE &handle,
                                         MsgHeader *pMsg )
@@ -550,12 +530,7 @@ namespace engine
       INT32 objNumber = 0 ;
 
       /// fill reply header
-      _fillRspHeader( &replyHeader.header, pMsg ) ;
-      replyHeader.header.messageLength = sizeof( MsgCatRegisterRsp ) ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.contextID = -1 ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       try
       {
@@ -798,12 +773,7 @@ namespace engine
       const CHAR *pHint = NULL ;
 
       // init reply msg
-      replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-      replyHeader.contextID = -1 ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
-      _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       // extract msg
       rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,

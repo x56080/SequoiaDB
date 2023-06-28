@@ -82,6 +82,7 @@ namespace engine
       RTN_JOB_CLS_ADAPTER_TEXT_INDEX = 29,
 
       RTN_JOB_TASKINFO_UPDATE        = 30, // update task info in cata and data
+      RTN_JOB_CLEAR_EXPIRED_CONTEXT  = 31, // clear expired context
 
       RTN_JOB_MAX
    } ;

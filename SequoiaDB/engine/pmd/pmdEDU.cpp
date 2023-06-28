@@ -86,7 +86,7 @@ namespace engine
    /*
       _pmdEDUCB implement
    */
-   _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type )
+   _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type, _IResource *pResource )
    :_mutex( MON_LATCH_PMDEDUCB_MUTEX ),
     _dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
@@ -97,6 +97,7 @@ namespace engine
 
    {
       _eduMgr           = mgr ;
+      _pResource        = pResource ;
       _eduID            = PMD_INVALID_EDUID ;
       _tid              = 0 ;
       _hasSetTid        = FALSE ;
@@ -363,6 +364,32 @@ namespace engine
       _interruptRC = SDB_OK ;
 
       _operator.reset() ;
+
+      /// return the detach context
+      if ( _pResource )
+      {
+         SINT64 contextID = -1 ;
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+         MAP_CONTEXT::const_iterator it = _contextList.begin() ;
+         while ( it != _contextList.end() )
+         {
+            if ( it->second )
+            {
+               contextID = it->first ;
+               if ( _pResource->getContextMgr()->returnContext( contextID ) )
+               {
+                  if ( _curAutoTransCtxID == contextID )
+                  {
+                     _curAutoTransCtxID = -1 ;
+                  }
+                  _contextList.erase( it++ ) ;
+                  continue ;
+               }
+            }
+            ++it ;
+         }
+      }
    }
 
    void _pmdEDUCB::resetDisconnect ()
@@ -862,20 +889,20 @@ namespace engine
       _curTransLSN = lsn ;
    }
 
-   BOOLEAN _pmdEDUCB::contextInsert( INT64 contextID )
+   BOOLEAN _pmdEDUCB::contextInsert( INT64 contextID, BOOLEAN isDetachMode )
    {
       BOOLEAN result = FALSE ;
       try
       {
          ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-         _contextList.insert ( contextID ) ;
+         _contextList.insert ( MAP_CONTEXT::value_type( contextID, isDetachMode ) ) ;
          setCurrentContextID( contextID ) ;
          result = TRUE ;
       }
       catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Failed to insert context, occur exception %s",
-                 e.what() ) ;
+         PD_LOG( PDERROR, "Failed to insert context(%lld), occur exception %s",
+                 contextID, e.what() ) ;
       }
       return result ;
    }
@@ -896,13 +923,13 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_CONTXTPEEK );
       ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
       SINT64 contextID = -1 ;
-      SET_CONTEXT::const_iterator it ;
+      MAP_CONTEXT::const_iterator it ;
       if ( _contextList.empty() )
       {
          goto done ;
       }
       it = _contextList.begin() ;
-      contextID = (*it) ;
+      contextID = it->first ;
       _contextList.erase(it) ;
 
       if ( _curAutoTransCtxID == contextID )
@@ -991,7 +1018,12 @@ namespace engine
    {
       try
       {
-         contextList = _contextList ;
+         MAP_CONTEXT::const_iterator it = _contextList.begin() ;
+         while ( it != _contextList.end() )
+         {
+            contextList.insert( it->first ) ;
+            ++it ;
+         }
       }
       catch ( exception &e )
       {

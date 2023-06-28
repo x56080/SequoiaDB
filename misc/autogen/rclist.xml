@@ -3162,5 +3162,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_RTN_CONTEXT_NOTOWNED</name>
+         <description>
+            <en>Context is not owned by current session</en>
+            <cn>上下文不属于当前会话</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

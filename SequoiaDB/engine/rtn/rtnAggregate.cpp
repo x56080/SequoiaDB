@@ -45,11 +45,13 @@ namespace engine
 {
    INT32 rtnAggregate( const CHAR *pCollectionName, BSONObj &objs,
                        INT32 objNum, SINT32 flags, pmdEDUCB *cb,
-                       SDB_DMSCB *dmsCB, SINT64 &contextID )
+                       SDB_DMSCB *dmsCB, SINT64 &contextID,
+                       BOOLEAN &needRollback, BSONObjBuilder *builder )
    {
       INT32 rc = SDB_OK;
       rc = pmdGetKRCB()->getAggrCB()->build( objs, objNum, pCollectionName,
-                                             BSONObj(), cb, contextID ) ;
+                                             BSONObj(), cb, contextID,
+                                             needRollback, builder ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to execute aggregation operation, rc: %d",

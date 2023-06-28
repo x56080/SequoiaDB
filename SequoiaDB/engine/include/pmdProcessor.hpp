@@ -96,6 +96,7 @@ namespace engine
                                                    BOOLEAN &needRollback ) ;
          INT32                   _onKillContextsReqMsg( MsgHeader *msg ) ;
          INT32                   _onSQLMsg( MsgHeader *msg,
+                                            _rtnContextBuf &buffObj,
                                             INT64 &contextID,
                                             SDB_DPSCB *dpsCB,
                                             BOOLEAN &needRollback,
@@ -104,7 +105,10 @@ namespace engine
          INT32                   _onTransCommitMsg ( SDB_DPSCB *dpsCB ) ;
          INT32                   _onTransRollbackMsg ( SDB_DPSCB *dpsCB ) ;
          INT32                   _onAggrReqMsg( MsgHeader *msg,
-                                                INT64 &contextID ) ;
+                                                _rtnContextBuf &buffObj,
+                                                INT64 &contextID,
+                                                BOOLEAN &needRollback,
+                                                BSONObjBuilder &builder ) ;
          INT32                   _onOpenLobMsg( MsgHeader *msg,
                                                 SDB_DPSCB *dpsCB,
                                                 SINT64 &contextID,
@@ -187,6 +191,16 @@ namespace engine
                                                  _rtnContextBuf &buffObj,
                                                  INT64 &contextID,
                                                  BOOLEAN &needRollback ) ;
+
+         INT32                   _onAggrReqMsg( MsgHeader *msg,
+                                                _rtnContextBuf &buffObj,
+                                                INT64 &contextID,
+                                                BOOLEAN &needRollback ) ;
+
+         INT32                   _onSqlReqMsg( MsgHeader *msg,
+                                               _rtnContextBuf &buffObj,
+                                               INT64 &contextID,
+                                               BOOLEAN &needRollback ) ;
 
       private:
          INT32                   _processCoordMsg( MsgHeader *msg,

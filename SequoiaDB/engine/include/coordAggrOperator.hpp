@@ -57,7 +57,10 @@ namespace engine
                                        INT64 &contextID,
                                        rtnContextBuf *buf ) ;
 
-         virtual BOOLEAN      isReadOnly() const ;
+         virtual BOOLEAN      needRollback() const ;
+
+      private:
+         BOOLEAN              _needRollback ;
 
    } ;
    typedef _coordAggrOperator coordAggrOperator ;

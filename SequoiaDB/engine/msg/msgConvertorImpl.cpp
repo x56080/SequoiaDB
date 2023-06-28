@@ -791,7 +791,7 @@ namespace engine
       newMsgHeader.messageLength = msgHeader->messageLength +
                                    ( sizeof(MsgHeader) - sizeof(MsgHeaderV1) ) ;
       newMsgHeader.eye = MSG_COMM_EYE_DEFAULT ;
-      newMsgHeader.version = SDB_PROTOCOL_VER_2 ;
+      newMsgHeader.version = SDB_PROTOCOL_VER_CUR ;
       newMsgHeader.flags = 0 ;
       newMsgHeader.opCode = msgHeader->opCode ;
       newMsgHeader.TID = msgHeader->TID ;
