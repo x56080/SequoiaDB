@@ -21,7 +21,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Function ObjectId argument must be a hex string"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Function ObjectId argument must be a hex string"';
    var expLogInfo = 'Function ObjectId argument must be a hex string';
    checkSdbimportLog( matchInfos, expLogInfo );
 
