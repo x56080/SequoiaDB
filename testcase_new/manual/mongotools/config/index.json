@@ -1,0 +1,198 @@
+[
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_collation",
+        "count": 10,
+        "content": {
+            "category": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 10
+            }
+        },
+        "indexes": [
+            {
+                "name": "collation_1",
+                "key": {
+                    "category": 1
+                },
+                "collation": {
+                    "locale": "fr",
+                    "strength": 3,
+                    "backwards": false,
+                    "normalization": false,
+                    "numericOrdering": false,
+                    "alternate": "shifted",
+                    "caseLevel": false
+                }
+            }
+        ]
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_compound",
+        "count": 3,
+        "content": {
+            "suID": {
+                "type": "int",
+                "min": 0,
+                "max": 10
+            },
+            "dvID": {
+                "type": "long",
+                "min": 0,
+                "max": 10
+            },
+            "tm": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 12
+            }
+        },
+        "indexes": [
+            {
+                "name": "compound",
+                "key": {
+                    "suID": 1,
+                    "dvID": 1,
+                    "tm": 1
+                }
+            }
+        ]
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_ttl",
+        "count": 18,
+        "content": {
+            "expireAt": {
+                "type": "date",
+                "startDate": "2020-01-01T22:00:00+00:00",
+                "endDate": "2020-01-05T22:00:00+00:00"
+            }
+        },
+        "indexes": [
+            {
+                "name": "expireAt_1",
+                "key": {
+                    "expireAt": 1
+                },
+                "expireAfterSeconds": 0
+            }
+        ]
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_unique",
+        "count": 9,
+        "content": {
+            "unique_c32": {
+                "type": "int",
+                "min": 1,
+                "max": 100000
+            }
+        },
+        "indexes": [
+            {
+                "name": "idx_unique",
+                "key": {
+                    "unique_c32": 1
+                },
+                "unique": true
+            }
+        ]
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_ref_self",
+        "count": 2167,
+        "content": {
+            "_id": {
+                "type": "objectId"
+            },
+            "start": {
+                "type": "reference",
+                "id": 1
+            },
+            "createdAt": {
+                "type": "reference",
+                "id": 1,
+                "refContent": {
+                    "type": "date",
+                    "startDate": "2021-06-12T12:00:00+00:00",
+                    "endDate": "2021-06-12T13:00:00+00:00"
+                }
+            }
+        }
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_2dsphere",
+        "count": 100,
+        "content": {
+            "location": {
+                "type": "object",
+                "objectContent": {
+                    "type": {
+                        "type": "constant",
+                        "constVal": "Point"
+                    },
+                    "coordinates": {
+                        "type": "coordinates"
+                    }
+                }
+            }
+        },
+        "indexes": [
+            {
+                "name": "geo2d",
+                "key": {
+                    "location": "2dsphere"
+                },
+                "bits": 22,
+                "min": -180.0,
+                "max": 180.0
+            }
+        ]
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "index_text",
+        "count": 32,
+        "content": {
+            "word": {
+                "type": "enum",
+                "values": [
+                    "Cafe",
+                    "Cofee",
+                    "Café",
+                    "Coffee Shopping",
+                    "coffee and cream",
+                    "Cafe con Leche"
+                ]
+            },
+            "language": {
+                "type": "enum",
+                "nullPercentage": 80,
+                "values": [
+                    "french",
+                    "english"
+                ]
+            }
+        },
+        "indexes": [
+            {
+                "name": "word_text",
+                "key": {
+                    "word": "text"
+                },
+                "weights": {
+                    "text": 1
+                },
+                "defaultLanguage": "french",
+                "languageOverride": "language",
+                "textIndexVersion": 3
+            }
+        ]
+    }
+]

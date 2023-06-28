@@ -1,0 +1,246 @@
+[
+    {
+        "database": "mgodatagen_test",
+        "collection": "bson_type",
+        "count": 1000,
+        "content": {
+            "_id": {
+                "type": "reference",
+                "id": 1,
+                "refContent": {
+                    "type": "objectId"
+                }
+            },
+            "uuid": {
+                "type": "uuid"
+            },
+            "uuidBinary": {
+                "type": "uuid",
+                "format": "binary"
+            },
+            "string": {
+                "type": "string",
+                "maxDistinctValue": 500,
+                "minLength": 15,
+                "maxLength": 20
+            },
+            "int32": {
+                "type": "int",
+                "min": 10,
+                "max": 20
+            },
+            "int64": {
+                "type": "long",
+                "nullPercentage": 10,
+                "min": 100,
+                "max": 200
+            },
+            "float": {
+                "type": "double",
+                "min": 1.0,
+                "max": 10.0
+            },
+            "constInt32": {
+                "type": "int",
+                "min": 0,
+                "max": 0
+            },
+            "constInt64": {
+                "type": "long",
+                "min": -100020,
+                "max": -100020
+            },
+            "constFloat": {
+                "type": "double",
+                "min": 0.0,
+                "max": 0.0
+            },
+            "noBoundInt32": {
+                "type": "int"
+            },
+            "noBoundInt64": {
+                "type": "long"
+            },
+            "noBoundFloat": {
+                "type": "double"
+            },
+            "boolean": {
+                "type": "boolean"
+            },
+            "position": {
+                "type": "coordinates"
+            },
+            "stringFromArray": {
+                "type": "enum",
+                "values": [
+                    "2012-10-10",
+                    "2012-12-12",
+                    "2014-01-01",
+                    "2016-05-05"
+                ]
+            },
+            "intFromArrayRandomOrder": {
+                "type": "enum",
+                "values": [
+                    1,
+                    4,
+                    12,
+                    22,
+                    484844,
+                    3747,
+                    222
+                ],
+                "randomOrder": true
+            },
+            "arrayFromArray": {
+                "type": "array",
+                "minLength": 6,
+                "maxLength": 6,
+                "arrayContent": {
+                    "type": "enum",
+                    "values": [
+                        "A",
+                        "C",
+                        "T",
+                        "G"
+                    ]
+                }
+            },
+            "constArray": {
+                "type": "array",
+                "minLength": 2,
+                "maxLength": 2,
+                "arrayContent": {
+                    "type": "constant",
+                    "constVal": "const"
+                }
+            },
+            "faker": {
+                "type": "faker",
+                "method": "City"
+            },
+            "constant": {
+                "type": "constant",
+                "constVal": 2
+            },
+            "autoIncrementInt32": {
+                "type": "autoincrement",
+                "autoType": "int",
+                "start": 0
+            },
+            "autoIncrementInt64": {
+                "type": "autoincrement",
+                "autoType": "long",
+                "start": 18
+            },
+            "date": {
+                "type": "date",
+                "startDate": "2010-01-10T00:00:00+00:00",
+                "endDate": "2017-01-01T22:00:00+00:00"
+            },
+            "binaryData": {
+                "type": "binary",
+                "minLength": 24,
+                "maxLength": 40
+            },
+            "arrayInt32": {
+                "type": "array",
+                "minLength": 3,
+                "maxLength": 3,
+                "arrayContent": {
+                    "type": "int",
+                    "min": 0,
+                    "max": 10
+                }
+            },
+            "object": {
+                "type": "object",
+                "objectContent": {
+                    "k1": {
+                        "type": "string",
+                        "unique": true,
+                        "minLength": 3,
+                        "maxLength": 3
+                    },
+                    "k2": {
+                        "type": "int",
+                        "min": -10,
+                        "max": -5
+                    },
+                    "sub-ob": {
+                        "type": "object",
+                        "objectContent": {
+                            "s-k": {
+                                "type": "int",
+                                "min": 0,
+                                "max": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "stringFromParts": {
+                "type": "stringFromParts",
+                "parts": [
+                    {
+                        "type": "autoincrement",
+                        "autoType": "int",
+                        "start": 1
+                    },
+                    {
+                        "type": "constant",
+                        "constVal": "@"
+                    },
+                    {
+                        "type": "enum",
+                        "values": [
+                            "gmail.com",
+                            "github.com",
+                            "mongoplayground.net"
+                        ]
+                    },
+                    {
+                        "type": "objectId"
+                    },
+                    {
+                        "type": "autoincrement",
+                        "autoType": "long",
+                        "start": 1
+                    },
+                    {
+                        "type": "faker",
+                        "method": "URL"
+                    },
+                    {
+                        "type": "uuid"
+                    },
+                    {
+                        "type": "uuid",
+                        "format": "binary"
+                    },
+                    {
+                        "type": "int",
+                        "min": 0,
+                        "max": 10
+                    },
+                    {
+                        "type": "long",
+                        "min": 33,
+                        "max": 34
+                    },
+                    {
+                        "type": "double",
+                        "min": 0.1,
+                        "max": 0.2
+                    },
+                    {
+                        "type": "boolean"
+                    },
+                    {
+                        "type": "coordinates"
+                    }
+                ]
+            }
+        }
+    }
+]

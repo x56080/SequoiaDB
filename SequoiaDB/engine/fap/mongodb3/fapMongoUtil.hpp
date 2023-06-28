@@ -43,6 +43,7 @@
 #include "ossMem.hpp"
 #include "../../bson/bson.hpp"
 #include "utilCommon.hpp"
+#include "rtnContextBuff.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 
@@ -155,6 +156,8 @@ INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
                               BSONObjBuilder &builder ) ;
 
 INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert ) ;
+
+INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf ) ;
 
 std::string mongoGetNonce() ;
 

@@ -726,6 +726,37 @@ namespace fap
       goto done ;
    }
 
+   INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+
+         if ( 1 == bodyBuf.recordNum() )
+         {
+            BSONObj obj( bodyBuf.data() ) ;
+            bob.appendElementsUnique( obj ) ;
+         }
+
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when rebuilding OK reply: %s, "
+                 "rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    std::string mongoGetNonce()
    {
       const UINT64 n = 0 ;

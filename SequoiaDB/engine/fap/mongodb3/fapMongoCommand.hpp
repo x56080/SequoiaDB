@@ -779,6 +779,11 @@ class _mongoCreateIdxCommand : public _mongoCollectionCommand
       virtual BOOLEAN hasProcessAllMsg() const { return _hasProcessAllMsg ; }
 
    private:
+      void _buildIdIndexObj( BSONObjBuilder &indexObj ) ;
+      void _buildShardingIndexObj( BSONObjBuilder &indexObj,
+                                   const BSONObj &keyObj ) ;
+
+   private:
       BOOLEAN _hasBuildMsgVec ;
       BOOLEAN _hasProcessAllMsg ;
       UINT32  _msgIndex ;

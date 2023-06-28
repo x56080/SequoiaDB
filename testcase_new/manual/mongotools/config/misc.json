@@ -1,0 +1,49 @@
+[
+    {
+        "database": "mgodatagen_test",
+        "collection": "empty",
+        "count": 1,
+        "content": {}
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "only_id",
+        "count": 3,
+        "content": {
+            "_id": {
+                "type": "autoincrement",
+                "autoType": "int"
+            }
+        }
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "ref_to_self",
+        "count": 2167,
+        "content": {
+            "_id": {
+                "type": "objectId"
+            },
+            "start": {
+                "type": "reference",
+                "id": 1
+            },
+            "createdAt": {
+                "type": "reference",
+                "id": 1,
+                "refContent": {
+                    "type": "date",
+                    "startDate": "2021-06-12T12:00:00+00:00",
+                    "endDate": "2021-06-12T13:00:00+00:00"
+                }
+            }
+        }
+    },
+    {
+        "database": "mgodatagen_test",
+        "collection": "zlib",
+        "compressionLevel": "zlib",
+        "count": 1,
+        "content": {}
+    }
+]

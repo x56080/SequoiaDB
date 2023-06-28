@@ -1,0 +1,29 @@
+[
+    {
+        "database": "mgodatagen_test",
+        "collection": "shard_cl",
+        "count": 15000,
+        "shardConfig": {
+            "shardCollection": "mgodatagen_test.shard_cl",
+            "key": {
+                "_id": "hashed"
+            }
+        },
+        "content": {
+            "_id": {
+                "type": "objectId"
+            },
+            "int32": {
+                "type": "int",
+                "min": 10,
+                "max": 20
+            },
+            "int64": {
+                "type": "long",
+                "nullPercentage": 10,
+                "min": 100,
+                "max": 200
+            }
+        }
+    }
+]

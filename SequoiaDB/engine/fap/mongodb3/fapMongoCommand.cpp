@@ -246,11 +246,29 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
 
       builder.append( "v", sdbIdxDef.getIntField( "v" ) ) ;
       if ( sdbIdxDef.getBoolField( "unique" ) &&
-           sdbIdxDef.getBoolField( "enforced" ) )
+           sdbIdxDef.getBoolField( "enforced" ) &&
+           0 != ossStrcmp( "$id", indexName.c_str() ) )
       {
          builder.append( "unique", true ) ;
       }
       builder.append( "key", sdbIdxDef.getObjectField( "key" ) ) ;
+
+      // cover $id to _id_
+      if ( 0 == ossStrcmp( "$id", indexName.c_str() ) )
+      {
+         indexName = "_id_" ;
+      }
+      // cover $shard to %24shard
+      else if ( 0 == ossStrcmp( "$shard", indexName.c_str() ) )
+      {
+         indexName = "%24shard" ;
+      }
+
+      if ( rc )
+      {
+         goto error ;
+      }
+
       builder.append( "name", indexName ) ;
       builder.append( "ns", clFullName.c_str() ) ;
 
@@ -5460,36 +5478,9 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
    BSONObj objList, obj, indexObj ;
-   BSONObjBuilder bob ;
+   BSONObjBuilder bob, keyObj ;
    string indexName ;
-
-   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
-
-   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
-
-   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
-   mongoInitMsgHeader( &(pQuery->header), MSG_BS_QUERY_REQ, _requestID ) ;
-   pQuery->version = 0 ;
-   pQuery->w = 0 ;
-   pQuery->padding = 0 ;
-   pQuery->flags = 0 ;
-   pQuery->numToSkip = 0 ;
-   pQuery->numToReturn = -1 ;
-   pQuery->nameLength = ossStrlen( pCmdName ) ;
-
-   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
+   BOOLEAN hasFtIdx = FALSE ;
 
    // { createIndexes: "bar", indexes: [ { key: {a:1}, name: "aIdx" } ] }
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_INDEXES, objList ) ;
@@ -5527,20 +5518,109 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          goto error ;
       }
 
-      // mongo unique index => sequoiadb unique enforce index
-      // { key: {a:1}, name: "aIdx", unique: true } =>
-      // { Index: { key: {a:1}, name: "aIdx", unique: true, enforced: true },
-      //   Collection: "foo.bar" }
-      indexObj = BSON( IXM_FIELD_NAME_KEY <<
-                       obj.getObjectField( "key" ) <<
-                       IXM_FIELD_NAME_NAME <<
-                       indexName <<
-                       IXM_FIELD_NAME_UNIQUE <<
-                       obj.getBoolField( "unique" ) <<
-                       IXM_FIELD_NAME_ENFORCED <<
-                       obj.getBoolField( "unique" ) );
-      bob.append( FIELD_NAME_INDEX, indexObj ) ;
-      bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
+      // 1. For text index, we need to cover to normal format
+      // 2. For hashed index, we need to cover to normal index
+      BSONObjIterator itr( obj.getObjectField( "key" ) ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         // Text index key
+         if ( 0 == ossStrcmp( "_fts", ele.fieldName() ) || 
+              0 == ossStrcmp( "_ftsx", ele.fieldName() ) )
+         {
+            if ( ! hasFtIdx )
+            {
+               BSONObjIterator keyItr( obj.getObjectField( "weights") ) ;
+               while ( keyItr.more() )
+               {
+                  BSONElement keyEle = keyItr.next() ;
+                  keyObj.append( keyEle.fieldName(), "text" ) ;
+               }
+               hasFtIdx = TRUE ;
+            }
+         }
+         // Hashed index key
+         else if ( 0 == ossStrcmp( "hashed", ele.valuestrsafe() ) )
+         {
+            keyObj.append( ele.fieldName(), 1 ) ;
+         }
+         else if ( 0 == ossStrcmp( "2d", ele.valuestrsafe() ) ||
+                   0 == ossStrcmp( "2dsphere", ele.valuestrsafe() ) )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            ctx.setError( rc, "2d and 2dsphere index types are not support yet" ) ;
+            goto error ;
+         }
+         // Normal index key
+         else
+         {
+            keyObj.append( ele ) ;
+         }
+      }
+
+      if ( 0 == ossStrcmp( "_id_", indexName.c_str() ) ||
+           0 == ossStrcmp( "$id", indexName.c_str() ) )
+      {
+         pCmdName = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
+         _buildIdIndexObj( bob ) ;
+      }
+      else if ( 0 == ossStrcmp( "%24shard", indexName.c_str() ) ||
+                0 == ossStrcmp( "$shard", indexName.c_str() ) )
+      {
+         pCmdName = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
+         _buildShardingIndexObj( bob, keyObj.obj() ) ;
+      }
+      else
+      {
+         // mongo unique index => sequoiadb unique enforce index
+         // { key: {a:1}, name: "aIdx", unique: true } =>
+         // { Index: { key: {a:1}, name: "aIdx", unique: true, enforced: true },
+         //   Collection: "foo.bar" }
+         indexObj = BSON( IXM_FIELD_NAME_KEY <<
+                          keyObj.obj() <<
+                          IXM_FIELD_NAME_NAME <<
+                          indexName <<
+                          IXM_FIELD_NAME_UNIQUE <<
+                          obj.getBoolField( "unique" ) <<
+                          IXM_FIELD_NAME_ENFORCED <<
+                          obj.getBoolField( "enforced" ) );
+
+         bob.append( FIELD_NAME_INDEX, indexObj ) ;
+         bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
+      }
+
+      // write to sdbMsg
+      rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+      pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+      pQuery->header.TID = 0 ;
+      pQuery->header.routeID.value = 0 ;
+      pQuery->header.requestID = _requestID ;
+      pQuery->version = 0 ;
+      pQuery->w = 0 ;
+      pQuery->padding = 0 ;
+      pQuery->flags = 0 ;
+      pQuery->numToSkip = 0 ;
+      pQuery->numToReturn = -1 ;
+      pQuery->nameLength = ossStrlen( pCmdName ) ;
+
+      rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       rc = sdbMsg.write( bob.obj(), TRUE ) ;
       if ( rc )
@@ -5594,10 +5674,16 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    try
    {
       if ( SDB_OK == sdbReply.flags ||
-           SDB_IXM_REDEF == sdbReply.flags )
+           SDB_IXM_REDEF == sdbReply.flags ||
+           SDB_IXM_EXIST_COVERD_ONE == sdbReply.flags ||
+           SDB_OPTION_NOT_SUPPORT == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf(
-            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         rc = mongoRebuildOKReply( bodyBuf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to build OK reply, rc: %d", rc ) ;
+            goto error ;
+         }
       }
    }
    catch ( std::exception &e )
@@ -5620,6 +5706,44 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRIDXBUILDIDIDX, "_mongoCreateIdxCommand::_buildIdIndexObj" )
+void _mongoCreateIdxCommand::_buildIdIndexObj( BSONObjBuilder &indexObj )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDIDIDX ) ;
+
+   indexObj.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_CL ) ;
+   indexObj.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
+   indexObj.append( FIELD_NAME_NAME, _clFullName.c_str() ) ;
+
+   BSONObjBuilder alterBuilder( indexObj.subobjStart( FIELD_NAME_ALTER ) ) ;
+   alterBuilder.append( FIELD_NAME_NAME, SDB_ALTER_CL_CRT_ID_INDEX ) ;
+   alterBuilder.append( FIELD_NAME_ARGS, BSONObj() ) ;
+   alterBuilder.doneFast() ;
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_CTRIDXBUILDIDIDX ) ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRIDXBUILDSHARDIDX, "_mongoCreateIdxCommand::_buildShardingIndexObj" )
+void _mongoCreateIdxCommand::_buildShardingIndexObj( BSONObjBuilder &indexObj,
+                                                     const BSONObj &keyObj )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDSHARDIDX ) ;
+
+   indexObj.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_CL ) ;
+   indexObj.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
+   indexObj.append( FIELD_NAME_NAME, _clFullName.c_str() ) ;
+
+   BSONObjBuilder alterBuilder( indexObj.subobjStart( FIELD_NAME_ALTER ) ) ;
+   alterBuilder.append( FIELD_NAME_NAME, SDB_ALTER_CL_ENABLE_SHARDING ) ;
+   BSONObjBuilder argBuilder( alterBuilder.subobjStart( FIELD_NAME_ARGS ) ) ;
+   argBuilder.append( FIELD_NAME_SHARDINGKEY, keyObj ) ;
+   argBuilder.append( FIELD_NAME_ENSURE_SHDINDEX, TRUE ) ;
+   argBuilder.doneFast() ;
+   alterBuilder.doneFast() ;
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_CTRIDXBUILDSHARDIDX ) ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
@@ -5733,10 +5857,15 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    try
    {
-      if ( SDB_OK == sdbReply.flags )
+      if ( SDB_OK == sdbReply.flags ||
+           SDB_IXM_NOTEXIST == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf(
-            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         rc = mongoRebuildOKReply( bodyBuf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to build OK reply, rc: %d", rc ) ;
+            goto error ;
+         }
       }
    }
    catch ( std::exception &e )
