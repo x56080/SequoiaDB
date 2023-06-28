@@ -119,7 +119,7 @@ namespace engine
       _pMonitorThd = NULL ;
       _pDeadCheckThd = NULL ;
 
-      _EDUIDBase = 1 ;
+      _EDUIDBase = PMD_MAIN_EDUID + 1 ;
    }
 
    _pmdEDUMgr::~_pmdEDUMgr()
@@ -2629,10 +2629,9 @@ namespace engine
 
    EDUID pmdEDUMgr::_allocEDUID()
    {
-      // check if invalid ( PMD_INVALID_EDUID is for main thread )
       if ( PMD_INVALID_EDUID == _EDUIDBase )
       {
-         _EDUIDBase = 1 ;
+         _EDUIDBase = PMD_MAIN_EDUID + 1 ;
       }
       return _EDUIDBase ++ ;
    }

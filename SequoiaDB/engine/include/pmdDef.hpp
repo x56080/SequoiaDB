@@ -173,6 +173,7 @@ namespace engine
    typedef class _pmdEDUEventQueue pmdEDUEventQueue ;
 
    #define PMD_INVALID_EDUID              ( 0 )
+   #define PMD_MAIN_EDUID                 ( 1 )
 
    /*
       EDU_TYPES define
