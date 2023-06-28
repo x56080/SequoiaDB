@@ -13,12 +13,14 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 | -P | 指定 MySQL 服务的监听端口，默认为 3306 | 否 |
 | -f | 指定 pid 文件，默认为数据库储存路径下的 `mysqld.pid` | 否 |
 | -s | 指定 mysqld.sock 文件，默认为数据库储存路径下的 `mysqld.sock` | 否 |
-| -w | 指定本地连接 root 用户的密码 | 否 |
+| -u | 指定连接到 MySQL 服务的数据库用户，默认为 root | 否 |
+| -w | 指定连接到 MySQL 服务的密码 | 否 |
 | -g | 指定要加入的实例组名，默认为空 | 否 |
 | -k | 指定实例组用户密码的密钥，默认为空 | 否 |
 | -a | 客户端最大连接数，默认为 1024 | 否 |
 | -e | 错误日志级别，默认为 3 | 否 |
 | -v | 输出版本信息 | 否 |
+| --load-stats | 实例启动过程中加载统计信息 | 否 |
 | --sdb-conn-addr | 所连接 SequoiaDB 集群的协调节点地址 | 否 |
 | --sdb-user | SequoiaDB 用户名 | 否 |
 | --sdb-passwd | SequoiaDB 用户密码 | 否 |
@@ -45,12 +47,15 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
 * 启动实例
 
-    sdb_mysql_ctl start \<INSTNAME\> [--print]
+    sdb_mysql_ctl start \<INSTNAME\> [--load-stats [-u=USER] [-w=PASSWD]] [--print]
  
     ```lang-bash
     $ sdb_mysql_ctl start myinst
     ```
- 
+    > **Note:**
+    >
+    > - 指定--load-stats 加载统计信息，可以指定连接 MySQL 服务的用户名和密码；如果不指定，用户名默认为 root，密码采用交互式的方式进行验证。
+
 * 查看实例状态
  
     sdb_mysql_ctl status [INSTNAME]
@@ -61,7 +66,7 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
  
 * 重启实例
  
-    sdb_mysql_ctl restart \<INSTNAME\>
+    sdb_mysql_ctl restart \<INSTNAME\> [--load-stats [-u=USER] [-w=PASSWD]]
 
     ```lang-bash
     $ sdb_mysql_ctl restart myinst
@@ -92,7 +97,7 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 * 启动所有实例
 
     ```lang-bash
-    $ sdb_mysql_ctl startall
+    $ sdb_mysql_ctl startall [--load-stats [-u=USER] [-w=PASSWD]]
     ```
 
 * 停止所有实例
