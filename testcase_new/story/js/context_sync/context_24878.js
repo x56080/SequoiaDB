@@ -2,8 +2,8 @@
  * @Description   : seqDB-24878:contexttimeout配置参数校验 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.28
- * @LastEditTime  : 2022.03.15
- * @LastEditors   : Zhang Yanan
+ * @LastEditTime  : 2023.06.29
+ * @LastEditors   : liuli
  ******************************************************************************/
 main( test );
 function test ()
@@ -11,7 +11,7 @@ function test ()
    try
    {
       var snapshots = db.snapshot( SDB_SNAP_CONFIGS );
-      checkSnashopt( snapshots, 1440 );
+      checkSnashopt( snapshots, 30 );
 
       db.updateConf( { "contexttimeout": 0 } );
       snapshots = db.snapshot( SDB_SNAP_CONFIGS );
