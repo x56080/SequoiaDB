@@ -170,9 +170,9 @@ namespace engine
          /// not in transaction
          if ( cb && DPS_INVALID_TRANS_ID == cb->getTransID() &&
               NULL != cb->getSession() &&
-              ( SDB_SESSION_LOCAL != cb->getSession()->sessionType() ||
-                SDB_SESSION_SHARD != cb->getSession()->sessionType() ||
-                SDB_SESSION_PROTOCOL != cb->getSession()->sessionType() ) )
+              ( SDB_SESSION_LOCAL == cb->getSession()->sessionType() ||
+                SDB_SESSION_SHARD == cb->getSession()->sessionType() ||
+                SDB_SESSION_PROTOCOL == cb->getSession()->sessionType() ) )
          {
             _isContextDetachMode = TRUE ;
             if ( _pMsg )

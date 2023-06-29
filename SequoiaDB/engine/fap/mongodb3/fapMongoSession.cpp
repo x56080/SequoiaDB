@@ -281,6 +281,10 @@ INT32 _mongoSession::run()
       rc = _recvMsgFromClient( pMsg ) ;
       if ( rc )
       {
+         if ( SDB_NETWORK_CLOSE == rc )
+         {
+            rc = SDB_OK ;
+         }
          break ;
       }
 
@@ -339,7 +343,12 @@ INT32 _mongoSession::_recvMsgFromClient( CHAR *&pMsg )
    rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
    if ( rc )
    {
-      if ( SDB_APP_FORCED != rc )
+      if ( SDB_NETWORK_CLOSE == rc )
+      {
+         /// peer disconnect
+         PD_LOG( PDINFO, "Session[%s] peer disconnect", sessionName() ) ;
+      }
+      else if ( SDB_APP_FORCED != rc )
       {
          PD_LOG( PDERROR, "Session[%s] failed to recv msg size, "
                  "rc: %d", sessionName(), rc ) ;
@@ -944,7 +953,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
    // first: count, and return a cursor
    // second: getMore, and return count number
    // third: close cursor
-   if ( CMD_COUNT == cmdType )
+   if ( CMD_COUNT == cmdType || CMD_DISTINCT == cmdType )
    {
       needKillCursor = TRUE ;
    }

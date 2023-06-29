@@ -626,7 +626,7 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
       }
       else if ( rc == 0 )
       {
-         PD_LOG ( PDERROR, "Peer unexpected shutdown" ) ;
+         PD_LOG ( PDWARNING, "Peer unexpected shutdown" ) ;
          rc = SDB_NETWORK_CLOSE ;
          goto error ;
       }
