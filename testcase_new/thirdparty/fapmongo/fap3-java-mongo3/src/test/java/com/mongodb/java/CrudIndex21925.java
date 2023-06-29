@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoWriteException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.testng.Assert;
@@ -14,7 +16,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -113,8 +114,8 @@ public class CrudIndex21925 extends MongodbTestBase {
         try {
             cl.insertMany( list );
             Assert.fail( "exp fail but act success" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -38 ) {
+        } catch ( MongoBulkWriteException e ) {
+            if ( e.getWriteErrors().get( 0 ).getCode() != -38 ) {
                 throw e;
             }
         }
@@ -148,8 +149,8 @@ public class CrudIndex21925 extends MongodbTestBase {
         try {
             cl.updateMany( query, update );
             Assert.fail( "exp failed but act success!!!" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -38 ) {
+        } catch ( MongoWriteException e ) {
+            if ( e.getError().getCode() != -38 ) {
                 throw e;
             }
         }
@@ -160,8 +161,8 @@ public class CrudIndex21925 extends MongodbTestBase {
         try {
             cl.updateMany( query, update, new UpdateOptions().upsert( true ) );
             Assert.fail( "exp failed but act success!!!" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -38 ) {
+        } catch ( MongoWriteException e ) {
+            if ( e.getError().getCode() != -38 ) {
                 throw e;
             }
         }

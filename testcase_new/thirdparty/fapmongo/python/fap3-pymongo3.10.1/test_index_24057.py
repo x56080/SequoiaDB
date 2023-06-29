@@ -2,8 +2,8 @@
 Description   : seqDB-24057:创建/列取索引
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.05.08
-LastEditors   : XiaoNi Huang
+LastEditTime  : 2023.06.29
+LastEditors   : liuli
 '''
 #!/usr/bin/python3.5
 import bson
@@ -49,7 +49,7 @@ class TestIndex24057( utils.TestBase ):
       self.assertRegex( str( self.result ), self.idxName1 + '_1' )   
       self.assertRegex( str( self.result ), self.idxName2 )   
       self.assertRegex( str( self.result ), self.idxName3 )   
-      self.assertRegex( str( self.result ), '\$id' ) 
+      self.assertRegex( str( self.result ), '\_id_' ) 
 
       # list_indexes
       self.indexes = []

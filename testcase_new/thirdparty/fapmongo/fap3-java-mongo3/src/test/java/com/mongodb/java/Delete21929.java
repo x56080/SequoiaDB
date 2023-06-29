@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
+import com.mongodb.MongoWriteException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.testng.Assert;
@@ -17,7 +18,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -107,8 +107,8 @@ public class Delete21929 extends MongodbTestBase {
         try {
             cl.deleteMany( lt( "$", null ) );
             Assert.fail( "exp fail but act success!!!" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -6 ) {
+        } catch ( MongoWriteException e ) {
+            if ( e.getError().getCode() != -6 ) {
                 throw e;
             }
         }

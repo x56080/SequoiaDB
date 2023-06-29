@@ -289,7 +289,13 @@ function main ()
    for( var i = 0; i < docs.length; i++ )
    {
       var rc = cl.insert( docs[i] );
-      assert.eq( rc, { "ok": 0, "errmsg": "Invalid decimal", "code": -6 } );
+      assert.eq( rc, {
+         "nInserted": 0,
+         "writeError": {
+            "code": -6,
+            "errmsg": "Invalid decimal"
+         }
+      } );
       assert.eq( db.getLastError(), "Invalid decimal" );
    }
    assert.eq( cl.count(), 0 );

@@ -65,12 +65,12 @@ function main ()
 
    // cl.update(<filter>,<update>}), filter empty, multi:true
    var rc = cl.update( {}, { "b": "hello" }, { "multi": true } );
-   if( rc.toString().indexOf( "Multi update only works with $ operators" ) === -1 )
+   if( rc.toString().indexOf( "multi update is not supported for replacement-style update" ) === -1 )
    {
       throw new Error( "check fail, rc: " + rc.toString() );
    }
    var rc = db.getLastError();
-   assert.eq( rc, "Multi update only works with $ operators" );
+   assert.eq( rc, "multi update is not supported for replacement-style update" );
 
    // check results
    var rc = cl.find().sort( { "a": 1 } );

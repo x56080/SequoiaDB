@@ -2,8 +2,8 @@
  * @Description   : seqDB-24161:bulkWrite批量执行多个操作bulkWrite
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.04.22
- * @LastEditTime  : 2021.05.20
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.06.29
+ * @LastEditors   : liuli
  ******************************************************************************/
 main();
 
@@ -197,7 +197,11 @@ function bulkWrite05 ( cl )
    }
    catch( e )
    {
-      assert.eq( e.code, -6 );
+      assert.eq( e.nInserted, 1 );
+      assert.eq( e.nUpserted, 0 );
+      assert.eq( e.nMatched, 0 );
+      assert.eq( e.nModified, 0 );
+      assert.eq( e.nRemoved, 0 );
    }
    // check docs
    assert.eq( cl.count(), 11 );

@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import com.mongodb.MongoWriteException;
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -37,7 +38,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Accumulators;
@@ -201,8 +201,8 @@ public class AllDataType22419 extends MongodbTestBase {
             cl.insertOne( new Document( "decimalFiled1001",
                     Decimal128.parse( "1.5677788E-1001" ) ) );
             Assert.fail( "exp fail but act success!!!" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -6 ) {
+        } catch ( MongoWriteException e ) {
+            if ( e.getError().getCode() != -6 ) {
                 throw e;
             }
         }

@@ -40,7 +40,10 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: count failed: { "ok" : 0, "code" : -6, "errmsg" : "Invalid Argument" }' );
+      var errStr = e.toString().replace( 'Error: count failed: ', '' );
+      var errJson = JSON.parse( errStr );
+      delete errJson.ErrNodes;
+      assert.eq( errJson, { "ok": 0, "code": -6, "codeName": "Invalid Argument", "errmsg": "" } );
    }
 
    cl.drop();

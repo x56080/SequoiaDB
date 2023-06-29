@@ -4,6 +4,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mongodb.*;
 import org.bson.Document;
 import org.testng.Assert;
 import org.testng.ITestContext;
@@ -11,8 +12,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
@@ -100,8 +99,8 @@ public class Insert21926 extends MongodbTestBase {
         try {
             cl.insertOne( list.get( num / 2 ) );
             Assert.fail( "exp fail but act success" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -38 ) {
+        } catch ( MongoWriteException e ) {
+            if ( e.getError().getCode() != -38 ) {
                 throw e;
             }
         }
@@ -111,8 +110,8 @@ public class Insert21926 extends MongodbTestBase {
         try {
             cl.insertMany( list );
             Assert.fail( "exp fail but act success" );
-        } catch ( MongoCommandException e ) {
-            if ( e.getErrorCode() != -38 ) {
+        } catch ( MongoBulkWriteException e ) {
+            if ( e.getWriteErrors().get( 0 ).getCode() != -38 ) {
                 throw e;
             }
         }

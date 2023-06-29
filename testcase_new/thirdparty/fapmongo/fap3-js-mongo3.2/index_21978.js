@@ -37,7 +37,7 @@ function main ()
 
    // getIndexes
    var rc = cl.getIndexes();
-   assert.eq( JSON.stringify( rc.sort() ), ["[{\"v\":0,\"unique\":true,\"key\":{\"_id\":1},\"name\":\"$id\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"a\":1},\"name\":\"a_1\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"b\":1},\"name\":\"bIdx\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"unique\":true,\"key\":{\"c\":1},\"name\":\"c_1\",\"ns\":\"" + cl.toString() + "\"}]"] );
+   assert.eq( JSON.stringify( rc.sort() ), ["[{\"v\":0,\"key\":{\"_id\":1},\"name\":\"_id_\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"a\":1},\"name\":\"a_1\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"b\":1},\"name\":\"bIdx\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"c\":1},\"name\":\"c_1\",\"ns\":\"" + cl.toString() + "\"}]"] );
 
 
    // drop unique index
@@ -55,13 +55,19 @@ function main ()
 
    // drop id index
    var rc = cl.dropIndex( "$id" );
-   assert.eq( JSON.stringify( rc ), "{\"ok\":0,\"code\":-56,\"errmsg\":\"$id index can't be dropped\"}" );
+   delete rc.ErrNodes;
+   assert.eq( rc, {
+      "ok": 0,
+      "code": -56,
+      "codeName": "$id index can't be dropped",
+      "errmsg": "Cannot drop $id index, use dropIdIndex() instead"
+   } );
    var rc = db.getLastError();
-   assert.eq( rc, "$id index can't be dropped" );
+   assert.eq( rc, "Cannot drop $id index, use dropIdIndex() instead" );
 
    // getIndexes
    var rc = cl.getIndexes();
-   assert.eq( JSON.stringify( rc.sort() ), ["[{\"v\":0,\"unique\":true,\"key\":{\"_id\":1},\"name\":\"$id\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"a\":1},\"name\":\"a_1\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"unique\":true,\"key\":{\"c\":1},\"name\":\"c_1\",\"ns\":\"" + cl.toString() + "\"}]"] );
+   assert.eq( JSON.stringify( rc.sort() ), ["[{\"v\":0,\"key\":{\"_id\":1},\"name\":\"_id_\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"a\":1},\"name\":\"a_1\",\"ns\":\"" + cl.toString() + "\"},{\"v\":0,\"key\":{\"c\":1},\"name\":\"c_1\",\"ns\":\"" + cl.toString() + "\"}]"] );
 
 
    // exist duplicate key, create unique index

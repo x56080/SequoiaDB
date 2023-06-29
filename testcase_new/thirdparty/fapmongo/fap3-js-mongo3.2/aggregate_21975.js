@@ -139,7 +139,7 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: command failed: { "ok" : 0, "code" : -6, "errmsg" : "Invalid Argument" } : aggregate failed' );
+      assert.eq( e, 'Error: command failed: { "ok" : 0, "code" : -6, "codeName" : "Invalid Argument", "errmsg" : "" } : aggregate failed' );
    }
 
 

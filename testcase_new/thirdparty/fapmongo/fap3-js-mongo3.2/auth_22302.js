@@ -92,9 +92,14 @@ function main ()
 
       // user exist, create the user
       var rc = db.runCommand( { "createUser": users[0], "pwd": pwds[0], "roles": [] } );
-      assert.eq( rc, { "ok": 0, "code": -295, "errmsg": "The specified user already exist" } );
+      assert.eq( rc, {
+         "ok": 0,
+         "code": -295,
+         "codeName": "The specified user already exist",
+         "errmsg": ""
+      } );
       var rc = db.getLastError();
-      assert.eq( rc, "The specified user already exist" );
+      assert.eq( rc, "" );
 
 
       // drop the user
@@ -109,10 +114,10 @@ function main ()
       }
       catch( e )
       {
-         assert.eq( e, 'Error: user specified is not exist or password is invalid' );
+         assert.eq( e, 'Error' );
       }
       var rc = db.getLastError();
-      assert.eq( rc, "user specified is not exist or password is invalid" );
+      assert.eq( rc, "" );
 
       // createUser again after drop the user
       var rc = db.runCommand( { "createUser": users[0], "pwd": pwds[0], "roles": [] } );
