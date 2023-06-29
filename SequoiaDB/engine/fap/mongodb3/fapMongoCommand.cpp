@@ -5861,6 +5861,15 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          goto error ;
       }
 
+      if ( 0 == ossStrcmp( "_id_", indexName.c_str() ) )
+      {
+         indexName = "$id" ;
+      }
+      else if ( 0 == ossStrcmp( "%24shard", indexName.c_str() ) )
+      {
+         indexName = "$shard" ;
+      }
+
       cond = BSON( FIELD_NAME_COLLECTION <<
                    _clFullName.c_str() <<
                    FIELD_NAME_INDEX <<
