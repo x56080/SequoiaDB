@@ -120,11 +120,19 @@ namespace engine
          ss << "Selector:"
             << _selector.toString() << '\n';
       }
-      if ( NULL != _conditionNode )
+      if ( NULL != _conditionNode || !_condition.isEmpty() )
       {
-         qgmConditionNodeHelper tree( _conditionNode ) ;
-         ss << "Condition:"
-            << tree.toJson() << '\n';
+         if ( !_condition.isEmpty() )
+         {
+            ss << "Condition:"
+               << _condition.toString() << '\n' ;
+         }
+         else
+         {
+            qgmConditionNodeHelper tree( _conditionNode ) ;
+            ss << "Condition:"
+               << tree.toJson() << '\n';
+         }
       }
       if ( !_orderby.isEmpty() )
       {

@@ -2878,7 +2878,9 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
                            resObj.getStringField(
                            FAP_MONGO_FIELD_NAME_ERRMSG ) <<
                            FAP_MONGO_FIELD_NAME_CODE <<
-                           resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) ) ;
+                           resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) <<
+                           FAP_MONGO_FIELD_NAME_CODENAME <<
+                           resObj.getStringField( FAP_MONGO_FIELD_NAME_CODENAME ) ) ;
          }
          catch( std::exception &e )
          {
@@ -4486,6 +4488,7 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
          builder.append( FAP_MONGO_FIELD_NAME_ERRMSG,
                          "Exclusion fields is not supported" ) ;
          builder.append( FAP_MONGO_FIELD_NAME_CODE, rc ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODENAME, getErrDesp( rc ) ) ;
          errorObj = builder.obj() ;
          goto error ;
       }
@@ -7807,6 +7810,8 @@ INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bob.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_CODENAME,
+                 _errorInfoObj.getStringField( FAP_MONGO_FIELD_NAME_CODENAME ) ) ;
          bob.append( FAP_MONGO_FIELD_NAME_ERR,
                  _errorInfoObj.getStringField( FAP_MONGO_FIELD_NAME_ERRMSG ) ) ;
       }

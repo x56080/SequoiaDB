@@ -401,7 +401,7 @@ namespace fap
                }
                else if ( 0 == ossStrcmp( e.fieldName(), OP_ERR_DETAIL ) )
                {
-                  if ( !addErrMsg )
+                  if ( !addErrMsg && String == e.type() && *(e.valuestr()) )
                   {
                      builder.appendAs( e, FAP_MONGO_FIELD_NAME_ERRMSG ) ;
                      addErrMsg = TRUE ;
