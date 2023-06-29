@@ -2,8 +2,8 @@
  * @Description   : seqDB-24161:bulkWrite批量执行多个操作bulkWrite
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.04.22
- * @LastEditTime  : 2023.06.29
- * @LastEditors   : liuli
+ * @LastEditTime  : 2021.05.20
+ * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 main();
 
@@ -15,7 +15,7 @@ function main ()
 
    cl.bulkWrite( [{ "insertOne": { "document": { 'init': 1 } } }] );
    cl.bulkWrite( [{ "deleteMany": { "filter": {} } }] );
-   assert.eq( cl.count(), 0 );
+   assert.eq( cl.countDocuments( {} ), 0 );
 
    bulkWrite01( cl );
    bulkWrite02( cl );
@@ -41,7 +41,7 @@ function bulkWrite01 ( cl )
       { "deleteMany": { "filter": { "$and": [{ "a": { "$gte": 8 } }, { "a": { "$lt": 10 } }] } } }] );
    checkBulkWriteReturn( rc, 1, { "0": 11 }, 4, 3, 0, {} );
    // check docs
-   assert.eq( cl.count(), 8 );
+   assert.eq( cl.countDocuments( {} ), 8 );
    var cursor = cl.find().sort( { '_id': 1 } );
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 2 },
@@ -72,7 +72,7 @@ function bulkWrite02 ( cl )
    var rc = cl.bulkWrite( requests );
    checkBulkWriteReturn( rc, 1, { "0": 11 }, 0, 3, 3, { "1": 12, "2": 13, "3": 14 } );
    // check docs
-   assert.eq( cl.count(), 11 );
+   assert.eq( cl.countDocuments( {} ), 11 );
    var cursor = cl.find().sort( { '_id': 1 } );
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
@@ -116,7 +116,7 @@ function bulkWrite03 ( cl )
    var rc = cl.bulkWrite( requests );
    checkBulkWriteReturn( rc, 3, { "0": 11, "1": 12, "2": 13 }, 6, 3, 0, {} );
    // check docs
-   assert.eq( cl.count(), 10 );
+   assert.eq( cl.countDocuments( {} ), 10 );
    var cursor = cl.find().sort( { '_id': 1 } );
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
@@ -159,7 +159,7 @@ function bulkWrite04 ( cl )
    var rc = cl.bulkWrite( requests );
    checkBulkWriteReturn( rc, 3, { "0": 11, "1": 12, "2": 13 }, 6, 3, 3, { 8: 15, 10: 16, 5: 14 } );
    // check docs
-   assert.eq( cl.count(), 13 );
+   assert.eq( cl.countDocuments( {} ), 13 );
    var cursor = cl.find().sort( { '_id': 1 } );
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
@@ -204,7 +204,7 @@ function bulkWrite05 ( cl )
       assert.eq( e.nRemoved, 0 );
    }
    // check docs
-   assert.eq( cl.count(), 11 );
+   assert.eq( cl.countDocuments( {} ), 11 );
    var cursor = cl.find().sort( { '_id': 1 } );
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
