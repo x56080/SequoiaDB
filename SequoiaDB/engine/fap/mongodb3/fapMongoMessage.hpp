@@ -401,21 +401,40 @@ typedef _mongoCommandResponse mongoCommandResponse ;
 // Allocate a space to store response, no matter what kind of response.
 #define MONG_RESPONSE_MAX_SIZE 36
 
+/*
+   _mongoResponseBuffer define
+*/
 struct _mongoResponseBuffer
 {
    CHAR data[MONG_RESPONSE_MAX_SIZE] ;
    INT32 usedSize ;
 
+   BOOLEAN hasNewError ;
+   BSONObj objNewError ;
+
    _mongoResponseBuffer()
    {
       ossMemset( data, 0, MONG_RESPONSE_MAX_SIZE ) ;
       usedSize = 0 ;
+      hasNewError = FALSE ;
    }
 
    void setData( const CHAR* p, INT32 size )
    {
       ossMemcpy( data, p, size ) ;
       usedSize = size ;
+   }
+
+   void setOK()
+   {
+      hasNewError = TRUE ;
+      objNewError = BSONObj() ;
+   }
+
+   void setNewError( const BSONObj &errorObj )
+   {
+      hasNewError = TRUE ;
+      objNewError = errorObj ;
    }
 } ;
 typedef _mongoResponseBuffer mongoResponseBuffer ;

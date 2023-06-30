@@ -1201,6 +1201,12 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to build response, rc: %d",
                    sessionName(), rc ) ;
+
+      /// when has set new eror, need update the error
+      if ( headerBuf.hasNewError )
+      {
+         errObj = headerBuf.objNewError ;
+      }
    }
    else
    {

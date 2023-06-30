@@ -2055,6 +2055,11 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
          // reply: { n: 1, ok: 1 }
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bob.append( "n", (INT32)_deletedNum ) ;
+         /// clear error obj
+         if ( SDB_OK != sdbReply.flags )
+         {
+            headerBuf.setOK() ;
+         }
       }
       else
       {
@@ -2386,6 +2391,9 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bob.append( "n", 0 ) ;
          bob.append( "nModified", 0 ) ;
+
+         /// clear error obj
+         headerBuf.setOK() ;
       }
       else
       {
@@ -2865,6 +2873,8 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
            SDB_DMS_NOTEXIST == sdbReply.flags )
       {
          bodyBuf = engine::rtnContextBuf() ;
+         /// ignore error
+         headerBuf.setOK() ;
       }
       else if ( SDB_DMS_EOC != sdbReply.flags )
       {
@@ -3150,6 +3160,8 @@ INT32 _mongoFindCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          bodyBuf = engine::rtnContextBuf() ;
       }
+      /// clear error
+      headerBuf.setOK() ;
 
       rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -3509,6 +3521,8 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
    else if ( SDB_DMS_EOC == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf() ;
+      /// clear error
+      headerBuf.setOK() ;
    }
 
    res.header.msgLen = sizeof( mongoResponse ) + bodyBuf.size() ;
@@ -3543,6 +3557,11 @@ INT32 _mongoGetmoreCommand::_buildQueryReply( const MsgOpReply &sdbReply,
 
    if ( SDB_OK == sdbReply.flags || SDB_DMS_EOC == sdbReply.flags )
    {
+      if ( SDB_OK != sdbReply.flags )
+      {
+         /// clear error
+         headerBuf.setOK() ;
+      }
       rc = _buildNextBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build next batch, rc: %d", rc ) ;
@@ -3575,6 +3594,11 @@ INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
 
    if ( SDB_OK == sdbReply.flags || SDB_DMS_EOC == sdbReply.flags )
    {
+      /// clear error
+      if ( SDB_OK != sdbReply.flags )
+      {
+         headerBuf.setOK() ;
+      }
       rc = _buildNextBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build next batch, rc: %d", rc ) ;
@@ -4178,6 +4202,8 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bob.append( "n", 0 ) ;
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         /// clear error
+         headerBuf.setOK() ;
       }
    }
    catch( std::exception &e )
@@ -4689,6 +4715,12 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                bodyBuf = engine::rtnContextBuf() ;
             }
 
+            if ( SDB_OK != sdbReply.flags )
+            {
+               /// clear error
+               headerBuf.setOK() ;
+            }
+
             rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to build first batch, rc: %d", rc ) ;
@@ -4727,6 +4759,8 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bodyBuf = engine::rtnContextBuf( BSON( "result" << BSONArray() <<
                                                    FAP_MONGO_FIELD_NAME_OK <<
                                                    1 ) ) ;
+            /// clear error
+            headerBuf.setOK() ;
          }
 
          rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
@@ -4887,6 +4921,8 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          bodyBuf = engine::rtnContextBuf( BSON( "values" << BSONArray() <<
                                                 FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         /// clear error
+         headerBuf.setOK() ;
       }
    }
    catch ( std::exception &e )
@@ -5135,9 +5171,13 @@ INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
       else if ( SDB_DMS_NOTEXIST == sdbReply.flags ||
                 SDB_DMS_CS_NOTEXIST == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 0 <<
-                                                FAP_MONGO_FIELD_NAME_ERRMSG <<
-                                                "ns not found" ) ) ;
+         BSONObj newError = BSON( FAP_MONGO_FIELD_NAME_OK << 0 <<
+                                  FAP_MONGO_FIELD_NAME_CODE << sdbReply.flags <<
+                                  FAP_MONGO_FIELD_NAME_CODENAME << getErrDesp( sdbReply.flags ) <<
+                                  FAP_MONGO_FIELD_NAME_ERRMSG << "ns not found" ) ;
+         bodyBuf = engine::rtnContextBuf( newError ) ;
+         /// reset error
+         headerBuf.setNewError( newError ) ;
       }
    }
    catch ( std::exception &e )
@@ -5457,6 +5497,11 @@ INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
         SDB_DMS_NOTEXIST == sdbReply.flags ||
         SDB_DMS_CS_NOTEXIST == sdbReply.flags )
    {
+      if ( SDB_OK != sdbReply.flags )
+      {
+         /// clear error
+         headerBuf.setOK() ;
+      }
       rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build first batch, rc: %d", rc ) ;
@@ -5688,6 +5733,11 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
            SDB_IXM_EXIST_COVERD_ONE == sdbReply.flags ||
            SDB_OPTION_NOT_SUPPORT == sdbReply.flags )
       {
+         if ( SDB_OK != sdbReply.flags )
+         {
+            /// clear error
+            headerBuf.setOK() ;
+         }
          rc = mongoRebuildOKReply( bodyBuf ) ;
          if ( rc )
          {
@@ -5870,6 +5920,11 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags ||
            SDB_IXM_NOTEXIST == sdbReply.flags )
       {
+         if ( SDB_OK != sdbReply.flags )
+         {
+            /// clear error
+            headerBuf.setOK() ;
+         }
          rc = mongoRebuildOKReply( bodyBuf ) ;
          if ( rc )
          {
@@ -6001,8 +6056,9 @@ INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
       else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf(
-            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         /// clear error
+         headerBuf.setOK() ;
       }
    }
    catch ( std::exception &e )
@@ -6686,6 +6742,8 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
          BSONObj obj = BSON( FAP_MONGO_FIELD_NAME_USERS << BSONArray() <<
                              FAP_MONGO_FIELD_NAME_OK << 1 ) ;
          bodyBuf = engine::rtnContextBuf( obj ) ;
+         /// clear error
+         headerBuf.setOK() ;
       }
    }
    catch ( std::exception &e )
@@ -6873,6 +6931,7 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
    BSONObjBuilder bob ;
    BSONObj replyObj ;
    BOOLEAN rebuildBuf = FALSE ;
+   BOOLEAN needSetError = FALSE ;
    INT32 rc = SDB_OK ;
 
    try
@@ -6890,6 +6949,7 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
                      "Authentication has been disabled, "
                      "you don't need to execute 'db.auth()' " ) ;
          rebuildBuf = TRUE ;
+         needSetError = TRUE ;
       }
       else
       {
@@ -6919,6 +6979,7 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
             bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
             rebuildBuf = TRUE ;
+            needSetError = TRUE ;
          }
          else if ( SDB_AUTH_INCOMPATIBLE == sdbReply.flags )
          {
@@ -6927,6 +6988,7 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bob.append( FAP_MONGO_FIELD_NAME_ERRMSG,
                         getErrDesp( SDB_AUTH_INCOMPATIBLE ) ) ;
             rebuildBuf = TRUE ;
+            needSetError = TRUE ;
          }
       }
 
@@ -6934,7 +6996,14 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // Only when rebuildBuf is true can set bodyBuf, otherwise the original
          // content will be overwritten with empty bson.
-         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         BSONObj newObj = bob.obj() ;
+         bodyBuf = engine::rtnContextBuf( newObj ) ;
+
+         if ( needSetError )
+         {
+            /// set new error
+            headerBuf.setNewError( newObj ) ;
+         }
       }
    }
    catch ( std::exception &e )
@@ -7128,6 +7197,7 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
    PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
    BSONObjBuilder bob ;
    BOOLEAN rebuildBuf = FALSE ;
+   BOOLEAN needSetError = FALSE ;
    INT32 rc = SDB_OK ;
 
    try
@@ -7160,6 +7230,7 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
             bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
             rebuildBuf = TRUE ;
+            needSetError = TRUE ;
          }
       }
       else if ( MONGO_AUTH_STEP3 == _step )
@@ -7175,7 +7246,14 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // Only when rebuildBuf is true can set bodyBuf, otherwise the original
          // content will be overwritten with empty bson.
-         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         BSONObj objNew = bob.obj() ;
+         bodyBuf = engine::rtnContextBuf( objNew ) ;
+
+         if ( needSetError )
+         {
+            /// reset error
+            headerBuf.setNewError( objNew ) ;
+         }
       }
    }
    catch ( std::exception &e )
@@ -7307,6 +7385,11 @@ INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
    if ( SDB_OK      == sdbReply.flags ||
         SDB_DMS_EOC == sdbReply.flags )
    {
+      if ( SDB_OK != sdbReply.flags )
+      {
+         /// clear error
+         headerBuf.setOK() ;
+      }
       rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
       if ( rc )
       {
@@ -7436,6 +7519,8 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          bodyBuf = engine::rtnContextBuf( BSON( "databases" << BSONArray() <<
                                           FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         /// clear error
+         headerBuf.setOK() ;
       }
    }
    catch ( std::exception &e )
@@ -7817,6 +7902,9 @@ INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
 
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+
+      /// need set _errorInfoObj to new error
+      headerBuf.setNewError( _errorInfoObj ) ;
    }
    catch ( std::exception &e )
    {
@@ -8294,6 +8382,12 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
          resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+
+         if ( SDB_OK != sdbReply.flags )
+         {
+            /// clear error
+            headerBuf.setOK() ;
+         }
       }
 
       rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;

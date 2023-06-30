@@ -122,38 +122,16 @@ struct mongoSessionCtx
 
    void resetError()
    {
-      /*
-        errorObj can't reset to empty here.
-        After each command is executed( we call this command A command ),
-        the client will actively execute the isMater command.
-
-        eg: We reset errorObj to empty here.
-
-            1. If we fail to execute A command,
-               errorObj = { ok: 0, errmsg: Invalid Argument, code: -6 }
-            2. Before executing the isMaster command, we will call
-               resetError()
-               {
-                  // Now errorObj = { ok: 0, errmsg: Invalid Argument, code: -6 }
-                  lastErrorObj = errorObj.getOwned()
-                  Next we reset errorObj to empty
-               }
-            3. Executing the isMaster command, but the errorObj doesn't change.
-            4. Before executing the next command, we will call
-               resetError()
-               {
-                  // Now errorObj = BSONObj()
-                  lastErrorObj = errorObj.getOwned()
-                  Next we reset errorObj to empty
-               }
-
-            When we execute the getLastError command,
-            the result is always empty.
-            So we can't reset errorObj to empty here.
-      */
-      lastErrorObj = errorObj.getOwned() ;
+      if ( errorObj.isEmpty() )
+      {
+         lastErrorObj = BSONObj() ;
+      }
+      else
+      {
+         lastErrorObj = errorObj.getOwned() ;
+         errorObj = BSONObj() ;
+      }
    }
-
 } ;
 
 /* The id of cursor, Mongo client name it "cusorId",
