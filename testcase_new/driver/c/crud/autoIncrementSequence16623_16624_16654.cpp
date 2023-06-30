@@ -220,6 +220,15 @@ TEST_F( autoIncrementSequence16623_16624_16654, createDropAutoIncrement16623_166
   bson_append_string( &matcher, "Name", sequenceName ) ;
   bson_finish( &matcher ) ;
   rc = sdbGetList( db, SDB_LIST_SEQUENCES, &matcher, NULL, NULL, &cursor ) ;
+  if ( rc != SDB_OK )
+  {
+    printf( "fail to list %d\n", rc ) ;
+    bson errObj ;
+    bson_init( &errObj ) ;
+    sdbGetLastErrorObj( db, &errObj ) ;
+    bson_print( &errObj ) ;
+    bson_destroy( &errObj ) ;
+  }
   ASSERT_EQ( SDB_OK, rc ) << "fail to list" << rc ;
   rc = sdbNext( cursor, &autoIncObj ) ;
   bson_print( &autoIncObj ) ;
