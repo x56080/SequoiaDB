@@ -43,7 +43,7 @@ function main ()
       var errStr = e.toString().replace( 'Error: count failed: ', '' );
       var errJson = JSON.parse( errStr );
       delete errJson.ErrNodes;
-      assert.eq( errJson, { "ok": 0, "code": -6, "codeName": "Invalid Argument", "errmsg": "" } );
+      assert.eq( errJson, { "ok": 0, "code": -6, "codeName": "Invalid Argument", "errmsg": "Invalid Argument" } );
    }
 
    cl.drop();

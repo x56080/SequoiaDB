@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.UncategorizedMongoDbException;
 import org.springframework.data.mongodb.core.IndexOperations;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.IndexInfo;
@@ -46,11 +46,11 @@ public class CrudIndex21925 extends MongodbTestBase {
         // 用户未创建索引，列取索引，默认存在$id索引
         List< IndexInfo > list = indexOperations.getIndexInfo();
         Assert.assertEquals( list.size(), 1, list.toString() );
-        Assert.assertEquals( list.get( 0 ).getName(), "$id" );
+        Assert.assertEquals( list.get( 0 ).getName(), "_id_" );
 
         String[] indexNames1 = { "ascIndex21925", "compoundIndex21925",
                 "descIndex21925" };
-        String[] indexNames2 = { "$id", "ascIndex21925", "b_1", "c_-1",
+        String[] indexNames2 = { "_id_", "ascIndex21925", "b_1", "c_-1",
                 "compoundIndex21925", "descIndex21925", "f_-1_g_1" };
 
         // 指定索引名，单个字段，创建强制唯一升序索引
@@ -118,7 +118,7 @@ public class CrudIndex21925 extends MongodbTestBase {
         try {
             mongoTemplate.insert( list, clName );
             Assert.fail( "exp fail but act success" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-38" ) ) {
                 throw e;
             }
@@ -155,7 +155,7 @@ public class CrudIndex21925 extends MongodbTestBase {
             mongoTemplate.updateMulti( query4, update4, BasicDBObject.class,
                     clName );
             Assert.fail( "exp failed but act success!!!" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-38" ) ) {
                 throw e;
             }
@@ -168,7 +168,7 @@ public class CrudIndex21925 extends MongodbTestBase {
             mongoTemplate.upsert( query5, update5, BasicDBObject.class,
                     clName );
             Assert.fail( "exp failed but act success!!!" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-38" ) ) {
                 throw e;
             }

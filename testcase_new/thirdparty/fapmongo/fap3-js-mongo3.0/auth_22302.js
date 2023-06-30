@@ -72,19 +72,20 @@ function main ()
       {
          expRc.push( { "user": users[i] } );
       }
-      assert.eq( JSON.stringify( rc.sort( sortBy( "user" ) ) ), JSON.stringify( expRc ) );
+      assert.eq( rc.sort( sortBy( "user" ) ), expRc );
 
       // usersInfo
       // get all info
       var rc = db.runCommand( { "usersInfo": 1 } );
       rc["users"] = rc["users"].sort( sortBy( "user" ) );
-      assert.eq( JSON.stringify( rc ), '{"users":' + JSON.stringify( expRc ) + ',"ok":1}' );
+      assert.eq( rc, { "users": expRc, "ok": 1 } );
       // get one info
       var rc = db.runCommand( { "usersInfo": [{ "user": users[0] }] } );
-      assert.eq( JSON.stringify( rc ), '{"users":' + JSON.stringify( expRc.slice( 0, 1 ) ) + ',"ok":1}' );
+      assert.eq( rc, { "users": expRc.slice( 0, 1 ), "ok": 1 } );
       // get more info
       var rc = db.runCommand( { "usersInfo": [{ "user": users[0] }, { "user": users[1] }] } );
-      assert.eq( JSON.stringify( rc ), '{"users":' + JSON.stringify( expRc.slice( 0, 2 ) ) + ',"ok":1}' );
+      rc["users"].sort( sortBy( "user" ) );
+      assert.eq( rc, { "users": expRc.slice( 0, 2 ), "ok": 1 } );
       // user not exist      
       var rc = db.runCommand( { "usersInfo": [{ "user": "notExist" }] } );
       assert.eq( rc, { "users": [], "ok": 1 } );
@@ -96,10 +97,10 @@ function main ()
          "ok": 0,
          "code": -295,
          "codeName": "The specified user already exist",
-         "errmsg": ""
+         "errmsg": "The specified user already exist"
       } );
       var rc = db.getLastError();
-      assert.eq( rc, "" );
+      assert.eq( rc, "The specified user already exist" );
 
 
       // drop the user
@@ -114,10 +115,10 @@ function main ()
       }
       catch( e )
       {
-         assert.eq( e, 'Error' );
+         assert.eq( e, 'Error: user specified is not exist or password is invalid' );
       }
       var rc = db.getLastError();
-      assert.eq( rc, "" );
+      assert.eq( rc, "user specified is not exist or password is invalid" );
 
       // createUser again after drop the user
       var rc = db.runCommand( { "createUser": users[0], "pwd": pwds[0], "roles": [] } );

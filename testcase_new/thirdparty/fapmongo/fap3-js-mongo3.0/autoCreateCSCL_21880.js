@@ -2,7 +2,7 @@
  * @Description   : seqDB-21880:自动创建CS/CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2020.02.24
- * @LastEditTime  : 2023.06.29
+ * @LastEditTime  : 2023.06.30
  * @LastEditors   : liuli
  ******************************************************************************/
 main();
@@ -101,7 +101,7 @@ function repeatCreateCL ( db, cl, clName )
    cl.insert( { "a": 1 } );
    var rc = db.createCollection( clName );
    delete rc.ErrNodes;
-   assert.eq( rc, { "ok": 0, "code": -22, "codeName": "Collection already exists", "errmsg": "" } );
+   assert.eq( rc, { "ok": 0, "code": -22, "codeName": "Collection already exists", "errmsg": "Collection already exists" } );
    var rc = db.getLastError();
-   assert.eq( rc, "" );
+   assert.eq( rc, "Collection already exists" );
 }

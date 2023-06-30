@@ -30,7 +30,7 @@ function main ()
       }
       catch( e )
       {
-         assert.eq( e, "Error" );
+         assert.eq( e, "Error: user specified is not exist or password is invalid" );
       }
    }
    cl.drop();

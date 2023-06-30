@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
-import org.springframework.data.mongodb.UncategorizedMongoDbException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.testng.Assert;
@@ -96,7 +96,7 @@ public class Delete21929 extends MongodbTestBase {
             mongoTemplate.remove( new Query( Criteria.where( "$" ).is( 0 ) ),
                     clName );
             Assert.fail( "exp fail but act success!!!" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-6" ) ) {
                 throw e;
             }

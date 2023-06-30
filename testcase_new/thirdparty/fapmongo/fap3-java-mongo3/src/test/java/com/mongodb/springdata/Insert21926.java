@@ -3,8 +3,8 @@ package com.mongodb.springdata;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.UncategorizedMongoDbException;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Query;
 import org.testng.Assert;
@@ -98,7 +98,7 @@ public class Insert21926 extends MongodbTestBase {
         try {
             mongoTemplate.insert( list.get( num / 2 ), clName );
             Assert.fail( "exp fail but act success" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-38" ) ) {
                 throw e;
             }
@@ -107,7 +107,7 @@ public class Insert21926 extends MongodbTestBase {
         try {
             mongoTemplate.insert( list, clName );
             Assert.fail( "exp fail but act success" );
-        } catch ( UncategorizedMongoDbException e ) {
+        } catch ( DataIntegrityViolationException e ) {
             if ( !e.getMessage().contains( "-38" ) ) {
                 throw e;
             }

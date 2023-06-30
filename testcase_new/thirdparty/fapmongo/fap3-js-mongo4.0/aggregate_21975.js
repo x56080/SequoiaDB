@@ -31,7 +31,8 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: command failed: { "ok" : 0, "errmsg" : "Exclusion fields is not supported", "code" : -32 } : aggregate failed' );
+      var errorJson = convertErrorToJSON( e );
+      assert.eq( errorJson, { "ok": 0, "errmsg": "Exclusion fields is not supported", "code": -32, "codeName": "Option is not supported yet" } );
    }
 
    // _id:1
@@ -45,7 +46,8 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: command failed: { "ok" : 0, "errmsg" : "Exclusion fields is not supported", "code" : -32 } : aggregate failed' );
+      var errorJson = convertErrorToJSON( e );
+      assert.eq( errorJson, { "ok": 0, "errmsg": "Exclusion fields is not supported", "code": -32, "codeName": "Option is not supported yet" } );
    }
 
    // multi field   
@@ -76,7 +78,8 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: command failed: { "ok" : 0, "errmsg" : "Exclusion fields is not supported", "code" : -32 } : aggregate failed' );
+      var errorJson = convertErrorToJSON( e );
+      assert.eq( errorJson, { "ok": 0, "errmsg": "Exclusion fields is not supported", "code": -32, "codeName": "Option is not supported yet" } );
    }
 
 
@@ -139,7 +142,8 @@ function main ()
    }
    catch( e )
    {
-      assert.eq( e, 'Error: command failed: { "ok" : 0, "code" : -6, "codeName" : "Invalid Argument", "errmsg" : "" } : aggregate failed' );
+      var errorJson = convertErrorToJSON( e );
+      assert.eq( errorJson, { "ok": 0, "code": -6, "codeName": "Invalid Argument", "errmsg": "Invalid Argument" } );
    }
 
 
@@ -155,4 +159,15 @@ function checkResults ( rc, expDocs )
       docs.push( doc );
    }
    assert.eq( JSON.stringify( docs.sort() ), expDocs );
+}
+
+// 转换错误信息为JSON格式
+function convertErrorToJSON ( e )
+{
+   var errorString = e.toString();
+   var startIndex = errorString.indexOf( '{' );
+   var endIndex = errorString.lastIndexOf( '}' ) + 1;
+   var trimmedErrorString = errorString.substring( startIndex, endIndex );
+   var errorJson = JSON.parse( trimmedErrorString );
+   return errorJson;
 }
