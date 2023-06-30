@@ -21,7 +21,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: extra \',\'"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: extra \',\'"';
    var expLogInfo = 'Syntax Error: extra \',\'';
    checkSdbimportLog( matchInfos, expLogInfo );
 

@@ -25,12 +25,12 @@ function test ()
    checkCLData( cl, expRecs );
 
    //check {a:{'$numberLong':'-9223372036854775809'}} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "the \'-9223372036854775809\' is out of the range of numberLong"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "the \'-9223372036854775809\' is out of the range of numberLong"';
    var expLogInfo = 'Failed to read numberLong, the \'-9223372036854775809\' is out of the range of numberLong';
    checkSdbimportLog( matchInfos, expLogInfo );
 
    //check {c:{'$numberLong':'9223372036854775808'}} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "the \'9223372036854775808\' is out of the range of numberLong"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "the \'9223372036854775808\' is out of the range of numberLong"';
    var expLogInfo = 'Failed to read numberLong, the \'9223372036854775808\' is out of the range of numberLong';
    checkSdbimportLog( matchInfos, expLogInfo );
 

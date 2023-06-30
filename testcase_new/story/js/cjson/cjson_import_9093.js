@@ -20,7 +20,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: invalid key"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Syntax Error: invalid key"';
    var expLogInfo = 'Syntax Error: invalid key';
    checkSdbimportLog( matchInfos, expLogInfo );
 

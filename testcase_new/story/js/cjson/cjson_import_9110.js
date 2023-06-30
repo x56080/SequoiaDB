@@ -23,7 +23,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check {date1:SdbDate2015-06-05)} error of sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
    var expLogInfo = 'ReferenceError: \'\' is not defined';
    checkSdbimportLog( matchInfos, expLogInfo );
 
@@ -38,7 +38,7 @@ function test ()
    var importRes = 0;
    checkImportReturn( rcInfos, parseFail, importRes );
 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "ReferenceError: \'\' is not defined"';
    var expLogInfo = 'ReferenceError: \'\' is not defined';
    checkSdbimportLog( matchInfos, expLogInfo );
 

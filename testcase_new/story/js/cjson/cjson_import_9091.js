@@ -20,7 +20,7 @@ function test ()
    checkImportReturn( rcInfos, parseFail, importRes );
 
    //check sdbimport.log 
-   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Failed to parse JSON key"';
+   var matchInfos = 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Failed to parse JSON key"';
    var expLogInfo = 'Failed to parse JSON key';
    checkSdbimportLog( matchInfos, expLogInfo );
 
