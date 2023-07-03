@@ -1,6 +1,7 @@
 const MongoDB_Dump = "mongodb.archive";
 const SequoiaDB_Dump = "sequoiadb.archive";
 const Test_DB = "mgodatagen_test";
+const MongoShake_DB = "mongoshake";
 const DataGen_Config_List = [
   "bigData.json",
   "bsonType.json",
@@ -36,15 +37,10 @@ function genDataToMongoDB(workerNum) {
         " --port=" +
         MongoDB_Port
     );
+    if (printOutput) print("\n" + ret + "\n");
   }
 
   print("\nFinish generating " + configFile + "data to MongoDB\n");
-
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
 }
 
 function genDataToSequoiaDB(workerNum) {
@@ -67,15 +63,10 @@ function genDataToSequoiaDB(workerNum) {
         " --port=" +
         SequoiaDB_FAP_Port
     );
+    if (printOutput) print("\n" + ret + "\n");
   }
 
   print("\nFinish generating " + configFile + "data to SequoiaDB\n");
-
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
 }
 
 function dumpDataFromMongoDB(database) {
@@ -97,13 +88,9 @@ function dumpDataFromMongoDB(database) {
       MongoDB_Port
   );
 
-  print("\nFinish dumping data from MongoDB\n");
+  if (printOutput) print("\n" + ret + "\n");
 
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
+  print("\nFinish dumping data from MongoDB\n");
 }
 
 function dumpDateFromSequoiaDB(database) {
@@ -125,13 +112,9 @@ function dumpDateFromSequoiaDB(database) {
       SequoiaDB_FAP_Port
   );
 
-  print("\nFinish dumping data from SequoiaDB\n");
+  if (printOutput) print("\n" + ret + "\n");
 
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
+  print("\nFinish dumping data from SequoiaDB\n");
 }
 
 function restoreDataToMongoDB(archiveFile, database) {
@@ -152,13 +135,9 @@ function restoreDataToMongoDB(archiveFile, database) {
       MongoDB_Port
   );
 
-  print("\nFinish restoring " + archiveFile + " to MongoDB\n");
+  if (printOutput) print("\n" + ret + "\n");
 
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
+  print("\nFinish restoring " + archiveFile + " to MongoDB\n");
 }
 
 function restoreDataToSequoiaDB(archiveFile, database) {
@@ -179,16 +158,27 @@ function restoreDataToSequoiaDB(archiveFile, database) {
       SequoiaDB_FAP_Port
   );
 
-  print("\nFinish restoring " + archiveFile + " to SequoiaDB\n");
+  if (printOutput) print("\n" + ret + "\n");
 
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
+  print("\nFinish restoring " + archiveFile + " to SequoiaDB\n");
 }
 
-function checkSequoiadbData(database) {
+function waitSequoiaDBDrop(database, seconds) {
+  while (seconds-- > 0) {
+    sleep(1000);
+    var db = new Sdb(SequoiaDB_Host, SequoiaDB_Port);
+    try {
+      db.getCS(database);
+    } catch (e) {
+      if (-34 == e) return;
+    }
+  }
+
+  print("\nWait SequoiaDB drop database timeout\n");
+  throw new Error("Wait SequoiaDB drop database timeout");
+}
+
+function checkSequoiadbData(database, seconds) {
   // store clConf
   var clConf = [];
   for (var ele in DataGen_Config_List) {
@@ -201,41 +191,66 @@ function checkSequoiadbData(database) {
     }
   }
 
-  // get clList in SequoiaDB
-  var db = new Sdb(SequoiaDB_Host, SequoiaDB_Port);
-  var cs = db.getCS(database);
-  var clList = [];
-  var clArray = cs.listCollections().toArray();
-  for (var clObj in clArray) {
-    clList.push(JSON.parse(clArray[clObj]).Name.split(".")[1]);
-  }
+  while (seconds-- > 0) {
+    sleep(1000);
+    checkSuccess = true;
+    var clList = [];
+    var cs;
 
-  // compare clConf and clList
-  for (var ele in clConf) {
-    var hasCL = false;
-    for (var cl in clList) {
-      if (clConf[ele].collection == clList[cl]) {
-        hasCL = true;
-        if (clConf[ele].count != cs.getCL(clList[cl]).count()) {
-          print(
-            "Check data failed, count is not equal, collection name is " + clConf[ele].collection
-          );
-          // return false;
+    // get clList in SequoiaDB
+    var db = new Sdb(SequoiaDB_Host, SequoiaDB_Port);
+    try {
+      cs = db.getCS(database);
+    } catch (e) {
+      if (1 == seconds) {
+        print("Check data failed, database " + database + " not exist");
+        throw new Error("Check data failed");
+      }
+      continue;
+    }
+    var clArray = cs.listCollections().toArray();
+    for (var clObj in clArray) {
+      clList.push(JSON.parse(clArray[clObj]).Name.split(".")[1]);
+    }
+
+    // compare clConf and clList
+    for (var ele in clConf) {
+      var hasCL = false;
+      for (var cl in clList) {
+        if (clConf[ele].collection == clList[cl]) {
+          hasCL = true;
+          if (clConf[ele].count != cs.getCL(clList[cl]).count()) {
+            checkSuccess = false;
+            if (1 == seconds) {
+              print(
+                "Check data failed, count is not equal, collection name is " +
+                  clConf[ele].collection
+              );
+              throw new Error("Check data failed");
+            }
+            break;
+          }
+        }
+      }
+      if (!hasCL) {
+        checkSuccess = false;
+        if (1 == seconds) {
+          print("Check data failed, missing collection name is " + clConf[ele].collection);
+          throw new Error("Check data failed");
         }
         break;
       }
     }
-    if (!hasCL) {
-      print("Check data failed, missing collection name is " + clConf[ele].collection);
+    if (checkSuccess) {
+      break;
     }
   }
 
-  print("\nCheck data between confData and SequoiaDB successfully\n");
+  print("\nFinish checking data between confData and SequoiaDB\n");
 }
 
-function dropDatabase(database) {
+function dropMongoDB(database) {
   var cmd = new Cmd();
-
   // Use mongo tool to drop database
   var ret = cmd.run(
     "./tools/mongo",
@@ -246,20 +261,23 @@ function dropDatabase(database) {
       " --eval 'db.dropDatabase()' " +
       database
   );
-  print("\nDrop database " + database + " in MongoDB successfully");
+  if (printOutput) print("\n" + ret + "\n");
+  
+  print("\nDrop database " + database + " in MongoDB successfully\n");
+}
 
-  if (printOutput) {
-    print("\n");
-    print(ret);
-    print("\n");
-  }
-
+function dropSequoiaDB(database) {
   // Use sdb to drop database
   var db = new Sdb(SequoiaDB_Host, SequoiaDB_Port);
   try {
     db.dropCS(database);
   } catch (error) {}
   print("\nDrop database " + database + " in SequoiaDB successfully\n");
+}
+
+function dropDatabase(database) {
+  dropMongoDB(database);
+  dropSequoiaDB(database);
 }
 
 function dropDumpFile() {
@@ -276,4 +294,41 @@ function printCostTime(func, args) {
   var endTime = new Date();
   var costTime = (endTime.getTime() - startTime.getTime()) / 1000;
   print(func.name + " cost time: " + costTime + "s\n");
+}
+
+function startMongoShake(mode, enableDDL) {
+  var cmd = new Cmd();
+  cmd.run(
+    "sed -i 's/sync_mode = \\(full\\|all\\|incr\\)\\?/sync_mode = " +
+      mode +
+      "/g' ./config/collector.conf"
+  );
+
+  if (enableDDL)
+    cmd.run(
+      "sed -i 's/filter.ddl_enable = \\(true\\|false\\)\\?/filter.ddl_enable = true/g' ./config/collector.conf"
+    );
+  else
+    cmd.run(
+      "sed -i 's/filter.ddl_enable = \\(true\\|false\\)\\?/filter.ddl_enable = false/g' ./config/collector.conf"
+    );
+
+  var ret = cmd.start("./tools/collector.linux -conf=./config/collector.conf");
+
+  if (printOutput) print("\n" + ret + "\n");
+
+  print("\nStart mongoshake successfully\n");
+}
+
+function stopMongoShake() {
+  var cmd = new Cmd();
+  try {
+    var ret = cmd.run("nohup pkill -9 collector");
+    cmd.run("rm -r ./diagnostic");
+    cmd.run("rm ./mongoshake.pid");
+  } catch (error) {}
+
+  if (printOutput) print("\n" + ret + "\n");
+
+  print("\nStop mongoshake successfully\n");
 }

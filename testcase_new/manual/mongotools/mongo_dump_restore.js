@@ -39,7 +39,7 @@ function test() {
   printCostTime(restoreDataToSequoiaDB, [MongoDB_Dump, Test_DB]);
 
   // 4. check data
-  printCostTime(checkSequoiadbData, [Test_DB]);
+  printCostTime(checkSequoiadbData, [Test_DB, 10]);
 
   // 5. drop data
   printCostTime(dropDatabase, [Test_DB]);

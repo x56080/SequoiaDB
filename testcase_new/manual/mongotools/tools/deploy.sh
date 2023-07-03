@@ -3,29 +3,58 @@
 hostName=`hostname`
 dbPath="MongoDB"
 toolPath=`pwd`
+mode="replset"
+
 
 # common function
 function display()
 {
    echo "$0 --help | -h"
-   echo "$0 [-dbpath path] [-toolpath path]"
+   echo "$0 [-dbpath path] [-toolpath path] [-mode mode]"
    echo ""
    echo " -dbpath path : 指定节点安装路径"
    echo " -toolpath path : 指定 MongoDB 工具路径"
+   echo " -mode mode : 指定部署模式，可选值为 replset/sharded/standalone，默认为 replset"
 
    echo ""
    exit $1
 }
 
-function installMongoDB()
+function installStandalone() {
+   echo "==================== start install MongoDB ===================="
+
+   # create data dir
+   mkdir -p "${dbPath}/log"
+   mkdir -p "${dbPath}/27017"
+
+   # deploy mongo standalone instance
+   "${toolPath}/mongod" --bind_ip localhost,${hostName} --port 27017 --dbpath "${dbPath}/27017" --logpath "${dbPath}/log/standalone.log" --fork
+
+   echo "==================== finish install MongoDB ===================="
+}
+
+function installReplSet()
 {
     echo "==================== start install MongoDB ===================="
 
-    # stop mongoDB
-    pkill -9 mongo
+    # create data dir
+    mkdir -p "${dbPath}/log"
+    mkdir -p "${dbPath}/27017"
+    mkdir -p "${dbPath}/27020"
+    mkdir -p "${dbPath}/27021"
 
-    # remove old data
-    rm -r "${dbPath}" 2>/dev/null
+    # deploy mongo cluster rs1
+    "${toolPath}/mongod" --bind_ip localhost,${hostName} --port 27017 --dbpath "${dbPath}/27017" --logpath "${dbPath}/log/rs1-1.log" --replSet rs1 --fork
+    "${toolPath}/mongod" --bind_ip localhost,${hostName} --port 27020 --dbpath "${dbPath}/27020" --logpath "${dbPath}/log/rs1-2.log" --replSet rs1 --fork
+    "${toolPath}/mongod" --bind_ip localhost,${hostName} --port 27021 --dbpath "${dbPath}/27021" --logpath "${dbPath}/log/rs1-3.log" --replSet rs1 --fork
+    "${toolPath}/mongo" --port 27017 --eval "rs.initiate({_id: 'rs1', members: [{_id: 0, host: '${hostName}:27017'}, {_id: 1, host: '${hostName}:27020'}, {_id: 2, host: '${hostName}:27021'}]})"
+
+    echo "==================== finish install MongoDB ===================="
+}
+
+function installSharded()
+{
+    echo "==================== start install MongoDB ===================="
 
     # create data dir
     mkdir -p "${dbPath}/log"
@@ -57,7 +86,29 @@ function installMongoDB()
     "${toolPath}/mongo" --port 27017 --eval "sh.addShard('rs0/${hostName}:27020')"
     "${toolPath}/mongo" --port 27017 --eval "sh.addShard('rs1/${hostName}:27030,${hostName}:27031,${hostName}:27032')"
     sleep 2
+
     echo "==================== finish install MongoDB ===================="
+}
+
+function installMongoDB()
+{
+    # stop mongoDB
+    pkill -9 mongo
+
+    # remove old data
+    rm -r "${dbPath}" 2>/dev/null
+
+   if [ "${mode}" == "replset" ]; then
+      installReplSet
+   elif [ "${mode}" == "sharded" ]; then
+      installSharded
+   elif [ "${mode}" == "standalone" ]; then
+      installStandalone
+   else
+      echo "mode must be replset or sharded"
+      display 1
+      exit 1
+   fi
 }
 
 # read param
@@ -69,7 +120,13 @@ while [ "$1" != "" ]; do
       -toolpath )         shift
                           toolPath=$(readlink -f $1)
                           ;;
+      -mode )             shift
+                          mode=$1
+                          ;;
       --help | -h )       display 0
+                          ;;
+      * )                 echo "Invalid argument: $1"
+                          display 1
                           ;;
    esac
    shift

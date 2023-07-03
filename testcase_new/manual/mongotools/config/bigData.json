@@ -2,7 +2,7 @@
     {
         "database": "mgodatagen_test",
         "collection": "big_data",
-        "count": 1000000,
+        "count": 10000,
         "content": {
             "_id": {
                 "type": "reference",
@@ -101,7 +101,7 @@
     {
         "database": "mgodatagen_test",
         "collection": "big_data_link",
-        "count": 1000000,
+        "count": 10000,
         "content": {
             "_id": {
                 "type": "objectId"
