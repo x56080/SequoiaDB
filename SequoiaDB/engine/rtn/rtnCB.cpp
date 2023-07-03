@@ -48,6 +48,8 @@ using namespace std;
 namespace engine
 {
 
+   #define RTN_FIND_CONTEXT_TIMEOUT          ( OSS_ONE_SEC )
+
    /*
       _rtnClearExpireContextJob implement
    */
@@ -369,7 +371,8 @@ namespace engine
                   cb->contextDelete( pContext->contextID() ) ;
 
                   PD_LOG ( PDWARNING, "Context %lld does not owned by "
-                           "current session", pContext->contextID() ) ;
+                           "current session, owned by %llu", pContext->contextID(),
+                           pContext->eduID() ) ;
                   rc = SDB_RTN_CONTEXT_NOTOWNED ;
                   goto error ;
                }
@@ -435,29 +438,43 @@ namespace engine
                                   _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      UINT64 bTick = pmdGetDBTick() ;
 
-      std::pair<rtnContextInternalPtr, bool> ret = _contextMap.find( contextID ) ;
-      if ( ret.second )
+      while( TRUE )
       {
-         if ( PMD_INVALID_EDUID != (ret.first)->eduID() &&
-              cb && !cb->contextFind( contextID ) )
+         std::pair<rtnContextInternalPtr, bool> ret = _contextMap.find( contextID ) ;
+         if ( ret.second )
          {
-            PD_LOG_MSG ( PDWARNING, "Context %lld does not owned by "
-                         "current session", contextID ) ;
-            rc = SDB_RTN_CONTEXT_NOTOWNED ;
+            if ( PMD_INVALID_EDUID != (ret.first)->eduID() &&
+                 cb && !cb->contextFind( contextID ) )
+            {
+               PD_LOG_MSG ( PDWARNING, "Context %lld does not owned by "
+                            "current session, owned by %llu", contextID,
+                            (ret.first)->eduID() ) ;
+               rc = SDB_RTN_CONTEXT_NOTOWNED ;
+            }
+            else
+            {
+               rc = _fixContextInfo( cb, ret.first ) ;
+               if ( SDB_OK == rc )
+               {
+                  context.init( ret.first, cb ) ;
+               }
+            }
          }
          else
          {
-            rc = _fixContextInfo( cb, ret.first ) ;
-            if ( SDB_OK == rc )
-            {
-               context.init( ret.first, cb ) ;
-            }
+            rc = SDB_RTN_CONTEXT_NOTEXIST ;
          }
-      }
-      else
-      {
-         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+
+         if ( SDB_RTN_CONTEXT_NOTOWNED == rc &&
+              pmdGetTickSpanTime( bTick ) < RTN_FIND_CONTEXT_TIMEOUT  )
+         {
+            ossSleep( 10 ) ;
+            continue ;
+         }
+
+         break ;
       }
 
       return rc ;

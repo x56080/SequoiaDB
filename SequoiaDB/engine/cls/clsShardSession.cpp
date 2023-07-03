@@ -1168,6 +1168,9 @@ namespace engine
       }
       else
       {
+         /// return detach context before reply
+         eduCB()->returnDetachContext() ;
+
          //Build reply message
          msgFillReplyByReq( _replyHeader, msg ) ;
          /// opCode may not the same with msg->opCode

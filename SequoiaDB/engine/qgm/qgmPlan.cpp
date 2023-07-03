@@ -241,7 +241,10 @@ namespace engine
       rc = _fetchNext( next ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDDEBUG, "failed to fecth next:%d", rc ) ;
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDDEBUG, "Failed to fecth next, rc: %d", rc ) ;
+         }
          goto error ;
       }
    done:

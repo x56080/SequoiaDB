@@ -183,6 +183,9 @@ INT32 _mongoSession::_processClientMsg( const CHAR* pMsg,
 
 done:
    {
+      /// return detach context before reply
+      eduCB()->returnDetachContext() ;
+
       INT32 rcTmp = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
       if ( rcTmp )
       {

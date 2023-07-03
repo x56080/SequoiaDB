@@ -577,6 +577,9 @@ namespace engine
          }
       }
 
+      /// return detach context before reply
+      eduCB()->returnDetachContext() ;
+
       if ( _needReply )
       {
          if ( rc )

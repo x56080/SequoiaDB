@@ -338,6 +338,8 @@ namespace engine
       BOOLEAN     isOnlySelfWhenInterrupt() const ;
       INT32       getInterruptRC() const ;
 
+      void        returnDetachContext() ;
+
       void        updateConf() ;
 
       void        setUserInfo( const string &userName,
@@ -835,6 +837,7 @@ namespace engine
       MAP_CONTEXT             _contextList ;
       INT64                   _curAutoTransCtxID ;
       INT64                   _currentContextID ;
+      UINT32                  _detachContexNum ;
 
       CHAR                    _curProcessName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       CHAR                    _curMainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
