@@ -131,7 +131,7 @@ function main ()
       var rc = db.auth( users[0], "errorPwd" );
       assert.eq( rc, 0 );
       var rc = db.getLastError();
-      assert.eq( rc, "Username or passwd is wrong" );
+      assert.eq( rc, "Authentication failed." );
    }
    finally
    {
