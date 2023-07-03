@@ -3163,6 +3163,70 @@
       </code>
 
       <code>
+         <name>SDB_CLS_NOT_LOCATION_PRIMARY</name>
+         <description>
+            <en>Node is not primary of location set</en>
+            <cn>非位置集主节点</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_396</name> <!--Not used-->
+         <description>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_OPERATION_RETRY</name>
+         <description>
+            <en>Operation need retry</en>
+            <cn>操作需要重试</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_KEYS_INITIALIZED</name>
+         <description>
+            <en>Security keys already initialized</en>
+            <cn>安全密钥已初始化</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_KEYS_UNINITIALIZED</name>
+         <description>
+            <en>Security keys are uninitialized</en>
+            <cn>安全密钥未初始化</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_KEYS_CORRUPTED</name>
+         <description>
+            <en>Security keys are corrupted</en>
+            <cn>安全密钥损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEC_DEK_NOT_EXIST</name>
+         <description>
+            <en>Data encryption key does not exist</en>
+            <cn>数据加密密钥不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_LOB_OUT_OF_PUT_SIZE</name>
+         <description>
+            <en>The lob which to put is out of page size</en>
+            <cn>集合空间页无法容纳该对象</cn>
+         </description>
+      </code>
+
+      <code>
          <name>SDB_RTN_CONTEXT_NOTOWNED</name>
          <description>
             <en>Context is not owned by current session</en>
