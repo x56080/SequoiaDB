@@ -45,6 +45,7 @@
 #include "fapMongoTrace.hpp"
 #include "pdTrace.hpp"
 #include "aggrDef.hpp"
+#include "ixm.hpp"
 
 using namespace bson ;
 using namespace engine ;
@@ -247,21 +248,21 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
       builder.append( "v", sdbIdxDef.getIntField( "v" ) ) ;
       if ( sdbIdxDef.getBoolField( "unique" ) &&
            sdbIdxDef.getBoolField( "enforced" ) &&
-           0 != ossStrcmp( "$id", indexName.c_str() ) )
+           0 != ossStrcmp( IXM_ID_KEY_NAME, indexName.c_str() ) )
       {
          builder.append( "unique", true ) ;
       }
       builder.append( "key", sdbIdxDef.getObjectField( "key" ) ) ;
 
-      // cover $id to _id_
-      if ( 0 == ossStrcmp( "$id", indexName.c_str() ) )
+      // convert $id to _id_
+      if ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName.c_str() ) )
       {
-         indexName = "_id_" ;
+         indexName = FAP_MONGO_INDEX_ID_KEY_NAME ;
       }
-      // cover $shard to %24shard
-      else if ( 0 == ossStrcmp( "$shard", indexName.c_str() ) )
+      // convert $shard to %24shard
+      else if ( 0 == ossStrcmp( IXM_SHARD_KEY_NAME, indexName.c_str() ) )
       {
-         indexName = "%24shard" ;
+         indexName = FAP_MONGO_INDEX_SHARD_KEY_NAME ;
       }
 
       if ( rc )
@@ -4250,7 +4251,7 @@ INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when coverting mongo $sum to sdb"
+      PD_LOG( PDERROR, "An exception occurred when converting mongo $sum to sdb"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
@@ -4344,7 +4345,7 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when coverting mongo $group to "
+      PD_LOG( PDERROR, "An exception occurred when converting mongo $group to "
               "sdb: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
@@ -4451,7 +4452,7 @@ INT32 _mongoAggregateCommand::_convertAggrUnwind( const BSONObj& unwindObj,
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when coverting mongo $unwind to sdb"
+      PD_LOG( PDERROR, "An exception occurred when converting mongo $unwind to sdb"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
@@ -4530,7 +4531,7 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when coverting mongo $project to "
+      PD_LOG( PDERROR, "An exception occurred when converting mongo $project to "
               "sdb: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
@@ -5573,16 +5574,16 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          goto error ;
       }
 
-      // 1. For text index, we need to cover to normal format
-      // 2. For hashed index, we need to cover to normal index
+      // 1. For text index, we need to convert to normal format
+      // 2. For hashed index, we need to convert to normal index
       BSONObjIterator itr( obj.getObjectField( "key" ) ) ;
       while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
 
          // Text index key
-         if ( 0 == ossStrcmp( "_fts", ele.fieldName() ) || 
-              0 == ossStrcmp( "_ftsx", ele.fieldName() ) )
+         if ( 0 == ossStrcmp( FAP_MONGO_INDEX_TEXT_KEY_NAME_FTS, ele.fieldName() ) || 
+              0 == ossStrcmp( FAP_MONGO_INDEX_TEXT_KEY_NAME_FTSX, ele.fieldName() ) )
          {
             if ( ! hasFtIdx )
             {
@@ -5590,18 +5591,18 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                while ( keyItr.more() )
                {
                   BSONElement keyEle = keyItr.next() ;
-                  keyObj.append( keyEle.fieldName(), "text" ) ;
+                  keyObj.append( keyEle.fieldName(), IXM_TEXT_KEY_TYPE ) ;
                }
                hasFtIdx = TRUE ;
             }
          }
          // Hashed index key
-         else if ( 0 == ossStrcmp( "hashed", ele.valuestrsafe() ) )
+         else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_HASHED_KEY_TYPE, ele.valuestrsafe() ) )
          {
             keyObj.append( ele.fieldName(), 1 ) ;
          }
-         else if ( 0 == ossStrcmp( "2d", ele.valuestrsafe() ) ||
-                   0 == ossStrcmp( "2dsphere", ele.valuestrsafe() ) )
+         else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_2D_KEY_TYPE, ele.valuestrsafe() ) ||
+                   0 == ossStrcmp( FAP_MONGO_INDEX_2DSPHERE_KEY_TYPE, ele.valuestrsafe() ) )
          {
             rc = SDB_OPTION_NOT_SUPPORT ;
             ctx.setError( rc, "2d and 2dsphere index types are not support yet" ) ;
@@ -5614,14 +5615,14 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          }
       }
 
-      if ( 0 == ossStrcmp( "_id_", indexName.c_str() ) ||
-           0 == ossStrcmp( "$id", indexName.c_str() ) )
+      if ( 0 == ossStrcmp( FAP_MONGO_INDEX_ID_KEY_NAME, indexName.c_str() ) ||
+           0 == ossStrcmp( IXM_ID_KEY_NAME, indexName.c_str() ) )
       {
          pCmdName = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
          _buildIdIndexObj( bob ) ;
       }
-      else if ( 0 == ossStrcmp( "%24shard", indexName.c_str() ) ||
-                0 == ossStrcmp( "$shard", indexName.c_str() ) )
+      else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_SHARD_KEY_NAME, indexName.c_str() ) ||
+                0 == ossStrcmp( IXM_SHARD_KEY_NAME, indexName.c_str() ) )
       {
          pCmdName = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
          _buildShardingIndexObj( bob, keyObj.obj() ) ;
@@ -5861,13 +5862,13 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          goto error ;
       }
 
-      if ( 0 == ossStrcmp( "_id_", indexName.c_str() ) )
+      if ( 0 == ossStrcmp( FAP_MONGO_INDEX_ID_KEY_NAME, indexName.c_str() ) )
       {
-         indexName = "$id" ;
+         indexName = IXM_ID_KEY_NAME ;
       }
-      else if ( 0 == ossStrcmp( "%24shard", indexName.c_str() ) )
+      else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_SHARD_KEY_NAME, indexName.c_str() ) )
       {
-         indexName = "$shard" ;
+         indexName = IXM_SHARD_KEY_NAME ;
       }
 
       cond = BSON( FIELD_NAME_COLLECTION <<

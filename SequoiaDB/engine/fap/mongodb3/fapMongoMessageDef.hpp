@@ -127,5 +127,14 @@ namespace fap
 #define FAP_MONGO_AGGR_PIPELINE_STAGE_COUNT           FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "count"
 #define FAP_MONGO_AGGR_PIPELINE_STAGE_UNWIND          FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX "unwind"
 
+// MongoDB index
+#define FAP_MONGO_INDEX_ID_KEY_NAME                    "_id_"
+#define FAP_MONGO_INDEX_SHARD_KEY_NAME                 "%24shard"
+#define FAP_MONGO_INDEX_TEXT_KEY_NAME_FTS              "_fts"
+#define FAP_MONGO_INDEX_TEXT_KEY_NAME_FTSX             "_ftsx"
+#define FAP_MONGO_INDEX_HASHED_KEY_TYPE                "hashed"
+#define FAP_MONGO_INDEX_2D_KEY_TYPE                    "2d"
+#define FAP_MONGO_INDEX_2DSPHERE_KEY_TYPE              "2dsphere"
+
 }
 #endif
