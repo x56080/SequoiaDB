@@ -4566,6 +4566,8 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    pAggre = ( MsgOpAggregate * )sdbMsg.data() ;
    mongoInitMsgHeader( &(pAggre->header), MSG_BS_AGGREGATE_REQ, _requestID ) ;
+   /// enable detach context
+   pAggre->header.flags = FLAG_DETACH_CONTEXT ;
    pAggre->version = 0 ;
    pAggre->w = 0 ;
    pAggre->padding = 0 ;
