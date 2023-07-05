@@ -45,6 +45,8 @@ INT32 getGroupNodes( sdb& db, const CHAR* rgName, vector<string>& nodes ) ;
 
 INT32 getLocalHost( CHAR hostName[], INT32 len ) ;
 
+INT32 getDBHost( sdb& db, CHAR hostName[], INT32 len ) ;
+
 INT32 getCurrentLsn( sdb& db, UINT64* offset, UINT32* version ) ;
 
 INT32 waitSync( sdb& db, const CHAR* rgName ) ;

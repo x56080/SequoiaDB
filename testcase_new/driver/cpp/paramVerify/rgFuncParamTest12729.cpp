@@ -103,8 +103,9 @@ TEST_F( rgFuncParamTest12729, createNode12730 )
    rc = init() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+   memset( hostName, 0, sizeof(hostName) ) ;
+   rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    const CHAR* svcName = ARGS->rsrvPortBegin() ;
    const CHAR* nodeDir = ARGS->rsrvNodeDir() ;
@@ -166,8 +167,9 @@ TEST_F( rgFuncParamTest12729, removeNode12731 )
    rc = init() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+   memset( hostName, 0, sizeof(hostName) ) ;
+   rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    const CHAR* svcName = ARGS->rsrvPortBegin() ;
    const CHAR* nodeDir = ARGS->rsrvNodeDir() ;

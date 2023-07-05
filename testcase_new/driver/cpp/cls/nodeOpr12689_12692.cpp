@@ -72,8 +72,9 @@ TEST_F( nodeOprTest12689, nodeOpr12689 )
    ASSERT_EQ( SDB_OK, rc ) ;
 
    // create two node in rg( remove node cannot remove the only one node )
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+   memset( hostName, 0, sizeof(hostName) ) ;
+   rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    const CHAR* svcName1 = ARGS->rsrvPortBegin() ;
    const CHAR* svcName2 = ARGS->rsrvPortEnd() ;

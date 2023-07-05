@@ -26,16 +26,16 @@ protected:
    CHAR host[ MAX_NAME_LEN ] ;
    CHAR svc[ MAX_NAME_LEN ] ;
    CHAR dbpath[ MAX_NAME_LEN ] ;
-      
+
    void SetUp()
    {
       testBase::SetUp() ;
-   }  
+   }
    void TearDown()
    {
       testBase::TearDown() ;
    }
-   
+
    // create rg
    INT32 init()
    {
@@ -67,7 +67,7 @@ protected:
    {
       INT32 rc = SDB_OK ;
       memset( host, 0, MAX_NAME_LEN ) ;
-      rc = getLocalHost( host, MAX_NAME_LEN-1 ) ;
+      rc = getDBHost( db, host, MAX_NAME_LEN-1 ) ;
       CHECK_RC( SDB_OK, rc, "fail to gethostname, rc = %d", rc ) ;
       for( INT32 i = 0;i < nodeNum;i++ )
       {

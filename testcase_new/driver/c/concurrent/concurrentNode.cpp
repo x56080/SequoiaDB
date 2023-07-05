@@ -15,6 +15,7 @@
 using namespace import ;
 
 #define ThreadNum 5
+#define MAX_NAME_LEN 256
 
 class concurrentNodeTest : public testBase
 {
@@ -24,11 +25,23 @@ protected:
    CHAR* svcName[ ThreadNum ] ;
    CHAR* dbPath[ ThreadNum ] ;
    sdbNodeHandle node[ ThreadNum ] ;
+   CHAR hostName[ MAX_NAME_LEN ] ;
+   BOOLEAN isStandAlone ;
 
    void SetUp()
    {
       testBase::SetUp() ;
       INT32 rc = SDB_OK ;
+      isStandAlone = FALSE ;
+      if ( isStandalone(db) )
+      {
+         isStandAlone = TRUE ;
+         return ;
+      }
+      memset( hostName, 0, sizeof(hostName) ) ;
+      rc = getDBHost( db, hostName, MAX_NAME_LEN-1 ) ;
+      ASSERT_EQ( SDB_OK, rc ) ;
+
       rgName = "concurrentNodeTestRg" ;
       rc = sdbCreateReplicaGroup( db, rgName, &rg ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create rg " << rgName ;
@@ -49,10 +62,7 @@ protected:
          sprintf( tmp, "%s%s%s", ARGS->rsrvNodeDir(), "data/", svcName[i] ) ;
          dbPath[i] = strdup( tmp ) ;
       }
-   
-      CHAR hostName[100] ;
-      rc = getLocalHost( hostName, 100 ) ;
-      ASSERT_EQ( SDB_OK, rc ) ;
+
       for( INT32 i = 0;i < ThreadNum;i++)
       {
          rc = sdbCreateNode( rg, hostName, svcName[i], dbPath[i], NULL ) ;
@@ -65,9 +75,13 @@ protected:
    void TearDown()
    {
       INT32 rc = SDB_OK ;
+      if ( isStandAlone )
+      {
+         return ;
+      }
 
       if( !HasFailure() )
-      {   
+      {
          rc = sdbRemoveReplicaGroup( db, rgName ) ;
          ASSERT_EQ( SDB_OK, rc ) << "fail to remove rg " << rgName ;
          for( INT32 i = 0;i < ThreadNum;++i )
@@ -87,6 +101,7 @@ class ThreadArg : public WorkerArgs
 public:
    sdbNodeHandle node ;	    // node
    INT32 tid ;				    // thread id
+   CHAR* hostname ;         // hostname
 } ;
 
 void func_node( ThreadArg* arg )
@@ -94,9 +109,7 @@ void func_node( ThreadArg* arg )
    sdbNodeHandle node = arg->node ;
    INT32 i = arg->tid ;
    INT32 rc = SDB_OK ;
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+   CHAR* hostName = arg->hostname ;
 
    const CHAR *host, *svc, *nodeName ;
    INT32 nodeId ;
@@ -113,12 +126,17 @@ void func_node( ThreadArg* arg )
 
 TEST_F( concurrentNodeTest, node )
 {
+   if ( isStandAlone )
+   {
+      return ;
+   }
    Worker * workers[ThreadNum] ;
    ThreadArg arg[ThreadNum] ;
    for( INT32 i = 0;i < ThreadNum;++i )
    {
       arg[i].node = node[i] ;
-      arg[i].tid = i ; 
+      arg[i].tid = i ;
+      arg[i].hostname = hostName ;
       workers[i] = new Worker( (WorkerRoutine)func_node, &arg[i], false ) ;
       workers[i]->start() ;
    }
