@@ -5642,7 +5642,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                           IXM_FIELD_NAME_UNIQUE <<
                           obj.getBoolField( "unique" ) <<
                           IXM_FIELD_NAME_ENFORCED <<
-                          obj.getBoolField( "enforced" ) );
+                          obj.getBoolField( "unique" ) );
 
          bob.append( FIELD_NAME_INDEX, indexObj ) ;
          bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
