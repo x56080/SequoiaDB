@@ -40,6 +40,7 @@ preInstallAction:
         - '${SYS_ORIGIN_DIR}/bin/sdbstop'
         - '${SYS_ORIGIN_DIR}/bin/sdbcmtop'
         - '${SYS_ORIGIN_DIR}/tools/script/generate_version_file.sh'
+        - '${SYS_ORIGIN_DIR}/tools/script/install_file_changes.sh'
         - '${SYS_ORIGIN_DIR}/tools/script/service_control.sh'
         - '${SYS_ORIGIN_DIR}/compatible.sh'
         - '${SYS_ORIGIN_DIR}/sequoiadb'
@@ -111,6 +112,10 @@ postInstallAction:
               - en: Do you want to force the install? It may kill residual processes.
         - name: path
           value: '${SYS_INSTALL_DIR}/bin'
+      scope: all
+      enable: true
+    - name: changeOMTool
+      cmd: '${SYS_TMP_DIR}/install_file_changes.sh'
       scope: all
       enable: true
     - name: startService
