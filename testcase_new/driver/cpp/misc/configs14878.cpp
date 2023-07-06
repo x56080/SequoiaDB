@@ -46,7 +46,7 @@ protected:
       rgName = groups[0].c_str() ;
       rc = db.getReplicaGroup( rgName, rg ) ;
       CHECK_RC( SDB_OK, rc, "fail to get group" ) ;
-      rc = getLocalHost( host, MAX_NAME_SIZE ) ;
+      rc = getDBHost( db, host, MAX_NAME_SIZE ) ;
       CHECK_RC( SDB_OK, rc, "fail to get local hostname" ) ;
       strcpy( svc, ARGS->rsrvPortBegin() ) ;
       sprintf( dbPath, "%s%s%s", ARGS->rsrvNodeDir(), "data/", svc ) ;

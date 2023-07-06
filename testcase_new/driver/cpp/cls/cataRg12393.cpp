@@ -39,8 +39,9 @@ TEST_F( cataRgTest12393, cataRg12393 )
    }
 
    INT32 rc = SDB_OK ;
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+   memset( hostName, 0, sizeof(hostName) ) ;
+   rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    const CHAR* svcName = ARGS->rsrvPortBegin() ;
    const CHAR* nodeDir = ARGS->rsrvNodeDir() ;

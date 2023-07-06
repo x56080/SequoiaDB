@@ -15,17 +15,29 @@
 using namespace import ;
 
 #define ThreadNum 5
+#define MAX_NAME_LEN 256
 
 class concurrentRgTest : public testBase
 {
 protected:
    sdbReplicaGroupHandle rg[ ThreadNum ] ;
    CHAR* rgName[ ThreadNum ] ;
+   CHAR hostName[ MAX_NAME_LEN ] ;
+   BOOLEAN isStandAlone ;
 
    void SetUp()
    {
       testBase::SetUp() ;
       INT32 rc = SDB_OK ;
+      isStandAlone = FALSE ;
+      if ( isStandalone(db) )
+      {
+         isStandAlone = TRUE ;
+         return ;
+      }
+      memset( hostName, 0, sizeof(hostName) ) ;
+      rc = getDBHost( db, hostName, MAX_NAME_LEN-1 ) ;
+      ASSERT_EQ( SDB_OK, rc ) ;
 
       for( INT32 i = 0;i < ThreadNum;++i )
       {
@@ -43,7 +55,11 @@ protected:
    void TearDown()
    {
       INT32 rc = SDB_OK ;
-  
+      if ( isStandAlone )
+      {
+         return ;
+      }
+
       if( !HasFailure() )
       { 
          for( INT32 i = 0;i < ThreadNum;++i )
@@ -63,6 +79,7 @@ class ThreadArg : public WorkerArgs
 public:
    sdbReplicaGroupHandle rg ;	// replicaGroup
    INT32 rid ;				    // rg id
+   CHAR* hostname ;         // hostname
 } ;
 
 void func_rg( ThreadArg* arg )
@@ -70,9 +87,7 @@ void func_rg( ThreadArg* arg )
    sdbReplicaGroupHandle rg = arg->rg ;
    INT32 i = arg->rid ;
    INT32 rc = SDB_OK ;
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+   CHAR* hostName = arg->hostname ;
 
    CHAR svcName1[10] ;
    sprintf( svcName1, "%d", atoi( ARGS->rsrvPortBegin() ) + 2 * i * 10 ) ;
@@ -107,12 +122,17 @@ void func_rg( ThreadArg* arg )
 
 TEST_F( concurrentRgTest, replicaGroup )
 {
+   if ( isStandAlone )
+   {
+      return ;
+   }
    Worker* workers[ThreadNum] ;
    ThreadArg arg[ThreadNum] ;
    for( INT32 i = 0;i < ThreadNum;++i )
    {
       arg[i].rg = rg[i] ;
-      arg[i].rid = i ; 
+      arg[i].rid = i ;
+      arg[i].hostname = hostName ;
       workers[i] = new Worker( (WorkerRoutine)func_rg, &arg[i], false ) ;
       workers[i]->start() ;
    }

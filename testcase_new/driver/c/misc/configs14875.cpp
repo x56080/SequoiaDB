@@ -43,13 +43,13 @@ protected:
       rgName = groups[0].c_str() ;
       rc = sdbGetReplicaGroup( db, rgName, &rg ) ;
       CHECK_RC( SDB_OK, rc, "fail to get group" ) ;
-     
-      rc = getLocalHost( host, MAX_NAME_SIZE ) ;
-      CHECK_RC( SDB_OK, rc, "fail to get local hostname" ) ;
+
+      rc = getDBHost( db, host, MAX_NAME_SIZE ) ;
+      CHECK_RC( SDB_OK, rc, "fail to get hostname" ) ;
       strcpy( svc, ARGS->rsrvPortBegin() ) ;
       sprintf( dbPath, "%s%s%s", ARGS->rsrvNodeDir(), "data/", svc ) ;
       printf( "create node: %s:%s, dbPath: %s\n", host, svc, dbPath ) ;
-      
+
       rc = sdbCreateNode( rg, host, svc, dbPath, NULL ) ;
       CHECK_RC( SDB_OK, rc, "fail to create node" ) ;
       rc = sdbGetNodeByHost( rg, host, svc, &node ) ;
