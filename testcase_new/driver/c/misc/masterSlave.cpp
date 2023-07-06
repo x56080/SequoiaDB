@@ -77,8 +77,9 @@ TEST_F( masterSlaveTest, masterSlave )
    ASSERT_EQ( SDB_CLS_EMPTY_GROUP, rc ) << "fail to test getSlave in empty group" ;
 
    // create two node in rg and start
-   CHAR hostName[100] ;
-   rc = getLocalHost( hostName, 100 ) ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+   memset( hostName, 0, MAX_NAME_SIZE+1 ) ;
+   rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    const CHAR* svcName1 = ARGS->rsrvPortBegin() ;
    const CHAR* svcName2 = ARGS->rsrvPortEnd() ;

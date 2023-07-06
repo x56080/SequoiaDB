@@ -188,6 +188,41 @@ error:
 }
 
 /********************************************************************
+ * get database hostName 
+ *
+ * The result is null-terminated if LEN is large enough for the full
+ * name and the terminator
+ ********************************************************************/
+INT32 getDBHost( sdb& db, CHAR hostName[], INT32 len )
+{
+   INT32 rc = SDB_OK ;
+   sdbCursor cursor ;
+   BSONObj obj, tmp ;
+   vector<BSONElement> info ;
+   string hostname ;
+
+   rc = db.getList( cursor, SDB_LIST_GROUPS ) ;
+   CHECK_RC( SDB_OK, rc, "fail to list groups" ) ;
+
+   rc = cursor.next( obj ) ;
+   CHECK_RC( SDB_OK, rc, "fail to get next" ) ;
+   
+   info = obj.getField( "Group" ).Array() ;
+
+   tmp = info[0].Obj() ;
+   hostname = tmp.getField( "HostName" ).String() ;
+   strncpy( hostName, hostname.c_str(), len ) ;
+
+   rc = cursor.close() ;
+   CHECK_RC( SDB_OK, rc, "fail to close cursor" ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+/********************************************************************
  * get current lsn of data node or cata node
  * return 0 if success, return errno if fail
  *
