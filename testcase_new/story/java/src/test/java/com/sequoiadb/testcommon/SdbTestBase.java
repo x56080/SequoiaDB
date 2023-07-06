@@ -228,15 +228,15 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
-            "REMOTEPASSWD", "BACKUPPATH", "CONFTOOL", "ENABLETRANSACTION",
-            "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX", "DSHOSTNAME",
-            "DSSVCNAME" })
+            "REMOTEPASSWD", "BACKUPTMPNODELOGPATH", "CONFTOOL",
+            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
+            "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
             String REMOTEUSER, String REMOTEPASSWD,
-            @Optional("${BACKUPPATH}") String BACKUPPATH,
+            @Optional("${BACKUPTMPNODELOGPATH}") String BACKUPTMPNODELOGPATH,
             @Optional("") String CONFTOOL,
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
@@ -261,7 +261,7 @@ public class SdbTestBase {
         remoteUser = REMOTEUSER;
         remotePwd = REMOTEPASSWD;
         confToolScript = CONFTOOL;
-        backupPath = BACKUPPATH;
+        backupPath = BACKUPTMPNODELOGPATH;
         enableTransaction = ENABLETRANSACTION;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
         dsHostName = DSHOSTNAME;
@@ -439,7 +439,7 @@ public class SdbTestBase {
                     System.out.println( "backupPath -- " + backupPath );
                     System.out.println( "backupPath.equals -- "
                             + ( !backupPath.equals( "" ) ) );
-                    if ( !"${BACKUPPATH}".equals( backupPath ) ) {
+                    if ( !"${BACKUPTMPNODELOGPATH}".equals( backupPath ) ) {
                         String backupPathFull = backupPath + "/" + LOCATION
                                 + EXPANDNODENUM;
                         System.out.println(

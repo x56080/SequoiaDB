@@ -93,7 +93,7 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
-            "REMOTEPASSWD", "SCRIPTDIR", "BACKUPPATH", "ESHOSTNAME",
+            "REMOTEPASSWD", "SCRIPTDIR", "BACKUPTMPNODELOGPATH", "ESHOSTNAME",
             "ESSVCNAME", "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME",
             "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
@@ -101,7 +101,7 @@ public class SdbTestBase {
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
             String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR,
-            @Optional("") String BACKUPPATH,
+            @Optional("${BACKUPTMPNODELOGPATH}") String BACKUPTMPNODELOGPATH,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
             @Optional("") String FULLTEXTPREFIX,
@@ -122,7 +122,7 @@ public class SdbTestBase {
         remoteUser = REMOTEUSER;
         remotePwd = REMOTEPASSWD;
         scriptDir = SCRIPTDIR;
-        backupPath = BACKUPPATH;
+        backupPath = BACKUPTMPNODELOGPATH;
         esHostName = ESHOSTNAME;
         esServiceName = ESSVCNAME;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
@@ -265,7 +265,7 @@ public class SdbTestBase {
                     System.out.println( "backupPath -- " + backupPath );
                     System.out.println( "backupPath.equals -- "
                             + ( !backupPath.equals( "" ) ) );
-                    if ( !backupPath.equals( "" ) ) {
+                    if ( !"${BACKUPTMPNODELOGPATH}".equals( backupPath ) ) {
                         String backupPathFull = backupPath + "/" + LOCATION
                                 + EXPANDNODENUM;
                         System.out.println(

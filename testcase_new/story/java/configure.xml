@@ -29,7 +29,7 @@
     <!--是否开启事务-->
     <parameter name="ENABLETRANSACTION" value="true" />
     <!--用例新增节点备份日志文件路径-->
-    <parameter name="BACKUPPATH"      value="${BACKUPPATH}" />
+    <parameter name="BACKUPTMPNODELOGPATH"   value="${BACKUPTMPNODELOGPATH}" />
     <!--远程机器root用户密码-->
     <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
     <!--远程机器用户名-->
@@ -176,7 +176,7 @@
         </packages>
     </test>
 
-    <test name="location7" parallel="classes" thread-count="5">
+    <test name="location7" parallel="classes" thread-count="1">
         <parameter name="EXPANDNODENUM" value="7" />
         <groups>
             <run>

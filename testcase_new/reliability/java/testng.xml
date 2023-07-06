@@ -25,7 +25,7 @@
     <!--用例临时文件存放路径 -->
     <parameter name="WORKDIR"         value="/tmp/ci_reliability" />
     <!--用例新增节点备份日志文件路径-->
-    <parameter name="BACKUPPATH"      value="${BACKUPPATH}" />
+    <parameter name="BACKUPTMPNODELOGPATH"   value="${BACKUPTMPNODELOGPATH}" />
     <!--远程机器root用户密码-->
     <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
     <!--远程机器用户名-->
