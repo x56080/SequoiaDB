@@ -135,3 +135,74 @@ function lobGetAllGroupNames ( db )
    }
    return groupnames;
 }
+
+/******************************************************************************
+ * @description: 指定文件名生成文件，并写入数据。会自动删除已经存在的老文件
+ * @param {string} fileName  // 文件名
+ * @param {string} data      // 数据
+ ******************************************************************************/
+function generateLobFile ( fileName, data )
+{
+   removeLobFile( fileName );
+
+   var file = new File( fileName );
+   if ( undefined != data )
+   {
+      file.write( data );
+   }
+   file.close();
+}
+
+/******************************************************************************
+ * @description: 删除文件
+ * @param {string} fileName  // 文件名
+ ******************************************************************************/
+function removeLobFile ( fileName ) {
+    if ( File.exist( fileName ) ) {
+        File.remove( fileName );
+    }
+}
+
+ /******************************************************************************
+ * @description: 调用 _putLobFile 接口上传 lob 后，并检查 lob 数据是否正确
+ * @param {string} cl       // 集合名
+ * @param {string} lobId    // lob id，选填
+ * @param {string} dataFile // 待上传的 lob 数据文件
+ * @param {string} readFile // 读取 lob 时接收数据的文件
+ ******************************************************************************/
+ function putAndcheckLob( cl, lobId, dataFile, readFile ) {
+
+   if ( undefined == lobId )
+   {
+       lobId = cl._putLobFile( dataFile );
+   }
+   else
+   {
+       cl._putLobFile( dataFile, lobId );
+   }
+
+   cl.getLob( lobId, readFile, true );
+   
+   var expectMD5 = File.md5( dataFile );
+   var actualMD5 = File.md5( readFile );
+   removeLobFile( readFile );
+
+   assert.equal( expectMD5, actualMD5 );
+}
+
+/******************************************************************************
+ * @description: 生成指定长度的 string，可指定字符
+ * @param {int} len   // 长度
+ * @param {char} char // 字符
+ ******************************************************************************/
+function generateLobData ( len, char ) {
+   if ( undefined == char ) {
+       char = 'a';
+   }
+
+   var arr = new Array();
+   for( var i = 0; i < len; i++ ) {
+       arr[i] = char;
+   }
+   return arr.join('');
+}
