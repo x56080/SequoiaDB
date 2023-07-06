@@ -6,9 +6,10 @@
 
 function createNodeOfCataGroup ( cataGroup )
 {
-   var hostName = getHostNameOfLocal();
+   var groupsArray = commGetGroups( db );
+   var hostName = groupsArray[0][1].HostName;
    var port = allocPort();
-   var dbPath = buildDeployPath( port, "cata" );
+   var dbPath = RSRVNODEDIR + "/cata/" + port;
 
    println( hostName + ":" + port + " " + dbPath );
    var node = new replicaNode( hostName, port, cataGroup );
@@ -36,15 +37,15 @@ function main ()
 
       if( !group.checkResult( true, group.checkLSN ) )
       {
-         throw new Error( "the LSN is not consistent" ); 
+         throw new Error( "the LSN is not consistent" );
       }
       if( !group.checkResult( true, group.checkCS ) )
       {
-        throw new Error( "system collection space is not consistent"); 
+         throw new Error( "system collection space is not consistent" );
       }
       if( !group.checkResult( true, group.checkCL ) )
       {
-        throw new Error( "system collection is not consistent" ); 
+         throw new Error( "system collection is not consistent" );
       }
    }
    catch( e )
