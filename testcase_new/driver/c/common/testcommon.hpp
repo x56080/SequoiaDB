@@ -80,6 +80,9 @@ BOOLEAN isStandalone( sdbConnectionHandle db ) ;
 // get local hostname
 INT32 getLocalHost( CHAR hostName[], INT32 len ) ;
 
+// get database hostname
+INT32 getDBHost( sdbConnectionHandle db, CHAR hostName[], INT32 len ) ;
+
 // get idle port between RSRVPORTBEGIN and RSRVPORTEND
 void getIdlePort( CHAR* port ) ;
 

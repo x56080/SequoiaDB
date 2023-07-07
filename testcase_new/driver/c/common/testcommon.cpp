@@ -104,6 +104,48 @@ error:
    goto done ;
 }
 
+/**********************************************************
+ * get database hostname
+ *
+ * The result is null-terminated if LEN is large enough for the full
+ * name and the terminator
+ **********************************************************/
+INT32 getDBHost( sdbConnectionHandle db, CHAR hostName[], INT32 len )
+{
+   INT32 rc = SDB_OK ;
+   string hostname ;
+   sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+   bson obj ;
+   bson_init( &obj ) ;
+
+   rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
+   CHECK_RC( SDB_OK, rc, "fail to get list groups" ) ;
+
+   rc = sdbNext( cursor, &obj ) ;
+   CHECK_RC( SDB_OK, rc, "fail to get sdb next" ) ;
+   bson_iterator it, sub ;
+   bson_find( &it, &obj, "Group" ) ;
+   bson_iterator_subiterator( &it, &sub ) ;
+   bson_iterator_next( &sub ) ;
+
+   bson tmp1 ;
+   bson_init( &tmp1 ) ;
+   bson_iterator_subobject( &sub, &tmp1 ) ;
+   bson_iterator i1 ;
+   bson_find( &i1, &tmp1, "HostName" ) ;
+   hostname = bson_iterator_string( &i1 ) ;
+
+   strncpy( hostName, hostname.c_str(), len ) ;
+
+done:
+   bson_destroy( &tmp1 ) ;
+   bson_destroy( &obj ) ;
+   sdbReleaseCursor( cursor ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 /*******************************************************************************
  * get a idle port between RSRVPORTBEGIN and RSRVPORTEND in localhost
  *

@@ -104,11 +104,9 @@ TEST_F( memcheck12559, sdbNode )
       return ;
    }
    rc = db.createReplicaGroup( rgName, rg ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to create rg" ; 
+   ASSERT_EQ( SDB_OK, rc ) << "fail to create rg" ;
 
-   CHAR nodeHost[ MAX_NAME_LEN ] = { 0 } ;
-   rc = getLocalHost( nodeHost, MAX_NAME_LEN-1 ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+   const CHAR* nodeHost = ARGS->hostName() ;
    const CHAR* nodeSvc = ARGS->rsrvPortBegin() ;
    const CHAR* nodeDir = ARGS->rsrvNodeDir() ;
    CHAR nodePath[ MAX_NAME_LEN ] = { 0 } ;

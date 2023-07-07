@@ -93,9 +93,10 @@ protected:
       const INT32 size = sizeof(instanceids) / sizeof(instanceids[0]) ;
 
       // get local host name
-      CHAR nodeHost[ MAX_NAME_SIZE+1 ] = { 0 } ;
-      rc = getLocalHost( nodeHost, MAX_NAME_SIZE ) ;
-      CHECK_RC( SDB_OK, rc, "fail to get local hostname" ) ; 
+      CHAR hostName[ MAX_NAME_SIZE+1 ] ;
+      memset( hostName, 0, sizeof(hostName) ) ;
+      rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
+      CHECK_RC( SDB_OK, rc, "fail to get hostname" ) ;
       
       // create rg and node with instanceid, start rg
       rc = db.getReplicaGroup( rgName, rg );
@@ -115,13 +116,13 @@ protected:
          CHAR nodePath[ MAX_NAME_SIZE+1 ] = { 0 } ;
          sprintf( nodePath, "%s%s%s", ARGS->rsrvNodeDir(), "data/", nodeSvc ) ;
          BSONObj nodeOption = BSON( "instanceid" << instanceid ) ;
-         string nodename = nodeHost ;
+         string nodename = hostName ;
          nodename += ":" ;
-         nodename += nodeSvc ;         
+         nodename += nodeSvc ;
 
          cout << "create node: " << nodename << " " << nodePath 
               << " instanceid: " << instanceid << endl ;
-         rc = rg.createNode( nodeHost, nodeSvc, nodePath, nodeOption ) ;
+         rc = rg.createNode( hostName, nodeSvc, nodePath, nodeOption ) ;
          CHECK_RC( SDB_OK, rc, "fail to create node" ) ;
          nodeInfo.insert( pair<string, INT32>( nodename, instanceid ) ) ;
       }

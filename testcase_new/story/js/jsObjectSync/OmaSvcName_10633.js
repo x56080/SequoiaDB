@@ -108,7 +108,9 @@ function test ()
    var remoteOma = new OmaTest( remotehost, CMSVCNAME );
    var staticOma = new OmaTest();
 
-   var omas = [localOma, remoteOma, staticOma];
+   // var omas = [localOma, remoteOma, staticOma];
+   // staticOma 在执行机与测试机分开时可能会执行失败
+   var omas = [localOma, remoteOma];
    for( var i = 0; i < omas.length; i++ )
    {
       // 测试增加、删除、获取Oma端口

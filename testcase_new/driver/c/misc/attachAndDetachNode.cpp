@@ -19,7 +19,7 @@ protected:
    sdbReplicaGroupHandle rg, tmpRg ;
    sdbNodeHandle tmpNode ;
    const CHAR* tmpRgName ;
-   CHAR hostName[100] ;
+   CHAR hostName[ MAX_NAME_SIZE+1 ] ;
    const CHAR* svcName ;
 
    void SetUp() 
@@ -39,7 +39,8 @@ protected:
       svcName = ARGS->rsrvPortBegin() ;
       CHAR dbPath[100] ;
       sprintf( dbPath, "%s%s%s", ARGS->rsrvNodeDir(), "data/", svcName ) ;
-      rc = getLocalHost( hostName, 100 ) ;
+      memset( hostName, 0, MAX_NAME_SIZE+1 ) ;
+      rc = getDBHost( db, hostName, MAX_NAME_SIZE ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbCreateNode( rg, hostName, svcName, dbPath, NULL ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create node " << hostName << ":" << svcName 
