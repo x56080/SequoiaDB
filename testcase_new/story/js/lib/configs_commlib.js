@@ -353,7 +353,7 @@ function getConfFromSnapshot ( db, hostName, svcName )
  ************************************************************************/
 function getConfFromFile ( hostName, svcName )
 {
-   var confFile = commGetInstallPath() + "/conf/local/" + svcName + "/sdb.conf";
+   var confFile = commGetRemoteInstallPath( hostName, CMSVCNAME ) + "/conf/local/" + svcName + "/sdb.conf";
    var remote = new Remote( hostName, CMSVCNAME );
    var cmd = remote.getCmd();
    var obj = {};
