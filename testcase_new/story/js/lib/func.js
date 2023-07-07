@@ -43,6 +43,7 @@ func.js 中方法：
       获取 procedure         commGetProcedures(db,filter)
       获取 sdb 安装路径      commGetInstallPath()
       获取指定快照类型       commGetSnapshot(db,snapshotType,condObj,selObj,sortObj,skipNum,limitNum,optionsObj)
+      远程获取集群安装路径    commGetRemoteInstallPath ( cmHostName, cmSvcName )
       
    6、其他
       将游标结果存入数组     commCursor2Array(cursor,fieldName,filter)
@@ -626,7 +627,7 @@ function commGetGroups ( db, print, filter, excludeCata, excludeCoord, excludeSp
       {
          continue;
       }
-      if ( tmpObj.Group.length == 0 ) continue ;
+      if( tmpObj.Group.length == 0 ) continue;
       tmpArray[index] = Array();
       tmpArray[index][0] = new Object();
       tmpArray[index][0].GroupName = tmpObj.GroupName;         // GroupName
@@ -1192,6 +1193,66 @@ function commGetInstallPath ()
    catch( e )
    {
       commThrowError( e, "failed to get install path[common]: " + e );
+   }
+   return InstallPath;
+}
+
+/******************************************************************************
+@description  远程获取 sdb 安装路径
+@author  liuli
+@return  {string}  sdb 安装路径
+   e.g:
+       "/opt/sequoiadb"
+***************************************************************************** */
+function commGetRemoteInstallPath ( cmHostName, cmSvcName )
+{
+   try
+   {
+      var remoteObj = new Remote( cmHostName, cmSvcName );
+      var cmd = remoteObj.getCmd();
+      try
+      {
+         var installFile = cmd.run( "grep INSTALL_DIR /etc/default/sequoiadb" ).split( "=" );
+         var installPath = installFile[1].split( "\n" );
+         var InstallPath = installPath[0];
+      }
+      catch( e )
+      {
+         if( commCompareErrorCode( e, 2 ) )
+         {
+            var local = cmd.run( "pwd" ).split( "\n" );
+            var LocalPath = local[0];
+            var folder = cmd.run( 'ls ' + LocalPath ).split( '\n' );
+            var fcnt = 0;
+            for( var i = 0; i < folder.length; ++i )
+            {
+               if( "bin" == folder[i] || "SequoiaDB" == folder[i] ||
+                  "testcase" == folder[i] )
+               {
+                  fcnt++;
+               }
+            }
+            if( 2 <= fcnt )
+            {
+               InstallPath = LocalPath;
+            } else
+            {
+               throw new Error( "Don'tGetLocalPath" );
+            }
+         }
+         else
+         {
+            commThrowError( e, "Don'tGetLocalPath" );
+         }
+      }
+   }
+   catch( e )
+   {
+      commThrowError( e, "failed to get install path[common]: " + e );
+   }
+   finally
+   {
+      remoteObj.close();
    }
    return InstallPath;
 }
