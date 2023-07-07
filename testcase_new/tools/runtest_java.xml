@@ -313,6 +313,7 @@
       <attribute name="dssvcname"/>
       <attribute name="remoteuser"/>
       <attribute name="remotepwd"/>
+      <attribute name="rootpwd"/>
       <attribute name="backuptmpnodelogpath"/>
       <sequential>
          <hostinfo prefix="host" />
