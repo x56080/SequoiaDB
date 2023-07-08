@@ -1,8 +1,10 @@
 package com.sequoiadb.lob.basicoperation;
 
 import com.sequoiadb.lob.utils.RandomWriteLobUtil;
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.types.ObjectId;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -33,6 +35,11 @@ public class TestPutLob32226 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
+        }
+
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         if ( cs.isCollectionExist( clName ) ) {
             cs.dropCollection( clName );
