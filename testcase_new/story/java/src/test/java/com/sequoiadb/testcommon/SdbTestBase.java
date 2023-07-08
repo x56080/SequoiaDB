@@ -234,8 +234,10 @@ public class SdbTestBase {
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
-            String REMOTEUSER, String REMOTEPASSWD,
+            String RSRVNODEDIR, String WORKDIR,
+            @Optional("sequoiadb") String ROOTPASSWD,
+            @Optional("sdbadmin") String REMOTEUSER,
+            @Optional("Admin@1024") String REMOTEPASSWD,
             @Optional("${BACKUPTMPNODELOGPATH}") String BACKUPTMPNODELOGPATH,
             @Optional("") String CONFTOOL,
             @Optional("false") String ENABLETRANSACTION,
