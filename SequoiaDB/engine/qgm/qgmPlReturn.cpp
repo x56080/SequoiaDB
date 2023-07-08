@@ -56,9 +56,9 @@ namespace engine
       return input(0)->execute( eduCB ) ;
    }
 
-   INT32 _qgmPlReturn::_fetchNext( qgmFetchOut &next )
+   INT32 _qgmPlReturn::_fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
-      return input(0)->fetchNext( next ) ;
+      return input(0)->fetchNext( next, eduCB ) ;
    }
 }
 

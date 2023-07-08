@@ -83,12 +83,13 @@ namespace engine
 
    _qgmPlCommand::~_qgmPlCommand()
    {
-      close() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      close( cb ) ;
    }
 
-   void _qgmPlCommand::close()
+   void _qgmPlCommand::close( _pmdEDUCB *eduCB )
    {
-      _killContext() ;
+      _killContext( eduCB ) ;
       return ;
    }
 
@@ -743,7 +744,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLCOMMAND__FETCHNEXT, "_qgmPlCommand::_fetchNext" )
-   INT32 _qgmPlCommand::_fetchNext( qgmFetchOut &next )
+   INT32 _qgmPlCommand::_fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLCOMMAND__FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
@@ -751,7 +752,7 @@ namespace engine
       rtnContextBuf buffObj ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      rc = rtnGetMore( _contextID, 1, buffObj, _eduCB, rtnCB ) ;
+      rc = rtnGetMore( _contextID, 1, buffObj, eduCB, rtnCB ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -782,12 +783,12 @@ namespace engine
       goto done ;
    }
 
-   void _qgmPlCommand::_killContext()
+   void _qgmPlCommand::_killContext( _pmdEDUCB *eduCB )
    {
       if ( -1 != _contextID )
       {
          SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-         rtnKillContexts( 1, &_contextID, _eduCB, rtnCB ) ;
+         rtnKillContexts( 1, &_contextID, eduCB, rtnCB ) ;
          _contextID = -1 ;
       }
       return ;

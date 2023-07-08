@@ -142,7 +142,7 @@ namespace engine
          }
 
          qgmFetchOut fetch ;
-         rc = input( 0 )->fetchNext( fetch ) ;
+         rc = input( 0 )->fetchNext( fetch, eduCB ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -349,7 +349,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _qgmPlInsert::_fetchNext ( qgmFetchOut &next )
+   INT32 _qgmPlInsert::_fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( FALSE, "impossble" ) ;
       return SDB_SYS ;

@@ -83,7 +83,8 @@ namespace engine
 
    _qgmPlSort::~_qgmPlSort()
    {
-      close() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      close( cb ) ;
    }
 
    string _qgmPlSort::toString() const
@@ -94,17 +95,17 @@ namespace engine
       return ss.str() ;
    }
 
-   void _qgmPlSort::close()
+   void _qgmPlSort::close( _pmdEDUCB *eduCB )
    {
       if ( -1 != _contextSort )
       {
-         _rtnCB->contextDelete ( _contextSort, _eduCB ) ;
+         _rtnCB->contextDelete ( _contextSort, eduCB ) ;
          _contextSort = -1 ;
       }
 
       if ( -1 != _contextID )
       {
-         _rtnCB->contextDelete ( _contextID, _eduCB ) ;
+         _rtnCB->contextDelete ( _contextID, eduCB ) ;
          _contextID = -1 ;
       }
 
@@ -152,12 +153,12 @@ namespace engine
       PD_TRACE_EXITRC( SDB__QGMPLSORT__EXEC, rc ) ;
       return rc ;
    error:
-      close() ;
+      close( eduCB ) ;
       goto done ;
    }
 
    PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLSORT__FETCHNEXT, "_qgmPlSort::_fetchNext" )
-   INT32 _qgmPlSort::_fetchNext ( qgmFetchOut &next )
+   INT32 _qgmPlSort::_fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLSORT__FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
@@ -169,7 +170,7 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnGetMore ( _contextID, 1, buffObj, _eduCB, _rtnCB ) ;
+      rc = rtnGetMore ( _contextID, 1, buffObj, eduCB, _rtnCB ) ;
       try
       {
          if ( SDB_OK == rc )
@@ -203,7 +204,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__QGMPLSORT__FETCHNEXT, rc ) ;
       return rc ;
    error:
-      close() ;
+      close( eduCB ) ;
       goto done ;
    }
 

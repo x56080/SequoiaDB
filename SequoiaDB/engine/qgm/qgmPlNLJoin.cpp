@@ -128,7 +128,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLNLJOIN__FETCHNEXT, "_qgmPlNLJoin::_fetchNext" )
-   INT32 _qgmPlNLJoin::_fetchNext( qgmFetchOut &next )
+   INT32 _qgmPlNLJoin::_fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLNLJOIN__FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
@@ -138,7 +138,7 @@ namespace engine
       {
          if ( _innerEnd )
          {
-            rc = _outer->fetchNext( _outerF ) ;
+            rc = _outer->fetchNext( _outerF, eduCB ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -150,7 +150,7 @@ namespace engine
                goto error ;
             }
 
-            rc = _inner->execute( _eduCB ) ;
+            rc = _inner->execute( eduCB ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -161,7 +161,7 @@ namespace engine
             _innerF->obj = BSONObj() ;
          }
 
-         rc = _inner->fetchNext( *_innerF ) ;
+         rc = _inner->fetchNext( *_innerF, eduCB ) ;
 
          if ( SDB_DMS_EOC == rc )
          {

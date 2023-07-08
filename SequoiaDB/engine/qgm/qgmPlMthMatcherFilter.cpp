@@ -56,7 +56,7 @@ namespace engine
    }
 
    //PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLMTHMATCHERFILTER__FETCHNEXT, "qgmPlMthMatcherFilter::_fetchNext" )
-   INT32 qgmPlMthMatcherFilter::_fetchNext( qgmFetchOut & next )
+   INT32 qgmPlMthMatcherFilter::_fetchNext( qgmFetchOut & next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLMTHMATCHERFILTER__FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
@@ -65,14 +65,14 @@ namespace engine
 
       if ( 0 <= _return && _return <= _currentReturn )
       {
-         close() ;
+         close( eduCB ) ;
          rc = SDB_DMS_EOC ;
          goto error ;
       }
 
       while ( TRUE )
       {
-         rc = in->fetchNext( fetch ) ;
+         rc = in->fetchNext( fetch, eduCB ) ;
          if ( SDB_OK != rc && SDB_DMS_EOC != rc )
          {
             goto error ;

@@ -160,7 +160,7 @@ namespace engine
    }
 
    PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLHASHJOIN__FETCHNEXT, "_qgmPlHashJoin::_fetchNext" )
-   INT32 _qgmPlHashJoin::_fetchNext ( qgmFetchOut &next )
+   INT32 _qgmPlHashJoin::_fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__QGMPLHASHJOIN__FETCHNEXT ) ;
@@ -169,7 +169,7 @@ namespace engine
       {
          if ( QGM_HJ_FETCH_STATE_BUILD == _state )
          {
-            rc = _buildHashTbl() ;
+            rc = _buildHashTbl( eduCB ) ;
             if ( SDB_OK != rc )
             {
                if ( SDB_DMS_EOC == rc )
@@ -183,7 +183,7 @@ namespace engine
                goto error ;
             }
 
-            rc = _probe->execute( _eduCB ) ;
+            rc = _probe->execute( eduCB ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to exec probe:%d", rc ) ;
@@ -194,7 +194,7 @@ namespace engine
          }
          else if ( QGM_HJ_FETCH_STATE_PROBE == _state )
          {
-            rc = _probe->fetchNext( _probeF ) ;
+            rc = _probe->fetchNext( _probeF, eduCB ) ;
             if ( SDB_DMS_EOC == rc )
             {
                _state = QGM_HJ_FETCH_STATE_BUILD ;
@@ -255,8 +255,8 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLHASHJOIN__BUILDHASNTBL, "_qgmPlHashJoin::_buildHashTbl")
-   INT32 _qgmPlHashJoin::_buildHashTbl()
+   //PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLHASHJOIN__BUILDHASNTBL, "_qgmPlHashJoin::_buildHashTbl")
+   INT32 _qgmPlHashJoin::_buildHashTbl( _pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__QGMPLHASHJOIN__BUILDHASNTBL ) ;
@@ -272,7 +272,7 @@ namespace engine
                break ;
             }
 
-            rc = _build->fetchNext( _buildF ) ;
+            rc = _build->fetchNext( _buildF, eduCB ) ;
             if ( SDB_DMS_EOC == rc )
             {
                _hitBuildEnd = TRUE ;

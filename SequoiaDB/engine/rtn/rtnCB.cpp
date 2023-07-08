@@ -439,6 +439,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT64 bTick = pmdGetDBTick() ;
+      BOOLEAN hasPrint = FALSE ;
 
       while( TRUE )
       {
@@ -448,9 +449,13 @@ namespace engine
             if ( PMD_INVALID_EDUID != (ret.first)->eduID() &&
                  cb && !cb->contextFind( contextID ) )
             {
-               PD_LOG_MSG ( PDWARNING, "Context %lld does not owned by "
-                            "current session, owned by %llu", contextID,
-                            (ret.first)->eduID() ) ;
+               if ( !hasPrint )
+               {
+                  PD_LOG_MSG ( PDWARNING, "Context %lld does not owned by "
+                               "current session, owned by %llu", contextID,
+                               (ret.first)->eduID() ) ;
+                  hasPrint = TRUE ;
+               }
                rc = SDB_RTN_CONTEXT_NOTOWNED ;
             }
             else

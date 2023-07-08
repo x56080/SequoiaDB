@@ -110,7 +110,7 @@ namespace engine
       {
          try
          {
-            rc = _accPlan->fetch( obj ) ;
+            rc = _accPlan->fetch( obj, cb ) ;
          }
          catch( std::exception &e )
          {
@@ -220,7 +220,7 @@ namespace engine
       {
          try
          {
-            rc = _qp->fetchNext( next ) ;
+            rc = _qp->fetchNext( next, cb ) ;
          }
          catch( std::exception &e )
          {

@@ -55,7 +55,7 @@ namespace engine
       INT32 loadPattern( bson::BSONObj matcher );
 
    private:
-      virtual INT32 _fetchNext( qgmFetchOut & next );
+      virtual INT32 _fetchNext( qgmFetchOut & next, _pmdEDUCB *eduCB );
 
    private:
       _mthMatchTree        _matcher;

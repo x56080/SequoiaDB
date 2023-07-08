@@ -46,7 +46,6 @@ namespace engine
 {
    _qgmPlan::_qgmPlan( QGM_PLAN_TYPE type, const qgmField &alias )
    :_type( type ),
-   _eduCB( NULL ),
    _executed( FALSE ),
    _initialized( FALSE ),
    _merge( FALSE ),
@@ -72,12 +71,12 @@ namespace engine
       return _checkTransAutoCommit( dpsValid, eduCB ) ;
    }
 
-   void _qgmPlan::close()
+   void _qgmPlan::close( _pmdEDUCB *eduCB )
    {
       QGM_PINPUT::iterator itr = _input.begin() ;
       for ( ; itr != _input.end(); itr++ )
       {
-         (*itr)->close() ;
+         (*itr)->close( eduCB ) ;
       }
    }
 
@@ -214,7 +213,6 @@ namespace engine
          goto error ;
       }
 
-      _eduCB = eduCB ;
       _executed = TRUE ;
    done:
       PD_TRACE_EXITRC( SDB__QGMPLAN_EXECUTE, rc ) ;
@@ -224,21 +222,21 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_FETCHNEXT, "_qgmPlan::fetchNext" )
-   INT32 _qgmPlan::fetchNext( qgmFetchOut &next )
+   INT32 _qgmPlan::fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLAN_FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( NULL != _eduCB, "impossible" ) ;
+      SDB_ASSERT( NULL != eduCB, "impossible" ) ;
       SDB_ASSERT( _executed, "impossible" ) ;
 
-      if ( !_executed || NULL == _eduCB )
+      if ( !_executed || NULL == eduCB )
       {
          rc = SDB_SYS ;
          goto error ;
       }
 
-      rc = _fetchNext( next ) ;
+      rc = _fetchNext( next, eduCB ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -251,7 +249,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__QGMPLAN_FETCHNEXT, rc ) ;
       return rc ;
    error:
-      close() ;
+      close( eduCB ) ;
       goto done ;
    }
 

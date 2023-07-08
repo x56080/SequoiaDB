@@ -53,7 +53,8 @@ namespace engine
    {
       if ( NULL != _plan )
       {
-         _plan->close() ;
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         close( cb ) ;
          SDB_OSS_DEL _plan ;
          _plan = NULL ;
       }
@@ -172,7 +173,7 @@ namespace engine
       return CATALOG_INVALID_VERSION ;
    }
 
-   INT32 _qgmPlanContainer::fetch( BSONObj &obj )
+   INT32 _qgmPlanContainer::fetch( BSONObj &obj, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       qgmFetchOut next ;
@@ -184,7 +185,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _plan->fetchNext( next ) ;
+      rc = _plan->fetchNext( next, cb ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

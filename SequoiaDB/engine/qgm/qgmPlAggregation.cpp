@@ -201,7 +201,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _qgmPlAggregation::_fetchNext( qgmFetchOut &next )
+   INT32 _qgmPlAggregation::_fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
       qgmFetchOut subFetch ;
@@ -215,7 +215,7 @@ namespace engine
 
       do
       {
-         rc = input( 0 )->fetchNext( subFetch ) ;
+         rc = input( 0 )->fetchNext( subFetch, eduCB ) ;
          if ( SDB_DMS_EOC == rc )
          {
             _eoc = TRUE ;

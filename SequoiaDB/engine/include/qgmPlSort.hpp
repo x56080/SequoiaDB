@@ -52,13 +52,13 @@ namespace engine
       virtual ~_qgmPlSort() ;
 
    public:
-      virtual void close() ;
+      virtual void close( _pmdEDUCB *eduCB ) ;
       virtual string toString() const ;
 
    private:
       virtual INT32 _execute( _pmdEDUCB *eduCB ) ;
 
-      virtual INT32 _fetchNext ( qgmFetchOut &next ) ;
+      virtual INT32 _fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB ) ;
 
    private:
       SINT64 _contextID ;

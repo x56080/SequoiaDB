@@ -74,13 +74,12 @@ namespace engine
          return _plan ;
       }
 
-      OSS_INLINE void close()
+      OSS_INLINE void close( _pmdEDUCB *cb )
       {
          if ( NULL != _plan )
          {
-            _plan->close() ;
+            _plan->close( cb ) ;
          }
-         return ;
       }
 
       OSS_INLINE QGM_PLAN_TYPE type()
@@ -100,7 +99,7 @@ namespace engine
       void    setClientVersion( INT32 version ) ;
       INT32   getCatalogVersion() const ;
 
-      INT32   fetch( BSONObj &obj ) ;
+      INT32   fetch( BSONObj &obj, _pmdEDUCB *cb ) ;
 
    private:
       SQL_AST        _ast ;

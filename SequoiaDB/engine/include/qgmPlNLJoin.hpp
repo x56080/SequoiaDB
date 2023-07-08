@@ -52,7 +52,7 @@ namespace engine
    private:
       virtual INT32 _execute( _pmdEDUCB *eduCB ) ;
 
-      virtual INT32 _fetchNext ( qgmFetchOut &next ) ;
+      virtual INT32 _fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB ) ;
 
      INT32 _modifyInnerCondition( BSONObj &obj ) ;
 

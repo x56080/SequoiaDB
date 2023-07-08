@@ -95,13 +95,14 @@ namespace engine
 
    _qgmPlScan::~_qgmPlScan()
    {
-      _killContext() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      _killContext( cb ) ;
       SAFE_OSS_DELETE( _conditionNode ) ;
    }
 
-   void _qgmPlScan::close()
+   void _qgmPlScan::close( _pmdEDUCB *eduCB )
    {
-      _killContext() ;
+      _killContext( eduCB ) ;
       return ;
    }
 
@@ -295,6 +296,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 bufSize = 0 ;
       CHAR *qMsg = NULL ;
+      MsgOpQuery *pQueryMsg = NULL ;
       BSONObj selector = _selector.selector() ;
 
       coordQueryOperator opr ;
@@ -324,7 +326,13 @@ namespace engine
          goto error ;
       }
 
-      ((MsgOpQuery*)qMsg)->version = _clientVersion ;
+      pQueryMsg = ( MsgOpQuery* )qMsg ;
+      pQueryMsg->version = _clientVersion ;
+
+      if ( eduCB && eduCB->getOperator()->isContextDetachMode() )
+      {
+         pQueryMsg->header.flags |= FLAG_DETACH_CONTEXT ;
+      }
 
       rc = opr.execute( (MsgHeader*)qMsg, eduCB, _contextID, &buff ) ;
       if ( rc )
@@ -354,7 +362,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLSCAN__FETCHNEXT, "_qgmPlScan::_fetchNext" )
-   INT32 _qgmPlScan::_fetchNext ( qgmFetchOut &next )
+   INT32 _qgmPlScan::_fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLSCAN__FETCHNEXT ) ;
       INT32 rc = SDB_OK ;
@@ -366,7 +374,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _fetch( getMoreRes ) ;
+      rc = _fetch( getMoreRes, eduCB ) ;
 
       if ( SDB_OK != rc && SDB_DMS_EOC != rc )
       {
@@ -418,7 +426,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLSCAN__FETCH, "_qgmPlScan::_fetch" )
-   INT32 _qgmPlScan::_fetch( const CHAR *&result )
+   INT32 _qgmPlScan::_fetch( const CHAR *&result, _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLSCAN__FETCH );
       INT32 rc = SDB_OK ;
@@ -426,7 +434,7 @@ namespace engine
                    "context id must be initialized" ) ;
 
       rtnContextBuf buffObj ;
-      rc = rtnGetMore( _contextID, 1, buffObj, _eduCB, _rtnCB ) ;
+      rc = rtnGetMore( _contextID, 1, buffObj, eduCB, _rtnCB ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -445,11 +453,11 @@ namespace engine
       goto done ;
    }
 
-   void _qgmPlScan::_killContext()
+   void _qgmPlScan::_killContext( _pmdEDUCB *eduCB )
    {
-      if ( -1 != _contextID && NULL != _eduCB )
+      if ( -1 != _contextID && NULL != eduCB )
       {
-         rtnKillContexts( 1, &_contextID, _eduCB, _rtnCB ) ;
+         rtnKillContexts( 1, &_contextID, eduCB, _rtnCB ) ;
          _contextID = -1 ;
       }
    }
