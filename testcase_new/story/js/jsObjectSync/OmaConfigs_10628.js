@@ -145,7 +145,9 @@ function test ()
    var remoteOma = new OmaTest( remotehost, CMSVCNAME );
    var staticOma = new OmaTest();
 
-   var omas = [localOma, remoteOma, staticOma];
+   // 执行机和测试机分开时 staticOma 可能会失败
+   // var omas = [localOma, remoteOma, staticOma];
+   var omas = [localOma, remoteOma];
    for( var i = 0; i < omas.length; i++ )
    {
       // 测试正常获取Oma配置文件和配置信息
