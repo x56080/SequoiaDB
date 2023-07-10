@@ -16,7 +16,7 @@ function test ()
    }
 
    // 先停止当前的cm
-   var InstallPath = commGetInstallPath();
+   var InstallPath = commGetRemoteInstallPath( COORDHOSTNAME, CMSVCNAME );
    ssh.exec( InstallPath + "/bin/sdbcmtop" );
 
    try
