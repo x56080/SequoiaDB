@@ -68,8 +68,7 @@ namespace engine
                   BOOLEAN needResize = FALSE,
                   OSSHANDLE *pHandle = NULL,
                   BOOLEAN addShellPrefix = FALSE,
-                  BOOLEAN dupOut = TRUE,
-                  BOOLEAN saveResult = FALSE ) ;
+                  BOOLEAN dupOut = TRUE ) ;
 
       INT32 done() ;
 

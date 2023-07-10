@@ -441,7 +441,7 @@ namespace engine
 
          // run command
          tmpRC = nodeRunner->exec( command.c_str(), exitCode,
-                                   TRUE, -1, TRUE, &nodeHandle, FALSE, TRUE, TRUE ) ;
+                                   TRUE, -1, TRUE, &nodeHandle ) ;
          if ( SDB_OK != tmpRC )
          {
             rc = tmpRC ;
