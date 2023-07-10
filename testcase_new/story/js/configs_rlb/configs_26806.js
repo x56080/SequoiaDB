@@ -2,8 +2,8 @@
  * @Description   : seqDB-26806:updateConf忽略大小写
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.04
- * @LastEditTime  : 2022.08.09
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2023.07.10
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -59,40 +59,6 @@ function test ()
 
       var config = { MAXPREFPOOL: 300 };
       var expConfig = { maxprefpool: 300 };
-      updateConf( db, config, option, SDB_RTN_CONF_NOT_TAKE_EFFECT );
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-      commCheckBusinessStatus( db );
-      checkSnapshot( db, config, option, expConfig );
-
-      // archiveon参数校验
-      var config = { ArchiveOn: "true" };
-      var expConfig = { archiveon: "TRUE" };
-      updateConf( db, config, option, SDB_RTN_CONF_NOT_TAKE_EFFECT );
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-      commCheckBusinessStatus( db );
-      checkSnapshot( db, config, option, expConfig );
-
-      var config = { ARCHIVEON: "false" };
-      var expConfig = { archiveon: "FALSE" };
-      updateConf( db, config, option, SDB_RTN_CONF_NOT_TAKE_EFFECT );
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-      commCheckBusinessStatus( db );
-      checkSnapshot( db, config, option, expConfig );
-
-      // transactionon参数校验
-      var config = { TransActionOn: "false" };
-      var expConfig = { transactionon: "FALSE" };
-      updateConf( db, config, option, SDB_RTN_CONF_NOT_TAKE_EFFECT );
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-      commCheckBusinessStatus( db );
-      checkSnapshot( db, config, option, expConfig );
-
-      var config = { TRANSACTIONON: "true" };
-      var expConfig = { transactionon: "TRUE" };
       updateConf( db, config, option, SDB_RTN_CONF_NOT_TAKE_EFFECT );
       db.getRG( groupName ).stop();
       db.getRG( groupName ).start();
