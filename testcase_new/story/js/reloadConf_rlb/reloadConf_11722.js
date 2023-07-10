@@ -63,7 +63,7 @@ function addNode ( groupName, nodeAttr )
 
 function checkNodeConfFile ( groups )
 {
-   var sdbDir = commGetInstallPath();
+   var sdbDir = commGetRemoteInstallPath( COORDHOSTNAME, CMSVCNAME );
    var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
    var cmd = remote.getCmd();
 

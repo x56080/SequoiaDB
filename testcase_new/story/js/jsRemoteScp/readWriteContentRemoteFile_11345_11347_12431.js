@@ -16,7 +16,7 @@ function test ()
    var remoteFile = remote.getFile();
 
    var remoteCmd = remote.getCmd();
-   var remoteInstallPath = commGetInstallPath();
+   var remoteInstallPath = commGetRemoteInstallPath( COORDHOSTNAME, CMSVCNAME );
    var readFileName = remoteInstallPath + "/bin/sdbdpsdump";
 
    if( !remoteFile.exist( WORKDIR ) )
@@ -62,7 +62,7 @@ function test ()
       }
       var emptyFile = remote.getFile( emptyFileName );
       var content = emptyFile.readContent();
-      throw new Error("EXPECT GET AN ERROR");
+      throw new Error( "EXPECT GET AN ERROR" );
    }
    catch( e )
    {

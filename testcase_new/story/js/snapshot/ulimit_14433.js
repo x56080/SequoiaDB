@@ -59,7 +59,7 @@ function getUlimitBySnap ( db, GID, NID )
 
 function getLocalNodeInfo ( cmd )
 {
-   var installPath = commGetInstallPath();
+   var installPath = commGetRemoteInstallPath( COORDHOSTNAME, CMSVCNAME );
    var infoStr = cmd.run( installPath + "/bin/sdblist -l | grep sequoiadb | head -n 1" );
    if( infoStr == "" )
    {

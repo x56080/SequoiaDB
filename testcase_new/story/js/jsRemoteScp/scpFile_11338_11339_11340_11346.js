@@ -32,7 +32,7 @@ function test ()
    }
 
    var remoteCmd = remote.getCmd();
-   var remoteInstallPath = commGetInstallPath();
+   var remoteInstallPath = commGetRemoteInstallPath( COORDHOSTNAME, CMSVCNAME );
    var remoteSrcFileName = remoteInstallPath + "/bin/sdbdpsdump";
    var remoteDstFileName = WORKDIR + "/dstFile_11338";
 
