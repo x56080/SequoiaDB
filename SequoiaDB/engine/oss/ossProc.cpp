@@ -117,9 +117,6 @@ void ossCloseProcessHandle( OSSHANDLE & handle )
    handle = 0 ;
 }
 
-static CHID_RESULT_MAP  g_childResultMap ;
-static ossSpinXLatch    g_ResultMapMutex ;
-
 #define OSS_INVALID_MSG_QUEUE_ID -1
 // Linux wait child process
 // It calls waitpid until the given pid stop
@@ -154,39 +151,17 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
    else if ( -1 == rc )
    {
       // child already terminated
-
-      if ( ECHILD == err )
-      {
-         // if this child is using SIGCHLD handler function to wait for exit
-         // try to get result code from map by pid
-         ossScopedLock lock( &g_ResultMapMutex ) ;
-         CHID_RESULT_MAP::iterator it = g_childResultMap.find( pid ) ;
-         if ( it != g_childResultMap.end() )
-         {
-            result.termcode = it->second.termcode ;
-            result.exitcode = it->second.exitcode ;
-            g_childResultMap.erase( it ) ;
-            lock.release() ;
-            PD_LOG( PDEVENT, "get child process(%d) resultCode(TermCode:%d, ExitCode:%d)",
-                    pid, result.termcode, result.exitcode ) ;
-            rc = SDB_OK ;
-            goto done ;
-         }
-      }
-
       if ( ENOENT == err || ECHILD == err )
       {
          result.termcode = OSS_EXIT_NORMAL ;
          result.exitcode = 0 ;
          rc = SDB_OK ;
-         goto done ;
       }
       else
       {
          PD_LOG ( PDERROR, "Failed to wait child, errno: %d( %s )",
                   err, ossGetLastErrorMsg( err ) ) ;
          rc = SDB_SYS ;
-         goto error ;
       }
    }
    // otherwise let's check the status of the output process id
@@ -250,12 +225,8 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
       }
       rc = SDB_OK ;
    }
-
-done :
    PD_TRACE_EXITRC ( SDB_OSSWAITCHLD, rc );
    return rc ;
-error :
-   goto done ;
 }
 
 #define OSS_FIRST_ARGUMENT_LEN 255
@@ -595,28 +566,6 @@ void _ossSigCHLDHandler( INT32 signum )
    }
 }
 
-/// signal handler( save child's result code )
-void _ossSigCHLDsaveResultHandler( INT32 signum )
-{
-   INT32 rc = SDB_OK ;
-   ossResultCode result ;
-   OSSPID pid = OSS_INVALID_PID ;
-
-   ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
-   while( ( rc = ossWaitChild( OSS_INVALID_PID, result, FALSE, &pid ) == SDB_OK &&
-          OSS_INVALID_PID != pid ) )
-   {
-      // when child process exit, save result code
-      ossScopedLock lock( &g_ResultMapMutex ) ;
-      g_childResultMap[ pid ] = result ;
-      lock.release() ;
-
-      PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
-              pid, result.termcode, result.exitcode ) ;
-      ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
-   }
-}
-
 // function to execute program.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXEC, "ossExec" )
 INT32 ossExec ( const CHAR * program,
@@ -647,14 +596,7 @@ INT32 ossExec ( const CHAR * program,
    INT32               msgRecvBytes           = 0 ;
 
    // change sigchld action to default
-   if( OSS_EXEC_SAVECHLDRESULT & flag )
-   {
-      ignore.sa_handler = _ossSigCHLDsaveResultHandler ;
-   }
-   else
-   {
-      ignore.sa_handler = _ossSigCHLDHandler ;
-   }
+   ignore.sa_handler = _ossSigCHLDHandler ;
    sigemptyset ( &ignore.sa_mask ) ;
    ignore.sa_flags = 0 ;
    sysRC = sigaction ( SIGCHLD, &ignore, &savechild ) ;
