@@ -45,7 +45,6 @@
 #include <list>
 #include <vector>
 #include <string>
-#include <map>
 
 #if defined (_LINUX)
 #define PROC_SELF_EXE                  "/proc/self/exe"
@@ -53,11 +52,10 @@
 #endif
 #define OSS_EXECV_CAST                 char*const*
 // define ossExec execute flags
-#define OSS_EXEC_INHERIT_HANDLES       1  // inherit fd/handles in new process
-#define OSS_EXEC_SSAVE                 2  // sync process, return result
-#define OSS_EXEC_NORESIZEARGV          4  // not resize buffer for argv for rename
-#define OSS_EXEC_NODETACHED            8  // not detached
-#define OSS_EXEC_SAVECHLDRESULT        16 // save result code when sig handler wait child exit
+#define OSS_EXEC_INHERIT_HANDLES       1 // inherit fd/handles in new process
+#define OSS_EXEC_SSAVE                 2 // sync process, return result
+#define OSS_EXEC_NORESIZEARGV          4 // not resize buffer for argv for rename
+#define OSS_EXEC_NODETACHED            8 // not detached
 
 // define term code
 #define OSS_EXIT_NORMAL 0
@@ -86,8 +84,6 @@ public:
                                   OSSNPIPE * const npHandleStdout ) = 0 ;
 } ;
 typedef _ossIExecHandle ossIExecHandle ;
-
-typedef std::map< OSSPID, _ossResultCode > CHID_RESULT_MAP ;
 
 /**
    \brief Exec a new program.

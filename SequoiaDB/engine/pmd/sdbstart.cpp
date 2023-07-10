@@ -565,7 +565,7 @@ namespace engine
                         needToBuildConfPathArg,
                         runCmd ) ;
          tmpRC = runner->exec( runCmd.c_str(), exitCode, TRUE,
-                               -1, TRUE, &handle, FALSE, TRUE, TRUE ) ;
+                               -1, TRUE, &handle ) ;
          if ( tmpRC )
          {
             rc = tmpRC ;
