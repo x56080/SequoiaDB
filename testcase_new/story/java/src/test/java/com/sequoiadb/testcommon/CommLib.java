@@ -1328,7 +1328,7 @@ public class CommLib {
 
     public static ArrayList< BSONObject > insertData( DBCollection dbcl,
             int recordNum ) {
-        return insertData( dbcl, recordNum, 50 );
+        return insertData( dbcl, recordNum, 5 );
     }
 
     public static String getRandomString( int length ) {
