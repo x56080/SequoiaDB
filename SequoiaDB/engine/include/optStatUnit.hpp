@@ -180,7 +180,9 @@ namespace engine
                               rtnStatPredList::iterator &endIter,
                               optStatListKey &startKeys,
                               optStatListKey &stopKeys,
-                              BOOLEAN isEqual,
+                              UINT32 keyLevelNum,
+                              UINT32 prefixEqualNum,
+                              double curSelectivity,
                               double &predSelectivity,
                               double &scanSelectivity ) const ;
 

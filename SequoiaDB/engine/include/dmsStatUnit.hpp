@@ -79,6 +79,9 @@ namespace engine
    // Default selectivity of a $et predicate
    #define DMS_STAT_PRED_EQ_DEF_SELECTIVITY    ( 0.005 )
 
+   // Default selectivity of a predicate
+   #define DMS_STAT_PRED_DEF_SELECTIVITY       ( 0.3333333333333333 )
+
    #define DMS_STAT_ROUND( x, min, max ) \
            ( OSS_MIN( OSS_MAX( ( x ), ( min ) ), ( max ) ) )
 
@@ -558,10 +561,13 @@ namespace engine
 
          INT32 evalRangeOperator ( dmsStatKey &startKey,
                                    dmsStatKey &stopKey,
+                                   UINT32 prefixEqualNum,
+                                   double curSelectivity,
                                    double &predSelectivity,
                                    double &scanSelectivity ) const ;
 
          INT32 evalETOperator ( dmsStatKey &key,
+                                double curSelectivity,
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
@@ -589,18 +595,9 @@ namespace engine
          INT32 _evalOperator ( dmsStatKey *pStartKey,
                                dmsStatKey *pStopKey,
                                UINT32 numEqualKeys,
+                               double curSelectivity,
                                double &predSelectivity,
                                double &scanSelectivity ) const ;
-
-         INT32 _evalETDefault( UINT32 numEqualKeys,
-                               double maxSelectivity,
-                               double &predSelectivity,
-                               double &scanSelectivity ) const ;
-         INT32 _evalETHitMCV( UINT32 numEqualKeys,
-                              double mcvPredSelectivity,
-                              double mcvScanSelectivity,
-                              double &predSelectivity,
-                              double &scanSelectivity ) const ;
 
       protected :
          // Name of collection space
@@ -643,6 +640,8 @@ namespace engine
          FLOAT64           _totalFrac ;
          FLOAT64           _sampleFrac ;
          FLOAT64           _samplePercent ;
+         // percent between two sample values
+         FLOAT64           _sampleStepPercent ;
    } ;
 
    typedef _dmsIndexStat dmsIndexStat ;

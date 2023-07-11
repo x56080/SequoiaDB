@@ -58,6 +58,106 @@ namespace engine
    static double optConvertStrToScalar ( const CHAR *pValue, UINT32 valueSize,
                                          UINT8 low, UINT8 high ) ;
 
+   static FLOAT64 _optEvalDefETSel( UINT64 recordNum, const BSONElement &beValue ) ;
+   static FLOAT64 _optEvalDefGTSel( const BSONElement &beStart, BOOLEAN startIncluded ) ;
+   static FLOAT64 _optEvalDefLTSel( const BSONElement &beStop, BOOLEAN stopIncluded ) ;
+   static FLOAT64 _optEvalDefRangeSel( const BSONElement &beStart, BOOLEAN startIncluded,
+                                       const BSONElement &beStop, BOOLEAN stopIncluded ) ;
+
+   static FLOAT64 _optStatPredEQSel[] =
+   {
+      OPT_PRED_DEFAULT_SELECTIVITY,
+      OPT_PRED_EQ_DEF_SELECTIVITY,
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 2 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 3 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 4 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 5 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 6 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 7 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 8 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 9 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 10 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 11 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 12 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 13 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 14 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 15 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 16 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 17 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 18 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 19 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 20 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 21 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 22 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 23 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 24 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 25 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 26 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 27 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 28 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 29 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 30 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 31 ),
+      pow( OPT_PRED_EQ_DEF_SELECTIVITY, 32 ),
+   } ;
+
+   static FLOAT64 _optStatPredRangeSel[] =
+   {
+      OPT_PRED_DEFAULT_SELECTIVITY,
+      OPT_PRED_RANGE_DEF_SELECTIVITY,
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 2 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 3 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 4 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 5 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 6 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 7 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 8 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 9 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 10 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 11 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 12 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 13 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 14 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 15 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 16 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 17 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 18 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 19 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 20 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 21 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 22 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 23 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 24 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 25 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 26 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 27 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 28 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 29 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 30 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 31 ),
+      pow( OPT_PRED_RANGE_DEF_SELECTIVITY, 32 ),
+   } ;
+
+   static const UINT32 _optStatMaxPredNum = 32 ;
+
+   static FLOAT64 _optStatGetEQSel( UINT32 numEqual )
+   {
+      if ( numEqual > _optStatMaxPredNum )
+      {
+         return _optStatPredEQSel[ _optStatMaxPredNum ] ;
+      }
+      return _optStatPredEQSel[ numEqual ] ;
+   }
+
+   static FLOAT64 _optStatGetRangeSel( UINT32 numEqual )
+   {
+      if ( numEqual > _optStatMaxPredNum )
+      {
+         return _optStatPredRangeSel[ _optStatMaxPredNum ] ;
+      }
+      return _optStatPredRangeSel[ numEqual ] ;
+   }
+
    /*
       _optStatListKey implement
     */
@@ -383,7 +483,9 @@ namespace engine
                                       rtnStatPredList::iterator &endIter,
                                       optStatListKey &startKeys,
                                       optStatListKey &stopKeys,
-                                      BOOLEAN isEqual,
+                                      UINT32 keyLevelNum,
+                                      UINT32 prefixEqualNum,
+                                      double curSelectivity,
                                       double &predSelectivity,
                                       double &scanSelectivity ) const
    {
@@ -393,18 +495,21 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTSTATUNIT__EVALKEYPAIR ) ;
 
+      BOOLEAN isEqual = keyLevelNum == prefixEqualNum ? TRUE : FALSE ;
       rtnStatPredList::iterator curPred = predIter ;
 
       if ( curPred == endIter )
       {
          if ( isEqual && startKeys.size() == pIndexStat->getNumKeys() )
          {
-            rc = pIndexStat->evalETOperator( startKeys, predSelectivity,
-                                             scanSelectivity ) ;
+            rc = pIndexStat->evalETOperator( startKeys, curSelectivity,
+                                             predSelectivity, scanSelectivity ) ;
          }
          else
          {
             rc = pIndexStat->evalRangeOperator( startKeys, stopKeys,
+                                                prefixEqualNum,
+                                                curSelectivity,
                                                 predSelectivity,
                                                 scanSelectivity ) ;
          }
@@ -412,7 +517,8 @@ namespace engine
       else
       {
          rtnPredicate *pPredicate = *curPred ;
-         rtnStatPredList::iterator nextPred = ++ predIter ;
+         rtnStatPredList::iterator nextPred = predIter ;
+         ++ nextPred ;
 
          BOOLEAN startIncluded = startKeys.isIncluded() ;
          BOOLEAN stopIncluded = stopKeys.isIncluded() ;
@@ -427,6 +533,7 @@ namespace engine
             {
                BOOLEAN subIsEqual = isEqual && iterSSKey->isEquality() ;
                double subScanSel = 1.0, subPredSel = 1.0 ;
+               double curKeySel = 1.0 ;
 
                // [$minKey, $minKey], [$minKey, $undefined), [$maxKey, $maxKey]
                // which could be ignored
@@ -443,9 +550,40 @@ namespace engine
                startKeys.pushKeyBound( &(iterSSKey->_startKey) ) ;
                stopKeys.pushKeyBound( &(iterSSKey->_stopKey) ) ;
 
+               if ( iterSSKey->isEquality() )
+               {
+                  // predicate is an equal
+                  curKeySel = _optEvalDefETSel( getTotalRecords(),
+                                                iterSSKey->_startKey._bound ) ;
+               }
+               else if ( iterSSKey->_startKey._bound.type() != MinKey &&
+                         iterSSKey->_stopKey._bound.type() != MaxKey )
+               {
+                  // predicate is a range
+                  curKeySel = _optEvalDefRangeSel( iterSSKey->_startKey._bound,
+                                                   iterSSKey->_startKey._inclusive,
+                                                   iterSSKey->_stopKey._bound,
+                                                   iterSSKey->_stopKey._inclusive ) ;
+               }
+               else if ( iterSSKey->_startKey._bound.type() != MinKey )
+               {
+                  // predicate is a greater-than
+                  curKeySel = _optEvalDefGTSel( iterSSKey->_startKey._bound,
+                                                iterSSKey->_startKey._inclusive ) ;
+               }
+               else if ( iterSSKey->_stopKey._bound.type() != MaxKey )
+               {
+                  // predicate is a less-than
+                  curKeySel = _optEvalDefLTSel( iterSSKey->_stopKey._bound,
+                                                iterSSKey->_stopKey._inclusive ) ;
+               }
+
+               double nextSel = curSelectivity * curKeySel ;
                rc = _evalKeyPair( pIndexStat, nextPred, endIter,
                                   startKeys, stopKeys,
-                                  subIsEqual, subPredSel, subScanSel ) ;
+                                  keyLevelNum + 1,
+                                  subIsEqual ? prefixEqualNum + 1 : prefixEqualNum,
+                                  nextSel, subPredSel, subScanSel ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
@@ -463,6 +601,7 @@ namespace engine
          }
          else
          {
+            // full range
             static rtnKeyBoundary minKeyBound( minKey.firstElement(), TRUE ) ;
             static rtnKeyBoundary maxKeyBound( maxKey.firstElement(), TRUE ) ;
 
@@ -470,7 +609,8 @@ namespace engine
             stopKeys.pushKeyBound( &maxKeyBound ) ;
 
             rc = _evalKeyPair( pIndexStat, nextPred, endIter, startKeys, stopKeys,
-                               FALSE, predSelectivity, scanSelectivity ) ;
+                               keyLevelNum + 1, prefixEqualNum,
+                               curSelectivity, predSelectivity, scanSelectivity ) ;
 
             startKeys.popElement( startIncluded ) ;
             stopKeys.popElement( stopIncluded ) ;
@@ -521,7 +661,8 @@ namespace engine
          rtnStatPredList::iterator endIter = predList.end() ;
          optStatListKey startKeys, stopKeys ;
          rc = _evalKeyPair( _pIndexStat, predIter, endIter, startKeys, stopKeys,
-                            TRUE, predSelectivity, scanSelectivity ) ;
+                            0, 0, OPT_PRED_DEFAULT_SELECTIVITY,
+                            predSelectivity, scanSelectivity ) ;
       }
 
       if ( SDB_OK != rc )
@@ -556,7 +697,7 @@ namespace engine
                                        double &scanSelectivity ) const
    {
       INT32 rc = SDB_INVALIDARG ;
-      double predSelectivity = 1.0 ;
+      double predSelectivity = OPT_PRED_DEFAULT_SELECTIVITY ;
 
       PD_TRACE_ENTRY( SDB__OPTIDXSTAT_EVALKEYPAIR ) ;
 
@@ -564,11 +705,25 @@ namespace engine
       {
          if ( isEqual && startKey.size() == _pIndexStat->getNumKeys() )
          {
-            rc = _pIndexStat->evalETOperator( startKey, predSelectivity, scanSelectivity ) ;
+            FLOAT64 curSelectivity = _optStatGetEQSel( startKey.size() ) ;
+            rc = _pIndexStat->evalETOperator( startKey,
+                                              curSelectivity,
+                                              predSelectivity,
+                                              scanSelectivity ) ;
          }
          else
          {
-            rc = _pIndexStat->evalRangeOperator( startKey, stopKey,
+            FLOAT64 curSelectivity = OPT_PRED_DEFAULT_SELECTIVITY ;
+            if ( isEqual )
+            {
+               curSelectivity = _optStatGetEQSel( startKey.size() ) ;
+            }
+            else
+            {
+               curSelectivity = _optStatGetRangeSel( startKey.size() ) ;
+            }
+            rc = _pIndexStat->evalRangeOperator( startKey, stopKey, 0,
+                                                 curSelectivity,
                                                  predSelectivity,
                                                  scanSelectivity ) ;
          }
@@ -717,7 +872,8 @@ namespace engine
          optStatListKey startKeys, stopKeys ;
          INT32 rc = _optStatUnit::_evalKeyPair( pIndexStat, predIter, endIter,
                                                 startKeys, stopKeys,
-                                                TRUE, selectivity,
+                                                0, 0, OPT_PRED_DEFAULT_SELECTIVITY,
+                                                selectivity,
                                                 scanSelectivity ) ;
 
          if ( SDB_OK == rc )
@@ -777,7 +933,9 @@ namespace engine
          if ( isEqual && pIndexStat->getNumKeys() == 1 )
          {
             optStatElementKey eleKey( beStart, TRUE ) ;
-            rc = pIndexStat->evalETOperator( eleKey, predSelectivity, scanSelectivity ) ;
+            rc = pIndexStat->evalETOperator( eleKey,
+                                             OPT_PRED_EQ_DEF_SELECTIVITY,
+                                             predSelectivity, scanSelectivity ) ;
          }
          else
          {
@@ -785,6 +943,9 @@ namespace engine
             optStatElementKey startEleKey( beStart, startIncluded ) ;
             optStatElementKey stopEleKey( beStop, stopIncluded ) ;
             rc = pIndexStat->evalRangeOperator( startEleKey, stopEleKey,
+                                                isEqual ? 1 : 0,
+                                                isEqual ? OPT_PRED_EQ_DEF_SELECTIVITY :
+                                                          OPT_PRED_RANGE_DEF_SELECTIVITY,
                                                 predSelectivity, scanSelectivity ) ;
          }
       }
@@ -826,11 +987,14 @@ namespace engine
          optStatElementKey statKey( beValue, TRUE ) ;
          if ( pIndexStat->getNumKeys() == 1 )
          {
-            rc = pIndexStat->evalETOperator( statKey, selectivity, dummy ) ;
+            rc = pIndexStat->evalETOperator( statKey, OPT_PRED_EQ_DEF_SELECTIVITY,
+                                             selectivity, dummy ) ;
          }
          else
          {
-            rc = pIndexStat->evalRangeOperator( statKey, statKey, selectivity, dummy ) ;
+            rc = pIndexStat->evalRangeOperator( statKey, statKey, 1,
+                                                OPT_PRED_EQ_DEF_SELECTIVITY,
+                                                selectivity, dummy ) ;
          }
       }
 
@@ -988,38 +1152,49 @@ namespace engine
       return selectivity ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALETOPTR, "_optCollectionStat::_evalETOperator" )
    double _optCollectionStat::_evalETOperator ( const BSONElement &beValue ) const
    {
-      double selectivity = OPT_PRED_EQ_DEF_SELECTIVITY ;
+      return _optEvalDefETSel( getTotalRecords(), beValue ) ;
+   }
 
-      PD_TRACE_ENTRY( SDB__OPTCLSTAT__EVALETOPTR ) ;
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTEVALDFTETOPTR, "_optEvalDefETSel" )
+   FLOAT64 _optEvalDefETSel( UINT64 recordNum, const BSONElement &beValue )
+   {
+      FLOAT64 selectivity = OPT_PRED_EQ_DEF_SELECTIVITY ;
+
+      PD_TRACE_ENTRY( SDB__OPTEVALDFTETOPTR ) ;
 
       if ( beValue.type() == Bool )
       {
          selectivity = 0.5 ;
       }
-      else if ( getTotalRecords() > 0 )
+      else if ( recordNum > 0 )
       {
          // Assume that each records have different values
          selectivity = OSS_MIN( OPT_PRED_EQ_DEF_SELECTIVITY,
-                                1.0 / (double)getTotalRecords() ) ;
+                                1.0 / (double)recordNum ) ;
       }
 
-      PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALETOPTR ) ;
+      PD_TRACE_EXIT( SDB__OPTEVALDFTETOPTR ) ;
 
       return selectivity ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALRANGEOPTR, "_optCollectionStat::_evalRangeOperator" )
    double _optCollectionStat::_evalRangeOperator ( const BSONElement &beStart,
                                                    BOOLEAN startIncluded,
                                                    const BSONElement &beStop,
                                                    BOOLEAN stopIncluded ) const
    {
+      return _optEvalDefRangeSel( beStart, startIncluded, beStop, stopIncluded ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTEVALDFTRANGEOPTR, "_optEvalDefRangeSel" )
+   FLOAT64 _optEvalDefRangeSel( const BSONElement &beStart, BOOLEAN startIncluded,
+                                const BSONElement &beStop, BOOLEAN stopIncluded )
+   {
       double selectivity = OPT_PRED_RANGE_DEF_SELECTIVITY ;
 
-      PD_TRACE_ENTRY( SDB__OPTCLSTAT__EVALRANGEOPTR ) ;
+      PD_TRACE_ENTRY( SDB__OPTEVALDFTRANGEOPTR ) ;
 
       if ( beStart.canonicalType() == beStop.canonicalType() )
       {
@@ -1082,6 +1257,13 @@ namespace engine
                                                           OPT_BSON_STR_MAX ) ) ;
                break ;
             }
+            case Undefined:
+            case jstNULL:
+            {
+               // special case for null values
+               selectivity = OPT_PRED_NULL_DEF_SELECTIVITY ;
+               break ;
+            }
             default :
             {
                selectivity = OPT_PRED_RANGE_DEF_SELECTIVITY ;
@@ -1091,23 +1273,37 @@ namespace engine
       }
       else
       {
-         // Start key and stop key are different types
-         selectivity = OPT_PRED_DEF_SELECTIVITY ;
+         if ( ( Undefined == beStop.type() ) ||
+              ( jstNULL == beStop.type() ) )
+         {
+            // special case for null values
+            selectivity = OPT_PRED_NULL_DEF_SELECTIVITY ;
+         }
+         else
+         {
+            // Start key and stop key are different types
+            selectivity = OPT_PRED_DEF_SELECTIVITY ;
+         }
       }
 
-      PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALRANGEOPTR ) ;
+      PD_TRACE_EXIT( SDB__OPTEVALDFTRANGEOPTR ) ;
 
       return OPT_ROUND_SELECTIVITY(
                   OSS_MAX( selectivity, OPT_PRED_RANGE_MIN_SELECTIVITY ) ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALGTOPTR, "_optCollectionStat::_evalGTOperator" )
    double _optCollectionStat::_evalGTOperator ( const BSONElement &beStart,
                                                 BOOLEAN startIncluded ) const
    {
+      return _optEvalDefGTSel( beStart, startIncluded ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTEVALDFTGTOPTR, "_optEvalDefGTSel" )
+   FLOAT64 _optEvalDefGTSel( const BSONElement &beStart, BOOLEAN startIncluded )
+   {
       double selectivity = OPT_PRED_DEF_SELECTIVITY ;
 
-      PD_TRACE_ENTRY( SDB__OPTCLSTAT__EVALGTOPTR ) ;
+      PD_TRACE_ENTRY( SDB__OPTEVALDFTGTOPTR ) ;
 
       switch ( beStart.type() )
       {
@@ -1176,19 +1372,24 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALGTOPTR ) ;
+      PD_TRACE_EXIT( SDB__OPTEVALDFTGTOPTR ) ;
 
       return OPT_ROUND_SELECTIVITY(
                   OSS_MAX( selectivity, OPT_PRED_GTORLT_MIN_SELECTIVITY ) ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALLTOPTR, "_optCollectionStat::_evalLTOperator" )
    double _optCollectionStat::_evalLTOperator ( const BSONElement &beStop,
                                                 BOOLEAN stopIncluded ) const
    {
+      return _optEvalDefLTSel( beStop, stopIncluded ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTEVALDFTLTOPTR, "_optEvalDefLTSel" )
+   FLOAT64 _optEvalDefLTSel( const BSONElement &beStop, BOOLEAN stopIncluded )
+   {
       double selectivity = OPT_PRED_DEF_SELECTIVITY ;
 
-      PD_TRACE_ENTRY( SDB__OPTCLSTAT__EVALLTOPTR ) ;
+      PD_TRACE_ENTRY( SDB__OPTEVALDFTLTOPTR ) ;
 
       switch ( beStop.type() )
       {
@@ -1257,7 +1458,7 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALLTOPTR ) ;
+      PD_TRACE_EXIT( SDB__OPTEVALDFTLTOPTR ) ;
 
       return OPT_ROUND_SELECTIVITY(
                   OSS_MAX( selectivity, OPT_PRED_GTORLT_MIN_SELECTIVITY ) ) ;

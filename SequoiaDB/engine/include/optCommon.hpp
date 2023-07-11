@@ -135,6 +135,9 @@ namespace engine
    // Default selectivity of a $et predicate
    #define OPT_PRED_EQ_DEF_SELECTIVITY       ( 0.005 )
 
+   // Default selectivity of a null values
+   #define OPT_PRED_NULL_DEF_SELECTIVITY     ( 0.001 )
+
    // Mininum selectivity of a range predicate
    // NOTE: should be larger than $eq
    #define OPT_PRED_RANGE_MIN_SELECTIVITY    ( OPT_PRED_EQ_DEF_SELECTIVITY * 2 )
