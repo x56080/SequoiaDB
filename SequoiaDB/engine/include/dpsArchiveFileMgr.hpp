@@ -40,6 +40,7 @@
 #define DPS_ARCHIVE_FILE_MGR_HPP_
 
 #include "dpsArchiveFile.hpp"
+#include "dpsMessageBlock.hpp"
 #include "oss.hpp"
 #include <string>
 #include <ctime>
@@ -63,7 +64,9 @@ namespace engine
 
    public:
       void setArchivePath( const string& archivePath ) ;
+      void setTmpPath( const std::string& tmpPath ) ;
       const string& getArchivePath() const ;
+      const string& getTmpPath() const ;
 
       string getFullFilePath( UINT32 logicalFileId ) ;
       string getPartialFilePath( UINT32 logicalFileId ) ;
@@ -82,8 +85,8 @@ namespace engine
       INT32 movedFileExists( UINT32 logicalFileId, BOOLEAN& exist ) ;
 
       INT32 copyArchiveFile( const string& src, const string& dest,
-               DPS_ARCHIVE_COPY_STATUS status = DPS_ARCHIVE_COPY_PLAIN,
-               utilStreamInterrupt* si = NULL ) ;
+                             DPS_ARCHIVE_COPY_STATUS status = DPS_ARCHIVE_COPY_PLAIN,
+                             utilStreamInterrupt* si = NULL ) ;
 
       INT32 scanArchiveFiles( UINT32& minFileId,
                                   UINT32& maxFileId,
@@ -102,6 +105,14 @@ namespace engine
                                UINT32 maxFileId,
                                INT64 deletedSize ) ;
 
+   // for consult rollback log
+   public:
+      string getRollbackLogFilePath( UINT32 logicalFileId, const CHAR* time ) ;
+      string getRollbackLogTmpFilePath() ;
+      string getRollbackLogErrorFilePath( const CHAR* time ) ;
+      INT32 deleteRollbackLogTmpFile() ;
+      INT32 writeInvalidData( utilOutStream& out, dpsMessageBlock &mb, INT64 len ) ;
+
    private:
       INT32 _deleteFileByTime( const string& filePath,
                                time_t time,
@@ -111,6 +122,7 @@ namespace engine
 
    private:
       string   _archivePath ;
+      string   _tmpPath ;
    } ;
 }
 

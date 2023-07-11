@@ -652,6 +652,17 @@ namespace engine
 
             _repl->setLastConsultTick( pmdAcquireGlobalID() ) ;
 
+            if ( pmdGetOptionCB()->isConsultRollbackLogOn() )
+            {
+               pLogHeader = ( dpsLogRecordHeader* )_mb.offset( 0 ) ;
+               rc = _logger->saveRollbackLog( point.offset + pLogHeader->_length ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to save rollback log lsn[%lld, %d] ",
+                          point.offset + pLogHeader->_length, point.version ) ;
+               }
+            }
+
             /// now we are sure the point of rollback exists.
             /// begin to rollback.
             while ( TRUE )

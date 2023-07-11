@@ -713,6 +713,7 @@ namespace engine
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
          OSS_INLINE BOOLEAN isEnableAsyncRead() const { return _enableAsyncRead ; }
          OSS_INLINE BOOLEAN isRemoteLocationConsistency() const { return _remoteLocationConsistency ; }
+         OSS_INLINE BOOLEAN isConsultRollbackLogOn() const { return _consultRollbackLogOn ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -863,6 +864,7 @@ namespace engine
          UINT32      _statMCVLimit ;
          BOOLEAN     _enableAsyncRead ;
          BOOLEAN     _remoteLocationConsistency ;
+         BOOLEAN     _consultRollbackLogOn ;
 
 #ifdef SDB_ENTERPRISE
 

@@ -55,6 +55,7 @@ namespace engine
    #define DPS_ARCHIVE_HEADER_EYECATCHER_LEN    8
    #define DPS_ARCHIVE_HEADER_LEN               (4 * 1024)
    #define DPS_ARCHIVE_HEADER_OFFSET            (60 * 1024)
+   #define DPS_ARCHIVE_BUFFER_MAX_SIZE          (64 * 1024)
    #define DPS_ARCHIVE_HEADER_EYECATCHER        "SDBARCHD"
    #define DPS_ARCHIVE_HEADER_VERSION           1
    #define DPS_ARCHIVE_FILE_PREFIX              "archivelog."

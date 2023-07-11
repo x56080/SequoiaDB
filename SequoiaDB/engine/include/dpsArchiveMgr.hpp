@@ -97,6 +97,8 @@ namespace engine
 
       virtual INT32 canAssignLogPageOnSecondary( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
+      INT32 saveRollbackLog( _dpsReplicaLogMgr* logMgr, const DPS_LSN_OFFSET &offset ) ;
+
    private:
       DPS_LSN  _calcStartLSN() ;
       INT32    _buildGenerateArchiveEvent( BOOLEAN allowPartial = FALSE ) ;

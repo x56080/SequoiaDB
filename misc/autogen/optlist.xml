@@ -3033,4 +3033,28 @@
       <hidden>true</hidden>
   </opt>
 
+  <opt>
+      <name>PMD_OPTION_CONSULT_ROLLBACK_LOG_ON</name>
+      <long>consultrollbacklogon</long>
+      <description>
+         <en>Whether to save logs that are rollback at negotiation time. Default is true.</en>
+         <cn>指定是否保存协商后回滚的日志数据。默认为true。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next log rollback</en>
+         <cn>下次日志回滚生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>Whether to save logs that are rollback at negotiation time. Default is true.</en>
+         <cn>指定是否保存协商后回滚的日志数据。默认为true。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+      <hidden>true</hidden>
+  </opt>
+
 </optlist>

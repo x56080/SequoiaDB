@@ -259,6 +259,11 @@ namespace engine
          return _buf.checkSeondarySyncControl( reqLen, cb ) ;
       }
 
+      OSS_INLINE INT32 saveRollbackLog( const DPS_LSN_OFFSET &offset )
+      {
+         return _archiver.saveRollbackLog( &_buf, offset ) ;
+      }
+
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
    public:

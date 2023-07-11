@@ -536,6 +536,230 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSARCHIVEMGR_SAVEROLLBACKLOG, "dpsArchiveMgr::saveRollbackLog" )
+   INT32 dpsArchiveMgr::saveRollbackLog( _dpsReplicaLogMgr* logMgr,
+                                         const DPS_LSN_OFFSET &moveToOffset )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DPSARCHIVEMGR_SAVEROLLBACKLOG );
+      dpsArchiveFile archiveFile ;
+      DPS_LSN expect = logMgr->expectLsn() ;
+      _dpsLogFile* logFile = NULL ;
+      UINT32 startFileId = logMgr->calcLogicalFileID( moveToOffset ) ;
+      UINT32 endFileId = logMgr->calcLogicalFileID( expect.offset ) ;
+      UINT32 curFileId = startFileId ;
+      string savePath, tmpPath ;
+
+      _fileMgr.setTmpPath( pmdGetOptionCB()->getTmpPath() ) ;
+
+      // get string of the current time.
+      CHAR timeBuffer[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { '\0' } ;
+      time_t timestamp = time( NULL ) ;
+      utilAscTime( timestamp, timeBuffer, OSS_TIMESTAMP_STRING_LEN ) ;
+
+      rc = _fileMgr.deleteRollbackLogTmpFile() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to delete tmp file, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      while ( curFileId <= endFileId )
+      {
+         savePath = _fileMgr.getRollbackLogFilePath( curFileId, timeBuffer ) ;
+         tmpPath = _fileMgr.getRollbackLogTmpFilePath() ;
+         DPS_LSN firstLsn ;
+         firstLsn.offset = logMgr->calcFirstPhysicalLSNOfFile( curFileId ) ;
+         UINT64 endOffset = ( curFileId == endFileId ) ? expect.offset :
+         logMgr->calcFirstPhysicalLSNOfFile( curFileId + 1 ) ;
+         UINT32 logFileSz = logMgr->getLogFileSz() ;
+         UINT32 logFileNum = logMgr->getLogFileNum() ;
+
+         logFile = logMgr->getLogFile( curFileId ) ;
+         if ( NULL == logFile )
+         {
+            SDB_ASSERT( FALSE, "logFile can't be NULL" ) ;
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to get replica log file[%u], rc=%d", curFileId, rc ) ;
+            goto error ;
+         }
+
+         if ( logFile->header()._logID != curFileId )
+         {
+            SDB_ASSERT( FALSE, "logicalFileId must be the same" ) ;
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid logical file id" \
+                    "(expect=%u, real=%u), rc=%d",
+                    logFile->header()._logID, curFileId , rc ) ;
+            goto error ;
+         }
+
+         rc = archiveFile.init( tmpPath, FALSE ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to init archive file[%s], rc=%d",
+                    tmpPath.c_str(), rc ) ;
+            goto error ;
+         }
+
+         {
+            dpsMessageBlock block( DPS_ARCHIVE_BUFFER_MAX_SIZE ) ;
+            ossFile destFile ;
+            utilFileOutStream fileOut ;
+            utilZlibOutStream zlibOut ;
+            utilOutStream* out = NULL ;
+
+            rc = destFile.open( tmpPath, OSS_READWRITE, OSS_DEFAULTFILE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to open file[%s], rc=%d",
+                       tmpPath.c_str(), rc ) ;
+               goto error ;
+            }
+
+            rc = fileOut.init( &destFile, FALSE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to init file outstream, rc=%d", rc ) ;
+               goto error ;
+            }
+
+            out = &fileOut ;
+
+            // not need to write header data, only placeholder.
+            rc = _fileMgr.writeInvalidData( *out, block, DPS_LOG_HEAD_LEN ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to populate invalid data, rc=%d", rc ) ;
+               goto error ;
+            }
+
+            rc = zlibOut.init( fileOut ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to init zlib outstream, rc=%d", rc ) ;
+               goto error ;
+            }
+
+            out = &zlibOut ;
+
+            DPS_LSN lsn ;
+            lsn.offset = firstLsn.offset ;
+
+            while ( lsn.offset < endOffset )
+            {
+               UINT32 len = 0 ;
+               block.clear() ;
+               while( TRUE )
+               {
+                  rc = logMgr->search( lsn, &block, DPS_SEARCH_ALL, FALSE, &len ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to find LSN[%lld], rc=%d",
+                             lsn.offset, rc ) ;
+                     goto error ;
+                  }
+                  lsn.offset += len ;
+                  if ( block.length() >= DPS_ARCHIVE_BUFFER_MAX_SIZE ||
+                       lsn.offset == endOffset )
+                  {
+                     break ;
+                  }
+               }
+
+               rc = out->write( block.startPtr(), block.length() ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to write to outstream, rc=%d", rc ) ;
+                  goto error ;
+               }
+            }
+
+            // at last file, we need populate invalid data util to the log file size.
+            if ( curFileId == endFileId )
+            {
+               rc = _fileMgr.writeInvalidData( *out, block,
+                                               logFileSz - endOffset % logFileSz ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to populate invalid data, rc=%d", rc ) ;
+                  goto error ;
+               }
+            }
+
+            // flush data.
+            out->close() ;
+            destFile.close() ;
+
+         }
+
+         {
+            DPS_LSN startLsn ;
+            startLsn.offset = moveToOffset > firstLsn.offset ? moveToOffset : firstLsn.offset ;
+            _dpsLogHeader& srcLogHeader = logFile->header() ;
+            _dpsLogHeader* destLogHeader = archiveFile.getLogHeader() ;
+            *destLogHeader = srcLogHeader ;
+            destLogHeader->_firstLSN = startLsn ;
+            if ( DPS_INVALID_LSN_VERSION == destLogHeader->_firstLSN.version )
+            {
+               destLogHeader->_firstLSN.version = 1 ;
+            }
+            destLogHeader->_logID = curFileId ;
+            destLogHeader->_fileNum = logFileNum ;
+            destLogHeader->_fileSize = logFileSz ;
+
+            dpsArchiveHeader* archiveHeader = archiveFile.getArchiveHeader() ;
+            archiveHeader->init();
+            archiveHeader->startLSN = startLsn ;
+
+            // set endLsn to the start lsn of the next file.
+            archiveHeader->endLSN.offset = endOffset ;
+            // Set compressed flag.
+            archiveHeader->setFlag( DPS_ARCHIVE_COMPRESSED ) ;
+
+            // let write data of header.
+            rc = archiveFile.flushHeader() ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to flush archive file header[%lld], rc=%d",
+                       curFileId, rc ) ;
+               goto error ;
+            }
+
+            archiveFile.close() ;
+         }
+
+         rc = ossRenamePath( tmpPath.c_str(), savePath.c_str() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to rename tmp file to [%s] file, rc: %d",
+                    savePath.c_str(), rc ) ;
+            goto error ;
+         }
+
+         PD_LOG( PDEVENT, "consult rollback log file[%s] is saved", savePath.c_str() ) ;
+
+         curFileId ++ ;
+      }
+
+   done:
+      PD_TRACE_EXIT ( SDB__DPSARCHIVEMGR_SAVEROLLBACKLOG );
+      return rc ;
+   error:
+      {
+         INT32 tmpRc = SDB_OK ;
+         string errPath = _fileMgr.getRollbackLogErrorFilePath( timeBuffer ) ;
+         tmpRc = ossRenamePath( tmpPath.c_str(), errPath.c_str() ) ;
+         if ( SDB_OK != tmpRc )
+         {
+            PD_LOG( PDERROR, "Failed to rename file [%s] to error file [%s],"
+                    "current file id [%u] rc: %d",
+                    tmpPath.c_str(), errPath.c_str(), curFileId, tmpRc ) ;
+         }
+      }
+      goto done ;
+   }
+
    DPS_LSN dpsArchiveMgr::_calcStartLSN()
    {
       DPS_LSN infoStartLSN ;

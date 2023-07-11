@@ -54,6 +54,10 @@ namespace engine
    #define DPS_ARCHIVE_FILE_MOVED      ".m"
    #define DPS_ARCHIVE_FILE_SEP        "."
 
+   #define DPS_ROLLBACK_LOG_FILE       "consultRollbackLog"
+   #define DPS_ROLLBACK_TMP_FILE       ".consultRollbackLog.tmp"
+   #define DPS_ROLLBACK_ERR_FILE       ".consultRollbackLog.err"
+
    dpsArchiveFileMgr::dpsArchiveFileMgr()
    {
    }
@@ -74,9 +78,26 @@ namespace engine
                   "archivePath is not directory" ) ;
    }
 
+   void dpsArchiveFileMgr::setTmpPath( const std::string& tmpPath )
+   {
+      _tmpPath = tmpPath ;
+      if ( !utilStrEndsWith( _tmpPath, OSS_FILE_SEP ) )
+      {
+         _tmpPath += OSS_FILE_SEP ;
+      }
+
+      SDB_ASSERT( fs::is_directory( _tmpPath ),
+                  "tmpPath is not directory" ) ;
+   }
+
    const string& dpsArchiveFileMgr::getArchivePath() const
    {
       return _archivePath ;
+   }
+
+   const string& dpsArchiveFileMgr::getTmpPath() const
+   {
+      return _tmpPath ;
    }
 
    string dpsArchiveFileMgr::getFullFilePath( UINT32 logicalFileId )
@@ -121,6 +142,37 @@ namespace engine
       ss << _archivePath
          << DPS_ARCHIVE_TMP_FILE ;
 
+      return ss.str() ;
+   }
+
+   string dpsArchiveFileMgr::getRollbackLogFilePath( UINT32 logicalFileId, const CHAR* time )
+   {
+      stringstream ss ;
+      ss << _tmpPath
+         << DPS_ROLLBACK_LOG_FILE
+         << "."
+         << time
+         << "."
+         << logicalFileId ;
+
+      return ss.str() ;
+   }
+
+   string dpsArchiveFileMgr::getRollbackLogTmpFilePath( )
+   {
+      stringstream ss ;
+      ss << _tmpPath
+         << DPS_ROLLBACK_TMP_FILE ;
+      return ss.str() ;
+   }
+
+   string dpsArchiveFileMgr::getRollbackLogErrorFilePath( const CHAR* time )
+   {
+      stringstream ss ;
+      ss << _tmpPath
+         << DPS_ROLLBACK_ERR_FILE
+         << "."
+         << time ;
       return ss.str() ;
    }
 
@@ -358,6 +410,32 @@ namespace engine
       in->close() ;
       destFile.close() ;
       srcFile.close() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 dpsArchiveFileMgr::writeInvalidData( utilOutStream& out, dpsMessageBlock &mb,
+                                              INT64 totalSize )
+   {
+      INT32 rc = SDB_OK ;
+      mb.clear() ;
+      ossMemset( mb.writePtr(), 0, DPS_ARCHIVE_BUFFER_MAX_SIZE ) ;
+      mb.writePtr( DPS_ARCHIVE_BUFFER_MAX_SIZE ) ;
+      UINT32 len = 0 ;
+      while ( totalSize > 0 )
+      {
+         len = OSS_MIN( mb.length(), totalSize ) ;
+         rc = out.write( mb.startPtr(), len ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to write to outstream, rc=%d", rc ) ;
+            goto error ;
+         }
+         totalSize -= len ;
+      }
 
    done:
       return rc ;
@@ -614,6 +692,22 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 dpsArchiveFileMgr::deleteRollbackLogTmpFile()
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( !_tmpPath.empty(), "tmp path is empty" ) ;
+      rc = deleteFile( getRollbackLogTmpFilePath() ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+
    }
 
    INT32 dpsArchiveFileMgr::deleteTmpFile()

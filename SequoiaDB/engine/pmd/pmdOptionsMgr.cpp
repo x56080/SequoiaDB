@@ -2039,6 +2039,7 @@ done:
       _enableAsyncRead = TRUE ;
 
       _remoteLocationConsistency = TRUE ;
+      _consultRollbackLogOn = TRUE ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2623,6 +2624,10 @@ done:
 
       // --remotelocationconsistency
       rdxBooleanS( pEX, PMD_OPTION_REMOTE_LOCATION_CONSISTENCY, _remoteLocationConsistency, FALSE,
+                   PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
+
+      // --consultrollbacklogon
+      rdxBooleanS( pEX, PMD_OPTION_CONSULT_ROLLBACK_LOG_ON, _consultRollbackLogOn, FALSE,
                    PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
 
       // end map
