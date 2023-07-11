@@ -49,6 +49,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <mntent.h>
+#include <gnu/libc-version.h>
+#include <sys/resource.h>
 #elif defined (_WINDOWS)
 #include "Psapi.h"
 #endif
@@ -713,7 +715,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    info._desp[ 0 ] = 0 ;
    info._distributor[ 0 ] = 0 ;
    info._release[ 0 ] = 0 ;
-   CHAR arch[ 31 ] = { 0 } ;
+   info._arch[ 0 ] = 0 ;
 
 #if defined( _WINDOWS )
    SYSTEM_INFO sysInfo = { 0 } ;
@@ -786,19 +788,19 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    switch( sysInfo.wProcessorArchitecture )
    {
       case PROCESSOR_ARCHITECTURE_INTEL:
-           ossStrncpy( arch, "Intel x86", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "Intel x86", sizeof( info._arch ) - 1 ) ;
            info._bit = 32 ;
            break ;
       case PROCESSOR_ARCHITECTURE_IA64:
-           ossStrncpy( arch, "Intel IA64", sizeof( arch ) - 1 ) ;
+           ossStrncpy( arch, "Intel IA64", sizeof( info._arch ) - 1 ) ;
            info._bit = 64 ;
            break ;
       case PROCESSOR_ARCHITECTURE_AMD64:
-           ossStrncpy( arch, "AMD 64", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "AMD 64", sizeof( info._arch ) - 1 ) ;
            info._bit = 64 ;
            break ;
       default:
-           ossStrncpy( arch, "Unknown", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "Unknown", sizeof( info._arch ) - 1 ) ;
            break ;
    }
 #else
@@ -813,11 +815,11 @@ INT32 ossGetOSInfo( ossOSInfo &info )
                 "%s", name.sysname ) ;
    ossSnprintf( info._release, sizeof( info._release ) - 1,
                 "%s", name.release ) ;
-   ossSnprintf( arch, sizeof( arch ) - 1, "%s", name.machine ) ;
+   ossSnprintf( info._arch, sizeof( info._arch ) - 1, "%s", name.machine ) ;
 #if defined (_PPCLIN64) || defined (_ARMLIN64) || defined (_ALPHALIN64)
    info._bit = 64 ;
 #else
-   if ( 0 == ossStrcmp( arch, "x86_64" ) )
+   if ( 0 == ossStrcmp( info._arch, "x86_64" ) )
    {
       info._bit = 64 ;
    }
@@ -828,7 +830,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
 #endif // _PPCLIN64
 #endif // _WINDOWS
    ossSnprintf( info._desp, sizeof( info._desp ) - 1, "%s %s(%s)",
-                info._distributor, info._release, arch ) ;
+                info._distributor, info._release, info._arch ) ;
    return SDB_OK ;
 }
 
@@ -1442,7 +1444,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
    availBytes = vfs.f_bsize * vfs.f_bavail ;
-   
+
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -1706,6 +1708,279 @@ done :
 error :
    PD_LOG ( PDERROR, "Failed to get memory info, error = %d", ossErr ) ;
    goto done ;
+}
+
+#define OSS_MULTI_NODES_FILE_NAME1 "/sys/devices/system/node/node1"
+#define OSS_MULTI_NODES_FILE_NAME  "/sys/devices/system/node/node"
+#define OSS_NUMA_MAP_FILE_NAME     "/proc/self/numa_maps"
+#define OSS_NUMA_INTERLEAVE        "interleave"
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSCOUNTNUMANODES, "ossCountNumaNodes" )
+INT32 ossCountNumaNodes( UINT32 &numaNodes )
+{
+   PD_TRACE_ENTRY ( SDB_OSSCOUNTNUMANODES ) ;
+   INT32 rc = SDB_OK ;
+   OSSFILE file ;
+   BOOLEAN isOpened = FALSE ;
+   BOOLEAN hasMultiNodes = FALSE ;
+   BOOLEAN hasNumaMaps = FALSE ;
+   numaNodes = 0 ;
+
+   rc = ossAccess( OSS_MULTI_NODES_FILE_NAME1 ) ;
+   if ( SDB_OK != rc && SDB_FNE != rc )
+   {
+      PD_LOG( PDERROR, "Failed to access file[%s], rc: %d", OSS_MULTI_NODES_FILE_NAME1, rc ) ;
+      goto error ;
+   }
+   else if ( SDB_OK == rc )
+   {
+      hasMultiNodes = TRUE ;
+      numaNodes++ ;
+   }
+
+   rc = ossAccess( OSS_NUMA_MAP_FILE_NAME ) ;
+   if ( SDB_OK != rc && SDB_FNE != rc )
+   {
+      PD_LOG( PDERROR, "Failed to access file[%s], rc: %d", OSS_NUMA_MAP_FILE_NAME, rc ) ;
+      goto error ;
+   }
+   else if ( SDB_OK == rc )
+   {
+      hasNumaMaps = TRUE ;
+   }
+   rc = SDB_OK ;
+
+   if ( hasMultiNodes && hasNumaMaps )
+   {
+      std::stringstream buf ;
+      std::string line ;
+      CHAR readChar = '\0' ;
+      INT64 readSize = 0 ;
+      size_t pos ;
+
+      rc = ossOpen( OSS_NUMA_MAP_FILE_NAME, OSS_READONLY|OSS_SHAREREAD, 0, file ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open file[%s], rc: %d", OSS_NUMA_MAP_FILE_NAME, rc ) ;
+      isOpened = TRUE ;
+
+      try
+      {
+         rc = ossReadN( &file, 1, &readChar, readSize ) ;
+         while( SDB_OK == rc && readSize )
+         {
+            if( readChar == '\n' )
+            {
+               break ;
+            }
+            buf << readChar ;
+            rc = ossReadN( &file, 1, &readChar, readSize ) ;
+         }
+         line = buf.str() ;
+
+         pos = line.find( ' ' ) ;
+         if ( pos != std::string::npos &&
+              line.substr( pos + 1, ossStrlen( OSS_NUMA_INTERLEAVE ) ).find(
+              OSS_NUMA_INTERLEAVE ) == std::string::npos )
+         {
+            // interleave not found, count NUMA nodes by finding the highest numbered node file
+            UINT32 i = 2 ;
+            std::string fileName ;
+            buf.clear() ;
+            while( TRUE )
+            {
+               buf << OSS_MULTI_NODES_FILE_NAME << i ;
+               fileName = buf.str() ;
+
+               rc = ossAccess( fileName.c_str() ) ;
+               if ( SDB_OK != rc && SDB_FNE != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to access file[%s], rc: %d", fileName.c_str(), rc ) ;
+                  goto error ;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  numaNodes = i ;
+                  i++ ;
+               }
+               else
+               {
+                  break ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when counting numa nodes: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+   }
+
+done:
+   if ( isOpened )
+   {
+      ossClose( file ) ;
+   }
+   PD_TRACE_EXITRC( SDB_OSSCOUNTNUMANODES, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+#define OSS_PROC_VERSION_FILE_NAME   "/proc/version"
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETOSVERSION, "ossGetOSVersion" )
+INT32 ossGetOSVersion( std::string &version )
+{
+   PD_TRACE_ENTRY ( SDB_OSSGETOSVERSION ) ;
+   INT32 rc = SDB_OK ;
+   OSSFILE file ;
+   BOOLEAN isOpened = FALSE ;
+   std::stringstream buf ;
+   CHAR readChar = '\0' ;
+   INT64 readSize = 0 ;
+
+   rc = ossOpen( OSS_PROC_VERSION_FILE_NAME, OSS_READONLY|OSS_SHAREREAD, 0, file ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to open file[%s], rc: %d", OSS_PROC_VERSION_FILE_NAME, rc ) ;
+   isOpened = TRUE ;
+
+   try
+   {
+      rc = ossReadN( &file, 1, &readChar, readSize ) ;
+      while( SDB_OK == rc && readSize )
+      {
+         if( readChar == '\n' )
+         {
+            break ;
+         }
+         buf << readChar ;
+         rc = ossReadN( &file, 1, &readChar, readSize ) ;
+      }
+      version = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting os version: "
+               "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   if ( isOpened )
+   {
+      ossClose( file ) ;
+   }
+   PD_TRACE_EXITRC( SDB_OSSGETOSVERSION, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+#define OSS_PROC_VERSION_SIGNA   "/proc/version_signature"
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETOSVERSIG, "ossGetOSVersionSignature" )
+INT32 ossGetOSVersionSignature( std::string &versionSignature )
+{
+   PD_TRACE_ENTRY ( SDB_OSSGETOSVERSIG ) ;
+   INT32 rc = SDB_OK ;
+   OSSFILE file ;
+   BOOLEAN isOpened = FALSE ;
+
+#if defined (_ARMLIN64)
+
+   versionSignature = "" ;
+
+#else
+
+   std::stringstream buf ;
+   CHAR readChar = '\0' ;
+   INT64 readSize = 0 ;
+
+   rc = ossOpen( OSS_PROC_VERSION_SIGNA, OSS_READONLY|OSS_SHAREREAD, 0, file ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to open file[%s], rc: %d", OSS_PROC_VERSION_SIGNA, rc ) ;
+   isOpened = TRUE ;
+
+   try
+   {
+      rc = ossReadN( &file, 1, &readChar, readSize ) ;
+      while( SDB_OK == rc && readSize )
+      {
+         if( readChar == '\n' )
+         {
+            break ;
+         }
+         buf << readChar ;
+         rc = ossReadN( &file, 1, &readChar, readSize ) ;
+      }
+      versionSignature = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting os version signature: "
+               "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+#endif
+
+done:
+   if ( isOpened )
+   {
+      ossClose( file ) ;
+   }
+   PD_TRACE_EXITRC( SDB_OSSGETOSVERSIG, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETLIBCVER, "ossGetLibcVersion" )
+INT32 ossGetLibcVersion( std::string &version )
+{
+   PD_TRACE_ENTRY ( SDB_OSSGETLIBCVER ) ;
+   INT32 rc = SDB_OK ;
+
+#if defined(_LINUX)
+   try
+   {
+      version = gnu_get_libc_version() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting libc version: "
+               "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+#endif
+
+done:
+   PD_TRACE_EXITRC( SDB_OSSGETLIBCVER, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETLIMITMEM, "ossGetLimitMem" )
+INT64 ossGetLimitMem()
+{
+   PD_TRACE_ENTRY ( SDB_OSSGETLIMITMEM ) ;
+   INT64 limitMemBytes = 0 ;
+
+#if defined (_LINUX)
+   rlimit rlim ;
+   if ( 0 == getrlimit( RLIMIT_RSS, &rlim ) &&
+        -1 != (INT64)rlim.rlim_cur )
+   {
+      limitMemBytes = (INT64)rlim.rlim_cur / 1024 / 1024 ;
+   }
+#endif
+
+   PD_TRACE_EXIT( SDB_OSSGETLIMITMEM ) ;
+   return limitMemBytes ;
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSREADLINK, "ossReadlink" )
