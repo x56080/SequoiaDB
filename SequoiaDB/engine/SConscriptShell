@@ -154,8 +154,7 @@ utilFiles = [
       "util/utilIniParserEx.cpp",
       "util/utilPasswdTool.cpp",
       "util/utilCipherMgr.cpp",
-      "util/utilCipherFile.cpp",
-      "util/utilSystem.cpp"
+      "util/utilCipherFile.cpp"
       ]
 
 util2Files = [

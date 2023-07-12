@@ -272,7 +272,6 @@ struct _ossOSInfo
    CHAR _distributor[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR _release[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR _desp[ OSS_MAX_PATHSIZE + 1 ] ;
-   CHAR _arch[ OSS_MAX_PATHSIZE + 1 ] ;
    INT32 _bit ;
 } ;
 typedef _ossOSInfo ossOSInfo ;
@@ -1092,16 +1091,6 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
 INT32 ossGetFileDesp ( INT64 &usedNum ) ;
 
 INT32 ossGetProcessMemory( OSSPID pid, INT64 &vmRss, INT64 &vmSize ) ;
-
-INT32 ossCountNumaNodes( UINT32 &numaNodes ) ;
-
-INT32 ossGetOSVersion( std::string &version ) ;
-
-INT32 ossGetOSVersionSignature( std::string &versionSignature ) ;
-
-INT32 ossGetLibcVersion( std::string &version ) ;
-
-INT64 ossGetLimitMem() ;
 
 typedef struct _ossDiskIOStat
 {

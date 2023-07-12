@@ -201,8 +201,7 @@ utilFiles = [
       "util/utilAuthSCRAMSHA.cpp",
       "util/utilPasswdTool.cpp",
       "util/utilCipherMgr.cpp",
-      "util/utilCipherFile.cpp",
-      "util/utilSystem.cpp"
+      "util/utilCipherFile.cpp"
       ]
 
 clientCFiles = [

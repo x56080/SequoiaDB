@@ -122,9 +122,7 @@ UINT32 ossGetLastError();
 const CHAR* ossGetLastErrorMsg( UINT32 sysErrno ) ;
 void ossSleep(UINT32 milliseconds);
 void ossPanic () ;
-INT64 ossGetPageSize();
-INT64 ossGetPageNum() ;
-INT64 ossGetMaxOpenFiles() ;
+INT64  ossGetPageSize();
 
 #if defined (_WINDOWS)
 #include <windows.h>

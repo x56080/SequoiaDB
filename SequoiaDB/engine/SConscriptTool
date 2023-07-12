@@ -247,8 +247,7 @@ utilFiles = [
       "util/utilUniqueID.cpp",
       "util/base64.cpp",
       "util/utilSecure.cpp",
-      "util/utilTool.cpp",
-      "util/utilSystem.cpp"
+      "util/utilTool.cpp"
       ]
 
 dpsFiles = [
@@ -824,11 +823,11 @@ sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-
+         
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-
+         
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
             LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],
