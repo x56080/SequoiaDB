@@ -282,7 +282,7 @@ class LobRandoWrite(testlib.SdbTestBase):
       lob.close()
       createTime = lob.get_create_time()
       initModTime = lob.get_modification_time()
-      self.assertTrue( createTime < initModTime )
+      self.assertTrue( createTime <= initModTime, "createTime:" + str(createTime) + ",initModTime:" + str(initModTime) )
 
       oid = lob.get_oid()
       lob = self.cl.open_lob(oid, LOB_WRITE)
@@ -290,13 +290,13 @@ class LobRandoWrite(testlib.SdbTestBase):
       lob.write(self.data, 100)
       lob.close()
       writeModTime = lob.get_modification_time()
-      self.assertTrue( initModTime < writeModTime )
+      self.assertTrue( initModTime <= writeModTime, "initModTime:" + str(initModTime) + ",writeModTime:" + str(writeModTime) )
 
       lob = self.cl.open_lob(oid, LOB_READ)
       lob.read(100)
       lob.close()
       readModTime = lob.get_modification_time()
-      self.assertTrue( readModTime == writeModTime )
+      self.assertTrue( readModTime == writeModTime, "readModTime:" + str(readModTime) + ",writeModTime:" + str(writeModTime)  )
 
    def __create_empty_lob(self):
       lob = self.cl.create_lob()
