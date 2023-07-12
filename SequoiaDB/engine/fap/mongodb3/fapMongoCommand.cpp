@@ -4960,6 +4960,7 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
    BSONObj cond, empty ;
+   BOOLEAN capped = FALSE ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -4987,6 +4988,21 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    if ( rc )
    {
       goto error;
+   }
+
+   rc = mongoGetBooleanElement( _obj, FAP_MONGO_FIELD_NAME_CAPPED, capped ) ;
+   if ( SDB_FIELD_NOT_EXIST == rc )
+   {
+      rc = SDB_OK ;
+   }
+   PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                FAP_MONGO_FIELD_NAME_CAPPED, _obj.toString().c_str(), rc ) ;
+
+   if ( capped )
+   {
+      rc = SDB_OPTION_NOT_SUPPORT ;
+      ctx.setError( rc, "Can't create cppped cl" ) ;
+      goto error ;
    }
 
    try

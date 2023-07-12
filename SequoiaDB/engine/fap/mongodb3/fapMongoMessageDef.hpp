@@ -97,6 +97,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_PAGESIZE        "pageSize"
 #define FAP_MONGO_FIELD_NAME_NUMPAGES        "numPages"
 #define FAP_MONGO_FIELD_NAME_MAX_OPENFILES   "maxOpenFiles"
+#define FAP_MONGO_FIELD_NAME_CAPPED          "capped"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"

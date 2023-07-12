@@ -326,7 +326,7 @@ namespace fap
             rc = setModifier.modify( target, newTarget ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
                          "record(rc=%d) by " FAP_MONGO_UPDATOR_SETINSERT, rc ) ;
-            
+
             target = newTarget ;
          }
 
@@ -576,6 +576,36 @@ namespace fap
          PD_LOG( PDERROR, "An exception occurred when getting numberlong ele: %s, "
                  "rc: %d", e.what(), rc ) ;
          goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 mongoGetBooleanElement ( const BSONObj &obj, const CHAR *fieldName,
+                                 BOOLEAN &value )
+   {
+      SINT32 rc = SDB_OK ;
+      SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Bool == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Bool",
+                    obj.toString().c_str()) ;
+         value = ele.boolean() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
    done :
