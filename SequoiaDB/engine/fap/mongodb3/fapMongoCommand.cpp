@@ -866,8 +866,8 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
    {
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
-      BSONObj obj = BSONObj( pReq->query() ) ;
-      const CHAR* pCommandName = obj.firstElement().fieldName() ;
+      _obj = BSONObj( pReq->query() ) ;
+      const CHAR* pCommandName = _obj.firstElement().fieldName() ;
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
@@ -880,6 +880,7 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
                   "Invalid command name" ) ;
 
+      _obj = BSONObj( pReq->metadata() ) ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -5600,7 +5601,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          BSONElement ele = itr.next() ;
 
          // Text index key
-         if ( 0 == ossStrcmp( FAP_MONGO_INDEX_TEXT_KEY_NAME_FTS, ele.fieldName() ) || 
+         if ( 0 == ossStrcmp( FAP_MONGO_INDEX_TEXT_KEY_NAME_FTS, ele.fieldName() ) ||
               0 == ossStrcmp( FAP_MONGO_INDEX_TEXT_KEY_NAME_FTSX, ele.fieldName() ) )
          {
             if ( ! hasFtIdx )
@@ -7450,8 +7451,41 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
-   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
+   const CHAR *pCmdName = NULL ;
    BSONObj empty ;
+   BSONObj sel ;
+
+   rc = mongoGetBooleanElement( _obj, FAP_MONGO_FIELD_NAME_NAMEONLY, _nameOnly ) ;
+   if ( SDB_FIELD_NOT_EXIST == rc )
+   {
+      rc = SDB_OK ;
+   }
+   PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                FAP_MONGO_FIELD_NAME_NAMEONLY, _obj.toString().c_str(), rc ) ;
+
+   if ( _nameOnly )
+   {
+      pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
+   }
+   else
+   {
+      pCmdName = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONSPACES ;
+
+      try
+      {
+         sel = BSON( FIELD_NAME_NAME << 1 <<
+                     FIELD_NAME_TOTAL_DATA_SIZE << 1 <<
+                     FIELD_NAME_TOTAL_IDX_SIZE << 1 <<
+                     FIELD_NAME_COLLECTION << 1 ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building sel bsonobj: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+   }
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -7489,7 +7523,7 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   rc = sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( sel, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -7523,9 +7557,23 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
+   INT64 totalAllSize = 0 ;
 
    try
    {
+      /*
+
+      {
+         "databases":
+         [
+            { "name": csName, "sizeOnDisk": xxx, "empty": xxx },
+            { "name": csName, "sizeOnDisk": xxx, "empty": xxx },
+            ...
+         ],
+         "totalSize": xxx
+      }
+
+      */
       if ( SDB_OK == sdbReply.flags )
       {
          BSONObjBuilder bob ;
@@ -7533,12 +7581,53 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
          INT32 offset = 0 ;
          while ( offset < bodyBuf.size() )
          {
+            BSONObjBuilder subBob( arr.subobjStart() ) ;
             BSONObj obj( bodyBuf.data() + offset ) ;
+            const CHAR* name = NULL ;
+
+            rc = mongoGetStringElement( obj, FIELD_NAME_NAME, name ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_NAME, obj.toString().c_str(), rc ) ;
+
             // { Name: "cs" } => { name: "cs" }
-            arr.append( BSON( "name" << obj.getStringField( "Name" ) ) ) ;
+            subBob.append( FAP_MONGO_FIELD_NAME, name ) ;
+
+            if ( !_nameOnly )
+            {
+               INT64 totalDataSize = 0 ;
+               INT64 totalIdxSize = 0 ;
+               INT64 totalSize = 0 ;
+               BSONObj collection ;
+
+               rc = mongoGetNumberLongElement( obj, FIELD_NAME_TOTAL_DATA_SIZE, totalDataSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                            FIELD_NAME_TOTAL_DATA_SIZE, obj.toString().c_str(), rc ) ;
+
+               rc = mongoGetNumberLongElement( obj, FIELD_NAME_TOTAL_IDX_SIZE, totalIdxSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                            FIELD_NAME_TOTAL_IDX_SIZE, obj.toString().c_str(), rc ) ;
+
+               rc = mongoGetArrayElement( obj, FIELD_NAME_COLLECTION, collection ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                            FIELD_NAME_COLLECTION, obj.toString().c_str(), rc ) ;
+
+               totalSize = totalDataSize + totalIdxSize ;
+
+               subBob.append( FAP_MONGO_FIELD_SIZE_ON_DISK, totalSize ) ;
+               subBob.appendBool( FAP_MONGO_FIELD_EMPTY, collection.isEmpty() ) ;
+
+               totalAllSize += totalSize ;
+            }
+            subBob.done() ;
+
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
          }
          arr.done() ;
+
+         if ( !_nameOnly )
+         {
+            bob.append( FAP_MONGO_FIELD_TOTAL_SIZE, totalAllSize ) ;
+         }
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;

@@ -98,6 +98,11 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_NUMPAGES        "numPages"
 #define FAP_MONGO_FIELD_NAME_MAX_OPENFILES   "maxOpenFiles"
 #define FAP_MONGO_FIELD_NAME_CAPPED          "capped"
+#define FAP_MONGO_FIELD_NAME_NAMEONLY        "nameOnly"
+#define FAP_MONGO_FIELD_NAME                 "name"
+#define FAP_MONGO_FIELD_SIZE_ON_DISK         "sizeOnDisk"
+#define FAP_MONGO_FIELD_EMPTY                "empty"
+#define FAP_MONGO_FIELD_TOTAL_SIZE           "totalSize"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"

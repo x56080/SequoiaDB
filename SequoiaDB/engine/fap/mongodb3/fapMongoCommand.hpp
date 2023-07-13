@@ -189,6 +189,7 @@ class _mongoGlobalCommand : public _mongoCommand
       BOOLEAN        _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
       mongoMsgBuffer _msgBuf ;
+      BSONObj        _obj ;
 } ;
 typedef _mongoGlobalCommand mongoGlobalCommand ;
 
@@ -995,7 +996,7 @@ class _mongoListDatabaseCommand : public _mongoGlobalCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoListDatabaseCommand() {}
+      _mongoListDatabaseCommand() : _nameOnly( FALSE ) {}
       virtual ~_mongoListDatabaseCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_LIST_DATABASE ; }
@@ -1007,6 +1008,9 @@ class _mongoListDatabaseCommand : public _mongoGlobalCommand
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
+
+   protected:
+      BOOLEAN _nameOnly ;
 } ;
 typedef _mongoListDatabaseCommand mongoListDatabaseCommand ;
 
