@@ -38,6 +38,7 @@
 #ifndef _SDB_MONGO_COMMAND_DEF_HPP_
 #define _SDB_MONGO_COMMAND_DEF_HPP_
 
+#include "ossTypes.h"
 namespace fap
 {
 enum MONGO_CMD_TYPE
@@ -91,6 +92,9 @@ enum MONGO_CMD_TYPE
    CMD_GET_CMD_LINE     = 99,
    CMD_GET_NONCE        = 100,
    CMD_GETNONCE         = 101,
+   CMD_CONNECT_STATUS   = 102,
+   CMD_HOST_INFO        = 103,
+   CMD_CURRENT_OP       = 104,
 
    CMD_UNKNOWN          = 65535
 } ;
@@ -136,5 +140,9 @@ const CHAR* const MONGO_CMD_NAME_REPL_STAT =         "replSetGetStatus" ;
 const CHAR* const MONGO_CMD_NAME_GET_CMD_LINE =      "getCmdLineOpts" ;
 const CHAR* const MONGO_CMD_NAME_FINDANDMODIFY =     "findandmodify" ;
 const CHAR* const MONGO_CMD_NAME_FIND_AND_MODIFY =   "findAndModify" ;
+const CHAR* const MONGO_CMD_NAME_CONNECT_STATUS =    "connectionStatus" ;
+const CHAR* const MONGO_CMD_NAME_HOST_INFO =         "hostInfo" ;
+const CHAR* const MONGO_CMD_NAME_CUR_OP =            "currentOp" ;
+
 }
 #endif

@@ -272,6 +272,7 @@ struct _ossOSInfo
    CHAR _distributor[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR _release[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR _desp[ OSS_MAX_PATHSIZE + 1 ] ;
+   CHAR _arch[ OSS_MAX_PATHSIZE + 1 ] ;
    INT32 _bit ;
 } ;
 typedef _ossOSInfo ossOSInfo ;

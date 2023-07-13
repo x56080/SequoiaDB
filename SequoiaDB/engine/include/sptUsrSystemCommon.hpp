@@ -34,6 +34,7 @@
 
 #ifndef SPT_USRSYSTEM_COMMON_HPP_
 #define SPT_USRSYSTEM_COMMON_HPP_
+#include "utilSystem.hpp"
 #include <vector>
 #include <string>
 #include "../bson/bson.hpp"
@@ -43,22 +44,6 @@ namespace engine
 {
 
 #if defined (_LINUX)
-   struct _cpuInfo
-   {
-      string modelName ;
-      string coreNum ;
-      string freq ;
-      string physicalID ;
-      void reset()
-      {
-         modelName  = "" ;
-         coreNum    = "1" ;
-         freq       = "" ;
-         physicalID = "0" ;
-      }
-   } ;
-   typedef struct _cpuInfo cpuInfo ;
-
    #define HOSTS_FILE      "/etc/hosts"
 #else
    #define HOSTS_FILE      "C:\\Windows\\System32\\drivers\\etc\\hosts"
@@ -291,13 +276,6 @@ namespace engine
 
       static INT32 getEWD( string &ewd, string &err ) ;
    private:
-      static INT32 _extractReleaseInfo( const CHAR *buf,
-                                        bson::BSONObjBuilder &builder ) ;
-
-#if defined (_LINUX)
-      static INT32 _extractReleaseFileInfo( bson::BSONObjBuilder &builder ) ;
-#endif //_Linux
-
       static INT32 _parseHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
 
       static INT32 _writeHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
@@ -307,7 +285,7 @@ namespace engine
       static void _buildHostsResult( VEC_HOST_ITEM & vecItems,
                                      bson::BSONObjBuilder &builder ) ;
 
-      static INT32 _extractCpuInfo( const CHAR *buf,
+      static INT32 _extractCpuInfo( map< string, vector<cpuInfo> > &cpuInfos,
                                     bson::BSONObjBuilder &builder ) ;
 
       static INT32 _extractMemInfo( const CHAR *buf,

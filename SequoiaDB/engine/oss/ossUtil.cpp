@@ -713,7 +713,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    info._desp[ 0 ] = 0 ;
    info._distributor[ 0 ] = 0 ;
    info._release[ 0 ] = 0 ;
-   CHAR arch[ 31 ] = { 0 } ;
+   info._arch[ 0 ] = 0 ;
 
 #if defined( _WINDOWS )
    SYSTEM_INFO sysInfo = { 0 } ;
@@ -786,19 +786,19 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    switch( sysInfo.wProcessorArchitecture )
    {
       case PROCESSOR_ARCHITECTURE_INTEL:
-           ossStrncpy( arch, "Intel x86", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "Intel x86", sizeof( info._arch ) - 1 ) ;
            info._bit = 32 ;
            break ;
       case PROCESSOR_ARCHITECTURE_IA64:
-           ossStrncpy( arch, "Intel IA64", sizeof( arch ) - 1 ) ;
+           ossStrncpy( arch, "Intel IA64", sizeof( info._arch ) - 1 ) ;
            info._bit = 64 ;
            break ;
       case PROCESSOR_ARCHITECTURE_AMD64:
-           ossStrncpy( arch, "AMD 64", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "AMD 64", sizeof( info._arch ) - 1 ) ;
            info._bit = 64 ;
            break ;
       default:
-           ossStrncpy( arch, "Unknown", sizeof( arch ) - 1 ) ;
+           ossStrncpy( info._arch, "Unknown", sizeof( info._arch ) - 1 ) ;
            break ;
    }
 #else
@@ -813,11 +813,11 @@ INT32 ossGetOSInfo( ossOSInfo &info )
                 "%s", name.sysname ) ;
    ossSnprintf( info._release, sizeof( info._release ) - 1,
                 "%s", name.release ) ;
-   ossSnprintf( arch, sizeof( arch ) - 1, "%s", name.machine ) ;
+   ossSnprintf( info._arch, sizeof( info._arch ) - 1, "%s", name.machine ) ;
 #if defined (_PPCLIN64) || defined (_ARMLIN64) || defined (_ALPHALIN64)
    info._bit = 64 ;
 #else
-   if ( 0 == ossStrcmp( arch, "x86_64" ) )
+   if ( 0 == ossStrcmp( info._arch, "x86_64" ) )
    {
       info._bit = 64 ;
    }
@@ -828,7 +828,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
 #endif // _PPCLIN64
 #endif // _WINDOWS
    ossSnprintf( info._desp, sizeof( info._desp ) - 1, "%s %s(%s)",
-                info._distributor, info._release, arch ) ;
+                info._distributor, info._release, info._arch ) ;
    return SDB_OK ;
 }
 
@@ -1442,7 +1442,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
    availBytes = vfs.f_bsize * vfs.f_bavail ;
-   
+
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )

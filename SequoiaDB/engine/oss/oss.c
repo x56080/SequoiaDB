@@ -329,7 +329,7 @@ void ossPanic()
 }
 
 /// in most cases, just need to use pmdGetSysPageSize()
-INT64  ossGetPageSize()
+INT64 ossGetPageSize()
 {
    INT64 pagesize = 0;
 #if defined (_WINDOWS)
@@ -346,6 +346,24 @@ INT64  ossGetPageSize()
 #endif
 #endif // _WINDOWS
    return pagesize;
+}
+
+INT64 ossGetPageNum()
+{
+   INT64 pageNum = 0 ;
+#if defined (_SC_PHYS_PAGES)
+   pageNum = sysconf( _SC_PHYS_PAGES ) ;
+#endif
+   return pageNum ;
+}
+
+INT64 ossGetMaxOpenFiles()
+{
+   INT64 maxOpenFiles = 0 ;
+#if defined (_SC_OPEN_MAX)
+   maxOpenFiles = sysconf( _SC_OPEN_MAX ) ;
+#endif
+   return maxOpenFiles ;
 }
 
 OSSPID ossGetParentProcessID()
