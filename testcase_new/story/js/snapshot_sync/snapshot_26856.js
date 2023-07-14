@@ -5,7 +5,8 @@
  * @LastEditTime  : 2023.05.26
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
-main( test );
+// SEQUOIADBMAINSTREAM-9748
+// main( test );
 function test ()
 {
    var remoteObj = new Remote( COORDHOSTNAME, CMSVCNAME );
