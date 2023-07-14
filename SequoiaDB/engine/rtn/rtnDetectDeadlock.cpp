@@ -421,6 +421,7 @@ namespace engine
             if ( NULL == pDeadlockTxArray )
             {
                rc = SDB_OOM ;
+               clearSetList( waiterSetList ) ; 
             }
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to allocate memory to build result, rc:%d",
