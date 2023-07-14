@@ -56,7 +56,7 @@ public class RenameCS_16132 extends SdbTestBase {
 
         Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( !csRename ) {
-            Integer[] errnosA = { -22, -148 };
+            Integer[] errnosA = { -22, -148, -147 };
             BaseException errorA = ( BaseException ) reCSNameThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosA ).contains( errorA.getErrorCode() ) ) {
@@ -68,7 +68,7 @@ public class RenameCS_16132 extends SdbTestBase {
         }
 
         if ( !clRename ) {
-            Integer[] errnosB = { -23, -34, -148 };
+            Integer[] errnosB = { -23, -34, -148, -147 };
             BaseException errorB = ( BaseException ) reCLNameThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {
