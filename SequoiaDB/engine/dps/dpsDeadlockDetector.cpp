@@ -342,6 +342,11 @@ void dpsTDGraph::_findSCC( dpsTDVertex & u, BOOLEAN ignoreSingleton )
                {
                   _pSetList->push_back( pSet ) ;
                }
+               else 
+               {
+                  delete pSet ;
+                  pSet = NULL ;
+               }
             }
             catch ( std::exception &e )
             {  
@@ -349,6 +354,11 @@ void dpsTDGraph::_findSCC( dpsTDVertex & u, BOOLEAN ignoreSingleton )
                        "Exception captured:%s while saving a SCC into a list",
                        e.what() ) ;
             }
+         }
+         else 
+         {
+            delete pSet ;
+            pSet = NULL ;
          }
       }
 
