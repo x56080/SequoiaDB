@@ -2,8 +2,8 @@
  * @Description   : seqDB-26573:stp节点异常时执行split
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.08.10
- * @LastEditTime  : 2022.08.12
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.07.17
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26573";
 testConf.clOpt = { "ShardingKey": { "a": 1 } };
@@ -17,7 +17,7 @@ function test ( testPara )
 {
    try
    {
-      var oma = new Oma( COORDHOSTNAME, CMSVCNAME );
+      var oma = new Oma( STPHOSTNAME, CMSVCNAME );
       oma.stopStp();
       var cl = testPara.testCL;
       var docs = [];
@@ -45,5 +45,38 @@ function test ( testPara )
    {
       oma.startStp();
       oma.close();
+      var stp = new Stp( STPHOSTNAME, STPSVCNAME );
+      checkStpStatus( stp );
+      stp.close();
+   }
+}
+
+function checkStpStatus ( stp, timeout )
+{
+   if( timeout == undefined ) { timeout = 60; }
+   var doTime = 0;
+   while( doTime < timeout )
+   {
+      var obj = stp.getSyncStatus().toObj();
+      var isPrimary = obj['IsPrimary'];
+      if( isPrimary )
+      {
+         break;
+      }
+      else
+      {
+         var syncStatus = obj['SyncStatus'];
+         if( syncStatus != "NoSource" && syncStatus != "CheckError" && syncStatus != "CheckOffset" )
+         {
+            break;
+         }
+      }
+      sleep( 1000 );
+      doTime++;
+   }
+
+   if( doTime >= timeout )
+   {
+      throw new Error( "waiting timeout. obj :" + obj );
    }
 }
