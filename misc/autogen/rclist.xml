@@ -3234,5 +3234,32 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_404</name>
+         <!-- reserved for SDB_STREAM_NOT_RESUMABLE -->
+         <description>
+            <en>Reserved</en>
+            <cn>保留</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_405</name>
+         <!-- reserved for SDB_STREAM_NOT_CATCHUP -->
+         <description>
+            <en>Reserved</en>
+            <cn>保留</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_406</name>
+         <!-- reserved for SDB_DPS_LSN_MOVED -->
+         <description>
+            <en>Reserved</en>
+            <cn>保留</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
