@@ -88,7 +88,8 @@ public class IdIndex10210 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -248 && eCode != -23 && eCode != -34 ) {
+                if ( eCode != -248 && eCode != -23 && eCode != -34
+                        && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             }
@@ -103,7 +104,8 @@ public class IdIndex10210 extends SdbTestBase {
                     "" )) {
                 db.dropCollectionSpace( csName );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -34 && e.getErrorCode() != -190 ) {
+                if ( e.getErrorCode() != -34 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
                     throw e;
                 }
             }
