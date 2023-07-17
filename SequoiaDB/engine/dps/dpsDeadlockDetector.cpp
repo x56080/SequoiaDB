@@ -138,8 +138,9 @@ void dpsTDGraph::_update( dpsTDVertex & u )
    {
       try
       {
-         _vertices.erase( *it ) ;
-         _vertices.insert( u ) ;
+         it->color = u.color ;
+         it->dfn = u.dfn ;
+         it->low = u.low ;
       }
       catch ( std::exception &e )
       {
@@ -395,8 +396,8 @@ void dpsTDUpdateTxNode( dpsDeadlockTx & u, DPS_DEADLOCK_TX_SET * pSet )
       {
          try
          {
-            pSet->erase( *it ) ;
-            pSet->insert( u ) ;
+            it->degree = u.degree ;
+            it->cost = u.cost ;
          }
          catch ( std::exception &e )
          {
