@@ -146,12 +146,14 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_ACTIVE          "active"
 #define FAP_MONGO_FIELD_NAME_SECS_RUN        "secs_running"
 #define FAP_MONGO_FIELD_NAME_MICROSECS_RUN   "microsecs_running"
+#define FAP_MONGO_FIELD_NAME_STATE           "state"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS         "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL     "MongoDB Internal Client"
 #define FAP_MONGO_FIELD_VALUE_JAVA           "mongo-java-driver"
 #define FAP_MONGO_FIELD_VALUE_SCRAMSHA1      "SCRAM-SHA-1"
 #define FAP_MONGO_FIELD_VALUE_OP             "op"
+#define FAP_MONGO_FIELD_VALUE_DISABLED       "disabled"
 
 #define FAP_MONGO_EQUAL  "="
 #define FAP_MONGO_COMMA  ","

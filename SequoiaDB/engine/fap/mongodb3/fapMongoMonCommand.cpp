@@ -2157,6 +2157,52 @@ error:
    goto done ;
 }
 
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetFreeMonStatusCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETFREEMONSTATUSBUILDMONREPL, "_mongoGetFreeMonStatusCommand::buildMongoReply" )
+INT32 _mongoGetFreeMonStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                      engine::rtnContextBuf &bodyBuf,
+                                                      _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETFREEMONSTATUSBUILDMONREPL ) ;
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder bob ;
+
+   try
+   {
+      /*
+
+      {
+         "state": "disabled",
+         "ok" : 1
+      }
+
+      */
+      bob.append( FAP_MONGO_FIELD_NAME_STATE, FAP_MONGO_FIELD_VALUE_DISABLED ) ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo getFreeMonitoringStatus "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETFREEMONSTATUSBUILDMONREPL, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAtlasVersionCommand)
 
 }

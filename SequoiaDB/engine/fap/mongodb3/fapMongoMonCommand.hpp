@@ -345,6 +345,19 @@ class _mongoCurrentOpCommand : public _mongoGlobalCommand
 } ;
 typedef _mongoCurrentOpCommand mongoCurrentOpCommand ;
 
+class _mongoGetFreeMonStatusCommand : public _mongoGlobalCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      virtual MONGO_CMD_TYPE type() const { return CMD_FREE_MON ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_GETFREEMONSTATUS ; }
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+} ;
+typedef _mongoGetFreeMonStatusCommand mongoGetFreeMonStatusCommand ;
+
 class _mongoAtlasVersionCommand : public _mongoDummyCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
