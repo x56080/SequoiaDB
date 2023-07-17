@@ -84,6 +84,7 @@ public class ClusterManager7065 extends SdbTestBase {
         // set node configure
         int dataPortAdd1 = reservedPortBegin + 650;
         String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
+        dataPathAdd1 = dataPathAdd1.replaceAll( "/+", "/" );
         BSONObject dataConfigue1 = ( BSONObject ) JSON
                 .parse( "{logfilesz:64}" );
 

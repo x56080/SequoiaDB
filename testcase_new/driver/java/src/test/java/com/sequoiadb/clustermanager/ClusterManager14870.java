@@ -69,6 +69,7 @@ public class ClusterManager14870 extends SdbTestBase {
         // create data Node
         dataPortAdd = reservedPortBegin + 340;
         String dataPathAdd = workDir + "/" + dataPortAdd + "/";
+        dataPathAdd = dataPathAdd.replaceAll( "/+", "/" );
         String cataMaster = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster()
                 .getHostName();
         Node node = rg.createNode( cataMaster, dataPortAdd, dataPathAdd );
