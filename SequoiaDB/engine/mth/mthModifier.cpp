@@ -2074,12 +2074,35 @@ namespace engine
                      {
                         if ( !realEle.isNumber() )
                         {
-                           rc = SDB_INVALIDARG ;
-                           PD_LOG_MSG( PDERROR, "Field %s is not a number in "
-                                                "record: %s",
-                                       me->getSourceFieldName(),
-                                       _sourceRecord.toString().c_str() ) ;
-                           goto error ;
+                           PD_LOG_MSG( _ignoreTypeError ? PDDEBUG : PDERROR,
+                                       "Field %s is not a number in record: %s",
+                                       me->getSourceFieldName(), _sourceRecord.toString().c_str() );
+                           // if $field specified, and the field is not a number.
+                           if ( _ignoreTypeError )
+                           {
+                              // if ignore type error, for $inc, set the default value.
+                              // if default is eoo, set 0.
+                              BSONElement incEle ;
+                              if ( incModifier->_default.eoo() )
+                              {
+                                 _interBuilder.append( "", 0 ) ;
+                                 incEle = _interBuilder.done().firstElement() ;
+                              }
+                              else
+                              {
+                                 incEle = incModifier->_default ;
+                              }
+                              b.appendAs( incEle, pShort ) ;
+                              ADD_CHG_ELEMENT_AS ( _dstChgBuilder, incEle,
+                                                   pRoot, "$set" ) ;
+                              _incModifierIndex( modifierIndex ) ;
+                              goto done ;
+                           }
+                           else
+                           {
+                              rc = SDB_INVALIDARG ;
+                              goto error ;
+                           }
                         }
 
                         rc = mthModifierInc( incModifier->_default, realEle,
