@@ -2157,4 +2157,6 @@ error:
    goto done ;
 }
 
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAtlasVersionCommand)
+
 }

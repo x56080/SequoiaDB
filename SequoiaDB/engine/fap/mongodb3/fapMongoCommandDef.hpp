@@ -99,6 +99,7 @@ enum MONGO_CMD_TYPE
    CMD_COLL_STATS       = 106,
    CMD_TOP              = 107,
    CMD_SERVER_STATUS    = 108,
+   CMD_ATLAS_VER        = 109,
 
    CMD_UNKNOWN          = 65535
 } ;
@@ -151,6 +152,7 @@ const CHAR* const MONGO_CMD_NAME_DB_STATS =          "dbStats" ;
 const CHAR* const MONGO_CMD_NAME_COLL_STATS =        "collStats" ;
 const CHAR* const MONGO_CMD_NAME_TOP =               "top" ;
 const CHAR* const MONGO_CMD_NAME_SERVER_STATUS =     "serverStatus" ;
+const CHAR* const MONGO_CMD_NAME_ATLAS_VERSION =     "atlasVersion" ;
 
 }
 #endif
