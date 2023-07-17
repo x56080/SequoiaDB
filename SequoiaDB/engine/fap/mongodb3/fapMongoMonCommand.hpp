@@ -367,6 +367,15 @@ class _mongoAtlasVersionCommand : public _mongoDummyCommand
 } ;
 typedef _mongoAtlasVersionCommand mongoAtlasVersionCommand ;
 
+class _mongoKillOpCommand : public _mongoDummyCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      virtual MONGO_CMD_TYPE type() const { return CMD_KILL_OP ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_KILL_OP ; }
+} ;
+typedef _mongoKillOpCommand mongoKillOpCommand ;
+
 }
 
 #endif

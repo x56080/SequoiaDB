@@ -2204,5 +2204,6 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAtlasVersionCommand)
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoKillOpCommand)
 
 }
