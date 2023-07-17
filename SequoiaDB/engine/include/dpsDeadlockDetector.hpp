@@ -166,14 +166,14 @@ class dpsTDVertex : public utilPooledObject
 {
 public:
    DPS_TRANS_ID nodeId; // vertex id, i.e., node number
-   DPS_TD_VCOLOR color; // node color, i.e., the processing status of this node
+   mutable DPS_TD_VCOLOR color; // node color, i.e., the processing status of this node
 
    // attributies dfn and low are used by Tarjan's algorithm in findng
    // Strongly Connected Components of a directed graph 
 
-   SINT32       dfn ;   // DFS number, the sequence when a node visited
+   mutable SINT32 dfn ;   // DFS number, the sequence when a node visited
                         // during DFS traversal  
-   SINT32       low ;   // low-link value, the topmost reachable ancestor(
+   mutable SINT32 low ;   // low-link value, the topmost reachable ancestor(
                         // with minimum possible dfn value ) via the subtree
                         // of that node. 
 public:
@@ -244,8 +244,8 @@ class dpsDeadlockTx : public utilPooledObject
 {
 public:
    DPS_TRANS_ID txId;       // transId
-   UINT32       degree ;    // in_degree + out_degree
-   UINT64       cost ;
+   mutable UINT32 degree ;    // in_degree + out_degree
+   mutable UINT64 cost ;
    
 public:
    dpsDeadlockTx()
