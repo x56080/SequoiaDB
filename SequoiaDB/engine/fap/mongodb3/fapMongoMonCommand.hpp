@@ -297,12 +297,51 @@ class _mongoServerStatusCommand : public _mongoGlobalCommand
 } ;
 typedef _mongoServerStatusCommand mongoServerStatusCommand ;
 
-class _mongoCurrentOpCommand : public _mongoDummyCommand
+class _mongoCurrentOpCommand : public _mongoGlobalCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
+   struct _sessionOpInfo
+   {
+      INT64 sessionID ;
+      INT64 milliSecRunning ;
+      std::string clName ;
+
+      _sessionOpInfo()
+      {
+         reset() ;
+      }
+
+      void reset()
+      {
+         sessionID = 0 ;
+         milliSecRunning = 0 ;
+         clName = "" ;
+      }
+   } ;
+   typedef struct _sessionOpInfo sessionOpInfo ;
+
    public:
       virtual MONGO_CMD_TYPE type() const { return CMD_CURRENT_OP ; }
       virtual const CHAR* name() const    { return MONGO_CMD_NAME_CUR_OP ; }
+
+      virtual BOOLEAN needProcessByEngine() const { return TRUE ; }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                     mongoSessionCtx &ctx,
+                                     BOOLEAN &getMoreAll ) ;
+
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+   private:
+      INT32 _getCLNameFromLastOpInfo( const std::string &lastOpInfo, std::string &clName ) ;
+
+   private:
+      std::vector<_sessionOpInfo> _sessionInfoVec ;
 } ;
 typedef _mongoCurrentOpCommand mongoCurrentOpCommand ;
 

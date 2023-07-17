@@ -841,7 +841,7 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
         CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
         CMD_LIST_USER == cmdType || CMD_DB_STATS == cmdType ||
         CMD_COLL_STATS == cmdType || CMD_TOP == cmdType ||
-        CMD_SERVER_STATUS == cmdType )
+        CMD_SERVER_STATUS == cmdType || CMD_CURRENT_OP == cmdType )
    {
       return TRUE ;
    }

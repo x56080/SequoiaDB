@@ -1845,5 +1845,313 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCurrentOpCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CURRENTOPBUILDSDBREQ, "_mongoCurrentOpCommand::buildSdbRequest" )
+INT32 _mongoCurrentOpCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                               mongoSessionCtx &ctx,
+                                               BOOLEAN &getMoreAll )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CURRENTOPBUILDSDBREQ ) ;
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS ;
+   BSONObj empty ;
+   BSONObj sel ;
+
+   try
+   {
+      sel = BSON( FIELD_NAME_SESSIONID << 1 <<
+                  FIELD_NAME_LASTOPBEGIN << 1 <<
+                  FIELD_NAME_LASTOPEND << 1 <<
+                  FIELD_NAME_LASTOPINFO << 1 ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sel bsonobj: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pQuery->header), MSG_BS_QUERY_REQ, _requestID ) ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX | FLG_QUERY_PREPARE_MORE ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( sel, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   getMoreAll = TRUE ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CURRENTOPBUILDSDBREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CURRENTOPPARSESDBREPLY, "_mongoCurrentOpCommand::parseSdbReply" )
+INT32 _mongoCurrentOpCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CURRENTOPPARSESDBREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf.resetItr() ;
+
+         while ( !bodyBuf.eof() )
+         {
+            BSONObj obj ;
+            _sessionOpInfo info ;
+            ossTimestamp beginTm ;
+            BOOLEAN opHasBegin = FALSE ;
+            BOOLEAN opHasNotEnd = FALSE ;
+
+            rc = bodyBuf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
+
+            {
+            BSONObjIterator itr( obj ) ;
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               const CHAR* fieldName = ele.fieldName() ;
+
+               if ( 0 == ossStrcmp( fieldName, FIELD_NAME_SESSIONID ) )
+               {
+                  info.sessionID = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_LASTOPBEGIN ) &&
+                         0 != ossStrcmp( ele.valuestrsafe(), "--" ) )
+               {
+                  ossStringToTimestamp( ele.valuestr(), beginTm ) ;
+                  opHasBegin = TRUE ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_LASTOPEND ) &&
+                         0 == ossStrcmp( ele.valuestrsafe(), "--" ) )
+               {
+                  opHasNotEnd = TRUE ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_LASTOPINFO ) )
+               {
+                  rc = _getCLNameFromLastOpInfo( ele.valuestrsafe(), info.clName ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get cl name from last op info, rc: %d", rc ) ;
+               }
+            }
+
+            if ( opHasBegin && opHasNotEnd && !info.clName.empty() )
+            {
+               ossTimestamp tm ;
+               ossGetCurrentTime( tm ) ;
+               info.milliSecRunning = (INT64)( ossTimestampToMilliseconds( tm ) -
+                                               ossTimestampToMilliseconds( beginTm ) ) ;
+               _sessionInfoVec.push_back( info ) ;
+            }
+            }
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing snap sessions reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CURRENTOPPARSESDBREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CURRENTOPBUILDMONREPL, "_mongoCurrentOpCommand::buildMongoReply" )
+INT32 _mongoCurrentOpCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf,
+                                               _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CURRENTOPBUILDMONREPL ) ;
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder bob ;
+   CHAR hostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+   ossTimestamp tm ;
+
+   try
+   {
+      /*
+
+      {
+         "inprog":
+         [
+            {
+               "type" : "op",
+               "host" : "u16-fjb:27020",
+               "active" : true,
+               "currentOpTime" : "2023-07-16T23:13:19.975+08:00",
+               "opid" : "rs0:7303092",
+               "secs_running" : NumberLong(4),
+               "microsecs_running" : NumberLong(4483901),
+               "ns" : "admin.$cmd"
+            },
+            {
+               ...
+            },
+            ...
+         ],
+         "ok" : 1
+      }
+
+      */
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONArrayBuilder inprogBab( bob.subarrayStart( FAP_MONGO_FIELD_NAME_INPROG ) ) ;
+
+         ossGetCurrentTime( tm ) ;
+
+         rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get hostname, rc: %d", rc ) ;
+
+         for ( auto itr = _sessionInfoVec.begin() ; itr != _sessionInfoVec.end() ; itr++ )
+         {
+            const _sessionOpInfo &info = *itr ;
+            BSONObjBuilder session ;
+            session.append( FAP_MONGO_FIELD_NAME_TYPE, FAP_MONGO_FIELD_VALUE_OP ) ;
+            session.append( FAP_MONGO_FIELD_NAME_HOST, hostName ) ;
+            session.appendBool( FAP_MONGO_FIELD_NAME_ACTIVE, TRUE ) ;
+            session.appendTimeT( FAP_MONGO_FIELD_NAME_CUR_OP_TIME, tm.time ) ;
+            session.append( FAP_MONGO_FIELD_NAME_OP_ID, info.sessionID ) ;
+            session.append( FAP_MONGO_FIELD_NAME_SECS_RUN,
+                            (INT64)info.milliSecRunning / 1000 ) ;
+            session.append( FAP_MONGO_FIELD_NAME_MICROSECS_RUN,
+                            (INT64)info.milliSecRunning * 1000 ) ;
+            session.append( FAP_MONGO_FIELD_NAME_NS, info.clName.c_str() ) ;
+            inprogBab.append( session.obj() ) ;
+         }
+         inprogBab.done() ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo currentOp reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CURRENTOPBUILDMONREPL, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoCurrentOpCommand::_getCLNameFromLastOpInfo( const std::string &lastOpInfo,
+                                                        std::string &clName )
+{
+   INT32 rc = SDB_OK ;
+   clName = "" ;
+
+   if ( lastOpInfo.empty() )
+   {
+      goto done ;
+   }
+
+   try
+   {
+      std::string delimiter = "Collection:" ;
+      size_t startPos = lastOpInfo.find( delimiter ) ;
+
+      if ( startPos == std::string::npos )
+      {
+         goto done ;
+      }
+
+      startPos += delimiter.length() ;
+
+      size_t endPos = lastOpInfo.find( ',', startPos ) ;
+      if ( endPos == std::string::npos )
+      {
+         goto done ;
+      }
+
+      clName = lastOpInfo.substr( startPos, endPos - startPos ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting cl name from last op info: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
 
 }
