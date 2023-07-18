@@ -86,6 +86,7 @@ final class AdminCommand {
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
     final static String LIST_RECYCLEBIN = PREFIX + "list recyclebin";
     final static String LIST_GROUPMODES = PREFIX + "list group modes";
+    final static String LIST_STREAMS = PREFIX + "list streams";
 
     final static String SNAP_CONTEXTS = PREFIX + "snapshot contexts";
     final static String SNAP_CONTEXTS_CURRENT = PREFIX + "snapshot contexts current";
@@ -114,6 +115,8 @@ final class AdminCommand {
     final static String SNAP_RECYCLEBIN = PREFIX + "snapshot recyclebin";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
+
+    final static String SNAP_STREAMS = PREFIX + "snapshot streams";
 
     final static String CREATE_PROCEDURE = PREFIX + "create procedure";
     final static String REMOVE_PROCEDURE = PREFIX + "remove procedure";
@@ -164,4 +167,6 @@ final class AdminCommand {
     final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
 
     final static String ALTER_NODE = PREFIX + "alter node";
+
+    final static String CHANGE_STREAM_WATCH = PREFIX + "watch";
 }

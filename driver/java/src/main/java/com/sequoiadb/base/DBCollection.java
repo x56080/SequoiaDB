@@ -3080,4 +3080,27 @@ public class DBCollection {
         sequoiadb.throwIfError(response, newObj);
         sequoiadb.upsertCache(collectionFullName);
     }
+
+    /**
+     * Subscribe to the change stream of a collection spaces.
+     *
+     * @see Sequoiadb#watch(StreamToken, BSONObject, BSONObject)
+     */
+    public DBCursor watch(StreamToken streamToken, BSONObject options, BSONObject pipeline) throws BaseException {
+        BSONObject resetOptions = new BasicBSONObject();
+        if (options != null) {
+            resetOptions.putAll(options);
+        }
+
+        // reset collections
+        List<String> collections = new ArrayList<>();
+        collections.add(collectionFullName);
+        resetOptions.put(SdbConstants.FIELD_NAME_COLLECTIONS, collections);
+
+        // exclude collection spaces
+        resetOptions.removeField(SdbConstants.FIELD_NAME_COLLECTION_SPACES);
+
+        return sequoiadb.watch(streamToken, resetOptions, pipeline);
+    }
+
 }

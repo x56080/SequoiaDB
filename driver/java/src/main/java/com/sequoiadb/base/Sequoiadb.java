@@ -18,13 +18,7 @@ import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.Arrays;
+import java.util.*;
 
 import com.sequoiadb.message.*;
 import com.sequoiadb.message.request.*;
@@ -189,6 +183,10 @@ public class Sequoiadb implements Closeable {
      * list group mode
      */
     public final static int SDB_LIST_GROUPMODES = 28;
+    /**
+     * list streams
+     */
+    public final static int SDB_LIST_STREAMS = 29;
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -297,11 +295,20 @@ public class Sequoiadb implements Closeable {
      * Snapshot of recycle bin
      */
     public final static int SDB_SNAP_RECYCLEBIN = 27;
+    /**
+     * Snapshot of streams
+     */
+    public final static int SDB_SNAP_STREAMS = 29;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
     public final static int FMP_FUNC_TYPE_C = 1;
     public final static int FMP_FUNC_TYPE_JAVA = 2;
+
+    /**
+     * format of change stream token
+     */
+    private final String CHANGE_STREAM_TOKEN_FORMAT = "%02x%02x%02x%02x%08x%016x%016x%08x%08x";
 
     public final static String CATALOG_GROUP_NAME = "SYSCatalogGroup";
 
@@ -1377,6 +1384,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
      *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STREAMS}
      *                   </ul>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1430,6 +1438,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
      *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STREAMS}
      *                   </ul>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -1577,6 +1586,7 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
      *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_STREAMS}
      *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1634,6 +1644,7 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
      *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_STREAMS}
      *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1675,6 +1686,7 @@ public class Sequoiadb implements Closeable {
      *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
      *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_STREAMS}
      *                  </ul>
      * @param matcher    the matching rule, match all the documents if null
      * @param selector   the selective rule, return the whole document if null
@@ -1761,6 +1773,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_TRANSDEADLOCK;
             case SDB_SNAP_RECYCLEBIN:
                 return AdminCommand.SNAP_RECYCLEBIN;
+            case SDB_SNAP_STREAMS:
+                return AdminCommand.SNAP_STREAMS;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid snapshot type: %d", snapType));
@@ -2916,6 +2930,88 @@ public class Sequoiadb implements Closeable {
         return new DBRecycleBin(this);
     }
 
+    /**
+     * Subscribe to the change stream of a specified object in the database.
+     *
+     * @param streamToken Start from a specific position in the change stream.
+     * @param options     options for change streams.
+     * @param pipeline    The steps for processing extracted logs are as follows
+     * @return Cursor of change stream data
+     * @throws BaseException If error happens.
+     */
+    public DBCursor watch(StreamToken streamToken, BSONObject options, BSONObject pipeline) throws BaseException {
+        if (streamToken == null || streamToken.getToken() == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid streamToken");
+        }
+
+        BSONObject matcher = new BasicBSONObject();
+        if (options != null) {
+            matcher.putAll(options);
+        }
+        matcher.put(SdbConstants.FIELD_NAME_TOKEN, streamToken.getToken());
+
+        AdminRequest request = new AdminRequest(
+                AdminCommand.CHANGE_STREAM_WATCH,
+                matcher,
+                pipeline
+        );
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DBCursor(response, this);
+    }
+
+    /**
+     * Retrieve the latest position of the current node's change stream.
+     *
+     * @return change stream token
+     */
+    public StreamToken getChangeStreamToken() {
+        long lsn = 0L;
+        int version = 0;
+        int groupID = 0;
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put(SdbConstants.FIELD_NAME_CURRENT_LSN + "." + SdbConstants.FIELD_NAME_OFFSET, 0);
+        selector.put(SdbConstants.FIELD_NAME_CURRENT_LSN + "." + SdbConstants.FIELD_NAME_VERSION, 0);
+        selector.put(SdbConstants.FIELD_NAME_NODEID, 0);
+
+        try(DBCursor cursor = getSnapshot(SDB_SNAP_DATABASE, new BasicBSONObject(), selector, new BasicBSONObject())) {
+            while (cursor.hasNext()) {
+                BSONObject bsonObject = cursor.getNext();
+
+                Object lsnOpt = Helper.getBsonValueByKeys(
+                        bsonObject,
+                        SdbConstants.FIELD_NAME_CURRENT_LSN,
+                        SdbConstants.FIELD_NAME_OFFSET
+                );
+                if (lsnOpt instanceof Number) {
+                    lsn = (long) lsnOpt;
+                }
+
+                Object versionOpt = Helper.getBsonValueByKeys(
+                        bsonObject,
+                        SdbConstants.FIELD_NAME_CURRENT_LSN,
+                        SdbConstants.FIELD_NAME_VERSION
+                );
+                if (versionOpt instanceof Number) {
+                    version = (int) versionOpt;
+                }
+
+                Object groupIDOpt = Helper.getBsonValueByKeys(bsonObject, SdbConstants.FIELD_NAME_NODEID);
+                if (groupIDOpt instanceof List && !((List<?>) groupIDOpt).isEmpty()) {
+                    Object first = ((List<?>) groupIDOpt).get(0);
+                    if (first instanceof Number) {
+                        groupID = (int) first;
+                    }
+                }
+            }
+        }
+
+        String token = String.format(CHANGE_STREAM_TOKEN_FORMAT, SdbConstants.STREAM_TOKEN_VERSION_CUR,
+                SdbConstants.STREAM_TOKEN_TYPE_CHANGE, 0, 0, groupID, 0, lsn, version, 0);
+        return new StreamToken(token);
+    }
+
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
@@ -2982,6 +3078,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_CS_IN_DOMAIN;
             case SDB_LIST_GROUPMODES:
                 return AdminCommand.LIST_GROUPMODES;
+            case SDB_LIST_STREAMS:
+                return AdminCommand.LIST_STREAMS;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid list type: %d", listType));

@@ -463,4 +463,17 @@ public final class Helper {
             throw new BaseException(SDBError.SDB_SYS, "Failed to parse address: " + address, e);
         }
     }
+
+    public static Object getBsonValueByKeys(BSONObject bson, String ...keys) {
+        Object current = bson;
+        for (String key : keys) {
+            if (current instanceof BSONObject) {
+                current = ((BSONObject) current).get(key);
+            } else {
+                return null;
+            }
+        }
+        return current;
+    }
+
 }

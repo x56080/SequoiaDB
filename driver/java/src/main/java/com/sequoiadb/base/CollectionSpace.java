@@ -417,4 +417,27 @@ public class CollectionSpace {
         sequoiadb.removeCache(name + "." + oldName);
         sequoiadb.upsertCache(name + "." + newName);
     }
+
+    /**
+     * Subscribe to the change stream of a collection.
+     *
+     * @see Sequoiadb#watch(StreamToken, BSONObject, BSONObject)
+     */
+    public DBCursor watch(StreamToken streamToken, BSONObject options, BSONObject pipeline) throws BaseException {
+        BSONObject resetOptions = new BasicBSONObject();
+        if (options != null) {
+            resetOptions.putAll(options);
+        }
+
+        // reset CollectionSpaces
+        List<String> collectionSpaces = new ArrayList<>();
+        collectionSpaces.add(name);
+        resetOptions.put(SdbConstants.FIELD_NAME_COLLECTION_SPACES, collectionSpaces);
+
+        // exclude collections
+        resetOptions.removeField(SdbConstants.FIELD_NAME_COLLECTIONS);
+
+        return sequoiadb.watch(streamToken, resetOptions, pipeline);
+    }
+
 }
