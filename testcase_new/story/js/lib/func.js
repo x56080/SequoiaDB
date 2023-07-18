@@ -1252,13 +1252,13 @@ function commGetRemoteInstallPath ( cmHostName, cmSvcName )
          if( commCompareErrorCode( e, 2 ) )
          {
             var local = cmd.run( "pwd" ).split( "\n" );
-            var LocalPath = local[0];
+            var LocalPath = local[0].replace( "/bin", "" );
             var folder = cmd.run( 'ls ' + LocalPath ).split( '\n' );
             var fcnt = 0;
             for( var i = 0; i < folder.length; ++i )
             {
                if( "bin" == folder[i] || "SequoiaDB" == folder[i] ||
-                  "testcase" == folder[i] )
+                  "testcase" == folder[i] || "conf" == folder[i] )
                {
                   fcnt++;
                }
