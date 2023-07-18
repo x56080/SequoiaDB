@@ -305,7 +305,6 @@ namespace engine
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
       _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
       _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _replayEventHandler = NULL ;
    }
 
    _clsBucket::~_clsBucket ()
@@ -393,7 +392,7 @@ namespace engine
       _maxReplSync = maxReplSync ;
    }
 
-   INT32 _clsBucket::init( clsReplayEventHandler *handler )
+   INT32 _clsBucket::init()
    {
       INT32 rc = SDB_OK ;
       UINT32 index = 0 ;
@@ -411,8 +410,6 @@ namespace engine
          PD_LOG( PDERROR, "Failed to alloc memory" ) ;
          goto error ;
       }
-
-      _replayEventHandler = handler ;
 
       if ( !ossIsPowerOf2( _bucketSize, &_bitSize ) )
       {
@@ -514,6 +511,8 @@ namespace engine
 
    void _clsBucket::fini ()
    {
+      unregEventHandlers() ;
+
       SAFE_OSS_FREE( _lastNewUnqIdxLSN ) ;
       SAFE_OSS_FREE( _lastNewUnqIdxBkt ) ;
       SAFE_OSS_FREE( _lastOldUnqIdxLSN ) ;
@@ -527,8 +526,6 @@ namespace engine
       _queueBuffer.finiBuffer() ;
 
       _memPool.final() ;
-
-      _replayEventHandler = NULL ;
    }
 
    void _clsBucket::reset ( BOOLEAN setExpect )
@@ -1431,14 +1428,13 @@ namespace engine
 
          if ( 0 == _expectLSN.compareOffset( offset ) )
          {
+            const dpsLogRecordHeader *recordHeader =
+                     (const dpsLogRecordHeader *)( info._pData ) ;
             _expectLSN.version = version ;
             _expectLSN.offset += lsnLen ;
-            if ( info._dataExInfo._isValid && NULL != _replayEventHandler )
+            if ( info._dataExInfo.isValid() )
             {
-               _replayEventHandler->onReplayLog( info._dataExInfo._csLID,
-                                                 info._dataExInfo._clLID,
-                                                 info._dataExInfo._extLID,
-                                                 offset ) ;
+               onReplayLog( info._dataExInfo, recordHeader ) ;
             }
          }
          result = CLS_SUBMIT_EQ_EXPECT ;
@@ -1450,20 +1446,17 @@ namespace engine
             clsReplayInfo &tmpInfo = it->second ;
             if ( _expectLSN.compareOffset( it->first ) >= 0 )
             {
+               const dpsLogRecordHeader *recordHeader =
+                     (const dpsLogRecordHeader *)( tmpInfo._pData ) ;
                if ( 0 == _expectLSN.compareOffset( it->first ) )
                {
-                  _expectLSN.version =
-                     ((dpsLogRecordHeader*)tmpInfo._pData)->_version ;
-                  _expectLSN.offset +=
-                     ((dpsLogRecordHeader*)tmpInfo._pData)->_length ;
+                  _expectLSN.version = recordHeader->_version ;
+                  _expectLSN.offset += recordHeader->_length ;
                }
                // notify to lsn full sync source session
-               if ( tmpInfo._dataExInfo._isValid && NULL != _replayEventHandler )
+               if ( tmpInfo._dataExInfo.isValid() )
                {
-                  _replayEventHandler->onReplayLog( tmpInfo._dataExInfo._csLID,
-                                                    tmpInfo._dataExInfo._clLID,
-                                                    tmpInfo._dataExInfo._extLID,
-                                                    it->first ) ;
+                  onReplayLog( tmpInfo._dataExInfo, recordHeader ) ;
                }
                _memPool.release( tmpInfo._pData, tmpInfo._len ) ;
                _completeMap.erase( it++ ) ;

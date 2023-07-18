@@ -48,6 +48,33 @@ namespace engine
 {
 
    #define DPS_TRANS_STR_LEN           ( 64 )
+   #define DPS_RECORD_FLAGS_STATUS_LEN ( 127 )
+
+   #define DPS_LOG_OP_NAME_DUMMY            "dummy"
+   #define DPS_LOG_OP_NAME_INSERT           "insert"
+   #define DPS_LOG_OP_NAME_UPDATE           "update"
+   #define DPS_LOG_OP_NAME_DELETE           "delete"
+   #define DPS_LOG_OP_NAME_CREATE_CS        "createcs"
+   #define DPS_LOG_OP_NAME_DELETE_CS        "deletecs"
+   #define DPS_LOG_OP_NAME_CREATE_CL        "createcl"
+   #define DPS_LOG_OP_NAME_DELETE_CL        "deletecl"
+   #define DPS_LOG_OP_NAME_CREATE_IX        "createix"
+   #define DPS_LOG_OP_NAME_DELETE_IX        "deleteix"
+   #define DPS_LOG_OP_NAME_CL_RENAME        "renamecl"
+   #define DPS_LOG_OP_NAME_TRUNCATE_CL      "truncatecl"
+   #define DPS_LOG_OP_NAME_TS_COMMIT        "commit"
+   #define DPS_LOG_OP_NAME_TS_ROLLBACK      "rollback"
+   #define DPS_LOG_OP_NAME_INVALIDATE_CATA  "invalidatecata"
+   #define DPS_LOG_OP_NAME_LOB_WRITE        "lobwrite"
+   #define DPS_LOG_OP_NAME_LOB_REMOVE       "lobremove"
+   #define DPS_LOG_OP_NAME_LOB_UPDATE       "lobupdate"
+   #define DPS_LOG_OP_NAME_LOB_TRUNCATE     "lobtruncate"
+   #define DPS_LOG_OP_NAME_CS_RENAME        "renamecs"
+   #define DPS_LOG_OP_NAME_POP              "pop"
+   #define DPS_LOG_OP_NAME_ALTER            "alter"
+   #define DPS_LOG_OP_NAME_ADDUNIQUEID      "adduniqueid"
+   #define DPS_LOG_OP_NAME_RETURN           "return"
+   #define DPS_LOG_OP_NAME_SEC_KEY_CRT      "seckeycrt"
 
    dpsLogConfig &dpsGetGlobalLogConfig() ;
 
@@ -71,6 +98,10 @@ namespace engine
 
    void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
                              const CHAR *flagStr ) ;
+
+   void dpsInvalidateCataTypeToString( UINT8 type, CHAR *pBuffer, INT32 bufSize ) ;
+
+   const CHAR *dpsGetOPName(UINT16 type) ;
 
    typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 

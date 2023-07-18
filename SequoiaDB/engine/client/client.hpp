@@ -180,6 +180,79 @@ namespace sdbclient
    */
    SDB_EXPORT void sdbSetErrorOnReplyCallback( ERROR_ON_REPLY_FUNC func ) ;
 
+   /** \class sdbStreamToken
+         \brief Token to describe the position to start or resume stream.
+   */
+   class DLLEXPORT sdbStreamToken
+   {
+   public:
+      /** \fn sdbStreamToken()
+            \brief default constructor, start stream from latest position
+      */
+      sdbStreamToken()
+      {
+      }
+
+      /** \fn sdbStreamToken( const std::string &tokenString )
+            \brief constructor, resume stream from given position
+            \param [in] tokenString token to describe the given position
+      */
+      sdbStreamToken( const std::string &tokenString )
+      : _tokenString( tokenString )
+      {
+      }
+
+      /** \fn sdbStreamToken( const sdbStreamToken &token )
+            \brief copy constructor
+      */
+      sdbStreamToken( const sdbStreamToken &token )
+      : _tokenString( token._tokenString )
+      {
+      }
+
+      /** \fn ~sdbStreamToken()
+            \brief destructor
+      */
+      ~sdbStreamToken()
+      {
+      }
+
+      /** \fn void setToken( const std::string &tokenString )
+            \brief reset token from string format
+            \param [in] tokenString Token in string format
+      */
+      void setToken( const std::string &tokenString )
+      {
+         _tokenString = tokenString ;
+      }
+
+      /** \fn void resetToken()
+            \brief reset token
+      */
+      void resetToken()
+      {
+         _tokenString.clear() ;
+      }
+
+      /** \fn const std::string &getToken() const
+            \brief Return the current token in string format
+            \retval Token in string format
+      */
+      const std::string &getToken() const
+      {
+         return _tokenString ;
+      }
+
+      sdbStreamToken &operator =( const sdbStreamToken &token )
+      {
+         _tokenString = token._tokenString ;
+         return *this ;
+      }
+
+   protected:
+      std::string _tokenString ;
+   } ;
+
    class DLLEXPORT _sdbCursor
    {
    private :
@@ -675,6 +748,11 @@ namespace sdbclient
       virtual void setVersion( INT32 clVersion ) = 0;
       virtual INT32 getVersion() = 0;
       virtual INT32 setConsistencyStrategy( INT32 value ) = 0 ;
+
+      virtual INT32 watch( _sdbCursor **cursor,
+                           const sdbStreamToken &token = sdbStreamToken(),
+                           const bson::BSONObj &options = _sdbStaticObject,
+                           const bson::BSONObj &pipeline = _sdbStaticObject ) = 0 ;
    } ;
 
    /** \class sdbCollection
@@ -2783,6 +2861,71 @@ namespace sdbclient
       {
           return pCollection->setConsistencyStrategy( value ) ;
       }
+
+      /** \fn INT watch( _sdbCursor **cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of collection
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching collection
+                                    "LOB"                 : DML changes on LOBs of watching collection
+                                    "DDL"                 : DDL changes on watching collection
+                                    "TRANS"               : TRANS changes on watching collection
+                                    "ALL"                 : All types of changes of watching collection
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->watch( cursor, token, options, pipeline ) ;
+      }
+
+      /** \fn INT watch( sdbCursor &cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of collection
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching collection
+                                    "LOB"                 : DML changes on LOBs of watching collection
+                                    "DDL"                 : DDL changes on watching collection
+                                    "TRANS"               : TRANS changes on watching collection
+                                    "ALL"                 : All types of changes of watching collection
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( sdbCursor &cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return watch( &( cursor.pCursor ), token, options, pipeline ) ;
+      }
    } ;
 
    /** \enum sdbNodeStatus
@@ -3722,6 +3865,11 @@ namespace sdbclient
       virtual INT32 disableCapped () = 0 ;
 
       virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
+
+      virtual INT32 watch( _sdbCursor **cursor,
+                           const sdbStreamToken &token = sdbStreamToken(),
+                           const bson::BSONObj &options = _sdbStaticObject,
+                           const bson::BSONObj &pipeline = _sdbStaticObject ) = 0 ;
    } ;
    /** \class sdbCollectionSpace
        \brief Database operation interfaces of collection space
@@ -4131,6 +4279,71 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pCollectionSpace->setAttributes( options ) ;
+      }
+
+      /** \fn INT watch( _sdbCursor **cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of collection space
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching collection space
+                                    "LOB"                 : DML changes on LOBs of watching collection space
+                                    "DDL"                 : DDL changes on watching collection space
+                                    "TRANS"               : TRANS changes on watching collection space
+                                    "ALL"                 : All types of changes of watching collection space
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         if ( !pCollectionSpace )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollectionSpace->watch( cursor, token, options, pipeline ) ;
+      }
+
+      /** \fn INT watch( sdbCursor &cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of collection space
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching collection space
+                                    "LOB"                 : DML changes on LOBs of watching collection space
+                                    "DDL"                 : DDL changes on watching collection space
+                                    "TRANS"               : TRANS changes on watching collection space
+                                    "ALL"                 : All types of changes of watching collection space
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( sdbCursor &cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return watch( &( cursor.pCursor ), token, options, pipeline ) ;
       }
    } ;
 
@@ -6222,6 +6435,13 @@ namespace sdbclient
                                      const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
 
       virtual INT32 initSecurityKeys( const bson::BSONObj &options ) = 0 ;
+
+      virtual INT32 watch( _sdbCursor **cursor,
+                           const sdbStreamToken &token = sdbStreamToken(),
+                           const bson::BSONObj &options = _sdbStaticObject,
+                           const bson::BSONObj &pipeline = _sdbStaticObject ) = 0 ;
+
+      virtual INT32 getChangeStreamToken( sdbStreamToken &token ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -6598,6 +6818,7 @@ namespace sdbclient
               SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
               SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
               SDB_SNAP_RECYCLEBIN       : Get the snapshot of items in recycle bin
+              SDB_SNAP_STREAMS          : Get the snapshot of running streams
 
           \param [in] numToSkip Skip the first numToSkip documents, default is 0
           \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -6659,6 +6880,7 @@ namespace sdbclient
               SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
               SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
               SDB_SNAP_RECYCLEBIN       : Get the snapshot of items in recycle bin
+              SDB_SNAP_STREAMS          : Get the snapshot of running streams
 
            \param [in] condition The matching rule, match all the documents if not provided.
            \param [in] select The selective rule, return the whole document if not provided.
@@ -6769,6 +6991,7 @@ namespace sdbclient
               SDB_LIST_USERS            : Get all the user informations
               SDB_LIST_DATASOURCES      : Get all the data source informations
               SDB_LIST_RECYCLEBIN       : Get all the items in recycle bin
+              SDB_LIST_STREAMS          : Get all the running streams
 
          \param [in] condition The matching rule, match all the documents if null.
          \param [in] select The selective rule, return the whole document if null.
@@ -8747,6 +8970,86 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->initSecurityKeys( options ) ;
+      }
+
+      /** \fn INT watch( _sdbCursor **cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of database
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching database
+                                    "LOB"                 : DML changes on LOBs of watching database
+                                    "DDL"                 : DDL changes on watching database
+                                    "TRANS"               : TRANS changes on watching database
+                                    "ALL"                 : All types of changes of watching database
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->watch( cursor, token, options, pipeline ) ;
+      }
+
+      /** \fn INT watch( sdbCursor &cursor,
+                         const sdbStreamToken &token,
+                         const bson::BSONObj &options,
+                         const bson::BSONObj &pipeline = _sdbStaticObject )
+          \brief Open a cursor of change stream to watch changes of database
+          \param [out] cursor The sdbCursor object of result
+          \param [in] token Optional resume token of change stream
+          \param [in] options Optional options to define the behavior of change stream
+
+              ChangeTypes       : Configure change types to be watched, combine multiple values with '|', default is "RECORD|DDL"
+                                    "RECORD"              : DML changes on records of watching database
+                                    "LOB"                 : DML changes on LOBs of watching database
+                                    "DDL"                 : DDL changes on watching database
+                                    "TRANS"               : TRANS changes on watching database
+                                    "ALL"                 : All types of changes of watching database
+              MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
+              CacheSize         : Configure the size in MB of change cache in server
+
+          \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 watch( sdbCursor &cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return watch( &( cursor.pCursor ), token, options, pipeline ) ;
+      }
+
+      /** \fn INT getChangeStreamToken( sdbStreamToken &token )
+          \brief Get current token of change stream
+          \param [out] token The sdbStreamToken object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getChangeStreamToken( sdbStreamToken &token )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getChangeStreamToken( token ) ;
       }
    } ;
 

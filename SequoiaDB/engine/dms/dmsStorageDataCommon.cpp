@@ -1340,13 +1340,14 @@ namespace engine
                                          ossSLatch * pLatch,
                                          OSS_LATCH_MODE mode,
                                          BOOLEAN & locked,
+                                         utilCLUniqueID clUID,
                                          UINT32 clLID,
                                          dmsExtentID extLID )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__LOGDPS ) ;
-      info.setInfoEx( _logicalCSID, clLID, extLID, cb ) ;
+      info.setInfoEx( cb, utilGetCSUniqueID( clUID ), _logicalCSID, clUID, clLID, extLID ) ;
       rc = dpsCB->prepare( info ) ;
       if ( rc )
       {
@@ -1386,10 +1387,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__LOGDPS1 ) ;
       UINT64 lsn = DPS_INVALID_LSN_OFFSET ;
-      info.setInfoEx( logicalID(),
-                      NULL == clLID ?
-                      context->clLID() : *clLID,
-                      extLID, cb ) ;
+      info.setInfoEx( cb, context->csUID(), logicalID(), context->clUID(),
+                      NULL == clLID ? context->clLID() : *clLID, extLID ) ;
       rc = dpsCB->prepare( info ) ;
       if ( rc )
       {
@@ -2203,7 +2202,7 @@ namespace engine
       dpsTransCB *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       UINT16 newCollectionID  = DMS_INVALID_MBID ;
-      UINT32 logicalID        = DMS_INVALID_CLID ;
+      UINT32 clLogicalID      = DMS_INVALID_CLID ;
       BOOLEAN metalocked      = FALSE ;
       dmsMB *mb               = NULL ;
       SDB_DPSCB *dropDps      = NULL ;
@@ -2233,7 +2232,7 @@ namespace engine
                                compressionType, extOptions, pIdIdxDef, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -2356,14 +2355,14 @@ namespace engine
       }
 
       // set mb meta data and header data
-      logicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
+      clLogicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
-      mb->reset( pName, clUniqueID, newCollectionID, logicalID,
+      mb->reset( pName, clUniqueID, newCollectionID, clLogicalID,
                  attributes, compressionType ) ;
       mb->_createTime = ossGetCurrentMilliseconds() ;
       mb->_updateTime = mb->_createTime ;
       _mbStatInfo[ newCollectionID ].reset() ;
-      _mbStatInfo[ newCollectionID ]._startLID = logicalID ;
+      _mbStatInfo[ newCollectionID ]._startLID = clLogicalID ;
       _mbStatInfo[ newCollectionID ]._createTime = mb->_createTime ;
       _mbStatInfo[ newCollectionID ]._updateTime = mb->_updateTime ;
       _compressorEntry[ newCollectionID ].reset() ;
@@ -2394,7 +2393,7 @@ namespace engine
       mbOptExtent = DMS_INVALID_EXTENT ;
 
       // lock mb context before release meta lock
-      rc = getMBContext( &context, newCollectionID, logicalID, logicalID,
+      rc = getMBContext( &context, newCollectionID, clLogicalID, clLogicalID,
                          EXCLUSIVE ) ;
       if ( rc )
       {
@@ -2411,14 +2410,14 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE,
-                       metalocked, logicalID, DMS_INVALID_EXTENT ) ;
+                       metalocked, clUniqueID, clLogicalID, DMS_INVALID_EXTENT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLcrt record to log, "
                       "rc = %d", rc ) ;
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( fullName, _logicalCSID, logicalID,
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, utilGetCSUniqueID( clUniqueID ),
+                            logicalID(), clUniqueID, clLogicalID ) ;
       }
 
       // release meta lock
@@ -2459,7 +2458,7 @@ namespace engine
 
       if ( logicID )
       {
-         *logicID = logicalID ;
+         *logicID = clLogicalID ;
       }
 
       if ( cb && cb->getLsnCount() > 0 )
@@ -2537,6 +2536,7 @@ namespace engine
       BOOLEAN getContext      = FALSE ;
       BOOLEAN metalocked      = FALSE ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT32 clLogicalID = ~0 ;
       BOOLEAN isTransLocked   = FALSE ;
 
       dmsEventCLItem clItem ;
@@ -2566,7 +2566,7 @@ namespace engine
          rc = dpsCLDel2Record( fullName, boOptions, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -2595,6 +2595,8 @@ namespace engine
                       pName, rc ) ;
       }
 
+      clUniqueID = context->clUID() ;
+      clLogicalID = context->clLID() ;
       clItem.init( pName, _logicalCSID, context->mbID(), context->clLID(),
                    context ) ;
 
@@ -2696,10 +2698,6 @@ namespace engine
          // release mb lock
          context->mbUnlock() ;
 
-         // get unique id from mb. Because if the cl is in _collectionIDMap, and
-         // we don't erase it, it may cause core dump.
-         clUniqueID = context->mb()->_clUniqueID ;
-
          // change metadata
          ossLatch( &_metadataLatch, EXCLUSIVE ) ;
          metalocked = TRUE ;
@@ -2719,14 +2717,14 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
-                       context->clLID(), DMS_INVALID_EXTENT ) ;
+                       clUniqueID, clLogicalID, DMS_INVALID_EXTENT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLDel record to log, rc: "
                       "%d", rc ) ;
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( fullName, _logicalCSID, context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, utilGetCSUniqueID( clUniqueID ), logicalID(),
+                            clUniqueID, clLogicalID ) ;
       }
 
    done:
@@ -2811,7 +2809,7 @@ namespace engine
          rc = dpsCLTrunc2Record( fullName, boOptions, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -2976,8 +2974,8 @@ namespace engine
       else if ( cb->getLsnCount() > 0 )
       {
          context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
-         cb->setDataExInfo( fullName, logicalID(), oldCLID,
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, context->csUID(), logicalID(),
+                            context->clUID(), oldCLID ) ;
       }
 
    done:
@@ -3153,6 +3151,7 @@ namespace engine
       BOOLEAN metalocked      = FALSE ;
       BOOLEAN isTransLocked   = FALSE ;
       UINT16  mbID            = DMS_INVALID_MBID ;
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       UINT32  clLID           = DMS_INVALID_CLID ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
 
@@ -3172,7 +3171,7 @@ namespace engine
          rc = dpsCLRename2Record( getSuName(), oldName, newName, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
 
-         rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -3231,10 +3230,10 @@ namespace engine
                                    "rc: %d", rc ) ;
       }
 
+      clUniqueID = _dmsMME->_mbList[ mbID ]._clUniqueID ;
       _collectionRemove ( oldName,
                           UTIL_UNIQUEID_NULL == newCLUniqueID ?
-                                UTIL_UNIQUEID_NULL :
-                                _dmsMME->_mbList[ mbID ]._clUniqueID ) ;
+                                UTIL_UNIQUEID_NULL : clUniqueID ) ;
       _collectionInsert ( newName, mbID,
                           UTIL_UNIQUEID_NULL == newCLUniqueID ?
                                 UTIL_UNIQUEID_NULL :
@@ -3259,15 +3258,15 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
-                       clLID, DMS_INVALID_EXTENT ) ;
+                       clUniqueID, clLID, DMS_INVALID_EXTENT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert clrename to log, rc = %d",
                       rc ) ;
       }
       else if ( NULL != cb )
       {
          _clFullName( newName, fullName, sizeof(fullName) ) ;
-         cb->setDataExInfo( fullName, _logicalCSID, clLID,
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, utilGetCSUniqueID( clUniqueID ),
+                            logicalID(), clUniqueID, clLID ) ;
       }
 
       if ( _pEventHolder )
@@ -3658,7 +3657,7 @@ namespace engine
          rc = dpsReturn2Record( &( options._boOptions ), record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
 
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check sync control, rc: %d",
                       rc ) ;
 
@@ -3739,8 +3738,8 @@ namespace engine
       {
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
          _clFullName( originName, fullName, sizeof(fullName) ) ;
-         cb->setDataExInfo( fullName, logicalID(), mbContext->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, mbContext->csUID(), logicalID(),
+                            mbContext->clUID(), mbContext->clLID() ) ;
       }
 
       if ( NULL != mbContext )
@@ -3883,9 +3882,9 @@ namespace engine
       dpsLogRecord &logRecord       = info.getMergeBlock().record() ;
       SDB_DPSCB *dropDps            = NULL ;
       // trans related
-      DPS_TRANS_ID transID          = cb->getTransID() ;
-      DPS_LSN_OFFSET preTransLsn    = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLsn     = cb->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN() ) ;
       BOOLEAN  isTransLocked        = FALSE ;
       // delete record related
       dmsRecordID foundRID ;
@@ -3926,15 +3925,14 @@ namespace engine
 
       if ( !isTransSupport( context ) )
       {
-         transID = DPS_INVALID_TRANS_ID ;
-         preTransLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLsn = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
       {
-         rc = _checkMarkInsert( context, transID, insertObj, cb, position,
-                                markInsert, foundRID, recordData, recordRW ) ;
+         rc = _checkMarkInsert( context, transInfo._transID, insertObj,
+                                cb, position, markInsert, foundRID,
+                                recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
                       position, PD_SECURE_OBJ( insertObj ), rc ) ;
@@ -4087,13 +4085,13 @@ namespace engine
             }
 
             // reserved log-size
-            rc = dpsInsert2Record( fullName, insertObj, pUnqIdxHashArray, transID,
-                                   preTransLsn, relatedLsn, logRecord ) ;
+            rc = dpsInsert2Record( fullName, insertObj, pUnqIdxHashArray,
+                                   transInfo, logRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
             logRecSize = ossAlign4( logRecord.alignedLen() ) ;
 
-            rc = dpscb->checkSyncControl( logRecSize, cb ) ;
+            rc = dpscb->checkSyncControl( info, logRecSize, cb ) ;
             if ( SDB_OK != rc )
             {
                logRecSize = 0 ;
@@ -4305,8 +4303,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
-         cb->setDataExInfo( fullName, logicalID(), context->clLID(),
-                            pExtent->_logicID ) ;
+         cb->setDataExInfo( fullName, context->csUID(), logicalID(),
+                            context->clUID(), context->clLID() ) ;
       }
 
       if ( handler )
@@ -4317,7 +4315,7 @@ namespace engine
    done:
       // release the lock immediately if it is not transaction-operation,
       // the transaction-operation's lock will release in rollback or commit
-      if ( isTransLocked && ( transID == DPS_INVALID_TRANS_ID || rc ) )
+      if ( isTransLocked && ( transInfo._transID == DPS_INVALID_TRANS_ID || rc ) )
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID(),
                                      &foundRID, &callback ) ;
@@ -4392,9 +4390,9 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &record          = info.getMergeBlock().record() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID transID          = cb->getTransID() ;
-      DPS_LSN_OFFSET preLsn         = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLSN     = cb->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN() ) ;
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
       dmsExtent *pExtent            = NULL ;
@@ -4431,9 +4429,7 @@ namespace engine
 
       if ( !isTransSupport( context ) )
       {
-         transID = DPS_INVALID_TRANS_ID ;
-         preLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLSN = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
@@ -4466,7 +4462,7 @@ namespace engine
          // when in transaction(not rollback), we should not immediately
          // delete the record, otherwise TB scan won't be able to find
          // this record even if the current transaction has not committed.
-         if ( DPS_INVALID_TRANS_ID != transID && !cb->isInTransRollback() )
+         if ( DPS_INVALID_TRANS_ID != transInfo._transID && !cb->isInTransRollback() )
          {
             inTrans = TRUE ;
          }
@@ -4606,8 +4602,7 @@ namespace engine
                   rc = dpsDelete2Record( fullName, delObject, pUnqIdxHashArray,
                                          ( markDeleting && inTrans ) ?
                                                         ( &delPosition ) : NULL,
-                                         transID, preLsn, relatedLSN,
-                                         record ) ;
+                                         transInfo, record ) ;
 
                   if ( SDB_OK != rc )
                   {
@@ -4615,7 +4610,7 @@ namespace engine
                      goto error ;
                   }
 
-                  rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+                  rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
                   PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
                                rc ) ;
 
@@ -4748,7 +4743,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
-         cb->setDataExInfo( fullName, logicalID(), context->clLID(),
+         cb->setDataExInfo( fullName, context->csUID(), logicalID(),
+                            context->clUID(), context->clLID(),
                             pExtent->_logicID ) ;
       }
 
@@ -4806,9 +4802,9 @@ namespace engine
       UINT32 *pWriteMode = NULL ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID transID = cb->getTransID() ;
-      DPS_LSN_OFFSET preTransLsn = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLSN = cb->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN() ) ;
 
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
@@ -4835,9 +4831,7 @@ namespace engine
 
       if ( !isTransSupport( context ) )
       {
-         transID = DPS_INVALID_TRANS_ID ;
-         preTransLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLSN = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
@@ -5003,8 +4997,7 @@ namespace engine
                                       oldMatch, oldChg, newMatch, newChg,
                                       oldShardingKey, newShardingKey,
                                       pNewUnqIdxHashArray, pOldUnqIdxHashArray,
-                                      transID, preTransLsn,
-                                      relatedLSN, pWriteMode, record ) ;
+                                      transInfo, pWriteMode, record ) ;
 
                if ( SDB_OK != rc )
                {
@@ -5012,7 +5005,7 @@ namespace engine
                   goto error ;
                }
 
-               rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+               rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
                             rc ) ;
 
@@ -5114,8 +5107,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
-         cb->setDataExInfo( fullName, logicalID(), context->clLID(),
-                            pExtent->_logicID ) ;
+         cb->setDataExInfo( fullName, context->csUID(), logicalID(),
+                            context->clUID(), context->clLID(), pExtent->_logicID ) ;
       }
 
       if ( handler )

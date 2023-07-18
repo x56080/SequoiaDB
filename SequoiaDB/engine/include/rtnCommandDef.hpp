@@ -179,6 +179,8 @@ namespace engine
 #define NAME_RETURN_RECYCLEBIN_ITEM          CMD_NAME_RETURN_RECYCLEBIN_ITEM
 #define NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME  CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME
 
+#define NAME_WATCH                           CMD_NAME_WATCH
+
    /*
       Command Type Define
    */
@@ -350,6 +352,11 @@ namespace engine
       CMD_DROP_RECYCLEBIN_ALL                = 296,
       CMD_RETURN_RECYCLEBIN_ITEM             = 297,
       CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME     = 298,
+
+      // stream commands
+      CMD_LIST_STREAMS                       = 300,
+      CMD_SNAPSHOT_STREAMS                   = 301,
+      CMD_WATCH                              = 303,
 
       CMD_UNKNOW                             = 65535
    };

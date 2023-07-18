@@ -76,6 +76,7 @@ namespace engine
       _repl = sdbGetReplCB() ;
       _pReplBucket = _repl->getBucket() ;
       _replayer.regEventHandler( _repl ) ;
+      _replayer.regEventHandler( sdbGetRTNCB()->getChangeStreamNotifier() ) ;
 
       _requestID = 1 ;
       _syncFailedNum = 0 ;
@@ -94,7 +95,7 @@ namespace engine
 
    _clsReplDstSession::~_clsReplDstSession ()
    {
-      _replayer.unregEventHandler() ;
+      _replayer.unregEventHandlers() ;
       _lastSyncDetail[0] = 0 ;
    }
 
@@ -1336,7 +1337,7 @@ namespace engine
 
    INT32 _clsReplDstSession::_replay( dpsLogRecordHeader *header )
    {
-      _repl->updateNtyReplayOffset( header->_lsn ) ;
+      _replayer.onPrepareReplayLog( header->_lsn ) ;
       if ( _pReplBucket->maxReplSync() > 0 )
       {
          return _replayer.replayByBucket( header, eduCB(), _pReplBucket ) ;

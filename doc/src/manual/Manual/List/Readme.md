@@ -21,6 +21,7 @@
 | [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 列出当前数据库中所有数据源的元数据信息 |
 | [SDB_LIST_RECYCLEBIN][SDB_LIST_RECYCLEBIN] | 回收站项目列表 | 列出当前回收站中已回收项目的元数据信息 |
 | [SDB_LIST_GROUPMODES][SDB_LIST_GROUPMODES] | 复制组运行模式列表 | 列出当前集群中所有复制组的运行模式 |
+| [SDB_LIST_STREAMS][SDB_LIST_STREAMS] | 数据流列表 | 列出当前集群中所有数据流的信息 |
 
 >   **Note:**
 >
@@ -48,5 +49,6 @@
 [SDB_LIST_TASKS]:manual/Manual/List/SDB_LIST_TASKS.md
 [SDB_LIST_RECYCLEBIN]:manual/Manual/List/SDB_LIST_RECYCLEBIN.md
 [SDB_LIST_GROUPMODES]:manual/Manual/List/SDB_LIST_GROUPMODES.md
+[SDB_LIST_STREAMS]:manual/Manual/List/SDB_LIST_STREAMS.md
 [list]:manual/Manual/Sequoiadb_Command/Sdb/list.md
 

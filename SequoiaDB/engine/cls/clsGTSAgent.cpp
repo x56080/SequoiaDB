@@ -417,6 +417,10 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
+      dpsRecordTransInfo transInfo ;
+      transInfo._transID = transID ;
+      transInfo._preTransLSN = lastLsn ;
+
       cb->setTransID( transID ) ;
       cb->setCurTransLsn( lastLsn ) ;
 
@@ -428,7 +432,7 @@ namespace engine
               dpsTransIDToString( transID ).c_str(),
               lastLsn ) ;
 
-      rc = dpsTransCommit2Record( transID, lastLsn, firstLsn,
+      rc = dpsTransCommit2Record( transInfo, firstLsn,
                                   attr, NULL, NULL, record ) ;
       if ( SDB_OK != rc )
       {
@@ -436,7 +440,7 @@ namespace engine
          goto error ;
       }
 
-      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
+      info.setDefInfoEx( cb ) ;
       info.enableTrans() ;
       rc = pDpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "

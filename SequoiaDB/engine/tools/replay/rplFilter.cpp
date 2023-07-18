@@ -35,6 +35,7 @@
 #include "pd.hpp"
 #include "ossFile.hpp"
 #include "utilStr.hpp"
+#include "dpsUtil.hpp"
 #include "../bson/bsonobjiterator.h"
 #include <iostream>
 
@@ -96,27 +97,27 @@ namespace replay
    {
       static const CHAR* ops[] =
       {
-         RPL_LOG_OP_INSERT,
-         RPL_LOG_OP_UPDATE,
-         RPL_LOG_OP_DELETE,
-         RPL_LOG_OP_TRUNCATE_CL,
-         RPL_LOG_OP_CREATE_CS,
-         RPL_LOG_OP_DELETE_CS,
-         RPL_LOG_OP_CREATE_CL,
-         RPL_LOG_OP_DELETE_CL,
-         RPL_LOG_OP_CREATE_IX,
-         RPL_LOG_OP_DELETE_IX,
-         RPL_LOG_OP_LOB_WRITE,
-         RPL_LOG_OP_LOB_REMOVE,
-         RPL_LOG_OP_LOB_UPDATE,
-         RPL_LOG_OP_LOB_TRUNCATE,
-         RPL_LOG_OP_DUMMY,
-         RPL_LOG_OP_CL_RENAME,
-         RPL_LOG_OP_TS_COMMIT,
-         RPL_LOG_OP_TS_ROLLBACK,
-         RPL_LOG_OP_INVALIDATE_CATA,
-         RPL_LOG_OP_CS_RENAME,
-         RPL_LOG_OP_POP
+         DPS_LOG_OP_NAME_INSERT,
+         DPS_LOG_OP_NAME_UPDATE,
+         DPS_LOG_OP_NAME_DELETE,
+         DPS_LOG_OP_NAME_TRUNCATE_CL,
+         DPS_LOG_OP_NAME_CREATE_CS,
+         DPS_LOG_OP_NAME_DELETE_CS,
+         DPS_LOG_OP_NAME_CREATE_CL,
+         DPS_LOG_OP_NAME_DELETE_CL,
+         DPS_LOG_OP_NAME_CREATE_IX,
+         DPS_LOG_OP_NAME_DELETE_IX,
+         DPS_LOG_OP_NAME_LOB_WRITE,
+         DPS_LOG_OP_NAME_LOB_REMOVE,
+         DPS_LOG_OP_NAME_LOB_UPDATE,
+         DPS_LOG_OP_NAME_LOB_TRUNCATE,
+         DPS_LOG_OP_NAME_DUMMY,
+         DPS_LOG_OP_NAME_CL_RENAME,
+         DPS_LOG_OP_NAME_TS_COMMIT,
+         DPS_LOG_OP_NAME_TS_ROLLBACK,
+         DPS_LOG_OP_NAME_INVALIDATE_CATA,
+         DPS_LOG_OP_NAME_CS_RENAME,
+         DPS_LOG_OP_NAME_POP
       };
 
       const INT32 opNum = sizeof(ops) / sizeof(ops[0]);
@@ -208,11 +209,11 @@ namespace replay
 
       if (_op.empty())
       {
-         _op.insert(RPL_LOG_OP_INSERT);
-         _op.insert(RPL_LOG_OP_UPDATE);
-         _op.insert(RPL_LOG_OP_DELETE);
-         _op.insert(RPL_LOG_OP_TRUNCATE_CL);
-         _op.insert(RPL_LOG_OP_POP);
+         _op.insert(DPS_LOG_OP_NAME_INSERT);
+         _op.insert(DPS_LOG_OP_NAME_UPDATE);
+         _op.insert(DPS_LOG_OP_NAME_DELETE);
+         _op.insert(DPS_LOG_OP_NAME_TRUNCATE_CL);
+         _op.insert(DPS_LOG_OP_NAME_POP);
       }
 
       value = DPS_INVALID_LSN_OFFSET;
@@ -311,7 +312,7 @@ namespace replay
          return TRUE;
       }
 
-      op = getOPName(head._type);
+      op = dpsGetOPName(head._type);
       if (_isOPFiltered(op))
       {
          return TRUE;

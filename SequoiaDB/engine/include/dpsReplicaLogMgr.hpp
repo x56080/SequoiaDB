@@ -213,7 +213,9 @@ namespace engine
       /// committedLsn should be allocated by user
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
-      INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
+      INT32 checkSyncControl( dpsMergeInfo &info,
+                              UINT32 reqLen,
+                              _pmdEDUCB *cb ) ;
 
       INT32 checkSeondarySyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
@@ -294,6 +296,9 @@ namespace engine
       void _push2SendQueue( const dpsPageMeta &allocated );
       void _mergeLogs( _dpsMergeBlock &block,
                        const dpsPageMeta &meta ) ;
+      void _mergeLogsWithCache( _dpsMergeBlock &block,
+                                const dpsPageMeta &meta,
+                                utilLogRecordCache &cache ) ;
       void _mergePage( const CHAR *src,
                        UINT32 len,
                        UINT32 &workSub,

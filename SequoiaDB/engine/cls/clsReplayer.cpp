@@ -217,14 +217,10 @@ namespace engine
       _monDBCB = pmdGetKRCB()->getMonDBCB () ;
 
       _isReplSync = isReplSync ;
-
-      _replayEventHandler = NULL ;
-
    }
 
    _clsReplayer::~_clsReplayer()
    {
-      _replayEventHandler = NULL ;
    }
 
    void _clsReplayer::enableDPS ()
@@ -235,29 +231,6 @@ namespace engine
    void _clsReplayer::disableDPS ()
    {
       _dpsCB = NULL ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPLAYER_REGEVENTHANDLER, "_clsReplayer::regEventHandler" )
-   void _clsReplayer::regEventHandler( clsReplayEventHandler *pHandler )
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPLAYER_REGEVENTHANDLER ) ;
-
-      if ( NULL != pHandler )
-      {
-         _replayEventHandler = pHandler ;
-      }
-
-      PD_TRACE_EXIT( SDB__CLSREPLAYER_REGEVENTHANDLER ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPLAYER_UNREGEVENTHANDLER, "_clsReplayer::unregEventHandler" )
-   void _clsReplayer::unregEventHandler()
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPLAYER_UNREGEVENTHANDLER ) ;
-
-      _replayEventHandler = NULL ;
-
-      PD_TRACE_EXIT ( SDB__CLSREPLAYER_UNREGEVENTHANDLER ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__CALCBUCKETID, "_clsReplayer::_calcBucketID" )
@@ -1758,13 +1731,13 @@ namespace engine
       }
       if ( SDB_OK == rc )
       {
-         const pmdDataExInfo &info = eduCB->getDataExInfo() ;
          // notify lsn to full sync source session
-         if ( info._isValid && NULL != _replayEventHandler )
+         if ( !eduCB->getDataExInfo().isValid() )
          {
-            _replayEventHandler->onReplayLog( info._csLID, info._clLID,
-                                              info._extLID, recordHeader->_lsn ) ;
+            eduCB->setDataExInfo( NULL ) ;
          }
+         const pmdDataExInfo &info = eduCB->getDataExInfo() ;
+         onReplayLog( info, recordHeader ) ;
          // pass info for notification when replay parallelly
          if ( dataExInfo )
          {
@@ -2841,20 +2814,21 @@ namespace engine
       dpsMergeInfo info ;
 
       // no need for notify LSN
-      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, eduCB ) ;
+      info.setDefInfoEx( eduCB ) ;
 
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      DPS_TRANS_ID transID = eduCB->getTransID() ;
-      DPS_LSN_OFFSET preTransLSN = eduCB->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedTransLSN = eduCB->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( eduCB->getTransID(),
+                                    eduCB->getCurTransLsn(),
+                                    eduCB->getRelatedTransLSN() ) ;
 
-      PD_CHECK( DPS_INVALID_LSN_OFFSET == preTransLSN, SDB_SYS, error, PDERROR,
+      PD_CHECK( DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN,
+                SDB_SYS, error, PDERROR,
                 "Failed to log transaction rollback for transaction [%llu], "
-                "preTransLSN is not empty [%llu]", transID, preTransLSN ) ;
+                "preTransLSN is not empty [%llu]", transInfo._transID,
+                transInfo._preTransLSN ) ;
 
-      rc = dpsTransRollback2Record( transID, preTransLSN, relatedTransLSN,
-                                    record ) ;
+      rc = dpsTransRollback2Record( transInfo, record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to transform record into "
                    "transaction rollback record, rc: %d", rc ) ;
 
@@ -3343,8 +3317,12 @@ namespace engine
       }
       else
       {
-         cb->setDataExInfo( collection, indexJob->getCSLID(),
-                            indexJob->getCLLID(), DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( collection,
+                            utilGetCSUniqueID( indexJob->getCLUniqueID() ),
+                            indexJob->getCSLID(),
+                            indexJob->getCLUniqueID(),
+                            indexJob->getCLLID(),
+                            DMS_INVALID_EXTENT ) ;
       }
 
       // do job

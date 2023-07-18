@@ -40,30 +40,6 @@ using namespace std ;
 
 namespace replay
 {
-   #define RPL_LOG_OP_INSERT           "insert"
-   #define RPL_LOG_OP_UPDATE           "update"
-   #define RPL_LOG_OP_DELETE           "delete"
-   #define RPL_LOG_OP_CREATE_CS        "createcs"
-   #define RPL_LOG_OP_DELETE_CS        "deletecs"
-   #define RPL_LOG_OP_CREATE_CL        "createcl"
-   #define RPL_LOG_OP_DELETE_CL        "deletecl"
-   #define RPL_LOG_OP_TRUNCATE_CL      "truncatecl"
-   #define RPL_LOG_OP_CREATE_IX        "createix"
-   #define RPL_LOG_OP_DELETE_IX        "deleteix"
-   #define RPL_LOG_OP_LOB_WRITE        "lobwrite"
-   #define RPL_LOG_OP_LOB_REMOVE       "lobremove"
-   #define RPL_LOG_OP_LOB_UPDATE       "lobupdate"
-   #define RPL_LOG_OP_LOB_TRUNCATE     "lobtruncate"
-   #define RPL_LOG_OP_DUMMY            "dummy"
-   #define RPL_LOG_OP_CL_RENAME        "renamecl"
-   #define RPL_LOG_OP_TS_COMMIT        "commit"
-   #define RPL_LOG_OP_TS_ROLLBACK      "rollback"
-   #define RPL_LOG_OP_INVALIDATE_CATA  "invalidatecata"
-   #define RPL_LOG_OP_CS_RENAME        "renamecs"
-   #define RPL_LOG_OP_POP              "pop"
-   #define RPL_LOG_OP_RETURN           "return"
-
-   CHAR* getOPName(UINT16 type);
 
    void getCurrentTime( string &timeStr ) ;
 

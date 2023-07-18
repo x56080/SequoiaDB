@@ -40,6 +40,8 @@
 #include "oss.hpp"
 #include <boost/thread.hpp>
 #include <boost/thread/cv_status.hpp>
+#include <mutex>
+#include <condition_variable>
 
 namespace engine
 {
@@ -83,6 +85,28 @@ namespace engine
    };
 
    typedef _ossAutoEvent ossAutoEvent ;
+
+   /*
+      _ossSPSCEvent define
+    */
+   class _ossSPSCEvent : public SDBObject
+   {
+   public:
+      _ossSPSCEvent() ;
+      virtual ~_ossSPSCEvent() ;
+
+   public:
+      INT32 wait( INT64 millisec = -1 ) ;
+      INT32 signalIfWaiting() ;
+      INT32 reset() ;
+
+   protected:
+      std::mutex              _mutex ;
+      std::condition_variable _cond ;
+      UINT32                  _signal ;
+   };
+
+   typedef class _ossSPSCEvent ossSPSCEvent ;
 
 }
 

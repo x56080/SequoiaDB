@@ -359,7 +359,9 @@ namespace engine
 
    // ensure log file can't be wrapped
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSARCHIVEMGR_CANASSIGNLOGPAGE, "dpsArchiveMgr::canAssignLogPage" )
-   INT32 dpsArchiveMgr::canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb )
+   INT32 dpsArchiveMgr::canAssignLogPage( UINT32 reqLen,
+                                          _pmdEDUCB *cb,
+                                          BOOLEAN &needCache )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_DPSARCHIVEMGR_CANASSIGNLOGPAGE ) ;
@@ -524,7 +526,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      rc = canAssignLogPage( reqLen, cb ) ;
+      BOOLEAN needCache = FALSE ;
+      rc = canAssignLogPage( reqLen, cb, needCache ) ;
       if ( rc )
       {
          goto error ;

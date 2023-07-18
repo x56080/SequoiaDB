@@ -683,6 +683,37 @@ namespace engine
    } ;
    typedef class _coordCMDListGrpModes coordCMDListGrpModes ;
 
+      /*
+      _coordCMDListStreams define
+    */
+   class _coordCMDListStreams : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDListStreams() = default ;
+      ~_coordCMDListStreams() = default ;
+
+   private:
+      virtual const CHAR *getIntrCMDName() ;
+      virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef class _coordCMDListStreams coordCMDListStreams ;
+
+   /*
+      _coordCMDListStreamsIntr define
+    */
+   class _coordCMDListStreamsIntr : public _coordCMDListIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDListStreamsIntr() = default ;
+      virtual ~_coordCMDListStreamsIntr() = default ;
+
+   private:
+      virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+   } ;
+   typedef class _coordCMDListStreamsIntr coordCMDListStreamsIntr ;
+
 }
 
 #endif // COORD_COMMAND_LIST_HPP__

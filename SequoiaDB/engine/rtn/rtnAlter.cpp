@@ -684,14 +684,17 @@ namespace engine
       SDB_ASSERT( NULL != name, "name is invalid" ) ;
       SDB_ASSERT( NULL != task, "task is invalid" ) ;
 
+      utilCSUniqueID csUID = su->CSUniqueID() ;
       UINT32 csLID = su->LogicalCSID() ;
+      utilCLUniqueID clUID =
+               NULL != mbContext ? mbContext->clUID() : UTIL_UNIQUEID_NULL ;
       UINT32 clLID = NULL != mbContext ? mbContext->clLID() : ~0 ;
 
       if ( NULL != dpsCB )
       {
 
          dpsMergeInfo info ;
-         info.setInfoEx( csLID, clLID, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUID, csLID, clUID, clLID ) ;
 
          dpsLogRecord & record = info.getMergeBlock().record() ;
 
@@ -726,7 +729,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( name, csLID, clLID, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( name, csUID, csLID, clUID, clLID ) ;
       }
 
    done :

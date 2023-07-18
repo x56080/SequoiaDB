@@ -27,6 +27,7 @@
 | [SDB_SNAP_TRANSWAITS][SNAP_TRANSWAITS] |事务等待快照 | 列出数据库中因锁等待而产生的事务等待信息|
 | [SDB_SNAP_TRANSDEADLOCK][SNAP_TRANSDEADLOCK]| 事务死锁检测快照| 列出数据库中处于死锁状态的事务信息 |
 | [SDB_SNAP_RECYCLEBIN][SNAP_RECYCLEBIN] | 回收站项目快照 | 列出当前回收站中已回收项目的详细信息 |
+| [SDB_SNAP_STREAMS][SDB_SNAP_STREAMS] | 数据流列表 | 列出当前集群中所有数据流的详细信息 |
 
 
 
@@ -61,4 +62,5 @@
 [SNAP_TRANSWAITS]:manual/Manual/Snapshot/SDB_SNAP_TRANSWAITS.md
 [SNAP_TRANSDEADLOCK]:manual/Manual/Snapshot/SDB_SNAP_TRANSDEADLOCK.md
 [SNAP_RECYCLEBIN]:manual/Manual/Snapshot/SDB_SNAP_RECYCLEBIN.md
+[SDB_SNAP_STREAMS]:manual/Manual/Snapshot/SDB_SNAP_STREAMS.md
 [snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md

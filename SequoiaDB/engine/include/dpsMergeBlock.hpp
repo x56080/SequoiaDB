@@ -47,6 +47,7 @@
 #include "dpsPageMeta.hpp"
 #include "dms.hpp"
 #include "sdbInterface.hpp"
+#include "utilDataExInfo.hpp"
 
 namespace engine
 {
@@ -102,7 +103,7 @@ namespace engine
    /*
       _dpsMergeInfo define
    */
-   class _dpsMergeInfo : public SDBObject
+   class _dpsMergeInfo : public _utilLogExInfo
    {
       public:
          _dpsMergeInfo () ;
@@ -118,13 +119,19 @@ namespace engine
             _dummyBlock.clear() ;
             _hasDummy = FALSE ;
          }
-         void setInfoEx( UINT32 csLID, UINT32 clLID, dmsExtentID extLID,
-                         IExecutor *cb )
+         void setInfoEx( IExecutor *cb,
+                         utilCSUniqueID csUID = UTIL_UNIQUEID_NULL,
+                         UINT32 csLID = ~0,
+                         utilCLUniqueID clUID = UTIL_UNIQUEID_NULL,
+                         UINT32 clLID = ~0,
+                         dmsExtentID extLID = DMS_INVALID_EXTENT )
          {
-            _csLID   = csLID ;
-            _clLID   = clLID ;
-            _extLID  = extLID ;
-            _needNty = TRUE ;
+            _setInfo( csUID, csLID, clUID, clLID, extLID ) ;
+            _pCB     = cb ;
+         }
+         void setDefInfoEx( IExecutor *cb = NULL )
+         {
+            _setInfo( UTIL_UNIQUEID_NULL, ~0, UTIL_UNIQUEID_NULL, ~0, DMS_INVALID_EXTENT ) ;
             _pCB     = cb ;
          }
          void enableTrans()
@@ -132,17 +139,25 @@ namespace engine
             _transEnabled = TRUE ;
          }
          void resetInfoEx()
-         { 
-            _needNty = FALSE ;
+         {
+            _resetInfo() ;
             _transEnabled = FALSE ;
             _pCB     = NULL ;
          }
-         BOOLEAN isNeedNotify() const { return _needNty ; }
+         BOOLEAN isNeedNotify() const { return isValid() ; }
          BOOLEAN isTransEnabled() const { return _transEnabled ; }
-         UINT32  getCSLID() const { return _csLID ; }
-         UINT32  getCLLID() const { return _clLID ; }
-         dmsExtentID getExtentLID() const { return _extLID ; }
          IExecutor* getEDUCB() const { return _pCB ; }
+
+         void disableCache()
+         {
+            _cache.release() ;
+            _isCacheEnabled = FALSE ;
+         }
+
+         BOOLEAN isCacheEnabled() const
+         {
+            return _isCacheEnabled ;
+         }
 
       private:
          dpsMergeBlock        _mergeBlock ;
@@ -150,13 +165,10 @@ namespace engine
          dpsMergeBlock        &_refer ;
          BOOLEAN              _hasDummy ;
 
-         UINT32               _csLID ;
-         UINT32               _clLID ;
-         dmsExtentID          _extLID ;
-         BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
          IExecutor            *_pCB ;
 
+         BOOLEAN              _isCacheEnabled ;
    } ;
 
    typedef class _dpsMergeInfo dpsMergeInfo ;

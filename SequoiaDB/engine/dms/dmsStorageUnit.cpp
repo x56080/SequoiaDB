@@ -3301,6 +3301,30 @@ namespace engine
       goto done ;
    }
 
+      // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETCOLLECTIONINFO, "_dmsStorageUnit::getCollectionInfo" )
+   INT32 _dmsStorageUnit::getCollectionInfo( const CHAR *pName,
+                                             UINT16 &mbID,
+                                             UINT32 &clLID,
+                                             utilCLUniqueID &clUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU_GETCOLLECTIONINFO ) ;
+
+      SDB_ASSERT( pName, "collection name is invalid" ) ;
+
+      rc = _pDataSu->getMBInfo( pName, mbID, clLID, clUniqueID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get info of collection [%s], "
+                   "rc: %d", pName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU_GETCOLLECTIONINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETSEGEXTENTS, "_dmsStorageUnit::getSegExtents" )
    INT32 _dmsStorageUnit::getSegExtents( const CHAR *pName,
                                          ossPoolVector< dmsExtentID > &segExtents,

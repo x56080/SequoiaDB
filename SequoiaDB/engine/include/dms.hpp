@@ -459,6 +459,9 @@ namespace engine
                                const CHAR* pDesPath = NULL ) ;
 
    BOOLEAN  dmsIsSysRecycleName ( const CHAR *collectionName ) ;
+
+   const CHAR *dmsGetStorageTypeName( DMS_STORAGE_TYPE storageType ) ;
+
 }
 
 #endif /* DMS_HPP_ */

@@ -2335,7 +2335,7 @@ namespace engine
                              direction, dpsRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         rc = dpscb->checkSyncControl( dpsRecord.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, dpsRecord.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Check sync control failed, rc: %d", rc ) ;
 

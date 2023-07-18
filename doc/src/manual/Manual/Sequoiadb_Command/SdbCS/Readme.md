@@ -12,6 +12,7 @@ SdbCS 类主要用于操作集合空间，包含的函数如下：
 | [renameCL()][renameCL] | 修改集合名 |
 | [setAttributes()][setAttributes] | 修改集合空间的属性 |
 | [setDomain()][setDomain] | 修改集合空间的所属域 |
+| [watch()][watch] | 订阅集合空间的变更流 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -25,3 +26,4 @@ SdbCS 类主要用于操作集合空间，包含的函数如下：
 [setDomain]:manual/Manual/Sequoiadb_Command/SdbCS/setDomain.md
 [getDomainName]:manual/Manual/Sequoiadb_Command/SdbCS/getDomainName.md
 [listCollections]:manual/Manual/Sequoiadb_Command/SdbCS/listCollections.md
+[watch]:manual/Manual/Sequoiadb_Command/SdbCS/watch.md

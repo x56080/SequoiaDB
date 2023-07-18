@@ -107,6 +107,9 @@ namespace engine
       RTN_CONTEXT_ALTERCL,
       RTN_CONTEXT_ALTERMAINCL,
 
+      /// Change Stream contexts
+      RTN_CONTEXT_CHANGE_STREAM,
+
       /// Catalog contexts
 
       RTN_CONTEXT_CAT_BEGIN,

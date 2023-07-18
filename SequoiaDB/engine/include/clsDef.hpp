@@ -40,6 +40,8 @@
 #define CLSDEF_HPP_
 
 #include "core.hpp"
+#include "dpsDef.hpp"
+#include "dpsLogRecord.hpp"
 #include "oss.hpp"
 #include "dpsLogDef.hpp"
 #include "netDef.hpp"
@@ -49,6 +51,8 @@
 #include "pmdEDU.hpp"
 #include "ossRWMutex.hpp"
 #include "dms.hpp"
+#include "utilArray.hpp"
+#include "utilDataExInfo.hpp"
 #include "utilReplSizePlan.hpp"
 #include "utilLocation.hpp"
 
@@ -915,11 +919,98 @@ namespace engine
          _clsReplayEventHandler () {}
          virtual ~_clsReplayEventHandler () {}
 
-         virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
-                                   INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
+         virtual void onPrepareReplayLog( DPS_LSN_OFFSET offset ) = 0 ;
+
+         virtual void onReplayLog( const utilLogExInfo &info,
+                                   DPS_LSN_OFFSET offset,
+                                   DPS_LSN_VER version,
+                                   UINT32 length,
+                                   DPS_LOG_TYPE logType ) = 0 ;
+
+         virtual BOOLEAN needCacheLog( const utilLogExInfo &info,
+                                       DPS_LSN_OFFSET offset,
+                                       DPS_LSN_VER version,
+                                       UINT32 length,
+                                       DPS_LOG_TYPE logType ) = 0 ;
    } ;
 
    typedef _clsReplayEventHandler clsReplayEventHandler ;
+   typedef _utilArray< clsReplayEventHandler *, 2 > clsReplayEventHandlerVector ;
+
+   class _clsReplayEventDispatcher
+   {
+   public:
+      _clsReplayEventDispatcher() = default ;
+      ~_clsReplayEventDispatcher() = default ;
+
+      void regEventHandler( clsReplayEventHandler *pHandler )
+      {
+         if ( NULL != pHandler )
+         {
+            _replayEventHandlers.append( pHandler ) ;
+         }
+      }
+
+      void unregEventHandlers()
+      {
+         _replayEventHandlers.clear() ;
+      }
+
+      void onPrepareReplayLog( DPS_LSN_OFFSET offset )
+      {
+         for ( UINT32 i = 0 ; i < _replayEventHandlers.size() ; i++ )
+         {
+            _replayEventHandlers[ i ]->onPrepareReplayLog( offset ) ;
+         }
+      }
+
+      void onReplayLog( const utilDataExInfo &info,
+                        const dpsLogRecordHeader *record )
+      {
+         SDB_ASSERT( NULL != record, "record should be valid" ) ;
+         BOOLEAN needCache = FALSE ;
+         utilLogExInfo logInfo( info ) ;
+         DPS_LSN_OFFSET offset = record->_lsn ;
+         DPS_LSN_VER version = record->_version ;
+         UINT32 length = record->_length ;
+         DPS_LOG_TYPE logType = (DPS_LOG_TYPE)( record->_type ) ;
+         for ( UINT32 i = 0 ; i < _replayEventHandlers.size() ; i++ )
+         {
+            needCache = _replayEventHandlers[ i ]->needCacheLog( logInfo,
+                                                                 offset,
+                                                                 version,
+                                                                 length,
+                                                                 logType ) ;
+            if ( needCache )
+            {
+               break ;
+            }
+         }
+         if ( needCache )
+         {
+            logInfo.allocLogRecordCache( record->_length ) ;
+            if ( logInfo.isLogRecordCacheReady() )
+            {
+               utilLogRecordCache &cache = logInfo.getLogRecordCache() ;
+               ossMemcpy( cache.getBuffer(), (const CHAR *)record, record->_length ) ;
+               cache.doneFill() ;
+            }
+         }
+         for ( UINT32 i = 0 ; i < _replayEventHandlers.size() ; i++ )
+         {
+            _replayEventHandlers[ i ]->onReplayLog( logInfo,
+                                                    offset,
+                                                    version,
+                                                    length,
+                                                    logType ) ;
+         }
+      }
+
+   protected:
+      clsReplayEventHandlerVector _replayEventHandlers ;
+   } ;
+
+   typedef class _clsReplayEventDispatcher clsReplayEventDispatcher ;
 
    enum CLS_REELECTION_LEVEL
    {

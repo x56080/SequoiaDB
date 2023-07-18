@@ -119,6 +119,14 @@ namespace engine
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
    #define PMD_DFT_ENABLE_ASYNC_READ ( TRUE )
+   // data stream idle timeout
+   #define PMD_DFT_STREAM_IDLE_TIMEOUT ( 5 )
+   #define PMD_MIN_STREAM_IDLE_TIMEOUT ( 0 )
+   #define PMD_MAX_STREAM_IDLE_TIMEOUT ( 1440 )
+   // change stream resumable window
+   #define PMD_DFT_CHANGE_STREAM_RESUMABLE_WINDOW ( 0 )
+   #define PMD_MIN_CHANGE_STREAM_RESUMABLE_WINDOW ( 0 )
+   #define PMD_MAX_CHANGE_STREAM_RESUMABLE_WINDOW ( OSS_SINT32_MAX )
 
    /*
       _pmdCfgExchange implement
@@ -2041,6 +2049,9 @@ done:
       _remoteLocationConsistency = TRUE ;
       _consultRollbackLogOn = TRUE ;
 
+      _streamIdleTimeout = PMD_DFT_STREAM_IDLE_TIMEOUT ;
+      _changeStreamResumableWindow = PMD_DFT_CHANGE_STREAM_RESUMABLE_WINDOW ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2629,6 +2640,22 @@ done:
       // --consultrollbacklogon
       rdxBooleanS( pEX, PMD_OPTION_CONSULT_ROLLBACK_LOG_ON, _consultRollbackLogOn, FALSE,
                    PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
+
+      // --datastreamidletimeout
+      rdxInt( pEX, PMD_OPTION_STREAMIDLETIMEOUT,
+              _streamIdleTimeout, FALSE, PMD_CFG_CHANGE_RUN,
+              PMD_DFT_STREAM_IDLE_TIMEOUT, TRUE ) ;
+      rdvMinMax( pEX, _streamIdleTimeout,
+                 PMD_MIN_STREAM_IDLE_TIMEOUT,
+                 PMD_MAX_STREAM_IDLE_TIMEOUT, TRUE ) ;
+
+      // --changestreamresumablewindow
+      rdxInt( pEX, PMD_OPTION_CHANGESTREAMRESUMEWINDOW,
+              _changeStreamResumableWindow, FALSE, PMD_CFG_CHANGE_RUN,
+              PMD_DFT_CHANGE_STREAM_RESUMABLE_WINDOW, TRUE ) ;
+      rdvMinMax( pEX, _changeStreamResumableWindow,
+                 PMD_MIN_CHANGE_STREAM_RESUMABLE_WINDOW,
+                 PMD_MAX_CHANGE_STREAM_RESUMABLE_WINDOW, TRUE ) ;
 
       // end map
 

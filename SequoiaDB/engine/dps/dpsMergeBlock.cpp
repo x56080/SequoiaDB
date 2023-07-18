@@ -69,24 +69,21 @@ namespace engine
 
    _dpsMergeInfo::_dpsMergeInfo ()
    :_refer(_mergeBlock),
-    _hasDummy(FALSE)
+    _hasDummy( FALSE ),
+    _transEnabled( FALSE ),
+    _pCB( NULL )
    {
-      _csLID   = ~0 ;
-      _clLID   = ~0 ;
-      _extLID  = DMS_INVALID_EXTENT ;
-      _needNty = FALSE ;
       _transEnabled = FALSE ;
+      _isCacheEnabled = TRUE ;
    }
 
    _dpsMergeInfo::_dpsMergeInfo( dpsMergeBlock &block )
    :_refer(block),
-    _hasDummy(FALSE)
+    _hasDummy( FALSE ),
+    _transEnabled( FALSE ),
+    _pCB( NULL )
    {
-      _csLID   = ~0 ;
-      _clLID   = ~0 ;
-      _extLID  = DMS_INVALID_EXTENT ;
-      _needNty = FALSE ;
-      _transEnabled = FALSE ;
+      _isCacheEnabled = FALSE ;
    }
 
    _dpsMergeInfo::~_dpsMergeInfo ()

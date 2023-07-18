@@ -1993,6 +1993,134 @@
                      ]
                   },
                   {
+                     "id": 1689563390,
+                     "dir": "Change_Stream",
+                     "cn": "变更流",
+                     "en": "Change Streams",
+                     "contents": [
+                        {
+                           "id": 1689563391,
+                           "file": "insert",
+                           "cn": "insert",
+                           "en": "insert"
+                        },
+                        {
+                           "id": 1689563392,
+                           "file": "update",
+                           "cn": "update",
+                           "en": "update"
+                        },
+                        {
+                           "id": 1689563393,
+                           "file": "delete",
+                           "cn": "delete",
+                           "en": "delete"
+                        },
+                        {
+                           "id": 1689563394,
+                           "file": "truncatecl",
+                           "cn": "truncatecl",
+                           "en": "truncatecl"
+                        },
+                        {
+                           "id": 1689563395,
+                           "file": "lobwrite",
+                           "cn": "lobwrite",
+                           "en": "lobwrite"
+                        },
+                        {
+                           "id": 1689563396,
+                           "file": "lobupdate",
+                           "cn": "lobupdate",
+                           "en": "lobupdate"
+                        },
+                        {
+                           "id": 1689563397,
+                           "file": "lobremove",
+                           "cn": "lobremove",
+                           "en": "lobremove"
+                        },
+                        {
+                           "id": 1689563398,
+                           "file": "createcs",
+                           "cn": "createcs",
+                           "en": "createcs"
+                        },
+                        {
+                           "id": 1689563399,
+                           "file": "deletecs",
+                           "cn": "deletecs",
+                           "en": "deletecs"
+                        },
+                        {
+                           "id": 1689563400,
+                           "file": "renamecs",
+                           "cn": "renamecs",
+                           "en": "renamecs"
+                        },
+                        {
+                           "id": 1689563401,
+                           "file": "createcl",
+                           "cn": "createcl",
+                           "en": "createcl"
+                        },
+                        {
+                           "id": 1689563402,
+                           "file": "deletecl",
+                           "cn": "deletecl",
+                           "en": "deletecl"
+                        },
+                        {
+                           "id": 1689563403,
+                           "file": "renamecl",
+                           "cn": "renamecl",
+                           "en": "renamecl"
+                        },
+                        {
+                           "id": 1689563404,
+                           "file": "createix",
+                           "cn": "createix",
+                           "en": "createix"
+                        },
+                        {
+                           "id": 1689563405,
+                           "file": "deleteix",
+                           "cn": "deleteix",
+                           "en": "deleteix"
+                        },
+                        {
+                           "id": 1689563406,
+                           "file": "alter",
+                           "cn": "alter",
+                           "en": "alter"
+                        },
+                        {
+                           "id": 1689563407,
+                           "file": "return",
+                           "cn": "return",
+                           "en": "return"
+                        },
+                        {
+                           "id": 1689563408,
+                           "file": "invalidatecata",
+                           "cn": "invalidatecata",
+                           "en": "invalidatecata"
+                        },
+                        {
+                           "id": 1689563409,
+                           "file": "commit",
+                           "cn": "commit",
+                           "en": "commit"
+                        },
+                        {
+                           "id": 1689563410,
+                           "file": "rollback",
+                           "cn": "rollback",
+                           "en": "rollback"
+                        }
+                     ]
+                  },
+                  {
                      "id": 1432190598,
                      "file": "engine_uninstall",
                      "cn": "数据库引擎卸载",
@@ -2657,6 +2785,12 @@
                            "en": "getCataRG()"
                         },
                         {
+                           "id": 1689423307,
+                           "file": "getChangeStreamToken",
+                           "cn": "getChangeStreamToken()",
+                           "en": "getChangeStreamToken()"
+                        },
+                        {
                            "id": 1432190788,
                            "file": "getCoordRG",
                            "cn": "getCoordRG()",
@@ -2943,6 +3077,12 @@
                            "file": "waitTasks",
                            "cn": "waitTasks()",
                            "en": "waitTasks()"
+                        },
+                        {
+                           "id": 1689423308,
+                           "file": "watch",
+                           "cn": "watch()",
+                           "en": "watch()"
                         }
                      ]
                   },
@@ -3017,6 +3157,12 @@
                            "file": "setDomain",
                            "cn": "setDomain()",
                            "en": "setDomain()"
+                        },
+                        {
+                           "id": 1689423309,
+                           "file": "watch",
+                           "cn": "watch()",
+                           "en": "watch()"
                         }
                      ]
                   },
@@ -3283,6 +3429,12 @@
                            "file": "upsert",
                            "cn": "upsert()",
                            "en": "upsert()"
+                        },
+                        {
+                           "id": 1689423310,
+                           "file": "watch",
+                           "cn": "watch()",
+                           "en": "watch()"
                         }
                      ]
                   },
@@ -3791,6 +3943,20 @@
                            "file": "setCurrentValue",
                            "cn": "setCurrentValue()",
                            "en": "setCurrentValue()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1689578911,
+                     "dir": "StreamToken",
+                     "cn": "StreamToken",
+                     "en": "StreamToken",
+                     "contents": [
+                        {
+                           "id": 1689578912,
+                           "file": "StreamToken",
+                           "cn": "StreamToken()",
+                           "en": "StreamToken()"
                         }
                      ]
                   },
@@ -5887,6 +6053,12 @@
                            "en": "$SNAPSHOT_RECYCLEBIN"
                         },
                         {
+                           "id": 1689423312,
+                           "file": "SNAPSHOT_STREAMS",
+                           "cn": "$SNAPSHOT_STREAMS",
+                           "en": "$SNAPSHOT_STREAMS"
+                        },
+                        {
                            "id": 1559282949,
                            "file": "LIST_CONTEXT",
                            "cn": "$LIST_CONTEXT",
@@ -5981,6 +6153,12 @@
                            "file": "LIST_RECYCLEBIN",
                            "cn": "$LIST_RECYCLEBIN",
                            "en": "$LIST_RECYCLEBIN"
+                        },
+                        {
+                           "id": 1689423313,
+                           "file": "LIST_STREAMS",
+                           "cn": "$LIST_STREAMS",
+                           "en": "$LIST_STREAMS"
                         }
                      ]
                   },
@@ -6227,6 +6405,12 @@
                      "file": "SDB_SNAP_RECYCLEBIN",
                      "cn": "回收站项目快照",
                      "en": "SDB_SNAP_RECYCLEBIN"
+                  },
+                  {
+                     "id": 1689423311,
+                     "file": "SDB_SNAP_STREAMS",
+                     "cn": "数据流快照",
+                     "en": "SDB_SNAP_STREAMS"
                   }
                ]
             },
@@ -6343,6 +6527,12 @@
                      "file": "SDB_LIST_GROUPMODES",
                      "cn": "复制组运行模式列表",
                      "en": "SDB_LIST_GROUPMODES"
+                  },
+                  {
+                     "id": 1689423306,
+                     "file": "SDB_LIST_STREAMS",
+                     "cn": "数据流列表",
+                     "en": "SDB_LIST_STREAMS"
                   }
                ]
             },

@@ -809,6 +809,57 @@
 #define FIELD_NAME_SECURITY_KEYS             "SecurityKeys"
 #define FIELD_NAME_DEK_READY                 "DEKReady"           
 
+#define FIELD_NAME_TOKEN                     "Token"
+#define FIELD_NAME_CURRENT_TOKEN             "CurToken"
+#define FIELD_NAME_CUR_TOKEN_DESC            "CurTokenDesc"
+#define FIELD_NAME_TOKEN_FLAGS               "TokenFlags"
+#define FIELD_NAME_GLOB_TIMESTAMP            "GlobalTimestamp"
+#define FIELD_NAME_LSN                       "LSN"
+#define FIELD_NAME_CHECK_CODE                "CheckCode"
+#define FIELD_NAME_COLLECTION_SPACES         "CollectionSpaces"
+#define FIELD_NAME_COLLECTIONS               "Collections"
+#define FIELD_NAME_CHANGE_TYPES              "ChangeTypes"
+#define FIELD_NAME_MAX_WAIT_TIME             "MaxWaitTime"
+#define FIELD_NAME_CACHE_SIZE                "CacheSize"
+#define FIELD_NAME_CHANGE_TYPE               "ChangeType"
+#define FIELD_NAME_CHANGE_FLAGS              "ChangeFlags"
+#define FIELD_NAME_DOCUMENT_KEY              "DocumentKey"
+#define FIELD_NAME_DOCUMENT                  "Document"
+#define FIELD_NAME_UPDATE_ACTION             "UpdateAction"
+#define FIELD_NAME_NEW_NAME                  "NewName"
+#define FIELD_NAME_EXT_OPTIONS               "ExtOptions"
+#define FIELD_NAME_ID_INDEX                  "IdIndex"
+#define FIELD_NAME_TRANS_ID                  "TransID"
+#define FIELD_NAME_TRANS_ATTR                "TransAttr"
+#define FIELD_NAME_TRANS_COMMIT_ATTR         "TransCommitAttr"
+#define FIELD_NAME_TRANS_COMMIT_NODES        "TransCommitNodes"
+#define FIELD_NAME_TIME_INFO                 "TimeInfo"
+#define FIELD_NAME_REAL_TIME                 "RealTime"
+#define FIELD_NAME_LOGICAL_TIME              "LogicalTime"
+#define FIELD_NAME_CONTROL_TYPE              "ControlType"
+#define FIELD_NAME_CONTROL_RC                "ControlRC"
+#define FIELD_NAME_CONTROL_REASON            "ControlReason"
+#define FIELD_NAME_SOURCE_STATS              "SourceStats"
+#define FIELD_NAME_RECEIVED_NUM              "ReceivedNum"
+#define FIELD_NAME_WAIT_TIME                 "WaitTime"
+#define FIELD_NAME_HIT_CACHE_NUM             "HitCacheNum"
+#define FIELD_NAME_MISS_CACHE_NUM            "MissCacheNum"
+#define FIELD_NAME_SCANNED_NUM               "ScannedNum"
+#define FIELD_NAME_SCANNED_SIZE              "ScannedSize"
+#define FIELD_NAME_QUEUE_CAPACITY            "QueueCapacity"
+#define FIELD_NAME_IN_QUEUE_NUM              "InQueueNum"
+#define FIELD_NAME_IN_QUEUE_SIZE             "InQueueSize"
+#define FIELD_NAME_CACHE_CAPACITY            "CacheCapacity"
+#define FIELD_NAME_IN_CACHE_NUM              "InCacheNum"
+#define FIELD_NAME_IN_CACHE_SIZE             "InCacheSize"
+#define FIELD_NAME_LOB_SEQUENCE              "Sequence"
+
+#define FIELD_NAME_CONTROL_NUM               "ControlNum"
+#define FIELD_NAME_CHANGE_NUM                "ChangeNum"
+#define FIELD_NAME_DATA_NUM                  "DataNum"
+#define FIELD_NAME_RETURN_SIZE               "ReturnSize"
+#define FIELD_NAME_BATCH_NUM                 "BatchNum"
+
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -877,6 +928,7 @@
 #define CMD_NAME_LIST_DATASOURCES            "list datasources"
 #define CMD_NAME_LIST_RECYCLEBIN             "list recyclebin"
 #define CMD_NAME_LIST_GROUPMODES             "list group modes"
+#define CMD_NAME_LIST_STREAMS                "list streams"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -909,6 +961,7 @@
 #define CMD_NAME_SNAPSHOT_TRANSWAITS         "snapshot waiting transactions"
 #define CMD_NAME_SNAPSHOT_TRANSDEADLOCK      "snapshot transaction deadlocks"
 #define CMD_NAME_SNAPSHOT_RECYCLEBIN         "snapshot recyclebin"
+#define CMD_NAME_SNAPSHOT_STREAMS            "snapshot streams"
 #define CMD_NAME_TEST_COLLECTION             "test collection"
 #define CMD_NAME_TEST_COLLECTIONSPACE        "test collectionspace"
 #define CMD_NAME_CREATE_GROUP                "create group"
@@ -966,6 +1019,7 @@
 #define CMD_NAME_CREATE_DATASOURCE           "create datasource"
 #define CMD_NAME_DROP_DATASOURCE             "drop datasource"
 #define CMD_NAME_ALTER_DATASOURCE            "alter datasource"
+#define CMD_NAME_WATCH                       "watch"
 
 #define CMD_NAME_GET_RECYCLEBIN_DETAIL       "get recyclebin detail"
 #define CMD_NAME_GET_RECYCLEBIN_COUNT        "get recyclebin count"
@@ -1009,6 +1063,7 @@
 #define CMD_NAME_SNAPSHOT_TRANSWAITS_INTR    "SNAPSHOT_TRANSWAIT"
 #define CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR "SNAPSHOT_TRANSDEADLOCK"
 #define CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR    "SNAPSHOT_RECYCLEBIN"
+#define CMD_NAME_SNAPSHOT_STREAMS_INTR       "SNAPSHOT_STREAMS"
 
 #define CMD_NAME_LIST_COLLECTION_INTR        "LIST_CL"
 #define CMD_NAME_LIST_SPACE_INTR             "LIST_CS"
@@ -1029,6 +1084,7 @@
 #define CMD_NAME_LIST_SEQUENCES_INTR         "LIST_SEQUENCES"
 #define CMD_NAME_LIST_DATASOURCE_INTR        "LIST_DATASOURCE"
 #define CMD_NAME_LIST_RECYCLEBIN_INTR        "LIST_RECYCLEBIN"
+#define CMD_NAME_LIST_STREAMS_INTR           "LIST_STREAMS"
 
 #define SYS_VIRTUAL_CS                       "SYS_VCS"
 #define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )
@@ -1373,5 +1429,32 @@ enum SDB_CONSISTENCY_STRATEGY
 
 /// set attributes
 #define SDB_ALTER_GROUP_SET_ATTR             SDB_ALTER_ACTION_SET_ATTR
+
+// stream token
+
+// size of token
+#define MSG_STREAM_TOKEN_SIZE       ( 32 )
+#define MSG_STREAM_TOKEN_DESC_SIZE  ( 24 )
+#define MSG_STREAM_TOKEN_STING_SIZE ( 64 )
+
+// version of token
+#define MSG_STREAM_TOKEN_VERSION_0     ( 0 )
+#define MSG_STREAM_TOKEN_VERSION_CUR   ( MSG_STREAM_TOKEN_VERSION_0 )
+
+// type of token
+#define MSG_STREAM_TOKEN_TYPE_INVALID  ( 0 )
+// token generated by change record (LSN)
+#define MSG_STREAM_TOKEN_TYPE_CHANGE   ( 1 )
+// token generated by data record (RID)
+#define MSG_STREAM_TOKEN_TYPE_DATA     ( 2 )
+
+// flag of token
+#define MSG_STREAM_TOKEN_FLAG_EMPTY          ( 0x00 )
+#define MSG_STREAM_TOKEN_FLAG_RESUME_AT      ( 0x01 )
+#define MSG_STREAM_TOKEN_FLAG_NOT_RESUMABLE  ( 0x02 )
+
+// format of change stream token
+#define MSG_CHANGE_STREAM_TOKEN_FORMAT \
+                           "%02x%02x%02x%02x%08x%016llx%016llx%08x%08x"
 
 #endif // MSGDEF_H__

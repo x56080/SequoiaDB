@@ -36,6 +36,7 @@
 #include "ossEvent.hpp"
 #include "pdTrace.hpp"
 #include "ossTrace.hpp"
+#include <chrono>
 
 namespace engine
 {
@@ -149,4 +150,64 @@ namespace engine
    {
       _signal = 0 ;
    }
+
+   /*
+      _ossSPSCEvent implement
+    */
+   _ossSPSCEvent::_ossSPSCEvent()
+   {
+      _signal = 0 ;
+   }
+
+   _ossSPSCEvent::~_ossSPSCEvent()
+   {
+      _signal = 0 ;
+   }
+
+   INT32 _ossSPSCEvent::wait( INT64 millisec )
+   {
+      INT32 rc = SDB_OK ;
+
+      std::chrono::milliseconds timeout
+                           = std::chrono::milliseconds( millisec ) ;
+      std::unique_lock< std::mutex > lock( _mutex ) ;
+
+      while ( !_signal )
+      {
+         if ( millisec < 0 )
+         {
+            _cond.wait ( lock ) ;
+         }
+         else if ( std::cv_status::timeout ==
+                              _cond.wait_for( lock, timeout ) )
+         {
+            rc = SDB_TIMEOUT ;
+            break ;
+         }
+      }
+
+      return rc ;
+   }
+
+   INT32 _ossSPSCEvent::signalIfWaiting()
+   {
+      if ( 0 == _signal )
+      {
+         {
+            std::unique_lock< std::mutex > lock( _mutex ) ;
+            _signal = 1 ;
+         }
+         _cond.notify_one () ;
+      }
+      return SDB_OK ;
+   }
+
+   INT32 _ossSPSCEvent::reset()
+   {
+      std::unique_lock< std::mutex > lock( _mutex ) ;
+      _signal = 0 ;
+
+      return SDB_OK ;
+   }
+
 }

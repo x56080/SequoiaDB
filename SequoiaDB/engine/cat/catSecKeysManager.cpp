@@ -716,7 +716,7 @@ namespace engine
       UINT32 logRecSize = 0 ;
 
       dpsMergeInfo info ;
-      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+      info.setDefInfoEx() ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
       rc = dpsCrtKeys2Record( oldKeyFiles, newKeyFiles, record ) ;

@@ -46,6 +46,7 @@ const SDB_SNAP_TASKS               = 23 ;
 const SDB_SNAP_TRANSWAITS          = 25 ;
 const SDB_SNAP_TRANSDEADLOCK       = 26 ;
 const SDB_SNAP_RECYCLEBIN          = 27 ;
+const SDB_SNAP_STREAMS             = 29 ;
 
 const SDB_LIST_CONTEXTS            = 0 ;
 const SDB_LIST_CONTEXTS_CURRENT    = 1 ;
@@ -68,6 +69,7 @@ const SDB_LIST_DATASOURCES         = 22 ;
 // const SDB_LIST_INDEXES = 24, for internal use only
 const SDB_LIST_RECYCLEBIN          = 27 ;
 const SDB_LIST_GROUPMODES          = 28 ;
+const SDB_LIST_STREAMS             = 29 ;
 
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 0x10000000 ;
@@ -2163,3 +2165,16 @@ SdbDataSource.prototype.help = function()
     println( '   --Instance methods for class "SdbDataSource"' ) ;
     println( '   alter(<options>)         - Alter data source options' ) ;
 }
+
+// StreamToken
+StreamToken.prototype.getToken = function()
+{
+   return this._token ;
+}
+
+StreamToken.prototype.toString = function()
+{
+   return this._token ;
+}
+
+// end StreamToken

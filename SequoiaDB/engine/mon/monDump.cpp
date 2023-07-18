@@ -60,6 +60,7 @@
 #include "pdTrace.hpp"
 #include "monTrace.hpp"
 #include "pmdEnv.hpp"
+#include "rtnFetchBase.hpp"
 #include "utilEnvCheck.hpp"
 #include "pmdStartupHistoryLogger.hpp"
 #include "utilMemListPool.hpp"
@@ -7156,4 +7157,154 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _monStreamsFetch implement
+    */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monStreamsFetch )
+
+   _monStreamsFetch::_monStreamsFetch()
+   : rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_STREAMS )
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONSTREAMFETCH_INIT, "_monStreamsFetch::init" )
+   INT32 _monStreamsFetch::init( pmdEDUCB *cb,
+                                 BOOLEAN isCurrent,
+                                 BOOLEAN isDetail,
+                                 UINT32 addInfoMask,
+                                 const BSONObj obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONSTREAMFETCH_INIT ) ;
+
+      _addInfoMask = addInfoMask ;
+      _isDetail = isDetail ;
+      _hitEnd = FALSE ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      monStreamMonitorManager *monStreamMgr = krcb->getMonStreamMgr() ;
+
+      if ( _isDetail )
+      {
+         rc = monStreamMgr->dumpDetailedItems( _streamDetailedList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to dump detailed stream list, "
+                      "rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = monStreamMgr->dumpItems( _streamList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to dump stream list, rc: %d", rc ) ;
+      }
+
+      if ( _isDetail )
+      {
+         _hitEnd = _streamDetailedList.empty() ? TRUE : FALSE ;
+      }
+      else
+      {
+         _hitEnd = _streamList.empty() ? TRUE : FALSE ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONSTREAMFETCH_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONSTREAMFETCH_FETCH, "_monStreamsFetch::fetch" )
+   INT32 _monStreamsFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONSTREAMFETCH_FETCH ) ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      if ( _isDetail )
+      {
+         if ( _streamDetailedList.empty() )
+         {
+            _hitEnd = TRUE ;
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
+
+         try
+         {
+            _builder.reset() ;
+            BSONObjBuilder ob( _builder ) ;
+
+            monStreamDetailedItem &item = _streamDetailedList.front() ;
+
+            /// add system info
+            rc = monAppendSystemInfo( ob, _addInfoMask ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to append system information, "
+                        "rc: %d", rc ) ;
+
+            rc = item.toBSON( ob ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
+
+            obj = ob.done() ;
+            _streamDetailedList.pop_front() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build BSON object, "
+                    "occurred exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         if ( _streamList.empty() )
+         {
+            _hitEnd = TRUE ;
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
+
+         try
+         {
+            _builder.reset() ;
+            BSONObjBuilder ob( _builder ) ;
+
+            monStreamItem &item = _streamList.front() ;
+
+            /// add system info
+            rc = monAppendSystemInfo( ob, _addInfoMask ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to append system information, "
+                        "rc: %d", rc ) ;
+
+            rc = item.toBSON( ob ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
+
+            obj = ob.done() ;
+            _streamList.pop_front() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build BSON object, "
+                    "occurred exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONSTREAMFETCH_FETCH, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

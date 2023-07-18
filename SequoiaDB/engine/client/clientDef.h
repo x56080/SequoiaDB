@@ -83,6 +83,8 @@
 #define SDB_SNAP_RECYCLEBIN       27
 /** reserved */
 #define SDB_SNAP_RESERVED4        28
+/** snapshot of streams */
+#define SDB_SNAP_STREAMS          29
 
 /** list of all the contexts of all the sessions */
 #define SDB_LIST_CONTEXTS         0
@@ -137,6 +139,8 @@
 #define SDB_LIST_RECYCLEBIN       27
 /** list group mode */
 #define SDB_LIST_GROUPMODES       28
+/** list of streams */
+#define SDB_LIST_STREAMS          29
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129

@@ -33,11 +33,13 @@
 #include "sptDBCL.hpp"
 #include "sptDBCursor.hpp"
 #include "clientImpl.hpp"
+#include "sptDBStreamToken.hpp"
 
 using sdbclient::_sdbCollectionSpace ;
 using sdbclient::sdbCollectionSpace ;
 using sdbclient::_sdbCollection ;
 using sdbclient::_sdbCursor ;
+using sdbclient::sdbStreamToken ;
 
 namespace engine
 {
@@ -57,6 +59,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, disableCapped )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, setAttributes )
    JS_RESOLVE_FUNC_DEFINE( _sptDBCS, resolve )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCS, watch )
 
    JS_BEGIN_MAPPING( _sptDBCS, SPT_CS_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -73,6 +76,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "enableCapped", enableCapped )
       JS_ADD_MEMBER_FUNC( "disableCapped", disableCapped )
       JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes )
+      JS_ADD_MEMBER_FUNC( "watch", watch )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBCS::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBCS::fmpToBSON )
@@ -554,6 +558,64 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 _sptDBCS::watch( const _sptArguments &arg,
+                          _sptReturnVal &rval,
+                          BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      _sdbCursor *pCursor = NULL ;
+      sdbStreamToken token ;
+      BSONObj options, pipeline ;
+
+      if ( arg.argc() > 0 )
+      {
+         sptDBStreamToken *pToken = NULL ;
+         rc = arg.getUserObj( 0, sptDBStreamToken::__desc,
+                              (const void **)( &pToken ) ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be StreamToken" ) ;
+            goto error ;
+         }
+         token = pToken->getToken() ;
+      }
+      if ( arg.argc() > 1 )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Options must be object" ) ;
+            goto error ;
+         }
+      }
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getBsonobj( 2, pipeline ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Pipeline must be object" ) ;
+            goto error ;
+         }
+      }
+
+      rc = _cs.watch( &pCursor, token, options, pipeline ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to watch collection space" ) ;
+         goto error ;
+      }
+
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+
+   done:
+      return rc ;
+
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
       goto done ;
    }
 

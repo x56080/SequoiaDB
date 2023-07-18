@@ -2027,6 +2027,9 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    case SDB_LIST_RECYCLEBIN:
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
       break ;
+   case SDB_LIST_STREAMS:
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_STREAMS ;
+      break ;
    default :
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -2875,6 +2878,9 @@ static INT32 _sdbGetSnapshot ( sdbConnectionHandle cHandle,
       break ;
    case SDB_SNAP_RECYCLEBIN :
       p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
+      break ;
+   case SDB_SNAP_STREAMS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_STREAMS ;
       break ;
    default :
       rc = SDB_INVALIDARG ;

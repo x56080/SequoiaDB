@@ -45,6 +45,7 @@
 #include "sptDBSequence.hpp"
 #include "sptDBDataSource.hpp"
 #include "sptDBRecycleBin.hpp"
+#include "sptDBStreamToken.hpp"
 #include "sptBsonobj.hpp"
 #include "ossSocket.hpp"
 #include "msgDef.hpp"
@@ -66,6 +67,7 @@ using sdbclient::_sdbDataCenter ;
 using sdbclient::_sdbDomain ;
 using sdbclient::_sdbSequence ;
 using sdbclient::sdbDataSource ;
+using sdbclient::sdbStreamToken ;
 
 namespace engine
 {
@@ -138,6 +140,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, initSecurityKeys )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, watch )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getChangeStreamToken )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -208,6 +212,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
       JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
       JS_ADD_MEMBER_FUNC( "initSecurityKeys", initSecurityKeys )
+      JS_ADD_MEMBER_FUNC( "watch", watch )
+      JS_ADD_MEMBER_FUNC( "getChangeStreamToken", getChangeStreamToken )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -3568,6 +3574,106 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::watch( const _sptArguments &arg,
+                           _sptReturnVal &rval,
+                           BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      _sdbCursor *pCursor = NULL ;
+      sdbStreamToken token ;
+      BSONObj options, pipeline ;
+
+      if ( arg.argc() > 0 )
+      {
+         sptDBStreamToken *pToken = NULL ;
+         rc = arg.getUserObj( 0, sptDBStreamToken::__desc,
+                              (const void **)( &pToken ) ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be StreamToken" ) ;
+            goto error ;
+         }
+         token = pToken->getToken() ;
+      }
+      if ( arg.argc() > 1 )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Options must be object" ) ;
+            goto error ;
+         }
+      }
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getBsonobj( 2, pipeline ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Pipeline must be object" ) ;
+            goto error ;
+         }
+      }
+
+      rc = _sptSdb.watch( &pCursor, token, options, pipeline ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to watch database" ) ;
+         goto error ;
+      }
+
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+
+   done:
+      return rc ;
+
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getChangeStreamToken( const _sptArguments &arg,
+                                          _sptReturnVal &rval,
+                                          BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      sdbStreamToken token ;
+      sptDBStreamToken *pToken = NULL ;
+
+      rc = _sptSdb.getChangeStreamToken( token ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get change stream token" ) ;
+         goto error ;
+      }
+
+      pToken = SDB_OSS_NEW sptDBStreamToken( token ) ;
+      if ( NULL == pToken )
+      {
+          rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to create stream token object" ) ;
+         goto error ;
+      }
+      rc = rval.setUsrObjectVal< sptDBStreamToken >( pToken ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set stream token object" ) ;
+         goto error ;
+      }
+      pToken = NULL ;
+
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_STREAM_TOKEN_TOKEN_FIELD )->setValue( token.getToken() ) ;
+
+   done:
+      return rc ;
+
+   error:
+      SAFE_OSS_DELETE( pToken ) ;
       goto done ;
    }
 

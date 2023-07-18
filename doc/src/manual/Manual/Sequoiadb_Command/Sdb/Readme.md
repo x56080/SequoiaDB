@@ -29,6 +29,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [forceSession()][forceSession] | 终止指定会话的当前操作 |
 | [forceStepUp()][forceStepUp] | 强制将备节点升级为主节点 |
 | [getCataRG()][getCataRG] | 获取编目复制组的引用 |
+| [getChangeStreamToken()][getChangeStreamToken] | 获取当前节点变更流的最新位置信息 |
 | [getCoordRG()][getCoordRG] | 获取协调复制组的引用 |
 | [getCS()][getCS] | 获取指定集合空间 |
 | [getDataSource()][getDataSource] | 获取数据源的引用 |
@@ -76,6 +77,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [transRollback()][transRollback] | 事务回滚 |
 | [updateConf()][updateConf] | 更新节点配置 |
 | [waitTasks()][waitTasks] | 同步等待指定任务结束或取消 |
+| [watch()][watch] | 订阅数据库中指定对象的变更流 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -153,3 +155,5 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
 [initSecurityKeys]:manual/Manual/Sequoiadb_Command/Sdb/initSecurityKeys.md
+[watch]:manual/Manual/Sequoiadb_Command/Sdb/watch.md
+[getChangeStreamToken]:manual/Manual/Sequoiadb_Command/Sdb/getChangeStreamToken.md

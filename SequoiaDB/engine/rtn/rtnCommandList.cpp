@@ -345,4 +345,31 @@ namespace engine
       return FALSE ;
    }
 
+   /*
+      _rtnListStreams implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnListStreams )
+
+   _rtnListStreams::_rtnListStreams()
+   : _rtnList( CMD_NAME_LIST_STREAMS,
+               CMD_NAME_LIST_STREAMS_INTR,
+               CMD_LIST_STREAMS,
+               RTN_FETCH_STREAMS,
+               MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+   {
+   }
+
+   /*
+      _rtnListStreamsInner implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnListStreamsInner )
+
+   _rtnListStreamsInner::_rtnListStreamsInner()
+   : _rtnListInner( CMD_NAME_LIST_STREAMS_INTR,
+                    CMD_LIST_STREAMS,
+                    RTN_FETCH_STREAMS,
+                    MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+   {
+   }
+
 }

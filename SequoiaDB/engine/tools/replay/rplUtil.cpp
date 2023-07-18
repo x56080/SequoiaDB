@@ -176,57 +176,5 @@ namespace replay
       timeStr = szTimestmpStr ;
    }
 
-   CHAR* getOPName(UINT16 type)
-   {
-      switch(type)
-      {
-      case LOG_TYPE_DATA_INSERT:
-         return RPL_LOG_OP_INSERT;
-      case LOG_TYPE_DATA_UPDATE:
-         return RPL_LOG_OP_UPDATE;
-      case LOG_TYPE_DATA_DELETE:
-         return RPL_LOG_OP_DELETE;
-      case LOG_TYPE_CL_TRUNC:
-         return RPL_LOG_OP_TRUNCATE_CL;
-      case LOG_TYPE_CS_CRT:
-         return RPL_LOG_OP_CREATE_CS;
-      case LOG_TYPE_CS_DELETE:
-         return RPL_LOG_OP_DELETE_CS;
-      case LOG_TYPE_CL_CRT:
-         return RPL_LOG_OP_CREATE_CL;
-      case LOG_TYPE_CL_DELETE:
-         return RPL_LOG_OP_DELETE_CL;
-      case LOG_TYPE_IX_CRT:
-         return RPL_LOG_OP_CREATE_IX;
-      case LOG_TYPE_IX_DELETE:
-         return RPL_LOG_OP_DELETE_IX;
-      case LOG_TYPE_LOB_WRITE:
-         return RPL_LOG_OP_LOB_WRITE;
-      case LOG_TYPE_LOB_REMOVE:
-         return RPL_LOG_OP_LOB_REMOVE;
-      case LOG_TYPE_LOB_UPDATE:
-         return RPL_LOG_OP_LOB_UPDATE;
-      case LOG_TYPE_LOB_TRUNCATE:
-         return RPL_LOG_OP_LOB_TRUNCATE;
-      case LOG_TYPE_DUMMY:
-         return RPL_LOG_OP_DUMMY;
-      case LOG_TYPE_CL_RENAME:
-         return RPL_LOG_OP_CL_RENAME;
-      case LOG_TYPE_TS_COMMIT:
-         return RPL_LOG_OP_TS_COMMIT;
-      case LOG_TYPE_TS_ROLLBACK:
-         return RPL_LOG_OP_TS_ROLLBACK;
-      case LOG_TYPE_INVALIDATE_CATA:
-         return RPL_LOG_OP_INVALIDATE_CATA;
-      case LOG_TYPE_CS_RENAME:
-         return RPL_LOG_OP_CS_RENAME;
-      case LOG_TYPE_DATA_POP:
-         return RPL_LOG_OP_POP;
-      case LOG_TYPE_RETURN:
-         return RPL_LOG_OP_RETURN;
-      default:
-         return "unknown";
-      }
-   }
 }
 

@@ -33,6 +33,7 @@
 #include "rplSdbOutputter.hpp"
 #include "rplUtil.hpp"
 #include "dpsLogFile.hpp"
+#include "dpsUtil.hpp"
 #include "../bson/bson.hpp"
 #include <sstream>
 
@@ -182,7 +183,7 @@ namespace replay
       {
          UINT8 type = it->first;
 
-         ss << "OP " << getOPName(type) << " num: " << it->second << std::endl;
+         ss << "OP " << dpsGetOPName(type) << " num: " << it->second << std::endl;
       }
 
       return ss.str();

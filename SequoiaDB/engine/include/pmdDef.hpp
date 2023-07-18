@@ -43,6 +43,8 @@
 #include "oss.hpp"
 #include "utilCircularQueue.hpp"
 #include "ossQueue.hpp"
+#include "utilUniqueID.hpp"
+#include "utilDataExInfo.hpp"
 
 namespace engine
 {
@@ -175,37 +177,26 @@ namespace engine
    /*
       _pmdDataExInfo define
    */
-   struct _pmdDataExInfo
+   struct _pmdDataExInfo : public _utilDataExInfo
    {
       _pmdDataExInfo()
+      : _utilDataExInfo()
       {
-         _csLID   = ~0 ;
-         _clLID   = ~0 ;
-         _extLID  = -1 ;
-         _isValid = FALSE ;
-      }
-
-      _pmdDataExInfo& operator= ( const _pmdDataExInfo &info )
-      {
-         _csLID   = info._csLID ;
-         _clLID   = info._clLID ;
-         _extLID  = info._extLID ;
-         _isValid = info._isValid ;
-         return *this ;
       }
 
       void clear()
       {
-         _csLID  = ~0 ;
-         _clLID  = ~0 ;
-         _extLID = -1 ;
-         _isValid = FALSE ;
+         _resetInfo() ;
       }
 
-      UINT32  _csLID ;
-      UINT32  _clLID ;
-      SINT32  _extLID ;
-      BOOLEAN _isValid ;
+      void setInfo( utilCSUniqueID csUID,
+                    UINT32 csLID,
+                    utilCLUniqueID clUID,
+                    UINT32 clLID,
+                    dmsExtentID extLID )
+      {
+         _setInfo( csUID, csLID, clUID, clLID, extLID ) ;
+      }
    } ;
 
    typedef struct _pmdDataExInfo pmdDataExInfo ;

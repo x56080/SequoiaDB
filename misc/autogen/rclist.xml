@@ -3234,5 +3234,29 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_STREAM_NOT_RESUMABLE</name>
+         <description>
+            <en>The stream is not resumable</en>
+            <cn>数据流不可恢复执行</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_STREAM_NOT_CATCHUP</name>
+         <description>
+            <en>The stream does not cache up</en>
+            <cn>数据流的读取速度追不上数据流的写入速度</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_DPS_LSN_MOVED</name>
+         <description>
+            <en>DPS LSN has been moved</en>
+            <cn>日志LSN被移动</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

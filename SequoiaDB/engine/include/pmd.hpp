@@ -40,6 +40,7 @@
 #define PMD_HPP__
 
 #include "core.hpp"
+#include "monStreamMonitorManager.hpp"
 #include "oss.hpp"
 #include "ossIO.hpp"
 #include "ossUtil.hpp"
@@ -240,6 +241,7 @@ namespace engine
       monDBCB        _monDBCB ;
       monMonitorManager _monMgr ;
       schedTaskMgr   _svcTaskMgr ;
+      monStreamMonitorManager _monStreamMgr ;
 
       pmdLightJobMgr    *_pLightJobMgr ;
       pmdFTMgr          *_pFTMgr ;
@@ -302,6 +304,10 @@ namespace engine
       OSS_INLINE schedTaskMgr* getSvcTaskMgr()
       {
          return &_svcTaskMgr ;
+      }
+      OSS_INLINE monStreamMonitorManager *getMonStreamMgr()
+      {
+         return &_monStreamMgr ;
       }
       void setMonCB( monConfigCB & monCB )
       {

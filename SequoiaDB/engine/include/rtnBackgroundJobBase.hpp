@@ -83,6 +83,9 @@ namespace engine
 
       RTN_JOB_TASKINFO_UPDATE        = 30, // update task info in cata and data
 
+      // change stream notifier
+      RTN_JOB_CHANGE_STREAM_NOTIFIER  = 31,
+
       RTN_JOB_MAX
    } ;
 

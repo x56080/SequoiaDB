@@ -171,13 +171,16 @@ namespace engine
          UINT32 logRecSize = 0 ;
          RTN_ALTER_OBJECT_TYPE objType = _alterJob->getObjectType() ;
 
+         // only calculate size, will not write log data
+         info.disableCache() ;
+
          _releaseLogSpace( cb ) ;
 
          rc = dpsAlter2Record( _alterJob->getObjectName(), objType,
                                _alterJob->getJobObject(), record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         rc = getDPSCB()->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = getDPSCB()->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;

@@ -714,6 +714,8 @@ namespace engine
          OSS_INLINE BOOLEAN isEnableAsyncRead() const { return _enableAsyncRead ; }
          OSS_INLINE BOOLEAN isRemoteLocationConsistency() const { return _remoteLocationConsistency ; }
          OSS_INLINE BOOLEAN isConsultRollbackLogOn() const { return _consultRollbackLogOn ; }
+         OSS_INLINE INT32 getStreamIdleTimeout() const { return _streamIdleTimeout ; }
+         OSS_INLINE INT32 getChangeStreamResumableWindow() const { return _changeStreamResumableWindow ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -865,6 +867,9 @@ namespace engine
          BOOLEAN     _enableAsyncRead ;
          BOOLEAN     _remoteLocationConsistency ;
          BOOLEAN     _consultRollbackLogOn ;
+
+         INT32       _streamIdleTimeout ;
+         INT32       _changeStreamResumableWindow ;
 
 #ifdef SDB_ENTERPRISE
 

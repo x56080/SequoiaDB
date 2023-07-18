@@ -436,11 +436,23 @@ namespace engine
 
          _capacity = capacity ;
          _mask = capacity - 1 ;
+         _writeIndex.poke( 0 ) ;
+         _readIndex.poke( 0 ) ;
 
       done:
          return rc ;
       error:
          goto done ;
+      }
+
+      UINT64 getSize() const
+      {
+         return _writeIndex.peek() - _readIndex.peek() ;
+      }
+
+      BOOLEAN isEmpty() const
+      {
+         return _writeIndex.peek() == _readIndex.peek() ;
       }
 
       BOOLEAN push( const T& value )
@@ -470,12 +482,50 @@ namespace engine
             return FALSE ;
          }
 
-         value = _buffer[readIndex & _mask] ;
+         value = std::move( _buffer[readIndex & _mask] ) ;
 
          _readIndex.inc() ;
 
          return TRUE ;
       }
+
+      BOOLEAN push( T&& value )
+      {
+         UINT64 writeIndex = _writeIndex.peek() ;
+
+         if ( writeIndex - _readIndex.fetch() >= _capacity )
+         {
+            //queue full
+            return FALSE ;
+         }
+
+         _buffer[writeIndex & _mask] = value ;
+
+         _writeIndex.inc() ;
+
+         return TRUE ;
+      }
+
+      BOOLEAN popBatch( T *valueBatch, UINT32 maxSize, UINT32 &index )
+      {
+         UINT64 readIndex = _readIndex.peek() ;
+         UINT64 writeIndex = _writeIndex.fetch() ;
+         UINT32 firstIndex = index ;
+         if ( readIndex >= writeIndex )
+         {
+            //queue empty
+            return FALSE ;
+         }
+
+         while ( ( readIndex < writeIndex ) && ( index < maxSize ) )
+         {
+            valueBatch[ index ++ ] = std::move( _buffer[ ( readIndex ++ ) & _mask ] ) ;
+         }
+         _readIndex.add( index - firstIndex ) ;
+
+         return TRUE ;
+      }
+
    private:
       void _finiBuffer()
       {
@@ -483,7 +533,7 @@ namespace engine
          _capacity = 0 ;
       }
 
-   private:
+   protected:
       UINT64 _capacity ;
       UINT64 _mask ;
       T*     _buffer ;
@@ -491,6 +541,41 @@ namespace engine
       ossAtomic64 _writeIndex ;
       ossAtomic64 _readIndex ;
    } ;
+
+   /*
+      _utilStackSPSCQueue define
+    */
+   template< typename T, UINT32 stackSize >
+   class _utilStackSPSCQueue : public utilSPSCQueue< T >
+   {
+   protected:
+      typedef utilSPSCQueue< T > _BASE ;
+   public:
+      _utilStackSPSCQueue()
+      {
+         SDB_ASSERT( stackSize > 0, "capacity must be greater than 0" ) ;
+         SDB_ASSERT( ( stackSize & ( stackSize - 1 ) ) == 0,
+                     "capacity must be a power of 2" ) ;
+
+         _BASE::_buffer = _stackBuffer ;
+         _BASE::_capacity = stackSize ;
+         _BASE::_mask = stackSize - 1 ;
+      }
+
+      ~_utilStackSPSCQueue()
+      {
+         if ( _BASE::_buffer == _stackBuffer )
+         {
+            _BASE::_buffer = NULL ;
+            _BASE::_capacity = 0 ;
+            _BASE::_mask = 0 ;
+         }
+      }
+
+   protected:
+      T _stackBuffer[ stackSize ] ;
+   } ;
+
 }
 
 #endif // UTIL_CIRCULAR_QUEUE_HPP__

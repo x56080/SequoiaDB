@@ -38,6 +38,7 @@ SdbCollection 类主要用于操作集合，包含的函数如下：
 | [truncateLob()][truncateLob] | 截短集合中的大对象 |
 | [update()][update] | 更新集合记录 |
 | [upsert()][upsert] | 更新集合记录 |
+| [watch()][watch] | 订阅集合的变更流 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -77,3 +78,4 @@ SdbCollection 类主要用于操作集合，包含的函数如下：
 [truncateLob]:manual/Manual/Sequoiadb_Command/SdbCollection/truncateLob.md
 [update]:manual/Manual/Sequoiadb_Command/SdbCollection/update.md
 [upsert]:manual/Manual/Sequoiadb_Command/SdbCollection/upsert.md
+[watch]:manual/Manual/Sequoiadb_Command/SdbCollection/watch.md

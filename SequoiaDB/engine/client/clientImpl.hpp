@@ -675,6 +675,11 @@ namespace sdbclient
       INT32 getVersion () ;
       INT32 setConsistencyStrategy( INT32 value ) ;
 
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject ) ;
+
    private:
       INT32 _alterCollection1( const bson::BSONObj &options ) ;
       INT32 _alterCollection2( const bson::BSONObj &options ) ;
@@ -1082,6 +1087,11 @@ namespace sdbclient
       INT32 disableCapped () ;
 
       INT32 setAttributes ( const bson::BSONObj & options ) ;
+
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject ) ;
 
    protected :
       INT32 _alterInternal ( const CHAR * taskName,
@@ -2206,6 +2216,13 @@ namespace sdbclient
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
 
       INT32 initSecurityKeys( const bson::BSONObj &options ) ;
+
+      INT32 watch( _sdbCursor **cursor,
+                   const sdbStreamToken &token = sdbStreamToken(),
+                   const bson::BSONObj &options = _sdbStaticObject,
+                   const bson::BSONObj &pipeline = _sdbStaticObject ) ;
+
+      INT32 getChangeStreamToken( sdbStreamToken &token ) ;
    } ;
    typedef class _sdbImpl sdbImpl ;
 

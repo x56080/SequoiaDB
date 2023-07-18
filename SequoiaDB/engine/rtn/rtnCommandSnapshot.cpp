@@ -724,4 +724,31 @@ namespace engine
     */
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotRecycleBinInner )
 
+   /*
+      _rtnSnapshotStreams implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotStreams )
+
+   _rtnSnapshotStreams::_rtnSnapshotStreams()
+   : _rtnSnapshot( CMD_NAME_SNAPSHOT_STREAMS,
+                   CMD_NAME_SNAPSHOT_STREAMS_INTR,
+                   CMD_SNAPSHOT_STREAMS,
+                   RTN_FETCH_STREAMS,
+                   MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+   {
+   }
+
+   /*
+      _rtnSnapshotStreamsInner implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotStreamsInner )
+
+   _rtnSnapshotStreamsInner::_rtnSnapshotStreamsInner()
+   : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_STREAMS_INTR,
+                        CMD_SNAPSHOT_STREAMS,
+                        RTN_FETCH_STREAMS,
+                        MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+   {
+   }
+
 }

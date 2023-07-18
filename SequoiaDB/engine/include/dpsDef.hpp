@@ -41,6 +41,7 @@
 #define DPSDEF_HPP_
 
 #include "ossTypes.h"
+#include "utilDataExInfo.hpp"
 
 #if defined (_WINDOWS)
 #define DPS_INVALID_LSN_OFFSET   0xFFFFFFFFFFFFFFFFLL
@@ -154,8 +155,10 @@ enum DPS_LOG_TYPE
    LOG_TYPE_ALTER        = 0x15,
    LOG_TYPE_ADDUNIQUEID  = 0x16,
    LOG_TYPE_RETURN       = 0x17,
-   LOG_TYPE_SEC_KEY_CRT  = 0x18
+   LOG_TYPE_SEC_KEY_CRT  = 0x18,
 } ;
+
+#define LOG_TYPE_NUM ( LOG_TYPE_SEC_KEY_CRT + 1 )
 
 enum DPS_MOMENT
 {
@@ -175,10 +178,15 @@ namespace engine
          _dpsEventHandler () {}
          virtual ~_dpsEventHandler () {}
 
-         virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) = 0 ;
+         virtual INT32 canAssignLogPage( UINT32 reqLen,
+                                         _pmdEDUCB *cb,
+                                         BOOLEAN &needCache ) = 0 ;
 
-         virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                     INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
+         virtual void  onPrepareLog( const utilLogExInfo &info,
+                                     DPS_LSN_OFFSET offset,
+                                     DPS_LSN_VER version,
+                                     UINT32 length,
+                                     DPS_LOG_TYPE logType ) = 0 ;
 
          virtual void  onWriteLog( DPS_LSN_OFFSET offset ) = 0 ;
 

@@ -249,9 +249,11 @@ namespace engine
          _buf.cancelIncVersion() ;
       }
 
-      OSS_INLINE INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb )
+      OSS_INLINE INT32 checkSyncControl( dpsMergeInfo &info,
+                                         UINT32 reqLen,
+                                         _pmdEDUCB *cb )
       {
-         return _buf.checkSyncControl( reqLen, cb ) ;
+         return _buf.checkSyncControl( info, reqLen, cb ) ;
       }
 
       OSS_INLINE INT32 checkSeondarySyncControl( UINT32 reqLen, _pmdEDUCB *cb )

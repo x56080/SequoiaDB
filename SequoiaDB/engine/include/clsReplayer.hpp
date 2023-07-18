@@ -124,7 +124,7 @@ namespace engine
    /*
       _clsReplayer define
    */
-   class _clsReplayer : public SDBObject
+   class _clsReplayer : public SDBObject, public _clsReplayEventDispatcher
    {
    public:
       _clsReplayer( BOOLEAN useDps = FALSE, BOOLEAN isReplSync = FALSE ) ;
@@ -182,9 +182,6 @@ namespace engine
                              BOOLEAN removeOnly,
                              pmdEDUCB *eduCB,
                              MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
-
-      void regEventHandler( clsReplayEventHandler *pHandler ) ;
-      void unregEventHandler() ;
 
    protected:
       // rollback INSERT DPS record
@@ -263,8 +260,6 @@ namespace engine
       monDBCB                 *_monDBCB ;
 
       BOOLEAN                 _isReplSync ;
-
-      clsReplayEventHandler   *_replayEventHandler ;
    } ;
    typedef class _clsReplayer clsReplayer ;
 }

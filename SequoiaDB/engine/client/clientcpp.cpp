@@ -4834,6 +4834,58 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCollectionImpl::watch( _sdbCursor **cursor,
+                                    const sdbStreamToken &token,
+                                    const BSONObj &options,
+                                    const BSONObj &pipeline )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj newOptions ;
+
+      // check
+      if ( '\0' == _collectionFullName[ 0 ] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder ob ;
+         BSONArrayBuilder ab( ob.subarrayStart( FIELD_NAME_COLLECTIONS ) ) ;
+         ab.append( _collectionFullName ) ;
+         ab.doneFast() ;
+         // exclude collection spaces
+         BSONArrayBuilder emptyAb( ob.subarrayStart( FIELD_NAME_COLLECTION_SPACES ) ) ;
+         emptyAb.doneFast() ;
+         ob.appendElementsUnique( options ) ;
+         newOptions = ob.obj() ;
+      }
+      catch ( exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->watch( cursor, token, newOptions, pipeline ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
     * _sdbNodeImpl
     * Sdb Node Implementation
@@ -6995,6 +7047,58 @@ do                                                            \
    done :
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 _sdbCollectionSpaceImpl::watch( _sdbCursor **cursor,
+                                         const sdbStreamToken &token,
+                                         const BSONObj &options,
+                                         const BSONObj &pipeline )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj newOptions ;
+
+      // check
+      if ( '\0' == _collectionSpaceName[ 0 ] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder ob ;
+         BSONArrayBuilder ab( ob.subarrayStart( FIELD_NAME_COLLECTION_SPACES ) ) ;
+         ab.append( _collectionSpaceName ) ;
+         ab.doneFast() ;
+         // exclude collections
+         BSONArrayBuilder emptyAb( ob.subarrayStart( FIELD_NAME_COLLECTIONS ) ) ;
+         emptyAb.doneFast() ;
+         ob.appendElementsUnique( options ) ;
+         newOptions = ob.obj() ;
+      }
+      catch ( exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->watch( cursor, token, newOptions, pipeline ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -10910,6 +11014,9 @@ do                                                            \
       case SDB_SNAP_RECYCLEBIN :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
          break ;
+      case SDB_SNAP_STREAMS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_STREAMS ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -11022,6 +11129,9 @@ do                                                            \
          break ;
       case SDB_LIST_GROUPMODES:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_GROUPMODES ;
+         break ;
+      case SDB_LIST_STREAMS:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_STREAMS ;
          break ;
       default :
          rc = SDB_INVALIDARG ;
@@ -14314,6 +14424,136 @@ do                                                            \
    done:
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 _sdbImpl::watch( _sdbCursor **cursor,
+                          const sdbStreamToken &token,
+                          const BSONObj &options,
+                          const BSONObj &pipeline )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_WATCH ;
+      BSONObj newOptions ;
+
+      try
+      {
+         BSONObjBuilder ob ;
+         ob.append( FIELD_NAME_TOKEN, token.getToken() ) ;
+         ob.appendElementsUnique( options ) ;
+         newOptions = ob.obj() ;
+      }
+      catch ( exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( pCommand, &newOptions, NULL, NULL, &pipeline, 0, 0,
+                        0, -1, cursor ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getChangeStreamToken( sdbStreamToken &token )
+   {
+      INT32 rc = SDB_OK ;
+
+      sdbCursor cursor ;
+      BSONObj selector ;
+
+      token.resetToken() ;
+
+      try
+      {
+         BSONObjBuilder ob ;
+         ob.append( FIELD_NAME_CURRENT_LSN "." FIELD_NAME_LSN_OFFSET, 0 ) ;
+         ob.append( FIELD_NAME_CURRENT_LSN "." FIELD_NAME_LSN_VERSION, 0 ) ;
+         ob.append( FIELD_NAME_NODEID, 0 ) ;
+         selector = ob.obj() ;
+      }
+      catch ( exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = getSnapshot( cursor, SDB_SNAP_DATABASE, BSONObj(), selector ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rc = cursor.next( obj ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_LOG( PDERROR, "Failed to get record from cursor, rc = %d", rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            CHAR tokenStr[ MSG_STREAM_TOKEN_STING_SIZE + 1 ] ;
+            tokenStr[ 0 ] = '\0' ;
+
+            UINT64 lsn = 0 ;
+            UINT32 version = 0 ;
+            UINT32 groupID = 0 ;
+            BSONElement ele = obj.getFieldDotted( FIELD_NAME_CURRENT_LSN "." FIELD_NAME_LSN_OFFSET ) ;
+            if ( ele.isNumber() )
+            {
+               lsn = (UINT64)( ele.numberLong() ) ;
+            }
+            ele = obj.getFieldDotted( FIELD_NAME_CURRENT_LSN "." FIELD_NAME_LSN_VERSION ) ;
+            if ( ele.isNumber() )
+            {
+               version = (UINT32)( ele.numberInt() ) ;
+            }
+            ele = obj.getField( FIELD_NAME_NODEID ) ;
+            if ( Array == ele.type() &&
+                 ele.embeddedObject().firstElement().isNumber() )
+            {
+               groupID = ele.embeddedObject().firstElement().numberInt() ;
+            }
+
+            ossSnprintf( tokenStr, MSG_STREAM_TOKEN_STING_SIZE + 1,
+                         MSG_CHANGE_STREAM_TOKEN_FORMAT,
+                         MSG_STREAM_TOKEN_VERSION_CUR,
+                         MSG_STREAM_TOKEN_TYPE_CHANGE,
+                         0, 0, groupID, 0, lsn, version, 0 ) ;
+
+            token.setToken( tokenStr ) ;
+         }
+         catch ( exception )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+
+         break ;
+      }
+
+   done:
+      return rc ;
+
+   error:
       goto done ;
    }
 

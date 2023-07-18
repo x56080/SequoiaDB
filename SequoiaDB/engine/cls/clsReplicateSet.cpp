@@ -156,16 +156,33 @@ namespace engine
       _sync.notify( offset ) ;
    }
 
-   void _clsReplicateSet::onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                        INT32 extLID, DPS_LSN_OFFSET offset )
+   void _clsReplicateSet::onPrepareLog( const utilLogExInfo &info,
+                                        DPS_LSN_OFFSET offset,
+                                        DPS_LSN_VER version,
+                                        UINT32 length,
+                                        DPS_LOG_TYPE logType )
    {
-      _notifySrcSessions( csLID, clLID, extLID, offset ) ;
+      _notifySrcSessions( info.getCSLID(),
+                          info.getCLLID(),
+                          info.getExtentLID(),
+                          offset ) ;
    }
 
-   void _clsReplicateSet::onReplayLog( UINT32 csLID, UINT32 clLID,
-                                        INT32 extLID, DPS_LSN_OFFSET offset )
+   void _clsReplicateSet::onPrepareReplayLog( DPS_LSN_OFFSET offset )
    {
-      _notifySrcSessions( csLID, clLID, extLID, offset ) ;
+      _updateNtyReplayOffset( offset ) ;
+   }
+
+   void _clsReplicateSet::onReplayLog( const utilLogExInfo &info,
+                                       DPS_LSN_OFFSET offset,
+                                       DPS_LSN_VER version,
+                                       UINT32 length,
+                                       DPS_LOG_TYPE logType )
+   {
+      _notifySrcSessions( info.getCSLID(),
+                          info.getCLLID(),
+                          info.getExtentLID(),
+                          offset ) ;
    }
 
    void _clsReplicateSet::onMoveLog( DPS_LSN_OFFSET moveToOffset,
@@ -182,7 +199,7 @@ namespace engine
       {
          _lastLogMoveTick.swapGreaterThan( pmdGetDBTick() ) ;
       }
-      resetNtyReplayOffset( moveToOffset ) ;
+      _resetNtyReplayOffset( moveToOffset ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS, "_clsReplicateSet::_notifySrcSessions" )
@@ -372,8 +389,10 @@ namespace engine
       // register dps log event handler
       _logger->regEventHandler( this ) ;
 
-      rc = _replBucket.init( this ) ;
+      rc = _replBucket.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init repl bucket failed, rc: %d", rc ) ;
+      _replBucket.regEventHandler( this ) ;
+      _replBucket.regEventHandler( sdbGetRTNCB()->getChangeStreamNotifier() ) ;
 
       pNetFrame = _agent->getFrame() ;
       /// register repl net agent to net monitor for connections
@@ -2251,7 +2270,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__CANASSIGNLOGPAGE, "_clsReplicateSet::canAssignLogPage" )
-   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb )
+   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen,
+                                             pmdEDUCB *cb,
+                                             BOOLEAN &needCache )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET__CANASSIGNLOGPAGE );
       INT32 rc = SDB_OK ;

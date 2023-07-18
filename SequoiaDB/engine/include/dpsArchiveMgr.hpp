@@ -70,9 +70,14 @@ namespace engine
       BOOLEAN isInterrupted() ;
 
       // event handler
-      virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) ;
-      virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                  INT32 extLID, DPS_LSN_OFFSET offset )
+      virtual INT32 canAssignLogPage( UINT32 reqLen,
+                                      _pmdEDUCB *cb,
+                                      BOOLEAN &needCache ) ;
+      virtual void  onPrepareLog( const utilLogExInfo &info,
+                                  DPS_LSN_OFFSET offset,
+                                  DPS_LSN_VER version,
+                                  UINT32 length,
+                                  DPS_LOG_TYPE logType )
       {
          return ;
       }

@@ -695,8 +695,8 @@ namespace engine
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, cb ) ;
+         info.setInfoEx( cb, mbContext->csUID(), _dmsData->logicalID(),
+                         mbContext->clUID(), mbContext->clLID(), pageID ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -711,8 +711,8 @@ namespace engine
       }
       else
       {
-         cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID ) ;
+         cb->setDataExInfo( pFullName, mbContext->csUID(), _dmsData->logicalID(),
+                            mbContext->clUID(), mbContext->clLID(), pageID ) ;
       }
 
       /// update last lsn
@@ -777,9 +777,6 @@ namespace engine
       _dmsLobDataMapBlk *blk = NULL ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       CHAR *oldData = NULL ;
       UINT32 oldLen = 0 ;
@@ -789,6 +786,9 @@ namespace engine
       UINT32 pageIncSize = 0 ;
       UINT32 pageSize = _data.pageSize() ;
       dmsLobCryptor *pCryptor = NULL ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( DMS_LOB_INVALID_PAGEID == pageID )
       {
@@ -931,9 +931,7 @@ namespace engine
                                  oldData,
                                  pageSize,
                                  pageID,
-                                 transID,
-                                 preTransLsn,
-                                 relatedLsn,
+                                 transInfo,
                                  logRecord ) ;
             if ( SDB_OK != rc )
             {
@@ -941,7 +939,7 @@ namespace engine
                goto error ;
             }
 
-            rc = dpscb->checkSyncControl( logRecord.head()._length, cb ) ;
+            rc = dpscb->checkSyncControl( info, logRecord.head()._length, cb ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "check sync control failed, rc: %d", rc ) ;
@@ -990,8 +988,8 @@ namespace engine
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, cb ) ;
+         info.setInfoEx( cb, mbContext->csUID(), _dmsData->logicalID(),
+                         mbContext->clUID(), mbContext->clLID(), pageID ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -1002,8 +1000,8 @@ namespace engine
       }
       else
       {
-         cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID ) ;
+         cb->setDataExInfo( pFullName, mbContext->csUID(), _dmsData->logicalID(),
+                            mbContext->clUID(), mbContext->clLID(), pageID ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -1135,12 +1133,12 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       UINT32 pageSize = 0 ;
       BOOLEAN locked = FALSE ;
       dmsLobPageEncryptionInfo encInfo ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1165,9 +1163,7 @@ namespace engine
                               record._data,
                               pageSize,
                               page,
-                              transID,
-                              preTransLsn,
-                              relatedLsn,
+                              transInfo,
                               logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -1175,7 +1171,7 @@ namespace engine
             goto error ;
          }
 
-         rc = dpscb->checkSyncControl( logRecord.head()._length, cb ) ;
+         rc = dpscb->checkSyncControl( info, logRecord.head()._length, cb ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "check sync control failed, rc: %d", rc ) ;
@@ -1537,9 +1533,6 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       UINT32 resevedLength = 0 ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       CHAR *oldData = NULL ;
       UINT32 oldLen = 0 ;
@@ -1558,6 +1551,9 @@ namespace engine
       BOOLEAN needSubmit = FALSE, isMetaPage = FALSE ;
       dmsLobCryptor *pCryptor = NULL ;
       dmsLobPageEncryptionInfo encInfo ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1586,9 +1582,7 @@ namespace engine
                                oldData,
                                pageSize,
                                page,
-                               transID,
-                               preTransLsn,
-                               relatedLsn,
+                               transInfo,
                                logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -1596,7 +1590,7 @@ namespace engine
             goto error ;
          }
 
-         rc = dpscb->checkSyncControl( logRecord.head()._length, cb ) ;
+         rc = dpscb->checkSyncControl( info, logRecord.head()._length, cb ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "check sync control failed, rc: %d", rc ) ;
@@ -1775,9 +1769,7 @@ namespace engine
                                oldData,
                                pageSize,
                                page,
-                               transID,
-                               preTransLsn,
-                               relatedLsn,
+                               transInfo,
                                logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -1786,7 +1778,8 @@ namespace engine
          }
 
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(), page, cb ) ;
+         info.setInfoEx( cb, mbContext->csUID(), _dmsData->logicalID(),
+                         mbContext->clUID(), mbContext->clLID(), page ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -1802,8 +1795,8 @@ namespace engine
       }
       else
       {
-         cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), page ) ;
+         cb->setDataExInfo( fullName, mbContext->csUID(), _dmsData->logicalID(),
+                            mbContext->clUID(), mbContext->clLID(), page ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -3048,7 +3041,7 @@ namespace engine
             goto error ;
          }
 
-         rc = dpscb->checkSyncControl( logRecord.head()._length, cb ) ;
+         rc = dpscb->checkSyncControl( info, logRecord.head()._length, cb ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "check sync control failed, rc: %d", rc ) ;
@@ -3145,9 +3138,8 @@ namespace engine
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(),
-                         mbContext->clLID(),
-                         DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, mbContext->csUID(), _dmsData->logicalID(),
+                         mbContext->clUID(), mbContext->clLID() ) ;
 
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
@@ -3169,8 +3161,8 @@ namespace engine
       else if ( cb->getLsnCount() > 0 )
       {
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_LOB ) ;
-         cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, mbContext->csUID(), _dmsData->logicalID(),
+                            mbContext->clUID(), mbContext->clLID() ) ;
       }
 
    done:

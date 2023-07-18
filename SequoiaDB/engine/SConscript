@@ -209,7 +209,10 @@ utilFiles = [
       "util/utilSecure.cpp",
       "util/utilLocation.cpp",
       "util/utilLocale.cpp",
-      "util/utilSecurityKeys.cpp"
+      "util/utilSecurityKeys.cpp",
+      "util/utilStreamToken.cpp",
+      "util/utilChangeStreamOptions.cpp",
+      "util/utilChangeStreamWatchInfo.cpp"
       ]
 
 rtnFiles = [
@@ -312,7 +315,19 @@ rtnFiles = [
       "rtn/rtnRecycleBinManager.cpp",
       "rtn/rtnSnapshotProcessor.cpp",
       "rtn/rtnHintModifier.cpp",
-      "rtn/rtnInsertModifier.cpp"
+      "rtn/rtnInsertModifier.cpp",
+      "rtn/rtnStreamRecordBuilder.cpp",
+      "rtn/rtnChangeStreamDispatcher.cpp",
+      "rtn/rtnChangeStreamNotifier.cpp",
+      "rtn/rtnChangeStreamSource.cpp",
+      "rtn/rtnChangeStreamCache.cpp",
+      "rtn/rtnLogFetcher.cpp",
+      "rtn/rtnLogInfoFilter.cpp",
+      "rtn/rtnLogRecordFilter.cpp",
+      "rtn/rtnCommandStream.cpp",
+      "rtn/rtnContextStreamBase.cpp",
+      "rtn/rtnContextChangeStream.cpp",
+      "rtn/rtnLogRecordSerializer.cpp"
       ]
 
 msgFiles = [
@@ -423,7 +438,8 @@ monFiles = [
       "mon/monMgr.cpp",
       "mon/monClass.cpp",
       "mon/monLatch.cpp",
-      "mon/monCB.cpp"
+      "mon/monCB.cpp",
+      "mon/monStreamMonitorManager.cpp"
       ]
 
 pcreFiles = [
@@ -664,7 +680,8 @@ coordFiles = [
       "coord/coordRemoteConnection.cpp",
       "coord/coordDSChecker.cpp",
       "coord/coordCacheAssist.cpp",
-      "coord/coordCacheCleaner.cpp"
+      "coord/coordCacheCleaner.cpp",
+      "coord/coordCommandStream.cpp"
       ]
 
 aggrFiles = [

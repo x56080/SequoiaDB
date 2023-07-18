@@ -608,6 +608,45 @@ namespace engine
       virtual BOOLEAN _isCurrent() const ;
    } ;
 
+   /*
+      _rtnListStreams define
+    */
+   class _rtnListStreams : public _rtnList
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnListStreams() ;
+      virtual ~_rtnListStreams() = default ;
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnListStreams rtnListStreams ;
+
+   /*
+      _rtnListStreamsInner define
+    */
+   class _rtnListStreamsInner : public _rtnListInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnListStreamsInner() ;
+      virtual ~_rtnListStreamsInner() = default ;
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnListStreamsInner rtnListStreamsInner ;
+
 }
 
 #endif //RTN_COMMAND_LIST_HPP_

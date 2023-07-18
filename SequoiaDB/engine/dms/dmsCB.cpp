@@ -54,6 +54,7 @@
 #include "ossLatch.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
+#include "utilUniqueID.hpp"
 
 #include <list>
 
@@ -660,6 +661,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB__CSCBRENAME ) ;
 
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
       UINT32 csLID = ~0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       BOOLEAN isReserved = FALSE ;
@@ -679,7 +681,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to build record:%d",rc ) ;
             goto error ;
          }
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -736,10 +738,11 @@ namespace engine
       _cscbNameMap[ pCSCB->_name ] = suID ;
 
       /// write log
+      csUID = pCSCB->_su->CSUniqueID() ;
       csLID = pCSCB->_su->LogicalCSID() ;
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUID, csLID ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -753,7 +756,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pNewName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( pNewName, csUID, csLID ) ;
       }
 
       // Release the mutex first, since event handler needs the mutex
@@ -816,6 +819,7 @@ namespace engine
 
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       dmsStorageUnitID newSuID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
       UINT32 csLID = ~0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       BOOLEAN isReserved = FALSE ;
@@ -835,7 +839,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to build record:%d",rc ) ;
             goto error ;
          }
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -890,11 +894,12 @@ namespace engine
 
       /// write log
       SDB_ASSERT ( pCSCB->_su, "su can't be null" ) ;
+      csUID = pCSCB->_su->CSUniqueID() ;
       csLID = pCSCB->_su->LogicalCSID() ;
 
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUID, csLID ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -909,7 +914,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( pName, csUID, csLID ) ;
       }
 
    done :
@@ -953,6 +958,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB__CSCBNMREMVP2 );
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
       UINT32 csLID = ~0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       BOOLEAN isReserved = FALSE ;
@@ -982,7 +988,7 @@ namespace engine
             goto error ;
          }
 
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -1029,10 +1035,11 @@ namespace engine
       }
 
       // log here
+      csUID = pCSCB->_su->CSUniqueID() ;
       csLID = pCSCB->_su->LogicalCSID() ;
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUID, csLID ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -1047,7 +1054,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pName, ~0, DMS_INVALID_EXTENT, csLID ) ;
+         cb->setDataExInfo( pName, csUID, csLID ) ;
       }
 
    done :
@@ -1637,6 +1644,41 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_NAMETOCSINFO, "_SDB_DMSCB::nameToCSInfo" )
+   INT32 _SDB_DMSCB::nameToCSInfo( const CHAR *pName,
+                                   dmsStorageUnitID &suID,
+                                   UINT32 &csLID,
+                                   utilCSUniqueID &csUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_NAMETOCSINFO ) ;
+
+      suID = DMS_INVALID_SUID ;
+      csLID = DMS_INVALID_LOGICCSID ;
+      csUniqueID = UTIL_UNIQUEID_NULL ;
+
+      if ( NULL == pName )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else
+      {
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         SDB_DMS_CSCB *cscb = NULL ;
+         rc = _CSCBNameLookup( pName, &cscb, &suID, TRUE ) ;
+         if ( SDB_OK == rc )
+         {
+            csLID = cscb->_su->LogicalCSID() ;
+            csUniqueID = cscb->_su->CSUniqueID() ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_NAMETOCSINFO, rc ) ;
+
+      return rc ;
+   }
+
    _dmsStorageUnit *_SDB_DMSCB::suLock ( dmsStorageUnitID suID )
    {
       ossScopedLock _lock(&_mutex, SHARED) ;
@@ -1835,6 +1877,8 @@ namespace engine
       SDB_DMS_CSCB *tmpCSCB = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
+      UINT32 csLID = ~0 ;
       dmsStorageUnit* su = NULL ;
       dmsStorageUnit* suTmp = NULL ;
       BOOLEAN isMetaLocked = FALSE ;
@@ -1856,7 +1900,7 @@ namespace engine
          rc = dpsAddUniqueID2Record( csname, csUniqueID, clInfoObj, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record:%d", rc ) ;
 
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -1914,10 +1958,13 @@ namespace engine
                     "Failed to change cs unique id, rc: %d",
                     rc ) ;
 
+      csUID = cscb->_su->CSUniqueID() ;
+      csLID = cscb->_su->LogicalCSID() ;
+
       // write dps
       if ( dpsCB )
       {
-         info.setInfoEx( cscb->_su->LogicalCSID(), ~0, DMS_INVALID_EXTENT, cb );
+         info.setInfoEx( cb, csUID, csLID ) ;
          rc = dpsCB->prepare ( info ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to insert cscrt into log, rc: %d",
@@ -1930,8 +1977,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( csname, cscb->_su->LogicalCSID(), ~0,
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( csname, csUID, csLID ) ;
       }
 
       if ( isMetaLocked )
@@ -2034,7 +2080,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to build record:%d", rc ) ;
             goto error ;
          }
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = record.alignedLen() ;
@@ -2078,7 +2124,7 @@ namespace engine
       if ( SDB_OK == rc && dpsCB )
       {
          UINT32 suLID = su->LogicalCSID() ;
-         info.setInfoEx( suLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUniqueID, suLID ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -2091,8 +2137,8 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pName, su->LogicalCSID(), ~0,
-                            DMS_INVALID_EXTENT ) ;
+         UINT32 suLID = su->LogicalCSID() ;
+         cb->setDataExInfo( pName, csUniqueID, suLID ) ;
       }
 
       su->setEventHandlers( &_handlers ) ;
@@ -3091,6 +3137,7 @@ namespace engine
 
       SDB_DMS_CSCB *csCB = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
       UINT32 csLID = ~0 ;
 
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
@@ -3119,7 +3166,7 @@ namespace engine
          rc = dpsReturn2Record( &( options._boOptions ), record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
 
-         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpsCB->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check sync control, rc: %d",
                       rc ) ;
 
@@ -3146,6 +3193,7 @@ namespace engine
                       "storage unit [%s], it is not deleting", recycleName ) ;
          }
 
+         csUID = csCB->_su->CSUniqueID() ;
          csLID = csCB->_su->LogicalCSID() ;
       }
 
@@ -3183,7 +3231,7 @@ namespace engine
 
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( cb, csUID, csLID ) ;
          rc = dpsCB->prepare( info ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert DPS log, rc: %d", rc ) ;
 
@@ -3194,7 +3242,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( originName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( originName, csUID, csLID ) ;
       }
 
       PD_LOG( PDDEBUG, "Finish return collection space P2 [origin: %s, "

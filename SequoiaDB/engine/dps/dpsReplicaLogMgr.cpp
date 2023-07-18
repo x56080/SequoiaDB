@@ -467,12 +467,14 @@ namespace engine
 
             if ( info.isNeedNotify() && _vecEventHandler.size() > 0 )
             {
+               utilLogExInfo dummyInfo( (utilDataExInfo)( info ) ) ;
                for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
                {
-                  _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
-                                                     info.getCLLID(),
-                                                     info.getExtentLID(),
-                                                     dummyhead._lsn ) ;
+                  _vecEventHandler[i]->onPrepareLog( dummyInfo,
+                                                     dummyhead._lsn,
+                                                     dummyhead._version,
+                                                     dummyhead._length,
+                                                     LOG_TYPE_DUMMY ) ;
                }
             }
          }
@@ -516,14 +518,20 @@ namespace engine
       _currentLsn = _lsn ;
       _lsn.offset += head._length ;
 
+      if ( !info.canUseLogRecordCache( head._length ) )
+      {
+         info.disableCache() ;
+      }
+
       if ( info.isNeedNotify() && _vecEventHandler.size() > 0 )
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
-                                               info.getCLLID(),
-                                               info.getExtentLID(),
-                                               head._lsn ) ;
+            _vecEventHandler[i]->onPrepareLog( info,
+                                               head._lsn,
+                                               head._version,
+                                               head._length,
+                                               (DPS_LOG_TYPE)( head._type ) ) ;
          }
       }
 
@@ -544,11 +552,22 @@ namespace engine
       // if has dummy block
       if ( info.hasDummy() )
       {
-         _mergeLogs( info.getDummyBlock(), info.getDummyBlock().pageMeta());
+         _mergeLogs( info.getDummyBlock(),
+                     info.getDummyBlock().pageMeta() ) ;
          SHARED_UNLOCK_NODES( info.getDummyBlock().pageMeta() );
       }
 
-      _mergeLogs( info.getMergeBlock(), info.getMergeBlock().pageMeta() );
+      if ( info.isLogRecordCacheReady() )
+      {
+         _mergeLogsWithCache( info.getMergeBlock(),
+                              info.getMergeBlock().pageMeta(),
+                              info.getLogRecordCache() ) ;
+      }
+      else
+      {
+         _mergeLogs( info.getMergeBlock(),
+                     info.getMergeBlock().pageMeta() );
+      }
       SHARED_UNLOCK_NODES( info.getMergeBlock().pageMeta() );
 
       if ( _transCB && _transCB->isTransOn() && !_restoreFlag )
@@ -1291,6 +1310,80 @@ namespace engine
       return;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__MRGLOGSCACHE, "_dpsReplicaLogMgr::_mergeLogsWithCache" )
+   void _dpsReplicaLogMgr::_mergeLogsWithCache( _dpsMergeBlock &block,
+                                                const dpsPageMeta &meta,
+                                                utilLogRecordCache &cache )
+   {
+      PD_TRACE_ENTRY ( SDB__DPSRPCMGR__MRGLOGSCACHE ) ;
+
+      UINT32 offset = meta.offset ;
+      UINT32 work = meta.beginSub ;
+      dpsLogRecordHeader &head = block.record().head() ;
+      dpsLogRecord::iterator itr( &( block.record() ) ) ;
+
+      UINT32 bufferUsed = 0 ;
+      CHAR *buffer = cache.getBuffer() ;
+      SDB_ASSERT( NULL != buffer, "buffer should be valid" ) ;
+      CHAR *writePtr = buffer ;
+
+      // copy header
+      ossMemcpy( writePtr, (CHAR *)( &head ), sizeof( dpsLogRecordHeader ) ) ;
+      bufferUsed += sizeof( dpsLogRecordHeader ) ;
+      writePtr += sizeof( dpsLogRecordHeader ) ;
+
+      if ( block.isRow() )
+      {
+         /// row data's size should always be one.
+         /// and dataheader should not be merged.
+         BOOLEAN res = itr.next() ;
+         SDB_ASSERT( res, "impossible" ) ;
+         const _dpsRecordEle &dataMeta = itr.dataMeta() ;
+         ossMemcpy( writePtr, itr.value(), dataMeta.len ) ;
+         bufferUsed += dataMeta.len ;
+         writePtr += dataMeta.len ;
+      }
+      else if ( LOG_TYPE_DUMMY != head._type )
+      {
+         UINT32 mergeSize = 0 ;
+
+         while ( itr.next() )
+         {
+            const _dpsRecordEle &dataMeta = itr.dataMeta() ;
+            SDB_ASSERT( DPS_INVALID_TAG != dataMeta.tag, "impossible" ) ;
+
+            ossMemcpy( writePtr, (CHAR *)( &dataMeta ), sizeof( dataMeta ) ) ;
+            bufferUsed += sizeof( dataMeta ) ;
+            writePtr += sizeof( dataMeta ) ;
+            mergeSize += sizeof( dataMeta ) ;
+
+            ossMemcpy( writePtr, itr.value(), dataMeta.len ) ;
+            bufferUsed += dataMeta.len ;
+            writePtr += dataMeta.len ;
+            mergeSize += dataMeta.len ;
+         }
+
+         /// the len might be changed in preparePages().
+         /// we add a stop flag to record for loading.
+         if (  mergeSize <= head._length -
+                            sizeof( dpsRecordEle ) -
+                            sizeof( dpsLogRecordHeader ) )
+         {
+            ossMemset( writePtr, 0, sizeof( dpsRecordEle ) ) ;
+            bufferUsed += sizeof( dpsRecordEle ) ;
+            writePtr += sizeof( dpsRecordEle ) ;
+         }
+      }
+
+      SDB_ASSERT( bufferUsed <= cache.getCapacity(), "buffer overflow" ) ;
+      cache.doneFill() ;
+
+      _mergePage( buffer, bufferUsed, work, offset ) ;
+
+      PD_TRACE_EXIT ( SDB__DPSRPCMGR__MRGLOGSCACHE ) ;
+      return;
+   }
+
    // copy data into buffer, return workSub = current working node, and offset
    // for the offset in the current working node
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__MRGPAGE, "_dpsReplicaLogMgr::_mergePage" )
@@ -1572,19 +1665,36 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_CHECKSYNCCONTROL, "_dpsReplicaLogMgr::checkSyncControl" )
-   INT32 _dpsReplicaLogMgr::checkSyncControl( UINT32 reqLen, _pmdEDUCB * cb )
+   INT32 _dpsReplicaLogMgr::checkSyncControl( dpsMergeInfo &info,
+                                              UINT32 reqLen,
+                                              _pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPSRPCMGR_CHECKSYNCCONTROL ) ;
 
       if ( _vecEventHandler.size() > 0 )
       {
+         BOOLEAN needCache = FALSE ;
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
+            BOOLEAN tmpNeedCache = FALSE ;
+            rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb, tmpNeedCache ) ;
             if ( rc )
             {
                break ;
+            }
+            if ( tmpNeedCache && !needCache )
+            {
+               needCache = TRUE ;
+            }
+         }
+         if ( needCache && info.isCacheEnabled() )
+         {
+            // pre-allocate cache, need add size of terminator
+            info.allocLogRecordCache( reqLen + sizeof( dpsRecordEle ) ) ;
+            if ( !info.isLogRecordCacheReady() )
+            {
+               PD_LOG( PDWARNING, "Failed to allocate cache with size [%u]", reqLen ) ;
             }
          }
       }

@@ -309,6 +309,14 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail ) ;
 
+      INT32 watch( const _sptArguments &arg,
+                   _sptReturnVal &rval,
+                   bson::BSONObj &detail ) ;
+
+      INT32 getChangeStreamToken( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail ) ;
+
       INT32 resolve( const _sptArguments &arg,
                      UINT32 opcode,
                      BOOLEAN &processed,

@@ -438,5 +438,31 @@ namespace engine
       return FALSE ;
    }
 
+   const CHAR *dmsGetStorageTypeName( DMS_STORAGE_TYPE storageType )
+   {
+      const CHAR *name = NULL ;
+
+      switch ( storageType )
+      {
+         case DMS_STORAGE_NORMAL :
+         {
+            name = "NORMAL" ;
+            break ;
+         }
+         case DMS_STORAGE_CAPPED :
+         {
+            name = "CAPPED" ;
+            break ;
+         }
+         default :
+         {
+            name = "UNKNOWN" ;
+            break ;
+         }
+      }
+
+      return name ;
+   }
+
 }
 

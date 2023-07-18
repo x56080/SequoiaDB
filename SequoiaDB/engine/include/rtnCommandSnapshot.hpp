@@ -1020,6 +1020,46 @@ namespace engine
 
    typedef class _rtnSnapshotRecycleBinInner rtnSnapshotRecycleBinInner ;
 
+   /*
+      _rtnSnapshotStreams define
+    */
+   class _rtnSnapshotStreams : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnSnapshotStreams() ;
+      virtual ~_rtnSnapshotStreams() = default ;
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnSnapshotStreams rtnSnapshotStreams ;
+
+   /*
+      _rtnSnapshotStreamsInner define
+    */
+   class _rtnSnapshotStreamsInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnSnapshotStreamsInner() ;
+      virtual ~_rtnSnapshotStreamsInner() = default ;
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnSnapshotStreamsInner rtnSnapshotStreamsInner ;
+
 }
 
 #endif //RTN_COMMAND_SNAPSHOT_HPP_

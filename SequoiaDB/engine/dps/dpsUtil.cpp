@@ -38,6 +38,7 @@
 *******************************************************************************/
 
 #include "dpsUtil.hpp"
+#include "dpsDef.hpp"
 #include "dpsTransDef.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
@@ -212,6 +213,95 @@ namespace engine
       if ( OSS_BIT_TEST( flags, DPS_FLG_NON_BS_OP ) )
       {
          dpsAppendFlagString( pBuffer, bufSize, DPS_RECORD_FLAGS_NON_BUSINESSOP ) ;
+      }
+   }
+
+   void dpsInvalidateCataTypeToString( UINT8 type, CHAR *pBuffer, INT32 bufSize )
+   {
+      SDB_ASSERT ( pBuffer, "pBuffer can't be NULL" ) ;
+      ossMemset ( pBuffer, 0, bufSize ) ;
+
+      if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_ALL ) )
+      {
+         dpsAppendFlagString( pBuffer, bufSize, "all" ) ;
+      }
+      else
+      {
+         if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_CATA ) )
+         {
+            dpsAppendFlagString( pBuffer, bufSize, "cata" ) ;
+         }
+         if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_STAT ) )
+         {
+            dpsAppendFlagString( pBuffer, bufSize, "stat" ) ;
+         }
+         if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_PLAN ) )
+         {
+            dpsAppendFlagString( pBuffer, bufSize, "plan" ) ;
+         }
+         if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_TRANS ) )
+         {
+            dpsAppendFlagString( pBuffer, bufSize, "trans" ) ;
+         }
+      }
+   }
+
+   const CHAR *dpsGetOPName( UINT16 type )
+   {
+      switch( type )
+      {
+      case LOG_TYPE_DUMMY :
+         return DPS_LOG_OP_NAME_DUMMY ;
+      case LOG_TYPE_DATA_INSERT :
+         return DPS_LOG_OP_NAME_INSERT ;
+      case LOG_TYPE_DATA_UPDATE :
+         return DPS_LOG_OP_NAME_UPDATE ;
+      case LOG_TYPE_DATA_DELETE :
+         return DPS_LOG_OP_NAME_DELETE ;
+      case LOG_TYPE_CS_CRT :
+         return DPS_LOG_OP_NAME_CREATE_CS ;
+      case LOG_TYPE_CS_DELETE :
+         return DPS_LOG_OP_NAME_DELETE_CS ;
+      case LOG_TYPE_CL_CRT :
+         return DPS_LOG_OP_NAME_CREATE_CL ;
+      case LOG_TYPE_CL_DELETE :
+         return DPS_LOG_OP_NAME_DELETE_CL ;
+      case LOG_TYPE_IX_CRT :
+         return DPS_LOG_OP_NAME_CREATE_IX ;
+      case LOG_TYPE_IX_DELETE :
+         return DPS_LOG_OP_NAME_DELETE_IX ;
+      case LOG_TYPE_CL_RENAME :
+         return DPS_LOG_OP_NAME_CL_RENAME ;
+      case LOG_TYPE_CL_TRUNC :
+         return DPS_LOG_OP_NAME_TRUNCATE_CL ;
+      case LOG_TYPE_TS_COMMIT :
+         return DPS_LOG_OP_NAME_TS_COMMIT ;
+      case LOG_TYPE_TS_ROLLBACK :
+         return DPS_LOG_OP_NAME_TS_ROLLBACK ;
+      case LOG_TYPE_INVALIDATE_CATA :
+         return DPS_LOG_OP_NAME_INVALIDATE_CATA ;
+      case LOG_TYPE_LOB_WRITE :
+         return DPS_LOG_OP_NAME_LOB_WRITE ;
+      case LOG_TYPE_LOB_REMOVE :
+         return DPS_LOG_OP_NAME_LOB_REMOVE ;
+      case LOG_TYPE_LOB_UPDATE :
+         return DPS_LOG_OP_NAME_LOB_UPDATE ;
+      case LOG_TYPE_LOB_TRUNCATE :
+         return DPS_LOG_OP_NAME_LOB_TRUNCATE ;
+      case LOG_TYPE_CS_RENAME :
+         return DPS_LOG_OP_NAME_CS_RENAME ;
+      case LOG_TYPE_DATA_POP :
+         return DPS_LOG_OP_NAME_POP ;
+      case LOG_TYPE_ALTER :
+         return DPS_LOG_OP_NAME_ALTER ;
+      case LOG_TYPE_ADDUNIQUEID :
+         return DPS_LOG_OP_NAME_ADDUNIQUEID ;
+      case LOG_TYPE_RETURN :
+         return DPS_LOG_OP_NAME_RETURN ;
+      case LOG_TYPE_SEC_KEY_CRT :
+         return DPS_LOG_OP_NAME_SEC_KEY_CRT ;
+      default:
+         return "unknown";
       }
    }
 

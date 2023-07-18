@@ -39,6 +39,7 @@
 #ifndef MONDUMP_HPP_
 #define MONDUMP_HPP_
 
+#include "monStreamMonitorManager.hpp"
 #include "pmdEDU.hpp"
 #include "rtnCB.hpp"
 #include "rtnContextDump.hpp"
@@ -963,6 +964,42 @@ namespace engine
          dpsDBNodeID          _nodeId      ;
    } ;
    typedef _monTransWaitsFetch monTransWaitsFetch ;
+
+   /*
+     _monStreamsFetch define
+    */
+   class _monStreamsFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+   public:
+      _monStreamsFetch() ;
+      virtual ~_monStreamsFetch() = default ;
+
+      /*
+          Use isCurrent for isIncludeSystem
+       */
+      virtual INT32 init( pmdEDUCB *cb,
+                          BOOLEAN isCurrent,
+                          BOOLEAN isDetail,
+                          UINT32 addInfoMask,
+                          const bson::BSONObj obj = bson::BSONObj() ) ;
+
+      virtual const CHAR *getName() const
+      {
+         return CMD_NAME_SNAPSHOT_STREAMS ;
+      }
+
+      virtual INT32 fetch( bson::BSONObj &obj ) ;
+
+   private:
+      UINT32   _addInfoMask = 0 ;
+      BOOLEAN  _isDetail = FALSE ;
+      monStreamItemList _streamList ;
+      monStreamDetailedItemList _streamDetailedList ;
+   } ;
+
+   typedef class _monStreamsFetch monStreamsFetch ;
 
 }
 

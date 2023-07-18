@@ -174,19 +174,18 @@ namespace engine
                             SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_PRE ;
 
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      curTransID = cb->getTransID() ;
-      preTransLsn = cb->getCurTransLsn() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    DPS_INVALID_LSN_OFFSET ) ;
 
-      if ( curTransID == DPS_INVALID_TRANS_ID ||
-           preTransLsn == DPS_INVALID_LSN_OFFSET )
+      if ( transInfo._transID == DPS_INVALID_TRANS_ID ||
+           transInfo._preTransLSN == DPS_INVALID_LSN_OFFSET )
       {
          goto done ;
       }
@@ -196,15 +195,15 @@ namespace engine
          goto done ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( curTransID ) ;
+      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute pre-commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
-              preTransLsn ) ;
+              dpsTransIDToString( transInfo._transID ).c_str(),
+              transInfo._preTransLSN ) ;
 
-      rc = dpsTransCommit2Record( curTransID, preTransLsn, firstTransLsn,
+      rc = dpsTransCommit2Record( transInfo, firstTransLsn,
                                   attr, &nodeNum, pNodes, record ) ;
       if ( SDB_OK != rc )
       {
@@ -212,7 +211,7 @@ namespace engine
          goto error ;
       }
 
-      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
+      info.setDefInfoEx( cb ) ;
       info.enableTrans() ;
       rc = dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
@@ -244,16 +243,15 @@ namespace engine
 
       IRemoteOperator *pRemoteOperator = NULL ;
 
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      curTransID = cb->getTransID() ;
-      preTransLsn = cb->getCurTransLsn() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    DPS_INVALID_LSN_OFFSET ) ;
 
-      if ( DPS_INVALID_TRANS_ID != curTransID )
+      if ( DPS_INVALID_TRANS_ID != transInfo._transID )
       {
          DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
       }
@@ -269,8 +267,8 @@ namespace engine
          }
       }
 
-      if ( curTransID == DPS_INVALID_TRANS_ID ||
-           preTransLsn == DPS_INVALID_LSN_OFFSET )
+      if ( transInfo._transID == DPS_INVALID_TRANS_ID ||
+           transInfo._preTransLSN == DPS_INVALID_LSN_OFFSET )
       {
          cb->setTransStatus( DPS_TRANS_COMMIT ) ;
 
@@ -278,7 +276,7 @@ namespace engine
          // NOTE: actually it is empty
          cb->getTransExecutor()->commitMBStats() ;
 
-         sdbGetTransCB()->delTransCB( curTransID ) ;
+         sdbGetTransCB()->delTransCB( transInfo._transID ) ;
          cb->setTransID( DPS_INVALID_TRANS_ID ) ;
          // release all transactions lock
          sdbGetTransCB()->transLockReleaseAll( cb ) ;
@@ -297,15 +295,15 @@ namespace engine
          attr = DPS_TS_COMMIT_ATTR_SND ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( curTransID ) ;
+      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
-              preTransLsn ) ;
+              dpsTransIDToString( transInfo._transID ).c_str(),
+              transInfo._preTransLSN ) ;
 
-      rc = dpsTransCommit2Record( curTransID, preTransLsn, firstTransLsn,
+      rc = dpsTransCommit2Record( transInfo, firstTransLsn,
                                   attr, NULL, NULL, record ) ;
       if ( SDB_OK != rc )
       {
@@ -313,7 +311,7 @@ namespace engine
          goto error ;
       }
 
-      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
+      info.setDefInfoEx( cb ) ;
       info.enableTrans() ;
       rc = dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
@@ -327,7 +325,7 @@ namespace engine
       // the mbstat can be protected by TX locks
       cb->getTransExecutor()->commitMBStats() ;
 
-      sdbGetTransCB()->delTransCB( curTransID ) ;
+      sdbGetTransCB()->delTransCB( transInfo._transID ) ;
       cb->setTransID( DPS_INVALID_TRANS_ID ) ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       // release all transactions lock

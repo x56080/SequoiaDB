@@ -52,7 +52,6 @@
 using namespace bson ;
 namespace engine
 {
-#define DPS_RECORD_FLAGS_STATUS_LEN 127
 
 #define DPS_RECORD_ELE_HEADER_LEN 5
 

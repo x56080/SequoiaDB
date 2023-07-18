@@ -1349,4 +1349,37 @@ namespace engine
       return SDB_OK ;
    }
 
+   /*
+      _coordCMDListStreams implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListStreams,
+                                      CMD_NAME_LIST_STREAMS,
+                                      TRUE ) ;
+
+
+   const CHAR* _coordCMDListStreams::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_LIST_STREAMS_INTR ;
+   }
+
+   const CHAR* _coordCMDListStreams::getInnerAggrContent()
+   {
+      return COORD_EMPTY_AGGR_CONTEXT ;
+   }
+
+   /*
+      _coordCMDListStreamsIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListStreamsIntr,
+                                      CMD_NAME_LIST_STREAMS_INTR,
+                                      TRUE ) ;
+
+   void _coordCMDListStreamsIntr::_preSet( pmdEDUCB *cb,
+                                           coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
+   }
+
 }

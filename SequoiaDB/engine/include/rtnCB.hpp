@@ -57,6 +57,7 @@
 #include "rtnRemoteMessenger.hpp"
 #include "rtnIxmKeySorter.hpp"
 #include "rtnScannerChecker.hpp"
+#include "rtnChangeStreamNotifier.hpp"
 #include "dmsTaskStatus.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
@@ -100,6 +101,8 @@ namespace engine
 
       rtnIxmKeySorterCreator    _sorterCreator ;
       rtnScannerCheckerCreator  _checkerCreator ;
+
+      rtnChangeStreamNotifier   _changeStreamNotifier ;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
@@ -264,6 +267,11 @@ namespace engine
       OSS_INLINE dmsTaskStatusMgr* getTaskStatusMgr()
       {
          return &_taskStatusMgr ;
+      }
+
+      OSS_INLINE rtnChangeStreamNotifier *getChangeStreamNotifier()
+      {
+         return &_changeStreamNotifier ;
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;

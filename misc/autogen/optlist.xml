@@ -3057,4 +3057,58 @@
       <hidden>true</hidden>
   </opt>
 
+   <opt>
+      <name>PMD_OPTION_STREAMIDLETIMEOUT</name>
+      <long>streamidletimeout</long>
+      <description>
+        <en>Timeout of idle data streams, default: 5 in minutes, range: [ 0, 1440 ]</en>
+        <cn>数据流空闲超时时间，单位：分钟，默认：5，取值范围：[ 0, 1440 ]。</cn>
+      </description>
+      <reloadable>
+        <en>Take effect immediately</en>
+        <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Timeout of idle data streams.<fig></fig>
+            2. Default is 5 in minutes, range is [ 0, 1440 ].<fig></fig>
+            3. If data stream is idle without get-more message after timeout, data stream will be killed.<fig></fig>
+            4. 0 means no limit on idle timeout of data streams.</en>
+        <cn>1. 数据流空闲超时时间，单位：分钟。<fig></fig>
+            2. 默认是5，取值范围是 [ 0, 1440 ]。<fig></fig>
+            3. 如果上下文超过空闲时间没有接受到新的消息，上下文将会被自动清理。<fig></fig>
+            4. 取值为0，表示对上下文的空闲超时没有限制。</cn>
+      </detail>
+      <type>int</type>
+      <default>5</default>
+      <typeofweb>int</typeofweb>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_CHANGESTREAMRESUMEWINDOW</name>
+      <long>changestreamresumewindow</long>
+      <description>
+        <en>Size in MB of resume window of change streams, default: 0 (auto), range: [ 0, 2^31 - 1 ]</en>
+        <cn>变更流的可恢复窗口，单位：MB，默认：0（自动计算），取值范围：[ 0, 2^31 - 1 ]。</cn>
+      </description>
+      <reloadable>
+        <en>Take effect immediately</en>
+        <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Size in MB of resume window of change streams, calculated by difference between LSN of resume token and current LSN of logger.<fig></fig>
+            2. Default is 0, means auto calculate by logbuffsize and logfilesz.<fig></fig>
+            3. Range is [ 0, 2^31 - 1 ], maximum value will be fixed by the size of total log space.<fig></fig>
+            4. If LSN between change stream's token and current LSN of logger, change stream will not be resumable.</en>
+        <cn>1. 变变更流的可恢复窗口，通过当前token指定的LSN和日志的LSN差值进行计算。<fig></fig>
+            2. 默认是0，通过 logbuffsize 和 logfilesz 自动计算，取值为日志缓存大小加上一个日志文件大小。<fig></fig>
+            3. 取值范围是[ 0, 2^31 -1 ]，最大值将根据日志的总量进行修正。<fig></fig>
+            4. 当变更流token指定的LSN和日志的当前LSN较大时，将拒绝变更流恢复执行。</cn>
+      </detail>
+      <type>int</type>
+      <default>0</default>
+      <typeofweb>int</typeofweb>
+      <hidden>true</hidden>
+   </opt>
+
 </optlist>

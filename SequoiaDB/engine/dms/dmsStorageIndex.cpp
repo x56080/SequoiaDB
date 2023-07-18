@@ -753,7 +753,7 @@ namespace engine
          rc = dpsIXCrt2Record( fullName, index, option, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record:%d", rc ) ;
 
-         rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+         rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
                       rc ) ;
 
@@ -801,8 +801,8 @@ namespace engine
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
 
-         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
+                            context->clUID(), context->clLID() ) ;
       }
 
       PD_LOG( PDEVENT, "Change index[%s:%s] unique id from [%llu] to [%llu]",
@@ -1280,7 +1280,7 @@ namespace engine
             rc = dpsIXDel2Record( fullName, indexDef, option, record ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-            rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+            rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
                          rc ) ;
 
@@ -1412,8 +1412,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
-         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, context->clUID(), _pDataSu->logicalID(),
+                            context->clUID(), context->clLID() ) ;
       }
 
       }
@@ -1592,7 +1592,7 @@ namespace engine
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record:%d", rc ) ;
 
-            rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+            rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
                          rc ) ;
 
@@ -1686,8 +1686,8 @@ namespace engine
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
 
-         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
+                            context->clUID(), context->clLID() ) ;
       }
       dropDps = dpscb ;
 
@@ -1896,7 +1896,7 @@ namespace engine
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
             PD_RC_CHECK( rc, PDERROR, "Build record failed[%d]", rc ) ;
 
-            rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+            rc = dpscb->checkSyncControl( info, record.alignedLen(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Check sync control failed[%d]", rc ) ;
 
             logRecSize = record.alignedLen() ;
@@ -1969,8 +1969,8 @@ namespace engine
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
 
-         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
+                            context->clUID(), context->clLID() ) ;
       }
       dropDps = dpscb ;
 

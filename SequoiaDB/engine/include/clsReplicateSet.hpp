@@ -403,25 +403,17 @@ namespace engine
          DPS_LSN_OFFSET getNtyProcessedOffset() const { return _ntyProcessedOffset ; }
 
          DPS_LSN_OFFSET getNtyReplayOffset() const { return _ntyReplayOffset ; }
-         void updateNtyReplayOffset( DPS_LSN_OFFSET offset )
-         {
-            if ( offset > _ntyReplayOffset )
-            {
-               _ntyReplayOffset = offset ;
-            }
-         }
-         void resetNtyReplayOffset( DPS_LSN_OFFSET offset )
-         {
-            _ntyReplayOffset = offset ;
-         }
 
          void notify2Session( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
                               const DPS_LSN_OFFSET &offset ) ;
 
          virtual void onWriteLog( DPS_LSN_OFFSET offset ) ;
 
-         virtual void onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                    INT32 extLID, DPS_LSN_OFFSET offset ) ;
+         virtual void onPrepareLog( const utilLogExInfo &info,
+                                    DPS_LSN_OFFSET offset,
+                                    DPS_LSN_VER version,
+                                    UINT32 length,
+                                    DPS_LOG_TYPE logType ) ;
 
          virtual void onMoveLog( DPS_LSN_OFFSET moveToOffset,
                                  DPS_LSN_VER moveToVersion,
@@ -430,10 +422,9 @@ namespace engine
                                  DPS_MOMENT moment,
                                  INT32 errcode ) ;
 
-         virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
-                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;
-
-         virtual INT32 canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb ) ;
+         virtual INT32 canAssignLogPage( UINT32 reqLen,
+                                         pmdEDUCB *cb,
+                                         BOOLEAN &needCache ) ;
 
          virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w )
          {
@@ -501,6 +492,24 @@ namespace engine
                                         UINT32 curFileId )
          {
             return ;
+         }
+
+         // override from _clsReplayEventHandler
+         virtual void onPrepareReplayLog( DPS_LSN_OFFSET offset ) ;
+
+         virtual void onReplayLog( const utilLogExInfo &info,
+                                   DPS_LSN_OFFSET offset,
+                                   DPS_LSN_VER version,
+                                   UINT32 length,
+                                   DPS_LOG_TYPE logType ) ;
+
+         virtual BOOLEAN needCacheLog( const utilLogExInfo &info,
+                                       DPS_LSN_OFFSET offset,
+                                       DPS_LSN_VER version,
+                                       UINT32 length,
+                                       DPS_LOG_TYPE logType )
+         {
+            return FALSE ;
          }
 
          BOOLEAN isMajorityAlive()
@@ -642,6 +651,19 @@ namespace engine
          INT32 _handleBallot( const MsgHeader *header ) ;
 
          INT32 _handleBallotRes( const MsgHeader *header ) ;
+
+         void _updateNtyReplayOffset( DPS_LSN_OFFSET offset )
+         {
+            if ( offset > _ntyReplayOffset )
+            {
+               _ntyReplayOffset = offset ;
+            }
+         }
+
+         void _resetNtyReplayOffset( DPS_LSN_OFFSET offset )
+         {
+            _ntyReplayOffset = offset ;
+         }
 
       private:
          _netRouteAgent          *_agent ;

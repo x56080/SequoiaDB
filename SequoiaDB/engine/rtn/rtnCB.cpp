@@ -166,6 +166,12 @@ namespace engine
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
       _contextTimeout = optionCB->contextTimeout() ;
 
+      rc = _changeStreamNotifier.init( optionCB->getChangeStreamResumableWindow(),
+                                       optionCB->getReplLogBuffSize(),
+                                       optionCB->getReplLogFileSz() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize change stream notifier, "
+                   "rc: %d", rc ) ;
+
    done:
       return rc ;
    error:
@@ -207,6 +213,10 @@ namespace engine
                       "Failed to start clean up index status job" ) ;
       }
 
+      rc = _changeStreamNotifier.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active change stream notifier, "
+                   "rc: %d", rc ) ;
+
    done:
       return rc ;
    error:
@@ -226,12 +236,14 @@ namespace engine
       {
          pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
       }
+      _changeStreamNotifier.deactive() ;
       return SDB_OK ;
    }
 
    INT32 _SDB_RTNCB::fini ()
    {
       _accessPlanManager.fini() ;
+      _changeStreamNotifier.fini() ;
 
       // unregister event handle
       pmdGetKRCB()->unregEventHandler( this ) ;
@@ -275,6 +287,10 @@ namespace engine
             optionCB->getSortBufSize(),
             optionCB->getOptCostThreshold(),
             optionCB->isEnabledMixCmp() ) ;
+
+      _changeStreamNotifier.onConfigChange( optionCB->getChangeStreamResumableWindow(),
+                                            optionCB->getReplLogBuffSize(),
+                                            optionCB->getReplLogFileSz() ) ;
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;

@@ -849,5 +849,38 @@ namespace engine
       virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
 
+   /*
+      _coordCMDSnapshotStreams define
+    */
+   class _coordCMDSnapshotStreams : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordCMDSnapshotStreams() = default ;
+      virtual ~_coordCMDSnapshotStreams() = default ;
+
+   private:
+      virtual const CHAR *getIntrCMDName() ;
+      virtual const CHAR *getInnerAggrContent() ;
+   } ;
+
+   typedef class _coordCMDSnapshotStreams coordCMDSnapshotStreams ;
+
+   /*
+      _coordCMDSnapshotStreamsIntr define
+    */
+   class _coordCMDSnapshotStreamsIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordCMDSnapshotStreamsIntr() = default ;
+      virtual ~_coordCMDSnapshotStreamsIntr() = default ;
+
+   private:
+      virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+   } ;
+
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

@@ -832,11 +832,11 @@ namespace replay
       const CHAR* fullName = NULL;
       BSONObj obj;
       sdbCollection cl;
-      UINT64 microSeconds = 0;
+      dpsRecordTimeInfo timeInfo ;
 
       SDB_ASSERT(LOG_TYPE_DATA_INSERT == header._type, "not data insert log");
 
-      rc = dpsRecord2Insert(log, &fullName, obj, &microSeconds);
+      rc = dpsRecord2Insert(log, &fullName, obj, &timeInfo);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record, lsn[%lld], rc=%d",
@@ -846,7 +846,7 @@ namespace replay
          goto error;
       }
 
-      rc = _outputter->insertRecord(fullName, header._lsn, obj, microSeconds);
+      rc = _outputter->insertRecord(fullName, header._lsn, obj, timeInfo._realTime);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to insert record(%s), cl(%s), lsn[%lld], "
@@ -867,7 +867,7 @@ namespace replay
       const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log;
       sdbCollection cl;
       const CHAR *fullName = NULL;
-      UINT64 microSeconds = 0;
+      dpsRecordTimeInfo timeInfo ;
       BSONObj oldMatch;
       BSONObj oldModifier;
       BSONObj newMatch;
@@ -880,7 +880,7 @@ namespace replay
       rc = dpsRecord2Update(log, &fullName,
                             oldMatch, oldModifier,
                             newMatch, newModifier,
-                            &oldShardingKey, NULL, &microSeconds,
+                            &oldShardingKey, NULL, &timeInfo,
                             &logWriteMode);
       if (SDB_OK != rc)
       {
@@ -893,7 +893,7 @@ namespace replay
 
       rc = _outputter->updateRecord(fullName, header._lsn, oldMatch,
                                     newModifier, oldShardingKey, oldModifier,
-                                    microSeconds, logWriteMode);
+                                    timeInfo._realTime, logWriteMode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to update record, match[%s], "
@@ -916,12 +916,12 @@ namespace replay
       const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log;
       sdbCollection cl;
       const CHAR *fullName = NULL;
-      UINT64 microSeconds = 0;
+      dpsRecordTimeInfo timeInfo ;
       BSONObj oldObj;
 
       SDB_ASSERT(LOG_TYPE_DATA_DELETE == header._type, "not data delete log");
 
-      rc = dpsRecord2Delete(log, &fullName, oldObj, &microSeconds);
+      rc = dpsRecord2Delete(log, &fullName, oldObj, &timeInfo);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record[%lld], rc=%d",
@@ -931,7 +931,7 @@ namespace replay
          goto error;
       }
 
-      rc = _outputter->deleteRecord(fullName, header._lsn, oldObj, microSeconds);
+      rc = _outputter->deleteRecord(fullName, header._lsn, oldObj, timeInfo._realTime);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to delete record[%s], cl(%s), lsn[%lld], "
@@ -2349,7 +2349,7 @@ namespace replay
       INT32 rc = SDB_OK;
       const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log;
       const CHAR* fullName = NULL;
-      UINT64 microSeconds = 0 ;
+      dpsRecordTimeInfo timeInfo ;
       BSONObj obj;
       BSONObj selector;
       BSONObj hint;
@@ -2357,7 +2357,7 @@ namespace replay
 
       SDB_ASSERT(LOG_TYPE_DATA_INSERT == header._type, "not data insert log");
 
-      rc = dpsRecord2Insert(log, &fullName, obj, &microSeconds);
+      rc = dpsRecord2Insert(log, &fullName, obj, &timeInfo);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record, lsn[%lld], rc=%d",
@@ -2365,7 +2365,7 @@ namespace replay
          goto error;
       }
 
-      rc = _outputter->deleteRecord(fullName, header._lsn, obj, microSeconds);
+      rc = _outputter->deleteRecord(fullName, header._lsn, obj, timeInfo._realTime);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to rollback insert record(%s), cl(%s), "
@@ -2386,7 +2386,7 @@ namespace replay
       const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log;
       sdbCollection cl;
       const CHAR *fullName = NULL;
-      UINT64 microSeconds = 0 ;
+      dpsRecordTimeInfo timeInfo ;
       BSONObj oldMatch;
       BSONObj oldModifier;
       BSONObj newMatch;
@@ -2402,7 +2402,7 @@ namespace replay
                             newMatch, newModifier,
                             &oldShardingKey,
                             &newShardingKey,
-                            &microSeconds, &logWriteMode);
+                            &timeInfo, &logWriteMode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record[%lld], rc:%d",
@@ -2413,7 +2413,7 @@ namespace replay
       // roll back operation: exchange old and new
       rc = _outputter->updateRecord(fullName, header._lsn, newMatch, oldModifier,
                                     newShardingKey, newModifier,
-                                    microSeconds, logWriteMode);
+                                    timeInfo._realTime, logWriteMode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to rollback record, match[%s], "
@@ -2436,13 +2436,13 @@ namespace replay
       const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log;
       sdbCollection cl;
       const CHAR *fullName = NULL;
-      UINT64 microSeconds = 0;
+      dpsRecordTimeInfo timeInfo ;
       BSONObj obj;
       BSONObj hint = BSON("" << "$id");
 
       SDB_ASSERT(LOG_TYPE_DATA_DELETE == header._type, "not data delete log");
 
-      rc = dpsRecord2Delete(log, &fullName, obj, &microSeconds);
+      rc = dpsRecord2Delete(log, &fullName, obj, &timeInfo);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record[%lld], rc=%d",
@@ -2450,7 +2450,7 @@ namespace replay
          goto error;
       }
 
-      rc = _outputter->insertRecord(fullName, header._lsn, obj, microSeconds);
+      rc = _outputter->insertRecord(fullName, header._lsn, obj, timeInfo._realTime);
       if ( SDB_OK != rc )
       {
          PD_LOG(PDERROR, "Failed to rollback delete record(%s), cl(%s), "

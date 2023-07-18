@@ -37,6 +37,7 @@
 
 #include "ossTypes.hpp"
 #include "ossUtil.hpp"
+#include "ossMemPool.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;

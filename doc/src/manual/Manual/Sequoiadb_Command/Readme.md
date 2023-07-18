@@ -14,6 +14,7 @@ SequoiaDB Shell 包含的类如下：
 - [SdbDomain][SdbDomain]
 - [SdbDataSource][SdbDataSource]
 - [SdbSequence][SdbSequence]
+- [StreamToken][StreamToken]
 - [Oma][Oma]
 - [File][File]
 - [FileContent][FileContent]
@@ -54,3 +55,4 @@ SequoiaDB Shell 包含的类如下：
 [AuxiliaryObjects]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects
 [SpecialObjects]:manual/Manual/Sequoiadb_Command/SpecialObjects
 [location]:manual/Manual/Sequoiadb_Command/location.md
+[StreamToken]:manual/Manual/Sequoiadb_Command/StreamToken

@@ -78,36 +78,35 @@ namespace engine
    }
 
    /// warning: any value can not be value-passed.
-   static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
-                             const DPS_LSN_OFFSET &preTransLsn,
-                             const DPS_LSN_OFFSET &relatedLSN,
-                             dpsLogRecord &record )
+   static INT32 _dpsPushTran( const dpsRecordTransInfo &transInfo,
+                              dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
-      if ( DPS_INVALID_TRANS_ID != transID )
+      if ( DPS_INVALID_TRANS_ID != transInfo._transID )
       {
          rc = record.push( DPS_LOG_PUBLIC_TRANSID,
-                           sizeof( transID ), (CHAR *)(&transID)) ;
+                           sizeof( transInfo._transID ),
+                           (CHAR *)(&( transInfo._transID) ) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
       }
-      if ( DPS_INVALID_LSN_OFFSET != preTransLsn )
+      if ( DPS_INVALID_LSN_OFFSET != transInfo._preTransLSN )
       {
          rc = record.push( DPS_LOG_PUBLIC_PRETRANS,
-                           sizeof( preTransLsn ),
-                           (CHAR *)(&preTransLsn) ) ;
+                           sizeof( transInfo._preTransLSN ),
+                           (CHAR *)(&( transInfo._preTransLSN ) ) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
       }
-      if ( DPS_INVALID_LSN_OFFSET != relatedLSN )
+      if ( DPS_INVALID_LSN_OFFSET != transInfo._relatedLSN )
       {
          rc = record.push( DPS_LOG_PUBLIC_RELATED_TRANS,
-                           sizeof( relatedLSN ),
-                           (CHAR *)( &relatedLSN ) ) ;
+                           sizeof( transInfo._relatedLSN ),
+                           (CHAR *)( &( transInfo._relatedLSN ) ) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -117,6 +116,48 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 dpsGetTransInfo( const dpsLogRecord &record, dpsRecordTransInfo &transInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      transInfo.reset() ;
+
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      if ( itr.valid() )
+      {
+         transInfo._transID = *( (DPS_TRANS_ID *)itr.value() ) ;
+
+         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+         if ( itr.valid() )
+         {
+            transInfo._preTransLSN = *( (DPS_LSN_OFFSET *)itr.value() ) ;
+         }
+
+         itr = record.find( DPS_LOG_PUBLIC_RELATED_TRANS ) ;
+         if ( itr.valid() )
+         {
+            transInfo._relatedLSN = *( (DPS_LSN_OFFSET *)itr.value() ) ;
+         }
+      }
+
+      return rc ;
+   }
+
+   INT32 dpsGetTimeInfo( const dpsLogRecord &record, dpsRecordTimeInfo &timeInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      timeInfo.reset() ;
+
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TIME ) ;
+      if ( itr.valid() )
+      {
+         timeInfo._realTime = *( (UINT64 *)itr.value() ) ;
+      }
+
+      return rc ;
    }
 
    /*
@@ -254,9 +295,7 @@ namespace engine
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -281,7 +320,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -311,8 +350,9 @@ namespace engine
    INT32 dpsRecord2Insert( const CHAR *logRecord,
                            const CHAR **fullName,
                            BSONObj &obj,
-                           UINT64 *microSeconds,
-                           dpsUnqIdxHashArray *pUnqIdxHashArray )
+                           dpsRecordTimeInfo *pTimeInfo,
+                           dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           dpsRecordTransInfo *pTransInfo )
    {
       PD_TRACE_ENTRY( SDB_DPS_INSERT2RECORD ) ;
       INT32 rc = SDB_OK ;
@@ -325,7 +365,30 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2Insert( record, fullName, obj, pTimeInfo,
+                             pUnqIdxHashArray, pTransInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse insert record, rc: %d",   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPS_INSERT2RECORD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB_DPS_INSERT2RECORD_REC, "dpsRecord2Insert")
+   INT32 dpsRecord2Insert( const dpsLogRecord &record,
+                           const CHAR **fullName,
+                           BSONObj &obj,
+                           dpsRecordTimeInfo *pTimeInfo,
+                           dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           dpsRecordTransInfo *pTransInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPS_INSERT2RECORD_REC ) ;
+
       dpsLogRecord::iterator itrFullName, itrObj ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
@@ -343,14 +406,11 @@ namespace engine
          goto error ;
       }
 
-      if ( NULL != microSeconds )
+      if ( NULL != pTimeInfo )
       {
-         dpsLogRecord::iterator itrTime ;
-         itrTime = record.find( DPS_LOG_PUBLIC_TIME ) ;
-         if ( itrTime.valid() )
-         {
-            *microSeconds = *( UINT64 *) itrTime.value() ;
-         }
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
 
       // parse unique index hash values if needed
@@ -361,11 +421,18 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
       *fullName = itrFullName.value() ;
       obj = BSONObj( itrObj.value() ) ;
-      }
+
    done:
-      PD_TRACE_EXITRC( SDB_DPS_INSERT2RECORD, rc) ;
+      PD_TRACE_EXITRC( SDB_DPS_INSERT2RECORD_REC, rc) ;
       return rc ;
    error:
       goto done ;
@@ -381,9 +448,7 @@ namespace engine
                            const BSONObj &newShardingKey,
                            const dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                            const dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            const UINT32 *writeMode,
                            dpsLogRecord &record )
    {
@@ -438,7 +503,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -516,10 +581,11 @@ namespace engine
                            BSONObj &newObj,
                            BSONObj *oldShardingKey,
                            BSONObj *newShardingKey,
-                           UINT64 *microSeconds,
+                           dpsRecordTimeInfo *pTimeInfo,
                            UINT32 *writeMode,
                            dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                           dpsUnqIdxHashArray *pOldUnqIdxHashArray )
+                           dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                           dpsRecordTransInfo *pTransInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2UPDATE ) ;
       SDB_ASSERT( NULL != logRecord, "Record can't be NULL" ) ;
@@ -532,7 +598,40 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2Update( record, fullName, oldMatch, oldObj, newMatch,
+                             newObj, oldShardingKey, newShardingKey,
+                             pTimeInfo, writeMode, pNewUnqIdxHashArray,
+                             pOldUnqIdxHashArray, pTransInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse update record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2UPDATE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2UPDATE_REC, "dpsRecord2Update" )
+   INT32 dpsRecord2Update( const dpsLogRecord &record,
+                           const CHAR **fullName,
+                           BSONObj &oldMatch,
+                           BSONObj &oldObj,
+                           BSONObj &newMatch,
+                           BSONObj &newObj,
+                           BSONObj *oldShardingKey,
+                           BSONObj *newShardingKey,
+                           dpsRecordTimeInfo *pTimeInfo,
+                           UINT32 *writeMode,
+                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                           dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                           dpsRecordTransInfo *pTransInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2UPDATE_REC ) ;
+
       dpsLogRecord::iterator itrFullName, itrOldM,
                              itrOldObj, itrNewM, itrNewObj ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
@@ -580,7 +679,6 @@ namespace engine
       oldObj = BSONObj( itrOldObj.value() ) ;
       newMatch = BSONObj( itrNewM.value() ) ;
       newObj = BSONObj( itrNewObj.value() ) ;
-      }
 
       if ( NULL != oldShardingKey )
       {
@@ -617,14 +715,11 @@ namespace engine
          }
       }
 
-      if ( NULL != microSeconds )
+      if ( NULL != pTimeInfo )
       {
-         dpsLogRecord::iterator itrTime ;
-         itrTime = record.find( DPS_LOG_PUBLIC_TIME ) ;
-         if ( itrTime.valid() )
-         {
-            *microSeconds = *( UINT64 *) itrTime.value() ;
-         }
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
 
       if ( NULL != writeMode )
@@ -651,8 +746,15 @@ namespace engine
                       "hash values, rc: %d", rc ) ;
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2UPDATE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2UPDATE_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -663,9 +765,7 @@ namespace engine
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
                            const INT64 *position,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -691,7 +791,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -730,9 +830,10 @@ namespace engine
    INT32 dpsRecord2Delete( const CHAR *logRecord,
                            const CHAR **fullName,
                            BSONObj &oldObj,
-                           UINT64 *microSeconds,
+                           dpsRecordTimeInfo *pTimeInfo,
                            dpsUnqIdxHashArray *pUnqIdxHashArray,
-                           INT64 *position )
+                           INT64 *position,
+                           dpsRecordTransInfo *pTransInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2DELETE ) ;
       INT32 rc = SDB_OK ;
@@ -745,7 +846,31 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2Delete( record, fullName, oldObj, pTimeInfo,
+                             pUnqIdxHashArray, position, pTransInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse delete record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2DELETE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2DELETE_REC, "dpsRecord2Delete" )
+   INT32 dpsRecord2Delete( const dpsLogRecord &record,
+                           const CHAR **fullName,
+                           BSONObj &oldObj,
+                           dpsRecordTimeInfo *pTimeInfo,
+                           dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           INT64 *position,
+                           dpsRecordTransInfo *pTransInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2DELETE_REC ) ;
+
       dpsLogRecord::iterator itrFullName, itrObj ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
@@ -763,14 +888,11 @@ namespace engine
          goto error ;
       }
 
-      if ( NULL != microSeconds )
+      if ( NULL != pTimeInfo )
       {
-         dpsLogRecord::iterator itrTime ;
-         itrTime = record.find( DPS_LOG_PUBLIC_TIME ) ;
-         if ( itrTime.valid() )
-         {
-            *microSeconds = *( UINT64 *) itrTime.value() ;
-         }
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
 
       // parse unique index hash values if needed
@@ -797,11 +919,18 @@ namespace engine
          }
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
       *fullName = itrFullName.value() ;
       oldObj = BSONObj( itrObj.value() ) ;
-      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2DELETE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2DELETE_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -847,7 +976,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2POP, "dpsRecord2Pop" )
    INT32 dpsRecord2Pop( const CHAR *logRecord, const CHAR **fullName,
-                        INT64 &logicalID, INT8 &direction )
+                        INT64 &logicalID, INT8 &direction,
+                        dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2POP ) ;
@@ -855,39 +985,63 @@ namespace engine
       rc = record.load( logRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load pop record, rc: %d", rc ) ;
 
-      {
-         dpsLogRecord::iterator itrName, itrLID, itrDirection ;
-         itrName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
-         if ( !itrName.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag fullname in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         itrLID = record.find( DPS_LOG_POP_LID ) ;
-         if ( !itrLID.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag LogicalID in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         itrDirection = record.find( DPS_LOG_POP_DIRECTION ) ;
-         if ( !itrDirection.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag Direction in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         *fullName = itrName.value() ;
-         logicalID = *(INT64 *)( itrLID.value() ) ;
-         direction = *(INT8 *)( itrDirection.value() ) ;
-      }
+      rc = dpsRecord2Pop( record, fullName, logicalID, direction, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse pop record, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DPS_RECORD2POP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2POP_REC, "dpsRecord2Pop" )
+   INT32 dpsRecord2Pop( const dpsLogRecord &record, const CHAR **fullName,
+                        INT64 &logicalID, INT8 &direction,
+                        dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2POP_REC ) ;
+
+      dpsLogRecord::iterator itrName, itrLID, itrDirection ;
+      itrName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
+      if ( !itrName.valid() )
+      {
+         PD_LOG( PDERROR, "Failed to find tag fullname in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      itrLID = record.find( DPS_LOG_POP_LID ) ;
+      if ( !itrLID.valid() )
+      {
+         PD_LOG( PDERROR, "Failed to find tag LogicalID in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      itrDirection = record.find( DPS_LOG_POP_DIRECTION ) ;
+      if ( !itrDirection.valid() )
+      {
+         PD_LOG( PDERROR, "Failed to find tag Direction in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                        "rc: %d", rc ) ;
+      }
+
+      *fullName = itrName.value() ;
+      logicalID = *(INT64 *)( itrLID.value() ) ;
+      direction = *(INT8 *)( itrDirection.value() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2POP_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -969,7 +1123,8 @@ namespace engine
                           utilCSUniqueID &csUniqueID,
                           INT32 &pageSize,
                           INT32 &lobPageSize,
-                          INT32 &type )
+                          INT32 &type,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CSCRT ) ;
       INT32 rc = SDB_OK ;
@@ -982,7 +1137,30 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2CSCrt( record, csName, csUniqueID, pageSize,
+                            lobPageSize, type, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cs create record, "
+                   "rc: %d", rc ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSCRT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CSCRT_REC, "dpsRecord2CSCrt" )
+   INT32 dpsRecord2CSCrt( const dpsLogRecord &record,
+                          const CHAR **csName,
+                          utilCSUniqueID &csUniqueID,
+                          INT32 &pageSize,
+                          INT32 &lobPageSize,
+                          INT32 &type,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CSCRT_REC ) ;
+
       dpsLogRecord::iterator itrCsName, itrUniqueID, itrPageSize,
                              itrLobPageSz, itrType ;
       itrCsName = record.find( DPS_LOG_CSCRT_CSNAME ) ;
@@ -1034,9 +1212,16 @@ namespace engine
       {
          type = *( ( INT32 *)itrType.value() ) ;
       }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSCRT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSCRT_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1085,7 +1270,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CSDEL, "dpsRecord2CSDel" )
    INT32 dpsRecord2CSDel( const CHAR *logRecord,
                           const CHAR **csName,
-                          bson::BSONObj *boOptions )
+                          bson::BSONObj *boOptions,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CSDEL ) ;
       INT32 rc = SDB_OK ;
@@ -1098,7 +1284,27 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2CSDel( record, csName, boOptions, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cs del record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSDEL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CSDEL_REC, "dpsRecord2CSDel" )
+   INT32 dpsRecord2CSDel( const dpsLogRecord &record,
+                          const CHAR **csName,
+                          bson::BSONObj *boOptions,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CSDEL_REC ) ;
+
       dpsLogRecord::iterator itrCsName =
                            record.find( DPS_LOG_CSDEL_CSNAME ) ;
       if ( !itrCsName.valid() )
@@ -1109,7 +1315,6 @@ namespace engine
       }
 
       *csName = itrCsName.value() ;
-      }
 
       if ( NULL != boOptions )
       {
@@ -1135,8 +1340,15 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSDEL, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSDEL_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1187,7 +1399,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CSRENAME, "dpsRecord2CSRename" )
    INT32 dpsRecord2CSRename( const CHAR * logRecord,
                              const CHAR **csName,
-                             const CHAR **newCSName )
+                             const CHAR **newCSName,
+                             dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CSRENAME ) ;
       INT32 rc = SDB_OK ;
@@ -1200,29 +1413,56 @@ namespace engine
          goto error ;
       }
 
-      {
-         dpsLogRecord::iterator itrCsName =
-                              record.find( DPS_LOG_CSRENAME_CSNAME ) ;
-         if ( !itrCsName.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag csname in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         *csName = itrCsName.value() ;
+      rc = dpsRecord2CSRename( record, csName, newCSName, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cs rename record, rc: %d", rc ) ;
 
-         itrCsName = record.find( DPS_LOG_CSRENAME_NEWNAME ) ;
-         if ( !itrCsName.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag new csname in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         *newCSName = itrCsName.value() ;
-      }
    done:
       PD_TRACE_EXITRC( SDB__DPS_RECORD2CSRENAME, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CSRENAME_REC, "dpsRecord2CSRename" )
+   INT32 dpsRecord2CSRename( const dpsLogRecord &record,
+                             const CHAR **csName,
+                             const CHAR **newCSName,
+                             dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CSRENAME_REC ) ;
+
+      dpsLogRecord::iterator itrCsName =
+                           record.find( DPS_LOG_CSRENAME_CSNAME ) ;
+      if ( !itrCsName.valid() )
+      {
+         PD_LOG( PDERROR, "Failed to find tag csname in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      *csName = itrCsName.value() ;
+
+      itrCsName = record.find( DPS_LOG_CSRENAME_NEWNAME ) ;
+      if ( !itrCsName.valid() )
+      {
+         PD_LOG( PDERROR, "Failed to find tag new csname in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      *newCSName = itrCsName.value() ;
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                        "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CSRENAME_REC, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -1327,7 +1567,8 @@ namespace engine
                           UINT32 &attribute,
                           UINT8 &compressorType,
                           BSONObj &extOptions,
-                          BSONObj &idIdxDef )
+                          BSONObj &idIdxDef,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLCRT ) ;
       INT32 rc = SDB_OK ;
@@ -1341,7 +1582,31 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2CLCrt( record, fullName, clUniqueID, attribute,
+                            compressorType, extOptions, idIdxDef, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cl create record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLCRT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CLCRT_REC, "dpsRecord2CLCrt" )
+   INT32 dpsRecord2CLCrt( const dpsLogRecord &record,
+                          const CHAR **fullName,
+                          utilCLUniqueID &clUniqueID,
+                          UINT32 &attribute,
+                          UINT8 &compressorType,
+                          BSONObj &extOptions,
+                          BSONObj &idIdxDef,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CLCRT_REC ) ;
+
       dpsLogRecord::iterator recordItr ;
       recordItr = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !recordItr.valid() )
@@ -1401,9 +1666,15 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLCRT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLCRT_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1452,7 +1723,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CLDEL, "dpsRecord2CLDel" )
    INT32 dpsRecord2CLDel( const CHAR *logRecord,
                           const CHAR **fullName,
-                          BSONObj *boOptions )
+                          BSONObj *boOptions,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLDEL ) ;
       INT32 rc = SDB_OK ;
@@ -1465,7 +1737,26 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2CLDel( record, fullName, boOptions, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cl del record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLDEL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CLDEL_REC, "dpsRecord2CLDel" )
+   INT32 dpsRecord2CLDel( const dpsLogRecord &record,
+                          const CHAR **fullName,
+                          BSONObj *boOptions,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CLDEL_REC ) ;
+
       dpsLogRecord::iterator itrFullName =
                            record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
@@ -1476,7 +1767,6 @@ namespace engine
       }
 
       *fullName = itrFullName.value() ;
-      }
 
       if ( NULL != boOptions )
       {
@@ -1502,8 +1792,15 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLDEL, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLDEL_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1562,7 +1859,8 @@ namespace engine
    INT32 dpsRecord2IXCrt( const CHAR *logRecord,
                           const CHAR **fullName,
                           BSONObj &index,
-                          BSONObj &option )
+                          BSONObj &option,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2IXCRT ) ;
       INT32 rc = SDB_OK ;
@@ -1575,7 +1873,27 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2IXCrt( record, fullName, index, option, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse ix create record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXCRT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2IXCRT_REC, "dpsRecord2IXCrt" )
+   INT32 dpsRecord2IXCrt( const dpsLogRecord &record,
+                          const CHAR **fullName,
+                          BSONObj &index,
+                          BSONObj &option,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2IXCRT_REC ) ;
+
       dpsLogRecord::iterator itrFullName, itrIndex, itrOpt ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
@@ -1601,9 +1919,16 @@ namespace engine
       {
          option = BSONObj( itrOpt.value() ) ;
       }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXCRT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXCRT_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1663,7 +1988,8 @@ namespace engine
    INT32 dpsRecord2IXDel( const CHAR *logRecord,
                           const CHAR **fullName,
                           BSONObj &index,
-                          BSONObj &option )
+                          BSONObj &option,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2IXDEL ) ;
       INT32 rc = SDB_OK ;
@@ -1676,7 +2002,27 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2IXDel( record, fullName, index, option, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse ix delete record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXDEL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2IXDEL_REC, "dpsRecord2IXDel" )
+   INT32 dpsRecord2IXDel( const dpsLogRecord &record,
+                          const CHAR **fullName,
+                          BSONObj &index,
+                          BSONObj &option,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2IXDEL_REC ) ;
+
       dpsLogRecord::iterator itrFullName, itrIndex, itrOpt ;
       itrFullName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itrFullName.valid() )
@@ -1702,9 +2048,16 @@ namespace engine
       {
          option = BSONObj( itrOpt.value() ) ;
       }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
       }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXDEL, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2IXDEL_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1767,7 +2120,8 @@ namespace engine
    INT32 dpsRecord2CLRename( const CHAR *logRecord,
                              const CHAR **csName,
                              const CHAR **clOldName,
-                             const CHAR **clNewName )
+                             const CHAR **clNewName,
+                             dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLRENAME ) ;
       INT32 rc = SDB_OK ;
@@ -1780,7 +2134,27 @@ namespace engine
          goto error ;
       }
 
-      {
+      rc = dpsRecord2CLRename( record, csName, clOldName, clNewName, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cl rename record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLRENAME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CLRENAME_REC, "dpsRecord2CLRename" )
+   INT32 dpsRecord2CLRename( const dpsLogRecord &record,
+                             const CHAR **csName,
+                             const CHAR **clOldName,
+                             const CHAR **clNewName,
+                             dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CLRENAME_REC ) ;
+
       dpsLogRecord::iterator itrCsName, itrOldName, itrNewName ;
       itrCsName = record.find( DPS_LOG_CLRENAME_CSNAME ) ;
       if ( !itrCsName.valid() )
@@ -1806,12 +2180,19 @@ namespace engine
          goto error ;
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
       *csName = itrCsName.value() ;
       *clOldName = itrOldName.value() ;
       *clNewName = itrNewName.value() ;
-      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLRENAME, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLRENAME_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1860,7 +2241,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CLTRUNC, "dpsRecord2CLTrunc" )
    INT32 dpsRecord2CLTrunc( const CHAR * logRecord,
                             const CHAR ** fullName,
-                            BSONObj *boOptions )
+                            BSONObj *boOptions,
+                            dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLTRUNC ) ;
       INT32 rc = SDB_OK ;
@@ -1873,17 +2255,35 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsRecord2CLTrunc( record, fullName, boOptions, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cl truncate record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLTRUNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CLTRUNC_REC, "dpsRecord2CLTrunc" )
+   INT32 dpsRecord2CLTrunc( const dpsLogRecord &record,
+                            const CHAR ** fullName,
+                            BSONObj *boOptions,
+                            dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2CLTRUNC_REC ) ;
+
+      dpsLogRecord::iterator itrCLName ;
+      itrCLName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
+      if ( !itrCLName.valid() )
       {
-         dpsLogRecord::iterator itrCLName ;
-         itrCLName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
-         if ( !itrCLName.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag fullname in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         *fullName = itrCLName.value() ;
+         PD_LOG( PDERROR, "Failed to find tag fullname in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
+      *fullName = itrCLName.value() ;
 
       if ( NULL != boOptions )
       {
@@ -1909,8 +2309,15 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLTRUNC, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLTRUNC_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1923,7 +2330,8 @@ namespace engine
                                 DPS_LSN_OFFSET &firstTransLsn,
                                 UINT8  &attr,
                                 UINT32 &nodeNum,
-                                const UINT64 **ppNodes )
+                                const UINT64 **ppNodes,
+                                dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2TRANSCOMMIT ) ;
       INT32 rc = SDB_OK ;
@@ -1936,82 +2344,113 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsRecord2TransCommit( record, transID, preTransLsn, firstTransLsn,
+                                  attr, nodeNum, ppNodes, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse trans commit record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2TRANSCOMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2TRANSCOMMIT_REC, "dpsRecord2TransCommit" )
+   INT32 dpsRecord2TransCommit( const dpsLogRecord &record,
+                                DPS_TRANS_ID &transID,
+                                DPS_LSN_OFFSET &preTransLsn,
+                                DPS_LSN_OFFSET &firstTransLsn,
+                                UINT8  &attr,
+                                UINT32 &nodeNum,
+                                const UINT64 **ppNodes,
+                                dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2TRANSCOMMIT_REC ) ;
+
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      if ( !itr.valid() )
       {
-         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+         PD_LOG( PDERROR, "Failed to find tag transid in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      transID = *((DPS_TRANS_ID *)itr.value()) ;
+
+      itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+      if ( itr.valid() )
+      {
+         preTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
+      }
+      else
+      {
+         preTransLsn = DPS_INVALID_LSN_OFFSET ;
+      }
+
+      itr = record.find( DPS_LOG_PUBLIC_FIRSTTRANS ) ;
+      if ( itr.valid() )
+      {
+         firstTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
+      }
+      else
+      {
+         firstTransLsn = DPS_INVALID_LSN_OFFSET ;
+      }
+
+      itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
+      if ( itr.valid() )
+      {
+         attr = *(UINT8*)itr.value() ;
+      }
+      else
+      {
+         attr = 0 ;
+      }
+
+      if ( DPS_TS_COMMIT_ATTR_PRE == attr )
+      {
+         itr = record.find( DPS_LOG_TSCOMMIT_NODE_NUM ) ;
          if ( !itr.valid() )
          {
-            PD_LOG( PDERROR, "Failed to find tag transid in record" ) ;
+            PD_LOG( PDERROR, "Failed to find tag node num in record" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
+         nodeNum = *(UINT32*)itr.value() ;
 
-         transID = *((DPS_TRANS_ID *)itr.value()) ;
-
-         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
-         if ( itr.valid() )
+         if ( nodeNum > 0 )
          {
-            preTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
-         }
-         else
-         {
-            preTransLsn = DPS_INVALID_LSN_OFFSET ;
-         }
-
-         itr = record.find( DPS_LOG_PUBLIC_FIRSTTRANS ) ;
-         if ( itr.valid() )
-         {
-            firstTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
-         }
-         else
-         {
-            firstTransLsn = DPS_INVALID_LSN_OFFSET ;
-         }
-
-         itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
-         if ( itr.valid() )
-         {
-            attr = *(UINT8*)itr.value() ;
-         }
-         else
-         {
-            attr = 0 ;
-         }
-
-         if ( DPS_TS_COMMIT_ATTR_PRE == attr )
-         {
-            itr = record.find( DPS_LOG_TSCOMMIT_NODE_NUM ) ;
+            itr = record.find( DPS_LOG_TSCOMMIT_NODES ) ;
             if ( !itr.valid() )
             {
-               PD_LOG( PDERROR, "Failed to find tag node num in record" ) ;
+               PD_LOG( PDERROR, "Failed to find tag nodes in record" ) ;
                rc = SDB_SYS ;
                goto error ;
             }
-            nodeNum = *(UINT32*)itr.value() ;
-
-            if ( nodeNum > 0 )
-            {
-               itr = record.find( DPS_LOG_TSCOMMIT_NODES ) ;
-               if ( !itr.valid() )
-               {
-                  PD_LOG( PDERROR, "Failed to find tag nodes in record" ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-               *ppNodes = (const UINT64*)itr.value() ;
-            }
-            else
-            {
-               *ppNodes = NULL ;
-            }
+            *ppNodes = (const UINT64*)itr.value() ;
          }
          else
          {
-            nodeNum = 0 ;
             *ppNodes = NULL ;
          }
       }
+      else
+      {
+         nodeNum = 0 ;
+         *ppNodes = NULL ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                        "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2TRANSCOMMIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2TRANSCOMMIT_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2037,8 +2476,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_TRANSCOMMIT2RECORD, "dpsTransCommit2Record" )
-   INT32 dpsTransCommit2Record( const DPS_TRANS_ID &transID,
-                                const DPS_LSN_OFFSET &preTransLsn,
+   INT32 dpsTransCommit2Record( const dpsRecordTransInfo &transInfo,
                                 const DPS_LSN_OFFSET &firstTransLsn,
                                 const UINT8  &attr,
                                 const UINT32 *pNodeNum,
@@ -2051,8 +2489,8 @@ namespace engine
       header._type = LOG_TYPE_TS_COMMIT ;
 
       rc = record.push( DPS_LOG_PUBLIC_TRANSID,
-                        sizeof( transID),
-                        (CHAR *)(&transID)) ;
+                        sizeof( transInfo._transID ),
+                        (CHAR *)(&( transInfo._transID )) ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push transid to record, rc: %d", rc ) ;
@@ -2060,8 +2498,8 @@ namespace engine
       }
 
       rc = record.push( DPS_LOG_PUBLIC_PRETRANS,
-                        sizeof( preTransLsn ),
-                        ( CHAR* )&preTransLsn ) ;
+                        sizeof( transInfo._preTransLSN ),
+                        ( CHAR* )&( transInfo._preTransLSN ) ) ;
       if ( rc )
       {
          goto error ;
@@ -2126,9 +2564,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_TRANSROLLBACK2RECORD, "dpsTransRollback2Record" )
-   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
-                                  const DPS_LSN_OFFSET &preTransLSN,
-                                  const DPS_LSN_OFFSET &relatedLSN,
+   INT32 dpsTransRollback2Record( const dpsRecordTransInfo &transInfo,
                                   dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2138,7 +2574,7 @@ namespace engine
       dpsLogRecordHeader &header = record.head() ;
       header._type = LOG_TYPE_TS_ROLLBACK ;
 
-      rc = dpsPushTran( transID, preTransLSN, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to push transaction information, "
                    "rc: %d", rc ) ;
 
@@ -2221,7 +2657,8 @@ namespace engine
    INT32 dpsRecord2InvalidCata( const CHAR *logRecord,
                                 UINT8 &type,
                                 const CHAR **clFullName,
-                                const CHAR **ixName )
+                                const CHAR **ixName,
+                                dpsRecordTimeInfo *pTimeInfo )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2INVALIDCATA ) ;
       INT32 rc = SDB_OK ;
@@ -2234,6 +2671,27 @@ namespace engine
          PD_LOG( PDERROR, "Failed to load invalid cata record, rc: %d",rc ) ;
          goto error ;
       }
+
+      rc = dpsRecord2InvalidCata( record, type, clFullName, ixName, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse invalid cata record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2INVALIDCATA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2INVALIDCATA_REC, "dpsRecord2InvalidCata")
+   INT32 dpsRecord2InvalidCata( const dpsLogRecord &record,
+                                UINT8 &type,
+                                const CHAR **clFullName,
+                                const CHAR **ixName,
+                                dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2INVALIDCATA_REC ) ;
 
       {
          dpsLogRecord::iterator itrType =
@@ -2273,8 +2731,15 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2INVALIDCATA, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2INVALIDCATA_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2290,9 +2755,7 @@ namespace engine
                          const CHAR *data,
                          const UINT32 &pageSize,
                          const DMS_LOB_PAGEID &pageID,
-                         const DPS_TRANS_ID &transID,
-                         const DPS_LSN_OFFSET &preTransLsn,
-                         const DPS_LSN_OFFSET &relatedLSN,
+                         const dpsRecordTransInfo &transInfo,
                          dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2380,7 +2843,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -2408,7 +2871,9 @@ namespace engine
                          UINT32 &hash,
                          const CHAR **data,
                          DMS_LOB_PAGEID &pageID,
-                         UINT32* pageSize )
+                         UINT32* pageSize,
+                         dpsRecordTransInfo *pTransInfo,
+                         dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBW ) ;
@@ -2422,6 +2887,34 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsRecord2LobW( record, fullName, oid, sequence, offset, len, hash,
+                           data, pageID, pageSize, pTransInfo, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "failed to parse lobw record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBW, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2LOBW_REC, "dpsRecord2LobW" )
+   INT32 dpsRecord2LobW( const dpsLogRecord &record,
+                         const CHAR **fullName,
+                         const bson::OID **oid,
+                         UINT32 &sequence,
+                         UINT32 &offset,
+                         UINT32 &len,
+                         UINT32 &hash,
+                         const CHAR **data,
+                         DMS_LOB_PAGEID &pageID,
+                         UINT32* pageSize,
+                         dpsRecordTransInfo *pTransInfo,
+                         dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBW_REC ) ;
       {
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itr.valid() )
@@ -2522,8 +3015,22 @@ namespace engine
          *pageSize = *( ( UINT32 * )( itr.value() ) ) ;
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBW, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBW_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2541,9 +3048,7 @@ namespace engine
                           const CHAR *oldData,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &pageID,
-                          const DPS_TRANS_ID &transID,
-                          const DPS_LSN_OFFSET &preTransLsn,
-                          const DPS_LSN_OFFSET &relatedLSN,
+                          const dpsRecordTransInfo &transInfo,
                           dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2649,7 +3154,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -2679,7 +3184,9 @@ namespace engine
                          UINT32 &oldLen,
                          const CHAR **oldData,
                          DMS_LOB_PAGEID &pageID,
-                         UINT32* pageSize )
+                         UINT32* pageSize,
+                         dpsRecordTransInfo *pTransInfo,
+                         dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBU ) ;
@@ -2691,6 +3198,37 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsRecord2LobU( record, fullName, oid, sequence, offset, len, hash,
+                           data, oldLen, oldData, pageID, pageSize, pTransInfo,
+                           pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse lobu record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBU, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2LOBU_REC, "dpsRecord2LobU" )
+   INT32 dpsRecord2LobU( const dpsLogRecord &record,
+                         const CHAR **fullName,
+                         const bson::OID **oid,
+                         UINT32 &sequence,
+                         UINT32 &offset,
+                         UINT32 &len,
+                         UINT32 &hash,
+                         const CHAR **data,
+                         UINT32 &oldLen,
+                         const CHAR **oldData,
+                         DMS_LOB_PAGEID &pageID,
+                         UINT32* pageSize,
+                         dpsRecordTransInfo *pTransInfo,
+                         dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBU_REC ) ;
       {
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itr.valid() )
@@ -2813,8 +3351,22 @@ namespace engine
          *pageSize = *( ( UINT32 * )( itr.value() ) ) ;
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBU, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBU_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2830,9 +3382,7 @@ namespace engine
                           const CHAR *data,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &page,
-                          const DPS_TRANS_ID &transID,
-                          const DPS_LSN_OFFSET &preTransLsn,
-                          const DPS_LSN_OFFSET &relatedLSN,
+                          const dpsRecordTransInfo &transInfo,
                           dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2920,7 +3470,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
+      rc = _dpsPushTran( transInfo, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to push trans to record, rc: %d", rc ) ;
@@ -2948,7 +3498,9 @@ namespace engine
                           UINT32 &hash,
                           const CHAR **data,
                           DMS_LOB_PAGEID &pageID,
-                          UINT32* pageSize )
+                          UINT32* pageSize,
+                          dpsRecordTransInfo *pTransInfo,
+                          dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBRM ) ;
@@ -2960,6 +3512,33 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsRecord2LobRm( record, fullName, oid, sequence, offset, len, hash,
+                            data, pageID, pageSize, pTransInfo, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "failed to parse lobrm record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBRM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2LOBRM_REC, "dpsRecord2LobRm" )
+   INT32 dpsRecord2LobRm( const dpsLogRecord &record,
+                          const CHAR **fullName,
+                          const bson::OID **oid,
+                          UINT32 &sequence,
+                          UINT32 &offset,
+                          UINT32 &len,
+                          UINT32 &hash,
+                          const CHAR **data,
+                          DMS_LOB_PAGEID &pageID,
+                          UINT32* pageSize,
+                          dpsRecordTransInfo *pTransInfo,
+                          dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBRM_REC ) ;
       {
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itr.valid() )
@@ -3060,8 +3639,22 @@ namespace engine
          *pageSize = *( ( UINT32 * )( itr.value() ) ) ;
       }
 
+      if ( NULL != pTransInfo )
+      {
+         rc = dpsGetTransInfo( record, *pTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction info, "
+                      "rc: %d", rc ) ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBRM, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBRM_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -3097,7 +3690,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2LOBTRUNCATE, "dpsRecord2LobTruncate" )
    INT32 dpsRecord2LobTruncate( const CHAR *raw,
-                                const CHAR **fullName )
+                                const CHAR **fullName,
+                                dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBTRUNCATE ) ;
@@ -3105,10 +3699,28 @@ namespace engine
       rc = record.load( raw ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to load lobu record, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to load lob truncate record, rc: %d", rc ) ;
          goto error ;
       }
 
+      rc = dpsRecord2LobTruncate( record, fullName, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse lob truncate record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBTRUNCATE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2LOBTRUNCATE_REC, "dpsRecord2LobTruncate" )
+   INT32 dpsRecord2LobTruncate( const dpsLogRecord &record,
+                                const CHAR **fullName,
+                                dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2LOBTRUNCATE_REC ) ;
       {
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       if ( !itr.valid() )
@@ -3119,8 +3731,16 @@ namespace engine
       }
       *fullName = itr.value() ;
       }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBTRUNCATE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBTRUNCATE_REC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -3172,7 +3792,8 @@ namespace engine
    INT32 dpsRecord2Alter ( const CHAR * logRecord,
                            const CHAR ** name,
                            INT32 & objectType,
-                           bson::BSONObj & alterObject )
+                           bson::BSONObj & alterObject,
+                           dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
 
@@ -3181,10 +3802,33 @@ namespace engine
       SDB_ASSERT( NULL != logRecord, "Record can't be NULL" ) ;
 
       dpsLogRecord record ;
-      dpsLogRecord::iterator iterRecord ;
 
       rc = record.load( logRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load alter record, rc: %d",rc ) ;
+
+      rc = dpsRecord2Alter( record, name, objectType, alterObject, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse alter record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2ALTER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2ALTER_REC, "dpsRecord2Alter" )
+   INT32 dpsRecord2Alter ( const dpsLogRecord &record,
+                           const CHAR ** name,
+                           INT32 & objectType,
+                           bson::BSONObj & alterObject,
+                           dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2ALTER_REC ) ;
+
+      dpsLogRecord::iterator iterRecord ;
 
       iterRecord = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
       PD_CHECK( iterRecord.value(), SDB_SYS, error, PDERROR,
@@ -3204,8 +3848,15 @@ namespace engine
 
       alterObject = BSONObj( iterRecord.value() ) ;
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done :
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2ALTER, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2ALTER_REC, rc ) ;
       return rc ;
 
    error :
@@ -3262,7 +3913,8 @@ namespace engine
    INT32 dpsRecord2AddUniqueID ( const CHAR* logRecord,
                                  const CHAR** csname,
                                  utilCSUniqueID& csUniqueID,
-                                 bson::BSONObj & clInfoObj )
+                                 bson::BSONObj & clInfoObj,
+                                 dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_RECORD2UID ) ;
@@ -3270,12 +3922,34 @@ namespace engine
       SDB_ASSERT( NULL != logRecord, "Record can't be NULL" ) ;
 
       dpsLogRecord record ;
-      dpsLogRecord::iterator it ;
 
       rc = record.load( logRecord ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to load add unique id record, rc: %d",
                    rc ) ;
+
+      rc = dpsRecord2AddUniqueID( record, csname, csUniqueID, clInfoObj, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse add unique id record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2UID_REC, "dpsRecord2AddUniqueID" )
+   INT32 dpsRecord2AddUniqueID ( const dpsLogRecord &record,
+                                 const CHAR** csname,
+                                 utilCSUniqueID& csUniqueID,
+                                 bson::BSONObj & clInfoObj,
+                                 dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPS_RECORD2UID_REC ) ;
+
+      dpsLogRecord::iterator it ;
 
       it = record.find( DPS_LOG_ADDUNIQUEID_CSNAME ) ;
       PD_CHECK( it.value(), SDB_SYS, error, PDERROR,
@@ -3295,8 +3969,15 @@ namespace engine
 
       clInfoObj = BSONObj( it.value() ) ;
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done :
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2UID, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2UID_REC, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -3340,7 +4021,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2RTRN, "dpsRecord2Return" )
    INT32 dpsRecord2Return( const CHAR *logRecord,
-                           BSONObj *boOptions )
+                           BSONObj *boOptions,
+                           dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
 
@@ -3349,7 +4031,27 @@ namespace engine
       dpsLogRecord record ;
 
       rc = record.load( logRecord ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to load recycle record, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load return record, rc: %d", rc ) ;
+
+      rc = dpsRecord2Return( record, boOptions, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse return record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_REC2RTRN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2RTRN_REC, "dpsRecord2Return" )
+   INT32 dpsRecord2Return( const dpsLogRecord &record,
+                           BSONObj *boOptions,
+                           dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_REC2RTRN_REC ) ;
 
       if ( NULL != boOptions )
       {
@@ -3375,14 +4077,20 @@ namespace engine
          }
       }
 
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__DPS_REC2RTRN, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPS_REC2RTRN_REC, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
-
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_CRTKEY2REC, "dpsCrtKeys2Record" )
    INT32 dpsCrtKeys2Record( const BSONObj & oldKeyFiles,
@@ -3419,6 +4127,9 @@ namespace engine
                       "Failed to push old key files, rc: %d", rc ) ;
       }
 
+      rc = checkAndAddTimeInfo( record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc: %d", rc ) ;
+
       header._length = record.alignedLen() ;
 
    done:
@@ -3431,8 +4142,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2CRTKEY, "dpsRecord2CrtKeys" )
    INT32 dpsRecord2CrtKeys( const CHAR *logRecord,
-                            bson::BSONObj & oldKeyFiles, 
-                            bson::BSONObj & newKeyFiles )
+                            bson::BSONObj & oldKeyFiles,
+                            bson::BSONObj & newKeyFiles,
+                            dpsRecordTimeInfo *pTimeInfo )
    {
       INT32 rc = SDB_OK ;
 
@@ -3447,42 +4159,69 @@ namespace engine
          goto error ;
       }
 
-      {
-         dpsLogRecord::iterator itrNewKeyFiles =
-                                record.find( DPS_LOG_NEW_KEY_FILES ) ;
-         dpsLogRecord::iterator itrOldKeyFiles =
-                                record.find( DPS_LOG_OLD_KEY_FILES ) ;
+      rc = dpsRecord2CrtKeys( record, oldKeyFiles, newKeyFiles, pTimeInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle record, rc: %d", rc ) ;
 
-         try
-         {
-            if ( itrNewKeyFiles.valid() )
-            {
-               newKeyFiles = BSONObj( itrNewKeyFiles.value() ) ;
-            }
-            else
-            {
-               newKeyFiles = BSONObj() ;
-            }
-
-            if ( itrOldKeyFiles.valid() )
-            {
-               oldKeyFiles = BSONObj( itrOldKeyFiles.value() ) ;
-            }
-            else
-            {
-               oldKeyFiles = BSONObj() ;
-            }
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to get key file, occur exception %s",
-                    e.what() ) ;
-            rc = ossException2RC( &e ) ;
-            goto error ;
-         }
-      }
    done:
       PD_TRACE_EXITRC( SDB__DPS_REC2CRTKEY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_REC2CRTKEY_REC, "dpsRecord2CrtKeys" )
+   INT32 dpsRecord2CrtKeys( const dpsLogRecord &record,
+                            bson::BSONObj & oldKeyFiles,
+                            bson::BSONObj & newKeyFiles,
+                            dpsRecordTimeInfo *pTimeInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_REC2CRTKEY_REC ) ;
+
+      dpsLogRecord::iterator itrNewKeyFiles =
+                              record.find( DPS_LOG_NEW_KEY_FILES ) ;
+      dpsLogRecord::iterator itrOldKeyFiles =
+                              record.find( DPS_LOG_OLD_KEY_FILES ) ;
+
+      try
+      {
+         if ( itrNewKeyFiles.valid() )
+         {
+            newKeyFiles = BSONObj( itrNewKeyFiles.value() ) ;
+         }
+         else
+         {
+            newKeyFiles = BSONObj() ;
+         }
+
+         if ( itrOldKeyFiles.valid() )
+         {
+            oldKeyFiles = BSONObj( itrOldKeyFiles.value() ) ;
+         }
+         else
+         {
+            oldKeyFiles = BSONObj() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get key file, occur exception %s",
+                  e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      if ( NULL != pTimeInfo )
+      {
+         rc = dpsGetTimeInfo( record, *pTimeInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time info, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_REC2CRTKEY_REC, rc ) ;
       return rc ;
    error:
       goto done ;

@@ -284,16 +284,17 @@ namespace engine
             return _curProcessName ;
          }
 
-         void setDataExInfo( const CHAR *fullName, UINT32 csLID,
-                             UINT32 clLID, SINT32 extLID )
+         void setDataExInfo( const CHAR *fullName,
+                             utilCSUniqueID csUID = UTIL_UNIQUEID_NULL,
+                             UINT32 csLID = ~0,
+                             utilCLUniqueID clUID = UTIL_UNIQUEID_NULL,
+                             UINT32 clLID = ~0,
+                             INT32 extLID = -1 )
          {
             if ( ( 0 == _curProcessName[0] && ( NULL == fullName || 0 == fullName[0] ) ) ||
                  ( NULL != fullName && 0 == ossStrcmp( fullName, _curProcessName ) ) )
             {
-               _dataExInfo._csLID  = csLID ;
-               _dataExInfo._clLID  = clLID ;
-               _dataExInfo._extLID = extLID ;
-               _dataExInfo._isValid = TRUE ;
+               _dataExInfo.setInfo( csUID, csLID, clUID, clLID, extLID ) ;
             }
          }
 
