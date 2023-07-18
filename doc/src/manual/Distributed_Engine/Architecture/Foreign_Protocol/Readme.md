@@ -9,5 +9,5 @@ SequoiaDB 巨杉数据库提供存储计算分离云服务架构，并支持在�
 
 
 [^_^]:
-本文使用的所有引用及链接
+  本文使用的所有引用及链接
 [mongo]:manual/Distributed_Engine/Architecture/Foreign_Protocol/mongodb_protocol.md
