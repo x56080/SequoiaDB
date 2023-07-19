@@ -576,7 +576,7 @@ sequoiadb
 │       │   ├── waitTasks_cn.troff
 │       │   ├── waitTasks_en.troff
 │       │   ├── watch_cn.troff
-│       │   └── watch_en.troff
+│       │   └── watch_en.troff
 │       ├── SdbCollection
 │       │   ├── aggregate_cn.troff
 │       │   ├── aggregate_en.troff
@@ -668,7 +668,7 @@ sequoiadb
 │       │   ├── upsert_cn.troff
 │       │   ├── upsert_en.troff
 │       │   ├── watch_cn.troff
-│       │   └── watch_en.troff
+│       │   └── watch_en.troff
 │       ├── SdbCS
 │       │   ├── alter_cn.troff
 │       │   ├── alter_en.troff
@@ -691,7 +691,7 @@ sequoiadb
 │       │   ├── setDomain_cn.troff
 │       │   ├── setDomain_en.troff
 │       │   ├── watch_cn.troff
-│       │   └── watch_en.troff
+│       │   └── watch_en.troff
 │       ├── SdbCursor
 │       │   ├── arrayAccess_cn.troff
 │       │   ├── arrayAccess_en.troff
