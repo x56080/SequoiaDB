@@ -2,13 +2,14 @@
  * @Description   : seqDB-31479: 使用reelectLocation()不指定option参数重新选举位置集主节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.23
- * @LastEditTime  : 2023.06.07
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.07.19
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9759
+// main( test );
 function test ()
 {
    var location = "location_31479";
