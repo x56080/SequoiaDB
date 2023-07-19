@@ -6344,6 +6344,38 @@ do                                                            \
          goto done ;
    }
 
+   INT32 _sdbReplicaGroupImpl::startMaintenanceMode ( const BSONObj & options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_GROUP_START_MAINTENANCE_MODE, &options, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
+   INT32 _sdbReplicaGroupImpl::stopMaintenanceMode ( const BSONObj & options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_GROUP_STOP_MAINTENANCE_MODE, &options, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::_getRetVersion ()
    {
       INT32 version = CATALOG_INVALID_VERSION ;
@@ -7802,6 +7834,16 @@ do                                                            \
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _sdbDataCenterImpl::startMaintenanceMode( const BSONObj & options )
+   {
+      return _innerAlter( CMD_VALUE_NAME_START_MAINTENANCE_MODE, &options ) ;
+   }
+
+   INT32 _sdbDataCenterImpl::stopMaintenanceMode( const BSONObj & options )
+   {
+      return _innerAlter( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, &options ) ;
    }
 
    /*

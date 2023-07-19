@@ -79,6 +79,40 @@ function checkCriticalNodeMode(db, groupName, nodeName) {
 }
 
 /******************************************************************************
+ * @description: Check if the group started maintenance mode successfully
+ * @param {string} groupName
+ * @param {string} nodeList
+ ******************************************************************************/
+function checkMaintenanceMode(db, groupName, nodeList) {
+  var rg = db.getRG(groupName);
+  var groupObj = rg.getDetailObj().toObj();
+
+  // Check maintenance mode
+  var grpMode = groupObj.GroupMode;
+  assert.equal(grpMode, "maintenance", "GroupMode is not maintenance");
+
+  // Check maintenance mode in grpModeObj
+  var grpModeObj = db.list(SDB_LIST_GROUPMODES, { GroupID: groupObj.GroupID }).current().toObj();
+  assert.equal(grpModeObj.GroupMode, "maintenance", "GroupMode is not maintenance");
+
+  var properties = grpModeObj.Properties;
+
+  // Check maintenance properties in grpModeObj
+  for (var i in nodeList) {
+    var match = false;
+    var nodeItem = nodeList[i];
+    for (var j in properties) {
+      var property = properties[j];
+      if (property.NodeID == nodeItem.NodeID) {
+        match = true;
+        break;
+      }
+    }
+    assert.equal(match, true, "Missing node[" + nodeItem.NodeID + "]");
+  }
+}
+
+/******************************************************************************
  * @description: Check if the group is in normal grpMode
  * @param {string} groupName
  * @param {string} location

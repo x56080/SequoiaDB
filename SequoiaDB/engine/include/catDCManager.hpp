@@ -163,6 +163,11 @@ namespace engine
                                    _clsDCMgr *pDCMgr,
                                    const BSONObj &objQuery,
                                    BSONObjBuilder &retObjBuilder ) ;
+      INT32 processCmdAlterMaintenanceMode( const NET_HANDLE &handle,
+                                            _clsDCMgr *pDCMgr,
+                                            const BSONObj &objQuery,
+                                            BSONObjBuilder &retObjBuilder,
+                                            const BOOLEAN &isStartMode ) ;
 
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
@@ -184,6 +189,17 @@ namespace engine
       INT16 _majoritySize() ;
       INT32 _updateGlobalInfo() ;
       INT32 _updateImageInfo() ;
+
+      INT32 _checkMaintenanceMode( const BSONObj &option,
+                                   const BSONObj &groupObj,
+                                   const UINT32 &groupID,
+                                   const BOOLEAN &isStartMode,
+                                   clsGroupMode &groupMode,
+                                   ossPoolString *pHostName ) ;
+
+      INT32 _buildGroupModeInfo( const BSONObj &groupObj,
+                                 const ossPoolString &hostName,
+                                 clsGroupMode &groupMode ) ;
 
    private:
       _SDB_DMSCB                 *_pDmsCB;

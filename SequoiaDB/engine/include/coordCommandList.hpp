@@ -683,6 +683,18 @@ namespace engine
    } ;
    typedef class _coordCMDListGrpModes coordCMDListGrpModes ;
 
+   /*
+      _coordCMDListGroupModeIntr define
+   */
+   class _coordCMDListGroupModeIntr : public _coordCMDListGrpModes
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDListGroupModeIntr() ;
+         virtual ~_coordCMDListGroupModeIntr() ;
+   } ;
+   typedef _coordCMDListGroupModeIntr coordCMDListGroupModeIntr ;
+
       /*
       _coordCMDListStreams define
     */

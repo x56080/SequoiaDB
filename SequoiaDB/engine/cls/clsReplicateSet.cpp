@@ -66,6 +66,7 @@ namespace engine
       ON_MSG( MSG_CLS_NODE_STATUS_NOTIFY, handleMsg )
       ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
       ON_EVENT( PMD_EDU_EVENT_STEP_UP, handleEvent )
+      ON_EVENT( PMD_EDU_EVENT_UPDATE_GRPMODE, handleEvent )
    END_OBJ_MSG_MAP ()
 
    const UINT32 CLS_REPL_SEC_TIME = 1000 ;
@@ -1286,6 +1287,15 @@ namespace engine
             goto error ;
          }
       }
+      else if ( PMD_EDU_EVENT_UPDATE_GRPMODE == event->_eventType )
+      {
+         rc = _handleGroupModeUpdate( ( clsGroupMode* )event->_Data ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to update group mode:%d", rc ) ;
+            goto error ;
+         }
+      }
       else
       {
          PD_LOG( PDERROR, "unknown event type:%d", event->_eventType ) ;
@@ -2377,7 +2387,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
-      if ( 1 == groupSize() )
+      if ( 1 == groupSize() && ! isInMaintenanceMode() )
       {
          goto done ;
       }
@@ -2468,6 +2478,58 @@ namespace engine
       _vote.force( CLS_ELECTION_STATUS_PRIMARY,
                    seconds * 1000 ) ;
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPUP, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLEGRPMODEUPDATE, "_clsReplicateSet::_handleGroupModeUpdate" )
+   INT32 _clsReplicateSet::_handleGroupModeUpdate( const clsGroupMode *pGrpMode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLEGRPMODEUPDATE ) ;
+
+      if ( NULL == pGrpMode )
+      {
+         PD_LOG( PDEVENT, "Failed to udpate group mode, download from catalog again" ) ;
+         MsgCatGroupReq msg ;
+         msg.id = _info.local ;
+         _cata.call( (MsgHeader *)(&msg) ) ;
+      }
+      else
+      {
+         try
+         {
+            _info.grpMode = *pGrpMode ;
+
+            // If this node is primary and not in tmporary mode, we need to start a monitor job
+            if ( primaryIsMe() )
+            {
+               if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode && ! _vote.isTmpGrpMode() )
+               {
+                  rc = _vote.startCriticalModeMonitor() ;
+               }
+               else if ( CLS_GROUP_MODE_MAINTENANCE == _info.grpMode.mode )
+               {
+                  rc = _vote.startMaintenanceModeMonitor() ;
+               }
+            }
+
+            SDB_OSS_DEL pGrpMode ;
+            pGrpMode = NULL ;
+         }
+         catch ( std::exception &e )
+         {
+            if ( NULL != pGrpMode )
+            {
+               SDB_OSS_DEL pGrpMode ;
+               pGrpMode = NULL ;
+            }
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to set group mode, occur exception %s", e.what() ) ;
+         }
+
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLEGRPMODEUPDATE, rc ) ;
       return rc ;
    }
 

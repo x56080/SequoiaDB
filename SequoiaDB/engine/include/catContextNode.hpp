@@ -212,11 +212,17 @@ namespace engine
    private:
       INT32 _setActiveLocation() ;
 
-      INT32 _checkCriticalMode() ;
+      INT32 _checkCriticalMode( BOOLEAN isStartMode ) ;
 
-      INT32 _startCriticalMode( INT16 w ) ;
+      INT32 _startCriticalMode() ;
 
       INT32 _stopCriticalMode() ;
+
+      INT32 _checkMaintenanceMode( BOOLEAN isStartMode ) ;
+
+      INT32 _startMaintenanceMode() ;
+
+      INT32 _stopMaintenanceMode() ;
 
    private:
       BSONObj                _boHint ;

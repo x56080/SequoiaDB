@@ -327,6 +327,7 @@ namespace engine
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onStepDown( pmdEDUEvent *event ) ;
          INT32 _onStepUp( pmdEDUEvent *event ) ;
+         INT32 _onGroupModeUpdate( pmdEDUEvent *event ) ;
          BOOLEAN _findAndCheckTaskStatus( UINT64 taskID,
                                           dmsTaskStatusPtr &statusPtr,
                                           BOOLEAN &needRollback ) ;

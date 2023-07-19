@@ -371,10 +371,39 @@ namespace engine
    INT32 catGetGrpModeObj( const UINT32 &groupID, BSONObj &obj, pmdEDUCB *cb ) ;
 
    INT32 catParseGrpModeObj( const BSONObj &grpModeObj,
-                             const CLS_LOC_INFO_MAP &locMap,
                              clsGroupMode &grpMode ) ;
 
    INT32 catDelGroupFromGrpMode( const UINT32 &groupID, const INT16 &w, pmdEDUCB *cb ) ;
+
+   INT32 catUpdateGrpMode( const clsGroupMode &grpMode,
+                           const BSONObj &groupModeObj,
+                           BSONObjBuilder &updatorBuilder,
+                           BSONObjBuilder &matcherBuilder ) ;
+
+   INT32 catRemoveGrpMode( const clsGroupMode &grpMode,
+                           const BOOLEAN &needStop,
+                           BSONObjBuilder &updatorBuilder,
+                           BSONObjBuilder &matcherBuilder ) ;
+
+   INT32 catInsertGrpMode( const clsGroupMode &grpMode,
+                           const string &groupName,
+                           BSONObjBuilder &insertBuilder ) ;
+
+   INT32 catSetGrpModePropty( const VEC_GRPMODE_ITEM_PTR &setItemVec,
+                              BSONObjBuilder &updatorBuilder,
+                              BSONObjBuilder *matcherBuilder ) ;
+
+   INT32 catPushGrpModePropty( const VEC_GRPMODE_ITEM_PTR &pushItemVec,
+                               BSONObjBuilder &updatorBuilder,
+                               BSONObjBuilder &matcherBuilder ) ;
+
+   /* Parse option in start/stop group mode command */
+   INT32 catParseGroupModeInfo( const BSONObj &option,
+                                const BSONObj &groupObj,
+                                const UINT32 &groupID,
+                                const BOOLEAN &parseTime,
+                                clsGroupMode &groupMode,
+                                ossPoolString *pHostName = NULL ) ;
 
    /* Other Tools */
    INT32 catFormatIndexInfo( const CHAR* collection, utilCLUniqueID clUniqID,
@@ -599,6 +628,12 @@ namespace engine
                              BSONObjBuilder &matcherBuilder,
                              BOOLEAN        isRemoveNode,
                              ossPoolString  *oldLocation ) ;
+
+   /* Set group mode, this function is used in SYSCAT.SYSNODES table */
+   INT32 catSetGrpMode ( const clsGroupMode &grpMode,
+                         const BOOLEAN incGrpVer,
+                         _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
+                         SDB_DPSCB *pDpsCB, INT16 w ) ;
 
    /* Create Node */
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,

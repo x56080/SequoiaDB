@@ -105,6 +105,14 @@ namespace engine
                          _sptReturnVal &rval,
                          bson::BSONObj &detail ) ;
 
+      INT32 startMaintenanceMode( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail ) ;
+
+      INT32 stopMaintenanceMode( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail ) ;
+
       static INT32 cvtToBSON( const CHAR* key, const sptObject &value,
                               BOOLEAN isSpecialObj, BSONObjBuilder& builder,
                               string &errMsg ) ;

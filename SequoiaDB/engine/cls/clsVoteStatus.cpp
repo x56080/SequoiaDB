@@ -75,6 +75,12 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
+      else if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->localGrpMode )
+      {
+         PD_LOG( PDINFO, "%s Vote: node is in maintenance mode, "
+                 "can't initial voting", getScopeName() ) ;
+         goto done ;
+      }
       /* 
          1. For group in normal mode, check if majority nodes are alive.
          2. For group in critical mode, check if local node is in critical mode and
@@ -251,6 +257,14 @@ namespace engine
                  _groupInfo->primary.columns.nodeID ) ;
          goto accepterr ;
       }
+
+      // If node is in maintenance node, don't vote
+      if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->localGrpMode )
+      {
+         PD_LOG( PDINFO, "%s Vote: node is in maintenance mode, can't vote", getScopeName() ) ;
+         goto done ;
+      }
+
       // Check if majority nodes are alive or peer node is in critical mode,
       // if not, do not response.
       if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
@@ -259,6 +273,7 @@ namespace engine
          PD_LOG( PDDEBUG, "%s Vote: sharing break whih majority", getScopeName() ) ;
          goto error ;
       }
+
       if ( NULL == _logger )
       {
          _logger = pmdGetKRCB()->getDPSCB() ;

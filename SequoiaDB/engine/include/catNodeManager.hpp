@@ -151,12 +151,11 @@ namespace engine
                               const ossPoolString &newLoc,
                               const ossPoolString &hostName ) ;
 
-      INT32 startCriticalMode( const clsGroupMode &grpMode,
-                               const string &groupName,
-                               const BSONObj &groupObj,
-                               INT16 w ) ;
+      INT32 startGrpMode( const clsGroupMode &grpMode,
+                          const string &groupName,
+                          const BSONObj &groupObj ) ;
 
-      INT32 stopCriticalMode( UINT32 groupID ) ;
+      INT32 stopGrpMode( const clsGroupMode &grpMode ) ;
 
    private:
       _SDB_DMSCB                 *_pDmsCB ;

@@ -560,6 +560,16 @@ namespace engine
             rc = processCmdSetLocation( handle, &dcMgr,
                                         objQuery, retObjBuilder ) ;
          }
+         else if ( 0 == ossStrcasecmp( pAction, CMD_VALUE_NAME_START_MAINTENANCE_MODE ) )
+         {
+            rc = processCmdAlterMaintenanceMode( handle, &dcMgr,
+                                                 objQuery, retObjBuilder, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( pAction, CMD_VALUE_NAME_STOP_MAINTENANCE_MODE ) )
+         {
+            rc = processCmdAlterMaintenanceMode( handle, &dcMgr,
+                                                 objQuery, retObjBuilder, FALSE ) ;
+         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -1521,6 +1531,124 @@ namespace engine
       goto done ;
    }
 
+   INT32 _catDCManager::processCmdAlterMaintenanceMode( const NET_HANDLE &handle,
+                                                        _clsDCMgr *pDCMgr,
+                                                        const BSONObj &objQuery,
+                                                        BSONObjBuilder &retObjBuilder,
+                                                        const BOOLEAN &isStartMode )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+      BSONElement ele ;
+      CAT_GROUP_LIST allGroups ;
+      CAT_GROUP_LIST failedGroups ;
+      catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
+
+      try
+      {
+         // Get options
+         ele = objQuery.getField( FIELD_NAME_OPTIONS ) ;
+         if ( ele.eoo() || Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
+                    FIELD_NAME_OPTIONS, objQuery.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         options = ele.embeddedObject() ;
+
+         // Get all groups
+         _pCatCB->getGroupsID( allGroups, FALSE ) ;
+         allGroups.push_back( CATALOG_GROUPID ) ;
+
+         CAT_GROUP_LIST::const_iterator itr = allGroups.begin() ;
+         while ( allGroups.end() != itr )
+         {
+            BSONObj groupObj ;
+            string groupName ;
+            ossPoolString hostName ;
+            clsGrpModeItem item ;
+            clsGroupMode groupMode ;
+            catCtxLockMgr lockMgr ;
+            UINT32 groupID = *itr++ ;
+
+            // Get group obj by group id
+            rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Check group mode info
+            rc = _checkMaintenanceMode( options, groupObj, groupID,
+                                        isStartMode, groupMode, &hostName ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to check group[%u] mode info, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Get group name
+            rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
+            if ( SDB_OK != rc )
+            {
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
+               continue ;
+            }
+
+            // Lock group
+            if ( ! lockMgr.tryLockGroup( groupName, EXCLUSIVE ) )
+            {
+               rc = SDB_LOCK_FAILED ;
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               continue ;
+            }
+
+            if ( isStartMode )
+            {
+               rc = pCatNodeMgr->startGrpMode( groupMode, groupName, groupObj ) ;
+               if ( SDB_OK != rc )
+               {
+                  failedGroups.push_back( groupID ) ;
+                  PD_LOG( PDERROR, "Failed to start maintenance mode on group[%u], rc: %d", groupID, rc ) ;
+                  continue ;
+               }
+            }
+            else
+            {
+               rc = pCatNodeMgr->stopGrpMode( groupMode ) ; 
+               if ( SDB_OK != rc )
+               {
+                  failedGroups.push_back( groupID ) ;
+                  PD_LOG( PDERROR, "Failed to stop maintenance mode on group[%u], rc: %d", groupID, rc ) ;
+                  continue ;
+               }
+            }
+         }
+
+         rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
+
+         rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
    void _catDCManager::_fillRspHeader( MsgHeader * rspMsg,
                                        const MsgHeader * reqMsg )
@@ -1849,5 +1977,173 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 _catDCManager::_checkMaintenanceMode( const BSONObj &option,
+                                               const BSONObj &groupObj,
+                                               const UINT32 &groupID,
+                                               const BOOLEAN &isStartMode,
+                                               clsGroupMode &groupMode,
+                                               ossPoolString *pHostName )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONElement grpModeEle, primaryEle ;
+
+      // Init groupMode
+      groupMode.groupID = groupID ;
+      groupMode.mode = CLS_GROUP_MODE_MAINTENANCE ;
+
+      // Check if this group is in critical mode
+      grpModeEle = groupObj.getField( CAT_GROUP_MODE_NAME ) ;
+      if ( ! grpModeEle.eoo() )
+      {
+         if ( String != grpModeEle.type() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDWARNING, "Failed to get the field[%s], type[%d] is not String",
+                    CAT_GROUP_MODE_NAME, grpModeEle.type() ) ;
+            goto error ;
+         }
+         else if ( 0 == ossStrcmp( CAT_CRITICAL_MODE_NAME, grpModeEle.valuestrsafe() ) )
+         {
+            rc = SDB_OPERATION_CONFLICT ;
+            PD_LOG_MSG( PDERROR, "Failed to %s maintenance mode in group[%u], "
+                        "critical mode is operating", isStartMode ? "start" : "stop", groupID ) ;
+            goto error ;
+         }
+      }
+      // If the command is stop maintenance mode, do nothing
+      else if ( ! isStartMode )
+      {
+         goto done ;
+      }
+
+      // If the command is stop maintenance mode and options is empty, it means stop all maintenance mode
+      if ( ! isStartMode && option.isEmpty() )
+      {
+         goto done ;
+      }
+
+      rc = catParseGroupModeInfo( option, groupObj, groupID, isStartMode, groupMode, pHostName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse group mode info[%s], rc: %d",
+                   option.toPoolString().c_str(), rc ) ;
+
+      rc = _buildGroupModeInfo( groupObj, *pHostName, groupMode ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::_buildGroupModeInfo( const BSONObj &groupObj,
+                                             const ossPoolString &hostName,
+                                             clsGroupMode &groupMode )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsGrpModeItem item = groupMode.grpModeInfo[0] ;
+      groupMode.grpModeInfo.clear() ;
+
+      BSONObjIterator nodeItr ;
+      BSONObj nodeListObj ;
+      ossPoolString tmpHostName ;
+      ossPoolString tmpSvcName ;
+
+      rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d", CAT_GROUP_NAME, rc ) ;
+
+      // Parse nodeList array
+      nodeItr = BSONObjIterator( nodeListObj ) ;
+      while ( nodeItr.more() )
+      {
+         clsGrpModeItem tmpItem ;
+         BSONObj boNode = nodeItr.next().embeddedObject() ;
+
+         if ( ! item.location.empty() )
+         {
+            BSONElement beLocation = boNode.getField( FIELD_NAME_LOCATION ) ;
+            if ( beLocation.eoo() )
+            {
+               continue ;
+            }
+            else if ( String != beLocation.type() )
+            {
+               rc = SDB_CAT_CORRUPTION ;
+               PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                       FIELD_NAME_LOCATION, beLocation.type() ) ;
+               goto error ;
+            }
+            else if ( 0 != ossStrcmp( beLocation.valuestrsafe(), item.location.c_str() ) )
+            {
+               continue ;
+            }
+
+         }
+         else if ( ! hostName.empty() )
+         {
+            BSONElement beHostName = boNode.getField( FIELD_NAME_HOST ) ;
+            if ( beHostName.eoo() )
+            {
+               continue ;
+            }
+            else if ( String != beHostName.type() )
+            {
+               rc = SDB_CAT_CORRUPTION ;
+               PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                       FIELD_NAME_HOST, beHostName.type() ) ;
+               goto error ;
+            }
+            else if ( 0 != ossStrcmp( beHostName.valuestrsafe(), hostName.c_str() ) )
+            {
+               continue ;
+            }
+         }
+
+         BSONElement beHost = boNode.getField( FIELD_NAME_HOST ) ;
+         if ( beHost.eoo() || String != beHost.type() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                     FIELD_NAME_HOST, beHost.type() ) ;
+            goto error ;
+         }
+         tmpHostName = beHost.valuestrsafe() ;
+
+         BSONElement beService = boNode.getField( FIELD_NAME_SERVICE ) ;
+         if ( beService.eoo() || Array != beService.type() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                     FIELD_NAME_SERVICE, beService.type() ) ;
+            goto error ;
+         }
+         tmpSvcName = getServiceName( beService, MSG_ROUTE_LOCAL_SERVICE ) ;
+
+         BSONElement beNodeID = boNode.getField( FIELD_NAME_NODEID ) ;
+         if ( beNodeID.eoo() || ! beNodeID.isNumber() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
+                     FIELD_NAME_NODEID, beService.type() ) ;
+            goto error ;
+         }
+         tmpItem.nodeID = beNodeID.numberInt() ;
+
+         tmpItem.nodeName = tmpHostName + ":" + tmpSvcName ;
+         tmpItem.minKeepTime = item.minKeepTime ;
+         tmpItem.maxKeepTime = item.maxKeepTime ;
+         tmpItem.updateTime = item.updateTime ;
+
+         groupMode.grpModeInfo.push_back( tmpItem ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 
 }

@@ -104,6 +104,14 @@ namespace engine
                               _sptReturnVal &rval,
                               bson::BSONObj &detail ) ;
 
+      INT32 startMaintenanceMode( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail ) ;
+
+      INT32 stopMaintenanceMode( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail ) ;
+
       INT32 detachNode( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;

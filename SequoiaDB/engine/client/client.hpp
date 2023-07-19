@@ -3297,6 +3297,12 @@ namespace sdbclient
 
       // stop critical mode
       virtual INT32 stopCriticalMode() = 0 ;
+
+      // start maintenance mode
+      virtual INT32 startMaintenanceMode( const bson::BSONObj &options ) = 0 ;
+
+      // stop maintenance mode
+      virtual INT32 stopMaintenanceMode( const bson::BSONObj &options ) = 0 ;
    } ;
 
    /** \class sdbReplicaGroup
@@ -3766,7 +3772,7 @@ namespace sdbclient
           \brief start critical mode in the current replica group.
           \param [in] options The options of critical mode:
 
-               Node: The critical node to be set in replica group
+               NodeName: The critical node to be set in replica group
                Location: The critical location to be set in replica group
                Enforced: Whether to force to start critical mode in replica group
                MinKeepTime: The minimum keep time of critical mode
@@ -3796,6 +3802,46 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->stopCriticalMode () ;
+      }
+
+      /** \fn INT32 startMaintenanceMode( const bson::BSONObj &options )
+          \brief start maintenance mode in the current replica group.
+          \param [in] options The options of maintenance mode:
+
+               NodeName: The maintenance node to be added in replica group
+               Location: The maintenance location to be added in replica group
+               MinKeepTime: The minimum keep time of maintenance mode
+               MaxKeepTime: The maximum keep time of maintenance mode
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 startMaintenanceMode( const bson::BSONObj &options )
+      {
+          if ( !pReplicaGroup )
+          {
+              return SDB_NOT_CONNECTED ;
+          }
+          return pReplicaGroup->startMaintenanceMode( options ) ;
+      }
+
+      /** \fn INT32 stopMaintenanceMode ()
+          \brief Stop maintenance mode in current replica group.
+          \param [in] options The options of maintenance mode:
+
+               NodeName: The maintenance node to be stoped in replica group
+               Location: The maintenance location to be stoped in replica group
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 stopMaintenanceMode( const bson::BSONObj &options )
+      {
+         if ( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->stopMaintenanceMode ( options ) ;
       }
    } ;
 
@@ -4694,7 +4740,8 @@ namespace sdbclient
       virtual INT32 detachGroups( const bson::BSONObj &info ) = 0 ;
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
       virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation ) = 0 ;
-
+      virtual INT32 startMaintenanceMode( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 stopMaintenanceMode( const bson::BSONObj &options ) = 0 ;
    } ;
 
    /* \class  sdbDataCenter
@@ -4931,6 +4978,46 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pDC->setLocation( pHostName, pLocation ) ;
+      }
+
+      /** \fn INT32 startMaintenanceMode( const bson::BSONObj &options )
+          \brief start maintenance mode in the current data center.
+          \param [in] options The options of maintenance mode:
+
+               Location: The maintenance location to be added in data center
+               HostName: The maintenance machine to be added in data center
+               MinKeepTime: The minimum keep time of maintenance mode
+               MaxKeepTime: The maximum keep time of maintenance mode
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 startMaintenanceMode( const bson::BSONObj &options )
+      {
+          if ( !pDC )
+          {
+              return SDB_NOT_CONNECTED ;
+          }
+          return pDC->startMaintenanceMode( options ) ;
+      }
+
+      /** \fn INT32 stopMaintenanceMode ()
+          \brief Stop maintenance mode in current data center.
+          \param [in] options The options of maintenance mode:
+
+               Location: The maintenance location to be stoped in data center
+               HostName: The maintenance machine to be added in data center
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 stopMaintenanceMode( const bson::BSONObj &options )
+      {
+         if ( !pDC )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDC->stopMaintenanceMode ( options ) ;
       }
 
    };

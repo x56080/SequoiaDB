@@ -146,6 +146,12 @@ namespace engine
             return _info.criticalSize() ;
          }
 
+         OSS_INLINE UINT32 maintenanceSize()
+         {
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+            return _info.maintenanceSize() ;
+         }
+
          OSS_INLINE UINT32 criticalAliveSize()
          {
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
@@ -376,6 +382,11 @@ namespace engine
          OSS_INLINE BOOLEAN isInCriticalMode()
          {
             return CLS_GROUP_MODE_CRITICAL == _info.localGrpMode ;
+         }
+
+         OSS_INLINE BOOLEAN isInMaintenanceMode()
+         {
+            return CLS_GROUP_MODE_MAINTENANCE == _info.localGrpMode ;
          }
 
          OSS_INLINE BOOLEAN isInEnforcedGrpMode()
@@ -639,6 +650,8 @@ namespace engine
          INT32 _handleStepDown( BOOLEAN isLocation ) ;
 
          INT32 _handleStepUp( UINT32 seconds ) ;
+
+         INT32 _handleGroupModeUpdate( const clsGroupMode *pGrpMode ) ;
 
          void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;

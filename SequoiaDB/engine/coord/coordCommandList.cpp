@@ -1350,6 +1350,21 @@ namespace engine
    }
 
    /*
+      _coordCMDListGroupModeIntr implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListGroupModeIntr,
+                                      CMD_NAME_LIST_GROUPMODES_INTR,
+                                      TRUE ) ;
+
+   _coordCMDListGroupModeIntr::_coordCMDListGroupModeIntr()
+   {
+   }
+
+   _coordCMDListGroupModeIntr::~_coordCMDListGroupModeIntr()
+   {
+   }
+
+   /*
       _coordCMDListStreams implement
     */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListStreams,

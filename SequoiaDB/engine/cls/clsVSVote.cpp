@@ -92,12 +92,18 @@ namespace engine
          {
             if ( SDB_OK == msg->header.res )
             {
-               ++_accepted() ;
+               const _clsSharingStatus &status = _info()->info.find( msg->identity.value )->second ;
 
                // If this accepted msg is from critical node, record it
-               if ( _info()->info.find( msg->identity.value )->second.isInCriticalMode() )
+               if ( status.isInCriticalMode() )
                {
                   ++_criticalAccepted() ;
+               }
+
+               // If this accepted msg is from maintenance node, ignore it
+               if ( ! status.isInMaintenanceMode() )
+               {
+                  ++_accepted() ;
                }
 
                // Node in normal mode, not critical mode

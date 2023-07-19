@@ -51,6 +51,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, getDetail )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, setActiveLocation )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, setLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBDC, startMaintenanceMode )
+   JS_MEMBER_FUNC_DEFINE( _sptDBDC, stopMaintenanceMode )
 
    JS_BEGIN_MAPPING( _sptDBDC, SPT_DC_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -68,6 +70,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDetail", getDetail )
       JS_ADD_MEMBER_FUNC( "setActiveLocation", setActiveLocation )
       JS_ADD_MEMBER_FUNC( "setLocation", setLocation )
+      JS_ADD_MEMBER_FUNC( "startMaintenanceMode", startMaintenanceMode )
+      JS_ADD_MEMBER_FUNC( "stopMaintenanceMode", stopMaintenanceMode )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBDC::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBDC::bsonToJSObj )
    JS_MAPPING_END()
@@ -398,6 +402,70 @@ namespace engine
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set location" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBDC::startMaintenanceMode( const _sptArguments &arg,
+                                         _sptReturnVal &rval,
+                                         bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+
+      if ( arg.argc() == 0 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Options can't be null" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 0, options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _dc.startMaintenanceMode( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to start maintenance mode" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBDC::stopMaintenanceMode( const _sptArguments &arg,
+                                        _sptReturnVal &rval,
+                                        bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+
+      if ( arg.argc() > 0 )
+      {
+         rc = arg.getBsonobj( 0, options ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Options must be obj" ) ;
+            goto error ;
+         }
+      }
+
+      rc = _dc.stopMaintenanceMode( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to stop maintenance mode" ) ;
          goto error ;
       }
 

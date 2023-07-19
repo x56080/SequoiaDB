@@ -2027,7 +2027,7 @@ namespace engine
       BSONObj oldInfoObj ;
       BSONObj newInfoObj ;
       BSONArrayBuilder newGroupsBuild ;
-      BOOLEAN incVer = FALSE ;
+      BOOLEAN incGrpVer = FALSE ;
 
       BSONObjBuilder updateBuilder ;
       BSONObj updator, matcher ;
@@ -2087,7 +2087,7 @@ namespace engine
             mergeBuild.append( FIELD_NAME_STATUS, (INT32)SDB_CAT_GRP_ACTIVE ) ;
             if ( !beStatus.eoo() )
             {
-               incVer = TRUE ;
+               incGrpVer = TRUE ;
             }
             ++modifyNum ;
          }
@@ -2121,7 +2121,7 @@ namespace engine
                ++modifyNum ;
                if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_SERVICE ) )
                {
-                  incVer = TRUE ;
+                  incGrpVer = TRUE ;
                }
             }
             else
@@ -2152,7 +2152,7 @@ namespace engine
       newGroupsBuild.append( newInfoObj ) ;
 
       // update group info
-      if ( incVer )
+      if ( incGrpVer )
       {
          updateBuilder.append("$inc", BSON( FIELD_NAME_VERSION << 1 ) ) ;
       }
@@ -2839,70 +2839,42 @@ namespace engine
       goto done ;
    }
 
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STARTCRITICALMODE, "catNodeManager::startCriticalMode" )
-   INT32 catNodeManager::startCriticalMode( const clsGroupMode &grpMode,
-                                            const string &groupName,
-                                            const BSONObj &groupObj,
-                                            INT16 w )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STARTGRPMODE, "catNodeManager::startGrpMode" )
+   INT32 catNodeManager::startGrpMode( const clsGroupMode &grpMode,
+                                       const string &groupName,
+                                       const BSONObj &groupObj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_STARTCRITICALMODE ) ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_STARTGRPMODE ) ;
+
+      INT32 w = 0 ;
+      if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode && CATALOG_GROUPID == grpMode.groupID )
+      {
+         w = 1 ;
+      }
+      else
+      {
+         w = _majoritySize() ;
+      }
 
       try
       {
-         // Update grpMode in SYSCAT.SYSNODES if field[GroupMode] is missing,
-         // we don't need to check the value of this field, because it must be CRITICAL
-         {
-            BSONObj updator, matcher ;
-            BSONObjBuilder updatorBuilder, matcherBuilder ;
+         BSONObj groupModeObj ;
+         BOOLEAN incGrpVer = ! groupObj.hasField( CAT_GROUP_MODE_NAME ) ;
 
-            // Append groupID to matcher
-            matcherBuilder.append( CAT_GROUPID_NAME, grpMode.groupID ) ;
+         // Update grpMode in SYSCAT.SYSNODES
+         rc = catSetGrpMode( grpMode, incGrpVer, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
 
-            // Build version increase updator
-            BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
-            incBuilder.append( CAT_VERSION_NAME, 1 ) ;
-            incBuilder.doneFast() ;
-
-            if ( ! groupObj.hasField( CAT_GROUP_MODE_NAME ) )
-            {
-               // Build set critical grpMode updator
-               BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
-               setBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
-               setBuilder.doneFast() ;
-            }
-
-            // Update group
-            updator = updatorBuilder.obj() ;
-            matcher = matcherBuilder.obj() ;
-
-            rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
-                            0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
-                         "updator: %s, rc: %d", grpMode.groupID, matcher.toPoolString().c_str(),
-                         updator.toPoolString().c_str(), rc ) ;
-         }
-
-         // Get MinKeepTime and MaxKeepTime in string format
-         CHAR minTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-         CHAR maxTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-         CHAR updateTimeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-
-         // grpMode.minKeepTime and grpMode.mixKeepTime are not const value, so we can use const_cast
-         ossTimestampToString( const_cast< ossTimestamp& >( grpMode.grpModeInfo[0].minKeepTime ),
-                               minTimeStr ) ;
-         ossTimestampToString( const_cast< ossTimestamp& >( grpMode.grpModeInfo[0].maxKeepTime ),
-                               maxTimeStr ) ;
-         ossTimestampToString( const_cast< ossTimestamp& >( grpMode.grpModeInfo[0].updateTime ),
-                               updateTimeStr ) ;
+         // Update grpMode in SYSCAT.SYSGROUPMODES
+         rc = catGetGrpModeObj( grpMode.groupID, groupModeObj, _pEduCB ) ;
 
          /* 
-            modeObj:
+            groupModeObj:
                {
                   GroupID: 1001,
                   GroupName: "group1",
-                  GroupMode: "critical",
+                  GroupMode: "critical", || "maintenance",
                   Properties: [
                      {
                         NodeID: 1002, NodeName: "xx:xx", || LocationID: 1, Location: "xxx",
@@ -2914,51 +2886,17 @@ namespace engine
                }
           */
 
-         // Update grpMode in SYSCAT.SYSGROUPMODES
-         BSONObj modeObj ;
-         rc = catGetGrpModeObj( grpMode.groupID, modeObj, _pEduCB ) ;
-
          // The group is the first time starting cirtical or maintenance grpMode
          if ( SDB_CLS_GRP_NOT_EXIST == rc )
          {
             BSONObj insertObj ;
             BSONObjBuilder insertBuilder ;
 
-            insertBuilder.append( CAT_GROUPID_NAME, grpMode.groupID ) ;
-            insertBuilder.append( CAT_GROUPNAME_NAME, groupName ) ;
-            insertBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
-
-            // Properties builder
-            BSONObjBuilder propBuilder( insertBuilder.subarrayStart( CAT_PROPERTIES_NAME ) ) ;
-
-            // Sub obj
-            BSONObjBuilder sub( propBuilder.subobjStart( "0" ) ) ;
-
-            // Append nodeID or Location
-            if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
-            {
-               sub.append( CAT_NODEID_NAME, grpMode.grpModeInfo[0].nodeID ) ;
-               sub.append( FIELD_NAME_NODE_NAME, grpMode.grpModeInfo[0].nodeName.c_str() ) ;
-            }
-            else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
-            {
-               sub.append( CAT_LOCATIONID_NAME, grpMode.grpModeInfo[0].locationID ) ;
-               sub.append( CAT_LOCATION_NAME, grpMode.grpModeInfo[0].location.c_str() ) ;
-            }
-
-            // Append MinKeepTime and MaxKeepTime
-            sub.append( CAT_MIN_KEEP_TIME_NAME, minTimeStr ) ;
-            sub.append( CAT_MAX_KEEP_TIME_NAME, maxTimeStr ) ;
-
-            // Append UpdateTime
-            sub.append( CAT_UPDATETIME_NAME, updateTimeStr ) ;
-
-            sub.doneFast() ;
-            propBuilder.doneFast() ;
+            rc = catInsertGrpMode( grpMode, groupName, insertBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build insert groupMode builder, rc: %d", rc ) ;
 
             // Update group
             insertObj = insertBuilder.obj() ;
-
             rc = rtnInsert( CAT_GROUP_MODE_COLLECTION, insertObj, 1, 0,
                             _pEduCB, _pDmsCB, _pDpsCB, w ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to insert GroupMode info[%s] to %s, rc: %d",
@@ -2975,186 +2913,9 @@ namespace engine
          {
             BSONObj updator, matcher ;
             BSONObjBuilder updatorBuilder, matcherBuilder ;
-            BSONElement propEle ;
-            BSONObjIterator propItr ;
-
-            // Append groupID to matcher
-            matcherBuilder.append( CAT_GROUPID_NAME, grpMode.groupID ) ;
-
-            // Get old GroupMode field
-            propEle = modeObj.getField( CAT_GROUP_MODE_NAME ) ;
-            if ( ! propEle.eoo() && String != propEle.type() )
-            {
-               rc = SDB_CAT_CORRUPTION ;
-               PD_LOG( PDERROR, "Failed to get field[%s] from GroupMode obj[%s]",
-                       CAT_GROUP_MODE_NAME, modeObj.toPoolString().c_str() ) ;
-               goto error ;
-            }
-
-            // If GroupMode is empty or not "critical", update to "critical"
-            if ( propEle.eoo() ||
-                 0 != ossStrcmp( CAT_CRITICAL_MODE_NAME, propEle.valuestrsafe() ) )
-            {
-               BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
-               setBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
-               setBuilder.doneFast() ;
-            }
-
-            // Get Properties field
-            propEle = modeObj.getField( CAT_PROPERTIES_NAME ) ;
-            if ( propEle.eoo() || Array != propEle.type() )
-            {
-               rc = SDB_CAT_CORRUPTION ;
-               PD_LOG( PDERROR, "Failed to get field[%s] from GroupMode obj[%s]",
-                       CAT_PROPERTIES_NAME, modeObj.toPoolString().c_str() ) ;
-               goto error ;
-            }
-            propItr = BSONObjIterator( propEle.embeddedObject() ) ;
-
-            // Properties: [] is not null, and cirtical grpMode has only one element in array
-            if ( propItr.more() )
-            {
-               BSONObj propObj = propItr.next().embeddedObject() ;
-
-               BSONObj unsetObj ;
-               BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
-
-               // Get nodeID field
-               if ( propObj.hasField( CAT_NODEID_NAME ) )
-               {
-                  propEle = propObj.getField( CAT_NODEID_NAME ) ;
-                  if ( ! propEle.isNumber() )
-                  {
-                     rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_NODEID_NAME,
-                             propObj.toPoolString().c_str() ) ;
-                     goto error ;
-                  }
-                  // Set NodeID(old) -> NodeID(new)
-                  else if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
-                  {
-                     // If nodeID is not equal, update to grpMode.nodeID and grpMode.NodeName
-                     if ( grpMode.grpModeInfo[0].nodeID != ( UINT16 )propEle.numberInt() )
-                     {
-                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME,
-                                           grpMode.grpModeInfo[0].nodeID ) ;
-                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME,
-                                           grpMode.grpModeInfo[0].nodeName.c_str() ) ;
-                     }
-                  }
-                  // Set NodeID(old) -> Location(new)
-                  else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
-                  {
-                     // Set new Location and LocationID field
-                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME,
-                                        grpMode.grpModeInfo[0].location.c_str() ) ;
-                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
-                                        grpMode.grpModeInfo[0].locationID ) ;
-
-                     // Remove NodeID and NodeName field
-                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME << "" <<
-                                      CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME << "" ) ;
-                  }
-
-                  // Set properties matcher
-                  matcherBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME,
-                                         propEle.numberInt() ) ;
-               }
-               // Get location field
-               else if ( propObj.hasField( CAT_LOCATIONID_NAME ) )
-               {
-                  propEle = propObj.getField( CAT_LOCATIONID_NAME ) ;
-                  if ( ! propEle.isNumber() )
-                  {
-                     rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATIONID_NAME,
-                             propObj.toPoolString().c_str() ) ;
-                     goto error ;
-                  }
-                  // Set Location(old) -> Location(new)
-                  else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
-                  {
-                     // If locationID is not equal, update to grpMode.location and grpMode.locationID
-                     if ( grpMode.grpModeInfo[0].locationID != ( UINT32 )propEle.numberInt() )
-                     {
-                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME,
-                                           grpMode.grpModeInfo[0].location.c_str() ) ;
-                        setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
-                                           grpMode.grpModeInfo[0].locationID ) ;
-                     }
-                  }
-                  // Set Location(old) -> NodeID(new)
-                  else if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
-                  {
-                     // Set new NodeID and NodeName field
-                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_NODEID_NAME,
-                                        grpMode.grpModeInfo[0].nodeID ) ;
-                     setBuilder.append( CAT_PROPERTIES_NAME ".$1." FIELD_NAME_NODE_NAME,
-                                        grpMode.grpModeInfo[0].nodeName.c_str() ) ;
-
-                     // Remove Location and LocationID field
-                     unsetObj = BSON( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME << "" <<
-                                      CAT_PROPERTIES_NAME ".$1." CAT_LOCATION_NAME << "" ) ;
-                  }
-
-                  // Set properties matcher
-                  matcherBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_LOCATIONID_NAME,
-                                         propEle.numberInt() ) ;
-               }
-               else
-               {
-                  rc = SDB_CAT_CORRUPTION ;
-                  PD_LOG( PDERROR, "Failed to get field [%s] or [%s] from obj[%s]",
-                          CAT_NODEID_NAME, CAT_LOCATION_NAME, propObj.toPoolString().c_str() ) ;
-                  goto error ;
-               }
-
-               // Set MinKeepTime and MaxKeepTime
-               setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_MIN_KEEP_TIME_NAME, minTimeStr ) ;
-               setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_MAX_KEEP_TIME_NAME, maxTimeStr ) ;
-
-               // Set UpdateTime
-               setBuilder.append( CAT_PROPERTIES_NAME ".$1." CAT_UPDATETIME_NAME, updateTimeStr ) ;
-
-               setBuilder.doneFast() ;
-
-               // Append unset updator
-               if ( ! unsetObj.isEmpty() )
-               {
-                  updatorBuilder.append( "$unset", unsetObj ) ;
-               }
-            }
-            // Properties: [] is null
-            else
-            {
-               // Push builder
-               BSONObjBuilder pushBuilder( updatorBuilder.subobjStart( "$push" ) ) ;
-
-               // Preperties builder
-               BSONObjBuilder propBuilder( pushBuilder.subobjStart( CAT_PROPERTIES_NAME ) ) ;
-
-               // Append nodeID or Location
-               if ( CAT_INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
-               {
-                  propBuilder.append( CAT_NODEID_NAME, grpMode.grpModeInfo[0].nodeID ) ;
-                  propBuilder.append( FIELD_NAME_NODE_NAME, grpMode.grpModeInfo[0].nodeName.c_str() ) ;
-               }
-               else if ( CAT_INVALID_LOCATIONID != grpMode.grpModeInfo[0].locationID )
-               {
-                  propBuilder.append( CAT_LOCATION_NAME, grpMode.grpModeInfo[0].location.c_str() ) ;
-                  propBuilder.append( CAT_LOCATIONID_NAME, grpMode.grpModeInfo[0].locationID ) ;
-               }
-
-               // Append MinKeepTime and MaxKeepTime
-               propBuilder.append( CAT_MIN_KEEP_TIME_NAME, minTimeStr ) ;
-               propBuilder.append( CAT_MAX_KEEP_TIME_NAME, maxTimeStr ) ;
-
-               // Append UpdateTime
-               propBuilder.append( CAT_UPDATETIME_NAME, updateTimeStr ) ;
-
-               propBuilder.doneFast() ;
-               pushBuilder.doneFast() ;
-            }
+            
+            rc = catUpdateGrpMode( grpMode, groupModeObj, updatorBuilder, matcherBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build update groupMode builder, rc: %d", rc ) ;
 
             // Update group
             updator = updatorBuilder.obj() ;
@@ -3175,136 +2936,86 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_STARTCRITICALMODE, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_STARTGRPMODE, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STOPCRITICALMODE, "catNodeManager::stopCriticalMode" )
-   INT32 catNodeManager::stopCriticalMode( UINT32 groupID )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STOPGRPMODE, "catNodeManager::stopGrpMode" )
+   INT32 catNodeManager::stopGrpMode( const clsGroupMode &grpMode )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_STOPCRITICALMODE ) ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_STOPGRPMODE ) ;
 
-      INT16 w = CATALOG_GROUPID == groupID ? 1 : _majoritySize() ;
+      INT32 w = 0 ;
+      if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode && CATALOG_GROUPID == grpMode.groupID )
+      {
+         w = 1 ;
+      }
+      else
+      {
+         w = _majoritySize() ;
+      }
 
       try
       {
-         BSONObj modeObj ;
-
-         // Update grpMode in SYSCAT.SYSNODES
-         {
-            BSONObj updator, matcher ;
-            BSONObjBuilder updatorBuilder, matcherBuilder ;
-
-            // Append groupID to matcher
-            matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
-
-            // Build unset updator
-            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
-            unsetBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
-            unsetBuilder.doneFast() ;
-
-            // Build version increase updator
-            BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
-            incBuilder.append( CAT_VERSION_NAME, 1 ) ;
-            incBuilder.doneFast() ;
-
-            // Update group
-            updator = updatorBuilder.obj() ;
-            matcher = matcherBuilder.obj() ;
-
-            rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
-                            0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
-                         "updator: %s, rc: %d", groupID, matcher.toPoolString().c_str(),
-                         updator.toPoolString().c_str(), rc ) ;
-         }
+         BSONObj groupModeObj ;
+         clsGroupMode tmpGrpMode ;
+         BOOLEAN needStop = TRUE ;
 
          // Update grpMode in SYSCAT.SYSGROUPMODES
-         rc = catGetGrpModeObj( groupID, modeObj, _pEduCB ) ;
-
+         rc = catGetGrpModeObj( grpMode.groupID, groupModeObj, _pEduCB ) ;
          if ( SDB_OK == rc )
          {
             BSONObj updator, matcher ;
             BSONObjBuilder updatorBuilder, matcherBuilder ;
-            BSONElement propEle ;
-            BSONObjIterator propItr ;
 
-            // Append groupID to matcher
-            matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
-
-            // Build unset updator
-            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
-            unsetBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
-            unsetBuilder.doneFast() ;
-
-            // Get Properties field
-            propEle = modeObj.getField( CAT_PROPERTIES_NAME ) ;
-            if ( propEle.eoo() || Array != propEle.type() )
+            if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
             {
-               rc = SDB_CAT_CORRUPTION ;
-               PD_LOG( PDERROR, "Failed to get field[%s] from GroupMode obj[%s]",
-                       CAT_PROPERTIES_NAME, modeObj.toPoolString().c_str() ) ;
-               goto error ;
+               needStop = TRUE ;
             }
-            propItr = BSONObjIterator( propEle.embeddedObject() ) ;
-
-            // Properties: [] is not null, and cirtical grpMode has only one element in array
-            if ( propItr.more() )
+            else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
             {
-               BSONObj propObj = propItr.next().embeddedObject() ;
-
-               // Build pull_by updator
-               BSONObjBuilder pullBuilder( updatorBuilder.subobjStart( "$pull_by" ) ) ;
-               BSONObjBuilder propBuilder( pullBuilder.subobjStart( CAT_PROPERTIES_NAME ) ) ;
-
-               // Get nodeID field
-               if ( propObj.hasField( CAT_NODEID_NAME ) )
+               if ( grpMode.grpModeInfo.empty() )
                {
-                  propEle = propObj.getField( CAT_NODEID_NAME ) ;
-                  if ( ! propEle.isNumber() )
-                  {
-                     rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_NODEID_NAME,
-                             propObj.toPoolString().c_str() ) ;
-                     goto error ;
-                  }
-                  else
-                  {
-                     propBuilder.append( CAT_NODEID_NAME, propEle.numberInt() ) ;
-                     propBuilder.doneFast() ;
-                     pullBuilder.doneFast() ;
-                  }
-               }
-               // Get locationID field
-               else if ( propObj.hasField( CAT_LOCATIONID_NAME ) )
-               {
-                  propEle = propObj.getField( CAT_LOCATIONID_NAME ) ;
-                  if ( ! propEle.isNumber() )
-                  {
-                     rc = SDB_CAT_CORRUPTION ;
-                     PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]", CAT_LOCATIONID_NAME,
-                             propObj.toPoolString().c_str() ) ;
-                     goto error ;
-                  }
-                  else
-                  {
-                     propBuilder.append( CAT_LOCATIONID_NAME, propEle.numberInt() ) ;
-                     propBuilder.doneFast() ;
-                     pullBuilder.doneFast() ;
-                  }
+                  // Stop all maintenance mode
+                  needStop = TRUE ;
                }
                else
                {
-                  rc = SDB_CAT_CORRUPTION ;
-                  PD_LOG( PDERROR, "Failed to get field [%s] or [%s] from obj[%s]",
-                          CAT_NODEID_NAME, CAT_LOCATION_NAME, propObj.toPoolString().c_str() ) ;
-                  goto error ;
+                  // Check if all effective nodes are removed
+                  rc = catParseGrpModeObj( groupModeObj, tmpGrpMode ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to parse group mode object, rc: %d", rc ) ;
+
+                  VEC_GRPMODE_ITEM::const_iterator tmpItr = tmpGrpMode.grpModeInfo.begin() ;
+                  while ( tmpGrpMode.grpModeInfo.end() != tmpItr )
+                  {
+                     VEC_GRPMODE_ITEM::const_iterator itr = grpMode.grpModeInfo.begin() ;
+                     while ( grpMode.grpModeInfo.end() != itr )
+                     {
+                        if ( tmpItr->nodeID == itr->nodeID &&
+                             tmpItr->locationID == itr->locationID )
+                        {
+                           break ;
+                        }
+                        ++itr ;
+                     }
+                     if ( grpMode.grpModeInfo.end() == itr )
+                     {
+                        // This means there is at least a node in current group mode
+                        needStop = FALSE ;
+                        break ;
+                     }
+
+                     ++tmpItr ;
+                  }
                }
             }
+
+            rc = catRemoveGrpMode( grpMode, needStop, updatorBuilder, matcherBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build remove groupMode builder, rc: %d", rc ) ;
 
             // Update group
             updator = updatorBuilder.obj() ;
@@ -3323,10 +3034,19 @@ namespace engine
          else
          {
             PD_LOG( PDERROR, "Failed to get group[%u] in GroupMode obj, "
-                    "rc: %d", groupID, rc ) ;
+                    "rc: %d", grpMode.groupID, rc ) ;
             goto error ;
          }
 
+         if ( needStop )
+         {
+            tmpGrpMode.groupID = grpMode.groupID ;
+            tmpGrpMode.mode = CLS_GROUP_MODE_NONE ;
+
+            // Update grpMode in SYSCAT.SYSNODES
+            rc = catSetGrpMode( tmpGrpMode, needStop, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to stop group mode, rc: %d", rc ) ;
+         }
       }
       catch ( exception &e )
       {
@@ -3336,12 +3056,11 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_STOPCRITICALMODE, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_STOPGRPMODE, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
-
 }
 

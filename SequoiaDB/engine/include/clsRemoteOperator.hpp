@@ -111,6 +111,9 @@ namespace engine
 
       virtual INT32           stopCriticalMode( const UINT32 &groupID ) ;
 
+      virtual INT32           stopMaintenanceMode( const UINT32 &groupID,
+                                                   const CHAR *pNodeName ) ;
+
       virtual UINT64          getSucCount() ;
 
       virtual UINT64          getFailureCount() ;

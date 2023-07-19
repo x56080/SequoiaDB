@@ -960,6 +960,10 @@ namespace sdbclient
 
       INT32 stopCriticalMode() ;
 
+      INT32 startMaintenanceMode( const BSONObj & options = _sdbStaticObject ) ;
+
+      INT32 stopMaintenanceMode( const BSONObj & options = _sdbStaticObject ) ;
+
    protected:
       INT32 _innerAlter ( const CHAR * taskName,
                           const BSONObj * pOptions,
@@ -1238,6 +1242,8 @@ namespace sdbclient
       INT32 detachGroups( const bson::BSONObj &info ) ;
       INT32 setActiveLocation ( const CHAR *pLocation ) ;
       INT32 setLocation ( const CHAR *pHostName, const CHAR *pLocation ) ;
+      INT32 startMaintenanceMode( const BSONObj & options ) ;
+      INT32 stopMaintenanceMode( const BSONObj & options ) ;
 
    private :
       INT32 _innerAlter( const CHAR *pValue,

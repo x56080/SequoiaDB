@@ -130,6 +130,8 @@ namespace engine
 
       INT32 startCriticalModeMonitor() ;
 
+      INT32 startMaintenanceModeMonitor() ;
+
    public:
       INT32 init() ;
 

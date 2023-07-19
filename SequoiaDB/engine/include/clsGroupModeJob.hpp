@@ -41,15 +41,52 @@
 
 namespace engine
 {
-   #define CLS_CRITICALMODE_CHECK_INTERVAL      OSS_ONE_SEC * 60
+   #define CLS_GROUPMODE_CHECK_INTERVAL      OSS_ONE_SEC * 60
 
    class _clsGroupInfo ;
    class _clsVoteMachine ;
 
    /* 
+      _clsGroupModeMonitorJob
+    */
+   template< class T >
+   class _clsGroupModeMonitorJob : public _utilLightJob
+   {
+   protected:
+      _clsGroupModeMonitorJob( _clsGroupInfo *info,
+                               const UINT32 &localVersion ) ;
+
+      virtual ~_clsGroupModeMonitorJob() ;
+
+   public:
+      virtual INT32 doit( IExecutor *pExe,
+                          UTIL_LJOB_DO_RESULT &result,
+                          UINT64 &sleepTime ) ;
+
+   public:
+      // Use to indicate the latest thread's job version
+      static ossAtomic32 version ;
+
+   protected:
+      virtual INT32 _checkGroupMode( pmdEDUCB *cb,
+                                     UTIL_LJOB_DO_RESULT &result,
+                                     UINT64 &sleepTime )
+      {
+         return SDB_OK ;
+      }
+
+   protected:
+      const _clsGroupMode     _groupMode ;
+      const UINT32            _localVersion ;
+      _clsGroupInfo           *_info ;
+   } ;
+
+   template< class T > ossAtomic32 _clsGroupModeMonitorJob< T >::version( 0 ) ;
+
+   /* 
       _clsCriticalModeMonitorJob
     */
-   class _clsCriticalModeMonitorJob : public _utilLightJob
+   class _clsCriticalModeMonitorJob : public _clsGroupModeMonitorJob< _clsCriticalModeMonitorJob >
    {
    public:
       _clsCriticalModeMonitorJob( _clsGroupInfo *info ) ;
@@ -61,33 +98,42 @@ namespace engine
          return "CriticalModeMonitor" ;
       }
 
-      virtual INT32 doit( IExecutor *pExe,
-                          UTIL_LJOB_DO_RESULT &result,
-                          UINT64 &sleepTime ) ;
-
-   public:
-      // Use to indicate the latest thread's job version
-      static ossAtomic32 version ;
-
    private:
-      INT32 _checkCriticalMode( pmdEDUCB *cb,
-                                UTIL_LJOB_DO_RESULT &result,
-                                UINT64 &sleepTime ) ;
+      virtual INT32 _checkGroupMode( pmdEDUCB *cb,
+                                     UTIL_LJOB_DO_RESULT &result,
+                                     UINT64 &sleepTime ) ;
 
-      INT32 _stopCriticalMode(  pmdEDUCB *cb ) ;
+      INT32 _stopCriticalMode( pmdEDUCB *cb ) ;
 
-   private:
-      const _clsGrpModeItem            _grpModeItem ;
-
-      // Use to indicate the current thread's job version
-      const UINT32                     _localVersion ;
-
-      // This info stores group info, not location info
-      _clsGroupInfo                    *_info ;
    } ;
    typedef _clsCriticalModeMonitorJob clsCriticalModeMonitorJob ;
 
    INT32 clsStartCriticalModeMonitor( _clsGroupInfo *info ) ;
+
+   class _clsMaintenanceModeMonitorJob :
+         public _clsGroupModeMonitorJob< _clsMaintenanceModeMonitorJob >
+   {
+   public:
+      _clsMaintenanceModeMonitorJob( _clsGroupInfo *info ) ;
+
+      virtual ~_clsMaintenanceModeMonitorJob() ;
+
+      virtual const CHAR *name() const
+      {
+         return "MaintenanceModeMonitor" ;
+      }
+
+   private:
+      virtual INT32 _checkGroupMode( pmdEDUCB *cb,
+                                     UTIL_LJOB_DO_RESULT &result,
+                                     UINT64 &sleepTime ) ;
+
+      INT32 _stopMaintenanceMode( pmdEDUCB *cb,
+                                  const CHAR *pNodeName ) ;
+   } ;
+   typedef _clsMaintenanceModeMonitorJob clsMaintenanceModeMonitorJob ;
+
+   INT32 clsStartMaintenanceModeMonitor( _clsGroupInfo *info ) ;
 
    class _clsGroupModeReqJob : public _utilLightJob
    {
@@ -98,7 +144,7 @@ namespace engine
 
       virtual const CHAR *name() const
       {
-         return "CriticalModeRequire" ;
+         return "GroupModeRequire" ;
       }
 
       virtual INT32 doit( IExecutor *pExe,

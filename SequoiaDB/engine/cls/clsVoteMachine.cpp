@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "clsGroupModeJob.hpp"
+#include "pmd.hpp"
 
 namespace engine
 {
@@ -171,6 +172,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto done ;
       }
+      if ( CLS_GROUP_MODE_MAINTENANCE != _groupInfo->localGrpMode )
       {
          rc = _current->handleInput( header, next ) ;
          if ( SDB_OK != rc )
@@ -249,7 +251,7 @@ namespace engine
             _forceMillis -= millisec ;
          }
       }
-      else
+      else if ( CLS_GROUP_MODE_MAINTENANCE != _groupInfo->localGrpMode )
       {
          INT32 next = CLS_INVALID_VOTE_ID ;
          _current->handleTimeout( millisec, next ) ;
@@ -331,6 +333,10 @@ namespace engine
                      setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
                   }
                }
+               else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+               {
+                  _groupInfo->localGrpMode = CLS_GROUP_MODE_MAINTENANCE ;
+               }
             }
             // Reset local group mode to CLS_GROUP_MODE_NONE
             else
@@ -343,19 +349,64 @@ namespace engine
                _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
             }
 
-            // Save global group mode
-            _groupInfo->grpMode = grpMode ;
+            // Set global group mode
+            clsGroupMode *pGrpMode = SDB_OSS_NEW clsGroupMode( grpMode ) ;
+            if ( NULL == pGrpMode )
+            {
+               PD_LOG( PDWARNING, "Failed to allocate memory for clsGroupMode" ) ;
+            }
+
+            pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+            rc = eduMgr->postEDUPost( eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ),
+                                      PMD_EDU_EVENT_UPDATE_GRPMODE,
+                                      PMD_EDU_MEM_NONE, pGrpMode ) ;
+            if ( SDB_OK != rc )
+            {
+               if ( NULL != pGrpMode )
+               {
+                  SDB_OSS_DEL pGrpMode ;
+                  pGrpMode = NULL ;
+               }
+               PD_LOG( PDERROR, "Failed to post update group mode event to edu" ) ;
+               goto error ;
+            }
+         }
+
+         // Save global group mode to _clsSharingStatus
+         VEC_GRPMODE_ITEM::const_iterator grpModeItr ;
+         CLS_NODE_STATUS_MAP::iterator nodeItr = _groupInfo->info.begin() ;
+
+         while ( _groupInfo->info.end() != nodeItr )
+         {
+            _clsSharingStatus &status = nodeItr->second ;
+            grpModeItr = grpMode.grpModeInfo.begin() ;
+
+            while ( grpMode.grpModeInfo.end() != grpModeItr )
+            {
+               if ( ( INVALID_NODEID != grpModeItr->nodeID &&
+                      status.beat.identity.columns.nodeID == grpModeItr->nodeID ) ||
+                    ( MSG_INVALID_LOCATIONID != status.beat.locationID &&
+                      status.beat.locationID == grpModeItr->locationID ) )
+               {
+                  status.grpMode = grpMode.mode ;
+                  break ;
+               }
+               ++grpModeItr ;
+            }
+            if ( grpMode.grpModeInfo.end() == grpModeItr )
+            {
+               status.grpMode = CLS_GROUP_MODE_NONE ;
+            }
+            ++nodeItr ;
          }
       }
 
-      // If this node is primary and not in tmporary mode, we need to start a monitor job
-      if ( primaryIsMe() && CLS_GROUP_MODE_CRITICAL == grpMode.mode && ! isTmpGrpMode() )
-      {
-         rc = startCriticalModeMonitor() ;
-      }
-
+   done:
       PD_TRACE_EXITRC ( SDB__CLSVTMH_SETGRPMODE, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsVoteMachine::startCriticalModeMonitor()
@@ -370,6 +421,20 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to start critical mode monitor, rc: %d", rc ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsVoteMachine::startMaintenanceModeMonitor()
+   {
+      INT32 rc = SDB_OK ;
+      ossScopedRWLock lock( &_groupInfo->mtx, SHARED ) ;
+
+      rc = clsStartMaintenanceModeMonitor( _groupInfo ) ; 
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to start maintenance mode monitor, rc: %d", rc ) ;
       }
 
       return rc ;

@@ -365,6 +365,7 @@ namespace engine
       UINT32        locationID ;
       BOOLEAN       isAffinitiveLocation ;
       UINT8         locationIndex ;
+      CLS_GROUP_MODE grpMode ;
 
    protected:
       // need test remote status, which might not support UDP
@@ -383,6 +384,7 @@ namespace engine
          isAffinitiveLocation = FALSE ;
          locationID = MSG_INVALID_LOCATIONID ;
          locationIndex = 0xFF ;
+         grpMode = CLS_GROUP_MODE_NONE ;
       }
 
       OSS_INLINE BOOLEAN isUDPSupported()
@@ -435,6 +437,11 @@ namespace engine
       OSS_INLINE BOOLEAN isInCriticalMode() const
       {
          return OSS_BIT_TEST( beat.electionWeight, CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+      }
+
+      OSS_INLINE BOOLEAN isInMaintenanceMode() const
+      {
+         return CLS_GROUP_MODE_MAINTENANCE == grpMode ;
       }
 
    } ;
@@ -491,11 +498,12 @@ namespace engine
    typedef _clsGrpModeItem clsGrpModeItem ;
 
    typedef ossPoolVector<clsGrpModeItem> VEC_GRPMODE_ITEM ;
+   typedef ossPoolVector<const clsGrpModeItem*> VEC_GRPMODE_ITEM_PTR ;
 
    /*
       _clsGroupMode define
    */
-   struct _clsGroupMode
+   struct _clsGroupMode : public SDBObject
    {
       _clsGroupMode()
       {
@@ -560,6 +568,9 @@ namespace engine
    typedef _clsCatGroupItem      clsCatGroupItem ;
 
    #define CLS_NODE_KEEPALIVE_TIMEOUT              ( 6000 ) // ms
+
+   typedef map<UINT64, _clsSharingStatus>    CLS_NODE_STATUS_MAP ;
+   typedef map<UINT64, _clsSharingStatus *>  CLS_NODE_STATUS_PTR_MAP ;
 
    /*
       _clsGroupInfo define
@@ -635,17 +646,31 @@ namespace engine
 
       UINT32 groupSize ()
       {
-         return info.size() + 1 ;
+         if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+         {
+            return info.size() + 1 - maintenanceSize() ;
+         }
+         else
+         {
+            return info.size() + 1 ;
+         }
       }
 
       UINT32 aliveSize ()
       {
-         return alives.size() + 1 ;
+         if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+         {
+            return alives.size() + 1 - maintenanceAliveSize();
+         }
+         else
+         {
+            return alives.size() + 1 ;
+         }
       }
 
       UINT32 criticalAliveSize() const
       {
-         UINT32 count = 1 ;
+         UINT32 count = CLS_GROUP_MODE_CRITICAL == localGrpMode ? 1 : 0 ;
 
          map<UINT64, _clsSharingStatus *>::const_iterator itr = alives.begin() ;
          while ( alives.end() != itr )
@@ -653,6 +678,24 @@ namespace engine
             const _clsSharingStatus &status = *( itr++->second ) ;
 
             if ( status.isInCriticalMode() )
+            {
+               ++count ;
+            }
+         }
+
+         return count ;
+      }
+
+      UINT32 maintenanceAliveSize() const
+      {
+         UINT32 count = CLS_GROUP_MODE_MAINTENANCE == localGrpMode ? 1 : 0 ;
+
+         CLS_NODE_STATUS_PTR_MAP::const_iterator itr = alives.begin() ;
+         while ( alives.end() != itr )
+         {
+            const _clsSharingStatus &status = *( itr++->second ) ;
+
+            if ( status.isInMaintenanceMode() )
             {
                ++count ;
             }
@@ -793,6 +836,18 @@ namespace engine
                   num = itr->second._nodeCount ;
                }
             }
+         }
+
+         return num ;
+      }
+
+      UINT32 maintenanceSize()
+      {
+         UINT32 num = 0 ;
+
+         if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+         {
+            num = grpMode.grpModeInfo.size() ;
          }
 
          return num ;

@@ -118,29 +118,14 @@ namespace engine
          goto error ;
       }
 
-      // Set active location command will return all groups, no need to update group again
-      if ( 0 != ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) )
-      {
-         // update all groups
-         rc = _pResource->updateGroupList( allgroups, cb, NULL, FALSE, TRUE, TRUE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDWARNING, "Failed to update all group list, rc: %d", rc ) ;
-            rc = SDB_OK ;
-         }
-      }
-
       // 2. execute on the special groups or special nodes, ignore error
       pAttachMsg->header.opCode        = MSG_BS_QUERY_REQ ;
-      if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) )
-      {
-         _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;
-      }
-      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
-                0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) )
+
+      // These commands will return all groups, no need to update group again
+      if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, pAction ) )
       {
          coordNodeCMDHelper helper ;
          BOOLEAN hasFailedGroup = FALSE ;
@@ -153,11 +138,29 @@ namespace engine
          }
          rc = hasFailedGroup ? SDB_COORD_NOT_ALL_DONE : SDB_OK ;
 
-         helper.notify2NodesByGroups( _pResource, allgroups, cb ) ;
+         helper.notify2NodesByGroups( _pResource, datagroups, cb ) ;
       }
       else
       {
-         _executeByGroups( pMsg, cb, allgroups, pAction, buf ) ;
+         // update all groups
+         rc = _pResource->updateGroupList( allgroups, cb, NULL, FALSE, TRUE, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to update all group list, rc: %d", rc ) ;
+            rc = SDB_OK ;
+         }
+
+         if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
+              0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
+              0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
+              0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) )
+         {
+            _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;
+         }
+         else
+         {
+            _executeByGroups( pMsg, cb, allgroups, pAction, buf ) ;
+         }
       }
 
    done:

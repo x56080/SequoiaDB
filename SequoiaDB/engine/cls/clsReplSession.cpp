@@ -772,7 +772,10 @@ namespace engine
          goto done ;
       }
 
-      SDB_ASSERT( 0 < sdbGetReplCB()->groupSize(), "impossible" ) ;
+      if ( ! sdbGetReplCB()->isInMaintenanceMode() )
+      {
+         SDB_ASSERT( 0 < sdbGetReplCB()->groupSize(), "impossible" ) ;
+      }
 
       if ( PMD_OPT_VALUE_NONE == optionCB->getDataErrorOp() )
       {
@@ -804,7 +807,9 @@ namespace engine
       }
 
       // if the group size is 1, then rebuild, otherwise full sync
-      if ( 1 >=  pClsCB->getReplCB()->groupSize() || pmdIsPrimary() )
+      if ( ( 1 >=  pClsCB->getReplCB()->groupSize() &&
+             ! sdbGetReplCB()->isInMaintenanceMode() ) ||
+           pmdIsPrimary() )
       {
          PD_LOG( PDWARNING, "Session[%s]: Group size is one or the node "
                  "begin to primary, begin to rebuild database",
