@@ -417,18 +417,15 @@ namespace engine
       goto done ;
    }
 
-   INT32 dpsArchiveFileMgr::writeInvalidData( utilOutStream& out, dpsMessageBlock &mb,
-                                              INT64 totalSize )
+   INT32 dpsArchiveFileMgr::writeInvalidData( utilOutStream& out, INT64 totalSize )
    {
       INT32 rc = SDB_OK ;
-      mb.clear() ;
-      ossMemset( mb.writePtr(), 0, DPS_ARCHIVE_BUFFER_MAX_SIZE ) ;
-      mb.writePtr( DPS_ARCHIVE_BUFFER_MAX_SIZE ) ;
       UINT32 len = 0 ;
+      CHAR buf[ DPS_ARCHIVE_BUFFER_SIZE ] = { 0 } ;
       while ( totalSize > 0 )
       {
-         len = OSS_MIN( mb.length(), totalSize ) ;
-         rc = out.write( mb.startPtr(), len ) ;
+         len = OSS_MIN( DPS_ARCHIVE_BUFFER_SIZE, totalSize ) ;
+         rc = out.write( buf, len ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to write to outstream, rc=%d", rc ) ;

@@ -557,8 +557,9 @@ namespace engine
 
       // get string of the current time.
       CHAR timeBuffer[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { '\0' } ;
-      time_t timestamp = time( NULL ) ;
-      utilAscTime( timestamp, timeBuffer, OSS_TIMESTAMP_STRING_LEN ) ;
+      ossTimestamp timestamp ;
+      ossGetCurrentTime( timestamp ) ;
+      utilAscTime( timestamp.time, timeBuffer, OSS_TIMESTAMP_STRING_LEN ) ;
 
       rc = _fileMgr.deleteRollbackLogTmpFile() ;
       if ( SDB_OK != rc )
@@ -630,7 +631,7 @@ namespace engine
             out = &fileOut ;
 
             // not need to write header data, only placeholder.
-            rc = _fileMgr.writeInvalidData( *out, block, DPS_LOG_HEAD_LEN ) ;
+            rc = _fileMgr.writeInvalidData( *out, DPS_LOG_HEAD_LEN ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to populate invalid data, rc=%d", rc ) ;
@@ -681,8 +682,7 @@ namespace engine
             // at last file, we need populate invalid data util to the log file size.
             if ( curFileId == endFileId )
             {
-               rc = _fileMgr.writeInvalidData( *out, block,
-                                               logFileSz - endOffset % logFileSz ) ;
+               rc = _fileMgr.writeInvalidData( *out, logFileSz - endOffset % logFileSz ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "Failed to populate invalid data, rc=%d", rc ) ;

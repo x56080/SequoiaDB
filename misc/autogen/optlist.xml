@@ -3013,8 +3013,8 @@
       <name>PMD_OPTION_REMOTE_LOCATION_CONSISTENCY</name>
       <long>remotelocationconsistency</long>
       <description>
-         <en>Whether the remote node participates in synchronous consistency calculation. Default is true.</en>
-         <cn>异地节点是否参与同步一致性计算。默认为true。</cn>
+         <en>Whether the remote node participates in synchronous consistency calculation. Default is true. This parameter only takes effect if the primary node in ActiveLocation.</en>
+         <cn>异地节点是否参与同步一致性计算。默认为true。该参数只有主节点在ActiveLocation才生效。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -3025,7 +3025,7 @@
          <cn>下次写操作生效</cn>
       </reloadstrategy>
       <detail>
-         <en>Whether the remote node participates in synchronous consistency calculation. Default is true.This parameter only takes effect if the primary node in activelocation.</en>
+         <en>Whether the remote node participates in synchronous consistency calculation. Default is true. This parameter only takes effect if the primary node in ActiveLocation.</en>
          <cn>异地节点是否参与同步一致性计算。默认为true。该参数只有主节点在ActiveLocation才生效。</cn>
       </detail>
       <default>true</default>
@@ -3037,8 +3037,8 @@
       <name>PMD_OPTION_CONSULT_ROLLBACK_LOG_ON</name>
       <long>consultrollbacklogon</long>
       <description>
-         <en>Whether to save logs that are rollback at negotiation time. Default is true.</en>
-         <cn>指定是否保存协商后回滚的日志数据。默认为true。</cn>
+         <en>Whether to save the rollback logs after consultation. Default is true. The rollback logs is saved in the path of the temp files.</en>
+         <cn>指定是否保存协商后回滚的日志。默认为true。回滚日志保存在临时文件路径中。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -3049,8 +3049,8 @@
          <cn>下次日志回滚生效</cn>
       </reloadstrategy>
       <detail>
-         <en>Whether to save logs that are rollback at negotiation time. Default is true.</en>
-         <cn>指定是否保存协商后回滚的日志数据。默认为true。</cn>
+         <en>Whether to save the rollback logs after consultation. Default is true. The rollback logs is saved in the path of the temp files.</en>
+         <cn>指定是否保存协商后回滚的日志。默认为true。回滚日志保存在临时文件路径中。</cn>
       </detail>
       <default>true</default>
       <typeofweb>boolean</typeofweb>

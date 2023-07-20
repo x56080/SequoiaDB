@@ -49,6 +49,10 @@ using namespace std ;
 
 namespace engine
 {
+
+   #define DPS_ARCHIVE_BUFFER_MAX_SIZE          (64 * 1024)
+   #define DPS_ARCHIVE_BUFFER_SIZE              (1024)
+
    enum DPS_ARCHIVE_COPY_STATUS
    {
       DPS_ARCHIVE_COPY_PLAIN = 0,
@@ -111,7 +115,7 @@ namespace engine
       string getRollbackLogTmpFilePath() ;
       string getRollbackLogErrorFilePath( const CHAR* time ) ;
       INT32 deleteRollbackLogTmpFile() ;
-      INT32 writeInvalidData( utilOutStream& out, dpsMessageBlock &mb, INT64 len ) ;
+      INT32 writeInvalidData( utilOutStream& out, INT64 len ) ;
 
    private:
       INT32 _deleteFileByTime( const string& filePath,
