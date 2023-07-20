@@ -1,6 +1,6 @@
 ##NAME##
 
-stop - stop Critical mode in the current replication group
+stopCriticalMode - stop Critical mode in the current replication group
 
 ##SYNOPSIS##
 

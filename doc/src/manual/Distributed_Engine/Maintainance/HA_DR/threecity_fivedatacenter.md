@@ -7,19 +7,19 @@
 
 ###节点故障###
 
-当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户仅需修复故障节点并恢复节点数据即可。
+当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障节点开启运维模式，修复并恢复节点数据即可。
 
 ![节点故障情况][3c5d_node_down]
 
 ###单个数据中心故障###
 
-当单个数据中心发生故障，集群仍对外提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
+当单个数据中心发生故障，集群仍对外提供读写服务。针对该情况，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障中心的节点开启运维模式，修复故障中心并恢复节点数据即可。
 
 ![单个数据中心故障情况][3c5d_singlecenter_down]
 
 ###城市级中心故障###
 
-当一个城市发生灾难，导致两个数据中心故障，另外两个城市的数据中心仍可提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
+当一个城市发生灾难，导致两个数据中心故障，另外两个城市的数据中心仍可提供读写服务。针对该情况，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障中心的节点开启运维模式，修复故障中心并恢复节点数据即可。
 
 ![单个城市灾难情况][3c5d_singcity_down]
 
@@ -194,3 +194,4 @@
 [3c5d_singcity_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_singcity_down.png
 [3c5d_twocity_down]:images/Distributed_Engine/Maintainance/HA_DR/3c5d_twocity_down.png
 [location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
+[startMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startMaintenanceMode.md

@@ -7,7 +7,7 @@
 
 ###节点故障###
 
-当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户仅需修复故障节点并恢复节点数据即可。
+当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障节点开启运维模式，修复并恢复节点数据即可。
 
 ![单节点故障情况][single_breakdown]
 
@@ -19,7 +19,7 @@
 
 ###灾备中心故障###
 
-当灾备中心发生故障，主中心仍可提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
+当灾备中心发生故障，主中心仍可提供读写服务。针对该情况，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障中心的节点开启运维模式，修复故障中心并恢复节点数据即可。
 
 ![灾备中心故障情况][sub2_breakdown]
 
@@ -197,3 +197,4 @@
 [recovery]:manual/Distributed_Engine/Maintainance/HA_DR/twodatacenter.md#灾难恢复
 [replication]:manual/Distributed_Engine/Architecture/Replication/architecture.md
 [location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
+[startMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startMaintenanceMode.md

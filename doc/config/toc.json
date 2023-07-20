@@ -3671,6 +3671,12 @@
                            "en": "startCriticalMode()"
                         },
                         {
+                           "id": 1689303676,
+                           "file": "startMaintenanceMode",
+                           "cn": "startMaintenanceMode()",
+                           "en": "startMaintenanceMode()"
+                        },
+                        {
                            "id": 1432190876,
                            "file": "stop",
                            "cn": "stop()",
@@ -3681,6 +3687,12 @@
                            "file": "stopCriticalMode",
                            "cn": "stopCriticalMode()",
                            "en": "stopCriticalMode()"
+                        },
+                        {
+                           "id": 1689303727,
+                           "file": "stopMaintenanceMode",
+                           "cn": "stopMaintenanceMode()",
+                           "en": "stopMaintenanceMode()"
                         }
                      ]
                   },
@@ -6105,6 +6117,12 @@
                            "file": "LIST_GROUP",
                            "cn": "$LIST_GROUP",
                            "en": "$LIST_GROUP"
+                        },
+                        {
+                           "id": 1689736009,
+                           "file": "LIST_GROUPMODES",
+                           "cn": "$LIST_GROUPMODES",
+                           "en": "$LIST_GROUPMODES"
                         },
                         {
                            "id": 1559282957,

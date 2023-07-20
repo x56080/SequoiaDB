@@ -1,11 +1,9 @@
-[^_^]:
-    复制组运行模式列表
 
 复制组运行模式列表可以列出当前集群中所有复制组的运行模式。
 
 ##标识##
 
-SDB_LIST_GROUPMODES
+$LIST_GROUPMODES
 
 ##字段信息##
 
@@ -27,7 +25,7 @@ SDB_LIST_GROUPMODES
 查看复制组运行模式列表
 
 ```lang-javascript
-> db.list(SDB_LIST_GROUPMODES)
+> db.exec("select * from $LIST_GROUPMODES")
 ```
 
 输出结果如下：
@@ -91,4 +89,5 @@ SDB_LIST_GROUPMODES
     }
   ]
 }
+...
 ```

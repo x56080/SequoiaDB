@@ -7,7 +7,7 @@
 
 ###节点故障###
 
-当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户仅需修复故障节点并恢复节点数据即可。
+当复制组中超过半数节点发生故障，该复制组将无法提供读写服务。针对该情况，用户需进行[灾难恢复][recovery]。如果故障节点未超过半数，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障节点开启运维模式，修复并恢复节点数据即可。
 
 ![节点故障情况][2c3d_singlenode_down]
 
@@ -19,7 +19,7 @@
 
 ###灾备中心故障###
 
-当灾备中心A发生故障，主中心仍可提供读写服务。针对该情况，用户仅需修复故障中心并恢复节点数据即可。
+当灾备中心A发生故障，主中心仍可提供读写服务。针对该情况，用户可通过 [startMaintenanceMode()][startMaintenanceMode] 命令对故障中心的节点开启运维模式，修复故障中心并恢复节点数据即可。
 
 ![同城灾备中心故障情况][2c3d_samecity_backupcenter_down]
 
@@ -29,7 +29,7 @@
 
 ###同城双中心故障###
 
-当主中心和灾备中心A发生故障，本地集群将无法提供读写服务。针对该情况，用户需将应用请求发送至灾备中心B所在集群，并修复故障中心。待故障修复后再将应用请求切换回主中心所在集群。
+当主中心和灾备中心A发生故障，本地集群将无法提供读写服务。针对该情况，用户需将应用请求发送至灾备中心B所在集群，进行[灾难恢复][recovery]，并修复故障中心。待故障修复后再将应用请求切换回主中心所在集群。
 
 ![同城中心故障情况][2c3d_dualcenter_down]
 
@@ -207,3 +207,4 @@
 [2c3d_dualcenter_down]:images/Distributed_Engine/Maintainance/HA_DR/2c3d_dualcenter_down.png
 [2c3d_network_down]:images/Distributed_Engine/Maintainance/HA_DR/2c3d_network_down.png
 [location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
+[startMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startMaintenanceMode.md
