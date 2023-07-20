@@ -831,6 +831,9 @@ sequoiadb
 │       │   ├── setAttributes_cn.troff
 │       │   ├── setAttributes_en.troff
 │       │   ├── start_cn.troff
+│       │   ├── startCriticalMode_cn.troff
+│       │   ├── startCriticalMode_en.troff
+│       │   ├── start_en.troff
 │       │   ├── startMaintenanceMode_cn.troff
 │       │   ├── startMaintenanceMode_en.troff
 │       │   ├── stop_cn.troff
