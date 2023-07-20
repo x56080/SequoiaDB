@@ -376,6 +376,10 @@ namespace engine
 
       INT32 nameToSULID( const CHAR *pName,
                          UINT32 &suLogicalID ) ;
+      INT32 nameToCSInfo( const CHAR *pName,
+                          dmsStorageUnitID &suID,
+                          UINT32 &csLID,
+                          utilCSUniqueID &csUniqueID ) ;
 
       _dmsStorageUnit *suLock ( dmsStorageUnitID suID ) ;
       void suUnlock ( dmsStorageUnitID suID,

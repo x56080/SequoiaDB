@@ -1076,6 +1076,15 @@ namespace engine
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
                          "space options, rc: %d", rc ) ;
+
+            if ( options._recycleItem.isValid() )
+            {
+               // wait for index jobs to avoid inconsistency of indexes
+               // between primary and secondary nodes in recycye bin item
+               utilCSUniqueID csUID = (utilCSUniqueID)( options._recycleItem.getOriginID() ) ;
+               rtnGetIndexJobHolder()->waitForCSJobs( csUID ) ;
+            }
+
             while ( TRUE )
             {
                rc = rtnDropCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
@@ -1175,6 +1184,15 @@ namespace engine
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
                          "options, rc: %d", rc ) ;
+
+            if ( options._recycleItem.isValid() )
+            {
+               // wait for index jobs to avoid inconsistency of indexes
+               // between primary and secondary nodes in recycye bin item
+               utilCLUniqueID clUID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
+               rtnGetIndexJobHolder()->waitForCLJobs( clUID ) ;
+            }
+
             rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
                                            UTIL_UNIQUEID_NULL, &options ) ;
             // if recycle item is valid, must be reported
@@ -1328,12 +1346,20 @@ namespace engine
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
                          "options, rc: %d", rc ) ;
-            // truncate will reset index flag of dropping indexes,
-            // so we need to wait for collection jobs ( for drop indexes )
-            while ( rtnGetIndexJobHolder()->hasCLJob( clname ) )
+            if ( options._recycleItem.isValid() )
             {
-               ossSleep( CLS_REPLAY_CHECK_INTERVAL ) ;
+               // wait for index jobs to avoid inconsistency of indexes
+               // between primary and secondary nodes in recycye bin item
+               utilCLUniqueID clUID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
+               rtnGetIndexJobHolder()->waitForCLJobs( clUID ) ;
             }
+            else
+            {
+               // truncate will reset index flag of dropping indexes,
+               // so we need to wait for collection jobs ( for drop indexes )
+               rtnGetIndexJobHolder()->waitForCLJobs( clname, RTN_JOB_DROP_INDEX ) ;
+            }
+
             rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB,
                                             NULL, &options ) ;
             if ( SDB_OK != rc )

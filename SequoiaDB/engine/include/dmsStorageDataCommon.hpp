@@ -1109,6 +1109,11 @@ namespace engine
          OSS_INLINE dmsRecordRW record2RW( const dmsRecordID &record,
                                            UINT16 collectionID ) const ;
 
+         OSS_INLINE INT32 getMBInfo( const CHAR *pName,
+                                     UINT16 &mbID,
+                                     UINT32 &clLID,
+                                     utilCLUniqueID &clUniqueID ) ;
+
          BOOLEAN isCapped () { return _isCapped; }
 
          // update extent logical id and expanded meta
@@ -1864,6 +1869,38 @@ namespace engine
    OSS_INLINE UINT32 _dmsStorageDataCommon::_getFactor() const
    {
       return 16 + 14 - pageSizeSquareRoot() ;
+   }
+
+   OSS_INLINE INT32 _dmsStorageDataCommon::getMBInfo( const CHAR *pName,
+                                                      UINT16 &mbID,
+                                                      UINT32 &clLID,
+                                                      utilCLUniqueID &clUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      clUniqueID = UTIL_UNIQUEID_NULL ;
+
+      if ( NULL == pName )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else
+      {
+         // metadata shared lock
+         ossScopedLock lock( &_metadataLatch, SHARED ) ;
+         mbID = _collectionNameLookup( pName ) ;
+         if ( DMS_INVALID_MBID != mbID )
+         {
+            clLID = _dmsMME->_mbList[ mbID ]._logicalID ;
+            clUniqueID = _dmsMME->_mbList[ mbID ]._clUniqueID ;
+         }
+         else
+         {
+            rc = SDB_DMS_NOTEXIST ;
+         }
+      }
+
+      return rc ;
    }
 
    /*

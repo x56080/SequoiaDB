@@ -44,6 +44,8 @@
 
 using namespace bson ;
 
+#define RTN_WAIT_JOB_CHECK_INTERVAL ( 200 )
+
 namespace engine
 {
 
@@ -161,7 +163,7 @@ namespace engine
       // unregister collection index job if needed
       if ( _regCLJob )
       {
-         rtnGetIndexJobHolder()->unregCLJob( _clFullName ) ;
+         rtnGetIndexJobHolder()->unregCLJob( _clUniqID, _type ) ;
          _regCLJob = FALSE ;
       }
       return ;
@@ -271,6 +273,7 @@ namespace engine
       const CHAR *pCLShortName = NULL ;
       dmsTaskStatusMgr* taskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       DMS_TASK_TYPE taskType = DMS_TASK_UNKNOWN ;
+
 
       // build index name, index element
       try
@@ -390,13 +393,6 @@ namespace engine
                }
             }
 
-            // register drop index job to prevent other operators to be
-            // executed before drop index is finished ( e.g. truncate )
-            rc = rtnGetIndexJobHolder()->regCLJob( _clFullName ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
-                         "for collection [%s], rc: %d", _clFullName, rc ) ;
-            _regCLJob = TRUE ;
-
             taskType = DMS_TASK_DROP_IDX ;
             break ;
          }
@@ -438,6 +434,16 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to initialize task status, rc: %d",
                       rc ) ;
+      }
+
+      if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
+      {
+         // register drop index job to prevent other operators to be
+         // executed before drop index is finished ( e.g. truncate )
+         rc = rtnGetIndexJobHolder()->regCLJob( _clUniqID, _type ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
+                     "for collection [%s], rc: %d", _clFullName, rc ) ;
+         _regCLJob = TRUE ;
       }
 
    done:
@@ -725,64 +731,39 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCLJOB, "_rtnIndexJobHolder::hasCLJob" )
-   BOOLEAN _rtnIndexJobHolder::hasCLJob( const CHAR *collection )
-   {
-      BOOLEAN res = FALSE ;
-
-      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCLJOB ) ;
-
-      ossScopedLock lock( &_mapLatch, SHARED ) ;
-
-      try
-      {
-         ossPoolString tmpCLName( collection ) ;
-         res = _hasCLJob( tmpCLName ) ;
-      }
-      catch ( ... )
-      {
-         // failed to construct key, find by iterator
-         res = _hasCLJobIter( collection ) ;
-      }
-
-      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCLJOB ) ;
-
-      return res ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_REGCLJOB, "_rtnIndexJobHolder::regCLJob" )
-   INT32 _rtnIndexJobHolder::regCLJob( const CHAR *collection )
+   INT32 _rtnIndexJobHolder::regCLJob( utilCLUniqueID clUID, RTN_JOB_TYPE type )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_REGCLJOB ) ;
 
-      SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
-
-      ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
-
-      try
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUID ) )
       {
-         ossPoolString tmpCLName( collection ) ;
-         CL_JOB_MAP::iterator iterCL = _clJobs.find( tmpCLName ) ;
-         if ( iterCL != _clJobs.end() )
+         try
          {
-            // found existing, increase count
-            ++ ( iterCL->second ) ;
+            ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
+            _rtnCLJobMapIter iterCL = _clJobs.find( clUID ) ;
+            if ( iterCL != _clJobs.end() )
+            {
+               // found existing, increase count
+               iterCL->second.incJobCount( type ) ;
+            }
+            else
+            {
+               // not found, create new count
+               _rtnCLJobCount jobCount ;
+               jobCount.incJobCount( type ) ;
+               _clJobs.insert( make_pair( clUID, jobCount ) ) ;
+            }
          }
-         else
+         catch ( exception &e )
          {
-            // not found, create new count
-            _clJobs.insert( make_pair( collection, 1 ) ) ;
-
+            PD_LOG( PDWARNING, "Failed to register collection job [%llu], "
+                  "occur exception: %s", clUID, e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDWARNING, "Failed to register collection job [%s], "
-                 "occur exception: %s", collection, e.what() ) ;
-         rc = SDB_OOM ;
-         goto error ;
       }
 
    done:
@@ -794,24 +775,293 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_UNREGCLJOB, "_rtnIndexJobHolder::unregCLJob" )
-   void _rtnIndexJobHolder::unregCLJob( const CHAR *collection )
+   void _rtnIndexJobHolder::unregCLJob( utilCLUniqueID clUID, RTN_JOB_TYPE type )
    {
       PD_TRACE_ENTRY( SDB__RTNJOBMGR_UNREGCLJOB ) ;
 
-      ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
-
-      try
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUID ) )
       {
-         ossPoolString tmpCLName( collection ) ;
-         _unregCLJob( tmpCLName ) ;
-      }
-      catch ( ... )
-      {
-         // failed to construct key, find by iterator
-         _unregCLJobIter( collection ) ;
+         ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
+         _rtnCLJobMapIter iter = _clJobs.find( clUID ) ;
+         if ( iter != _clJobs.end() )
+         {
+            iter->second.decJobCount( type ) ;
+            if ( !( iter->second.hasJobs() ) )
+            {
+               _clJobs.erase( iter ) ;
+            }
+         }
       }
 
       PD_TRACE_EXIT( SDB__RTNJOBMGR_UNREGCLJOB ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCLJOBS_TYPE, "_rtnIndexJobHolder::hasCLJobs" )
+   BOOLEAN _rtnIndexJobHolder::hasCLJobs( utilCLUniqueID clUID,
+                                          RTN_JOB_TYPE type )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCLJOBS_TYPE ) ;
+
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUID ) )
+      {
+         ossScopedLock lock( &_mapLatch, SHARED ) ;
+         _rtnCLJobMapIter iter = _clJobs.find( clUID ) ;
+         res = ( iter != _clJobs.end() ) &&
+               ( iter->second.hasJobs( type ) ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCLJOBS_TYPE ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCLJOBS, "_rtnIndexJobHolder::hasCLJobs" )
+   BOOLEAN _rtnIndexJobHolder::hasCLJobs( utilCLUniqueID clUID )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCLJOBS ) ;
+
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUID ) )
+      {
+         ossScopedLock lock( &_mapLatch, SHARED ) ;
+         _rtnCLJobMapIter iter = _clJobs.find( clUID ) ;
+         res = ( iter != _clJobs.end() ) &&
+               ( iter->second.hasJobs() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCLJOBS ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCSJOBS_TYPE, "_rtnIndexJobHolder::hasCSJobs" )
+   BOOLEAN _rtnIndexJobHolder::hasCSJobs( utilCSUniqueID csUID,
+                                          RTN_JOB_TYPE type )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCSJOBS_TYPE ) ;
+
+      if ( UTIL_IS_VALID_CSUNIQUEID( csUID ) )
+      {
+         ossScopedLock lock( &_mapLatch, SHARED ) ;
+         _rtnCLJobMapIter iter = _clJobs.upper_bound( utilBuildCLUniqueID( csUID, 0 ) ) ;
+         res = ( iter != _clJobs.end() ) &&
+               ( utilGetCSUniqueID( iter->first ) == csUID ) &&
+               ( iter->second.hasJobs() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCSJOBS_TYPE ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCSJOBS, "_rtnIndexJobHolder::hasCSJobs" )
+   BOOLEAN _rtnIndexJobHolder::hasCSJobs( utilCSUniqueID csUID )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCSJOBS ) ;
+
+      if ( UTIL_IS_VALID_CSUNIQUEID( csUID ) )
+      {
+         ossScopedLock lock( &_mapLatch, SHARED ) ;
+         _rtnCLJobMapIter iter = _clJobs.upper_bound( utilBuildCLUniqueID( csUID, 0 ) ) ;
+         res = ( iter != _clJobs.end() ) &&
+               ( utilGetCSUniqueID( iter->first ) == csUID ) &&
+               ( iter->second.hasJobs() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCSJOBS ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_TYPE, "_rtnIndexJobHolder::waitForCLJobs" )
+   void _rtnIndexJobHolder::waitForCLJobs( utilCLUniqueID clUID, RTN_JOB_TYPE type )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_TYPE ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      while ( ( !cb->isInterrupted() ) &&
+              ( !PMD_IS_DB_DOWN() ) &&
+              ( hasCLJobs( clUID, type ) ) )
+      {
+         ossSleep( RTN_WAIT_JOB_CHECK_INTERVAL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_TYPE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS, "_rtnIndexJobHolder::waitForCLJobs" )
+   void _rtnIndexJobHolder::waitForCLJobs( utilCLUniqueID clUID )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      while ( ( !cb->isInterrupted() ) &&
+              ( !PMD_IS_DB_DOWN() ) &&
+              ( hasCLJobs( clUID ) ) )
+      {
+         ossSleep( RTN_WAIT_JOB_CHECK_INTERVAL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER__GETCLUID, "_rtnIndexJobHolder::_getCLUID" )
+   INT32 _rtnIndexJobHolder::_getCLUID( const CHAR *clName, utilCLUniqueID &clUID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER__GETCLUID ) ;
+
+      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+      const CHAR *pCLShortName = NULL ;
+      UINT16 mbID = DMS_INVALID_MBID ;
+      UINT32 clLID = DMS_INVALID_LOGICCLID ;
+
+      clUID = UTIL_UNIQUEID_NULL ;
+
+      rc = rtnResolveCollectionNameAndLock( clName, dmsCB, &su, &pCLShortName, suID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to resolve collection name [%s], "
+                   "rc: %d", clName, rc ) ;
+      SDB_ASSERT( NULL != su, "storage unit should be valid" ) ;
+
+      rc = su->getCollectionInfo( pCLShortName, mbID, clLID, clUID ) ;
+      dmsCB->suUnlock( suID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get unique ID for collection [%s], "
+                   "rc: %d", clName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNIDXJOBHOLDER__GETCLUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME_TYPE, "_rtnIndexJobHolder::waitForCLJobs" )
+   void _rtnIndexJobHolder::waitForCLJobs( const CHAR *clName, RTN_JOB_TYPE type )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME_TYPE ) ;
+
+      utilCLUniqueID clUID = UTIL_UNIQUEID_NULL ;
+
+      if ( SDB_OK == _getCLUID( clName, clUID ) )
+      {
+         waitForCLJobs( clUID, type ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME_TYPE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME, "_rtnIndexJobHolder::waitForCLJobs" )
+   void _rtnIndexJobHolder::waitForCLJobs( const CHAR *clName )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME ) ;
+
+      utilCLUniqueID clUID = UTIL_UNIQUEID_NULL ;
+
+      if ( SDB_OK == _getCLUID( clName, clUID ) )
+      {
+         waitForCLJobs( clUID ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCLJOBS_NAME ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_TYPE, "_rtnIndexJobHolder::waitForCSJobs" )
+   void _rtnIndexJobHolder::waitForCSJobs( utilCSUniqueID csUID, RTN_JOB_TYPE type )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_TYPE ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      while ( ( !cb->isInterrupted() ) &&
+              ( !PMD_IS_DB_DOWN() ) &&
+              ( hasCSJobs( csUID, type ) ) )
+      {
+         ossSleep( RTN_WAIT_JOB_CHECK_INTERVAL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_TYPE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS, "_rtnIndexJobHolder::waitForCSJobs" )
+   void _rtnIndexJobHolder::waitForCSJobs( utilCSUniqueID csUID )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      while ( ( !cb->isInterrupted() ) &&
+              ( !PMD_IS_DB_DOWN() ) &&
+              ( hasCSJobs( csUID ) ) )
+      {
+         ossSleep( RTN_WAIT_JOB_CHECK_INTERVAL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER__GETCSUID, "_rtnIndexJobHolder::_getCSUID" )
+   INT32 _rtnIndexJobHolder::_getCSUID( const CHAR *csName, utilCSUniqueID &csUID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER__GETCSUID ) ;
+
+      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      UINT32 csLID = DMS_INVALID_LOGICCSID ;
+
+      csUID = UTIL_UNIQUEID_NULL ;
+
+      // get collection space information
+      rc = dmsCB->nameToCSInfo( csName, suID, csLID, csUID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID for collection space [%s], "
+                   "rc: %d", csName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNIDXJOBHOLDER__GETCSUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME_TYPE, "_rtnIndexJobHolder::waitForCSJobs" )
+   void _rtnIndexJobHolder::waitForCSJobs( const CHAR *csName, RTN_JOB_TYPE type )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME_TYPE ) ;
+
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
+
+      if ( SDB_OK == _getCSUID( csName, csUID ) )
+      {
+         waitForCSJobs( csUID, type ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME_TYPE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME, "_rtnIndexJobHolder::waitForCSJobs" )
+   void _rtnIndexJobHolder::waitForCSJobs( const CHAR *csName )
+   {
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME ) ;
+
+      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL ;
+
+      if ( SDB_OK == _getCSUID( csName, csUID ) )
+      {
+         waitForCSJobs( csUID ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_WAITFORCSJOBS_NAME ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_FINI, "_rtnIndexJobHolder::fini" )
@@ -823,107 +1073,6 @@ namespace engine
       _clJobs.clear() ;
 
       PD_TRACE_EXIT( SDB__RTNJOBMGR_FINI ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__UNREGCLJOB, "_rtnIndexJobHolder::_unregCLJob" )
-   void _rtnIndexJobHolder::_unregCLJob( const ossPoolString &collection )
-   {
-      PD_TRACE_ENTRY( SDB__RTNJOBMGR__UNREGCLJOB ) ;
-
-      CL_JOB_MAP::iterator iterCL = _clJobs.find( collection ) ;
-      SDB_ASSERT( iterCL != _clJobs.end(), "collection job is not found" ) ;
-      if ( iterCL != _clJobs.end() )
-      {
-         if ( iterCL->second > 1 )
-         {
-            // decrease count
-            -- ( iterCL->second ) ;
-         }
-         else
-         {
-            // no more jobs for this collection
-            _clJobs.erase( iterCL ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__RTNJOBMGR__UNREGCLJOB ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__UNREGCLJOBITER, "_rtnIndexJobHolder::_unregCLJobIter" )
-   void _rtnIndexJobHolder::_unregCLJobIter( const CHAR *collection )
-   {
-      PD_TRACE_ENTRY( SDB__RTNJOBMGR__UNREGCLJOBITER ) ;
-
-      CL_JOB_MAP::iterator iterCL = _clJobs.begin() ;
-      while ( iterCL != _clJobs.end() )
-      {
-         if ( 0 == ossStrcmp( iterCL->first.c_str(),
-                              collection ) )
-         {
-            // found by name
-            if ( iterCL->second > 1 )
-            {
-               // decrease count
-               -- ( iterCL->second ) ;
-            }
-            else
-            {
-               // no more jobs for this collection
-               _clJobs.erase( iterCL ) ;
-            }
-            break ;
-         }
-         ++ iterCL ;
-      }
-
-      PD_TRACE_EXIT( SDB__RTNJOBMGR__UNREGCLJOBITER ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__HASCLJOB, "_rtnIndexJobHolder::_hasCLJob" )
-   BOOLEAN _rtnIndexJobHolder::_hasCLJob( const ossPoolString &collection )
-   {
-      BOOLEAN res = FALSE ;
-
-      PD_TRACE_ENTRY( SDB__RTNJOBMGR__HASCLJOB ) ;
-
-      CL_JOB_MAP::iterator iter = _clJobs.find( collection ) ;
-      if ( _clJobs.end() != iter &&
-           iter->second > 0 )
-      {
-         res = TRUE ;
-      }
-
-      PD_TRACE_EXIT( SDB__RTNJOBMGR__HASCLJOB ) ;
-
-      return res ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__HASCLJOBITER, "_rtnIndexJobHolder::_hasCLJobIter" )
-   BOOLEAN _rtnIndexJobHolder::_hasCLJobIter( const CHAR *collection )
-   {
-      BOOLEAN res = FALSE ;
-
-      PD_TRACE_ENTRY( SDB__RTNJOBMGR__HASCLJOBITER ) ;
-
-      CL_JOB_MAP::iterator iterCL = _clJobs.begin() ;
-      while ( iterCL != _clJobs.end() )
-      {
-         if ( 0 == ossStrcmp( iterCL->first.c_str(),
-                              collection ) )
-         {
-            // found by name
-            if ( iterCL->second > 0 )
-            {
-               res = TRUE ;
-            }
-            break ;
-         }
-         ++ iterCL ;
-      }
-
-      PD_TRACE_EXIT( SDB__RTNJOBMGR__HASCLJOBITER ) ;
-
-      return res ;
    }
 
    rtnIndexJobHolder *rtnGetIndexJobHolder()

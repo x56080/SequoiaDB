@@ -663,6 +663,11 @@ namespace engine
                                             const BSONObj & extOptions,
                                             dmsMBContext * context = NULL ) ;
 
+         INT32    getCollectionInfo( const CHAR *pName,
+                                     UINT16 &mbID,
+                                     UINT32 &clLID,
+                                     utilCLUniqueID &clUniqueID ) ;
+
          //loadExtentA is not init extent records
          INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                 UINT16 numPages, const BOOLEAN toLoad = FALSE,

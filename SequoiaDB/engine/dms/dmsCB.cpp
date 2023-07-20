@@ -1622,6 +1622,41 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_NAMETOCSINFO, "_SDB_DMSCB::nameToCSInfo" )
+   INT32 _SDB_DMSCB::nameToCSInfo( const CHAR *pName,
+                                   dmsStorageUnitID &suID,
+                                   UINT32 &csLID,
+                                   utilCSUniqueID &csUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_NAMETOCSINFO ) ;
+
+      suID = DMS_INVALID_SUID ;
+      csLID = DMS_INVALID_LOGICCSID ;
+      csUniqueID = UTIL_UNIQUEID_NULL ;
+
+      if ( NULL == pName )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else
+      {
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         SDB_DMS_CSCB *cscb = NULL ;
+         rc = _CSCBNameLookup( pName, &cscb, &suID, TRUE ) ;
+         if ( SDB_OK == rc )
+         {
+            csLID = cscb->_su->LogicalCSID() ;
+            csUniqueID = cscb->_su->CSUniqueID() ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_NAMETOCSINFO, rc ) ;
+
+      return rc ;
+   }
+
    _dmsStorageUnit *_SDB_DMSCB::suLock ( dmsStorageUnitID suID )
    {
       ossScopedLock _lock(&_mutex, SHARED) ;

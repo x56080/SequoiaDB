@@ -125,27 +125,112 @@ namespace engine
       ~_rtnIndexJobHolder() ;
 
       // register collection index job
-      INT32 regCLJob( const CHAR *collection ) ;
+      INT32 regCLJob( utilCLUniqueID clUID, RTN_JOB_TYPE type ) ;
 
       // unregister collection index job
-      void  unregCLJob( const CHAR *collection ) ;
+      void  unregCLJob( utilCLUniqueID clUID, RTN_JOB_TYPE type ) ;
 
-      // has collection job
-      BOOLEAN hasCLJob( const CHAR *collection ) ;
+      // check whether has collection jobs
+      BOOLEAN hasCLJobs( utilCLUniqueID clUID, RTN_JOB_TYPE type ) ;
+      BOOLEAN hasCLJobs( utilCLUniqueID clUID ) ;
+
+      // has collection space job
+      BOOLEAN hasCSJobs( utilCSUniqueID csUID, RTN_JOB_TYPE type ) ;
+      BOOLEAN hasCSJobs( utilCSUniqueID csUID ) ;
+
+      void waitForCLJobs( utilCLUniqueID clUID, RTN_JOB_TYPE type ) ;
+      void waitForCLJobs( utilCLUniqueID clUID ) ;
+      void waitForCLJobs( const CHAR *clName, RTN_JOB_TYPE type ) ;
+      void waitForCLJobs( const CHAR *clName ) ;
+
+      void waitForCSJobs( utilCSUniqueID csUID, RTN_JOB_TYPE type ) ;
+      void waitForCSJobs( utilCSUniqueID csUID ) ;
+      void waitForCSJobs( const CHAR *csName, RTN_JOB_TYPE type ) ;
+      void waitForCSJobs( const CHAR *csName ) ;
 
       // clear job holder
       void fini() ;
 
    protected:
-      void _unregCLJob( const ossPoolString &collection ) ;
-      void _unregCLJobIter( const CHAR *collection ) ;
-      BOOLEAN _hasCLJob( const ossPoolString &collection ) ;
-      BOOLEAN _hasCLJobIter( const CHAR *collection ) ;
+      INT32 _getCLUID( const CHAR *clName, utilCLUniqueID &clUID ) ;
+      INT32 _getCSUID( const CHAR *csName, utilCSUniqueID &csUID ) ;
 
    protected:
-      typedef ossPoolMap< ossPoolString, UINT32 > CL_JOB_MAP ;
-      ossSpinSLatch  _mapLatch ;
-      CL_JOB_MAP     _clJobs ;
+      struct _rtnCLJobCount : public _utilPooledObject
+      {
+         _rtnCLJobCount()
+         : crtIdxJobCount( 0 ),
+           dropIdxJobCount( 0 )
+         {
+         }
+
+         void incJobCount( RTN_JOB_TYPE type )
+         {
+            if ( RTN_JOB_CREATE_INDEX == type )
+            {
+               ++ crtIdxJobCount ;
+            }
+            else if ( RTN_JOB_DROP_INDEX == type )
+            {
+               ++ dropIdxJobCount ;
+            }
+         }
+
+         void decJobCount( RTN_JOB_TYPE type )
+         {
+            if ( RTN_JOB_CREATE_INDEX == type )
+            {
+               SDB_ASSERT( crtIdxJobCount > 0, "should have create index job" ) ;
+               if ( crtIdxJobCount > 0 )
+               {
+                  -- crtIdxJobCount ;
+               }
+            }
+            else if ( RTN_JOB_DROP_INDEX == type )
+            {
+               SDB_ASSERT( dropIdxJobCount > 0, "should have create index job" ) ;
+               if ( dropIdxJobCount > 0 )
+               {
+                  -- dropIdxJobCount ;
+               }
+            }
+         }
+
+         BOOLEAN hasJobs( RTN_JOB_TYPE type )
+         {
+            if ( RTN_JOB_CREATE_INDEX == type )
+            {
+               return ( 0 != crtIdxJobCount ) ;
+            }
+            else if ( RTN_JOB_DROP_INDEX == type )
+            {
+               return ( 0 != dropIdxJobCount ) ;
+            }
+            else
+            {
+               return FALSE ;
+            }
+         }
+
+         BOOLEAN hasJobs() const
+         {
+            return  ( 0 != crtIdxJobCount ) ||
+                    ( 0 != dropIdxJobCount ) ;
+         }
+
+         // count of create index jobs
+         UINT32         crtIdxJobCount ;
+         // count of drop index jobs
+         UINT32         dropIdxJobCount ;
+      } ;
+      typedef ossPoolMap< utilCLUniqueID, _rtnCLJobCount > _rtnCLJobMap ;
+      typedef _rtnCLJobMap::iterator _rtnCLJobMapIter ;
+
+   protected:
+      // map latch
+      ossSpinSLatch _mapLatch ;
+      // index jobs
+      _rtnCLJobMap  _clJobs ;
    } ;
 
    typedef class _rtnIndexJobHolder rtnIndexJobHolder ;
