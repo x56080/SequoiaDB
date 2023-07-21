@@ -1691,6 +1691,12 @@ namespace engine
                      "Unexpected field here" ) ;
          info._totalRecords = ele.Long() ;
 
+         // TotalRecords
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_OVERFLOW_RECORDS ),
+                     "Unexpected field here" ) ;
+         info._totalOverflowRecords = ele.Long() ;
+
          // TotalLobs
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOBS ),
@@ -1816,6 +1822,12 @@ namespace engine
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXREAD ),
                      "Unexpected field here" ) ;
          info._crudCB._totalIndexRead = ele.Long() ;
+
+         // TotalOverflowRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALOVERFLOWREAD ),
+                     "Unexpected field here" ) ;
+         info._crudCB._totalOverflowRead = ele.Long() ;
 
          // TotalDataWrite
          ele = iter.next() ;
@@ -1991,6 +2003,11 @@ namespace engine
                info._totalRecords = ele.Long() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_OVERFLOW_RECORDS ))
+            {
+               info._totalOverflowRecords = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_LOBS ))
             {
                info._totalLobs = ele.Long() ;
@@ -2059,6 +2076,11 @@ namespace engine
                                      FIELD_NAME_TOTALINDEXREAD ))
             {
                info._crudCB._totalIndexRead = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALOVERFLOWREAD ))
+            {
+               info._crudCB._totalOverflowRead = ele.Long() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALDATAWRITE ))
@@ -2309,9 +2331,11 @@ namespace engine
 
          /// stat info
          ob.append ( FIELD_NAME_TOTAL_RECORDS,
-                     (long long)(info._totalRecords )) ;
+                     (INT64)(info._totalRecords )) ;
+         ob.append ( FIELD_NAME_TOTAL_OVERFLOW_RECORDS,
+                     (INT64)(info._totalOverflowRecords ) ) ;
          ob.append ( FIELD_NAME_TOTAL_LOBS,
-                     (long long)(info._totalLobs) ) ;
+                     (INT64)(info._totalLobs) ) ;
          ob.append ( FIELD_NAME_TOTAL_DATA_PAGES,
                      info._totalDataPages ) ;
          ob.append ( FIELD_NAME_TOTAL_INDEX_PAGES,
@@ -2326,9 +2350,9 @@ namespace engine
          ob.append ( FIELD_NAME_LOB_USAGE_RATE, info._lobUsageRate ) ;
          ob.append ( FIELD_NAME_AVG_LOB_SIZE, (INT64)info._avgLobSize ) ;
          ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                     (long long)(info._totalDataFreeSpace) ) ;
+                     (INT64)(info._totalDataFreeSpace) ) ;
          ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                    (long long)(info._totalIndexFreeSpace) ) ;
+                    (INT64)(info._totalIndexFreeSpace) ) ;
          ob.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                      (FLOAT64)info._currCompressRatio / 100.0 ) ;
 
@@ -2347,6 +2371,8 @@ namespace engine
                     (INT64)info._crudCB._totalDataRead ) ;
          ob.append( FIELD_NAME_TOTALINDEXREAD,
                     (INT64)info._crudCB._totalIndexRead ) ;
+         ob.append( FIELD_NAME_TOTALOVERFLOWREAD,
+                    (INT64)info._crudCB._totalOverflowRead ) ;
          ob.append( FIELD_NAME_TOTALDATAWRITE,
                     (INT64)info._crudCB._totalDataWrite ) ;
          ob.append( FIELD_NAME_TOTALINDEXWRITE,
@@ -7137,7 +7163,7 @@ namespace engine
             keysMgr->getStatusBson( subBuilder );
             subBuilder.doneFast();
          }
-         else 
+         else
          {
             ob.appendNull( FIELD_NAME_SECURITY_KEYS );
          }

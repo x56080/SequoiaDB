@@ -172,6 +172,7 @@
                                                 Indexes:\"$Details.$[0].Indexes\",\
                                                 Status:\"$Details.$[0].Status\",\
                                                 TotalRecords:\"$Details.$[0].TotalRecords\",\
+                                                TotalOverflowRecords:\"$Details.$[0].TotalOverflowRecords\",\
                                                 TotalLobs:\"$Details.$[0].TotalLobs\",\
                                                 TotalDataPages:\"$Details.$[0].TotalDataPages\",\
                                                 TotalIndexPages:\"$Details.$[0].TotalIndexPages\",\
@@ -186,6 +187,7 @@
                                                 TotalIndexFreeSpace:\"$Details.$[0].TotalIndexFreeSpace\",\
                                                 TotalDataRead:\"$Details.$[0].TotalDataRead\",\
                                                 TotalIndexRead:\"$Details.$[0].TotalIndexRead\",\
+                                                TotalOverflowRead:\"$Details.$[0].TotalOverflowRead\",\
                                                 TotalDataWrite:\"$Details.$[0].TotalDataWrite\",\
                                                 TotalIndexWrite:\"$Details.$[0].TotalIndexWrite\",\
                                                 TotalUpdate:\"$Details.$[0].TotalUpdate\",\
@@ -217,12 +219,12 @@
                                                 UniqueID:1,\
                                                 GroupName:1,\
                                                 Details:{ID:1,LogicalID:1,Sequence:1,\
-                                                         Indexes:1,Status:1,TotalRecords:1,TotalLobs:1,TotalDataPages:1,\
+                                                         Indexes:1,Status:1,TotalRecords:1,TotalOverflowRecords:1,TotalLobs:1,TotalDataPages:1,\
                                                          TotalIndexPages:1,TotalLobPages:1,TotalUsedLobSpace:1,\
                                                          UsedLobSpaceRatio:1,TotalLobSize:1,TotalValidLobSize:1,\
                                                          LobUsageRate:1,AvgLobSize:1,TotalDataFreeSpace:1,\
                                                          TotalIndexFreeSpace:1,TotalDataRead:1,TotalIndexRead:1,\
-                                                         TotalDataWrite:1,TotalIndexWrite:1,TotalUpdate:1,\
+                                                         TotalOverflowRead:1,TotalDataWrite:1,TotalIndexWrite:1,TotalUpdate:1,\
                                                          TotalDelete:1,TotalInsert:1,TotalSelect:1,TotalRead:1,\
                                                          TotalWrite:1,TotalTbScan:1,TotalIxScan:1,\
                                                          TotalLobGet:1,TotalLobPut:1,TotalLobDelete:1,\

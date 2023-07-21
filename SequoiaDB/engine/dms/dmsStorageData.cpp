@@ -551,6 +551,7 @@ namespace engine
          {
             ovfRID = pRecord->getOvfRID() ;
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_OVERFLOW_READ, 1 ) ;
             ovfExtRW = extent2RW( ovfRID._extent, context->mbID() ) ;
             ovfRW = record2RW( ovfRID, context->mbID() ) ;
             pOvfRecord = ovfRW.writePtr( 0 ) ;
@@ -1415,6 +1416,7 @@ namespace engine
          }
          SDB_ASSERT( pRecord->isOvt(), "Record must be ovt" ) ;
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_OVERFLOW_READ, 1 ) ;
       }
 
       recordData.setData( pRecord->getData(), pRecord->getDataLength(),

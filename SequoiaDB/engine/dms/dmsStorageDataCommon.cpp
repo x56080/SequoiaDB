@@ -664,6 +664,12 @@ namespace engine
                _dmsMME->_mbList[i]._totalRecords =
                   _mbStatInfo[i]._totalRecords ;
             }
+            if ( _dmsMME->_mbList[i]._totalOverflowRecords !=
+                 _mbStatInfo[i]._totalOverflowRecords )
+            {
+               _dmsMME->_mbList[i]._totalOverflowRecords =
+                  _mbStatInfo[i]._totalOverflowRecords ;
+            }
             if ( _dmsMME->_mbList[i]._totalDataPages !=
                  _mbStatInfo[i]._totalDataPages )
             {
@@ -1023,6 +1029,7 @@ namespace engine
                                 _dmsMME->_mbList[i]._clUniqueID ) ;
 
             _mbStatInfo[i]._totalRecords = _dmsMME->_mbList[i]._totalRecords ;
+            _mbStatInfo[i]._totalOverflowRecords = _dmsMME->_mbList[i]._totalOverflowRecords ;
             _mbStatInfo[i]._rcTotalRecords.init( _dmsMME->_mbList[i]._totalRecords ) ;
             _mbStatInfo[i]._totalDataPages =
                _dmsMME->_mbList[i]._totalDataPages ;
@@ -1795,6 +1802,7 @@ namespace engine
       context->mbStat()->_totalDataFreeSpace = 0 ;
       context->mbStat()->_totalDataPages = 0 ;
       context->mbStat()->_totalRecords = 0 ;
+      context->mbStat()->_totalOverflowRecords = 0 ;
       context->mbStat()->_rcTotalRecords.init( 0 ) ;
       context->mbStat()->_totalDataLen = 0 ;
       context->mbStat()->_totalOrgDataLen = 0 ;
@@ -4169,6 +4177,10 @@ namespace engine
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            if ( pRecord->isOvf() )
+            {
+               _increaseMBStatOvfRecords( &( _mbStatInfo[ context->mbID() ] ) ) ;
+            }
             context->mbStat()->_totalDataLen += recordData.len() ;
             context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
@@ -4408,6 +4420,8 @@ namespace engine
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
       INT64 delPosition = -1 ;
 
+      BOOLEAN isOvfRecord = FALSE ;
+
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
          PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
@@ -4442,6 +4456,7 @@ namespace engine
          if ( pRecord->isOvf() )
          {
             ovfRID = pRecord->getOvfRID() ;
+            isOvfRecord = TRUE ;
          }
          else if ( pRecord->isOvt() )
          {
@@ -4696,12 +4711,20 @@ namespace engine
             --( pExtent->_recCount ) ;
             _decreaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            if ( isOvfRecord )
+            {
+               _decreaseMBStatOvfRecords( &( _mbStatInfo[ context->mbID() ] ) ) ;
+            }
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
 
          if ( !isDeleting )
          {
+            if ( isOvfRecord )
+            {
+               _decreaseMBStatOvfRecords( &( _mbStatInfo[ context->mbID() ] ) ) ;
+            }
             // increase conter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DELETE, 1 ) ;
             _incWriteRecord() ;
@@ -4817,6 +4840,8 @@ namespace engine
       dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL ;
       dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ;
 
+      BOOLEAN isOvfRecordBeforeUpdate = FALSE ;
+
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed in permission check of update, rc: %d", rc ) ;
@@ -4840,6 +4865,7 @@ namespace engine
          pExtent = extRW.readPtr<dmsExtent>() ;
          recordRW = record2RW( recordID, context->mbID() ) ;
          pRecord = recordRW.readPtr() ;
+         isOvfRecordBeforeUpdate = pRecord->isOvf() ;
 
 #ifdef _DEBUG
          if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
@@ -5067,6 +5093,14 @@ namespace engine
             goto error ;
          }
 
+         if ( isOvfRecordBeforeUpdate && !pRecord->isOvf() )
+         {
+            _decreaseMBStatOvfRecords( &( _mbStatInfo[ context->mbID() ] ) ) ;
+         }
+         else if ( !isOvfRecordBeforeUpdate && pRecord->isOvf() )
+         {
+            _increaseMBStatOvfRecords( &( _mbStatInfo[ context->mbID() ] ) ) ;
+         }
          // increase update counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
          _incWriteRecord() ;
@@ -5581,6 +5615,31 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INCMBSTATOVFRECORDS, "_dmsStorageDataCommon::_increaseMBStatOvfRecords" )
+   void _dmsStorageDataCommon::_increaseMBStatOvfRecords( dmsMBStatInfo * mbStat )
+   {
+      SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__INCMBSTATOVFRECORDS ) ;
+
+      mbStat->_totalOverflowRecords++ ;
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__INCMBSTATOVFRECORDS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DECMBSTATOVFRECORDS, "_dmsStorageDataCommon::_decreaseMBStatOvfRecords" )
+   void _dmsStorageDataCommon::_decreaseMBStatOvfRecords( dmsMBStatInfo * mbStat )
+   {
+      SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__DECMBSTATOVFRECORDS ) ;
+
+      if ( mbStat->_totalOverflowRecords > 0 )
+      {
+         mbStat->_totalOverflowRecords-- ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTATOVFRECORDS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED, "_dmsStorageDataCommon::_onMBUpdated" )

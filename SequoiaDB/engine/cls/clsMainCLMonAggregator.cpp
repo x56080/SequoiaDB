@@ -143,6 +143,7 @@ namespace engine
 
          /// stat info
          _detail._totalRecords += sub._totalRecords ;
+         _detail._totalOverflowRecords += sub._totalOverflowRecords ;
          _detail._totalLobs += sub._totalLobs ;
          _detail._totalDataPages += sub._totalDataPages * dataPageMultiple ;
          _detail._totalIndexPages += sub._totalIndexPages * dataPageMultiple ;
@@ -155,6 +156,7 @@ namespace engine
 
          /// CRUD statistics
          _detail._crudCB._totalDataRead += sub._crudCB._totalDataRead ;
+         _detail._crudCB._totalOverflowRead += sub._crudCB._totalOverflowRead ;
          _detail._crudCB._totalIndexRead += sub._crudCB._totalIndexRead ;
          _detail._crudCB._totalDataWrite += sub._crudCB._totalDataWrite ;
          _detail._crudCB._totalIndexWrite += sub._crudCB._totalIndexWrite ;
@@ -348,7 +350,7 @@ namespace engine
    INT32 _clsMainCLMonAggregator::outputDataInProcess( MON_CL_LIST &out )
    {
       int rc = SDB_OK ;
-      try 
+      try
       {
          MainCLInfoMap::iterator it ;
          for ( it = _infoMap.begin() ; it != _infoMap.end(); ++it )
@@ -360,7 +362,7 @@ namespace engine
             SDB_OSS_DEL pMainCLInfo ;
          }
          _infoMap.clear();
-      } 
+      }
       catch ( std::exception &e )
       {
          PD_LOG ( PDERROR, "Failed to out put data in process: %s", e.what() ) ;

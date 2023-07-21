@@ -195,7 +195,9 @@ namespace engine
       UINT64         _createTime ;
       UINT64         _updateTime ;
 
-      CHAR           _pad [ 244 ] ;
+      INT64          _totalOverflowRecords ;
+
+      CHAR           _pad [ 236 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -282,6 +284,8 @@ namespace engine
 
          _createTime             = 0 ;
          _updateTime             = 0 ;
+
+         _totalOverflowRecords   = 0 ;
 
          // pad
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
@@ -425,6 +429,7 @@ namespace engine
       UINT32      _flag ;
       UINT64      _totalLobSize ;
       UINT64      _totalValidLobSize ;
+      INT64       _totalOverflowRecords ;
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
@@ -485,6 +490,7 @@ namespace engine
          _flag                   = 0 ;
          _totalLobSize           = 0 ;
          _totalValidLobSize      = 0 ;
+         _totalOverflowRecords   = 0 ;
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;
@@ -1484,6 +1490,9 @@ namespace engine
          void _decreaseMBStat ( utilCLUniqueID clUniqueID,
                                 dmsMBStatInfo * mbStat,
                                 _pmdEDUCB * cb ) ;
+
+         void _increaseMBStatOvfRecords( dmsMBStatInfo * mbStat ) ;
+         void _decreaseMBStatOvfRecords( dmsMBStatInfo * mbStat ) ;
 
          void _onMBUpdated( UINT16 mbID ) ;
 

@@ -132,6 +132,7 @@ namespace engine
 
       // stat info
       UINT64 _totalRecords ;
+      UINT64 _totalOverflowRecords ;
       UINT64 _totalLobs ;
       UINT32 _totalDataPages ;
       UINT32 _totalIndexPages ;
@@ -178,20 +179,21 @@ namespace engine
          _pageSize            = 0 ;
          _lobPageSize         = 0 ;
 
-         _totalRecords        = 0 ;
-         _totalLobs           = 0 ;
-         _totalDataPages      = 0 ;
-         _totalIndexPages     = 0 ;
-         _totalLobPages       = 0 ;
-         _totalUsedLobSpace   = 0 ;
-         _usedLobSpaceRatio   = 0 ;
-         _totalLobSize        = 0 ;
-         _totalValidLobSize   = 0 ;
-         _lobUsageRate        = 0 ;
-         _avgLobSize          = 0 ;
-         _totalDataFreeSpace  = 0 ;
-         _totalIndexFreeSpace = 0 ;
-         _currCompressRatio   = 0 ;
+         _totalRecords         = 0 ;
+         _totalOverflowRecords = 0 ;
+         _totalLobs            = 0 ;
+         _totalDataPages       = 0 ;
+         _totalIndexPages      = 0 ;
+         _totalLobPages        = 0 ;
+         _totalUsedLobSpace    = 0 ;
+         _usedLobSpaceRatio    = 0 ;
+         _totalLobSize         = 0 ;
+         _totalValidLobSize    = 0 ;
+         _lobUsageRate         = 0 ;
+         _avgLobSize           = 0 ;
+         _totalDataFreeSpace   = 0 ;
+         _totalIndexFreeSpace  = 0 ;
+         _currCompressRatio    = 0 ;
 
          /// sync info
          _dataCommitLSN       = -1 ;

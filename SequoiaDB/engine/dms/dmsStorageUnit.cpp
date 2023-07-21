@@ -4167,6 +4167,7 @@ namespace engine
                                                      mbStat->_totalDataFreeSpace,
                                                      mbStat->_totalIndexFreeSpace ) ;
 
+         info._totalOverflowRecords = mbStat->_totalOverflowRecords ;
          info._attribute = mb->_attributes ;
          info._dictCreated = mb->_dictExtentID != DMS_INVALID_EXTENT ? 1 : 0 ;
          info._compressType = mb->_compressorType ;

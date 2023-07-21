@@ -162,6 +162,7 @@ namespace engine
       MON_COUNTER_OPERATION_NONE = 0,
       MON_DATA_READ,
       MON_INDEX_READ,
+      MON_OVERFLOW_READ,
       MON_TEMP_READ,
       MON_DATA_WRITE,
       MON_INDEX_WRITE,
@@ -233,6 +234,7 @@ namespace engine
       public :
          _monCRUDCB ()
          : _totalDataRead( 0 ),
+           _totalOverflowRead( 0 ),
            _totalIndexRead( 0 ),
            _totalDataWrite( 0 ),
            _totalIndexWrite( 0 ),
@@ -260,6 +262,7 @@ namespace engine
 
          _monCRUDCB ( const _monCRUDCB & monCB )
          : _totalDataRead( monCB._totalDataRead ),
+           _totalOverflowRead( monCB._totalOverflowRead ),
            _totalIndexRead( monCB._totalIndexRead ),
            _totalDataWrite( monCB._totalDataWrite ),
            _totalIndexWrite( monCB._totalIndexWrite ),
@@ -293,6 +296,7 @@ namespace engine
          OSS_INLINE void reset ()
          {
             _totalDataRead = 0 ;
+            _totalOverflowRead = 0 ;
             _totalIndexRead = 0 ;
             _totalDataWrite = 0 ;
             _totalIndexWrite = 0 ;
@@ -320,6 +324,7 @@ namespace engine
          OSS_INLINE void resetOnce ()
          {
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalDataRead ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalOverflowRead ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalIndexRead ), 0 ) ;
 
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalDataWrite ), 0 ) ;
@@ -349,6 +354,7 @@ namespace engine
          OSS_INLINE void set ( const _monCRUDCB & monCB )
          {
             _totalDataRead = monCB._totalDataRead ;
+            _totalOverflowRead = monCB._totalOverflowRead ;
             _totalIndexRead = monCB._totalIndexRead ;
 
             _totalDataWrite = monCB._totalDataWrite ;
@@ -379,6 +385,7 @@ namespace engine
          OSS_INLINE void setFromOnce ( const _monCRUDCB & monCB )
          {
             _totalDataRead = OSS_ONCE_UINT64_GET( monCB._totalDataRead ) ;
+            _totalOverflowRead = OSS_ONCE_UINT64_GET( monCB._totalOverflowRead ) ;
             _totalIndexRead = OSS_ONCE_UINT64_GET( monCB._totalIndexRead ) ;
             _totalDataWrite = OSS_ONCE_UINT64_GET( monCB._totalDataWrite ) ;
             _totalIndexWrite = OSS_ONCE_UINT64_GET( monCB._totalIndexWrite ) ;
@@ -410,6 +417,9 @@ namespace engine
             {
                case MON_DATA_READ :
                   _totalDataRead += delta ;
+                  break ;
+               case MON_OVERFLOW_READ :
+                  _totalOverflowRead += delta ;
                   break ;
                case MON_INDEX_READ :
                   _totalIndexRead += delta ;
@@ -479,6 +489,10 @@ namespace engine
             {
                case MON_DATA_READ :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataRead ),
+                                    delta ) ;
+                  break ;
+               case MON_OVERFLOW_READ :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalOverflowRead ),
                                     delta ) ;
                   break ;
                case MON_INDEX_READ :
@@ -559,7 +573,6 @@ namespace engine
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobAddressing ),
                                     delta ) ;
                   break ;
-
                default :
                   break ;
             }
@@ -582,6 +595,7 @@ namespace engine
 
       public :
          UINT64 _totalDataRead ;
+         UINT64 _totalOverflowRead ;
          UINT64 _totalIndexRead ;
          UINT64 _totalDataWrite ;
          UINT64 _totalIndexWrite ;
