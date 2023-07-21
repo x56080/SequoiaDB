@@ -123,6 +123,8 @@ void _mongoSession::_resetBuffers()
    {
       _inBuffer.zero() ;
    }
+
+   _storeBuff.release() ;
 }
 
 INT32 _mongoSession::getServiceType() const
@@ -155,14 +157,8 @@ INT32 _mongoSession::_processClientMsg( const CHAR* pMsg,
 
    while ( TRUE )
    {
-      rc = mongoBuildSdbMsg( &pCommand, sessCtx, _inBuffer ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
       needNext = FALSE ;
-      rc = _processOwnedClientMsg( pMsg, &_inBuffer, pCommand, sessCtx, needNext ) ;
+      rc = _processOwnedClientMsg( pMsg, _inBuffer, pCommand, sessCtx, needNext ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -207,7 +203,7 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSOWNEDCLIENTMSG, "_mongoSession::_processOwnedClientMsg" )
 INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
-                                             mongoMsgBuffer *pSdbMsgBuff,
+                                             mongoMsgBuffer &sdbMsgBuff,
                                              _mongoCommand *pCommand,
                                              mongoSessionCtx &sessCtx,
                                              BOOLEAN &needNext )
@@ -218,7 +214,24 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
 
    if ( pCommand->needProcessByEngine() )
    {
-      rc = _processMsg( pSdbMsgBuff->data(), pCommand, sessCtx.errorObj ) ;
+      BOOLEAN getMoreAll = FALSE ;
+
+      sdbMsgBuff.zero() ;
+
+      rc = pCommand->buildSdbRequest( sdbMsgBuff, sessCtx, getMoreAll ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build sdb message for command[%s], rc: %d",
+                   pCommand->name(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Build sdb msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s, eduID: %llu ] done",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName,
+              pCommand->name() ? pCommand->name() : "",
+              pCommand->clFullName() ? pCommand->clFullName() : "",
+              sessCtx.eduID ) ;
+
+      rc = _processMsg( sdbMsgBuff.data(), pCommand, getMoreAll, sessCtx.errorObj ) ;
       /// should parse the result
       INT32 rcTmp = pCommand->parseSdbReply( _replyHeader, _contextBuff ) ;
       if ( rc )
@@ -473,7 +486,7 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
 
    _tmpBuffer.doneLen() ;
 
-   rc = _processMsg( (const CHAR*)pQuery, errorObj ) ;
+   rc = _processMsg( (const CHAR*)pQuery, errorObj, _contextBuff, _replyHeader ) ;
    if ( SDB_OK == rc )
    {
       PD_LOG( PDEVENT,
@@ -555,7 +568,7 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
 
    _tmpBuffer.doneLen() ;
 
-   rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
+   rc = _processMsg( (CHAR*)pInsert, errorObj, _contextBuff, _replyHeader ) ;
    if ( rc )
    {
       PD_LOG( PDERROR,
@@ -652,7 +665,7 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pCSName,
 
       _tmpBuffer.doneLen() ;
 
-      rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
+      rc = _processMsg( (CHAR*)pQuery, errorObj, _contextBuff, _replyHeader ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
          rc = _autoCreateCS( pCSName, errorObj ) ;
@@ -699,17 +712,8 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    INT32 rc = SDB_OK ;
    MsgOpKillContexts *pKill = NULL ;
    BSONObj errorObj ;
-   BSONObj returnObjCpy ;
-   UINT64 requestIDCpy = _replyHeader.header.requestID ;
-   INT32 flagsCpy = _replyHeader.flags ;
-   BOOLEAN needRestore = FALSE ;
-
-   // _contextBuff will be released in _processMsg,
-   // so we should call getOwned()
-   if ( NULL != _contextBuff.data() )
-   {
-      returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
-   }
+   engine::rtnContextBuf buff ;
+   MsgOpReply tmpReplyHeader ;
 
    _tmpBuffer.zero() ;
 
@@ -738,8 +742,7 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
 
    _tmpBuffer.doneLen() ;
 
-   needRestore = TRUE ;
-   rc = _processMsg( (const CHAR*)pKill, errorObj ) ;
+   rc = _processMsg( (const CHAR*)pKill, errorObj, buff, tmpReplyHeader ) ;
    if ( rc )
    {
       PD_LOG( PDWARNING,
@@ -755,13 +758,6 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    }
 
 done:
-   if ( needRestore )
-   {
-      _replyHeader.flags = flagsCpy ;
-      _replyHeader.contextID = SDB_INVALID_CONTEXTID ;
-      _replyHeader.header.requestID = requestIDCpy ;
-      _contextBuff = engine::rtnContextBuf( returnObjCpy ) ;
-   }
    PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOKILLCURRSOR, rc ) ;
    return rc ;
 error:
@@ -815,15 +811,17 @@ BOOLEAN _mongoSession::_shouldAutoCrtCL( const _mongoCommand *pCommand )
    }
 }
 
-BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand )
+BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
+                                               const engine::rtnContextBuf &buf,
+                                               const MsgOpReply &replyHeader )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
 
    MONGO_CMD_TYPE cmdType = pCommand->type() ;
 
-   if ( SDB_OK != _replyHeader.flags ||
-        SDB_INVALID_CONTEXTID == _replyHeader.contextID ||
-        _contextBuff.size() > 0 )
+   if ( SDB_OK != replyHeader.flags ||
+        SDB_INVALID_CONTEXTID == replyHeader.contextID ||
+        buf.size() > 0 )
    {
       return FALSE ;
    }
@@ -844,6 +842,7 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand )
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSMSG1, "_mongoSession::_processMsg" )
 INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                                   const _mongoCommand *pCommand,
+                                  BOOLEAN getMoreAll,
                                   BSONObj &errorObj )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
@@ -853,14 +852,15 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
    BOOLEAN hasBuildGetMore = FALSE ;
    MONGO_CMD_TYPE cmdType = pCommand->type() ;
    BOOLEAN isNewCS = FALSE ;
-   BOOLEAN needKillCursor = FALSE ;
+   BOOLEAN needKillCursor = getMoreAll ? TRUE : FALSE ;
+   BOOLEAN hasSave2Store = FALSE ;
 
    /// set collection name
    _clFullName = pCommand->clFullName() ;
 
    while ( TRUE )
    {
-      rc = _processMsg( pMsg, errorObj ) ;
+      rc = _processMsg( pMsg, errorObj, _contextBuff, _replyHeader ) ;
 
       // auto create cs/cl
       if ( SDB_DMS_CS_NOTEXIST == _replyHeader.flags )
@@ -935,7 +935,8 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          pCmd->setHasInsertRecord( TRUE ) ;
          break ;
       }
-      else if ( !hasBuildGetMore && _shouldBuildGetMoreMsg( pCommand ) )
+      else if ( !hasBuildGetMore &&
+                _shouldBuildGetMoreMsg( pCommand, _contextBuff, _replyHeader ) )
       {
          rc = buildGetMoreSdbMsg( _replyHeader.header.requestID,
                                   _replyHeader.contextID, _inBuffer ) ;
@@ -947,6 +948,37 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
 
          hasBuildGetMore = TRUE ;
          continue ;
+      }
+      else if ( getMoreAll )
+      {
+         if ( _contextBuff.size() > 0 &&
+              ( hasSave2Store || SDB_INVALID_CONTEXTID != _replyHeader.contextID ) )
+         {
+            /// save to store buff
+            rc = _storeBuff.appendObjs( _contextBuff.data(), _contextBuff.size(),
+                                        _contextBuff.recordNum(), TRUE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Save result to store buff failed, rc: %d", rc ) ;
+               goto error ;
+            }
+            hasSave2Store = TRUE ;
+         }
+
+         /// build getmore
+         if ( SDB_INVALID_CONTEXTID != _replyHeader.contextID )
+         {
+            rc = buildGetMoreSdbMsg( _replyHeader.header.requestID,
+                                     _replyHeader.contextID, _inBuffer ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to build sdb getMore msg, rc: %d", rc ) ;
+               goto error;
+            }
+
+            hasBuildGetMore = TRUE ;
+            continue ;
+         }
       }
 
       break ;
@@ -961,6 +993,18 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       needKillCursor = TRUE ;
    }
 
+   if ( hasSave2Store )
+   {
+      _contextBuff.release() ;
+      rc = _storeBuff.get( -1, _contextBuff ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get data from store buffer failed, rc: %d", rc ) ;
+         goto error ;
+      }
+   }
+
+done:
    /// post process
    if ( needKillCursor && SDB_INVALID_CONTEXTID != _replyHeader.contextID )
    {
@@ -968,10 +1012,11 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                        _replyHeader.contextID ) ;
    }
 
-done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSMSG1, rc ) ;
    return rc ;
 error:
+   /// when failed, need to kill context
+   needKillCursor = TRUE ;
    _replyHeader.flags = rc ;
    if ( errorObj.isEmpty() )
    {
@@ -982,7 +1027,8 @@ error:
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSMSG2, "_mongoSession::_processMsg" )
-INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
+INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj,
+                                  engine::rtnContextBuf &buf, MsgOpReply &replyHeader )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSMSG2 ) ;
    INT32   rc           = SDB_OK ;
@@ -992,9 +1038,9 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    BOOLEAN isDoCommit   = FALSE ;
    bson::BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
 
-   rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
+   rc = _onMsgBegin( (MsgHeader *)pMsg, replyHeader ) ;
 
-   _contextBuff.release() ;
+   buf.release() ;
 
    if ( SDB_OK == rc )
    {
@@ -1003,12 +1049,12 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
          isDoCommit = TRUE ;
       }
 
-      rc = getProcessor()->processMsg( (MsgHeader *) pMsg, _contextBuff,
-                                       _replyHeader.contextID,
+      rc = getProcessor()->processMsg( (MsgHeader *) pMsg, buf,
+                                       replyHeader.contextID,
                                        needReply, needRollback, retBuilder ) ;
 
-      _replyHeader.numReturned = _contextBuff.recordNum() ;
-      _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
+      replyHeader.numReturned = buf.recordNum() ;
+      replyHeader.startFrom   = (INT32)buf.getStartFrom() ;
 
       if ( eduCB()->isAutoCommitTrans() &&
            -1 == eduCB()->getCurAutoTransCtxID() )
@@ -1040,7 +1086,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
          }
       }
    }
-   _replyHeader.flags       = rc ;
+   replyHeader.flags       = rc ;
 
    if ( rc )
    {
@@ -1052,10 +1098,10 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
                       _pEDUCB->getID(), rc ) ;
       }
 
-      _buildErrorObj( _contextBuff, _replyHeader.flags, retBuilder ) ;
+      _buildErrorObj( buf, replyHeader.flags, retBuilder ) ;
       errorObj = retBuilder.obj() ;
-      _contextBuff = engine::rtnContextBuf( errorObj ) ;
-      _replyHeader.numReturned = 1 ;
+      buf = engine::rtnContextBuf( errorObj ) ;
+      replyHeader.numReturned = 1 ;
    }
    else
    {
@@ -1063,10 +1109,10 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 
       // we can get InsertedNum, DuplicatedNum, UpdatedNum,
       // ModifiedNum and DeletedNum from retBuilder.obj().
-      if ( !retBuilder.isEmpty() && 0 == _contextBuff.size() )
+      if ( !retBuilder.isEmpty() && 0 == buf.size() )
       {
-         _contextBuff = engine::rtnContextBuf( retBuilder.obj() ) ;
-         _replyHeader.numReturned = 1 ;
+         buf = engine::rtnContextBuf( retBuilder.obj() ) ;
+         replyHeader.numReturned = 1 ;
       }
    }
 
@@ -1127,7 +1173,7 @@ void _mongoSession::_clearErrorInfo( BSONObj &errObj, mongoSessionCtx *pSessCtx 
    _contextBuff.release() ;
 }
 
-INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
+INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg, MsgOpReply &replyHeader )
 {
    INT32 rc = SDB_OK ;
 
@@ -1136,7 +1182,7 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
    getClient()->registerInMsg( pMsg ) ;
 
    // set reply header ( except flags, length )
-   msgFillReplyByReq( _replyHeader, pMsg, engine::pmdGetNodeID().value ) ;
+   msgFillReplyByReq( replyHeader, pMsg, engine::pmdGetNodeID().value ) ;
 
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;

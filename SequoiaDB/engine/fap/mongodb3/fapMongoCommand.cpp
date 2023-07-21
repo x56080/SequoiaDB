@@ -655,35 +655,6 @@ _mongoCmdAssit::_mongoCmdAssit ( MONGO_CMD_NEW_FUNC pFunc )
    }
 }
 
-INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
-                        mongoSessionCtx &sessCtx,
-                        mongoMsgBuffer &sdbMsg )
-{
-   SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
-
-   INT32 rc = SDB_OK ;
-
-   sdbMsg.zero() ;
-
-   rc = (*ppCommand)->buildSdbRequest( sdbMsg, sessCtx ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Failed to build sdb message for command[%s], rc: %d",
-                (*ppCommand)->name(), rc ) ;
-
-   PD_LOG( PDDEBUG, "Build sdb msg[ tid: %d, session: %s, "
-           "command: %s, clFullName: %s, eduID: %llu ] done",
-           ossGetCurrentThreadID(),
-           sessCtx.sessionName,
-           (*ppCommand)->name() ? (*ppCommand)->name() : "",
-           (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "",
-           sessCtx.eduID ) ;
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
 static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
                                       _mongoMessage *pMsg,
                                       _mongoCommand **ppCommand,
@@ -1586,7 +1557,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoInsertCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_INSERTBUILDSDBREQ, "_mongoInsertCommand::buildSdbRequest" )
 INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+                                            mongoSessionCtx &ctx,
+                                            BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -1892,7 +1864,8 @@ done:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEBUILDSDBREQ, "_mongoDeleteCommand::buildSdbRequest" )
 INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+                                            mongoSessionCtx &ctx,
+                                            BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -2101,7 +2074,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoUpdateCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEBUILDSDBREQ, "_mongoUpdateCommand::buildSdbRequest" )
 INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+                                            mongoSessionCtx &ctx,
+                                            BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -2704,7 +2678,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_QUERYBUILDREQ, "_mongoQueryCommand::buildSdbRequest" )
 INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                           mongoSessionCtx &ctx )
+                                           mongoSessionCtx &ctx,
+                                           BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_QUERYBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -3034,7 +3009,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDBUILDREQ, "_mongoFindCommand::buildSdbRequest" )
 INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                          mongoSessionCtx &ctx )
+                                          mongoSessionCtx &ctx,
+                                          BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_FINDBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -3441,7 +3417,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREBUILDREQ, "_mongoGetmoreCommand::buildSdbRequest" )
 INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                             mongoSessionCtx &ctx )
+                                             mongoSessionCtx &ctx,
+                                             BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
    MsgOpGetMore *pGetMore = NULL ;
@@ -3949,7 +3926,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORBUILDREQ, "_mongoKillCursorCommand::buildSdbRequest" )
 INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                mongoSessionCtx &ctx )
+                                                mongoSessionCtx &ctx,
+                                                BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_KILLCURSORBUILDREQ ) ;
    INT32 rc                 = SDB_OK ;
@@ -4065,7 +4043,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCountCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTBUILDSDBREQ, "_mongoCountCommand::buildSdbRequest" )
 INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                           mongoSessionCtx &ctx )
+                                           mongoSessionCtx &ctx,
+                                           BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -4545,7 +4524,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRBUILDREQ, "_mongoAggregateCommand::buildSdbRequest" )
 INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                               mongoSessionCtx &ctx )
+                                               mongoSessionCtx &ctx,
+                                               BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -4680,6 +4660,11 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       }
 
       sdbMsg.doneLen() ;
+
+      if ( !_obj.hasField( "cursor" ) )
+      {
+         getMoreAll = TRUE ;
+      }
    }
    catch ( std::exception &e )
    {
@@ -4793,7 +4778,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDistinctCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DISTINCTBUILDREQ, "_mongoDistinctCommand::buildSdbRequest" )
 INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+                                              mongoSessionCtx &ctx,
+                                              BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DISTINCTBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -4954,7 +4940,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateCLCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRCLBUILDREQ, "_mongoCreateCLCommand::buildSdbRequest" )
 INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+                                              mongoSessionCtx &ctx,
+                                              BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRCLBUILDREQ ) ;
    INT32 rc                = SDB_OK ;
@@ -5092,7 +5079,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropCLCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPCLBUILDREQ, "_mongoDropCLCommand::buildSdbRequest" )
 INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+                                            mongoSessionCtx &ctx,
+                                            BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPCLBUILDREQ ) ;
    INT32 rc = SDB_OK ;
@@ -5224,7 +5212,9 @@ error:
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoRenameCLCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RENAMECLBUILDREQ, "_mongoRenameCLCommand::buildSdbRequest" )
-INT32 _mongoRenameCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx )
+INT32 _mongoRenameCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                              mongoSessionCtx &ctx,
+                                              BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_RENAMECLBUILDREQ ) ;
    INT32 rc = SDB_OK ;
@@ -5419,7 +5409,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListIdxCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTIDXBUILDREQ, "_mongoListIdxCommand::buildSdbRequest" )
 INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                             mongoSessionCtx &ctx )
+                                             mongoSessionCtx &ctx,
+                                             BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -5544,7 +5535,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateIdxCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRIDXBUILDREQ, "_mongoCreateIdxCommand::buildSdbRequest" )
 INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                               mongoSessionCtx &ctx )
+                                               mongoSessionCtx &ctx,
+                                               BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -5830,7 +5822,8 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropIdxCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPIDXBUILDREQ, "_mongoDropIdxCommand::buildSdbRequest" )
 INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                             mongoSessionCtx &ctx )
+                                             mongoSessionCtx &ctx,
+                                             BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -5987,7 +5980,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropDatabaseCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPDBBUILDREQ, "_mongoDropDatabaseCommand::buildSdbRequest" )
 INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                  mongoSessionCtx &ctx )
+                                                  mongoSessionCtx &ctx,
+                                                  BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPDBBUILDREQ ) ;
    INT32 rc             = SDB_OK ;
@@ -6162,7 +6156,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRUSERBUILDREQ, "_mongoCreateUserCommand::buildSdbRequest" )
 INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                mongoSessionCtx &ctx )
+                                                mongoSessionCtx &ctx,
+                                                BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRUSERBUILDREQ ) ;
    INT32 rc = SDB_OK ;
@@ -6427,7 +6422,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPUSERBUILDSDBREQ, "_mongoDropUserCommand::buildSdbRequest" )
 INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+                                              mongoSessionCtx &ctx,
+                                              BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPUSERBUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
@@ -6640,7 +6636,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTUSERBUILDSDBREQ, "_mongoListUserCommand::buildSdbRequest" )
 INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+                                              mongoSessionCtx &ctx,
+                                              BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTUSERBUILDSDBREQ ) ;
    INT32 rc             = SDB_OK ;
@@ -6703,6 +6700,8 @@ INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
 
    sdbMsg.doneLen() ;
+
+   getMoreAll = TRUE ;
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERBUILDSDBREQ, rc ) ;
@@ -6847,7 +6846,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH1BUILDSDBREQ, "_mongoSaslStartCommand::buildSdbRequest" )
 INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                               mongoSessionCtx &ctx )
+                                               mongoSessionCtx &ctx,
+                                               BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH1BUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
@@ -7107,7 +7107,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH2BUILDSDBREQ, "_mongoSaslContinueCommand::buildSdbRequest" )
 INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                  mongoSessionCtx &ctx )
+                                                  mongoSessionCtx &ctx,
+                                                  BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2BUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
@@ -7310,7 +7311,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListCollectionCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLBUILDSDBREQ, "_mongoListCollectionCommand::buildSdbRequest" )
 INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                    mongoSessionCtx &ctx )
+                                                    mongoSessionCtx &ctx,
+                                                    BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLBUILDSDBREQ ) ;
    INT32 rc                = SDB_OK ;
@@ -7444,7 +7446,8 @@ error:
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListDatabaseCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTDBBUILDSDBREQ, "_mongoListDatabaseCommand::buildSdbRequest" )
 INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                  mongoSessionCtx &ctx )
+                                                  mongoSessionCtx &ctx,
+                                                  BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTDBBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
@@ -7542,6 +7545,8 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
 
    sdbMsg.doneLen() ;
+
+   getMoreAll = TRUE ;
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTDBBUILDSDBREQ, rc ) ;
@@ -8142,7 +8147,8 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindandmodifyCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindAndModifyCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDANDMODIFYBUILDSDBREQ, "_mongoFindAndModifyCommand::buildSdbRequest" )
 INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
-                                                   mongoSessionCtx &ctx )
+                                                   mongoSessionCtx &ctx,
+                                                   BOOLEAN &getMoreAll )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_FINDANDMODIFYBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;

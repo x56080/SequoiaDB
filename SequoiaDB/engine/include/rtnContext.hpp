@@ -140,6 +140,9 @@ namespace engine
       RTN_CONTEXT_CAT_END
    } ;
 
+   /// define
+   #define RTN_CONTEXT_MAX_BUFF_SIZE         ( 5 * RTN_RESULTBUFFER_SIZE_MAX )
+
    const CHAR *getContextTypeDesp( RTN_CONTEXT_TYPE type ) ;
 
    /*
@@ -193,10 +196,13 @@ namespace engine
       virtual ~_rtnContextValidator() { }
    } ;
 
+   /*
+      _rtnContextStoreBuf define
+   */
    class _rtnContextStoreBuf: public _utilPooledObject
    {
    public:
-      _rtnContextStoreBuf() ;
+      _rtnContextStoreBuf( UINT64 maxSize = RTN_CONTEXT_MAX_BUFF_SIZE ) ;
       ~_rtnContextStoreBuf() ;
 
    public:
@@ -263,6 +269,7 @@ namespace engine
       INT32    _ensureBufferSize( INT32 ensuredSize ) ;
 
    private:
+      INT32    _maxSize ;
       CHAR*    _buffer ;
       INT64    _numRecords ;
       INT32    _bufferSize ;

@@ -48,7 +48,6 @@ using namespace bson ;
 
 namespace engine
 {
-   #define RTN_CONTEXT_MAX_BUFF_SIZE         ( 5 * RTN_RESULTBUFFER_SIZE_MAX )
    #define RTN_CTX_PREPARE_MORE_DATA_INIT    (1024 * 4)     /* 4KB */
    #define RTN_CTX_PREPARE_MORE_DATA_MAX     (1024 * 512)   /* 512KB */
    // minimum timeout for prepare more 4ms
@@ -56,8 +55,12 @@ namespace engine
    // maximum timeout for prepare more 512ms
    #define RTN_CTX_PREPARE_MORE_TIME_MAX     ( 512000 )
 
-   _rtnContextStoreBuf::_rtnContextStoreBuf()
+   /*
+      _rtnContextStoreBuf implement
+   */
+   _rtnContextStoreBuf::_rtnContextStoreBuf( UINT64 maxSize )
    {
+      _maxSize = maxSize ;
       _buffer = NULL ;
       _numRecords = 0 ;
       _bufferSize = 0 ;
@@ -79,9 +82,23 @@ namespace engine
       INT32 newSize = 0 ;
       BOOLEAN isReferenced = FALSE ;
 
-      if ( ensuredSize <= _bufferSize )
+      /// size is overflow
+      if ( ensuredSize < 0 )
+      {
+         PD_LOG_MSG( PDERROR, "Context buffer(%d) is overflow", ensuredSize ) ;
+         rc = SDB_OSS_UP_TO_LIMIT ;
+         goto error ;
+      }
+      else if ( ensuredSize <= _bufferSize )
       {
          goto done ;
+      }
+      else if ( _maxSize > 0 && ensuredSize > _maxSize )
+      {
+         PD_LOG_MSG( PDERROR, "Context buffer(%d) is greater than %d bytes",
+                     ensuredSize, _maxSize ) ;
+         rc = SDB_OSS_UP_TO_LIMIT ;
+         goto error ;
       }
 
       newSize = ( _bufferSize == 0 ) ? RTN_DFT_BUFFERSIZE : _bufferSize ;
@@ -89,20 +106,15 @@ namespace engine
       // make sure we get enough memory in result buffer
       while ( newSize < ensuredSize )
       {
-         // make sure we haven't hit max
-         if ( newSize >= RTN_CONTEXT_MAX_BUFF_SIZE )
-         {
-            PD_LOG ( PDERROR, "Result buffer is greater than %d bytes",
-                     RTN_CONTEXT_MAX_BUFF_SIZE ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         // double buffer size until hitting RTN_CONTEXT_MAX_BUFF_SIZE
+         // double buffer size until hitting _maxSize
          newSize = newSize << 1 ;
-         if (newSize > RTN_CONTEXT_MAX_BUFF_SIZE )
+         if ( newSize < 0 )
          {
-            newSize = RTN_CONTEXT_MAX_BUFF_SIZE ;
+            newSize = ( _maxSize > 0 ) ? _maxSize : ensuredSize ;
+         }
+         else if ( _maxSize > 0 && newSize > _maxSize )
+         {
+            newSize = _maxSize ;
          }
       }
 
@@ -476,9 +488,16 @@ namespace engine
          {
             CHAR *pRealPtr = RTN_BUFF_TO_REAL_PTR( _buffer ) ;
             SDB_THREAD_FREE( pRealPtr ) ;
-            _buffer = NULL ;
          }
       }
+
+      _buffer = NULL ;
+      _bufferSize = 0 ;
+
+      _numRecords = 0 ;
+      _bufferSize = 0 ;
+      _readOffset = 0 ;
+      _writeOffset = 0 ;
    }
 
    void _rtnContextStoreBuf::setContextValidator(

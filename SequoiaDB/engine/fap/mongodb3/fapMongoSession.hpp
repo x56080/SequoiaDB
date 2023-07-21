@@ -40,6 +40,7 @@
 
 #include "dpsLogWrapper.hpp"
 #include "rtnContextBuff.hpp"
+#include "rtnContext.hpp"
 #include "pmdSession.hpp"
 #include "fapMongoMessage.hpp"
 #include "fapMongoUtil.hpp"
@@ -68,10 +69,11 @@ protected:
 
 private:
    INT32 _processMsg( const CHAR *pMsg, const _mongoCommand *pCommand,
-                      BSONObj &errorObj ) ;
-   INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj ) ;
+                      BOOLEAN getMoreAll, BSONObj &errorObj ) ;
+   INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj,
+                      engine::rtnContextBuf &buf, MsgOpReply &replyHeader ) ;
 
-   INT32 _onMsgBegin( MsgHeader *pMsg ) ;
+   INT32 _onMsgBegin( MsgHeader *pMsg, MsgOpReply &replyHeader ) ;
    void  _onMsgEnd( INT32 result, MsgHeader *pMsg ) ;
 
    INT32 _recvMsgFromClient( CHAR *&pMsg ) ;
@@ -90,14 +92,16 @@ private:
 
    BOOLEAN _shouldAutoCrtCS( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
-   BOOLEAN _shouldBuildGetMoreMsg( const _mongoCommand *pCommand ) ;
+   BOOLEAN _shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
+                                   const engine::rtnContextBuf &buf,
+                                   const MsgOpReply &replyHeader ) ;
 
    INT32   _processClientMsg( const CHAR* pMsg,
                               _mongoCommand *&pCommand,
                               mongoSessionCtx &sessCtx ) ;
 
    INT32   _processOwnedClientMsg( const CHAR* pMsg,
-                                   mongoMsgBuffer *pSdbMsgBuff,
+                                   mongoMsgBuffer &sdbMsgBuff,
                                    _mongoCommand *pCommand,
                                    mongoSessionCtx &sessCtx,
                                    BOOLEAN &needNext ) ;
@@ -115,6 +119,7 @@ private:
    mongoMsgBuffer          _tmpBuffer ;
    engine::IResource      *_pResource ;
    const CHAR*             _clFullName ;
+   engine::rtnContextStoreBuf    _storeBuff ;
 } ;
 
 typedef _mongoSession mongoSession ;
