@@ -5,6 +5,7 @@
 | 更新符 | 描述 | 示例 |
 |--------|------|------|
 | [$inc][inc] | 增加指定字段的值 | db.sample.employee.update({$inc:{age:5,ID:1}},{age:{$gt:15}}) |
+| [$mul][mul] | 乘以指定字段的值 | db.sample.employee.update({$mul:{salary:1.1}},{salary:{$lt:3500}}) |
 | [$set][set] | 将指定字段更新为指定的值 | db.sample.employee.update({$set:{str:"abd"}}) |
 | [$unset][unset] | 删除指定的字段 | db.sample.employee.update({$unset:{name:"",age:""}}) |
 | [$bit][bit] | 将指定字段的值与指定的值进行位运算 | db.sample.employee.update({$bit:{a:{xor:5}}}) |
@@ -22,6 +23,7 @@
 [^_^]:
     本文使用的所有引用及链接：
 [inc]:manual/Manual/Operator/Update_Operator/inc.md
+[mul]:manual/Manual/Operator/Update_Operator/mul.md
 [set]:manual/Manual/Operator/Update_Operator/set.md
 [unset]:manual/Manual/Operator/Update_Operator/unset.md
 [bit]:manual/Manual/Operator/Update_Operator/bit.md

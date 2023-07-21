@@ -82,11 +82,13 @@ namespace engine
       REPLACE,
       KEEP,
       SETARRAY,
+      MUL,
 
       UNKNOWN
    } ;
 
 #define MTH_MODIFIER_INC           "$inc"
+#define MTH_MODIFIER_MUL           "$mul"
 #define MTH_MODIFIER_SET           "$set"
 #define MTH_MODIFIER_PUSH          "$push"
 #define MTH_MODIFIER_PUSH_ALL      "$push_all"
@@ -148,7 +150,8 @@ namespace engine
    } ;
    typedef _ModifierElement ModifierElement ;
 
-   class _IncModifierElement : public _ModifierElement
+   // _MathModifierElement Include operator types: $inc, $mul
+   class _MathModifierElement : public _ModifierElement
    {
    public :
       BOOLEAN _isSimple ;
@@ -162,19 +165,21 @@ namespace engine
 
       BSONObj _defaultResult ;
 
-      _IncModifierElement( const BSONElement &e,
-                           INT32 dollarNum = 0 )
-                        : _ModifierElement( e, INC, dollarNum )
+      _MathModifierElement( const BSONElement &e,
+                            INT32 dollarNum = 0,
+                            ModType type = UNKNOWN )
+      : _ModifierElement( e, type, dollarNum )
       {
          _isSimple = TRUE ;
       }
 
-      _IncModifierElement( const BSONElement &e, const BSONElement &valueEle,
-                           const BSONElement &myDefault,
-                           const BSONElement &minEle,
-                           const BSONElement &maxEle,
-                           INT32 dollarNum = 0 )
-                        : _ModifierElement( e, INC, dollarNum )
+      _MathModifierElement( const BSONElement &e, const BSONElement &valueEle,
+                            const BSONElement &myDefault,
+                            const BSONElement &minEle,
+                            const BSONElement &maxEle,
+                            INT32 dollarNum = 0,
+                            ModType type = UNKNOWN )
+      : _ModifierElement( e, type, dollarNum )
       {
          _valueEle = valueEle ;
          _default = myDefault ;
@@ -187,7 +192,7 @@ namespace engine
       INT32 calcDefaultResult( BOOLEAN strictMode ) ;
       BOOLEAN isValidRange( BSONElement &resultEle ) ;
    } ;
-   typedef _IncModifierElement IncModifierElement ;
+   typedef _MathModifierElement MathModifierElement ;
 
    #define MTH_DOLLAR_FIELD_SIZE          (10)
    /*
@@ -317,27 +322,28 @@ namespace engine
       INT32 _parseElement ( const BSONElement &ele ) ;
 
       /**
-       * Parse simple $inc operation format, just increase by a value
+       * Parse simple math operations format, just increase by a value
        * the {$field:<name>} format.
        */
-      INT32 _parseIncSimple( const BSONElement& ele, INT32 dollarNum ) ;
+      INT32 _parseMathSimple( const BSONElement& ele, INT32 dollarNum, ModType type ) ;
 
       /**
-       * Parse complicated $inc operation format, an object is used.
+       * Parse complicated math operations format, an object is used.
        */
-      INT32 _parseIncAdvance( const BSONElement& ele, INT32 dollarNum ) ;
+      INT32 _parseMathAdvance( const BSONElement& ele, INT32 dollarNum, ModType type ) ;
 
       /**
-       * Parse complicated $inc operation format, an option object is used.
+       * Parse complicated math operations format, an option object is used.
        */
-      INT32 _parseIncByOptObj( const BSONElement& ele,
-                               const BSONElement& valueEle,
-                               const BSONElement& defaultEle,
-                               const BSONElement& minEle,
-                               const BSONElement& maxEle,
-                               INT32 dollarNum ) ;
+      INT32 _parseMathByOptObj( const BSONElement& ele,
+                                const BSONElement& valueEle,
+                                const BSONElement& defaultEle,
+                                const BSONElement& minEle,
+                                const BSONElement& maxEle,
+                                INT32 dollarNum,
+                                ModType type ) ;
 
-      INT32 _parseInc( const BSONElement& ele, INT32 dollarNum ) ;
+      INT32 _parseMathOp( const BSONElement& ele, INT32 dollarNum, ModType type ) ;
       ModType _parseModType ( const CHAR *field ) ;
       OSS_INLINE void _incModifierIndex( INT32 *modifierIndex ) ;
 
@@ -361,7 +367,11 @@ namespace engine
       template<class Builder>
       INT32 _applyIncModifier ( const CHAR *pRoot, Builder &bb,
                                 const BSONElement &in,
-                                IncModifierElement &me ) ;
+                                MathModifierElement &me ) ;
+      template<class Builder>
+      INT32 _applyMulModifier ( const CHAR *pRoot, Builder &bb,
+                                const BSONElement &in,
+                                MathModifierElement &me ) ;
       template<class Builder>
       INT32 _applySetModifier ( const CHAR *pRoot, Builder &bb,
                                 const BSONElement &in,
@@ -482,6 +492,10 @@ namespace engine
       template<class Builder>
       INT32 _buildNewObjReplace( Builder &b, BSONObjIteratorSorted &es ) ;
 
+      template<class Builder>
+      INT32 _appendMathNew ( const CHAR *pRoot, const CHAR *pShort,
+                             const BSONElement& realEle, ModifierElement* me, Builder& b ) ;
+
       void _resetErrorElement() ;
       void _saveErrorElement( BSONElement &errorEle ) ;
       void _saveErrorElement( const CHAR *fieldName ) ;
@@ -582,6 +596,8 @@ namespace engine
    BOOLEAN mthIsBiggerNumberType( const BSONElement &left,
                                   const BSONElement &right ) ;
 
+   const CHAR* modType2String( ModType type ) ;
+
    /**
     * @brief Evaluate the fields to be updated by '$inc' operator, and put them
     *        into the builder for the final record.
@@ -592,6 +608,17 @@ namespace engine
     */
    INT32 mthModifierInc( const BSONElement& existElement,
                          const BSONElement &inc, BOOLEAN strictMode,
+                         BSONObjBuilder &resBuilder ) ;
+   /**
+    * @brief Evaluate the fields to be updated by '$mul' operator, and put them
+    *        into the builder for the final record.
+    * @param existElement   The current field element to be modified.
+    * @param mul            '$mul' value for the field to be modified.
+    * @param strictMode     Whether overflow is allowed in calculation.
+    * @param resBuilder     Builder for the final record.
+    */
+   INT32 mthModifierMul( const BSONElement& existElement,
+                         const BSONElement &mul, BOOLEAN strictMode,
                          BSONObjBuilder &resBuilder ) ;
 }
 

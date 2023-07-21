@@ -97,7 +97,7 @@ namespace bson {
       INT32          add( const bsonDecimal &right, bsonDecimal &result ) ;
       INT32          add( const bsonDecimal &right ) ;
       INT32          sub( const bsonDecimal &right, bsonDecimal &result ) ;
-      INT32          mul( const bsonDecimal &right, bsonDecimal &result ) ;
+      INT32          mul( const bsonDecimal &right, bsonDecimal &result ) const ;
       INT32          div( const bsonDecimal &right, bsonDecimal &result ) ;
       INT32          div( INT64 right, bsonDecimal &result ) ;
       INT32          abs() ;

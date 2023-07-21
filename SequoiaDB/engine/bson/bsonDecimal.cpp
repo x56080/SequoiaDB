@@ -504,7 +504,7 @@ namespace bson {
       return sdb_decimal_sub( &_decimal, &right._decimal, &result._decimal ) ;
    }
 
-   INT32 bsonDecimal::mul( const bsonDecimal &right, bsonDecimal &result )
+   INT32 bsonDecimal::mul( const bsonDecimal &right, bsonDecimal &result ) const
    {
       return sdb_decimal_mul( &_decimal, &right._decimal, &result._decimal ) ;
    }
