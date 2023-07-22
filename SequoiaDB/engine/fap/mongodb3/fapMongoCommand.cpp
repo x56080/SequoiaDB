@@ -1794,7 +1794,7 @@ INT32 _mongoInsertCommand::_fixObject( const BSONObj &obj, BSONObj &out, BSONObj
       ++index ;
       BSONElement e = itr.next() ;
 
-      if ( -1 == fixPos && Timestamp == e.type() && 0 == e.timestampTime() )
+      if ( -1 == fixPos && Timestamp == e.type() && 0 == e.timestampTime() && 0 == e.timestampInc() )
       {
          fixPos = index ;
       }
@@ -1840,7 +1840,7 @@ INT32 _mongoInsertCommand::_fixObject( const BSONObj &obj, BSONObj &out, BSONObj
       {
          builder.append( e ) ;
       }
-      else if ( Timestamp == e.type() && (Date_t)0 == e.timestampTime() )
+      else if ( Timestamp == e.type() && (Date_t)0 == e.timestampTime() && 0 == e.timestampInc() )
       {
          if ( 0 == tm.time )
          {
