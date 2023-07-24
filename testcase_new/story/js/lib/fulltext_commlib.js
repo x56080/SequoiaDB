@@ -13,7 +13,8 @@ var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
 var esOpr = new ESOperator();
 var dbOpr = new DBOperator();
 // create WORKDIR in local host
-commMakeDir( "localhost", WORKDIR );
+// CI测试机和执行机分离，调整为在COORDHOSTNAME机器上创建WORKDIR，后面的checkInspectResult应需要同步调整
+commMakeDir( COORDHOSTNAME, WORKDIR );
 
 /******************************************************************************
 *@Description : do some operations related to ES, such as:
