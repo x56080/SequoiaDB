@@ -3261,5 +3261,14 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_407</name>
+         <!-- reserved for SDB_CLS_NODE_IN_MAINTENANCE -->
+         <description>
+            <en>Reserved</en>
+            <cn>保留</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
