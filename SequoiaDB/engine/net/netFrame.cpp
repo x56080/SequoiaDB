@@ -2783,6 +2783,7 @@ namespace engine
          case SDB_INVALID_ROUTEID:
          case SDB_TIMEOUT:
          case SDB_DATABASE_DOWN:
+         case SDB_CLS_NODE_IN_MAINTENANCE:
             status = NET_NODE_STAT_OFFLINE ;
             break ;
          case SDB_CLS_DATA_NOT_SYNC:

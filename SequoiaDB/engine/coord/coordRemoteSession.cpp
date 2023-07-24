@@ -2094,7 +2094,8 @@ namespace engine
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag ||
                 SDB_DATABASE_DOWN == flag ||
-                SDB_CLS_DATA_NOT_SYNC == flag )
+                SDB_CLS_DATA_NOT_SYNC == flag ||
+                SDB_CLS_NODE_IN_MAINTENANCE == flag )
       {
          if( groupPtr.get() )
          {
@@ -2109,6 +2110,13 @@ namespace engine
                     nodeID.columns.nodeID,
                     NET_NODE_FAULTUP_MIN_TIME ) ;
             ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
+         }
+         else if ( SDB_CLS_NODE_IN_MAINTENANCE == flag )
+         {
+            if ( _maxRetryTimes < COORD_OPR_MAX_RETRY_TIMES )
+            {
+               setMaxRetryTimes( _maxRetryTimes + 1 ) ;
+            }
          }
       }
       else if ( ( SDB_UNKNOWN_MESSAGE == flag ||

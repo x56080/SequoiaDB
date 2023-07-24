@@ -6647,6 +6647,13 @@ namespace engine
 
       while( TRUE )
       {
+         // Check if node is in maintenance mode
+         if ( _pReplSet->isInMaintenanceMode() )
+         {
+            rc = SDB_CLS_NODE_IN_MAINTENANCE ;
+            goto error ;
+         }
+
          rc = _pReplSet->primaryCheck( _pEDUCB ) ;
          if ( SDB_OK == rc )
          {
@@ -6877,6 +6884,10 @@ namespace engine
       else if ( !pmdGetStartup().isOK() )
       {
          rc = SDB_RTN_IN_REBUILD ;
+      }
+      else if ( _pReplSet->isInMaintenanceMode() )
+      {
+         rc = SDB_CLS_NODE_IN_MAINTENANCE ;
       }
 
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CKREPLSTATUS, rc ) ;

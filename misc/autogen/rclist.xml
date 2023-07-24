@@ -3258,5 +3258,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_CLS_NODE_IN_MAINTENANCE</name>
+         <description>
+            <en>Node is in maintenance mode</en>
+            <cn>节点处于运维模式</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
