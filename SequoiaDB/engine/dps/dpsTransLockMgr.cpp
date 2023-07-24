@@ -3999,17 +3999,17 @@ nextLock:
    BOOLEAN dpsTransLockManager::_isInWaiterOrUpgradeQueue
    (
       const dpsTransLRBHeader * pLRBHdr,
-      const dpsTransLRB       * pLRB
+      const dpsTxWaitLRB      & waitLRB
    )
    {
-      if ( pLRB && pLRBHdr && ( pLRBHdr == pLRB->lrbHdr ) )
+      if ( waitLRB.pLRB && pLRBHdr && ( pLRBHdr == waitLRB.lrbHdr ) )
       {
          if ( pLRBHdr->upgradeLRB )
          {
             dpsTransLRB *plrb = pLRBHdr->upgradeLRB;
             while ( plrb )
             {
-               if ( plrb == pLRB )
+               if ( plrb == waitLRB.pLRB )
                {
                   return TRUE ;
                }
@@ -4021,7 +4021,7 @@ nextLock:
             dpsTransLRB *plrb = pLRBHdr->waiterLRB;
             while ( plrb )
             {
-               if ( plrb == pLRB )
+               if ( plrb == waitLRB.pLRB )
                {
                   return TRUE ;
                }
@@ -4036,8 +4036,7 @@ nextLock:
    void dpsTransLockManager::snapWaitInfo
    (
       _dpsTransExecutor       * pExctr,
-      dpsTransLRB             * pWaiterLRB,
-      const dpsTransLockId    & lockId,
+      const dpsTxWaitLRB      & waitLRB,
       DPS_TRANS_WAIT_SET      & waitInfoSet
    )
    {
@@ -4045,12 +4044,12 @@ nextLock:
       ossTick endTick ;
 
       dpsDBNodeID nodeID ;// will get nodeID in snapshot, no need to get it here
-      UINT32 bktIdx = _getBucketNo( lockId ) ;
+      UINT32 bktIdx = _getBucketNo( waitLRB.lockId ) ;
 
       endTick.sample() ;
       _acquireOpLatch( bktIdx ) ;
 
-      if ( pWaiterLRB && pExctr && ( pExctr == pWaiterLRB->dpsTxExectr ) )
+      if ( waitLRB.pLRB && pExctr && ( pExctr == waitLRB.dpsTxExectr ) )
       {
          DPS_TRANS_ID  waiterTransId  = pExctr->getNormalizedTransID();
          UINT64            waiterCost = pExctr->getLogSpace() ;
@@ -4063,11 +4062,11 @@ nextLock:
 
          dpsTransLRBHeader *pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
          if ( ( DPS_INVALID_TRANS_ID != waiterTransId ) &&
-              _getLRBHdrByLockId( lockId, pLRBHdr ) )
+              _getLRBHdrByLockId( waitLRB.lockId, pLRBHdr ) )
          {
-            if ( ( pWaiterLRB->lrbHdr == pLRBHdr ) &&
+            if ( ( waitLRB.lrbHdr == pLRBHdr ) &&
                  ( pLRBHdr->ownerLRB ) &&
-                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) ) 
+                 _isInWaiterOrUpgradeQueue( pLRBHdr, waitLRB ) )
             {
                DPS_TRANS_ID holderTransId = DPS_INVALID_TRANS_ID ;
                ISession    *pHolderSes = NULL ;
@@ -4081,7 +4080,7 @@ nextLock:
                        ( DPS_INVALID_TRANS_ID != holderTransId ) )
                   {
                      UINT32 seconds = 0, microseconds = 0 ;
-                     ossTickDelta delta = endTick - pWaiterLRB->beginTick ;
+                     ossTickDelta delta = endTick - waitLRB.beginTick ;
                      delta.convertToTime( factor, seconds, microseconds ) ;
                      UINT64 durationInMicroseconds =
                         (UINT64)( seconds * 1000 + microseconds / 1000 );
