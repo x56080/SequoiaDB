@@ -1251,6 +1251,9 @@ namespace engine
          {
             exctrWaitInfo.pLRB   = pLRB ;
             exctrWaitInfo.lockId = pLRB->lrbHdr->lockId ;
+            exctrWaitInfo.dpsTxExectr = pLRB->dpsTxExectr ;
+            exctrWaitInfo.lrbHdr = pLRB->lrbHdr ;
+            exctrWaitInfo.beginTick = pLRB->beginTick ;
             result = TRUE;
          }
          releaseLRBAccessingLock( lockMgrType ) ;
