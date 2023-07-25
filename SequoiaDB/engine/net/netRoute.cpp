@@ -48,6 +48,11 @@ using namespace boost::asio::ip ;
 namespace engine
 {
 
+   _netRoute::_netRoute()
+   {
+      _local.value = MSG_INVALID_ROUTEID ;
+   }
+
    _netRoute::~_netRoute()
    {
       clear() ;
