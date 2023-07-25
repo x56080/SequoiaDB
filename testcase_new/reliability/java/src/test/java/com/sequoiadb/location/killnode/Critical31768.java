@@ -64,8 +64,7 @@ public class Critical31768 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
 
-        CollectionSpace dbcs = sdb.createCollectionSpace( csName );
-
+        sdb.createCollectionSpace( csName );
     }
 
     @Test

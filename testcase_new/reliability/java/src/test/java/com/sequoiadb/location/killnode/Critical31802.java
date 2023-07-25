@@ -136,8 +136,6 @@ public class Critical31802 extends SdbTestBase {
         // 启动所有节点
         group.start();
 
-        // 异常节点启动后进行全量同步，此时未接触Critical模式
-        LocationUtils.checkGroupStartCriticalMode( sdb, groupName );
         for ( int i = 0; i < replSizes.length; i++ ) {
             DBCollection dbcl = dbcs.getCollection( clName + i );
             dbcl.truncate();

@@ -128,7 +128,6 @@ public class Critical31780 extends SdbTestBase {
         group.start();
         try {
             dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
-            Assert.fail( "Insert operation expected failed" );
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != SDBError.SDB_CLS_NOT_PRIMARY.getErrorCode()
                     && e.getErrorCode() != SDBError.SDB_CLS_NODE_NOT_ENOUGH

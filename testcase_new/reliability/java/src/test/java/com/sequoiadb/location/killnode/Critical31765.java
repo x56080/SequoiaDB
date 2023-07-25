@@ -131,8 +131,9 @@ public class Critical31765 extends SdbTestBase {
             Assert.assertEquals( testLobBuff, actual );
         }
         sdb.getReplicaGroup( groupName ).start();
-        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
-                "checkBusinessWithLSN() occurs timeout" );
+        Assert.assertTrue(
+                groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
+                "failed to restore business" );
     }
 
     @AfterClass
