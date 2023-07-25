@@ -150,6 +150,12 @@ OSS_INLINE void ossSleepsecs(UINT32 s)
 class ossTime : public SDBObject
 {
 public :
+   ossTime ()
+   : seconds( 0 ),
+     microsec( 0 )
+   {
+   }
+
    UINT32 seconds ;
    UINT32 microsec ;
 } ;

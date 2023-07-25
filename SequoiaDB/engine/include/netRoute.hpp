@@ -53,6 +53,7 @@ namespace engine
    class _netRoute : public SDBObject
    {
       public:
+         _netRoute() ;
          ~_netRoute() ;
          INT32 route( const _MsgRouteID &id,
                       CHAR *host, UINT32 hostLen,
