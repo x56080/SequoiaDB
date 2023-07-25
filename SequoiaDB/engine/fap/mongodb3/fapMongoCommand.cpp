@@ -4210,6 +4210,11 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAggregateCommand)
+_mongoAggregateCommand::_mongoAggregateCommand()
+{
+   _needProcessByEngine = TRUE ;
+}
+
 INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
                                                       BSONObjBuilder& builder )
 {
@@ -4648,6 +4653,12 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             {
                goto error ;
             }
+         }
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(),
+                   FAP_MONGO_AGGR_PIPELINE_STAGE_INDEXSTAT ) )
+         {
+            _needProcessByEngine = FALSE ;
+            goto done ;
          }
          else
          {

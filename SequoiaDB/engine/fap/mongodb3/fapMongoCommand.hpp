@@ -643,12 +643,14 @@ class _mongoAggregateCommand : public _mongoCollectionCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoAggregateCommand() {}
+      _mongoAggregateCommand() ;
       virtual ~_mongoAggregateCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_AGGREGATE ; }
       virtual const CHAR* name() const    { return MONGO_CMD_NAME_AGGREGATE ; }
+
       virtual BOOLEAN needConvertDecimal() const { return TRUE ; }
+      virtual BOOLEAN needProcessByEngine() const { return _needProcessByEngine ; }
 
       virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                      mongoSessionCtx &ctx,
@@ -668,6 +670,8 @@ class _mongoAggregateCommand : public _mongoCollectionCommand
       INT32 _convertAggrUnwind( const BSONObj& unwindObj,
                                 BSONObj& sdbUnWindObj,
                                 BSONObj& errorObj ) ;
+   private:
+      BOOLEAN _needProcessByEngine ;
 } ;
 typedef _mongoAggregateCommand mongoAggregateCommand ;
 
