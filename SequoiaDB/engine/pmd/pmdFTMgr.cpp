@@ -211,6 +211,7 @@ namespace engine
    {
       _lastSampleTick = 0 ;
       _lastSucCount = 0 ;
+      _lastSucPageCount = 0 ;
       _lastTransSucCount = 0 ;
       _lastTransErrCount = 0 ;
       _confirmPeriod = PMD_FT_CACL_INTERVAL_DFT ;

@@ -75,7 +75,7 @@ const CHAR *routeID2String( const MsgRouteID &routeID,
                             UINT32 bufferSize )
 {
    ossSnprintf( buffer, bufferSize,
-                "{ GroupID:%u, NodeID:%u, ServiceID:%u(%s) }",
+                "{ GroupID:%u, NodeID:%hu, ServiceID:%hu(%s) }",
                 routeID.columns.groupID,
                 routeID.columns.nodeID,
                 routeID.columns.serviceID,
