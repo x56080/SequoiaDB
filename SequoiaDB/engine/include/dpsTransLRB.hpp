@@ -278,9 +278,6 @@ namespace engine
           eduID  = PMD_INVALID_EDUID ;
           pLRB   = NULL ;
           lockId.reset() ;
-          dpsTxExectr = NULL ;
-          lrbHdr = NULL ;
-          beginTick.clear() ;
        }
 
        dpsTxWaitLRB()
@@ -293,25 +290,15 @@ namespace engine
           eduID  = rhs.eduID ;
           pLRB   = rhs.pLRB ;
           lockId = rhs.lockId ;
-          dpsTxExectr = rhs.dpsTxExectr ;
-          lrbHdr = rhs.lrbHdr ;
-          beginTick = rhs.beginTick ;
        }
 
        dpsTxWaitLRB( EDUID                  eduId,
                      dpsTransLRB          * plrb,
-                     const dpsTransLockId & lockID,
-                     _dpsTransExecutor    * pdpsTxExectr,
-                     dpsTransLRBHeader    * plrbHdr,
-                     const ossTick        & tick
-                     )
+                     const dpsTransLockId & lockID )
        {
           eduID  = eduId ;
           pLRB   = plrb ;
           lockId = lockID ;
-          dpsTxExectr = pdpsTxExectr ;
-          lrbHdr = plrbHdr ;
-          beginTick = tick ;
        }
 
        virtual ~dpsTxWaitLRB() { }
@@ -321,9 +308,6 @@ namespace engine
           eduID  = rhs.eduID ;
           pLRB   = rhs.pLRB ;
           lockId = rhs.lockId ;
-          dpsTxExectr = rhs.dpsTxExectr ;
-          lrbHdr = rhs.lrbHdr ;
-          beginTick = rhs.beginTick ;
           return *this ;
        }
 
@@ -341,10 +325,6 @@ namespace engine
        EDUID          eduID;
        dpsTransLRB  * pLRB ;
        dpsTransLockId lockId ;
-       _dpsTransExecutor * dpsTxExectr ;
-       dpsTransLRBHeader * lrbHdr ;  
-       ossTick  beginTick ;
-
    } ;
    typedef ossPoolSet< dpsTxWaitLRB >     DPS_TX_WAIT_LRB_SET ;
    typedef DPS_TX_WAIT_LRB_SET::iterator  DPS_TX_WAIT_LRB_SET_IT ;

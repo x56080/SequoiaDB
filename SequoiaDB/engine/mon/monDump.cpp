@@ -7084,7 +7084,8 @@ namespace engine
                                                             FALSE ) )
                   {
                      pLockMgr->snapWaitInfo( pExecutor,
-                                             txWaiterLRB,
+                                             txWaiterLRB.pLRB,
+                                             txWaiterLRB.lockId,
                                              _waitInfoSet ) ;
                      eduMgr->endDumpEDUTrans( txWaiterLRB.eduID ) ;
                   }
