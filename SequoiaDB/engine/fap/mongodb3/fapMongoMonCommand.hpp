@@ -149,6 +149,68 @@ class _mongoDatabaseStatsCommand : public _mongoDatabaseCommand
 } ;
 typedef _mongoDatabaseStatsCommand mongoDatabaseStatsCommand ;
 
+class _mongoCollectionStatsCommand : public _mongoCollectionCommand
+{
+   enum MONGO_COLL_STATS_STEP
+   {
+      MONGO_COLL_STATS_SNAP_IDX_STEP = 1,
+      MONGO_COLL_STATS_SNAP_CL_STEP = 2,
+   } ;
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoCollectionStatsCommand()
+      {
+         _step = MONGO_COLL_STATS_SNAP_IDX_STEP ;
+         _hasProcessAllMsg = FALSE ;
+         _collectionCount = 0 ;
+         _objects = 0 ;
+         _avgObjSize = 0 ;
+         _dataSize = 0 ;
+         _totalDataSize = 0 ;
+         _indexCount = 0 ;
+         _indexSize = 0 ;
+      }
+      virtual ~_mongoCollectionStatsCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_COLL_STATS ; }
+      virtual const CHAR* name() const { return MONGO_CMD_NAME_COLL_STATS ; }
+
+      virtual BOOLEAN hasProcessAllMsg() const { return _hasProcessAllMsg ; }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                     mongoSessionCtx &ctx,
+                                     BOOLEAN &getMoreAll ) ;
+
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+   private:
+      INT32 _buildSnapIdxRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+      INT32 _buildSnapClRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+      INT32 _parseSnapIdxReply( const MsgOpReply &sdbReply,
+                                engine::rtnContextBuf &bodyBuf ) ;
+      INT32 _parseSnapClReply( const MsgOpReply &sdbReply,
+                               engine::rtnContextBuf &bodyBuf ) ;
+
+   private:
+      MONGO_COLL_STATS_STEP _step ;
+      BOOLEAN _hasProcessAllMsg ;
+      // map< idxName, idxSize >
+      std::map< string, INT64 > _idxMap ;
+      INT32 _collectionCount ;
+      INT64 _objects ;
+      INT64 _avgObjSize ;
+      INT64 _dataSize ;
+      INT64 _totalDataSize ;
+      INT32 _indexCount ;
+      INT64 _indexSize ;
+} ;
+typedef _mongoCollectionStatsCommand mongoCollectionStatsCommand ;
+
 INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCount,
                            INT64 &objects, INT64 &avgObjSize, INT64 &dataSize,
                            INT64 &totalDataSize, INT32 &indexCount, INT64 &indexSize ) ;

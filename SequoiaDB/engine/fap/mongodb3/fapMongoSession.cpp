@@ -829,7 +829,8 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
    if ( CMD_COUNT     == cmdType || CMD_LIST_INDEX      == cmdType ||
         CMD_AGGREGATE == cmdType || CMD_LIST_COLLECTION == cmdType ||
         CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
-        CMD_LIST_USER == cmdType || CMD_DB_STATS == cmdType )
+        CMD_LIST_USER == cmdType || CMD_DB_STATS == cmdType ||
+        CMD_COLL_STATS == cmdType )
    {
       return TRUE ;
    }

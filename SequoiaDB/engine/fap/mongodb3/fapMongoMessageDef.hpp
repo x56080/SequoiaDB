@@ -112,6 +112,13 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_IDX_NUM         "indexes"
 #define FAP_MONGO_FIELD_NAME_IDX_SIZE        "indexSize"
 #define FAP_MONGO_FIELD_NAME_TOTAL_SIZE      "totalSize"
+#define FAP_MONGO_FIELS_NAME_NS              "ns"
+#define FAP_MONGO_FIELS_NAME_SIZE            "size"
+#define FAP_MONGO_FIELS_NAME_COUNT           "count"
+#define FAP_MONGO_FIELD_NAME_FREE_STOR_SIZE  "freeStorageSize"
+#define FAP_MONGO_FIELD_NAME_NINDEXES        "nindexes"
+#define FAP_MONGO_FIELD_NAME_TOTAL_IDX_SIZE  "totalIndexSize"
+#define FAP_MONGO_FIELD_NAME_INDEXSIZES      "indexSizes"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"

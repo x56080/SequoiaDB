@@ -155,6 +155,9 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj,
 INT32 mongoGetBooleanElement ( const BSONObj &obj, const CHAR *fieldName,
                                BOOLEAN &value ) ;
 
+INT32 mongoGetObjElement ( const BSONObj &obj, const CHAR *fieldName,
+                           BSONObj &value ) ;
+
 INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
                               BSONObjBuilder &builder ) ;
 

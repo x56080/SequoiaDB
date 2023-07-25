@@ -560,14 +560,17 @@ INT32 _mongoDatabaseStatsCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
           "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
           "sum(T2.TotalIndexPages) as TotalIndexPages, "
           "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
-          "( select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
-          "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
-          "T1.Details.TotalIndexPages as TotalIndexPages, "
-          "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
-          "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
-          "( select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
-          "CollectionSpace =\"" << _csName.c_str() <<
-          "\" split by Details ) as T1 ) as T2 group by T2.Name" ;
+          "( "
+               "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
+               "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
+               "T1.Details.TotalIndexPages as TotalIndexPages, "
+               "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
+               "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
+               "( "
+                     "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
+                     "CollectionSpace =\"" << _csName.c_str() << "\" split by Details "
+               ") as T1 "
+          ") as T2 group by T2.Name" ;
    sql = buf.str() ;
 
    /*
@@ -701,6 +704,381 @@ INT32 _mongoDatabaseStatsCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DBSTATSBUILDMONGOREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCollectionStatsCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COLLSTATSBUILDSDBREQ, "_mongoCollectionStatsCommand::buildSdbRequest" )
+INT32 _mongoCollectionStatsCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                     mongoSessionCtx &ctx,
+                                                     BOOLEAN &getMoreAll )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COLLSTATSBUILDSDBREQ ) ;
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
+
+   if ( MONGO_COLL_STATS_SNAP_IDX_STEP == _step )
+   {
+      rc = _buildSnapIdxRequest( sdbMsg, ctx ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build snap index request, rc: %d", rc ) ;
+   }
+   else if ( MONGO_COLL_STATS_SNAP_CL_STEP == _step )
+   {
+      rc = _buildSnapClRequest( sdbMsg, ctx ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build snap cl request, rc: %d", rc ) ;
+   }
+   else
+   {
+      rc = SDB_SYS ;
+      PD_RC_CHECK( rc, PDERROR, "Invalid collStats step, rc: %d", rc ) ;
+   }
+
+   getMoreAll = TRUE ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COLLSTATSBUILDSDBREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COLLSTATSPARSESDBREPLY, "_mongoCollectionStatsCommand::parseSdbReply" )
+INT32 _mongoCollectionStatsCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                                   engine::rtnContextBuf &bodyBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COLLSTATSPARSESDBREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   if ( MONGO_COLL_STATS_SNAP_IDX_STEP == _step )
+   {
+      rc = _parseSnapIdxReply( sdbReply, bodyBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse snap index reply, rc: %d", rc ) ;
+      _step = MONGO_COLL_STATS_SNAP_CL_STEP ;
+   }
+   else if ( MONGO_COLL_STATS_SNAP_CL_STEP == _step )
+   {
+      rc = _parseSnapClReply( sdbReply, bodyBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse snap cl reply, rc: %d", rc ) ;
+      _hasProcessAllMsg = TRUE ;
+   }
+   else
+   {
+      rc = SDB_SYS ;
+      PD_RC_CHECK( rc, PDERROR, "Invalid collStats step, rc: %d", rc ) ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COLLSTATSPARSESDBREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COLLSTATSBUILDMONGOREPLY, "_mongoCollectionStatsCommand::buildMongoReply" )
+INT32 _mongoCollectionStatsCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                     engine::rtnContextBuf &bodyBuf,
+                                                     _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COLLSTATSBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder bob ;
+
+   try
+   {
+      /*
+
+      {
+         "ns": xxx,
+         "size": xxx,
+         "count": xxx,
+         "avgObjSize": xxx,
+         "storageSize": xxx,
+         "freeStorageSize": xxx,
+         "capped": false,
+         "nindexes": xxx,
+         "totalIndexSize": xxx,
+         "totalSize": xxx,         // totalIndexSize + storageSize
+         "indexSizes":
+         {
+            idxName1: idxSize,
+            idxName2: idxSize,
+            ...
+         }
+         "ok": 1
+      }
+
+      */
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bob.append( FAP_MONGO_FIELS_NAME_NS, _clFullName.c_str() ) ;
+         bob.append( FAP_MONGO_FIELS_NAME_SIZE, _dataSize ) ;
+         bob.append( FAP_MONGO_FIELS_NAME_COUNT, _objects ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_AVG_OBJ_SIZE, _avgObjSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_STOR_SIZE, _totalDataSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_FREE_STOR_SIZE, _totalDataSize - _dataSize ) ;
+         bob.appendBool( FAP_MONGO_FIELD_NAME_CAPPED, FALSE ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_NINDEXES, _indexCount ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_TOTAL_IDX_SIZE, _indexSize ) ;
+         bob.append( FAP_MONGO_FIELD_TOTAL_SIZE, _totalDataSize + _indexSize ) ;
+
+         BSONObjBuilder indexSizesBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_INDEXSIZES ) ) ;
+         for( auto itr = _idxMap.begin() ; itr != _idxMap.end() ; itr++ )
+         {
+            indexSizesBob.appendNull( itr->first.c_str() ) ;
+         }
+         indexSizesBob.done() ;
+
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo collStats reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COLLSTATSBUILDMONGOREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoCollectionStatsCommand::_buildSnapIdxRequest( mongoMsgBuffer &sdbMsg,
+                                                          mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXES ;
+   BSONObj empty ;
+   BSONObj obj ;
+
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pQuery->header), MSG_BS_QUERY_REQ, _requestID ) ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX | FLG_QUERY_PREPARE_MORE ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   try
+   {
+      obj = BSON( FIELD_NAME_COLLECTION << _clFullName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb snapshot cl condition: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( obj, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoCollectionStatsCommand::_buildSnapClRequest( mongoMsgBuffer &sdbMsg,
+                                                         mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpSql *pSql = NULL ;
+   StringBuilder buf ;
+   std::string sql ;
+
+   buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
+          "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
+          "sum(T2.TotalIndexPages) as TotalIndexPages, "
+          "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
+          "( "
+               "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
+               "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
+               "T1.Details.TotalIndexPages as TotalIndexPages, "
+               "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
+               "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
+               "( "
+                     "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
+                     "Name =\"" << _clFullName.c_str() << "\" split by Details "
+               ") as T1 "
+          ") as T2" ;
+   sql = buf.str() ;
+
+   /*
+      output str, eg:
+
+      {
+         "Name": "cs.cl",
+         "PageSize": 65536,
+         "Indexes": 2,
+         "TotalRecords": 6,
+         "TotalDataPages": 1,
+         "TotalIndexPages": 4,
+         "TotalDataFreeSpace": 65024
+      }
+
+   */
+
+   rc = sdbMsg.reserve( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pSql = ( MsgOpSql * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pSql->header), MSG_BS_SQL_REQ, _requestID ) ;
+
+   rc = sdbMsg.write( sql.c_str(), sql.length() + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoCollectionStatsCommand::_parseSnapIdxReply( const MsgOpReply &sdbReply,
+                                                        engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf.resetItr() ;
+
+         while ( !bodyBuf.eof() )
+         {
+            BSONObj obj ;
+            BSONObj idxDef ;
+            const CHAR* idxName = NULL ;
+
+            rc = bodyBuf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff", rc ) ;
+
+            rc = mongoGetObjElement( obj, IXM_FIELD_NAME_INDEX_DEF, idxDef ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                         IXM_FIELD_NAME_INDEX_DEF, obj.toString().c_str(), rc ) ;
+
+            rc = mongoGetStringElement( idxDef, FAP_MONGO_FIELD_NAME_NAME, idxName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                         FAP_MONGO_FIELD_NAME_NAME, idxDef.toString().c_str(), rc ) ;
+
+            _idxMap.insert( std::make_pair( idxName, 0 ) ) ;
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing snap idx reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoCollectionStatsCommand::_parseSnapClReply( const MsgOpReply &sdbReply,
+                                                       engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         rc = fapMongoParseCLInfo( bodyBuf,  _collectionCount, _objects, _avgObjSize,
+                                   _dataSize, _totalDataSize, _indexCount, _indexSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse cl info, rc: %d", rc ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing snap cl reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
    return rc ;
 error:
    goto done ;

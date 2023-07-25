@@ -614,6 +614,36 @@ namespace fap
       goto done ;
    }
 
+   INT32 mongoGetObjElement ( const BSONObj &obj, const CHAR *fieldName,
+                              BSONObj &value )
+   {
+      SINT32 rc = SDB_OK ;
+      SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Object",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
                                  BSONObjBuilder &builder )
    {
