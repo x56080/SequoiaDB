@@ -3999,17 +3999,17 @@ nextLock:
    BOOLEAN dpsTransLockManager::_isInWaiterOrUpgradeQueue
    (
       const dpsTransLRBHeader * pLRBHdr,
-      const dpsTxWaitLRB      & waitLRB
+      const dpsTransLRB       * pLRB
    )
    {
-      if ( waitLRB.pLRB && pLRBHdr && ( pLRBHdr == waitLRB.lrbHdr ) )
+      if ( pLRB && pLRBHdr && ( pLRBHdr == pLRB->lrbHdr ) )
       {
          if ( pLRBHdr->upgradeLRB )
          {
             dpsTransLRB *plrb = pLRBHdr->upgradeLRB;
             while ( plrb )
             {
-               if ( plrb == waitLRB.pLRB )
+               if ( plrb == pLRB )
                {
                   return TRUE ;
                }
@@ -4021,7 +4021,7 @@ nextLock:
             dpsTransLRB *plrb = pLRBHdr->waiterLRB;
             while ( plrb )
             {
-               if ( plrb == waitLRB.pLRB )
+               if ( plrb == pLRB )
                {
                   return TRUE ;
                }
@@ -4036,7 +4036,8 @@ nextLock:
    void dpsTransLockManager::snapWaitInfo
    (
       _dpsTransExecutor       * pExctr,
-      const dpsTxWaitLRB      & waitLRB,
+      dpsTransLRB             * pWaiterLRB,
+      const dpsTransLockId    & lockId,
       DPS_TRANS_WAIT_SET      & waitInfoSet
    )
    {
@@ -4044,12 +4045,21 @@ nextLock:
       ossTick endTick ;
 
       dpsDBNodeID nodeID ;// will get nodeID in snapshot, no need to get it here
-      UINT32 bktIdx = _getBucketNo( waitLRB.lockId ) ;
+      UINT32 bktIdx = _getBucketNo( lockId ) ;
+      BOOLEAN waiterLocked = FALSE ;
 
       endTick.sample() ;
       _acquireOpLatch( bktIdx ) ;
 
-      if ( waitLRB.pLRB && pExctr && ( pExctr == waitLRB.dpsTxExectr ) )
+      if ( pExctr == NULL )
+      {
+         goto done ;
+      }
+
+      pExctr->acquireLRBAccessingLock( LOCKMGR_TRANS_LOCK ) ;
+      waiterLocked = TRUE ;
+
+      if ( pWaiterLRB && ( pWaiterLRB == pExctr->getWaiterLRB(LOCKMGR_TRANS_LOCK ) ) )
       {
          DPS_TRANS_ID  waiterTransId  = pExctr->getNormalizedTransID();
          UINT64            waiterCost = pExctr->getLogSpace() ;
@@ -4062,11 +4072,11 @@ nextLock:
 
          dpsTransLRBHeader *pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
          if ( ( DPS_INVALID_TRANS_ID != waiterTransId ) &&
-              _getLRBHdrByLockId( waitLRB.lockId, pLRBHdr ) )
+              _getLRBHdrByLockId( lockId, pLRBHdr ) )
          {
-            if ( ( waitLRB.lrbHdr == pLRBHdr ) &&
+            if ( ( pWaiterLRB->lrbHdr == pLRBHdr ) &&
                  ( pLRBHdr->ownerLRB ) &&
-                 _isInWaiterOrUpgradeQueue( pLRBHdr, waitLRB ) )
+                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) )
             {
                DPS_TRANS_ID holderTransId = DPS_INVALID_TRANS_ID ;
                ISession    *pHolderSes = NULL ;
@@ -4080,7 +4090,7 @@ nextLock:
                        ( DPS_INVALID_TRANS_ID != holderTransId ) )
                   {
                      UINT32 seconds = 0, microseconds = 0 ;
-                     ossTickDelta delta = endTick - waitLRB.beginTick ;
+                     ossTickDelta delta = endTick - pWaiterLRB->beginTick ;
                      delta.convertToTime( factor, seconds, microseconds ) ;
                      UINT64 durationInMicroseconds =
                         (UINT64)( seconds * 1000 + microseconds / 1000 );
@@ -4118,6 +4128,11 @@ nextLock:
          }
       }
 
+   done:
+      if ( waiterLocked )
+      {
+         pExctr->releaseLRBAccessingLock( LOCKMGR_TRANS_LOCK ) ;
+      }
       _releaseOpLatch( bktIdx ) ;
    }
 

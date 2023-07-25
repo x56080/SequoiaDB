@@ -238,7 +238,8 @@ namespace engine
       void snapWaitInfo
       (
          _dpsTransExecutor    * pExctr,
-         const dpsTxWaitLRB   & waitLRB,
+         dpsTransLRB          * pWaiterLRB,
+         const dpsTransLockId & lockId,
          DPS_TRANS_WAIT_SET   & waitInfoSet
       ) ;
 
@@ -504,7 +505,7 @@ namespace engine
       BOOLEAN _isInWaiterOrUpgradeQueue
       (
          const dpsTransLRBHeader * pLRBHdr,
-         const dpsTxWaitLRB      & waitLRB
+         const dpsTransLRB       * pLRB
       ) ;
 
       // format LRB to string, flat one line
