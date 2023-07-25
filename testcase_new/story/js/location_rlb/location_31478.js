@@ -30,7 +30,7 @@ function test ()
       rg.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       rg.createNode( hostName, port3, dbpath3, { diaglevel: 5 } );
       rg.start();
-      commCheckBusinessStatus( db );
+      commCheckBusinessStatus( db, 300 );
 
       //清空节点location
       setLocationForNodes( rg, nodelist, "" );
