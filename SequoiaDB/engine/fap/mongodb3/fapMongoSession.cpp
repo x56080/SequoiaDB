@@ -829,7 +829,7 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
    if ( CMD_COUNT     == cmdType || CMD_LIST_INDEX      == cmdType ||
         CMD_AGGREGATE == cmdType || CMD_LIST_COLLECTION == cmdType ||
         CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
-        CMD_LIST_USER == cmdType )
+        CMD_LIST_USER == cmdType || CMD_DB_STATS == cmdType )
    {
       return TRUE ;
    }
@@ -1002,6 +1002,11 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          PD_LOG( PDERROR, "Get data from store buffer failed, rc: %d", rc ) ;
          goto error ;
       }
+   }
+
+   if ( SDB_DMS_EOC == _replyHeader.flags && _contextBuff.size() > 0 )
+   {
+      _replyHeader.flags = SDB_OK ;
    }
 
 done:

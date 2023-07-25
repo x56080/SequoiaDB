@@ -129,6 +129,30 @@ class _mongoHostInfoCommand : public _mongoGlobalCommand
 } ;
 typedef _mongoHostInfoCommand mongoHostInfoCommand ;
 
+class _mongoDatabaseStatsCommand : public _mongoDatabaseCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoDatabaseStatsCommand() {}
+      virtual ~_mongoDatabaseStatsCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_DB_STATS ; }
+      virtual const CHAR* name() const { return MONGO_CMD_NAME_DB_STATS ; }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                     mongoSessionCtx &ctx,
+                                     BOOLEAN &getMoreAll ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+} ;
+typedef _mongoDatabaseStatsCommand mongoDatabaseStatsCommand ;
+
+INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCount,
+                           INT64 &objects, INT64 &avgObjSize, INT64 &dataSize,
+                           INT64 &totalDataSize, INT32 &indexCount, INT64 &indexSize ) ;
+
 class _mongoCurrentOpCommand : public _mongoDummyCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()

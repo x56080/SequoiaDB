@@ -95,6 +95,7 @@ enum MONGO_CMD_TYPE
    CMD_CONNECT_STATUS   = 102,
    CMD_HOST_INFO        = 103,
    CMD_CURRENT_OP       = 104,
+   CMD_DB_STATS         = 105,
 
    CMD_UNKNOWN          = 65535
 } ;
@@ -143,6 +144,7 @@ const CHAR* const MONGO_CMD_NAME_FIND_AND_MODIFY =   "findAndModify" ;
 const CHAR* const MONGO_CMD_NAME_CONNECT_STATUS =    "connectionStatus" ;
 const CHAR* const MONGO_CMD_NAME_HOST_INFO =         "hostInfo" ;
 const CHAR* const MONGO_CMD_NAME_CUR_OP =            "currentOp" ;
+const CHAR* const MONGO_CMD_NAME_DB_STATS =          "dbStats" ;
 
 }
 #endif

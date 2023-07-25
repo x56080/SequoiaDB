@@ -45,6 +45,98 @@
 
 namespace fap
 {
+INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCount,
+                           INT64 &objects, INT64 &avgObjSize, INT64 &dataSize,
+                           INT64 &totalDataSize, INT32 &indexCount, INT64 &indexSize )
+{
+   INT32 rc = SDB_OK ;
+
+   collectionCount = 0 ;
+   objects = 0 ;
+   avgObjSize = 0 ;
+   dataSize = 0 ;
+   totalDataSize = 0 ;
+   indexCount = 0 ;
+   indexSize = 0 ;
+
+   bodyBuf.resetItr() ;
+
+   try
+   {
+      while ( !bodyBuf.eof() )
+      {
+         INT64 pageSize = 0 ;
+         INT64 totalDataPages = 0 ;
+         INT64 totalIndexPages = 0 ;
+         INT64 totalDataFreeSpaces = 0 ;
+         BSONObj obj ;
+
+         rc = bodyBuf.nextObj( obj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff", rc ) ;
+
+         {
+         BSONObjIterator itr( obj ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            const CHAR* fieldName = ele.fieldName() ;
+
+            if ( 0 == ossStrcmp( fieldName, FIELD_NAME_NAME ) &&
+                 ossStrlen( ele.valuestrsafe() ) > 0 )
+            {
+               collectionCount++ ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_PAGE_SIZE ) )
+            {
+               pageSize = ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_INDEXES ) )
+            {
+               indexCount += ele.numberInt() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTAL_RECORDS ) )
+            {
+               objects += ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTAL_DATA_PAGES ) )
+            {
+               totalDataPages = ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTAL_INDEX_PAGES ) )
+            {
+               totalIndexPages = ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTAL_DATA_FREESPACE ) )
+            {
+               totalDataFreeSpaces = ele.numberLong() ;
+            }
+         }
+         }
+
+         totalDataSize += ( pageSize * totalDataPages ) ;
+         dataSize += ( pageSize * totalDataPages - totalDataFreeSpaces ) ;
+         indexSize += ( pageSize * totalIndexPages ) ;
+      }
+
+      if ( dataSize > 0 && objects > 0 )
+      {
+         avgObjSize = dataSize / objects ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing cl info: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoConnectionStatusCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CONSTATUSBUILDMONREPL, "_mongoConnectionStatusCommand::buildMongoReply" )
 INT32 _mongoConnectionStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
@@ -446,6 +538,169 @@ INT32 _mongoHostInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_HOSTINFOBUILDMONREPL, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDatabaseStatsCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBSTATSBUILDSDBREQ, "_mongoDatabaseStatsCommand::buildSdbRequest" )
+INT32 _mongoDatabaseStatsCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                   mongoSessionCtx &ctx,
+                                                   BOOLEAN &getMoreAll )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DBSTATSBUILDSDBREQ ) ;
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
+   MsgOpSql *pSql = NULL ;
+   StringBuilder buf ;
+   std::string sql ;
+
+   buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
+          "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
+          "sum(T2.TotalIndexPages) as TotalIndexPages, "
+          "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
+          "( select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
+          "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
+          "T1.Details.TotalIndexPages as TotalIndexPages, "
+          "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
+          "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
+          "( select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
+          "CollectionSpace =\"" << _csName.c_str() <<
+          "\" split by Details ) as T1 ) as T2 group by T2.Name" ;
+   sql = buf.str() ;
+
+   /*
+      output str, eg:
+
+      {
+         "Name": "cs.cl",
+         "PageSize": 65536,
+         "Indexes": 2,
+         "TotalRecords": 6,
+         "TotalDataPages": 1,
+         "TotalIndexPages": 4,
+         "TotalDataFreeSpace": 65024
+      }
+      {
+         "Name": "cs.cl_shard",
+         "PageSize": 65536,
+         "Indexes": 2,
+         "TotalRecords": 6,
+         "TotalDataPages": 1,
+         "TotalIndexPages": 8,
+         "TotalDataFreeSpace": 65212
+      }
+
+   */
+
+   rc = sdbMsg.reserve( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pSql = ( MsgOpSql * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pSql->header), MSG_BS_SQL_REQ, _requestID ) ;
+
+   rc = sdbMsg.write( sql.c_str(), sql.length() + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   getMoreAll = TRUE ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DBSTATSBUILDSDBREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBSTATSBUILDMONGOREPLY, "_mongoDatabaseStatsCommand::buildMongoReply" )
+INT32 _mongoDatabaseStatsCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                   engine::rtnContextBuf &bodyBuf,
+                                                   _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DBSTATSBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder bob ;
+
+   try
+   {
+      /*
+
+      {
+         "db": xxx,
+         "collections": xxx,
+         "objects": xxx,
+         "avgObjSize": xxx,
+         "dataSize": xxx,
+         "storageSize": xxx,
+         "indexes": xxx,
+         "indexSize": xxx,
+         "totalSize": xxx,
+         "ok": 1
+      }
+
+      */
+      if ( SDB_OK == sdbReply.flags )
+      {
+         INT32 collectionCount = 0 ;
+         INT64 objects = 0 ;
+         INT64 avgObjSize = 0 ;
+         INT64 dataSize = 0 ;
+         INT64 totalDataSize = 0 ;
+         INT32 indexCount = 0 ;
+         INT64 indexSize = 0 ;
+
+         rc = fapMongoParseCLInfo( bodyBuf,  collectionCount, objects, avgObjSize,
+                                   dataSize, totalDataSize, indexCount, indexSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse cl info, rc: %d", rc ) ;
+
+         bob.append( FAP_MONGO_FIELD_NAME_DB, _csName.c_str() ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_COLLECTIONS, collectionCount ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_OBJECTS, objects ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_AVG_OBJ_SIZE, avgObjSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_DATA_SIZE, dataSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_STOR_SIZE, totalDataSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_IDX_NUM, indexCount ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_IDX_SIZE, indexSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_TOTAL_SIZE, totalDataSize + indexSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo dbStats reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DBSTATSBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
