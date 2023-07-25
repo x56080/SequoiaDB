@@ -712,7 +712,7 @@ namespace engine
 
          if ( pContext &&
               pContext->isOpened() &&
-              ( ( pContext->needTimeout() &&
+              ( ( pContext->needTimeout() && 1 == it->second.refCount() &&
                   pmdGetTickSpanTime( pContext->getLastProcessTick() ) > contextTimeoutMS ) ||
                 ( forceDetached && PMD_INVALID_EDUID == pContext->eduID() ) ) )
          {
