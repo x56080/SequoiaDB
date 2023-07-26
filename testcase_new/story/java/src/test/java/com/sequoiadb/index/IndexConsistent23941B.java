@@ -68,7 +68,6 @@ public class IndexConsistent23941B extends SdbTestBase {
         es.addWorker( dropSubCL2 );
         es.run();
 
-        Assert.assertEquals( createIndex.getRetCode(), 0 );
         // dropcl可能报错-147
         if ( dropSubCL1.getRetCode() != 0 ) {
             Assert.assertEquals( dropSubCL1.getRetCode(),
@@ -100,9 +99,12 @@ public class IndexConsistent23941B extends SdbTestBase {
                     subclName2, indexName, false );
         }
 
-        IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                mainclName, indexName );
-        dbcl.isIndexExist( indexName );
+        if ( createIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED.getErrorCode() ) {
+           Assert.assertEquals( createIndex.getRetCode(), 0 );
+           IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                   mainclName, indexName );
+           dbcl.isIndexExist( indexName );
+        }
         runSuccess = true;
     }
 

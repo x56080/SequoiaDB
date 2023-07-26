@@ -842,7 +842,7 @@ namespace engine
 
       if ( SDB_EVT_OCCUR_BEFORE == type )
       {
-         // wait split tasks to be finished or cancelled
+         // wait tasks to be finished or cancelled
          rc = _waitTasks( resource, TRUE, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to wait tasks finish, "
                       "rc: %d", rc ) ;

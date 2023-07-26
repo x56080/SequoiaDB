@@ -3439,6 +3439,96 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLTASKS, "catGetCLTasks" )
+   INT32 catGetCLTasks( const CHAR *clName,
+                        pmdEDUCB *cb,
+                        ossPoolSet< UINT64 > &tasks )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCLTASKS ) ;
+
+      // get all running tasks of given collection
+
+      BSONObj matcher ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         builder.append( CAT_COLLECTION_NAME, clName ) ;
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catGetTasks( matcher, cb, tasks ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get tasks for collection "
+                   "[%s], rc: %d", clName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCLTASKS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSTASKS, "catGetCSTasks" )
+   INT32 catGetCSTasks( const CHAR *csName,
+                        pmdEDUCB *cb,
+                        ossPoolSet< UINT64 > &tasks )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSTASKS ) ;
+
+      // get all running tasks of given collection space
+
+      BSONObj matcher ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                      "collection space [%s], rc: %d", CAT_CS_UNIQUEID,
+                      csName, rc ) ;
+
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catGetTasks( matcher, cb, tasks ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get tasks for collection space "
+                   "[%s], rc: %d", csName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCSTASKS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKSTATUS, "catGetTaskStatus" )
    INT32 catGetTaskStatus( UINT64 taskID, INT32 & status, pmdEDUCB * cb )
    {

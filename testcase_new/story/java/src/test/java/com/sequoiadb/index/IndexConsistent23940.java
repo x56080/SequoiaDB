@@ -107,6 +107,8 @@ public class IndexConsistent23940 extends SdbTestBase {
                 cl.createIndex( indexName, "{no:1,testa:1}", false, false );
             } catch ( BaseException e ) {
                 if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorType() &&
+                     e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
                         .getErrorType() ) {
                     throw e;
                 }

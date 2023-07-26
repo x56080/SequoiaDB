@@ -299,7 +299,7 @@ namespace engine
       }
 
    protected:
-      INT32 _checkSplitTasks( _pmdEDUCB *cb, INT16 w ) ;
+      INT32 _checkTasks( _pmdEDUCB *cb, INT16 w ) ;
 
    protected:
       utilRecycleItem _recycleItem ;

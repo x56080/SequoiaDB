@@ -83,6 +83,8 @@ public class IndexConsistent24307 extends SdbTestBase {
                     && copyIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
                             .getErrorCode()
                     && copyIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && copyIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
                             .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + copyIndex.getRetCode() );
             }

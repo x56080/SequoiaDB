@@ -65,7 +65,6 @@ public class IndexConsistent23941A extends SdbTestBase {
         es.addWorker( dropSubCL );
         es.run();
 
-        Assert.assertEquals( createIndex.getRetCode(), 0 );
         // dropCL可能加锁失败报错-147
         if ( dropSubCL.getRetCode() != 0 ) {
             Assert.assertEquals( dropSubCL.getRetCode(),
@@ -82,14 +81,17 @@ public class IndexConsistent23941A extends SdbTestBase {
                     subclName1, indexName, false );
         }
 
-        IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                mainclName, indexName );
-        IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                subclName2, indexName );
-        IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName, subclName2,
-                indexName, true );
-        Assert.assertTrue( dbcl.isIndexExist( indexName ),
-                "check maincl index=" + indexName );
+        if ( createIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED.getErrorCode() ) {
+           Assert.assertEquals( createIndex.getRetCode(), 0 );
+           IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                   mainclName, indexName );
+           IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                   subclName2, indexName );
+           IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName, subclName2,
+                   indexName, true );
+           Assert.assertTrue( dbcl.isIndexExist( indexName ),
+                   "check maincl index=" + indexName );
+        }
         runSuccess = true;
     }
 
