@@ -90,19 +90,25 @@ public class IndexConsistent23944 extends SdbTestBase {
                             .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
+                                    .getErrorCode()
+                    && createIndex
+                            .getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
                                     .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
 
+            int[] resultCodes = new int[] { 0, -243 };
             Assert.assertFalse( sdb.isCollectionSpaceExist( subcsName ) );
             IndexUtils.checkNoTask( sdb, "Create index", subcsName,
                     subclName1 );
             IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                    mainclName, indexName );
+                    mainclName, indexName, resultCodes );
             IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                    subclName2, indexName );
-            IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
-                    subclName2, indexName, true );
+                    subclName2, indexName, resultCodes );
+            if ( createIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED.getErrorCode() ) {
+               IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
+                       subclName2, indexName, true );
+            }
         } else {
             // 如果没有并发执行，则串行执行都成功
             Assert.assertEquals( createIndex.getRetCode(), 0 );

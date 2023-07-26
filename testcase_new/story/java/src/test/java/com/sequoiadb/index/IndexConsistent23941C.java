@@ -69,6 +69,7 @@ public class IndexConsistent23941C extends SdbTestBase {
         }
         es.run();
 
+        int[] resultCodes = new int[] { 0, -243 };
         for ( int i = 0; i < subclNum; i++ ) {
             String clName = subclNames.get( i );
             if ( i < dropCLNum ) {
@@ -77,13 +78,13 @@ public class IndexConsistent23941C extends SdbTestBase {
                         clName );
             } else {
                 IndexUtils.checkIndexTask( sdb, "Create index",
-                        SdbTestBase.csName, clName, indexName );
+                        SdbTestBase.csName, clName, indexName, resultCodes );
                 IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
                         clName, indexName, true );
             }
         }
         IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-                mainclName, indexName );
+                mainclName, indexName, resultCodes );
         runSuccess = true;
     }
 
@@ -114,6 +115,11 @@ public class IndexConsistent23941C extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
                         .getCollection( mainclName );
                 cl.createIndex( indexName, "{no:1,testa:1}", false, false );
+            } catch ( BaseException e ) {
+               if ( e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
+                        .getErrorType() ) {
+                  throw e;
+               }
             }
         }
     }

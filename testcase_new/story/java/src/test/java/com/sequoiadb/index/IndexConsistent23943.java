@@ -81,6 +81,9 @@ public class IndexConsistent23943 extends SdbTestBase {
                             .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
+                                    .getErrorCode()
+                    && createIndex
+                            .getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
                                     .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }

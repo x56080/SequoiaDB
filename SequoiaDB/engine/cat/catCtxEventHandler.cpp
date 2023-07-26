@@ -487,8 +487,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER_ONCHECKEVENT ) ;
 
-      rc = _checkSplitTasks( cb, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check split tasks, "
+      rc = _checkTasks( cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check tasks, "
                    "rc: %d", rc ) ;
 
    done:
@@ -499,12 +499,12 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, "_catRecyCtxTaskHandler::_checkSplitTasks" )
-   INT32 _catRecyCtxTaskHandler::_checkSplitTasks( _pmdEDUCB *cb, INT16 w )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS, "_catRecyCtxTaskHandler::_checkTasks" )
+   INT32 _catRecyCtxTaskHandler::_checkTasks( _pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS ) ;
+      PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS ) ;
 
       if ( !_recycleItem.isValid() )
       {
@@ -514,8 +514,8 @@ namespace engine
       if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
       {
          const CHAR *csName = _recycleItem.getOriginName() ;
-         rc = catGetCSTaskByType( csName, CLS_TASK_SPLIT, cb, _taskSet ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
+         rc = catGetCSTasks( csName, cb, _taskSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get tasks on collection "
                       "space [%s], rc: %d", csName, rc ) ;
       }
       else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
@@ -545,33 +545,37 @@ namespace engine
             {
                const CHAR *subCLName = iter->c_str() ;
 
-               rc = catGetCLTaskByType( subCLName, CLS_TASK_SPLIT, cb, _taskSet ) ;
+               rc = catGetCLTasks( subCLName, cb, _taskSet ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
                             "space [%s], rc: %d", subCLName, rc ) ;
             }
          }
          else
          {
-            rc = catGetCLTaskByType( clName, CLS_TASK_SPLIT, cb, _taskSet ) ;
+            rc = catGetCLTasks( clName, cb, _taskSet ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
                          "space [%s], rc: %d", clName, rc ) ;
          }
       }
 
-      // for both drop and truncate, we need to cancel split tasks
+      // for both drop and truncate, we need to cancel tasks
+      // - for split task
       // once collection or collection space recycled, the clean job of
       // split tasks will not be able to find the origin collection
+      // - for index task
+      // if the priamry nodes not finish task, while the secondary node finished,
+      // which will cause the index not consistent
       // NOTE: the reason of truncate need cancel split tasks is because
       // once the split hangs by error (e.g. array sharding keys), the truncate
       // hangs also
       rc = _cancelTasks( cb, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to cancel split tasks before "
+      PD_RC_CHECK( rc, PDERROR, "Failed to cancel tasks before "
                    "recycle item [origin: %s, recycle: %s], rc: %d",
                    _recycleItem.getOriginName(),
                    _recycleItem.getRecycleName(), rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS, rc ) ;
       return rc ;
 
    error:

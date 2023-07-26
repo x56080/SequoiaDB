@@ -80,6 +80,8 @@ public class IndexConsistent24313 extends SdbTestBase {
             if ( createIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
                     .getErrorCode()
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_DELETING
+                            .getErrorCode()
+                    && createIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
                             .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
