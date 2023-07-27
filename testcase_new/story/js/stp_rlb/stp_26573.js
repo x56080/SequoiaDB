@@ -2,7 +2,7 @@
  * @Description   : seqDB-26573:stp节点异常时执行split
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.08.10
- * @LastEditTime  : 2023.07.17
+ * @LastEditTime  : 2023.07.27
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26573";
@@ -53,7 +53,7 @@ function test ( testPara )
 
 function checkStpStatus ( stp, timeout )
 {
-   if( timeout == undefined ) { timeout = 60; }
+   if( timeout == undefined ) { timeout = 600; }
    var doTime = 0;
    while( doTime < timeout )
    {
@@ -66,7 +66,7 @@ function checkStpStatus ( stp, timeout )
       else
       {
          var syncStatus = obj['SyncStatus'];
-         if( syncStatus != "NoSource" && syncStatus != "CheckError" && syncStatus != "CheckOffset" )
+         if( syncStatus == "IntervalCheck" )
          {
             break;
          }
