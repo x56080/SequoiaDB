@@ -778,6 +778,7 @@ namespace engine
          msg->header.messageLength = msgLen ;
          msg->header.opCode = MSG_CAT_GRP_REQ ;
          msg->header.routeID.value = 0 ;
+         ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
          ossMemcpy( pBuf + sizeof(MsgCatGroupReq),
                     groupName, nameLen ) ;
 
