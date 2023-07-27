@@ -580,7 +580,7 @@ retry :
       pReq->header.requestID = 0 ;
       pReq->header.TID = 0 ;
       pReq->header.routeID.value = 0 ;
-      pReq->header.globalID = MsgGlobalID();
+      ossMemset( &(pReq->header.globalID), 0 , sizeof(pReq->header.globalID) ) ;
       ossMemcpy( pReq->data, regObj.objdata(), regObj.objsize() ) ;
 
       rc = _sendToCatlog( (MsgHeader *) pReq ) ;

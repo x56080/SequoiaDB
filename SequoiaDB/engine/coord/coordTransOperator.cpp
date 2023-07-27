@@ -721,6 +721,7 @@ namespace engine
       pCommitPreMsg->header.routeID.value = MSG_INVALID_ROUTEID ;
       pCommitPreMsg->header.requestID = 0 ;
       pCommitPreMsg->header.TID = cb->getTID() ;
+      ossMemset( &(pCommitPreMsg->header.globalID), 0, sizeof(pCommitPreMsg->header.globalID) ) ;
       pCommitPreMsg->nodeNum = writeTransNodes ;
 
       /// set node id
