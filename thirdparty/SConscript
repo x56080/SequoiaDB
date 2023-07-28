@@ -557,23 +557,14 @@ class ZlibCompiler(CompilerBase):
 class FuseCompiler(CompilerBase):
     def __init__(self, src_root):
         CompilerBase.__init__(self, "fuse", src_root)
+        self.config_exec = os.path.join(self.src_root, 'configure')
 
     def _get_lib_archive_dir(self):
         return fuse_lib_dir
 
     def _init_linux_cmds(self, arch):
-        makeconf_file = './makeconf.sh'
-        config_file = './configure'
         config_args = ''
-
-        makeconf_exec = os.path.join(self.src_root, makeconf_file)
-        config_exec = os.path.join(self.src_root, config_file)
-        os.chmod(makeconf_exec, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
-        # let's generate the configure file first.
-        os.system(makeconf_exec)
-        # and then grant execution permission for configure file
-        os.chmod(config_exec, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
-        self.append_cmd(config_exec, '')
+        self.append_cmd(self.config_exec, config_args)
         args = comm_build_opt + ' -j ' + str(comm_job_num)
         self.append_cmd('make ' + args)
         return 0
@@ -583,6 +574,16 @@ class FuseCompiler(CompilerBase):
         if 'linux' == self.platform:
             libs = ['libfuse.a']
         return libs
+
+    def _prepare_build(self):
+        makeconf_file = 'makeconf.sh'
+        makeconf_exec = os.path.join(self.src_root, makeconf_file)
+        os.chmod(makeconf_exec, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        # let's generate the configure file first.
+        os.system(makeconf_exec)
+        # and then grant execution permission for configure file
+        os.chmod(self.config_exec, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        return 0
 
     def archive(self):
         shutil.copy(os.path.join(self.src_root, 'lib/.libs/libfuse.a'),
@@ -668,7 +669,7 @@ if "win32" != guess_os:
     if "alpha64" != guess_arch:
         components.append(ssl_compiler)
 
-    if "arm64" == guess_arch:
+    if "arm64" == guess_arch or "ia64" == guess_arch:
         # in arm64, we are going to build the lib when there have no
         # pre-build libs for using
         if usefuse:

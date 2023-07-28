@@ -19,10 +19,10 @@ if ! [ -z "$CONFIG_RPATH" ]; then
     cp "$CONFIG_RPATH" .
 fi
 
-if test ! -z "`which autoreconf`"; then
-    echo Running autoreconf...
-    autoreconf -i -f
-else
+#if test ! -z "`which autoreconf`"; then
+#    echo Running autoreconf...
+#    autoreconf -i -f
+#else
     echo Running aclocal...
     aclocal
     echo Running autoheader...
@@ -39,7 +39,7 @@ else
 	echo Running autoconf...
 	autoconf
     )
-fi
+#fi
 
 rm -f config.cache config.status
 echo "To compile run './configure', and then 'make'."

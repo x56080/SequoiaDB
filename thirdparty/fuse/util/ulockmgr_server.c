@@ -124,7 +124,7 @@ static int receive_message(int sock, void *buf, size_t buflen, int *fdp,
 	return res;
 }
 
-static int closefrom(int minfd)
+static int _closefrom(int minfd)
 {
 	DIR *dir = opendir("/proc/self/fd");
 	if (dir) {
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 	dup2(nullfd, 0);
 	dup2(nullfd, 1);
 	close(3);
-	closefrom(5);
+	_closefrom(5);
 	while (1) {
 		char c;
 		int sock;
