@@ -10,7 +10,7 @@ function checkRecordConsistency(cl) {
       expResult.push(record.current().toObj());
    }
    db.setSessionAttr({ PreferredInstance: "S" });
-   var recordS = cl.find();
+   var recordS = cl.find().sort({ _id: 1 });
    commCompareResults(recordS, expResult, false);
 }
 

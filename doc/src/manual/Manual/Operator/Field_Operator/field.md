@@ -15,7 +15,7 @@ $field 是取字段符，用于取出指定字段的值，应用于其它操作�
   { <字段名1>: { <匹配符>: { $field: <字段名2> } }, ... }
   ```
 
-- 用于更新操作的更新规则中，支持的更新符包括 [$inc][inc]、[$set][set]、[$pop][pop]、[$pull][pull]、[$pull_by][pull_by] 及 [$push][push]，语法格式如下：
+- 用于更新操作的更新规则中，支持的更新符包括 [$inc][inc]、[$mul][mul]、[$set][set]、[$saveMin][saveMin]、[$saveMax][saveMax]、[$pop][pop]、[$pull][pull]、[$pull_by][pull_by] 及 [$push][push]，语法格式如下：
 
   ```lang-json
   { <更新符>: { <字段名1>: { $field: <字段名2> } } }
@@ -92,3 +92,6 @@ $field 是取字段符，用于取出指定字段的值，应用于其它操作�
 [pull]:manual/Manual/Operator/Update_Operator/pull.md
 [pull_by]:manual/Manual/Operator/Update_Operator/pull_by.md
 [push]:manual/Manual/Operator/Update_Operator/push.md
+[mul]:manual/Manual/Operator/Update_Operator/mul.md
+[saveMin]:manual/Manual/Operator/Update_Operator/saveMin.md
+[saveMax]:manual/Manual/Operator/Update_Operator/saveMax.md

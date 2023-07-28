@@ -10,6 +10,8 @@
 | [$unset][unset] | 删除指定的字段 | db.sample.employee.update({$unset:{name:"",age:""}}) |
 | [$bit][bit] | 将指定字段的值与指定的值进行位运算 | db.sample.employee.update({$bit:{a:{xor:5}}}) |
 | [$rename][rename] | 将指定字段重命名 | db.sample.employee.update({$rename:{'a':'c','b':'d'}}) |
+| [$saveMin][saveMin] | 当指定值小于字段值时，将字段值更新为指定值 | db.sample.employee.update({$saveMin:{score:60}}) |
+| [$saveMax][saveMax] | 当指定值大于字段值时，将字段值更新为指定值 | db.sample.employee.update({$saveMax:{score:80}}) |
 | [$addtoset][addtoset] | 向数组中添加元素和值 | db.sample.employee.update({$addtoset:{arr:[1,3,5]}},{arr:{$exists:1}}) |
 | [$pop][pop] | 删除指定数组中的最后N个元素 | db.sample.employee.update({$pop:{arr:2}}) |
 | [$pull][pull]<br>[$pull_by][pull_by] | 清除指定数组中的指定值 | db.sample.employee.update({$pull:{arr:2,name:"Tom"}})<br>db.sample.employee.update({$pull_by:{arr:2,name:"Tom"}}) |
@@ -28,6 +30,8 @@
 [unset]:manual/Manual/Operator/Update_Operator/unset.md
 [bit]:manual/Manual/Operator/Update_Operator/bit.md
 [rename]:manual/Manual/Operator/Update_Operator/rename.md
+[saveMin]:manual/Manual/Operator/Update_Operator/saveMin.md
+[saveMax]:manual/Manual/Operator/Update_Operator/saveMax.md
 [addtoset]:manual/Manual/Operator/Update_Operator/addtoset.md
 [pop]:manual/Manual/Operator/Update_Operator/pop.md
 [pull]:manual/Manual/Operator/Update_Operator/pull.md

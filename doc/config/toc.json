@@ -5559,6 +5559,18 @@
                            "en": "$rename"
                         },
                         {
+                           "id": 1690442188,
+                           "file": "saveMin",
+                           "cn": "$saveMin",
+                           "en": "$saveMin"
+                        },
+                        {
+                           "id": 1690442234,
+                           "file": "saveMax",
+                           "cn": "$saveMax",
+                           "en": "$saveMax"
+                        },
+                        {
                            "id": 1432190926,
                            "file": "addtoset",
                            "cn": "$addtoset",

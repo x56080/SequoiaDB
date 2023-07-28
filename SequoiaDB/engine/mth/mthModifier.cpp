@@ -161,6 +161,8 @@ namespace engine
       _modifiersMap[ MTH_MODIFIER_REPLACE ] = REPLACE ;
       _modifiersMap[ MTH_MODIFIER_KEEP ] = KEEP ;
       _modifiersMap[ MTH_MODIFIER_SETARRAY ] = SETARRAY ;
+      _modifiersMap[ MTH_MODIFIER_SAVEMIN ] = SAVEMIN ;
+      _modifiersMap[ MTH_MODIFIER_SAVEMAX ] = SAVEMAX ;
    }
 
    ModType _mthModifierOpMap::find( const CHAR * modifierName )
@@ -227,6 +229,10 @@ namespace engine
             return MTH_MODIFIER_KEEP ;
          case SETARRAY:
             return MTH_MODIFIER_SETARRAY ;
+         case SAVEMIN:
+            return MTH_MODIFIER_SAVEMIN ;
+         case SAVEMAX:
+            return MTH_MODIFIER_SAVEMAX ;
          default:
             return "UNKNOWN" ;
       }
@@ -715,6 +721,94 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPSETMDF, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__APPSAVEMINMAXMDF, "_mthModifier::_applySetMinMaxModifier" )
+   template<class Builder>
+   INT32 _mthModifier::_applySetMinMaxModifier( const CHAR *pRoot, Builder &bb,
+                                                const BSONElement &in,
+                                                ModifierElement &me )
+   {
+      PD_TRACE_ENTRY ( SDB__MTHMDF__APPSAVEMINMAXMDF ) ;
+      INT32 rc = SDB_OK ;
+      BSONElement realEle ;
+      BOOLEAN needUnset = FALSE ;
+      BOOLEAN needSetNewValue = TRUE ;
+
+      if ( me.isModifyByField() )
+      {
+         // Use value of other field to set the current field.
+         rc = _getFieldModifier( me.getSourceFieldName(), realEle ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         realEle = me._toModify ;
+      }
+
+      // if the arg is eoo.
+      // for $saveMin, the canonical type of the record field is greater than Undefined.
+      // for $saveMax, the canonical type of the record field is less than Undefined.
+      // remove the target field.
+      if ( realEle.eoo() &&
+           ( ( SAVEMIN == me._modType &&
+               in.canonicalType() > getBSONCanonicalType( Undefined ) ) ||
+             ( SAVEMAX == me._modType &&
+               in.canonicalType() < getBSONCanonicalType( Undefined ) ) ) )
+      {
+         needUnset = TRUE ;
+      }
+      // for $saveMin, if the canonical type of the record field is less than arg canonical type.
+      // for $saveMax, if the canonical type of the record field is greater than arg canonical type.
+      // needn't to set new value.
+      else if ( ( SAVEMIN == me._modType && in.canonicalType() < realEle.canonicalType() ) ||
+                ( SAVEMAX == me._modType && in.canonicalType() > realEle.canonicalType() ) )
+      {
+         needSetNewValue = FALSE ;
+      }
+      else if ( in.canonicalType() == realEle.canonicalType() )
+      {
+         // for $saveMin, if the value of the record field is less than and equal to the arg value.
+         // for $saveMax, if the value of the record field is greater than and equal to the arg value.
+         // needn't to set new value.
+         if ( ( SAVEMIN == me._modType && compareElementValues( in, realEle ) <= 0 ) ||
+              ( SAVEMAX == me._modType && compareElementValues( in, realEle ) >= 0 ) )
+         {
+            needSetNewValue = FALSE ;
+         }
+      }
+
+      if ( needSetNewValue )
+      {
+         ADD_CHG_ELEMENT_AS ( _srcChgBuilder, in, pRoot, "$set" ) ;
+         if ( needUnset )
+         {
+            BSONObjBuilder builder ;
+            builder.append( in.fieldName(), "" ) ;
+            ADD_CHG_ELEMENT_AS( _dstChgBuilder, builder.done().firstElement(),
+                                pRoot, "$unset" ) ;
+         }
+         else
+         {
+            ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
+            bb.appendAs ( realEle, in.fieldName() ) ;
+         }
+      }
+      // not change
+      else
+      {
+         bb.append ( in ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__MTHMDF__APPSAVEMINMAXMDF, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2750,6 +2844,8 @@ namespace engine
             }
             break ;
          case SET:
+         case SAVEMAX:
+         case SAVEMIN:
          {
             try
             {
@@ -3085,6 +3181,12 @@ namespace engine
          ADD_CHG_ELEMENT_AS ( _dstChgBuilder, me->_toModify, *ppRoot,
                               "$unset" ) ;
          _applyUnsetModifier( b ) ;
+         break ;
+      }
+      case SAVEMIN:
+      case SAVEMAX:
+      {
+         rc = _applySetMinMaxModifier ( *ppRoot, b, e, *me ) ;
          break ;
       }
       case PUSH:

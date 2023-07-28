@@ -83,6 +83,8 @@ namespace engine
       KEEP,
       SETARRAY,
       MUL,
+      SAVEMIN,
+      SAVEMAX,
 
       UNKNOWN
    } ;
@@ -109,6 +111,8 @@ namespace engine
 #define MTH_MODIFIER_REPLACE       "$replace"
 #define MTH_MODIFIER_KEEP          "$keep"
 #define MTH_MODIFIER_SETARRAY      "$setarray"
+#define MTH_MODIFIER_SAVEMIN       "$saveMin"
+#define MTH_MODIFIER_SAVEMAX       "$saveMax"
 
    /*
       _ModifierElement define
@@ -376,6 +380,10 @@ namespace engine
       INT32 _applySetModifier ( const CHAR *pRoot, Builder &bb,
                                 const BSONElement &in,
                                 ModifierElement &me ) ;
+      template<class Builder>
+      INT32 _applySetMinMaxModifier ( const CHAR *pRoot, Builder &bb,
+                                      const BSONElement &in,
+                                      ModifierElement &me ) ;
       template<class Builder>
       INT32 _applyPushModifier ( const CHAR *pRoot, Builder &bb,
                                  const BSONElement &in,
