@@ -1,6 +1,6 @@
 /**************************************************************************
  * @Description:   test case for C driver
- *                 seqDB-15173, seqDB-15172:使用sdbGetQueryMeta获取查询元数据     
+ *                 seqDB-15173, seqDB-15172:使锟斤拷sdbGetQueryMeta锟斤拷取锟斤拷询元锟斤拷锟斤拷     
  * @Modify:        wenjing wang Init
  *                 2018-04-26
  **************************************************************************/
@@ -23,7 +23,7 @@ const char *range = "range" ;
 const char *CompressionType = "CompressionType" ;
 const char *CompressionTypeDesc = "CompressionTypeDesc" ;
 const char *lzw = "lzw" ;
-const char *hash = "hash" ;
+const char *hashVal = "hash" ;
 
 class alterCLTest : public testBase
 {
@@ -279,7 +279,7 @@ TEST_F( alterCLTest, SetAttributes   )
    }
    Check_Res ret ;
   
-   bson_append_string( &opt, ShardingType, hash ) ;
+   bson_append_string( &opt, ShardingType, hashVal ) ;
    bson_append_start_object( &opt, ShardingKey );
    bson_append_int( &opt, "id", 1 );
    bson_append_finish_object( &opt );
@@ -306,7 +306,7 @@ TEST_F( alterCLTest, alter  )
    }
    Check_Res ret ;
     
-   bson_append_string( &opt, ShardingType, hash ) ;
+   bson_append_string( &opt, ShardingType, hashVal ) ;
    bson_append_start_object( &opt, ShardingKey );
    bson_append_int( &opt, "id", 1 );
    bson_append_finish_object( &opt );

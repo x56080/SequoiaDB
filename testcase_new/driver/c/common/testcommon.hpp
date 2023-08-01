@@ -51,7 +51,7 @@ using namespace std ;
 #define NAME_LEN              255
 #define MAX_NAME_SIZE         127
 
-#define CHECK_MSG(fmt, args ...) printf("%s[%d]:"fmt,__FILE__,__LINE__,##args)
+#define CHECK_MSG(fmt, args ...) printf("%s[%d]:" fmt,__FILE__,__LINE__,##args)
 
 // tdd end
 
