@@ -106,8 +106,11 @@ namespace engine
       UINT32 timePassed = 0 ;
       BOOLEAN resetEvent = FALSE ;
 
+      // Save location tag to prevent local location changing during exexuting this function
+      BOOLEAN isLocation = _isLocation() ;
+
       if ( CLS_REELECTION_LEVEL_1 != lvl &&
-           CLS_REELECTION_LEVEL_3 != lvl ) 
+           CLS_REELECTION_LEVEL_3 != lvl )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "invalid reelection level:%d", lvl ) ;
@@ -123,7 +126,7 @@ namespace engine
 
       if ( !_vote->primaryIsMe() )
       {
-         if ( _isLocation() )
+         if ( isLocation )
          {
             rc = SDB_CLS_NOT_LOCATION_PRIMARY ;
          }
@@ -135,7 +138,7 @@ namespace engine
          goto error ;
       }
       // If location primary is replica group primary, do nothing
-      else if ( _isLocation() && pmdIsPrimary() )
+      else if ( isLocation && pmdIsPrimary() )
       {
          rc = SDB_OPERATION_CONFLICT ;
          PD_LOG_MSG( PDERROR, "The reelectLocation operation is not "
@@ -166,7 +169,7 @@ namespace engine
       _syncMgr->disableSync() ;
       _blockSync = TRUE ;
 
-      if ( _isLocation() )
+      if ( isLocation )
       {
          rc = wait4SyncDone( timePassed, seconds ) ;
       }
@@ -186,7 +189,7 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
-         if ( _isLocation() )
+         if ( isLocation )
          {
             rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
          }
@@ -202,7 +205,7 @@ namespace engine
          }   
       }
 
-      rc = _stepDown( timePassed, seconds, cb ) ;
+      rc = _stepDown( timePassed, seconds, isLocation, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
@@ -378,6 +381,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__STEPDOWN, "_clsReelection::_stepDown" )
    INT32 _clsReelection::_stepDown( UINT32 &timePassed,
                                     UINT32 timeout,
+                                    BOOLEAN isLocation,
                                     pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -386,7 +390,7 @@ namespace engine
       EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
 
       rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN,
-                                PMD_EDU_MEM_NONE, NULL, _isLocation() ) ;
+                                PMD_EDU_MEM_NONE, NULL, isLocation ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;

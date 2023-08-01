@@ -78,6 +78,7 @@ namespace engine
 
       INT32 _stepDown( UINT32 &timePassed,
                        UINT32 timeout,
+                       BOOLEAN isLocation,
                        pmdEDUCB *cb ) ;
 
       INT32 _wait( UINT32 &timePassed,
