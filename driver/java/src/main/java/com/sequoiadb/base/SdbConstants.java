@@ -86,6 +86,8 @@ final class SdbConstants {
     final static String SDB_ALTER_GROUP_SET_ACTIVE_LOCATION = "set active location";
     final static String SDB_ALTER_GROUP_START_CRITICAL_MODE = "start critical mode";
     final static String SDB_ALTER_GROUP_STOP_CRITICAL_MODE = "stop critical mode";
+    final static String SDB_ALTER_GROUP_START_MAINTENANCE_MODE = "start maintenance mode";
+    final static String SDB_ALTER_GROUP_STOP_MAINTENANCE_MODE = "stop maintenance mode";
 
     final static String FIELD_NAME_MODIFY = "$Modify";
     final static String FIELD_NAME_OP = "OP";

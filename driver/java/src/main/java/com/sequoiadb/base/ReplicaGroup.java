@@ -729,6 +729,53 @@ public class ReplicaGroup {
         alterInternal(SdbConstants.SDB_ALTER_GROUP_STOP_CRITICAL_MODE, null, true);
     }
 
+    /**
+     * Start maintenance mode in the current replica group.
+     *
+     * @param options The options of maintenance mode:
+     *                <ul>
+     *                <li>NodeName: The maintenance node to be added in replica group</li>
+     *                <li>Location: The maintenance location to be added in replica group</li>
+     *                <li>Enforced: Whether to force to start critical mode in replica group</li>
+     *                <li>MinKeepTime: The minimum keep time of maintenance mode</li>
+     *                <li>MaxKeepTime: The maximum keep time of maintenance mode</li>
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void startMaintenanceMode(BSONObject options) throws BaseException {
+        if (options == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The options is null");
+        }
+        alterInternal(SdbConstants.SDB_ALTER_GROUP_START_MAINTENANCE_MODE, options, false);
+    }
+
+    /**
+     * Stop maintenance mode in current replica group.
+     *
+     * @param options The options of maintenance mode:
+     *                <ul>
+     *                <li>NodeName: The maintenance node to be stopped in replica group</li>
+     *                <li>Location: The maintenance location to be stopped in replica group</li>
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void stopMaintenanceMode(BSONObject options) throws BaseException {
+        if (options == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "The options is null");
+        }
+        alterInternal(SdbConstants.SDB_ALTER_GROUP_STOP_MAINTENANCE_MODE, options, false);
+    }
+
+    /**
+     * Stop maintenance mode in current replica group.
+     *
+     * @throws BaseException If error happens.
+     */
+    public void stopMaintenanceMode() throws BaseException {
+        // empty options
+        stopMaintenanceMode(new BasicBSONObject());
+    }
+
     private void alterInternal(String taskName, BSONObject options, boolean allowNullArgs) {
         if (options == null && !allowNullArgs) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");

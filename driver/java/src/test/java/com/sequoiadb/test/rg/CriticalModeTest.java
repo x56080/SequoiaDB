@@ -7,6 +7,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
@@ -96,7 +97,9 @@ public class CriticalModeTest {
         match.put("GroupID", rg.getId());
         try (DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPMODES, match, null, null)) {
             while (cursor.hasNext()) {
-                if (cursor.getNext().get("GroupMode") != null) {
+                BSONObject o = cursor.getNext();
+                String mode = (String) o.get("GroupMode");
+                if (mode != null && mode.equals("critical")) {
                     return true;
                 }
             }
