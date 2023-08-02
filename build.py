@@ -436,10 +436,10 @@ def package_all_driver(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'driver/spark-3.0/target/*.jar'), os.path.join(install_dir, 'Spark'))
    copy_file(os.path.join(ROOT_DIR, 'driver/flink/target/sdb-flink-connector-*.jar'), os.path.join(install_dir, 'Flink'))
    copy_file(os.path.join(ROOT_DIR, 'driver/java/target/sequoiadb*.jar'), os.path.join(install_dir, 'Java'))
-   if opt_mgr.get_debug():
-      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/dd/*.so'), os.path.join(install_dir, 'PHP'))
-   else:
-      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/normal/*.so'), os.path.join(install_dir, 'PHP'))
+   if OS_ARCH == 'x86_64':
+      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/x86/PHP-linux_x86_64/*.so'), os.path.join(install_dir, 'PHP'))
+   elif OS_ARCH == 'aarch64':
+      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/aarch64/PHP-linux_aarch64/*.so'), os.path.join(install_dir, 'PHP'))
    copy_file(os.path.join(ROOT_DIR, 'driver/python/pysequoiadb*py*.tar.gz'), os.path.join(install_dir, 'Python'))
    copy_file(os.path.join(ROOT_DIR, 'driver/postgresql/sdb_fdw.so'), os.path.join(install_dir, 'Postgresql'))
    copy_file(os.path.join(ROOT_DIR, 'driver/postgresql/sdb_fdw--1.0.sql'), os.path.join(install_dir, 'Postgresql'))

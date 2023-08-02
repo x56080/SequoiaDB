@@ -8,9 +8,11 @@ import platform
 import shutil
 import argparse
 import codecs
+import tarfile
 from subprocess import Popen, PIPE
 
 OS_TYPE = platform.system()
+OS_ARCH = platform.machine()
 LOG_FILE = None
 
 class CompileBaseModuleMgr:
@@ -70,7 +72,8 @@ class CompileBaseModuleMgr:
    def compile_driver(self, db_version):
       self.deploy_java_driver(db_version)
       self.compile_java_driver(db_version)
-      self.compile_php_driver()
+      # self.compile_php_driver()
+      self.extract_php_driver()
       self.compile_python_driver()
 
    def compile_java_driver(self, db_version):
@@ -93,6 +96,21 @@ class CompileBaseModuleMgr:
       deploy_java_cmd = 'mvn clean deploy -Dmaven.test.skip=true'
       self.run_in_dir(deploy_java_cmd, java_dir, self.jdk_env)
       print_log('Finish deploy java driver')
+
+   def extract_php_driver(self):
+      print_log('Begin extracting the php driver')
+      if OS_ARCH == "aarch64":
+         php_file_path = os.path.join(self.root_dir, 'driver/php/build/aarch64/PHP-linux_aarch64.tar.gz')
+      elif OS_ARCH == "x86_64":
+         php_file_path = os.path.join(self.root_dir, 'driver/php/build/x86/PHP-linux_x86_64.tar.gz')
+      else:
+         print_log('Unsupported architecture: {}'.format(OS_ARCH))
+         return
+
+      php_file_dir = os.path.dirname(php_file_path)
+      with tarfile.open(php_file_path, 'r:gz') as tar:
+         tar.extractall(php_file_dir)
+      print_log('Finish extracting the php driver')
 
    def compile_php_driver(self):
       print_log('Begine compile php driver')
