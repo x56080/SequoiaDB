@@ -269,14 +269,20 @@ Role
 T}@T{
 String
 T}@T{
-User role.
-Currently
+User role in old
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-only supports built\-in
+version.
+Currently only
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+supports built\-in
 T}
 T{
 T}@T{
@@ -352,6 +358,41 @@ T}@T{
 T}@T{
 operations.
 T}
+T{
+3
+T}@T{
+Roles
+T}@T{
+Array
+T}@T{
+User role list.
+You can
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+grant multiple roles
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+to users.
+For details,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+please refer to Role\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+based Access Control
+T}
 .TE
 .RS
 .PP
@@ -364,7 +405,7 @@ specified to connect to the database.
 .IP \[bu] 2
 For database username and password restrications, refer to database limit.
 .IP \[bu] 2
-The first user created in the database must be in the "admin" role.
+The first user created in the database must be granted the "_root" role.
 .RE
 .SH RETURN VALUE
 .PP

@@ -231,67 +231,106 @@ Role
 T}@T{
 String
 T}@T{
-用户角色，当前
+旧版本的用户角
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-只支持系统内置
+色，只支持系统
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-角色，默认值为 "
+内置角色，默认
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-admin"，取值列表
+值为 "admin"，取值
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-："admin"、"monitor"。
+列表："admin"、"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-"admin" 为管理员角
+monitor"。"admin" 为
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-色，可执行任何
+管理员角色，可
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-操作；"monitor" 为
+执行任何操作；"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-监控角色，只能
+monitor" 为监控角
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-执行 snapshot 和
+色，只能执行
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-list 操作
+snapshot 和 list 操
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+作
+T}
+T{
+3
+T}@T{
+Roles
+T}@T{
+Array
+T}@T{
+用户角色列表，
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+可以为用户授予
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+多个角色，详情
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+请参考Role\-based
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Access Control
 T}
 .TE
 .RS
@@ -304,7 +343,7 @@ T}
 .IP \[bu] 2
 数据库用户名和密码的限制请参考数据库限制。
 .IP \[bu] 2
-数据库中创建的第一个用户必须是"admin"角色。
+数据库中创建的第一个用户必须被授予"_root"角色。
 .RE
 .SH 返回值
 .PP
