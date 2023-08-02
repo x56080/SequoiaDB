@@ -90,8 +90,6 @@ namespace engine
 
       virtual INT32 _fetchNext ( qgmFetchOut &next, _pmdEDUCB *eduCB ) ;
 
-      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB ) ;
-
       void _killContext( _pmdEDUCB *eduCB ) ;
       INT32 _fetch( const CHAR *&result, _pmdEDUCB *eduCB ) ;
 

@@ -40,6 +40,7 @@
 #include "rtnContext.hpp"
 #include "rtnContextLob.hpp"
 #include "rtnLobMetricsSubmitor.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
 
@@ -74,6 +75,40 @@ using namespace bson ;
 
 namespace engine
 {
+   INT32 convertModeToActions( INT32 mode, authActionSet &actions )
+   {
+      INT32 rc = SDB_OK;
+      if ( SDB_IS_LOBREADONLY_MODE( mode ) )
+      {
+         actions.addAction( ACTION_TYPE_find );
+      }
+      else if ( SDB_HAS_LOBWRITE_MODE( mode ) )
+      {
+         actions.addAction( ACTION_TYPE_update );
+         if ( SDB_IS_LOBSREADWRITE_MODE( mode ) )
+         {
+            actions.addAction( ACTION_TYPE_find );
+         }
+      }
+      else if ( SDB_LOB_MODE_CREATEONLY == mode )
+      {
+         actions.addAction( ACTION_TYPE_insert );
+      }
+      else if ( SDB_LOB_MODE_REMOVE == mode )
+      {
+         actions.addAction( ACTION_TYPE_remove );
+      }
+      else if ( SDB_LOB_MODE_TRUNCATE == mode )
+      {
+         actions.addAction( ACTION_TYPE_update );
+      }
+      else
+      {
+         PD_LOG( PDERROR, "unknown open mode:%d", mode );
+         rc = SDB_INVALIDARG;
+      }
+      return rc;
+   }
 
    const CHAR* rtnLobOpName( INT32 mode )
    {
@@ -154,6 +189,9 @@ namespace engine
          _meta._createTime = ossGetCurrentMilliseconds() ;
          _meta._modificationTime = _meta._createTime ;
       }
+
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
       rc = _prepare( cb ) ;
       if ( SDB_OK != rc )
@@ -541,6 +579,9 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
+
       // monitor lob bytes write by client
       RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, len ) ;
 
@@ -662,6 +703,9 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
       if ( 0 == len )
       {
@@ -798,6 +842,9 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
       rc = _getRTDetail( cb, detail ) ;
       if ( SDB_OK != rc )
@@ -975,6 +1022,9 @@ namespace engine
       UINT32 lastPiece = 0 ;
       UINT32 startPiece = 0 ;
       UINT32 oneLoopNum = 0 ;
+
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
       if ( len < 0 )
       {
@@ -1590,5 +1640,26 @@ namespace engine
       }
    }
 
+   INT32 _rtnLobStream::_checkPrivileges( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( !cb->getSession()->privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      {
+         authActionSet actions;
+         rc = convertModeToActions( _mode, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to convert mode to actions, rc: %d", rc );
+
+         rc = cb->getSession()->checkPrivilegesForActionsOnExact( _fullName, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }
 

@@ -50,6 +50,7 @@
 #include "coordTrace.hpp"
 #include "ossUtil.hpp"
 #include "pdSecure.hpp"
+#include "auth.hpp"
 
 using namespace bson;
 
@@ -199,6 +200,14 @@ namespace engine
          MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
          MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+
+         if ( cb->getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_update );
+            rc = cb->getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+         }
       }
       catch ( std::exception &e )
       {

@@ -1874,6 +1874,43 @@ namespace engine
 
    typedef class _rtnCMDReturnRecycleBinItemToName rtnCMDReturnRecycleBinItemToName ;
 
+
+   /*
+      _rtnCMDInvalidateUserCache define
+   */
+   class _rtnCMDInvalidateUserCache : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnCMDInvalidateUserCache() ;
+      virtual ~_rtnCMDInvalidateUserCache() ;
+
+      virtual BOOLEAN writable()
+      {
+         return FALSE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   private:
+      ossPoolString _userName;
+   } ;
+   typedef class _rtnCMDInvalidateUserCache rtnCMDInvalidateUserCache ;
 }
 
 const UINT32 pdGetTraceFunctionListNum();

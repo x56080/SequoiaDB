@@ -35,8 +35,10 @@
 #include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
+using namespace boost ;
 
 namespace engine
 {
@@ -72,6 +74,14 @@ namespace engine
       const CHAR *pUserName = NULL ;
       const CHAR *pPassWord = NULL ;
       BSONObj options ;
+
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_createUsr );
+         rc = cb->getSession()->checkPrivilegesForActionsOnCluster( actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
 
       rc = forward( pMsg, cb, FALSE, contextID,
                     &pUserName, &pPassWord, &options, buf ) ;

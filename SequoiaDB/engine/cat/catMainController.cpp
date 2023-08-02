@@ -106,6 +106,10 @@ namespace engine
          _pCatCB->getCatNodeMgr()->attachCB( cb ) ;
          _pCatCB->getCatDCMgr()->attachCB( cb ) ;
       }
+      if ( _pAuthCB )
+      {
+         _pAuthCB->getRoleManager()->attachCB( cb );
+      }
 
       _attachEvent.signalAll() ;
    }
@@ -121,6 +125,10 @@ namespace engine
          _pCatCB->getCatlogueMgr()->detachCB( cb ) ;
          _pCatCB->getCatNodeMgr()->detachCB( cb ) ;
          _pCatCB->getCatGTSMgr()->detachCB( cb ) ;
+      }
+      if ( _pAuthCB )
+      {
+         _pAuthCB->getRoleManager()->detachCB( cb );
       }
       _pEDUCB = NULL ;
       _changeEvent.signal() ;
@@ -929,6 +937,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
                    "rc: %d", rc ) ;
 
+      rc = _pAuthCB->getRoleManager()->active();
+      PD_RC_CHECK( rc, PDERROR, "Failed to active role manager, rc: %d", rc ) ;
+
       // all managers are active, now we can perform upgrade
       rc = _pCatCB->checkUpgrade() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to upgrade CATALOG, rc: %d", rc ) ;
@@ -952,6 +963,7 @@ namespace engine
       _pCatCB->getCatNodeMgr()->deactive() ;
       _pCatCB->getCatlogueMgr()->deactive() ;
       _pCatCB->getCatGTSMgr()->deactive() ;
+      _pAuthCB->getRoleManager()->deactive() ;
 
       _changeEvent.signal() ;
 

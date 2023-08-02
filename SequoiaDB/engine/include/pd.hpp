@@ -228,7 +228,7 @@ enum AUDIT_TYPE
                                  /// not include detail records. If you need
                                  /// to audit detail info, use AUDIT_INSERT...
    AUDIT_DDL            = 9,     /// Create/Drop Collection, and so on
-   AUDIT_DCL            = 10,    /// Create User, Drop User and so on
+   AUDIT_DCL            = 10,    /// Create User, Drop User, Role and so on
    AUDIT_DQL            = 11,    /// Query, Explain
 
    AUDIT_DELETE         = 20,    /// The detail of delete records
@@ -271,6 +271,7 @@ enum AUDIT_OBJ_TYPE
    AUDIT_OBJ_USER,
    AUDIT_OBJ_SEQ,
    AUDIT_OBJ_RECYCLEBIN,
+   AUDIT_OBJ_ROLE,
 
    AUDIT_OBJ_MAX
 } ;

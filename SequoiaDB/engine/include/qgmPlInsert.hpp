@@ -72,8 +72,6 @@ namespace engine
          return _input.size() == 0 ? TRUE : FALSE ;
       }
 
-      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB ) ;
-
       INT32 _nextRecord( _pmdEDUCB *eduCB, BSONObj &obj ) ;
 
    protected:

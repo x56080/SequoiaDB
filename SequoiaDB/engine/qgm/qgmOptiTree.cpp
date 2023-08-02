@@ -936,6 +936,35 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMOPTITREENODE_CHECK_PRIVILEGES, "_qgmOptiTreeNode::checkPrivileges" )
+   INT32 _qgmOptiTreeNode::checkPrivileges( ISession *session ) const
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(SDB__QGMOPTITREENODE_CHECK_PRIVILEGES);
+      rc = _checkPrivileges( session );
+      PD_RC_CHECK( rc, PDERROR, "Node %s check privileges failed", toString().c_str(), rc );
+
+      for ( qgmOptiTreeNodePtrVec::const_iterator it = _children.begin(); it != _children.end();
+            ++it )
+      {
+         rc = (*it)->checkPrivileges( session );
+         if ( SDB_OK != rc )
+         {
+            goto error;
+         }
+      }
+      done:
+         PD_TRACE_EXITRC( SDB__QGMOPTITREENODE_CHECK_PRIVILEGES, rc ) ;
+         return rc;
+      error:
+         goto done;
+   }
+
+   INT32 _qgmOptiTreeNode::_checkPrivileges( ISession *session ) const
+   {
+      return SDB_OK;
+   }
+
    void _qgmOptiTreeNode::dump() const
    {
       dumpSelf( this ) ;

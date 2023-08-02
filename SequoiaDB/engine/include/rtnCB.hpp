@@ -58,6 +58,7 @@
 #include "rtnScannerChecker.hpp"
 #include "dmsTaskStatus.hpp"
 #include "rtnBackgroundJobBase.hpp"
+#include "rtnUserCache.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -123,6 +124,8 @@ namespace engine
       rtnScannerCheckerCreator  _checkerCreator ;
 
       ossEvent                  _event ;
+      
+      rtnUserCache _userCache;
 
    public:
       virtual void      contextDelete( INT64 contextID, IExecutor *pExe ) ;
@@ -292,6 +295,11 @@ namespace engine
       OSS_INLINE dmsTaskStatusMgr* getTaskStatusMgr()
       {
          return &_taskStatusMgr ;
+      }
+
+      OSS_INLINE rtnUserCache* getUserCacheMgr()
+      {
+         return &_userCache;
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;

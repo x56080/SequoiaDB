@@ -80,6 +80,45 @@ namespace engine
       return NULL ;
    }
 
+   BOOLEAN _pmdSessionBase::checkPrivilegesForCmd( const CHAR *cmdName,
+                                                   const CHAR *pQuery,
+                                                   const CHAR *pSelector,
+                                                   const CHAR *pOrderby,
+                                                   const CHAR *pHint )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _pmdSessionBase::checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
+                                                            const authActionSet &actions )
+   {
+      return SDB_OK;
+   }
+
+   INT32 _pmdSessionBase::checkPrivilegesForActionsOnCluster( const authActionSet &actions )
+   {
+      return SDB_OK;
+   }
+
+   INT32 _pmdSessionBase::checkPrivilegesForActionsOnResource(
+      const boost::shared_ptr< authResource > &,
+      const authActionSet &actions )
+   {
+      return SDB_OK;
+   }
+
+   BOOLEAN _pmdSessionBase::privilegeCheckEnabled()
+   {
+      return getClient()->privCheckEnabled() && pmdGetOptionCB()->privilegeCheckEnabled();
+   }
+
+   INT32 _pmdSessionBase::getACL( boost::shared_ptr< const authAccessControlList > &acl )
+   {
+      PD_LOG( PDERROR, "get ACL failed, not supported on this session type %d", sessionType() );
+      acl.reset();
+      return SDB_SYS;
+   }
+
    /*
       _pmdProcessorBase implement
    */

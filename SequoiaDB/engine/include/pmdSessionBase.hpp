@@ -67,6 +67,24 @@ namespace engine
       virtual void            detachProcessor() ;
       virtual IOperator*      getOperator() ;
 
+      virtual INT32 checkPrivilegesForCmd( const CHAR *cmdName,
+                                           const CHAR *pQuery,
+                                           const CHAR *pSelector,
+                                           const CHAR *pOrderby,
+                                           const CHAR *pHint );
+
+      virtual INT32 checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
+                                                      const authActionSet &actions );
+
+      virtual INT32 checkPrivilegesForActionsOnCluster( const authActionSet &actions );
+
+      virtual INT32 checkPrivilegesForActionsOnResource( const boost::shared_ptr< authResource > &,
+                                                         const authActionSet &actions );
+
+      virtual BOOLEAN privilegeCheckEnabled();
+
+      virtual INT32 getACL( boost::shared_ptr<const authAccessControlList> &acl );
+
    protected:
       _pmdProcessorBase *_processor ;
    } ;

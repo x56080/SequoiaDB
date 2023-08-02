@@ -136,6 +136,19 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listRoles )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, dropRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, grantPrivilegesToRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, revokePrivilegesFromRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, grantRolesToRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, revokeRolesFromRole )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, grantRolesToUser )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, revokeRolesFromUser )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getUser )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, invalidateUserCache )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -205,6 +218,19 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDataSource", getDataSource )
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
       JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
+      JS_ADD_MEMBER_FUNC( "createRole", createRole )
+      JS_ADD_MEMBER_FUNC( "dropRole", dropRole )
+      JS_ADD_MEMBER_FUNC( "getRole", getRole )
+      JS_ADD_MEMBER_FUNC( "listRoles", listRoles )
+      JS_ADD_MEMBER_FUNC( "updateRole", updateRole )
+      JS_ADD_MEMBER_FUNC( "grantPrivilegesToRole", grantPrivilegesToRole )
+      JS_ADD_MEMBER_FUNC( "revokePrivilegesFromRole", revokePrivilegesFromRole )
+      JS_ADD_MEMBER_FUNC( "grantRolesToRole", grantRolesToRole )
+      JS_ADD_MEMBER_FUNC( "revokeRolesFromRole", revokeRolesFromRole )
+      JS_ADD_MEMBER_FUNC( "grantRolesToUser", grantRolesToUser )
+      JS_ADD_MEMBER_FUNC( "revokeRolesFromUser", revokeRolesFromUser )
+      JS_ADD_MEMBER_FUNC( "getUser", getUser )
+      JS_ADD_MEMBER_FUNC( "invalidateUserCache", invalidateUserCache )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -3709,4 +3735,523 @@ namespace engine
       detail = BSON( SPT_ERR << "Sdb obj can not be return" ) ;
       return SDB_SYS ;
    }
+
+   INT32 _sptDBSdb::createRole(const _sptArguments &arg, _sptReturnVal &rval, bson::BSONObj &detail)
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj role ;
+      if( !arg.isNull( 0 ) )
+      {
+         rc = arg.getBsonobj( 0, role ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Role definition must be obj" ) ;
+            goto error ;
+         }
+      }
+      rc = _sptSdb.createRole( role ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to create role" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::dropRole( const _sptArguments &arg, _sptReturnVal &rval, bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK;
+      string roleName;
+      rc = arg.getString( 0, roleName );
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Role name must be config" );
+         goto error;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Role name must be string" );
+         goto error;
+      }
+
+      rc = _sptSdb.dropRole( roleName.c_str() );
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop role" );
+         goto error;
+      }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::getRole( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj options ;
+         BSONObj role;
+         sptBsonobj * sptResult = NULL ;
+         rc = arg.getString( 0, roleName ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         if( arg.argc() > 1 )
+         {
+            rc = arg.getBsonobj( 1, options );
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Options must be obj" );
+               goto error;
+            }
+         }
+
+         rc = _sptSdb.getRole( roleName.c_str(), options, role ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get role" ) ;
+            goto error ;
+         }
+
+         sptResult = SDB_OSS_NEW sptBsonobj( role );
+         if ( NULL == sptResult )
+         {
+            rc = SDB_OOM;
+            detail = BSON( SPT_ERR << "Failed to new sptBsonobj obj" );
+            goto error;
+         }
+         rc = rval.setUsrObjectVal< sptBsonobj >( sptResult );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to set ret obj" );
+            goto error;
+         }
+
+      done:
+         return rc ;
+      error:
+         SAFE_OSS_DELETE( sptResult ) ;
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::listRoles( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK;
+         sdbCursor cursor;
+         BSONObj options;
+
+         rc = arg.getBsonobj( 0, options );
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            rc = SDB_OK;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Options name must be string" );
+            goto error;
+         }
+
+         rc = _sptSdb.listRoles( cursor, options );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to list roles" );
+            goto error;
+         }
+         SPT_SET_CURSOR_TO_RETURNVAL( cursor.pCursor );
+         cursor.pCursor = NULL ;
+
+      done:
+         return rc;
+      error:
+         goto done;
+      }
+
+      INT32 _sptDBSdb::updateRole( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj role ;
+         rc = arg.getString( 0, roleName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, role ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Role must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.updateRole( roleName.c_str(), role ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to update role" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::grantPrivilegesToRole( const _sptArguments &arg,
+                                              _sptReturnVal &rval,
+                                              bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj privileges ;
+         rc = arg.getString( 0, roleName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, privileges ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Privileges must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.grantPrivilegesToRole( roleName.c_str(), privileges ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to grant privileges to role" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::revokePrivilegesFromRole( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail)
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj privileges ;
+         rc = arg.getString( 0, roleName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, privileges ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Privileges must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.revokePrivilegesFromRole( roleName.c_str(), privileges ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to revoke privileges from role" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::grantRolesToRole( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail)
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj roles ;
+         rc = arg.getString( 0, roleName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.grantRolesToRole( roleName.c_str(), roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to grant roles to role" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::revokeRolesFromRole( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail)
+      {
+         INT32 rc = SDB_OK ;
+         string roleName ;
+         BSONObj roles ;
+         rc = arg.getString( 0, roleName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Role name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.revokeRolesFromRole( roleName.c_str(), roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to revoke roles from role" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::grantRolesToUser( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail)
+      {
+         INT32 rc = SDB_OK ;
+         string userName ;
+         BSONObj roles ;
+         rc = arg.getString( 0, userName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.grantRolesToUser( userName.c_str(), roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to grant roles to user" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::revokeRolesFromUser( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail)
+      {
+         INT32 rc = SDB_OK ;
+         string userName ;
+         BSONObj roles ;
+         rc = arg.getString( 0, userName ) ;
+         if ( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be config" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            goto error ;
+         }
+
+         rc = _sptSdb.revokeRolesFromUser( userName.c_str(), roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to revoke roles from user" ) ;
+            goto error ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::getUser( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string username ;
+         BSONObj options ;
+         BSONObj role;
+         sptBsonobj * sptResult = NULL ;
+         rc = arg.getString( 0, username ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be config" ) ;
+            goto error ;
+         }
+         else if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be string" ) ;
+            goto error ;
+         }
+
+         if( arg.argc() > 1 )
+         {
+            rc = arg.getBsonobj( 1, options );
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Options must be obj" );
+               goto error;
+            }
+         }
+
+         rc = _sptSdb.getUser( username.c_str(), options, role ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get user" ) ;
+            goto error ;
+         }
+
+         sptResult = SDB_OSS_NEW sptBsonobj( role );
+         if ( NULL == sptResult )
+         {
+            rc = SDB_OOM;
+            detail = BSON( SPT_ERR << "Failed to new sptBsonobj obj" );
+            goto error;
+         }
+         rc = rval.setUsrObjectVal< sptBsonobj >( sptResult );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to set ret obj" );
+            goto error;
+         }
+
+      done:
+         return rc ;
+      error:
+         SAFE_OSS_DELETE( sptResult ) ;
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::invalidateUserCache( const _sptArguments &arg,
+                                            _sptReturnVal &rval,
+                                            bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string username ;
+         const CHAR *pUser = NULL;
+         BSONObj options;
+
+         rc = arg.getString( 0, username ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            pUser = NULL;
+            rc = SDB_OK;
+         }
+         else if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "User name must be string" ) ;
+            goto error ;
+         }
+         else
+         {
+            pUser = username.c_str();
+         }
+
+         if ( arg.argc() > 1 )
+         {
+            rc = arg.getBsonobj( 1, options );
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Options must be obj" );
+               goto error;
+            }
+         }
+
+         rc = _sptSdb.invalidateUserCache( pUser, options );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to invalidate user cache" );
+            goto error;
+         }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
 }

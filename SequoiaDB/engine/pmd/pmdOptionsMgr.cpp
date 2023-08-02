@@ -118,6 +118,7 @@ namespace engine
    #define PMD_MAX_METACACHE_LWM       (10240)
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
+   #define PMD_DFT_USER_CACHE_INTERVAL  (300000)  // milliseconds, 5 miniutes
 
    /*
       _pmdCfgExchange implement
@@ -2604,6 +2605,14 @@ done:
       rdxUInt( pEX, PMD_OPTION_STAT_MCV_LIMIT, _statMCVLimit, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_STAT_MCV_LIMIT, TRUE ) ;
       rdvMinMax( pEX, _statMCVLimit, 0, PMD_MAX_STAT_MCV_LIMIT, TRUE ) ;
+
+      // --privilegecheck
+      rdxBooleanS( pEX, PMD_OPTION_PRIVILEGE_CHECK, _privilegeCheckEnabled,
+                   FALSE, PMD_CFG_CHANGE_REBOOT, FALSE, FALSE ) ;
+
+      // --usercacheinterval
+      rdxUInt( pEX, PMD_OPTION_USER_CACHE_INTERVAL, _userCacheInterval, FALSE,
+               PMD_CFG_CHANGE_REBOOT, PMD_DFT_USER_CACHE_INTERVAL, FALSE );
 
       // end map
 

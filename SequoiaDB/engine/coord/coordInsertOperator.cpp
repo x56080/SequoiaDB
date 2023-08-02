@@ -48,8 +48,10 @@
 #include "pdSecure.hpp"
 #include "rtnHintModifier.hpp"
 #include "utilCommon.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
+using namespace boost ;
 
 #define GET_INSERT_HINT_MARK_PTR( hintPtr ) \
    ( ( CHAR *)hintPtr - MSG_HINT_MARK_LEN )
@@ -351,6 +353,19 @@ namespace engine
       MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_insert );
+         if ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flag ) ||
+              OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flag ) ) 
+         {
+            actions.addAction( ACTION_TYPE_update );
+         }
+         rc = cb->getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
 
       // Find out which groups is the collection sharded. And later the message
       // will only be transfered to these groups.

@@ -139,6 +139,17 @@ namespace engine
             goto error ;
          }
 
+         rc = extend->checkPrivileges( cb->getSession() );
+         if ( SDB_NO_PRIVILEGES == rc )
+         {
+            PD_LOG( PDERROR, "No privileges to execute this query" ) ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to check privileges, rc: %d", rc );
+         }
+
          /// step 4: optimize
          {
             _qgmOptTree tree( extend ) ;

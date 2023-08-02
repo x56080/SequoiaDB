@@ -777,6 +777,12 @@
 #define FIELD_NAME_RENAME_CL                 "RenameCL"
 #define FIELD_NAME_CHANGEUID_CL              "ChangeUIDCL"
 
+// for role
+#define FIELD_NAME_PRIVILEGES                "Privileges"
+#define FIELD_NAME_ROLES                     "Roles"
+#define FIELD_NAME_RESOURCE                  "Resource"
+#define FIELD_NAME_ACTIONS                   "Actions"
+
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -1273,5 +1279,20 @@ enum SDB_LOB_MODE
 
 /// set attributes
 #define SDB_ALTER_DOMAIN_SET_ATTR      SDB_ALTER_ACTION_SET_ATTR
+
+// rbac
+#define CMD_NAME_CREATE_ROLE "create role"
+#define CMD_NAME_DROP_ROLE "drop role"
+#define CMD_NAME_GET_ROLE "get role"
+#define CMD_NAME_LIST_ROLES "list roles"
+#define CMD_NAME_UPDATE_ROLE "update role"
+#define CMD_NAME_GRANT_PRIVILEGES "grant privileges"
+#define CMD_NAME_REVOKE_PRIVILEGES "revoke privileges"
+#define CMD_NAME_GRANT_ROLES_TO_ROLE "grant roles to role"
+#define CMD_NAME_REVOKE_ROLES_FROM_ROLE "revoke roles from role"
+#define CMD_NAME_GET_USER "get user"
+#define CMD_NAME_GRANT_ROLES_TO_USER "grant roles to user"
+#define CMD_NAME_REVOKE_ROLES_FROM_USER "revoke roles from user"
+#define CMD_NAME_INVALIDATE_USER_CACHE "invalidate user cache"
 
 #endif // MSGDEF_H__

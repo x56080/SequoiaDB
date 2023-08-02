@@ -42,6 +42,8 @@
 #include "catTrace.hpp"
 #include "ixmUtil.hpp"
 #include "catTrace.hpp"
+#include "authCB.hpp"
+#include "rtnContextDump.hpp"
 
 using namespace bson ;
 
@@ -4204,6 +4206,517 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   /*
+      _catCMDCreateRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDCreateRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_CRTROLE_INIT, "_catCMDCreateRole::init" )
+   INT32 _catCMDCreateRole::init( const CHAR *pQuery,
+                                  const CHAR *pSelector,
+                                  const CHAR *pOrderBy,
+                                  const CHAR *pHint,
+                                  INT32 flags,
+                                  INT64 numToSkip,
+                                  INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_CRTROLE_INIT );
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC(SDB_CATCMD_CRTROLE_INIT, rc);
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_CRTROLE_DOIT, "_catCMDCreateRole::doit" )
+   INT32 _catCMDCreateRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_CRTROLE_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->createRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_CRTROLE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDDropRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDDropRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_DRPROLE_INIT, "_catCMDDropRole::init" )
+   INT32 _catCMDDropRole::init( const CHAR *pQuery,
+                                const CHAR *pSelector,
+                                const CHAR *pOrderBy,
+                                const CHAR *pHint,
+                                INT32 flags,
+                                INT64 numToSkip,
+                                INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_DRPROLE_INIT );
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC(SDB_CATCMD_DRPROLE_INIT, rc);
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_DRPROLE_DOIT, "_catCMDDropRole::doit" )
+   INT32 _catCMDDropRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_DRPROLE_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->dropRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_DRPROLE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDGetRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDGetRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GETROLE_INIT, "_catCMDGetRole::init" )
+   INT32 _catCMDGetRole::init( const CHAR *pQuery,
+                               const CHAR *pSelector,
+                               const CHAR *pOrderBy,
+                               const CHAR *pHint,
+                               INT32 flags,
+                               INT64 numToSkip,
+                               INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_GETROLE_INIT );
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC(SDB_CATCMD_GETROLE_INIT, rc);
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GETROLE_DOIT, "_catCMDGetRole::doit" )
+   INT32 _catCMDGetRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_GETROLE_DOIT ) ;
+      contextID = -1;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager();
+      BSONObj out;
+
+      rc = roleMgr->getRole( _query, out );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get role, rc: %d", rc );
+      ctxBuf = rtnContextBuf( out );
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_GETROLE_DOIT, rc ) ;
+      return rc;
+   error:
+      goto done;
+   }
+
+   /*
+      _catCMDListRoles implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDListRoles )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_LSTROLES_INIT, "_catCMDListRoles::init" )
+   INT32 _catCMDListRoles::init( const CHAR *pQuery,
+                                 const CHAR *pSelector,
+                                 const CHAR *pOrderBy,
+                                 const CHAR *pHint,
+                                 INT32 flags,
+                                 INT64 numToSkip,
+                                 INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_LSTROLES_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_LSTROLES_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_LSTROLES_DOIT, "_catCMDListRoles::doit" )
+   INT32 _catCMDListRoles::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_LSTROLES_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager();
+      ossPoolVector< BSONObj > out;
+      rtnContextStoreBuf buf;
+
+      try
+      {
+         rc = roleMgr->listRoles( _query, out );
+         PD_RC_CHECK( rc, PDERROR, "Failed to get roles, rc: %d", rc );
+         for ( ossPoolVector< BSONObj >::const_iterator it = out.begin(); it != out.end(); ++it )
+         {
+            rc = buf.append(*it);
+            PD_RC_CHECK( rc, PDERROR, "Failed to append role object to buffer, rc: %d", rc );
+         }
+         if ( !buf.isEmpty() )
+         {
+            rc = buf.get( -1, ctxBuf );
+            PD_RC_CHECK( rc, PDERROR, "Failed to get buffer, rc: %d", rc );
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build result, occur exception %s", e.what() );
+         rc = ossException2RC( &e );
+         goto error;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_LSTROLES_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDUpdateRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDUpdateRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_UPDROLE_INIT, "_catCMDUpdateRole::init" )
+   INT32 _catCMDUpdateRole::init( const CHAR *pQuery,
+                                  const CHAR *pSelector,
+                                  const CHAR *pOrderBy,
+                                  const CHAR *pHint,
+                                  INT32 flags,
+                                  INT64 numToSkip,
+                                  INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_UPDROLE_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_UPDROLE_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_UPDROLE_DOIT, "_catCMDUpdateRole::doit" )
+   INT32 _catCMDUpdateRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_UPDROLE_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->updateRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_UPDROLE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDGrantPrivilegesToRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDGrantPrivilegesToRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRTPRIVS_INIT, "_catCMDGrantPrivilegesToRole::init" )
+   INT32 _catCMDGrantPrivilegesToRole::init( const CHAR *pQuery,
+                                             const CHAR *pSelector,
+                                             const CHAR *pOrderBy,
+                                             const CHAR *pHint,
+                                             INT32 flags,
+                                             INT64 numToSkip,
+                                             INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRTPRIVS_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_GRTPRIVS_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRTPRIVS_DOIT, "_catCMDGrantPrivilegesToRole::doit" )
+   INT32 _catCMDGrantPrivilegesToRole::doit( _pmdEDUCB *cb,
+                                             rtnContextBuf &ctxBuf,
+                                             INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRTPRIVS_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->grantPrivilegesToRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to grant privileges to role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_GRTPRIVS_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDRevokePrivilegesFromRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDRevokePrivilegesFromRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVKPRIVS_INIT, "_catCMDRevokePrivilegesFromRole::init" )
+   INT32 _catCMDRevokePrivilegesFromRole::init( const CHAR *pQuery,
+                                                const CHAR *pSelector,
+                                                const CHAR *pOrderBy,
+                                                const CHAR *pHint,
+                                                INT32 flags,
+                                                INT64 numToSkip,
+                                                INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVKPRIVS_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_RVKPRIVS_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVKPRIVS_DOIT, "_catCMDRevokePrivilegesFromRole::doit" )
+   INT32 _catCMDRevokePrivilegesFromRole::doit( _pmdEDUCB *cb,
+                                                rtnContextBuf &ctxBuf,
+                                                INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVKPRIVS_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->revokePrivilegesFromRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to revoke privileges from role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_RVKPRIVS_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDGrantRolesToRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDGrantRolesToRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRT_ROLES_TO_ROLE_INIT, "_catCMDGrantRolesToRole::init" )
+   INT32 _catCMDGrantRolesToRole::init( const CHAR *pQuery,
+                                        const CHAR *pSelector,
+                                        const CHAR *pOrderBy,
+                                        const CHAR *pHint,
+                                        INT32 flags,
+                                        INT64 numToSkip,
+                                        INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRT_ROLES_TO_ROLE_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_GRT_ROLES_TO_ROLE_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRT_ROLES_TO_ROLE_DOIT, "_catCMDGrantRolesToRole::doit" )
+   INT32 _catCMDGrantRolesToRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRT_ROLES_TO_ROLE_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->grantRolesToRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to grant roles to role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_GRT_ROLES_TO_ROLE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDRevokeRolesFromRole implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDRevokeRolesFromRole )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVK_ROLES_FROM_ROLE_INIT, "_catCMDRevokeRolesFromRole::init" )
+   INT32 _catCMDRevokeRolesFromRole::init( const CHAR *pQuery,
+                                           const CHAR *pSelector,
+                                           const CHAR *pOrderBy,
+                                           const CHAR *pHint,
+                                           INT32 flags,
+                                           INT64 numToSkip,
+                                           INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVK_ROLES_FROM_ROLE_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_RVK_ROLES_FROM_ROLE_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVK_ROLES_FROM_ROLE_DOIT, "_catCMDRevokeRolesFromRole::doit" )
+   INT32 _catCMDRevokeRolesFromRole::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVK_ROLES_FROM_ROLE_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->revokeRolesFromRole( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to revoke roles from role, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_RVK_ROLES_FROM_ROLE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDGrantRolesToUser implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDGrantRolesToUser )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRT_ROLES_TO_USER_INIT, "_catCMDGrantRolesToUser::init" )
+   INT32 _catCMDGrantRolesToUser::init( const CHAR *pQuery,
+                                        const CHAR *pSelector,
+                                        const CHAR *pOrderBy,
+                                        const CHAR *pHint,
+                                        INT32 flags,
+                                        INT64 numToSkip,
+                                        INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRT_ROLES_TO_USER_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_GRT_ROLES_TO_USER_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GRT_ROLES_TO_USER_DOIT, "_catCMDGrantRolesToUser::doit" )
+   INT32 _catCMDGrantRolesToUser::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GRT_ROLES_TO_USER_DOIT ) ;
+      contextID = -1 ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager() ;
+      rc = roleMgr->grantRolesToUser( _query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to grant roles to user, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_GRT_ROLES_TO_USER_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _catCMDRevokeRolesFromUser implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDRevokeRolesFromUser )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVK_ROLES_FROM_USER_INIT, "_catCMDRevokeRolesFromUser::init" )
+   INT32 _catCMDRevokeRolesFromUser::init( const CHAR *pQuery,
+                                           const CHAR *pSelector,
+                                           const CHAR *pOrderBy,
+                                           const CHAR *pHint,
+                                           INT32 flags,
+                                           INT64 numToSkip,
+                                           INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVK_ROLES_FROM_USER_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_RVK_ROLES_FROM_USER_INIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_RVK_ROLES_FROM_USER_DOIT, "_catCMDRevokeRolesFromUser::doit" )
+   INT32 _catCMDRevokeRolesFromUser::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_RVK_ROLES_FROM_USER_DOIT ) ;
+      contextID = -1;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager();
+      rc = roleMgr->revokeRolesFromUser( _query );
+      PD_RC_CHECK( rc, PDERROR, "Failed to revoke roles from user, rc: %d", rc );
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_RVK_ROLES_FROM_USER_DOIT, rc ) ;
+      return rc;
+   error:
+      goto done;
+   }
+
+   /*
+      _catCMDGetUser implement
+   */
+   CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDGetUser )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GETUSER_INIT, "_catCMDGetUser::init" )
+   INT32 _catCMDGetUser::init( const CHAR *pQuery,
+                               const CHAR *pSelector,
+                               const CHAR *pOrderBy,
+                               const CHAR *pHint,
+                               INT32 flags,
+                               INT64 numToSkip,
+                               INT64 numToReturn )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMD_GETUSER_INIT ) ;
+      if ( pQuery )
+      {
+         _query = BSONObj( pQuery );
+      }
+      PD_TRACE_EXITRC( SDB_CATCMD_GETUSER_INIT, rc ) ;
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMD_GETUSER_DOIT, "_catCMDGetUser::doit" )
+   INT32 _catCMDGetUser::doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_CATCMD_GETUSER_DOIT ) ;
+      authRoleManager *roleMgr = pmdGetKRCB()->getAuthCB()->getRoleManager();
+      BSONObj out;
+
+      rc = roleMgr->getUser( _query, out );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get user, rc: %d", rc );
+      ctxBuf = rtnContextBuf( out );
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMD_GETUSER_DOIT, rc ) ;
+      return rc;
+   error:
+      goto done;
    }
 }
 

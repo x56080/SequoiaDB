@@ -3270,5 +3270,29 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_AUTH_ROLE_EXIST</name>
+         <description>
+            <en>Role already exists</en>
+            <cn>角色已存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_AUTH_ROLE_NOT_EXIST</name>
+         <description>
+            <en>Role does not exist</en>
+            <cn>角色不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_AUTH_ROLE_CYCLE_DETECTED</name>
+         <description>
+            <en>The cycle of the role inheritance detected</en>
+            <cn>角色继承关系中存在环</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

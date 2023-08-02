@@ -295,6 +295,8 @@ namespace engine
 
       void _increaseMetrics( _pmdEDUCB *cb ) ;
 
+      INT32 _checkPrivileges( pmdEDUCB *cb );
+
    private:
       INT64                _uniqueId ;
       CHAR                 _fullName[ DMS_COLLECTION_SPACE_NAME_SZ +

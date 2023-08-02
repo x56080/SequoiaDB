@@ -305,6 +305,58 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail ) ;
 
+      INT32 createRole( const _sptArguments &arg,
+                        _sptReturnVal &rval,
+                        bson::BSONObj &detail);
+      
+      INT32 dropRole( const _sptArguments &arg,
+                      _sptReturnVal &rval,
+                      bson::BSONObj &detail);
+
+      INT32 getRole( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
+
+      INT32 listRoles( const _sptArguments &arg,
+                       _sptReturnVal &rval,
+                       bson::BSONObj &detail ) ;
+      
+      INT32 updateRole( const _sptArguments &arg,
+                        _sptReturnVal &rval,
+                        bson::BSONObj &detail);
+      
+      INT32 grantPrivilegesToRole( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail);
+
+      INT32 revokePrivilegesFromRole( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail);
+
+      INT32 grantRolesToRole( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail);
+
+      INT32 revokeRolesFromRole( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail);
+
+      INT32 grantRolesToUser( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail);
+
+      INT32 revokeRolesFromUser( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail);
+
+      INT32 getUser( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
+
+      INT32 invalidateUserCache( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail );
+
       INT32 resolve( const _sptArguments &arg,
                      UINT32 opcode,
                      BOOLEAN &processed,

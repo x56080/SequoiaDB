@@ -143,11 +143,6 @@ namespace engine
 
       virtual INT32 _fetchNext( qgmFetchOut &next, _pmdEDUCB *eduCB ) = 0 ;
 
-      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB )
-      {
-         return SDB_OK ;
-      }
-
    protected:
       QGM_VARLIST    _varlist ;
       QGM_PINPUT     _input ;

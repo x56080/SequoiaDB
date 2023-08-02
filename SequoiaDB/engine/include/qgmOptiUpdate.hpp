@@ -42,6 +42,7 @@
 #include "qgmOptiTree.hpp"
 #include "qgmHintDef.hpp"
 #include "qgmUtil.hpp"
+#include "qgmConditionNode.hpp"
 
 namespace engine
 {
@@ -99,6 +100,9 @@ namespace engine
       error :
          goto done ;
       }
+
+   private:
+      virtual INT32 _checkPrivileges( ISession *session ) const;
 
    public:
       _qgmDbAttr           _collection ;

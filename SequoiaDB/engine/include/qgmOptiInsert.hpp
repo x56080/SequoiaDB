@@ -55,6 +55,9 @@ namespace engine
 
       virtual string toString() const ;
 
+   private:
+      virtual INT32 _checkPrivileges( ISession *session ) const ;
+
    public:
       qgmOpField     _collection ;
       BSONObj        _insertor ;

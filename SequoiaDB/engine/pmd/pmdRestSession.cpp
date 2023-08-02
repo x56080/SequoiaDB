@@ -599,17 +599,6 @@ namespace engine
          _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
       }
 
-      if ( pMsg )
-      {
-         rc = getClient()->checkPrivilege( pMsg ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
-                    rc ) ;
-            goto error ;
-         }
-      }
-
    done:
       return rc ;
    error:

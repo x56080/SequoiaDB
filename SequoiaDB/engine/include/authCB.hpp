@@ -39,6 +39,7 @@
 #include "../bson/bson.h"
 #include "sdbInterface.hpp"
 #include "utilAuthSCRAMSHA.hpp"
+#include "authRoleManager.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -94,6 +95,11 @@ namespace engine
          return _authEnabled ;
       }
 
+      authRoleManager *getRoleManager()
+      {
+         return &_roleMgr;
+      }
+
    private:
       INT32   _initAuthentication( _pmdEDUCB *cb ) ;
       INT32   _buildSecureUserInfo( BSONObjBuilder &builder,
@@ -143,12 +149,12 @@ namespace engine
                                         const CHAR *serverProof,
                                         const CHAR *hashCode,
                                         BSONObj &result ) ;
-      INT32   _rebuildUserOption( const BSONObj &oldOpt, BSONObj &newOpt ) ;
       INT32   _checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb ) ;
       INT32   _checkRemoveUser( const CHAR *username, _pmdEDUCB *cb ) ;
 
    private:
       BOOLEAN     _authEnabled ;
+      authRoleManager _roleMgr ;
    } ;
 
    typedef class _authCB SDB_AUTHCB ;

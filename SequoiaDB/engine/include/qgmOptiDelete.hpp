@@ -40,6 +40,7 @@
 #define QGMOPTIDELET_HPP_
 
 #include "qgmOptiTree.hpp"
+#include "qgmConditionNode.hpp"
 
 namespace engine
 {
@@ -66,6 +67,9 @@ namespace engine
 
       virtual string toString() const
       { return "delete"; }
+      
+   private:
+      virtual INT32 _checkPrivileges( ISession *session ) const;
 
    public:
       qgmDbAttr _collection ;

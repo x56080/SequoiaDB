@@ -5728,4 +5728,95 @@ error:
       return CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
    }
 
+
+   /*
+      _rtnCMDInvalidateUserCache implement
+   */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDInvalidateUserCache )
+
+   _rtnCMDInvalidateUserCache::_rtnCMDInvalidateUserCache()
+   {
+   }
+
+   _rtnCMDInvalidateUserCache::~_rtnCMDInvalidateUserCache()
+   {
+   }
+
+   const CHAR *_rtnCMDInvalidateUserCache::name()
+   {
+      return NAME_INVALIDATE_USER_CACHE ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCMDInvalidateUserCache::type()
+   {
+      return CMD_INVALIDATE_USER_CACHE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEUSERCACHE_INIT, "_rtnCMDInvalidateUserCache::init" )
+   INT32 _rtnCMDInvalidateUserCache::init( INT32 flags,
+                                           INT64 numToSkip,
+                                           INT64 numToReturn,
+                                           const CHAR *pMatcherBuff,
+                                           const CHAR *pSelectBuff,
+                                           const CHAR *pOrderByBuff,
+                                           const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDINVALIDATEUSERCACHE_INIT ) ;
+
+      try
+      {
+         BSONObj query( pMatcherBuff ) ;
+
+         BSONElement ele = query.getField( FIELD_NAME_USER ) ;
+         if ( String == ele.type() )
+         {
+            _userName = ele.poolString() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize command, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEUSERCACHE_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done;
+} 
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEUSERCACHE_DOIT, "_rtnCMDInvalidateUserCache::doit" )
+   INT32 _rtnCMDInvalidateUserCache::doit( _pmdEDUCB *cb,
+                                           SDB_DMSCB *dmsCB,
+                                           SDB_RTNCB *rtnCB,
+                                           SDB_DPSCB *dpsCB,
+                                           INT16 w,
+                                           INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDINVALIDATEUSERCACHE_DOIT ) ;
+
+      SDB_ASSERT( cb, "cb is invalid" ) ;
+      SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
+
+      *pContextID = -1 ;
+
+      if ( _userName.empty() )
+      {
+         rtnCB->getUserCacheMgr()->clear();
+      }
+      else
+      {
+         rtnCB->getUserCacheMgr()->remove( _userName );
+      }
+      
+      PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEUSERCACHE_DOIT, rc ) ;
+      return rc ;
+   }
 }

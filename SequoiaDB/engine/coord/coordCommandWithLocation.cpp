@@ -844,4 +844,31 @@ namespace engine
    error :
       goto done ;
    }
+
+   /*
+      _coordCMDInvalidateUserCache implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDInvalidateUserCache,
+                                      CMD_NAME_INVALIDATE_USER_CACHE,
+                                      TRUE ) ;
+   _coordCMDInvalidateUserCache::_coordCMDInvalidateUserCache()
+   {
+   }
+
+   _coordCMDInvalidateUserCache::~_coordCMDInvalidateUserCache()
+   {
+   }
+
+   void _coordCMDInvalidateUserCache::_preSet( pmdEDUCB * cb,
+                                               coordCtrlParam & ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+   }
+
+   UINT32 _coordCMDInvalidateUserCache::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
 }

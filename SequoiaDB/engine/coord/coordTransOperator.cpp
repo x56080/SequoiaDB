@@ -45,11 +45,28 @@
 #include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
+using namespace boost;
 
 namespace engine
 {
+   INT32 checkPrivilegesOfTransAction( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_trans );
+         rc = cb->getSession()->checkPrivilegesForActionsOnCluster( actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privilege" );
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
    /*
       _coordTransOperator implement
@@ -374,6 +391,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       contextID   = -1 ;
 
+      rc = checkPrivilegesOfTransAction( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+
       if ( cb->isAutoCommitTrans() )
       {
          rc = SDB_RTN_ALREADY_IN_AUTO_TRANS ;
@@ -384,7 +404,11 @@ namespace engine
       {
          rc = beginTrans( cb ) ;
       }
+
+   done:
       return rc ;
+   error:
+      goto done;
    }
 
    /*
@@ -787,6 +811,10 @@ namespace engine
       DPS_TRANS_ID curTransID = cb->getTransID() ;
 
       const CHAR *pHint = NULL ;
+
+      rc = checkPrivilegesOfTransAction( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+
       rc = msgExtractTransCommit( (CHAR*)pMsg, &pHint ) ;
       if ( rc )
       {
@@ -952,6 +980,9 @@ namespace engine
       {
          goto done ;
       }
+
+      rc = checkPrivilegesOfTransAction( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
 
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,

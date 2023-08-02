@@ -13433,6 +13433,469 @@ do                                                            \
                       condition, selector, orderBy, hint ) ;
    }
 
+   INT32 _sdbImpl::createRole( const bson::BSONObj &role )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CREATE_ROLE ;
+
+      if ( !role.hasField( FIELD_NAME_ROLE ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &role ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _sdbImpl::dropRole( const CHAR *roleName )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_DROP_ROLE ;
+
+      if ( !roleName || !*roleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      {
+         BSONObj query = BSON( FIELD_NAME_ROLE << roleName );
+         rc = _runCommand( pCommand, &query );
+         if ( rc )
+         {
+            goto error;
+         }
+      }
+
+      done:
+   return rc ;
+error:
+   goto done ;
+
+   }
+
+   INT32 _sdbImpl::getRole( const CHAR *pRoleName,
+                            const bson::BSONObj &options,
+                            bson::BSONObj &role )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+      BSONObjBuilder builder ;
+      _sdbCursor * cursor = NULL ;
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendElements( options ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_ROLE, &query, NULL, NULL, NULL, 0, 0, 0, -1,
+                        &cursor );
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = cursor->next( role ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_AUTH_ROLE_NOT_EXIST;
+      }
+      else
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::listRoles( _sdbCursor **result, const bson::BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_LIST_ROLES, &options, NULL, NULL, NULL, 0, 0, 0,
+                        -1, result );
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::updateRole( const CHAR *pRoleName, const bson::BSONObj &role )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_UPDATE_ROLE ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendElements( role ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::grantPrivilegesToRole( const CHAR *pRoleName, const bson::BSONObj &privileges )
+   {   
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GRANT_PRIVILEGES ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendArray( FIELD_NAME_PRIVILEGES, privileges ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::revokePrivilegesFromRole( const CHAR *pRoleName,
+                                             const bson::BSONObj &privileges )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_REVOKE_PRIVILEGES ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendArray( FIELD_NAME_PRIVILEGES, privileges ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::grantRolesToRole( const CHAR *pRoleName, const bson::BSONObj &roles )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GRANT_ROLES_TO_ROLE ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendArray( FIELD_NAME_ROLES, roles ) ;
+         query = builder.done();
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::revokeRolesFromRole( const CHAR *pRoleName, const bson::BSONObj &roles )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_REVOKE_ROLES_FROM_ROLE ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pRoleName || !*pRoleName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_ROLE, pRoleName ) ;
+         builder.appendArray( FIELD_NAME_ROLES, roles ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::grantRolesToUser( const CHAR *pUsrName, const bson::BSONObj &roles )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GRANT_ROLES_TO_USER ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pUsrName || !*pUsrName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_USER, pUsrName ) ;
+         builder.appendArray( FIELD_NAME_ROLES, roles ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::revokeRolesFromUser( const CHAR *pUsrName, const bson::BSONObj &roles )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_REVOKE_ROLES_FROM_USER ;
+      BSONObjBuilder builder;
+      BSONObj query;
+
+      if ( !pUsrName || !*pUsrName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_USER, pUsrName ) ;
+         builder.appendArray( FIELD_NAME_ROLES, roles ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand ( pCommand, &query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getUser( const CHAR *pUserName,
+                            const bson::BSONObj &options,
+                            bson::BSONObj &user )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+      BSONObjBuilder builder ;
+      _sdbCursor * cursor = NULL ;
+
+      if ( !pUserName || !*pUserName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_USER, pUserName ) ;
+         builder.appendElements( options ) ;
+         query = builder.done() ;
+      }
+      catch ( const std::exception & )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_USER, &query, NULL, NULL, NULL, 0, 0, 0, -1,
+                        &cursor );
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = cursor->next( user ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_AUTH_ROLE_NOT_EXIST;
+      }
+      else
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::invalidateUserCache( const CHAR *pUserName, const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+      
+      try
+      {
+         BSONObjBuilder queryBuilder ;
+         if ( pUserName )
+         {
+            queryBuilder.append( FIELD_NAME_USER, pUserName );
+         }
+         if ( !options.isEmpty() )
+         {
+            queryBuilder.appendElements( options );
+         }
+         query = queryBuilder.obj() ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_USER_CACHE, &query ) ;
+      if( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    _sdb *_sdb::getObj ( BOOLEAN useSSL )
    {
       return (_sdb*)(new(std::nothrow) sdbImpl ( useSSL )) ;

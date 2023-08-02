@@ -35,6 +35,7 @@
 #include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "auth.hpp"
 
 namespace engine
 {
@@ -69,6 +70,14 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_AUTHDELOPR_EXE ) ;
       const CHAR *pUserName = NULL ;
       const CHAR *pPass = NULL ;
+
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_dropUsr );
+         rc = cb->getSession()->checkPrivilegesForActionsOnCluster( actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
 
       rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPass, NULL, buf ) ;
       if ( pUserName )
