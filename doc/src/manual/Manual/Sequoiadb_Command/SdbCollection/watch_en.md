@@ -24,7 +24,7 @@ This function is used to subscribe the change stream of the collection.
 
     - ChangeTypes (*string*)
 
-        The type of change events to subscribe to. Supported types include "RECORD" (BSON record DML operations), "DDL" (DDL operations), "TRANS" (transaction change operations), "ALL" (all types). Multiple types can be connected with "|", and it is not case sensitive. The default is: "RECORD|DDL". LOB operations are not supported yet.
+        The type of change events to subscribe to. Supported types include "RECORD" (BSON record DML operations), "LOB" (LOB DML operations), "DDL" (DDL operations), "TRANS" (transaction change operations), "ALL" (all types). Multiple types can be connected with "|", and it is not case sensitive. The default is: "RECORD|DDL".
 
         Format: `ChangeTypes: "RECORD|DDL"`
 

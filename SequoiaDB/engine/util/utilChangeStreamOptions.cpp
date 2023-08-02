@@ -334,10 +334,6 @@ namespace engine
                       length == ossStrlen( UTIL_CHANGE_TYPE_NAME_DML_LOB ) )
             {
                // DML for LOB
-               PD_LOG_MSG_CHECK( FALSE, SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                                 "Failed to parse change types, "
-                                 "\"%s\" is not supported yet",
-                                 UTIL_CHANGE_TYPE_NAME_DML_LOB ) ;
                OSS_BIT_SET( tmpChangeTypeMask, UTIL_CHANGE_TYPE_DML_LOB ) ;
             }
             else if ( 0 == ossStrncasecmp( p, UTIL_CHANGE_TYPE_NAME_TRANS, length ) &&

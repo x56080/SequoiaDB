@@ -21,7 +21,7 @@ insert 插入记录操作，格式如下：
 
 | 字段名 | 类型 | 描述 |
 | --- | --- | --- |
-| DocumentKey | bson | 插入记录的主键 |
+| DocumentKey | oid | 插入记录的主键 |
 | Document | bson | 插入记录的内容 |
 
 例子：

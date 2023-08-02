@@ -21,7 +21,7 @@ update 更新记录操作，格式如下：
 
 | 字段名 | 类型 | 描述 |
 | --- | --- | --- |
-| DocumentKey | bson | 更新记录的主键 |
+| DocumentKey | oid | 更新记录的主键 |
 | UpdateAction | bson | 更新记录的操作 |
 
 例子：

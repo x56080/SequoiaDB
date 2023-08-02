@@ -282,7 +282,7 @@ function checkChangeStreamDeleteResult( cursor, csName, clName, documentKey, cha
 }
 
 // check lob change stream result
-function checkChangeStreamLobResult( cursor, csName, clName, documentKey, changeType, changeFlags )
+function checkChangeStreamLobResult( cursor, csName, clName, documentKey, changeType, desc, changeFlags )
 {
    var token = "" ;
 
@@ -323,6 +323,14 @@ function checkChangeStreamLobResult( cursor, csName, clName, documentKey, change
             else
             {
                throw new Error( "unexpected change type: " + actRecord.ChangeType ) ;
+            }
+            if ( undefined != desc )
+            {
+               for ( var key in desc )
+               {
+                  assert.equal( actRecord.Description[ key ], desc[ key ],
+                                "description " + key + " is different" ) ;
+               }
             }
          }
          else

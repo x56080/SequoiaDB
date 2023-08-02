@@ -855,6 +855,8 @@
 #define FIELD_NAME_IN_CACHE_NUM              "InCacheNum"
 #define FIELD_NAME_IN_CACHE_SIZE             "InCacheSize"
 #define FIELD_NAME_LOB_SEQUENCE              "Sequence"
+#define FIELD_NAME_PAGE_OFFSET               "PageOffset"
+#define FIELD_NAME_FILE_OFFSET               "FileOffset"
 
 #define FIELD_NAME_CONTROL_NUM               "ControlNum"
 #define FIELD_NAME_CHANGE_NUM                "ChangeNum"

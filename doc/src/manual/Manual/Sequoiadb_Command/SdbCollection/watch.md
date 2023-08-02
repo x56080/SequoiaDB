@@ -24,7 +24,7 @@ SdbCollection
 
     - ChangeTypes（ *string* ）
 
-        订阅的变更事件类型。支持的类型有 "RECORD"（BSON 记录的 DML 操作）, "DDL"（DDL操作）, "TRANS"（事务变更操作）, "ALL"（所有类型）。可以用 "|" 来连接多个类型，大小写不敏感。默认为："RECORD|DDL"。暂不支持 LOB 操作。
+        订阅的变更事件类型。支持的类型有 "RECORD"（BSON 记录的 DML 操作）, "LOB"（LOB 的 DML 操作）, "DDL"（DDL操作）, "TRANS"（事务变更操作）, "ALL"（所有类型）。可以用 "|" 来连接多个类型，大小写不敏感。默认为："RECORD|DDL"。
 
         格式：`ChangeTypes: "RECORD|DDL"`
 

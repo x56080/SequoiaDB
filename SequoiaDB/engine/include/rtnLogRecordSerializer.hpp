@@ -162,6 +162,21 @@ namespace engine
                                         bson::BSONObjBuilder &builder,
                                         dpsRecordTransInfo &transInfo,
                                         dpsRecordTimeInfo &timeInfo ) ;
+
+      static INT32 _buildLobMetaData( const dmsLobMeta *meta,
+                                      UINT32 length,
+                                      bson::BSONObjBuilder &builder ) ;
+      static INT32 _buildLobData( const CHAR *lobData,
+                                  UINT32 pageOffset,
+                                  UINT64 fileOffset,
+                                  UINT32 length,
+                                  bson::BSONObjBuilder &builder ) ;
+      static INT32 _buildLobDescription( const CHAR *lobData,
+                                         UINT32 sequence,
+                                         UINT32 pageSize,
+                                         UINT32 offset,
+                                         UINT32 length,
+                                         bson::BSONObjBuilder &builder ) ;
    } ;
 
    typedef class _rtnLogRecordSerializer rtnLogRecordSerializer ;

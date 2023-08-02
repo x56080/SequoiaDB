@@ -42,6 +42,7 @@
 #include "pdTrace.hpp"
 #include "pmdEnv.hpp"
 #include "rtnAlterTask.hpp"
+#include "rtnLobPieces.hpp"
 #include "rtnTrace.hpp"
 
 using namespace std ;
@@ -1111,8 +1112,9 @@ namespace engine
       // document key
       builder.append( FIELD_NAME_DOCUMENT_KEY, *oid ) ;
 
-      // LOB information
-      builder.append( FIELD_NAME_LOB_SEQUENCE, sequence ) ;
+      // LOB description
+      rc = _buildLobDescription( lobData, sequence, pageSize, offset, length, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build LOB description, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBWRITEREC, rc ) ;
@@ -1153,10 +1155,11 @@ namespace engine
 
       // document key
       builder.append( FIELD_NAME_DOCUMENT_KEY, *oid ) ;
-      // LOB information
-      // NOTE: remove lob is actually remove whole lob piece, so no need to
-      //       get offset and length
-      builder.append( FIELD_NAME_LOB_SEQUENCE, sequence ) ;
+
+      // LOB description
+      // NOTE: remove lob needs no data
+      rc = _buildLobDescription( NULL, sequence, pageSize, offset, length, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build LOB description, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBRMREC, rc ) ;
@@ -1200,8 +1203,9 @@ namespace engine
       // document key
       builder.append( FIELD_NAME_DOCUMENT_KEY, *oid ) ;
 
-      // LOB information
-      builder.append( FIELD_NAME_LOB_SEQUENCE, sequence ) ;
+      // LOB description
+      rc = _buildLobDescription( lobData, sequence, pageSize, offset, length, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build LOB description, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBUPDTREC, rc ) ;
@@ -1391,6 +1395,144 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDDFLTREC, rc ) ;
 
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNLOGRECSERIALIZER__BLDLOBMETADATA, "_rtnLogRecordSerializer::_buildLobMetaData" )
+   INT32 _rtnLogRecordSerializer::_buildLobMetaData( const dmsLobMeta *meta,
+                                                     UINT32 length,
+                                                     BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNLOGRECSERIALIZER__BLDLOBMETADATA ) ;
+
+      // build metadata, same format as listLobs()
+      BSONObjBuilder metaBuilder( builder.subobjStart( FIELD_NAME_LOB_META_DATA ) ) ;
+      metaBuilder.append( FIELD_NAME_LOB_SIZE, meta->_lobLen ) ;
+      UINT64 createTimeMS = meta->_createTime ;
+      UINT64 modificationTimeMS = 0 != meta->_modificationTime ?
+                                    meta->_modificationTime :
+                                    createTimeMS ;
+      metaBuilder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
+                                    createTimeMS,
+                                    createTimeMS % 1000 * 1000 ) ;
+      metaBuilder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
+                                    modificationTimeMS,
+                                    modificationTimeMS % 1000 * 1000 ) ;
+      metaBuilder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
+      metaBuilder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;
+      // build pieces info
+      if ( meta->hasPiecesInfo() && length >= DMS_LOB_META_LENGTH )
+      {
+         BSONArray array ;
+         _rtnLobPiecesInfo piecesInfo ;
+
+         UINT32 piecesLength = meta->_piecesInfoNum * sizeof( _rtnLobPieces ) ;
+         const CHAR *piecesInfoBuf = (const CHAR *)meta + DMS_LOB_META_LENGTH - piecesLength ;
+
+         INT32 rc = piecesInfo.readFrom( piecesInfoBuf, length ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to read pieces info of lob, rc: %d", rc ) ;
+
+         rc = piecesInfo.saveTo( array ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save pieces info of lob, rc: %d", rc ) ;
+
+         metaBuilder.append( FIELD_NAME_LOB_PIECESINFONUM, meta->_piecesInfoNum ) ;
+         metaBuilder.appendArray( FIELD_NAME_LOB_PIECESINFO, array ) ;
+      }
+      metaBuilder.doneFast() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBMETADATA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNLOGRECSERIALIZER__BLDLOBDATA, "_rtnLogRecordSerializer::_buildLobData" )
+   INT32 _rtnLogRecordSerializer::_buildLobData( const CHAR *lobData,
+                                                 UINT32 pageOffset,
+                                                 UINT64 fileOffset,
+                                                 UINT32 length,
+                                                 BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNLOGRECSERIALIZER__BLDLOBDATA ) ;
+
+      builder.append( FIELD_NAME_PAGE_OFFSET, pageOffset ) ;
+      builder.append( FIELD_NAME_FILE_OFFSET, (INT64)fileOffset ) ;
+      if ( NULL != lobData )
+      {
+         builder.append( FIELD_NAME_LOB_LENGTH, length ) ;
+         builder.appendBinData( FIELD_NAME_DATA, length, BinDataGeneral, lobData ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBDATA, rc ) ;
+
+      return rc ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNLOGRECSERIALIZER__BLDLOBDESC, "_rtnLogRecordSerializer::_buildLobDescription" )
+   INT32 _rtnLogRecordSerializer::_buildLobDescription( const CHAR *lobData,
+                                                        UINT32 sequence,
+                                                        UINT32 pageSize,
+                                                        UINT32 offset,
+                                                        UINT32 length,
+                                                        BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNLOGRECSERIALIZER__BLDLOBDESC ) ;
+
+      BSONObjBuilder descBuilder( builder.subobjStart( FIELD_NAME_DESP ) ) ;
+      descBuilder.append( FIELD_NAME_LOB_SEQUENCE, sequence ) ;
+      descBuilder.append( FIELD_NAME_PAGE_SIZE, pageSize ) ;
+
+      if ( DMS_LOB_META_SEQUENCE == sequence && offset < DMS_LOB_META_LENGTH )
+      {
+         // metadata sequence
+         PD_CHECK( 0 == offset, SDB_DPS_CORRUPTED_LOG, error, PDERROR,
+                   "Failed to build metadata for LOB, metadata starts from "
+                   "offset [%u] is incomplete", offset ) ;
+         PD_CHECK( sizeof( dmsLobMeta ) <= length, SDB_DPS_CORRUPTED_LOG, error, PDERROR,
+                   "Failed to build metadata for LOB, metadata ends to "
+                   "length [%u] is incomplete", length ) ;
+
+         // build metadata
+         if ( NULL != lobData )
+         {
+            rc = _buildLobMetaData( (const dmsLobMeta *)lobData, length, descBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build metadata for LOB, rc: %d", rc ) ;
+         }
+
+         // build data
+         if ( length > DMS_LOB_META_LENGTH )
+         {
+            rc = _buildLobData( NULL != lobData ? lobData + DMS_LOB_META_LENGTH : NULL,
+                                DMS_LOB_META_LENGTH, 0,
+                                length - DMS_LOB_META_LENGTH, descBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build data for LOB, rc: %d", rc ) ;
+         }
+      }
+      else
+      {
+         // data sequence
+         UINT64 fileOffset = (UINT64)sequence * pageSize + offset - DMS_LOB_META_LENGTH ;
+
+         rc = _buildLobData( lobData, offset, fileOffset, length, descBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build data for LOB, rc: %d", rc ) ;
+      }
+
+      descBuilder.doneFast() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNLOGRECSERIALIZER__BLDLOBDESC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

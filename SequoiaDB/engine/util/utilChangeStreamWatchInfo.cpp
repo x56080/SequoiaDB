@@ -169,15 +169,14 @@ namespace engine
          _watchedLogTypeBitmap.setBit( LOG_TYPE_CL_TRUNC ) ;
          _watchedLogTypeBitmap.setBit( LOG_TYPE_DATA_POP ) ;
       }
-      // LOB is not supported yet
-      // if ( OSS_BIT_TEST( changeTypeMask, UTIL_CHANGE_TYPE_DML_LOB ) )
-      // {
-      //    _watchedLogTypeBitmap.setBit( LOG_TYPE_CL_TRUNC ) ;
-      //    _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_WRITE ) ;
-      //    _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_UPDATE ) ;
-      //    _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_REMOVE ) ;
-      //    _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_TRUNCATE ) ;
-      // }
+      if ( OSS_BIT_TEST( changeTypeMask, UTIL_CHANGE_TYPE_DML_LOB ) )
+      {
+         _watchedLogTypeBitmap.setBit( LOG_TYPE_CL_TRUNC ) ;
+         _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_WRITE ) ;
+         _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_UPDATE ) ;
+         _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_REMOVE ) ;
+         _watchedLogTypeBitmap.setBit( LOG_TYPE_LOB_TRUNCATE ) ;
+      }
       if ( OSS_BIT_TEST( changeTypeMask, UTIL_CHANGE_TYPE_DDL ) )
       {
          _watchedLogTypeBitmap.setBit( LOG_TYPE_CS_CRT ) ;
