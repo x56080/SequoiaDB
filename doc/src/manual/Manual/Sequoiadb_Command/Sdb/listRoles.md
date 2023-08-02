@@ -4,7 +4,7 @@ listRoles - 获取所有角色的信息
 
 ##语法##
 
-**db.listRole( [options] )**
+**db.listRoles( [options] )**
 
 ##类别##
 
