@@ -149,9 +149,129 @@ Role
 T}@T{
 String
 T}@T{
-user role
+User role in old
+T}
+T{
 T}@T{
-not
+T}@T{
+T}@T{
+version.
+Currently only
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+supports built\-in
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+roles in the system,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the default value is "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+admin", and the value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+list: "admin", "monitor
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+".
+"admin" is the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+administrator role,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+which can perform any
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+operation.
+"monitor" is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the monitoring role,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+which can only perform
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+snapshot and list
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+operations.
+T}
+T{
+3
+T}@T{
+Roles
+T}@T{
+Array
+T}@T{
+User role list.
+You can
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+grant multiple roles
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+to users.
+For details,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+please refer to Role\-
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+based Access Control
 T}
 .TE
 .RS
@@ -181,14 +301,7 @@ You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g:
 .RE
 .RS
 .IP \[bu] 2
-Role\[aq]s value are as follow: "admin"、"monitor".
-The default value is "admin".
-User of role "admin" can do anything in the database, while user of role
-"monitor" can only do snapshot and list operations.
-.RE
-.RS
-.IP \[bu] 2
-The role of the first user in the database should always be "admin".
+The first user created in the database must be granted the "_root" role.
 .RE
 .SH RETURN VALUE
 .PP

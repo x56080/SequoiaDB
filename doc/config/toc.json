@@ -1901,6 +1901,50 @@
                            "file": "authentication_algorithm",
                            "cn": "鉴权机制",
                            "en": "Authentication Algorithm"
+                        },
+                        {
+                           "id": 1690420362,
+                           "dir": "Role_Based_Access_Control",
+                           "cn": "基于角色的访问控制",
+                           "en": "Role-based Access Control",
+                           "contents": [
+                              {
+                                 "id": 1690768972,
+                                 "file": "privilege_resource_actions",
+                                 "cn": "权限、资源和操作",
+                                 "en": "Privilege, Resource and Actions"
+                              },
+                              {
+                                 "id": 1690420363,
+                                 "file": "builtin_roles",
+                                 "cn": "内建角色",
+                                 "en": "Built-in Roles"
+                              },
+                              {
+                                 "id": 1690420364,
+                                 "file": "user_defined_roles",
+                                 "cn": "用户自定义角色",
+                                 "en": "User-defined Roles"
+                              },
+                              {
+                                 "id": 1690420365,
+                                 "file": "manage_users_and_roles",
+                                 "cn": "管理用户和角色",
+                                 "en": "Manage Users and Roles"
+                              },
+                              {
+                                 "id": 1690420366,
+                                 "file": "access_control",
+                                 "cn": "访问控制",
+                                 "en": "Access Control"
+                              },
+                              {
+                                 "id": 1690881439,
+                                 "file": "user_update_guide",
+                                 "cn": "用户升级指南",
+                                 "en": "User Update Guide"
+                              }
+                           ]
                         }                  
                      ]
                   },
@@ -2659,6 +2703,12 @@
                            "en": "createRG()"
                         },
                         {
+                           "id": 1690351036,
+                           "file": "createRole",
+                           "cn": "createRole()",
+                           "en": "createRole()"
+                        },
+                        {
                            "id": 1606120774,
                            "file": "createSequence",
                            "cn": "createSequence()",
@@ -2693,6 +2743,12 @@
                            "file": "dropDomain",
                            "cn": "dropDomain()",
                            "en": "dropDomain()"
+                        },
+                        {
+                           "id" : 1690351037,
+                           "file": "dropRole",
+                           "cn": "dropRole()",
+                           "en": "dropRole()"
                         },
                         {
                            "id": 1606120775,
@@ -2785,6 +2841,12 @@
                            "en": "getRG()"
                         },
                         {
+                           "id": 1690351038,
+                           "file": "getRole",
+                           "cn": "getRole()",
+                           "en": "getRole()"
+                        },
+                        {
                            "id": 1606120776,
                            "file": "getSequence",
                            "cn": "getSequence()",
@@ -2809,10 +2871,40 @@
                            "en": "getTask()"
                         },
                         {
+                           "id": 1690350546,
+                           "file": "getUser",
+                           "cn": "getUser()",
+                           "en": "getUser()"
+                        },
+                        {
+                           "id": 1690351041,
+                           "file": "grantPrivilegesToRole",
+                           "cn": "grantPrivilegesToRole()",
+                           "en": "grantPrivilegesToRole()"
+                        },
+                        {
+                           "id": 1690351042,
+                           "file": "grantRolesToRole",
+                           "cn": "grantRolesToRole()",
+                           "en": "grantRolesToRole()"
+                        },
+                        {
+                           "id": 1690351043,
+                           "file": "grantRolesToUser",
+                           "cn": "grantRolesToUser()",
+                           "en": "grantRolesToUser()"
+                        },
+                        {
                            "id": 1432190792,
                            "file": "invalidateCache",
                            "cn": "invalidateCache()",
                            "en": "invalidateCache()"
+                        },
+                        {
+                           "id": 1690884843,
+                           "file": "invalidateUserCache",
+                           "cn": "invalidateUserCache()",
+                           "en": "invalidateUserCache()"
                         },
                         {
                            "id": 1432190793,
@@ -2861,6 +2953,12 @@
                            "file": "listReplicaGroups",
                            "cn": "listReplicaGroups()",
                            "en": "listReplicaGroups()"
+                        },
+                        {
+                           "id": 1690351039,
+                           "file": "listRoles",
+                           "cn": "listRoles()",
+                           "en": "listRoles()"
                         },
                         {
                            "id": 1563243399,
@@ -2933,6 +3031,24 @@
                            "file": "reloadConf",
                            "cn": "reloadConf()",
                            "en": "reloadConf()"
+                        },
+                        {
+                           "id": 1690351044,
+                           "file": "revokePrivilegesFromRole",
+                           "cn": "revokePrivilegesFromRole()",
+                           "en": "revokePrivilegesFromRole()"
+                        },
+                        {
+                           "id": 1690351045,
+                           "file": "revokeRolesFromRole",
+                           "cn": "revokeRolesFromRole()",
+                           "en": "revokeRolesFromRole()"
+                        },
+                        {
+                           "id": 1690351046,
+                           "file": "revokeRolesFromUser",
+                           "cn": "revokeRolesFromUser()",
+                           "en": "revokeRolesFromUser()"
                         },
                         {
                            "id": 1521424296,
@@ -3023,6 +3139,12 @@
                            "file": "updateConf",
                            "cn": "updateConf()",
                            "en": "updateConf()"
+                        },
+                        {
+                           "id": 1690351040,
+                           "file": "updateRole",
+                           "cn": "updateRole()",
+                           "en": "updateRole()"
                         },
                         {
                            "id": 1432190818,
