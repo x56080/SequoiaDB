@@ -215,6 +215,53 @@ INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCoun
                            INT64 &objects, INT64 &avgObjSize, INT64 &dataSize,
                            INT64 &totalDataSize, INT32 &indexCount, INT64 &indexSize ) ;
 
+class _mongoTopCommand : public _mongoGlobalCommand
+{
+   enum MONGO_TOP_STEP
+   {
+      // Get the total number of queries from the master and secondary nodes
+      MONGO_TOP_STEP1 = 1,
+      // Get the total number of insert, update and remove from the master nodes
+      MONGO_TOP_STEP2 = 2,
+   } ;
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoTopCommand() ;
+      virtual ~_mongoTopCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_TOP ; }
+      virtual const CHAR* name() const { return MONGO_CMD_NAME_TOP ; }
+
+      virtual BOOLEAN needProcessByEngine() const { return TRUE ; }
+
+      virtual BOOLEAN hasProcessAllMsg() const { return _hasProcessAllMsg ; }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                     mongoSessionCtx &ctx,
+                                     BOOLEAN &getMoreAll ) ;
+
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+   private:
+      INT32 _buildStep1Request( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+      INT32 _buildStep2Request( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+      INT32 _parseStep1Reply( const MsgOpReply &sdbReply,
+                              engine::rtnContextBuf &bodyBuf ) ;
+      INT32 _parseStep2Reply( const MsgOpReply &sdbReply,
+                              engine::rtnContextBuf &bodyBuf ) ;
+
+   private:
+      MONGO_TOP_STEP _step ;
+      BOOLEAN _hasProcessAllMsg ;
+      std::map< string, std::vector<INT64> > _clCRUDCountMap ;
+} ;
+typedef _mongoTopCommand mongoTopCommand ;
+
 class _mongoCurrentOpCommand : public _mongoDummyCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()

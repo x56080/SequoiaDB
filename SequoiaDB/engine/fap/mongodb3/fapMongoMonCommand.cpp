@@ -43,6 +43,12 @@
 #include "ossCmdRunner.hpp"
 #include "utilSystem.hpp"
 
+#define FAP_CRUD_OP_COUNT           4
+#define FAP_TOTAL_INSERT_POSITION   0
+#define FAP_TOTAL_DELETE_POSITION   1
+#define FAP_TOTAL_UPDATE_POSITION   2
+#define FAP_TOTAL_QUERY_POSITION    3
+
 namespace fap
 {
 INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCount,
@@ -72,7 +78,7 @@ INT32 fapMongoParseCLInfo( engine::rtnContextBuf &bodyBuf, INT32 &collectionCoun
          BSONObj obj ;
 
          rc = bodyBuf.nextObj( obj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
 
          {
          BSONObjIterator itr( obj ) ;
@@ -556,22 +562,32 @@ INT32 _mongoDatabaseStatsCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    StringBuilder buf ;
    std::string sql ;
 
-   buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
-          "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
-          "sum(T2.TotalIndexPages) as TotalIndexPages, "
-          "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
-          "( "
-               "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
-               "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
-               "T1.Details.TotalIndexPages as TotalIndexPages, "
-               "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
-               "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
-               "( "
-                     "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
-                     "CollectionSpace =\"" << _csName.c_str() << "\" split by Details "
-               ") as T1 "
-          ") as T2 group by T2.Name" ;
-   sql = buf.str() ;
+   try
+   {
+      buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
+            "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
+            "sum(T2.TotalIndexPages) as TotalIndexPages, "
+            "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
+            "( "
+                  "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
+                  "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
+                  "T1.Details.TotalIndexPages as TotalIndexPages, "
+                  "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
+                  "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
+                  "( "
+                        "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
+                        "CollectionSpace =\"" << _csName.c_str() << "\" split by Details "
+                  ") as T1 "
+            ") as T2 group by T2.Name" ;
+      sql = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sql statement reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    /*
       output str, eg:
@@ -812,9 +828,9 @@ INT32 _mongoCollectionStatsCommand::buildMongoReply( const MsgOpReply &sdbReply,
       */
       if ( SDB_OK == sdbReply.flags )
       {
-         bob.append( FAP_MONGO_FIELS_NAME_NS, _clFullName.c_str() ) ;
-         bob.append( FAP_MONGO_FIELS_NAME_SIZE, _dataSize ) ;
-         bob.append( FAP_MONGO_FIELS_NAME_COUNT, _objects ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_NS, _clFullName.c_str() ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_SIZE, _dataSize ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_COUNT, _objects ) ;
          bob.append( FAP_MONGO_FIELD_NAME_AVG_OBJ_SIZE, _avgObjSize ) ;
          bob.append( FAP_MONGO_FIELD_NAME_STOR_SIZE, _totalDataSize ) ;
          bob.append( FAP_MONGO_FIELD_NAME_FREE_STOR_SIZE, _totalDataSize - _dataSize ) ;
@@ -949,22 +965,32 @@ INT32 _mongoCollectionStatsCommand::_buildSnapClRequest( mongoMsgBuffer &sdbMsg,
    StringBuilder buf ;
    std::string sql ;
 
-   buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
-          "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
-          "sum(T2.TotalIndexPages) as TotalIndexPages, "
-          "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
-          "( "
-               "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
-               "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
-               "T1.Details.TotalIndexPages as TotalIndexPages, "
-               "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
-               "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
-               "( "
-                     "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
-                     "Name =\"" << _clFullName.c_str() << "\" split by Details "
-               ") as T1 "
-          ") as T2" ;
-   sql = buf.str() ;
+   try
+   {
+      buf << "select T2.Name, first(T2.PageSize) as PageSize, first(T2.Indexes) as Indexes, "
+            "sum(T2.TotalRecords) as TotalRecords, sum(T2.TotalDataPages) as TotalDataPages, "
+            "sum(T2.TotalIndexPages) as TotalIndexPages, "
+            "sum(T2.TotalDataFreeSpace) as TotalDataFreeSpace from "
+            "( "
+                  "select T1.Name, T1.Details.Indexes as Indexes, T1.Details.PageSize as PageSize, "
+                  "T1.Details.TotalRecords as TotalRecords, T1.Details.TotalDataPages as TotalDataPages, "
+                  "T1.Details.TotalIndexPages as TotalIndexPages, "
+                  "T1.Details.TotalDataFreeSpace as TotalDataFreeSpace, "
+                  "T1.Details.TotalIndexFreeSpace as TotalIndexFreeSpace from "
+                  "( "
+                        "select * from $SNAPSHOT_CL where nodeselect = \"primary\" and "
+                        "Name =\"" << _clFullName.c_str() << "\" split by Details "
+                  ") as T1 "
+            ") as T2" ;
+      sql = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sql statement reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    /*
       output str, eg:
@@ -1028,7 +1054,7 @@ INT32 _mongoCollectionStatsCommand::_parseSnapIdxReply( const MsgOpReply &sdbRep
             const CHAR* idxName = NULL ;
 
             rc = bodyBuf.nextObj( obj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
 
             rc = mongoGetObjElement( obj, IXM_FIELD_NAME_INDEX_DEF, idxDef ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
@@ -1074,6 +1100,446 @@ INT32 _mongoCollectionStatsCommand::_parseSnapClReply( const MsgOpReply &sdbRepl
    {
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "An exception occurred when parsing snap cl reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoTopCommand)
+_mongoTopCommand::_mongoTopCommand()
+{
+   _step = MONGO_TOP_STEP1 ;
+   _hasProcessAllMsg = FALSE ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_TOPBUILDSDBREQ, "_mongoTopCommand::buildSdbRequest" )
+INT32 _mongoTopCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                         mongoSessionCtx &ctx,
+                                         BOOLEAN &getMoreAll )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_TOPBUILDSDBREQ ) ;
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
+
+   if ( MONGO_TOP_STEP1 == _step )
+   {
+      // get TotalSelect from snap cl of the master and secondary nodes
+      rc = _buildStep1Request( sdbMsg, ctx ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build top step1 request, rc: %d", rc ) ;
+   }
+   else if ( MONGO_TOP_STEP2 == _step )
+   {
+      // get TotalInsert, TotalDelete and TotalUpdate from snap cl of the master nodes
+      rc = _buildStep2Request( sdbMsg, ctx ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build top step2 request, rc: %d", rc ) ;
+   }
+   else
+   {
+      rc = SDB_SYS ;
+      PD_RC_CHECK( rc, PDERROR, "Invalid top step, rc: %d", rc ) ;
+   }
+
+   getMoreAll = TRUE ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_TOPBUILDSDBREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_TOPPARSESDBREPLY, "_mongoTopCommand::parseSdbReply" )
+INT32 _mongoTopCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                       engine::rtnContextBuf &bodyBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_TOPPARSESDBREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   if ( MONGO_TOP_STEP1 == _step )
+   {
+      rc = _parseStep1Reply( sdbReply, bodyBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse top step1 reply, rc: %d", rc ) ;
+      _step = MONGO_TOP_STEP2 ;
+   }
+   else if ( MONGO_TOP_STEP2 == _step )
+   {
+      rc = _parseStep2Reply( sdbReply, bodyBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse top step2 reply, rc: %d", rc ) ;
+      _hasProcessAllMsg = TRUE ;
+   }
+   else
+   {
+      rc = SDB_SYS ;
+      PD_RC_CHECK( rc, PDERROR, "Invalid top step, rc: %d", rc ) ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_TOPPARSESDBREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_TOPBUILDMONGOREPLY, "_mongoTopCommand::buildMongoReply" )
+INT32 _mongoTopCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                         engine::rtnContextBuf &bodyBuf,
+                                         _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_TOPBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      /*
+
+      {
+         "totals":
+         {
+            clName1:
+            {
+               "total": { "count": 10 },
+               "queries": { "count": 1 },
+               "insert": { "count": 2 },
+               "update": { "count": 3 },
+               "remove": { "count": 4 }
+            },
+            clName2:
+            {
+               ...
+            },
+            ...
+         }
+         "ok": 1
+      }
+
+      */
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObjBuilder bob ;
+         BSONObjBuilder totalBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_TOTALS ) ) ;
+
+         for ( auto iter = _clCRUDCountMap.begin() ; iter != _clCRUDCountMap.end() ; iter++ )
+         {
+            const string &clName = iter->first ;
+            INT64 totalCount = 0 ;
+            INT64 totalInsert = 0 ;
+            INT64 totalDelete = 0 ;
+            INT64 totalUpdate = 0 ;
+            INT64 totalQuery  = 0 ;
+
+            if ( clName.empty() )
+            {
+               continue ;
+            }
+
+            BSONObjBuilder clBob( totalBob.subobjStart( clName.c_str() ) ) ;
+            totalInsert = (iter->second)[FAP_TOTAL_INSERT_POSITION] ;
+            totalDelete = (iter->second)[FAP_TOTAL_DELETE_POSITION] ;
+            totalUpdate = (iter->second)[FAP_TOTAL_UPDATE_POSITION] ;
+            totalQuery  = (iter->second)[FAP_TOTAL_QUERY_POSITION] ;
+            totalCount = totalInsert + totalDelete + totalUpdate + totalQuery ;
+
+            clBob.append( FAP_MONGO_FIELD_NAME_TOTAL,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << totalCount ) ) ;
+            clBob.append( FAP_MONGO_FIELD_NAME_QUERIES,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << totalQuery ) ) ;
+            clBob.append( FAP_MONGO_FIELD_NAME_INSERT,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << totalInsert ) ) ;
+            clBob.append( FAP_MONGO_FIELD_NAME_UPDATE,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << totalUpdate ) ) ;
+            clBob.append( FAP_MONGO_FIELD_NAME_REMOVE,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << totalDelete ) ) ;
+            clBob.done() ;
+         }
+
+         totalBob.done() ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo top reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_TOPBUILDMONGOREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoTopCommand::_buildStep1Request( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpSql *pSql = NULL ;
+   StringBuilder buf ;
+   std::string sql ;
+
+   try
+   {
+      buf << "select T2.Name, sum(T2.TotalSelect) as TotalSelect from "
+            "("
+                  " select T1.Name, T1.Details.TotalSelect as TotalSelect from "
+                  "( select * from $SNAPSHOT_CL split by Details ) as T1 "
+            ") as T2 group by T2.Name" ;
+      sql = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sql statement reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   /*
+      output str, eg:
+
+      {
+         "Name": "cs.cl",
+         "TotalSelect": 123
+      }
+
+   */
+
+   rc = sdbMsg.reserve( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pSql = ( MsgOpSql * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pSql->header), MSG_BS_SQL_REQ, _requestID ) ;
+
+   rc = sdbMsg.write( sql.c_str(), sql.length() + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoTopCommand::_buildStep2Request( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpSql *pSql = NULL ;
+   StringBuilder buf ;
+   std::string sql ;
+
+   try
+   {
+      buf << "select T2.Name, sum(T2.TotalUpdate) as TotalUpdate, sum(T2.TotalDelete) as TotalDelete, "
+            "sum(T2.TotalInsert) as TotalInsert from "
+            "("
+                  " select T1.Name, T1.Details.TotalUpdate as TotalUpdate, "
+                  "T1.Details.TotalDelete as TotalDelete, T1.Details.TotalInsert as TotalInsert from "
+                  "("
+                        "select * from $SNAPSHOT_CL where nodeselect = \"primary\" split by Details"
+                  ") as T1 "
+            ") as T2 group by T2.Name" ;
+      sql = buf.str() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sql statement reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   /*
+      output str, eg:
+
+      {
+         "Name": "cs.cl",
+         "TotalUpdate": 123,
+         "TotalDelete": 123,
+         "TotalInsert": 123
+      }
+
+   */
+
+   rc = sdbMsg.reserve( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpSql ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pSql = ( MsgOpSql * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pSql->header), MSG_BS_SQL_REQ, _requestID ) ;
+
+   rc = sdbMsg.write( sql.c_str(), sql.length() + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoTopCommand::_parseStep1Reply( const MsgOpReply &sdbReply,
+                                          engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf.resetItr() ;
+
+         while ( !bodyBuf.eof() )
+         {
+            BSONObj obj ;
+            const CHAR* clName = NULL ;
+            std::vector<INT64> crudCount( FAP_CRUD_OP_COUNT, 0 ) ;
+
+            rc = bodyBuf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
+
+            BSONObjIterator itr( obj ) ;
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               const CHAR* fieldName = ele.fieldName() ;
+
+               if ( 0 == ossStrcmp( fieldName, FIELD_NAME_NAME ) )
+               {
+                  clName = ele.valuestrsafe() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALSELECT ) )
+               {
+                  crudCount[FAP_TOTAL_QUERY_POSITION] = ele.numberLong() ;
+               }
+            }
+
+            if ( clName != NULL && ossStrlen( clName ) > 0 )
+            {
+               _clCRUDCountMap.insert( std::make_pair( clName, crudCount ) ) ;
+            }
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing top step1 reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoTopCommand::_parseStep2Reply( const MsgOpReply &sdbReply,
+                                          engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf.resetItr() ;
+
+         while ( !bodyBuf.eof() )
+         {
+            BSONObj obj ;
+            const CHAR* clName = NULL ;
+            INT64 totalUpdate = 0 ;
+            INT64 totalDelete = 0 ;
+            INT64 totalInsert = 0 ;
+
+            rc = bodyBuf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
+
+            BSONObjIterator itr( obj ) ;
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               const CHAR* fieldName = ele.fieldName() ;
+
+               if ( 0 == ossStrcmp( fieldName, FIELD_NAME_NAME ) )
+               {
+                  clName = ele.valuestrsafe() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALUPDATE ) )
+               {
+                  totalUpdate = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALDELETE ) )
+               {
+                  totalDelete = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALINSERT ) )
+               {
+                  totalInsert = ele.numberLong() ;
+               }
+            }
+
+            if ( clName != NULL && ossStrlen( clName ) > 0 )
+            {
+               auto iter = _clCRUDCountMap.find( clName ) ;
+               if ( iter != _clCRUDCountMap.end() )
+               {
+                  (iter->second)[FAP_TOTAL_INSERT_POSITION] = totalInsert ;
+                  (iter->second)[FAP_TOTAL_DELETE_POSITION] = totalDelete ;
+                  (iter->second)[FAP_TOTAL_UPDATE_POSITION] = totalUpdate ;
+               }
+            }
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing top step2 reply: "
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
