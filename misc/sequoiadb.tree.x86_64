@@ -510,6 +510,8 @@ sequoiadb
 │       │   ├── grantRolesToUser_en.troff
 │       │   ├── invalidateCache_cn.troff
 │       │   ├── invalidateCache_en.troff
+│       │   ├── invalidateUserCache_cn.troff
+│       │   ├── invalidateUserCache_en.troff
 │       │   ├── listBackup_cn.troff
 │       │   ├── listBackup_en.troff
 │       │   ├── list_cn.troff
