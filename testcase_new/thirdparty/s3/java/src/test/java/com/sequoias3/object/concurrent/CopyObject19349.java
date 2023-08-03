@@ -5,6 +5,9 @@ import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
+import com.sequoiadb.threadexecutor.exception.SchException;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
@@ -20,10 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @Description seqDB-19349:携带相同元数据并发复制对象，指定源和目标对象相同
  * @author wuyan
- * @Date 2019.09.20
  * @version 1.00
+ * @Description seqDB-19349:携带相同元数据并发复制对象，指定源和目标对象相同
+ * @Date 2019.09.20
  */
 public class CopyObject19349 extends S3TestBase {
 
@@ -70,23 +73,13 @@ public class CopyObject19349 extends S3TestBase {
     }
 
     @Test(invocationCount = 3, threadPoolSize = 3)
-    private void testCopyObject() {
-        AmazonS3 s3Client1 = CommLib.buildS3Client();
-        try {
-            CopyObjectRequest request = new CopyObjectRequest( bucketName,
-                    keyName, bucketName, keyName );
-            request.setMetadataDirective( "REPLACE" );
-            request.withNewObjectMetadata( metaData );
-            s3Client1.copyObject( request );
-        } finally {
-            if ( s3Client1 != null ) {
-                s3Client1.shutdown();
-            }
-        }
-    }
-
-    @Test(dependsOnMethods = "testCopyObject")
-    private void checkResult() throws Exception {
+    private void testCopyObject() throws Exception {
+        ThreadExecutor threadExec = new ThreadExecutor();
+        ThreadCopyObject copyObject1 = new ThreadCopyObject();
+        ThreadCopyObject copyObject2 = new ThreadCopyObject();
+        threadExec.addWorker( copyObject1 );
+        threadExec.addWorker( copyObject2 );
+        threadExec.run();
         checkObjectMetaData( userMeta, contentDisposition );
         checkObjectContent( bucketName, keyName );
         runSuccess = true;
@@ -128,6 +121,23 @@ public class CopyObject19349 extends S3TestBase {
         }
         Assert.assertEquals( result.getContentDisposition(),
                 contentDisposition );
+    }
 
+    private class ThreadCopyObject {
+        @ExecuteOrder(step = 1)
+        private void copyObject() {
+            AmazonS3 s3Client1 = CommLib.buildS3Client();
+            try {
+                CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                        keyName, bucketName, keyName );
+                request.setMetadataDirective( "REPLACE" );
+                request.withNewObjectMetadata( metaData );
+                s3Client1.copyObject( request );
+            } finally {
+                if ( s3Client1 != null ) {
+                    s3Client1.shutdown();
+                }
+            }
+        }
     }
 }
