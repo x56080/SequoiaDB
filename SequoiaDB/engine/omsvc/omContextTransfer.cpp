@@ -185,6 +185,7 @@ namespace engine
       }
 
    done:
+      _originalContextID = contextID ;
       return rc ;
    error:
       goto done ;
