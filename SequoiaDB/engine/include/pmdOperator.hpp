@@ -62,6 +62,7 @@ namespace engine
          _beginTick = 0 ;
          _hasInterruptOnTimeLimit = FALSE ;
          _isContextDetachMode = FALSE ;
+         _isContextBatchLimited = FALSE ;
       }
       virtual ~_pmdOperator()
       {
@@ -126,6 +127,11 @@ namespace engine
          return _isContextDetachMode ;
       }
 
+      virtual BOOLEAN isContextBatchLimited() const
+      {
+         return _isContextBatchLimited ;
+      }
+
    public:
       void setMsg( MsgHeader *pMsg, IExecutor *cb )
       {
@@ -164,6 +170,7 @@ namespace engine
          _beginTick = 0 ;
          _hasInterruptOnTimeLimit = FALSE ;
          _isContextDetachMode = FALSE ;
+         _isContextBatchLimited = FALSE ;
       }
       void enableContextDetachMode( IExecutor *cb )
       {
@@ -190,6 +197,16 @@ namespace engine
          }
       }
 
+      void enableContextBatchSizeLimited()
+      {
+         _isContextBatchLimited = TRUE ;
+      }
+
+      void disableContextBatchSizeLimited()
+      {
+         _isContextBatchLimited = FALSE ;
+      }
+
    private:
       MsgHeader*  _pMsg ;
       MsgGlobalID _globalID ;
@@ -197,6 +214,7 @@ namespace engine
       UINT64      _beginTick ;
       mutable BOOLEAN     _hasInterruptOnTimeLimit ;
       BOOLEAN     _isContextDetachMode ;
+      BOOLEAN     _isContextBatchLimited ;
    } ;
    typedef _pmdOperator pmdOperator ;
 

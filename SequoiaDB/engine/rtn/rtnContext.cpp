@@ -346,7 +346,8 @@ namespace engine
 
    INT32 _rtnContextStoreBuf::get( INT32 maxNumToReturn,
                                    rtnContextBuf& buf,
-                                   BOOLEAN onlyPeek )
+                                   BOOLEAN onlyPeek,
+                                   BOOLEAN limitedBatch )
    {
       INT32 rc = SDB_OK ;
 
@@ -361,8 +362,53 @@ namespace engine
          buf._pBuff = &_buffer[ _readOffset ] ;
          //buf._startFrom = _totalRecords - _numRecords ;
 
+         BOOLEAN limitedNum = maxNumToReturn > 0 ;
+         limitedBatch = limitedBatch && ( _writeOffset - _readOffset > BSONObjMaxUserSize ) ;
+         if ( limitedNum || limitedBatch )
+         {
+            INT32 prevCurOffset = _readOffset ;
+            INT32 tmpReadOffset = _readOffset ;
+
+            while ( _readOffset < _writeOffset )
+            {
+               try
+               {
+                  BSONObj obj( &_buffer[_readOffset] ) ;
+                  tmpReadOffset += ossAlign4( (UINT32)obj.objsize() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_LOG( PDERROR, "Converting bson obj occured exception: %s", e.what() ) ;
+                  goto error ;
+               }
+
+               if ( ( limitedNum && maxNumToReturn <= 0 ) ||
+                    ( limitedBatch && tmpReadOffset - prevCurOffset > BSONObjMaxUserSize ) )
+               {
+                  break ;
+               }
+
+               buf._recordNum++ ;
+               maxNumToReturn-- ;
+
+               if ( ! onlyPeek )
+               {
+                  _readOffset = tmpReadOffset ;
+                  _numRecords-- ;
+               }
+            }
+
+            if ( _readOffset > _writeOffset )
+            {
+               _readOffset = _writeOffset ;
+               SDB_ASSERT( 0 == _numRecords, "buffer num records must be zero" ) ;
+            }
+
+            buf._buffSize = _readOffset - prevCurOffset ;
+         }
          // return current all records
-         if ( maxNumToReturn < 0 )
+         else if ( maxNumToReturn < 0 )
          {
             buf._buffSize = _writeOffset - _readOffset ;
             buf._recordNum = _numRecords ;
@@ -375,41 +421,7 @@ namespace engine
          }
          else
          {
-            INT32 prevCurOffset = _readOffset ;
-            INT32 tmpReadOffset = _readOffset ;
-            while ( tmpReadOffset < _writeOffset &&
-                    maxNumToReturn > 0 )
-            {
-               try
-               {
-                  BSONObj obj( &_buffer[_readOffset] ) ;
-                  tmpReadOffset += ossAlign4( (UINT32)obj.objsize() ) ;
-               }
-               catch ( std::exception &e )
-               {
-                  PD_LOG( PDERROR, "Can't convert into BSON object: %s",
-                          e.what() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-
-               buf._recordNum++ ;
-               maxNumToReturn-- ;
-
-               if ( !onlyPeek )
-               {
-                  _readOffset = tmpReadOffset ;
-                  _numRecords-- ;
-               }
-            } // end while
-
-            if ( _readOffset > _writeOffset )
-            {
-               _readOffset = _writeOffset ;
-               SDB_ASSERT( 0 == _numRecords, "buffer num records must "
-                           " be zero" ) ;
-            }
-            buf._buffSize = tmpReadOffset - prevCurOffset ;
+            // maxNumToReturn = 0, do nothing
          }
       }
       else
@@ -571,6 +583,8 @@ namespace engine
       _detachMode          = FALSE ;
       _remainingMaxTime    = -1 ;
       _needAuth            = FALSE ;
+
+      _batchLimited      = FALSE ;
 
       _buffer.setContextValidator( this ) ;
    }
@@ -1122,7 +1136,7 @@ namespace engine
 
          _monCtxCB.monReturnInc( 1, numRecords ) ;
 
-         rc = _buffer.get( maxNumToReturn, buffObj ) ;
+         rc = _buffer.get( maxNumToReturn, buffObj, FALSE, isBatchLimited() ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to get objs from context buffer: %d", rc ) ;

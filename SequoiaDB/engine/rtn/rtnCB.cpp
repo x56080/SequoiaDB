@@ -957,6 +957,8 @@ namespace engine
          pEDUCB->getOperator()->disableContextDetachMode( pEDUCB ) ;
       }
 
+      newContext->_setBatchLimited( pEDUCB->getOperator()->isContextBatchLimited() ) ;
+
       if ( !( _contextMap.insert( _contextId, newContext ).second ) )
       {
          newContext.release() ;

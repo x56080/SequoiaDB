@@ -218,7 +218,8 @@ namespace engine
                            BOOLEAN needAligned = TRUE ) ;
       INT32    get( INT32 maxNumToReturn,
                     rtnContextBuf& buf,
-                    BOOLEAN onlyPeek = FALSE ) ;
+                    BOOLEAN onlyPeek = FALSE,
+                    BOOLEAN limitedBatch = FALSE ) ;
 
       // only for object(aligned)
       INT32    pop( UINT32 num = 1 ) ;
@@ -426,6 +427,11 @@ namespace engine
             _username = username ;
          }
 
+         void _setBatchLimited( BOOLEAN batchLimited )
+         {
+            _batchLimited = batchLimited ;
+         }
+
       // prefetch
       public:
          void     enablePrefetch ( _pmdEDUCB *cb,
@@ -512,6 +518,11 @@ namespace engine
          BOOLEAN needAuth() const
          {
             return _needAuth ;
+         }
+
+         BOOLEAN isBatchLimited() const
+         {
+            return _batchLimited ;
          }
 
       // Monitor
@@ -718,6 +729,8 @@ namespace engine
          // indicates the context belong which user
          string                  _username ;
          BOOLEAN                 _needAuth ;
+
+         BOOLEAN                 _batchLimited ;
 
          /*
             Operation info

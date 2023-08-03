@@ -223,6 +223,16 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
                    "Failed to build sdb message for command[%s], rc: %d",
                    pCommand->name(), rc ) ;
 
+      // All mongo session's reply shoule be limited to a bson object, except getMoreAll = true
+      if ( getMoreAll )
+      {
+         _pEDUCB->getOperator()->disableContextBatchSizeLimited() ;
+      }
+      else
+      {
+         _pEDUCB->getOperator()->enableContextBatchSizeLimited() ;
+      }
+
       PD_LOG( PDDEBUG, "Build sdb msg[ tid: %d, session: %s, "
               "command: %s, clFullName: %s, eduID: %llu ] done",
               ossGetCurrentThreadID(),
