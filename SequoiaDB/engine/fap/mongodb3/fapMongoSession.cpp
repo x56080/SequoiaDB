@@ -840,7 +840,8 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand,
         CMD_AGGREGATE == cmdType || CMD_LIST_COLLECTION == cmdType ||
         CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
         CMD_LIST_USER == cmdType || CMD_DB_STATS == cmdType ||
-        CMD_COLL_STATS == cmdType || CMD_TOP == cmdType )
+        CMD_COLL_STATS == cmdType || CMD_TOP == cmdType ||
+        CMD_SERVER_STATUS == cmdType )
    {
       return TRUE ;
    }

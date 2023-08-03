@@ -262,6 +262,41 @@ class _mongoTopCommand : public _mongoGlobalCommand
 } ;
 typedef _mongoTopCommand mongoTopCommand ;
 
+class _mongoServerStatusCommand : public _mongoGlobalCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoServerStatusCommand() ;
+      virtual ~_mongoServerStatusCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_SERVER_STATUS ; }
+      virtual const CHAR* name() const { return MONGO_CMD_NAME_SERVER_STATUS ; }
+
+      virtual BOOLEAN needProcessByEngine() const { return TRUE ; }
+
+      virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                     mongoSessionCtx &ctx,
+                                     BOOLEAN &getMoreAll ) ;
+
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
+      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
+                                     engine::rtnContextBuf &replyBuf,
+                                     _mongoResponseBuffer &resHeader ) ;
+
+   private:
+      INT64 _netIn ;
+      INT64 _netOut ;
+      INT64 _rss ;
+      INT64 _vsize ;
+      INT64 _insertCount ;
+      INT64 _deleteCount ;
+      INT64 _updateCount ;
+      INT64 _selectCount ;
+} ;
+typedef _mongoServerStatusCommand mongoServerStatusCommand ;
+
 class _mongoCurrentOpCommand : public _mongoDummyCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()

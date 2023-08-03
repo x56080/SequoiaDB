@@ -41,6 +41,7 @@
 #include "pdTrace.hpp"
 #include "ossFile.hpp"
 #include "ossCmdRunner.hpp"
+#include "pmdEnv.hpp"
 #include "utilSystem.hpp"
 
 #define FAP_CRUD_OP_COUNT           4
@@ -1545,6 +1546,299 @@ INT32 _mongoTopCommand::_parseStep2Reply( const MsgOpReply &sdbReply,
    }
 
 done:
+   return rc ;
+error:
+   goto done ;
+}
+
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoServerStatusCommand)
+_mongoServerStatusCommand::_mongoServerStatusCommand()
+{
+   _netIn = 0 ;
+   _netOut = 0 ;
+   _rss = 0 ;
+   _vsize = 0 ;
+   _insertCount = 0 ;
+   _deleteCount = 0 ;
+   _updateCount = 0 ;
+   _selectCount = 0 ;
+}
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_SERSTATUSBUILDSDBREQ, "_mongoServerStatusCommand::buildSdbRequest" )
+INT32 _mongoServerStatusCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                  mongoSessionCtx &ctx,
+                                                  BOOLEAN &getMoreAll )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_SERSTATUSBUILDSDBREQ ) ;
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE  ;
+   BSONObj empty ;
+
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   mongoInitMsgHeader( &(pQuery->header), MSG_BS_QUERY_REQ, _requestID ) ;
+
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX | FLG_QUERY_PREPARE_MORE ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   getMoreAll = FALSE ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_SERSTATUSBUILDSDBREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_SERVERSTATUSPARSESDBREPLY, "_mongoServerStatusCommand::parseSdbReply" )
+INT32 _mongoServerStatusCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                                engine::rtnContextBuf &bodyBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_SERVERSTATUSPARSESDBREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         INT64 totalInsert = 0 ;
+         INT64 totalDelete = 0 ;
+         INT64 totalUpdate = 0 ;
+         INT64 totalReplInsert = 0 ;
+         INT64 totalReplDelete = 0 ;
+         INT64 totalReplUpdate = 0 ;
+
+         bodyBuf.resetItr() ;
+
+         while ( !bodyBuf.eof() )
+         {
+            BSONObj obj ;
+
+            rc = bodyBuf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get next obj from reply msg buff, rc: %d", rc ) ;
+
+            {
+            BSONObjIterator itr( obj ) ;
+            while( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               const CHAR* fieldName = ele.fieldName() ;
+
+               if ( 0 == ossStrcmp( fieldName, FIELD_NAME_VSIZE ) )
+               {
+                  _vsize = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_RSS ) )
+               {
+                  _rss = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_SVC_NETIN ) ||
+                         0 == ossStrcmp( fieldName, FIELD_NAME_SHARD_NETIN ) )
+               {
+                  _netIn += ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_SVC_NETOUT ) ||
+                         0 == ossStrcmp( fieldName, FIELD_NAME_SHARD_NETOUT ) )
+               {
+                  _netOut += ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALINSERT ) )
+               {
+                  totalInsert = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALDELETE ) )
+               {
+                  totalDelete = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALUPDATE ) )
+               {
+                  totalUpdate = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALSELECT ) )
+               {
+                  _selectCount = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_REPLINSERT ) )
+               {
+                  totalReplInsert = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_REPLDELETE ) )
+               {
+                  totalReplDelete = ele.numberLong() ;
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_REPLUPDATE ) )
+               {
+                  totalReplUpdate = ele.numberLong() ;
+               }
+            }
+            }
+
+            _insertCount = totalInsert - totalReplInsert ;
+            _deleteCount = totalDelete - totalReplDelete ;
+            _updateCount = totalUpdate - totalReplUpdate ;
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing snap database reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_SERVERSTATUSPARSESDBREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_SERSTATUSBUILDMONREPL, "_mongoServerStatusCommand::buildMongoReply" )
+INT32 _mongoServerStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                  engine::rtnContextBuf &bodyBuf,
+                                                  _mongoResponseBuffer &headerBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_SERSTATUSBUILDMONREPL ) ;
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder bob ;
+   CHAR hostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+   ossTimestamp tm ;
+   INT64 startTime = (INT64)engine::pmdDBTickSpan2Time( engine::pmdGetDBTick() ) ;
+
+   ossGetCurrentTime( tm ) ;
+
+   rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to get hostname, rc: %d", rc ) ;
+
+   try
+   {
+      /*
+
+      {
+         "host" : "u16-fjb",
+         "version" : "3.2.22",
+         "uptimeMillis" : NumberLong(14332),
+         "uptimeEstimate" : NumberLong(14),
+         "localTime" : ISODate("2023-07-11T08:03:22.840Z"),
+         "network" : {
+            "bytesIn" : NumberLong("2149810959"),
+            "bytesOut" : NumberLong("11956771109")
+         },
+         "opcounters" : {
+            "insert" : NumberLong(0),
+            "query" : NumberLong(2),
+            "update" : NumberLong(0),
+            "delete" : NumberLong(0)
+         },
+         "mem" : {
+            "resident" : 1186,
+            "virtual" : 2858
+         }
+         "ok" : 1
+      }
+
+      */
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bob.append( FAP_MONGO_FIELD_NAME_HOST, hostName ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_VER, "3.2.22" ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_UPTIMEESTIMATE, startTime/1000 ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_UPTIMEMILLIS, startTime ) ;
+         bob.appendTimeT( FAP_MONGO_FIELD_NAME_LOCAL_TIME, tm.time ) ;
+
+         BSONObjBuilder opCountersBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_OPCOUNTERS ) ) ;
+         opCountersBob.append( FAP_MONGO_FIELD_NAME_INSERT, _insertCount ) ;
+         opCountersBob.append( FAP_MONGO_FIELD_NAME_DELETE, _deleteCount ) ;
+         opCountersBob.append( FAP_MONGO_FIELD_NAME_UPDATE, _updateCount ) ;
+         opCountersBob.append( FAP_MONGO_FIELD_NAME_QUERY,  _selectCount ) ;
+         opCountersBob.done() ;
+
+         BSONObjBuilder netBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_NETWORK ) ) ;
+         netBob.append( FAP_MONGO_FIELD_NAME_BYTESIN, _netIn ) ;
+         netBob.append( FAP_MONGO_FIELD_NAME_BYTESOUT, _netOut ) ;
+         netBob.done() ;
+
+         BSONObjBuilder memBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_MEM ) ) ;
+         memBob.append( FAP_MONGO_FIELD_NAME_RESIDENT, (INT32)(_rss/1024/1024) ) ;
+         memBob.append( FAP_MONGO_FIELD_NAME_VIRTUAL, (INT32)(_vsize/1024/1024) ) ;
+         memBob.done() ;
+
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo serverStatus reply: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_SERSTATUSBUILDMONREPL, rc ) ;
    return rc ;
 error:
    goto done ;

@@ -98,6 +98,7 @@ enum MONGO_CMD_TYPE
    CMD_DB_STATS         = 105,
    CMD_COLL_STATS       = 106,
    CMD_TOP              = 107,
+   CMD_SERVER_STATUS    = 108,
 
    CMD_UNKNOWN          = 65535
 } ;
@@ -149,6 +150,7 @@ const CHAR* const MONGO_CMD_NAME_CUR_OP =            "currentOp" ;
 const CHAR* const MONGO_CMD_NAME_DB_STATS =          "dbStats" ;
 const CHAR* const MONGO_CMD_NAME_COLL_STATS =        "collStats" ;
 const CHAR* const MONGO_CMD_NAME_TOP =               "top" ;
+const CHAR* const MONGO_CMD_NAME_SERVER_STATUS =     "serverStatus" ;
 
 }
 #endif
