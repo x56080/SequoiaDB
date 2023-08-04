@@ -323,8 +323,12 @@ namespace engine
                                                string & clName,
                                                BSONObj &outSelector )
    {
+      INT32 rc = SDB_OK;
       BSONObjBuilder builder ;
       BSONElement ele ;
+
+      rc = _checkPrivileges( queryOpt.getQuery() );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
 
       clName = CAT_COLLECTION_INFO_COLLECTION ;
       outSelector = queryOpt.getSelector() ;
@@ -336,7 +340,144 @@ namespace engine
          builder.appendNull( FIELD_NAME_VERSION ) ;
       }
       queryOpt.setSelector( builder.obj() ) ;
-      return SDB_OK ;
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _coordCMDListCollection::_checkPrivileges( const BSONObj &query )
+   {
+      INT32 rc = SDB_OK;
+      ISession *session = sdbGetThreadExecutor()->getSession();
+      if ( !session )
+      {
+         PD_LOG( PDERROR, "Failed to get session" );
+         rc = SDB_SYS;
+         goto error;
+      }
+      if ( !session->privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      try
+      {
+         if ( query.isEmpty() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_list );
+            rc = session->checkPrivilegesForActionsOnCluster( actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+         }
+         else
+         {
+            BSONElement e = query.getField( FIELD_NAME_NAME );
+            if ( Object != e.type() )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid argument" );
+               goto error;
+            }
+            BSONObj obj = e.Obj();
+            BSONElement gtEle = obj.getField( "$gt" );
+            BSONElement ltEle = obj.getField( "$lt" );
+            if ( String != gtEle.type() || String != ltEle.type() )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid argument" );
+               goto error;
+            }
+            UINT32 len = ossStrlen( gtEle.valuestr() );
+            if ( len < 2 )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid argument" );
+               goto error;
+            }
+            if ( ossStrncmp( gtEle.valuestr(), ltEle.valuestr(), len - 1 ) )
+            {
+               ossPoolString csName( gtEle.valuestr(), len - 1 );
+               boost::shared_ptr< authResource > res = authResource::forCS( csName );
+               if ( !res )
+               {
+                  rc = SDB_OOM;
+                  PD_LOG( PDERROR, "Failed to allocate memory" );
+                  goto error;
+               }
+               authActionSet actions1;
+               actions1.addAction( ACTION_TYPE_listCollections );
+               authActionSet actions2;
+               actions2.addAction( ACTION_TYPE_find );
+               authActionSet actions3;
+               actions3.addAction( ACTION_TYPE_getDetail );
+               authActionSet actions4;
+               actions3.addAction( ACTION_TYPE_list );
+
+               rc = session->checkPrivilegesForActionsOnResource( res, actions1 );
+               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to check privileges" );
+                  goto error;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  goto done;
+               }
+               rc = session->checkPrivilegesForActionsOnResource( res, actions2 );
+               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to check privileges" );
+                  goto error;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  goto done;
+               }
+               rc = session->checkPrivilegesForActionsOnResource( res, actions3 );
+               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to check privileges" );
+                  goto error;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  goto done;
+               }
+               rc = session->checkPrivilegesForActionsOnCluster( actions4 );
+               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to check privileges" );
+                  goto error;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  goto done;
+               }
+               rc = SDB_NO_PRIVILEGES;
+               PD_LOG_MSG( PDERROR,
+                           "No privilege to execute command: %s, need at least one in actions "
+                           "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
+                           getName(), authActionTypeSerializer( ACTION_TYPE_listCollections ),
+                           authActionTypeSerializer( ACTION_TYPE_find ),
+                           authActionTypeSerializer( ACTION_TYPE_getDetail ), csName.c_str(),
+                           authActionTypeSerializer( ACTION_TYPE_list ) );
+               goto error;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e );
+         PD_LOG( PDERROR, "Occur exception, %s, rc: %d", e.what() );
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    /*

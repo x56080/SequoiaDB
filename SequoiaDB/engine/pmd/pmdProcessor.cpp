@@ -584,6 +584,14 @@ namespace engine
                   PD_SECURE_OBJ( selector ), PD_SECURE_OBJ( updator ),
                   hint.toPoolString().c_str(), flags, flags ) ;
 
+         if ( getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_update );
+            rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+         }
+
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &upResult ) ;
 
@@ -694,6 +702,19 @@ namespace engine
                   getSession()->sessionName(), insertor.toPoolString().c_str(),
                   count, pCollectionName, flag, flag ) ; */
 
+         if ( getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_insert );
+            if ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flag ) ||
+                 OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flag ) ) 
+            {
+               actions.addAction( ACTION_TYPE_update );
+            }
+            rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+         }
+
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
                          NULL, &inResult, modifyPtr ) ;
          /// AUDIT
@@ -723,6 +744,36 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN isUpdate( const BSONObj &hint, INT32 flags )
+   {
+      if ( flags & FLG_QUERY_MODIFY )
+      {
+         BSONObj updator ;
+         BSONObj newUpdator ;
+         BSONElement modifierEle ;
+         BSONObj modifier ;
+
+         modifierEle = hint.getField( FIELD_NAME_MODIFY ) ;
+         if ( Object != modifierEle.type() )
+         {
+            return FALSE ;
+         }
+
+         modifier = modifierEle.Obj() ;
+
+         BSONElement updatorEle = modifier.getField( FIELD_NAME_OP ) ;
+         if ( String != updatorEle.type() ||
+              0 != ossStrcmp( updatorEle.valuestr(), FIELD_OP_VALUE_UPDATE ) )
+         {
+            return FALSE ;
+         }
+
+         return TRUE ;
+      }
+
+      return FALSE ;
    }
 
    INT32 _pmdDataProcessor::_onQueryReqMsg( MsgHeader * msg,
@@ -772,6 +823,7 @@ namespace engine
             BSONObj selector ( pFieldSelector ) ;
             BSONObj orderBy ( pOrderByBuffer ) ;
             BSONObj hint ( pHintBuffer ) ;
+
             // add last op info
             MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                                 "Collection:%s, Matcher:%s, Selector:%s, "
@@ -797,6 +849,19 @@ namespace engine
                      matcher.toString().c_str(), selector.toString().c_str(),
                      orderBy.toString().c_str(), hint.toString().c_str(),
                      numToSkip, numToReturn, flags ,flags ) ; */
+
+            if ( getSession()->privilegeCheckEnabled() )
+            {
+               authActionSet actions;
+               actions.addAction( ACTION_TYPE_find );
+               if ( isUpdate( hint, flags ) )
+               {
+                  actions.addAction( ACTION_TYPE_update );
+                  actions.addAction( ACTION_TYPE_remove );
+               }
+               rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+               PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+            }
 
             rc = rtnQuery( pCollectionName, selector, matcher, orderBy,
                            hint, flags, eduCB(), numToSkip, numToReturn,
@@ -850,6 +915,10 @@ namespace engine
       }
       else
       {
+         rc = getSession()->checkPrivilegesForCmd( pCollectionName + 1, pQueryBuff, pFieldSelector,
+                                                   pOrderByBuffer, pHintBuffer );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+
          rc = rtnParserCommand( pCollectionName, &pCommand ) ;
 
          if ( SDB_OK != rc )
@@ -1021,6 +1090,15 @@ namespace engine
                   "Flag: 0x%08x(%u)",
                   getSession()->sessionName(), deletor.toString().c_str(),
                   hint.toString().c_str(), flags, flags ) ; */
+
+         if ( getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_remove );
+            rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+         }
+
          rc = rtnDelete( pCollectionName, deletor, hint, flags, eduCB(),
                          _pDMSCB, dpsCB, 1, &delResult ) ;
          /// AUDIT
@@ -1271,10 +1349,21 @@ namespace engine
          }
          else
          {
+            if ( getSession()->privilegeCheckEnabled() )
+            {
+               authActionSet actions;
+               actions.addAction( ACTION_TYPE_trans );
+               rc = getSession()->checkPrivilegesForActionsOnCluster( actions );
+               PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+            }
             rc = rtnTransBegin( eduCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc );
          }
       }
-      return rc ;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _pmdDataProcessor::_onTransCommitMsg ( SDB_DPSCB *dpsCB )
@@ -1295,6 +1384,14 @@ namespace engine
                              eduCB()->getTransID(),
                              eduCB()->getTransID() ) ;
 
+         if ( getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_trans );
+            rc = getSession()->checkPrivilegesForActionsOnCluster( actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+         }
+
          rc = rtnTransCommit( eduCB(), dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction, rc: %d",
                       rc ) ;
@@ -1310,7 +1407,6 @@ namespace engine
    INT32 _pmdDataProcessor::_onTransRollbackMsg ( SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
-
       if ( eduCB()->isTransaction() )
       {
          // add last op info
@@ -1319,10 +1415,22 @@ namespace engine
                              eduCB()->getTransID(),
                              eduCB()->getTransID() ) ;
 
+         if ( getSession()->privilegeCheckEnabled() )
+         {
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_trans );
+            rc = getSession()->checkPrivilegesForActionsOnCluster( actions );
+            PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
+         }
+
          rc = rtnTransRollback( eduCB(), dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rollback transaction, rc: %d", rc );
       }
 
-      return rc ;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _pmdDataProcessor::_onAggrReqMsg( MsgHeader *msg, INT64 &contextID )
@@ -2229,6 +2337,10 @@ namespace engine
                               numToSkip, numToReturn, flag, flag ) ;
 
          MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->_lastOpDetail ) ;
+
+         rc = getSession()->checkPrivilegesForCmd( pCollectionName + 1, pQuery, pSelector, pOrderby,
+                                                   pHint );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
 
          rc = pOpr->init( pResource, eduCB() ) ;
          if ( rc )

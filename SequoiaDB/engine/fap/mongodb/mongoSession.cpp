@@ -415,10 +415,6 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
 
-   rc = getClient()->checkPrivilege( msg ) ;
-   PD_RC_CHECK( rc, PDERROR, "Check privilege for operation[opCode: %d] "
-                "failed, rc: %d", msg->opCode, rc ) ;
-
 done:
    return rc ;
 error:

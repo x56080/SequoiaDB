@@ -716,6 +716,8 @@ namespace engine
          OSS_INLINE BOOLEAN isConsultRollbackLogOn() const { return _consultRollbackLogOn ; }
          OSS_INLINE INT32 getStreamIdleTimeout() const { return _streamIdleTimeout ; }
          OSS_INLINE INT32 getChangeStreamResumableWindow() const { return _changeStreamResumableWindow ; }
+         OSS_INLINE BOOLEAN privilegeCheckEnabled() const { return _privilegeCheckEnabled ;}
+         OSS_INLINE UINT32 getUserCacheInterval() const { return _userCacheInterval ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -870,6 +872,10 @@ namespace engine
 
          INT32       _streamIdleTimeout ;
          INT32       _changeStreamResumableWindow ;
+
+         BOOLEAN     _privilegeCheckEnabled ;
+
+         UINT32      _userCacheInterval ;
 
 #ifdef SDB_ENTERPRISE
 

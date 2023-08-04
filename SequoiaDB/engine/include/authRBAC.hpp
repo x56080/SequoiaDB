@@ -40,10 +40,18 @@
 #define AUTH_RBAC_HPP__
 
 #include "core.hpp"
+#include "authRBACGen.hpp"
 namespace engine
 {
-   UINT32 authGetBuiltinRoleID( const CHAR *roleName ) ;
+   namespace oldRole
+   {
+      UINT32 authGetBuiltinRoleID( const CHAR *roleName ) ;
+   }
    BOOLEAN authIsMonCmd( const CHAR *cmdName ) ;
+
+   typedef ACTION_TYPE_ENUM ACTION_TYPE;
+   typedef RESOURCE_TYPE_ENUM RESOURCE_TYPE;
+   const int ACTION_SET_SIZE = ACTION_TYPE_VALID_NUM_GEN;
 }
 
 #endif /* AUTH_RBAC_HPP__ */

@@ -92,6 +92,47 @@ namespace engine
    } ;
    typedef class _rtnClearExpireContextJob rtnClearExpireContextJob ;
 
+   /*
+      _rtnClearUserCacheJob define
+   */
+   class _rtnClearUserCacheJob : public utilLightJob
+   {
+   public:
+      _rtnClearUserCacheJob( SDB_RTNCB *rtnCB ) : _rtnCB( rtnCB )
+      {
+         SDB_ASSERT( NULL != rtnCB, "rtnCB is invalid" );
+      }
+
+      virtual ~_rtnClearUserCacheJob() {}
+
+      virtual const CHAR *name() const
+      {
+         return "ClearUserCacheJob";
+      }
+
+      virtual INT32 doit( IExecutor *pExe, UTIL_LJOB_DO_RESULT &result, UINT64 &sleepTime )
+      {
+         // UINT64 microseconds
+         sleepTime = pmdGetOptionCB()->getUserCacheInterval() * 1000ULL;
+
+         if ( PMD_IS_DB_DOWN() )
+         {
+            result = UTIL_LJOB_DO_FINISH;
+         }
+         else
+         {
+            _rtnCB->getUserCacheMgr()->clear();
+            result = UTIL_LJOB_DO_CONT;
+         }
+
+         return SDB_OK;
+      }
+
+   protected:
+      SDB_RTNCB *_rtnCB;
+   };
+   typedef class _rtnClearUserCacheJob rtnClearUserCacheJob;
+
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
         _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
@@ -182,9 +223,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      UINT64 jobID = 0 ;
-      rtnClearExpireContextJob *job = NULL ;
-
       if ( SDB_ROLE_DATA == pmdGetDBRole() ||
            SDB_ROLE_CATALOG == pmdGetDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetDBRole() ||
@@ -195,15 +233,26 @@ namespace engine
                       "access plan manager to DMS, rc: %d", rc ) ;
       }
 
-      job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
-      PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
-                "Failed to allocate clear context job" ) ;
+      {
+         UINT64 jobID = 0 ;
+         rtnClearExpireContextJob *job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+         PD_CHECK( NULL != job, SDB_OOM, error, PDERROR, "Failed to allocate clear context job" ) ;
 
-      rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST,
-                        &jobID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to submit clear context job, rc: %d",
-                   rc ) ;
-      PD_LOG( PDDEBUG, "submit clear context job [%llu]", jobID ) ;
+         rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST, &jobID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to submit clear context job, rc: %d", rc ) ;
+         PD_LOG( PDDEBUG, "submit clear context job [%llu]", jobID ) ;
+      }
+
+      if ( pmdGetOptionCB()->getUserCacheInterval() > 0 )
+      {
+         UINT64 jobID = 0 ;
+         rtnClearUserCacheJob *job = SDB_OSS_NEW rtnClearUserCacheJob( this ) ;
+         PD_CHECK( NULL != job, SDB_OOM, error, PDERROR, "Failed to allocate clear user cache job" ) ;
+
+         rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST, &jobID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to submit clear user cache job, rc: %d", rc ) ;
+         PD_LOG( PDDEBUG, "submit clear user cache job [%llu]", jobID ) ;
+      }
 
       if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )

@@ -68,8 +68,6 @@ namespace engine
          return SDB_SYS ;
       }
 
-      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB ) ;
-
    protected:
       INT32 _deleteVCS( const CHAR *fullName,
                         const BSONObj &deletor,

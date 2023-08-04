@@ -127,6 +127,7 @@ namespace engine
    #define PMD_DFT_CHANGE_STREAM_RESUMABLE_WINDOW ( 0 )
    #define PMD_MIN_CHANGE_STREAM_RESUMABLE_WINDOW ( 0 )
    #define PMD_MAX_CHANGE_STREAM_RESUMABLE_WINDOW ( OSS_SINT32_MAX )
+   #define PMD_DFT_USER_CACHE_INTERVAL  (300000)  // milliseconds, 5 miniutes
 
    /*
       _pmdCfgExchange implement
@@ -2656,6 +2657,13 @@ done:
       rdvMinMax( pEX, _changeStreamResumableWindow,
                  PMD_MIN_CHANGE_STREAM_RESUMABLE_WINDOW,
                  PMD_MAX_CHANGE_STREAM_RESUMABLE_WINDOW, TRUE ) ;
+      // --privilegecheck
+      rdxBooleanS( pEX, PMD_OPTION_PRIVILEGE_CHECK, _privilegeCheckEnabled,
+                   FALSE, PMD_CFG_CHANGE_REBOOT, FALSE, FALSE ) ;
+
+      // --usercacheinterval
+      rdxUInt( pEX, PMD_OPTION_USER_CACHE_INTERVAL, _userCacheInterval, FALSE,
+               PMD_CFG_CHANGE_REBOOT, PMD_DFT_USER_CACHE_INTERVAL, FALSE );
 
       // end map
 

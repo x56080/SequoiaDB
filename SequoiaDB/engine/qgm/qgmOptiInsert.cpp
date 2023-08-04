@@ -37,6 +37,8 @@
 ******************************************************************************/
 
 #include "qgmOptiInsert.hpp"
+#include "authAccessControlList.hpp"
+#include "boost/exception/diagnostic_information.hpp"
 
 namespace engine
 {
@@ -62,6 +64,27 @@ namespace engine
       stringstream ss ;
       ss << "{" << this->_qgmOptiTreeNode::toString() << "}" ;
       return ss.str() ;
+   }
+
+   INT32 _qgmOptiInsert::_checkPrivileges( ISession *session ) const
+   {
+      INT32 rc = SDB_OK;
+      if ( !session->privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_insert );
+         rc = session->checkPrivilegesForActionsOnExact( _collection.value.toString().c_str(),
+                                                         actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 }

@@ -43,6 +43,7 @@
 #include "coordUtil.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
 
@@ -166,6 +167,14 @@ namespace engine
       }
 
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_remove );
+         rc = cb->getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
 
       rc = cataSel.bind( _pResource, pCollectionName, cb, FALSE, TRUE ) ;
       if ( rc )

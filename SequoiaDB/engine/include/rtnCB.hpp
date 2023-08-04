@@ -59,6 +59,7 @@
 #include "rtnScannerChecker.hpp"
 #include "rtnChangeStreamNotifier.hpp"
 #include "dmsTaskStatus.hpp"
+#include "rtnUserCache.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -103,6 +104,8 @@ namespace engine
       rtnScannerCheckerCreator  _checkerCreator ;
 
       rtnChangeStreamNotifier   _changeStreamNotifier ;
+      
+      rtnUserCache _userCache;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
@@ -272,6 +275,11 @@ namespace engine
       OSS_INLINE rtnChangeStreamNotifier *getChangeStreamNotifier()
       {
          return &_changeStreamNotifier ;
+      }
+      
+      OSS_INLINE rtnUserCache* getUserCacheMgr()
+      {
+         return &_userCache;
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;

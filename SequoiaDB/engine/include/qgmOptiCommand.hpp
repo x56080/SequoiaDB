@@ -64,6 +64,11 @@ namespace engine
          return SDB_SYS ;
       }
 
+      ossPoolString toPoolString() const;
+   
+   private:
+      virtual INT32 _checkPrivileges( ISession *session ) const;
+
    public:
       INT32 _commandType ;
       qgmDbAttr _fullName ;

@@ -626,6 +626,350 @@ namespace engine
       BSONObj _query ;
    };
    typedef _catCMDReportTaskProgress catCMDReportTaskProgress ;
+
+   /*
+      _catCMDCreateRole define
+   */
+   class _catCMDCreateRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDCreateRole() {}
+      virtual ~_catCMDCreateRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_CREATE_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDCreateRole catCMDCreateRole;
+
+   /*
+      _catCMDDropRole define
+   */
+   class _catCMDDropRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDDropRole() {}
+      virtual ~_catCMDDropRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_DROP_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDDropRole catCMDDropRole;
+
+   /*
+      _catCMDGetRole define
+   */
+   class _catCMDGetRole : public _catReadCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDGetRole() {}
+      virtual ~_catCMDGetRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_GET_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+
+   /*
+      _catCMDListRoles define
+   */
+   class _catCMDListRoles : public _catReadCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDListRoles() {}
+      virtual ~_catCMDListRoles() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_LIST_ROLES;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+
+   /*
+      _catCMDUpdateRole define
+   */
+   class _catCMDUpdateRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDUpdateRole() {}
+      virtual ~_catCMDUpdateRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_UPDATE_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDUpdateRole catCMDUpdateRole;
+
+   /*
+      _catCMDGrantPrivilegesToRole define
+   */
+   class _catCMDGrantPrivilegesToRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDGrantPrivilegesToRole() {}
+      virtual ~_catCMDGrantPrivilegesToRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_GRANT_PRIVILEGES;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDGrantPrivilegesToRole catCMDGrantPrivilegesToRole;
+
+   /*
+      _catCMDRevokePrivilegesFromRole define
+   */
+   class _catCMDRevokePrivilegesFromRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDRevokePrivilegesFromRole() {}
+      virtual ~_catCMDRevokePrivilegesFromRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_REVOKE_PRIVILEGES;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDRevokePrivilegesFromRole catCMDRevokePrivilegesFromRole;
+
+   /*
+      _catCMDGrantRolesToRole define
+   */
+   class _catCMDGrantRolesToRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDGrantRolesToRole() {}
+      virtual ~_catCMDGrantRolesToRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_GRANT_ROLES_TO_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDGrantRolesToRole catCMDGrantRolesToRole;
+
+   /*
+      _catCMDRevokeRolesFromRole define
+   */
+   class _catCMDRevokeRolesFromRole : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDRevokeRolesFromRole() {}
+      virtual ~_catCMDRevokeRolesFromRole() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_REVOKE_ROLES_FROM_ROLE;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+
+   /*
+      _catCMDGrantRolesToUser define
+   */
+   class _catCMDGrantRolesToUser : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDGrantRolesToUser() {}
+      virtual ~_catCMDGrantRolesToUser() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_GRANT_ROLES_TO_USER;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDGrantRolesToUser catCMDGrantRolesToUser;
+
+   /*
+      _catCMDRevokeRolesFromUser define
+   */
+   class _catCMDRevokeRolesFromUser : public _catWriteCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDRevokeRolesFromUser() {}
+      virtual ~_catCMDRevokeRolesFromUser() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_REVOKE_ROLES_FROM_USER;
+      }
+
+   protected:
+      BSONObj _query;
+   };
+   typedef _catCMDRevokeRolesFromUser catCMDRevokeRolesFromUser;
+
+   /*
+      _catCMDGetUser define
+   */
+   class _catCMDGetUser : public _catReadCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDGetUser() {}
+      virtual ~_catCMDGetUser() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 );
+      virtual INT32 doit( _pmdEDUCB *cb, rtnContextBuf &ctxBuf, INT64 &contextID );
+
+      virtual const CHAR *name() const
+      {
+         return CMD_NAME_GET_USER;
+      }
+
+   protected:
+      BSONObj _query;
+   };
 }
 
 #endif /* CAT_COMMAND_HPP__ */

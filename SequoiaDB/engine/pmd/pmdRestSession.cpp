@@ -600,14 +600,6 @@ namespace engine
          goto error ;
       }
 
-      rc = getClient()->checkPrivilege( msg ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "operation authorization failed:rc=%d", rc ) ;
-         _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
-         goto error ;
-      }
-
       rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
                                             needReplay, needRollback,
                                             retBuilder ) ;

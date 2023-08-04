@@ -39,6 +39,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "coordSequenceAgent.hpp"
+#include "auth.hpp"
 
 namespace engine
 {
@@ -77,6 +78,14 @@ namespace engine
       coordSequenceAgent *pSequenceAgent = _pResource->getSequenceAgent() ;
       BSONObjBuilder bob( 64 ) ;
       BSONObj result ;
+
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_fetchSequence );
+         rc = cb->getSession()->checkPrivilegesForActionsOnCluster( actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+      }
 
       rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;

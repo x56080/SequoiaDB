@@ -43,6 +43,7 @@
 #include "pdTrace.hpp"
 #include "netFrame.hpp"
 #include "pmdPipeManager.hpp"
+#include "auth.hpp"
 
 namespace engine
 {
@@ -343,6 +344,10 @@ namespace engine
          PD_LOG( PDERROR, "Init mem block pool failed, rc: %d", rc ) ;
          goto error ;
       }
+
+      #ifdef SDB_ENGINE
+      authInitBuiltinRolePrivileges();
+      #endif
 
       _pLightJobMgr = SDB_OSS_NEW pmdLightJobMgr() ;
       if ( !_pLightJobMgr )

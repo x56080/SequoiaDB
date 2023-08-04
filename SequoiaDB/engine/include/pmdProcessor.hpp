@@ -187,7 +187,6 @@ namespace engine
                                                  _rtnContextBuf &buffObj,
                                                  INT64 &contextID,
                                                  BOOLEAN &needRollback ) ;
-
       private:
          INT32                   _processCoordMsg( MsgHeader *msg,
                                                    INT64 &contextID,

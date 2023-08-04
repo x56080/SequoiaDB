@@ -58,6 +58,23 @@ namespace engine
 
          virtual INT32            run() ;
 
+         virtual INT32 checkPrivilegesForCmd( const CHAR *cmdName,
+                                              const CHAR *pQuery,
+                                              const CHAR *pSelector,
+                                              const CHAR *pOrderby,
+                                              const CHAR *pHint ) ;
+
+         virtual INT32 checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
+                                                         const authActionSet &actions ) ;
+
+         virtual INT32 checkPrivilegesForActionsOnCluster( const authActionSet &actions ) ;
+
+         virtual INT32 checkPrivilegesForActionsOnResource(
+            const boost::shared_ptr< authResource > &resource,
+            const authActionSet &actions );
+
+         virtual INT32 getACL( boost::shared_ptr< const authAccessControlList > &acl ) ;
+
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
          INT32          _preprocessMsg( MsgHeader *&msg ) ;
@@ -100,6 +117,8 @@ namespace engine
 
          IMsgConvertor        *_inMsgConvertor ;   // For request from client.
          IMsgConvertor        *_outMsgConvertor ;  // For reply to client.
+
+         boost::shared_ptr<const authAccessControlList> _acl;
    } ;
    typedef _pmdLocalSession pmdLocalSession ;
 

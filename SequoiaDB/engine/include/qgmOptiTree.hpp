@@ -47,6 +47,7 @@
 #include "ossUtil.hpp"
 #include "sqlGrammar.hpp"
 #include "pd.hpp"
+#include "sdbInterface.hpp"
 
 using namespace std ;
 
@@ -214,6 +215,8 @@ namespace engine
                                           BOOLEAN updateLocal ) ;
       INT32                updateChange( qgmOprUnit *oprUnit ) ;
 
+      INT32                checkPrivileges( ISession *session ) const;
+
    public:
       virtual INT32     outputSort( qgmOPFieldVec &sortFields ) ;
       virtual INT32     outputStream( qgmOpStream &stream ) = 0 ;
@@ -261,6 +264,7 @@ namespace engine
 
    private:
       virtual INT32 _extend( _qgmOptiTreeNode *&exNode ) ;
+      virtual INT32 _checkPrivileges( ISession *session ) const ;
 
    public:
       qgmOptiTreeNodePtrVec      _children ;

@@ -39,11 +39,13 @@
 namespace engine
 {
    #define AUTH_SPACE                     "SYSAUTH"
-   #define AUTH_USR_COLLECTION            AUTH_SPACE".SYSUSRS"
+   #define AUTH_USR_COLLECTION            AUTH_SPACE ".SYSUSRS"
    /// AUTH_USR_COLLECTION SCHEMA
    /// {User:"", Passwd:""}
+   #define AUTH_ROLE_COLLECTION           AUTH_SPACE ".SYSROLES"
 
    #define AUTH_USR_INDEX_NAME            "usrindex"
+   #define AUTH_ROLE_INDEX_NAME           "roleindex"
 
    #define AUTH_INVALID_ROLE_ID           0xFFFFFFFF
 
@@ -57,12 +59,35 @@ namespace engine
    // Builtin role ids
    // Note: NEVER change the value of existing enum item, as they are used as
    //       the ids of builtin roles.
-   enum _authBuiltinRoleID
-   {
-      AUTH_ROLE_ADMIN   = 0,           // can do everything
-      AUTH_ROLE_MONITOR = 1            // can do nothing except snapshot and list
-   } ;
-   typedef _authBuiltinRoleID authBuiltinRoleID ;
+   namespace oldRole {
+      enum _authBuiltinRoleID
+      {
+         AUTH_ROLE_ADMIN = 0,  // can do everything
+         AUTH_ROLE_MONITOR = 1 // can do nothing except snapshot and list
+      };
+      typedef _authBuiltinRoleID authBuiltinRoleID ;
+   }
+
+   #define AUTH_FIELD_NAME_ROLENAME "Role"
+   #define AUTH_FIELD_NAME_PRIVILEGES "Privileges"
+   #define AUTH_FIELD_NAME_ROLES "Roles"
+   #define AUTH_FIELD_NAME_RESOURCE "Resource"
+   #define AUTH_FIELD_NAME_ACTIONS "Actions"
+   #define AUTH_FIELD_NAME_INHERITED_ROLES "InheritedRoles"
+   #define AUTH_FIELD_NAME_INHERITED_PRIVILEGES "InheritedPrivileges"
+   #define AUTH_FIELD_NAME_SHOW_PRIVILEGES "ShowPrivileges"
+   #define AUTH_FIELD_NAME_SHOW_BUILTIN_ROLES "ShowBuiltinRoles"
+
+   static const CHAR BUILTIN_ROLE_PREFIX = '_';
+   #define AUTH_ROLE_ROOT "_root"
+   #define AUTH_ROLE_CLUSTER_ADMIN "_clusterAdmin"
+   #define AUTH_ROLE_CLUSTER_MONITOR "_clusterMonitor"
+   #define AUTH_ROLE_BACKUP "_backup"
+   #define AUTH_ROLE_DB_ADMIN "_dbAdmin"
+   #define AUTH_ROLE_USER_ADMIN "_userAdmin"
+   #define AUTH_ROLE_CS_READ "read"
+   #define AUTH_ROLE_CS_READ_WRITE "readWrite"
+   #define AUTH_ROLE_CS_ADMIN "admin"
 }
 
 #endif

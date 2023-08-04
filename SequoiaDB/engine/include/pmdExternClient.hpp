@@ -36,6 +36,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "ossEvent.hpp"
 #include "ossSocket.hpp"
 #include "sdbInterface.hpp"
 #include "pmdDef.hpp"
@@ -43,6 +44,7 @@
 #include <string>
 #include "utilAuthSCRAMSHA.hpp"
 #include "authDef.hpp"
+#include "authAccessControlList.hpp"
 
 using namespace std ;
 
@@ -131,9 +133,6 @@ namespace engine
             return _roleID ;
          }
 
-         virtual INT32 checkPrivilege( const MsgHeader *msg ) ;
-         virtual INT32 checkCmdPrivilege( const CHAR *cmdName ) ;
-
       public:
          ossSocket*           getSocket() { return _pSocket ; }
 
@@ -145,7 +144,6 @@ namespace engine
                                                       const CHAR **password ) ;
          INT32                _processAuthResponse( INT32 opCode ) ;
          INT32                _parseUserRole( const bson::BSONObj &userInfo ) ;
-         BOOLEAN              _shouldSkipPrivCheck( INT32 opCode ) ;
 
       protected:
          string               _username ;

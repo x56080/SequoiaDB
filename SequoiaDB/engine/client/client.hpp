@@ -6529,6 +6529,43 @@ namespace sdbclient
                            const bson::BSONObj &pipeline = _sdbStaticObject ) = 0 ;
 
       virtual INT32 getChangeStreamToken( sdbStreamToken &token ) = 0 ;
+      virtual INT32 createRole( const bson::BSONObj &role) = 0;
+
+      virtual INT32 dropRole( const CHAR *pRoleName ) = 0;
+
+      virtual INT32 getRole( const CHAR *pRoleName,
+                             const bson::BSONObj &options,
+                             bson::BSONObj &role ) = 0;
+
+      virtual INT32 listRoles( _sdbCursor **result, const bson::BSONObj &options ) = 0;
+
+      virtual INT32 updateRole( const CHAR *pRoleName,
+                                const bson::BSONObj &role ) = 0;
+      
+      virtual INT32 grantPrivilegesToRole( const CHAR *pRoleName,
+                                           const bson::BSONObj &privileges ) = 0;
+
+      virtual INT32 revokePrivilegesFromRole( const CHAR *pRoleName,
+                                              const bson::BSONObj &privileges ) = 0;
+
+      virtual INT32 grantRolesToRole( const CHAR *pRoleName,
+                                      const bson::BSONObj &roles ) = 0;
+
+      virtual INT32 revokeRolesFromRole( const CHAR *pRoleName,
+                                         const bson::BSONObj &roles ) = 0;
+
+      virtual INT32 grantRolesToUser( const CHAR *pUsrName,
+                                      const bson::BSONObj &roles ) = 0;
+
+      virtual INT32 revokeRolesFromUser( const CHAR *pUsrName,
+                                         const bson::BSONObj &roles ) = 0;
+
+      virtual INT32 getUser( const CHAR *pUserName,
+                             const bson::BSONObj &options,
+                             bson::BSONObj &user ) = 0;
+
+      virtual INT32 invalidateUserCache( const CHAR *pUserName = NULL,
+                                         const bson::BSONObj &options = _sdbStaticObject ) = 0;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -9137,6 +9174,136 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->getChangeStreamToken( token ) ;
+      }
+
+      INT32 createRole( const bson::BSONObj &role )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->createRole( role ) ;
+      }
+
+      INT32 dropRole( const CHAR *pRoleName )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->dropRole( pRoleName ) ;
+      }
+
+      INT32 getRole( const CHAR *pRoleName,
+                     const bson::BSONObj &options,
+                     bson::BSONObj &role )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getRole( pRoleName, options, role ) ;
+      }
+
+      INT32 listRoles( sdbCursor &cursor, const bson::BSONObj &options )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return pSDB->listRoles( &cursor.pCursor, options ) ;
+      }
+
+      INT32 updateRole( const CHAR *pRoleName,
+                        const bson::BSONObj &role )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->updateRole( pRoleName, role ) ;
+      }
+
+      INT32 grantPrivilegesToRole( const CHAR *pRoleName,
+                                   const bson::BSONObj &privileges )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->grantPrivilegesToRole( pRoleName, privileges ) ;
+      }
+
+      INT32 revokePrivilegesFromRole( const CHAR *pRoleName,
+                                      const bson::BSONObj &privileges )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->revokePrivilegesFromRole( pRoleName, privileges ) ;
+      }
+
+      INT32 grantRolesToRole( const CHAR *pRoleName,
+                              const bson::BSONObj &roles )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->grantRolesToRole( pRoleName, roles ) ;
+      }
+
+      INT32 revokeRolesFromRole( const CHAR *pRoleName,
+                                 const bson::BSONObj &roles )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->revokeRolesFromRole( pRoleName, roles ) ;
+      }
+
+      INT32 grantRolesToUser( const CHAR *pUserName,
+                              const bson::BSONObj &privileges )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->grantRolesToUser( pUserName, privileges ) ;
+      }
+
+      INT32 revokeRolesFromUser( const CHAR *pUserName,
+                                 const bson::BSONObj &privileges )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->revokeRolesFromUser( pUserName, privileges ) ;
+      }
+
+      INT32 getUser( const CHAR *pRoleName,
+                     const bson::BSONObj &options,
+                     bson::BSONObj &role )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getUser( pRoleName, options, role ) ;
+      }
+
+      INT32 invalidateUserCache( const CHAR *pUserName = NULL,
+                                 const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->invalidateUserCache( pUserName, options ) ;
       }
    } ;
 

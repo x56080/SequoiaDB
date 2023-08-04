@@ -47,62 +47,62 @@ namespace engine
    // monitor, all these operations are allowed.
    // Note: Keep a blank after some prefix to distinguish from some possible
    // commands starting with the same prefix.
-   static const CHAR *gAuthMonCmdPrefix[] = {
-      CMD_ADMIN_PREFIX "snapshot ",
-      CMD_ADMIN_PREFIX "list ",
-      CMD_ADMIN_PREFIX "test ",
-      CMD_ADMIN_PREFIX "get ",
-      CMD_ADMIN_PREFIX "SNAPSHOT_",
-      CMD_ADMIN_PREFIX "LIST_",
+   static const CHAR *gAuthMonCmdPrefix[] = { CMD_ADMIN_PREFIX "snapshot ",
+                                              CMD_ADMIN_PREFIX "list ",
+                                              CMD_ADMIN_PREFIX "test ",
+                                              CMD_ADMIN_PREFIX "get ",
+                                              CMD_ADMIN_PREFIX "SNAPSHOT_",
+                                              CMD_ADMIN_PREFIX "LIST_",
 
-      CMD_ADMIN_PREFIX CMD_NAME_TRACE_STATUS,
-      CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
-      CMD_ADMIN_PREFIX CMD_NAME_EVAL
-   } ;
+                                              CMD_ADMIN_PREFIX CMD_NAME_TRACE_STATUS,
+                                              CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
+                                              CMD_ADMIN_PREFIX CMD_NAME_EVAL };
 
-   #define AUTH_MON_CMD_PREFIX_NUM  \
-      (sizeof(gAuthMonCmdPrefix) / sizeof(const CHAR *))
+#define AUTH_MON_CMD_PREFIX_NUM ( sizeof( gAuthMonCmdPrefix ) / sizeof( const CHAR * ) )
 
-   UINT32 authGetBuiltinRoleID( const CHAR *roleName )
+   namespace oldRole
    {
-      UINT32 id = AUTH_INVALID_ROLE_ID ;
-
-      if ( roleName )
+      UINT32 authGetBuiltinRoleID( const CHAR *roleName )
       {
-         if ( ossStrlen( roleName ) == 0 )
-         {
-            id = AUTH_NULL_ROLE_ID ;
-         }
-         else if ( 0 == ossStrcmp( roleName, AUTH_ROLE_ADMIN_NAME ) )
-         {
-            id = AUTH_ROLE_ADMIN ;
-         }
-         else if ( 0 == ossStrcmp( roleName, AUTH_ROLE_MONITOR_NAME ) )
-         {
-            id = AUTH_ROLE_MONITOR ;
-         }
-      }
+         UINT32 id = AUTH_INVALID_ROLE_ID;
 
-      return id ;
-   }
+         if ( roleName )
+         {
+            if ( ossStrlen( roleName ) == 0 )
+            {
+               id = AUTH_NULL_ROLE_ID;
+            }
+            else if ( 0 == ossStrcmp( roleName, AUTH_ROLE_ADMIN_NAME ) )
+            {
+               id = AUTH_ROLE_ADMIN;
+            }
+            else if ( 0 == ossStrcmp( roleName, AUTH_ROLE_MONITOR_NAME ) )
+            {
+               id = AUTH_ROLE_MONITOR;
+            }
+         }
+
+         return id;
+      }
+   } // namespace oldRole
 
    BOOLEAN authIsMonCmd( const CHAR *cmdName )
    {
-      BOOLEAN result = FALSE ;
+      BOOLEAN result = FALSE;
 
       if ( cmdName )
       {
          for ( UINT16 i = 0; i < AUTH_MON_CMD_PREFIX_NUM; ++i )
          {
-            if ( 0 == ossStrncasecmp( cmdName, gAuthMonCmdPrefix[i],
-                                      ossStrlen( gAuthMonCmdPrefix[i] ) ) )
+            if ( 0 == ossStrncasecmp( cmdName, gAuthMonCmdPrefix[ i ],
+                                      ossStrlen( gAuthMonCmdPrefix[ i ] ) ) )
             {
-               result = TRUE ;
-               break ;
+               result = TRUE;
+               break;
             }
          }
       }
 
-      return result ;
+      return result;
    }
-}
+} // namespace engine

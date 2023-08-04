@@ -154,6 +154,17 @@ namespace engine
       extend = tree.getRoot() ;
       }
 
+      rc = extend->checkPrivileges( cb->getSession() );
+      if ( SDB_NO_PRIVILEGES == rc )
+      {
+         PD_LOG( PDERROR, "No privileges to execute this query" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+
       /// step 5:build physical plan.
       rc = builder.build( extend, container->plan() ) ;
       if ( SDB_OK != rc )

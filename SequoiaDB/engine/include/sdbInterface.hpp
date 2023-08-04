@@ -43,11 +43,14 @@
 #include "oss.hpp"
 #include "msg.h"
 #include "msgDef.h"
+#include <boost/shared_ptr.hpp>
 #include <string>
 
 namespace engine
 {
-
+   typedef class _authAccessControlList authAccessControlList;
+   typedef class _authActionSet authActionSet;
+   typedef class _authResource authResource;
    /*
       ENUM define
    */
@@ -292,8 +295,6 @@ namespace engine
 
          virtual BOOLEAN      privCheckEnabled() const = 0 ;
          virtual UINT32       getRoleID() const = 0 ;
-         virtual INT32        checkPrivilege( const MsgHeader *pMsg ) = 0 ;
-         virtual INT32        checkCmdPrivilege( const CHAR *cmdName ) = 0 ;
    } ;
    typedef _IClient IClient ;
 
@@ -338,6 +339,25 @@ namespace engine
 
          virtual void*              getSchedItemPtr() = 0 ;
          virtual void               setSchedItemVer( INT32 ver ) = 0 ;
+
+         virtual INT32 checkPrivilegesForCmd( const CHAR *cmdName,
+                                              const CHAR *pQuery,
+                                              const CHAR *pSelector,
+                                              const CHAR *pOrderby,
+                                              const CHAR *pHint ) = 0;
+
+         virtual INT32 checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
+                                                         const authActionSet &actions ) = 0;
+
+         virtual INT32 checkPrivilegesForActionsOnCluster( const authActionSet &actions ) = 0;
+
+         virtual INT32 checkPrivilegesForActionsOnResource(
+            const boost::shared_ptr< authResource > &,
+            const authActionSet &actions ) = 0;
+
+         virtual BOOLEAN privilegeCheckEnabled() = 0;
+
+         virtual INT32 getACL( boost::shared_ptr<const authAccessControlList> &acl ) = 0;
 
       protected:
          virtual void               _onAttach () {}

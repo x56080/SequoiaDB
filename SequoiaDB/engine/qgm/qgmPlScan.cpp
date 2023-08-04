@@ -443,58 +443,5 @@ namespace engine
          _contextID = -1 ;
       }
    }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLSCAN__CHECKPRIVILEGE, "_qgmPlScan::_checkPrivilege" )
-   INT32 _qgmPlScan::_checkPrivilege( _pmdEDUCB *eduCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__QGMPLSCAN__CHECKPRIVILEGE ) ;
-      ISession *pSession = eduCB->getSession() ;
-      if ( pSession )
-      {
-         IClient *client = pSession->getClient() ;
-         if ( client )
-         {
-            SDB_ASSERT( AUTH_INVALID_ROLE_ID != client->getRoleID(),
-                        "Role id is invalid" ) ;
-            if ( AUTH_ROLE_ADMIN == client->getRoleID() )
-            {
-               goto done ;
-            }
-
-            // check collection name
-            try
-            {
-               ossPoolString name = _collection.toString() ;
-               if ( '$' == name.at(0) )
-               {
-                  rc = client->checkCmdPrivilege( name.c_str() ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Check privilege for the operation "
-                               "failed, rc: %d", rc ) ;
-               }
-               else
-               {
-                  rc = SDB_NO_PRIVILEGES ;
-                  PD_LOG( PDERROR, "No privileges for the operation, rc: %d",
-                          rc ) ;
-                  goto error ;
-               }
-            }
-            catch ( std::exception &e )
-            {
-               rc = ossException2RC( &e ) ;
-               PD_LOG( PDERROR, "Unexpected exception occurred: %s",
-                       e.what() ) ;
-               goto error ;
-            }
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__QGMPLSCAN__CHECKPRIVILEGE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
 }
 

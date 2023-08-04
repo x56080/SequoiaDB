@@ -251,6 +251,28 @@ namespace engine
    } ;
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
+
+   /*
+      _coordCMDInvalidateUserCache define
+   */
+   class _coordCMDInvalidateUserCache : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+      public:
+         _coordCMDInvalidateUserCache () ;
+
+         virtual ~_coordCMDInvalidateUserCache () ;
+
+      private:
+         virtual BOOLEAN _useContext () { return FALSE ; }
+
+         virtual INT32   _onLocalMode ( INT32 flag ) { return SDB_COORD_UNKNOWN_OP_REQ ; }
+
+         virtual void    _preSet ( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+
+         virtual UINT32  _getControlMask () const ;
+   } ;
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

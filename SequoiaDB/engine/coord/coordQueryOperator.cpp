@@ -49,8 +49,10 @@
 #include "coordTrace.hpp"
 #include "rtnTrace.hpp"
 #include "ossUtil.hpp"
+#include "auth.hpp"
 
 using namespace bson;
+using namespace boost;
 
 namespace engine
 {
@@ -500,6 +502,19 @@ namespace engine
             MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
             MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+
+            if ( cb->getSession()->privilegeCheckEnabled() )
+            {
+               authActionSet actions;
+               actions.addAction( ACTION_TYPE_find );
+               if ( _isUpdate( BSONObj( pHint ), flag ) )
+               {
+                  actions.addAction( ACTION_TYPE_update );
+                  actions.addAction( ACTION_TYPE_remove );
+               }
+               rc = cb->getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
+               PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+            }
 
             if ( OSS_BIT_TEST( flag, FLG_QUERY_MODIFY ) )
             {

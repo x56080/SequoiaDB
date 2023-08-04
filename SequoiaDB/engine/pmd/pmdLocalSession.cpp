@@ -42,6 +42,7 @@
 #include "rtnContext.hpp"
 #include "msgConvertorImpl.hpp"
 #include "../bson/lib/md5.hpp"
+#include "auth.hpp"
 
 using namespace bson ;
 
@@ -266,6 +267,325 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_CHECK_PRIVS_CMD, "_pmdLocalSession::checkPrivilegesForCmd" )
+   INT32 _pmdLocalSession::checkPrivilegesForCmd( const CHAR *cmdName,
+                                                  const CHAR *pQuery,
+                                                  const CHAR *pSelector,
+                                                  const CHAR *pOrderby,
+                                                  const CHAR *pHint )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_CMD ) ;
+      if ( !privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      try
+      {
+         BSONObj query = pQuery ? BSONObj( pQuery ) : BSONObj();
+         // BSONObj selector( pSelector );
+         // BSONObj orderby( pOrderby );
+         BSONObj hint = pHint ? BSONObj( pHint ) : BSONObj();
+
+         boost::shared_ptr< const authAccessControlList> acl;
+         rc = getACL( acl );
+         PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to get ACL, rc: %d", sessionName(), rc );
+
+         authRequiredPrivileges required;
+         CMD_TAGS_ARRAY *tags = authGetCMDActionSetsTags( cmdName );
+         if ( tags )
+         {
+            for ( UINT32 i = 0; i < tags->second; i++ )
+            {
+               AUTH_CMD_ACTION_SETS_TAG tag = tags->first[ i ];
+               const authRequiredActionSets *actionSets = authGetCMDActionSetsByTag( tag );
+               if ( !actionSets || !actionSets->isDefault() )
+               {
+                  continue;
+               }
+
+               if ( RESOURCE_TYPE_EXACT_COLLECTION == actionSets->getResourceType() )
+               {
+                  BSONElement clFullName = query.getField( FIELD_NAME_COLLECTION );
+                  if ( clFullName.type() != bson::String )
+                  {
+                     clFullName = hint.getField( FIELD_NAME_COLLECTION );
+                  }
+                  if ( clFullName.type() != bson::String )
+                  {
+                     clFullName = query.getField( FIELD_NAME_NAME );
+                  }
+                  if ( clFullName.type() != bson::String )
+                  {
+                     clFullName = hint.getField( FIELD_NAME_NAME );
+                  }
+                  if ( clFullName.type() == bson::String )
+                  {
+                     boost::shared_ptr< authResource > r = authResource::forExact( clFullName.valuestr() );
+                     required.addActionSetsOnResource( r, actionSets );
+                  }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Cannot find the collection name of command: %s", cmdName );
+                  }
+               }
+               else if ( RESOURCE_TYPE_COLLECTION_SPACE == actionSets->getResourceType() )
+               {
+                  BSONElement csName = query.getField( FIELD_NAME_NAME );
+                  if ( csName.type() != bson::String )
+                  {
+                     csName = hint.getField( FIELD_NAME_NAME );
+                  }
+                  if ( csName.type() != bson::String )
+                  {
+                     csName = query.getField( FIELD_NAME_COLLECTIONSPACE );
+                  }
+                  if ( csName.type() != bson::String )
+                  {
+                     csName = hint.getField( FIELD_NAME_COLLECTIONSPACE );
+                  }
+                  if ( csName.type() == bson::String )
+                  {
+                     ossPoolString cs( csName.valuestr() );
+                     boost::shared_ptr< authResource > r = authResource::forCS( cs );
+                     required.addActionSetsOnResource( r, actionSets );
+                  }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Cannot find the collection space name of command: %s",
+                             cmdName );
+                  }
+               }
+               else if ( RESOURCE_TYPE_NON_SYSTEM == actionSets->getResourceType() ||
+                         RESOURCE_TYPE_CLUSTER == actionSets->getResourceType() ||
+                         RESOURCE_TYPE_ANY == actionSets->getResourceType() )
+               {
+                  required.addActionSetsOnSimpleType( actionSets );
+               }
+            }
+         }
+
+         rc = authMeetRequiredPrivileges( required, *acl );
+         if ( SDB_NO_PRIVILEGES == rc )
+         {
+            rc = SDB_NO_PRIVILEGES;
+            PD_LOG_MSG( PDERROR, "No privilege to execute command: %s", cmdName );
+            goto error;
+         }
+         else if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to check privileges for command[%s], rc: %d", cmdName,
+                        rc );
+            goto error;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e );
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s. rc: %d", e.what(), rc );
+         goto error;
+      }
+      catch ( boost::exception &e )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Occured exception when check privileges: %s, rc: %d",
+                 boost::diagnostic_information( e ).c_str(), rc );
+         goto error;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN_CHECK_PRIVS_CMD, rc );
+      return rc;
+   error:
+      goto done;
+   }
+   
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_CHECK_PRIVS_EXACT, "_pmdLocalSession::checkPrivilegesForActionsOnExact" )
+   INT32 _pmdLocalSession::checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
+                                                             const authActionSet &actions )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_EXACT ) ;
+      if ( !privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      try
+      {
+         boost::shared_ptr< const authAccessControlList > acl;
+         rc = getACL( acl );
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to get ACL, rc: %d", sessionName(), rc );
+            goto error;
+         }
+
+         rc = authMeetActionsOnExact( pCollectionName, actions, *acl );
+         if ( SDB_NO_PRIVILEGES == rc )
+         {
+            ossPoolStringStream ss;
+            ss << actions;
+            PD_LOG_MSG( PDERROR, "No privilege for actions %s on collection %s", ss.str().c_str(),
+                        pCollectionName );
+            goto error;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG(PDERROR, "Failed to check privileges, rc: %d");
+            goto error;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Occured exception: %s", e.what() );
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      catch ( boost::exception &e )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Occured exception: %s, rc: %d",
+                 boost::diagnostic_information( e ).c_str(), rc );
+         goto error;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN_CHECK_PRIVS_EXACT, rc );
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_CHECK_PRIVS_CLUSTER, "_pmdLocalSession::checkPrivilegesForActionsOnCluster" )
+   INT32 _pmdLocalSession::checkPrivilegesForActionsOnCluster( const authActionSet &actions )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_CLUSTER );
+      if ( !privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      try
+      {
+         boost::shared_ptr< const authAccessControlList > acl;
+         rc = getACL( acl );
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to get ACL, rc: %d", sessionName(), rc );
+            goto error;
+         }
+         rc = authMeetActionsOnCluster( actions, *acl );
+         if ( SDB_NO_PRIVILEGES == rc )
+         {
+            ossPoolStringStream ss;
+            ss << actions;
+            PD_LOG_MSG( PDERROR, "No privilege for actions %s on cluster", ss.str().c_str() );
+            goto error;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG(PDERROR, "Failed to check privileges, rc: %d");
+            goto error;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Occured exception: %s", e.what() );
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      catch ( boost::exception &e )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Occured exception: %s, rc: %d",
+                 boost::diagnostic_information( e ).c_str(), rc );
+         goto error;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN_CHECK_PRIVS_CLUSTER, rc );
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_CHECK_PRIVS_RESOURCE, "_pmdLocalSession::checkPrivilegesForActionsOnResource" )
+   INT32 _pmdLocalSession::checkPrivilegesForActionsOnResource(
+      const boost::shared_ptr< authResource > &resource,
+      const authActionSet &actions )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_RESOURCE );
+      if ( !privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      try
+      {
+         boost::shared_ptr< const authAccessControlList > acl;
+         rc = getACL( acl );
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to get ACL, rc: %d", sessionName(), rc );
+            goto error;
+         }
+
+         if ( !acl->isAuthorizedForActionsOnResource( *resource, actions))
+         {
+            BSONObjBuilder resBuilder;
+            resource->toBSONObj(resBuilder);
+            ossPoolStringStream ss;
+            ss << actions;
+            PD_LOG_MSG( PDERROR, "No privilege for actions %s on resource %s", ss.str().c_str(),
+                        resBuilder.done().toString().c_str() );
+            rc = SDB_NO_PRIVILEGES;
+            goto error;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Occured exception: %s", e.what() );
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      catch ( boost::exception &e )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Occured exception: %s, rc: %d",
+                 boost::diagnostic_information( e ).c_str(), rc );
+         goto error;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN_CHECK_PRIVS_RESOURCE, rc );
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_GETACL, "_pmdLocalSession::getACL" )
+   INT32 _pmdLocalSession::getACL( boost::shared_ptr< const authAccessControlList > &acl )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_GETACL );
+      if ( !_acl )
+      {
+         rc = sdbGetRTNCB()->getUserCacheMgr()->getACL( _pEDUCB, getClient()->getUsername(), _acl );
+         PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to get ACL from user cache manager, rc: %d",
+                      sessionName(), rc );
+      }
+      acl = _acl;
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN_GETACL, rc );
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 _pmdLocalSession::_recvSysInfoMsg( UINT32 msgSize,
                                             CHAR **ppBuff,
                                             INT32 &buffLen )
@@ -466,18 +786,7 @@ namespace engine
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
       _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
 
-      rc = getClient()->checkPrivilege( pMsg ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
-
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )

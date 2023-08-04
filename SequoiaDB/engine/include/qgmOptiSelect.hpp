@@ -98,6 +98,8 @@ namespace engine
 
       void _handleHint( QGM_HINS &hints ) ;
 
+      virtual INT32 _checkPrivileges( ISession *session ) const ;
+
    public:
       qgmOPFieldVec        _selector ;
       qgmOPFieldVec        _orderby ;
