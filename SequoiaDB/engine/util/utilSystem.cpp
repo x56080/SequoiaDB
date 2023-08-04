@@ -996,18 +996,17 @@ namespace engine
       INT32 rc = SDB_OK ;
       OSSFILE file ;
       BOOLEAN isOpened = FALSE ;
-
-   #if defined (_ARMLIN64)
-
-      versionSignature = "" ;
-
-   #else
-
       std::stringstream buf ;
       CHAR readChar = '\0' ;
       INT64 readSize = 0 ;
 
       rc = ossOpen( UTIL_SYS_PROC_VERSION_SIGNA, OSS_READONLY|OSS_SHAREREAD, 0, file ) ;
+      if ( SDB_FNE == rc )
+      {
+         rc = SDB_OK ;
+         versionSignature = "" ;
+         goto done ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to open file[%s], rc: %d", UTIL_SYS_PROC_VERSION_SIGNA, rc ) ;
       isOpened = TRUE ;
 
@@ -1032,8 +1031,6 @@ namespace engine
                   "%s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
-
-   #endif
 
    done:
       if ( isOpened )

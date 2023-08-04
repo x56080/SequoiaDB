@@ -514,8 +514,11 @@ INT32 _mongoHostInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
       BSONObjBuilder extraBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_EXTRA ) ) ;
       extraBob.append( FAP_MONGO_FIELD_NAME_VERSION_STR, info.version.c_str() ) ;
       extraBob.append( FAP_MONGO_FIELD_NAME_LIBC_VERSION, info.libcVersion.c_str() ) ;
+      if ( !info.versionSignature.empty() )
+      {
+         extraBob.append( FAP_MONGO_FIELD_NAME_VER_SIG, info.versionSignature.c_str() ) ;
+      }
 #if !defined (_ARMLIN64)
-      extraBob.append( FAP_MONGO_FIELD_NAME_VER_SIG, info.versionSignature.c_str() ) ;
       extraBob.append( FAP_MONGO_FIELD_NAME_CPUFREMHZ, info.cpuFrequencyMHz.c_str() ) ;
       extraBob.append( FAP_MONGO_FIELD_NAME_CPUFEATURES, info.cpuFeatures.c_str() ) ;
 #endif
