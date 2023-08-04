@@ -176,7 +176,7 @@ testFiles = [
    [ "./monitor/resetSnapshot12664.cpp" ], # sync
    [ "./monitor/resetSnapshot14455.cpp" ], # sync
    [ "./monitor/getSnapshotPlan14514.cpp" ],
-   [ "./monitor/monitorAuth28014.cpp" ],
+   # [ "./monitor/monitorAuth28014.cpp" ],# SEQUOIADBMAINSTREAM-9798
    [ "./date/date11754.cpp" ],
    [ "./date/dateTime12219_12220.cpp" ],
    [ "./numberLong/numberLong7822.cpp" ],

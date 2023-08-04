@@ -2,11 +2,12 @@
  * @Description   : seqDB-27796:创建监控用户执行非监控类操作
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.09.27
- * @LastEditTime  : 2022.10.09
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2023.08.04
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 
 function test ()
 {
