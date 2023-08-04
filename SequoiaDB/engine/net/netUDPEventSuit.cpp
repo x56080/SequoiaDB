@@ -779,4 +779,12 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _netUDPEventSuit::isStoppped() const
+   {
+      // NOTE: the UDP net suit is a fake one,
+      // depends on the main suit of net frame
+      return ( NULL != _frame && NULL != _frame->getMainSuit().get() ) ?
+             ( _frame->getMainSuit()->isStoppped() ) : ( FALSE ) ;
+   }
+
 }

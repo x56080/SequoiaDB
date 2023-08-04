@@ -106,6 +106,9 @@ namespace engine
             return NET_EVENT_HANDLER_TCP ;
          }
 
+         // check if the net suit is stopped
+         virtual BOOLEAN isSuitStopped() const ;
+
       protected:
          void  _readCallback( const boost::system::error_code &error ) ;
          INT32 _allocateBuf( UINT32 len ) ;

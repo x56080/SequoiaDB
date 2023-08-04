@@ -114,6 +114,9 @@ namespace engine
       void  removeEH( const MsgRouteID &routeID ) ;
       void  removeAllEH() ;
 
+      // check if the net suit is stopped
+      BOOLEAN isStoppped() const ;
+
    protected:
       typedef ossPoolMap< netUDPEndPoint, NET_EH > NET_UDP_EP2EH_MAP ;
       typedef ossPoolMap< UINT64, NET_EH >         NET_UDP_ID2EH_MAP ;

@@ -323,4 +323,9 @@ namespace engine
          id( routeID ) ;
       }
    }
+
+   BOOLEAN _netUDPEventHandler::isSuitStopped() const
+   {
+      return NULL != _evSuitPtr.get() ? _evSuitPtr->isStoppped() : FALSE ;
+   }
 }
