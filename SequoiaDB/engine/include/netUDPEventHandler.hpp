@@ -94,6 +94,9 @@ namespace engine
          return _remoteEndPoint ;
       }
 
+      // check if the net suit is stopped
+      virtual BOOLEAN isSuitStopped() const ;
+
    protected:
       OSS_INLINE NET_UDP_EH _getShared()
       {

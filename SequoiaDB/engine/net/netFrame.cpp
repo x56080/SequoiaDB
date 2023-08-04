@@ -345,6 +345,7 @@ namespace engine
       {
          ossScopedLock lock( &_suiteMtx, EXCLUSIVE ) ;
          _eraseSuit_i( evSuitPtr ) ;
+         evSuitPtr->setStopped() ;
       }
 
       _netEventSuit::SET_HANDLE setHandles ;
@@ -2472,7 +2473,15 @@ namespace engine
       try
       {
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
-         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+         if ( !eh->isSuitStopped() )
+         {
+            _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+         }
+         else
+         {
+            // suit is stopped
+            rc = SDB_NETWORK_CLOSE ;
+         }
       }
       catch ( exception &e )
       {

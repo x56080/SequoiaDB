@@ -809,5 +809,10 @@ namespace engine
       _isNew = FALSE ;
    }
 
+   BOOLEAN _netEventHandler::isSuitStopped() const
+   {
+      return NULL != _evSuitPtr.get() ? _evSuitPtr->isStoppped() : FALSE ;
+   }
+
 }
 

@@ -55,6 +55,7 @@ namespace engine
    {
       _pFrame = pFrame ;
       _active = FALSE ;
+      _stopped = FALSE ;
       _noAttachTimeout = 0 ;
    }
 
