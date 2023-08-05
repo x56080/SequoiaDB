@@ -19,6 +19,7 @@ public final class MsgConstants {
     public final static String AUTH_USER = "User";
     public final static String AUTH_PASSWD = "Passwd";
     public final static String AUTH_TEXT_PASSWD = "TextPasswd";
+    public final static String AUTH_OPTIONS = "Options";
     public final static String AUTH_TYPE = "Type";
     public final static String AUTH_STEP = "Step";
     public final static String AUTH_SALT = "Salt";

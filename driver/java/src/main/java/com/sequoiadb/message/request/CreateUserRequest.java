@@ -23,11 +23,14 @@ import org.bson.BasicBSONObject;
 
 public class CreateUserRequest extends AuthRequest {
 
-    public CreateUserRequest(String userName, String password, SdbAuthVersion authVersion) {
+    public CreateUserRequest(String userName, String password, SdbAuthVersion authVersion, BSONObject options) {
         String md5Pwd = password != null ? Helper.md5(password) : null;
         BSONObject obj = new BasicBSONObject();
         obj.put(MsgConstants.AUTH_USER, userName);
         obj.put(MsgConstants.AUTH_PASSWD, md5Pwd);
+        if (options != null) {
+            obj.put(MsgConstants.AUTH_OPTIONS, options);
+        }
 
         if (authVersion.getVersion() >= SdbAuthVersion.SDB_AUTH_SCRAM_SHA256.getVersion()) {
             obj.put(MsgConstants.AUTH_TEXT_PASSWD, password);
