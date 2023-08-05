@@ -151,4 +151,9 @@ final class SdbConstants {
     final static String SEQ_OPT_SET_CURR_VALUE = "set current value";
     final static String SEQ_OPT_RENAME = "rename";
     final static String SEQ_OPT_RESTART = "restart";
+
+    // for role
+    final static String FIELD_NAME_ROLE = "Role";
+    final static String FIELD_NAME_PRIVILEGES = "Privileges";
+    final static String FIELD_NAME_ROLES = "Roles";
 }

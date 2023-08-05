@@ -18,6 +18,7 @@ package com.sequoiadb.message.request;
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.message.MsgConstants;
 import com.sequoiadb.message.MsgOpCode;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
@@ -38,6 +39,10 @@ public class AuthRequest extends SdbRequest {
     }
 
     public AuthRequest(String userName, String password, AuthType type) {
+        this(userName, password, type, null);
+    }
+
+    public AuthRequest(String userName, String password, AuthType type, BSONObject options) {
         switch (type) {
             case Verify:
                 opCode = MsgOpCode.AUTH_VERIFY_REQ;
@@ -59,6 +64,9 @@ public class AuthRequest extends SdbRequest {
         BSONObject obj = new BasicBSONObject();
         obj.put(AUTH_USER, userName);
         obj.put(AUTH_PASSWD, md5);
+        if (options != null) {
+            obj.put(MsgConstants.AUTH_OPTIONS, options);
+        }
         bsonBytes = Helper.encodeBSONObj(obj);
         length += Helper.alignedSize(bsonBytes.length);
     }

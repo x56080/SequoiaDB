@@ -160,4 +160,18 @@ final class AdminCommand {
     final static String RETURN_RECYCLEBIN_ITEM_TO_NAME = PREFIX + "return recyclebin item to name";
     final static String DROP_RECYCLEBIN_ITEM = PREFIX + "drop recyclebin item";
     final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
+
+    // rbac
+    final static String CREATE_ROLE = PREFIX + "create role";
+    final static String DROP_ROLE = PREFIX + "drop role";
+    final static String GET_ROLE = PREFIX + "get role";
+    final static String LIST_ROLES = PREFIX + "list roles";
+    final static String UPDATE_ROLE = PREFIX + "update role";
+    final static String GRANT_PRIVILEGES = PREFIX + "grant privileges";
+    final static String REVOKE_PRIVILEGES = PREFIX + "revoke privileges";
+    final static String GRANT_ROLES_TO_ROLE = PREFIX + "grant roles to role";
+    final static String REVOKE_ROLES_FROM_ROLE = PREFIX + "revoke roles from role";
+    final static String GET_USER = PREFIX + "get user";
+    final static String GRANT_ROLES_TO_USER = PREFIX + "grant roles to user";
+    final static String REVOKE_ROLES_FROM_USER = PREFIX + "revoke roles from user";
 }

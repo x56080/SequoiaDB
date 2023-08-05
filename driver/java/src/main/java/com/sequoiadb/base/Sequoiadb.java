@@ -701,11 +701,33 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void createUser(String username, String password) throws BaseException {
+        createUser(username, password, null);
+    }
+
+    /**
+     * Create an user in current database.
+     *
+     * @param username The connection user name
+     * @param password The connection password
+     * @param options  The options for user
+     *                 <ul>
+     *                 <li>AuditMask: User audit log mask, value list:
+     *                             ACCESS,CLUSTER,SYSTEM,DML,DDL,DCL,DQL,INSERT,DELETE,UPDATE,OTHER.
+     *                             You can combine multiple values with '|'. 'ALL' means that all mask items
+     *                             are turned on, and 'NONE' means that no mask items are turned on.
+     *                             If an item in the user audit log is not configured, the configuration of the
+     *                             corresponding mask item on the node is inherited. You can also use '!' to
+     *                             disable inheritance of this mask( e.g. "!DDL|DML" ).
+     *                   <li>Roles: Customize user role array.
+     *                   </ul>
+     * @throws BaseException If error happens.
+     */
+    public void createUser(String username, String password, BSONObject options) throws BaseException {
         if (username == null || username.length() == 0 || password == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
-        AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.CreateUser);
+        AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.CreateUser, options);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);
     }
@@ -724,6 +746,39 @@ public class Sequoiadb implements Closeable {
         AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.DeleteUser);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);
+    }
+
+    /**
+     * Get information for a specific user
+     *
+     * @param username The username of the user.
+     * @param options  Additional options for outputting user information.
+     *                 <ul>
+     *                 <li>ShowPrivileges(Boolean): Whether to display the privileges of the user in the output result.
+     *                 </ul>
+     * @return User information.
+     * @throws BaseException If error happens
+     */
+    public BSONObject getUser(String username, BSONObject options) throws BaseException {
+        if (username == null || username.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Username can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_USER, username);
+        if (options != null) {
+            matcher.putAll(options);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.GET_USER, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+
+        try (DBCursor cursor = new DBCursor(response, this)) {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_AUTH_ROLE_NOT_EXIST);
+            }
+            return cursor.getNext();
+        }
     }
 
     /**
@@ -2827,6 +2882,285 @@ public class Sequoiadb implements Closeable {
      */
     public DBRecycleBin getRecycleBin(){
         return new DBRecycleBin(this);
+    }
+
+    /**
+     * Create a role
+     *
+     * @param role Some detailed information about the role.
+     *             e.g. {Role: "my_role", Privileges: [{Resource: {cs: "my_cs", cl: "my_cl"}, Actions: ["find"]},
+     *             Roles: ["other_role"]]}
+     *             <ul>
+     *             <li>Role(string): The name of the role.
+     *             <li>Privileges: List of privileges, containing the following fields:
+     *             <ul>
+     *             <li>Resource: The resource to which the privilege applies.
+     *             <ul>
+     *             <li>cs(String): Collection space
+     *             <li>cl(String): Collection
+     *             </ul>
+     *             </li>
+     *             <li>Actions(List&lt;String&gt;): List of actions included in the privilege.
+     *             </ul>
+     *             <li>Roles(List&lt;String&gt;): List of inherited roles. Inheriting a role will grant all the
+     *             privileges of that role.
+     *             </ul>
+     * @throws BaseException If error happens
+     */
+    public void createRole(BSONObject role) throws BaseException {
+        if (role == null || !role.containsField(SdbConstants.FIELD_NAME_ROLE)) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid role");
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_ROLE, role);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Delete a role
+     *
+     * @param roleName The name of the role to be deleted.
+     * @throws BaseException If error happens
+     */
+    public void dropRole(String roleName) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_ROLE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Get information for a role
+     *
+     * @param roleName The name of the role.
+     * @param options  Additional options for outputting role information.
+     *                 <ul>
+     *                 <li>ShowPrivileges(Boolean): Whether to display the privileges information.
+     *                 </ul>
+     * @return The detailed information of the role.
+     * @throws BaseException If error happens
+     */
+    public BSONObject getRole(String roleName, BSONObject options) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        if (options != null) {
+            matcher.putAll(options);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.GET_ROLE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+
+        try (DBCursor cursor = new DBCursor(response, this)) {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_AUTH_ROLE_NOT_EXIST);
+            }
+            return cursor.getNext();
+        }
+    }
+
+    /**
+     * List all role information
+     *
+     * @param options The optional information for the output result.
+     *                <ul>
+     *                <li>ShowPrivileges(Boolean): Whether to display the privileges information.
+     *                <li>ShowBuiltinRoles(Boolean): Whether to display built-in roles.
+     *                </ul>
+     * @return Role information cursor.
+     * @throws BaseException If error happens
+     */
+    public DBCursor listRole(BSONObject options) throws BaseException {
+        AdminRequest request = new AdminRequest(AdminCommand.LIST_ROLES, options);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DBCursor(response, this);
+    }
+
+    /**
+     * Update role information
+     *
+     * @param roleName The name of the role.
+     * @param role     The new role information.
+     *                 e.g. {Role: "my_role", Privileges: [{Resource: {cs: "my_cs", cl: "my_cl"}, Actions: ["find"]}],
+     *                 Roles: ["other_role"]}
+     *                 <ul>
+     *                 <li>Role(string): The name of the role.
+     *                 <li>Privileges: List of privileges, containing the following fields:
+     *                 <ul>
+     *                 <li>Resource: The resource to which the privilege applies.
+     *                 <ul>
+     *                 <li>cs(String): Collection space
+     *                 <li>cl(String): Collection
+     *                 </ul>
+     *                 </li>
+     *                 <li>Actions(List&lt;String&gt;): List of actions included in the privilege.
+     *                 </ul>
+     *                 <li>Roles(List&lt;String&gt;): List of inherited roles. Inheriting a role will grant all the
+     *                 privileges of that role.
+     *                 </ul>
+     * @throws BaseException If error happens
+     */
+    public void updateRole(String roleName, BSONObject role) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        matcher.putAll(role);
+
+        AdminRequest request = new AdminRequest(AdminCommand.UPDATE_ROLE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Grant some privileges to a specific role
+     *
+     * @param roleName   The name of the role.
+     * @param privileges The privileges to be granted.
+     *                   e.g. [{Resource: {cs: "my_cs", cl: "my_cl"}, Actions: ["find"]}]
+     *                   <ul>
+     *                   <li>Resource: The resource to which the privilege applies.
+     *                   <ul>
+     *                   <li>cs(String): Collection space
+     *                   <li>cl(String): Collection
+     *                   </ul>
+     *                   </li>
+     *                   <li>Actions(List&lt;String&gt;): List of actions included in the privilege.
+     *                   </ul>
+     * @throws BaseException If error happens
+     */
+    public void grantPrivilegesToRole(String roleName, BSONObject privileges) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        matcher.put(SdbConstants.FIELD_NAME_PRIVILEGES, privileges);
+
+        AdminRequest request = new AdminRequest(AdminCommand.GRANT_PRIVILEGES, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Revoke some privileges from a specific role
+     *
+     * @param roleName   The name of the role.
+     * @param privileges List privileges that need to be revoked.
+     *                   e.g. [{Resource: {cs: "my_cs", cl: "my_cl"}, Actions: ["find"]}]
+     *                   <ul>
+     *                   <li>Resource: The resource to which the privilege applies.
+     *                   <ul>
+     *                   <li>cs(String): Collection space
+     *                   <li>cl(String): Collection
+     *                   </ul>
+     *                   </li>
+     *                   <li>Actions(List&lt;String&gt;): List of actions included in the privilege.
+     *                   </ul>
+     * @throws BaseException If error happens
+     */
+    public void revokePrivilegesFromRole(String roleName, BSONObject privileges) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        matcher.put(SdbConstants.FIELD_NAME_PRIVILEGES, privileges);
+
+        AdminRequest request = new AdminRequest(AdminCommand.REVOKE_PRIVILEGES, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Make a certain role inherit from another role
+     *
+     * @param roleName The name of the role.
+     * @param roles    List role names that needs to be inherited from. e.g. ["my_role_1", "my_role_2"]
+     * @throws BaseException If error happens
+     */
+    public void grantRolesToRole(String roleName, BSONObject roles) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        matcher.put(SdbConstants.FIELD_NAME_ROLES, roles);
+
+        AdminRequest request = new AdminRequest(AdminCommand.GRANT_ROLES_TO_ROLE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Revoke some roles that are inherited by a specific role.
+     *
+     * @param roleName The target role.
+     * @param roles    List of role names to be revoked. e.g. ["my_role_1", "my_role_2"]
+     * @throws BaseException If error happens
+     */
+    public void revokeRolesFromRole(String roleName, BSONObject roles) throws BaseException {
+        if (roleName == null || roleName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Role name can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_ROLE, roleName);
+        matcher.put(SdbConstants.FIELD_NAME_ROLES, roles);
+
+        AdminRequest request = new AdminRequest(AdminCommand.REVOKE_ROLES_FROM_ROLE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Grant some roles to a specific user
+     *
+     * @param username The username of the user.
+     * @param roles    List of role names to be granted. e.g. ["my_role_1", "my_role_2"]
+     *
+     * @throws BaseException If error happens
+     */
+    public void grantRolesToUser(String username, BSONObject roles) throws BaseException {
+        if (username == null || username.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Username can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_USER, username);
+        matcher.put(SdbConstants.FIELD_NAME_ROLES, roles);
+
+        AdminRequest request = new AdminRequest(AdminCommand.GRANT_ROLES_TO_USER, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Revoke some roles from a specific user
+     *
+     * @param username The username of the user.
+     * @param roles    List of role names to be revoked. e.g. ["my_role_1", "my_role_2"]
+     * @throws BaseException If error happens
+     */
+    public void revokeRolesFromUser(String username, BSONObject roles) throws BaseException {
+        if (username == null || username.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Username can't be null or empty");
+        }
+
+        BSONObject matcher = new BasicBSONObject(SdbConstants.FIELD_NAME_USER, username);
+        matcher.put(SdbConstants.FIELD_NAME_ROLES, roles);
+
+        AdminRequest request = new AdminRequest(AdminCommand.REVOKE_ROLES_FROM_USER, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
     }
 
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
