@@ -81,7 +81,12 @@ namespace engine
 
    INT32 _authCB::active ()
    {
-      return _roleMgr.active() ;
+      INT32 rc = SDB_OK ;
+      if ( SDB_ROLE_OM != pmdGetDBRole() )
+      {
+         rc = _roleMgr.active() ;
+      }
+      return rc ;
    }
 
    INT32 _authCB::deactive ()
