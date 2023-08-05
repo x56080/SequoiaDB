@@ -111,7 +111,7 @@ The detail description of \[aq]options\[aq] parameter is as follow:
 .PP
 .TS
 tab(@);
-l l l l l.
+l l l l.
 T{
 0
 T}@T{
@@ -120,8 +120,6 @@ T}@T{
 Type
 T}@T{
 Description
-T}@T{
-Required or not
 T}
 _
 T{
@@ -131,16 +129,152 @@ AuditMask
 T}@T{
 string
 T}@T{
-user audit log
-T}@T{
-not
+The configuration mask
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-configuration mask
+of the user auditlog,
+T}
+T{
 T}@T{
+T}@T{
+T}@T{
+the default value is "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+SYSTEM|DDL|DCL", and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the values are as
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+follows:ACCESS,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+CLUSTER, SYSTEM, DCL,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+DDL, DML, DQL, INSERT,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+UPDATE, DELETE, OTHER,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+ALL, NONE●
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Supports using \[aq]bitwise
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+or\[aq](|) to connect
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+multiple masks, and \[aq]
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+logic not\[aq](!)
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+prohibits a mask.
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+● A value of "ALL"
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+indicates that all
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+configuration masks are
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+selected.● A
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+value of "NONE"
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+indicates that all
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+configuration masks are
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+prohibited.
+That is,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the audit function is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+turned off.
 T}
 T{
 2
@@ -174,26 +308,20 @@ T{
 T}@T{
 T}@T{
 T}@T{
-the default value is "
+and the value list: "
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-admin", and the value
+admin", "monitor".
+"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-list: "admin", "monitor
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-".
-"admin" is the
+admin" is the
 T}
 T{
 T}@T{
@@ -276,32 +404,14 @@ T}
 .TE
 .RS
 .PP
-Note：
-.RE
-.RS
+\f[B]Note:\f[]
 .IP \[bu] 2
 This interface can only be used in cluster mode.
-.RE
-.RS
 .IP \[bu] 2
-If the database has created a user, you must specify a username and password to
-connect to the database.
-.RE
-.RS
+When a user is created in the database, the username and password must be
+specified to connect to the database.
 .IP \[bu] 2
-AuditMask\[aq]s value are as follow:
-ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER.
-You can combine multiple values with \[aq]|\[aq].
-\[aq]ALL\[aq] means that all mask items are turned on, and \[aq]NONE\[aq] means
-that no mask items are turned on.
-If an item in the user audit log is not configured, the configuration of the
-corresponding mask item on the node is inherited.
-You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g:
-"!DDL|DML" ).
-.RE
-.RS
-.IP \[bu] 2
-The first user created in the database must be granted the "_root" role.
+For database username and password restrications, refer to database limit.
 .RE
 .SH RETURN VALUE
 .PP
@@ -341,8 +451,8 @@ For details on how to add and delete cipher test information in cipher test
 file, please see sdbpasswd for details ).
 .nf
 \f[C]
-> var a = CipherUser( "sdbadmin" )
-> db.createUsr( a )
+> var a = CipherUser("sdbadmin")
+> db.createUsr(a)
 \f[]
 .fi
 .RE

@@ -33,7 +33,7 @@ The detail description of 'options' parameter is as follow:
 | Attributes | Type   | Description                       |
 | ---------- | ------ | --------------------------------- |
 | AuditMask  | string | The configuration mask of the user [auditlog][auditlog], the default value is "SYSTEM\|DDL\|DCL", and the values are as follows:<br>ACCESS, CLUSTER, SYSTEM, DCL, DDL, DML, DQL, INSERT, UPDATE, DELETE, OTHER, ALL, NONE<br>● Supports using 'bitwise or'(\|) to connect multiple masks, and 'logic not'(\!) prohibits a mask.<br>● A value of "ALL" indicates that all configuration masks are selected.<br>● A value of "NONE" indicates that all configuration masks are prohibited. That is, the audit function is turned off. |
-| Role       | String | User role in old version. Currently only supports built-in roles in the system, the default value is "admin", and the value list: "admin", "monitor". "admin" is the administrator role, which can perform any operation. "monitor" is the monitoring role, which can only perform snapshot and list operations. |
+| Role       | String | User role in old version. Currently only supports built-in roles in the system, and the value list: "admin", "monitor". "admin" is the administrator role, which can perform any operation. "monitor" is the monitoring role, which can only perform snapshot and list operations. |
 | Roles      | Array  | User role list. You can grant multiple roles to users. For details, please refer to [Role-based Access Control][rbac] |
 
 > **Note:**
@@ -41,7 +41,6 @@ The detail description of 'options' parameter is as follow:
 > - This interface can only be used in cluster mode.
 > - When a user is created in the database, the username and password must be specified to connect to the database.
 > - For database username and password restrications, refer to [database limit][database_limit].
-> - The first user created in the database must be granted the "_root" role.
 
 ##RETURN VALUE##
 
