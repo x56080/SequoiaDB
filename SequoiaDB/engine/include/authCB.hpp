@@ -149,8 +149,9 @@ namespace engine
                                         const CHAR *serverProof,
                                         const CHAR *hashCode,
                                         BSONObj &result ) ;
-      INT32   _checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb ) ;
       INT32   _checkRemoveUser( const CHAR *username, _pmdEDUCB *cb ) ;
+
+      INT32   _isUserRoot( const CHAR *username, _pmdEDUCB *cb, BOOLEAN *result ) ;
 
    private:
       BOOLEAN     _authEnabled ;

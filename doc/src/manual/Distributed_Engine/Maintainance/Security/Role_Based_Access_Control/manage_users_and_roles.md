@@ -25,8 +25,6 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
 
 ###创建第一个超级用户###
 
-第一个用户的角色必须含有内建角色`_root`，使用`createUsr()`命令创建用户。
-
 ```lang-javascript
 > db = Sdb()
 > db.createUsr("su", "123", {Roles: ["_root"]})

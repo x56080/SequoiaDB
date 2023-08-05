@@ -1408,9 +1408,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to parse create user msg, rc: %d",
                    rc ) ;
-      rc = _checkCrtUserOption( option, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Check creating user option failed, rc: %d",
-                   rc ) ;
 
       rc = _buildUserInfo( username, passwd, clearTextPasswd, option,
                            userInfoObj ) ;
@@ -2526,65 +2523,81 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CHECKCRTUSEROPTION, "_authCB::_checkCrtUserOption" )
-   INT32 _authCB::_checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb )
+   INT32 _authCB::_isUserRoot( const CHAR *username, _pmdEDUCB *cb, BOOLEAN *result )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_AUTHCB__CHECKCRTUSEROPTION ) ;
+      SDB_ASSERT( username && cb && result, "can not be nullptr" ) ;
+      *result = FALSE;
+      BSONObj userObj;
 
+      rc = getUsrInfo( username, cb, userObj ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get user[%s] info, rc: %d",
+                   username, rc ) ;
 
-      // The first user of the database should always have role of _root.
       try
       {
-         const BSONObj &roles = option.getObjectField( FIELD_NAME_ROLES ) ;
-         INT64 count = 0 ;
-         rtnQueryOptions queryOption ;
-         BSONObj query = BSON( FIELD_NAME_ROLES << AUTH_ROLE_ROOT ) ;
-
-         queryOption.setCLFullName( AUTH_USR_COLLECTION ) ;
-         queryOption.setQuery( query ) ;
-         rc = rtnGetCount( queryOption, pmdGetKRCB()->getDMSCB(), cb,
-                           pmdGetKRCB()->getRTNCB(), &count ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc ) ;
-         if ( 0 == count )
+         BSONObj options = userObj.getObjectField( FIELD_NAME_OPTIONS ) ;
+         BSONElement role = options.getField( FIELD_NAME_ROLE ) ;
+         if ( 0 == ossStrcmp( VALUE_NAME_ADMIN, role.valuestrsafe() ) )
          {
-            for ( BSONObjIterator it(roles); it.more();)
-            {
-               BSONElement ele = it.next();
-               if ( String != ele.type() )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR,
-                          "Invalid type[%d] of field[%s] in user roles[%s], "
-                          "rc: %d", ele.type(), FIELD_NAME_ROLES,
-                          roles.toString().c_str(), rc ) ;
-                  goto error ;
-               }
-               if ( 0 == ossStrcmp( ele.valuestr(), AUTH_ROLE_ROOT ) )
-               {
-                  rc = SDB_OK ;
-                  goto done ;
-               }
-            }
+            *result = TRUE ;
+            goto done ;
+         }
 
-            rc = SDB_OPERATION_DENIED ;
-            PD_LOG_MSG( PDERROR, "The first user of the database should have "
-                        "role of %s, rc: %d", AUTH_ROLE_ROOT, rc ) ;
-            goto error ;
+         BSONObj roles = userObj.getObjectField( FIELD_NAME_ROLES ) ;
+         for ( BSONObjIterator it( roles ); it.more(); )
+         {
+            BSONElement ele = it.next() ;
+            if ( 0 == ossStrcmp( AUTH_ROLE_ROOT, ele.valuestrsafe() ) )
+            {
+               *result = TRUE ;
+               goto done ;
+            }
          }
       }
       catch ( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_AUTHCB__CHECKCRTUSEROPTION, rc ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   // Check if any user(not me) of role _root exists.
+   // Query matcher:
+   // {
+   //   "$and": [
+   //      { "User": { "$ne": username } },
+   //      { "$or": [ { "Roles": "_root" }, { "Options.Role": "admin" } } ]
+   //   ]
+   // }
+   BSONObj buildQueryConditionForRemoveUser( const CHAR *username )
+   {
+      BSONObjBuilder builder;
+      BSONArrayBuilder andBuilder( builder.subarrayStart( "$and" ) );
+      BSONObjBuilder userBuilder( andBuilder.subobjStart() );
+      BSONObjBuilder neBuilder( userBuilder.subobjStart( FIELD_NAME_USER ) );
+      neBuilder.append( "$ne", username );
+      neBuilder.doneFast();
+      userBuilder.doneFast();
+      BSONObjBuilder orObjBuilder( andBuilder.subobjStart() );
+      BSONArrayBuilder orArrayBuilder( orObjBuilder.subarrayStart( "$or" ) );
+      BSONObjBuilder rolesBuilder( orArrayBuilder.subobjStart() );
+      rolesBuilder.append( FIELD_NAME_ROLES, AUTH_ROLE_ROOT );
+      rolesBuilder.doneFast();
+      BSONObjBuilder optionsBuilder( orArrayBuilder.subobjStart() );
+      optionsBuilder.append( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE, VALUE_NAME_ADMIN );
+      optionsBuilder.doneFast();
+      orArrayBuilder.doneFast();
+      orObjBuilder.doneFast();
+      andBuilder.doneFast();
+      return builder.obj();
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CHECKREMOVEUSER, "_authCB::_checkRemoveUser" )
@@ -2600,6 +2613,7 @@ namespace engine
 
          INT64 count = 0 ;
          rtnQueryOptions queryOption ;
+         BOOLEAN isRoot = FALSE;
          SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
          SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
@@ -2613,20 +2627,16 @@ namespace engine
             goto done ;
          }
 
+         // If the user to delete is granted _root or admin (old version) role,
+         // ensure that there is another user which granted _root or admin.
+         rc = _isUserRoot( username, cb, &isRoot ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to determine whether the user[%s] is %s, rc: %d",
+                      username, AUTH_ROLE_ROOT, rc );
+
+         if ( isRoot )
          {
             // Check if any user(not me) of role _root exists.
-            // Query matcher:
-            // {
-            //   "$and": [
-            //      { "User": { "$ne": username } },
-            //      { "Options.Roles": "_root" }
-            //   ]
-            // }
-
-            BSONObj query =
-               BSON( "$and" << BSON_ARRAY(
-                  BSON( FIELD_NAME_USER << BSON( "$ne" << username ) ) <<
-                  BSON( FIELD_NAME_ROLES << AUTH_ROLE_ROOT ) ) ) ;
+            BSONObj query = buildQueryConditionForRemoveUser( username );
 
             queryOption.setQuery( query ) ;
             rc = rtnGetCount( queryOption, dmsCB, cb, rtnCB, &count ) ;

@@ -29,7 +29,7 @@ Delete a database user.
 
 >Note：
 
->* When dropping the last user of role "admin", we should be sure there is no more user of role "monitor" remained. Otherwise, the operation will fail.
+>* When deleting a user, if there is no user other than the user to be deleted in the cluster who possesses the built-in role _root or the old version admin, the deletion will fail.
 
 ##RETURN VALUE##
 
