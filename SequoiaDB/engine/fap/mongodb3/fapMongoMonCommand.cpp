@@ -1565,6 +1565,7 @@ _mongoServerStatusCommand::_mongoServerStatusCommand()
    _deleteCount = 0 ;
    _updateCount = 0 ;
    _selectCount = 0 ;
+   _connCount = 0 ;
 }
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_SERSTATUSBUILDSDBREQ, "_mongoServerStatusCommand::buildSdbRequest" )
 INT32 _mongoServerStatusCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
@@ -1723,6 +1724,10 @@ INT32 _mongoServerStatusCommand::parseSdbReply( const MsgOpReply &sdbReply,
                {
                   totalReplUpdate = ele.numberLong() ;
                }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TOTALNUMCONNECTS ) )
+               {
+                  _connCount = ele.numberLong() ;
+               }
             }
             }
 
@@ -1774,6 +1779,9 @@ INT32 _mongoServerStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
          "uptimeMillis" : NumberLong(14332),
          "uptimeEstimate" : NumberLong(14),
          "localTime" : ISODate("2023-07-11T08:03:22.840Z"),
+         "connections" : {
+            "current" : NumberLong(15)
+         }
          "network" : {
             "bytesIn" : NumberLong("2149810959"),
             "bytesOut" : NumberLong("11956771109")
@@ -1799,6 +1807,10 @@ INT32 _mongoServerStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
          bob.append( FAP_MONGO_FIELD_NAME_UPTIMEESTIMATE, startTime/1000 ) ;
          bob.append( FAP_MONGO_FIELD_NAME_UPTIMEMILLIS, startTime ) ;
          bob.appendTimeT( FAP_MONGO_FIELD_NAME_LOCAL_TIME, tm.time ) ;
+
+         BSONObjBuilder conBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_CONNECTIONS ) ) ;
+         conBob.append( FAP_MONGO_FIELD_NAME_CURRENT, _connCount ) ;
+         conBob.done() ;
 
          BSONObjBuilder opCountersBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_OPCOUNTERS ) ) ;
          opCountersBob.append( FAP_MONGO_FIELD_NAME_INSERT, _insertCount ) ;

@@ -140,6 +140,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_OPCOUNTERS      "opcounters"
 #define FAP_MONGO_FIELD_NAME_QUERY           "query"
 #define FAP_MONGO_FIELD_NAME_DELETE          "delete"
+#define FAP_MONGO_FIELD_NAME_CONNECTIONS     "connections"
 #define FAP_MONGO_FIELD_NAME_INPROG          "inprog"
 #define FAP_MONGO_FIELD_NAME_CUR_OP_TIME     "currentOpTime"
 #define FAP_MONGO_FIELD_NAME_OP_ID           "opid"

@@ -294,6 +294,7 @@ class _mongoServerStatusCommand : public _mongoGlobalCommand
       INT64 _deleteCount ;
       INT64 _updateCount ;
       INT64 _selectCount ;
+      INT64 _connCount ;
 } ;
 typedef _mongoServerStatusCommand mongoServerStatusCommand ;
 
