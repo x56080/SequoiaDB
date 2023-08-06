@@ -223,6 +223,14 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
                    "Failed to build sdb message for command[%s], rc: %d",
                    pCommand->name(), rc ) ;
 
+      // double check
+      // some commands must be parse the message to know whether it needs to be processed by engine,
+      // such as the aggregate operation containing $indexStat
+      if ( !pCommand->needProcessByEngine() )
+      {
+         goto done ;
+      }
+
       // All mongo session's reply shoule be limited to a bson object, except getMoreAll = true
       if ( getMoreAll )
       {
