@@ -330,7 +330,7 @@ namespace engine
          }
 
          typename ADJ_LIST_TYPE::mapped_type &l = _adjList[ *sourceIter ];
-         typename ADJ_LIST_TYPE::mapped_type backup = _adjList[ *sourceIter ];
+         typename ADJ_LIST_TYPE::mapped_type backup;
          l.swap( backup );
          for ( typename ossPoolVector< SHARED_TYPE >::const_iterator it = destinations.begin();
                it != destinations.end(); ++it )

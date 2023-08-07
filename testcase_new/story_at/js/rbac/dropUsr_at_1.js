@@ -1,7 +1,7 @@
 /***************************************************************************************************
  * @Description: 删除最后一个用户
  * @ATCaseID: dropUsr_at_1
- * @Author: Huangyouquan
+ * @Author: Zhou Hongye
  * @TestlinkCase: 无
  * @Change    Activity:
  * Date       Who         Description

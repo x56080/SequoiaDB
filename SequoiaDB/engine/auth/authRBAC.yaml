@@ -4,7 +4,6 @@ enums:
     values:
       _invalid: "_invalid"
       # SdbCollection Begin
-      aggregate: "aggregate"
       alterCL: "alterCL"
       attachCL: "attachCL"
       copyIndex: "copyIndex"
@@ -15,9 +14,6 @@ enums:
       getDetail: "getDetail"
       createIndex: "createIndex"
       dropIndex: "dropIndex"
-      createAutoIncrement: "createAutoIncrement"
-      dropAutoIncrement: "dropAutoIncrement"
-      setConsistencyStrategy: "setConsistencyStrategy"
       detachCL: "detachCL"
       truncate: "truncate"
       split: "split"
@@ -73,7 +69,6 @@ enums:
       dropDomain: "dropDomain"
       dropSequence: "dropSequence"
       eval: "eval"
-      exec: "exec"
       flushConfigure: "flushConfigure"
       forceSession: "forceSession"
       forceSetUp: "forceSetUp"
@@ -92,7 +87,6 @@ enums:
       removeRG: "removeRG"
       removeProcedure: "removeProcedure"
       renameCS: "renameCS"
-      renameSequence: "renameSequence"
       resetSnapshot: "resetSnapshot"
       reloadConf: "reloadConf"
       deleteConf: "deleteConf"
@@ -111,9 +105,7 @@ enums:
       alterDataSource: "alterDataSource"
       # Sdb End
       # SdbReplicaGroup Begin
-      attachNode: "attachNode"
       createNode: "createNode"
-      detachNode: "detachNode"
       getNode: "getNode"
       reelect: "reelect"
       removeNode: "removeNode"
@@ -185,7 +177,6 @@ enums:
           - dropDomain
           - addGroups
           - removeGroups
-          - flushConfigure
           - createProcedure
           - forceSetUp
           - removeProcedure
@@ -231,6 +222,16 @@ enums:
           - grantRolesToUser
           - revokeRolesFromUser
           - fetchSequence
+          - flushConfigure
+          - forceSession
+          - getDataSource
+          - getDomain
+          - getRG
+          - getSequence
+          - trans
+          - getTask
+          - getNode
+          - resetSnapshot
 
 
       # resource: { cs:"", cl: "exact" }
@@ -251,7 +252,6 @@ enums:
           - truncate
           - alterCL
           - testCL
-          - aggregate
 
       # resource: { cs:"exact", cl: "" }
       COLLECTION_SPACE:
@@ -269,6 +269,7 @@ enums:
           - renameCL
           - listCollections
           - testCS
+          - getCS
 
       # resource: { cs:"exact", cl: "exact" }
       EXACT_COLLECTION:
@@ -544,16 +545,20 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getRG]
+          - [getNode]
 
     CMD_NAME_LIST_DOMAINS:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getDomain]
 
     CMD_NAME_LIST_CS_IN_DOMAIN:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [listCollectionSpaces]
 
     CMD_NAME_LIST_CL_IN_DOMAIN:
       - resource: COLLECTION_SPACE
@@ -579,6 +584,7 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getTask]
 
     # CMD_NAME_LIST_INDEXES equal to CMD_NAME_GET_INDEXES
 
@@ -601,11 +607,13 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getSequence]
 
     CMD_NAME_LIST_DATASOURCES:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getDataSource]
 
     CMD_NAME_LIST_RECYCLEBIN:
       - resource: CLUSTER
@@ -647,7 +655,7 @@ CMD_PRIVILEGE_MAP:
     CMD_NAME_SNAPSHOT_RESET:
       - resource: CLUSTER
         actionSets:
-          - [snapshot]
+          - [resetSnapshot]
 
     CMD_NAME_SNAPSHOT_SESSIONS:
       - resource: CLUSTER
@@ -772,6 +780,7 @@ CMD_PRIVILEGE_MAP:
           - [testCS]
           - [find]
           - [getDetail]
+          - [getCS]
 
     CMD_NAME_CREATE_GROUP:
       - resource: CLUSTER
@@ -898,6 +907,7 @@ CMD_PRIVILEGE_MAP:
     CMD_NAME_LIST_PROCEDURES:
       - resource: CLUSTER
         actionSets:
+          - [list]
           - [listProcedures]
 
     CMD_NAME_EVAL:
@@ -1282,6 +1292,7 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getDomain]
               
     CMD_NAME_LIST_SVCTASKS_INTR:
       - resource: CLUSTER
@@ -1292,11 +1303,13 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getSequence]
               
     CMD_NAME_LIST_DATASOURCE_INTR:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [getDataSource]
               
     CMD_NAME_LIST_RECYCLEBIN_INTR:
       - resource: CLUSTER
