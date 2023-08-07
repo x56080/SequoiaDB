@@ -3677,6 +3677,16 @@ namespace engine
       }
 
       _step = STEP_FINISH ;
+      // unregister collection
+      if ( _regTask )
+      {
+         clsCB *pClsMgr = pmdGetKRCB()->getClsCB() ;
+         pClsMgr->getTaskMgr()->unregCollection( _pTask->collectionName() ) ;
+         _regTask = FALSE ;
+         PD_LOG( PDDEBUG, "Session[%s]: Collection[%s] split task[%s] has been"
+                 " unregistered", sessionName(), _pTask->collectionName(),
+                 _pTask->taskName() ) ;
+      }
       // notify catalog remove the task
       _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
 

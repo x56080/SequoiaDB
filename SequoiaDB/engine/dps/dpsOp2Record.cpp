@@ -154,14 +154,13 @@ namespace engine
       goto done ;
    }
 
-   void _dpsUnqIdxHashArray::saveKey( const BSONObj &key )
+   void _dpsUnqIdxHashArray::saveKey( UINT32 hashValue )
    {
       if ( _curSize < _eleSize )
       {
          // value from 1 - 65535
          _dynamicBuf[ _curSize ++ ] =
-               (UINT16)( ossHash( key.objdata(), key.objsize() ) %
-                                  DPS_UNQIDX_HASH_MODULE ) + 1 ;
+               (UINT16)( hashValue % DPS_UNQIDX_HASH_MODULE ) + 1 ;
       }
    }
 

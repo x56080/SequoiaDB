@@ -277,6 +277,7 @@ namespace engine
          }
       }
       _pReplBucket->close() ;
+      _repl->getSyncEmptyEvent()->signalAll() ;
 
       if ( CLS_SESSION_STATUS_FULL_SYNC != _status &&
            PMD_IS_DB_UP() )

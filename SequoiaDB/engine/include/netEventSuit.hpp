@@ -88,6 +88,18 @@ namespace engine
          void           removeAllEH() ;
          UINT32         getHandleNum() ;
 
+         // check if the net suit is stopped
+         BOOLEAN        isStoppped() const
+         {
+            return _stopped ;
+         }
+
+         // mark the net suit is stopped
+         void           setStopped()
+         {
+            _stopped = TRUE ;
+         }
+
       public:
          virtual INT32     run() ;
          virtual void      stop() ;
@@ -111,6 +123,7 @@ namespace engine
          ossRWMutex                       _rwMutex ;
 
          BOOLEAN                          _active ;
+         BOOLEAN                          _stopped ;
          UINT32                           _noAttachTimeout ;
 
          /// timer

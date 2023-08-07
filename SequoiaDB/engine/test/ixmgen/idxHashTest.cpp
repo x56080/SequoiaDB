@@ -35,6 +35,7 @@
 
 #include "dmsStorageDataCommon.hpp"
 #include "mthModifier.hpp"
+#include "ixmKey.hpp"
 #include "../bson/bson.h"
 
 #include "gtest/gtest.h"
@@ -380,4 +381,229 @@ TEST( idxHashTest, test_multifield_index )
 
    // too many fields, should not be valid
    ASSERT_TRUE( !bitmap.isValid() ) ;
+}
+
+static void _idxHashBSONIXMKey( const CHAR *buffer,
+                                const BSONObj &object,
+                                BOOLEAN canCompact,
+                                UINT32 &hashValue )
+{
+   cout << "check BSON " << object.toString().c_str() << endl ;
+
+   ixmKeyOwned keyComp( object ) ;
+   ixmKey keyBSON( buffer ) ;
+
+   ASSERT_TRUE( keyComp.isCompactFormat() == canCompact ) ;
+   ASSERT_TRUE( !keyBSON.isCompactFormat() ) ;
+
+   UINT32 hashComp = keyComp.toHash() ;
+   UINT32 hashBSON = keyBSON.toHash() ;
+
+   cout << "hash compact " << hashComp << " hash BSON " << hashBSON << endl ;
+
+   ASSERT_TRUE( hashComp == hashBSON ) ;
+
+   hashValue = hashComp ;
+}
+
+template < typename T >
+static void _idxHashTypeIXMKey( BSONType bsonType,
+                                T value,
+                                BOOLEAN canCompact,
+                                UINT32 &hashValue )
+{
+   cout << "check type " << (INT32)bsonType << endl ;
+
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.append( "", value ) ;
+   BSONObj bo = builder.done() ;
+
+   ASSERT_TRUE( bsonType == bo.firstElement().type() ) ;
+
+   _idxHashBSONIXMKey( buffer.buf(), bo, canCompact, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_min )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendMinKey( "" ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_max )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendMaxKey( "" ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_null )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendNull( "" ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_undefined )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendUndefined( "" ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_int )
+{
+   UINT32 hashInt = 0, hashLong = 0, hashDouble = 0, hashDecimal = 0 ;
+
+   _idxHashTypeIXMKey<INT32>( NumberInt, 1, TRUE, hashInt ) ;
+   _idxHashTypeIXMKey<INT64>( NumberLong, 1LL, TRUE, hashLong ) ;
+   _idxHashTypeIXMKey<FLOAT64>( NumberDouble, 1.0f, TRUE, hashDouble ) ;
+
+   BufBuilder bufferDecimal ;
+   bufferDecimal.appendUChar( 0xFF ) ;
+   BSONObjBuilder builderDecimal( bufferDecimal ) ;
+   builderDecimal.appendDecimal( "", "1" ) ;
+   BSONObj boDecimal = builderDecimal.done() ;
+   _idxHashBSONIXMKey( bufferDecimal.buf(), boDecimal, FALSE, hashDecimal ) ;
+
+   ASSERT_TRUE( hashInt == hashLong ) ;
+   ASSERT_TRUE( hashInt == hashDouble ) ;
+   ASSERT_TRUE( hashInt == hashDecimal ) ;
+}
+
+TEST( idxHash, test_ixmkey_large_long )
+{
+   UINT32 hashValue = 0 ;
+   INT64 value = ( 2LL << 52 ) + 1LL ;
+   _idxHashTypeIXMKey<INT64>( NumberLong, value, FALSE, hashValue ) ;
+   _idxHashTypeIXMKey<INT64>( NumberLong, -value, FALSE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_nan_double )
+{
+   // special case for NAN, can not compact
+   UINT32 hashValue = 0 ;
+   FLOAT64 value = numeric_limits<double>::quiet_NaN() ;
+   _idxHashTypeIXMKey<FLOAT64>( NumberDouble, value, FALSE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_string )
+{
+   UINT32 hashValue = 0 ;
+   _idxHashTypeIXMKey<const CHAR *>( String, "abcdefg", TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_long_string )
+{
+   CHAR value[ 300 ] ;
+   ossMemset( value, 'a', 299 ) ;
+   value[ 299 ] = '\0' ;
+
+   UINT32 hashValue = 0 ;
+   _idxHashTypeIXMKey<const CHAR *>( String, value, FALSE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_bool )
+{
+   UINT32 hashValue = 0 ;
+   _idxHashTypeIXMKey<bool>( Bool, true, TRUE, hashValue ) ;
+   _idxHashTypeIXMKey<bool>( Bool, false, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_oid )
+{
+   UINT32 hashValue = 0 ;
+   OID value = OID::gen() ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendOID( "", &value ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_date )
+{
+   UINT32 hashValue = 0 ;
+   Date_t value( time( NULL ) * 1000 ) ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   builder.appendDate( "", value ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_bindata )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+   const CHAR *value = "abcdefg" ;
+   builder.appendBinData( "", ossStrlen( value ) - 1, BinDataGeneral, value ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_large_bindata )
+{
+   UINT32 hashValue = 0 ;
+   BufBuilder buffer ;
+   buffer.appendUChar( 0xFF ) ;
+   BSONObjBuilder builder( buffer ) ;
+
+   CHAR value[ 300 ] ;
+   ossMemset( value, 'a', 299 ) ;
+   value[ 299 ] = '\0' ;
+
+   builder.appendBinData( "", ossStrlen( value ) - 1, BinDataGeneral, value ) ;
+   BSONObj bo = builder.done() ;
+   _idxHashBSONIXMKey( buffer.buf(), bo, FALSE, hashValue ) ;
+}
+
+TEST( idxHash, test_ixmkey_multi_field )
+{
+   UINT32 hashValue = 0 ;
+
+   {
+      BufBuilder buffer ;
+      buffer.appendUChar( 0xFF ) ;
+      BSONObjBuilder builder( buffer ) ;
+      builder.appendDecimal( "", "1" ) ;
+      builder.append( "", 2LL ) ;
+      builder.append( "", 3 ) ;
+      builder.append( "", 4.0 ) ;
+      BSONObj bo = builder.done() ;
+      _idxHashBSONIXMKey( buffer.buf(), bo, FALSE, hashValue ) ;
+   }
+
+   {
+      BufBuilder buffer ;
+      buffer.appendUChar( 0xFF ) ;
+      BSONObjBuilder builder( buffer ) ;
+      builder.append( "", 2LL ) ;
+      builder.append( "", 3 ) ;
+      builder.append( "", 4.0 ) ;
+      BSONObj bo = builder.done() ;
+      _idxHashBSONIXMKey( buffer.buf(), bo, TRUE, hashValue ) ;
+   }
 }
