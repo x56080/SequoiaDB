@@ -2,7 +2,7 @@
  * @Description   : seqDB-25383:回收站恢复一致性索引 
  * @Author        : liuli
  * @CreateTime    : 2022.02.24
- * @LastEditTime  : 2022.02.24
+ * @LastEditTime  : 2023.08.07
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipOneGroup = true;
@@ -29,6 +29,7 @@ function test ()
    // 创建一致性索引
    dbcl.createIndex( indexName, { a: 1 } );
    checkIndexTask( "Create index", csName, clName, indexName, 0 );
+   commCheckIndexConsistent( db, csName, clName, indexName, true );
 
    // 删除CL
    dbcs.dropCL( clName );
