@@ -22,4 +22,24 @@ public final class MsgConstants {
     */
     public final static int FLG_INSERT_HAS_ID_FIELD = 0x00000010;
     public final static String AUTH_OPTIONS = "Options";
+    /* auth key*/
+    public final static String AUTH_USER = "User";
+    public final static String AUTH_PASSWD = "Passwd";
+    public final static String AUTH_TEXT_PASSWD = "TextPasswd";
+    public final static String AUTH_TYPE = "Type";
+    public final static String AUTH_STEP = "Step";
+    public final static String AUTH_SALT = "Salt";
+    public final static String AUTH_ITERATION_COUNT = "IterationCount";
+    public final static String AUTH_NONCE = "Nonce";
+    public final static String AUTH_IDENTIFY = "Identify";
+    public final static String AUTH_PROOF  = "Proof";
+
+    /* auth value*/
+    public final static int AUTH_SHA265_STEP_1 = 1;
+    public final static int AUTH_SHA265_STEP_2 = 2;
+    public final static int AUTH_TYPE_MD5_PWD = 0;
+    public final static int CLIENT_NONCE_LEN = 24;
+    public final static String AUTH_JAVA_IDENTIFY = "Java_Session";
+    public final static String CLIENT_KEY = "Client Key";
+    public final static String SERVER_KEY = "Server Key";
 }

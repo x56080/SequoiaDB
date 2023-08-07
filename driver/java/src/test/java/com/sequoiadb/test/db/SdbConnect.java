@@ -4,14 +4,13 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.junit.*;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.assertTrue;
 
@@ -154,5 +153,87 @@ public class SdbConnect {
         } finally {
             sdb.removeUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
         }
+    }
+
+    @Test
+    public void sdbAuthSHA256ErrorTest() {
+        String userName = "authSHA256TestUser";
+        String password = "123";
+
+        // case 1: no user
+        try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, "", "" ) ) {
+            assertTrue( db.isValid() );
+        }
+        try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, userName, password ) ) {
+            assertTrue( db.isValid() );
+        }
+        try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, null, null ) ) {
+            assertTrue( db.isValid() );
+        }
+
+        try {
+            sdb.createUser( userName, password );
+
+            // case 2: error password
+            try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, userName, "errorPassword" ) ) {
+                Assert.fail( "Connect sdb with error password should be failed" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode() );
+            }
+            try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, userName, null ) ) {
+                Assert.fail( "Connect sdb with error password should be failed" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode() );
+            }
+
+            // case 3: no exist user
+            try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, "notExistUser",
+                    "123" ) ) {
+                Assert.fail( "Connect sdb with not exist user should be failed" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode() );
+            }
+        } finally {
+            sdb.removeUser( userName, password );
+        }
+    }
+
+    @Test
+    public void sdbAuthSHA256Test() {
+        String userName = "authSHA256TestUser";
+        String password;
+        for ( int i = 0; i < 100; i++ ) {
+            password = generatePassword();
+            try {
+                sdb.createUser( userName, password );
+
+                try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, userName, password ) ) {
+                    assertTrue( db.isValid() );
+                } catch ( BaseException e ) {
+                    System.out.println( "userName: " + userName + "  password: " + password );
+                    throw e;
+                }
+            } finally {
+                sdb.removeUser( userName, password );
+            }
+        }
+    }
+
+    private String generatePassword() {
+        String text = new StringBuffer()
+                .append( "abcdefghijklmnopqrstuvwxyz" )
+                .append( "ABCDEFGHIJKLMNOPQRSTUVWXYZ" )
+                .append( "1234567890" )
+                .append( "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/? " )
+                .toString();
+        StringBuffer password = new StringBuffer();
+
+        Random random = new Random();
+        int len = random.nextInt( text.length() );
+        for ( int i = 0; i < len; i++ ) {
+            int post = random.nextInt( text.length() );
+            password.append( text.charAt( post ) );
+        }
+        return password.toString();
     }
 }

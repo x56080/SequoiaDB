@@ -24,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.Arrays;
 
-import com.sequoiadb.message.SdbProtocolVersion;
+import com.sequoiadb.message.*;
+import com.sequoiadb.message.request.*;
+import com.sequoiadb.message.response.*;
+import com.sequoiadb.util.AuthAlgorithmSHA256;
 import com.sequoiadb.util.Helper;
 import org.bson.BSON;
 import org.bson.BSONObject;
@@ -36,24 +40,6 @@ import org.bson.util.JSON;
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.message.MsgOpCode;
-import com.sequoiadb.message.ResultSet;
-import com.sequoiadb.message.request.AdminRequest;
-import com.sequoiadb.message.request.AuthRequest;
-import com.sequoiadb.message.request.DisconnectRequest;
-import com.sequoiadb.message.request.InterruptRequest;
-import com.sequoiadb.message.request.KillContextRequest;
-import com.sequoiadb.message.request.MessageRequest;
-import com.sequoiadb.message.request.QueryRequest;
-import com.sequoiadb.message.request.Request;
-import com.sequoiadb.message.request.SQLRequest;
-import com.sequoiadb.message.request.SdbRequest;
-import com.sequoiadb.message.request.SysInfoRequest;
-import com.sequoiadb.message.request.TransactionRequest;
-import com.sequoiadb.message.response.CommonResponse;
-import com.sequoiadb.message.response.SdbReply;
-import com.sequoiadb.message.response.SdbResponse;
-import com.sequoiadb.message.response.SysInfoResponse;
 import com.sequoiadb.net.IConnection;
 import com.sequoiadb.net.ServerAddress;
 import com.sequoiadb.net.TCPConnection;
@@ -87,6 +73,7 @@ public class Sequoiadb implements Closeable {
     private ByteBuffer requestBuffer = null;
     private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
     private int closeAllCursorMark = 0;
+    private SdbAuthVersion authVersion = SdbAuthVersion.SDB_AUTH_MD5;
 
     /**
      * specified the package size of the collections in current collection space to be 4K
@@ -617,6 +604,13 @@ public class Sequoiadb implements Closeable {
         if (host == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "host is null");
         }
+        if (username == null && password == null) {
+            username = "";
+            password = "";
+        }
+        if (username == null || password == null) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "User name or password is null" );
+        }
 
         if (options == null) {
             options = new ConfigOptions();
@@ -631,8 +625,9 @@ public class Sequoiadb implements Closeable {
         SysInfoResponse sysInfoResponse = getSysInfo();
         byteOrder = sysInfoResponse.byteOrder();
         protocolVersion = sysInfoResponse.getPeerProtocolVersion();
+        authVersion = sysInfoResponse.getAuthVersion();
 
-        authenticate(username, password);
+        authenticate(username, password, authVersion);
         this.userName = username;
         this.password = password;
     }
@@ -699,15 +694,72 @@ public class Sequoiadb implements Closeable {
         throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT, "No valid address");
     }
 
-    private void authenticate(String username, String password) {
-        AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.Verify);
-        SdbReply response = requestAndResponse(request);
+    private void authenticate(String userName, String password, SdbAuthVersion authVersion) {
+        if (authVersion == SdbAuthVersion.SDB_AUTH_SCRAM_SHA256) {
+            try {
+                authenticateSHA256(userName, password);
+            } catch (BaseException e) {
+                // During rolling upgrade, the old version of catalog node
+                // does not support the SAH256 algorithm.
+                if (e.getErrorCode() == SDBError.SDB_UNKNOWN_MESSAGE.getErrorCode()) {
+                    authenticateMD5(userName, password);
+                } else {
+                    close();
+                    throw e;
+                }
+            }
+        } else {
+            authenticateMD5(userName, password);
+        }
+    }
 
-        try {
-            throwIfError(response, "failed to authenticate " + userName);
-        } catch (BaseException e) {
+    private void authenticateMD5(String userName, String password) {
+        AuthRequest request = new AuthVerifyMD5Request(userName, password);
+        SdbReply response = requestAndResponse(request);
+        if (response.getFlag() != 0) {
             close();
-            throw e;
+        }
+        throwIfError(response, "Failed to authenticate " + userName);
+    }
+
+    private void authenticateSHA256(String userName, String password) {
+        AuthAlgorithmSHA256 sha256 = new AuthAlgorithmSHA256();
+        String md5Pwd = Helper.md5(password);
+
+        // 1. Get salt, CombineNonce, IterCount from engine
+        AuthRequest request1 = AuthVerifySHA256Request.step1(userName, sha256.generateClientNonce());
+        AuthVerifySHA256Response response1 = requestAndResponse(request1, AuthVerifySHA256Response.class);
+        throwIfError(response1, "Failed to authenticate " + userName);
+        AuthVerifySHA256Response.Step1Data data1 = response1.getStep1Data();
+
+        if (data1 == null) {
+            // When "auth" is false in catalog node configure file sdb.conf, or
+            // there is no user in SYSAUTH.SYSUSRS, the result is empty. So we
+            // don't need to authenticate.
+            return;
+        }
+
+        // 2. Calculate proof
+        AuthAlgorithmSHA256.AuthProof authProof = sha256.calculateProof(userName,
+                md5Pwd,
+                data1.getCombineNonceBase64(),
+                data1.getSaltBase64(),
+                data1.getIterCount());
+
+        String clientProofBase64 = Helper.Base64Encode(authProof.getClientProof());
+
+        // 3. Get server proof from engine
+        AuthRequest request2 = AuthVerifySHA256Request.step2(userName, data1.getCombineNonceBase64(),
+                clientProofBase64);
+        AuthVerifySHA256Response response2 = requestAndResponse(request2, AuthVerifySHA256Response.class);
+        throwIfError(response2, "Failed to authenticate " + userName);
+        AuthVerifySHA256Response.Step2Data data2 = response2.getStep2Data();
+
+        // 4. Verify server proof
+        byte[] actualServerProof = Helper.Base64Decode(data2.getServerProofBase64());
+        byte[] expectServerProof = authProof.getServerProof();
+        if (!Arrays.equals(actualServerProof, expectServerProof)) {
+            throw new BaseException(SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN);
         }
     }
 
@@ -745,7 +797,7 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
-        AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.CreateUser, options);
+        AuthRequest request = new CreateUserRequest(username, password, authVersion, options);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);
     }
@@ -761,7 +813,7 @@ public class Sequoiadb implements Closeable {
         if (username == null || username.length() == 0 || password == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
-        AuthRequest request = new AuthRequest(username, password, AuthRequest.AuthType.DeleteUser);
+        AuthRequest request = new RemoveUserRequest(username, password);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);
     }
