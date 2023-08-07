@@ -40,44 +40,44 @@ v7.0 and above
 
 - Get information about the user named `myuser` in the cluster, without enabling the `ShowPrivileges` option.
 
-  ```lang-javascript
-  > db.getUser("myuser")
-  {
-    "User": "myuser",
-    "Roles": [
-        "_foo.read"
-    ],
-    "Options": {}
-  }
-  ```
+    ```lang-javascript
+    > db.getUser("myuser")
+    {
+      "User": "myuser",
+      "Roles": [
+          "_foo.read"
+      ],
+      "Options": {}
+    }
+    ```
 
 - Get information about the user named `myuser` in the cluster, with the `ShowPrivileges` option enabled.
 
-  ```lang-javascript
-  > db.getUser("myuser",{ShowPrivileges:true})
-    {
-        "User": "myuser",
-        "Roles": [
-            "_foo.read"
-        ],
-        "Options": {},
-        "InheritedRoles": [
-            "_foo.read"
-        ],
-        "InheritedPrivileges": [
-            {
-            "Resource": {
-                "cs": "foo",
-                "cl": ""
-            },
-            "Actions": [
-                "find",
-                "getDetail"
-            ]
-            }
-        ]
-    }
-  ```
+    ```lang-javascript
+    > db.getUser("myuser",{ShowPrivileges:true})
+      {
+          "User": "myuser",
+          "Roles": [
+              "_foo.read"
+          ],
+          "Options": {},
+          "InheritedRoles": [
+              "_foo.read"
+          ],
+          "InheritedPrivileges": [
+              {
+              "Resource": {
+                  "cs": "foo",
+                  "cl": ""
+              },
+              "Actions": [
+                  "find",
+                  "getDetail"
+              ]
+              }
+          ]
+      }
+    ```
 
 
 [^_^]: 

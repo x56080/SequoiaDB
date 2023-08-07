@@ -8476,6 +8476,12 @@ namespace sdbclient
          return pSDB->listDataSources( &cursor.pCursor, condition, selector, orderBy, hint ) ;
       }
 
+      /** \fn INT createRole( const bson::BSONObj &role )
+          \brief Create a role
+          \param [in] role The role object to be created
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 createRole( const bson::BSONObj &role )
       {
          if ( !pSDB )
@@ -8485,6 +8491,12 @@ namespace sdbclient
          return pSDB->createRole( role ) ;
       }
 
+      /** \fn INT dropRole( const CHAR *pRoleName )
+          \brief Drop a role
+          \param [in] pRoleName The name of role to be dropped
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 dropRole( const CHAR *pRoleName )
       {
          if ( !pSDB )
@@ -8494,6 +8506,19 @@ namespace sdbclient
          return pSDB->dropRole( pRoleName ) ;
       }
 
+      /** \fn INT getRole( const CHAR *pRoleName,
+                           const bson::BSONObj &options,
+                           bson::BSONObj &role )
+          \brief Get a role
+          \param [in] pRoleName The name of role to be got
+          \param [in] options Optional options to define the behavior of get role
+
+              ShowPrivileges    : Configure whether to return the privileges of the role, default is false
+
+          \param [out] role The role object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 getRole( const CHAR *pRoleName,
                      const bson::BSONObj &options,
                      bson::BSONObj &role )
@@ -8505,6 +8530,18 @@ namespace sdbclient
          return pSDB->getRole( pRoleName, options, role ) ;
       }
 
+      /** \fn INT listRoles( sdbCursor &cursor,
+                             const bson::BSONObj &options )
+          \brief List roles
+          \param [out] cursor The sdbCursor object of result
+          \param [in] options Optional options to define the behavior of list roles
+
+              ShowPrivileges    : Configure whether to return the privileges of the role, default is false
+              ShowBuiltinRoles  : Configure whether to return the built-in roles, default is false
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 listRoles( sdbCursor &cursor, const bson::BSONObj &options )
       {
          if ( !pSDB )
@@ -8515,6 +8552,14 @@ namespace sdbclient
          return pSDB->listRoles( &cursor.pCursor, options ) ;
       }
 
+      /** \fn INT updateRole( const CHAR *pRoleName,
+                              const bson::BSONObj &role )
+          \brief Update a role
+          \param [in] pRoleName The name of role to be updated
+          \param [in] role The role object to be updated
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 updateRole( const CHAR *pRoleName,
                         const bson::BSONObj &role )
       {
@@ -8525,6 +8570,14 @@ namespace sdbclient
          return pSDB->updateRole( pRoleName, role ) ;
       }
 
+      /** \fn INT grantPrivilegesToRole( const CHAR *pRoleName,
+                                          const bson::BSONObj &privileges )
+          \brief Grant privileges to a role
+          \param [in] pRoleName The name of role to be granted
+          \param [in] privileges The privileges to grante
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 grantPrivilegesToRole( const CHAR *pRoleName,
                                    const bson::BSONObj &privileges )
       {
@@ -8535,6 +8588,14 @@ namespace sdbclient
          return pSDB->grantPrivilegesToRole( pRoleName, privileges ) ;
       }
 
+      /** \fn INT revokePrivilegesFromRole( const CHAR *pRoleName,
+                                             const bson::BSONObj &privileges )
+          \brief Revoke privileges from a role
+          \param [in] pRoleName The name of role to be revoked
+          \param [in] privileges The privileges to revoke
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 revokePrivilegesFromRole( const CHAR *pRoleName,
                                       const bson::BSONObj &privileges )
       {
@@ -8545,6 +8606,14 @@ namespace sdbclient
          return pSDB->revokePrivilegesFromRole( pRoleName, privileges ) ;
       }
 
+      /** \fn INT grantRolesToRole( const CHAR *pRoleName,
+                                    const bson::BSONObj &roles )
+          \brief Grant roles to a role
+          \param [in] pRoleName The name of role to be granted
+          \param [in] roles The roles to grante
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 grantRolesToRole( const CHAR *pRoleName,
                               const bson::BSONObj &roles )
       {
@@ -8555,6 +8624,14 @@ namespace sdbclient
          return pSDB->grantRolesToRole( pRoleName, roles ) ;
       }
 
+      /** \fn INT revokeRolesFromRole( const CHAR *pRoleName,
+                                        const bson::BSONObj &roles )
+          \brief Revoke roles from a role
+          \param [in] pRoleName The name of role to be revoked
+          \param [in] roles The roles to revoke
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 revokeRolesFromRole( const CHAR *pRoleName,
                                  const bson::BSONObj &roles )
       {
@@ -8565,6 +8642,14 @@ namespace sdbclient
          return pSDB->revokeRolesFromRole( pRoleName, roles ) ;
       }
 
+      /** INT grantRolesToUser( const CHAR *pUserName,
+                                const bson::BSONObj &roles )
+          \brief Grant roles to a user
+          \param [in] pUserName The name of user to be granted
+          \param [in] roles The roles to grante
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 grantRolesToUser( const CHAR *pUserName,
                               const bson::BSONObj &privileges )
       {
@@ -8575,6 +8660,14 @@ namespace sdbclient
          return pSDB->grantRolesToUser( pUserName, privileges ) ;
       }
 
+      /** \fn INT revokeRolesFromUser( const CHAR *pUserName,
+                                        const bson::BSONObj &roles )
+          \brief Revoke roles from a user
+          \param [in] pUserName The name of user to be revoked
+          \param [in] roles The roles to revoke
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 revokeRolesFromUser( const CHAR *pUserName,
                                  const bson::BSONObj &privileges )
       {
@@ -8585,6 +8678,17 @@ namespace sdbclient
          return pSDB->revokeRolesFromUser( pUserName, privileges ) ;
       }
 
+      /** \fn INT getUser( const CHAR *pRoleName,
+                       const bson::BSONObj &options,
+                       bson::BSONObj &role)
+          \brief Get a user
+          \param [in] pRoleName The name of user to be got
+          \param [in] options Optional options to define the behavior of get user
+
+                ShowPrivileges    : Configure whether to return the privileges of the user, default is false
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 getUser( const CHAR *pRoleName,
                      const bson::BSONObj &options,
                      bson::BSONObj &role )
@@ -8596,6 +8700,21 @@ namespace sdbclient
          return pSDB->getUser( pRoleName, options, role ) ;
       }
 
+      /** \fn INT invalidateUserCache( const CHAR *pUserName = NULL,
+                                       const bson::BSONObj &options = _sdbStaticObject )
+          \brief Invalidate user cache
+          \param [in] pUserName The name of user to be invalidated, if null, invalidate all users
+          \param [in] options The control options:(Only take effect in coordinate nodes)
+
+              GroupID:INT32,
+              GroupName:String,
+              NodeID:INT32,
+              HostName:String,
+              svcname:String,
+              ...
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 invalidateUserCache( const CHAR *pUserName = NULL,
                                  const bson::BSONObj &options = _sdbStaticObject )
       {

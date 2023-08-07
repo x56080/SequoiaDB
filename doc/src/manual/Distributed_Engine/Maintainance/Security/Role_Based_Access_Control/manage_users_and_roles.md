@@ -1,6 +1,4 @@
 
-##SequoiaDB 管理用户和角色##
-
 SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包括：
 * `createRole()`
 * `dropRole()`
@@ -20,17 +18,16 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
 
 本教程提供了指导来演示如何在 SequoiaDB 中开启访问控制并创建第一个`_root`用户，以及如何创建其他用户和角色。
 
-###开启访问控制###
+##开启访问控制##
 通过`updateConf()`或者更改节点配置文件的方式来开启访问控制参数`--privilegecheck`，并重启节点。
 
-###创建第一个超级用户###
-
+##创建第一个超级用户###
 ```lang-javascript
 > db = Sdb()
 > db.createUsr("su", "123", {Roles: ["_root"]})
 ```
 
-###创建自定义角色###
+##创建自定义角色##
 
 使用超级用户连接，使用`createRole()`命令创建自定义角色`foo_bar_read`，赋予其在集合`foo.bar`上的查询权限。
 
@@ -62,7 +59,7 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
    })
 ```
 
-###创建用户###
+##创建用户##
 
 使用`createUsr()`命令创建用户`myuser1`，赋予其角色`foo_bar_write`。
 
@@ -70,7 +67,7 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
 > db.createUsr("myuser1", "123", {Roles: ["foo_bar_write"]})
 ```
 
-###授予与撤销用户的角色###
+##授予与撤销用户的角色##
 
 使用`revokeRolesFromUser()`命令撤销用户`myuser1`的角色`foo_bar_read`。
 
@@ -84,7 +81,7 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
 > db.grantRolesToUser("myuser1", ["foo_bar_read"])
 ```
 
-###授予与撤销角色继承的角色###
+##授予与撤销角色继承的角色##
 
 使用`revokeRolesFromRole()`命令撤销角色`foo_bar_write`继承的角色`foo_bar_read`。
 
@@ -98,7 +95,7 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
 > db.grantRolesToRole("foo_bar_write", ["foo_bar_read"])
 ```
 
-###授予与撤销角色的权限###
+##授予与撤销角色的权限##
 
 使用`revokePrivilegesFromRole()`命令撤销角色`foo_bar_read`在集合`foo.bar`上的查询权限。
 

@@ -114,14 +114,135 @@ v7.0 and above
 .IP \[bu] 2
 Print all custom roles in the cluster, without enabling the
 \f[C]ShowPrivileges\f[] option.
-.PP
-\f[C]lang\-javascript   > db.listRoles()   {      "_id": {         "$oid": "64c0eb5e8c7c328f60bc6d71"      },      "Role": "foo_developer",      "Roles": [         "_foo.readWrite"      ],      "InheritedRoles": [         "_foo.readWrite"      ]   }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.listRoles()
+{
+    "_id": {
+        "$oid": "64c0eb5e8c7c328f60bc6d71"
+    },
+    "Role": "foo_developer",
+    "Roles": [
+        "_foo.readWrite"
+    ],
+    "InheritedRoles": [
+        "_foo.readWrite"
+    ]
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 Print all custom roles in the cluster, enabling the \f[C]ShowPrivileges\f[]
 option.
-.PP
-\f[C]lang\-javascript   > db.listRoles({ShowPrivileges:true})   {      "_id": {         "$oid": "64c0eb5e8c7c328f60bc6d71"      },      "Role": "foo_developer",      "Privileges": [         {            "Resource": {            "Cluster": true            },            "Actions": [            "snapshot"            ]         }      ],      "Roles": [         "_foo.readWrite"      ],      "InheritedRoles": [         "_foo.readWrite"      ],      "InheritedPrivileges": [         {            "Resource": {            "Cluster": true            },            "Actions": [            "snapshot"            ]         },         {            "Resource": {            "cs": "foo",            "cl": ""            },            "Actions": [            "find",            "insert",            "update",            "remove",            "getDetail"            ]         }      ]   }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.listRoles({ShowPrivileges:true})
+{
+    "_id": {
+        "$oid": "64c0eb5e8c7c328f60bc6d71"
+    },
+    "Role": "foo_developer",
+    "Privileges": [
+        {
+        "Resource": {
+        "Cluster": true
+        },
+        "Actions": [
+        "snapshot"
+        ]
+        }
+    ],
+    "Roles": [
+        "_foo.readWrite"
+    ],
+    "InheritedRoles": [
+        "_foo.readWrite"
+    ],
+    "InheritedPrivileges": [
+        {
+        "Resource": {
+        "Cluster": true
+        },
+        "Actions": [
+        "snapshot"
+        ]
+        },
+        {
+        "Resource": {
+        "cs": "foo",
+        "cl": ""
+        },
+        "Actions": [
+        "find",
+        "insert",
+        "update",
+        "remove",
+        "getDetail"
+        ]
+        }
+    ]
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 Print all custom roles and built\-in roles in the cluster, enabling the
 \f[C]ShowBuiltinRoles\f[] option.
-\f[C]lang\-javascript   > db.listRoles({ShowBuiltinRoles:true})   {  "_id": {     "$oid": "64c0eb5e8c7c328f60bc6d71"  },  "Role": "foo_developer",  "Roles": [     "_foo.readWrite"  ],  "InheritedRoles": [     "_foo.readWrite"  ]  }  {  "Role": "_root",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_clusterAdmin",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_clusterMonitor",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_backup",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_dbAdmin",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_userAdmin",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_exact.read",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_exact.readWrite",  "Roles": [],  "InheritedRoles": []  }  {  "Role": "_exact.admin",  "Roles": [],  "InheritedRoles": []  }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.listRoles({ShowBuiltinRoles:true})
+{
+"Role": "_root",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_clusterAdmin",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_clusterMonitor",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_backup",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_dbAdmin",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_userAdmin",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_exact.read",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_exact.readWrite",
+"Roles": [],
+"InheritedRoles": []
+}
+{
+"Role": "_exact.admin",
+"Roles": [],
+"InheritedRoles": []
+}
+\f[]
+.fi
+.RE

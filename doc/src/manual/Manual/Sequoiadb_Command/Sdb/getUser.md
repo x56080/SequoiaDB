@@ -39,44 +39,44 @@ v7.0 及以上版本
 
 - 在集群中获取名为 `myuser` 的角色，不开启 `ShowPrivileges` 选项
 
-  ```lang-javascript
-  > db.getUser("myuser")
-  {
-    "User": "myuser",
-    "Roles": [
-        "_foo.read"
-    ],
-    "Options": {}
-  }
-  ```
+    ```lang-javascript
+    > db.getUser("myuser")
+    {
+      "User": "myuser",
+      "Roles": [
+          "_foo.read"
+      ],
+      "Options": {}
+    }
+    ```
 
 - 在集群中获取名为 `myuser` 的角色，开启 `ShowPrivileges` 选项
 
-  ```lang-javascript
-  > db.getUser("myuser",{ShowPrivileges:true})
-    {
-        "User": "myuser",
-        "Roles": [
-            "_foo.read"
-        ],
-        "Options": {},
-        "InheritedRoles": [
-            "_foo.read"
-        ],
-        "InheritedPrivileges": [
-            {
-            "Resource": {
-                "cs": "foo",
-                "cl": ""
-            },
-            "Actions": [
-                "find",
-                "getDetail"
-            ]
-            }
-        ]
-    }
-  ```
+    ```lang-javascript
+    > db.getUser("myuser",{ShowPrivileges:true})
+      {
+          "User": "myuser",
+          "Roles": [
+              "_foo.read"
+          ],
+          "Options": {},
+          "InheritedRoles": [
+              "_foo.read"
+          ],
+          "InheritedPrivileges": [
+              {
+              "Resource": {
+                  "cs": "foo",
+                  "cl": ""
+              },
+              "Actions": [
+                  "find",
+                  "getDetail"
+              ]
+              }
+          ]
+      }
+    ```
 
 
 [^_^]: 

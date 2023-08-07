@@ -39,113 +39,113 @@ v7.0 及以上版本
 
 - 在集群中获取名为 `foo_developer` 的角色，不开启 `ShowPrivileges` 选项
 
-  ```lang-javascript
-  > db.getRole("foo_developer")
-  {
-     "_id": {
-         "$oid": "64c0eb5e8c7c328f60bc6d71"
-     },
-     "Role": "foo_developer",
-     "Roles": [
-         "_foo.readWrite"
-     ],
-     "InheritedRoles": [
-         "_foo.readWrite"
-     ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("foo_developer")
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
+        },
+        "Role": "foo_developer",
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ]
+    }
+    ```
 
 - 在集群中获取名为 `foo_developer` 的角色，开启 `ShowPrivileges` 选项
 
-  ```lang-javascript
-  > db.getRole("foo_developer", {ShowPrivileges:true})
-  {
-      "_id": {
-          "$oid": "64c0eb5e8c7c328f60bc6d71"
-      },
-      "Role": "foo_developer",
-      "Privileges": [
-          {
-          "Resource": {
-              "Cluster": true
-          },
-          "Actions": [
-              "snapshot"
-          ]
-          }
-      ],
-      "Roles": [
-          "_foo.readWrite"
-      ],
-      "InheritedRoles": [
-          "_foo.readWrite"
-      ],
-      "InheritedPrivileges": [
-          {
-          "Resource": {
-              "Cluster": true
-          },
-          "Actions": [
-              "snapshot"
-          ]
-          },
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("foo_developer", {ShowPrivileges:true})
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
+        },
+        "Role": "foo_developer",
+        "Privileges": [
+            {
+            "Resource": {
+                "Cluster": true
+            },
+            "Actions": [
+                "snapshot"
+            ]
+            }
+        ],
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ],
+        "InheritedPrivileges": [
+            {
+            "Resource": {
+                "Cluster": true
+            },
+            "Actions": [
+                "snapshot"
+            ]
+            },
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ]
+    }
+    ```
 
 - 在集群中获取名为 `_foo.readWrite` 的内建角色，开启 `ShowPrivileges` 选项
 
-  ```lang-javascript
-  > db.getRole("_foo.readWrite", {ShowPrivileges:true})
-  {
-      "Role": "_foo.readWrite",
-      "Roles": [],
-      "InheritedRoles": [],
-      "Privileges": [
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ],
-      "InheritedPrivileges": [
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("_foo.readWrite", {ShowPrivileges:true})
+    {
+        "Role": "_foo.readWrite",
+        "Roles": [],
+        "InheritedRoles": [],
+        "Privileges": [
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ],
+        "InheritedPrivileges": [
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ]
+    }
+    ```
 
 [^_^]: 
     本文使用的所有引用及链接
