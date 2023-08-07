@@ -87,6 +87,7 @@ namespace engine
 
       _threadMode = CLS_INDEX_NORMAL ;
       _retryLater = FALSE ;
+      _checkTasks = FALSE ;
    }
 
    // rollback thread use it
@@ -133,6 +134,7 @@ namespace engine
 
       _threadMode = threadMod ;
       _retryLater = FALSE ;
+      _checkTasks = FALSE ;
    }
 
    void _clsIndexJob::_onAttach()
@@ -177,6 +179,18 @@ namespace engine
          if ( SDB_OK != clsCB->startIdxTaskCheck( _taskID ) )
          {
             PD_LOG( PDWARNING, "Failed to push task[%llu] to retry", _taskID ) ;
+         }
+      }
+      else if ( _checkTasks &&
+                NULL != _clFullName &&
+                0 == clsCB->getTaskMgr()->taskCountByCL( _clFullName ) )
+      {
+         // start index task check if this is the last task of the collection
+         INT32 tmpRC = clsCB->startIdxTaskCheckByCL( _clUniqID ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to push task for collection task, "
+                    "rc: %d", tmpRC ) ;
          }
       }
 
@@ -256,6 +270,8 @@ namespace engine
                     "No need to execute task[%llu], already finished on "
                     "catalog, rc: %d", _taskStatusPtr->taskID(), rc ) ;
             rc = SDB_OK ;
+            // trigger task check to launch conflict tasks
+            _checkTasks = TRUE ;
             goto done ;
          }
          else if ( SDB_TASK_HAS_CANCELED == rc || SDB_TASK_ROLLBACK == rc )

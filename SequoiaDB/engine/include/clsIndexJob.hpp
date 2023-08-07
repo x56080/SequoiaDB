@@ -88,6 +88,7 @@ namespace engine
          CLS_INDEX_THREAD_MODE _threadMode ;
          BOOLEAN               _hasSetIndexObj ; // protect _indexObj
          BOOLEAN               _retryLater ;
+         BOOLEAN               _checkTasks ;
    };
    typedef class _clsIndexJob clsIndexJob ;
 
