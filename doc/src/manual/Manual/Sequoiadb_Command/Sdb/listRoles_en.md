@@ -40,134 +40,122 @@ v7.0 and above
 
 - Print all custom roles in the cluster, without enabling the `ShowPrivileges` option.
 
-  ```lang-javascript
-  > db.listRoles()
-  {
-     "_id": {
-        "$oid": "64c0eb5e8c7c328f60bc6d71"
-     },
-     "Role": "foo_developer",
-     "Roles": [
-        "_foo.readWrite"
-     ],
-     "InheritedRoles": [
-        "_foo.readWrite"
-     ]
-  }
-  ```
+    ```lang-javascript
+    > db.listRoles()
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
+        },
+        "Role": "foo_developer",
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ]
+    }
+    ```
 
 - Print all custom roles in the cluster, enabling the `ShowPrivileges` option.
 
-  ```lang-javascript
-  > db.listRoles({ShowPrivileges:true})
-  {
-     "_id": {
-        "$oid": "64c0eb5e8c7c328f60bc6d71"
-     },
-     "Role": "foo_developer",
-     "Privileges": [
-        {
-           "Resource": {
-           "Cluster": true
-           },
-           "Actions": [
-           "snapshot"
-           ]
-        }
-     ],
-     "Roles": [
-        "_foo.readWrite"
-     ],
-     "InheritedRoles": [
-        "_foo.readWrite"
-     ],
-     "InheritedPrivileges": [
-        {
-           "Resource": {
-           "Cluster": true
-           },
-           "Actions": [
-           "snapshot"
-           ]
+    ```lang-javascript
+    > db.listRoles({ShowPrivileges:true})
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
         },
-        {
-           "Resource": {
-           "cs": "foo",
-           "cl": ""
-           },
-           "Actions": [
-           "find",
-           "insert",
-           "update",
-           "remove",
-           "getDetail"
-           ]
-        }
-     ]
-  }
-  ```
+        "Role": "foo_developer",
+        "Privileges": [
+            {
+            "Resource": {
+            "Cluster": true
+            },
+            "Actions": [
+            "snapshot"
+            ]
+            }
+        ],
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ],
+        "InheritedPrivileges": [
+            {
+            "Resource": {
+            "Cluster": true
+            },
+            "Actions": [
+            "snapshot"
+            ]
+            },
+            {
+            "Resource": {
+            "cs": "foo",
+            "cl": ""
+            },
+            "Actions": [
+            "find",
+            "insert",
+            "update",
+            "remove",
+            "getDetail"
+            ]
+            }
+        ]
+    }
+    ```
 
 - Print all custom roles and built-in roles in the cluster, enabling the `ShowBuiltinRoles` option.
-  ```lang-javascript
-  > db.listRoles({ShowBuiltinRoles:true})
-  {
-     "_id": {
-        "$oid": "64c0eb5e8c7c328f60bc6d71"
-     },
-     "Role": "foo_developer",
-     "Roles": [
-        "_foo.readWrite"
-     ],
-     "InheritedRoles": [
-        "_foo.readWrite"
-     ]
-     }
-     {
-     "Role": "_root",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_clusterAdmin",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_clusterMonitor",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_backup",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_dbAdmin",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_userAdmin",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_exact.read",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_exact.readWrite",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-     {
-     "Role": "_exact.admin",
-     "Roles": [],
-     "InheritedRoles": []
-     }
-  ```
+    ```lang-javascript
+    > db.listRoles({ShowBuiltinRoles:true})
+    {
+    "Role": "_root",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_clusterAdmin",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_clusterMonitor",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_backup",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_dbAdmin",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_userAdmin",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_exact.read",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_exact.readWrite",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    {
+    "Role": "_exact.admin",
+    "Roles": [],
+    "InheritedRoles": []
+    }
+    ```
 
 [^_^]: 
     All references and links used in this document

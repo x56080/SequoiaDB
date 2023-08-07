@@ -39,113 +39,113 @@ v7.0 and above
 
 - Get information about the role named `foo_developer` in the cluster, without enabling the `ShowPrivileges` option.
 
-  ```lang-javascript
-  > db.getRole("foo_developer")
-  {
-     "_id": {
-         "$oid": "64c0eb5e8c7c328f60bc6d71"
-     },
-     "Role": "foo_developer",
-     "Roles": [
-         "_foo.readWrite"
-     ],
-     "InheritedRoles": [
-         "_foo.readWrite"
-     ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("foo_developer")
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
+        },
+        "Role": "foo_developer",
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ]
+    }
+    ```
 
 - Get information about the role named `foo_developer` in the cluster, with the `ShowPrivileges` option enabled.
 
-  ```lang-javascript
-  > db.getRole("foo_developer", {ShowPrivileges:true})
-  {
-      "_id": {
-          "$oid": "64c0eb5e8c7c328f60bc6d71"
-      },
-      "Role": "foo_developer",
-      "Privileges": [
-          {
-          "Resource": {
-              "Cluster": true
-          },
-          "Actions": [
-              "snapshot"
-          ]
-          }
-      ],
-      "Roles": [
-          "_foo.readWrite"
-      ],
-      "InheritedRoles": [
-          "_foo.readWrite"
-      ],
-      "InheritedPrivileges": [
-          {
-          "Resource": {
-              "Cluster": true
-          },
-          "Actions": [
-              "snapshot"
-          ]
-          },
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("foo_developer", {ShowPrivileges:true})
+    {
+        "_id": {
+            "$oid": "64c0eb5e8c7c328f60bc6d71"
+        },
+        "Role": "foo_developer",
+        "Privileges": [
+            {
+            "Resource": {
+                "Cluster": true
+            },
+            "Actions": [
+                "snapshot"
+            ]
+            }
+        ],
+        "Roles": [
+            "_foo.readWrite"
+        ],
+        "InheritedRoles": [
+            "_foo.readWrite"
+        ],
+        "InheritedPrivileges": [
+            {
+            "Resource": {
+                "Cluster": true
+            },
+            "Actions": [
+                "snapshot"
+            ]
+            },
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ]
+    }
+    ```
 
 - Get information about the built-in role `_foo.readWrite` in the cluster, with the `ShowPrivileges` option enabled.
 
-  ```lang-javascript
-  > db.getRole("_foo.readWrite", {ShowPrivileges:true})
-  {
-      "Role": "_foo.readWrite",
-      "Roles": [],
-      "InheritedRoles": [],
-      "Privileges": [
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ],
-      "InheritedPrivileges": [
-          {
-          "Resource": {
-              "cs": "foo",
-              "cl": ""
-          },
-          "Actions": [
-              "find",
-              "insert",
-              "update",
-              "remove",
-              "getDetail"
-          ]
-          }
-      ]
-  }
-  ```
+    ```lang-javascript
+    > db.getRole("_foo.readWrite", {ShowPrivileges:true})
+    {
+        "Role": "_foo.readWrite",
+        "Roles": [],
+        "InheritedRoles": [],
+        "Privileges": [
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ],
+        "InheritedPrivileges": [
+            {
+            "Resource": {
+                "cs": "foo",
+                "cl": ""
+            },
+            "Actions": [
+                "find",
+                "insert",
+                "update",
+                "remove",
+                "getDetail"
+            ]
+            }
+        ]
+    }
+    ```
 
 [^_^]: 
     All references and links used in this document

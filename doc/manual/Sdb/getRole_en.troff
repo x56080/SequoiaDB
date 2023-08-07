@@ -40,15 +40,125 @@ v7.0 and above
 .IP \[bu] 2
 Get information about the role named \f[C]foo_developer\f[] in the cluster,
 without enabling the \f[C]ShowPrivileges\f[] option.
-.PP
-\f[C]lang\-javascript   > db.getRole("foo_developer")   {      "_id": {          "$oid": "64c0eb5e8c7c328f60bc6d71"      },      "Role": "foo_developer",      "Roles": [          "_foo.readWrite"      ],      "InheritedRoles": [          "_foo.readWrite"      ]   }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.getRole("foo_developer")
+{
+    "_id": {
+        "$oid": "64c0eb5e8c7c328f60bc6d71"
+    },
+    "Role": "foo_developer",
+    "Roles": [
+        "_foo.readWrite"
+    ],
+    "InheritedRoles": [
+        "_foo.readWrite"
+    ]
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 Get information about the role named \f[C]foo_developer\f[] in the cluster, with
 the \f[C]ShowPrivileges\f[] option enabled.
-.PP
-\f[C]lang\-javascript   > db.getRole("foo_developer", {ShowPrivileges:true})   {       "_id": {           "$oid": "64c0eb5e8c7c328f60bc6d71"       },       "Role": "foo_developer",       "Privileges": [           {           "Resource": {               "Cluster": true           },           "Actions": [               "snapshot"           ]           }       ],       "Roles": [           "_foo.readWrite"       ],       "InheritedRoles": [           "_foo.readWrite"       ],       "InheritedPrivileges": [           {           "Resource": {               "Cluster": true           },           "Actions": [               "snapshot"           ]           },           {           "Resource": {               "cs": "foo",               "cl": ""           },           "Actions": [               "find",               "insert",               "update",               "remove",               "getDetail"           ]           }       ]   }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.getRole("foo_developer", {ShowPrivileges:true})
+{
+    "_id": {
+        "$oid": "64c0eb5e8c7c328f60bc6d71"
+    },
+    "Role": "foo_developer",
+    "Privileges": [
+        {
+        "Resource": {
+            "Cluster": true
+        },
+        "Actions": [
+            "snapshot"
+        ]
+        }
+    ],
+    "Roles": [
+        "_foo.readWrite"
+    ],
+    "InheritedRoles": [
+        "_foo.readWrite"
+    ],
+    "InheritedPrivileges": [
+        {
+        "Resource": {
+            "Cluster": true
+        },
+        "Actions": [
+            "snapshot"
+        ]
+        },
+        {
+        "Resource": {
+            "cs": "foo",
+            "cl": ""
+        },
+        "Actions": [
+            "find",
+            "insert",
+            "update",
+            "remove",
+            "getDetail"
+        ]
+        }
+    ]
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 Get information about the built\-in role \f[C]_foo.readWrite\f[] in the cluster,
 with the \f[C]ShowPrivileges\f[] option enabled.
-.PP
-\f[C]lang\-javascript   > db.getRole("_foo.readWrite", {ShowPrivileges:true})   {       "Role": "_foo.readWrite",       "Roles": [],       "InheritedRoles": [],       "Privileges": [           {           "Resource": {               "cs": "foo",               "cl": ""           },           "Actions": [               "find",               "insert",               "update",               "remove",               "getDetail"           ]           }       ],       "InheritedPrivileges": [           {           "Resource": {               "cs": "foo",               "cl": ""           },           "Actions": [               "find",               "insert",               "update",               "remove",               "getDetail"           ]           }       ]   }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+> db.getRole("_foo.readWrite", {ShowPrivileges:true})
+{
+    "Role": "_foo.readWrite",
+    "Roles": [],
+    "InheritedRoles": [],
+    "Privileges": [
+        {
+        "Resource": {
+            "cs": "foo",
+            "cl": ""
+        },
+        "Actions": [
+            "find",
+            "insert",
+            "update",
+            "remove",
+            "getDetail"
+        ]
+        }
+    ],
+    "InheritedPrivileges": [
+        {
+        "Resource": {
+            "cs": "foo",
+            "cl": ""
+        },
+        "Actions": [
+            "find",
+            "insert",
+            "update",
+            "remove",
+            "getDetail"
+        ]
+        }
+    ]
+}
+\f[]
+.fi
+.RE
