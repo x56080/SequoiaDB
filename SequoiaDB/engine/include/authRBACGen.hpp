@@ -29,7 +29,6 @@ namespace engine
    enum ACTION_TYPE_ENUM
    {
       ACTION_TYPE__invalid = -1,
-      ACTION_TYPE_aggregate,
       ACTION_TYPE_alterCL,
       ACTION_TYPE_attachCL,
       ACTION_TYPE_copyIndex,
@@ -40,9 +39,6 @@ namespace engine
       ACTION_TYPE_getDetail,
       ACTION_TYPE_createIndex,
       ACTION_TYPE_dropIndex,
-      ACTION_TYPE_createAutoIncrement,
-      ACTION_TYPE_dropAutoIncrement,
-      ACTION_TYPE_setConsistencyStrategy,
       ACTION_TYPE_detachCL,
       ACTION_TYPE_truncate,
       ACTION_TYPE_split,
@@ -92,7 +88,6 @@ namespace engine
       ACTION_TYPE_dropDomain,
       ACTION_TYPE_dropSequence,
       ACTION_TYPE_eval,
-      ACTION_TYPE_exec,
       ACTION_TYPE_flushConfigure,
       ACTION_TYPE_forceSession,
       ACTION_TYPE_forceSetUp,
@@ -111,7 +106,6 @@ namespace engine
       ACTION_TYPE_removeRG,
       ACTION_TYPE_removeProcedure,
       ACTION_TYPE_renameCS,
-      ACTION_TYPE_renameSequence,
       ACTION_TYPE_resetSnapshot,
       ACTION_TYPE_reloadConf,
       ACTION_TYPE_deleteConf,
@@ -128,9 +122,7 @@ namespace engine
       ACTION_TYPE_listProcedures,
       ACTION_TYPE_alterUser,
       ACTION_TYPE_alterDataSource,
-      ACTION_TYPE_attachNode,
       ACTION_TYPE_createNode,
-      ACTION_TYPE_detachNode,
       ACTION_TYPE_getNode,
       ACTION_TYPE_reelect,
       ACTION_TYPE_removeNode,
@@ -148,8 +140,8 @@ namespace engine
       ACTION_TYPE_alterDC,
    };
 
-   const int ACTION_TYPE_NUM_GEN = 118;
-   const int ACTION_TYPE_VALID_NUM_GEN = 117;
+   const int ACTION_TYPE_NUM_GEN = 110;
+   const int ACTION_TYPE_VALID_NUM_GEN = 109;
 
 
    ACTION_TYPE_ENUM authActionTypeParse( const char *actionName );
@@ -186,34 +178,34 @@ namespace engine
       0ULL
    );
 
-   // CLUSTER: ['analyze', 'listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTask', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'addGroups', 'removeGroups', 'flushConfigure', 'createProcedure', 'forceSetUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'disableBin', 'dropAllBin', 'dropItemBin', 'enableBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence']
+   // CLUSTER: ['analyze', 'listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTask', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'addGroups', 'removeGroups', 'createProcedure', 'forceSetUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'disableBin', 'dropAllBin', 'dropItemBin', 'enableBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_CLUSTER_BITSET_NUMBERS(
-      9223372036846387200ULL,
-      9006751235177735ULL
+      13835058055281639424ULL,
+      35184355311615ULL
    );
 
-   // COLLECTION_NAME: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'aggregate']
+   // COLLECTION_NAME: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_COLLECTION_NAME_BITSET_NUMBERS(
-      4311039ULL,
+      270335ULL,
       0ULL
    );
 
-   // COLLECTION_SPACE: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'aggregate'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
+   // COLLECTION_SPACE: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS', 'getCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_COLLECTION_SPACE_BITSET_NUMBERS(
-      8374271ULL,
-      1073741824ULL
+      4611686018427912191ULL,
+      16777216ULL
    );
 
-   // EXACT_COLLECTION: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'aggregate']
+   // EXACT_COLLECTION: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_EXACT_COLLECTION_BITSET_NUMBERS(
-      4311039ULL,
+      270335ULL,
       0ULL
    );
 
-   // NON_SYSTEM: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'aggregate'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
+   // NON_SYSTEM: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS', 'getCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_NON_SYSTEM_BITSET_NUMBERS(
-      8374271ULL,
-      1073741824ULL
+      4611686018427912191ULL,
+      16777216ULL
    );
 
    // ANY: __all__

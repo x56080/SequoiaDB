@@ -902,7 +902,6 @@ namespace engine
          }
       }
 
-      if ( !roles.empty() )
       {
          std::pair< INT32, boost::shared_ptr< ossPoolString > > res;
          if ( replace )

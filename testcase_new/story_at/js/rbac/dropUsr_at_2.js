@@ -1,7 +1,7 @@
 /***************************************************************************************************
  * @Description: 用户数大于1时，删除用户
  * @ATCaseID: dropUsr_at_1
- * @Author: Huangyouquan
+ * @Author: Zhou Hongye
  * @TestlinkCase: 无
  * @Change    Activity:
  * Date       Who         Description

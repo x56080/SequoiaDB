@@ -41,7 +41,7 @@ namespace engine
          goto error;
       }
 
-      out = BSONObj( buffObj.data() );
+      out = BSONObj( buffObj.data() ).getOwned();
 
    done:
       if ( -1 != contextID )
@@ -135,6 +135,9 @@ namespace engine
          BSONObj updater = BSON( "$pull" << BSON( AUTH_FIELD_NAME_ROLES << roleName ) );
          BSONObj dummy = BSONObj();
          rc = rtnUpdate( AUTH_USR_COLLECTION, dummy, updater, hint, 0, _pEduCB );
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop role[%s] for users, rc: %d", roleName, rc );
+
+         rc = rtnUpdate( AUTH_ROLE_COLLECTION, dummy, updater, hint, 0, _pEduCB );
          PD_RC_CHECK( rc, PDERROR, "Failed to drop role[%s] for users, rc: %d", roleName, rc );
       }
 
@@ -334,7 +337,7 @@ namespace engine
          goto error;
       }
 
-      out = BSONObj( buffObj.data() );
+      out = BSONObj( buffObj.data() ).getOwned();
 
    done:
       if ( -1 != contextID )
