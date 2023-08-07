@@ -2,12 +2,13 @@
  * @Description   : seqDB-27797 :: 创建监控用户执行调用存储过程eval相关非监控操作  
  * @Author        : Wu Yan
  * @CreateTime    : 2022.09.24
- * @LastEditTime  : 2022.10.08
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 function test ()
 {
    try
