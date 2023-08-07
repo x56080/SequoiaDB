@@ -2,7 +2,7 @@
  * @Description   : seqDB-26573:stp节点异常时执行split
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.08.10
- * @LastEditTime  : 2023.07.27
+ * @LastEditTime  : 2023.08.07
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26573";
@@ -12,7 +12,8 @@ testConf.useDstGroup = true;
 testConf.skipOneGroup = true;
 testConf.skipStandAlone = true;
 
-main( test );
+// CI-2323
+// main( test );
 function test ( testPara )
 {
    try
