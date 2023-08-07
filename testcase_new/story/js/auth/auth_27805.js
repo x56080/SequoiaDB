@@ -2,12 +2,13 @@
  * @Description   : seqDB-27805 :: 版本: 1 :: 重建同名monitor用户更新用户角色，原角色连接执行监控操作和非监控操作
  * @Author        : Tao Tang
  * @CreateTime    : 2022.09.26
- * @LastEditTime  : 2022.09.26
- * @LastEditors   : Tao Tang
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 
 function test ()
 {

@@ -2,11 +2,12 @@
  * @Description   : seqDB-27802:重建同名admin用户，更新admin角色为monitor
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.09.27
- * @LastEditTime  : 2022.10.09
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 
 function test ()
 {

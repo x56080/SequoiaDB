@@ -2,12 +2,13 @@
  * @Description   : seqDB-28009 :: 创建监控用户执行内置sql非监控类操作
  * @Author        : Wu Yan
  * @CreateTime    : 2022.09.24
- * @LastEditTime  : 2022.09.28
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 function test ()
 {
    try

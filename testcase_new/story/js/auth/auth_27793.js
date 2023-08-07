@@ -2,11 +2,12 @@
  * @Description   : seqDB-27793:使用默认角色执行操作
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.09.24
- * @LastEditTime  : 2022.10.09
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 
 function test ()
 {

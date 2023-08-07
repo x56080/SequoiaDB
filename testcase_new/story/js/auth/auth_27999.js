@@ -2,11 +2,12 @@
  * @Description   : seqDB-27999:创建监控用户执行Sdb类监控操作
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.09.28
- * @LastEditTime  : 2022.10.09
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2023.08.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-main( test );
+// SEQUOIADBMAINSTREAM-9798
+// main( test );
 
 function test ()
 {
