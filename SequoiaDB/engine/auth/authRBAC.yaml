@@ -29,10 +29,8 @@ enums:
       # SdbRecycleBin Begin
       alterBin: "alterBin"
       countBin: "countBin"
-      disableBin: "disableBin"
       dropAllBin: "dropAllBin"
       dropItemBin: "dropItemBin"
-      enableBin: "enableBin"
       getDetailBin: "getDetailBin"
       listBin: "listBin"
       returnItemBin: "returnItemBin"
@@ -71,8 +69,7 @@ enums:
       eval: "eval"
       flushConfigure: "flushConfigure"
       forceSession: "forceSession"
-      forceSetUp: "forceSetUp"
-      getCS: "getCS"
+      forceStepUp: "forceStepUp"
       getDataSource: "getDataSource"
       getDomain: "getDomain"
       getRG: "getRG"
@@ -99,11 +96,14 @@ enums:
       trans: "trans"
       updateConf: "updateConf"
       testCS: "testCS"
-      waitTask: "waitTask"
+      waitTasks: "waitTasks"
       listProcedures: "listProcedures"
       alterUser: "alterUser"
-      alterDataSource: "alterDataSource"
+      listBackup: "listBackup"
       # Sdb End
+      # SdbDataSource Begin
+      alterDataSource: "alterDataSource"
+      # SdbDataSource End
       # SdbReplicaGroup Begin
       createNode: "createNode"
       getNode: "getNode"
@@ -111,10 +111,12 @@ enums:
       removeNode: "removeNode"
       startRG: "startRG"
       stopRG: "stopRG"
+      alterRG: "alterRG"
       # SdbReplicaGroup End
       # SdbNode Begin
       startNode: "startNode"
       stopNode: "stopNode"
+      alterNode: "alterNode"
       # SdbNode End
       # SdbSequence Begin
       fetchSequence: "fetchSequence"
@@ -122,9 +124,7 @@ enums:
       alterSequence: "alterSequence"
       # SdbSequence End
       # SdbDomain Begin
-      addGroups: "addGroups"
       alterDomain: "alterDomain"
-      removeGroups: "removeGroups"
       # SdbDomain End
       # SdbDataCenter Begin
       getDCInfo: "getDCInfo"
@@ -170,15 +170,13 @@ enums:
           - startNode
           - stopNode
           - setPDLevel
-          - waitTask
+          - waitTasks
           - trace
           - traceStatus
           - createDomain
           - dropDomain
-          - addGroups
-          - removeGroups
           - createProcedure
-          - forceSetUp
+          - forceStepUp
           - removeProcedure
           - listProcedures
           - eval
@@ -198,10 +196,8 @@ enums:
           - alterDataSource
           - alterBin
           - countBin
-          - disableBin
           - dropAllBin
           - dropItemBin
-          - enableBin
           - getDetailBin
           - listBin
           - returnItemBin
@@ -232,6 +228,9 @@ enums:
           - getTask
           - getNode
           - resetSnapshot
+          - listBackup
+          - alterNode
+          - alterRG
 
 
       # resource: { cs:"", cl: "exact" }
@@ -269,7 +268,6 @@ enums:
           - renameCL
           - listCollections
           - testCS
-          - getCS
 
       # resource: { cs:"exact", cl: "exact" }
       EXACT_COLLECTION:
@@ -325,7 +323,7 @@ BUILTIN_ROLES:
           - list
           - createNode
           - removeNode
-          - forceSetUp
+          - forceStepUp
 
   _clusterMonitor:
     privileges:
@@ -362,6 +360,8 @@ BUILTIN_ROLES:
           type: CLUSTER
         actions:
           - backup
+          - listBackup
+          - removeBackup
 
   _dbAdmin:
     privileges:
@@ -579,6 +579,7 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
+          - [listBackup]
 
     CMD_NAME_LIST_TASKS:
       - resource: CLUSTER
@@ -766,6 +767,7 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [snapshot]
+          - [snapshotBin]
 
     CMD_NAME_TEST_COLLECTION:
       - resource: EXACT_COLLECTION
@@ -780,7 +782,6 @@ CMD_PRIVILEGE_MAP:
           - [testCS]
           - [find]
           - [getDetail]
-          - [getCS]
 
     CMD_NAME_CREATE_GROUP:
       - resource: CLUSTER
@@ -842,7 +843,7 @@ CMD_PRIVILEGE_MAP:
     CMD_NAME_WAITTASK:
       - resource: CLUSTER
         actionSets:
-          - [waitTask]
+          - [waitTasks]
 
     CMD_NAME_CREATE_CATA_GROUP:
       - resource: CLUSTER
@@ -879,15 +880,9 @@ CMD_PRIVILEGE_MAP:
         actionSets:
           - [dropDomain]
 
-    CMD_NAME_ADD_DOMAIN_GROUP:
-      - resource: CLUSTER
-        actionSets:
-          - [addGroups]
+    # CMD_NAME_ADD_DOMAIN_GROUP  alter domain
 
-    CMD_NAME_REMOVE_DOMAIN_GROUP:
-      - resource: CLUSTER
-        actionSets:
-          - [removeGroups]
+    # CMD_NAME_REMOVE_DOMAIN_GROUP  alter domain
 
     CMD_NAME_EXPORT_CONFIG:
       - resource: CLUSTER
@@ -986,7 +981,7 @@ CMD_PRIVILEGE_MAP:
     CMD_NAME_FORCE_STEP_UP:
       - resource: CLUSTER
         actionSets:
-          - [forceSetUp]
+          - [forceStepUp]
 
     # CMD_NAME_JSON_LOAD
 
@@ -1330,6 +1325,16 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [alterDomain]
+
+    CMD_NAME_ALTER_NODE:
+      - resource: CLUSTER
+        actionSets:
+          - [alterNode]
+
+    CMD_NAME_ALTER_GROUP:
+      - resource: CLUSTER
+        actionSets:
+          - [alterRG]
 
     CMD_NAME_CREATE_ROLE:
       - resource: CLUSTER

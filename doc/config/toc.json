@@ -2003,6 +2003,12 @@
                                  "en": "Privilege, Resource and Actions"
                               },
                               {
+                                 "id": 1691464092,
+                                 "file": "action_types",
+                                 "cn": "操作类型",
+                                 "en": "Action Types"
+                              },
+                              {
                                  "id": 1690420363,
                                  "file": "builtin_roles",
                                  "cn": "内建角色",
@@ -2947,6 +2953,12 @@
                            "file": "invalidateCache",
                            "cn": "invalidateCache()",
                            "en": "invalidateCache()"
+                        },
+                        {
+                           "id": 1691490254,
+                           "file": "invalidateUserCache",
+                           "cn": "invalidateUserCache()",
+                           "en": "invalidateUserCache()"
                         },
                         {
                            "id": 1432190793,
