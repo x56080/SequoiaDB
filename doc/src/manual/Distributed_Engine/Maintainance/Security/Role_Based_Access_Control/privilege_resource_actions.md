@@ -77,10 +77,10 @@
 
 ## 操作 ##
 
-操作定义了用户可以对资源执行的操作。操作仅定义在匹配的资源上才有效，所有操作类型及命令所需权限映射参考[操作类型][action_type]。SequoiaDB 提供了预定义权限的[内建角色][builtin_roles]，还可定义[用户自定义角色][user_defined_roles]。
+操作定义了用户可以对资源执行的操作。操作仅定义在匹配的资源上才有效，所有操作类型及命令所需权限映射参考[操作类型][action_types]。SequoiaDB 提供了预定义权限的[内建角色][builtin_roles]，还可定义[用户自定义角色][user_defined_roles]。
 
 [^_^]:
     本文使用的所有引用和链接
 [builtin_roles]: manual/Distributed_Engine/Maintainance/Security/Role_Based_Access_Control/builtin_roles.md
 [user_defined_roles]: manual/Distributed_Engine/Maintainance/Security/Role_Based_Access_Control/user_defined_roles.md
-[action_type]: manual/Distributed_Engine/Maintainance/Security/Role_Based_Access_Control/action_type.md
+[action_types]: manual/Distributed_Engine/Maintainance/Security/Role_Based_Access_Control/action_types.md
