@@ -111,12 +111,10 @@ enums:
       removeNode: "removeNode"
       startRG: "startRG"
       stopRG: "stopRG"
-      alterRG: "alterRG"
       # SdbReplicaGroup End
       # SdbNode Begin
       startNode: "startNode"
       stopNode: "stopNode"
-      alterNode: "alterNode"
       # SdbNode End
       # SdbSequence Begin
       fetchSequence: "fetchSequence"
@@ -229,8 +227,6 @@ enums:
           - getNode
           - resetSnapshot
           - listBackup
-          - alterNode
-          - alterRG
 
 
       # resource: { cs:"", cl: "exact" }
@@ -1325,16 +1321,6 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [alterDomain]
-
-    CMD_NAME_ALTER_NODE:
-      - resource: CLUSTER
-        actionSets:
-          - [alterNode]
-
-    CMD_NAME_ALTER_GROUP:
-      - resource: CLUSTER
-        actionSets:
-          - [alterRG]
 
     CMD_NAME_CREATE_ROLE:
       - resource: CLUSTER

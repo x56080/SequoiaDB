@@ -304,19 +304,6 @@
 
 用户可在`SdbReplicaGroup`对象上执行[`stop`](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stop.md)命令。
 
-## alterRG
-
-将该操作应用在集群资源上。
-
-用户可在`SdbReplicaGroup`对象上执行以下命令：
-
-- [setActiveLocation](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setActiveLocation.md)
-- [setAttributes](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/setAttributes.md)
-- [startCriticalMode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startCriticalMode.md)
-- [stopCriticalMode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stopCriticalMode.md)
-- [startMaintenanceMode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startMaintenanceMode.md)
-- [stopMaintenanceMode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stopMaintenanceMode.md)
-
 ## startNode
 
 将该操作应用在集群资源上。
@@ -328,15 +315,6 @@
 将该操作应用在集群资源上。
 
 用户可在`SdbNode`上执行[`stop`](manual/Manual/Sequoiadb_Command/SdbNode/stop.md)命令。
-
-## alterNode
-
-将该操作应用在集群资源上。
-
-用户可在`SdbNode`对象上执行以下命令：
-
-- [setAttributes](manual/Manual/Sequoiadb_Command/SdbNode/setAttributes.md)
-- [setLocation](manual/Manual/Sequoiadb_Command/SdbNode/setLocation.md)
 
 # 分片操作
 
