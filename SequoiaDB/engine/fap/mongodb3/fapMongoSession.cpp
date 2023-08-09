@@ -1200,8 +1200,6 @@ void _mongoSession::_clearErrorInfo( BSONObj &errObj, mongoSessionCtx *pSessCtx 
 
 INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg, MsgOpReply &replyHeader )
 {
-   INT32 rc = SDB_OK ;
-
    _pEDUCB->clearProcessInfo() ;
    _saveOrSetMsgGlobalID( pMsg ) ;
    getClient()->registerInMsg( pMsg ) ;
@@ -1213,10 +1211,7 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg, MsgOpReply &replyHeader )
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
    _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
 
-done:
-   return rc ;
-error:
-   goto done ;
+   return SDB_OK ;
 }
 
 void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )

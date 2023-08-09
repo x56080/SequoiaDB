@@ -306,6 +306,7 @@ class _mongoCurrentOpCommand : public _mongoGlobalCommand
       INT64 sessionID ;
       INT64 milliSecRunning ;
       std::string clName ;
+      BOOLEAN isBlocked ;
 
       _sessionOpInfo()
       {
@@ -317,6 +318,7 @@ class _mongoCurrentOpCommand : public _mongoGlobalCommand
          sessionID = 0 ;
          milliSecRunning = 0 ;
          clName = "" ;
+         isBlocked = FALSE ;
       }
    } ;
    typedef struct _sessionOpInfo sessionOpInfo ;

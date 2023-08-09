@@ -1258,6 +1258,12 @@ INT32 _mongoTopCommand::buildMongoReply( const MsgOpReply &sdbReply,
                           BSON( FAP_MONGO_FIELD_NAME_COUNT << totalUpdate ) ) ;
             clBob.append( FAP_MONGO_FIELD_NAME_REMOVE,
                           BSON( FAP_MONGO_FIELD_NAME_COUNT << totalDelete ) ) ;
+
+            clBob.append( FAP_MONGO_FIELD_NAME_READLOCK,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << 0 ) ) ;
+            clBob.append( FAP_MONGO_FIELD_NAME_WRITELOCK,
+                          BSON( FAP_MONGO_FIELD_NAME_COUNT << 0 ) ) ;
+
             clBob.done() ;
          }
 
@@ -1792,6 +1798,19 @@ INT32 _mongoServerStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
             "update" : NumberLong(0),
             "delete" : NumberLong(0)
          },
+         "globalLock" : {
+            "totalTime" : NumberLong("875829218000"),
+            "currentQueue" : {
+               "total" : 0,
+               "readers" : 0,
+               "writers" : 0
+            },
+            "activeClients" : {
+               "total" : 0,
+               "readers" : 0,
+               "writers" : 0
+            }
+         },
          "mem" : {
             "resident" : 1186,
             "virtual" : 2858
@@ -1818,6 +1837,18 @@ INT32 _mongoServerStatusCommand::buildMongoReply( const MsgOpReply &sdbReply,
          opCountersBob.append( FAP_MONGO_FIELD_NAME_UPDATE, _updateCount ) ;
          opCountersBob.append( FAP_MONGO_FIELD_NAME_QUERY,  _selectCount ) ;
          opCountersBob.done() ;
+
+         BSONObjBuilder globalLockBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_GLOBALLOCK ) ) ;
+         globalLockBob.append( FAP_MONGO_FIELD_NAME_TOTALTIME, startTime*1000 ) ;
+         globalLockBob.append( FAP_MONGO_FIELD_NAME_CURQUEUE,
+                               BSON( FAP_MONGO_FIELD_NAME_TOTAL << 0 <<
+                               FAP_MONGO_FIELD_NAME_READERS << 0 <<
+                               FAP_MONGO_FIELD_NAME_WRITERS << 0 ) ) ;
+         globalLockBob.append( FAP_MONGO_FIELD_NAME_ACTIVECLIENT,
+                               BSON( FAP_MONGO_FIELD_NAME_TOTAL << 0 <<
+                               FAP_MONGO_FIELD_NAME_READERS << 0 <<
+                               FAP_MONGO_FIELD_NAME_WRITERS << 0 ) ) ;
+         globalLockBob.done() ;
 
          BSONObjBuilder netBob( bob.subobjStart( FAP_MONGO_FIELD_NAME_NETWORK ) ) ;
          netBob.append( FAP_MONGO_FIELD_NAME_BYTESIN, _netIn ) ;
@@ -1878,7 +1909,8 @@ INT32 _mongoCurrentOpCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       sel = BSON( FIELD_NAME_SESSIONID << 1 <<
                   FIELD_NAME_LASTOPBEGIN << 1 <<
                   FIELD_NAME_LASTOPEND << 1 <<
-                  FIELD_NAME_LASTOPINFO << 1 ) ;
+                  FIELD_NAME_LASTOPINFO << 1 <<
+                  FIELD_NAME_ISBLOCKED << 1 ) ;
    }
    catch ( std::exception &e )
    {
@@ -2002,6 +2034,10 @@ INT32 _mongoCurrentOpCommand::parseSdbReply( const MsgOpReply &sdbReply,
                   rc = _getCLNameFromLastOpInfo( ele.valuestrsafe(), info.clName ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to get cl name from last op info, rc: %d", rc ) ;
                }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_ISBLOCKED ) )
+               {
+                  info.isBlocked = ele.booleanSafe() ;
+               }
             }
 
             if ( opHasBegin && opHasNotEnd && !info.clName.empty() )
@@ -2091,6 +2127,8 @@ INT32 _mongoCurrentOpCommand::buildMongoReply( const MsgOpReply &sdbReply,
             session.append( FAP_MONGO_FIELD_NAME_MICROSECS_RUN,
                             (INT64)info.milliSecRunning * 1000 ) ;
             session.append( FAP_MONGO_FIELD_NAME_NS, info.clName.c_str() ) ;
+            session.append( FAP_MONGO_FIELD_NAME_OP, FAP_MONGO_FIELD_VALUE_COMMAND ) ;
+            session.appendBool( FAP_MONGO_FIELD_NAME_WAITFROLOCK, info.isBlocked ) ;
             inprogBab.append( session.obj() ) ;
          }
          inprogBab.done() ;
