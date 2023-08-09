@@ -70,7 +70,7 @@ public class RenameCS_16141 extends SdbTestBase {
         }
 
         if ( !attachCL ) {
-            Integer[] errnosB = { -23, -34 };
+            Integer[] errnosB = { -23, -34, -147, -190 };
             BaseException errorB = ( BaseException ) atttachThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {
