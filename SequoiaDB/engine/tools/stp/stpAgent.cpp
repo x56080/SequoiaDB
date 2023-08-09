@@ -98,6 +98,8 @@ namespace engine
       INT32 _notifySTPSync() ;
       // check and attach meta data
       INT32 _checkMetaData( const CHAR *shmKey ) ;
+      // check meta data in lock
+      BOOLEAN _testMetaDataInLock( const CHAR *shmKey ) ;
       // release meta data
       INT32 _releaseMetaData() ;
       // get logical time in nanoseconds
@@ -552,6 +554,24 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to connect to STP service [%s], "
                    "rc: %d", _serviceName, rc ) ;
 
+      // check PID of STP
+      if ( OSS_INVALID_PID != _stpPID )
+      {
+         // check metadata of STP
+         ossScopedRWLock lock( &_metaMutex, SHARED ) ;
+         if ( !_testMetaDataInLock( _serviceName ) )
+         {
+            PD_LOG( PDWARNING, "Failed to test metadata, it is invalid" ) ;
+            rc = STP_NOT_AVAILABLE ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = STP_NOT_AVAILABLE ;
+         goto error ;
+      }
+
    done:
       if ( gotCheckLatch )
       {
@@ -605,21 +625,9 @@ namespace engine
 
       BOOLEAN needAttach = FALSE ;
 
-      ossScopedRWLock( &_metaMutex, SHARED ) ;
+      ossScopedRWLock lock( &_metaMutex, EXCLUSIVE ) ;
 
-      // if it is not available, means the buffer is not attached
-      needAttach = _availableFlag.compare( 0 ) ;
-
-      // if available but key of shared buffer is changed, release the old one
-      if ( !needAttach && 0 != ossStrcmp( shmKey, _buffer.getKeyString() ) )
-      {
-         // reset available
-         _availableFlag.swap( 0 ) ;
-         // release buffer
-         _releaseSHMBuffer() ;
-         // need re-attach
-         needAttach = TRUE ;
-      }
+      needAttach = !_testMetaDataInLock( shmKey ) ;
 
       if ( needAttach )
       {
@@ -642,6 +650,37 @@ namespace engine
       _availableFlag.swap( 0 ) ;
       _releaseSHMBuffer() ;
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__TESTMETADATAINLOCK, "_stpAgentService::_testMetaDataInLock" )
+   BOOLEAN _stpAgentService::_testMetaDataInLock( const CHAR *shmKey )
+   {
+      BOOLEAN isValid = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTMETADATAINLOCK ) ;
+
+      isValid = _availableFlag.compare( 1 ) ;
+      if ( isValid )
+      {
+         // if available but key of shared buffer is changed, release the old one
+         if ( 0 != ossStrcmp( shmKey, _buffer.getKeyString() ) )
+         {
+            PD_LOG( PDDEBUG, "STP's shared memory key is different, "
+                    "expected [%s], current [%s]", shmKey, _buffer.getKeyString() ) ;
+            _availableFlag.swap( 0 ) ;
+            isValid = FALSE ;
+         }
+         else if ( !_buffer.isValid() )
+         {
+            PD_LOG( PDDEBUG, "STP's shared memory is invalid" ) ;
+            _availableFlag.swap( 0 ) ;
+            isValid = FALSE ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__STPAGENTSERVICE__TESTMETADATAINLOCK ) ;
+
+      return isValid ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RELEASEMETADATA, "_stpAgentService::_releaseMetaData" )

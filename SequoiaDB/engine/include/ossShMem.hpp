@@ -83,3 +83,4 @@ CHAR *ossSHMAttach( ossSHMKey shmKey, UINT32 bufSize, ossSHMMid &shmMid );
 
 void ossSHMDetach( ossSHMMid & shmMid, CHAR **ppBuf );
 
+BOOLEAN ossSHMIsValid( ossSHMKey shmKey, UINT32 bufSize, ossSHMMid shmMid ) ;

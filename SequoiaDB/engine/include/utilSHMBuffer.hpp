@@ -102,6 +102,12 @@ public:
       return _acquire( key, size, TRUE ) ;
    }
 
+   BOOLEAN isValid() const
+   {
+      return ( NULL != _buffer ) &&
+             ( ossSHMIsValid( _shmKey, _size, _shmID ) ) ;
+   }
+
    void release()
    {
       if ( NULL == _buffer )

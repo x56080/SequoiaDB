@@ -226,3 +226,27 @@ void ossSHMDetach( ossSHMMid & shmMid, CHAR **ppBuf )
    }
 #endif
 }
+
+BOOLEAN ossSHMIsValid( ossSHMKey shmKey, UINT32 bufSize, ossSHMMid shmMid )
+{
+   BOOLEAN res = FALSE ;
+
+   ossSHMMid tmpSHMMid = 0 ;
+   CHAR *buff = NULL ;
+
+   if ( 0 != shmKey && 0 != shmMid )
+   {
+      // attach and check the shared memory ID
+      buff = ossSHMAttach( shmKey, bufSize, tmpSHMMid ) ;
+      if ( NULL != buff )
+      {
+         if ( shmMid == tmpSHMMid )
+         {
+            res = TRUE ;
+         }
+         ossSHMDetach( tmpSHMMid, &buff ) ;
+      }
+   }
+
+   return res ;
+}
