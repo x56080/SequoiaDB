@@ -105,17 +105,33 @@ namespace engine
    class authRequiredActionSets
    {
       public:
-         authRequiredActionSets( RESOURCE_TYPE_ENUM t, ACTION_SETS_PTR sets, unsigned int size, bool isDefault )
-            : _t( t ), _sets( sets ), _size( size ), _isDefault(isDefault) {}
+         enum SOURCE_OBJ
+         {
+            SOURCE_OBJ_NONE,
+            SOURCE_OBJ_QUERY,
+            SOURCE_OBJ_SELECTOR,
+            SOURCE_OBJ_ORDERBY,
+            SOURCE_OBJ_HINT
+         };
+
+         struct SOURCE
+         {
+            SOURCE( SOURCE_OBJ obj, const char *key ) : obj( obj ), key( key ) {}
+            SOURCE_OBJ obj;
+            const char *key;
+         };
+      public:
+         authRequiredActionSets( RESOURCE_TYPE_ENUM t, ACTION_SETS_PTR sets, unsigned int size, SOURCE_OBJ obj, const char *key )
+            : _t( t ), _sets( sets ), _size( size ), _source( obj, key ) {}
          RESOURCE_TYPE_ENUM getResourceType() const { return _t; }
          ACTION_SETS_PTR getActionSets() const { return _sets; }
          unsigned int getSize() const { return _size; }
-         bool isDefault() const { return _isDefault; }
+         SOURCE getSource() const { return _source; }
       private:
          RESOURCE_TYPE_ENUM _t;
          ACTION_SETS_PTR _sets;
          unsigned int _size;
-         bool _isDefault;
+         SOURCE _source;
    };
    typedef const std::pair< const AUTH_CMD_ACTION_SETS_TAG*, unsigned int > CMD_TAGS_ARRAY;
    const CMD_TAGS_ARRAY* authGetCMDActionSetsTags( const char *cmd );

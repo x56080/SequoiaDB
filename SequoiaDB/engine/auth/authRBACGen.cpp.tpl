@@ -74,11 +74,7 @@ namespace engine
    #end for
    };
    static const authRequiredActionSets ${tag.tag_name}_SETS( RESOURCE_TYPE_${tag.resource_type} , ${tag.tag_name}_ACTION_SETS_ARRAY, $len($tag.actionsets), 
-   #if $tag.tag_name.endswith("default")
-   true
-   #else
-   false
-   #end if
+   authRequiredActionSets::SOURCE_OBJ_${tag.from.obj.upper()}, $tag.from.key
    );
 
 #end for
@@ -99,7 +95,11 @@ namespace engine
    static const AUTH_CMD_ACTION_SETS_TAG ${cmd}_TAGS_ARRAY[] = {
    #for $privilege in $privileges
       #if $isinstance($privilege.resource, dict)
-         AUTH_${cmd}_$privilege.resource.tag,
+         #if $privilege.resource.has_key("tag")
+            AUTH_${cmd}_$privilege.resource.tag,
+         #else
+             AUTH_${cmd}_default,
+         #end if
       #else
          AUTH_${cmd}_default,
       #end if

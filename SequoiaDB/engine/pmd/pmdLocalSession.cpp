@@ -275,7 +275,7 @@ namespace engine
                                                   const CHAR *pHint )
    {
       INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_CMD ) ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN_CHECK_PRIVS_CMD );
       if ( !privilegeCheckEnabled() )
       {
          goto done;
@@ -283,12 +283,7 @@ namespace engine
 
       try
       {
-         BSONObj query = pQuery ? BSONObj( pQuery ) : BSONObj();
-         // BSONObj selector( pSelector );
-         // BSONObj orderby( pOrderby );
-         BSONObj hint = pHint ? BSONObj( pHint ) : BSONObj();
-
-         boost::shared_ptr< const authAccessControlList> acl;
+         boost::shared_ptr< const authAccessControlList > acl;
          rc = getACL( acl );
          PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to get ACL, rc: %d", sessionName(), rc );
 
@@ -300,62 +295,61 @@ namespace engine
             {
                AUTH_CMD_ACTION_SETS_TAG tag = tags->first[ i ];
                const authRequiredActionSets *actionSets = authGetCMDActionSetsByTag( tag );
-               if ( !actionSets || !actionSets->isDefault() )
+               if ( !actionSets )
                {
-                  continue;
+                  rc = SDB_SYS;
+                  PD_LOG( PDERROR, "Failed to get action sets for tag[%d]", tag );
+                  goto error;
                }
 
+               BSONObj obj;
+               switch ( actionSets->getSource().obj )
+               {
+               case authRequiredActionSets::SOURCE_OBJ_NONE :
+                  break;
+               case authRequiredActionSets::SOURCE_OBJ_QUERY :
+                  obj = BSONObj( pQuery );
+                  break;
+               case authRequiredActionSets::SOURCE_OBJ_SELECTOR :
+                  obj = BSONObj( pSelector );
+                  break;
+               case authRequiredActionSets::SOURCE_OBJ_ORDERBY :
+                  obj = BSONObj( pOrderby );
+                  break;
+               case authRequiredActionSets::SOURCE_OBJ_HINT :
+                  obj = BSONObj( pHint );
+                  break;
+               }
+
+               const CHAR *key = actionSets->getSource().key;
                if ( RESOURCE_TYPE_EXACT_COLLECTION == actionSets->getResourceType() )
                {
-                  BSONElement clFullName = query.getField( FIELD_NAME_COLLECTION );
-                  if ( clFullName.type() != bson::String )
+                  SDB_ASSERT( key, "The key must be configured for exact collection" );
+                  BSONElement ele = obj.getField( key );
+                  if ( String != ele.type() )
                   {
-                     clFullName = hint.getField( FIELD_NAME_COLLECTION );
+                     rc = SDB_SYS;
+                     PD_LOG( PDERROR, "Failed to get collection full name from field[%s]", key );
+                     goto error;
                   }
-                  if ( clFullName.type() != bson::String )
-                  {
-                     clFullName = query.getField( FIELD_NAME_NAME );
-                  }
-                  if ( clFullName.type() != bson::String )
-                  {
-                     clFullName = hint.getField( FIELD_NAME_NAME );
-                  }
-                  if ( clFullName.type() == bson::String )
-                  {
-                     boost::shared_ptr< authResource > r = authResource::forExact( clFullName.valuestr() );
-                     required.addActionSetsOnResource( r, actionSets );
-                  }
-                  else
-                  {
-                     PD_LOG( PDWARNING, "Cannot find the collection name of command: %s", cmdName );
-                  }
+                  boost::shared_ptr< authResource > r = authResource::forExact( ele.valuestr() );
+                  required.addActionSetsOnResource( r, actionSets );
                }
                else if ( RESOURCE_TYPE_COLLECTION_SPACE == actionSets->getResourceType() )
                {
-                  BSONElement csName = query.getField( FIELD_NAME_NAME );
-                  if ( csName.type() != bson::String )
+                  SDB_ASSERT( key, "The key must be configured for collection space" );
+                  BSONElement ele = obj.getField( key );
+                  if ( String != ele.type() )
                   {
-                     csName = hint.getField( FIELD_NAME_NAME );
+                     rc = SDB_SYS;
+                     PD_LOG( PDERROR, "Failed to get collection space name from field[%s]", key );
+                     goto error;
                   }
-                  if ( csName.type() != bson::String )
-                  {
-                     csName = query.getField( FIELD_NAME_COLLECTIONSPACE );
-                  }
-                  if ( csName.type() != bson::String )
-                  {
-                     csName = hint.getField( FIELD_NAME_COLLECTIONSPACE );
-                  }
-                  if ( csName.type() == bson::String )
-                  {
-                     ossPoolString cs( csName.valuestr() );
-                     boost::shared_ptr< authResource > r = authResource::forCS( cs );
-                     required.addActionSetsOnResource( r, actionSets );
-                  }
-                  else
-                  {
-                     PD_LOG( PDWARNING, "Cannot find the collection space name of command: %s",
-                             cmdName );
-                  }
+                  const CHAR *pDot = ossStrchr( ele.valuestr(), '.' );
+                  ossPoolString cs = pDot ? ossPoolString( ele.valuestr(), pDot - ele.valuestr() )
+                                          : ossPoolString( ele.valuestr() );
+                  boost::shared_ptr< authResource > r = authResource::forCS( cs );
+                  required.addActionSetsOnResource( r, actionSets );
                }
                else if ( RESOURCE_TYPE_NON_SYSTEM == actionSets->getResourceType() ||
                          RESOURCE_TYPE_CLUSTER == actionSets->getResourceType() ||

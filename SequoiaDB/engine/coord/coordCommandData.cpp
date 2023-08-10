@@ -4020,8 +4020,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-
-         rc = _checkPrivileges( pArgs );
       }
       catch( std::exception &e )
       {
@@ -4037,98 +4035,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_LINKCL_CHECK_PRIVILEGES, "_coordCMDLinkCollection::_checkPrivileges" )
-   INT32 _coordCMDLinkCollection::_checkPrivileges( coordCMDArguments *pArgs )
-   {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY( COORD_LINKCL_CHECK_PRIVILEGES );
-      ISession *session = sdbGetThreadExecutor()->getSession();
-      if ( !session )
-      {
-         PD_LOG( PDERROR, "Failed to get session" );
-         rc = SDB_SYS;
-         goto error;
-      }
-      if ( !session->privilegeCheckEnabled() )
-      {
-         goto done;
-      }
-
-      try
-      {
-         boost::shared_ptr< const authAccessControlList > acl;
-         rc = session->getACL( acl );
-         PD_RC_CHECK( rc, PDERROR, "Failed to get ACL" );
-         authRequiredPrivileges required;
-         {
-            AUTH_CMD_ACTION_SETS_TAG tag = AUTH_CMD_NAME_LINK_CL_maincl;
-            const authRequiredActionSets *actionSets = authGetCMDActionSetsByTag( tag );
-            if ( !actionSets )
-            {
-               PD_LOG( PDERROR, "Failed to get action sets" );
-               rc = SDB_SYS;
-               goto error;
-            }
-            SDB_ASSERT( actionSets->getResourceType() == RESOURCE_TYPE_EXACT_COLLECTION,
-                        "resource type must be exact collection" );
-            boost::shared_ptr< authResource > r =
-               authResource::forExact( pArgs->_targetName.c_str() );
-            if ( !r )
-            {
-               rc = SDB_OOM;
-               PD_LOG( PDERROR, "Failed to create resource" );
-               goto error;
-            }
-            required.addActionSetsOnResource( r, actionSets );
-         }
-
-         {
-            AUTH_CMD_ACTION_SETS_TAG tag = AUTH_CMD_NAME_LINK_CL_subcl;
-            const authRequiredActionSets *actionSets = authGetCMDActionSetsByTag( tag );
-            if ( !actionSets )
-            {
-               PD_LOG( PDERROR, "Failed to get action sets" );
-               rc = SDB_SYS;
-               goto error;
-            }
-            SDB_ASSERT( actionSets->getResourceType() == RESOURCE_TYPE_EXACT_COLLECTION,
-                        "resource type must be exact collection" );
-            boost::shared_ptr< authResource > r = authResource::forExact( _subCLName.c_str() );
-            if ( !r )
-            {
-               rc = SDB_OOM;
-               PD_LOG( PDERROR, "Failed to create resource" );
-               goto error;
-            }
-            required.addActionSetsOnResource( r, actionSets );
-         }
-         rc = authMeetRequiredPrivileges( required, *acl );
-         if ( SDB_NO_PRIVILEGES == rc )
-         {
-            rc = SDB_NO_PRIVILEGES;
-            PD_LOG_MSG( PDERROR, "No privilege to execute command: %s", CMD_NAME_LINK_CL );
-            goto error;
-         }
-         else if ( rc )
-         {
-            PD_LOG_MSG( PDERROR, "Failed to check privileges for command[%s], rc: %d",
-                        CMD_NAME_LINK_CL, rc );
-            goto error;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e );
-         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( COORD_LINKCL_CHECK_PRIVILEGES, rc );
-      return rc;
-   error:
-      goto done;
-   }
 
    INT32 _coordCMDLinkCollection::_generateCataMsg ( MsgHeader *pMsg,
                                                      pmdEDUCB *cb,

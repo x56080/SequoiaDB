@@ -77,7 +77,11 @@ namespace engine
       {
          return true;
       }
-      else if ( _t == o._t )
+      else if ( _t > o._t )
+      {
+         return false;
+      }
+      else
       {
          if ( _t == RESOURCE_TYPE_COLLECTION_SPACE )
          {
@@ -85,7 +89,18 @@ namespace engine
          }
          else if ( _t == RESOURCE_TYPE_EXACT_COLLECTION )
          {
-            return _cs < o._cs && _cl < o._cl;
+            if ( *_cs < *o._cs )
+            {
+               return true;
+            }
+            if ( *_cs > *o._cs )
+            {
+               return false;
+            }
+            else
+            {
+               return *_cl < *o._cl;
+            }
          }
          else if ( _t == RESOURCE_TYPE_COLLECTION_NAME )
          {
@@ -95,10 +110,6 @@ namespace engine
          {
             return false;
          }
-      }
-      else
-      {
-         return false;
       }
    }
 
@@ -389,7 +400,7 @@ namespace engine
    {
       SDB_ASSERT( clFullName, "Collection full name can't be NULL" );
       const CHAR *pDot = ossStrchr( clFullName, '.' );
-      SDB_ASSERT( pDot, "Invalid collection full name: %s" );
+      SDB_ASSERT( pDot, "Invalid collection full name" );
       boost::optional< ossPoolString > cs( ossPoolString( clFullName, pDot - clFullName ) );
       boost::optional< ossPoolString > cl( ossPoolString( pDot + 1 ) );
       boost::shared_ptr< authResource > r = boost::make_shared< authResource >();
