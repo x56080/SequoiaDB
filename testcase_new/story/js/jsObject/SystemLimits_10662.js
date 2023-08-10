@@ -18,7 +18,15 @@ SystemTest.prototype.testGetProcUlimitConfigs = function()
       if( str === "realtime priority" )
          str = "real-time priority";
       var command = "/bin/bash -c 'ulimit -a' | grep " + "'^" + str + "'";
-      var info = this.cmd.run( command ).split( "\n" )[0];
+      var infos = this.cmd.run( command ).split( "\n" );
+      var info = ""
+      for( var i in infos )
+      {
+         if( infos[i].indexOf( str ) !== -1 )
+         {
+            info = infos[i]
+         }
+      }
       var limit = info.slice( 37 );
       if( limit === "unlimited" )
          limit = -1;
@@ -26,7 +34,7 @@ SystemTest.prototype.testGetProcUlimitConfigs = function()
          limit = 1024 * limit;
       else if( info.indexOf( "blocks" ) !== -1 )
          limit = 1024 * limit;
-      assert.equal( limits[k], limit * 1 );
+      assert.equal( limits[k], limit * 1, command );
    }
 
    this.release();
