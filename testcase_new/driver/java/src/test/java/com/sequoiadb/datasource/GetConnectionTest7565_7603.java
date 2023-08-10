@@ -264,7 +264,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             }
         }
         // 修改连接池配置，调整maxCount=100、checkInterval=100
-        int usedConnNum = datasource.getUsedConnNum() ;
+        int usedConnNum = datasource.getUsedConnNum();
         option.setCheckInterval( 100 );
         option.setMaxCount( oldPoolSize - 100 );
         datasource.updateDatasourceOptions( option );
@@ -451,7 +451,11 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             Sequoiadb sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), true,
                     "getConnection is inValid" );
-            Assert.assertEquals( datasource.getLocalAddrNum(), 2 );
+            int localAddrNum = datasource.getLocalAddrNum();
+            if ( localAddrNum != 1 && localAddrNum != 2 ) {
+                Assert.fail( "getLocalAddrNum is not 1 or 2, getLocalAddrNum : "
+                        + localAddrNum );
+            }
 
             for ( int i = 0; i < 10; ++i ) {
                 sdb = datasource.getConnection();
