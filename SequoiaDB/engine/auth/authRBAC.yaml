@@ -227,6 +227,7 @@ enums:
           - getNode
           - resetSnapshot
           - listBackup
+          - listCollections
 
 
       # resource: { cs:"", cl: "exact" }
@@ -400,7 +401,11 @@ CMD_PRIVILEGE_MAP:
           - [backup]
 
     CMD_NAME_CREATE_COLLECTION:
-      - resource: COLLECTION_SPACE
+      - resource:
+          type: COLLECTION_SPACE
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [createCL]
 
@@ -430,7 +435,11 @@ CMD_PRIVILEGE_MAP:
           - [getSequenceCurrentValue]
 
     CMD_NAME_CREATE_INDEX:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from: 
+            obj: query
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [createIndex]
 
@@ -440,7 +449,11 @@ CMD_PRIVILEGE_MAP:
           - [cancelTask]
 
     CMD_NAME_DROP_COLLECTION:
-      - resource: COLLECTION_SPACE
+      - resource: 
+          type: COLLECTION_SPACE
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [dropCL]
 
@@ -460,25 +473,42 @@ CMD_PRIVILEGE_MAP:
           - [unloadCS]
 
     CMD_NAME_DROP_INDEX:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [dropIndex]
 
     CMD_NAME_COPY_INDEX:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          tag: "maincl"
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [copyIndex]
 
     # CMD_NAME_REPORT_TASK_PROGRESS
 
     CMD_NAME_GET_COUNT:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
 
     CMD_NAME_GET_INDEXES:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from: 
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
@@ -486,7 +516,11 @@ CMD_PRIVILEGE_MAP:
     # CMD_NAME_GET_DATABLOCKS:
 
     CMD_NAME_GET_QUERYMETA:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
@@ -498,11 +532,8 @@ CMD_PRIVILEGE_MAP:
         actionSets:
           - [getDCInfo]
 
-    CMD_NAME_GET_DOMAIN_NAME:
-      - resource: COLLECTION_SPACE
-        actionSets:
-          - [getDetail]
-          - [find]
+    # CMD_NAME_GET_DOMAIN_NAME 
+    # SdbCollection::getDomainName invoke exec("select Domain from $LIST_CS where Name = '$csName'")
 
     # CMD_NAME_LIST_COLLECTIONS require special handling
 
@@ -557,14 +588,12 @@ CMD_PRIVILEGE_MAP:
           - [listCollectionSpaces]
 
     CMD_NAME_LIST_CL_IN_DOMAIN:
-      - resource: COLLECTION_SPACE
+      - resource: CLUSTER
         actionSets:
+          - [list]
           - [listCollections]
 
-    CMD_NAME_LIST_CL_IN_COLLECTIONSPACE:
-      - resource: COLLECTION_SPACE
-        actionSets:
-          - [listCollections]
+    # CMD_NAME_LIST_CL_IN_COLLECTIONSPACE require special handling
 
     CMD_NAME_LIST_USERS:
       - resource: CLUSTER
@@ -619,7 +648,11 @@ CMD_PRIVILEGE_MAP:
           - [list]
 
     CMD_NAME_RENAME_COLLECTION:
-      - resource: COLLECTION_SPACE
+      - resource:
+          type: COLLECTION_SPACE
+          from:
+            obj: query
+            key: FIELD_NAME_COLLECTIONSPACE
         actionSets:
           - [renameCL]
 
@@ -766,14 +799,22 @@ CMD_PRIVILEGE_MAP:
           - [snapshotBin]
 
     CMD_NAME_TEST_COLLECTION:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [testCL]
           - [find]
           - [getDetail]
 
     CMD_NAME_TEST_COLLECTIONSPACE:
-      - resource: COLLECTION_SPACE
+      - resource: 
+          type: COLLECTION_SPACE
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [testCS]
           - [find]
@@ -832,7 +873,11 @@ CMD_PRIVILEGE_MAP:
           - [setPDLevel]
 
     CMD_NAME_SPLIT:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [split]
 
@@ -910,16 +955,26 @@ CMD_PRIVILEGE_MAP:
       - resource:
           type: EXACT_COLLECTION
           tag: "maincl"
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [attachCL, find]
       - resource:
           type: EXACT_COLLECTION
           tag: "subcl"
+          from:
+            obj: query
+            key: FIELD_NAME_SUBCLNAME
         actionSets:
           - [find, insert, update, remove]
 
     CMD_NAME_UNLINK_CL:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [detachCL]
 
@@ -954,7 +1009,11 @@ CMD_PRIVILEGE_MAP:
           - [forceSession]
 
     CMD_NAME_LIST_LOBS:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
@@ -982,7 +1041,11 @@ CMD_PRIVILEGE_MAP:
     # CMD_NAME_JSON_LOAD
 
     CMD_NAME_TRUNCATE:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [truncate]
 
@@ -992,7 +1055,11 @@ CMD_PRIVILEGE_MAP:
           - [sync]
 
     CMD_NAME_POP:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [remove]
 
@@ -1017,19 +1084,31 @@ CMD_PRIVILEGE_MAP:
           - [analyze]
 
     CMD_NAME_GET_CL_DETAIL:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
 
     CMD_NAME_GET_CL_STAT:
-      - resource: EXACT_COLLECTION
+      - resource: 
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
 
     CMD_NAME_GET_INDEX_STAT:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: hint
+            key: FIELD_NAME_COLLECTION
         actionSets:
           - [find]
           - [getDetail]
@@ -1308,12 +1387,20 @@ CMD_PRIVILEGE_MAP:
           - [list]
     
     CMD_NAME_ALTER_COLLECTION:
-      - resource: EXACT_COLLECTION
+      - resource:
+          type: EXACT_COLLECTION
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [alterCL]
 
     CMD_NAME_ALTER_COLLECTION_SPACE:
-      - resource: COLLECTION_SPACE
+      - resource:
+          type: COLLECTION_SPACE
+          from:
+            obj: query
+            key: FIELD_NAME_NAME
         actionSets:
           - [alterCS]
 

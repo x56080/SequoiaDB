@@ -804,8 +804,6 @@ namespace engine
          */
          virtual BOOLEAN _flagRollbackCataBeforeData () { return TRUE ; }
 
-         virtual INT32 _checkPrivileges( coordCMDArguments *pArgs );
-
       private:
          string            _subCLName ;
    } ;

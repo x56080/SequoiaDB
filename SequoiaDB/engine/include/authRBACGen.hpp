@@ -174,9 +174,9 @@ namespace engine
       0ULL
    );
 
-   // CLUSTER: ['analyze', 'listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup']
+   // CLUSTER: ['analyze', 'listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup', 'listCollections']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_CLUSTER_BITSET_NUMBERS(
-      18446744073709027328ULL,
+      18446744073709158400ULL,
       2199021158399ULL
    );
 
@@ -265,12 +265,11 @@ namespace engine
       AUTH_CMD_NAME_LOAD_COLLECTIONSPACE_default,
       AUTH_CMD_NAME_UNLOAD_COLLECTIONSPACE_default,
       AUTH_CMD_NAME_DROP_INDEX_default,
-      AUTH_CMD_NAME_COPY_INDEX_default,
+      AUTH_CMD_NAME_COPY_INDEX_maincl,
       AUTH_CMD_NAME_GET_COUNT_default,
       AUTH_CMD_NAME_GET_INDEXES_default,
       AUTH_CMD_NAME_GET_QUERYMETA_default,
       AUTH_CMD_NAME_GET_DCINFO_default,
-      AUTH_CMD_NAME_GET_DOMAIN_NAME_default,
       AUTH_CMD_NAME_LIST_COLLECTIONSPACES_default,
       AUTH_CMD_NAME_LIST_CONTEXTS_default,
       AUTH_CMD_NAME_LIST_CONTEXTS_CURRENT_default,
@@ -281,7 +280,6 @@ namespace engine
       AUTH_CMD_NAME_LIST_DOMAINS_default,
       AUTH_CMD_NAME_LIST_CS_IN_DOMAIN_default,
       AUTH_CMD_NAME_LIST_CL_IN_DOMAIN_default,
-      AUTH_CMD_NAME_LIST_CL_IN_COLLECTIONSPACE_default,
       AUTH_CMD_NAME_LIST_USERS_default,
       AUTH_CMD_NAME_LIST_BACKUPS_default,
       AUTH_CMD_NAME_LIST_TASKS_default,
@@ -446,17 +444,33 @@ namespace engine
    class authRequiredActionSets
    {
       public:
-         authRequiredActionSets( RESOURCE_TYPE_ENUM t, ACTION_SETS_PTR sets, unsigned int size, bool isDefault )
-            : _t( t ), _sets( sets ), _size( size ), _isDefault(isDefault) {}
+         enum SOURCE_OBJ
+         {
+            SOURCE_OBJ_NONE,
+            SOURCE_OBJ_QUERY,
+            SOURCE_OBJ_SELECTOR,
+            SOURCE_OBJ_ORDERBY,
+            SOURCE_OBJ_HINT
+         };
+
+         struct SOURCE
+         {
+            SOURCE( SOURCE_OBJ obj, const char *key ) : obj( obj ), key( key ) {}
+            SOURCE_OBJ obj;
+            const char *key;
+         };
+      public:
+         authRequiredActionSets( RESOURCE_TYPE_ENUM t, ACTION_SETS_PTR sets, unsigned int size, SOURCE_OBJ obj, const char *key )
+            : _t( t ), _sets( sets ), _size( size ), _source( obj, key ) {}
          RESOURCE_TYPE_ENUM getResourceType() const { return _t; }
          ACTION_SETS_PTR getActionSets() const { return _sets; }
          unsigned int getSize() const { return _size; }
-         bool isDefault() const { return _isDefault; }
+         SOURCE getSource() const { return _source; }
       private:
          RESOURCE_TYPE_ENUM _t;
          ACTION_SETS_PTR _sets;
          unsigned int _size;
-         bool _isDefault;
+         SOURCE _source;
    };
    typedef const std::pair< const AUTH_CMD_ACTION_SETS_TAG*, unsigned int > CMD_TAGS_ARRAY;
    const CMD_TAGS_ARRAY* authGetCMDActionSetsTags( const char *cmd );

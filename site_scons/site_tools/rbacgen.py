@@ -65,16 +65,22 @@ def numbers_is_subset( a, b ):
 def append_tags(data):
    for cmd, required in data[cmd_privilege_map_name]["values"].items():
       for privilege in required:
+         source_from = { "obj": "NONE", "key": "NULL" }
          if isinstance( privilege["resource"], dict ):
             resource_type = privilege["resource"]["type"]
-            tag_name = "AUTH_{cmd}_{tag}".format(cmd=cmd, tag=privilege["resource"]["tag"])
+            source_from = privilege["resource"]["from"]
+            if privilege["resource"].has_key("tag"):
+               tag_name = "AUTH_{cmd}_{tag}".format(cmd=cmd, tag=privilege["resource"]["tag"])
+            else:
+               tag_name = "AUTH_{cmd}_default".format(cmd=cmd)
          else:
             resource_type = privilege["resource"]
             tag_name = "AUTH_{cmd}_default".format(cmd=cmd)
          tag = {
             "tag_name": tag_name,
             "resource_type": resource_type,
-            "actionsets":[]
+            "actionsets":[],
+            "from": source_from
          }
          for actionset in privilege["actionSets"]:
             numbers = actionset_to_bitset_numbers("cmd " + cmd, actionset, data)

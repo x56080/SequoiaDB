@@ -1,12 +1,12 @@
 /***************************************************************************************************
- * @Description: 为角色授予或者撤销权限
- * @ATCaseID: grantAndRevokePrivileges_at_1
+ * @Description: 为角色授予或者撤销继承角色
+ * @ATCaseID: grantAndRevokeRoles_at_1
  * @Author: Zhou Hongye
  * @TestlinkCase: 无
  * @Change    Activity:
  * Date       Who         Description
  * ========== =========== =========================================================
- * 08/04/2023 Zhou Hongye Test grant and revoke privileges to/from role
+ * 08/04/2023 Zhou Hongye Test grant and revoke roles to/from role
  **************************************************************************************************/
 
 /*********************************************测试用例***********************************************
