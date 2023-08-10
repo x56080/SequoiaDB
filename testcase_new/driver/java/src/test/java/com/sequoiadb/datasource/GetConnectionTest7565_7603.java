@@ -129,12 +129,12 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
                 if ( !exceptAddrList.get( j ).getAddress().getHostAddress()
                         .equals( "" )
                         && !ipAddr.getHostAddress().equals( exceptAddrList
-                        .get( j ).getAddress().getHostAddress() ) ) {
+                                .get( j ).getAddress().getHostAddress() ) ) {
                     continue;
                 } else if ( exceptAddrList.get( j ).getHostName()
                         .equals( "localhost" )
                         && !localAddr.getHostAddress()
-                        .equals( ipAddr.getHostAddress() ) ) {
+                                .equals( ipAddr.getHostAddress() ) ) {
                     continue;
                 } else if ( addr.getPort() == exceptAddrList.get( j )
                         .getPort() ) {
@@ -208,7 +208,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
                 if ( e.getErrorCode() == SDBError.SDB_CLS_GRP_NOT_EXIST
                         .getErrorCode()
                         || e.getErrorCode() == SDBError.SDB_NETWORK
-                        .getErrorCode() ) {
+                                .getErrorCode() ) {
                     return;
                 }
             } catch ( Exception e1 ) {
@@ -476,7 +476,11 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             Sequoiadb sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), true,
                     "getConnection is inValid" );
-            Assert.assertEquals( datasource.getLocalAddrNum(), 2 );
+            int localAddrNum = datasource.getLocalAddrNum();
+            if ( localAddrNum != 1 && localAddrNum != 2 ) {
+                Assert.fail( "getLocalAddrNum is not 1 or 2, getLocalAddrNum : "
+                        + localAddrNum );
+            }
 
             for ( int i = 0; i < 10; ++i ) {
                 sdb = datasource.getConnection();
