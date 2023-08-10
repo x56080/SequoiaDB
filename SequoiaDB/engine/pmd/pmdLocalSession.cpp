@@ -812,6 +812,11 @@ namespace engine
       _pEDUCB->clearProcessInfo() ;
 
       ((pmdOperator*)getOperator())->clearMsg() ;
+
+      if ( privilegeCheckEnabled() )
+      {
+         _acl.reset() ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )
