@@ -133,6 +133,10 @@ TEST_F( sdb14032, opDb )
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "list tasks shouldn't be executed" ;
    SINT32 num = 3 ;
    SINT64 *taskIDs = new SINT64[num];
+   for( INT32 i = 0; i < num; i++ )
+   {
+      taskIDs[i] = i + 10 ;
+   }
    rc = db.waitTasks( taskIDs, num ) ;
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "waitTasks shouldn't be executed" ;
    rc = db.cancelTask( taskIDs[0], false ) ;
