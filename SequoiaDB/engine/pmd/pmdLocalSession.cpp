@@ -332,6 +332,15 @@ namespace engine
                      PD_LOG( PDERROR, "Failed to get collection full name from field[%s]", key );
                      goto error;
                   }
+                  if ( !authResource::isExactName( ele.valuestr() ) )
+                  {
+                     rc = SDB_INVALIDARG;
+                     PD_LOG_MSG( PDERROR,
+                                 "Invalid format for collection name: %s, "
+                                 "Expected format: <collectionspace>.<collectionname>",
+                                 ele.valuestr() );
+                     goto error;
+                  }
                   boost::shared_ptr< authResource > r = authResource::forExact( ele.valuestr() );
                   required.addActionSetsOnResource( r, actionSets );
                }

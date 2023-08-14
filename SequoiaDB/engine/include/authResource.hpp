@@ -61,6 +61,8 @@ namespace engine
       static boost::shared_ptr<_authResource> forCL( const ossPoolString &cl );
       static boost::shared_ptr< _authResource > forExact( const ossPoolString &cs,
                                                           const ossPoolString &cl );
+      static BOOLEAN isExactName( const CHAR *clFullName);
+      // ensure that parameter clFullName is a full name by calling isExactName
       static boost::shared_ptr< _authResource > forExact( const CHAR *clFullName );
       static boost::shared_ptr<_authResource> forNonSystem();
       static boost::shared_ptr<_authResource> forAny();
