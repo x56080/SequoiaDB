@@ -2,7 +2,7 @@
  * @Description   : seqDB-23819:truncate后修改CL压缩属性，恢复truncate
  * @Author        : liuli
  * @CreateTime    : 2021.04.20
- * @LastEditTime  : 2022.08.18
+ * @LastEditTime  : 2023.08.14
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -43,6 +43,7 @@ function test ()
 
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
+   commCheckLSN( db );
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 
@@ -58,6 +59,7 @@ function test ()
    } );
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
+   commCheckLSN( db );
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 
@@ -73,6 +75,7 @@ function test ()
    } );
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
+   commCheckLSN( db );
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 
