@@ -1175,6 +1175,12 @@ namespace engine
          goto done;
       }
 
+      // pass the privilege check if select from a nested select statement
+      if ( _from )
+      {
+         goto done;
+      }
+
       // example: select * from $LIST_CS. The collection name is $LIST_CS.
       // We need to check privileges for $LIST_CS like a command
       if ( _collection.value.attr().begin() &&
