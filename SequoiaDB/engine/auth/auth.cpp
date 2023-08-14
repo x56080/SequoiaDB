@@ -35,6 +35,7 @@
 
 *******************************************************************************/
 
+#include "sdbInterface.hpp"
 #include "auth.hpp"
 #include "authDef.hpp"
 #include "authPrivilege.hpp"
@@ -153,6 +154,22 @@ namespace engine
                                  const authAccessControlList &acl )
    {
       INT32 rc = SDB_OK;
+      if ( !pFullName )
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG( PDERROR, "pFullName can not be null" );
+         goto error;
+      }
+      if ( !authResource::isExactName( pFullName ) )
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG_MSG( PDERROR,
+                     "Invalid format for collection name: %s, "
+                     "Expected format: <collectionspace>.<collectionname>",
+                     pFullName );
+         goto error;
+      }
+
       try
       {
          boost::shared_ptr< authResource > r = authResource::forExact( pFullName );

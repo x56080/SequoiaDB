@@ -396,6 +396,11 @@ namespace engine
       return r;
    }
 
+   BOOLEAN authResource::isExactName( const CHAR *clFullName )
+   {
+      return NULL != ossStrchr( clFullName, '.' );
+   }
+
    boost::shared_ptr< _authResource > authResource::forExact( const CHAR *clFullName )
    {
       SDB_ASSERT( clFullName, "Collection full name can't be NULL" );
