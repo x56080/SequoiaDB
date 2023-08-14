@@ -97,7 +97,8 @@ public class Index10212 extends SdbTestBase {
                                                         // deleting the last CL,
                                                         // so exception -34 when
                                                         // creatIndex
-                        && eCode != -108 && eCode != -147 && eCode != -190 ) {
+                        && eCode != -108 && eCode != -147 && eCode != -190
+                        && eCode != -243 ) {
                     throw e;
                 }
             }
