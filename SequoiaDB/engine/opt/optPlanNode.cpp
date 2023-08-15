@@ -2029,6 +2029,18 @@ namespace engine
             predSelectivity = indexStat->evalPredicateList(
                   pFirstField, predicateList, planHelper.mthEnabledMixCmp(),
                   scanSelectivity ) ;
+            // fix by match selectivity
+            if ( NULL != planHelper.getMatchTree() )
+            {
+               if ( predSelectivity < getMthSelctivity() )
+               {
+                  predSelectivity = getMthSelctivity() ;
+               }
+               if ( scanSelectivity < getMthSelctivity() )
+               {
+                  scanSelectivity = getMthSelctivity() ;
+               }
+            }
          }
       }
 
