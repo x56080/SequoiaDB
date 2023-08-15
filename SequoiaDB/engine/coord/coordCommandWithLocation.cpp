@@ -816,6 +816,9 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkPrivileges( cb, csname, clname );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+
       if ( NULL != csname )
       {
          rc = _getCSGrps( csname, cb, ctrlParam ) ;
@@ -843,6 +846,50 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _coordCMDAnalyze::_checkPrivileges( pmdEDUCB *cb, const CHAR *csname, const CHAR *clname )
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT( !( csname && clname ), "can not be true at the same time" );
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_analyze );
+         boost::shared_ptr< authResource > res;
+         if ( csname )
+         {
+            res = authResource::forCS( csname );
+            
+         }
+         else if ( clname )
+         {
+            if ( !authResource::isExactName( clname ) )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid collection full name: %s", clname );
+               goto error;
+            }
+            res = authResource::forExact( clname );
+         }
+         else
+         {
+            res = authResource::forNonSystem();
+         }
+         if ( !res )
+         {
+            rc = SDB_OOM;
+            PD_LOG( PDERROR, "Failed to allocate authResource" );
+            goto error;
+         }
+         rc = cb->getSession()->checkPrivilegesForActionsOnResource( res, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    /*

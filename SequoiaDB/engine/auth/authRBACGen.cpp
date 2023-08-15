@@ -2224,16 +2224,6 @@ namespace engine
    authRequiredActionSets::SOURCE_OBJ_NONE, NULL
    );
 
-   static const authActionSet AUTH_CMD_NAME_ANALYZE_default_ACTION_SETS_ARRAY[] = {
-      authActionSet( ACTION_SET_NUMBER_ARRAY(
-      134217728ULL,
-      0ULL
-      )),
-   };
-   static const authRequiredActionSets AUTH_CMD_NAME_ANALYZE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ANALYZE_default_ACTION_SETS_ARRAY, 1, 
-   authRequiredActionSets::SOURCE_OBJ_NONE, NULL
-   );
-
    static const authActionSet AUTH_CMD_NAME_GET_CL_DETAIL_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       8ULL,
@@ -3460,10 +3450,6 @@ namespace engine
       {
          return &AUTH_CMD_NAME_DELETE_CONFIG_default_SETS;
       }
-      if (tag == AUTH_CMD_NAME_ANALYZE_default)
-      {
-         return &AUTH_CMD_NAME_ANALYZE_default_SETS;
-      }
       if (tag == AUTH_CMD_NAME_GET_CL_DETAIL_default)
       {
          return &AUTH_CMD_NAME_GET_CL_DETAIL_default_SETS;
@@ -4212,10 +4198,6 @@ namespace engine
          AUTH_CMD_NAME_DELETE_CONFIG_default,
    };
    static const CMD_TAGS_ARRAY CMD_NAME_DELETE_CONFIG_TAGS( CMD_NAME_DELETE_CONFIG_TAGS_ARRAY, 1);
-   static const AUTH_CMD_ACTION_SETS_TAG CMD_NAME_ANALYZE_TAGS_ARRAY[] = {
-         AUTH_CMD_NAME_ANALYZE_default,
-   };
-   static const CMD_TAGS_ARRAY CMD_NAME_ANALYZE_TAGS( CMD_NAME_ANALYZE_TAGS_ARRAY, 1);
    static const AUTH_CMD_ACTION_SETS_TAG CMD_NAME_GET_CL_DETAIL_TAGS_ARRAY[] = {
              AUTH_CMD_NAME_GET_CL_DETAIL_default,
    };
@@ -4963,10 +4945,6 @@ namespace engine
       {
          return &CMD_NAME_DELETE_CONFIG_TAGS;
       }
-      if (strcmp(cmd, CMD_NAME_ANALYZE) == 0)
-      {
-         return &CMD_NAME_ANALYZE_TAGS;
-      }
       if (strcmp(cmd, CMD_NAME_GET_CL_DETAIL) == 0)
       {
          return &CMD_NAME_GET_CL_DETAIL_TAGS;
@@ -5290,7 +5268,7 @@ namespace engine
    // _cs_admin
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_cs_admin[BUILTIN_ROLE_DATA_SIZE_cs_admin] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_COLLECTION_SPACE, ACTION_SET_NUMBER_ARRAY(
-         524287ULL,
+         134742015ULL,
          2097152ULL
       )),
    };
@@ -5326,7 +5304,7 @@ namespace engine
    // _dbAdmin
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_dbAdmin[BUILTIN_ROLE_DATA_SIZE_dbAdmin] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_NON_SYSTEM, ACTION_SET_NUMBER_ARRAY(
-         524287ULL,
+         134742015ULL,
          2097152ULL
       )),
    };

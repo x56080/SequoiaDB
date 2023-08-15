@@ -5201,6 +5201,9 @@ error:
 
       PD_TRACE_ENTRY( SDB__RTNANALYZE_DOIT ) ;
 
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc ) ;
+
       rc = rtnAnalyze( _csname, _clname, _ixname, _param,
                        cb, dmsCB, rtnCB, dpsCB ) ;
 
@@ -5221,6 +5224,57 @@ error:
 
    error :
       goto done ;
+   }
+
+   INT32 _rtnAnalyze::_checkPrivileges ( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( cb->getSession()->privilegeCheckEnabled() )
+      {
+         authActionSet actions;
+         actions.addAction( ACTION_TYPE_analyze );
+         boost::shared_ptr<authResource> res;
+         if( _csname )
+         {
+            res = authResource::forCS( _csname );
+            if ( !res )
+            {
+               rc = SDB_OOM;
+               PD_LOG( PDERROR, "Failed to allocate authResource for collection space: %s",
+                       _csname );
+               goto error;
+            }
+         }
+         else if ( _clname )
+         {
+            if ( !authResource::isExactName( _clname ) )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid collection full name: %s", _clname );
+               goto error;
+            }
+            res = authResource::forExact( _clname );
+            if ( !res )
+            {
+               rc = SDB_OOM;
+               PD_LOG( PDERROR, "Failed to allocate authResource for collection space: %s",
+                       _csname );
+               goto error;
+            }
+
+         }
+         else
+         {
+            res = authResource::forNonSystem();
+         }
+         rc = cb->getSession()->checkPrivilegesForActionsOnResource( res, actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+   
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    /*

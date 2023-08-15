@@ -1635,6 +1635,9 @@ namespace engine
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
+   private:
+      INT32 _checkPrivileges ( _pmdEDUCB *cb ) ;
+
    private :
       const CHAR *      _csname ;
       const CHAR *      _clname ;

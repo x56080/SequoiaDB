@@ -142,7 +142,6 @@ enums:
       CLUSTER:
         value: "Cluster"
         extra_data: &actionsOnCluster
-          - analyze
           - listCollectionSpaces
           - updateConf
           - backup
@@ -252,6 +251,7 @@ enums:
           - truncate
           - alterCL
           - testCL
+          - analyze
 
       # resource: { cs:"exact", cl: "" }
       COLLECTION_SPACE:
@@ -1082,10 +1082,7 @@ CMD_PRIVILEGE_MAP:
         actionSets:
           - [deleteConf]
 
-    CMD_NAME_ANALYZE:
-      - resource: CLUSTER
-        actionSets:
-          - [analyze]
+    # CMD_NAME_ANALYZE require special handling in coordCMDAnalyze and rtnAnalyze
 
     CMD_NAME_GET_CL_DETAIL:
       - resource:
