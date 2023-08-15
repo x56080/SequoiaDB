@@ -17,3 +17,9 @@ function getOneSample( db, csName, clName, ixName )
    var stat = cl.find( { CollectionSpace: csName, Collection: clName, Index: ixName } ).current().toObj() ;
    return stat.MCV.Values[ 1 ] ;
 }
+
+function randomString( maxLength )
+{
+   var arr = new Array( Math.round( Math.random() * maxLength ) )
+   return arr.join( "a" )
+}
