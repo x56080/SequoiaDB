@@ -183,4 +183,5 @@ final class AdminCommand {
     final static String GET_USER = PREFIX + "get user";
     final static String GRANT_ROLES_TO_USER = PREFIX + "grant roles to user";
     final static String REVOKE_ROLES_FROM_USER = PREFIX + "revoke roles from user";
+    final static String INVALIDATE_USER_CACHE = PREFIX + "invalidate user cache";
 }
