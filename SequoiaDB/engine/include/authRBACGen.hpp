@@ -174,33 +174,33 @@ namespace engine
       0ULL
    );
 
-   // CLUSTER: ['analyze', 'listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup', 'listCollections']
+   // CLUSTER: ['listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'setSessionAttr', 'getSessionAttr', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup', 'listCollections']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_CLUSTER_BITSET_NUMBERS(
-      18446744073709158400ULL,
+      18446744073574940672ULL,
       2199021158399ULL
    );
 
-   // COLLECTION_NAME: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL']
+   // COLLECTION_NAME: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_COLLECTION_NAME_BITSET_NUMBERS(
-      270335ULL,
+      134488063ULL,
       0ULL
    );
 
-   // COLLECTION_SPACE: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
+   // COLLECTION_SPACE: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_COLLECTION_SPACE_BITSET_NUMBERS(
-      524287ULL,
+      134742015ULL,
       2097152ULL
    );
 
-   // EXACT_COLLECTION: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL']
+   // EXACT_COLLECTION: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_EXACT_COLLECTION_BITSET_NUMBERS(
-      270335ULL,
+      134488063ULL,
       0ULL
    );
 
-   // NON_SYSTEM: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
+   // NON_SYSTEM: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_NON_SYSTEM_BITSET_NUMBERS(
-      524287ULL,
+      134742015ULL,
       2097152ULL
    );
 
@@ -363,7 +363,6 @@ namespace engine
       AUTH_CMD_NAME_RELOAD_CONFIG_default,
       AUTH_CMD_NAME_UPDATE_CONFIG_default,
       AUTH_CMD_NAME_DELETE_CONFIG_default,
-      AUTH_CMD_NAME_ANALYZE_default,
       AUTH_CMD_NAME_GET_CL_DETAIL_default,
       AUTH_CMD_NAME_GET_CL_STAT_default,
       AUTH_CMD_NAME_GET_INDEX_STAT_default,

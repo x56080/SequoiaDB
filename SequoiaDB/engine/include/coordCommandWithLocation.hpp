@@ -248,6 +248,8 @@ namespace engine
                                       pmdEDUCB *cb,
                                       coordCtrlParam &ctrlParam,
                                       SET_RC &ignoreRCList ) ;
+
+         INT32 _checkPrivileges( pmdEDUCB *cb, const CHAR *csname, const CHAR *clname );
    } ;
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
