@@ -3233,6 +3233,41 @@ public class Sequoiadb implements Closeable {
         throwIfError(response);
     }
 
+    /**
+     * Clear all user caches on all nodes
+     *
+     * @throws BaseException If error happens
+     */
+    public void invalidateUserCache() throws BaseException {
+        invalidateUserCache(null, null);
+    }
+
+    /**
+     * Invalidate user cache
+     *
+     * @param username The name of user to be invalidated, if null, invalidate all users
+     * @param options  The control options (Only take effect in coordinate nodes)
+     *                 <ul>
+     *                 <li>GroupID(int)
+     *                 <li>GroupName(String)
+     *                 <li>NodeID(int)
+     *                 <li>HostName(String)
+     *                 <li>svcname(String)
+     *                 <li>...
+     *                 </ul>
+     * @throws BaseException If error happens
+     */
+    public void invalidateUserCache(String username, BSONObject options) throws BaseException {
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SdbConstants.FIELD_NAME_USER, username);
+        if (options != null) {
+            matcher.putAll(options);
+        }
+        AdminRequest request = new AdminRequest(AdminCommand.INVALIDATE_USER_CACHE, matcher);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, targetName);

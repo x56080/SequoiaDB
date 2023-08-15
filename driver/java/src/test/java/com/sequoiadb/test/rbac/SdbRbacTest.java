@@ -387,6 +387,18 @@ public class SdbRbacTest {
         }
     }
 
+    @Test
+    public void invalidateUserCacheTest() {
+        // Clear all user caches on all nodes
+        db.invalidateUserCache();
+        db.invalidateUserCache("", null);
+        db.invalidateUserCache("", new BasicBSONObject());
+        db.invalidateUserCache(null, new BasicBSONObject());
+
+        // Invalidate user cache by group
+        db.invalidateUserCache(username1, new BasicBSONObject("Group", TestConfig.getDataGroupName()));
+    }
+
     private void createRoleIfNotExists(Role role) {
         try {
             db.createRole(role.toBson());
