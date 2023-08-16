@@ -36,6 +36,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "auth.hpp"
+#include "rtnCB.hpp"
 
 namespace engine
 {
@@ -93,6 +94,10 @@ namespace engine
       else if ( 0 == ossStrcmp( pUserName, cb->getUserName() ) )
       {
          cb->setUserInfo( "", "" ) ;
+      }
+      if ( pUserName )
+      {
+         sdbGetRTNCB()->getUserCacheMgr()->remove( pUserName ) ;
       }
 
    done:

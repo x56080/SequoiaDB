@@ -275,6 +275,7 @@ namespace engine
 
          virtual UINT32  _getControlMask () const ;
    } ;
+   typedef _coordCMDInvalidateUserCache coordCMDInvalidateUserCache;
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

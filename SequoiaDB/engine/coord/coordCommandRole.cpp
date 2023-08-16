@@ -29,6 +29,9 @@ namespace engine
                    "rc: %d",
                    getName(), rc );
 
+      rc = _postProcess( &args );
+      PD_RC_CHECK( rc, PDERROR, "Post process failed, rc: %d", rc ) ;
+
    done:
       _doAudit( &args, rc );
       PD_TRACE_EXITRC( COORD_CMD_ROLE_EXE, rc );
@@ -85,6 +88,17 @@ namespace engine
    error:
       goto done;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_ROLE__POST_PROCESS, "_coordCommandRole::_postProcess" )
+   INT32 _coordCommandRole::_postProcess( coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(COORD_CMD_ROLE__POST_PROCESS);
+      sdbGetRTNCB()->getUserCacheMgr()->clear();
+      PD_TRACE_EXITRC(COORD_CMD_ROLE__POST_PROCESS, rc);
+      return rc;
+   }
+
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_ROLE__DO_AUDIT, "_coordCommandRole::_doAudit" )
    void _coordCommandRole::_doAudit( coordCMDArguments *pArgs, INT32 rc )
@@ -225,6 +239,16 @@ namespace engine
       goto done;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_GRANT_ROLES_TO_USER__POST_PROCESS, "_coordCMDGrantRolesToUser::_postProcess" )
+   INT32 _coordCMDGrantRolesToUser::_postProcess( coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(COORD_CMD_GRANT_ROLES_TO_USER__POST_PROCESS);
+      sdbGetRTNCB()->getUserCacheMgr()->remove( ossPoolString( pArgs->_targetName.data() ) );
+      PD_TRACE_EXITRC(COORD_CMD_GRANT_ROLES_TO_USER__POST_PROCESS, rc);
+      return rc;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_GRANT_ROLES_TO_USER__DOAUDIT, "_coordCMDGrantRolesToUser::_doAudit" )
    void _coordCMDGrantRolesToUser::_doAudit( coordCMDArguments *pArgs, INT32 rc )
    {
@@ -274,6 +298,16 @@ namespace engine
       return rc;
    error:
       goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_REVOKE_ROLES_FROM_USER__POST_PROCESS, "_coordCMDRevokeRolesFromUser::_postProcess" )
+   INT32 _coordCMDRevokeRolesFromUser::_postProcess( coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(COORD_CMD_REVOKE_ROLES_FROM_USER__POST_PROCESS);
+      sdbGetRTNCB()->getUserCacheMgr()->remove( ossPoolString( pArgs->_targetName.data() ) );
+      PD_TRACE_EXITRC(COORD_CMD_REVOKE_ROLES_FROM_USER__POST_PROCESS, rc);
+      return rc;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD_REVOKE_ROLES_FROM_USER__DOAUDIT, "_coordCMDRevokeRolesFromUser::_doAudit" )
