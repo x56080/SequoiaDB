@@ -3654,3 +3654,44 @@ done:
 error:
    goto done ;
 }
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBUILDWATCHMSG, "msgBuildWatchMsg" )
+INT32 msgBuildWatchMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                        const BSONObj& options,
+                        const CHAR *tokenStr,
+                        UINT64 reqID,
+                        engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_MSGBUILDWATCHMSG )  ;
+   try
+   {
+      const BSONObj emptyObj ;
+      BSONObjBuilder builder ;
+      BSONObj query ;
+
+      if ( NULL != tokenStr )
+      {
+         builder.append( FIELD_NAME_TOKEN, tokenStr ) ;
+      }
+      builder.appendElementsUnique( options ) ;
+
+      query = builder.obj() ;
+      rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                                CMD_ADMIN_PREFIX CMD_NAME_WATCH,
+                                query, emptyObj, emptyObj, emptyObj, reqID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build watch message failed[%d]", rc ) ;
+   }
+   catch( std::exception &e )
+   {
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      ossException2RC( &e ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBUILDWATCHMSG, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}

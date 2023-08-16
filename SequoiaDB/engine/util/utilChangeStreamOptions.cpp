@@ -239,6 +239,11 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to parse change types [%s], rc: %d",
                            changeTypes, rc ) ;
             }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_GROUPS ) )
+            {
+               // ignore groups
+               continue;
+            }
             else
             {
                PD_LOG_MSG( PDERROR, "Failed to parse change stream options, "

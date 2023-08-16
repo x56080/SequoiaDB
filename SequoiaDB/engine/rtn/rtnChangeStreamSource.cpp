@@ -519,7 +519,7 @@ namespace engine
 
          PD_CHECK( !cb->isInterrupted(), cb->getInterruptRC(), error, PDWARNING,
                    "Failed to fetch log, session is interrupted" ) ;
-         PD_CHECK( !PMD_IS_DB_DOWN(), SDB_APP_FORCED, error, PDWARNING,
+         PD_CHECK( !PMD_IS_DB_DOWN(), SDB_DATABASE_DOWN, error, PDWARNING,
                    "Failed to fetch log, database is down" ) ;
 
          if ( _startWatchOffset <= _expectOffset )
@@ -626,7 +626,7 @@ namespace engine
 
          PD_CHECK( !cb->isInterrupted(), cb->getInterruptRC(), error, PDWARNING,
                    "Failed to fetch log, session is interrupted" ) ;
-         PD_CHECK( !PMD_IS_DB_DOWN(), SDB_APP_FORCED, error, PDWARNING,
+         PD_CHECK( !PMD_IS_DB_DOWN(), SDB_DATABASE_DOWN, error, PDWARNING,
                    "Failed to fetch log, database is down" ) ;
 
          // try pop log from cache

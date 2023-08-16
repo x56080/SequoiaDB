@@ -40,6 +40,12 @@ This function is used to subscribe the change stream of the collection space.
 
         Format: `CacheSize: 32`
 
+    - Groups ( *string array* )
+
+        Specifies the replication group for the subscription. it is only effective on the coordinator node, and only one replication group subscription is supported for the time being.
+
+        Format: `Groups：[ "group1" ]`
+
 ##RETURN VALUE##
 
 If the function executes successfully, it will return an SdbCursor type object. The returned change stream data can be obtained through this object.

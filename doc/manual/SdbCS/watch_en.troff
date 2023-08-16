@@ -60,6 +60,16 @@ Logs that exceed the cache size will need to be read from the log file.
 .PP
 Format: \f[C]CacheSize: 32\f[]
 .RE
+.IP \[bu] 2
+Groups ( \f[I]string array\f[] )
+.RS 2
+.PP
+Specifies the replication group for the subscription.
+it is only effective on the coordinator node, and only one replication group
+subscription is supported for the time being.
+.PP
+Format: \f[C]Groups：[ "group1" ]\f[]
+.RE
 .RE
 .SH RETURN VALUE
 .PP

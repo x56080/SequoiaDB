@@ -464,6 +464,40 @@ function checkChangeStreamClosed( cur )
    assert.equal( cur.next(), null, "change stream is not closed" ) ;
 }
 
+// check watch node is it correct
+function checkWatchNode(node, csName, clName) {
+   var snapshotCur = db.snapshot(SDB_SNAP_STREAMS, { "Options.Collections": csName + "." + clName });
+   while (snapshotCur.next()) {
+      var obj = snapshotCur.current().toObj();
+      if (obj.ErrNodes != undefined) {
+         continue;
+      }
+      else {
+         assert.equal(obj.NodeName, node.getHostName() + ":" + node.getServiceName(), "watch node is not correct");
+      }
+   }
+}
+
+// get watch node
+function getWatchNode(csName, clName, GroupName) {
+   var node = null;
+   var rg = db.getRG(GroupName);
+   var snapshotCur = db.snapshot(SDB_SNAP_STREAMS, { "Options.Collections": csName + "." + clName });
+   while (snapshotCur.next()) {
+      var obj = snapshotCur.current().toObj();
+      if (obj.ErrNodes != undefined) {
+         continue;
+      }
+      else {
+         var nodeInfo = obj.NodeName.split(":");
+         var hostName = nodeInfo[0];
+         var serviceName = nodeInfo[1];
+         node = rg.getNode(hostName, serviceName);
+      }
+   }
+   return node;
+}
+
 // get node list in a group
 function getNodesInGroups( db, group )
 {

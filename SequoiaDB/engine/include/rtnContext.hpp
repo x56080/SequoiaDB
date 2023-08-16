@@ -109,6 +109,7 @@ namespace engine
 
       /// Change Stream contexts
       RTN_CONTEXT_CHANGE_STREAM,
+      RTN_CONTEXT_COORD_CHANGE_STREAM,
 
       /// Catalog contexts
 
@@ -898,7 +899,6 @@ namespace engine
             return _subContext.get() ;
          }
 
-      private :
          void _deleteSubContext () ;
 
       protected :

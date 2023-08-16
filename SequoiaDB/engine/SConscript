@@ -685,7 +685,8 @@ coordFiles = [
       "coord/coordDSChecker.cpp",
       "coord/coordCacheAssist.cpp",
       "coord/coordCacheCleaner.cpp",
-      "coord/coordCommandStream.cpp"
+      "coord/coordCommandStream.cpp",
+      "coord/coordContextChangeStream.cpp"
       ]
 
 aggrFiles = [

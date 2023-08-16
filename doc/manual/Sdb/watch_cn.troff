@@ -45,10 +45,9 @@ CollectionSpaces（ \f[I]string数组\f[] ）
 ChangeTypes（ \f[I]string\f[] ）
 .RS 2
 .PP
-订阅的变更事件类型。支持的类型有 "RECORD"（BSON 记录的 DML 操作）,
-"LOB"（LOB 的 DML 操作）, "DDL"（DDL操作）, "TRANS"（事务变更操作）,
-"ALL"（所有类型）。可以用 "|" 来连接多个类型，大小写不敏感。
-默认为："RECORD|DDL"。
+订阅的变更事件类型。支持的类型有 "RECORD"（BSON 记录的 DML 操作）, "LOB"（LOB 的
+DML 操作）, "DDL"（DDL操作）, "TRANS"（事务变更操作）, "ALL"（所有类型）。可以用
+"|" 来连接多个类型，大小写不敏感。默认为："RECORD|DDL"。
 .PP
 格式：\f[C]ChangeTypes: "RECORD|DDL"\f[]
 .RE
@@ -69,6 +68,14 @@ CacheSize（ \f[I]integer\f[] ）
 GB。默认：32。超过缓存大小的日志将需要从日志文件中读取。
 .PP
 格式：\f[C]CacheSize: 32\f[]
+.RE
+.IP \[bu] 2
+Groups （ \f[I]string数组\f[] ）
+.RS 2
+.PP
+指定订阅的复制组。只在协调节点生效，暂时只支持订阅一个复制组。
+.PP
+格式：\f[C]Groups：[ "group1" ]\f[]
 .RE
 .RE
 .SH 返回值

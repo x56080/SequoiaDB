@@ -575,5 +575,11 @@ INT32 msgBuildDataSourceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                             UINT64 reqID,
                                             engine::IExecutor *cb = NULL ) ;
 
+INT32 msgBuildWatchMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                        const BSONObj& options,
+                        const CHAR *tokenStr,
+                        UINT64 reqID,
+                        engine::IExecutor *cb = NULL ) ;
+
 #endif // MSGMESSAGE_HPP_
 

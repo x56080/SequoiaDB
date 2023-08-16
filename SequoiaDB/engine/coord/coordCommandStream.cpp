@@ -39,6 +39,8 @@
 #include "ossErr.h"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "rtnCB.hpp"
+#include "coordContextChangeStream.hpp"
 
 namespace engine
 {
@@ -68,15 +70,26 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_COORDCMDWATCH_EXECUTE ) ;
 
-      PD_LOG_MSG_CHECK( FALSE, SDB_RTN_CMD_NO_NODE_AUTH, error, PDERROR,
-                        "Command [%s] is not supported in COORD node",
-                        getName() ) ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnCoordContextChangeStream::sharePtr pContext ;
+      contextID = -1 ;
+
+      rc = rtnCB->contextNew( RTN_CONTEXT_COORD_CHANGE_STREAM, pContext, contextID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create coord change stream context, rc: %d", rc ) ;
+
+      rc = pContext->open( pMsg, _pResource, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open coord change stream context, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_COORDCMDWATCH_EXECUTE, rc ) ;
       return rc ;
 
    error:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
       goto done ;
    }
 

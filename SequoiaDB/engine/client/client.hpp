@@ -2879,6 +2879,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching collection
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success
@@ -2913,6 +2914,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching collection
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success
@@ -4344,6 +4346,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching collection space
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success
@@ -4378,6 +4381,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching collection space
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success
@@ -9113,6 +9117,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching database
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success
@@ -9147,6 +9152,7 @@ namespace sdbclient
                                     "ALL"                 : All types of changes of watching database
               MaxWaitTime       : Configure the maximum wait time in milliseconds for server to wait for new changes
               CacheSize         : Configure the size in MB of change cache in server
+              Groups            : Specifies the replication group for the subscription.
 
           \param [in] pipeline Optional aggregation pipeline to perform matching or projection on the results of change stream
           \retval SDB_OK Operation Success

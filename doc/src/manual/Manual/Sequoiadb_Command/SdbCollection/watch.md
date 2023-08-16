@@ -40,6 +40,12 @@ SdbCollection
 
         格式：`CacheSize: 32`
 
+    - Groups （ *string数组* ）
+
+        指定订阅的复制组。只在协调节点生效，暂时只支持订阅一个复制组。
+
+        格式：`Groups：[ "group1" ]`
+
 ##返回值##
 
 函数执行成功时，将返回一个 SdbCursor 类型的对象。通过该对象获取返回的变更流数据。

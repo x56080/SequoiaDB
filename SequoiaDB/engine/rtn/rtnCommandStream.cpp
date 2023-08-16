@@ -119,6 +119,9 @@ namespace engine
       PD_CHECK( SDB_DB_FULLSYNC != PMD_DB_STATUS(),
                 SDB_CLS_FULL_SYNC, error, PDERROR,
                 "Failed to start watch, node is in full sync" ) ;
+      PD_CHECK( SDB_DB_SHUTDOWN != PMD_DB_STATUS(),
+                SDB_DATABASE_DOWN, error, PDERROR,
+                "Failed to start watch, node is in shutdown" ) ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_CHANGE_STREAM, contextPtr, contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create change stream context, rc: %d", rc ) ;
