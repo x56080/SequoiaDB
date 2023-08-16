@@ -51,13 +51,19 @@ testConf.useDstGroup = true;
 
 main(test);
 function test(testPara) {
-  ensurePrivilegeCheckEnabled(db);
-  testPara.testCL.alter({
-    ShardingKey: { id: 1 },
-    ShardingType: "hash",
-    Partition: 4096,
-  });
-  testPara.testCL.createIndex("index_for_stat", { number: 1 });
+  if (ensurePrivilegeCheckEnabled(db)) {
+    db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
+  }
+  db.getCS(testConf.csName)
+    .getCL(testConf.clName)
+    .alter({
+      ShardingKey: { id: 1 },
+      ShardingType: "hash",
+      Partition: 4096,
+    });
+  db.getCS(testConf.csName)
+    .getCL(testConf.clName)
+    .createIndex("index_for_stat", { number: 1 });
   db.analyze({ CollectionSpace: testConf.csName });
   try {
     checkAccessControl(
@@ -218,10 +224,10 @@ function test(testPara) {
       ],
       function (user) {
         ignoreError(function () {
-          testPara.testCS.dropCL(COMMCLNAME + "_rbac2");
+          db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac2");
         });
         user.getCS(testConf.csName).createCL(COMMCLNAME + "_rbac2");
-        testPara.testCS.dropCL(COMMCLNAME + "_rbac2");
+        db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac2");
       }
     );
 
@@ -241,9 +247,9 @@ function test(testPara) {
       ],
       function (user) {
         ignoreError(function () {
-          testPara.testCS.dropCL(COMMCLNAME + "_rbac2");
+          db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac2");
         });
-        testPara.testCS.createCL(COMMCLNAME + "_rbac2");
+        db.getCS(testConf.csName).createCL(COMMCLNAME + "_rbac2");
         user.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac2");
       }
     );
@@ -264,16 +270,16 @@ function test(testPara) {
       ],
       function (user) {
         ignoreError(function () {
-          testPara.testCS.dropCL(COMMCLNAME + "_rbac2");
+          db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac2");
         });
         ignoreError(function () {
-          testPara.testCS.dropCL(COMMCLNAME + "_rbac3");
+          db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac3");
         });
-        testPara.testCS.createCL(COMMCLNAME + "_rbac2");
+        db.getCS(testConf.csName).createCL(COMMCLNAME + "_rbac2");
         user
           .getCS(testConf.csName)
           .renameCL(COMMCLNAME + "_rbac2", COMMCLNAME + "_rbac3");
-        testPara.testCS.dropCL(COMMCLNAME + "_rbac3");
+        db.getCS(testConf.csName).dropCL(COMMCLNAME + "_rbac3");
       }
     );
   } finally {

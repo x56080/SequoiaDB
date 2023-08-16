@@ -18,10 +18,11 @@ function ensurePrivilegeCheckEnabled(db) {
         var oma = Oma();
         oma.stopNode(COORDSVCNAME);
         oma.startNode(COORDSVCNAME);
-        db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
+        return true;
       }
     }
   }
+  return false;
 }
 
 function ignoreError(f) {
@@ -37,7 +38,6 @@ var test_user_name = "test_user";
 var pwd = "123";
 
 function cleanTestAccessControl(db) {
-  db.invalidateUserCache(test_user_name);
   ignoreError(function () {
     db.dropUsr(test_user_name, pwd);
   });

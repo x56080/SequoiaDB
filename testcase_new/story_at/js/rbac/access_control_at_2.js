@@ -32,15 +32,17 @@ testConf.csName = COMMCSNAME + "_rbac";
 
 main(test);
 function test(testPara) {
-  ensurePrivilegeCheckEnabled(db);
-  testPara.testCS.createCL("maincl", {
+  if (ensurePrivilegeCheckEnabled(db)) {
+    db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
+  }
+  db.getCS(testConf.csName).createCL("maincl", {
     IsMainCL: true,
     ShardingKey: { create_date: 1 },
     ShardingType: "range",
   });
 
-  testPara.testCS.createCL("year2018");
-  testPara.testCS.getCL("maincl").createIndex("IDIdx", { ID: 1 });
+  db.getCS(testConf.csName).createCL("year2018");
+  db.getCS(testConf.csName).getCL("maincl").createIndex("IDIdx", { ID: 1 });
 
   try {
     checkAccessControl(
@@ -91,10 +93,7 @@ function test(testPara) {
           .getCS(testConf.csName)
           .getCL("maincl")
           .copyIndex(testConf.csName + ".year2018");
-          user
-          .getCS(testConf.csName)
-          .getCL("maincl")
-          .copyIndex();
+        user.getCS(testConf.csName).getCL("maincl").copyIndex();
       }
     );
 
@@ -114,11 +113,11 @@ function test(testPara) {
       ],
       function (user) {
         ignoreError(function () {
-          testPara.testCS
+          db.getCS(testConf.csName)
             .getCL("maincl")
             .detachCL(testConf.csName + ".year2018");
         });
-        testPara.testCS
+        db.getCS(testConf.csName)
           .getCL("maincl")
           .attachCL(testConf.csName + ".year2018", {
             LowBound: { create_date: "201801" },

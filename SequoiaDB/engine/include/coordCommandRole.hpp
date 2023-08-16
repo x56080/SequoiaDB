@@ -28,6 +28,7 @@ namespace engine
                               INT64 &contextID,
                               rtnContextBuf *buf ,
                               coordCMDArguments *pArgs);
+      virtual INT32 _postProcess( coordCMDArguments *pArgs );
       virtual void _doAudit( coordCMDArguments *pArgs, INT32 rc );
       
    };
@@ -162,7 +163,8 @@ namespace engine
 
    private:
       virtual INT32 _preProcess( MsgHeader *pMsg, coordCMDArguments *pArgs );
-      virtual void _doAudit( coordCMDArguments *pArgs, INT32 rc );  
+      virtual INT32 _postProcess( coordCMDArguments *pArgs );
+      virtual void _doAudit( coordCMDArguments *pArgs, INT32 rc );
    };
 
    /*
@@ -177,7 +179,8 @@ namespace engine
 
    private:
       virtual INT32 _preProcess( MsgHeader *pMsg, coordCMDArguments *pArgs );
-      virtual void _doAudit( coordCMDArguments *pArgs, INT32 rc );  
+      virtual INT32 _postProcess( coordCMDArguments *pArgs );
+      virtual void _doAudit( coordCMDArguments *pArgs, INT32 rc );
    };
 
    /*
