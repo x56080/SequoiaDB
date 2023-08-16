@@ -71,6 +71,7 @@ namespace engine
    #define DMS_STAT_CHECKHOLE_THRESHOLD       ( 10 )
 
    #define DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ( 1.5 )
+   #define DMS_STAT_PRED_MIN_FRAC                  ( 0.05 )
 
    /*
       _dmsStatValues implement
@@ -853,7 +854,8 @@ namespace engine
                                     OSS_MIN( _sampleStepPercent, curSelectivity ) ) ;
          scanSelectivity = predSelectivity ;
       }
-      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ||
+                predSelectivity < DMS_STAT_PRED_MIN_FRAC )
       {
          // adjust selectivity when hits only one single sample in MCV
          // hit one MCV value, but the sample has only one this value
@@ -933,7 +935,8 @@ namespace engine
                                     OSS_MIN( _sampleStepPercent, curSelectivity ) ) ;
          scanSelectivity = predSelectivity ;
       }
-      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION )
+      else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ||
+                predSelectivity < DMS_STAT_PRED_MIN_FRAC )
       {
          // adjust selectivity when hits only one single sample in MCV
          // hit one MCV value, but the sample has only one this value
