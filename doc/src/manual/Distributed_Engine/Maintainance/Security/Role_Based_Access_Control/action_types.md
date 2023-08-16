@@ -635,9 +635,13 @@
 
 ## analyze
 
-将该操作应用在集群资源上。
+将该操作应用在集合空间或集合资源上。
 
-用户可执行[analyze](manual/Manual/Sequoiadb_Command/Sdb/analyze.md)命令。
+用户执行[analyze](manual/Manual/Sequoiadb_Command/Sdb/analyze.md)命令时根据参数需要不同的权限：
+
+- 如果参数指定了集合，需要的权限为该集合资源`{ cs: "<cs name>", cl: "<cl name>" }`上的 analyze 操作。
+- 如果参数指定了集合空间，需要的权限为该集合空间资源`{ cs: "<cs name>", cl: "" }`上的 analyze 操作。
+- 如果参数未指定集合空间和集合，需要的权限为非系统表资源`{ cs: "", cl: "" }`上的 analyze 操作。
 
 ## getRole
 
