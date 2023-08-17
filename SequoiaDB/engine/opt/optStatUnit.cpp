@@ -159,6 +159,72 @@ namespace engine
    }
 
    /*
+      _optIndexPathEncoder implement
+    */
+   ossPoolString _optIndexPathEncoder::getPath()
+   {
+      try
+      {
+         if ( _isError )
+         {
+            return ossPoolString() ;
+         }
+         else
+         {
+            _done() ;
+            return ossPoolString( _bb.buf(), _bb.len() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to get index path, occur exception %s",
+                 e.what() ) ;
+         _isError = TRUE ;
+         return ossPoolString() ;
+      }
+   }
+
+   void _optIndexPathEncoder::append( const CHAR *pFieldName, BOOLEAN isAllRange )
+   {
+      if ( !_isDone && !_isError )
+      {
+         try
+         {
+            if ( _bb.len() > 0 )
+            {
+               _bb.appendChar( '_' ) ;
+            }
+            CHAR buf[ 32 ] = { 0 } ;
+            sprintf( buf, "%u", (UINT32)( ossStrlen( pFieldName ) ) ) ;
+            _bb.appendStr( buf, false ) ;
+            _bb.appendChar( '_' ) ;
+            _bb.appendStr( pFieldName, false ) ;
+            ++ _keyCount ;
+
+            // if is all range, the current field is not valid
+            // if the current field is valie, the prefix of path is valid,
+            // even though it has all range fields
+            if ( !isAllRange )
+            {
+               _validLength = _bb.len() ;
+               _validCount = _keyCount ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to append index path, occur exception %s",
+                    e.what() ) ;
+            _isError = TRUE ;
+         }
+      }
+      else if ( _isDone )
+      {
+         PD_LOG( PDWARNING, "Failed to append index path, encoder is already done" ) ;
+         _isError = TRUE ;
+      }
+   }
+
+   /*
       _optStatListKey implement
     */
    _optStatListKey::_optStatListKey ()
@@ -827,7 +893,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT_EVALPREDSET, "_optCollectionStat::evalPredicateSet" )
    double _optCollectionStat::evalPredicateSet ( rtnPredicateSet &predicateSet,
                                                  BOOLEAN mixCmp,
-                                                 double &scanSelectivity )
+                                                 double &scanSelectivity,
+                                                 optIndexPathEncoder &encoder )
    {
       double selectivity = 1.0 ;
 
@@ -860,10 +927,12 @@ namespace engine
             if ( iterPred == predicates.end() )
             {
                predicateList.push_back( NULL ) ;
+               encoder.append( pFieldName, TRUE ) ;
             }
             else
             {
                predicateList.push_back( &( iterPred->second ) ) ;
+               encoder.append( pFieldName, FALSE ) ;
             }
          }
 
