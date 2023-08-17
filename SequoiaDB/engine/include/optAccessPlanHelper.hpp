@@ -48,6 +48,7 @@
 
 namespace engine
 {
+
    /*
       _optAccessPlanConfig define
     */
@@ -213,6 +214,13 @@ namespace engine
             return NULL != _expOptions && _expOptions->isNeedSearch() ;
          }
 
+         INT32 saveSelectivityToCache( const ossPoolString &indexPath,
+                                       double predSelectivity,
+                                       double scanSelectivity ) ;
+         BOOLEAN getSelectivityFromCache( const ossPoolString &indexPath,
+                                          double &predSelectivity,
+                                          double &scanSelectivity ) ;
+
       protected :
          void _evalEstimation ( optCollectionStat *pCollectionStat ) ;
 
@@ -239,6 +247,9 @@ namespace engine
 
          // explain options
          const rtnExplainOptions * _expOptions ;
+
+         // cache of selectivity
+         optPlanSelectivityCache _selectivityCache ;
    } ;
 
    typedef class _optAccessPlanHelper optAccessPlanHelper ;

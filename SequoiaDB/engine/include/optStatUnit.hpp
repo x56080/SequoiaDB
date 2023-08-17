@@ -43,6 +43,7 @@
 #include "rtnPredicate.hpp"
 #include "ixm.hpp"
 #include "ossMemPool.hpp"
+#include "optCommon.hpp"
 #include "../bson/bson.h"
 
 using namespace std ;
@@ -58,6 +59,107 @@ namespace engine
    typedef _optCollectionStat optCollectionStat ;
 
    typedef ossPoolList<rtnPredicate *> rtnStatPredList ;
+
+   /*
+      _optIndexPathEncoder define
+    */
+   // encode an index predicate field names as a string
+   // format:
+   // "<length of field 1>_<field 1>_<length of field 2>_<field 2> ... <number of fields>""
+   // e.g. { a: 1, b: 1 } -> "1_a_1_b_2"
+   class _optIndexPathEncoder : public SDBObject
+   {
+   public:
+      _optIndexPathEncoder()
+      : _validLength( 0 ),
+        _keyCount( 0 ),
+        _validCount( 0 ),
+        _isDone( FALSE ),
+        _isError( FALSE )
+      {
+      }
+
+      ~_optIndexPathEncoder()
+      {
+      }
+
+      ossPoolString getPath() ;
+      void append( const CHAR *pFieldName, BOOLEAN isAllRange ) ;
+
+   protected:
+      void _done()
+      {
+         if ( !_isDone )
+         {
+            if ( _validCount > 0 )
+            {
+               CHAR buf[ 32 ] = { 0 } ;
+               sprintf( buf, "%u", _validCount ) ;
+               _bb.setlen( _validLength ) ;
+               _bb.appendChar( '_' ) ;
+               _bb.appendStr( buf, false ) ;
+            }
+            else
+            {
+               _bb.setlen( 0 ) ;
+            }
+            _isDone = TRUE ;
+         }
+      }
+
+   protected:
+      UINT32 _validLength ;
+      UINT32 _keyCount ;
+      UINT32 _validCount ;
+      BOOLEAN _isDone ;
+      BOOLEAN _isError ;
+      bson::BufBuilder _bb ;
+   } ;
+
+   typedef class _optIndexPathEncoder optIndexPathEncoder ;
+
+   /*
+      _optPlanSelectivity define
+      */
+   class _optPlanSelectivity
+   {
+   public:
+      _optPlanSelectivity()
+      : _predSelectivity( OPT_MTH_DEFAULT_SELECTIVITY ),
+        _scanSelectivity( OPT_MTH_DEFAULT_SELECTIVITY )
+      {
+      }
+
+      _optPlanSelectivity( double predSelectivity, double scanSelectivity )
+      : _predSelectivity( predSelectivity ),
+        _scanSelectivity( scanSelectivity )
+      {
+      }
+
+      _optPlanSelectivity( const _optPlanSelectivity &selectivity )
+      : _predSelectivity( selectivity._predSelectivity ),
+        _scanSelectivity( selectivity._scanSelectivity )
+      {
+      }
+
+      _optPlanSelectivity & operator = ( const _optPlanSelectivity &selectivity )
+      {
+         _predSelectivity = selectivity._predSelectivity ;
+         _scanSelectivity = selectivity._scanSelectivity ;
+         return *this ;
+      }
+
+   public:
+      double _predSelectivity ;
+      double _scanSelectivity ;
+   } ;
+
+   typedef class _optPlanSelectivity optPlanSelectivity ;
+
+   /*
+      optPlanSelectivityCache define
+    */
+   typedef ossPoolMap< ossPoolString, optPlanSelectivity > optPlanSelectivityCache ;
 
    /*
       _optStatListKey define
@@ -358,7 +460,8 @@ namespace engine
 
          double evalPredicateSet ( rtnPredicateSet &predicateSet,
                                    BOOLEAN mixCmp,
-                                   double &scanSelectivity ) ;
+                                   double &scanSelectivity,
+                                   optIndexPathEncoder &encoder ) ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
                                       dmsStatKey &startKey,
