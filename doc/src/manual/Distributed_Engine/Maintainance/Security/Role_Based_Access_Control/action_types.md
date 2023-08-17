@@ -603,17 +603,6 @@
 
 用户可执行[forceSession](manual/Manual/Sequoiadb_Command/Sdb/forceSession.md)命令。
 
-## getSessionAttr
-
-将该操作应用在集群资源上。
-
-用户可执行[getSessionAttr](manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md)命令。
-
-## setSessionAttr
-
-将该操作应用在集群资源上。
-
-用户可执行[setSessionAttr](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)命令。
 
 ## trans
 
