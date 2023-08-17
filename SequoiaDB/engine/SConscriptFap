@@ -2,7 +2,8 @@ import os
 
 Import("guess_arch")
 Import("fapEnv")
-Import("intel_decimal_lib_dir")
+
+IntelRDFPMathLib = fapEnv['INTELDECIMALLIB']
 
 fapMongo2Files = [
       "fap/mongodb/commands.cpp",
@@ -36,10 +37,9 @@ fapMongo3Files = [
 #      "fap/mongodb4/parser.cpp"
 #      ]
 
-if 'ia32' == guess_arch or 'ia64' == guess_arch:
-   intelDecimalLib = os.path.join( intel_decimal_lib_dir, 'libbid.a' )
-   fapmongo3 = fapEnv.SharedLibrary( 'fapmongo3', [ fapMongo3Files, intelDecimalLib ] )
-   #fapmongo4 = fapEnv.SharedLibrary( 'fapmongo4', [ fapMongo4Files, intelDecimalLib ] )
+if 'ia32' == guess_arch or 'ia64' == guess_arch or 'arm64' == guess_arch:
+   fapmongo3 = fapEnv.SharedLibrary( 'fapmongo3', [ fapMongo3Files ], LIBS = [ IntelRDFPMathLib ] )
+   #fapmongo4 = fapEnv.SharedLibrary( 'fapmongo4', [ fapMongo4Files ], LIBS = [ IntelRDFPMathLib ] )
 else:
    fapmongo3 = fapEnv.SharedLibrary( 'fapmongo3', [ fapMongo3Files ] )
    #fapmongo4 = fapEnv.SharedLibrary( 'fapmongo4', [ fapMongo4Files ] )

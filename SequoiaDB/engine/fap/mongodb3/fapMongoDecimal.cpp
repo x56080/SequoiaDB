@@ -37,10 +37,8 @@
 *******************************************************************************/
 
 #include "fapMongoDecimal.hpp"
-#if !defined( _ARMLIN64 )
 #include "../../thirdparty/intelDecimal/LIBRARY/src/bid_conf.h"
 #include "../../thirdparty/intelDecimal/LIBRARY/src/bid_functions.h"
-#endif
 #include "pd.hpp"
 
 namespace fap
@@ -298,7 +296,7 @@ namespace fap
                  "there is deciaml in the record: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -363,44 +361,6 @@ namespace fap
       goto done ;
    }
 
-#if defined( _ARMLIN64 )
-   // ARM64 doesn't support decimal in fap
-   INT32 sdbDecimal2MongoDecimal( const BSONObj &sdbRecord,
-                                  BSONObjBuilder &mongoRecordBob,
-                                  BOOLEAN &hasDecimal )
-   {
-      INT32 rc = SDB_OK ;
-
-      // if sdbRecord has decimal, we don't need to check.
-      if ( !hasDecimal )
-      {
-         rc = isSdbRecordHasDecimal( sdbRecord, hasDecimal ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-      if ( hasDecimal )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 sdbDecimal2MongoDecimal( const BSONObj &sdbRecord,
-                                  BSONArrayBuilder &mongoRecordBab,
-                                  BufBuilder &mongoRecordBb )
-   {
-      return SDB_OK ;
-   }
-
-#else
    INT32 sdbDecimal2MongoDecimal( const BSONObj &sdbRecord,
                                   BSONObjBuilder &mongoRecordBob,
                                   BOOLEAN &hasDecimal )
@@ -567,7 +527,6 @@ namespace fap
    error:
       goto done ;
    }
-#endif
 
    INT32 mongoDecimal2SdbDecimal( const BSONObj &mongoMsgObj,
                                   BSONObjBuilder &sdbMsgObjBob )
@@ -604,13 +563,6 @@ namespace fap
             }
             else if ( FAP_MONGO_BSON_DECIMALBID_TYPE == ele.type() )
             {
-#if defined( _ARMLIN64 )
-               // ARM64 doesn't support decimal in fap
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "ARM64 doesn't support decimal in fap"
-                       ", rc: %d", rc ) ;
-               goto error ;
-#else
                UINT32 signalingFlags = 0 ;
                BID_UINT128 dec128 ;
                CHAR decimalStr[ FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ] = { 0 } ;
@@ -664,7 +616,6 @@ namespace fap
                   PD_LOG( PDERROR, "Failed to append decimal, rc: %d", rc ) ;
                   goto error ;
                }
-#endif
             }
             else
             {
@@ -719,13 +670,6 @@ namespace fap
             }
             else if ( FAP_MONGO_BSON_DECIMALBID_TYPE == ele.type() )
             {
-#if defined( _ARMLIN64 )
-               // ARM64 doesn't support decimal in fap
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "ARM64 doesn't support decimal in fap"
-                       ", rc: %d", rc ) ;
-               goto error ;
-#else
                bsonDecimal decimalObj ;
                UINT32 signalingFlags = 0 ;
                BID_UINT128 dec128 ;
@@ -779,7 +723,6 @@ namespace fap
                }
 
                sdbMsgObjBab.append( decimalObj ) ;
-#endif
             }
             else
             {
