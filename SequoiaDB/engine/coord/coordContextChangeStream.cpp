@@ -229,6 +229,11 @@ namespace engine
             {
                _groupList[ groupID ] = groupID ;
             }
+            else
+            {
+               PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                                 "Could not watch group [%s]", groupName ) ;
+            }
          }
       }
       catch ( std::exception &e )
