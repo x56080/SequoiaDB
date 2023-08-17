@@ -21,7 +21,6 @@ Import("sm_lib_dir")
 Import("fuse_lib_dir")
 Import("usemdocml")
 Import("usefuse")
-Import("intel_decimal_lib_dir")
 
 
 ERROR = 1
@@ -205,7 +204,7 @@ class CompilerBase:
             if not os.path.exists(lib_path):
                 print_msg(INFO, "Library {} does not exist".format(lib_path))
                 return True
-                
+
         libs = sorted(libs,
                       key=lambda x: os.path.getmtime(os.path.join(arch_dir, x)),
                       reverse=True)
@@ -588,61 +587,15 @@ class FuseCompiler(CompilerBase):
         shutil.copy(os.path.join(self.src_root, 'lib/.libs/libfuse.a'),
                     self._get_lib_archive_dir())
 
-class IntelDecimalLibCompiler(CompilerBase):
-    def __init__(self, src_root):
-        CompilerBase.__init__(self, "intelDecimal", src_root)
-
-    def _get_lib_archive_dir(self):
-        return intel_decimal_lib_dir
-        
-    def _init_linux_cmds(self, arch):
-        if 'ia32' == self.arch or 'ia64' == self.arch:
-           if debugBuild:
-              linux_debug_compile_args = "CC=gcc CFLAGS='-fPIC -g' CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0"
-              self.append_cmd('cd LIBRARY && make ' + linux_debug_compile_args) 
-           else:
-              linux_release_compile_args = "CC=gcc CFLAGS=-fPIC CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0"
-              self.append_cmd('cd LIBRARY && make ' + linux_release_compile_args) 
-        return 0
-
-    def _init_win32_cmds(self, arch):
-        if 'ia32' == self.arch or 'ia64' == self.arch:
-           if debugBuild:
-              win32_debug_compile_args = "-fmakefile.mak CC=cl DBG=1 CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0"
-              self.append_cmd('cd LIBRARY && nmake ' + win32_debug_compile_args)
-           else:
-              win32_release_compile_args = "-fmakefile.mak CC=cl CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0"
-              self.append_cmd('cd LIBRARY && nmake ' + win32_release_compile_args)
-        return 0
-
-    def _get_lib_list(self):
-        libs = []
-        if 'linux' == self.platform:
-            libs = ['libbid.a']
-        elif 'win32' == self.platform:
-            libs = ['libbid.lib']
-        return libs
-
-    def archive(self):
-        if 'ia32' == self.arch or 'ia64' == self.arch:
-           if 'linux' == self.platform:
-              shutil.copy(os.path.join(self.src_root, 'LIBRARY/libbid.a'),
-                          self._get_lib_archive_dir())
-           elif 'win32' == self.platform:
-              shutil.copy(os.path.join(self.src_root, 'LIBRARY/libbid.lib'),
-                          self._get_lib_archive_dir())
- 
 components = []
 
 snappy_compiler = SnappyCompiler('snappy')
 lz4_compiler = LZ4Compiler('lz4')
 zlib_compiler = ZlibCompiler('zlib')
-intelDecimal_compiler = IntelDecimalLibCompiler('intelDecimal')
 
 components.append(snappy_compiler)
 components.append(lz4_compiler)
 components.append(zlib_compiler)
-components.append(intelDecimal_compiler)
 
 if usemdocml:
     mdocml_compiler = MdocmlCompiler('mdocml')
@@ -654,9 +607,9 @@ if "win32" != guess_os:
     boost_compiler = BoostCompiler('boost')
 
     # on x86, some hosts can not build sm lib for lacking some dependencies,
-    # so, we are not going to build sm lib on x86, and we use the pre-build 
+    # so, we are not going to build sm lib on x86, and we use the pre-build
     # sm lib and include files.
-    # on arm, we can not build sm lib on uos(jira-5452), so we also use the 
+    # on arm, we can not build sm lib on uos(jira-5452), so we also use the
     # pre-build sm lib and include files.
     # spidermonkey_compiler = SpiderMonkeyCompiler('parser/sm/js')
     ssl_compiler = SslCompiler('crypto/openssl-1.1.1q')
@@ -720,3 +673,5 @@ for component in components:
             exit(rc)
     elif rc > 0:
         exit(rc)
+
+thirdpartyEnv.SConscript('intelDecimal/SConscript')

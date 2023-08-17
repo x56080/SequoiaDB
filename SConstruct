@@ -39,8 +39,6 @@ parser_dir = join(thirdparty_dir, 'parser' )
 sm_dir = join(parser_dir, 'sm')
 js_dir = join(sm_dir, 'js')
 sm_lib_dir = join(js_dir, 'lib')
-intel_decimal_dir = join(thirdparty_dir, 'intelDecimal')
-intel_decimal_lib_dir = join(intel_decimal_dir, 'lib')
 pcre_dir = join(engine_dir,'pcre')
 ssh2_dir = join(engine_dir,'ssh2')
 crypto_dir = join(thirdparty_dir, 'crypto')
@@ -551,9 +549,8 @@ if guess_os is not None:
     zlib_lib_dir = join(zlib_lib_dir, platform_dir, build_dir)
     lz4_lib_dir = join(lz4_lib_dir, platform_dir, build_dir)
     snappy_lib_dir = join(snappy_lib_dir, platform_dir, build_dir)
-    intel_decimal_lib_dir = join(intel_decimal_lib_dir, platform_dir, build_dir)
     env.Append(EXTRALIBPATH=[boost_lib_dir, ssl_lib_dir, zlib_lib_dir,
-                             lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir])
+                             lz4_lib_dir, snappy_lib_dir])
     # use project-related spidermonkey library
     if usesm:
         env.Append(CPPPATH=join(sm_lib_dir, platform_dir, 'include'))
@@ -985,12 +982,11 @@ Export("release")
 Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
-Export("intel_decimal_lib_dir")
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
                          "ssl_lib_dir", "zlib_lib_dir", "lz4_lib_dir", "snappy_lib_dir",
-                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir"], duplicate=False)
+                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir"], duplicate=False)
 
 if not has_option("noautogen"):
    language = get_option ( "language" )
@@ -1048,4 +1044,5 @@ if hasFmp:
 #if hasTestcase:
 #   env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
 if hasFap:
+   fapEnv['INTELDECIMALLIB'] = thirdpartyEnv['INTELDECIMALLIB']
    fapEnv.SConscript ( 'SequoiaDB/SConscriptFap', variant_dir=fapVariantDir, duplicate=False )
