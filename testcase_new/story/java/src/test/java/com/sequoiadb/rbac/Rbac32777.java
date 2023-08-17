@@ -1,0 +1,238 @@
+package com.sequoiadb.rbac;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.MaxKey;
+import org.bson.types.MinKey;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
+
+/**
+ * @Description seqDB-32777:创建角色指定Resource为主表
+ * @Author liuli
+ * @Date 2023.08.16
+ * @UpdateAuthor liuli
+ * @UpdateDate 2023.08.16
+ * @version 1.10
+ */
+public class Rbac32777 extends SdbTestBase {
+    private Sequoiadb sdb = null;
+    private String rootUser = "sdbadmin_32777";
+    private String rootPasswd = "sdbadmin_32777";
+    private String user = "user_32777";
+    private String password = "passwd_32777";
+    private String roleName = "role_32777";
+    private String csName = "cs_32777";
+    private String mainCLName = "maincl_32777";
+    private String subCLName = "subcl_32777";
+
+    @BeforeClass
+    public void setUp() {
+        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( db1 ) ) {
+            throw new SkipException( "is standalone skip testcase" );
+        }
+        Object options = JSON.parse( "{Roles:['_root']}" );
+        db1.createUser( rootUser, rootPasswd, ( BSONObject ) options );
+        db1.close();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, rootUser, rootPasswd );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
+        }
+
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
+        BasicBSONObject optionsM = new BasicBSONObject();
+        optionsM.put( "IsMainCL", true );
+        optionsM.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        optionsM.put( "ShardingType", "range" );
+        optionsM.put( "LobShardingKeyFormat", "YYYYMMDD" );
+        DBCollection maincl = cs.createCollection( mainCLName, optionsM );
+
+        cs.createCollection( subCLName, new BasicBSONObject( "ShardingKey",
+                new BasicBSONObject( "date", 1 ) ) );
+
+        BasicBSONObject optionS = new BasicBSONObject();
+        optionS.put( "LowBound", new BasicBSONObject( "date", new MinKey() ) );
+        optionS.put( "UpBound", new BasicBSONObject( "date", new MaxKey() ) );
+        maincl.attachCollection( csName + "." + subCLName, optionS );
+    }
+
+    @Test
+    public void test() throws Exception {
+        testAccessControl( sdb );
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            sdb.dropCollectionSpace( csName );
+        } finally {
+            sdb.removeUser( rootUser, rootPasswd );
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+    }
+
+    private void testAccessControl( Sequoiadb sdb ) {
+
+        String[] actions = { "find", "insert", "update", "remove", "getDetail",
+                "alterCL", "createIndex", "dropIndex", "truncate" };
+        BSONObject role = null;
+        for ( String action : actions ) {
+            Sequoiadb userSdb = null;
+            try {
+                String roleStr = "{Role:'" + roleName
+                        + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
+                        + mainCLName + "'}, Actions: ['" + action + "'] }"
+                        + ",{ Resource: { cs: '" + csName
+                        + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
+                System.out.println( "roleStr -- " + roleStr );
+                role = ( BSONObject ) JSON.parse( roleStr );
+                sdb.createRole( role );
+                sdb.createUser( user, password, ( BSONObject ) JSON
+                        .parse( "{Roles:['" + roleName + "']}" ) );
+                userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
+
+                DBCollection userMainCL = userSdb.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                DBCollection userSubCL1 = userSdb.getCollectionSpace( csName )
+                        .getCollection( subCLName );
+                DBCollection rootSubCL1 = sdb.getCollectionSpace( csName )
+                        .getCollection( subCLName );
+
+                switch ( action ) {
+                case "find":
+                    RbacUtils.findActionSupportCommand( sdb, csName, mainCLName,
+                            userMainCL, true );
+                    try {
+                        userSubCL1.queryOne();
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "insert":
+                    RbacUtils.insertActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    try {
+                        userSubCL1
+                                .insertRecord( new BasicBSONObject( "a", 1 ) );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "update":
+                    RbacUtils.updateActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    try {
+                        userSubCL1.updateRecords( new BasicBSONObject( "a", 1 ),
+                                new BasicBSONObject( "$set",
+                                        new BasicBSONObject( "a", 2 ) ) );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "remove":
+                    RbacUtils.removeActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    try {
+                        userSubCL1
+                                .deleteRecords( new BasicBSONObject( "a", 2 ) );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "getDetail":
+                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    try {
+                        userSubCL1.getIndexes();
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "alterCL":
+                    // 部分alterCL操作主表不支持
+                    userMainCL.alterCollection(
+                            new BasicBSONObject( "ReplSize", -1 ) );
+                    try {
+                        userSubCL1.alterCollection(
+                                new BasicBSONObject( "ReplSize", -1 ) );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "createIndex":
+                    RbacUtils.createIndexActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    try {
+                        String indexName = "index_" + subCLName;
+                        userSubCL1.createIndex( indexName,
+                                new BasicBSONObject( "a", 1 ), null );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                case "dropIndex":
+                    RbacUtils.dropIndexActionSupportCommand( sdb, csName,
+                            mainCLName, userMainCL, true );
+                    String indexName = "index_" + subCLName;
+                    rootSubCL1.createIndex( indexName,
+                            new BasicBSONObject( "a", 1 ), null );
+                    try {
+                        userSubCL1.dropIndex( indexName );
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    } finally {
+                        rootSubCL1.dropIndex( indexName );
+                    }
+                    break;
+                case "truncate":
+                    userMainCL.truncate();
+                    try {
+                        userSubCL1.truncate();
+                        Assert.fail( "should error but success" );
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    }
+                    break;
+                default:
+                    break;
+                }
+            } finally {
+                userSdb.close();
+                sdb.dropRole( roleName );
+                sdb.removeUser( user, password );
+            }
+        }
+    }
+}

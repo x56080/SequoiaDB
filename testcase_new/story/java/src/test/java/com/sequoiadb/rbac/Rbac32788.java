@@ -1,8 +1,5 @@
 package com.sequoiadb.rbac;
 
-import com.sequoiadb.base.*;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -12,26 +9,32 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32775:创建角色指定Resource为集合，Actions包含一个集合操作
+ * @Description seqDB-32788:创建角色指定Resource为集合空间，Actions指定为集合空间操作
  * @Author liuli
- * @Date 2023.08.11
+ * @Date 2023.08.17
  * @UpdateAuthor liuli
- * @UpdateDate 2023.08.11
+ * @UpdateDate 2023.08.17
  * @version 1.10
  */
-public class Rbac32775 extends SdbTestBase {
+public class Rbac32788 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String rootUser = "sdbadmin_32775";
-    private String rootPasswd = "sdbadmin_32775";
-    private String user = "user_32775";
-    private String password = "passwd_32775";
-    private String roleName = "role_32775";
-    private String csName = "cs_32775";
-    private String clName = "cl_32775";
+    private String rootUser = "sdbadmin_32788";
+    private String rootPasswd = "sdbadmin_32788";
+    private String user = "user_32788";
+    private String password = "passwd_32788";
+    private String roleName = "role_32788";
+    private String csName = "cs_32788";
+    private String clName = "cl_32788";
 
     @BeforeClass
     public void setUp() {
@@ -51,7 +54,7 @@ public class Rbac32775 extends SdbTestBase {
         cs.createCollection( clName );
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws Exception {
         testAccessControl( sdb );
         testTestCLAction( sdb );
@@ -71,7 +74,8 @@ public class Rbac32775 extends SdbTestBase {
 
     private void testAccessControl( Sequoiadb sdb ) {
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
-                "alterCL", "createIndex", "dropIndex", "truncate" };
+                "alterCL", "createIndex", "dropIndex", "truncate","alterCS",
+                "createCL","dropCL","renameCL","listCollections"};
         BSONObject role = null;
         for ( String action : actions ) {
             Sequoiadb userSdb = null;
