@@ -191,10 +191,12 @@ namespace engine
             {
                if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
                {
-                  /// upgrade from the old version( _commitLSN = 0 )
-                  if ( 0 == _pDataSu->_dmsMME->_mbList[i]._commitLSN )
+                  /// upgrade from the old version which has no
+                  /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
+                  /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
+                  if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN )
                   {
-                     _pDataSu->_dmsMME->_mbList[i]._commitLSN =
+                     _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN =
                         _pStorageInfo->_curLSNOnStart ;
                   }
                   _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 1 ;
@@ -947,6 +949,7 @@ namespace engine
       INT32  indexID = 0 ;
       BOOLEAN found  = FALSE ;
       OID oid ;
+      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1017,6 +1020,17 @@ namespace engine
 
       if ( !found )
       {
+         if ( !dpscb && cb->getLsnCount() > 0 )
+         {
+            // update lsn to local which is synchronized from master node
+            context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
+                                                      DMS_FILE_IDX,
+                                                      cb->isDoRollback() ) ;
+            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+                                   sizeof(fullName) ) ;
+            cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
+                               context->clUID(), context->clLID() ) ;
+         }
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
@@ -1047,6 +1061,7 @@ namespace engine
       BOOLEAN found       = FALSE ;
       dpsTransCB *transCB = sdbGetTransCB() ;
       BOOLEAN lockedCL    = FALSE ;
+      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1146,6 +1161,17 @@ namespace engine
 
       if ( !found )
       {
+         if ( !dpscb && cb->getLsnCount() > 0 )
+         {
+            // update lsn to local which is synchronized from master node
+            context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
+                                                      DMS_FILE_IDX,
+                                                      cb->isDoRollback() ) ;
+            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+                                   sizeof(fullName) ) ;
+            cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
+                               context->clUID(), context->clLID() ) ;
+         }
          rc = SDB_IXM_NOTEXIST ;
       }
 
@@ -1412,7 +1438,7 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
-         cb->setDataExInfo( fullName, context->clUID(), _pDataSu->logicalID(),
+         cb->setDataExInfo( fullName, context->csUID(), _pDataSu->logicalID(),
                             context->clUID(), context->clLID() ) ;
       }
 
