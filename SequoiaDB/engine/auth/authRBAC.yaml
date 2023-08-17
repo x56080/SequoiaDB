@@ -74,7 +74,6 @@ enums:
       getDomain: "getDomain"
       getRG: "getRG"
       getSequence: "getSequence"
-      getSessionAttr: "getSessionAttr"
       getTask: "getTask"
       invalidateCache: "invalidateCache"
       invalidateUserCache: "invalidateUserCache"
@@ -87,7 +86,6 @@ enums:
       resetSnapshot: "resetSnapshot"
       reloadConf: "reloadConf"
       deleteConf: "deleteConf"
-      setSessionAttr: "setSessionAttr"
       snapshot: "snapshot"
       sync: "sync"
       setPDLevel: "setPDLevel"
@@ -179,8 +177,6 @@ enums:
           - removeProcedure
           - listProcedures
           - eval
-          - setSessionAttr
-          - getSessionAttr
           - invalidateCache
           - invalidateUserCache
           - forceSession
@@ -335,8 +331,6 @@ BUILTIN_ROLES:
           - snapshot
           - getSequenceCurrentValue
           - getDCInfo
-          - getSessionAttr
-          - setSessionAttr
           - getDetailBin
           - getRole
           - getUser
@@ -981,16 +975,6 @@ CMD_PRIVILEGE_MAP:
             key: FIELD_NAME_NAME
         actionSets:
           - [detachCL]
-
-    CMD_NAME_SETSESS_ATTR:
-      - resource: CLUSTER
-        actionSets:
-          - [setSessionAttr]
-
-    CMD_NAME_GETSESS_ATTR:
-      - resource: CLUSTER
-        actionSets:
-          - [getSessionAttr]
 
     CMD_NAME_INVALIDATE_CACHE:
       - resource: CLUSTER
