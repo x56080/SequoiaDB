@@ -1,0 +1,17 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+
+<suite name="driver" verbose="1" preserve-order="true">
+
+    <listeners>
+        <listener class-name="com.mongodb.utils.TimePrinterListener"/>
+    </listeners>
+
+    <test name="m2sTest" parallel="classes" thread-count="1">
+        <packages>
+            <package name="com.mongodb.m2s.analyzer"/>
+            <package name="com.mongodb.m2s.collector"/>
+            <package name="com.mongodb.m2s.sniffer"/>
+        </packages>
+    </test>
+
+</suite>
