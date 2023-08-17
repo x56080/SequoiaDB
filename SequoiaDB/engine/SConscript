@@ -821,6 +821,9 @@ bsonBuilderTestFiles = [
 bsonIteratorSortedTestFiles = [
       "test/bson/bsonIteratorSortedTest.cpp"
 ]
+optTestFiles = [
+      "test/opt/optIndexPathTest.cpp"
+      ]
 #catalogueTestFiles = [
 #      "test/catalogTest/catalogTestMainController.cpp"
 #      ]
@@ -955,6 +958,7 @@ sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
 #spdtest = env.Object('spdtest', gtestMainFile)
 selectortest = env.Object('selectortest', gtestMainFile)
+opttest = env.Object('opttest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -1100,6 +1104,10 @@ if hasTestcase:
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
+   optTest = env.Program("optTest", [ optTestFiles, opttest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+
 # Tools
 if hasTool:
    sdbrestore = env.Program("sdbrestore", sdbrestoreFiles,
@@ -1151,6 +1159,7 @@ if hasTestcase:
 #   env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
    env.Install( '#/tests', selectorTest )
+   env.Install( '#/tests', optTest )
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )

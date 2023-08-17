@@ -1841,6 +1841,7 @@ namespace engine
       const BSONObj &keyPattern = indexStat->getKeyPattern() ;
       UINT32 keyNum = (UINT32)keyPattern.nFields() ;
 
+      optIndexPathEncoder encoder ;
       rtnStatPredList predicateList ;
       BOOLEAN needMatchOrder = TRUE ;
       INT32 direction = 1 ;
@@ -1960,6 +1961,7 @@ namespace engine
             if ( !fieldOnly && !isBestIndex )
             {
                predicateList.push_back( NULL ) ;
+               encoder.append( pFieldName, TRUE ) ;
             }
             isEqual = FALSE ;
          }
@@ -1986,6 +1988,7 @@ namespace engine
                // Need to evaluate the whole predicate set together, add the
                // predicates into list, and evaluate them later
                predicateList.push_back( &curPredicate ) ;
+               encoder.append( pFieldName, FALSE ) ;
             }
 
             isEqual = curPredicate.isEquality() ;
@@ -2036,22 +2039,29 @@ namespace engine
          }
          else
          {
-            // The predicates contain multiple start stop key-pairs, evaluate
-            // each of them
-            predSelectivity = indexStat->evalPredicateList(
-                  pFirstField, predicateList, planHelper.mthEnabledMixCmp(),
-                  scanSelectivity ) ;
-            // fix by match selectivity
-            if ( NULL != planHelper.getMatchTree() )
+            ossPoolString indexPath = encoder.getPath() ;
+            if ( !( planHelper.getSelectivityFromCache( indexPath,
+                                                        predSelectivity,
+                                                        scanSelectivity) ) )
             {
-               if ( predSelectivity < getMthSelctivity() )
+               // The predicates contain multiple start stop key-pairs, evaluate
+               // each of them
+               predSelectivity = indexStat->evalPredicateList(
+                     pFirstField, predicateList, planHelper.mthEnabledMixCmp(),
+                     scanSelectivity ) ;
+
+               // fix by match selectivity
+               if ( NULL != planHelper.getMatchTree() )
                {
-                  predSelectivity = getMthSelctivity() ;
+                  if ( predSelectivity < getMthSelctivity() )
+                  {
+                     predSelectivity = getMthSelctivity() ;
+                  }
                }
-               if ( scanSelectivity < getMthSelctivity() )
-               {
-                  scanSelectivity = getMthSelctivity() ;
-               }
+
+               planHelper.saveSelectivityToCache( indexPath,
+                                                  predSelectivity,
+                                                  scanSelectivity ) ;
             }
          }
       }

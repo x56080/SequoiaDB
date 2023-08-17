@@ -99,6 +99,7 @@ namespace engine
    {
       _mthMatchTreeHolder::setMatchTree( NULL ) ;
       _predicateSet.clear() ;
+      _selectivityCache.clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_SETMTH, "_optAccessPlanHelper::setMatchTree" )
@@ -145,12 +146,14 @@ namespace engine
       double tmpSelectivity = OPT_MTH_DEFAULT_SELECTIVITY ;
       UINT32 tmpCPUCost = OPT_MTH_DEFAULT_CPU_COST ;
 
+      optIndexPathEncoder encoder ;
+
       if ( getMatchTree() != NULL )
       {
          if ( pCollectionStat )
          {
             predSelectivity = pCollectionStat->evalPredicateSet(
-                  _predicateSet, mthEnabledMixCmp(), scanSelectivity ) ;
+                  _predicateSet, mthEnabledMixCmp(), scanSelectivity, encoder ) ;
          }
          getMatchTree()->evalEstimation( pCollectionStat, tmpSelectivity,
                                          tmpCPUCost ) ;
@@ -162,6 +165,8 @@ namespace engine
       _scanSelectivity = OPT_ROUND_SELECTIVITY( scanSelectivity ) ;
       _estCPUCost = tmpCPUCost ;
       _isPredEstimated = TRUE ;
+
+      saveSelectivityToCache( encoder.getPath(), _predSelectivity, _scanSelectivity ) ;
 
       PD_TRACE_EXIT( SDB__OPTAPHELP__EVALEST ) ;
    }
@@ -194,6 +199,65 @@ namespace engine
       _normalizer.clear() ;
       parameters.clearParams() ;
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_SAVESLCTY, "_optAccessPlanHelper::saveSelectivityToCache" )
+   INT32 _optAccessPlanHelper::saveSelectivityToCache( const ossPoolString &indexPath,
+                                                       double predSelectivity,
+                                                       double scanSelectivity )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__OPTAPHELP_SAVESLCTY ) ;
+
+      if ( !indexPath.empty() )
+      {
+         try
+         {
+            _selectivityCache[ indexPath ] = optPlanSelectivity( predSelectivity,
+                                                                 scanSelectivity ) ;
+         }
+         catch ( exception &e )
+         {
+            _selectivityCache.erase( indexPath ) ;
+            PD_LOG( PDERROR, "Failed to save selectivity, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__OPTAPHELP_SAVESLCTY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_GETSLCTY, "_optAccessPlanHelper::getSelectivityFromCache" )
+   BOOLEAN _optAccessPlanHelper::getSelectivityFromCache( const ossPoolString &indexPath,
+                                                          double &predSelectivity,
+                                                          double &scanSelectivity )
+   {
+      BOOLEAN result = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__OPTAPHELP_GETSLCTY ) ;
+
+      if ( !indexPath.empty() )
+      {
+         optPlanSelectivityCache::iterator it = _selectivityCache.find( indexPath ) ;
+         if ( it != _selectivityCache.end() )
+         {
+            predSelectivity = it->second._predSelectivity ;
+            scanSelectivity = it->second._scanSelectivity ;
+            result = TRUE ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__OPTAPHELP_GETSLCTY ) ;
+
+      return result ;
    }
 
 }
