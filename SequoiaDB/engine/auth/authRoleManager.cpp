@@ -929,7 +929,7 @@ namespace engine
          {
             rc = SDB_AUTH_ROLE_CYCLE_DETECTED;
             PD_LOG_MSG( PDERROR, "Granting roles would introduce a cycle in the role graph, rc: %d",
-                        roleName, rc );
+                        rc );
             goto error;
          }
          else if ( UTIL_DAG_EDGES_RET_SUCCESS != res.first )
