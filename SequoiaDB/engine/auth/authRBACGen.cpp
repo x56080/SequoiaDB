@@ -118,6 +118,7 @@ namespace engine
    const char ACTION_NAME_listProcedures[] = "listProcedures";
    const char ACTION_NAME_alterUser[] = "alterUser";
    const char ACTION_NAME_listBackup[] = "listBackup";
+   const char ACTION_NAME_changeStream[] = "changeStream";
    const char ACTION_NAME_alterDataSource[] = "alterDataSource";
    const char ACTION_NAME_createNode[] = "createNode";
    const char ACTION_NAME_getNode[] = "getNode";
@@ -493,6 +494,10 @@ namespace engine
       if (strcmp(actionName, ACTION_NAME_listBackup) == 0)
       {
          return ACTION_TYPE_listBackup;
+      }
+      if (strcmp(actionName, ACTION_NAME_changeStream) == 0)
+      {
+         return ACTION_TYPE_changeStream;
       }
       if (strcmp(actionName, ACTION_NAME_alterDataSource) == 0)
       {
@@ -923,6 +928,10 @@ namespace engine
       {
          return ACTION_NAME_listBackup;
       }
+      if (actionType == ACTION_TYPE_changeStream)
+      {
+         return ACTION_NAME_changeStream;
+      }
       if (actionType == ACTION_TYPE_alterDataSource)
       {
          return ACTION_NAME_alterDataSource;
@@ -1055,7 +1064,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_SEQUENCE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      137438953472ULL
+      274877906944ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_SEQUENCE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_SEQUENCE_default_ACTION_SETS_ARRAY, 1, 
@@ -1065,7 +1074,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_GET_SEQ_CURR_VAL_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      68719476736ULL
+      137438953472ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_GET_SEQ_CURR_VAL_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_GET_SEQ_CURR_VAL_default_ACTION_SETS_ARRAY, 1, 
@@ -1197,7 +1206,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_GET_DCINFO_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      549755813888ULL
+      1099511627776ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_GET_DCINFO_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_GET_DCINFO_default_ACTION_SETS_ARRAY, 1, 
@@ -1279,7 +1288,7 @@ namespace engine
       )),
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      67108864ULL
+      134217728ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_LIST_GROUPS_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_LIST_GROUPS_default_ACTION_SETS_ARRAY, 3, 
@@ -1781,7 +1790,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_CREATE_NODE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      33554432ULL
+      67108864ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_CREATE_NODE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_CREATE_NODE_default_ACTION_SETS_ARRAY, 1, 
@@ -1791,7 +1800,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_REMOVE_NODE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      268435456ULL
+      536870912ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_REMOVE_NODE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_REMOVE_NODE_default_ACTION_SETS_ARRAY, 1, 
@@ -1811,7 +1820,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ACTIVE_GROUP_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      536870912ULL
+      1073741824ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ACTIVE_GROUP_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ACTIVE_GROUP_default_ACTION_SETS_ARRAY, 1, 
@@ -1821,7 +1830,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_STARTUP_NODE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      4294967296ULL
+      8589934592ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_STARTUP_NODE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_STARTUP_NODE_default_ACTION_SETS_ARRAY, 1, 
@@ -1831,7 +1840,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_SHUTDOWN_NODE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      8589934592ULL
+      17179869184ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_SHUTDOWN_NODE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_SHUTDOWN_NODE_default_ACTION_SETS_ARRAY, 1, 
@@ -1841,7 +1850,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_SHUTDOWN_GROUP_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      1073741824ULL
+      2147483648ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_SHUTDOWN_GROUP_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_SHUTDOWN_GROUP_default_ACTION_SETS_ARRAY, 1, 
@@ -2089,7 +2098,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_DC_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      1099511627776ULL
+      2199023255552ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_DC_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_DC_default_ACTION_SETS_ARRAY, 1, 
@@ -2109,7 +2118,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_REELECT_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      134217728ULL
+      268435456ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_REELECT_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_REELECT_default_ACTION_SETS_ARRAY, 1, 
@@ -2251,7 +2260,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_DATASOURCE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      16777216ULL
+      33554432ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_DATASOURCE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_DATASOURCE_default_ACTION_SETS_ARRAY, 1, 
@@ -2807,7 +2816,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_DOMAIN_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      274877906944ULL
+      549755813888ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_DOMAIN_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_DOMAIN_default_ACTION_SETS_ARRAY, 1, 
@@ -2817,7 +2826,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_NODE_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      17179869184ULL
+      34359738368ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_NODE_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_NODE_default_ACTION_SETS_ARRAY, 1, 
@@ -2827,7 +2836,7 @@ namespace engine
    static const authActionSet AUTH_CMD_NAME_ALTER_GROUP_default_ACTION_SETS_ARRAY[] = {
       authActionSet( ACTION_SET_NUMBER_ARRAY(
       0ULL,
-      2147483648ULL
+      4294967296ULL
       )),
    };
    static const authRequiredActionSets AUTH_CMD_NAME_ALTER_GROUP_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_ALTER_GROUP_default_ACTION_SETS_ARRAY, 1, 
@@ -5211,7 +5220,7 @@ namespace engine
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_cs_admin[BUILTIN_ROLE_DATA_SIZE_cs_admin] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_COLLECTION_SPACE, ACTION_SET_NUMBER_ARRAY(
          134742015ULL,
-         524288ULL
+         17301504ULL
       )),
    };
 
@@ -5219,7 +5228,7 @@ namespace engine
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_clusterAdmin[BUILTIN_ROLE_DATA_SIZE_clusterAdmin] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_CLUSTER, ACTION_SET_NUMBER_ARRAY(
          5190398570544496640ULL,
-         1912602696ULL
+         3825205320ULL
       )),
    };
 
@@ -5227,7 +5236,7 @@ namespace engine
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_clusterMonitor[BUILTIN_ROLE_DATA_SIZE_clusterMonitor] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_CLUSTER, ACTION_SET_NUMBER_ARRAY(
          72092984594792448ULL,
-         618477457432ULL
+         1236952748056ULL
       )),
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_NON_SYSTEM, ACTION_SET_NUMBER_ARRAY(
          262272ULL,
@@ -5247,7 +5256,7 @@ namespace engine
    const std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY> BUILTIN_ROLE_DATA_dbAdmin[BUILTIN_ROLE_DATA_SIZE_dbAdmin] = {
       std::pair<RESOURCE_TYPE_ENUM, ACTION_SET_NUMBER_ARRAY>(RESOURCE_TYPE_NON_SYSTEM, ACTION_SET_NUMBER_ARRAY(
          134742015ULL,
-         524288ULL
+         17301504ULL
       )),
    };
 

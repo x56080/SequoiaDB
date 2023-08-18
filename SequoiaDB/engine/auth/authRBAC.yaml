@@ -98,6 +98,7 @@ enums:
       listProcedures: "listProcedures"
       alterUser: "alterUser"
       listBackup: "listBackup"
+      changeStream: "changeStream"
       # Sdb End
       # SdbDataSource Begin
       alterDataSource: "alterDataSource"
@@ -248,6 +249,7 @@ enums:
           - alterCL
           - testCL
           - analyze
+          - changeStream
 
       # resource: { cs:"exact", cl: "" }
       COLLECTION_SPACE:
@@ -1469,3 +1471,5 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [invalidateUserCache]
+
+    # CMD_NAME_WATCH requires special handling

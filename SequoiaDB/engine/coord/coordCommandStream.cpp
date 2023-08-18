@@ -74,6 +74,9 @@ namespace engine
       rtnCoordContextChangeStream::sharePtr pContext ;
       contextID = -1 ;
 
+      rc = _checkPrivileges( pMsg, cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc ) ;
+
       rc = rtnCB->contextNew( RTN_CONTEXT_COORD_CHANGE_STREAM, pContext, contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create coord change stream context, rc: %d", rc ) ;
 
@@ -93,4 +96,161 @@ namespace engine
       goto done ;
    }
 
-}
+   INT32 checkPrivilegesByWatchOptions( pmdEDUCB *cb, const BSONObj &options )
+   {
+      INT32 rc = SDB_OK;
+      BSONElement element;
+      authActionSet actions;
+      actions.addAction( ACTION_TYPE_changeStream );
+      actions.addAction( ACTION_TYPE_find );
+      BOOLEAN csSpecified = FALSE;
+      BOOLEAN clSpecified = FALSE;
+      for ( BSONObjIterator it( options ); it.more(); )
+      {
+         element = it.next();
+         const CHAR *fieldName = element.fieldName();
+
+         if ( 0 == ossStrcmp( fieldName, FIELD_NAME_COLLECTION_SPACES ) )
+         {
+            // get collection spaces
+            if ( Array == element.type() )
+            {
+               BSONObjIterator iter( element.embeddedObject() );
+               while ( iter.more() )
+               {
+                  BSONElement nameElement = iter.next();
+                  PD_LOG_MSG_CHECK( String == nameElement.type(), SDB_INVALIDARG, error, PDERROR,
+                                    "Failed to get string element from field [%s]",
+                                    FIELD_NAME_COLLECTION_SPACES );
+                  const CHAR *name = nameElement.valuestr();
+                  rc = dmsCheckCSName( name, TRUE );
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG_MSG( PDERROR,
+                                 "Failed to check collection space "
+                                 "name [%s], rc: %d",
+                                 name, rc );
+                     goto error;
+                  }
+                  csSpecified = TRUE;
+                  boost::shared_ptr< authResource > res = authResource::forCS( name );
+                  rc = cb->getSession()->checkPrivilegesForActionsOnResource( res, actions );
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+               }
+            }
+            else if ( String == element.type() )
+            {
+               const CHAR *name = element.valuestr();
+               rc = dmsCheckCSName( name, TRUE );
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG_MSG( PDERROR,
+                              "Failed to check collection space "
+                              "name [%s], rc: %d",
+                              name, rc );
+                  goto error;
+               }
+               csSpecified = TRUE;
+               boost::shared_ptr< authResource > res = authResource::forCS( name );
+               rc = cb->getSession()->checkPrivilegesForActionsOnResource( res, actions );
+               PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+            }
+            else if ( EOO != element.type() )
+            {
+               PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                                 "Failed to get field [%s], "
+                                 "it is not an array or a string",
+                                 FIELD_NAME_COLLECTION_SPACES );
+            }
+         }
+         else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_COLLECTIONS ) )
+         {
+            if ( Array == element.type() )
+            {
+               BSONObjIterator iter( element.embeddedObject() );
+               while ( iter.more() )
+               {
+                  BSONElement nameElement = iter.next();
+                  PD_LOG_MSG_CHECK( String == nameElement.type(), SDB_INVALIDARG, error, PDERROR,
+                                    "Failed to get string element from field [%s]",
+                                    FIELD_NAME_COLLECTIONS );
+                  const CHAR *name = nameElement.valuestr();
+                  rc = dmsCheckFullCLName( name, TRUE );
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG_MSG( PDERROR,
+                                 "Failed to check collection "
+                                 "name [%s], rc: %d",
+                                 name, rc );
+                     goto error;
+                  }
+                  clSpecified = TRUE;
+                  rc = cb->getSession()->checkPrivilegesForActionsOnExact( name, actions );
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+               }
+            }
+            else if ( String == element.type() )
+            {
+               const CHAR *name = element.valuestr();
+               rc = dmsCheckFullCLName( name, TRUE );
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG_MSG( PDERROR,
+                              "Failed to check collection "
+                              "name [%s], rc: %d",
+                              name, rc );
+                  goto error;
+               }
+               clSpecified = TRUE;
+               rc = cb->getSession()->checkPrivilegesForActionsOnExact( name, actions );
+               PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+            }
+            else if ( EOO != element.type() )
+            {
+               PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                                 "Failed to get field [%s], "
+                                 "it is not an array or a string",
+                                 FIELD_NAME_COLLECTIONS );
+            }
+         }
+      }
+      if ( !csSpecified && !clSpecified )
+      {
+         rc = cb->getSession()->checkPrivilegesForActionsOnResource( authResource::forNonSystem(),
+                                                                     actions );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDCMDWATCH_CHECKPRIVILEGES, "_coordCMDWatch::_checkPrivileges" )
+   INT32 _coordCMDWatch::_checkPrivileges( MsgHeader *pMsg, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+
+      if ( !cb->getSession()->privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      {
+         const CHAR *pQuery = NULL;
+         rc = rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &pQuery, NULL, NULL,
+                                    NULL );
+         PD_RC_CHECK( rc, PDERROR, "Failed to extract query, rc: %d", rc );
+         BSONObj options( pQuery );
+         rc = checkPrivilegesByWatchOptions( cb, options );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   
+} // namespace engine

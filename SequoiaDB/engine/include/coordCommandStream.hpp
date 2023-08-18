@@ -61,6 +61,8 @@ namespace engine
                              pmdEDUCB *cb,
                              INT64 &contextID,
                              rtnContextBuf *buf ) ;
+
+      INT32 _checkPrivileges( MsgHeader *pMsg, pmdEDUCB *cb ) ;
    } ;
 
    typedef class _coordCMDWatch coordCMDWatch ;

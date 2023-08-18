@@ -84,6 +84,9 @@ namespace engine
                           INT16 w = 1,
                           INT64 *pContextID = NULL ) ;
 
+   private:
+      INT32 _checkPrivileges( _pmdEDUCB *cb );
+
    protected:
       bson::BSONObj _boOptions ;
    } ;

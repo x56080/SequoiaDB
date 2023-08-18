@@ -112,6 +112,9 @@ namespace engine
 
       rtnContextChangeStream::sharePtr contextPtr ;
       INT64 contextID = -1 ;
+      
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc ) ;
 
       PD_CHECK( SDB_DB_REBUILDING != PMD_DB_STATUS(),
                 SDB_RTN_IN_REBUILD, error, PDERROR,
@@ -147,4 +150,22 @@ namespace engine
       goto done ;
    }
 
+   extern INT32 checkPrivilegesByWatchOptions( pmdEDUCB *cb, const BSONObj &options );
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDWATCH_CHECKPRIVILEGES, "_rtnCMDWatch::_checkPrivileges" )
+   INT32 _rtnCMDWatch::_checkPrivileges( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( !cb->getSession()->privilegeCheckEnabled() )
+      {
+         goto done;
+      }
+
+      rc = checkPrivilegesByWatchOptions( cb, _boOptions );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }
