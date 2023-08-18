@@ -1,7 +1,10 @@
 package com.sequoiadb.rbac;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -15,6 +18,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * @Description seqDB-32783:创建角色指定Resource为跨集合空间的同名集合
+ *              seqDB-32791:创建角色指定Resource为跨集合空间的同名集合，Action同时指定集合空间操作和集合操作
  * @Author liuli
  * @Date 2023.08.16
  * @UpdateAuthor liuli
@@ -78,9 +82,25 @@ public class Rbac32783 extends SdbTestBase {
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
                 "alterCL", "createIndex", "dropIndex", "truncate" };
         BSONObject role = null;
+
+        // 跨集合空间的同名集合，Actions同时指定集合空间操作和集合操作
+        String roleStr = "{Role:'" + roleName
+                + "',Privileges:[{Resource:{ cs:'',cl:'" + clName
+                + "'}, Actions: ['createCL'] }"
+                + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
+        System.out.println( "roleStr -- " + roleStr );
+        role = ( BSONObject ) JSON.parse( roleStr );
+        try {
+            sdb.createRole( role );
+            Assert.fail( "should error but success" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_INVALIDARG.getErrorCode() );
+        }
+
         for ( String action : actions ) {
             // 指定权限为跨集合空间的同名集合
-            String roleStr = "{Role:'" + roleName
+            roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ cs:'',cl:'" + clName
                     + "'}, Actions: ['" + action + "'] }"
                     + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";

@@ -3,7 +3,6 @@ package com.sequoiadb.rbac;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -18,22 +17,21 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32787:创建角色Resource指定为系统集合空间，Actions指定为集合操作
+ * @Description seqDB-32792:创建角色Resource指定为系统集合空间，Actions指定为集合空间操作
  * @Author liuli
- * @Date 2023.08.17
+ * @Date 2023.08.18
  * @UpdateAuthor liuli
- * @UpdateDate 2023.08.17
+ * @UpdateDate 2023.08.18
  * @version 1.10
  */
-public class Rbac32787 extends SdbTestBase {
+public class Rbac32792 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String rootUser = "sdbadmin_32787";
-    private String rootPasswd = "sdbadmin_32787";
-    private String user = "user_32787";
-    private String password = "passwd_32787";
-    private String roleName = "role_32787";
-    private String csName = "cs_32787";
-    private String clName = "cl_32787";
+    private String rootUser = "sdbadmin_32792";
+    private String rootPasswd = "sdbadmin_32792";
+    private String user = "user_32792";
+    private String password = "passwd_32792";
+    private String roleName = "role_32792";
+    private String clName = "cl_32792";
     private String srcGroupName;
 
     @BeforeClass
@@ -48,14 +46,6 @@ public class Rbac32787 extends SdbTestBase {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, rootUser, rootPasswd );
         List< String > groupsName = CommLib.getDataGroupNames( sdb );
         srcGroupName = groupsName.get( 0 );
-        if ( sdb.isCollectionSpaceExist( csName ) ) {
-            sdb.dropCollectionSpace( csName );
-        }
-
-        CollectionSpace cs = sdb.createCollectionSpace( csName );
-        DBCollection dbcl = cs.createCollection( clName,
-                new BasicBSONObject( "Groups", srcGroupName ) );
-        dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
     }
 
     @Test
@@ -65,17 +55,13 @@ public class Rbac32787 extends SdbTestBase {
         BSONObject role = null;
         // 需要具备testCS和testCL权限
         String roleStr = "{Role:'" + roleName
-                + "',Privileges:[{Resource:{ cs:'SYSSTAT',cl:''}, Actions: ['find','testCS','testCL'] }] }";
+                + "',Privileges:[{Resource:{ cs:'SYSSTAT',cl:''}, Actions: ['createCL','dropCL','testCS'] }] }";
         System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,
                 ( BSONObject ) JSON.parse( "{Roles:['" + roleName + "']}" ) );
         try {
-            // 获取访问计划
-            sdb.analyze( new BasicBSONObject( "Collection",
-                    csName + "." + clName ) );
-
             // 直连data节点获取系统集合
             Node dataNode = sdb.getReplicaGroup( srcGroupName ).getMaster();
 
@@ -83,50 +69,18 @@ public class Rbac32787 extends SdbTestBase {
                     dataNode.getPort(), user, password );
             CollectionSpace systemCS = userData.getCollectionSpace( "SYSSTAT" );
 
-            DBCollection systemIndexStat = systemCS
-                    .getCollection( "SYSINDEXSTAT" );
-            // 执行支持的操作
-            systemIndexStat.getCount();
-            DBCursor cursor = null;
-            cursor = systemIndexStat.query();
-            cursor.getNext();
-            cursor.close();
+            // 执行支持的支持的操作
+            systemCS.createCollection( clName );
+            systemCS.dropCollection( clName );
 
             // 执行不支持的操作
             try {
-                systemIndexStat.insertRecord( new BasicBSONObject( "a", 1 ) );
+                systemCS.getCollection( "SYSINDEXSTAT" );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
                         SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
             }
-
-            DBCollection systemCollectionStat = systemCS
-                    .getCollection( "SYSCOLLECTIONSTAT" );
-            // 执行支持的操作
-            systemCollectionStat.getCount();
-            cursor = systemCollectionStat.query();
-            cursor.getNext();
-            cursor.close();
-
-            // 执行不支持的操作
-            try {
-                systemCollectionStat
-                        .insertRecord( new BasicBSONObject( "a", 1 ) );
-                Assert.fail( "insertRecord should throw exception" );
-            } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-            }
-
-            try {
-                userData.getCollectionSpace( csName );
-                Assert.fail( "insertRecord should throw exception" );
-            } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-            }
-
             userData.close();
         } finally {
             sdb.removeUser( user, password );

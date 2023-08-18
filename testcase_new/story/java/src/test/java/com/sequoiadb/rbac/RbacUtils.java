@@ -1,9 +1,11 @@
 package com.sequoiadb.rbac;
 
+import java.util.List;
 import java.util.Random;
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BasicBSONObject;
 
 import com.sequoiadb.base.*;
@@ -384,6 +386,238 @@ public class RbacUtils {
                 Assert.assertEquals( e.getErrorCode(),
                         SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
             }
+        }
+    }
+
+    public static void alterCSActionSupportCommand( Sequoiadb sdb,
+            String csName, String clName, CollectionSpace dbcs,
+            boolean skipNotSupported ) {
+        List< String > groupsName = CommLib.getDataGroupNames( sdb );
+        // 执行权限支持的操作
+        String domainName1 = "domain_1_" + csName;
+        String domainName2 = "domain_2_" + csName;
+
+        if ( sdb.isDomainExist( domainName1 ) ) {
+            sdb.dropDomain( domainName1 );
+        }
+
+        if ( sdb.isDomainExist( domainName2 ) ) {
+            sdb.dropDomain( domainName2 );
+        }
+
+        sdb.createDomain( domainName1,
+                new BasicBSONObject( "Groups", groupsName ) );
+        sdb.createDomain( domainName2,
+                new BasicBSONObject( "Groups", groupsName ) );
+
+        dbcs.alterCollectionSpace(
+                new BasicBSONObject( "Domain", domainName1 ) );
+        dbcs.alterCollectionSpace(
+                new BasicBSONObject( "Domain", domainName2 ) );
+        dbcs.removeDomain();
+        dbcs.setDomain( new BasicBSONObject( "Domain", domainName1 ) );
+        dbcs.removeDomain();
+
+        DBCollection dbcl = dbcs.getCollection( clName );
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.dropCollection( clName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+
+        sdb.dropDomain( domainName1 );
+        sdb.dropDomain( domainName2 );
+    }
+
+    public static void createCLActionSupportCommand( Sequoiadb sdb,
+            String csName, String clName, CollectionSpace dbcs,
+            boolean skipNotSupported ) {
+        CollectionSpace rootCS = sdb.getCollectionSpace( csName );
+
+        // 执行权限支持的操作
+        String testCLName = clName + "test_create_cl";
+        dbcs.createCollection( testCLName );
+
+        DBCollection dbcl = dbcs.getCollection( testCLName );
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.dropCollection( testCLName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+
+        rootCS.dropCollection( testCLName );
+    }
+
+    public static void dropCLActionSupportCommand( Sequoiadb sdb, String csName,
+            String clName, CollectionSpace dbcs, boolean skipNotSupported ) {
+        String testCLName = clName + "test_create_cl";
+        CollectionSpace rootCS = sdb.getCollectionSpace( csName );
+        rootCS.createCollection( testCLName );
+
+        // 执行权限支持的操作
+        dbcs.dropCollection( testCLName );
+
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.createCollection( testCLName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+    }
+
+    public static void renameCLActionSupportCommand( Sequoiadb sdb,
+            String csName, String clName, CollectionSpace dbcs,
+            boolean skipNotSupported ) {
+        String testCLName = clName + "test_create_cl";
+        String testCLNameNew = clName + "test_create_cl_new";
+        CollectionSpace rootCS = sdb.getCollectionSpace( csName );
+        rootCS.createCollection( testCLName );
+
+        // 执行权限支持的操作
+        dbcs.renameCollection( testCLName, testCLNameNew );
+
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.createCollection( testCLName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                dbcs.createCollection( testCLNameNew );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+
+        rootCS.dropCollection( testCLNameNew );
+    }
+
+    public static void findActionSupportCommand( Sequoiadb sdb, String csName,
+            String clName, CollectionSpace dbcs, boolean skipNotSupported ) {
+        List< String > groupsName = CommLib.getDataGroupNames( sdb );
+        String domainName = "domain_" + csName;
+        if ( sdb.isDomainExist( domainName ) ) {
+            sdb.dropDomain( domainName );
+        }
+
+        sdb.createDomain( domainName,
+                new BasicBSONObject( "Groups", groupsName ) );
+
+        CollectionSpace rootCS = sdb.getCollectionSpace( csName );
+        rootCS.setDomain( new BasicBSONObject( "Domain", domainName ) );
+
+        // 执行权限支持的操作
+        dbcs.getDomainName();
+
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.removeDomain();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                dbcs.dropCollection( clName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+
+        rootCS.removeDomain();
+        sdb.dropDomain( domainName );
+    }
+
+    public static void getDetailActionSupportCommand( Sequoiadb sdb,
+            String csName, String clName, CollectionSpace dbcs,
+            boolean skipNotSupported ) {
+        List< String > groupsName = CommLib.getDataGroupNames( sdb );
+        String domainName = "domain_" + csName;
+        if ( sdb.isDomainExist( domainName ) ) {
+            sdb.dropDomain( domainName );
+        }
+
+        sdb.createDomain( domainName,
+                new BasicBSONObject( "Groups", groupsName ) );
+
+        CollectionSpace rootCS = sdb.getCollectionSpace( csName );
+        rootCS.setDomain( new BasicBSONObject( "Domain", domainName ) );
+
+        // 执行权限支持的操作
+        dbcs.getDomainName();
+        String domain = dbcs.getDomainName();
+        System.out.println( "domain -- "+domain );
+//        List< String > test = dbcs.getCollectionNames();
+
+        // 执行部分不支持的操作
+        if ( skipNotSupported ) {
+            try {
+                dbcs.removeDomain();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                dbcs.dropCollection( clName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+        }
+
+        rootCS.removeDomain();
+        sdb.dropDomain( domainName );
+    }
+
+    public static void checkRolesToRole( Sequoiadb sdb, String roleName ) {
+        try {
+            sdb.dropRole( roleName );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
         }
     }
 

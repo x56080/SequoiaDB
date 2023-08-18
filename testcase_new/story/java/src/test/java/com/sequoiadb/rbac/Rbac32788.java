@@ -34,7 +34,8 @@ public class Rbac32788 extends SdbTestBase {
     private String password = "passwd_32788";
     private String roleName = "role_32788";
     private String csName = "cs_32788";
-    private String clName = "cl_32788";
+    private String clName1 = "cl_32788_1";
+    private String clName2 = "cl_32788_2";
 
     @BeforeClass
     public void setUp() {
@@ -51,10 +52,11 @@ public class Rbac32788 extends SdbTestBase {
         }
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
-        cs.createCollection( clName );
+        cs.createCollection( clName1 );
+        cs.createCollection( clName2 );
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         testAccessControl( sdb );
         testTestCLAction( sdb );
@@ -73,68 +75,116 @@ public class Rbac32788 extends SdbTestBase {
     }
 
     private void testAccessControl( Sequoiadb sdb ) {
+        RbacUtils.dropRole( sdb, roleName );
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
-                "alterCL", "createIndex", "dropIndex", "truncate","alterCS",
-                "createCL","dropCL","renameCL","listCollections"};
+                "alterCL", "createIndex", "dropIndex", "truncate", "alterCS",
+                "createCL", "dropCL", "renameCL", "listCollections" };
         BSONObject role = null;
         for ( String action : actions ) {
-            Sequoiadb userSdb = null;
-            try {
-                // 需要具备testCS和testCL权限
-                String roleStr = "{Role:'" + roleName
-                        + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
-                        + clName + "'}, Actions: ['" + action + "'] }"
-                        + ",{ Resource: { cs: '" + csName
-                        + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
-                role = ( BSONObject ) JSON.parse( roleStr );
-                sdb.createRole( role );
-                sdb.createUser( user, password, ( BSONObject ) JSON
-                        .parse( "{Roles:['" + roleName + "']}" ) );
-                userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
-                DBCollection userCL = userSdb.getCollectionSpace( csName )
-                        .getCollection( clName );
+
+            // 需要具备testCS和testCL权限
+            String roleStr = "{Role:'" + roleName
+                    + "',Privileges:[{Resource:{ cs:'" + csName
+                    + "',cl:''}, Actions: ['" + action + "'] }"
+                    + ",{ Resource: { cs: '" + csName
+                    + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
+            System.out.println( "roleStr -- " + roleStr );
+            role = ( BSONObject ) JSON.parse( roleStr );
+            sdb.createRole( role );
+            sdb.createUser( user, password, ( BSONObject ) JSON
+                    .parse( "{Roles:['" + roleName + "']}" ) );
+            try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
+                    password )) {
+                CollectionSpace userCS = userSdb.getCollectionSpace( csName );
+                DBCollection userCL1 = userCS.getCollection( clName1 );
+                DBCollection userCL2 = userCS.getCollection( clName2 );
                 switch ( action ) {
                 case "find":
-                    RbacUtils.findActionSupportCommand( sdb, csName, clName,
-                            userCL, true );
+                    RbacUtils.findActionSupportCommand( sdb, csName, clName1,
+                            userCL1, true );
+                    RbacUtils.findActionSupportCommand( sdb, csName, clName2,
+                            userCL2, true );
+                    RbacUtils.findActionSupportCommand( sdb, csName, clName1,
+                            userCS, true );
                     break;
                 case "insert":
-                    RbacUtils.insertActionSupportCommand( sdb, csName, clName,
-                            userCL, true );
+                    RbacUtils.insertActionSupportCommand( sdb, csName, clName1,
+                            userCL1, true );
+                    RbacUtils.insertActionSupportCommand( sdb, csName, clName2,
+                            userCL2, true );
                     break;
                 case "update":
-                    RbacUtils.updateActionSupportCommand( sdb, csName, clName,
-                            userCL, true );
+                    RbacUtils.updateActionSupportCommand( sdb, csName, clName1,
+                            userCL1, true );
+                    RbacUtils.updateActionSupportCommand( sdb, csName, clName2,
+                            userCL2, true );
                     break;
                 case "remove":
-                    RbacUtils.removeActionSupportCommand( sdb, csName, clName,
-                            userCL, true );
+                    RbacUtils.removeActionSupportCommand( sdb, csName, clName1,
+                            userCL1, true );
                     break;
                 case "getDetail":
                     RbacUtils.getDetailActionSupportCommand( sdb, csName,
-                            clName, userCL, true );
+                            clName1, userCL1, true );
+                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                            clName2, userCL2, true );
+                    // java驱动端没有额外的接口，只能通过命令行验证
+                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                            clName1, userCS, true );
                     break;
                 case "alterCL":
-                    RbacUtils.alterCLActionSupportCommand( sdb, csName, clName,
-                            userCL, true );
+                    RbacUtils.alterCLActionSupportCommand( sdb, csName, clName1,
+                            userCL1, true );
+                    RbacUtils.alterCLActionSupportCommand( sdb, csName, clName2,
+                            userCL2, true );
                     break;
                 case "createIndex":
                     RbacUtils.createIndexActionSupportCommand( sdb, csName,
-                            clName, userCL, true );
+                            clName1, userCL1, true );
+                    RbacUtils.createIndexActionSupportCommand( sdb, csName,
+                            clName2, userCL2, true );
                     break;
                 case "dropIndex":
                     RbacUtils.dropIndexActionSupportCommand( sdb, csName,
-                            clName, userCL, true );
+                            clName1, userCL1, true );
+                    RbacUtils.dropIndexActionSupportCommand( sdb, csName,
+                            clName2, userCL2, true );
                     break;
                 case "truncate":
-                    userCL.truncate();
+                    userCL2.truncate();
+                    break;
+                case "alterCS":
+                    RbacUtils.alterCSActionSupportCommand( sdb, csName, clName1,
+                            userCS, true );
+                    break;
+                case "createCL":
+                    RbacUtils.createCLActionSupportCommand( sdb, csName,
+                            clName1, userCS, true );
+                    break;
+                case "dropCL":
+                    RbacUtils.dropCLActionSupportCommand( sdb, csName, clName1,
+                            userCS, true );
+                    break;
+                case "renameCL":
+                    RbacUtils.renameCLActionSupportCommand( sdb, csName,
+                            clName1, userCS, true );
+                    break;
+                case "listCollections":
+                    // java驱动不支持listCollections命令
                     break;
                 default:
                     break;
                 }
+
+                // 使用userSdb执行不支持的命令
+                try {
+                    userSdb.beginTransaction();
+                    Assert.fail( "should error but success" );
+                } catch ( BaseException e ) {
+                    Assert.assertEquals( e.getErrorCode(),
+                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                }
             } finally {
-                userSdb.close();
                 sdb.removeUser( user, password );
                 sdb.dropRole( roleName );
             }
@@ -142,26 +192,22 @@ public class Rbac32788 extends SdbTestBase {
     }
 
     private void testTestCLAction( Sequoiadb sdb ) {
-        String action = "testCL";
+        String action = "testCS";
         BSONObject role = null;
         String roleStr = "{Role:'" + roleName + "',Privileges:[{Resource:{ cs:'"
-                + csName + "',cl:'" + clName + "'}, Actions: ['" + action
-                + "'] }" + ",{ Resource: { cs: '" + csName
-                + "', cl: '' }, Actions: ['testCS'] }] }";
+                + csName + "',cl:''}, Actions: ['" + action + "'] }] }";
         System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,
                 ( BSONObject ) JSON.parse( "{Roles:['" + roleName + "']}" ) );
-        Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
-                password );
-        try {
+        try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
+                password )) {
             // 支持testCL权限
             CollectionSpace userCS = userSdb.getCollectionSpace( csName );
-            DBCollection userCL = userCS.getCollection( clName );
 
             try {
-                userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
+                userCS.dropCollection( clName1 );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
@@ -180,7 +226,6 @@ public class Rbac32788 extends SdbTestBase {
                         SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
             }
         } finally {
-            userSdb.close();
             sdb.removeUser( user, password );
             sdb.dropRole( roleName );
         }

@@ -16,24 +16,24 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32781:角色Resource指定为集合，重命名集合
- *              seqDB-32782:角色Resource指定为集合，重建集合
+ * @Description seqDB-32789:角色Resource指定为集合空间，重命名集合空间
+ *              seqDB-32790:角色Resource指定为集合，重建集合空间
  * @Author liuli
- * @Date 2023.08.16
+ * @Date 2023.08.18
  * @UpdateAuthor liuli
- * @UpdateDate 2023.08.16
+ * @UpdateDate 2023.08.18
  * @version 1.10
  */
-public class Rbac32781 extends SdbTestBase {
+public class Rbac32789 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String rootUser = "sdbadmin_32781";
-    private String rootPasswd = "sdbadmin_32781";
-    private String user = "user_32781";
-    private String password = "passwd_32781";
-    private String roleName = "role_32781";
-    private String csName = "cs_32781";
-    private String clName = "cl_32781";
-    private String clNameNew = "cl_new_32781";
+    private String rootUser = "sdbadmin_32789";
+    private String rootPasswd = "sdbadmin_32789";
+    private String user = "user_32789";
+    private String password = "passwd_32789";
+    private String roleName = "role_32789";
+    private String csName = "cs_32789";
+    private String csNameNew = "cs_new_32789";
+    private String clName = "cl_32789";
 
     @BeforeClass
     public void setUp() {
@@ -73,7 +73,6 @@ public class Rbac32781 extends SdbTestBase {
     private void testAccessControl( Sequoiadb sdb ) {
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
                 "alterCL", "createIndex", "dropIndex", "truncate" };
-        CollectionSpace dbcs = sdb.getCollectionSpace( csName );
         BSONObject role = null;
         for ( String action : actions ) {
             Sequoiadb userSdb = null;
@@ -91,118 +90,21 @@ public class Rbac32781 extends SdbTestBase {
                         .parse( "{Roles:['" + roleName + "']}" ) );
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
 
-                // 重命名集合
-                dbcs.renameCollection( clName, clNameNew );
-                DBCollection rootCL = dbcs.getCollection( clNameNew );
-                DBCollection userCL = userSdb.getCollectionSpace( csName )
-                        .getCollection( clNameNew );
-                switch ( action ) {
-                case "find":
-                    System.out.println( "!action find" );
-                    try {
-                        userCL.queryOne();
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "insert":
-                    System.out.println( "!action insert" );
-                    try {
-                        userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "update":
-                    System.out.println( "!action update" );
-                    try {
-                        userCL.updateRecords( new BasicBSONObject( "a", 1 ),
-                                new BasicBSONObject( "$set",
-                                        new BasicBSONObject( "a", 2 ) ) );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "remove":
-                    System.out.println( "!action remove" );
-                    try {
-                        userCL.deleteRecords( new BasicBSONObject( "a", 2 ) );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "getDetail":
-                    try {
-                        userCL.queryOne();
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "alterCL":
-                    System.out.println( "!action alterCL" );
-                    try {
-                        userCL.alterCollection(
-                                new BasicBSONObject( "ReplSize", -1 ) );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "createIndex":
-                    System.out.println( "!action createIndex" );
-                    try {
-                        String indexName = "index_" + clName;
-                        userCL.createIndex( indexName,
-                                new BasicBSONObject( "a", 1 ), null );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                case "dropIndex":
-                    System.out.println( "!action dropIndex" );
-                    String indexName = "index_" + clName;
-                    rootCL.createIndex( indexName,
-                            new BasicBSONObject( "a", 1 ), null );
-                    try {
-                        userCL.dropIndex( indexName );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    } finally {
-                        rootCL.dropIndex( indexName );
-                    }
-                    break;
-                case "truncate":
-                    System.out.println( "!action truncate" );
-                    try {
-                        userCL.truncate();
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-                    }
-                    break;
-                default:
-                    break;
+                // 重命名集合空间
+                sdb.renameCollectionSpace( csName, csNameNew );
+
+                // 没有权限获取新的集合空间
+                try {
+                    userSdb.getCollectionSpace( csNameNew );
+                    Assert.fail( "should error but success" );
+                } catch ( BaseException e ) {
+                    Assert.assertEquals( e.getErrorCode(),
+                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
                 }
 
                 // 再次重命名回原始名称
-                dbcs.renameCollection( clNameNew, clName );
-                userCL = userSdb.getCollectionSpace( csName )
+                sdb.renameCollectionSpace( csNameNew, csName );
+                DBCollection userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 switch ( action ) {
                 case "find":
@@ -244,9 +146,9 @@ public class Rbac32781 extends SdbTestBase {
                     break;
                 }
 
-                // 删除集合后重建同名集合
-                dbcs.dropCollection( clName );
-                dbcs.createCollection( clName );
+                // 删除集合空间后重建同名集合空间
+                sdb.dropCollectionSpace( csName );
+                sdb.createCollectionSpace( csName ).createCollection( clName );
                 userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 switch ( action ) {
