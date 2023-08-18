@@ -4041,6 +4041,11 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCountCommand)
+_mongoCountCommand::_mongoCountCommand()
+{
+   _count =  0 ;
+}
+
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTBUILDSDBREQ, "_mongoCountCommand::buildSdbRequest" )
 INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                            mongoSessionCtx &ctx,
@@ -4157,6 +4162,42 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTPARSESDBREPLY, "_mongoCountCommand::parseSdbReply" )
+INT32 _mongoCountCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                         engine::rtnContextBuf &bodyBuf )
+{
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTPARSESDBREPLY ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObj resObj( bodyBuf.data() ) ;
+         BSONElement ele = resObj.getField( FIELD_NAME_TOTAL ) ;
+         _count = ele.numberLong() ;
+      }
+      else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         _count = 0 ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing sdb count reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COUNTPARSESDBREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTBUILDMONGOREPLY, "_mongoCountCommand::buildMongoReply" )
 INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                            engine::rtnContextBuf &bodyBuf,
@@ -4167,21 +4208,13 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    try
    {
-      if ( SDB_OK == sdbReply.flags )
-      {
-         // reply: { n: 1, ok: 1 }
-         BSONObj resObj( bodyBuf.data() ) ;
-         BSONObjBuilder bob ;
-         bob.append( "n", resObj.getIntField( "Total" ) ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
-      }
-      else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-                SDB_DMS_NOTEXIST == sdbReply.flags )
+      if ( SDB_OK == sdbReply.flags ||
+           SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
       {
          BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_N, _count ) ;
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-         bob.append( "n", 0 ) ;
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
          /// clear error
          headerBuf.setOK() ;

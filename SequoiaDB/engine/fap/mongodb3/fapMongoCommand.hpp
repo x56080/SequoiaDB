@@ -622,7 +622,7 @@ class _mongoCountCommand : public _mongoCollectionCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoCountCommand() {}
+      _mongoCountCommand() ;
       virtual ~_mongoCountCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_COUNT ; }
@@ -633,9 +633,15 @@ class _mongoCountCommand : public _mongoCollectionCommand
                                      mongoSessionCtx &ctx,
                                      BOOLEAN &getMoreAll ) ;
 
+      virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
+                                   engine::rtnContextBuf &bodyBuf ) ;
+
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
+
+   private:
+      INT64 _count ;
 } ;
 typedef _mongoCountCommand mongoCountCommand ;
 
