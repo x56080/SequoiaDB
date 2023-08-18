@@ -194,6 +194,10 @@ namespace engine
             typename DATA_TYPE::iterator destIter = _data.find( *it );
             if ( destIter == _data.end() )
             {
+               for ( UINT32 i = 0; i < pushCount; ++i )
+               {
+                  l.pop_back();
+               }
                return std::make_pair( UTIL_DAG_EDGES_RET_DEST_NOT_FOUND, *it );
             }
 
