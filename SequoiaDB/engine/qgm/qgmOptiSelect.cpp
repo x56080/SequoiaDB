@@ -1187,16 +1187,11 @@ namespace engine
            0 == ossStrncmp( CMD_ADMIN_PREFIX, _collection.value.attr().begin(),
                             ossStrlen( CMD_ADMIN_PREFIX ) ) )
       {
-         rc = session->checkPrivilegesForCmd( _collection.value.attr().begin() + 1, NULL, NULL,
+         ossPoolString cmdName = _collection.value.toString();
+         rc = session->checkPrivilegesForCmd( cmdName.c_str() + 1, NULL, NULL,
                                               NULL, NULL );
-         if ( SDB_NO_PRIVILEGES == rc )
-         {
-            PD_LOG_MSG( PDERROR, "No privilege to execute command: %s",
-                        _collection.value.attr().begin() + 1 );
-            goto error;
-         }
          PD_RC_CHECK( rc, PDERROR, "Failed to check privileges for command: %s",
-                      _collection.value.attr().begin() + 1 );
+                      cmdName.c_str() + 1 );
       }
       else
       {

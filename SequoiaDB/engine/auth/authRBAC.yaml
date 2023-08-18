@@ -1281,6 +1281,7 @@ CMD_PRIVILEGE_MAP:
     CMD_NAME_LIST_SPACE_INTR:
       - resource: CLUSTER
         actionSets:
+          - [listCollectionSpaces]
           - [list]
               
     CMD_NAME_LIST_CONTEXT_INTR:

@@ -121,16 +121,10 @@ namespace engine
          else if ( SQL_GRAMMAR::LISTCL == _commandType )
          {
             r = authResource::forCluster();
-            authActionSet actions1;
-            actions1.addAction( ACTION_TYPE_list );
-            boost::shared_ptr<authResource> r2 = authResource::forCS( _fullName.relegation().toString() );
-            authActionSet actions21;
-            actions21.addAction( ACTION_TYPE_find );
-            authActionSet actions22;
-            actions22.addAction( ACTION_TYPE_listCollections );
-            if ( !acl->isAuthorizedForActionsOnResource( *r, actions1 ) &&
-                 !acl->isAuthorizedForActionsOnResource( *r2, actions21 ) &&
-                 !acl->isAuthorizedForActionsOnResource( *r2, actions22 ) )
+            authActionSet actions;
+            actions.addAction( ACTION_TYPE_list );
+            
+            if ( !acl->isAuthorizedForActionsOnResource( *r, actions ) )
             {
                rc = SDB_NO_PRIVILEGES;
                PD_LOG_MSG( PDERROR, "No privilege to execute command: %s", toPoolString().c_str() );
