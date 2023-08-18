@@ -396,8 +396,11 @@ namespace engine
                PD_LOG( PDERROR, "Invalid argument" );
                goto error;
             }
-            if ( ossStrncmp( gtEle.valuestr(), ltEle.valuestr(), len - 1 ) )
+            if ( 0 == ossStrncmp( gtEle.valuestr(), ltEle.valuestr(), len - 1 ) )
             {
+               boost::shared_ptr< const authAccessControlList > acl;
+               rc = session->getACL( acl );
+               PD_RC_CHECK( rc, PDERROR, "Failed to get acl" );
                ossPoolString csName( gtEle.valuestr(), len - 1 );
                boost::shared_ptr< authResource > res = authResource::forCS( csName );
                if ( !res )
@@ -407,63 +410,30 @@ namespace engine
                   goto error;
                }
                authActionSet actions1;
-               actions1.addAction( ACTION_TYPE_listCollections );
+               actions1.addAction( ACTION_TYPE_find );
                authActionSet actions2;
-               actions2.addAction( ACTION_TYPE_find );
+               actions2.addAction( ACTION_TYPE_getDetail );
                authActionSet actions3;
-               actions3.addAction( ACTION_TYPE_getDetail );
+               actions3.addAction( ACTION_TYPE_listCollections );
                authActionSet actions4;
                actions3.addAction( ACTION_TYPE_list );
 
-               rc = session->checkPrivilegesForActionsOnResource( res, actions1 );
-               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
+               if ( !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
+                    !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
+                    !acl->isAuthorizedForActionsOnResource( *res, actions3 ) &&
+                    !acl->isAuthorizedForActionsOnResource( *authResource::forCluster(),
+                                                            actions4 ) )
                {
-                  PD_LOG( PDERROR, "Failed to check privileges" );
+                  rc = SDB_NO_PRIVILEGES;
+                  PD_LOG_MSG( PDERROR,
+                              "No privilege to execute command: %s, need at least one in actions "
+                              "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
+                              getName(), authActionTypeSerializer( ACTION_TYPE_find ),
+                              authActionTypeSerializer( ACTION_TYPE_getDetail ),
+                              authActionTypeSerializer( ACTION_TYPE_listCollections ),
+                              csName.c_str(), authActionTypeSerializer( ACTION_TYPE_list ) );
                   goto error;
                }
-               else if ( SDB_OK == rc )
-               {
-                  goto done;
-               }
-               rc = session->checkPrivilegesForActionsOnResource( res, actions2 );
-               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "Failed to check privileges" );
-                  goto error;
-               }
-               else if ( SDB_OK == rc )
-               {
-                  goto done;
-               }
-               rc = session->checkPrivilegesForActionsOnResource( res, actions3 );
-               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "Failed to check privileges" );
-                  goto error;
-               }
-               else if ( SDB_OK == rc )
-               {
-                  goto done;
-               }
-               rc = session->checkPrivilegesForActionsOnCluster( actions4 );
-               if ( SDB_NO_PRIVILEGES != rc && SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "Failed to check privileges" );
-                  goto error;
-               }
-               else if ( SDB_OK == rc )
-               {
-                  goto done;
-               }
-               rc = SDB_NO_PRIVILEGES;
-               PD_LOG_MSG( PDERROR,
-                           "No privilege to execute command: %s, need at least one in actions "
-                           "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
-                           getName(), authActionTypeSerializer( ACTION_TYPE_listCollections ),
-                           authActionTypeSerializer( ACTION_TYPE_find ),
-                           authActionTypeSerializer( ACTION_TYPE_getDetail ), csName.c_str(),
-                           authActionTypeSerializer( ACTION_TYPE_list ) );
-               goto error;
             }
          }
       }
