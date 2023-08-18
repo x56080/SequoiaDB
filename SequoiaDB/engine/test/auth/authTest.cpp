@@ -214,6 +214,25 @@ namespace engine
                                      boost::make_shared< ossPoolString >( "a" ) ) );
    }
 
+   TEST( util_dag, base_add_edges )
+   {
+      using namespace boost;
+      utilDAG< ossPoolString > dag;
+      ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "a" ) ) );
+      ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "b" ) ) );
+      ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "c" ) ) );
+      ossPoolVector<boost::shared_ptr<ossPoolString>> dests;
+      dests.push_back( boost::make_shared< ossPoolString >( "b" ) );
+      dests.push_back( boost::make_shared< ossPoolString >( "c" ) );
+      dests.push_back( boost::make_shared< ossPoolString >( "d" ) );
+      ASSERT_EQ( UTIL_DAG_EDGES_RET_DEST_NOT_FOUND,
+                 dag.addEdges( boost::make_shared< ossPoolString >( "a" ), dests ).first );
+      ossPoolVector< boost::shared_ptr< ossPoolString > > v;
+      dag.dfs( boost::make_shared< ossPoolString >( "a" ), TRUE, v );
+      ASSERT_EQ( 1u, v.size() );
+      ASSERT_EQ( "a", *v[0] );
+   }
+
    TEST( util_dag, base_topo_sort )
    {
       utilDAG< ossPoolString > dag;
