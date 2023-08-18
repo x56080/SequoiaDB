@@ -21,15 +21,13 @@ using namespace import ;
 int thread1Continue = 0 ;
 int thread2Continue = 0 ;
 
-void wait_ctrl( int *control )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
+void wait_ctrl( INT32 *control, INT32 timeout = 60 )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
 {
    clock_t start,end ;
-   start = time( NULL ) ;
    do
    {
       sleep(1);
-      end = time( NULL ) ;
-   }while( *control == 0 || difftime(end,start)>60 );
+   }while( *control == 0 && timeout-- > 0 );
 }
 
 class snapshot25411 : public testBase
@@ -129,11 +127,13 @@ void func_thread ( ThreadArg* arg )
    {
       thread1Continue = 1;
       wait_ctrl( &thread2Continue ) ;
+      ASSERT_NE( thread2Continue, 0 ) << "thread2 timeout, exited!" ;
    }
    else 
    {
       thread2Continue = 1;
       wait_ctrl( &thread1Continue ) ;
+      ASSERT_NE( thread1Continue, 0 ) << "thread1 timeout, exited!" ;
    }
    rc = sdbDelete( cl, &cond, NULL ) ;
    if ( (rc != SDB_OK) && (rc!= -13) )
