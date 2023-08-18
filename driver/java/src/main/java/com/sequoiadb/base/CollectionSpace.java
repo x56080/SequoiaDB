@@ -128,16 +128,22 @@ public class CollectionSpace {
      * @throws BaseException If error happens.
      */
     public List<String> getCollectionNames() throws BaseException {
-        List<String> collectionNames = new ArrayList<String>();
-        List<String> colNames = sequoiadb.getCollectionNames();
-        if ((colNames != null) && (colNames.size() != 0)) {
-            for (String col : colNames) {
-                if (col.startsWith(name + ".")) {
-                    collectionNames.add(col);
-                }
+        ArrayList<String> colList = new ArrayList<>();
+
+        BSONObject condition = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+
+        subObj.put("$gt", name + ".");
+        subObj.put("$lt", name + "/");
+
+        condition.put(SdbConstants.FIELD_NAME_NAME, subObj);
+
+        try(DBCursor cursor = sequoiadb.getList(Sequoiadb.SDB_LIST_COLLECTIONS, condition, null, null)) {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().get("Name").toString());
             }
         }
-        return collectionNames;
+        return colList;
     }
 
     /**
