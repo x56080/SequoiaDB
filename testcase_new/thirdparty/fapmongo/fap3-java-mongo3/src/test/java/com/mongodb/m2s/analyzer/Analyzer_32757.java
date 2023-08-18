@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 
 /**
  * @Descreption seqDB-32757:存在collation不为null的集合，分析收集的集合信息文件
- * @Author      chenzejia
+ * @Author chenzejia
  * @CreateDate
  * @UpdateUser
  * @UpdateDate 2023/8/15
@@ -40,17 +40,17 @@ public class Analyzer_32757 extends M2STestBase {
     @Test
     public void test() throws Exception {
         MongoDatabase database = mongoClient.getDatabase( db_32757 );
-        String commcoll = "commColl";
+        String commColl = "commColl";
         String collationColl = "collationColl";
-        if ( CommLib.collectionExist( database, commcoll ) ) {
-            database.getCollection( commcoll ).drop();
+        if ( CommLib.collectionExist( database, commColl ) ) {
+            database.getCollection( commColl ).drop();
         }
         if ( CommLib.collectionExist( database, collationColl ) ) {
             database.getCollection( collationColl ).drop();
         }
-        database.createCollection( commcoll );
+        database.createCollection( commColl );
         for ( int i = 0; i < 100; i++ ) {
-            database.getCollection( commcoll )
+            database.getCollection( commColl )
                     .insertOne( new Document( "name", "test" + i ) );
         }
         CreateCollectionOptions options = new CreateCollectionOptions();
@@ -69,21 +69,20 @@ public class Analyzer_32757 extends M2STestBase {
         }
 
         // 收集集合信息
-        CommLib.collectCollection( ssh, collectorUri, collectorOutputPath );
+        CommLib.collectCollection( ssh, collectSample );
 
         // 分析集合信息
-        String collectionjsonPath = collectorOutputPath + "collection.json";
-        CommLib.analyzeCollection( ssh, collectionjsonPath, analyzerUri,
-                analyzerOutputPath, sdbVersion );
+        String collectionJsonPath = collectorOutputPath + "collection.json";
+        CommLib.analyzeCollection( ssh, collectionJsonPath );
 
         // 分析结果校验
         ssh.exec( "cat " + analyzerOutputPath + "collection.json" );
-        // collaton不为null的集合，incompatible字段中包含collation
+        // collation不为null的集合，incompatible字段中包含collation
         JSONArray collections = JSONObject.parseArray( ssh.getStdout() );
         for ( int i = 0; i < collections.size(); i++ ) {
             JSONObject collection = collections.getJSONObject( i );
             if ( collection.getString( "collection" )
-                    .equals( db_32757 + "." + commcoll ) ) {
+                    .equals( db_32757 + "." + commColl ) ) {
                 Assert.assertNull( collection.get( "collation" ) );
                 Assert.assertEquals( collection.get( "incompatible" ), null );
             }

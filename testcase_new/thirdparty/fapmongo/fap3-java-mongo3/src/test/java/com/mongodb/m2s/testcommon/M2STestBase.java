@@ -1,7 +1,7 @@
 package com.mongodb.m2s.testcommon;
 
 /**
- * @Descreption
+ * @Descreption m2s测试参数配置类
  * @Author
  * @CreateDate
  * @UpdateUser
@@ -10,103 +10,47 @@ package com.mongodb.m2s.testcommon;
  * @Version
  */
 public class M2STestBase {
-    public static String mongodbUri = "mongodb://192.168.17.196:27017";
-    public static String collectorUri = "/opt/test/m2s/build/m2s_1.0.0_linux_x86_64/m2s-collector/m2s-collector";
-    public static String collectorOutputPath = "/tmp/collector_output/";
-    public static String analyzerUri = "/opt/test/m2s/build/m2s_1.0.0_linux_x86_64/m2s-analyzer/m2s-analyzer";
-    public static String analyzerOutputPath = "/tmp/analyzer_output/";
-    public static String snifferUri = "/opt/test/m2s/build/m2s_1.0.0_linux_x86_64/m2s-sniffer/m2s-sniffer";
-    public static String snifferOutputPath = "/tmp/sniffer_output/";
+
+    // mongodb服务地址
+    public static String mongodbUri = "mongodb://192.168.17.196:27500";
+    // 工具根路径
+    public static String toolRootPath = "/opt/test/m2s/build/m2s_1.0.0_linux_x86_64/";
+    // 输出报告根路径
+    public static String m2sTestPath = "/tmp/";
+
+    // collector收集工具
+    // 工具路径
+    public static String collectorPath = toolRootPath
+            + "m2s-collector/m2s-collector";
+    // 收集文件输出路径
+    public static String collectorOutputPath = m2sTestPath
+            + "collector_output/";
+    // 采样数量
+    public static int collectSample = 100;
+
+    // sniffer捕获工具
+    // 工具路径
+    public static String snifferPath = toolRootPath
+            + "m2s-sniffer/bin/m2s-sniffer";
+    // 监听端口(对应工具启动的-l参数)
+    public static String snifferListenPort = "30000";
+    // sniffer监听地址(对应工具启动的-m参数)
+    public static String snifferAddr = "192.168.17.19:27500";
+    // sniffer报告输出路径
+    public static String snifferOutputPath = m2sTestPath + "sniffer_output/";
+
+    // analyzer分析工具
+    // 工具路径
+    public static String analyzerPath = toolRootPath
+            + "m2s-analyzer/m2s-analyzer";
+    // 分析文件输出路径
+    public static String analyzerOutputPath = m2sTestPath + "analyzer_output/";
+    // 分析兼容性的sequoiadb版本
     public static String sdbVersion = "7.0.0";
+
+    // SSH工具连接信息
     public static String remoteHost = "192.168.17.196";
     public static String remoteUser = "root";
     public static String remotePwd = "sequoiadb";
 
-    public static String getMongodbUri() {
-        return mongodbUri;
-    }
-
-    public static void setMongodbUri(String mongodbUri) {
-        M2STestBase.mongodbUri = mongodbUri;
-    }
-
-    public static String getCollectorUri() {
-        return collectorUri;
-    }
-
-    public static void setCollectorUri(String collectorUri) {
-        M2STestBase.collectorUri = collectorUri;
-    }
-
-    public static String getCollectorOutputPath() {
-        return collectorOutputPath;
-    }
-
-    public static void setCollectorOutputPath(String collectorOutputPath) {
-        M2STestBase.collectorOutputPath = collectorOutputPath;
-    }
-
-    public static String getAnalyzerUri() {
-        return analyzerUri;
-    }
-
-    public static void setAnalyzerUri(String analyzerUri) {
-        M2STestBase.analyzerUri = analyzerUri;
-    }
-
-    public static String getAnalyzerOutputPath() {
-        return analyzerOutputPath;
-    }
-
-    public static void setAnalyzerOutputPath(String analyzerOutputPath) {
-        M2STestBase.analyzerOutputPath = analyzerOutputPath;
-    }
-
-    public static String getSnifferUri() {
-        return snifferUri;
-    }
-
-    public static void setSnifferUri(String snifferUri) {
-        M2STestBase.snifferUri = snifferUri;
-    }
-
-    public static String getSnifferOutputPath() {
-        return snifferOutputPath;
-    }
-
-    public static void setSnifferOutputPath(String snifferOutputPath) {
-        M2STestBase.snifferOutputPath = snifferOutputPath;
-    }
-
-    public static String getSdbVersion() {
-        return sdbVersion;
-    }
-
-    public static void setSdbVersion(String sdbVersion) {
-        M2STestBase.sdbVersion = sdbVersion;
-    }
-
-    public static String getRemoteHost() {
-        return remoteHost;
-    }
-
-    public static void setRemoteHost(String remoteHost) {
-        M2STestBase.remoteHost = remoteHost;
-    }
-
-    public static String getRemoteUser() {
-        return remoteUser;
-    }
-
-    public static void setRemoteUser(String remoteUser) {
-        M2STestBase.remoteUser = remoteUser;
-    }
-
-    public static String getRemotePwd() {
-        return remotePwd;
-    }
-
-    public static void setRemotePwd(String remotePwd) {
-        M2STestBase.remotePwd = remotePwd;
-    }
 }

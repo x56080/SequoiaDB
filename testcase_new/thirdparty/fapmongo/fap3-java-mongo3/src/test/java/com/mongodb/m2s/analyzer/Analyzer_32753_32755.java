@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
  * @Descreption seqDB-32753:独立集群创建数据库，分析收集集群信息文件
  *              seqDB-32754:副本集集群创建数据库，分析收集的集群信息文件
  *              seqDB-32755:分片模式创建数据库，分析收集的集群信息文件
- * @Author      chenzejia
+ * @Author chenzejia
  * @CreateDate
  * @UpdateUser
  * @UpdateDate 2023/8/11
@@ -57,12 +57,11 @@ public class Analyzer_32753_32755 extends M2STestBase {
         collection.insertOne( new Document( "name", "john" ) );
 
         // 使用collector收集集群信息
-        CommLib.collectCluster( ssh, collectorUri, collectorOutputPath );
+        CommLib.collectCluster( ssh );
 
         // 使用analyzer分析集群信息
-        String clusterjsonPath = collectorOutputPath + "cluster.json";
-        CommLib.analyzeCluster( ssh, clusterjsonPath, analyzerUri,
-                analyzerOutputPath, sdbVersion );
+        String clusterJsonPath = collectorOutputPath + "cluster.json";
+        CommLib.analyzeCluster( ssh, clusterJsonPath );
 
         ssh.exec( "cat " + analyzerOutputPath + "database.json" );
         JSONArray databases = JSONObject.parseArray( ssh.getStdout() );

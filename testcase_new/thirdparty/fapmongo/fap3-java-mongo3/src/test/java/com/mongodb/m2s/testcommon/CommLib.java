@@ -1,21 +1,18 @@
 package com.mongodb.m2s.testcommon;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.utils.Ssh;
 import org.bson.Document;
 
 /**
- * @Descreption
+ * @Descreption 公共方法类
  * @Author
- * @CreateDate
- * @UpdateUser
- * @UpdateDate 2023/8/15
- * @UpdateRemark
- * @Version
+ * @CreateDate 2023/8/15
  */
-public class CommLib {
+public class CommLib extends M2STestBase {
 
+    // 初始化目录
     public static void initDir( Ssh ssh, String path ) throws Exception {
         try {
             ssh.exec( "ls " + path );
@@ -28,6 +25,7 @@ public class CommLib {
         }
     }
 
+    // 删除目录
     public static void rmDir( Ssh ssh, String path ) throws Exception {
         try {
             ssh.exec( "ls " + path );
@@ -41,6 +39,7 @@ public class CommLib {
         }
     }
 
+    // 判断集合是否存在
     public static boolean collectionExist( MongoDatabase database,
             String collectionName ) {
         for ( String name : database.listCollectionNames() ) {
@@ -51,6 +50,7 @@ public class CommLib {
         return false;
     }
 
+    // 判断是否为分片集群
     public static boolean isSharded( MongoClient client ) {
         MongoDatabase db = client.getDatabase( "admin" );
         Document document = new Document( "isMaster", 1 );
@@ -63,10 +63,15 @@ public class CommLib {
         }
     }
 
+    // 判断是否为副本集集群
     public static boolean isReplicaSet( MongoClient client ) {
         MongoDatabase db = client.getDatabase( "admin" );
         Document document = new Document( "isMaster", 1 );
         Document result = db.runCommand( document );
+        if ( result.containsKey( "msg" )
+                && result.getString( "msg" ).equals( "isdbgrid" ) ) {
+            return false;
+        }
         if ( result.containsKey( "setName" ) ) {
             return true;
         } else {
@@ -74,54 +79,82 @@ public class CommLib {
         }
     }
 
+    // 判断是否为独立模式
     public static boolean isStandalone( MongoClient client ) {
         MongoDatabase db = client.getDatabase( "admin" );
         Document document = new Document( "isMaster", 1 );
         Document result = db.runCommand( document );
-        if ( result.getBoolean( "ismaster" ) ) {
+        if ( result.containsKey( "msg" )
+                && result.getString( "msg" ).equals( "isdbgrid" ) ) {
+            return false;
+        }
+        if ( result.getBoolean( "ismaster" )
+                && !result.containsKey( "setName" ) ) {
             return true;
         } else {
             return false;
         }
     }
 
-    public static void execCmd( String cmd ) {
-        try {
-            Process process = Runtime.getRuntime().exec( cmd );
-            process.waitFor();
-        } catch ( Exception e ) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void collectCluster( Ssh ssh, String collectorUri,
-            String collectorOutputPath ) throws Exception {
-        String collectCommand = collectorUri + " -t cluster -o "
-                + collectorOutputPath;
+    /**
+     * 收集集群信息
+     * 
+     * @param ssh
+     *            ssh连接
+     * @throws Exception
+     */
+    public static void collectCluster( Ssh ssh ) throws Exception {
+        String collectCommand = collectorPath + " -t cluster -o "
+                + collectorOutputPath + " -u " + mongodbUri;
         ssh.exec( collectCommand );
     }
 
-    public static void collectCollection( Ssh ssh, String CollectorUri,
-            String collectorOutputPath ) throws Exception {
-        String collectCommand = CollectorUri + " -t collection -o "
-                + collectorOutputPath;
-        ssh.exec( collectCommand );
-    }
-
-    public static void analyzeCluster( Ssh ssh, String clusterJsonPath,
-            String analyzerUri, String analyzerOutputPath, String sdbversion )
+    /**
+     * 收集集合信息
+     * 
+     * @param ssh
+     *            ssh连接
+     * @param sample
+     *            采样数量
+     * @throws Exception
+     */
+    public static void collectCollection( Ssh ssh, int sample )
             throws Exception {
-        String analyzeCommand = analyzerUri + " --clusterjson "
-                + clusterJsonPath + " -t json --sdbversion " + sdbversion
+        String collectCommand = collectorPath + " -t collection -o "
+                + collectorOutputPath + " -u " + mongodbUri + " -s " + sample;
+        ssh.exec( collectCommand );
+    }
+
+    /**
+     * 分析集群信息
+     * 
+     * @param ssh
+     *            ssh连接
+     * @param clusterJsonPath
+     *            集群信息json文件路径
+     * @throws Exception
+     */
+    public static void analyzeCluster( Ssh ssh, String clusterJsonPath )
+            throws Exception {
+        String analyzeCommand = analyzerPath + " --clusterjson "
+                + clusterJsonPath + " -t json --sdbversion " + sdbVersion
                 + " -o " + analyzerOutputPath;
         ssh.exec( analyzeCommand );
     }
 
-    public static void analyzeCollection( Ssh ssh, String collectionJsonPath,
-            String analyzerUri, String analyzerOutputPath, String sdbversion )
+    /**
+     * 分析集合信息
+     * 
+     * @param ssh
+     *            ssh连接
+     * @param collectionJsonPath
+     *            集合信息json文件路径
+     * @throws Exception
+     */
+    public static void analyzeCollection( Ssh ssh, String collectionJsonPath )
             throws Exception {
-        String analyzeCommand = analyzerUri + " --collectionjson "
-                + collectionJsonPath + " -t json --sdbversion " + sdbversion
+        String analyzeCommand = analyzerPath + " --collectionjson "
+                + collectionJsonPath + " -t json --sdbversion " + sdbVersion
                 + " -o " + analyzerOutputPath;
         ssh.exec( analyzeCommand );
     }
