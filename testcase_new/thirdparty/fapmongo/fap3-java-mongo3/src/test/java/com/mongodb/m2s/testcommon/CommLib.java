@@ -159,4 +159,33 @@ public class CommLib extends M2STestBase {
         ssh.exec( analyzeCommand );
     }
 
+    // 获取mongodb版本
+    public static String getMongoDBVersion( MongoClient client ) {
+        MongoDatabase db = client.getDatabase( "admin" );
+        Document document = new Document( "buildInfo", 1 );
+        Document result = db.runCommand( document );
+        return result.getString( "version" );
+    }
+
+    // 比较版本号,0为相等，1为version1大于version2，-1为version1小于version2
+    public static int compareVersion( String version1, String version2 ) {
+        String[] version1Array = version1.split( "\\." );
+        String[] version2Array = version2.split( "\\." );
+        int length = Math.max( version1Array.length, version2Array.length );
+        for ( int i = 0; i < length; i++ ) {
+            int v1 = i < version1Array.length
+                    ? Integer.parseInt( version1Array[ i ] )
+                    : 0;
+            int v2 = i < version2Array.length
+                    ? Integer.parseInt( version2Array[ i ] )
+                    : 0;
+            if ( v1 > v2 ) {
+                return 1;
+            } else if ( v1 < v2 ) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+
 }
