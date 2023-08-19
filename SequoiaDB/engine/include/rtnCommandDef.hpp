@@ -178,9 +178,22 @@ namespace engine
 #define NAME_DROP_RECYCLEBIN_ALL             CMD_NAME_DROP_RECYCLEBIN_ALL
 #define NAME_RETURN_RECYCLEBIN_ITEM          CMD_NAME_RETURN_RECYCLEBIN_ITEM
 #define NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME  CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME
-#define NAME_INVALIDATE_USER_CACHE           CMD_NAME_INVALIDATE_USER_CACHE
 
 #define NAME_WATCH                           CMD_NAME_WATCH
+
+#define NAME_INVALIDATE_USER_CACHE           CMD_NAME_INVALIDATE_USER_CACHE
+#define NAME_CREATE_ROLE                     CMD_NAME_CREATE_ROLE
+#define NAME_DROP_ROLE                       CMD_NAME_DROP_ROLE
+#define NAME_GET_ROLE                        CMD_NAME_GET_ROLE
+#define NAME_LIST_ROLES                      CMD_NAME_LIST_ROLES
+#define NAME_UPDATE_ROLE                     CMD_NAME_UPDATE_ROLE
+#define NAME_GRANT_PRIVILEGES                CMD_NAME_GRANT_PRIVILEGES
+#define NAME_REVOKE_PRIVILEGES               CMD_NAME_REVOKE_PRIVILEGES
+#define NAME_GRANT_ROLES_TO_ROLE             CMD_NAME_GRANT_ROLES_TO_ROLE
+#define NAME_REVOKE_ROLES_FROM_ROLE          CMD_NAME_REVOKE_ROLES_FROM_ROLE
+#define NAME_GET_USER                        CMD_NAME_GET_USER
+#define NAME_GRANT_ROLES_TO_USER             CMD_NAME_GRANT_ROLES_TO_USER
+#define NAME_REVOKE_ROLES_FROM_USER          CMD_NAME_REVOKE_ROLES_FROM_USER
 
    /*
       Command Type Define
@@ -359,7 +372,20 @@ namespace engine
       CMD_SNAPSHOT_STREAMS                   = 301,
       CMD_WATCH                              = 303,
       
+      // rbac commands
       CMD_INVALIDATE_USER_CACHE              = 310,
+      CMD_CREATE_ROLE                        = 311,
+      CMD_DROP_ROLE                          = 312,
+      CMD_GET_ROLE                           = 313,
+      CMD_LIST_ROLES                         = 314,
+      CMD_UPDATE_ROLE                        = 315,
+      CMD_GRANT_PRIVILEGES                   = 316,
+      CMD_REVOKE_PRIVILEGES                  = 317,
+      CMD_GRANT_ROLES_TO_ROLE                = 318,
+      CMD_REVOKE_ROLES_FROM_ROLE             = 319,
+      CMD_GET_USER                           = 320,
+      CMD_GRANT_ROLES_TO_USER                = 321,
+      CMD_REVOKE_ROLES_FROM_USER             = 322,
 
       CMD_UNKNOW                             = 65535
    };
