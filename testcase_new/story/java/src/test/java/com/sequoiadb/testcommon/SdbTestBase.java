@@ -44,6 +44,7 @@ public class SdbTestBase {
     protected static String reservedDir;
     protected static String workDir;
     private static String confToolScript;
+    public static String rootPwd;
     private static String enableTransaction;
     private static Sequoiadb sequoiadb = null;
     public static String esHostName;
@@ -78,6 +79,9 @@ public class SdbTestBase {
     public static final String MAXITEMNUM = "MaxItemNum";
     public static final String MAXVERSIONNUM = "MaxVersionNum";
     public static final String AUTODROP = "AutoDrop";
+    public static final String RBAC = "rbac";
+    public static final String rootUserName = "rootUserName";
+    public static final String rootUserPassword = "rootUserPassword";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -91,6 +95,7 @@ public class SdbTestBase {
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
+    private static boolean privilegecheck = false;
 
     static {
         group2Conf.put( RU, new BasicBSONObject() );
@@ -218,13 +223,15 @@ public class SdbTestBase {
     }
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "CONFTOOL",
             "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
             "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, @Optional("") String CONFTOOL,
+            String RSRVNODEDIR, String WORKDIR,
+            @Optional("sequoiadb") String ROOTPASSWD,
+            @Optional("") String CONFTOOL,
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
@@ -243,6 +250,7 @@ public class SdbTestBase {
         reservedDir = RSRVNODEDIR;
         workDir = WORKDIR;
         coordUrl = HOSTNAME + ":" + SVCNAME;
+        rootPwd = ROOTPASSWD;
         confToolScript = CONFTOOL;
         enableTransaction = ENABLETRANSACTION;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
@@ -368,8 +376,8 @@ public class SdbTestBase {
     }
 
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
-            LOCKESCALATION, RECYCLEBIN })
-    public static synchronized void initTestGroups() {
+            LOCKESCALATION, RECYCLEBIN, RBAC })
+    public static synchronized void initTestGroups() throws Exception {
         if ( testGroup == null ) {
             return;
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
@@ -379,13 +387,42 @@ public class SdbTestBase {
         }
         System.out.println( "init " + testGroup + " Groups..........." );
         modifyNodeConf( group2Conf.get( testGroup ), null );
+
+        if ( testGroup.equals( RBAC ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                    options )) {
+                privilegecheck = CommLib.getPrivilegecheck( sdb );
+                System.out.println( "privilegecheck: " + privilegecheck );
+            }
+            if ( !privilegecheck ) {
+                System.out.println( "set privilegecheck true" );
+                CommLib.setPrivilegecheck( !privilegecheck );
+            }
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                    rootUserName, rootUserPassword, options )) {
+                System.out.println( "create root user" );
+                Object options = JSON.parse( "{Roles:['_root']}" );
+                sdb.createUser( rootUserName, rootUserPassword,
+                        ( BSONObject ) options );
+            }
+        }
     }
 
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
-            LOCKESCALATION, RECYCLEBIN }, alwaysRun = true)
-    public static synchronized void finiTestGroups() {
+            LOCKESCALATION, RECYCLEBIN, RBAC }, alwaysRun = true)
+    public static synchronized void finiTestGroups() throws Exception {
         if ( testGroup == null ) {
             return;
+        } else if ( testGroup.equals( RBAC ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                    rootUserName, rootUserPassword, options )) {
+                System.out.println( "remove root user" );
+                sdb.removeUser( rootUserName, rootUserPassword );
+            }
+            if ( !privilegecheck ) {
+                System.out.println( "set privilegecheck false" );
+                CommLib.setPrivilegecheck( privilegecheck );
+            }
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
             // 执行完用例后将回收站配置改为执行用例前配置
             modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINUSERATTR ) );
