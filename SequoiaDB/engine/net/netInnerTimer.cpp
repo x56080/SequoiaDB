@@ -109,6 +109,15 @@ namespace engine
       return _frame->addTimer( NET_DUMMY_TIMER_INTERVAL, this, _dummyTimerID ) ;
    }
 
+   void _netRestartTimer::stopDummyTimer()
+   {
+      if ( NET_INVALID_TIMER_ID != _dummyTimerID && _frame )
+      {
+         _frame->removeTimer( _dummyTimerID ) ;
+      }
+      _dummyTimerID = NET_INVALID_TIMER_ID ;
+   }
+
    /*
       _netUDPRestartTimer implement
     */

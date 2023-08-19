@@ -57,6 +57,12 @@
    #define OSS_FREEZE_SIGNAL              37       /// SIGRTMIN+3
    #define OSS_FREEZE_SIGNAL_INTERNAL     38       /// SIGRTMIN+4
 
+   #define OSS_MEM_DUMP_SIGNAL            39       /// SIGTTMIN+5
+   #define OSS_MEM_DUMP_SIGNAL_INTERNAL   40       /// SIGTTMIN+6
+
+   #define OSS_MEM_TRIM_SIGNAL            41       /// SIGTTMIN+7
+   #define OSS_MEM_TRIM_SIGNAL_INTERNAL   42       /// SIGTTMIN+8
+
    typedef ucontext_t * ossSignalContext ;
 
    /* Set Handler for Signal */

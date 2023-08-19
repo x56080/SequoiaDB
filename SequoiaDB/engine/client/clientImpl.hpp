@@ -2076,6 +2076,9 @@ namespace sdbclient
       INT32 setPDLevel( INT32 level,
                         const bson::BSONObj &options = _sdbStaticObject ) ;
 
+      INT32 memTrim( const CHAR *maskStr = "",
+                     const bson::BSONObj &options = _sdbStaticObject ) ;
+
       INT32 msg( const CHAR* msg ) ;
 
       INT32 loadCS( const CHAR* csName,

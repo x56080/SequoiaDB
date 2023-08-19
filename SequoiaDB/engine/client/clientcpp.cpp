@@ -12791,6 +12791,49 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbImpl::memTrim( const CHAR *maskStr,
+                            const bson::BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder ;
+         BSONObjIterator itr( options ) ;
+
+         if ( maskStr )
+         {
+            queryBuilder.append( FIELD_NAME_MASK, maskStr ) ;
+         }
+
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_MASK ) )
+            {
+               continue ;
+            }
+            queryBuilder.append( e ) ;
+         }
+         query = queryBuilder.obj() ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_MEM_TRIM, &query ) ;
+      if( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _sdbImpl::msg( const CHAR* msg )
    {
       INT32 rc = SDB_OK ;

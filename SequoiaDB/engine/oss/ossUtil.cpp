@@ -1949,6 +1949,7 @@ INT32 ossGetProcMemInfo( ossProcMemInfo &memInfo,
    {
       memInfo.rss = pmc.WorkingSetSize ;
       memInfo.vSize = pmc.PagefileUsage ;
+      memInfo.shr = 0 ;
       memInfo.fault = pmc.PageFaultCount ;
    }
    else
@@ -1961,6 +1962,7 @@ INT32 ossGetProcMemInfo( ossProcMemInfo &memInfo,
    ossProcStatInfo procInfo( pid ) ;
    memInfo.rss = procInfo._rss ;
    memInfo.vSize = procInfo._vSize ;
+   memInfo.shr = procInfo._shr ;
    memInfo.fault = procInfo._majFlt ;
    PD_CHECK( procInfo._pid != -1, SDB_SYS, error, PDERROR,
             "failed to get process info(pid=%d)", pid ) ;
@@ -1982,31 +1984,35 @@ _session(-1),_tty(-1),_tpgid(-1),_flags(0),
 _minFlt(0),_cMinFlt(0),_majFlt(0),_cMajFlt(0),
 _uTime(0),_sTime(0),_cuTime(-1),_csTime(-1),
 _priority(-1),_nice(-1),_nlwp(-1),_alarm(0),
-_startTime(0),_vSize(0),_rss(-1),_rssRlim(0),
+_startTime(0),_vSize(0),_rss(-1),_shr(-1),_rssRlim(0),
 _startCode(0),_endCode(0),_startStack(0),
 _kstkEsp(0),_kstkEip(0)
 {
    ossMemset( _comm, 0, OSS_MAX_PATHSIZE + 1 ) ;
    CHAR pathName[ OSS_PROC_PATH_LEN_MAX + 1 ] = {0} ;
-   INT64 rsPageNum ;
+   INT64 pagesz = ossGetPageSize() ;
    ossSnprintf( pathName, sizeof(pathName), "/proc/%d/stat", pid ) ;
    FILE *fp = NULL ;
+
    fp = fopen( pathName, "r" ) ;
    if ( fp )
    {
       INT32 rc = 0;
+      INT64 rsPageNum = 0 ;
+
       rc = fscanf( fp,
-                  "%d %s %c "             //&_pid, _comm, &_state,
-                  "%d %d %d %d %d "
-                  "%u %u %u %u %u "  //&_flags, &_minFlt, &_cMinFlt, &_majFlt, &_cMajFlt,
-                  "%u %u %d %d "
-                  "%d %d "
-                  "%d "                  //&_nlwp,
-                  "%u "
-                  "%u "
-                  "%u "                  //&_vSize,
-                  "%lld "
-                  "%u %u %u %u %u %u ",
+                  "%d %s %c "             // &_pid, _comm, &_state
+                  "%d %d %d %d %d "       // &_ppid, &_pgrp, &_session, &_tty, &_tpgid
+                  "%u %u %u %u %u "       // &_flags, &_minFlt, &_cMinFlt, &_majFlt, &_cMajFlt
+                  "%u %u %d %d "          // &_uTime, &_sTime, &_cuTime, &_csTime
+                  "%d %d "                // &_priority, &_nice
+                  "%d "                   // &_nlwp
+                  "%u "                   // &_alarm
+                  "%u "                   // &_startTime
+                  "%lld "                 // &_vSize
+                  "%lld "                 // &rsPageNum
+                  "%llu %u %u "           // &_rssRlim, &_startCode, &_endCode
+                  "%llu %llu %llu ",      // &_startStack, &_kstkEsp, &_kstkEip
                   &_pid, _comm, &_state,
                   &_ppid, &_pgrp, &_session, &_tty, &_tpgid,
                   &_flags, &_minFlt, &_cMinFlt, &_majFlt, &_cMajFlt,
@@ -2017,21 +2023,48 @@ _kstkEsp(0),_kstkEip(0)
                   &_startTime,
                   &_vSize,
                   &rsPageNum,
-                  &_rssRlim, &_startCode, &_endCode, &_startStack, &_kstkEsp, &_kstkEip );
+                  &_rssRlim, &_startCode, &_endCode,
+                  &_startStack, &_kstkEsp, &_kstkEip ) ;
       fclose(fp) ;
 
       // change the number of pages to bytes
-      _rss = rsPageNum * ossGetPageSize() ;
+      _rss = rsPageNum * pagesz ;
 
       if ( rc <= 0 )
       {
-         PD_LOG( PDERROR, "failed to read proc-info" );
+         PD_LOG( PDERROR, "failed to read proc-info(stat)" );
       }
    }
    else
    {
-      PD_LOG( PDWARNING, "open failed(%s)",
-            pathName );
+      PD_LOG( PDWARNING, "open failed(%s)", pathName );
+   }
+
+   /// read shr
+   ossSnprintf( pathName, sizeof(pathName), "/proc/%d/statm", pid ) ;
+   fp = fopen( pathName, "r" ) ;
+   if ( fp )
+   {
+      INT64 vSizePages = 0, resPages = 0, sharedPages = 0 ;
+      INT32 rc = 0 ;
+      rc = fscanf( fp,
+                   "%lld %lld %lld ",      // &vSizePages, &resPages, &sharedPages
+                   &vSizePages, &resPages, &sharedPages ) ;
+      fclose(fp) ;
+
+      // change the number of pages to bytes
+      _vSize = vSizePages * pagesz ;
+      _rss = resPages * pagesz ;
+      _shr = sharedPages * pagesz ;
+
+      if ( rc <= 0 )
+      {
+         PD_LOG( PDERROR, "Failed to read proc-info(statm)" );
+      }
+   }
+   else
+   {
+      PD_LOG( PDWARNING, "open failed(%s)", pathName );
    }
 }
 #endif

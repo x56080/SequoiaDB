@@ -120,6 +120,12 @@ namespace engine
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
    #define PMD_DFT_USER_CACHE_INTERVAL  (300000)  // milliseconds, 5 miniutes
 
+   #define PMD_DFT_MEM_MXFAST          (-1)
+   #define PMD_DFT_MEM_TRIM_THRESHOLD  (256)
+   #define PMD_DFT_MEM_MMAP_THRESHOLD  (1024)
+   #define PMD_DFT_MEM_MMAP_MAX        (4194304)
+   #define PMD_DFT_MEM_TOP_PAD         (-1)
+
    /*
       _pmdCfgExchange implement
    */
@@ -2036,6 +2042,12 @@ done:
 
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
 
+      _memMXFast = PMD_DFT_MEM_MXFAST ;
+      _memTrimThreshold = PMD_DFT_MEM_TRIM_THRESHOLD ;
+      _memMmapThreshold = PMD_DFT_MEM_MMAP_THRESHOLD ;
+      _memMmapMax = PMD_DFT_MEM_MMAP_MAX ;
+      _memTopPad = PMD_DFT_MEM_TOP_PAD ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2613,6 +2625,31 @@ done:
       // --usercacheinterval
       rdxUInt( pEX, PMD_OPTION_USER_CACHE_INTERVAL, _userCacheInterval, FALSE,
                PMD_CFG_CHANGE_REBOOT, PMD_DFT_USER_CACHE_INTERVAL, FALSE );
+
+      // --memmxfast
+      rdxInt( pEX, PMD_OPTION_MEM_MXFAST, _memMXFast, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_MXFAST, TRUE ) ;
+      rdvMinMax( pEX, _memMXFast, -1, 160, TRUE ) ;
+
+      // --memtrimthreshold
+      rdxInt( pEX, PMD_OPTION_MEM_TRIM_THRESHOLD, _memTrimThreshold, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_TRIM_THRESHOLD, TRUE ) ;
+      rdvMinMax( pEX, _memTrimThreshold, -1, 65536, TRUE ) ;
+
+      // --memmmapthreshold
+      rdxInt( pEX, PMD_OPTION_MEM_MMAP_THRESHOLD, _memMmapThreshold, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_MMAP_THRESHOLD, TRUE ) ;
+      rdvMinMax( pEX, _memMmapThreshold, -1, 65536, TRUE ) ;
+
+      // --memmmapmax
+      rdxInt( pEX, PMD_OPTION_MEM_MMAP_MAX, _memMmapMax, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_MMAP_MAX, TRUE ) ;
+      rdvMinMax( pEX, _memMmapMax, -1, 100000000, TRUE ) ;
+
+      // --memtoppad
+      rdxInt( pEX, PMD_OPTION_MEM_TOP_PAD, _memTopPad, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_TOP_PAD, TRUE ) ;
+      rdvMinMax( pEX, _memTopPad, -1, 16777216, TRUE ) ;
 
       // end map
 

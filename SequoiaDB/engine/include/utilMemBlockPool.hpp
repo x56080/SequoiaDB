@@ -46,9 +46,7 @@ namespace engine
 {
 
    #define UTIL_MEM_BLOCK_POOL_DFT_MAX_SZ          ( 8589934592LL )  ///8GB
-   #define UTIL_MEM_A_SMALL_BLOCK_SIZE             ( 1048576 )       ///1MB
-   #define UTIL_MEM_A_MID_BLOCK_SIZE               ( 2097152 )       ///2MB
-   #define UTIL_MEM_A_BIG_BLOCK_SIZE               ( 4194304 )       ///4MB
+   #define UTIL_MEM_SEG_BLOCK_SIZE                 ( 2105344 )       ///2MB+8KB
    #define UTIL_MEM_A_SMALL_BLOCK_SUBPOOL_NUM      ( 8 )
    #define UTIL_MEM_A_MID_BLOCK_SUBPOOL_NUM        ( 4 )
    #define UTIL_MEM_A_BIG_BLOCK_SUBPOOL_NUM        ( 2 )
@@ -121,6 +119,88 @@ namespace engine
    #define UTIL_MEM_ELEMENT_32K                 ( 32768 + UTIL_MEM_OVERFLOW_SZ )
    #define UTIL_MEM_ELEMENT_64K                 ( 65536 + UTIL_MEM_OVERFLOW_SZ )
 
+   #define UTIL_MEM_OOL_PRINT_INTERVAL          ( 600000 )  /// 10 mins
+   #define UTIL_MEM_OOL_PRINT_STEP              ( 5 * UTIL_MEM_OOL_PRINT_INTERVAL )
+
+   #define UTIL_MEM_OOL_RESET_INTERVAL          ( 86400000 * 4 )   /// 4 days
+
+   /*
+      _utilMemSlotAssitStat
+   */
+   struct _utilMemSlotAssitStat
+   {
+      volatile UINT64            _oolTimes ;
+      volatile UINT32            _fileCount ;
+      volatile const CHAR       *_pLastFile ;
+      volatile const CHAR       *_pLastInfo ;
+      volatile UINT32            _lastLine ;
+
+      volatile UINT64            _lastPrintTick ;
+      volatile UINT64            _lastPrintTimes ;
+
+      _utilMemSlotAssitStat()
+      {
+         reset() ;
+      }
+
+      void reset( UINT64 dbTiks = 0 )
+      {
+         _oolTimes = 0 ;
+         _fileCount = 0 ;
+         _pLastFile = "" ;
+         _pLastInfo = "" ;
+         _lastLine = 0 ;
+
+         _lastPrintTick = dbTiks ;
+         _lastPrintTimes = 0 ;
+      }
+
+      BOOLEAN inc( const CHAR *pFile, UINT32 line, const CHAR *pInfo,
+                   _utilSegmentHandler *pHandle, UINT64 &oolInc )
+      {
+         UINT64 times = 0 ;
+         UINT64 lastPrintTimes = _lastPrintTimes ;
+
+         ++_oolTimes ;
+         times = _oolTimes ;
+
+         if ( pFile == _pLastFile && line == _lastLine )
+         {
+            ++_fileCount ;
+         }
+         else if ( _fileCount > 0 )
+         {
+            --_fileCount ;
+         }
+         else
+         {
+            _pLastFile = pFile ? pFile : "" ;
+            _pLastInfo = pInfo ? pInfo : "" ;
+            _lastLine = line ;
+            ++_fileCount ;
+         }
+
+         if ( times > lastPrintTimes )
+         {
+            oolInc = times - lastPrintTimes ;
+         }
+         else
+         {
+            oolInc = 0 ;
+         }
+
+         if ( oolInc >= UTIL_MEM_OOL_PRINT_STEP &&
+              pHandle->getTickSpanTime( _lastPrintTick ) >= UTIL_MEM_OOL_PRINT_INTERVAL )
+         {
+            _lastPrintTimes = times ;
+            _lastPrintTick = pHandle->getDBTick() ;
+            return TRUE ;
+         }
+         return FALSE ;
+      }
+   } ;
+   typedef _utilMemSlotAssitStat utilMemSlotAssitStat ;
+
    /** definition of _utilMemBlockPool
     *  _utilMemBlockPool is a place holder for a set of memory pools based on 
     *  the fixed size of element in the pool
@@ -146,6 +226,16 @@ namespace engine
       typedef  CHAR    element16K[UTIL_MEM_ELEMENT_16K] ;
       typedef  CHAR    element32K[UTIL_MEM_ELEMENT_32K] ;
       typedef  CHAR    element64K[UTIL_MEM_ELEMENT_64K] ;
+
+      /*
+         _blockNode define
+      */
+      struct _blockNode
+      {
+         _blockNode        *_next ;
+         _blockNode        *_prev ;
+         UINT64            _dbTick ;
+      } ;
 
    public:
       enum MEMBLOCKPOOL_TYPE
@@ -176,12 +266,14 @@ namespace engine
       INT32       init( UINT64 maxSize = UTIL_MEM_BLOCK_POOL_DFT_MAX_SZ,
                         UINT32 allocThreshold = 0 ) ;
       void        fini() ;
-      void        shrink() ;
+      UINT64      shrink( BOOLEAN forced = FALSE ) ;
 
       void        setMaxSize( UINT64 maxSize ) ;
       void        setAllocThreshold( UINT32 allocThreshold ) ;
 
       UINT64      getTotalSize() ;
+      UINT64      getUsedSize() ;
+      UINT64      getMaxOOLSize() ;
 
       void*       alloc( UINT32 size,
                          const CHAR *pFile,
@@ -200,13 +292,85 @@ namespace engine
 
    public:
       virtual BOOLEAN   canAllocSegment( UINT64 size ) ;
-      virtual void      onAllocSegment( UINT64 size ) ;
-      virtual void      onReleaseSegment( UINT64 freedSize ) ;
-      virtual BOOLEAN   canShrink( UINT32 blockSize,
-                                   UINT64 totalSize,
-                                   UINT64 usedSize ) ;
+      virtual BOOLEAN   canBallonUp( INT32 id, UINT64 size ) ;
+      virtual BOOLEAN   canShrink( UINT32 objectSize,
+                                   UINT32 totalObjNum,
+                                   UINT32 usedObjNum ) ;
       virtual UINT64    getDBTick() const ;
       virtual UINT64    getTickSpanTime( UINT64 lastTick ) const ;
+      virtual BOOLEAN   canShrinkDiscrete() const ;
+
+   private:
+      /// only for interface call
+      virtual void*     allocBlock( UINT64 size ) ;
+      virtual void      releaseBlock( void *p, UINT64 size ) ;
+
+      _blockNode*       _popBlock( UINT64 size )
+      {
+         _blockNode *pNode = NULL ;
+
+         if ( _cacheNum.fetch() > 0 && _cacheSize >= size )
+         {
+            SDB_ASSERT( _header, "Header can't be NULL" ) ;
+
+            if ( _header )
+            {
+               if ( _header == _tailer )
+               {
+                  pNode = _header ;
+                  _header = NULL ;
+                  _tailer = NULL ;
+               }
+               else
+               {
+                  pNode = _header ;
+                  _header = _header->_next ;
+                  _header->_prev = NULL ;
+               }
+
+               _cacheNum.dec() ;
+               _cacheSize -= size ;
+            }
+         }
+
+         return pNode ;
+      }
+
+      BOOLEAN           _pushBlock( _blockNode *pNode, UINT64 size )
+      {
+         if ( _cacheSize + size < _maxCacheSize )
+         {
+            pNode->_next = NULL ;
+            pNode->_prev = NULL ;
+            pNode->_dbTick = getDBTick() ;
+
+            if ( !_header )
+            {
+               SDB_ASSERT( !_tailer && 0 == _cacheNum.fetch() && 0 == _cacheSize,
+                           "Tailer must be NULL and num must be 0" ) ;
+               _header = pNode ;
+               _tailer = pNode ;
+            }
+            /// insert to tailer
+            else
+            {
+               _tailer->_next = pNode ;
+               pNode->_prev = _tailer ;
+               pNode->_next = NULL ;
+               _tailer = pNode ;
+            }
+
+            _cacheNum.inc() ;
+            _cacheSize += size ;
+            return TRUE ;
+         }
+
+         return FALSE ;
+      }
+
+      void              _clearBlock() ;
+
+      UINT64            _shrinkCache( BOOLEAN forced ) ;
 
    protected:
       void                    _fillPtr( CHAR *ptr, UINT16 type, UINT32 size ) ;
@@ -217,24 +381,18 @@ namespace engine
 
       void                    _clearStat() ;
 
+      UINT64                  _shrink( UINT64 expectSize,
+                                       UINT32 beginSlot,
+                                       INT32 skipSlot ) ;
+
    // private attributes:
    private:
       BOOLEAN        _isGlobal ;
-
-      _utilSegmentManager<element32B>  *_32BSeg; // mem segs with 32B  element
-      _utilSegmentManager<element64B>  *_64BSeg; // mem segs with 64B  element
-      _utilSegmentManager<element128B> *_128BSeg;// mem segs with 128B element
-      _utilSegmentManager<element256B> *_256BSeg;// mem segs with 256B element
-      _utilSegmentManager<element512B> *_512BSeg;// mem segs with 512B element
-      _utilSegmentManager<element1K>   *_1KSeg;  // mem segs with 1 KB element
-      _utilSegmentManager<element2K>   *_2KSeg;  // mem segs with 2 KB element
-      _utilSegmentManager<element4K>   *_4KSeg;  // mem segs with 4 KB element
-      _utilSegmentManager<element8K>   *_8KSeg;  // mem segs with 8 KB element
-      _utilSegmentManager<element16K>  *_16KSeg; // mem segs with 16KB element
-      _utilSegmentManager<element32K>  *_32KSeg; // mem segs with 32KB element
-      _utilSegmentManager<element64K>  *_64KSeg; // mem segs with 64KB element
+      utilSegmentInterface             *_slots[ MEMBLOCKPOOL_TYPE_MAX ] ;
+      utilMemSlotAssitStat              _stats[ MEMBLOCKPOOL_TYPE_MAX ] ;
 
       UINT64         _maxSize ;
+      UINT64         _maxCacheSize ;
       UINT32         _allocThreshold ;
       ossAtomic64    _totalSize ;
 
@@ -247,6 +405,19 @@ namespace engine
 
       ossAtomic64    _oorTimes ;
       UINT64         _lastOORTimes ;
+
+      ossAtomicSigned64 _curOOLSize ;
+      volatile INT64 _maxOOLSize ;
+
+      UINT64         _resetOOLTick ;
+
+      /// memory cache info
+      _blockNode    *_header ;
+      _blockNode    *_tailer ;
+      ossAtomic32    _cacheNum ;
+      UINT64         _cacheSize ;
+      ossSpinXLatch  _cacheLatch ;
+
    } ;
    typedef _utilMemBlockPool utilMemBlockPool ;
 

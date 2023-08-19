@@ -127,6 +127,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, analyze )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, memTrim )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createSequence )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getSequence )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, renameSequence )
@@ -209,6 +210,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "analyze", analyze )
       JS_ADD_MEMBER_FUNC( "updateConf", updateConfig )
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
+      JS_ADD_MEMBER_FUNC( "memTrim", memTrim )
       JS_ADD_MEMBER_FUNC( "createSequence", createSequence )
       JS_ADD_MEMBER_FUNC( "getSequence", getSequence )
       JS_ADD_MEMBER_FUNC( "renameSequence", renameSequence )
@@ -3028,6 +3030,55 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to delete configs" ) ;
          goto error ;
       }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::memTrim( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string maskStr ;
+      BSONObj configs ;
+      BSONObj options ;
+
+      rc = arg.getString( 0, maskStr ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         /// ignore
+      }
+      else if( SDB_OK != rc )
+      {
+         if ( arg.hasErrMsg() )
+         {
+            detail = BSON( SPT_ERR << arg.getErrMsg() ) ;
+         }
+         else
+         {
+            detail = BSON( SPT_ERR << "Config must be string" ) ;
+         }
+         goto error ;
+      }
+      else
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << "Options must be obj" ) ;
+            goto error ;
+         }
+      }
+
+      rc = _sptSdb.memTrim( maskStr.c_str(), options ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to trim memory" ) ;
+         goto error ;
+      }
+
    done:
       return rc ;
    error:

@@ -261,7 +261,7 @@ namespace  engine
       ossStackTrace( OSS_HANDARGS, dumpPath ) ;
 #if defined ( SDB_ENGINE )
       // freeze engine here
-      pmdSleepInstance() ;
+      pmdSleepInstance( OSS_HANDARGS ) ;
 #endif
       // restore system default signal handler
       ossSignalHandlerAbort( OSS_HANDARGS, dumpPath ) ;

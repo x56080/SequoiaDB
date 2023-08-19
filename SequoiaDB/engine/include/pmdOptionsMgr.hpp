@@ -710,6 +710,20 @@ namespace engine
          OSS_INLINE BOOLEAN privilegeCheckEnabled() const { return _privilegeCheckEnabled ;}
          OSS_INLINE UINT32 getUserCacheInterval() const { return _userCacheInterval ; }
 
+         OSS_INLINE INT32  getMemMXFast() const { return _memMXFast ; }
+         OSS_INLINE INT32  getMemTrimThreshold() const
+         {
+            /// trans KB to Byte
+            return _memTrimThreshold > 0 ? ( _memTrimThreshold << 10 ) : _memTrimThreshold ;
+         }
+         OSS_INLINE INT32  getMemMmapThreshold() const
+         {
+            /// trans KB to Byte
+            return _memMmapThreshold > 0 ? ( _memMmapThreshold << 10 ) : _memMmapThreshold ;
+         }
+         OSS_INLINE INT32  getMemMmapMax() const { return _memMmapMax ; }
+         OSS_INLINE INT32  getMemTopPad() const { return _memTopPad ; }
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -860,6 +874,13 @@ namespace engine
          BOOLEAN     _privilegeCheckEnabled ;
 
          UINT32      _userCacheInterval ;
+
+         /// memory info
+         INT32       _memMXFast ;
+         INT32       _memTrimThreshold ;
+         INT32       _memMmapThreshold ;
+         INT32       _memMmapMax ;
+         INT32       _memTopPad ;
 
 #ifdef SDB_ENTERPRISE
 

@@ -283,6 +283,30 @@ namespace fap
       }
    }
 
+   void _mongoErrorObjAssit::release()
+   {
+      for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
+      {
+         _errorObjsArray[ i + SDB_MAX_ERROR ] = BSONObj() ;
+      }
+   }
+
+   BSONObj _mongoErrorObjAssit::getErrorObj( INT32 errorCode )
+   {
+      // check flags
+      if ( errorCode < -SDB_MAX_ERROR || errorCode > SDB_MAX_WARNING )
+      {
+         PD_LOG ( PDERROR, "Error code error[rc:%d]", errorCode ) ;
+         errorCode = SDB_SYS ;
+      }
+      return _errorObjsArray[ SDB_MAX_ERROR + errorCode ] ;
+   }
+
+   void mongoReleaseErrorBson()
+   {
+      errorObjAssit.release() ;
+   }
+
    // generate a new record based on matcher condition and update condition
    INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                                  const BSONObj &updatorObj,
