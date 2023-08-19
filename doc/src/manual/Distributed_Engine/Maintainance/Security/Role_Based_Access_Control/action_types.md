@@ -13,7 +13,6 @@
 - [getLob](manual/Manual/Sequoiadb_Command/SdbCollection/getLob.md)
 - [count](manual/Manual/Sequoiadb_Command/SdbCollection/count.md)
 - [getQueryMeta](manual/Manual/Sequoiadb_Command/SdbQuery/getQueryMeta.md)
-- [getDomainName](manual/Manual/Sequoiadb_Command/SdbCS/getDomainName.md)
 - [getCS](manual/Manual/Sequoiadb_Command/Sdb/getCS.md)
 - [getCL](manual/Manual/Sequoiadb_Command/SdbCS/getCL.md)
 - [getIndex](manual/Manual/Sequoiadb_Command/SdbCollection/getIndex.md)
@@ -68,7 +67,6 @@
 
 - [count](manual/Manual/Sequoiadb_Command/SdbCollection/count.md)
 - [getQueryMeta](manual/Manual/Sequoiadb_Command/SdbQuery/getQueryMeta.md)
-- [getDomainName](manual/Manual/Sequoiadb_Command/SdbCS/getDomainName.md)
 - [getCS](manual/Manual/Sequoiadb_Command/Sdb/getCS.md)
 - [getCL](manual/Manual/Sequoiadb_Command/SdbCS/getCL.md)
 - [getIndex](manual/Manual/Sequoiadb_Command/SdbCollection/getIndex.md)
@@ -742,11 +740,19 @@
 
 - [getDetailObj](manual/Manual/Sequoiadb_Command/SdbNode/getDetailObj.md)
 
+用户可在 SdbCS 对象上执行以下命令：
+
+- [getDomainName](manual/Manual/Sequoiadb_Command/SdbCS/getDomainName.md)
+
 ## listCollectionSpaces
 
 将该操作应用在集群资源上。
 
 用户可执行[listCollectionSpaces](manual/Manual/Sequoiadb_Command/Sdb/listCollectionSpaces.md)命令。
+
+用户可在 SdbCS 对象上执行以下命令：
+
+- [getDomainName](manual/Manual/Sequoiadb_Command/SdbCS/getDomainName.md)
 
 ## snapshot
 
