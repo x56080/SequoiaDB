@@ -93,7 +93,7 @@ function main ()
    checkResults( rc, expDocs );
 
    // remove({})
-   var cnt = cl.count();
+   var cnt = NumberInt( cl.count() );
    var rc = cl.remove( {} );
    assert.eq( rc, { "nRemoved": cnt } );
    var rc = cl.find();
