@@ -173,17 +173,19 @@ namespace engine
       const authResource &res,
       const authActionSet &actions ) const
    {
+      authActionSet unmet( actions );
       for ( DATA_TYPE::const_iterator it = _data.begin(); it != _data.end(); ++it )
       {
          if ( res.isIncluded( *it->first ) )
          {
-            if ( it->second->contains( actions ) )
+            unmet.removeActionsFromSet(*it->second);
+            if ( unmet.empty() )
             {
                return TRUE;
             }
          }
       }
-      return FALSE;
+      return unmet.empty();
    }
 
    void authAccessControlList::toBSONArray( bson::BSONArrayBuilder &builder ) const

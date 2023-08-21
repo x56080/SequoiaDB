@@ -221,7 +221,7 @@ namespace engine
       ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "a" ) ) );
       ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "b" ) ) );
       ASSERT_EQ( TRUE, dag.addNode( boost::make_shared< ossPoolString >( "c" ) ) );
-      ossPoolVector<boost::shared_ptr<ossPoolString>> dests;
+      ossPoolVector< boost::shared_ptr< ossPoolString > > dests;
       dests.push_back( boost::make_shared< ossPoolString >( "b" ) );
       dests.push_back( boost::make_shared< ossPoolString >( "c" ) );
       dests.push_back( boost::make_shared< ossPoolString >( "d" ) );
@@ -230,7 +230,7 @@ namespace engine
       ossPoolVector< boost::shared_ptr< ossPoolString > > v;
       dag.dfs( boost::make_shared< ossPoolString >( "a" ), TRUE, v );
       ASSERT_EQ( 1u, v.size() );
-      ASSERT_EQ( "a", *v[0] );
+      ASSERT_EQ( "a", *v[ 0 ] );
    }
 
    TEST( util_dag, base_topo_sort )
@@ -734,6 +734,60 @@ namespace engine
                                                            << "foo" << AUTH_RESOURCE_CL_FIELD_NAME
                                                            << "bar" ) ),
                              boost::make_shared< authActionSet >( actions ) ) ) );
+      }
+   }
+
+   TEST( auth_acl, base_check_multi_resource )
+   {
+      {
+         authAccessControlList acl;
+         boost::shared_ptr< authActionSet > actions1 = boost::make_shared< authActionSet >();
+         actions1->addAction( ACTION_TYPE_find );
+         boost::shared_ptr< authActionSet > actions2 = boost::make_shared< authActionSet >();
+         actions2->addAction( ACTION_TYPE_update );
+         ASSERT_EQ( SDB_OK,
+                    acl.addPrivilege( authPrivilege( authResource::forCS( "foo" ), actions1 ) ) );
+         ASSERT_EQ( SDB_OK, acl.addPrivilege( authPrivilege( authResource::forExact( "foo", "bar" ),
+                                                             actions2 ) ) );
+         authActionSet needActions;
+         needActions.addAction( ACTION_TYPE_find );
+         needActions.addAction( ACTION_TYPE_update );
+         EXPECT_EQ( TRUE, acl.isAuthorizedForActionsOnResource(
+                             *authResource::forExact( "foo", "bar" ), needActions ) );
+      }
+
+      {
+         authAccessControlList acl;
+         boost::shared_ptr< authActionSet > actions1 = boost::make_shared< authActionSet >();
+         actions1->addAction( ACTION_TYPE_find );
+         boost::shared_ptr< authActionSet > actions2 = boost::make_shared< authActionSet >();
+         actions2->addAction( ACTION_TYPE_update );
+         ASSERT_EQ( SDB_OK,
+                    acl.addPrivilege( authPrivilege( authResource::forNonSystem(), actions1 ) ) );
+         ASSERT_EQ( SDB_OK, acl.addPrivilege( authPrivilege( authResource::forExact( "foo", "bar" ),
+                                                             actions2 ) ) );
+         authActionSet needActions;
+         needActions.addAction( ACTION_TYPE_find );
+         needActions.addAction( ACTION_TYPE_update );
+         EXPECT_EQ( TRUE, acl.isAuthorizedForActionsOnResource(
+                             *authResource::forExact( "foo", "bar" ), needActions ) );
+      }
+
+      {
+         authAccessControlList acl;
+         boost::shared_ptr< authActionSet > actions1 = boost::make_shared< authActionSet >();
+         actions1->addAction( ACTION_TYPE_find );
+         boost::shared_ptr< authActionSet > actions2 = boost::make_shared< authActionSet >();
+         actions2->addAction( ACTION_TYPE_update );
+         ASSERT_EQ( SDB_OK,
+                    acl.addPrivilege( authPrivilege( authResource::forNonSystem(), actions1 ) ) );
+         ASSERT_EQ( SDB_OK,
+                    acl.addPrivilege( authPrivilege( authResource::forCS( "foo" ), actions2 ) ) );
+         authActionSet needActions;
+         needActions.addAction( ACTION_TYPE_find );
+         needActions.addAction( ACTION_TYPE_update );
+         EXPECT_EQ( TRUE, acl.isAuthorizedForActionsOnResource(
+                             *authResource::forExact( "foo", "bar" ), needActions ) );
       }
    }
 } // namespace engine
