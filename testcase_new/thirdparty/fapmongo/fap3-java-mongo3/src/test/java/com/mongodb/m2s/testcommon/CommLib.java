@@ -97,6 +97,44 @@ public class CommLib extends M2STestBase {
     }
 
     /**
+     * 启动sniffer
+     *
+     * @param ssh
+     *            ssh连接
+     * @param snifferPath
+     *            sniffer二进制文件路径
+     * @param mongoAddr
+     *            mongodb地址
+     * @throws Exception
+     */
+    public static void snifferStart( Ssh ssh, String snifferPath,
+                                     String mongoAddr ) throws Exception {
+        String snifferCommand = snifferPath + " server-start -l " + snifferListenPort + " -m "
+                + mongoAddr;
+        ssh.exec( snifferCommand );
+    }
+
+    /**
+     * 停止sniffer并分析
+     *
+     * @param ssh
+     *            ssh连接
+     * @param snifferPath
+     *            sniffer二进制文件路径
+     * @param snifferOutputPath
+     *            sniffer输出路径
+     * @throws Exception
+     */
+    public static void snifferStopAndAnalyze( Ssh ssh, String snifferPath,
+                                              String snifferOutputPath ) throws Exception {
+        String snifferCommand = snifferPath + " server-stop";
+        ssh.exec( snifferCommand );
+
+        snifferCommand = snifferPath + " analyze" + " --output-path " + snifferOutputPath;
+        ssh.exec( snifferCommand );
+    }
+
+    /**
      * 收集集群信息
      * 
      * @param ssh
