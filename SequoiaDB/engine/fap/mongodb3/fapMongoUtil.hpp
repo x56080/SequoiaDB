@@ -44,6 +44,7 @@
 #include "../../bson/bson.hpp"
 #include "utilCommon.hpp"
 #include "rtnContextBuff.hpp"
+#include "fapMongoCommandDef.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 
@@ -165,6 +166,8 @@ INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert 
 INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf ) ;
 
 std::string mongoGetNonce() ;
+
+INT32 utilSdbRC2MongoRC( INT32 sdbRC ) ;
 
 }
 #endif
