@@ -92,7 +92,7 @@ struct mongoSessionCtx
    UINT64            eduID ;
    UINT64            maxTimeMS ;
 
-   mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) 
+   mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE )
    {
       sessionName = NULL ;
       eduID = 0 ;

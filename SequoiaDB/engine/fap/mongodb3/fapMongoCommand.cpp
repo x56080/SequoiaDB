@@ -7749,6 +7749,11 @@ error:
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoIsmasterCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoIsMasterCommand)
+_mongoIsMasterCommand::_mongoIsMasterCommand()
+{
+   _forShell = FALSE ;
+}
+
 INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
                                    mongoSessionCtx &ctx )
 {
@@ -7763,17 +7768,17 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
 
    try
    {
+      const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
+      BSONObj obj = BSONObj( pReq->query() ) ;
+
       if ( MONGO_QUERY_MSG == pMsg->type() && !ctx.hasParsedClientInfo )
       {
-         const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
-
-         BSONObj obj = BSONObj( pReq->query() ) ;
-         if ( obj.hasField( "client" ) )
+         if ( obj.hasField( FAP_MONGO_FIELD_NAME_CLIENT ) )
          {
-            BSONObj clientObj = obj.getObjectField( "client" ) ;
-            BSONObj driverObj = clientObj.getObjectField( "driver" ) ;
-            const CHAR* pDriverName   = driverObj.getStringField( "name" ) ;
-            const CHAR* pDriverVerStr = driverObj.getStringField( "version" ) ;
+            BSONObj clientObj = obj.getObjectField( FAP_MONGO_FIELD_NAME_CLIENT ) ;
+            BSONObj driverObj = clientObj.getObjectField( FAP_MONGO_FIELD_NAME_DRIVER ) ;
+            const CHAR* pDriverName   = driverObj.getStringField( FAP_MONGO_FIELD_NAME ) ;
+            const CHAR* pDriverVerStr = driverObj.getStringField( FAP_MONGO_FIELD_NAME_VER ) ;
 
             rc = _parseClientInfo( pDriverName, pDriverVerStr, ctx.clientInfo ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -7782,6 +7787,14 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
             ctx.hasParsedClientInfo = TRUE ;
          }
       }
+
+      if ( obj.hasField( FAP_MONGO_FIELD_NAME_FOR_SHELL ) )
+      {
+         BSONElement ele = obj.getField( FAP_MONGO_FIELD_NAME_FOR_SHELL ) ;
+         _forShell = ele.numberLong() ? TRUE : FALSE ;
+      }
+
+      _lastErrorObj = ctx.lastErrorObj.getOwned() ;
    }
    catch ( std::exception &e )
    {
@@ -7829,6 +7842,12 @@ INT32 _mongoIsMasterCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
       goto error ;
+   }
+
+   if ( _forShell && !_lastErrorObj.isEmpty() )
+   {
+      /// need set _errorInfoObj to new error
+      headerBuf.setNewError( _lastErrorObj ) ;
    }
 
 done:

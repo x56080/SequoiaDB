@@ -1092,7 +1092,7 @@ class _mongoIsMasterCommand : public _mongoGlobalCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoIsMasterCommand() {}
+      _mongoIsMasterCommand() ;
       virtual ~_mongoIsMasterCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_IS_MASTER ; }
@@ -1107,6 +1107,10 @@ class _mongoIsMasterCommand : public _mongoGlobalCommand
       INT32 _parseClientInfo( const CHAR* pClientName,
                               const CHAR* pClientVerStr,
                               mongoClientInfo &clientInfo ) ;
+
+   protected:
+      BOOLEAN _forShell ;
+      BSONObj _lastErrorObj ;
 } ;
 typedef _mongoIsMasterCommand mongoIsMasterCommand ;
 
