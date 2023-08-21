@@ -77,7 +77,7 @@ function main ()
 
    // deleteMany({})
    cl.insert( { "a": 10 } );
-   var cnt = cl.count();
+   var cnt = NumberInt( cl.count() );
    var rc = cl.deleteMany( {} );
    assert.eq( rc, { "acknowledged": true, "deletedCount": cnt } );
    var rc = cl.find();
