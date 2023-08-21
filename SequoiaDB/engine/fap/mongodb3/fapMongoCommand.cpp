@@ -4659,11 +4659,18 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                    FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH ) )
          {
             BSONObjBuilder operatorBob ;
+            BSONObjBuilder subBob( operatorBob.subobjStart( FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH ) ) ;
+            BSONObj match ;
 
-            rc = convertMongoOperator2Sdb( oneStage, operatorBob ) ;
+            rc = mongoGetObjElement( oneStage, FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH, match ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                         FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH, oneStage.toString().c_str(), rc ) ;
+
+            rc = convertMongoOperator2Sdb( match, subBob ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to convert mongo operator to sdb operator, ",
                          "rc: %d", rc ) ;
+            subBob.done() ;
 
             rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
             if ( rc )
