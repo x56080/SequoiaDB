@@ -31,7 +31,7 @@ public class M2STestBase {
     // sniffer捕获工具
     // 工具路径
     public static String snifferPath = toolRootPath
-            + "m2s-sniffer/bin/m2s-sniffer";
+            + "m2s-sniffer/bin/sniffer.sh";
     // 监听端口(对应工具启动的-l参数)
     public static String snifferListenPort = "30000";
     // sniffer监听地址(对应工具启动的-m参数)

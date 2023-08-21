@@ -1,6 +1,7 @@
 package com.mongodb.m2s.testcommon;
 
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.utils.Ssh;
 import org.bson.Document;
@@ -101,16 +102,14 @@ public class CommLib extends M2STestBase {
      *
      * @param ssh
      *            ssh连接
-     * @param snifferPath
-     *            sniffer二进制文件路径
-     * @param mongoAddr
-     *            mongodb地址
      * @throws Exception
      */
-    public static void snifferStart( Ssh ssh, String snifferPath,
-                                     String mongoAddr ) throws Exception {
-        String snifferCommand = snifferPath + " server-start -l " + snifferListenPort + " -m "
-                + mongoAddr;
+    public static void snifferStart( Ssh ssh ) throws Exception {
+        String capturePath = toolRootPath + "m2s-sniffer/capture/*";
+        ssh.exec( "rm -rf " + capturePath );
+
+        String snifferCommand = snifferPath + " server-start -l "
+                + snifferListenPort + " -m " + snifferAddr;
         ssh.exec( snifferCommand );
     }
 
@@ -119,19 +118,22 @@ public class CommLib extends M2STestBase {
      *
      * @param ssh
      *            ssh连接
-     * @param snifferPath
-     *            sniffer二进制文件路径
-     * @param snifferOutputPath
-     *            sniffer输出路径
      * @throws Exception
      */
-    public static void snifferStopAndAnalyze( Ssh ssh, String snifferPath,
-                                              String snifferOutputPath ) throws Exception {
+    public static void snifferStopAndAnalyze( Ssh ssh ) throws Exception {
         String snifferCommand = snifferPath + " server-stop";
         ssh.exec( snifferCommand );
 
-        snifferCommand = snifferPath + " analyze" + " --output-path " + snifferOutputPath;
+        snifferCommand = snifferPath + " analyze" + " --output-path "
+                + snifferOutputPath;
         ssh.exec( snifferCommand );
+    }
+
+    public static MongoClient getSnifferClient() {
+        // sniffer对外服务地址
+        String snifferUri = "mongodb://" + remoteHost + ":" + snifferListenPort;
+        MongoClient snifferClient = MongoClients.create( snifferUri );
+        return snifferClient;
     }
 
     /**
