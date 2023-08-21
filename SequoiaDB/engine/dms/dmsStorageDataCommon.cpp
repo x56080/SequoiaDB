@@ -1081,7 +1081,9 @@ namespace engine
             {
                if ( 0 == _dmsMME->_mbList[i]._commitFlag )
                {
-                  /// upgrade from the old version( _commitLSN = 0 )
+                  /// upgrade from the old version which has no
+                  /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
+                  /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
                   if ( 0 == _dmsMME->_mbList[i]._commitLSN )
                   {
                      _dmsMME->_mbList[i]._commitLSN =

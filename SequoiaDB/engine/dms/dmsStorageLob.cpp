@@ -2088,10 +2088,12 @@ namespace engine
             {
                if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
                {
-                  /// upgrade from the old version( _commitLSN = 0 )
-                  if ( 0 == _dmsData->_dmsMME->_mbList[i]._commitLSN )
+                  /// upgrade from the old version which has no
+                  /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
+                  /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
+                  if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitLSN )
                   {
-                     _dmsData->_dmsMME->_mbList[i]._commitLSN =
+                     _dmsData->_dmsMME->_mbList[i]._lobCommitLSN =
                         _pStorageInfo->_curLSNOnStart ;
                   }
                   _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 1 ;
