@@ -239,8 +239,8 @@ namespace engine
 
       {
          const CHAR *pQuery = NULL;
-         rc = rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &pQuery, NULL, NULL,
-                                    NULL );
+         rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &pQuery, NULL, NULL,
+                               NULL );
          PD_RC_CHECK( rc, PDERROR, "Failed to extract query, rc: %d", rc );
          BSONObj options( pQuery );
          rc = checkPrivilegesByWatchOptions( cb, options );
