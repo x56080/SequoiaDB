@@ -2,10 +2,10 @@
  * @Description   : seqDB-23244:索引支持数组，测试覆盖索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.01.19
- * @LastEditTime  : 2021.05.12
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
-
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_23244";
 
 main( test );

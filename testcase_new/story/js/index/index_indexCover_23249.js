@@ -2,9 +2,10 @@
  * @Description   : seqDB-23249:索引不支持数组，非嵌套对象+复合索引，查询条/选择/排序字段均为多索引键字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_cl_23249";
 testConf.clOpt = { "ReplSize": -1 };
 

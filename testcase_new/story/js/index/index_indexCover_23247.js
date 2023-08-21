@@ -2,9 +2,10 @@
  * @Description   : seqDB-23247 :: 索引不支持数组，查询条件/选择条件为{} 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_23247";
 var indexName = "Index_23247";
 

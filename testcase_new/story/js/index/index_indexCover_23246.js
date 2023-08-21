@@ -2,9 +2,10 @@
  * @Description   : seqDB-23246 :: 索引不支持数组，查询不满足覆盖索引必要条件 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_23246";
 var indexName = "Index_23246";
 

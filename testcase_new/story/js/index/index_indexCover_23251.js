@@ -2,9 +2,10 @@
  * @Description   : seqDB-23251:索引不支持数组，嵌套对象+嵌套索引（如{“a.b”:1}），测试覆盖索引
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
 testConf.clOpt = { "ReplSize": -1 };
 

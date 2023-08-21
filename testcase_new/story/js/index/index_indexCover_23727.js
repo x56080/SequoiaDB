@@ -2,9 +2,10 @@
  * @Description   : seqDB-23727 : 如果索引中的字段名存在包含关系,查询数据
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.23
- * @LastEditTime  : 2021.05.11
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "cl_23727";
 
 main( test );

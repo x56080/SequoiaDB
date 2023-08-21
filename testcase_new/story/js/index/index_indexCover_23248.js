@@ -2,9 +2,10 @@
  * @Description   : seqDB-23248 :: 索引不支持数组，复合索引，查询条/选择/排序字段均为单索引键字段 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_23248";
 var indexName = "Index_23248";
 

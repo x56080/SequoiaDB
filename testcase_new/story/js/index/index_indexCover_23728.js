@@ -2,9 +2,10 @@
  * @Description   : seqDB-23728 : 记录dmsRecord头中有Ovf标记时会assert
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.23
- * @LastEditTime  : 2021.05.11
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_cl23728";
 
 main( test );

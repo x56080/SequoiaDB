@@ -2,9 +2,10 @@
  * @Description   : seqDB-23250:索引不支持数组，非嵌套对象+复合索引，选择条件索引字段不包含排序索引字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
 testConf.clOpt = { "ReplSize": -1 };
 

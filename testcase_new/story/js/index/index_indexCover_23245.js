@@ -2,9 +2,10 @@
  * @Description   : seqDB-23245 :: 索引不支持数组，覆盖索引基本功能验证 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.10.15
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.08.21
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_23245";
 var indexName = "Index_23245";
 
