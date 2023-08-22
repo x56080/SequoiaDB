@@ -401,9 +401,9 @@ public class SdbTestBase {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
                     rootUserName, rootUserPassword, options )) {
                 System.out.println( "create root user" );
-                Object options = JSON.parse( "{Roles:['_root']}" );
-                sdb.createUser( rootUserName, rootUserPassword,
-                        ( BSONObject ) options );
+                BSONObject options = ( BSONObject ) JSON
+                        .parse( "{Roles:['_root']}" );
+                sdb.createUser( rootUserName, rootUserPassword, options );
             }
         }
     }
