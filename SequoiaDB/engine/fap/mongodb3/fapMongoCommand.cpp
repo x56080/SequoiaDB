@@ -2029,7 +2029,7 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // reply: { n: 1, ok: 1 }
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-         bob.append( "n", (INT32)_deletedNum ) ;
+         bob.append( "n", _deletedNum ) ;
          /// clear error obj
          if ( SDB_OK != sdbReply.flags )
          {
@@ -2038,7 +2038,7 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
       else
       {
-         bob.append( "n", (INT32)_deletedNum ) ;
+         bob.append( "n", _deletedNum ) ;
          /// write error
          rc = _buildWriteErrResult( bob, (INT32)(_msgIndex-1), 1, bodyBuf.data() ) ;
          if ( rc )
@@ -2342,9 +2342,9 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
          //n
-         bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
+         bob.append( "n", _insertedNum + _updatedNum) ;
          //nModified
-         bob.append( "nModified", (INT32)_modifiedNum ) ;
+         bob.append( "nModified", _modifiedNum ) ;
 
          //upserted
          if ( _insertedNum > 0 )
@@ -2373,8 +2373,8 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
       else
       {
-         bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
-         bob.append( "nModified", (INT32)_modifiedNum ) ;
+         bob.append( "n", _insertedNum + _updatedNum ) ;
+         bob.append( "nModified", _modifiedNum ) ;
 
          //upserted
          if ( _insertedNum > 0 )
