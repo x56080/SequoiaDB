@@ -153,6 +153,7 @@ namespace engine
       builder.appendBool( OPT_FIELD_SORTED_IDX_REQURED,
                           _key.isSortedIdxRequired() ) ;
       builder.appendBool( OPT_FIELD_IS_COUNT, _key.isCount() ) ;
+      builder.appendBool( OPT_FIELD_IS_EVAL_START_COST, _key.isEvalStartCost() ) ;
       builder.appendBool( OPT_FIELD_EST_FROM_STAT, isEstimatedFromStat() ) ;
 
       builder.append( OPT_FIELD_HASH_CODE, getKeyCode() ) ;

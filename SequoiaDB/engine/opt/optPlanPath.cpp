@@ -287,6 +287,10 @@ namespace engine
       if ( !options.isOrderByEmpty() &&
            !_pScanNode->isSorted() )
       {
+         // limit and skip will be calculated in sort node
+         _pScanNode->getReturnOptions().setLimit( -1 ) ;
+         _pScanNode->getReturnOptions().setSkip( 0 ) ;
+
          _pScanNode->evaluate() ;
 
          rc = createSortNode( options, sortBufferSize ) ;

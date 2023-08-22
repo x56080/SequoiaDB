@@ -709,6 +709,7 @@ namespace engine
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
          OSS_INLINE BOOLEAN privilegeCheckEnabled() const { return _privilegeCheckEnabled ;}
          OSS_INLINE UINT32 getUserCacheInterval() const { return _userCacheInterval ; }
+         OSS_INLINE UINT32 getOptStartCostLimit() const { return _optStartCostLimit ; }
 
          OSS_INLINE INT32  getMemMXFast() const { return _memMXFast ; }
          OSS_INLINE INT32  getMemTrimThreshold() const
@@ -874,6 +875,7 @@ namespace engine
          BOOLEAN     _privilegeCheckEnabled ;
 
          UINT32      _userCacheInterval ;
+         UINT32      _optStartCostLimit ;
 
          /// memory info
          INT32       _memMXFast ;
