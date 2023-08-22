@@ -28,6 +28,8 @@
     <parameter name="CONFTOOL"          value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     <!--是否开启事务-->
     <parameter name="ENABLETRANSACTION" value="true" />
+    <!--远程机器root用户密码-->
+    <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
 
     <listeners>
         <listener
@@ -165,6 +167,18 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.recyclebin" />
+        </packages>
+    </test>
+
+    <!--未开启privilegecheck执行用例会重启节点，开启privilegecheck可直接执行用例-->
+    <test name="rbac" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rbac" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.rbac" />
         </packages>
     </test>
 

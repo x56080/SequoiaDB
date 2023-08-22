@@ -22,6 +22,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @UpdateDate 2023.08.16
  * @version 1.10
  */
+@Test(groups = "rbac")
 public class Rbac32785 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String roleName = "role_32785";
@@ -30,7 +31,8 @@ public class Rbac32785 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
+                SdbTestBase.rootUserPassword );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }

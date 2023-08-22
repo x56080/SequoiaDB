@@ -982,8 +982,8 @@ public class CommLib {
         }
 
         List< String > coordUrls = CommLib.getAllCoordUrls( sdb );
-        ArrayList< String > grpupNames = sdb.getReplicaGroupNames();
-        grpupNames.remove( "SYSCoord" );
+        ArrayList< String > groupNames = sdb.getReplicaGroupNames();
+        groupNames.remove( "SYSCoord" );
 
         if ( coordUrls.size() == 1 ) {
             System.out.println( "only one coord" );
@@ -1009,7 +1009,7 @@ public class CommLib {
             }
         } else {
             System.out.println( "more than one coord" );
-            for ( String groupName : grpupNames ) {
+            for ( String groupName : groupNames ) {
                 ReplicaGroup replicaGroup = sdb.getReplicaGroup( groupName );
                 replicaGroup.stop();
                 replicaGroup.start();
@@ -1033,7 +1033,8 @@ public class CommLib {
         }
 
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        for ( String groupName : grpupNames ) {
+        waitGroupSelectMasterNode( sdb, groupNames, 300 );
+        for ( String groupName : groupNames ) {
             CommLib.isLSNConsistency( sdb, groupName );
         }
 
@@ -1141,6 +1142,47 @@ public class CommLib {
         }
 
         return isConsistency;
+    }
+
+    /**
+     * @description: 等待group中对应Location下选出PrimaryNode
+     * @param db
+     *            db连接
+     * @param groupNames
+     *            需要获取的groups名
+     * @param timeOut
+     *            等待超时时间
+     * @return
+     */
+    public static void waitGroupSelectMasterNode( Sequoiadb db,
+            ArrayList< String > groupNames, int timeOut ) {
+        int doTime = 0;
+        for ( String groupName : groupNames ) {
+            while ( doTime < timeOut ) {
+                ReplicaGroup replicaGroup = db.getReplicaGroup( groupName );
+                try {
+                    replicaGroup.getMaster();
+                    break;
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() == SDBError.SDB_RTN_NO_PRIMARY_FOUND
+                            .getErrorCode() ) {
+                        throw e;
+                    }
+                }
+
+                try {
+                    Thread.sleep( 1000 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+
+                doTime++;
+            }
+        }
+
+        if ( doTime >= timeOut ) {
+            Assert.fail( "there is no primary node in group " );
+        }
     }
 
 }

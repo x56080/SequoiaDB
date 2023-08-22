@@ -24,10 +24,9 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @UpdateDate 2023.08.16
  * @version 1.10
  */
+@Test(groups = "rbac")
 public class Rbac32781 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String rootUser = "sdbadmin_32781";
-    private String rootPasswd = "sdbadmin_32781";
     private String user = "user_32781";
     private String password = "passwd_32781";
     private String roleName = "role_32781";
@@ -37,14 +36,11 @@ public class Rbac32781 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        if ( CommLib.isStandAlone( db1 ) ) {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
+                SdbTestBase.rootUserPassword );
+        if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        Object options = JSON.parse( "{Roles:['_root']}" );
-        db1.createUser( rootUser, rootPasswd, ( BSONObject ) options );
-        db1.close();
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, rootUser, rootPasswd );
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
@@ -63,7 +59,6 @@ public class Rbac32781 extends SdbTestBase {
         try {
             sdb.dropCollectionSpace( csName );
         } finally {
-            sdb.removeUser( rootUser, rootPasswd );
             if ( sdb != null ) {
                 sdb.close();
             }

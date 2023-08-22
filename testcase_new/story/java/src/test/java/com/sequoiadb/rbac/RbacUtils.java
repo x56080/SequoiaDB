@@ -584,10 +584,10 @@ public class RbacUtils {
         rootCS.setDomain( new BasicBSONObject( "Domain", domainName ) );
 
         // 执行权限支持的操作
-        dbcs.getDomainName();
-        String domain = dbcs.getDomainName();
-        System.out.println( "domain -- "+domain );
-//        List< String > test = dbcs.getCollectionNames();
+//        dbcs.getDomainName();
+//        String domain = dbcs.getDomainName();
+//        System.out.println( "domain -- "+domain );
+        List< String > test = dbcs.getCollectionNames();
 
         // 执行部分不支持的操作
         if ( skipNotSupported ) {

@@ -25,10 +25,9 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @UpdateDate 2023.08.17
  * @version 1.10
  */
+@Test(groups = "rbac")
 public class Rbac32787 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String rootUser = "sdbadmin_32787";
-    private String rootPasswd = "sdbadmin_32787";
     private String user = "user_32787";
     private String password = "passwd_32787";
     private String roleName = "role_32787";
@@ -38,14 +37,12 @@ public class Rbac32787 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        if ( CommLib.isStandAlone( db1 ) ) {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
+                SdbTestBase.rootUserPassword );
+        if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        Object options = JSON.parse( "{Roles:['_root']}" );
-        db1.createUser( rootUser, rootPasswd, ( BSONObject ) options );
-        db1.close();
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, rootUser, rootPasswd );
+
         List< String > groupsName = CommLib.getDataGroupNames( sdb );
         srcGroupName = groupsName.get( 0 );
         if ( sdb.isCollectionSpaceExist( csName ) ) {
@@ -54,7 +51,7 @@ public class Rbac32787 extends SdbTestBase {
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         DBCollection dbcl = cs.createCollection( clName,
-                new BasicBSONObject( "Groups", srcGroupName ) );
+                new BasicBSONObject( "Group", srcGroupName ) );
         dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
     }
 
@@ -139,7 +136,6 @@ public class Rbac32787 extends SdbTestBase {
         try {
             sdb.dropCollectionSpace( csName );
         } finally {
-            sdb.removeUser( rootUser, rootPasswd );
             if ( sdb != null ) {
                 sdb.close();
             }
