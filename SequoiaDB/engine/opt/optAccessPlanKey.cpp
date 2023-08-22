@@ -61,11 +61,6 @@ namespace engine
      _cacheLevel( cacheLevel )
    {
       SDB_ASSERT( NULL != getCLFullName(), "pCLFullName is invalid" ) ;
-
-      // Selector, skip and limit is not used to generate keys, reset them
-      setSelector( BSONObj() ) ;
-      setSkip( 0 ) ;
-      setLimit( -1 ) ;
    }
 
    _optAccessPlanKey::_optAccessPlanKey ( _optAccessPlanKey &planKey )
@@ -159,6 +154,12 @@ namespace engine
          {
             return FALSE ;
          }
+         lhsFlag = isEvalStartCost() ;
+         rhsFlag = planKey.isEvalStartCost() ;
+         if ( lhsFlag != rhsFlag )
+         {
+            return FALSE ;
+         }
       }
 
       /// Hint must compare field by field, and need ignore object field and
@@ -201,6 +202,48 @@ namespace engine
       }
 
       return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPKEY_PREPARE, "_optAccessPlanKey::prepare" )
+   INT32 _optAccessPlanKey::prepare ( const optAccessPlanConfig &config )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_OPTAPKEY_PREPARE ) ;
+
+      if ( ( config._optStartCostLimit > 0 ) &&
+           ( getLimit() >= 0 ) &&
+           ( ( getSkip() <= 0 &&
+               getLimit() <= config._optStartCostLimit ) ||
+             ( getSkip() > 0 &&
+               getSkip() + getLimit() <= config._optStartCostLimit ) ) )
+      {
+         // use start cost to evaluate candidate plans
+         // NOTE: start cost is the cost of the first record to return
+         setInternalFlag( RTN_INTERNAL_QUERY_EVAL_START_FLAG ) ;
+         setSelector( BSONObj() ) ;
+         setSkip( 0 ) ;
+         setLimit( 1 ) ;
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "enable start cost evaluation: [%s] %s, order-by [%s]"
+                 "limit [%lld], skip [%lld], index scan step [%u]",
+                 getCLFullName(),
+                 getQuery().toPoolString().c_str(),
+                 getOrderBy().toPoolString().c_str(),
+                 getLimit(), getSkip(), config._optStartCostLimit ) ;
+#endif
+      }
+      else
+      {
+         // Selector, skip and limit is not used to generate keys, reset them
+         setSelector( BSONObj() ) ;
+         setSkip( 0 ) ;
+         setLimit( -1 ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB_OPTAPKEY_PREPARE, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPKEY_NORMALIZE, "_optAccessPlanKey::normalize" )

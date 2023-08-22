@@ -56,6 +56,8 @@ namespace engine
 
    // indicates the query is for count
    #define RTN_INTERNAL_QUERY_COUNT_FLAG ( 0x00000001 )
+   // indicates the query cost is evaluate by start cost
+   #define RTN_INTERNAL_QUERY_EVAL_START_FLAG ( 0x00000002 )
 
    /*
       _rtnReturnOptions define
