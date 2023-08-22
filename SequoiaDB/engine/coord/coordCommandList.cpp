@@ -416,10 +416,10 @@ namespace engine
                authActionSet actions3;
                actions3.addAction( ACTION_TYPE_listCollections );
                authActionSet actions4;
-               actions3.addAction( ACTION_TYPE_list );
+               actions4.addAction( ACTION_TYPE_list );
 
                if ( !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
-                    !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
+                    !acl->isAuthorizedForActionsOnResource( *res, actions2 ) &&
                     !acl->isAuthorizedForActionsOnResource( *res, actions3 ) &&
                     !acl->isAuthorizedForActionsOnResource( *authResource::forCluster(),
                                                             actions4 ) )
