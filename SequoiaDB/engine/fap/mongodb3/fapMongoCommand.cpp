@@ -1721,7 +1721,7 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
          }
          else
          {
-            bob.append( "n", (INT32)_deletedNum ) ;
+            bob.append( "n", _deletedNum ) ;
          }
 
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
@@ -2029,15 +2029,15 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
          //n
          if ( _insertedNum > 0 )
          {
-            bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
+            bob.append( "n", _insertedNum + _updatedNum ) ;
          }
          else
          {
-            bob.append( "n", (INT32)_updatedNum ) ;
+            bob.append( "n", _updatedNum ) ;
          }
 
          //nModified
-         bob.append( "nModified", (INT32)_modifiedNum ) ;
+         bob.append( "nModified", _modifiedNum ) ;
 
          //upserted
          if ( _insertedNum > 0 )
