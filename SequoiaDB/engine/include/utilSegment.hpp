@@ -114,6 +114,7 @@ namespace engine
    #define _SEGMENT_OBJ_POOL_MASK      ( ( UINT32 ) 0xF0000000 )
    #define _SEGMENT_OBJ_POOLID_SHIFT   ( 28 )
    #define _SEGMENT_OBJ_MAX_NUM        ( _SEGMENT_OBJ_INDEX_MASK + 1 )
+   #define _SEGMENT_OBJ_MAX_SEG        ( 65536 )  /// UINT16 for segmentID
 
    #define _SEGMENT_OBJ_EYE_CATCHER    ( ( UINT8 ) 0xBE )
    #define _SEGMENT_OBJ_FLAG_ACQUIRED  ( ( UINT8 ) 0x55 )
@@ -424,6 +425,7 @@ namespace engine
       UINT32         _delta ;         // number of objects in a segment
       UINT32         _numOfObjs ;     // total number of objects in this pool
       UINT32         _maxNumOfObjs ;  // max number of objects in this pool
+      UINT32         _maxHardNumOfObjs ; // max hard number of objects in this pool
       UINT32         _ballonNumOfObjs ;
       UINT32         _poolId  ;       // pool ID
       ossAtomic32    _maintaining ;   // shrinking in progres
@@ -480,6 +482,7 @@ namespace engine
                            _delta(0),
                            _numOfObjs(0),
                            _maxNumOfObjs(0),
+                           _maxHardNumOfObjs(_SEGMENT_OBJ_MAX_NUM),
                            _ballonNumOfObjs(0),
                            _poolId(0),
                            _maintaining(0),
@@ -524,12 +527,17 @@ namespace engine
 
       void  setMaxSize( UINT64 maxSize )
       {
+         if ( !_isInitialized )
+         {
+            return ;
+         }
+
          ossScopedLock __lock( &_latch ) ;
 
          /// roundup _maxNumOfObjs
-         if ( ( maxSize + getObjXSize() - 1 ) / getObjXSize() > _SEGMENT_OBJ_MAX_NUM )
+         if ( ( maxSize + getObjXSize() - 1 ) / getObjXSize() > _maxHardNumOfObjs )
          {
-            _maxNumOfObjs = _SEGMENT_OBJ_MAX_NUM ;
+            _maxNumOfObjs = _maxHardNumOfObjs ;
          }
          else
          {
@@ -1243,7 +1251,7 @@ namespace engine
          _blockSize     = blockSize ;
 
          if ( _blockSize < getObjXSize() ||
-              _blockSize / getObjXSize() > _SEGMENT_OBJ_MAX_NUM )
+              _blockSize / getObjXSize() > _maxHardNumOfObjs )
          {
             /// invalid blockSize
             rc = SDB_INVALIDARG ;
@@ -1253,10 +1261,15 @@ namespace engine
 
          _delta        = _blockSize / getObjXSize() ;
 
-         /// roundup _maxNumOfObjs
-         if ( ( maxSize + getObjXSize() - 1 ) / getObjXSize() > _SEGMENT_OBJ_MAX_NUM )
+         if ( _maxHardNumOfObjs / _delta > _SEGMENT_OBJ_MAX_SEG )
          {
-            _maxNumOfObjs = _SEGMENT_OBJ_MAX_NUM ;
+            _maxHardNumOfObjs = _SEGMENT_OBJ_MAX_SEG * _delta ;
+         }
+
+         /// roundup _maxNumOfObjs
+         if ( ( maxSize + getObjXSize() - 1 ) / getObjXSize() > _maxHardNumOfObjs )
+         {
+            _maxNumOfObjs = _maxHardNumOfObjs ;
          }
          else
          {
@@ -1266,7 +1279,7 @@ namespace engine
          if ( _maxNumOfObjs > 0 )
          {
             UINT32 segmentNum = 0 ;
-   
+
             if ( _maxNumOfObjs < _delta )
             {
                _maxNumOfObjs = _delta ;
@@ -1459,7 +1472,7 @@ namespace engine
                   BOOLEAN canBallonUp = FALSE ;
                   UINT32 tmpRealMaxNumOfObjs = getRealMaxNumOfObjs() ;
 
-                  if ( tmpRealMaxNumOfObjs <= ( _SEGMENT_OBJ_MAX_NUM - _delta ) )
+                  if ( tmpRealMaxNumOfObjs <= ( _maxHardNumOfObjs - _delta ) )
                   {
                      if ( _pHandler )
                      {
@@ -1484,7 +1497,7 @@ namespace engine
                         bLatched = TRUE ;
 
                         if ( canBallonUp &&
-                             getRealMaxNumOfObjs() <= ( _SEGMENT_OBJ_MAX_NUM - _delta ) )
+                             getRealMaxNumOfObjs() <= ( _maxHardNumOfObjs - _delta ) )
                         {
                            _ballonNumOfObjs += _delta ;
                            hasBallonUp = TRUE ;
