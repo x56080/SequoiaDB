@@ -391,6 +391,51 @@ namespace engine
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDMEMDUMPHNDL, "pmdMemDumpHandler" )
+   void pmdMemDumpHandler( OSS_HANDPARMS )
+   {
+#if defined( SDB_ENGINE )
+      PD_TRACE_ENTRY ( SDB_PMDMEMDUMPHNDL );
+      const CHAR *dumpPath = ossGetTrapExceptionPath () ;
+      if ( ossGetSignalShieldFlag() )
+      {
+         ossGetPendingSignal() = signum ;
+         goto done ;
+      }
+      else if ( !dumpPath )
+      {
+         goto done ;
+      }
+
+      if ( signum == OSS_MEM_DUMP_SIGNAL )
+      {
+         PD_LOG ( PDEVENT, "Signal %d is received, prepare to dump memory information", signum ) ;
+
+         utilDumpThreadMemBegin( dumpPath ) ;
+
+         pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
+         pMgr->killByThreadID( OSS_MEM_DUMP_SIGNAL_INTERNAL ) ;
+
+         ossMemTrace ( dumpPath ) ;
+         ossMemDump ( dumpPath ) ;
+         utilDumpPoolMemInfo ( dumpPath ) ;
+      }
+      else if ( signum == OSS_MEM_DUMP_SIGNAL_INTERNAL )
+      {
+         utilDumpThreadMemPoolInfo( dumpPath ) ;
+      }
+      else
+      {
+         PD_LOG ( PDWARNING, "Unexpected signal is received: %d",
+                  signum ) ;
+      }
+
+   done :
+      PD_TRACE_EXIT ( SDB_PMDMEMDUMPHNDL ) ;
+#endif // SDB_ENGINE
+      return ;
+   }
+
    void pmdFreezeHandler( OSS_HANDPARMS )
    {
 #if defined( SDB_ENGINE )
@@ -424,7 +469,7 @@ namespace engine
       return ;
    }
 
-   void pmdSleepInstance()
+   void pmdSleepInstance( OSS_HANDPARMS )
    {
 #if defined( SDB_ENGINE )
       if ( !pmdGetOptionCB()->isSleepEnabled() )
@@ -460,6 +505,54 @@ namespace engine
          ossSleep( OSS_ONE_SEC ) ;
       }
 #endif
+   }
+
+   void pmdMemTrimHandler( OSS_HANDPARMS )
+   {
+      INT32 rc = 0 ;
+      // check whether the current is shielding signal
+      if ( ossGetSignalShieldFlag() )
+      {
+         ossGetPendingSignal() = signum ;
+         goto done ;
+      }
+
+#if defined( SDB_ENGINE )
+      if ( signum == OSS_MEM_TRIM_SIGNAL )
+      {
+         pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
+         pMgr->killByThreadID( OSS_MEM_TRIM_SIGNAL_INTERNAL ) ;
+
+         /// shink self thread
+         utilShrinkThreadMemPool( TRUE ) ;
+
+         /// wait other thread to trim memory
+         ossSleep( OSS_ONE_SEC ) ;
+
+         /// trim mempool
+         utilGetGlobalMemPool()->shrink( TRUE ) ;
+
+         /// trim system
+         rc = ossMemTrim() ;
+         PD_LOG( PDEVENT, "Has trimmed %s memory", ( 1 == rc ? "some" : "none" ) ) ;
+      }
+      else if ( signum == OSS_MEM_TRIM_SIGNAL_INTERNAL )
+      {
+         /// shrik thread memory
+         utilShrinkThreadMemPool( TRUE ) ;
+      }
+      else
+      {
+         PD_LOG ( PDWARNING, "Unexpected signal is received: %d", signum ) ;
+      }
+#else
+      /// trim system
+      rc = ossMemTrim() ;
+      PD_LOG( PDEVENT, "Has trimed %s memory", ( 1 == rc ? "some" : "none" ) ) ;
+#endif
+
+   done :
+      return ;
    }
 
    INT32 pmdDisableSignalEvent()
@@ -532,10 +625,43 @@ namespace engine
          goto error ;
       }
 
+      // mem dump signals: OSS_MEM_DUMP_SIGNAL( 39 )
+      newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdMemDumpHandler ;
+      newact.sa_flags |= SA_SIGINFO ;
+      if ( sigaction ( OSS_MEM_DUMP_SIGNAL, &newact, NULL ) )
+      {
+         PD_LOG ( PDERROR, "Failed to setup signal handler for memdump signal" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // capture the internal memdump signal
+      if ( sigaction ( OSS_MEM_DUMP_SIGNAL_INTERNAL, &newact, NULL ) )
+      {
+         PD_LOG ( PDERROR, "Failed to setup signal handler for memdump signal" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // mem trim signals: OSS_MEM_TRIM_SIGNAL( 41 )
+      newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdMemTrimHandler ;
+      newact.sa_flags |= SA_SIGINFO ;
+      if ( sigaction ( OSS_MEM_TRIM_SIGNAL, &newact, NULL ) )
+      {
+         PD_LOG ( PDERROR, "Failed to setup signal handler for memtrim signal" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // capture the internal memtrim signal
+      if ( sigaction ( OSS_MEM_TRIM_SIGNAL_INTERNAL, &newact, NULL ) )
+      {
+         PD_LOG ( PDERROR, "Failed to setup signal handler for memtrim signal" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       // signal test
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdSignalTestHandler ;
       newact.sa_flags |= SA_SIGINFO ;
-      newact.sa_flags |= SA_ONSTACK ;
       if ( sigaction ( OSS_TEST_SIGNAL, &newact, NULL ) )
       {
          PD_LOG ( PDERROR, "Failed to setup signal handler for test signal" ) ;
@@ -554,7 +680,6 @@ namespace engine
        // signal freeze aka engine wise sleep
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdSleepInstance ;
       newact.sa_flags |= SA_SIGINFO ;
-      newact.sa_flags |= SA_ONSTACK ;
       if ( sigaction ( OSS_FREEZE_SIGNAL, &newact, NULL ) )
       {
          PD_LOG ( PDERROR, "Failed to setup signal handler for freeze signal" ) ;
@@ -565,7 +690,6 @@ namespace engine
       // signal handler for sleep internal
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdFreezeHandler ;
       newact.sa_flags |= SA_SIGINFO ;
-      newact.sa_flags |= SA_ONSTACK ;
       if ( sigaction ( OSS_FREEZE_SIGNAL_INTERNAL, &newact, NULL ) )
       {
          PD_LOG ( PDERROR, "Failed to setup signal handler for freeze signal internal" ) ;
@@ -589,6 +713,10 @@ namespace engine
       sigSet.sigDel ( OSS_INTERNAL_TEST_SIGNAL ) ;
       sigSet.sigDel ( OSS_FREEZE_SIGNAL ) ;
       sigSet.sigDel ( OSS_FREEZE_SIGNAL_INTERNAL ) ;
+      sigSet.sigDel ( OSS_MEM_DUMP_SIGNAL ) ;
+      sigSet.sigDel ( OSS_MEM_DUMP_SIGNAL_INTERNAL ) ;
+      sigSet.sigDel ( OSS_MEM_TRIM_SIGNAL ) ;
+      sigSet.sigDel ( OSS_MEM_TRIM_SIGNAL_INTERNAL ) ;
 
       if ( tcgetpgrp( STDOUT_FILENO ) != getpgrp() )
       {

@@ -3211,6 +3211,12 @@
                            "file": "watch",
                            "cn": "watch()",
                            "en": "watch()"
+                        },
+                        {
+                           "id": 1692418849,
+                           "file": "memTrim",
+                           "cn": "memTrim()",
+                           "en": "memTrim()"
                         }
                      ]
                   },
@@ -6817,6 +6823,12 @@
                      ]
                   }
                ]
+            },
+            {
+               "id": 1692435488,
+               "file": "Signal",
+               "cn": "信号量操作",
+               "en": "Signal Operation"
             },
             {
                "id": 1432190984,

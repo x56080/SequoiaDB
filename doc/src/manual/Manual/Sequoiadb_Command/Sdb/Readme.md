@@ -78,6 +78,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [updateConf()][updateConf] | 更新节点配置 |
 | [waitTasks()][waitTasks] | 同步等待指定任务结束或取消 |
 | [watch()][watch] | 订阅数据库中指定对象的变更流 |
+| [memTrim()][memTrim] | 空闲内存回收 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -157,3 +158,4 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [initSecurityKeys]:manual/Manual/Sequoiadb_Command/Sdb/initSecurityKeys.md
 [watch]:manual/Manual/Sequoiadb_Command/Sdb/watch.md
 [getChangeStreamToken]:manual/Manual/Sequoiadb_Command/Sdb/getChangeStreamToken.md
+[memTrim]:manual/Manual/Sequoiadb_Command/Sdb/memTrim.md

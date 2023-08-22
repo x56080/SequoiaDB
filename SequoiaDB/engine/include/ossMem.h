@@ -92,11 +92,20 @@ BOOLEAN ossMemSanityCheck ( void *p ) ;
 void    ossMemTrack ( void *p ) ;
 void    ossMemUnTrack ( void *p ) ;
 INT32   ossMemTrace ( const CHAR *pPath ) ;
+INT32   ossMemDump ( const CHAR *pPath ) ;
 void    ossOnMemConfigChange( BOOLEAN debugEnable,
                               UINT32  memDebugSize,
                               BOOLEAN memDebugVerify,
                               BOOLEAN memDebugDetail,
                               UINT32  memDebugMask ) ;
+
+void    ossSetSysMemInfo( INT32 mxfast,
+                          INT32 trimThreshold,
+                          INT32 mmapThreshold,
+                          INT32 mmapMax,
+                          INT32 topPad ) ;
+
+INT32   ossMemTrim() ;
 
 SDB_EXTERN_C_END
 #endif

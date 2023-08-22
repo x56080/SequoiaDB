@@ -41,6 +41,7 @@
 #include "ossAtomic.hpp"
 #include "ossUtil.hpp"
 #include "ossLatch.hpp"
+#include "ossSignal.hpp"
 
 using namespace bson ;
 
@@ -215,7 +216,9 @@ namespace engine
 
    INT32&   pmdGetSigNum() ;
 
-   void     pmdSleepInstance() ;
+#if defined (_LINUX)
+   void     pmdSleepInstance( OSS_HANDPARMS ) ;
+#endif // _LINUX
 
    INT64    pmdGetSysPageSize() ;
 

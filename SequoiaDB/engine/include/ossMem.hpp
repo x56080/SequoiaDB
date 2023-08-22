@@ -41,6 +41,8 @@
 #include "ossMem.h"
 #include <new>
 
+#define SDB_SYS_MEMDUMPNAME      ".memsysstat"
+#define SDB_SYS_MEMINFONAME      ".memsysinfo_xml"
 #define SDB_OSS_MEMDUMPNAME      ".memossdump"
 #define SDB_POOL_MEMDUMPNAME     ".mempooldump"
 #define SDB_TC_MEMDUMPNAME       ".memtcdump"

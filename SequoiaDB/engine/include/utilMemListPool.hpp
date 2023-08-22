@@ -108,6 +108,7 @@ namespace engine
          void     dealloc( void *p ) ;
 
          void     clear() ;
+         UINT64   shrinkAll() ;
          UINT64   shrink( UINT64 expectSize ) ;
          BOOLEAN  canShrink( UINT64 *pExpectSize = NULL ) const ;
 
@@ -189,7 +190,8 @@ namespace engine
          void        release( void*& ptr ) ;
 
          void        clear() ;
-         void        shrink() ;
+         UINT64      shrink() ;
+         UINT64      shrinkAll() ;
          UINT64      getCacheSize() const { return _cachedSize ; }
 
          UINT32      dump( CHAR *pBuff, UINT32 buffSize ) ;
@@ -231,6 +233,7 @@ namespace engine
 
          UINT64            _outrangeAlloc ;
          UINT64            _outrangeDealloc ;
+         UINT64            _outpoolDealloc ;
    } ;
    typedef _utilMemListPool utilMemListPool ;
 
@@ -244,6 +247,7 @@ namespace engine
    void        utilDumpThreadMemBegin( const CHAR *pPath ) ;
    void        utilDumpThreadMemPoolInfo( const CHAR *pPath ) ;
 
+   UINT64      utilShrinkThreadMemPool( BOOLEAN forced = FALSE ) ;
    void        utilClearThreadMemPool() ;
    UINT32      utilThreadMemPoolSize() ;
 

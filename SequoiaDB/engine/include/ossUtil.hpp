@@ -1147,12 +1147,22 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
 
 typedef struct _ossProcMemInfo
 {
-   INT64    vSize;         // used virtual memory size(MB)
-   INT64    rss;           // resident size(MB)
+   INT64    vSize;         // used virtual memory size(Byte)
+   INT64    rss;           // resident size(Byte)
+   INT64    shr;           // shared
    INT64    fault;
+
+   _ossProcMemInfo()
+   {
+      vSize = 0 ;
+      rss = 0 ;
+      shr = 0 ;
+      fault = 0 ;
+   }
 }ossProcMemInfo;
 INT32 ossGetProcMemInfo( ossProcMemInfo &memInfo,
                         OSSPID pid = ossGetCurrentProcessID() );
+
 #if defined (_LINUX) || defined (_AIX)
 class ossProcStatInfo
 {
@@ -1183,14 +1193,15 @@ public:
    INT32    _nlwp;
    UINT32   _alarm;
    UINT32   _startTime;
-   UINT32   _vSize;
+   INT64    _vSize;
    INT64    _rss;
-   UINT32   _rssRlim;
+   INT64    _shr;
+   INT64    _rssRlim;
    UINT32   _startCode;
    UINT32   _endCode;
-   UINT32   _startStack;
-   UINT32   _kstkEsp;
-   UINT32   _kstkEip;
+   UINT64   _startStack;
+   UINT64   _kstkEsp;
+   UINT64   _kstkEip;
 };
 #endif   //#if defined (_LINUX)
 

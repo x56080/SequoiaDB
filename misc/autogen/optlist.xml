@@ -2408,6 +2408,106 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_MEM_MXFAST</name>
+      <long>memmxfast</long>
+      <description>
+        <en>The max chunk size(Byte) of fast bin in GLIBC. Value range:[-1,160], 0:disables fast bin, -1:not modify the system value, Default:-1.</en>
+        <cn>GLIBC中Fast Bin的最大内存块大小，单位：字节，取值：[-1,160]，0表示禁用Fast Bin，-1表示不修改系统值，默认为-1。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The max chunk size(Byte) of fast bin in GLIBC. Value range:[-1,160], 0:disables fast bin, -1:not modify the system value, Default:-1.</en>
+        <cn>GLIBC中Fast Bin的最大内存块大小，单位：字节，取值：[-1,160]，0表示禁用Fast Bin，-1表示不修改系统值，默认为-1。</cn>
+      </detail>
+      <type>int</type>
+      <default>-1</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MEM_TRIM_THRESHOLD</name>
+      <long>memtrimthreshold</long>
+      <description>
+        <en>The threshold size(KB) for memory trimming in GLIBC. Value range:[-1,65536], -1:not modify the system value, Default:256.</en>
+        <cn>GLIBC中内存收缩的域值，单位：KB，取值：[-1,65536]，-1表示不修改系统值，默认为256。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold size(KB) for memory trimming in GLIBC. Value range:[-1,65536], -1:not modify the system value, Default:256.</en>
+        <cn>GLIBC中内存收缩的域值，单位：KB，取值：[-1,65536]，-1表示不修改系统值，默认为256。</cn>
+      </detail>
+      <type>int</type>
+      <default>256</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MEM_MMAP_THRESHOLD</name>
+      <long>memmmapthreshold</long>
+      <description>
+        <en>The threshold size(KB) that more than the value allocation will use mmap() instead of sbrt() in GLIBC. Value range:[-1,65536], 0:disables mmap, -1:not modify the system value, Default:1024.</en>
+        <cn>GLIBC中内存分配使用MMAP的域值，单位：KB，取值：[-1,65536]，0表示禁用MMAP，-1表示不修改系统值，默认为1024。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold size(KB) that more than the value allocation will use mmap() instead of sbrt() in GLIBC. Value range:[-1,65536], 0:disables mmap, -1:not modify the system value, Default:1024.</en>
+        <cn>GLIBC中内存分配使用MMAP的域值，单位：KB，取值：[-1,65536]，0表示禁用MMAP，-1表示不修改系统值，默认为1024。</cn>
+      </detail>
+      <type>int</type>
+      <default>1024</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MEM_MMAP_MAX</name>
+      <long>memmmapmax</long>
+      <description>
+        <en>The max value of MMAP in GLIC. Value range:[-1,100000000], 0:disables mmap, -1:not modify the system value, Default:4194304.</en>
+        <cn>GLIBC中MMAP内存的最大个数，取值：[-1,100000000]，0表示禁用MMAP，-1表示不修改系统值，默认为4194304。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The max value of MMAP in GLIC. Value range:[-1,100000000], 0:disables mmap, -1:not modify the system value, Default:4194304.</en>
+        <cn>GLIBC中MMAP内存的最大个数，取值：[-1,100000000]，0表示禁用MMAP，-1表示不修改系统值，默认为4194304。</cn>
+      </detail>
+      <type>int</type>
+      <default>4194304</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MEM_TOP_PAD</name>
+      <long>memtoppad</long>
+      <description>
+        <en>The amount(Byte) of extra padding space to allocate or retain whenever sbrk is called in GLIC. Value range:[-1,16777216], -1:not modify the system value, Default:-1.</en>
+        <cn>GLIBC中内存堆顶分配或回收的填充大小，单位：字节，取值：[-1,16777216]，-1表示不修改系统值，默认为-1。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The amount(Byte) of extra padding space to allocate or retain whenever sbrk is called in GLIC. Value range:[-1,16777216], -1:not modify the system value, Default:-1.</en>
+        <cn>GLIBC中内存堆顶分配或回收的填充大小，单位：字节，取值：[-1,16777216]，-1表示不修改系统值，默认为-1。</cn>
+      </detail>
+      <type>int</type>
+      <default>-1</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_MON_SLOWQUERY_THRESHOLD</name>
       <long>monslowquerythreshold</long>
       <description>

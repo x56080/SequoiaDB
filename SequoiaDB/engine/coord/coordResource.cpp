@@ -227,6 +227,13 @@ namespace engine
       _mapGroupInfo.clear() ;
       _mapGroupName.clear() ;
 
+      _cataGroupInfo = CoordGroupInfoPtr() ;
+      _omGroupInfo = CoordGroupInfoPtr() ;
+      _emptyGroupPtr = CoordGroupInfoPtr() ;
+
+      _cataNodeAddrList.clear() ;
+      _omNodeAddrList.clear() ;
+
       if ( _pOmStrategyAgent )
       {
          _pOmStrategyAgent->fini() ;

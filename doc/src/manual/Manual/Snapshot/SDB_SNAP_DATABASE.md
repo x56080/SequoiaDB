@@ -51,13 +51,13 @@ SDB_SNAP_DATABASE
 | CurrentContexts       | int32     | 当前上下文数量                                                  |
 | ReceivedEvents        | int32     | 当前分区接收到的事件请求总数                                    |
 | Role                  | string    | 当前节点角色                                                    |
-| Disk.DatabasePath     | string | 数据库所在路径                                                                  |
-| Disk.LoadPercent      | int32   | 数据库路径磁盘占用率百分比                                                      |
-| Disk.TotalSpace       | int64 | 数据库路径总空间，单位为字节                                                  |
-| Disk.FreeSpace        | int64 | 数据库路径空闲空间，单位为字节                                                |
+| Disk.DatabasePath     | string    | 数据库所在路径                                                  |
+| Disk.LoadPercent      | int32     | 数据库路径磁盘占用率百分比                                      |
+| Disk.TotalSpace       | int64     | 数据库路径总空间，单位为字节                                    |
+| Disk.FreeSpace        | int64     | 数据库路径空闲空间，单位为字节                                  |
 | TotalNumConnects      | int32     | 数据库连接请求数量                                              |
-| TotalQuery            | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）               |
-| TotalSlowQuery        | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）             |
+| TotalQuery            | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）            |
+| TotalSlowQuery        | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）          |
 | TotalTransCommit      | int64     | 总事务提交数量                                                  |
 | TotalTransRollback    | int64     | 总事务回滚数量                                                  |
 | TotalDataRead         | int64     | 总数据读请求                                                    |
@@ -72,16 +72,16 @@ SDB_SNAP_DATABASE
 | ReplInsert            | int64     | 复制插入记录数量                                                |
 | TotalSelect           | int64     | 总选择记录数量                                                  |
 | TotalRead             | int64     | 总读取记录数量                                                  |
-| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
-| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效）      |
+| TotalLobRead          | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效）         |
+| TotalLobWrite         | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效）         |
+| TotalLobTruncate      | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效）       |
+| TotalLobAddressing    | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效）     |
 | TotalReadTime         | int64     | 总读取时间，单位为毫秒                                          |
 | TotalWriteTime        | int64     | 总写入时间，单位为毫秒                                          |
 | ActivateTimestamp     | string | 数据库启动时间                                                  |
@@ -91,6 +91,7 @@ SDB_SNAP_DATABASE
 | freeLogSpace          | int64     | 空闲日志空间，单位为字节                                        |
 | vsize                 | int64     | 虚拟内存使用量，单位为字节                                      |
 | rss                   | int64     | 物理内存使用量，单位为字节                                      |
+| MemShared             | int64     | 物理内存中共享内存使用量，单位为字节                            |
 | fault                 | int64     | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
 | TotalMapped           | int64     | mmap 的总数据量，单位为字节                                     |
 | svcNetIn              | int64     | 本地服务端口收到的网络流量，单位为字节                          |
@@ -105,7 +106,10 @@ SDB_SNAP_DATABASE
 | Wait                  | int32     | 当前处于等待队列的任务数量（包含未分发的任务）                  |
 | SchdlrMgrEvtNum       | int32     | 当前未分发的任务数量                                            |
 | SchdlrTimes           | int64     | 统计时间范围内总的任务执行次数                                  |
-| MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                                |
+| MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                  |
+| MemPoolUsed           | int64     | Pool Memory 中被使用的大小，单位为字节                          |
+| MemPoolFree           | int64     | Pool Memory 中空闲的大小，单位为字节                            |
+| MemPoolMaxOOLSize     | int64     | 运行过程中超出 Pool Memory 的最大大小，单位为字节，表示 Pool Memory 需要调大 |
 | SecurityKeys.Status | string  | [密钥文件][data_encryption]的状态（仅通过编目节点查看快照时显示） <br> 取值如下：<br/>● "Uninitialized"：密钥未初始化<br/>● "Corrupted"：密钥文件损坏<br/>● "Available"：密钥文件可用   |
 | SecurityKeys.MK   | string    | 主密钥名（仅参数 SecurityKeys.Status 取值为"Available"时显示）  |
 | DEKReady          | boolean   | 数据加密密钥是否就绪（仅数据节点的取值有效，编目节点默认显示为 false） <br> 当参数 SecurityKeys.Status 取值为"Available"时，如果通过数据节点获取该参数的值为 false，表示密钥损坏|
@@ -147,6 +151,7 @@ SDB_SNAP_DATABASE
 | freeLogSpace      | int64     | 空闲日志空间，单位为字节                      |
 | vsize             | int64     | 虚拟内存使用量，单位为字节                    |
 | rss               | int64     | 物理内存使用量，单位为字节                    |
+| MemShared         | int64     | 物理内存中共享内存使用量，单位为字节                            |
 | fault             | int64     | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
 | TotalMapped       | int64     | mmap 的总数据量，单位为字节                   |
 | svcNetIn          | int64     | 本地服务端口收到的网络流量，单位为字节        |
@@ -155,6 +160,10 @@ SDB_SNAP_DATABASE
 | shardNetOut       | int64     | shard 平面端口发送的网络流量，单位为字节      |
 | replNetIn         | int64     | 数据同步平面端口收到的网络流量，单位为字节    |
 | replNetOut        | int64     | 数据同步平面端口发送的网络流量，单位为字节    |
+| MemPoolSize       | int64     | Pool Memory 的大小，单位为字节                                  |
+| MemPoolUsed       | int64     | Pool Memory 中被使用的大小，单位为字节                          |
+| MemPoolFree       | int64     | Pool Memory 中空闲的大小，单位为字节                            |
+| MemPoolMaxOOLSize | int64     | 运行过程中超出 Pool Memory 的最大大小，单位为字节，表示 Pool Memory 需要调大 |
 | ErrNodes          | bson array| 异常节点的信息         |
 | ErrNodes.NodeName | string    | 异常节点名，格式为<主机名>:<服务名>                     |
 | ErrNodes.GroupName| string    | 异常节点所属复制组名                                    |
@@ -268,6 +277,7 @@ SDB_SNAP_DATABASE
      "freeLogSpace": 1342177280,
      "vsize": 3302031360,
      "rss": 56151,
+	 "MemShared": 16121,
      "fault": 0,
      "TotalMapped": 667385856,
      "svcNetIn": 468,
@@ -283,6 +293,9 @@ SDB_SNAP_DATABASE
      "SchdlrMgrEvtNum": 0,
      "SchdlrTimes": 0,
      "MemPoolSize": 108975104,
+     "MemPoolUsed": 68871074,
+     "MemPoolFree": 40104030,
+     "MemPoolMaxOOLSize": 0,
      "SecurityKeys": {
        "Status": "Available",
        "MK": "mk20230511152449152495.pem"
@@ -332,6 +345,7 @@ SDB_SNAP_DATABASE
      "freeLogSpace": 5368709120,
      "vsize": 13657559040,
      "rss": 257087,
+	 "MemShared": 116124,
      "fault": 9,
      "TotalMapped": 1377402880,
      "svcNetIn": 1536,
@@ -340,6 +354,10 @@ SDB_SNAP_DATABASE
      "shardNetOut": 22375,
      "replNetIn": 0,
      "replNetOut": 0,
+     "MemPoolSize": 108975104,
+     "MemPoolUsed": 68871074,
+     "MemPoolFree": 40104030,
+     "MemPoolMaxOOLSize": 0,
      "ErrNodes": []
    }
    ```

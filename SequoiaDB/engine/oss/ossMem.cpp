@@ -1018,6 +1018,156 @@ error :
    goto done ;
 }
 
+// dump mallinfo to file
+INT32 ossMemDumpMallinfo( const CHAR *pPath, const CHAR *pFileName )
+{
+#ifdef _WINDOWS
+   return SDB_OK ;
+#else
+   ossPrimitiveFileOp trapFile ;
+   CHAR fileName [ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+   UINT32 len = 0 ;
+   INT32 rc = SDB_OK ;
+   UINT64 beginTime = 0 ;
+   UINT64 endTime = 0 ;
+   ossTimestamp tm ;
+   CHAR  linebuff[ OSSMEMTRACEDUMPBUFSZ + 1 ] = { 0 } ;
+   CHAR  beginTimebuff[ OSS_MEM_TRACEDUMP_TM_BUF ] = { 0 } ;
+   struct mallinfo mi ;
+
+   ossSignalShield shield ;
+   shield.doNothing() ;
+
+   // build trace file name
+   len = ossSnprintf ( fileName, sizeof(fileName), "%s%s%u%s",
+                       pPath, OSS_PRIMITIVE_FILE_SEP,
+                       ossGetCurrentProcessID(),
+                       pFileName ) ;
+   if ( len >= sizeof( fileName ) )
+   {
+      rc = SDB_INVALIDPATH ;
+      // file path invalid
+      goto error ;
+   }
+
+   beginTime = ossGetCurrentMicroseconds() ;
+   tm.time = beginTime / 1000000 ;
+   tm.microtm = beginTime % 1000000 ;
+   ossTimestampToString( tm, beginTimebuff ) ;
+
+   // open file
+   rc = trapFile.Open ( fileName ) ;
+
+   if ( trapFile.isValid() )
+   {
+      trapFile.seekToEnd () ;
+
+      mi = mallinfo() ;
+
+      /// header info
+      len = ossSnprintf( linebuff, sizeof( linebuff ),
+                         "====> Memory( SYS mallinfo ) dump begin( %s ) ====>" OSS_NEWLINE,
+                         beginTimebuff ) ;
+      trapFile.Write( linebuff, len ) ;
+
+      /// mallinfo
+      len = ossSnprintf( linebuff, sizeof( linebuff ),
+                         "      Total non-mmapped bytes (arena) : %u" OSS_NEWLINE
+                         "           # of free chunks (ordblks) : %u" OSS_NEWLINE
+                         "    # of free fastbin blocks (smblks) : %u" OSS_NEWLINE
+                         "          # of mapped regions (hblks) : %u" OSS_NEWLINE
+                         "     Bytes in mapped regions (hblkhd) : %u" OSS_NEWLINE
+                         " Max. total allocated space (usmblks) : %u" OSS_NEWLINE
+                         "Free bytes held in fastbins (fsmblks) : %u" OSS_NEWLINE
+                         "     Total allocated space (uordblks) : %u" OSS_NEWLINE
+                         "          Total free space (fordblks) : %u" OSS_NEWLINE
+                         "  Topmost releasable block (keepcost) : %u" OSS_NEWLINE,
+                         mi.arena,
+                         mi.ordblks,
+                         mi.smblks,
+                         mi.hblks,
+                         mi.hblkhd,
+                         mi.usmblks,
+                         mi.fsmblks,
+                         mi.uordblks,
+                         mi.fordblks,
+                         mi.keepcost ) ;
+      trapFile.Write( linebuff, len ) ;
+
+      /// tail info
+      endTime = ossGetCurrentMicroseconds() ;
+      len = ossSnprintf( linebuff, sizeof( linebuff ),
+                         OSS_NEWLINE
+                         " Dump Time          : %s" OSS_NEWLINE
+                         " Dump Cost Time     : %lld (microsec)" OSS_NEWLINE
+                         "<==== Memory( SYS mallinfo ) dump end <====" OSS_NEWLINE OSS_NEWLINE,
+                         beginTimebuff,
+                         ( endTime - beginTime ) ) ;
+      trapFile.Write( linebuff, len ) ;
+   }
+
+done :
+   trapFile.Close () ;
+   return rc ;
+error :
+   goto done ;
+#endif
+}
+
+INT32 ossMemDumpMallocInfo( const CHAR *pPath, const CHAR *pFileName )
+{
+#ifdef _WINDOWS
+   return SDB_OK ;
+#else
+   CHAR fileName [ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+   UINT32 len = 0 ;
+   INT32 rc = SDB_OK ;
+   UINT64 beginTime = 0 ;
+   ossTimestamp tm ;
+   CHAR  beginTimebuff[ OSS_MEM_TRACEDUMP_TM_BUF ] = { 0 } ;
+   FILE *fp = NULL ;
+
+   ossSignalShield shield ;
+   shield.doNothing() ;
+
+   beginTime = ossGetCurrentMicroseconds() ;
+   tm.time = beginTime / 1000000 ;
+   tm.microtm = beginTime % 1000000 ;
+   ossTimestampToString( tm, beginTimebuff ) ;
+
+   // build trace file name
+   len = ossSnprintf ( fileName, sizeof(fileName), "%s%s%u_%s%s",
+                       pPath, OSS_PRIMITIVE_FILE_SEP,
+                       ossGetCurrentProcessID(),
+                       beginTimebuff,
+                       pFileName ) ;
+   if ( len >= sizeof( fileName ) )
+   {
+      rc = SDB_INVALIDPATH ;
+      // file path invalid
+      goto error ;
+   }
+
+   // open file
+   fp = fopen( fileName, "w+" ) ;
+   if ( NULL != fp )
+   {
+      /// mallinfo
+      malloc_info( 0, fp ) ;
+   }
+
+done :
+   if ( fp )
+   {
+      fclose( fp ) ;
+      fp = NULL ;
+   }
+   return rc ;
+error :
+   goto done ;
+#endif
+}
+
 INT32 ossMemTrace ( const CHAR *pPath )
 {
    INT32 rc = SDB_OK ;
@@ -1059,6 +1209,15 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 ossMemDump( const CHAR *pPath )
+{
+   /// dump mallinfo
+   ossMemDumpMallinfo( pPath, SDB_SYS_MEMDUMPNAME ) ;
+   ossMemDumpMallocInfo( pPath, SDB_SYS_MEMINFONAME ) ;
+
+   return SDB_OK ;
 }
 
 void ossOnMemConfigChange( BOOLEAN debugEnable,

@@ -918,4 +918,38 @@ namespace engine
    {
       return COORD_CTRL_MASK_ALL ;
    }
+
+   /*
+      _coordCMDMemTrim implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDMemTrim,
+                                      CMD_NAME_MEM_TRIM,
+                                      TRUE ) ;
+   _coordCMDMemTrim::_coordCMDMemTrim()
+   {
+   }
+
+   _coordCMDMemTrim::~_coordCMDMemTrim()
+   {
+   }
+
+   INT32 _coordCMDMemTrim::_onLocalMode( INT32 flag )
+   {
+      return SDB_COORD_UNKNOWN_OP_REQ ;
+   }
+
+   void _coordCMDMemTrim::_preSet( pmdEDUCB * cb,
+                                   coordCtrlParam & ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+   }
+
+   UINT32 _coordCMDMemTrim::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
+
 }
+
