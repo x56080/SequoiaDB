@@ -72,6 +72,7 @@ public class Rbac32795 extends SdbTestBase {
     public void tearDown() {
         try {
             sdb.dropCollectionSpace( csName1 );
+            sdb.dropCollectionSpace( csName2 );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

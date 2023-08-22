@@ -44,6 +44,7 @@ public class Rbac32786 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
+        RbacUtils.dropRole( sdb, roleName );
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
@@ -74,7 +75,8 @@ public class Rbac32786 extends SdbTestBase {
 
     private void testAccessControl( Sequoiadb sdb ) {
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
-                "alterCL", "createIndex", "dropIndex", "truncate" };
+                "alterCL", "createIndex", "dropIndex", "truncate",
+                "listCollections" };
         BSONObject role = null;
         for ( String action : actions ) {
             // 需要具备testCS和testCL权限
@@ -93,12 +95,14 @@ public class Rbac32786 extends SdbTestBase {
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
                 for ( int i = 0; i < clNum; i++ ) {
                     String clName = this.clName + i;
-                    DBCollection userCL = userSdb.getCollectionSpace( csName )
-                            .getCollection( clName );
+                    CollectionSpace userCS = userSdb
+                            .getCollectionSpace( csName );
+                    DBCollection userCL = userCS.getCollection( clName );
                     switch ( action ) {
                     case "find":
                         RbacUtils.findActionSupportCommand( sdb, csName, clName,
                                 userCL, true );
+                        userCS.getCollectionNames();
                         break;
                     case "insert":
                         RbacUtils.insertActionSupportCommand( sdb, csName,
@@ -115,6 +119,8 @@ public class Rbac32786 extends SdbTestBase {
                     case "getDetail":
                         RbacUtils.getDetailActionSupportCommand( sdb, csName,
                                 clName, userCL, true );
+                        RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                                clName, userCS, true );
                         break;
                     case "alterCL":
                         RbacUtils.alterCLActionSupportCommand( sdb, csName,
@@ -130,6 +136,9 @@ public class Rbac32786 extends SdbTestBase {
                         break;
                     case "truncate":
                         userCL.truncate();
+                        break;
+                    case "listCollections":
+                        // userCS.getCollectionNames();
                         break;
                     default:
                         break;

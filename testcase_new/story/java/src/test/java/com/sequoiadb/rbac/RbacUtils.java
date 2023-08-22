@@ -586,8 +586,8 @@ public class RbacUtils {
         // 执行权限支持的操作
 //        dbcs.getDomainName();
 //        String domain = dbcs.getDomainName();
-//        System.out.println( "domain -- "+domain );
-        List< String > test = dbcs.getCollectionNames();
+//        System.out.println( "domain -- " + domain );
+        // List< String > test = dbcs.getCollectionNames();
 
         // 执行部分不支持的操作
         if ( skipNotSupported ) {
@@ -612,12 +612,13 @@ public class RbacUtils {
         sdb.dropDomain( domainName );
     }
 
-    public static void checkRolesToRole( Sequoiadb sdb, String roleName ) {
+    public static void removeUser( Sequoiadb sdb, String user,
+            String password ) {
         try {
-            sdb.dropRole( roleName );
+            sdb.removeUser( user, password );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
+                    SDBError.SDB_AUTH_USER_NOT_EXIST.getErrorCode() );
         }
     }
 
