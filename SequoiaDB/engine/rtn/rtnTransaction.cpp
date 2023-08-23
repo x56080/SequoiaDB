@@ -101,13 +101,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse log [LSN: %llu], rc: %d",
                    lsnOffset, rc ) ;
 
-      itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      PD_CHECK( itr.valid(), SDB_SYS, error, PDERROR, "Failed to find "
-                "DPS_LOG_PUBLIC_TRANSID in record [LSN: %llu]",
-                lsnOffset ) ;
+      rc = dpsGetTransIDFromRecord( record, TRUE, curTransID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID from log "
+                   "[LSN: %llu], rc: %d", lsnOffset, rc ) ;
 
-      curTransID = sdbGetTransCB()->getTransID(
-                                          *((DPS_TRANS_ID *)itr.value()) ) ;
+      curTransID = sdbGetTransCB()->getTransID( curTransID ) ;
       PD_CHECK( curTransID == DPS_TRANS_GET_ID( transID ),
                 SDB_DPS_CORRUPTED_LOG, error,
                 PDERROR, "Failed to rollback(lsn=%llu, Log TransID:%llu, "

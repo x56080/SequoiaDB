@@ -414,7 +414,7 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-     DPS_TRANS_ID  _globTransID ;  // global transaction ID
+     CHAR _globTransID[ 12 ] ;  // global transaction ID
 
       /*
          Follow _globTransID is:
@@ -423,62 +423,13 @@ namespace engine
                 In compressed: 4bytes + data
                 uncompressed:  data( the first 4bytes is bson size )
       */
-
-   public :
-      _dmsRecord_v1()
-      {
-         // V1 record has GlobTransID attribute
-         setHasGlobTransID() ;
-      }
-
-      void resetAttr()
-      {
-         unsetAttr( 0xF0 ) ;
-         // v1 should always have GlobTransID field, although the value could be 
-         // invalid if the update/insert is done when transaction is not ON
-         setHasGlobTransID() ;
-      }
-
-      DPS_TRANS_ID getGlobTransID() const
-      {
-         return _globTransID ;
-      }
-
-      void setHasGlobTransID()
-      {
-         setAttr( DMS_RECORD_FLAG_HASGLOBTRANSID ) ;
-      }
-
-      void resetGlobTransID ( )
-      {
-         _globTransID = DPS_INVALID_TRANS_ID ;
-         setHasGlobTransID() ;
-      }
-
-      void setGlobTransID ( const DPS_TRANS_ID globtransid )
-      {
-         _globTransID = globtransid ;
-         setHasGlobTransID() ;
-      }
-
-      // inflight migration from a v0 record
-      void migrateFromV0( )
-      {
-         SDB_ASSERT( !(this->hasGlobTransID()), 
-                     "This is not a V0 record" ) ;
-         // FIXME: consider allocating overflow record in the future, 
-         // assume we have enough space(8 Byte) for now
-         SDB_ASSERT( ( ((dmsRecord_v0*)this)->getSize() - ((dmsRecord_v0 *) this)->getDataLength() ) > 8 , 
-                     "Not enough space for migration" ) ;
-
-         ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
-                     (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
-                     ((dmsRecord_v0 *) this)->getDataLength() ) ;
-         setHasGlobTransID() ;
-         return ;
-      }
    };
    typedef _dmsRecord_v1 dmsRecord_v1 ;
+
+   static_assert( 16 == sizeof( _dmsRecord_v0 ),
+                  "size of _dmsRecord_v0 is invalid" ) ;
+   static_assert( 28 == sizeof( _dmsRecord_v1 ),
+                  "size of _dmsRecord_v1 is invalid" ) ;
 
    // current version is v1 which has GlobTransID for MVCC purpose
    typedef _dmsRecord_v0 _dmsRecord ;

@@ -1282,11 +1282,11 @@ namespace engine
          DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
          const dpsLogRecord &record = recordData.getRecord() ;
 
-         dpsLogRecord::iterator iter = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-         if ( iter.valid() )
+         rc = dpsGetTransIDFromRecord( record, FALSE, transID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID, "
+                      "rc: %d", rc ) ;
+         if ( DPS_INVALID_TRANS_ID != transID )
          {
-            transID = *(DPS_TRANS_ID*)( iter.value() ) ;
-
             if ( DPS_TRANS_IS_ROLLBACK( transID ) ||
                LOG_TYPE_TS_ROLLBACK == record.head()._type )
             {
@@ -1296,7 +1296,7 @@ namespace engine
             }
             else if ( LOG_TYPE_TS_COMMIT == record.head()._type )
             {
-               iter = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
+               dpsLogRecord::iterator iter = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
                if ( !iter.valid() ||
                   DPS_TS_COMMIT_ATTR_PRE != *(UINT8 *)( iter.value() ) )
                {

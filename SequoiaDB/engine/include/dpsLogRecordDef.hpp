@@ -56,6 +56,9 @@ namespace engine
       DPS_LOG_PUBLIC_TIME = 206,
 
       // 207 - 209 reserved for global transaction
+      // node ID component for transaction ID of V1
+      DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
+
 
       DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
       DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211

@@ -74,6 +74,40 @@ typedef UINT64 DPS_TRANS_ID ;
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
 
+// node ID of transaction ID
+typedef UINT16 DPS_TRANSID_NODEID ;
+// serial number of transaction ID
+typedef UINT64 DPS_TRANSID_SN ;
+
+// invalid node ID component of transaction ID
+#define DPS_INVALID_TRANSID_NODEID  ( 0 )
+// invalid serial number component of transaction ID
+#define DPS_INVALID_TRANSID_SN      ( 0LL )
+
+// transaction ID of version 1
+class _dpsTransID_v1
+{
+public:
+   _dpsTransID_v1()
+   : _sn( DPS_INVALID_TRANSID_SN ),
+     _nodeID( DPS_INVALID_TRANSID_NODEID )
+   {
+   }
+
+   _dpsTransID_v1( DPS_TRANSID_SN sn, DPS_TRANSID_NODEID nodeID )
+   : _sn( sn ),
+     _nodeID( nodeID )
+   {
+   }
+
+   // serial number ( contains tags and logical time )
+   DPS_TRANSID_SN      _sn ;
+   // node ID component
+   DPS_TRANSID_NODEID  _nodeID ;
+} ;
+
+typedef class _dpsTransID_v1 dpsTransID_v1 ;
+
 #define DPS_TRANSID_ROLLBACKTAG_BIT          0X0000800000000000ll
 #define DPS_TRANSID_FIRSTOP_BIT              0X0000400000000000ll
 #define DPS_TRANSID_AUTOCOMMIT_BIT           0X0000200000000000ll

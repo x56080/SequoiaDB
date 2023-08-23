@@ -36,6 +36,7 @@
 *******************************************************************************/
 
 #include "dpsTransCB.hpp"
+#include "dpsOp2Record.hpp"
 #include "dpsTransLockMgr.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
@@ -723,16 +724,14 @@ namespace engine
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       INT32 transStatus = DPS_TRANS_DOING ;
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( !itr.valid() )
+
+      if ( SDB_OK != dpsGetTransIDFromRecord( record, FALSE, transID ) )
       {
          goto done ;
       }
-
-      transID = *( (DPS_TRANS_ID*)itr.value() ) ;
       if ( transID != DPS_INVALID_TRANS_ID )
       {
-         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
          if ( !itr.valid() )
          {
             lsnOffset = DPS_INVALID_LSN_OFFSET ;
@@ -819,18 +818,16 @@ namespace engine
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID;
       INT32 transStatus = DPS_TRANS_DOING ;
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( !itr.valid() )
+      if ( SDB_OK != dpsGetTransIDFromRecord( record, FALSE, transID ) )
       {
          goto done ;
       }
-      transID = *( (DPS_TRANS_ID *)itr.value() ) ;
       if ( transID != DPS_INVALID_TRANS_ID )
       {
          if ( isRollback( transID ) )
          {
             transStatus = DPS_TRANS_ROLLBACK ;
-            itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+            dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
             if ( !itr.valid() )
             {
                lsnOffset = DPS_INVALID_LSN_OFFSET ;
@@ -842,7 +839,7 @@ namespace engine
          }
          else if ( LOG_TYPE_TS_COMMIT == record.head()._type )
          {
-            itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
+            dpsLogRecord::iterator itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
             if ( !itr.valid() ||
                  DPS_TS_COMMIT_ATTR_PRE != *(UINT8*)itr.value() )
             {

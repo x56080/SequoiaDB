@@ -36,6 +36,7 @@
 #include "dms.hpp"
 #include "dpsDef.hpp"
 #include "dpsLogRecordDef.hpp"
+#include "dpsOp2Record.hpp"
 #include "dpsUtil.hpp"
 #include "ossErr.h"
 #include "ossMemPool.hpp"
@@ -365,11 +366,11 @@ namespace engine
          }
          else
          {
-            dpsLogRecord::iterator iter = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-            PD_CHECK( iter.valid(), SDB_SYS, error, PDERROR, "Failed to "
-                      "filter log record, [%s] log record without "
-                      "transaction ID", dpsGetOPName( record.head()._type ) ) ;
-            DPS_TRANS_ID transID = *(DPS_TRANS_ID*)( iter.value() ) ;
+            DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+            rc = dpsGetTransIDFromRecord( record, TRUE, transID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID "
+                         "from [%s] log record, rc: %d",
+                         dpsGetOPName( record.head()._type ), rc ) ;
             transID = DPS_TRANS_GET_ID( transID ) ;
             isMatched = _transSet.count( transID ) ;
          }

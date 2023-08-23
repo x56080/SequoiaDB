@@ -819,8 +819,7 @@ namespace engine
       }
 
       // check transaction rollback
-      rc = dpsGetTransIDFromRecord( (CHAR *)recordHeader,
-                                    transID ) ;
+      rc = dpsGetTransIDFromRecord( (CHAR *)recordHeader, FALSE, transID ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

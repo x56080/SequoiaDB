@@ -818,11 +818,16 @@ namespace engine
       return DMS_DATASU_CUR_VERSION ;
    }
 
+   UINT32 _dmsStorageDataCommon::_maxSupportedVersion() const
+   {
+      return DMS_DATASU_MAX_VERSION ;
+   }
+
    INT32 _dmsStorageDataCommon::_checkVersion( dmsStorageUnitHeader * pHeader )
    {
       INT32 rc = SDB_OK ;
 
-      if ( pHeader->_version > _curVersion() )
+      if ( pHeader->_version > _maxSupportedVersion() )
       {
          PD_LOG( PDERROR, "Incompatible version: %u", pHeader->_version ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;

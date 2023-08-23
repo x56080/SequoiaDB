@@ -105,6 +105,10 @@ namespace engine
 
    typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 
+   // downgrade transaction ID from v1 to v0
+   // WARNING: will lose high 16 bits of timestamp
+   DPS_TRANS_ID dpsTransIDDowngrade( const dpsTransID_v1 &transID ) ;
+
 }
 
 #endif // DPSUTIL_HPP_

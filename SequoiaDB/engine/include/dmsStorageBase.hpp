@@ -529,6 +529,7 @@ namespace engine
          virtual const CHAR*  _getEyeCatcher() const = 0 ;
          virtual UINT64 _dataOffset()  = 0 ;
          virtual UINT32 _curVersion() const = 0 ;
+         virtual UINT32 _maxSupportedVersion() const { return _curVersion() ; }
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) = 0 ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) = 0 ;
          virtual INT32  _onMapMeta( UINT64 curOffSet ) = 0 ;

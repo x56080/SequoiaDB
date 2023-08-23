@@ -37,6 +37,7 @@
 
 *******************************************************************************/
 #include "sdbDpsDump.hpp"
+#include "dpsOp2Record.hpp"
 #include "pmdOptionsMgr.hpp"
 #include "dpsLogRecord.hpp"
 #include "dpsLogFile.hpp"
@@ -462,10 +463,11 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
    {
       dpsLogRecord record ;
       record.load( pRecord ) ;
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if( itr.valid() )
+
+      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      rc = dpsGetTransIDFromRecord( record, FALSE, transID ) ;
+      if ( SDB_OK == rc && DPS_INVALID_TRANS_ID != transID )
       {
-         UINT64 transID = *( (UINT64 *)itr.value() ) ;
          if( DPS_TRANS_GET_ID(transID) == DPS_TRANS_GET_ID(dumper->_transID) )
          {
             rc = dpsDumpFilter::match( dumper, pRecord ) ;
