@@ -8,7 +8,7 @@
 invalidateUserCache \- 清除节点的用户权限缓存
 .SH 语法
 .PP
-\f[B]db.invalidateUserCache( , [options] )\f[]
+\f[B]db.invalidateUserCache( [username], [options] )\f[]
 .SH 类别
 .PP
 Sdb
@@ -50,7 +50,7 @@ options
 T}@T{
 Json对象
 T}@T{
-\f[B]命令位置参数\f[]
+命令位置参数
 T}@T{
 否
 T}
@@ -72,7 +72,7 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.0 及以上版本
+v7.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 清楚所有节点的所有用户的权限缓存。
@@ -80,7 +80,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.invalidateCache()
+> db.invalidateUserCache()
 \f[]
 .fi
 .RE
@@ -90,7 +90,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.invalidateCache( "", { GroupName: \[aq]group1\[aq] } )
+> db.invalidateUserCache( "", { GroupName: \[aq]group1\[aq] } )
 \f[]
 .fi
 .RE
@@ -100,7 +100,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.invalidateCache( "myuser", { GroupName: \[aq]group1\[aq] } )
+> db.invalidateUserCache( "myuser", { GroupName: \[aq]group1\[aq] } )
 \f[]
 .fi
 .RE

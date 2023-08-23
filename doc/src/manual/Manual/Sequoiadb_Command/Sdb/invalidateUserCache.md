@@ -4,7 +4,7 @@ invalidateUserCache - 清除节点的用户权限缓存
 
 ##语法##
 
-**db.invalidateUserCache( <username>, [options] )**
+**db.invalidateUserCache( [username], [options] )**
 
 ##类别##
 
@@ -19,7 +19,7 @@ Sdb
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
 | username | String | 用户名 | 否 |
-| options | Json对象 | **[命令位置参数](manual/Manual/Sequoiadb_Command/location.md)** | 否 |
+| options | Json对象 | [命令位置参数](manual/Manual/Sequoiadb_Command/location.md) | 否 |
 
 > **Note:**
 >
@@ -37,25 +37,25 @@ Sdb
 
 ##版本##
 
-v2.0 及以上版本
+v7.0 及以上版本
 
 ##示例##
 * 清楚所有节点的所有用户的权限缓存。
 
     ```lang-javascript
-    > db.invalidateCache()
+    > db.invalidateUserCache()
     ```
 
 * 清除数据组‘group1’的所有用户的权限缓存。
 
     ```lang-javascript
-    > db.invalidateCache( "", { GroupName: 'group1' } )
+    > db.invalidateUserCache( "", { GroupName: 'group1' } )
     ```
 
 * 清除数据组‘group1’的指定用户的权限缓存。
 
     ```lang-javascript
-    > db.invalidateCache( "myuser", { GroupName: 'group1' } )
+    > db.invalidateUserCache( "myuser", { GroupName: 'group1' } )
     ```
 
 [^_^]:

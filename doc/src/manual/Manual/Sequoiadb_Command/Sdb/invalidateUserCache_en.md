@@ -1,10 +1,10 @@
 ## NAME ##
 
-invalidateUserCache - Clear User Permission Cache on Nodes
+invalidateUserCache - Clear User Privileges Cache on Nodes
 
 ## SYNOPSIS ##
 
-**db.invalidateUserCache(<username>, [options])**
+**db.invalidateUserCache( [username], [options])**
 
 ## CATEGORY ##
 
@@ -19,7 +19,7 @@ This function is used to clear the cache information on nodes.
 | Parameter | Type     | Description                                   | Required |
 |-----------|----------|-----------------------------------------------|----------|
 | username  | String   | The username.                                 | No       |
-| options   | Json     | **[Command Location Parameters][list_info]** | No       |
+| options   | Json     | [Command Location Parameters][list_info] | No       |
 
 > **Note:**
 >
@@ -37,26 +37,26 @@ When an exception is thrown, you can retrieve the error message using [getLastEr
 
 ## VERSION ##
 
-v2.0 and above
+v7.0 and above
 
 ## EXAMPLES ##
 
-* Clear the permission cache of all users on all nodes.
+* Clear the privileges cache of all users on all nodes.
 
     ```lang-javascript
-    > db.invalidateCache()
+    > db.invalidateUserCache()
     ```
 
-* Clear the permission cache of all users in data group 'group1'.
+* Clear the privileges cache of all users in group 'group1'.
 
     ```lang-javascript
-    > db.invalidateCache("", { GroupName: 'group1' })
+    > db.invalidateUserCache("", { GroupName: 'group1' })
     ```
 
-* Clear the permission cache of a specific user in data group 'group1'.
+* Clear the privileges cache of a specific user in group 'group1'.
 
     ```lang-javascript
-    > db.invalidateCache("myuser", { GroupName: 'group1' })
+    > db.invalidateUserCache("myuser", { GroupName: 'group1' })
     ```
 
 [^_^]:
