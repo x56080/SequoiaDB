@@ -2975,6 +2975,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       MsgOpTransBegin *pTransBegin = ( MsgOpTransBegin* )msg ;
+      BOOLEAN needRollback = FALSE ;
 
       if ( DPS_TRANS_WAIT_COMMIT == eduCB()->getTransStatus() )
       {
@@ -3010,6 +3011,16 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
+         // there is a gap between the first primary check and adding cb to transCB,
+         // if switch to secondary during the gap, the cb will not be notified
+         // since it is not in transCB, so, we need a double check of primary status
+         if ( !_pReplSet->primaryIsMe() )
+         {
+            needRollback = TRUE ;
+            rc = SDB_CLS_NOT_PRIMARY ;
+            PD_LOG( PDINFO, "Failed to double check primary status, rc: %d", rc ) ;
+            goto error ;
+         }
          /// unset all trans context
          rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
       }
@@ -3017,6 +3028,14 @@ namespace engine
    done:
       return rc ;
    error:
+      if ( needRollback )
+      {
+         INT32 tmpRC = rtnTransRollback( _pEDUCB, _pDpsCB ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to rollback transaction, rc: %d", tmpRC ) ;
+         }
+      }
       goto done ;
    }
 
@@ -3144,6 +3163,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      BOOLEAN needRollback = FALSE ;
+
       if ( !_pEDUCB->isTransaction() )
       {
          if ( _pEDUCB->getTransExecutor()->isTransAutoCommit() )
@@ -3161,6 +3182,19 @@ namespace engine
                goto done ;
             }
             rc = rtnTransBegin( _pEDUCB, TRUE ) ;
+            if ( SDB_OK == rc )
+            {
+               // there is a gap between the first primary check and adding cb to transCB,
+               // if switch to secondary during the gap, the cb will not be notified
+               // since it is not in transCB, so, we need a double check of primary status
+               if ( !_pReplSet->primaryIsMe() )
+               {
+                  needRollback = TRUE ;
+                  rc = SDB_CLS_NOT_PRIMARY ;
+                  PD_LOG( PDINFO, "Failed to double check primary status, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
          else
          {
@@ -3170,6 +3204,16 @@ namespace engine
 
    done:
       return rc ;
+   error:
+      if ( needRollback )
+      {
+         INT32 tmpRC = rtnTransRollback( _pEDUCB, _pDpsCB ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to rollback transaction, rc: %d", tmpRC ) ;
+         }
+      }
+      goto done ;
    }
 
    INT32 _clsShdSession::_onTransUpdateReqMsg ( NET_HANDLE handle,
