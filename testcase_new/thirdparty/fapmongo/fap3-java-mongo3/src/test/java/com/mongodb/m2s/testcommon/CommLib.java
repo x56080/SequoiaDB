@@ -199,6 +199,21 @@ public class CommLib extends M2STestBase {
         ssh.exec( analyzeCommand );
     }
 
+    /**
+     * 分析sniffer环境信息
+     * 
+     * @param ssh
+     *            ssh连接
+     * @throws Exception
+     */
+    public static void analyzeSnifferEnvJson( Ssh ssh ) throws Exception {
+        String analyzeCommand = analyzerPath + " --snifferenvjson "
+                + toolRootPath
+                + "m2s-sniffer/capture/env.json -t json --sdbversion "
+                + sdbVersion + " -o " + analyzerOutputPath;
+        ssh.exec( analyzeCommand );
+    }
+
     // 获取mongodb版本
     public static String getMongoDBVersion( MongoClient client ) {
         MongoDatabase db = client.getDatabase( "admin" );

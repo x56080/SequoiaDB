@@ -63,7 +63,8 @@ public class Collector_32660 extends M2STestBase {
                     && collection.getString( "name" )
                             .equals( collectionName ) ) {
                 Assert.assertEquals( collection.getIntValue( "count" ), 100 );
-                Assert.assertTrue( collection.getIntValue( "nchunks" )<=1 ,collection.toJSONString());
+                Assert.assertTrue( collection.getIntValue( "nchunks" ) <= 1,
+                        collection.toJSONString() );
                 Assert.assertNull( collection.get( "shardKey" ) );
                 break;
             }
@@ -92,7 +93,8 @@ public class Collector_32660 extends M2STestBase {
                     && collection.getString( "name" )
                             .equals( collectionName ) ) {
                 Assert.assertEquals( collection.getIntValue( "count" ), 200 );
-                Assert.assertTrue( collection.getIntValue( "nchunks" ) >= 1 ,collection.toJSONString());
+                Assert.assertTrue( collection.getIntValue( "nchunks" ) >= 1,
+                        collection.toJSONString() );
                 Assert.assertEquals( collection.getJSONObject( "shardKey" ),
                         JSONObject.parseObject(
                                 new Document( "name", "hashed" ).toJson() ) );

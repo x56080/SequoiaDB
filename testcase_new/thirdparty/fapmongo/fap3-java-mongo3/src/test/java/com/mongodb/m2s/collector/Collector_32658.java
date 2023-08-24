@@ -71,7 +71,7 @@ public class Collector_32658 extends M2STestBase {
         // 开启分片
         adminDatabase
                 .runCommand( new Document( "enableSharding", databaseName ) );
-        mongoDatabase.getCollection( databaseName )
+        mongoDatabase.getCollection( collectionName )
                 .createIndex( new Document( "name", "hashed" ) );
         adminDatabase.runCommand( new Document( "shardCollection",
                 databaseName + "." + collectionName ).append( "key",
