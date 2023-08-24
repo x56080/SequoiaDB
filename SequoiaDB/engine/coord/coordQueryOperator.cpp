@@ -387,6 +387,42 @@ namespace engine
       return retObj ;
    }
 
+   // return <isUpdate, isRemove>
+   std::pair< BOOLEAN, BOOLEAN > _isUpdateOrRemove( const BSONObj &hint, INT32 flags )
+   {
+      if ( flags & FLG_QUERY_MODIFY )
+      {
+         BSONObj updator ;
+         BSONObj newUpdator ;
+         BSONElement modifierEle ;
+         BSONObj modifier ;
+
+         modifierEle = hint.getField( FIELD_NAME_MODIFY ) ;
+         if ( Object != modifierEle.type() )
+         {
+            return make_pair< BOOLEAN, BOOLEAN >( FALSE, FALSE ) ;
+         }
+
+         modifier = modifierEle.Obj() ;
+
+         BSONElement updatorEle = modifier.getField( FIELD_NAME_OP ) ;
+         if ( String != updatorEle.type() )
+         {
+            return make_pair< BOOLEAN, BOOLEAN >( FALSE, FALSE ) ;
+         }
+         if ( 0 == ossStrcmp( updatorEle.valuestr(), FIELD_OP_VALUE_UPDATE ) )
+         {
+            return make_pair< BOOLEAN, BOOLEAN >( TRUE, FALSE ) ;
+         }
+         else if ( 0 == ossStrcmp( updatorEle.valuestr(), FIELD_OP_VALUE_REMOVE ) )
+         {
+            return make_pair< BOOLEAN, BOOLEAN >( FALSE, TRUE ) ;
+         }
+      }
+
+      return make_pair< BOOLEAN, BOOLEAN >( FALSE, FALSE ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_QUERYOPERATOR_EXE, "_coordQueryOperator::execute" )
    INT32 _coordQueryOperator::execute( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
@@ -507,9 +543,13 @@ namespace engine
             {
                authActionSet actions;
                actions.addAction( ACTION_TYPE_find );
-               if ( _isUpdate( BSONObj( pHint ), flag ) )
+               std::pair< BOOLEAN, BOOLEAN > res = _isUpdateOrRemove( BSONObj( pHint ), flag );
+               if ( res.first )
                {
                   actions.addAction( ACTION_TYPE_update );
+               }
+               else if ( res.second )
+               {
                   actions.addAction( ACTION_TYPE_remove );
                }
                rc = cb->getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );

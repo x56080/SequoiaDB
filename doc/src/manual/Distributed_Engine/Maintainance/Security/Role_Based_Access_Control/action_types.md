@@ -25,7 +25,7 @@
 
 [exec](manual/Manual/Sequoiadb_Command/Sdb/exec.md)与[aggregate](manual/Manual/Sequoiadb_Command/SdbCollection/aggregate.md)命令的查询部分需要被授予 find 操作。
 
- find().update() 命令的查询部分需要被授予 find 操作。
+ find().update() 与 find().remove() 命令的查询部分需要被授予 find 操作。
 
 ## insert
 
@@ -46,7 +46,7 @@
 - [upsert](manual/Manual/Sequoiadb_Command/SdbCollection/upsert.md)
 - [truncateLob](manual/Manual/Sequoiadb_Command/SdbCollection/truncateLob.md)
 
- find().update() 和 find().remove() 命令的更新或删除部分需要被授予 update 和 remove 操作。
+ find().update() 命令需要被授予 find 和 update 操作。
 
 ## remove
 
@@ -57,7 +57,7 @@
 - [remove](manual/Manual/Sequoiadb_Command/SdbCollection/remove.md)
 - [deleteLob](manual/Manual/Sequoiadb_Command/SdbCollection/deleteLob.md)
 
- find().update() 和 find().remove() 命令的更新或删除部分需要被授予 update 和 remove 操作。
+ find().remove() 命令需要被授予 find 和 remove 操作。
 
 ## getDetail
 
