@@ -287,7 +287,7 @@ public class Rbac32781 extends SdbTestBase {
                 if ( userSdb != null ) {
                     userSdb.close();
                 }
-                sdb.removeUser( user, password );
+                RbacUtils.removeUser( sdb, user, password);
                 sdb.dropRole( roleName );
             }
         }

@@ -42,6 +42,7 @@ public class Rbac32783 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
+        RbacUtils.dropRole( sdb, roleName );
         for ( int i = 0; i < csNum; i++ ) {
             String csName = this.csName + i;
             if ( sdb.isCollectionSpaceExist( csName ) ) {
