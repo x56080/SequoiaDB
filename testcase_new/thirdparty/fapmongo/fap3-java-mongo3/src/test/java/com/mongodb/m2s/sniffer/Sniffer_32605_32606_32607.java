@@ -17,8 +17,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * @Descreption seqDB-32605:执行findAndModify 命令，检测消息分析报告 seqDB-32606:执行count
- *              命令，检测消息分析报告 seqDB-32607:执行distinct 命令，检测消息分析报告
+ * @Descreption seqDB-32605:执行findAndModify 命令，检测消息分析报告
+ *              seqDB-32606:执行count命令，检测消息分析报告
+ *              seqDB-32607:执行distinct 命令，检测消息分析报告
  * @Author tangtao
  * @CreateDate
  * @UpdateUser

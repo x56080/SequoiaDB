@@ -74,7 +74,6 @@ public class Param {
         Assert.assertEquals( record.get( "count" ), count,
                 cmdName + " param count is not equal" );
 
-        // TODO OP_CODE verify
 
         // verify message
         if ( messageParam.getName().equals( "messageParameters" ) ) {

@@ -270,6 +270,53 @@ public class Sniffer_32602 extends M2STestBase {
                         opParam );
                 break;
             }
+                case "delete": {
+                    Param msgParam = new Param();
+
+                    ArrayList< Param > subParams = new ArrayList<>();
+                    subParams.add( new Param( "deletes", 150 ) );
+                    subParams.add( new Param( "deletes.q", 150 ) );
+                    Param dbParam = new Param( "databaseCmdParameters", 0,
+                            subParams );
+
+                /*
+                  "operators": [
+                    {
+                      "param": "deletes.q",
+                      "operators": [
+                        {
+                          "operator": "$and",
+                          "count": 50,
+                          "subOperators": [
+                            {
+                              "operator": "$gt",
+                              "count": 100,
+                              "subOperators": []
+                            }
+                          ]
+                        },
+                        {
+                          "operator": "$lt",
+                          "count": 50,
+                          "subOperators": []
+                        }
+                      ]
+                    }
+                  ]
+                 */
+                    Param deletesq_and_gtParam = new Param( "$gt", 100 );
+                    Param deletesq_andParam = new Param( "$and", 50 );
+                    deletesq_andParam.addSubParam( deletesq_and_gtParam );
+                    Param deletesq_ltParam = new Param( "$lt", 50 );
+                    Param deletesqParam = new Param( "deletes.q", 0 );
+                    deletesqParam.addSubParam( deletesq_andParam );
+                    deletesqParam.addSubParam( deletesq_ltParam );
+                    Param opParam = new Param( "operators", 0 );
+                    opParam.addSubParam( deletesqParam );
+                    Param.checkRecordParams( msg, "delete", 150, msgParam, dbParam,
+                            opParam );
+                    break;
+                }
             default:
                 continue;
             }
