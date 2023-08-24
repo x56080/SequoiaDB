@@ -251,7 +251,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN isEmpty()
          {
-            ossScopedLock( &_mtx, SHARED ) ;
+            ossScopedLock lock( &_mtx, SHARED ) ;
             return (_vecEH.size() == 0) ? TRUE : FALSE ;
          }
 
