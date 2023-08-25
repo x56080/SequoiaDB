@@ -30,7 +30,7 @@ public class ClusterManager7069 extends SdbTestBase {
     private String dataRGName1 = "dataAddGroup70691";
     private String dataRGName2 = "dataAddGroup70692";
     private String coordAddr;
-    private String workDir;
+    private String reservedDir;
     private int reservedPortBegin;
     private String coordIP;
     private CommLib commlib = new CommLib();
@@ -38,7 +38,7 @@ public class ClusterManager7069 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        this.workDir = SdbTestBase.workDir;
+        this.reservedDir = SdbTestBase.reservedDir;
         this.reservedPortBegin = SdbTestBase.reservedPortBegin;
         try {
             sdb = new Sequoiadb( coordAddr, "", "" );
@@ -70,12 +70,12 @@ public class ClusterManager7069 extends SdbTestBase {
     public void test() {
         // set node configure
         int dataPortAdd1 = reservedPortBegin + 690;
-        String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
+        String dataPathAdd1 = reservedDir + "/" + dataPortAdd1 + "/";
         BSONObject dataConfigue = ( BSONObject ) JSON
                 .parse( "{KeepData:true}" );
 
         int dataPortAdd2 = reservedPortBegin + 700;
-        String dataPathAdd2 = workDir + "/" + dataPortAdd2 + "/";
+        String dataPathAdd2 = reservedDir + "/" + dataPortAdd2 + "/";
         BSONObject dataConfigue1 = ( BSONObject ) JSON
                 .parse( "{KeepData:true}" );
 
