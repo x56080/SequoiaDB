@@ -99,18 +99,18 @@ public class RbacUtils {
                 }
             }
 
-//            try {
-//                cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
-//                        null, null, null, -1, -1, 0 );
-//                cursor.getNext();
-//                cursor.close();
-//                Assert.fail( "should error but success" );
-//            } catch ( BaseException e ) {
-//                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
-//                        .getErrorCode() ) {
-//                    throw e;
-//                }
-//            }
+            // try {
+            // cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
+            // null, null, null, -1, -1, 0 );
+            // cursor.getNext();
+            // cursor.close();
+            // Assert.fail( "should error but success" );
+            // } catch ( BaseException e ) {
+            // if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+            // .getErrorCode() ) {
+            // throw e;
+            // }
+            // }
         }
 
         rootCL.dropIndex( indexName );
@@ -770,10 +770,11 @@ public class RbacUtils {
         return sb.toString();
     }
 
-    public static boolean compareBSONListsIgnoreOrder(BasicBSONList list1,
-                                                      BasicBSONList list2) {
+    public static boolean compareBSONListsIgnoreOrder( BasicBSONList list1,
+            BasicBSONList list2 ) {
         if ( list1.size() != list2.size() )
             return false;
+
         Set< Object > set1 = new HashSet<>( list1 );
         Set< Object > set2 = new HashSet<>( list2 );
 
