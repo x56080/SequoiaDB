@@ -34,7 +34,7 @@ public class ClusterManager7064 extends SdbTestBase {
     private String cataGroupName = "SYSCatalogGroup";
     private String coordIP;
     private String coordAddr;
-    private String workDir;
+    private String reservedDir;
     private int reservedPortBegin;
     private int cataPortAdd;
     private CommLib commlib = new CommLib();
@@ -42,7 +42,7 @@ public class ClusterManager7064 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        this.workDir = SdbTestBase.workDir;
+        this.reservedDir = SdbTestBase.reservedDir;
         this.reservedPortBegin = SdbTestBase.reservedPortBegin;
         // this.coordIP = SdbTestBase.hostName;
         try {
@@ -65,7 +65,7 @@ public class ClusterManager7064 extends SdbTestBase {
             ReplicaGroup cataGroup = sdb.getReplicaGroup( cataGroupName );
             if ( null != cataGroup.getNode( coordIP, cataPortAdd ) ) {
                 cataGroup.removeNode( coordIP, cataPortAdd, null );
-                sdb.msg("remove  catalog node " + cataPortAdd + " success.");
+                sdb.msg( "remove  catalog node " + cataPortAdd + " success." );
             }
             sdb.disconnect();
         } catch ( BaseException e ) {
@@ -77,7 +77,7 @@ public class ClusterManager7064 extends SdbTestBase {
     public void test() {
         // create cata Node
         cataPortAdd = reservedPortBegin + 640;
-        String cataPathAdd = workDir + "/" + cataPortAdd + "/";
+        String cataPathAdd = reservedDir + "/" + cataPortAdd + "/";
         BSONObject cataConfigue = null;
 
         ReplicaGroup cataGroup = null;
@@ -100,7 +100,7 @@ public class ClusterManager7064 extends SdbTestBase {
         cataNode = cataGroup.createNode( coordIP, cataPortAdd, cataPathAdd,
                 cataConfigue );
         cataNode.start();
-        sdb.msg("create catalog node " + cataPortAdd + " success.");
+        sdb.msg( "create catalog node " + cataPortAdd + " success." );
 
         // check cata group name
         String actualCataGroupName = cataGroup.getGroupName();
