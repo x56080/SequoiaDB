@@ -38,7 +38,7 @@ public class ClusterManager7065 extends SdbTestBase {
     private Sequoiadb sdb;
     private String dataRGName = "dataAddGroup7065";
     private String coordAddr;
-    private String workDir;
+    private String reservedDir;
     private int reservedPortBegin;
     private String coordIP;
     private CommLib commlib = new CommLib();
@@ -46,7 +46,7 @@ public class ClusterManager7065 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        this.workDir = SdbTestBase.workDir;
+        this.reservedDir = SdbTestBase.reservedDir;
         this.reservedPortBegin = SdbTestBase.reservedPortBegin;
         try {
             sdb = new Sequoiadb( coordAddr, "", "" );
@@ -83,7 +83,7 @@ public class ClusterManager7065 extends SdbTestBase {
     public void test() {
         // set node configure
         int dataPortAdd1 = reservedPortBegin + 650;
-        String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
+        String dataPathAdd1 = reservedDir + "/" + dataPortAdd1 + "/";
         dataPathAdd1 = dataPathAdd1.replaceAll( "/+", "/" );
         BSONObject dataConfigue1 = ( BSONObject ) JSON
                 .parse( "{logfilesz:64}" );
@@ -218,7 +218,7 @@ public class ClusterManager7065 extends SdbTestBase {
 
         // create another data node
         int dataPortAdd2 = reservedPortBegin + 660;
-        String dataPathAdd2 = workDir + "/" + dataPortAdd2 + "/";
+        String dataPathAdd2 = reservedDir + "/" + dataPortAdd2 + "/";
         BSONObject dataConfigue2 = null;
         try {
             Node node = dataRGAdd.createNode( coordIP, dataPortAdd2,

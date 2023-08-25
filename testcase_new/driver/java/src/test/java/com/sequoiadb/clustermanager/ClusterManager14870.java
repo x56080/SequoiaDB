@@ -35,7 +35,7 @@ public class ClusterManager14870 extends SdbTestBase {
     private String dataRGName = "dataAddGroup14870";
     private String coordIP;
     private String coordAddr;
-    private String workDir;
+    private String reservedDir;
     private int reservedPortBegin;
     private int dataPortAdd;
     private CommLib commlib = new CommLib();
@@ -43,7 +43,7 @@ public class ClusterManager14870 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        this.workDir = SdbTestBase.workDir;
+        this.reservedDir = SdbTestBase.reservedDir;
         this.reservedPortBegin = SdbTestBase.reservedPortBegin;
         sdb = new Sequoiadb( coordAddr, "", "" );
         if ( commlib.isStandAlone( sdb ) ) {
@@ -68,7 +68,7 @@ public class ClusterManager14870 extends SdbTestBase {
         ReplicaGroup rg = sdb.createReplicaGroup( dataRGName );
         // create data Node
         dataPortAdd = reservedPortBegin + 340;
-        String dataPathAdd = workDir + "/" + dataPortAdd + "/";
+        String dataPathAdd = reservedDir + "/" + dataPortAdd + "/";
         dataPathAdd = dataPathAdd.replaceAll( "/+", "/" );
         String cataMaster = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster()
                 .getHostName();
