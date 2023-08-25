@@ -104,7 +104,14 @@ namespace engine
       INT32 rc = SDB_OK;
       for ( BSONObjIterator it( privileges ); it.more(); )
       {
-         BSONObj privObj = it.next().Obj();
+         BSONElement privElem = it.next();
+         if ( privElem.type() != Object )
+         {
+            rc = SDB_SYS;
+            PD_LOG( PDERROR, "Invalid type of privilege, rc: %d", rc );
+            goto error;
+         }
+         BSONObj privObj = privElem.Obj();
          rc = acl.addPrivilege( privObj );
          PD_RC_CHECK( rc, PDERROR, "Failed to add privilege to ACL, rc: %d", rc );
       }
@@ -120,7 +127,14 @@ namespace engine
       INT32 rc = SDB_OK;
       for ( BSONObjIterator it( privileges ); it.more(); )
       {
-         BSONObj privObj = it.next().Obj();
+         BSONElement privElem = it.next();
+         if ( privElem.type() != Object )
+         {
+            rc = SDB_SYS;
+            PD_LOG( PDERROR, "Invalid type of privilege, rc: %d", rc );
+            goto error;
+         }
+         BSONObj privObj = privElem.Obj();
          rc = acl.removePrivilege( privObj );
          PD_RC_CHECK( rc, PDERROR, "Failed to add privilege to ACL, rc: %d", rc );
       }
@@ -220,6 +234,12 @@ namespace engine
          for ( BSONObjIterator it( rolesObj ); it.more(); )
          {
             BSONElement ele = it.next();
+            if ( ele.type() != String )
+            {
+               rc = SDB_SYS;
+               PD_LOG( PDERROR, "Invalid type of role name, rc: %d", rc );
+               goto error;
+            }
             if ( authIsBuiltinRole( ele.valuestrsafe() ) )
             {
                roles.insert( boost::make_shared< ossPoolString >( ele.valuestrsafe() ) );
@@ -303,6 +323,12 @@ namespace engine
             for ( BSONObjIterator it( rolesObj ); it.more(); )
             {
                BSONElement ele = it.next();
+               if ( ele.type() != String )
+               {
+                  rc = SDB_SYS;
+                  PD_LOG( PDERROR, "Invalid type of role name, rc: %d", rc );
+                  goto error;
+               }
                if ( authIsBuiltinRole( ele.valuestrsafe() ) )
                {
                   inheritedRoles.insert(
@@ -413,6 +439,12 @@ namespace engine
             for ( BSONObjIterator it( rolesObj ); it.more(); )
             {
                BSONElement ele = it.next();
+               if ( ele.type() != String )
+               {
+                  rc = SDB_SYS;
+                  PD_LOG( PDERROR, "Invalid type of role name, rc: %d", rc );
+                  goto error;
+               }
                if ( authIsBuiltinRole( ele.valuestrsafe() ) )
                {
                   inheritedRoles.insert(
@@ -424,9 +456,15 @@ namespace engine
             {
                const BSONObj &inherited = roles[ *inheritedNoBuiltinRoles[ i ] ];
                BSONObj rolesObj = inherited.getObjectField( AUTH_FIELD_NAME_ROLES );
-               for ( BSONObjIterator it( roleObj ); it.more(); )
+               for ( BSONObjIterator it( rolesObj ); it.more(); )
                {
                   BSONElement ele = it.next();
+                  if ( ele.type() != String )
+                  {
+                     rc = SDB_SYS;
+                     PD_LOG( PDERROR, "Invalid type of role name, rc: %d", rc );
+                     goto error;
+                  }
                   if ( authIsBuiltinRole( ele.valuestrsafe() ) )
                   {
                      inheritedRoles.insert(
@@ -504,7 +542,14 @@ namespace engine
       INT32 rc = SDB_OK;
       for ( BSONObjIterator it( privObjs ); it.more(); )
       {
-         BSONObj privObj = it.next().Obj();
+         BSONElement privEle = it.next();
+         if ( privEle.type() != Object )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG( PDERROR, "Privilege definition must be object" );
+            goto error;
+         }
+         BSONObj privObj = privEle.Obj();
          BSONObj resObj = privObj.getObjectField( AUTH_FIELD_NAME_RESOURCE );
          boost::shared_ptr< authResource > pRes = authResource::fromBson( resObj );
          RESOURCE_TYPE resType = pRes->getType();
@@ -714,9 +759,11 @@ namespace engine
       {
          BSONObj privileges = obj.getObjectField( AUTH_FIELD_NAME_PRIVILEGES );
          rc = checkPrivilegesObj( privileges );
+         PD_RC_CHECK(rc, PDERROR, "Invalid privileges definition, rc: %d", rc);
 
          authAccessControlList acl;
          rc = addPrivilegesOfRoleToACL( roleName, _agent.get(), acl );
+         PD_RC_CHECK( rc, PDERROR, "Failed to add privileges of role to ACL, rc: %d", rc );
 
          rc = addPrivilegeArrayToACL( privileges, acl );
          PD_RC_CHECK( rc, PDERROR, "Failed to add privileges to ACL, rc: %d", rc );
@@ -759,9 +806,11 @@ namespace engine
       {
          BSONObj privileges = obj.getObjectField( AUTH_FIELD_NAME_PRIVILEGES );
          rc = checkPrivilegesObj( privileges );
+         PD_RC_CHECK(rc, PDERROR, "Invalid privileges definition, rc: %d", rc);
 
          authAccessControlList acl;
          rc = addPrivilegesOfRoleToACL( roleName, _agent.get(), acl );
+         PD_RC_CHECK( rc, PDERROR, "Failed to add privileges of role to ACL, rc: %d", rc );
 
          rc = removePrivilegeArrayToACL( privileges, acl );
          PD_RC_CHECK( rc, PDERROR, "Failed to add privileges to ACL, rc: %d", rc );
@@ -965,6 +1014,12 @@ namespace engine
          for ( BSONObjIterator it( rolesObj ); it.more(); )
          {
             BSONElement ele = it.next();
+            if ( ele.type() != bson::String )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG_MSG( PDERROR, "Role definition must be string" );
+               goto error;
+            }
             if ( !authIsBuiltinRole( ele.valuestrsafe() ) &&
                  !_dag.hasNode( boost::make_shared< ossPoolString >( ele.valuestrsafe() ) ) )
             {
@@ -1055,8 +1110,8 @@ namespace engine
                BSONElement ele = it.next();
                if ( ele.type() != bson::String )
                {
-                  rc = SDB_INVALIDARG;
-                  PD_LOG_MSG( PDERROR, "Role definition must be string" );
+                  rc = SDB_SYS;
+                  PD_LOG( PDERROR, "Invalid type of role name, rc: %d", rc );
                   goto error;
                }
                if ( authIsBuiltinRole( ele.valuestrsafe() ) )
@@ -1201,8 +1256,8 @@ namespace engine
                BSONElement ele = eleIt.next();
                if ( ele.type() != bson::String )
                {
-                  rc = SDB_INVALIDARG;
-                  PD_LOG_MSG( PDERROR, "Role definition must be string" );
+                  rc = SDB_SYS;
+                  PD_LOG( PDERROR, "Invalid type of role name" );
                   goto error;
                }
                if ( !authIsBuiltinRole( ele.valuestrsafe() ) )
