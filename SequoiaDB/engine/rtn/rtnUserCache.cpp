@@ -304,13 +304,13 @@ namespace engine
 
    void _rtnUserCache::remove( const KEY_TYPE &userName )
    {
-      ossScopedLock( &_latch, EXCLUSIVE );
+      ossScopedLock lock( &_latch, EXCLUSIVE );
       _data.erase( userName );
    }
 
    void _rtnUserCache::clear()
    {
-      ossScopedLock( &_latch, EXCLUSIVE );
+      ossScopedLock lock( &_latch, EXCLUSIVE );
       _data.clear();
    }
 } // namespace engine
