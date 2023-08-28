@@ -1328,12 +1328,8 @@ namespace engine
       0ULL,
       8ULL
       )),
-      authActionSet( ACTION_SET_NUMBER_ARRAY(
-      131072ULL,
-      0ULL
-      )),
    };
-   static const authRequiredActionSets AUTH_CMD_NAME_LIST_CL_IN_DOMAIN_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_LIST_CL_IN_DOMAIN_default_ACTION_SETS_ARRAY, 2, 
+   static const authRequiredActionSets AUTH_CMD_NAME_LIST_CL_IN_DOMAIN_default_SETS( RESOURCE_TYPE_CLUSTER , AUTH_CMD_NAME_LIST_CL_IN_DOMAIN_default_ACTION_SETS_ARRAY, 1, 
    authRequiredActionSets::SOURCE_OBJ_NONE, NULL
    );
 
