@@ -1655,7 +1655,9 @@ error:
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_INSERTPARSESDBREPLY, "_mongoInsertCommand::parseSdbReply" )
-INT32 _mongoInsertCommand::parseSdbReply( const MsgOpReply &sdbReply, rtnContextBuf &bodyBuf )
+INT32 _mongoInsertCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                          rtnContextBuf &bodyBuf,
+                                          INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -1971,7 +1973,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEPARSESDBREPLY, "_mongoDeleteCommand::parseSdbReply" )
 INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf )
+                                          engine::rtnContextBuf &bodyBuf,
+                                          INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -2247,7 +2250,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEPARSESDBREPLY, "_mongoUpdateCommand::parseSdbReply" )
 INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf )
+                                          engine::rtnContextBuf &bodyBuf,
+                                          INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -4164,7 +4168,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTPARSESDBREPLY, "_mongoCountCommand::parseSdbReply" )
 INT32 _mongoCountCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf )
+                                         engine::rtnContextBuf &bodyBuf,
+                                         INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -5862,7 +5867,7 @@ void _mongoCreateIdxCommand::_buildShardingIndexObj( BSONObjBuilder &indexObj,
    alterBuilder.append( FIELD_NAME_NAME, SDB_ALTER_CL_ENABLE_SHARDING ) ;
    BSONObjBuilder argBuilder( alterBuilder.subobjStart( FIELD_NAME_ARGS ) ) ;
    argBuilder.append( FIELD_NAME_SHARDINGKEY, keyObj ) ;
-   argBuilder.append( FIELD_NAME_ENSURE_SHDINDEX, TRUE ) ;
+   argBuilder.appendBool( FIELD_NAME_ENSURE_SHDINDEX, true ) ;
    argBuilder.doneFast() ;
    alterBuilder.doneFast() ;
 
@@ -5871,6 +5876,198 @@ void _mongoCreateIdxCommand::_buildShardingIndexObj( BSONObjBuilder &indexObj,
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropIdxCommand)
+
+_mongoDropIdxCommand::_mongoDropIdxCommand()
+{
+   _state = STATE_NONE ;
+   _index = 0 ;
+   _dropAll = FALSE ;
+}
+
+INT32 _mongoDropIdxCommand::init( const _mongoMessage *pMsg, mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+
+   rc = _mongoCollectionCommand::init( pMsg, ctx ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   // parse object
+   // mongo message:
+   // command name deleteIndexes or dropIndexes
+   // index name(string)
+   // { dropIndexes: "bar", index: "aIdx" }
+   // index object(key)
+   // { dropIndexes: "bar", index: {a:1} }
+   // indexes(string array)
+   // { dropIndexes: "bar", index: ["a","b"] }
+   // Note: "*" for all indexes(exception _id index), and drop index can't drop _id index
+   try
+   {
+      BSONElement e = _obj.getField( "index" ) ;
+      if ( String == e.type() )
+      {
+         if ( 0 == ossStrcmp( e.valuestr(), "*" ) )
+         {
+            _state = STATE_LIST ;
+            _dropAll = TRUE ;
+         }
+         else
+         {
+            rc = _pushIndex( e.valuestr(), FALSE, TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            _state = STATE_DROP ;
+         }
+      }
+      else if ( Array == e.type() )
+      {
+         BSONObjIterator itr( e.embeddedObject() ) ;
+         while( itr.more() )
+         {
+            BSONElement eSub = itr.next() ;
+            if ( String != eSub.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Failed to drop multi indexes of %s: index name "
+                           "must be string", clFullName() ) ;
+               goto error ;
+            }
+
+            /// *
+            if ( 0 == ossStrcmp( "*", eSub.valuestr() ) )
+            {
+               _state = STATE_LIST ;
+               _dropAll = TRUE ;
+            }
+            else
+            {
+               rc = _pushIndex( eSub.valuestr(), FALSE, TRUE ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+         }
+
+         if ( STATE_NONE == _state )
+         {
+            _state = STATE_DROP ;
+         }
+      }
+      else if ( Object == e.type() )
+      {
+         _key = e.embeddedObject() ;
+         if ( _key.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            ctx.setError( rc, "key can't be empty object" ) ;
+            goto error ;
+         }
+         _state = STATE_LIST ;
+      }
+      else if ( e.eoo() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "index is not specified" ) ;
+         goto error ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Invalid index: %s", e.toString().c_str() ) ;
+         goto error ;
+      }
+
+      if ( STATE_LIST == _state )
+      {
+         _indexes.clear() ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+BOOLEAN _mongoDropIdxCommand::needProcessByEngine() const
+{
+   if ( STATE_DROP != _state )
+   {
+      return TRUE ;
+   }
+   return _indexes.empty() ? FALSE : TRUE ;
+}
+
+BOOLEAN _mongoDropIdxCommand::hasProcessAllMsg() const
+{
+   if ( STATE_DROP != _state )
+   {
+      return FALSE ;
+   }
+   return _index < _indexes.size() ? FALSE : TRUE ;
+}
+
+INT32 _mongoDropIdxCommand::_pushIndex( const CHAR *pIndexName,
+                                        BOOLEAN ignoreSys,
+                                        BOOLEAN needConvertName )
+{
+   INT32 rc = SDB_OK ;
+   string name ;
+
+   /// $id
+   if ( 0 == ossStrcmp( FAP_MONGO_INDEX_ID_KEY_NAME, pIndexName ) ||
+        0 == ossStrcmp( IXM_ID_KEY_NAME, pIndexName ) )
+   {
+      if ( ignoreSys )
+      {
+         goto done ;
+      }
+      rc = SDB_OPTION_NOT_SUPPORT ;
+      PD_LOG_MSG( PDERROR, "cannot drop _id index" ) ;
+      goto error ;
+   }
+   /// $shard
+   else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_SHARD_KEY_NAME, pIndexName ) ||
+             0 == ossStrcmp( IXM_SHARD_KEY_NAME, pIndexName ) )
+   {
+      if ( ignoreSys )
+      {
+         goto done ;
+      }
+      rc = SDB_OPTION_NOT_SUPPORT ;
+      PD_LOG_MSG( PDERROR, "cannot drop $shard index" ) ;
+      goto error ;
+   }
+
+   name = pIndexName ;
+   if ( needConvertName )
+   {
+      rc = escapeDot( name, FALSE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+   _indexes.push_back( name ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPIDXBUILDREQ, "_mongoDropIdxCommand::buildSdbRequest" )
 INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                              mongoSessionCtx &ctx,
@@ -5882,8 +6079,37 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
-   BSONObj empty, cond ;
-   string indexName ;
+   BSONObj empty, hint, cond ;
+
+   try
+   {
+      if ( STATE_LIST == _state )
+      {
+         pCmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
+         hint = BSON( FIELD_NAME_COLLECTION << clFullName() ) ;
+         getMoreAll = TRUE ;
+      }
+      else if ( _index < _indexes.size() )
+      {
+         cond = BSON( FIELD_NAME_COLLECTION <<
+                      _clFullName.c_str() <<
+                      FIELD_NAME_INDEX <<
+                      BSON( "" << _indexes[ _index ] ) ) ;
+         ++_index ;
+      }
+      else
+      {
+         rc = SDB_IXM_NOTEXIST ;
+         ctx.setError( rc, "Index not exist" ) ;
+         goto error ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      goto error ;
+   }
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -5913,40 +6139,6 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   try
-   {
-      // mongo message:
-      // { deleteIndexes: "bar", index: "aIdx" } or
-      // { dropIndexes: "bar", index: "aIdx" }
-      indexName = _obj.getStringField( "index" ) ;
-      rc = escapeDot( indexName, FALSE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      if ( 0 == ossStrcmp( FAP_MONGO_INDEX_ID_KEY_NAME, indexName.c_str() ) )
-      {
-         indexName = IXM_ID_KEY_NAME ;
-      }
-      else if ( 0 == ossStrcmp( FAP_MONGO_INDEX_SHARD_KEY_NAME, indexName.c_str() ) )
-      {
-         indexName = IXM_SHARD_KEY_NAME ;
-      }
-
-      cond = BSON( FIELD_NAME_COLLECTION <<
-                   _clFullName.c_str() <<
-                   FIELD_NAME_INDEX <<
-                   BSON( "" << indexName ) ) ;
-   }
-   catch ( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when building sdb dropIdx request"
-              ": %s, rc: %d", e.what(), rc ) ;
-      goto error ;
-   }
-
    rc = sdbMsg.write( cond, TRUE ) ;
    if ( rc )
    {
@@ -5965,7 +6157,7 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   rc = sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( hint, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -5975,6 +6167,133 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DROPIDXBUILDREQ, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoDropIdxCommand::parseSdbReply( const MsgOpReply &sdbReply,
+                                           rtnContextBuf &bodyBuf,
+                                           INT32 &result )
+{
+   INT32 rc = SDB_OK ;
+
+   if ( STATE_LIST == _state )
+   {
+      BSONObj obj, objDef ;
+      BSONElement eDef, eKey, eName ;
+
+      if ( SDB_OK != sdbReply.flags )
+      {
+         if ( SDB_DMS_EOC == sdbReply.flags )
+         {
+            _state = STATE_DROP ;
+            result = SDB_OK ;
+            goto done ;
+         }
+         goto error ;
+      }
+
+      try
+      {
+         while( !bodyBuf.eof() )
+         {
+            rc = bodyBuf.nextObj( obj ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Parse index object failed, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            eDef = obj.getField( IXM_FIELD_NAME_INDEX_DEF ) ;
+            if ( Object != eDef.type() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG_MSG( PDERROR, "Parse index object(%s) failed", eDef.toString().c_str() ) ;
+               goto error ;
+            }
+
+            objDef = eDef.embeddedObject() ;
+            eKey = objDef.getField( IXM_FIELD_NAME_KEY ) ;
+            if ( Object != eKey.type() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG_MSG( PDERROR, "Parse index object(%s) failed", eDef.toString().c_str() ) ;
+               goto error ;
+            }
+
+            eName = objDef.getField( IXM_FIELD_NAME_NAME ) ;
+            if ( String != eName.type() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG_MSG( PDERROR, "Parse index object(%s) failed", eDef.toString().c_str() ) ;
+               goto error ;
+            }
+
+            if ( _dropAll )
+            {
+               rc = _pushIndex( eName.valuestr(), TRUE, FALSE ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+            else if ( 0 == eKey.embeddedObject().woCompare( _key ) )
+            {
+               if ( 0 == ossStrcmp( "*", eName.valuestr() ) )
+               {
+                  rc = SDB_OPTION_NOT_SUPPORT ;
+                  PD_LOG_MSG( PDERROR, "Cannot drop index named '*' by key pattern. You must use "
+                              "dropIndexes() instead of droped by key pattern" ) ;
+                  goto error ;
+               }
+
+               rc = _pushIndex( eName.valuestr(), FALSE, FALSE ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+         }
+
+         if ( !_dropAll )
+         {
+            if ( _indexes.empty() )
+            {
+               PD_LOG_MSG( PDERROR, "Can't find index with key: %s", _key.toString().c_str() ) ;
+               rc = SDB_IXM_NOTEXIST ;
+               goto error ;
+            }
+            else if ( _indexes.size() > 1 )
+            {
+               PD_LOG_MSG( PDERROR, "Index found by key(%s) more than 1, identify by name instead" ) ;
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               goto error ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      _state = STATE_DROP ;
+   }
+   else
+   {
+      /// not the last
+      if ( SDB_IXM_NOTEXIST == sdbReply.flags &&
+           _index < _indexes.size() )
+      {
+         result = SDB_OK ; /// continue the next
+         /// release error
+         bodyBuf.release() ;
+      }
+   }
+
+done:
    return rc ;
 error:
    goto done ;
@@ -5991,13 +6310,19 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    try
    {
       if ( SDB_OK == sdbReply.flags ||
-           SDB_IXM_NOTEXIST == sdbReply.flags )
+           SDB_IXM_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_EOC == sdbReply.flags )
       {
          if ( SDB_OK != sdbReply.flags )
          {
             /// clear error
             headerBuf.setOK() ;
          }
+         if ( SDB_DMS_EOC == sdbReply.flags )
+         {
+            bodyBuf.release() ;
+         }
+
          rc = mongoRebuildOKReply( bodyBuf ) ;
          if ( rc )
          {

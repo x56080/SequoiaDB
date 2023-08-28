@@ -182,7 +182,8 @@ class _mongoCollectionStatsCommand : public _mongoCollectionCommand
                                      BOOLEAN &getMoreAll ) ;
 
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
-                                   engine::rtnContextBuf &bodyBuf ) ;
+                                   engine::rtnContextBuf &bodyBuf,
+                                   INT32 &result ) ;
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
@@ -241,7 +242,8 @@ class _mongoTopCommand : public _mongoGlobalCommand
                                      BOOLEAN &getMoreAll ) ;
 
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
-                                   engine::rtnContextBuf &bodyBuf ) ;
+                                   engine::rtnContextBuf &bodyBuf,
+                                   INT32 &result ) ;
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
@@ -279,7 +281,8 @@ class _mongoServerStatusCommand : public _mongoGlobalCommand
                                      BOOLEAN &getMoreAll ) ;
 
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
-                                   engine::rtnContextBuf &bodyBuf ) ;
+                                   engine::rtnContextBuf &bodyBuf,
+                                   INT32 &result ) ;
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
@@ -334,7 +337,8 @@ class _mongoCurrentOpCommand : public _mongoGlobalCommand
                                      BOOLEAN &getMoreAll ) ;
 
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
-                                   engine::rtnContextBuf &bodyBuf ) ;
+                                   engine::rtnContextBuf &bodyBuf,
+                                   INT32 &result ) ;
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,

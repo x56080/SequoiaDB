@@ -868,6 +868,8 @@ namespace fap
       { SDB_DMS_NOTEXIST, 26 },
       { SDB_AUTH_AUTHORITY_FORBIDDEN, 18 },
       { SDB_AUTH_INCOMPATIBLE, 18 },
+      { SDB_IXM_NOTEXIST, 27 },
+      { SDB_IXM_EXIST, 85 }
    } ;
 
    INT32 utilSdbRC2MongoRC( INT32 sdbRC )

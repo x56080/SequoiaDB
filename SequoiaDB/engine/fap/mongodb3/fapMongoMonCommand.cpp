@@ -766,7 +766,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COLLSTATSPARSESDBREPLY, "_mongoCollectionStatsCommand::parseSdbReply" )
 INT32 _mongoCollectionStatsCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                                   engine::rtnContextBuf &bodyBuf )
+                                                   engine::rtnContextBuf &bodyBuf,
+                                                   INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_COLLSTATSPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -1159,7 +1160,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_TOPPARSESDBREPLY, "_mongoTopCommand::parseSdbReply" )
 INT32 _mongoTopCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf )
+                                       engine::rtnContextBuf &bodyBuf,
+                                       INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_TOPPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -1652,7 +1654,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_SERVERSTATUSPARSESDBREPLY, "_mongoServerStatusCommand::parseSdbReply" )
 INT32 _mongoServerStatusCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                                engine::rtnContextBuf &bodyBuf )
+                                                engine::rtnContextBuf &bodyBuf,
+                                                INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_SERVERSTATUSPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -1985,7 +1988,8 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CURRENTOPPARSESDBREPLY, "_mongoCurrentOpCommand::parseSdbReply" )
 INT32 _mongoCurrentOpCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf )
+                                             engine::rtnContextBuf &bodyBuf,
+                                             INT32 &result )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CURRENTOPPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;

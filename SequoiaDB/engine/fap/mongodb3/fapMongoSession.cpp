@@ -251,7 +251,7 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
 
       rc = _processMsg( sdbMsgBuff.data(), pCommand, getMoreAll, sessCtx.errorObj ) ;
       /// should parse the result
-      INT32 rcTmp = pCommand->parseSdbReply( _replyHeader, _contextBuff ) ;
+      INT32 rcTmp = pCommand->parseSdbReply( _replyHeader, _contextBuff, rc ) ;
       if ( rc )
       {
          goto error ;
@@ -956,6 +956,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          break ;
       }
       else if ( !hasBuildGetMore &&
+                SDB_OK == _replyHeader.flags &&
                 _shouldBuildGetMoreMsg( pCommand, _contextBuff, _replyHeader ) )
       {
          rc = buildGetMoreSdbMsg( _replyHeader.header.requestID,
@@ -971,7 +972,8 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       }
       else if ( getMoreAll )
       {
-         if ( _contextBuff.size() > 0 &&
+         if ( SDB_OK == _replyHeader.flags &&
+              _contextBuff.size() > 0 &&
               ( hasSave2Store || SDB_INVALID_CONTEXTID != _replyHeader.contextID ) )
          {
             /// save to store buff
@@ -983,6 +985,11 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                goto error ;
             }
             hasSave2Store = TRUE ;
+         }
+         else if ( SDB_OK != _replyHeader.flags && SDB_DMS_EOC != _replyHeader.flags )
+         {
+            PD_LOG( PDERROR, "Process failed, rc: %d", _replyHeader.flags ) ;
+            goto error ;
          }
 
          /// build getmore
@@ -1022,11 +1029,15 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          PD_LOG( PDERROR, "Get data from store buffer failed, rc: %d", rc ) ;
          goto error ;
       }
-   }
+      _replyHeader.numReturned = _contextBuff.recordNum() ;
+      _replyHeader.header.messageLength = sizeof( MsgOpReply ) + _contextBuff.size() ;
 
-   if ( SDB_DMS_EOC == _replyHeader.flags && _contextBuff.size() > 0 )
-   {
-      _replyHeader.flags = SDB_OK ;
+      if ( SDB_DMS_EOC == _replyHeader.flags && _contextBuff.size() > 0 )
+      {
+         _replyHeader.flags = SDB_OK ;
+         /// clear the error
+         errorObj = BSONObj() ;
+      }
    }
 
 done:
