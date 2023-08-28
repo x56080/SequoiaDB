@@ -23,7 +23,7 @@ namespace engine
       INT32 getUser( const CHAR *userName, bson::BSONObj &out );
 
    private:
-      INT32 _checkRevokeLastRoot( const CHAR *userName );
+      INT32 _checkRevokeLastRoot( const CHAR *userName, const bson::BSONObj &obj );
 
    private:
       pmdEDUCB *_pEduCB;
