@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,14 +23,16 @@ import java.util.concurrent.TimeUnit;
 public class DataBaseCmd {
     private String databaseName = "databaseCmd_test";
     private String collectionName = "collectionCmd_test";
+    private String uri = null;
     private MongoClient mongoClient = null;
-    private MongoDatabase adminClient = null;
+    private MongoDatabase adminDatabase = null;
     private String mongoVersion = null;
 
-    public DataBaseCmd( MongoClient mongoClients ) {
-        this.mongoClient = mongoClients;
+    public DataBaseCmd( String mongoCUri ) {
+        this.uri = mongoCUri;
+        mongoClient = MongoClients.create( uri );
         this.mongoVersion = CommLib.getMongoDBVersion( mongoClient );
-        this.adminClient = mongoClient.getDatabase( "admin" );
+        this.adminDatabase = mongoClient.getDatabase( "admin" );
     }
 
     private void setUp() {
@@ -92,7 +95,7 @@ public class DataBaseCmd {
         if ( CommLib.compareVersion( mongoVersion, "3.4" ) >= 0 ) {
             document.append( "collation", new Document( "locale", "en_US" ) );
         }
-        adminClient.runCommand( document );
+        adminDatabase.runCommand( document );
 
         // distinct
         document = new Document( "distinct", collectionName )
@@ -106,7 +109,7 @@ public class DataBaseCmd {
         if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0 ) {
             document.append( "comment", "comment" );
         }
-        adminClient.runCommand( document );
+        adminDatabase.runCommand( document );
 
         // mapReduce
         String mapFunction = "function() { emit(this.a, this.d); }";
@@ -628,15 +631,15 @@ public class DataBaseCmd {
      * 构造authentication类型数据库命令 包含以下命令： authenticate getnonce logout
      */
     public void runAuthenticationCommands() {
-        setUp();
-        MongoDatabase database = mongoClient.getDatabase( "admin" );
+        MongoClient client = MongoClients.create( uri );
+        MongoDatabase database = client.getDatabase( "admin" );
         // authenticate
         // database.runCommand( new Document( "authenticate", 1 ));
         // getnonce
         database.runCommand( new Document( "getnonce", 1 ) );
         // logout
         database.runCommand( new Document( "logout", 1 ) );
-        tearDown();
+        client.close();
     }
 
     /**
@@ -646,6 +649,18 @@ public class DataBaseCmd {
     public void runUserManagementCommands() {
         setUp();
         MongoDatabase database = mongoClient.getDatabase( databaseName );
+
+        try {
+            // dropUser
+            Document dropUser = new Document( "dropUser", "user" ).append(
+                    "writeConcern",
+                    new Document( "w", 1 ).append( "wtimeout", 1000 ) );
+            if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0 ) {
+                dropUser.append( "comment", "comment" );
+            }
+            database.runCommand( dropUser );
+        } catch ( Exception e ) {
+        }
         // createUser
         Document createUser = new Document( "createUser", "user" )
                 .append( "pwd", "pwd" )
@@ -893,7 +908,6 @@ public class DataBaseCmd {
      */
     public void runReplicationCommands() {
         setUp();
-        MongoDatabase adminDatabase = mongoClient.getDatabase( "admin" );
         // applyOps(internal command)
         // hello
         if ( CommLib.compareVersion( mongoVersion, "3.6.21" ) >= 0 ) {
@@ -957,7 +971,6 @@ public class DataBaseCmd {
      */
     public void runShardingCommands() {
         setUp();
-        MongoDatabase adminDatabase = mongoClient.getDatabase( "admin" );
         MongoDatabase database = mongoClient.getDatabase( databaseName );
         database.createCollection( collectionName );
         if ( CommLib.isSharded( mongoClient ) ) {
@@ -1117,7 +1130,7 @@ public class DataBaseCmd {
      */
     public void runSessionCommands() {
         setUp();
-        MongoDatabase adminDatabase = mongoClient.getDatabase( "admin" );
+
         if ( CommLib.compareVersion( mongoVersion, "3.6" ) >= 0 ) {
             // startSession
             Document document = adminDatabase
@@ -1180,6 +1193,211 @@ public class DataBaseCmd {
      */
     public void runAdministrationCommands() {
         setUp();
+        MongoDatabase testDatabase = mongoClient.getDatabase( databaseName );
+        testDatabase.createCollection( collectionName );
+        String tmpCollectionName = collectionName + "tmpcl";
+        Document document;
+
+        // cloneCollectionAsCapped
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "cloneCollectionAsCapped", collectionName )
+                    .append( "toCollection", tmpCollectionName )
+                    .append( "size", 1000 ).append( "max", 1000 );
+            testDatabase.runCommand( document );
+            document = new Document( "drop", tmpCollectionName );
+            testDatabase.runCommand( document );
+        }
+
+        // compact
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "compact", collectionName )
+                    .append( "force", true );
+            testDatabase.runCommand( document );
+        }
+
+        // convertToCapped
+        // donot run this command in sharded cluster
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "convertToCapped", collectionName )
+                    .append( "size", 1000 )
+                    .append( "writeConcern", new Document( "w", 0 ) )
+                    .append( "comment", "convertToCapped comment" );
+            testDatabase.runCommand( document );
+        }
+
+        // create
+        document = new Document( "create", tmpCollectionName );
+        testDatabase.runCommand( document );
+
+        // createIndexes
+        document = new Document( "createIndexes", tmpCollectionName ).append(
+                "indexes",
+                Arrays.asList( new Document( "key", new Document( "a", 1 ) )
+                        .append( "background", true ).append( "unique", "true" )
+                        .append( "name", "aidx" )
+                        .append( "expireAfterSeconds", 600 ) ) );
+        testDatabase.runCommand( document );
+
+        // collMod
+        document = new Document( "collMod", tmpCollectionName )
+                .append( "index",
+                        new Document( "expireAfterSeconds", 1000 ).append(
+                                "keyPattern", new Document( "a", 1 ) ) )
+                .append( "validator",
+                        new Document( "a", new Document( "$gt", 0 ) ) )
+                .append( "validationLevel", "moderate" )
+                .append( "validationAction", "error" );
+        testDatabase.runCommand( document );
+
+        // currentOp
+        document = new Document( "currentOp", 1 );
+        adminDatabase.runCommand( document );
+
+        // listIndexes
+        document = new Document( "listIndexes", tmpCollectionName )
+                .append( "cursor", new Document( "batchSize", 1 ) );
+        testDatabase.runCommand( document );
+
+        // reIndex
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "reIndex", tmpCollectionName );
+            testDatabase.runCommand( document );
+        }
+
+        // setIndexCommitQuorum
+        try {
+            ArrayList< String > nameList = new ArrayList<>();
+            nameList.add( "aidx" );
+            if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0
+                    && !( CommLib.isStandalone( mongoClient ) ) ) {
+                document = new Document( "setIndexCommitQuorum",
+                        tmpCollectionName ).append( "indexNames", nameList )
+                                .append( "commitQuorum", 1 );
+                testDatabase.runCommand( document );
+            }
+        } catch ( Exception e ) {
+        }
+
+        // dropIndexes
+        document = new Document( "dropIndexes", tmpCollectionName )
+                .append( "index", "aidx" );
+        testDatabase.runCommand( document );
+
+        // drop
+        document = new Document( "drop", tmpCollectionName );
+        testDatabase.runCommand( document );
+
+        // dropDatabase
+        document = new Document( "dropDatabase", 1 );
+        testDatabase.runCommand( document );
+
+        // dropConnections
+        try {
+            document = new Document( "dropConnections", 1 ).append(
+                    "hostAndPort", new ArrayList< String >().add( "" ) );
+            adminDatabase.runCommand( document );
+        } catch ( Exception e ) {
+        }
+
+        // filemd5
+        // run this command in GridFS specific database, skip this
+
+        // fsync
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "fsync", 1 ).append( "lock", true );
+            adminDatabase.runCommand( document );
+        }
+
+        // fsyncUnlock
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "fsyncUnlock", 1 );
+            adminDatabase.runCommand( document );
+        }
+
+        // getDefaultRWConcern
+        if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0
+                && !( CommLib.isStandalone( mongoClient ) ) ) {
+            document = new Document( "getDefaultRWConcern", 1 )
+                    .append( "inMemory", true );
+            adminDatabase.runCommand( document );
+        }
+
+        // getParameter
+        try {
+            document = new Document( "getParameter", 1 ).append( "parameter",
+                    "pipeline" );
+            adminDatabase.runCommand( document );
+        } catch ( Exception e ) {
+        }
+
+        // killCursors
+        List< Long > list = new ArrayList<>();
+        list.add( 1L );
+        document = new Document( "killCursors", collectionName )
+                .append( "cursors", list );
+        testDatabase.runCommand( document );
+
+        // killOp
+        try {
+            document = new Document( "killOp", 1 ).append( "op", 1 );
+            adminDatabase.runCommand( document );
+        } catch ( Exception e ) {
+        }
+
+        // listCollections
+        document = new Document( "listCollections", 1 ).append( "nameOnly",
+                true );
+        testDatabase.runCommand( document );
+
+        // listDatabases
+        document = new Document( "listDatabases", 1 );
+        adminDatabase.runCommand( document );
+
+        // logRotate
+        document = new Document( "logRotate", 1 );
+        adminDatabase.runCommand( document );
+
+        // renameCollection
+        String newCollectionName = databaseName + "." + collectionName;
+        String oldCollectionName = databaseName + "." + tmpCollectionName;
+        document = new Document( "create", tmpCollectionName );
+        testDatabase.runCommand( document );
+        document = new Document( "renameCollection", oldCollectionName )
+                .append( "to", newCollectionName );
+        adminDatabase.runCommand( document );
+
+        // setFeatureCompatibilityVersion
+        if ( CommLib.compareVersion( mongoVersion, "3.4" ) >= 0 ) {
+            if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0 ) {
+                document = new Document( "setFeatureCompatibilityVersion",
+                        "4.4" );
+            } else {
+                document = new Document( "setFeatureCompatibilityVersion",
+                        "3.4" );
+            }
+            adminDatabase.runCommand( document );
+        }
+
+        // setParameter
+        try {
+            document = new Document( "setParameter", 1 )
+                    .append( "connPoolMaxConnsPerHost", 100 );
+            adminDatabase.runCommand( document );
+        } catch ( Exception e ) {
+        }
+
+        // setDefaultRWConcern
+        if ( CommLib.compareVersion( mongoVersion, "4.4" ) >= 0
+                && !CommLib.isStandalone( mongoClient ) ) {
+            document = new Document( "setDefaultRWConcern", 1 )
+                    .append( "defaultReadConcern",
+                            new Document( "level", "local" ) )
+                    .append( "defaultWriteConcern", new Document() );
+            adminDatabase.runCommand( document );
+        }
+
+        // shutdown
+        // skip this command
 
         tearDown();
     }
@@ -1193,6 +1411,116 @@ public class DataBaseCmd {
      */
     public void runDiagnosticCommands() {
         setUp();
+        MongoDatabase testDatabase = mongoClient.getDatabase( databaseName );
+        testDatabase.createCollection( collectionName );
+
+        // buildInfo
+        Document document = new Document( "buildInfo", 1 );
+        adminDatabase.runCommand( document );
+
+        // collStats
+        document = new Document( "collStats", collectionName );
+        testDatabase.runCommand( document );
+
+        // connPoolStats
+        document = new Document( "connPoolStats", 1 );
+        adminDatabase.runCommand( document );
+
+        // connectionStatus
+        document = new Document( "connectionStatus", 1 );
+        adminDatabase.runCommand( document );
+
+        // dataSize
+        String dbclName = databaseName + "." + collectionName;
+        document = new Document( "dataSize", dbclName )
+                .append( "keyPattern", new Document( "a", 1 ) )
+                .append( "min", new Document( "a", 1 ) )
+                .append( "max", new Document( "a", 100 ) );
+        testDatabase.runCommand( document );
+
+        // dbHash
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "dbHash", 1 ).append( "collections",
+                    new ArrayList< String >().add( collectionName ) );
+            testDatabase.runCommand( document );
+        }
+
+        // dbStats
+        document = new Document( "dbStats", 1 );
+        adminDatabase.runCommand( document );
+
+        // driverOIDTest
+        // internal command, skip this command
+
+        // explain
+        document = new Document( "explain",
+                new Document( "find", collectionName ).append( "filter",
+                        new Document( "a", 1 ) ) );
+        testDatabase.runCommand( document );
+
+        // features
+        // internal command, skip this command
+
+        // getCmdLineOpts
+        document = new Document( "getCmdLineOpts", 1 );
+        adminDatabase.runCommand( document );
+
+        // getLog
+        document = new Document( "getLog", "global" );
+        adminDatabase.runCommand( document );
+
+        // hostInfo
+        document = new Document( "hostInfo", 1 );
+        adminDatabase.runCommand( document );
+
+        // isSelf
+        // internal command, skip this command
+
+        // listCommands
+        document = new Document( "listCommands", 1 );
+        adminDatabase.runCommand( document );
+
+        // lockInfo
+        if ( !CommLib.isSharded( mongoClient )
+                && CommLib.compareVersion( mongoVersion, "4.4" ) >= 0 ) {
+            document = new Document( "lockInfo", 1 );
+            adminDatabase.runCommand( document );
+        }
+
+        // netstat
+        // internal command, skip this command
+
+        // ping
+        document = new Document( "ping", 1 );
+        adminDatabase.runCommand( document );
+
+        // profile
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "profile", 1 );
+            adminDatabase.runCommand( document );
+        }
+
+        // serverStatus
+        document = new Document( "serverStatus", 1 );
+        adminDatabase.runCommand( document );
+
+        // shardConnPoolStats
+        document = new Document( "shardConnPoolStats", 1 );
+        adminDatabase.runCommand( document );
+
+        // top
+        if ( !CommLib.isSharded( mongoClient ) ) {
+            document = new Document( "top", 1 );
+            adminDatabase.runCommand( document );
+        }
+
+        // validate
+        document = new Document( "validate", collectionName ).append( "full",
+                false );
+        testDatabase.runCommand( document );
+
+        // whatsmyuri
+        // internal command, skip this command
 
         tearDown();
     }
@@ -1203,6 +1531,11 @@ public class DataBaseCmd {
     public void runFreeMonitoringCommands() {
         setUp();
 
+        if ( CommLib.compareVersion( mongoVersion, "4.0" ) >= 0 ) {
+            Document document = new Document( "getFreeMonitoringStatus", 1 );
+            adminDatabase.runCommand( document );
+        }
+
         tearDown();
     }
 
@@ -1211,6 +1544,7 @@ public class DataBaseCmd {
      */
     public void runSystemEventsAuditingCommands() {
         setUp();
+        // command only run in MongoDB Enterprise
 
         tearDown();
     }
@@ -1237,12 +1571,5 @@ public class DataBaseCmd {
 
     private void tearDown() {
         mongoClient.getDatabase( databaseName ).drop();
-    }
-
-    public static void main( String[] args ) {
-        MongoClient client = MongoClients.create( M2STestBase.mongodbUri );
-        DataBaseCmd cmd = new DataBaseCmd( client );
-        cmd.runAggregationCommands();
-        client.close();
     }
 }

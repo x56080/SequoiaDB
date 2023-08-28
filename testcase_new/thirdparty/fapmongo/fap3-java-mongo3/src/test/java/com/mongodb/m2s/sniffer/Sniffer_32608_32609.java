@@ -74,12 +74,6 @@ public class Sniffer_32608_32609 extends M2STestBase {
                 .append( "filter", new Document( "count", new Document( "$lt", 50 ) )
                         .append( "name", new Document( "$eq", "MongoDB" ) ) ) ) );
 
-        cl.find( new Document( "$or",
-                Arrays.asList(
-                        new Document( "count", new Document( "$lt", 50 ) ),
-                        new Document( "info.x",
-                                new Document( "$lt", 500 ) ) ) ) );
-        // 将上述语句转换为explain命令
         database.runCommand(new Document( "explain", new Document( "find", collectionName )
                 .append( "filter", new Document( "$or", Arrays.asList(
                         new Document( "count", new Document( "$lt", 50 ) ),
