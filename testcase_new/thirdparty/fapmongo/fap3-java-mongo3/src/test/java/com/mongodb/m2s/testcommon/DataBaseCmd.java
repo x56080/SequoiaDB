@@ -742,7 +742,7 @@ public class DataBaseCmd {
                 .append( "showCredentials", true )
                 .append( "showPrivileges", false );
         if ( CommLib.compareVersion( mongoVersion, "3.6" ) >= 0 ) {
-            usersInfo.append( "showAuthenticationRestrictions", true );
+            usersInfo.append( "showAuthenticationRestrictions", false );
         }
         if ( CommLib.compareVersion( mongoVersion, "4.0" ) >= 0 ) {
             usersInfo.append( "filter", new Document( "user", "user" ) );
@@ -1567,6 +1567,7 @@ public class DataBaseCmd {
         runDiagnosticCommands();
         runFreeMonitoringCommands();
         runSystemEventsAuditingCommands();
+        mongoClient.close();
     }
 
     private void tearDown() {
