@@ -1,7 +1,7 @@
 import("../lib/basic_operation/commlib.js");
 import("../lib/main.js");
 
-function ensurePrivilegeCheckEnabled(db) {
+function ensurePrivilegeCheckEnabled(testPara, f) {
   var cursor = db.snapshot(
     SDB_SNAP_CONFIGS,
     { SvcName: COORDSVCNAME },
@@ -18,11 +18,28 @@ function ensurePrivilegeCheckEnabled(db) {
         var oma = Oma();
         oma.stopNode(COORDSVCNAME);
         oma.startNode(COORDSVCNAME);
-        return true;
+        db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
       }
     }
   }
-  return false;
+  try {
+    f(testPara);
+  } finally {
+    if (privilegeCheckEnabled == "FALSE") {
+      try {
+        db.updateConf({ privilegecheck: false }, { SvcName: COORDSVCNAME });
+      } catch (e) {
+        if (e != SDB_RTN_CONF_NOT_TAKE_EFFECT) {
+          throw e;
+        } else {
+          var oma = Oma();
+          oma.stopNode(COORDSVCNAME);
+          oma.startNode(COORDSVCNAME);
+          db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
+        }
+      }
+    }
+  }
 }
 
 function ignoreError(f) {
