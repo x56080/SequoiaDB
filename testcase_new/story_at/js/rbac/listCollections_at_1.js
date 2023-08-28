@@ -30,11 +30,10 @@ testConf.clName = COMMCSNAME + "_rbac";
 
 main(test);
 function test(testPara) {
-  if (ensurePrivilegeCheckEnabled(db)) {
-    db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
-  }
+  ensurePrivilegeCheckEnabled(db, testAccessControl);
+}
+function testAccessControl(testPara) {
   db.getCS(testConf.csName).getCL(testConf.clName);
-
   try {
     checkAccessControl(
       db,

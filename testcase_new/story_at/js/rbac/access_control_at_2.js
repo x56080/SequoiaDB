@@ -32,9 +32,10 @@ testConf.csName = COMMCSNAME + "_rbac";
 
 main(test);
 function test(testPara) {
-  if (ensurePrivilegeCheckEnabled(db)) {
-    db = new Sdb(COORDHOSTNAME, COORDSVCNAME);
-  }
+  ensurePrivilegeCheckEnabled(testPara, testAccessControl);
+}
+
+function testAccessControl(testPara) {
   db.getCS(testConf.csName).createCL("maincl", {
     IsMainCL: true,
     ShardingKey: { create_date: 1 },
