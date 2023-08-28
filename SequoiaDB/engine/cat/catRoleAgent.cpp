@@ -278,7 +278,7 @@ namespace engine
    {
       INT32 rc = SDB_OK;
 
-      rc = _checkRevokeLastRoot( userName );
+      rc = _checkRevokeLastRoot( userName, obj );
       PD_RC_CHECK( rc, PDERROR, "Failed to check revoke last root, rc: %d", rc );
 
       {
@@ -349,29 +349,49 @@ namespace engine
       goto done;
    }
 
-   INT32 _catRoleAgent::_checkRevokeLastRoot( const CHAR *userName )
+   INT32 _catRoleAgent::_checkRevokeLastRoot( const CHAR *userName, const bson::BSONObj &obj )
    {
-
       INT32 rc = SDB_OK;
-      INT64 count = 0;
-      rtnQueryOptions queryOption;
-
-      BSONObj query =
-         BSON( "$and" << BSON_ARRAY( BSON( FIELD_NAME_USER << BSON( "$ne" << userName ) )
-                                     << BSON( FIELD_NAME_ROLES << AUTH_ROLE_ROOT ) ) );
-      queryOption.setCLFullName( AUTH_USR_COLLECTION ) ;
-      queryOption.setQuery( query );
-      rc = rtnGetCount( queryOption, _pDmsCB, _pEduCB, _pRtnCB, &count );
-      PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc );
-
-      if ( 0 == count )
+      BSONElement rolesEle = obj.getField( AUTH_FIELD_NAME_ROLES );
+      if ( rolesEle.type() != Array )
       {
-         rc = SDB_OPERATION_DENIED;
-         PD_LOG_MSG( PDERROR,
-                     "Only users without %s role remain after "
-                     "removing this user, rc: %d",
-                     AUTH_ROLE_ROOT, rc );
+         rc = SDB_INVALIDARG;
+         PD_LOG_MSG( PDERROR, "Invalid type of roles to revoke, rc: %d", rc );
          goto error;
+      }
+
+      for ( BSONObjIterator it( rolesEle.Obj() ); it.more(); )
+      {
+         BSONElement ele = it.next();
+         if ( ele.type() != String )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG( PDERROR, "Invalid type of role name to revoke, rc: %d", rc );
+            goto error;
+         }
+         if ( ossStrcmp( AUTH_ROLE_ROOT, ele.valuestrsafe() ) == 0 )
+         {
+            INT64 count = 0;
+            rtnQueryOptions queryOption;
+
+            BSONObj query =
+               BSON( "$and" << BSON_ARRAY( BSON( FIELD_NAME_USER << BSON( "$ne" << userName ) )
+                                           << BSON( FIELD_NAME_ROLES << AUTH_ROLE_ROOT ) ) );
+            queryOption.setCLFullName( AUTH_USR_COLLECTION );
+            queryOption.setQuery( query );
+            rc = rtnGetCount( queryOption, _pDmsCB, _pEduCB, _pRtnCB, &count );
+            PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc );
+
+            if ( 0 == count )
+            {
+               rc = SDB_OPERATION_DENIED;
+               PD_LOG_MSG( PDERROR,
+                           "Only users without %s role remain after "
+                           "revoking roles, rc: %d",
+                           AUTH_ROLE_ROOT, rc );
+               goto error;
+            }
+         }
       }
 
    done:
