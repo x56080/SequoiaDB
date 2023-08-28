@@ -222,7 +222,6 @@ enums:
           - getNode
           - resetSnapshot
           - listBackup
-          - listCollections
 
 
       # resource: { cs:"", cl: "exact" }
@@ -585,7 +584,6 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [list]
-          - [listCollections]
 
     # CMD_NAME_LIST_CL_IN_COLLECTIONSPACE require special handling
 
