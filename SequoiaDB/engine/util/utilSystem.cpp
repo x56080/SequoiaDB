@@ -55,7 +55,7 @@
    #elif defined (_PPCLIN64)
       #define UTIL_SYS_GET_CPU_INFO_CMD "cat /proc/cpuinfo | grep -E 'processor|cpu|clock|machine'"
    #else
-      #define UTIL_SYS_GET_CPU_INFO_CMD "cat /proc/cpuinfo | grep -E 'processor|model name|cpu MHz|flags|core id|physical id'"
+      #define UTIL_SYS_GET_CPU_INFO_CMD "cat /proc/cpuinfo | grep -E 'processor|model name|cpu MHz|flags|core id|physical id|vmx flags'"
    #endif
 
 #elif defined(_WINDOWS)
@@ -279,6 +279,7 @@ namespace engine
       std::string strPhysicalID = "physical id" ;
       std::string strCoreID     = "core id" ;
       std::string strFlags      = "flags" ;
+      std::string strVmxFlags   = "vmx flags" ;
       std::vector<string> splited ;
       // use to mark which field we had accessed
       INT32 flag = 0x00000000 ;
@@ -386,6 +387,10 @@ namespace engine
                {
                   mustPush = TRUE ;
                }
+            }
+            else if ( strVmxFlags == columns.at( 0 ) )
+            {
+               // do nothing
             }
             else
             {
