@@ -58,12 +58,11 @@ function main ()
    delete rc.ErrNodes;
    assert.eq( rc, {
       "ok": 0,
-      "code": -56,
-      "codeName": "$id index can't be dropped",
-      "errmsg": "Cannot drop $id index, use dropIdIndex() instead"
+      "code": -32,
+      "errmsg": "cannot drop _id index"
    } );
    var rc = db.getLastError();
-   assert.eq( rc, "Cannot drop $id index, use dropIdIndex() instead" );
+   assert.eq( rc, "cannot drop _id index" );
 
    // getIndexes
    var rc = cl.getIndexes();
