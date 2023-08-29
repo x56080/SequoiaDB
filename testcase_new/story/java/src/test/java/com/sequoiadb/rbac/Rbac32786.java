@@ -138,7 +138,7 @@ public class Rbac32786 extends SdbTestBase {
                         userCL.truncate();
                         break;
                     case "listCollections":
-                        // userCS.getCollectionNames();
+                        userCS.getCollectionNames();
                         break;
                     default:
                         break;

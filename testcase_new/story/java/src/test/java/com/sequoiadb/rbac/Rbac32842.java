@@ -100,8 +100,8 @@ public class Rbac32842 extends SdbTestBase {
                     userCL1, false );
             RbacUtils.findActionSupportCommand( sdb, csName1, clName1, userCL1,
                     false );
-            RbacUtils.findActionSupportCommand( sdb, csName2, clName2,
-                    userCL2, true );
+            RbacUtils.findActionSupportCommand( sdb, csName2, clName2, userCL2,
+                    true );
 
             try {
                 userCL1.truncate();
@@ -144,7 +144,8 @@ public class Rbac32842 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace( csName );
+            sdb.dropCollectionSpace( csName1 );
+            sdb.dropCollectionSpace( csName2 );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

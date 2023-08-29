@@ -164,7 +164,7 @@ public class Rbac32788 extends SdbTestBase {
                             clName1, userCS, true );
                     break;
                 case "listCollections":
-                    // java驱动不支持listCollections命令
+                    userCS.getCollectionNames();
                     break;
                 default:
                     break;
