@@ -1037,6 +1037,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          _replyHeader.flags = SDB_OK ;
          /// clear the error
          errorObj = BSONObj() ;
+         PD_MSG_RESET() ;
       }
    }
 

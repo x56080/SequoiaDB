@@ -5933,8 +5933,8 @@ INT32 _mongoDropIdxCommand::init( const _mongoMessage *pMsg, mongoSessionCtx &ct
             if ( String != eSub.type() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Failed to drop multi indexes of %s: index name "
-                           "must be string", clFullName() ) ;
+               ctx.setErrorByFmt( rc, "Failed to drop multi indexes of %s: index name "
+                                  "must be string", clFullName() ) ;
                goto error ;
             }
 
@@ -5973,13 +5973,13 @@ INT32 _mongoDropIdxCommand::init( const _mongoMessage *pMsg, mongoSessionCtx &ct
       else if ( e.eoo() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "index is not specified" ) ;
+         ctx.setError( rc, "index is not specified" ) ;
          goto error ;
       }
       else
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Invalid index: %s", e.toString().c_str() ) ;
+         ctx.setErrorByFmt( rc, "Invalid index: %s", e.toString().c_str() ) ;
          goto error ;
       }
 
@@ -6035,7 +6035,7 @@ INT32 _mongoDropIdxCommand::_pushIndex( const CHAR *pIndexName,
          goto done ;
       }
       rc = SDB_OPTION_NOT_SUPPORT ;
-      PD_LOG_MSG( PDERROR, "cannot drop _id index" ) ;
+      PD_MSG( "cannot drop _id index" ) ;
       goto error ;
    }
    /// $shard
@@ -6047,7 +6047,7 @@ INT32 _mongoDropIdxCommand::_pushIndex( const CHAR *pIndexName,
          goto done ;
       }
       rc = SDB_OPTION_NOT_SUPPORT ;
-      PD_LOG_MSG( PDERROR, "cannot drop $shard index" ) ;
+      PD_MSG( "cannot drop $shard index" ) ;
       goto error ;
    }
 
@@ -6243,8 +6243,8 @@ INT32 _mongoDropIdxCommand::parseSdbReply( const MsgOpReply &sdbReply,
                if ( 0 == ossStrcmp( "*", eName.valuestr() ) )
                {
                   rc = SDB_OPTION_NOT_SUPPORT ;
-                  PD_LOG_MSG( PDERROR, "Cannot drop index named '*' by key pattern. You must use "
-                              "dropIndexes() instead of droped by key pattern" ) ;
+                  PD_MSG( "Cannot drop index named '*' by key pattern. You must use "
+                          "dropIndexes() instead of droped by key pattern" ) ;
                   goto error ;
                }
 
@@ -6260,13 +6260,13 @@ INT32 _mongoDropIdxCommand::parseSdbReply( const MsgOpReply &sdbReply,
          {
             if ( _indexes.empty() )
             {
-               PD_LOG_MSG( PDERROR, "Can't find index with key: %s", _key.toString().c_str() ) ;
+               PD_MSG( "Can't find index with key: %s", _key.toString().c_str() ) ;
                rc = SDB_IXM_NOTEXIST ;
                goto error ;
             }
             else if ( _indexes.size() > 1 )
             {
-               PD_LOG_MSG( PDERROR, "Index found by key(%s) more than 1, identify by name instead" ) ;
+               PD_MSG( "Index found by key(%s) more than 1, identify by name instead" ) ;
                rc = SDB_OPTION_NOT_SUPPORT ;
                goto error ;
             }

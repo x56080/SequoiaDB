@@ -55,6 +55,8 @@ enum MONGO_CLIENT_TYPE
    OTHER         = 255
 } ;
 
+#define FAP_ERROR_STRING_LINE          ( 1024 )
+
 /*
    mongoAuthInfo define
 */
@@ -108,6 +110,35 @@ struct mongoSessionCtx
       {
          builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
          builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODE, utilSdbRC2MongoRC( errCode ) ) ;
+         errorObj = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when set error obj : %s, "
+                 "rc: %d", e.what(), rc ) ;
+         errorObj = mongoGetErrorBson( rc ) ;
+      }
+   }
+
+   void setErrorByFmt( INT32 errCode, const CHAR * format, ... )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      CHAR buff[ FAP_ERROR_STRING_LINE + 1 ] = { 0 } ;
+
+      va_list ap ;
+      va_start ( ap, format ) ;
+      vsnprintf ( buff, FAP_ERROR_STRING_LINE, format, ap ) ;
+      va_end ( ap ) ;
+
+      buff[ FAP_ERROR_STRING_LINE ] = 0 ;
+
+      try
+      {
+         builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, buff ) ;
          builder.append( FAP_MONGO_FIELD_NAME_CODE, utilSdbRC2MongoRC( errCode ) ) ;
          errorObj = builder.obj() ;
       }

@@ -101,6 +101,26 @@
       } \
    } while ( 0 )
 
+#define PD_MSG( fmt, ...) \
+   do { \
+      IExecutor *__cb = sdbGetThreadExecutor() ; \
+      if ( __cb ) \
+      { \
+         pdLocalDisableDiaglogSecure() ; \
+         __cb->printInfo ( EDU_INFO_ERROR, fmt, ##__VA_ARGS__ ) ; \
+         pdLocalEnableDiaglogSecure() ; \
+      } \
+   } while ( 0 )
+
+#define PD_MSG_RESET() \
+   do { \
+      IExecutor *__cb = sdbGetThreadExecutor() ; \
+      if ( __cb ) \
+      { \
+         __cb->resetInfo( EDU_INFO_ERROR ) ; \
+      } \
+   } while ( 0 )
+
 #define PD_LOG_RAW(level, msg) \
    do { \
       if ( getPDLevel() >= ( level ) ) \
