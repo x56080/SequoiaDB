@@ -131,7 +131,8 @@ public class CommLib extends M2STestBase {
 
     public static MongoClient getSnifferClient() {
         // sniffer对外服务地址
-        String snifferUri = "mongodb://" + remoteHost + ":" + snifferListenPort;
+        String snifferUri = "mongodb://" + authname + remoteHost + ":"
+                + snifferListenPort;
         MongoClient snifferClient = MongoClients.create( snifferUri );
         return snifferClient;
     }
@@ -212,6 +213,21 @@ public class CommLib extends M2STestBase {
                 + "m2s-sniffer/capture/env.json -t json --sdbversion "
                 + sdbVersion + " -o " + analyzerOutputPath;
         ssh.exec( analyzeCommand );
+    }
+
+    /**
+     * 分析sniffer环境信息
+     *
+     * @param ssh
+     *            ssh连接
+     * @throws Exception
+     */
+    public static void analyzeSnifferMsgJson( Ssh ssh ) throws Exception {
+        String analyzeCommand = "find " + snifferOutputPath + " -type f -name \"*.json\" | xargs -I {} " +
+                analyzerPath + " --sdbversion "+ sdbVersion +
+                " --sniffermsgjson \"{}\" -o "+ analyzerOutputPath;
+        ssh.exec( analyzeCommand );
+
     }
 
     // 获取mongodb版本
