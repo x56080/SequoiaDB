@@ -55,6 +55,8 @@ public class Rbac32820 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+            RbacUtils.removeUser( sdb, user1, password1 );
+            RbacUtils.removeUser( sdb, user2, password2 );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {

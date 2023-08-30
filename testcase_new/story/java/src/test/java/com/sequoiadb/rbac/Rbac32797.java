@@ -40,7 +40,8 @@ public class Rbac32797 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
 
-        sdb.updateConfig( new BasicBSONObject( "maxsessioncontextnum", 1000 ) );
+        // sdb.updateConfig( new BasicBSONObject( "maxsessioncontextnum", 1000 )
+        // );
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName );
     }
@@ -53,9 +54,10 @@ public class Rbac32797 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            sdb.deleteConfig( new BasicBSONObject( "maxsessioncontextnum", 1 ),
-                    new BasicBSONObject() );
-            // sdb.dropCollectionSpace( csName );
+            // sdb.deleteConfig( new BasicBSONObject( "maxsessioncontextnum", 1
+            // ),
+            // new BasicBSONObject() );
+            sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

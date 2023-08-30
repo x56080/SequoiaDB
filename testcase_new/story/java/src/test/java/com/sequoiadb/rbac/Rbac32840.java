@@ -19,8 +19,7 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32840:赋予角色一个已存在的权限
- *              seqDB-32841:角色新增一个权限
+ * @Description seqDB-32840:赋予角色一个已存在的权限 seqDB-32841:角色新增一个权限
  * @Author liuli
  * @Date 2023.08.24
  * @UpdateAuthor liuli
@@ -82,26 +81,6 @@ public class Rbac32840 extends SdbTestBase {
             privileges.add( privilege );
             sdb.grantPrivilegesToRole( roleName, privileges );
 
-            // 校验角色信息
-            // 手工校验
-//            BSONObject roleInfo = sdb.getRole( roleName,
-//                    new BasicBSONObject( "ShowPrivileges", true ) );
-//            BasicBSONList actPrivileges = ( BasicBSONList ) roleInfo
-//                    .get( "Privileges" );
-//            String expPrivilegesStr = "[{Resource:{cs:'" + csName + "',cl:'"
-//                    + clName
-//                    + "'},Actions:['insert','remove']},{ Resource: { cs: '"
-//                    + csName + "', cl: '' }, Actions: ['testCS','testCL'] }]";
-//            BasicBSONList expPrivileges = ( BasicBSONList ) JSON
-//                    .parse( expPrivilegesStr );
-//
-//            if ( !RbacUtils.compareBSONListsIgnoreOrder( actPrivileges,
-//                    expPrivileges ) ) {
-//                Assert.fail(
-//                        "privileges not equal,actPrivileges:" + actPrivileges
-//                                + ",expPrivilegesStr:" + expPrivileges );
-//            }
-
             // 执行find操作
             try {
                 userCL.queryOne();
@@ -161,6 +140,7 @@ public class Rbac32840 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+            RbacUtils.removeUser( sdb, user, password );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {

@@ -9,6 +9,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.recyclebin.RecycleBinUtils;
 import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
@@ -18,7 +19,7 @@ import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 import org.testng.Assert;
 
-public class RbacUtils {
+public class RbacUtils extends SdbTestBase {
 
     public static void findActionSupportCommand( Sequoiadb sdb, String csName,
             String clName, DBCollection dbcl, boolean executeNotSupport ) {
@@ -90,10 +91,12 @@ public class RbacUtils {
             }
 
             try {
-                dbcl.queryAndUpdate( null, null, null, null,
+                cursor = dbcl.queryAndUpdate( null, null, null, null,
                         new BasicBSONObject( "$set",
                                 new BasicBSONObject( "b", 20000 ) ),
                         0, -1, 0, false );
+                cursor.getNext();
+                cursor.close();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -102,18 +105,18 @@ public class RbacUtils {
                 }
             }
 
-            // try {
-            // cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
-            // null, null, null, -1, -1, 0 );
-            // cursor.getNext();
-            // cursor.close();
-            // Assert.fail( "should error but success" );
-            // } catch ( BaseException e ) {
-            // if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
-            // .getErrorCode() ) {
-            // throw e;
-            // }
-            // }
+            try {
+                cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
+                        null, null, null, -1, -1, 0 );
+                cursor.getNext();
+                cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
         }
 
         rootCL.dropIndex( indexName );
@@ -204,6 +207,35 @@ public class RbacUtils {
                     throw e;
                 }
             }
+
+            DBCursor cursor = null;
+            try {
+                cursor = dbcl.queryAndUpdate( null, null, null, null,
+                        new BasicBSONObject( "$set",
+                                new BasicBSONObject( "b", 20000 ) ),
+                        0, -1, 0, false );
+                cursor.getNext();
+                cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
+                        null, null, null, -1, -1, 0 );
+                cursor.getNext();
+                cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
         }
 
         rootCL.truncate();
@@ -240,10 +272,25 @@ public class RbacUtils {
                 }
             }
 
+            DBCursor cursor = null;
             try {
-                DBCursor cursor = dbcl.queryAndRemove(
-                        new BasicBSONObject( "a", 1 ), null, null, null, -1, -1,
-                        0 );
+                cursor = dbcl.queryAndUpdate( null, null, null, null,
+                        new BasicBSONObject( "$set",
+                                new BasicBSONObject( "b", 20000 ) ),
+                        0, -1, 0, false );
+                cursor.getNext();
+                cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                cursor = dbcl.queryAndRemove( new BasicBSONObject( "a", 1 ),
+                        null, null, null, -1, -1, 0 );
                 cursor.getNext();
                 cursor.close();
                 Assert.fail( "should error but success" );
@@ -1240,7 +1287,7 @@ public class RbacUtils {
         sdb.createRole( role );
 
         // 更新角色信息
-        String updateRole = "{Privileges:[{Resource:{ Cluster:true}, Actions: ['createRole'] }]}";
+        String updateRole = "[{Resource:{ Cluster:true}, Actions: ['createRole'] }]";
         BSONObject updateRoleObj = ( BSONObject ) JSON.parse( updateRole );
         userSdb.grantPrivilegesToRole( roleName, updateRoleObj );
 
@@ -1272,7 +1319,7 @@ public class RbacUtils {
         sdb.createRole( role );
 
         // 更新角色信息
-        String updateRole = "{Privileges:[{Resource:{ Cluster:true}, Actions: ['createRole'] }]}";
+        String updateRole = "[{Resource:{ Cluster:true}, Actions: ['createRole'] }]";
         BSONObject updateRoleObj = ( BSONObject ) JSON.parse( updateRole );
         userSdb.revokePrivilegesFromRole( roleName, updateRoleObj );
 
@@ -1956,6 +2003,211 @@ public class RbacUtils {
         rootCL.dropIndex( indexName );
     }
 
+    public static void fetchSequenceActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, DBSequence seq, String seqName,
+            boolean executeNotSupport ) {
+        seq.fetch( 2 );
+        seq.getNextValue();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                seq.getCurrentValue();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.restart( 1 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.setAttributes(
+                        new BasicBSONObject( "CurrentValue", 1000 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.setCurrentValue( 10 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                String seqNameNew = "new_" + seqName;
+                userSdb.renameSequence( seqName, seqNameNew );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void getSequenceCurrentValueActionSupportCommand(
+            Sequoiadb sdb, Sequoiadb userSdb, DBSequence seq, String seqName,
+            boolean executeNotSupport ) {
+        seq.getCurrentValue();
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                seq.fetch( 2 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.getNextValue();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.restart( 1 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.setAttributes(
+                        new BasicBSONObject( "CurrentValue", 1000 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.setCurrentValue( 10 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                String seqNameNew = "new_" + seqName;
+                userSdb.renameSequence( seqName, seqNameNew );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void alterSequenceActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, DBSequence seq, String seqName,
+            boolean executeNotSupport ) {
+        DBSequence rootSeq = sdb.getSequence( seqName );
+        seq.restart( 1 );
+        seq.setAttributes( new BasicBSONObject( "CurrentValue", 1000 ) );
+        seq.setCurrentValue( rootSeq.getNextValue() + 10 );
+        String seqNameNew = "new_" + seqName;
+        userSdb.renameSequence( seqName, seqNameNew );
+        userSdb.renameSequence( seqNameNew, seqName );
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                seq.fetch( 2 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.getNextValue();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                seq.getCurrentValue();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void alterDomainActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, Domain domain, List< String > groupNames,
+            boolean executeNotSupport ) {
+        BasicBSONList groupList = new BasicBSONList();
+        groupList.add( groupNames.get( 0 ) );
+        domain.alterDomain( new BasicBSONObject( "Groups", groupList ) );
+        groupList.add( groupNames.get( 1 ) );
+        domain.setAttributes( new BasicBSONObject( "Groups", groupList ) );
+        groupList.clear();
+        groupList.add( groupNames.get( 2 ) );
+        domain.addGroups( new BasicBSONObject( "Groups", groupList ) );
+        domain.removeGroups( new BasicBSONObject( "Groups", groupList ) );
+        domain.setGroups( new BasicBSONObject( "Groups", groupNames ) );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.getList( Sequoiadb.SDB_LIST_RECYCLEBIN, null, null,
+                        null );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
     public static void listActionSupportCommand( Sequoiadb sdb,
             Sequoiadb userSdb, String csName, String clName,
             boolean executeNotSupport ) {
@@ -2163,13 +2415,361 @@ public class RbacUtils {
         }
     }
 
+    public static void createRGActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, String groupName, boolean executeNotSupport ) {
+        // 执行支持的操作
+        userSdb.createReplicaGroup( groupName );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.removeReplicaGroup( groupName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        sdb.removeReplicaGroup( groupName );
+    }
+
+    public static void removeRGActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, String groupName, boolean executeNotSupport ) {
+        // 执行支持的操作
+        sdb.createReplicaGroup( groupName );
+        userSdb.removeReplicaGroup( groupName );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.createReplicaGroup( groupName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void getRGActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        group.getGroupName();
+        DBCursor cursor = userSdb.listReplicaGroups();
+        cursor.getNext();
+        cursor.close();
+
+        List< String > nodeAddress = CommLib.getNodeAddress( sdb,
+                groupNames.get( 0 ) );
+        group.getNode( nodeAddress.get( 0 ) );
+        group.getMaster();
+        group.getSlave();
+        group.getDetail();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.reelect();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void deleteConfActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        userSdb.deleteConfig( new BasicBSONObject( "metacacheexpired", 1 ),
+                new BasicBSONObject() );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.updateConfig(
+                        new BasicBSONObject( "metacacheexpired", 30 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void updateConfActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        userSdb.updateConfig( new BasicBSONObject( "metacacheexpired", 30 ) );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.deleteConfig(
+                        new BasicBSONObject( "metacacheexpired", 1 ),
+                        new BasicBSONObject() );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+        sdb.deleteConfig( new BasicBSONObject( "metacacheexpired", 1 ),
+                new BasicBSONObject() );
+    }
+
+    public static void getNodeActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        group.getGroupName();
+        DBCursor cursor = userSdb.listReplicaGroups();
+        cursor.getNext();
+        cursor.close();
+
+        List< String > nodeAddress = CommLib.getNodeAddress( sdb,
+                groupNames.get( 0 ) );
+        group.getNode( nodeAddress.get( 0 ) );
+        group.getMaster();
+        group.getSlave();
+        group.getDetail();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.reelect();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void createNodeActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        String hostName = rootGroup.getMaster().getHostName();
+        int port = SdbTestBase.reservedPortBegin + 10;
+        String dataPath = SdbTestBase.reservedDir + "/data/" + port;
+
+        // 执行支持的操作
+        group.createNode( hostName, port, dataPath );
+
+        rootGroup.detachNode( hostName, port,
+                new BasicBSONObject( "KeepData", true ) );
+
+        group.attachNode( hostName, port,
+                new BasicBSONObject( "KeepData", true ) );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.removeNode( hostName, port, null );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                group.detachNode( hostName, port,
+                        new BasicBSONObject( "KeepData", true ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        rootGroup.removeNode( hostName, port, null );
+    }
+
+    public static void removeNodeActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        String hostName = rootGroup.getMaster().getHostName();
+        int port = SdbTestBase.reservedPortBegin + 10;
+        String dataPath = SdbTestBase.reservedDir + "/data/" + port;
+        rootGroup.createNode( hostName, port, dataPath );
+
+        // 执行支持的操作
+        group.detachNode( hostName, port,
+                new BasicBSONObject( "KeepData", true ) );
+
+        rootGroup.attachNode( hostName, port,
+                new BasicBSONObject( "KeepData", true ) );
+
+        group.removeNode( hostName, port, null );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.reelect();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void reelectActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        // 执行支持的操作
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        group.reelect();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.removeReplicaGroup( groupNames.get( 0 ) );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public static void startRGActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        // 执行支持的操作
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        rootGroup.stop();
+        group.start();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.stop();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        CommLib.waitGroupSelectMasterNode( sdb, groupNames.get( 0 ), 300 );
+    }
+
+    public static void stopRGActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        // 执行支持的操作
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        group.stop();
+        rootGroup.start();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                group.start();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        CommLib.waitGroupSelectMasterNode( sdb, groupNames.get( 0 ), 300 );
+    }
+
+    public static void startNodeActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        // 执行支持的操作
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        Node rootSlaveNode = rootGroup.getSlave();
+        Node slaveNode = group.getSlave();
+        rootSlaveNode.stop();
+        slaveNode.start();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                slaveNode.stop();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        CommLib.waitGroupSelectMasterNode( sdb, groupNames.get( 0 ), 300 );
+    }
+
+    public static void stopNodeActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, boolean executeNotSupport ) {
+        // 执行支持的操作
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
+        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
+        Node rootSlaveNode = rootGroup.getSlave();
+        Node slaveNode = group.getSlave();
+        slaveNode.stop();
+        rootSlaveNode.start();
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                slaveNode.start();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        CommLib.waitGroupSelectMasterNode( sdb, groupNames.get( 0 ), 300 );
+    }
+
     public static void removeUser( Sequoiadb sdb, String user,
             String password ) {
         try {
             sdb.removeUser( user, password );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_USER_NOT_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_USER_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
     }
 
@@ -2177,8 +2777,10 @@ public class RbacUtils {
         try {
             sdb.dropRole( roleName );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
     }
 

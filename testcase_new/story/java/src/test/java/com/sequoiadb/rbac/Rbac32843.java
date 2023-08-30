@@ -68,39 +68,38 @@ public class Rbac32843 extends SdbTestBase {
         sdb.createRole( role );
 
         // seqDB-32844:角色新增权限Resource和Actions不匹配
-//        SEQUOIADBMAINSTREAM-9883
-//        // Resource指定集合，Action指定集合空间操作
-//        BasicBSONList errorPrivileges = new BasicBSONList();
-//        String errorPrivilegeStr = "{Resource:{ cs:'" + csName + "',cl:'"
-//                + clName + "'}, Actions: ['createCL'] }";
-//        BSONObject errorPrivilege = ( BSONObject ) JSON
-//                .parse( errorPrivilegeStr );
-//        errorPrivileges.add( errorPrivilege );
-//        System.out.println( "errorPrivileges -- " + errorPrivileges );
-//        try {
-//            sdb.grantPrivilegesToRole( roleName, errorPrivileges );
-//            Assert.fail( "should error but success" );
-//        } catch ( BaseException e ) {
-//            if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
-//                throw e;
-//            }
-//        }
-//
-//        // Resource指定集合，Action指定集群操作
-//        errorPrivileges.clear();
-//        errorPrivilegeStr = "{Resource:{ cs:'" + csName + "',cl:'" + clName
-//                + "'}, Actions: ['createCS'] }";
-//        errorPrivilege = ( BSONObject ) JSON.parse( errorPrivilegeStr );
-//        errorPrivileges.add( errorPrivilege );
-//        System.out.println( "errorPrivileges -- " + errorPrivileges );
-//        try {
-//            sdb.grantPrivilegesToRole( roleName, errorPrivileges );
-//            Assert.fail( "should error but success" );
-//        } catch ( BaseException e ) {
-//            if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
-//                throw e;
-//            }
-//        }
+        // Resource指定集合，Action指定集合空间操作
+        BasicBSONList errorPrivileges = new BasicBSONList();
+        String errorPrivilegeStr = "{Resource:{ cs:'" + csName + "',cl:'"
+                + clName + "'}, Actions: ['createCL'] }";
+        BSONObject errorPrivilege = ( BSONObject ) JSON
+                .parse( errorPrivilegeStr );
+        errorPrivileges.add( errorPrivilege );
+        System.out.println( "errorPrivileges -- " + errorPrivileges );
+        try {
+            sdb.grantPrivilegesToRole( roleName, errorPrivileges );
+            Assert.fail( "should error but success" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
+                throw e;
+            }
+        }
+
+        // Resource指定集合，Action指定集群操作
+        errorPrivileges.clear();
+        errorPrivilegeStr = "{Resource:{ cs:'" + csName + "',cl:'" + clName
+                + "'}, Actions: ['createCS'] }";
+        errorPrivilege = ( BSONObject ) JSON.parse( errorPrivilegeStr );
+        errorPrivileges.add( errorPrivilege );
+        System.out.println( "errorPrivileges -- " + errorPrivileges );
+        try {
+            sdb.grantPrivilegesToRole( roleName, errorPrivileges );
+            Assert.fail( "should error but success" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
+                throw e;
+            }
+        }
 
         // 创建用户
         sdb.createUser( user1, password1,
@@ -189,6 +188,8 @@ public class Rbac32843 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+            RbacUtils.removeUser( sdb, user1, password1 );
+            RbacUtils.removeUser( sdb, user2, password2 );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {

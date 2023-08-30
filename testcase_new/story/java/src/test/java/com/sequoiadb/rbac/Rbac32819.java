@@ -1,6 +1,5 @@
 package com.sequoiadb.rbac;
 
-import com.sequoiadb.base.DBCursor;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -19,21 +18,21 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32813:创建用户使用内建角色，指定为_cs name.admin
+ * @Description seqDB-32819:创建角色指定多个内建角色
  * @Author liuli
- * @Date 2023.08.22
+ * @Date 2023.08.30
  * @UpdateAuthor liuli
- * @UpdateDate 2023.08.22
+ * @UpdateDate 2023.08.30
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32813 extends SdbTestBase {
+public class Rbac32819 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String user = "user_32813";
-    private String password = "passwd_32813";
-    private String csName = "cs_32813";
-    private String clName1 = "cl_32813_1";
-    private String clName2 = "cl_32813_2";
+    private String user = "user_32819";
+    private String password = "passwd_32819";
+    private String csName = "cs_32819";
+    private String clName1 = "cl_32819_1";
+    private String clName2 = "cl_32819_2";
 
     @BeforeClass
     public void setUp() {
@@ -68,9 +67,10 @@ public class Rbac32813 extends SdbTestBase {
     }
 
     private void testAccessControl( Sequoiadb sdb ) {
-        String roleName = "_" + csName + ".admin";
-        sdb.createUser( user, password,
-                ( BSONObject ) JSON.parse( "{Roles:['" + roleName + "']}" ) );
+        String roleName1 = "_userAdmin";
+        String roleName2 = "_" + csName + ".readWrite";
+        sdb.createUser( user, password, ( BSONObject ) JSON
+                .parse( "{Roles:['" + roleName1 + "','" + roleName2 + "']}" ) );
 
         // 创建一个新集合
         CollectionSpace rootCS = sdb.getCollectionSpace( csName );
@@ -91,43 +91,52 @@ public class Rbac32813 extends SdbTestBase {
                     false );
             RbacUtils.removeActionSupportCommand( sdb, csName, clName1, userCL1,
                     false );
-            RbacUtils.getDetailActionSupportCommand( sdb, csName, clName1,
-                    userCL1, false );
-            userCS.getCollectionNames();
-            RbacUtils.alterCLActionSupportCommand( sdb, csName, clName1,
-                    userCL1, false );
-            RbacUtils.createIndexActionSupportCommand( sdb, csName, clName1,
-                    userCL1, false );
-            RbacUtils.dropIndexActionSupportCommand( sdb, csName, clName1,
-                    userCL1, false );
-            userCL1.truncate();
 
             RbacUtils.findActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
-            userCS.getCollectionNames();
             RbacUtils.insertActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
             RbacUtils.updateActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
             RbacUtils.removeActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
-            RbacUtils.getDetailActionSupportCommand( sdb, csName, clName2,
-                    userCL2, false );
-            userCS.getCollectionNames();
-            RbacUtils.alterCLActionSupportCommand( sdb, csName, clName2,
-                    userCL2, false );
-            RbacUtils.createIndexActionSupportCommand( sdb, csName, clName2,
-                    userCL2, false );
-            RbacUtils.dropIndexActionSupportCommand( sdb, csName, clName2,
-                    userCL2, false );
-            userCL2.truncate();
 
+            RbacUtils.createRoleActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.dropRoleActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.getRoleActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.listRolesActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.updateRoleActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.grantPrivilegesToRoleActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+            RbacUtils.revokePrivilegesFromRoleActionSupportCommand( sdb,
+                    userSdb, csName, clName1, false );
+            RbacUtils.grantRolesToRoleActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+            RbacUtils.revokeRolesFromRoleActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+            RbacUtils.createUsrActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.dropUsrActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.getUserActionSupportCommand( sdb, userSdb, csName,
+                    clName1, false );
+            RbacUtils.grantRolesToUserActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+            RbacUtils.revokeRolesFromUserActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+            RbacUtils.invalidateUserCacheActionSupportCommand( sdb, userSdb,
+                    csName, clName1, false );
+
+            // 执行一些不支持的操作
             try {
-                DBCursor cursor = userSdb.getSnapshot(
-                        Sequoiadb.SDB_SNAP_DATABASE, new BasicBSONObject(),
-                        null, null );
-                cursor.getNext();
-                cursor.close();
+                String indexName = "index_32812";
+                userCL1.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                        null );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
@@ -135,8 +144,24 @@ public class Rbac32813 extends SdbTestBase {
             }
 
             try {
-                String testCSName = "testCS_32813";
-                userSdb.createCollectionSpace( testCSName );
+                userCL2.truncate();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                userCS.dropCollection( clName2 );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
+
+            try {
+                String testCLName = "testCL_32812";
+                userCS.createCollection( testCLName );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),

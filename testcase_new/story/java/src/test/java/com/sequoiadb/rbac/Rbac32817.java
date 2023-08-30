@@ -54,6 +54,7 @@ public class Rbac32817 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+            RbacUtils.removeUser( sdb, user, password );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {
@@ -69,39 +70,31 @@ public class Rbac32817 extends SdbTestBase {
                 password )) {
             RbacUtils.listActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
-            RbacUtils.snapshotActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
-            RbacUtils.getDetailBinActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
+            RbacUtils.snapshotActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
+            RbacUtils.getDetailBinActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
             RbacUtils.getRoleActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
             RbacUtils.getUserActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
-            RbacUtils.countBinActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
+            RbacUtils.countBinActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
             RbacUtils.listBinActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
-            RbacUtils.listRolesActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
-            RbacUtils.listCollectionSpacesActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
+            RbacUtils.listRolesActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
+            RbacUtils.listCollectionSpacesActionSupportCommand( sdb, userSdb,
+                    csName, clName, false );
 
             // 执行一些不支持的操作
-//            try {
-//                userSdb.getCollectionSpace( csName ).getCollection( clName );
-//                Assert.fail( "should error but success" );
-//            } catch ( BaseException e ) {
-//                Assert.assertEquals( e.getErrorCode(),
-//                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-//            }
-//
-//            try {
-//                userSdb.getList( Sequoiadb.SDB_LIST_USERS, null, null, null );
-//                Assert.fail( "should error but success" );
-//            } catch ( BaseException e ) {
-//                Assert.assertEquals( e.getErrorCode(),
-//                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
-//            }
+            try {
+                userSdb.dropCollectionSpace( csName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            }
         } finally {
             sdb.removeUser( user, password );
         }

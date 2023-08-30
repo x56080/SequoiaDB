@@ -54,6 +54,7 @@ public class Rbac32818 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+            RbacUtils.removeUser( sdb, user, password );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {
@@ -69,10 +70,10 @@ public class Rbac32818 extends SdbTestBase {
                 password )) {
             RbacUtils.backupActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
-            RbacUtils.listBackupActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
-            RbacUtils.removeBackupActionSupportCommand( sdb, userSdb, csName, clName,
-                    false );
+            RbacUtils.listBackupActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
+            RbacUtils.removeBackupActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
 
             // 执行一些不支持的操作
             try {

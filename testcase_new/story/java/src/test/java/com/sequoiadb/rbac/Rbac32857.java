@@ -278,9 +278,10 @@ public class Rbac32857 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            // RbacUtils.dropRole( sdb, roleName1 );
-            // RbacUtils.dropRole( sdb, roleName2 );
-            // RbacUtils.dropRole( sdb, roleName3 );
+            RbacUtils.removeUser( sdb, user, password );
+            RbacUtils.dropRole( sdb, roleName1 );
+            RbacUtils.dropRole( sdb, roleName2 );
+            RbacUtils.dropRole( sdb, roleName3 );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {
