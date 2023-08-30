@@ -131,8 +131,8 @@ namespace engine
       }
 
       _optPlanSelectivity( double predSelectivity, double scanSelectivity )
-      : _predSelectivity( predSelectivity ),
-        _scanSelectivity( scanSelectivity )
+      : _predSelectivity( OPT_ROUND_SELECTIVITY( predSelectivity ) ),
+        _scanSelectivity( OPT_ROUND_SELECTIVITY( scanSelectivity ) )
       {
       }
 
@@ -461,7 +461,7 @@ namespace engine
          double evalPredicateSet ( rtnPredicateSet &predicateSet,
                                    BOOLEAN mixCmp,
                                    double &scanSelectivity,
-                                   optIndexPathEncoder &encoder ) ;
+                                   _optAccessPlanHelper &helper ) ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
                                       dmsStatKey &startKey,

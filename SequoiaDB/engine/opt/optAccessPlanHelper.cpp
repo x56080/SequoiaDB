@@ -146,14 +146,12 @@ namespace engine
       double tmpSelectivity = OPT_MTH_DEFAULT_SELECTIVITY ;
       UINT32 tmpCPUCost = OPT_MTH_DEFAULT_CPU_COST ;
 
-      optIndexPathEncoder encoder ;
-
       if ( getMatchTree() != NULL )
       {
          if ( pCollectionStat )
          {
             predSelectivity = pCollectionStat->evalPredicateSet(
-                  _predicateSet, mthEnabledMixCmp(), scanSelectivity, encoder ) ;
+                  _predicateSet, mthEnabledMixCmp(), scanSelectivity, *this ) ;
          }
          getMatchTree()->evalEstimation( pCollectionStat, tmpSelectivity,
                                          tmpCPUCost ) ;
@@ -165,8 +163,6 @@ namespace engine
       _scanSelectivity = OPT_ROUND_SELECTIVITY( scanSelectivity ) ;
       _estCPUCost = tmpCPUCost ;
       _isPredEstimated = TRUE ;
-
-      saveSelectivityToCache( encoder.getPath(), _predSelectivity, _scanSelectivity ) ;
 
       PD_TRACE_EXIT( SDB__OPTAPHELP__EVALEST ) ;
    }

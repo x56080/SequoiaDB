@@ -26,6 +26,8 @@ $SNAPSHOT_ACCESSPLANS
 | Sort                 | bson      | 该访问计划的排序字段                           |
 | Hint                 | bson      | 该访问计划指定使用索引的提示                   |
 | SortedIndexRequired  | boolean   | 该访问计划是否需要使用根据 Sort 排序的索引     |
+| IsCount              | boolean   | 该访问计划是否为 count 查询                   |
+| IsEvalStartCost      | boolean   | 该访问计划是否使用启动代价计算选择查询计划      |
 | EstFromStat          | boolean   | 该访问计划是否使用统计信息生成                 |
 | HashCode             | int32     | 该访问计划的 hash 值                           |
 | Score                | double    | 该访问计划的评分                               |
@@ -103,6 +105,8 @@ $SNAPSHOT_ACCESSPLANS
   "Sort": {},
   "Hint": {},
   "SortedIndexRequired": false,
+  "IsCount": false,
+  "IsEvalStartCost": false,
   "EstFromStat": false,
   "HashCode": 377049080,
   "Score": 3.125000000000001e-12,
