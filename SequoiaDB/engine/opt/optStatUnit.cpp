@@ -894,7 +894,7 @@ namespace engine
    double _optCollectionStat::evalPredicateSet ( rtnPredicateSet &predicateSet,
                                                  BOOLEAN mixCmp,
                                                  double &scanSelectivity,
-                                                 optIndexPathEncoder &encoder )
+                                                 _optAccessPlanHelper &helper )
    {
       double selectivity = 1.0 ;
 
@@ -917,6 +917,7 @@ namespace engine
 
       if ( pIndexStat )
       {
+         optIndexPathEncoder encoder ;
          rtnStatPredList predicateList ;
          BSONObjIterator iterKey( pIndexStat->getKeyPattern() ) ;
          while ( iterKey.more() )
@@ -947,6 +948,7 @@ namespace engine
 
          if ( SDB_OK == rc )
          {
+            helper.saveSelectivityToCache( encoder.getPath(), selectivity, scanSelectivity ) ;
             _setBestIndex( pIndexStat ) ;
             goto done ;
          }

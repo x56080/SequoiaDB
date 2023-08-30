@@ -639,7 +639,6 @@ namespace engine
          // percent of sample records
          FLOAT64           _totalFrac ;
          FLOAT64           _sampleFrac ;
-         FLOAT64           _samplePercent ;
          // percent between two sample values
          FLOAT64           _sampleStepPercent ;
    } ;

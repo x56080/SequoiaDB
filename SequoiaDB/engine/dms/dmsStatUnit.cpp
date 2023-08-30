@@ -695,7 +695,6 @@ namespace engine
      _mcvSet(),
      _totalFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
      _sampleFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
-     _samplePercent( 0.0 ),
      _sampleStepPercent( 0.0 )
    {
       ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
@@ -721,7 +720,6 @@ namespace engine
      _mcvSet(),
      _totalFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
      _sampleFrac( DMS_STAT_PRED_EQ_DEF_SELECTIVITY ),
-     _samplePercent( 0.0 ),
      _sampleStepPercent( 0.0 )
    {
       ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
@@ -1057,14 +1055,13 @@ namespace engine
          _totalFrac = 1.0 / (FLOAT64)_totalRecords ;
          if ( _sampleRecords > 0 )
          {
+            FLOAT64 samplePercent = (FLOAT64)_sampleRecords / (FLOAT64)_totalRecords ;
             _sampleFrac = 1.0 / (FLOAT64)_sampleRecords ;
-            _samplePercent = (FLOAT64)_sampleRecords / (FLOAT64)_totalRecords ;
-            _sampleStepPercent = ( 1.0 - _samplePercent ) / ( _sampleRecords + 1 ) ;
+            _sampleStepPercent = ( 1.0 - samplePercent ) / ( _sampleRecords + 1 ) ;
          }
          else
          {
             _sampleFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
-            _samplePercent = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
             _sampleStepPercent = DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ;
          }
       }
@@ -1073,7 +1070,6 @@ namespace engine
          _totalFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
          _sampleFrac = DMS_STAT_PRED_EQ_DEF_SELECTIVITY ;
          _sampleStepPercent = DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ;
-         _samplePercent = _numKeys ;
       }
 
    done :

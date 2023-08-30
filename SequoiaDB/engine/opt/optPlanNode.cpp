@@ -2045,6 +2045,10 @@ namespace engine
                   {
                      predSelectivity = getMthSelctivity() ;
                   }
+                  if ( scanSelectivity < getMthSelctivity() )
+                  {
+                     scanSelectivity = getMthSelctivity() ;
+                  }
                }
 
                planHelper.saveSelectivityToCache( indexPath,
