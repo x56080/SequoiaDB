@@ -13,10 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -145,7 +142,7 @@ public class SdbRbacTest {
         BasicBSONObject listRoleOptions = new BasicBSONObject();
         listRoleOptions.put("ShowPrivileges", true);
         listRoleOptions.put("ShowBuiltinRoles", true);
-        try (DBCursor cursor = db.listRole(listRoleOptions)) {
+        try (DBCursor cursor = db.listRoles(listRoleOptions)) {
             while (cursor.hasNext()) {
                 BSONObject next = cursor.getNext();
                 String roleName = (String) next.get("Role");
@@ -362,10 +359,14 @@ public class SdbRbacTest {
         roles.add(roleName1);
         db.grantRolesToUser(username1, roles);
 
-        db.revokeRolesFromUser(username1, roles);
+        BasicBSONList revokeRoles = new BasicBSONList();
+        revokeRoles.add(roleName1);
+        db.revokeRolesFromUser(username1, revokeRoles);
 
         BSONObject user = db.getUser(username1, new BasicBSONObject());
-        assertEquals(new ArrayList<String>(), user.get("Roles"));
+        List<String> userRoles = new ArrayList<>();
+        userRoles.add("_root");
+        assertEquals(userRoles, user.get("Roles"));
 
         // invalid args
         try {
@@ -449,7 +450,7 @@ public class SdbRbacTest {
         BasicBSONObject listRoleOptions = new BasicBSONObject();
         listRoleOptions.put("ShowPrivileges", true);
         listRoleOptions.put("ShowBuiltinRoles", true);
-        try (DBCursor cursor = db.listRole(listRoleOptions)) {
+        try (DBCursor cursor = db.listRoles(listRoleOptions)) {
             while (cursor.hasNext()) {
                 BSONObject next = cursor.getNext();
                 set.add((String) next.get("Role"));
