@@ -36,7 +36,6 @@
 
 *******************************************************************************/
 #include "fapMongoUtil.hpp"
-#include "mthMatchTree.hpp"
 #include "mthModifier.hpp"
 #include "fapMongoMessage.hpp"
 #include "pdSecure.hpp"
@@ -250,6 +249,28 @@ namespace fap
    {
       ossMemset( _pData, 0, _capacity ) ;
       _size = 0 ;
+   }
+
+   _mongoFilterHelper::_mongoFilterHelper()
+   {
+   }
+
+   INT32 _mongoFilterHelper::loadPattern( const BSONObj &pattern )
+   {
+      return _matchTree.loadPattern( pattern ) ;
+   }
+
+   INT32 _mongoFilterHelper::matches( const BSONObj &matchTarget, BOOLEAN &result )
+   {
+      if ( _matchTree.isInitialized() )
+      {
+         return _matchTree.matches( matchTarget, result ) ;
+      }
+      else
+      {
+         result = TRUE ;
+         return SDB_OK ;
+      }
    }
 
    void mongoInitMsgHeader( MsgHeader *pMsg, INT32 opCode, UINT64 reqID, UINT32 tid )

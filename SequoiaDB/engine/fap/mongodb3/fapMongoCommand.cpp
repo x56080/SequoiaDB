@@ -222,7 +222,9 @@ error:
    goto done ;
 }
 
-static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
+static INT32 _convertIndexObj( const BSONObj& indexObj,
+                               BSONObj &outObj,
+                               string clFullName )
 {
    INT32 rc = SDB_OK ;
    BSONObjBuilder builder ;
@@ -273,7 +275,7 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
       builder.append( "name", indexName ) ;
       builder.append( "ns", clFullName.c_str() ) ;
 
-      indexObj = builder.obj() ;
+      outObj = builder.obj() ;
    }
    catch ( std::exception &e )
    {
@@ -289,7 +291,8 @@ error:
    goto done ;
 }
 
-static INT32 convertCollectionObj( BSONObj& collectionObj )
+static INT32 _buildMongoCollectionObj( const BSONObj &collectionObj,
+                                       BSONObj &outObj )
 {
    INT32 rc = SDB_OK ;
    // { Name: "foo.bar" } => { name: "bar" }
@@ -298,12 +301,12 @@ static INT32 convertCollectionObj( BSONObj& collectionObj )
 
    try
    {
-      pClFullName = collectionObj.getStringField( "Name" ) ;
+      pClFullName = collectionObj.getStringField( FIELD_NAME_NAME ) ;
       clShortName = ossStrstr( pClFullName, "." ) + 1 ;
 
       unescapeDot( clShortName ) ;
 
-      collectionObj = BSON( "name" << clShortName.c_str() ) ;
+      outObj = BSON( FAP_MONGO_FIELD_NAME << clShortName.c_str() ) ;
    }
    catch ( std::exception &e )
    {
@@ -311,6 +314,126 @@ static INT32 convertCollectionObj( BSONObj& collectionObj )
       PD_LOG( PDERROR, "An exception occurred when converting collection obj:"
               " %s, rc: %d", e.what(), rc ) ;
       goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+static INT32 _buildSdbFullCollectionObj( const BSONObj &collectionObj,
+                                         BSONObj &outObj,
+                                         const CHAR* csName )
+{
+   SDB_ASSERT( NULL != csName, "cs name cann't be null") ;
+
+   INT32 rc = SDB_OK ;
+   // { name: "bar" } => { Name: "foo.bar" }
+   string clFullName ;
+   const CHAR* clShortName = NULL ;
+
+   try
+   {
+      clShortName = collectionObj.getStringField( FAP_MONGO_FIELD_NAME ) ;
+
+      clFullName = csName ;
+      clFullName += "." ;
+      clFullName += clShortName ;
+
+      escapeDot( clFullName, TRUE ) ;
+
+      outObj = BSON( FIELD_NAME_NAME << clFullName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when appending full collection "
+              "obj: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+// Convert from mongo field name to sdb field name
+static void _convertFieldName2Sdb( const BSONElement &inEle,
+                                   const fapFieldMapItem list[],
+                                   const CHAR **ppFieldName,
+                                   BOOLEAN &canPushDown )
+{
+   const fapFieldMapItem *itr = list ;
+
+   // If itr->monogField == NULL, it means the end of array
+   while ( itr && itr->mongoField && *( itr->mongoField ) )
+   {
+      if ( 0 == ossStrcmp( inEle.fieldName(), itr->mongoField ) )
+      {
+         *ppFieldName = itr->sdbField ;
+         canPushDown = itr->canPushDown ;
+         break ;
+      }
+      ++itr ;
+   }
+
+   // If this field name cann't be converted, use the original one
+   if ( ppFieldName && ! *ppFieldName )
+   {
+      *ppFieldName = inEle.fieldName() ;
+      canPushDown = TRUE ;
+   }
+}
+
+// Convert field from sdb to mongo
+static void _convertFieldName2Mongo( const BSONElement &inEle,
+                                     const fapFieldMapItem list[],
+                                     const CHAR **ppFieldName )
+{
+   const fapFieldMapItem *itr = list ;
+
+   // If itr->sdbField == NULL, it means the end of array
+   while ( itr && itr->sdbField && *( itr->sdbField ) )
+   {
+      if ( 0 == ossStrcmp( inEle.fieldName(), itr->sdbField ) )
+      {
+         *ppFieldName = itr->mongoField ;
+         break ;
+      }
+      ++itr ;
+   }
+
+   // If this field name cann't be converted, use the original one
+   if ( ppFieldName && ! *ppFieldName )
+   {
+      *ppFieldName = inEle.fieldName() ;
+   }
+}
+
+static INT32 _convertSdbDecimal2MongoDecimal( const BSONObj &inObj,
+                                              BSONObj &outObj,
+                                              BOOLEAN &hasDecimal )
+{
+   INT32 rc = SDB_OK ;
+
+   BSONObjBuilder bob ;
+
+   rc = sdbDecimal2MongoDecimal( inObj, bob, hasDecimal ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG( PDERROR, "Failed to convert sdb decimal to mongo decimal, rc: %d", rc ) ;
+      goto error ;
+   }
+
+   if ( hasDecimal )
+   {
+      outObj = bob.obj() ;
+   }
+   else
+   {
+      outObj = inObj ;
    }
 
 done:
@@ -910,6 +1033,139 @@ error:
    goto done ;
 }
 
+const fapFieldMapItem* _mongoGlobalCommand::_getFieldMap() const
+{
+   static const fapFieldMapItem fieldMap[] =
+   {
+      { FAP_MONGO_FIELD_NAME_NAME, FIELD_NAME_NAME, TRUE },
+      { FAP_MONGO_FIELD_SIZE_ON_DISK, FAP_MONGO_FIELD_SIZE_ON_DISK, FALSE },
+      { FAP_MONGO_FIELD_EMPTY, FAP_MONGO_FIELD_EMPTY, FALSE },
+      { NULL, NULL, FALSE }
+   } ;
+   return fieldMap ;
+}
+
+INT32 _mongoGlobalCommand::_processMongoQueryObj( const BSONObj &inObj,
+                                                  BSONObj &outObj )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder outBob, patternBob ;
+      BSONObjIterator itr( inObj ) ;
+      while ( itr.more() ) 
+      {
+         BSONElement ele = itr.next() ;
+         BSONObj tmpObj ;
+         const CHAR* pFieldName = NULL ;
+         BOOLEAN canPushDown = TRUE ;
+
+         // Convert field name
+         _convertFieldName2Sdb( ele, _getFieldMap(), &pFieldName, canPushDown ) ;
+
+         if ( canPushDown )
+         {
+            if ( 0 == ossStrcmp( pFieldName, ele.fieldName() ) )
+            {
+               outBob.append( ele ) ;
+            }
+            else
+            {
+               outBob.appendAs( ele, pFieldName ) ;
+            }
+         }
+         else
+         {
+            if ( 0 == ossStrcmp( pFieldName, ele.fieldName() ) )
+            {
+               patternBob.append( ele ) ;
+            }
+            else
+            {
+               patternBob.appendAs( ele, pFieldName ) ;
+            }
+         }
+      }
+
+      // Check if the field name can be pushed down
+      rc = _filterHelper.loadPattern( patternBob.obj() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to load pattern, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // Build push down obj
+      outObj = outBob.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo query obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoGlobalCommand::_processMongoReplyObj( const BSONObj &inObj,
+                                                  BSONObj &outObj,
+                                                  BOOLEAN &matched )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder bob ;
+      BSONObjIterator itr( inObj ) ;
+
+      while ( itr.more() ) 
+      {
+         BSONElement ele = itr.next() ;
+         BSONObj tmpObj ;
+         const CHAR* pFieldName = NULL ;
+
+         // Convert field name
+         _convertFieldName2Mongo( ele, _getFieldMap(), &pFieldName ) ;
+
+         // Append obj to builder
+         if ( pFieldName )
+         {
+            bob.appendAs( ele, pFieldName ) ;
+         }
+         else
+         {
+            bob.append( ele ) ;
+         }
+      }
+
+      outObj = bob.obj() ;
+      rc = _filterHelper.matches( outObj, matched ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to match obj, rc: %d", rc ) ;
+         goto error ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo reply obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 _mongoDatabaseCommand::_queryMsgInit( const _mongoMessage *pMsg )
 {
    INT32 rc = SDB_OK ;
@@ -1085,19 +1341,29 @@ INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
          while ( offset < bodyBuf.size() )
          {
             BSONObj obj( bodyBuf.data() + offset ) ;
+            BSONObj tmpObj ;
+            BOOLEAN matched = TRUE ;
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
 
-            if ( CMD_LIST_COLLECTION == type() )
+            rc = _preProcessReplyObj( obj, tmpObj ) ;
+            if ( SDB_OK != rc )
             {
-               rc = convertCollectionObj( obj ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
-                          rc ) ;
-                  goto error ;
-               }
+               PD_LOG( PDERROR, "Failed to pre parse obj, rc: %d", rc ) ;
+               goto error ;
             }
-            arr.append( obj ) ;
+            obj = tmpObj ;
+
+            rc = _processMongoReplyObj( obj, tmpObj, matched ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse mongo reply obj, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            if ( matched )
+            {
+               arr.append( tmpObj ) ;
+            }
          }
       }
       arr.done() ;
@@ -1381,40 +1647,24 @@ INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags )
       {
          INT32 offset = 0 ;
-         BSONObjBuilder decimalConvertBob ;
          BOOLEAN hasDecimal = FALSE ;
 
          while ( offset < bodyBuf.size() )
          {
             BSONObj obj( bodyBuf.data() + offset ) ;
+            BSONObj tmpObj ;
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
 
-            if ( CMD_LIST_INDEX == type() )
+            rc = _processMongoReplyObj( obj, tmpObj, hasDecimal ) ;
+            if ( SDB_OK != rc )
             {
-               rc = convertIndexObj( obj, clFullName() ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
-                  goto error ;
-               }
-               arr.append( obj ) ;
+               PD_LOG( PDERROR, "Failed to parse mongo reply obj, rc: %d", rc ) ;
+               goto error ;
             }
-            else
-            {
-               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to convert sdb record to mongo record, "
-                            "rc: %d", rc ) ;
 
-               if ( hasDecimal )
-               {
-                  arr.append( decimalConvertBob.done() ) ;
-                  decimalConvertBob.reset() ;
-               }
-               else
-               {
-                  arr.append( obj ) ;
-               }
+            if ( ! tmpObj.isEmpty() )
+            {
+               arr.append( tmpObj ) ;
             }
          }
       }
@@ -1552,6 +1802,55 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 _mongoCollectionCommand::_processMongoReplyObj( const BSONObj &inObj,
+                                                      BSONObj &outObj,
+                                                      BOOLEAN &hasDecimal )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      // Parse obj by specific command
+      rc = _processReplyObj( inObj, outObj, hasDecimal ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to parse obj, rc: %d", rc ) ;
+         goto error ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo reply obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLPROCESSREPLY, "_mongoCollectionCommand::_processReplyObj" )
+INT32 _mongoCollectionCommand::_processReplyObj( const BSONObj &inObj,
+                                                 BSONObj &outObj,
+                                                 BOOLEAN &hasDecimal )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CLPROCESSREPLY ) ;
+
+   rc = _convertSdbDecimal2MongoDecimal( inObj, outObj, hasDecimal ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG( PDERROR, "Failed to convert sdb decimal to mongo decimal, "
+               "rc: %d", rc ) ;
+   }
+
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CLPROCESSREPLY, rc ) ;
+   return rc ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoInsertCommand)
@@ -3466,35 +3765,28 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
    {
       INT32 offset = 0 ;
       _msgBuf.zero() ;
+      BOOLEAN hasDecimal = FALSE ;
+
       while ( offset < bodyBuf.size() )
       {
          BSONObj obj( bodyBuf.data() + offset ) ;
+         BSONObj tmpObj ;
          offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
 
-         if ( GETMORE_LISTINDEX == _type )
-         {
-            rc = convertIndexObj( obj, _clFullName ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
-         else if ( GETMORE_LISTCOLLECTION == _type )
-         {
-            rc = convertCollectionObj( obj ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
-                       rc ) ;
-               goto error ;
-            }
-         }
-
-         rc = _msgBuf.write( obj.objdata(), obj.objsize() ) ;
+         rc = _processMongoReplyObj( obj, tmpObj, hasDecimal ) ;
          if ( rc )
          {
+            PD_LOG( PDERROR, "Failed to parse mongo reply obj, rc: %d", rc ) ;
             goto error ;
+         }
+
+         if ( ! tmpObj.isEmpty() )
+         {
+            rc = _msgBuf.write( tmpObj.objdata(), tmpObj.objsize() ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
       bodyBuf = engine::rtnContextBuf( _msgBuf.data(),
@@ -3670,7 +3962,6 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
    {
       bson::BSONArrayBuilder arr( cursorBuilder.subarrayStart( "nextBatch" ) ) ;
       INT32 offset = 0 ;
-      BSONObjBuilder decimalConvertBob ;
       BOOLEAN hasDecimal = FALSE ;
 
       if ( SDB_OK == sdbReply.flags )
@@ -3678,45 +3969,19 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
          while ( offset < bodyBuf.size() )
          {
             bson::BSONObj obj( bodyBuf.data() + offset ) ;
+            BSONObj tmpObj ;
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
-            if ( GETMORE_LISTINDEX == _type )
-            {
-               rc = convertIndexObj( obj, _clFullName ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
-                  goto error ;
-               }
-               arr.append( obj ) ;
-            }
-            else if ( GETMORE_LISTCOLLECTION == _type )
-            {
-               rc = convertCollectionObj( obj ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
-                          rc ) ;
-                  goto error ;
-               }
-               arr.append( obj ) ;
-            }
-            else
-            {
-               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob,
-                                             hasDecimal ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to convert sdb record to mongo record, "
-                            "rc: %d", rc ) ;
 
-               if ( hasDecimal )
-               {
-                  arr.append( decimalConvertBob.done() ) ;
-                  decimalConvertBob.reset() ;
-               }
-               else
-               {
-                  arr.append( obj ) ;
-               }
+            rc = _processMongoReplyObj( obj, tmpObj, hasDecimal ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse mongo reply obj, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            if ( ! tmpObj.isEmpty() )
+            {
+               arr.append( tmpObj ) ;
             }
          }
       }
@@ -3749,6 +4014,58 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoGetmoreCommand::_processMongoReplyObj( const BSONObj &inObj,
+                                                   BSONObj &outObj,
+                                                   BOOLEAN &hasDecimal )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( GETMORE_LISTINDEX == _type )
+      {
+         rc = _convertIndexObj( inObj, outObj, _clFullName ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+      else if ( GETMORE_LISTCOLLECTION == _type )
+      {
+         rc = _buildMongoCollectionObj( inObj, outObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = _convertSdbDecimal2MongoDecimal( inObj, outObj, hasDecimal ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to convert sdb decimal to mongo decimal, "
+                    "rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo reply obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
    return rc ;
 error:
    goto done ;
@@ -5586,6 +5903,24 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTIDXPROCESSREPLY, "_mongoListIdxCommand::_processReplyObj" )
+INT32 _mongoListIdxCommand::_processReplyObj( const BSONObj &inObj,
+                                              BSONObj &outObj,
+                                              BOOLEAN &hasDecimal )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTIDXPROCESSREPLY ) ;
+
+   rc = _convertIndexObj( inObj, outObj, clFullName() ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
+   }
+
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTIDXPROCESSREPLY, rc ) ;
+   return rc ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateIdxCommand)
@@ -7694,10 +8029,8 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
-   BSONObj empty ;
-   BSONObjBuilder builder ;
-   string lowBound ;
-   string upBound ;
+   BSONObj empty, filterObj, tmpObj ;
+   BSONObjBuilder condBuilder ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -7733,14 +8066,29 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    // condition: { Name: { $gt: "foo.", $lt: "foo/" }, ... }
    try
    {
-      lowBound = _csName ;
-      lowBound += "." ;
-      upBound = _csName ;
-      upBound += "/" ;
-      builder.appendElements( _obj.getObjectField( "filter" ) ) ;
-      builder.append( "Name", BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
+      filterObj = _obj.getObjectField( "filter" ) ;
 
-      rc = sdbMsg.write( builder.obj(), TRUE ) ;
+      rc = _preProcessQueryObj( filterObj, tmpObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      filterObj = tmpObj ;
+
+      rc = _processMongoQueryObj( filterObj, tmpObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      condBuilder.appendElements( tmpObj ) ;
+      if ( ! tmpObj.hasField( FIELD_NAME_NAME ) )
+      {
+         condBuilder.append( FIELD_NAME_NAME,
+                             BSON( "$gt" << _csName + "." << "$lt" << _csName + "/" ) ) ;
+      }
+
+      rc = sdbMsg.write( condBuilder.obj(), TRUE ) ;
       if ( rc )
       {
          goto error ;
@@ -7819,6 +8167,102 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLPREPROCESSQUERY, "_mongoListCollectionCommand::_preProcessQueryObj" )
+INT32 _mongoListCollectionCommand::_preProcessQueryObj( const BSONObj &inObj,
+                                                        BSONObj &outObj )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLPREPROCESSQUERY ) ;
+
+   try
+   {
+      BSONObjBuilder bob ;
+      BSONObjIterator itr( inObj ) ;
+      while ( itr.more() ) 
+      {
+         BSONObj tmpObj ;
+         BSONElement ele = itr.next() ;
+         if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_FIELD_NAME ) )
+         {
+            rc = _buildSdbFullCollectionObj( ele.wrap(), tmpObj, csName() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to append full collection obj, "
+                       "rc: %d", rc ) ;
+            }
+            bob.append( tmpObj.firstElement() ) ;
+         }
+         else
+         {
+            bob.append( ele ) ;
+         }
+      }
+
+      outObj = bob.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo query obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLPREPROCESSQUERY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLPREPROCESSREPLY, "_mongoListCollectionCommand::_preProcessReplyObj" )
+INT32 _mongoListCollectionCommand::_preProcessReplyObj( const BSONObj &inObj,
+                                                        BSONObj &outObj )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLPREPROCESSREPLY ) ;
+
+   try
+   {
+      BSONObjBuilder bob ;
+      BSONObjIterator itr( inObj ) ;
+      while ( itr.more() ) 
+      {
+         BSONObj tmpObj ;
+         BSONElement ele = itr.next() ;
+         if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_NAME ) )
+         {
+            rc = _buildMongoCollectionObj( ele.wrap(), tmpObj ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to append full collection obj, "
+                       "rc: %d", rc ) ;
+            }
+            bob.append( tmpObj.firstElement() ) ;
+         }
+         else
+         {
+            bob.append( ele ) ;
+         }
+      }
+
+      outObj = bob.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo query obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLPREPROCESSREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListDatabaseCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTDBBUILDSDBREQ, "_mongoListDatabaseCommand::buildSdbRequest" )
 INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
@@ -7831,7 +8275,7 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = NULL ;
-   BSONObj empty ;
+   BSONObj empty, filterObj, tmpObj ;
    BSONObj sel ;
 
    rc = mongoGetBooleanElement( _obj, FAP_MONGO_FIELD_NAME_NAMEONLY, _nameOnly ) ;
@@ -7896,7 +8340,22 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   rc = sdbMsg.write( empty, TRUE ) ;
+   filterObj = _obj.getObjectField( "filter" ) ;
+
+   rc = _preProcessQueryObj( filterObj, tmpObj ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+   filterObj = tmpObj ;
+
+   rc = _processMongoQueryObj( filterObj, tmpObj ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( tmpObj, TRUE ) ;
    if ( rc )
    {
       goto error ;
@@ -7958,13 +8417,16 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags )
       {
          BSONObjBuilder bob ;
+         BSONObjBuilder subBob ;
          BSONArrayBuilder arr( bob.subarrayStart( "databases" ) ) ;
          INT32 offset = 0 ;
          while ( offset < bodyBuf.size() )
          {
-            BSONObjBuilder subBob( arr.subobjStart() ) ;
             BSONObj obj( bodyBuf.data() + offset ) ;
+            BSONObj subObj, tmpObj ;
+            BOOLEAN matched = TRUE ;
             const CHAR* name = NULL ;
+            subBob.reset() ;
 
             rc = mongoGetStringElement( obj, FIELD_NAME_NAME, name ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
@@ -7999,7 +8461,27 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
                totalAllSize += totalSize ;
             }
-            subBob.done() ;
+            subObj = subBob.obj() ;
+
+            rc = _preProcessReplyObj( subObj, tmpObj ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to pre parse obj, rc: %d", rc ) ;
+               goto error ;
+            }
+            subObj = tmpObj ;
+
+            rc = _processMongoReplyObj( subObj, tmpObj, matched ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse mongo reply obj, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            if ( matched )
+            {
+               arr.append( tmpObj ) ;
+            }
 
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
          }
@@ -8038,6 +8520,138 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+const fapFieldMapItem* _mongoDatabaseCommand::_getFieldMap() const
+{
+   static const fapFieldMapItem fieldMap[] =
+   {
+      { FAP_MONGO_FIELD_NAME_NAME, FIELD_NAME_NAME, TRUE },
+      { NULL, NULL, FALSE }
+   } ;
+
+   return fieldMap ;
+}
+
+INT32 _mongoDatabaseCommand::_processMongoQueryObj( const BSONObj &inObj,
+                                                    BSONObj &outObj )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder outBob, patternBob ;
+      BSONObjIterator itr( inObj ) ;
+      while ( itr.more() ) 
+      {
+         BSONElement ele = itr.next() ;
+         BSONObj tmpObj ;
+         const CHAR* pFieldName = NULL ;
+         BOOLEAN canPushDown = TRUE ;
+
+         // Convert field name
+         _convertFieldName2Sdb( ele, _getFieldMap(), &pFieldName, canPushDown ) ;
+
+         if ( canPushDown )
+         {
+            if ( 0 == ossStrcmp( pFieldName, ele.fieldName() ) )
+            {
+               outBob.append( ele ) ;
+            }
+            else
+            {
+               outBob.appendAs( ele, pFieldName ) ;
+            }
+         }
+         else
+         {
+            if ( 0 == ossStrcmp( pFieldName, ele.fieldName() ) )
+            {
+               patternBob.append( ele ) ;
+            }
+            else
+            {
+               patternBob.appendAs( ele, pFieldName ) ;
+            }
+         }
+      }
+
+      // Check if the field name can be pushed down
+      rc = _filterHelper.loadPattern( patternBob.obj() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to load pattern, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // Build push down obj
+      outObj = outBob.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo query obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoDatabaseCommand::_processMongoReplyObj( const BSONObj &inObj,
+                                                    BSONObj &outObj,
+                                                    BOOLEAN &matched )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder bob ;
+      BSONObjIterator itr( inObj ) ;
+
+      while ( itr.more() ) 
+      {
+         BSONElement ele = itr.next() ;
+         BSONObj tmpObj ;
+         const CHAR* pFieldName = NULL ;
+
+         // Convert field name
+         _convertFieldName2Mongo( ele, _getFieldMap(), &pFieldName ) ;
+
+         // Append obj to builder
+         if ( pFieldName )
+         {
+            bob.appendAs( ele, pFieldName ) ;
+         }
+         else
+         {
+            bob.append( ele ) ;
+         }
+      }
+
+      outObj = bob.obj() ;
+      rc = _filterHelper.matches( outObj, matched ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to match obj, rc: %d", rc ) ;
+         goto error ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing mongo reply obj: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
    return rc ;
 error:
    goto done ;
@@ -8860,7 +9474,6 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
             hasRecordReturned = FALSE ;
          }
 
-         BSONObjBuilder decimalConvertBob ;
          BSONObjBuilder lastErrorObjectBuilder( resultBuilder.subobjStart(
                                      FAP_MONGO_FIELD_NAME_LASTERROROBJECT ) ) ;
          lastErrorObjectBuilder.append( FAP_MONGO_FIELD_NAME_N,
@@ -8878,19 +9491,13 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
             else
             {
                BSONObj obj( bodyBuf.data() ) ;
-               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
+               BSONObj tmpObj ;
+
+               rc = _convertSdbDecimal2MongoDecimal( obj, tmpObj, hasDecimal ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to convert sdb record to mongo record, "
                             "rc: %d", rc ) ;
-               if ( hasDecimal )
-               {
-                  resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE,
-                                        decimalConvertBob.done() ) ;
-               }
-               else
-               {
-                  resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE, obj ) ;
-               }
+               resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE, tmpObj ) ;
             }
          }
          else

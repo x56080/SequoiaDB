@@ -45,6 +45,7 @@
 #include "utilCommon.hpp"
 #include "rtnContextBuff.hpp"
 #include "fapMongoCommandDef.hpp"
+#include "mthMatchTree.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 
@@ -125,6 +126,33 @@ private:
 typedef _mongoErrorObjAssit mongoErrorObjAssit ;
 
 void  mongoReleaseErrorBson() ;
+
+struct fapFieldMapItem
+{
+   fapFieldMapItem( const CHAR* const m, const CHAR* const s, const BOOLEAN c )
+   : mongoField( m ), sdbField( s ), canPushDown( c ) {}
+
+   // { NULL, NULL, FALSE } is the end of array
+   const CHAR* const mongoField ;
+   const CHAR* const sdbField ;
+   const BOOLEAN     canPushDown ;
+} ;
+
+class _mongoFilterHelper : public SDBObject
+{
+public:
+   _mongoFilterHelper() ;
+
+   ~_mongoFilterHelper(){}
+
+   INT32 loadPattern( const BSONObj &pattern ) ;
+
+   INT32 matches( const BSONObj &matchTarget, BOOLEAN &result ) ;
+
+private:
+   engine::mthMatchTree _matchTree ;
+} ;
+typedef _mongoFilterHelper mongoFilterHelper ;
 
 INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                               const BSONObj &updatorObj,
