@@ -3161,7 +3161,7 @@ public class Sequoiadb implements Closeable {
      * @return Role information cursor.
      * @throws BaseException If error happens
      */
-    public DBCursor listRole(BSONObject options) throws BaseException {
+    public DBCursor listRoles(BSONObject options) throws BaseException {
         AdminRequest request = new AdminRequest(AdminCommand.LIST_ROLES, options);
         SdbReply response = requestAndResponse(request);
         throwIfError(response);
