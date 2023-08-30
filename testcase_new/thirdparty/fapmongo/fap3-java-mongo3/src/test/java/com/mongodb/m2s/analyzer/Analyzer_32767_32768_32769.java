@@ -18,7 +18,9 @@ import com.mongodb.utils.Ssh;
 import java.util.*;
 
 /**
- * @Descreption
+ * @Descreption seqDB-32767:收集op_insert类型消息，分析消息报告
+ *              seqDB-32768:收集op_update类型消息，分析消息报告
+ *              seqDB-32769:收集op_delete类型消息，分析消息报告
  * @Author tangtao
  * @CreateDate
  * @UpdateUser
@@ -36,6 +38,11 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
     public void setup() throws Exception {
         mongoClient = MongoClients.create( mongodbUri );
         ssh = new Ssh( remoteHost, remoteUser, remotePwd );
+        String version = CommLib.getMongoDBVersion( mongoClient );
+        if ( CommLib.compareVersion( version, "3.3" ) > 0 ) {
+            throw new SkipException(
+                    "this test is only for mongodb version 3.2" );
+        }
         CommLib.initDir( ssh, snifferOutputPath );
         CommLib.initDir( ssh, analyzerOutputPath );
         mongoClient.getDatabase( databaseName ).drop();
@@ -47,12 +54,6 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
         CommLib.snifferStart( ssh );
         // 连接sniffer监听端口
         MongoClient snifferClient = CommLib.getSnifferClient();
-
-        String version = CommLib.getMongoDBVersion( mongoClient );
-        if ( CommLib.compareVersion( version, "3.3" ) > 0 ) {
-            throw new SkipException(
-                    "this test is only for mongodb version 3.2" );
-        }
 
         // create collection
         MongoDatabase database = snifferClient.getDatabase( databaseName )
@@ -149,23 +150,27 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
         // 分析结果校验
         ssh.exec( "cat " + analyzerOutputPath + "sniffer.json" );
         JSONArray messages = JSONObject.parseArray( ssh.getStdout() );
-        Collections.sort( messages, ( o1, o2 ) -> {
-            String name1 = ( ( JSONObject ) o1 ).getString( "opCode" );
-            String name2 = ( ( JSONObject ) o2 ).getString( "opCode" );
-            int opCodeCmp = name1.compareTo( name2 );
-
-            if ( opCodeCmp != 0 ) {
-                return opCodeCmp;
-            } else {
-                String cmd1 = ( ( JSONObject ) o1 ).getString( "databaseCmd" );
-                String cmd2 = ( ( JSONObject ) o2 ).getString( "databaseCmd" );
-                return cmd1.compareTo( cmd2 );
+        for ( int i = 0; i < messages.size(); i++ ) {
+            JSONObject message = messages.getJSONObject( i );
+            String opCode = message.getString( "opCode" );
+            switch ( opCode ) {
+            case "OP_UPDATE":
+            case "OP_DELETE":
+                Assert.assertEquals( message.getString( "databaseCmd" ), "" );
+                Assert.assertEquals( message.getIntValue( "count" ), 30 );
+                Assert.assertEquals( message.getString( "SequoiaDB" ), "N" );
+                Assert.assertEquals( message.getString( "Fap" ), "N" );
+                break;
+            case "OP_INSERT":
+                Assert.assertEquals( message.getString( "databaseCmd" ), "" );
+                Assert.assertEquals( message.getIntValue( "count" ), 10 );
+                Assert.assertEquals( message.getString( "SequoiaDB" ), "N" );
+                Assert.assertEquals( message.getString( "Fap" ), "N" );
+                break;
+            default:
+                continue;
             }
-        } );
-
-        // 校验结果
-        Assert.assertEquals( messages.toString().hashCode(), -1505444402,
-                "the messages hash code is not equal" );
+        }
     }
 
     @AfterClass

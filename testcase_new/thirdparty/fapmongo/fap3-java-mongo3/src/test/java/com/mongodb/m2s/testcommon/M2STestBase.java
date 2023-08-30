@@ -11,12 +11,14 @@ package com.mongodb.m2s.testcommon;
  */
 public class M2STestBase {
 
-    // mongodb服务地址
+    // mongodb服务地址(mongodb启动权限认证时传入root权限用户）
     public static String mongodbUri = "mongodb://192.168.17.196:27500";
     // 工具根路径
-    public static String toolRootPath = "/opt/test/m2s/build/m2s_1.0.0_linux_x86_64/";
+    public static String toolRootPath = "/opt/m2s_1.0.0_linux_x86_64/";
     // 输出报告根路径
     public static String m2sTestPath = "/tmp/";
+    // collector工具权限场景具有readAnyDatabase，clusterMonitor 权限的用户
+    public static String collectorUser = ""; // format: username:password
 
     // collector收集工具
     // 工具路径
@@ -35,7 +37,7 @@ public class M2STestBase {
     // 监听端口(对应工具启动的-l参数)
     public static String snifferListenPort = "30000";
     // sniffer监听地址(对应工具启动的-m参数)
-    public static String snifferAddr = "192.168.17.19:27500";
+    public static String snifferAddr = "192.168.17.196:27500";
     // sniffer报告输出路径
     public static String snifferOutputPath = m2sTestPath + "sniffer_output/";
 

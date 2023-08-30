@@ -49,16 +49,13 @@ public class Collector_32658 extends M2STestBase {
     public void test() throws Exception {
         MongoDatabase mongoDatabase = mongoClient.getDatabase( databaseName );
         MongoDatabase adminDatabase = mongoClient.getDatabase( "admin" );
-        for ( int i = 0; i < 100; i++ ) {
-            mongoDatabase.getCollection( collectionName )
-                    .insertOne( new Document( "name", "test" + i ) );
-        }
+        mongoDatabase.createCollection( collectionName );
         CommLib.collectCluster( ssh );
         ssh.exec( "cat " + collectorOutputPath + "cluster.json" );
         JSONObject cluster1 = JSONObject.parseObject( ssh.getStdout() );
         JSONArray databases1 = JSONObject
                 .parseArray( cluster1.getString( "databases" ) );
-        // 为分片时shards字段仅包含一个shard
+        // 未分片时shards字段仅包含一个shard
         for ( int i = 0; i < databases1.size(); i++ ) {
             JSONObject database = databases1.getJSONObject( i );
             if ( database.getString( "name" ).equals( databaseName ) ) {

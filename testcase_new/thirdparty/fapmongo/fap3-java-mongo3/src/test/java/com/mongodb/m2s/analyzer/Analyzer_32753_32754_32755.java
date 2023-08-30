@@ -29,7 +29,7 @@ import java.util.List;
  * @UpdateRemark
  * @Version
  */
-public class Analyzer_32753_32755 extends M2STestBase {
+public class Analyzer_32753_32754_32755 extends M2STestBase {
     private MongoClient mongoClient = null;
     private Ssh ssh = null;
     private String gridfsDB = "gridfsDB";

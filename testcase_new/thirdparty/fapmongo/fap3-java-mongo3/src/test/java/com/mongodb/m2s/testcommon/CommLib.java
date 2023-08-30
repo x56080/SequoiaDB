@@ -17,6 +17,8 @@ public class CommLib extends M2STestBase {
     public static void initDir( Ssh ssh, String path ) throws Exception {
         try {
             ssh.exec( "ls " + path );
+            ssh.exec( "rm -rf " + path );
+            ssh.exec( "mkdir -p " + path );
         } catch ( Exception e ) {
             if ( e.getMessage().contains( "No such file or directory" ) ) {
                 ssh.exec( "mkdir -p " + path );
@@ -130,9 +132,14 @@ public class CommLib extends M2STestBase {
     }
 
     public static MongoClient getSnifferClient() {
-        // sniffer对外服务地址
-        String snifferUri = "mongodb://" + authname + remoteHost + ":"
-                + snifferListenPort;
+        String snifferUri = null;
+        if ( mongodbUri.contains( "@" ) ) {
+            snifferUri = mongodbUri.substring( 0,
+                    mongodbUri.indexOf( "@" ) + 1 ) + remoteHost + ":"
+                    + snifferListenPort;
+        } else {
+            snifferUri = "mongodb://" + remoteHost + ":" + snifferListenPort;
+        }
         MongoClient snifferClient = MongoClients.create( snifferUri );
         return snifferClient;
     }
@@ -145,8 +152,17 @@ public class CommLib extends M2STestBase {
      * @throws Exception
      */
     public static void collectCluster( Ssh ssh ) throws Exception {
+        String collectorUri = mongodbUri;
+        if ( mongodbUri.contains( "@" ) ) {
+            if ( !collectorUser.equals( "" ) ) {
+                // 获取@后面的字符串
+                String afterAt = mongodbUri
+                        .substring( mongodbUri.indexOf( "@" ) + 1 );
+                collectorUri = "mongodb://" + collectorUser + "@" + afterAt;
+            }
+        }
         String collectCommand = collectorPath + " -t cluster -o "
-                + collectorOutputPath + " -u " + mongodbUri;
+                + collectorOutputPath + " -u " + collectorUri;
         ssh.exec( collectCommand );
     }
 
@@ -161,8 +177,17 @@ public class CommLib extends M2STestBase {
      */
     public static void collectCollection( Ssh ssh, int sample )
             throws Exception {
+        String collectorUri = mongodbUri;
+        if ( mongodbUri.contains( "@" ) ) {
+            if ( !collectorUser.equals( "" ) ) {
+                // 获取@后面的字符串
+                String afterAt = mongodbUri
+                        .substring( mongodbUri.indexOf( "@" ) + 1 );
+                collectorUri = "mongodb://" + collectorUser + "@" + afterAt;
+            }
+        }
         String collectCommand = collectorPath + " -t collection -o "
-                + collectorOutputPath + " -u " + mongodbUri + " -s " + sample;
+                + collectorOutputPath + " -u " + collectorUri + " -s " + sample;
         ssh.exec( collectCommand );
     }
 
@@ -223,9 +248,10 @@ public class CommLib extends M2STestBase {
      * @throws Exception
      */
     public static void analyzeSnifferMsgJson( Ssh ssh ) throws Exception {
-        String analyzeCommand = "find " + snifferOutputPath + " -type f -name \"*.json\" | xargs -I {} " +
-                analyzerPath + " --sdbversion "+ sdbVersion +
-                " --sniffermsgjson \"{}\" -o "+ analyzerOutputPath;
+        String analyzeCommand = "find " + snifferOutputPath
+                + " -type f -name \"*.json\" | xargs -I {} " + analyzerPath
+                + " --sdbversion " + sdbVersion + " --sniffermsgjson \"{}\" -o "
+                + analyzerOutputPath;
         ssh.exec( analyzeCommand );
 
     }

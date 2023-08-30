@@ -1531,7 +1531,7 @@ public class DataBaseCmd {
     public void runFreeMonitoringCommands() {
         setUp();
 
-        if ( CommLib.compareVersion( mongoVersion, "4.0" ) >= 0 ) {
+        if ( CommLib.compareVersion( mongoVersion, "4.0" ) >= 0 && !CommLib.isSharded( mongoClient ) ) {
             Document document = new Document( "getFreeMonitoringStatus", 1 );
             adminDatabase.runCommand( document );
         }
