@@ -394,7 +394,7 @@ INT32 _mongoSession::_recvMsgFromClient( CHAR *&pMsg )
    PD_CHECK( msgSize >= sizeof( mongoMsgHeader ) && msgSize <= SDB_MAX_MSG_LENGTH,
              SDB_INVALIDARG, error, PDERROR,
              "Session[%s] receive message size[%d] is invalid",
-             msgSize ) ;
+             sessionName(), msgSize ) ;
 
    // alloc memory
    pMsg = getBuff( msgSize + 1 ) ;
