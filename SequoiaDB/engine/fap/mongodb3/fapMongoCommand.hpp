@@ -283,6 +283,8 @@ class _mongoDatabaseCommand : public _mongoCommand
 
       virtual const fapFieldMapItem* _getFieldMap() const ;
 
+      virtual INT32 _postFirstBatch( BSONObjBuilder &cursorBuilder ) { return SDB_OK ; }
+
    protected:
       string         _csName ;
       BSONObj        _obj ;
@@ -325,6 +327,12 @@ class _mongoCollectionCommand : public _mongoCommand
       /// self interface
       virtual BOOLEAN needConvertDecimal() const { return FALSE ; }
 
+      virtual INT32 _processReplyObj( const BSONObj &inObj,
+                                      BSONObjBuilder &outBuilder,
+                                      BOOLEAN &hasConvert ) ;
+
+      virtual INT32 _postFirstBatch( BSONObjBuilder &cursorBuilder ) ;
+
    protected:
       INT32 _buildReplyCommon( const MsgOpReply &sdbReply,
                                engine::rtnContextBuf &bodyBuf,
@@ -340,12 +348,8 @@ class _mongoCollectionCommand : public _mongoCommand
       const CHAR* clShortName() const { return clFullName() + _csName.length() + 1 ; }
 
       INT32 _processMongoReplyObj( const BSONObj &inObj,
-                                   BSONObj &outObj,
-                                   BOOLEAN &hasDecimal ) ;
-
-      virtual INT32 _processReplyObj( const BSONObj &inObj,
-                                      BSONObj &outObj,
-                                      BOOLEAN &hasDecimal ) ;
+                                   BSONObjBuilder &outBuilder,
+                                   BOOLEAN &hasConvert ) ;
 
    private:
       INT32 _init( const _mongoQueryRequest *pReq ) ;
@@ -624,14 +628,8 @@ class _mongoGetmoreCommand : public _mongoCommand
                              engine::rtnContextBuf &bodyBuf ) ;
 
       INT32 _processMongoReplyObj( const BSONObj &inObj,
-                                   BSONObj &outObj,
-                                   BOOLEAN &hasDecimal ) ;
-
-      virtual INT32 _processReplyObj( const BSONObj &inObj,
-                                      BSONObj &outObj )
-      {
-         return SDB_OK ;
-      }
+                                   BSONObjBuilder &outBuilder,
+                                   BOOLEAN &hasConvert ) ;
 
    private:
       string _csName ;
@@ -880,8 +878,10 @@ class _mongoListIdxCommand : public _mongoCollectionCommand
 
    protected:
       virtual INT32 _processReplyObj( const BSONObj &inObj,
-                                      BSONObj &outObj,
-                                      BOOLEAN &hasDecimal ) ;
+                                      BSONObjBuilder &outBuilder,
+                                      BOOLEAN &hasConvert ) ;
+      virtual INT32 _postFirstBatch( BSONObjBuilder &cursorBuilder ) ;
+
 } ;
 typedef _mongoListIdxCommand mongoListIdxCommand ;
 
@@ -1163,6 +1163,9 @@ class _mongoListCollectionCommand : public _mongoDatabaseCommand
 
       virtual INT32 _preProcessReplyObj( const BSONObj &inObj,
                                          BSONObj &outObj ) ;
+
+      virtual const fapFieldMapItem* _getFieldMap() const ;
+      virtual INT32 _postFirstBatch( BSONObjBuilder &cursorBuilder ) ;
 } ;
 typedef _mongoListCollectionCommand mongoListCollectionCommand ;
 
@@ -1184,6 +1187,9 @@ class _mongoListDatabaseCommand : public _mongoGlobalCommand
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
+
+   protected:
+      virtual const fapFieldMapItem* _getFieldMap() const ;
 
    protected:
       BOOLEAN _nameOnly ;

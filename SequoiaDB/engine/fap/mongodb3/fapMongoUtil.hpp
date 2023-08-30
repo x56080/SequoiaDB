@@ -138,6 +138,9 @@ struct fapFieldMapItem
    const BOOLEAN     canPushDown ;
 } ;
 
+/*
+   _mongoFilterHelper define
+*/
 class _mongoFilterHelper : public SDBObject
 {
 public:

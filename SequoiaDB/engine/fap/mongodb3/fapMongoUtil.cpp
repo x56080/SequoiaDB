@@ -251,6 +251,9 @@ namespace fap
       _size = 0 ;
    }
 
+   /*
+      _mongoFilterHelper implement
+   */
    _mongoFilterHelper::_mongoFilterHelper()
    {
    }
