@@ -326,11 +326,11 @@ def package_db(opt_mgr, ver):
    elif OS_TYPE == 'Linux':
       copy_file(os.path.join(ROOT_DIR, 'tools/server/php_linux/*'), os.path.join(install_dir, 'tools/server/php'))
 
-   # copy php driver base on compile type
-   if opt_mgr.get_debug():
-      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/dd/*.so'), os.path.join(install_dir, 'lib/phplib'))
-   else:
-      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/normal/*.so'), os.path.join(install_dir, 'lib/phplib'))
+   # copy php driver to phplib
+   if OS_ARCH == 'x86_64':
+      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/x86/PHP-linux_x86_64/*.so'), os.path.join(install_dir, 'lib/phplib'))
+   elif OS_ARCH == 'aarch64':
+      copy_file(os.path.join(ROOT_DIR, 'driver/php/build/aarch64/PHP-linux_aarch64/*.so'), os.path.join(install_dir, 'lib/phplib'))
 
    # copy license base on compile type
    if opt_mgr.get_enterprise():
