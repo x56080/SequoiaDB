@@ -313,8 +313,11 @@ BUILTIN_ROLES:
           - stopRG
           - getRG
           - list
+          - snapshot
           - createNode
           - removeNode
+          - startNode
+          - stopNode
           - forceStepUp
 
   _clusterMonitor:

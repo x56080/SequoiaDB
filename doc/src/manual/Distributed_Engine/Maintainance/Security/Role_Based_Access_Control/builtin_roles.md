@@ -56,8 +56,11 @@ SequoiaDB 预定义了内建角色来提供常用的不同级别的访问权限�
 * stopRG
 * getRG
 * list
+* snapshot
 * createNode
 * removeNode
+* startNode
+* stopNode
 * forceSetUp
   
 ###_clusterMonitor###
@@ -66,8 +69,6 @@ SequoiaDB 预定义了内建角色来提供常用的不同级别的访问权限�
 * snapshot
 * getSequenceCurrentValue
 * getDCInfo
-* getSessionAttr
-* setSessionAttr
 * getDetailBin
 * getRole
 * getUser
