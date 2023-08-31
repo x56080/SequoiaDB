@@ -115,7 +115,7 @@ namespace engine
       _clsCriticalModeMonitorJob Implement
     */
    _clsCriticalModeMonitorJob::_clsCriticalModeMonitorJob( _clsGroupInfo *info )
-   : _clsGroupModeMonitorJob( info, version.inc() + 1 )
+   : _clsGroupModeMonitorJob<_clsCriticalModeMonitorJob>( info, version.inc() + 1 )
    {
    }
 
@@ -308,7 +308,7 @@ namespace engine
       _clsMaintenanceModeMonitorJob Implement
     */
    _clsMaintenanceModeMonitorJob::_clsMaintenanceModeMonitorJob( _clsGroupInfo *info )
-   : _clsGroupModeMonitorJob( info, version.inc() + 1 )
+   : _clsGroupModeMonitorJob<_clsMaintenanceModeMonitorJob>( info, version.inc() + 1 )
    {
    }
 
