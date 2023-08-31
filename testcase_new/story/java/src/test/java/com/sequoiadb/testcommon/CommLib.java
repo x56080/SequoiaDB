@@ -1145,7 +1145,7 @@ public class CommLib {
     }
 
     /**
-     * @description: 等待group中对应Location下选出PrimaryNode
+     * @description: 等待group中选出PrimaryNode
      * @param db
      *            db连接
      * @param groupNames
@@ -1164,7 +1164,7 @@ public class CommLib {
                     replicaGroup.getMaster();
                     break;
                 } catch ( BaseException e ) {
-                    if ( e.getErrorCode() == SDBError.SDB_RTN_NO_PRIMARY_FOUND
+                    if ( e.getErrorCode() != SDBError.SDB_RTN_NO_PRIMARY_FOUND
                             .getErrorCode() ) {
                         throw e;
                     }
@@ -1183,6 +1183,13 @@ public class CommLib {
         if ( doTime >= timeOut ) {
             Assert.fail( "there is no primary node in group " );
         }
+    }
+
+    public static void waitGroupSelectMasterNode( Sequoiadb db,
+            String groupName, int timeOut ) {
+        ArrayList< String > groupNames = new ArrayList<>();
+        groupNames.add( groupName );
+        waitGroupSelectMasterNode( db, groupNames, timeOut );
     }
 
 }
