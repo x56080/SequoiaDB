@@ -632,8 +632,8 @@ namespace engine
          rc = checkPrivilegesObj( privObjs );
          PD_RC_CHECK( rc, PDERROR, "Invalid privileges definition, rc: %d", rc );
 
-         BSONObj rolesObj = obj.getObjectField( AUTH_FIELD_NAME_ROLES );
-         rc = _grantRolesToRole( roleName, rolesObj, TRUE );
+         BSONElement rolesEle = obj.getField( AUTH_FIELD_NAME_ROLES );
+         rc = _grantRolesToRole( roleName, rolesEle, TRUE );
          PD_RC_CHECK( rc, PDERROR, "Failed to grant roles to role, rc: %d", rc );
 
          rc = _agent->createRole( obj );
@@ -722,8 +722,8 @@ namespace engine
          rc = checkPrivilegesObj( privObjs );
          PD_RC_CHECK( rc, PDERROR, "Invalid privileges definition, rc: %d", rc );
 
-         BSONObj rolesObj = obj.getObjectField( AUTH_FIELD_NAME_ROLES );
-         rc = _grantRolesToRole( roleName, rolesObj, TRUE );
+         BSONElement rolesEle = obj.getField( AUTH_FIELD_NAME_ROLES );
+         rc = _grantRolesToRole( roleName, rolesEle, TRUE );
          PD_RC_CHECK( rc, PDERROR, "Failed to grant roles to role, rc: %d", rc );
 
          rc = _agent->updateRole( roleName, obj );
@@ -851,8 +851,8 @@ namespace engine
             goto error;
          }
 
-         BSONObj rolesObj = obj.getObjectField( AUTH_FIELD_NAME_ROLES );
-         rc = _grantRolesToRole( roleName, rolesObj, FALSE );
+         BSONElement rolesEle = obj.getField( AUTH_FIELD_NAME_ROLES );
+         rc = _grantRolesToRole( roleName, rolesEle, FALSE );
          PD_RC_CHECK( rc, PDERROR, "Failed to grant roles to role, rc: %d", rc );
 
          rc = _agent->grantRolesToRole( roleName, obj );
@@ -930,12 +930,21 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTH_ROLE_MGR__GRANT_ROLES_TO_ROLE, "_authRoleManager::_grantRolesToRole" )
    INT32 _authRoleManager::_grantRolesToRole( const CHAR *roleName,
-                                              const bson::BSONObj &rolesObj,
+                                              const bson::BSONElement &rolesEle,
                                               BOOLEAN replace )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY( SDB_AUTH_ROLE_MGR__GRANT_ROLES_TO_ROLE );
       ossPoolVector< boost::shared_ptr< ossPoolString > > roles;
+      BSONObj rolesObj;
+      if ( rolesEle.type() != Array )
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG_MSG( PDERROR, "%s must be array", AUTH_FIELD_NAME_ROLES );
+         goto error;
+      }
+
+      rolesObj = rolesEle.Obj();
       for ( BSONObjIterator it( rolesObj ); it.more(); )
       {
          BSONElement ele = it.next();

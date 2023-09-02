@@ -80,7 +80,7 @@ namespace engine
 
    private:
       INT32 _grantRolesToRole( const CHAR *roleName,
-                               const bson::BSONObj &rolesObj,
+                               const bson::BSONElement &rolesELe,
                                BOOLEAN replace );
       
       INT32 _loadRoles();
