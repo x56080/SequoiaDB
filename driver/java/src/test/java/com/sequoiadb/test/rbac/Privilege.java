@@ -38,7 +38,12 @@ public class Privilege {
         }
 
         public PrivilegeBuilder resource(String cs, String cl) {
-            this.resource = new Resource(cs, cl);
+            this.resource = new Resource(cs, cl, null);
+            return this;
+        }
+
+        public PrivilegeBuilder resource(Boolean cluster) {
+            this.resource = new Resource(null, null, cluster);
             return this;
         }
 

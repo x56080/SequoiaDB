@@ -5,7 +5,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.TestConfig;
-import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -48,8 +47,12 @@ public class SdbRbacTest {
 
     @Before
     public void setUp() {
-        db = new Sequoiadb(Constants.HOST, Constants.PORT, TestConfig.getSingleUsername(),
-                TestConfig.getSinglePassword());
+        db = new Sequoiadb(
+                TestConfig.getRbacCoordHost(),
+                TestConfig.getRbacCoordPort(),
+                TestConfig.getRbacRootUsername(),
+                TestConfig.getRbacRootPassword()
+        );
 
         createRoleIfNotExists(role1);
         createRoleIfNotExists(role2);

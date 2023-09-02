@@ -36,6 +36,11 @@ For example:
         <data.group>db1</data.group>
         <data.host>${single.host}</data.host>
         <data.port>20000</data.port>
+        <rbac.root.username>${rbac.root.username}</data.port>
+        <rbac.root.password>${rbac.root.password}</data.port>
+        <rbac.coord.host>${rbac.coord.host}</data.port>
+        <rbac.coord.port>${rbac.coord.port}</data.port>
+        <rbac.newNode.dbPathPrefix>${rbac.newNode.dbPathPrefix}</data.port>
     </properties>
 </profile>
 ```
