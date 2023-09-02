@@ -236,8 +236,6 @@ namespace engine
          virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
                                     string &clName,
                                     BSONObj &outSelector ) ;
-
-         virtual INT32 _checkPrivileges( const BSONObj &query ) ;
    } ;
    typedef _coordCMDListCollection coordCMDListCollection ;
 

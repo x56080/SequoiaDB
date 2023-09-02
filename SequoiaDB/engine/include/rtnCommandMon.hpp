@@ -98,6 +98,8 @@ namespace engine
             return SDB_OK ;
          }
 
+         virtual INT32 _checkPrivileges() const ;
+
       protected :
          // help functions
          BSONObj _getObjectFromHint ( const CHAR * fieldName ) const ;
