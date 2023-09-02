@@ -51,6 +51,12 @@ namespace engine
       return FALSE ;
    }
 
+   extern INT32 checkPrivilegesForListCollections(const BSONObj &query);
+   INT32 _rtnListCollections::_checkPrivileges() const
+   {
+      return checkPrivilegesForListCollections( BSONObj( _matcherBuff ) );
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListCollectionsInner)
 
    BOOLEAN _rtnListCollectionsInner::_isCurrent() const

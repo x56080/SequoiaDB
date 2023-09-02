@@ -319,35 +319,7 @@ namespace engine
    {
    }
 
-   INT32 _coordCMDListCollection::_preProcess( rtnQueryOptions &queryOpt,
-                                               string & clName,
-                                               BSONObj &outSelector )
-   {
-      INT32 rc = SDB_OK;
-      BSONObjBuilder builder ;
-      BSONElement ele ;
-
-      rc = _checkPrivileges( queryOpt.getQuery() );
-      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
-
-      clName = CAT_COLLECTION_INFO_COLLECTION ;
-      outSelector = queryOpt.getSelector() ;
-
-      builder.appendNull( CAT_COLLECTION_NAME ) ;
-      ele = queryOpt.getSelector().getField( FIELD_NAME_VERSION ) ;
-      if( EOO != ele.type() )
-      {
-         builder.appendNull( FIELD_NAME_VERSION ) ;
-      }
-      queryOpt.setSelector( builder.obj() ) ;
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _coordCMDListCollection::_checkPrivileges( const BSONObj &query )
+   INT32 checkPrivilegesForListCollections(const BSONObj &query)
    {
       INT32 rc = SDB_OK;
       ISession *session = sdbGetThreadExecutor()->getSession();
@@ -428,7 +400,8 @@ namespace engine
                   PD_LOG_MSG( PDERROR,
                               "No privilege to execute command: %s, need at least one in actions "
                               "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
-                              getName(), authActionTypeSerializer( ACTION_TYPE_find ),
+                              CMD_NAME_LIST_COLLECTIONS,
+                              authActionTypeSerializer( ACTION_TYPE_find ),
                               authActionTypeSerializer( ACTION_TYPE_getDetail ),
                               authActionTypeSerializer( ACTION_TYPE_listCollections ),
                               csName.c_str(), authActionTypeSerializer( ACTION_TYPE_list ) );
@@ -444,6 +417,34 @@ namespace engine
          goto error;
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 _coordCMDListCollection::_preProcess( rtnQueryOptions &queryOpt,
+                                               string & clName,
+                                               BSONObj &outSelector )
+   {
+      INT32 rc = SDB_OK;
+      BSONObjBuilder builder ;
+      BSONElement ele ;
+
+      rc = checkPrivilegesForListCollections( queryOpt.getQuery() );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+
+      clName = CAT_COLLECTION_INFO_COLLECTION ;
+      outSelector = queryOpt.getSelector() ;
+
+      builder.appendNull( CAT_COLLECTION_NAME ) ;
+      ele = queryOpt.getSelector().getField( FIELD_NAME_VERSION ) ;
+      if( EOO != ele.type() )
+      {
+         builder.appendNull( FIELD_NAME_VERSION ) ;
+      }
+      queryOpt.setSelector( builder.obj() ) ;
+      
    done:
       return rc;
    error:

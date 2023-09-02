@@ -71,6 +71,7 @@ namespace engine
                                   const CHAR * pOrderByBuff,
                                   const CHAR * pHintBuff )
    {
+      INT32 rc = SDB_OK;
       _flags = flags ;
       _numToReturn = numToReturn ;
       _numToSkip = numToSkip ;
@@ -79,7 +80,18 @@ namespace engine
       _orderByBuff = pOrderByBuff ;
       _hintBuff = pHintBuff ;
 
-      return SDB_OK ;
+      rc = _checkPrivileges();
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnMonInnerBase::_checkPrivileges() const
+   {
+      return SDB_OK;
    }
 
    BSONObj _rtnMonInnerBase::_getOptObj() const

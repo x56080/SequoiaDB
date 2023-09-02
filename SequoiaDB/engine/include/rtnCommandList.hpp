@@ -96,6 +96,8 @@ namespace engine
 
       protected:
          virtual BOOLEAN _isCurrent() const ;
+
+         virtual INT32 _checkPrivileges() const ;
    };
 
    /*
