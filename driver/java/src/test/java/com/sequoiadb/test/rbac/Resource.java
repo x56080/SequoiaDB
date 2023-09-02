@@ -8,19 +8,28 @@ import java.util.Objects;
 public class Resource {
     private String cs;
     private String cl;
+    private Boolean cluster;
 
     public Resource() {
     }
 
-    public Resource(String cs, String cl) {
+    public Resource(String cs, String cl, Boolean cluster) {
         this.cs = cs;
         this.cl = cl;
+        this.cluster = cluster;
     }
 
     public BSONObject toBson() {
         BasicBSONObject bson = new BasicBSONObject();
-        bson.put("cs", cs);
-        bson.put("cl", cl);
+        if (cs != null) {
+            bson.put("cs", cs);
+        }
+        if (cl != null) {
+            bson.put("cl", cl);
+        }
+        if (cluster != null) {
+            bson.put("Cluster", cluster);
+        }
         return bson;
     }
 
@@ -40,17 +49,27 @@ public class Resource {
         this.cl = cl;
     }
 
+    public Boolean getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(Boolean cluster) {
+        this.cluster = cluster;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Resource resource = (Resource) o;
-        return Objects.equals(cs, resource.cs) && Objects.equals(cl, resource.cl);
+        return Objects.equals(cs, resource.cs)
+                && Objects.equals(cl, resource.cl)
+                && Objects.equals(cluster, resource.cluster);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cs, cl);
+        return Objects.hash(cs, cl, cluster);
     }
 
     @Override
@@ -58,6 +77,7 @@ public class Resource {
         return "Resource{" +
                 "cs='" + cs + '\'' +
                 ", cl='" + cl + '\'' +
+                ", cluster=" + cluster +
                 '}';
     }
 }

@@ -30,10 +30,10 @@ import java.util.*;
  * Replica group of SequoiaDB.
  */
 public class ReplicaGroup {
-    private String name;
-    private int id;
+    private final String name;
+    private Integer id;
     private Sequoiadb sequoiadb;
-    private boolean isCataRG;
+    private final boolean isCataRG;
     private Random rand = new Random();
 
 
@@ -48,6 +48,10 @@ public class ReplicaGroup {
      * @return the current replica group's id
      */
     public int getId() {
+        if (id == null) {
+            BSONObject detail = getDetail();
+            id = Integer.parseInt(detail.get(SdbConstants.FIELD_NAME_GROUPID).toString());
+        }
         return id;
     }
 
@@ -58,21 +62,15 @@ public class ReplicaGroup {
         return name;
     }
 
-    ReplicaGroup(Sequoiadb sdb, int id) {
+    ReplicaGroup(Sequoiadb sdb, Integer id, String name) {
         this.sequoiadb = sdb;
         this.id = id;
-        BSONObject group = sdb.getDetailById(id);
-        this.name = group.get(SdbConstants.FIELD_NAME_GROUPNAME).toString();
+        this.name = name;
         this.isCataRG = name.equals(Sequoiadb.CATALOG_GROUP_NAME);
     }
 
     ReplicaGroup(Sequoiadb sdb, String name) {
-        this.sequoiadb = sdb;
-        this.name = name;
-        BSONObject group = sdb.getDetailByName(name);
-        this.isCataRG = ( name.equals( Sequoiadb.CATALOG_GROUP_NAME ) );
-        this.id = Integer.parseInt(group.get(
-                SdbConstants.FIELD_NAME_GROUPID).toString());
+        this(sdb, null, name);
     }
 
     /**
@@ -84,7 +82,7 @@ public class ReplicaGroup {
      * @deprecated The status of node are invalid, never use this api again.
      */
     public int getNodeNum(Node.NodeStatus status) throws BaseException {
-        BSONObject group = sequoiadb.getDetailById(id);
+        BSONObject group = getDetail();
         try {
             Object obj = group.get(SdbConstants.FIELD_NAME_GROUP);
             if (obj == null) {
@@ -106,7 +104,7 @@ public class ReplicaGroup {
      * @throws BaseException If error happens.
      */
     public BSONObject getDetail() throws BaseException {
-        return sequoiadb.getDetailById(id);
+        return sequoiadb.getDetailByName(name);
     }
 
     /**
@@ -117,7 +115,7 @@ public class ReplicaGroup {
      */
     public Node getMaster() throws BaseException {
         // get information of nodes from catalog
-        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        BSONObject groupInfoObj = getDetail();
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
@@ -245,7 +243,7 @@ public class ReplicaGroup {
             }
         }
         // get information of nodes from catalog
-        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        BSONObject groupInfoObj = getDetail();
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
@@ -403,13 +401,7 @@ public class ReplicaGroup {
         }
         String inputHostName = nodeMetaInfoArray[0];
         int inputPort = Integer.parseInt((nodeMetaInfoArray[1]));
-        // get node object
-        Node node = getNodeByMetaInfo(inputHostName, inputPort);
-        if (node != null) {
-            return node;
-        } else {
-            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, nodeName);
-        }
+        return getNode(inputHostName, inputPort);
     }
 
     /**
@@ -421,9 +413,9 @@ public class ReplicaGroup {
      * @throws com.sequoiadb.exception.BaseException
      */
     public Node getNode(String hostName, int port) throws BaseException {
-        Node node = getNodeByMetaInfo(hostName, port);
-        if (node != null) {
-            return node;
+        Integer nodeId = getNodeId(hostName, port);
+        if (nodeId != null) {
+            return new Node(hostName, port, nodeId, this);
         } else {
             throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, hostName + ":" + port);
         }
@@ -468,7 +460,7 @@ public class ReplicaGroup {
         SdbReply response = sequoiadb.requestAndResponse(request);
         String msg = "node = " + hostName + ":" + port + ", options = " + options;
         sequoiadb.throwIfError(response, msg);
-        return getNode(hostName, port);
+        return new Node(hostName, port, this);
     }
 
     /**
@@ -584,7 +576,7 @@ public class ReplicaGroup {
                 ", dbPath = " + dbPath +
                 ", configure = " + configure;
         sequoiadb.throwIfError(response, msg);
-        return getNode(hostName, port);
+        return new Node(hostName, port, this);
     }
 
     /**
@@ -674,7 +666,7 @@ public class ReplicaGroup {
      */
     public void reelect(BSONObject option) {
         BSONObject matcher = new BasicBSONObject();
-        matcher.put(SdbConstants.FIELD_NAME_GROUPNAME, getGroupName());
+        matcher.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
         if (option != null && !option.isEmpty()) {
             matcher.putAll(option);
         }
@@ -785,20 +777,20 @@ public class ReplicaGroup {
         query.put(SdbConstants.FIELD_NAME_ACTION, taskName);
         query.put(SdbConstants.FIELD_NAME_OPTIONS, options);
 
-        hint.put(SdbConstants.FIELD_NAME_GROUPID, this.id);
+        hint.put(SdbConstants.FIELD_NAME_GROUPID, getId());
         AdminRequest request = new AdminRequest(AdminCommand.ALTER_GROUP, query, hint);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);
     }
 
-    private Node getNodeByMetaInfo(final String inputHostName, final int inputPort) {
+    protected Integer getNodeId(final String inputHostName, final int inputPort) {
         // check
         if (inputHostName == null || inputHostName.isEmpty() || inputPort < 0 || inputPort > 65535) {
             throw new BaseException(SDBError.SDB_INVALIDARG,
                     String.format("invalid node info[%s:%d]", inputHostName, inputPort));
         }
         // get group info from catalog
-        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        BSONObject groupInfoObj = getDetail();
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
@@ -828,8 +820,7 @@ public class ReplicaGroup {
             }
             // compare
             if (hostNameFromCatalog.equals(inputHostName) && portFromCatalog == inputPort) {
-                return new Node(inputHostName, inputPort,
-                        Integer.parseInt(nodeIdFromCatalog.toString()), this);
+                return Integer.parseInt(nodeIdFromCatalog.toString());
             }
         }
         return null;

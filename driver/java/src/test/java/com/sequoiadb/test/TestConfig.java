@@ -38,6 +38,11 @@ public class TestConfig {
     private static final String datasourceAddress = "datasource.address";
     private static final String datasourceUrls = "datasource.urls";
     private static final String dbPath = "dbPath";
+    private static final String rbacRootUsername = "rbac.root.username";
+    private static final String rbacRootPassword = "rbac.root.password";
+    private static final String rbacCoordHost = "rbac.coord.host";
+    private static final String rbacCoordPort = "rbac.coord.port";
+    private static final String rbacNewNodeDbPathPrefix = "rbac.newNode.dbPathPrefix";
 
     private TestConfig() {
     }
@@ -122,4 +127,25 @@ public class TestConfig {
     public static String getDBPath() {
         return properties.getProperty(dbPath);
     }
+
+    public static String getRbacRootUsername() {
+        return properties.getProperty(rbacRootUsername);
+    }
+
+    public static String getRbacRootPassword() {
+        return properties.getProperty(rbacRootPassword);
+    }
+
+    public static String getRbacCoordHost() {
+        return properties.getProperty(rbacCoordHost);
+    }
+
+    public static int getRbacCoordPort() {
+        return Integer.parseInt(properties.getProperty(rbacCoordPort));
+    }
+
+    public static String getRbacNewNodeDbPathPrefix() {
+        return properties.getProperty(rbacNewNodeDbPathPrefix);
+    }
+
 }

@@ -27,19 +27,23 @@ import org.bson.BasicBSONObject;
  * Node of SequoiaDB.
  */
 public class Node {
-    private String hostName;
-    private int port;
-    private String nodeName;
-    private int id;
-    private ReplicaGroup rg;
+    private final String hostName;
+    private final int port;
+    private final String nodeName;
+    private Integer id;
+    private final ReplicaGroup rg;
     private Sequoiadb sequoiadb;
 
-    Node(String hostName, int port, int nodeId, ReplicaGroup rg) {
+    Node(String hostName, int port, Integer nodeId, ReplicaGroup rg) {
         this.rg = rg;
         this.hostName = hostName;
         this.port = port;
         this.nodeName = hostName + ":" + port;
         this.id = nodeId;
+    }
+
+    Node(String hostName, int port, ReplicaGroup rg) {
+        this(hostName, port, null, rg);
     }
 
     /**
@@ -76,6 +80,9 @@ public class Node {
      * @return Current node's id.
      */
     public int getNodeId() {
+        if (id == null) {
+            id = rg.getNodeId(hostName, port);
+        }
         return id;
     }
 
@@ -179,7 +186,7 @@ public class Node {
     public NodeStatus getStatus() throws BaseException {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_NAME_GROUPID, rg.getId());
-        obj.put(SdbConstants.FIELD_NAME_NODEID, id);
+        obj.put(SdbConstants.FIELD_NAME_NODENAME, nodeName);
 
         AdminRequest request = new AdminRequest(AdminCommand.SNAP_DATABASE, obj);
         SdbReply response = rg.getSequoiadb().requestAndResponse(request);
@@ -239,7 +246,7 @@ public class Node {
 
         BSONObject hint = new BasicBSONObject();
         hint.put(SdbConstants.FIELD_NAME_GROUPID, rg.getId());
-        hint.put(SdbConstants.FIELD_NAME_NODEID, id);
+        hint.put(SdbConstants.FIELD_NAME_NODEID, getNodeId());
 
         AdminRequest request = new AdminRequest(AdminCommand.ALTER_NODE, matcher, hint);
         SdbReply response = rg.getSequoiadb().requestAndResponse(request);

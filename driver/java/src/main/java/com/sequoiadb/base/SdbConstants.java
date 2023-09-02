@@ -28,6 +28,7 @@ final class SdbConstants {
     final static String FIELD_NAME_GROUPSERVICE = "Service";
     final static String FIELD_NAME_GROUP = "Group";
     final static String FIELD_NAME_NODEID = "NodeID";
+    final static String FIELD_NAME_NODENAME = "NodeName";
     final static String FIELD_NAME_GROUPID = "GroupID";
     final static String FIELD_NAME_PRIMARY = "PrimaryNode";
     final static String FIELD_NAME_SERVICENAME = "Name";

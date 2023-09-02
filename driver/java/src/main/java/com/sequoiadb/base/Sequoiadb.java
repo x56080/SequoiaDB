@@ -2549,7 +2549,8 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("Group with the name[%d] does not exist", rgId));
         }
-        return new ReplicaGroup(this, rgId);
+        String groupName = rg.get(SdbConstants.FIELD_NAME_GROUPNAME).toString();
+        return new ReplicaGroup(this, rgId, groupName);
     }
 
     /**
