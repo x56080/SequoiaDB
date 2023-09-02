@@ -937,6 +937,10 @@ namespace engine
       PD_TRACE_ENTRY( SDB_AUTH_ROLE_MGR__GRANT_ROLES_TO_ROLE );
       ossPoolVector< boost::shared_ptr< ossPoolString > > roles;
       BSONObj rolesObj;
+      if ( rolesEle.eoo() )
+      {
+         goto done;
+      }
       if ( rolesEle.type() != Array )
       {
          rc = SDB_INVALIDARG;
