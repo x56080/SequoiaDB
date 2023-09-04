@@ -881,6 +881,18 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE__BUILDP2REPLY, "_catCtxCreateNode::_buildP2Reply" )
+   INT32 _catCtxCreateNode::_buildP2Reply( bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(SDB_CATCTXCREATENODE__BUILDP2REPLY) ;
+      catBuildNewNode( _hostName, _dbPath, _instanceID, _localSvc, _replSvc, _shardSvc, _cataSvc,
+                       _nodeRole, _nodeID, _nodeStatus, builder ) ;
+
+      PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE__BUILDP2REPLY, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE_CHECKLOCALHOST, "_catCtxCreateNode::_checkLocalHost" )
    INT32 _catCtxCreateNode::_checkLocalHost( BOOLEAN isLocalHost,
                                              BOOLEAN &isValid,

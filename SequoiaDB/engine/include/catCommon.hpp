@@ -580,6 +580,18 @@ namespace engine
                              _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
                              SDB_DPSCB *pDpsCB, INT16 w ) ;
 
+   void catBuildNewNode( const string &hostName,
+                          const string &dbPath,
+                          UINT32 instanceID,
+                          const string &localSvc,
+                          const string &replSvc,
+                          const string &shardSvc,
+                          const string &cataSvc,
+                          INT32 nodeRole,
+                          UINT16 nodeID,
+                          INT32 nodeStatus,
+                          BSONObjBuilder &builder ) ;
+
    /* Remove Node */
    INT32 catRemoveNodeStep ( const string &groupName,
                              UINT16 nodeID,

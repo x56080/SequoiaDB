@@ -7796,16 +7796,57 @@ namespace engine
       BSONObj updator, matcher ;
       BSONObj dummyObj ;
 
-      newNodeBuilder.append( CAT_HOST_FIELD_NAME, hostName ) ;
-      newNodeBuilder.append( PMD_OPTION_DBPATH, dbPath ) ;
+      catBuildNewNode( hostName, dbPath, instanceID, localSvc, replSvc, shardSvc, cataSvc, nodeRole,
+                       nodeID, nodeStatus, newNodeBuilder ) ;
+      BSONObj newInfoObj = newNodeBuilder.obj() ;
+
+      // update group info
+      updateBuilder.append("$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+      updateBuilder.append("$push", BSON( CAT_GROUP_NAME << newInfoObj ) ) ;
+      updator = updateBuilder.obj() ;
+
+      matcher = BSON( FIELD_NAME_GROUPNAME << groupName ) ;
+
+      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
+                      0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update node info [%s] to group [%s],"
+                   "matcher: %s, updator: %s, rc: %d",
+                   newInfoObj.toString().c_str(), groupName.c_str(),
+                   matcher.toString().c_str(), updator.toString().c_str(),
+                   rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCREATENODESTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDNEWNODE "catBuildNewNode" )
+   void catBuildNewNode( const string &hostName,
+                          const string &dbPath,
+                          UINT32 instanceID,
+                          const string &localSvc,
+                          const string &replSvc,
+                          const string &shardSvc,
+                          const string &cataSvc,
+                          INT32 nodeRole,
+                          UINT16 nodeID,
+                          INT32 nodeStatus,
+                          BSONObjBuilder &builder )
+   {
+      PD_TRACE_ENTRY(SDB_CATBUILDNEWNODE);
+      builder.append( CAT_HOST_FIELD_NAME, hostName ) ;
+      builder.append( PMD_OPTION_DBPATH, dbPath ) ;
 
       if ( utilCheckInstanceID( instanceID, FALSE ) )
       {
-         newNodeBuilder.append( PMD_OPTION_INSTANCE_ID, (INT32)instanceID ) ;
+         builder.append( PMD_OPTION_INSTANCE_ID, (INT32)instanceID ) ;
       }
 
       // service
-      BSONObjBuilder sub( newNodeBuilder.subarrayStart( CAT_SERVICE_FIELD_NAME ) ) ;
+      BSONObjBuilder sub( builder.subarrayStart( CAT_SERVICE_FIELD_NAME ) ) ;
       // local
       BSONObjBuilder sub1( sub.subobjStart("0") ) ;
       sub1.append( CAT_SERVICE_TYPE_FIELD_NAME, MSG_ROUTE_LOCAL_SERVICE ) ;
@@ -7833,31 +7874,9 @@ namespace engine
 
       sub.done() ;
 
-      newNodeBuilder.append( CAT_NODEID_NAME, nodeID ) ;
-      newNodeBuilder.append( CAT_GROUP_STATUS, nodeStatus ) ;
-      BSONObj newInfoObj = newNodeBuilder.obj() ;
-
-      // update group info
-      updateBuilder.append("$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
-      updateBuilder.append("$push", BSON( CAT_GROUP_NAME << newInfoObj ) ) ;
-      updator = updateBuilder.obj() ;
-
-      matcher = BSON( FIELD_NAME_GROUPNAME << groupName ) ;
-
-      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
-                      0, cb, pDmsCB, pDpsCB, w ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to update node info [%s] to group [%s],"
-                   "matcher: %s, updator: %s, rc: %d",
-                   newInfoObj.toString().c_str(), groupName.c_str(),
-                   matcher.toString().c_str(), updator.toString().c_str(),
-                   rc ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCREATENODESTEP, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      builder.append( CAT_NODEID_NAME, nodeID ) ;
+      builder.append( CAT_GROUP_STATUS, nodeStatus ) ;
+      PD_TRACE_EXIT(SDB_CATBUILDNEWNODE);
    }
 
    static INT32 _catRemoveNode ( const BSONObj &boGroup,

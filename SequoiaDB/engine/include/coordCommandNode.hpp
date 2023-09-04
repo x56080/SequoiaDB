@@ -424,12 +424,17 @@ namespace engine
       _coordCMDCreateNode define
    */
    class _coordCMDCreateNode : public _coordNodeCMD3Phase,
-                               public _coordCMDConfigNode
+                               public _coordCMDConfigNode,
+                               public _coordCMDEventHandler
    {
       COORD_DECLARE_CMD_AUTO_REGISTER() ;
       public:
          _coordCMDCreateNode() ;
          virtual ~_coordCMDCreateNode() ;
+
+      public:
+         virtual INT32 parseCatP2Return( coordCMDArguments *pArgs,
+                                         const std::vector< bson::BSONObj > &cataObjs );
 
       protected :
 
@@ -461,6 +466,13 @@ namespace engine
                                      pmdEDUCB * cb,
                                      coordCMDArguments *pArgs ) ;
 
+         virtual INT32 _doOutput( rtnContextBuf *buf ) ;
+
+         virtual INT32 _regEventHandlers()
+         {
+            return _regEventHandler( this );
+         }
+
       private:
          virtual AUDIT_OBJ_TYPE     _getAuditObjectType() const ;
          virtual string _getAuditObjectName( coordCMDArguments *pArgs ) const ;
@@ -471,7 +483,7 @@ namespace engine
          BOOLEAN           _onlyAttach ;
          BOOLEAN           _keepData ;
          const CHAR        *_pSvcName ;
-
+         BSONObj           _nodeInfo ;
    } ;
    typedef _coordCMDCreateNode coordCMDCreateNode ;
 

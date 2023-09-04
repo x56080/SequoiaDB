@@ -75,7 +75,7 @@ namespace engine
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
 
-      INT32 processCmdCreateGrp( const CHAR *pQuery ) ;
+      INT32 processCmdCreateGrp( const CHAR *pQuery, rtnContextBuf &buf ) ;
       INT32 processCmdUpdateNode( const NET_HANDLE &handle,
                                   const CHAR *pQuery,
                                   const CHAR *pSelector ) ;
@@ -103,7 +103,7 @@ namespace engine
 
    // tool fuctions
    private:
-      INT32 _createGrp( const CHAR *groupName ) ;
+      INT32 _createGrp( const CHAR *groupName, rtnContextBuf &buf ) ;
       INT32 _updateNodeToGrp ( BSONObj &boGroupInfo,
                                const BSONObj &boNodeInfoNew,
                                UINT16 nodeID,
