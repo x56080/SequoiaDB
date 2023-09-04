@@ -93,7 +93,6 @@ public class Rbac32813 extends SdbTestBase {
                     false );
             RbacUtils.getDetailActionSupportCommand( sdb, csName, clName1,
                     userCL1, false );
-            userCS.getCollectionNames();
             RbacUtils.alterCLActionSupportCommand( sdb, csName, clName1,
                     userCL1, false );
             RbacUtils.createIndexActionSupportCommand( sdb, csName, clName1,
@@ -104,7 +103,6 @@ public class Rbac32813 extends SdbTestBase {
 
             RbacUtils.findActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
-            userCS.getCollectionNames();
             RbacUtils.insertActionSupportCommand( sdb, csName, clName2, userCL2,
                     false );
             RbacUtils.updateActionSupportCommand( sdb, csName, clName2, userCL2,
@@ -113,7 +111,6 @@ public class Rbac32813 extends SdbTestBase {
                     false );
             RbacUtils.getDetailActionSupportCommand( sdb, csName, clName2,
                     userCL2, false );
-            userCS.getCollectionNames();
             RbacUtils.alterCLActionSupportCommand( sdb, csName, clName2,
                     userCL2, false );
             RbacUtils.createIndexActionSupportCommand( sdb, csName, clName2,
@@ -130,8 +127,10 @@ public class Rbac32813 extends SdbTestBase {
                 cursor.close();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
@@ -139,8 +138,10 @@ public class Rbac32813 extends SdbTestBase {
                 userSdb.createCollectionSpace( testCSName );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );

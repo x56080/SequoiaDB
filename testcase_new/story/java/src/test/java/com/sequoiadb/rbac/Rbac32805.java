@@ -136,15 +136,19 @@ public class Rbac32805 extends SdbTestBase {
                 userCL.truncate();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
             try {
                 userCS.dropCollection( testCLName );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );
@@ -153,5 +157,4 @@ public class Rbac32805 extends SdbTestBase {
             sdb.dropRole( subRoleName );
         }
     }
-
 }

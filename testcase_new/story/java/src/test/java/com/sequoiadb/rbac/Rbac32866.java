@@ -193,8 +193,10 @@ public class Rbac32866 extends SdbTestBase {
             userSdb.beginTransaction();
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
     }
 

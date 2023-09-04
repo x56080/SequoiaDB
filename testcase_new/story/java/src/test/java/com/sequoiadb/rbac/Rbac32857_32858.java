@@ -19,7 +19,7 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description eqDB-32857:撤销继承角色不存在
+ * @Description seqDB-32857:撤销继承角色不存在 seqDB-32858:撤销继承角色
  * @Author liuli
  * @Date 2023.08.28
  * @UpdateAuthor liuli
@@ -27,7 +27,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32857 extends SdbTestBase {
+public class Rbac32857_32858 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String user = "user_32857";
     private String password = "passwd_32857";
@@ -171,6 +171,7 @@ public class Rbac32857 extends SdbTestBase {
         privileges.add( roleName2 );
         sdb.grantRolesToRole( roleName4, privileges );
 
+        // seqDB-32858:撤销继承角色
         // 创建用户
         sdb.createUser( user, password,
                 ( BSONObject ) JSON.parse( "{Roles:['" + roleName4 + "']}" ) );

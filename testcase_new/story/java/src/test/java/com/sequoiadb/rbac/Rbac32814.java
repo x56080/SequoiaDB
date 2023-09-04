@@ -199,8 +199,10 @@ public class Rbac32814 extends SdbTestBase {
                 cursor.close();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );

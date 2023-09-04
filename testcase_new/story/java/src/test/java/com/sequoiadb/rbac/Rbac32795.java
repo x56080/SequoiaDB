@@ -113,7 +113,6 @@ public class Rbac32795 extends SdbTestBase {
 
                 perfprmAction( sdb, csName1, clName, userCL1, action1 );
                 perfprmAction( sdb, csName2, clName, userCL2, action2 );
-
             }
         } finally {
             sdb.removeUser( user, password );
@@ -189,8 +188,10 @@ public class Rbac32795 extends SdbTestBase {
                         userCL.queryOne();
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "insert":
@@ -199,8 +200,10 @@ public class Rbac32795 extends SdbTestBase {
                         userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "update":
@@ -211,8 +214,10 @@ public class Rbac32795 extends SdbTestBase {
                                         new BasicBSONObject( "a", 2 ) ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "remove":
@@ -221,8 +226,10 @@ public class Rbac32795 extends SdbTestBase {
                         userCL.deleteRecords( new BasicBSONObject( "a", 2 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "getDetail":
@@ -235,8 +242,10 @@ public class Rbac32795 extends SdbTestBase {
                                 new BasicBSONObject( "ReplSize", -1 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "createIndex":
@@ -247,8 +256,10 @@ public class Rbac32795 extends SdbTestBase {
                                 new BasicBSONObject( "a", 1 ), null );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 case "dropIndex":
@@ -260,8 +271,10 @@ public class Rbac32795 extends SdbTestBase {
                         userCL.dropIndex( indexName );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     } finally {
                         rootCL.dropIndex( indexName );
                     }
@@ -272,8 +285,10 @@ public class Rbac32795 extends SdbTestBase {
                         userCL.truncate();
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(),
-                                SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                                .getErrorCode() ) {
+                            throw e;
+                        }
                     }
                     break;
                 default:

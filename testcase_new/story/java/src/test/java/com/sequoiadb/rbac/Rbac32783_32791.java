@@ -26,7 +26,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32783 extends SdbTestBase {
+public class Rbac32783_32791 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String user = "user_32783";
     private String password = "passwd_32783";
@@ -91,8 +91,9 @@ public class Rbac32783 extends SdbTestBase {
             sdb.createRole( role );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_INVALIDARG.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
+                throw e;
+            }
         }
 
         for ( String action : actions ) {

@@ -1,7 +1,8 @@
-package com.sequoiadb.rbac;
+package com.sequoiadb.rbac.serial;
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.rbac.RbacUtils;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -80,16 +81,20 @@ public class Rbac32818 extends SdbTestBase {
                 userSdb.getCollectionSpace( csName ).getCollection( clName );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 userSdb.getList( Sequoiadb.SDB_LIST_USERS, null, null, null );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );

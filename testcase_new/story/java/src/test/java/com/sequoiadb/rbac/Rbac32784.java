@@ -91,16 +91,20 @@ public class Rbac32784 extends SdbTestBase {
                 systemCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 systemCS.getCollection( "SYSCOLLECTIONSTAT" );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
             userData.close();
         } finally {

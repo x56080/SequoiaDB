@@ -25,7 +25,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32838 extends SdbTestBase {
+public class Rbac32838_32839 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String roleName1 = "role_32838_1";
     private String roleName2 = "role_32838_2";

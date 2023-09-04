@@ -11,7 +11,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
@@ -34,7 +33,6 @@ public class Rbac32811 extends SdbTestBase {
     private String csName = "cs_32811";
     private String clName1 = "cl_32811_1";
     private String clName2 = "cl_32811_2";
-    private int clNum = 10;
 
     @BeforeClass
     public void setUp() {
@@ -93,32 +91,40 @@ public class Rbac32811 extends SdbTestBase {
                 userCL1.insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 userCL2.truncate();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 userCS.dropCollection( clName2 );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 userCL1.deleteRecords( new BasicBSONObject() );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );

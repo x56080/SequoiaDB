@@ -42,7 +42,6 @@ public class Rbac32800 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
 
-        sdb.updateConfig( new BasicBSONObject( "maxsessioncontextnum", 1000 ) );
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName );
     }
@@ -126,7 +125,6 @@ public class Rbac32800 extends SdbTestBase {
                 case "getDetail":
                     RbacUtils.getDetailActionSupportCommand( sdb, csName,
                             clName, userCL, true );
-                    // java驱动端没有额外的接口，只能通过命令行验证
                     RbacUtils.getDetailActionSupportCommand( sdb, csName,
                             clName, userCS, true );
                     break;
@@ -196,51 +194,6 @@ public class Rbac32800 extends SdbTestBase {
                     RbacUtils.snapshotBinActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
                     break;
-                case "createRG":
-                    // 待测试
-                    break;
-                case "forceStepUp":
-                    // 待测试
-                    break;
-                case "getRG":
-                    // 待测试
-                    break;
-                case "removeRG":
-                    // 待测试
-                    break;
-                case "reloadConf":
-                    // 待测试
-                    break;
-                case "deleteConf":
-                    // 待测试
-                    break;
-                case "updateConf":
-                    // 待测试
-                    break;
-                case "createNode":
-                    // 待测试
-                    break;
-                case "reelect":
-                    // 待测试
-                    break;
-                case "removeNode":
-                    // 待测试
-                    break;
-                case "getNode":
-                    // 待测试
-                    break;
-                case "startRG":
-                    // 待测试
-                    break;
-                case "stopRG":
-                    // 待测试
-                    break;
-                case "startNode":
-                    // 待测试
-                    break;
-                case "stopNode":
-                    // 待测试
-                    break;
                 case "backup":
                     RbacUtils.backupActionSupportCommand( sdb, userSdb, csName,
                             clName, true );
@@ -305,9 +258,6 @@ public class Rbac32800 extends SdbTestBase {
                     RbacUtils.revokeRolesFromUserActionSupportCommand( sdb,
                             userSdb, csName, clName, true );
                     break;
-                case "createDataSource":
-                    // 待测试
-                    break;
                 case "createDomain":
                     RbacUtils.createDomainActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
@@ -320,9 +270,6 @@ public class Rbac32800 extends SdbTestBase {
                     RbacUtils.createSequenceActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
                     break;
-                case "dropDataSource":
-                    // 待测试
-                    break;
                 case "dropDomain":
                     RbacUtils.dropDomainActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
@@ -332,7 +279,8 @@ public class Rbac32800 extends SdbTestBase {
                             csName, clName, true );
                     break;
                 case "eval":
-                    // 待测试
+                    RbacUtils.evalActionSupportCommand( sdb, userSdb, csName,
+                            clName, true );
                     break;
                 case "flushConfigure":
                     RbacUtils.flushConfigureActionSupportCommand( sdb, userSdb,
@@ -346,16 +294,11 @@ public class Rbac32800 extends SdbTestBase {
                     RbacUtils.invalidateUserCacheActionSupportCommand( sdb,
                             userSdb, csName, clName, true );
                     break;
-                case "removeBackup":
-                    RbacUtils.removeBackupActionSupportCommand( sdb, userSdb,
-                            csName, clName, true );
-                    break;
                 case "removeProcedure":
                     RbacUtils.removeProcedureActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
                     break;
                 case "renameCS":
-                    // 预期没有权限的命令为getCS，实际已经报错testCS权限
                     RbacUtils.renameCSActionSupportCommand( sdb, userSdb,
                             csName, clName, false );
                     break;
@@ -366,30 +309,6 @@ public class Rbac32800 extends SdbTestBase {
                 case "sync":
                     RbacUtils.syncActionSupportCommand( sdb, userSdb, csName,
                             clName, true );
-                    break;
-                case "alterUser":
-                    // 待测试
-                    break;
-                case "alterDataSource":
-                    // 待测试
-                    break;
-                case "fetchSequence":
-                    // 待测试
-                    break;
-                case "getSequenceCurrentValue":
-                    // 待测试
-                    break;
-                case "alterSequence":
-                    // 待测试
-                    break;
-                case "alterDomain":
-                    // 待测试
-                    break;
-                case "forceSession":
-                    // 待测试
-                    break;
-                case "trans":
-                    // 待测试
                     break;
                 case "waitTasks":
                     RbacUtils.waitTasksActionSupportCommand( sdb, userSdb,
@@ -402,9 +321,6 @@ public class Rbac32800 extends SdbTestBase {
                 case "getUser":
                     RbacUtils.getUserActionSupportCommand( sdb, userSdb, csName,
                             clName, true );
-                    break;
-                case "getDataSource":
-                    // 待测试
                     break;
                 case "getDomain":
                     RbacUtils.getDomainActionSupportCommand( sdb, userSdb,
@@ -430,27 +346,9 @@ public class Rbac32800 extends SdbTestBase {
                     RbacUtils.snapshotActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
                     break;
-                case "setPDLevel":
-                    // 待测试
-                    break;
-                case "trace":
-                    // 待测试
-                    break;
-                case "traceStatus":
-                    // 待测试
-                    break;
-                case "listProcedures":
-                    // 待测试
-                    break;
                 case "listBackup":
                     RbacUtils.listBackupActionSupportCommand( sdb, userSdb,
                             csName, clName, true );
-                    break;
-                case "getDCInfo":
-                    // 待测试
-                    break;
-                case "alterDC":
-                    // 待测试
                     break;
                 default:
                     System.out.println( "action -- " + action );

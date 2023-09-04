@@ -25,7 +25,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32864 extends SdbTestBase {
+public class Rbac32864_32865 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String user = "user_32864";
     private String password = "passwd_32864";
@@ -206,8 +206,10 @@ public class Rbac32864 extends SdbTestBase {
             userSdb.beginTransaction();
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
     }
 

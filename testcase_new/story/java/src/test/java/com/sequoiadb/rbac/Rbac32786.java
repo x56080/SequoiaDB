@@ -20,7 +20,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * @Description seqDB-32786:创建角色指定Resource为集合空间，Actions指定为集合操作
- *              seqDB-32793:创建角色Resource指定为集合空间，Actions指定为集群操作
  * @Author liuli
  * @Date 2023.08.17
  * @UpdateAuthor liuli
@@ -153,8 +152,10 @@ public class Rbac32786 extends SdbTestBase {
                     cursor.close();
                     Assert.fail( "should error but success" );
                 } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(),
-                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                            .getErrorCode() ) {
+                        throw e;
+                    }
                 }
             } finally {
                 userSdb.close();
@@ -188,8 +189,10 @@ public class Rbac32786 extends SdbTestBase {
                     userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                     Assert.fail( "should error but success" );
                 } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(),
-                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                            .getErrorCode() ) {
+                        throw e;
+                    }
                 }
 
                 try {
@@ -200,8 +203,10 @@ public class Rbac32786 extends SdbTestBase {
                     cursor.close();
                     Assert.fail( "should error but success" );
                 } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(),
-                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                            .getErrorCode() ) {
+                        throw e;
+                    }
                 }
             }
         } finally {

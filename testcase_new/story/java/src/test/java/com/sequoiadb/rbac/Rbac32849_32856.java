@@ -24,7 +24,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32849 extends SdbTestBase {
+public class Rbac32849_32856 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String roleName1 = "role_32849_1";
     private String roleName2 = "role_32849_2";
@@ -67,8 +67,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName3, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         // 添加继承角色，指定继承角色不存在
@@ -78,8 +80,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         // 一次指定继承过个角色，其中部分角色不存在
@@ -90,8 +94,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_NOT_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         // 指定继承角色为自己
@@ -101,8 +107,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         // 添加多个角色，包含角色自己
@@ -111,8 +119,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         String roleStr3 = "{Role:'" + roleName3
@@ -135,8 +145,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
 
         // 角色roleName3继承角色roleName2
@@ -151,8 +163,10 @@ public class Rbac32849 extends SdbTestBase {
             sdb.grantRolesToRole( roleName1, roleNames );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_CYCLE_DETECTED
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
     }
 

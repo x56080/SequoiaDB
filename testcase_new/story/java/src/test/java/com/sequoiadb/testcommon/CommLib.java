@@ -987,8 +987,8 @@ public class CommLib {
 
         if ( coordUrls.size() == 1 ) {
             System.out.println( "only one coord" );
-            ArrayList< String > hostNmaes = CommLib.getHostNames( sdb );
-            for ( String hostName : hostNmaes ) {
+            ArrayList< String > hostNames = CommLib.getHostNames( sdb );
+            for ( String hostName : hostNames ) {
                 Ssh ssh = new Ssh( hostName, "root", SdbTestBase.rootPwd );
                 try {
                     ssh.exec( "cat /etc/default/sequoiadb |grep INSTALL_DIR" );

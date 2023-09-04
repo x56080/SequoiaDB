@@ -25,7 +25,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac33059 extends SdbTestBase {
+public class Rbac33059_33063 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String user = "user_33059";
     private String password = "passwd_33059";

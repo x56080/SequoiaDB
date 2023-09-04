@@ -36,6 +36,7 @@ public class Rbac32785 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
+        RbacUtils.dropRole( sdb, roleName );
     }
 
     @Test
@@ -66,19 +67,20 @@ public class Rbac32785 extends SdbTestBase {
                 "alterDC" };
         BSONObject role = null;
         for ( String action : actions ) {
-            // 指定权限为跨集合空间的同名集合
+            // 创建角色指定Resource为集合，Actions指定非集合操作
             String roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
-                    + clName + "'}, Actions: ['" + action + "'] }"
-                    + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
+                    + clName + "'}, Actions: ['" + action + "'] }] }";
             System.out.println( "roleStr -- " + roleStr );
             role = ( BSONObject ) JSON.parse( roleStr );
             try {
                 sdb.createRole( role );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_INVALIDARG.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_INVALIDARG
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
 
@@ -94,8 +96,10 @@ public class Rbac32785 extends SdbTestBase {
             sdb.createRole( role );
             Assert.fail( "should error but success" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_AUTH_ROLE_EXIST.getErrorCode() );
+            if ( e.getErrorCode() != SDBError.SDB_AUTH_ROLE_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
         }
         sdb.dropRole( roleName );
     }
@@ -106,5 +110,4 @@ public class Rbac32785 extends SdbTestBase {
             sdb.close();
         }
     }
-
 }

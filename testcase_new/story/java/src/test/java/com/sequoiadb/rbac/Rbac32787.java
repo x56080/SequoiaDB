@@ -94,8 +94,10 @@ public class Rbac32787 extends SdbTestBase {
                 systemIndexStat.insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             DBCollection systemCollectionStat = systemCS
@@ -112,16 +114,20 @@ public class Rbac32787 extends SdbTestBase {
                         .insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
                 userData.getCollectionSpace( csName );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             userData.close();

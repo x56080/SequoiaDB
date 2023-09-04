@@ -50,7 +50,6 @@ public class Rbac32792 extends SdbTestBase {
         RbacUtils.dropRole( sdb, roleName );
 
         BSONObject role = null;
-        // 需要具备testCS和testCL权限
         String roleStr = "{Role:'" + roleName
                 + "',Privileges:[{Resource:{ cs:'SYSSTAT',cl:''}, Actions: ['createCL','dropCL','testCS'] }] }";
         System.out.println( "roleStr -- " + roleStr );
@@ -75,8 +74,10 @@ public class Rbac32792 extends SdbTestBase {
                 systemCS.getCollection( "SYSINDEXSTAT" );
                 Assert.fail( "insertRecord should throw exception" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
             userData.close();
         } finally {

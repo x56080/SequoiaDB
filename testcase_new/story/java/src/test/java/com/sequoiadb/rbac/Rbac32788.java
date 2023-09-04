@@ -78,7 +78,6 @@ public class Rbac32788 extends SdbTestBase {
                 "createCL", "dropCL", "renameCL", "listCollections" };
         BSONObject role = null;
         for ( String action : actions ) {
-
             // 需要具备testCS和testCL权限
             String roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ cs:'" + csName
@@ -123,7 +122,6 @@ public class Rbac32788 extends SdbTestBase {
                             clName1, userCL1, true );
                     RbacUtils.getDetailActionSupportCommand( sdb, csName,
                             clName2, userCL2, true );
-                    // java驱动端没有额外的接口，只能通过命令行验证
                     RbacUtils.getDetailActionSupportCommand( sdb, csName,
                             clName1, userCS, true );
                     break;
@@ -176,8 +174,10 @@ public class Rbac32788 extends SdbTestBase {
                     userSdb.beginTransaction();
                     Assert.fail( "should error but success" );
                 } catch ( BaseException e ) {
-                    Assert.assertEquals( e.getErrorCode(),
-                            SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                    if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                            .getErrorCode() ) {
+                        throw e;
+                    }
                 }
             } finally {
                 sdb.removeUser( user, password );
@@ -205,8 +205,10 @@ public class Rbac32788 extends SdbTestBase {
                 userCS.dropCollection( clName1 );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
@@ -217,8 +219,10 @@ public class Rbac32788 extends SdbTestBase {
                 cursor.close();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );

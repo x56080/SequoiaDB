@@ -1,5 +1,6 @@
 package com.sequoiadb.rbac.serial;
 
+import com.sequoiadb.base.CollectionSpace;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.SkipException;
@@ -22,11 +23,13 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac33058 extends SdbTestBase {
+public class Rbac33058_33062 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String user = "user_33058";
     private String password = "passwd_33058";
     private String roleName = "role_33058";
+    private String csName = "cs_33058";
+    private String clName = "cl_33058";
 
     @BeforeClass
     public void setUp() {
@@ -38,6 +41,9 @@ public class Rbac33058 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
+
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
+        cs.createCollection( clName );
     }
 
     @Test
@@ -59,7 +65,8 @@ public class Rbac33058 extends SdbTestBase {
     private void testAccessControl( Sequoiadb sdb, String resource ) {
         String groupName = "group_33058";
         String[] actions1 = { "createRG", "forceStepUp", "getRG", "removeRG",
-                "reloadConf", "deleteConf", "updateConf", "getNode" };
+                "reloadConf", "deleteConf", "updateConf", "getNode",
+                "removeBackup" };
         BSONObject role = null;
         for ( String action : actions1 ) {
             Sequoiadb userSdb = null;
@@ -75,8 +82,8 @@ public class Rbac33058 extends SdbTestBase {
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
                 switch ( action ) {
                 case "createRG":
-                    // RbacUtils.createRGActionSupportCommand( sdb, userSdb,
-                    // groupName, true );
+                    RbacUtils.createRGActionSupportCommand( sdb, userSdb,
+                            groupName, true );
                     break;
                 case "getRG":
                     RbacUtils.getRGActionSupportCommand( sdb, userSdb, true );
@@ -95,6 +102,10 @@ public class Rbac33058 extends SdbTestBase {
                     break;
                 case "getNode":
                     RbacUtils.getNodeActionSupportCommand( sdb, userSdb, true );
+                    break;
+                case "removeBackup":
+                    RbacUtils.removeBackupActionSupportCommand( sdb, userSdb,
+                            csName, clName, true );
                     break;
                 default:
                     System.out.println( "action -- " + action );

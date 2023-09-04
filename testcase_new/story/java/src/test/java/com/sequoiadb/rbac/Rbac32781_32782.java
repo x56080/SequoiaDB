@@ -1,9 +1,10 @@
 package com.sequoiadb.rbac;
 
+import com.sequoiadb.base.*;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -11,16 +12,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-32777:创建角色指定Resource为主表
+ * @Description seqDB-32781:角色Resource指定为集合，重命名集合
+ *              seqDB-32782:角色Resource指定为集合，重建集合
  * @Author liuli
  * @Date 2023.08.16
  * @UpdateAuthor liuli
@@ -28,14 +25,14 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.10
  */
 @Test(groups = "rbac")
-public class Rbac32777 extends SdbTestBase {
+public class Rbac32781_32782 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String user = "user_32777";
-    private String password = "passwd_32777";
-    private String roleName = "role_32777";
-    private String csName = "cs_32777";
-    private String mainCLName = "maincl_32777";
-    private String subCLName = "subcl_32777";
+    private String user = "user_32781";
+    private String password = "passwd_32781";
+    private String roleName = "role_32781";
+    private String csName = "cs_32781";
+    private String clName = "cl_32781";
+    private String clNameNew = "cl_new_32781";
 
     @BeforeClass
     public void setUp() {
@@ -49,20 +46,7 @@ public class Rbac32777 extends SdbTestBase {
         }
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
-        BasicBSONObject optionsM = new BasicBSONObject();
-        optionsM.put( "IsMainCL", true );
-        optionsM.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
-        optionsM.put( "ShardingType", "range" );
-        optionsM.put( "LobShardingKeyFormat", "YYYYMMDD" );
-        DBCollection maincl = cs.createCollection( mainCLName, optionsM );
-
-        cs.createCollection( subCLName, new BasicBSONObject( "ShardingKey",
-                new BasicBSONObject( "date", 1 ) ) );
-
-        BasicBSONObject optionS = new BasicBSONObject();
-        optionS.put( "LowBound", new BasicBSONObject( "date", new MinKey() ) );
-        optionS.put( "UpBound", new BasicBSONObject( "date", new MaxKey() ) );
-        maincl.attachCollection( csName + "." + subCLName, optionS );
+        cs.createCollection( clName );
     }
 
     @Test
@@ -83,17 +67,17 @@ public class Rbac32777 extends SdbTestBase {
     }
 
     private void testAccessControl( Sequoiadb sdb ) {
-
         String[] actions = { "find", "insert", "update", "remove", "getDetail",
-                "alterCL", "createIndex", "dropIndex", "truncate",
-                "copyIndex" };
+                "alterCL", "createIndex", "dropIndex", "truncate" };
+        CollectionSpace dbcs = sdb.getCollectionSpace( csName );
         BSONObject role = null;
         for ( String action : actions ) {
             Sequoiadb userSdb = null;
             try {
+                // 需要具备testCS和testCL权限
                 String roleStr = "{Role:'" + roleName
                         + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
-                        + mainCLName + "'}, Actions: ['" + action + "'] }"
+                        + clName + "'}, Actions: ['" + action + "'] }"
                         + ",{ Resource: { cs: '" + csName
                         + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
                 System.out.println( "roleStr -- " + roleStr );
@@ -103,21 +87,16 @@ public class Rbac32777 extends SdbTestBase {
                         .parse( "{Roles:['" + roleName + "']}" ) );
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
 
-                DBCollection userMainCL = userSdb.getCollectionSpace( csName )
-                        .getCollection( mainCLName );
-                DBCollection rootMainCL = sdb.getCollectionSpace( csName )
-                        .getCollection( mainCLName );
-                DBCollection userSubCL1 = userSdb.getCollectionSpace( csName )
-                        .getCollection( subCLName );
-                DBCollection rootSubCL1 = sdb.getCollectionSpace( csName )
-                        .getCollection( subCLName );
-
+                // 重命名集合
+                dbcs.renameCollection( clName, clNameNew );
+                DBCollection rootCL = dbcs.getCollection( clNameNew );
+                DBCollection userCL = userSdb.getCollectionSpace( csName )
+                        .getCollection( clNameNew );
                 switch ( action ) {
                 case "find":
-                    RbacUtils.findActionSupportCommand( sdb, csName, mainCLName,
-                            userMainCL, true );
+                    System.out.println( "!action find" );
                     try {
-                        userSubCL1.queryOne();
+                        userCL.queryOne();
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -127,11 +106,9 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "insert":
-                    RbacUtils.insertActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
+                    System.out.println( "!action insert" );
                     try {
-                        userSubCL1
-                                .insertRecord( new BasicBSONObject( "a", 1 ) );
+                        userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -141,10 +118,9 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "update":
-                    RbacUtils.updateActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
+                    System.out.println( "!action update" );
                     try {
-                        userSubCL1.updateRecords( new BasicBSONObject( "a", 1 ),
+                        userCL.updateRecords( new BasicBSONObject( "a", 1 ),
                                 new BasicBSONObject( "$set",
                                         new BasicBSONObject( "a", 2 ) ) );
                         Assert.fail( "should error but success" );
@@ -156,11 +132,9 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "remove":
-                    RbacUtils.removeActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
+                    System.out.println( "!action remove" );
                     try {
-                        userSubCL1
-                                .deleteRecords( new BasicBSONObject( "a", 2 ) );
+                        userCL.deleteRecords( new BasicBSONObject( "a", 2 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -170,10 +144,8 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "getDetail":
-                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
                     try {
-                        userSubCL1.getIndexes();
+                        userCL.queryOne();
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -183,11 +155,9 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "alterCL":
-                    // 部分alterCL操作主表不支持
-                    userMainCL.alterCollection(
-                            new BasicBSONObject( "ReplSize", -1 ) );
+                    System.out.println( "!action alterCL" );
                     try {
-                        userSubCL1.alterCollection(
+                        userCL.alterCollection(
                                 new BasicBSONObject( "ReplSize", -1 ) );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
@@ -198,11 +168,10 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "createIndex":
-                    RbacUtils.createIndexActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
+                    System.out.println( "!action createIndex" );
                     try {
-                        String indexName = "index_" + subCLName;
-                        userSubCL1.createIndex( indexName,
+                        String indexName = "index_" + clName;
+                        userCL.createIndex( indexName,
                                 new BasicBSONObject( "a", 1 ), null );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
@@ -213,13 +182,12 @@ public class Rbac32777 extends SdbTestBase {
                     }
                     break;
                 case "dropIndex":
-                    RbacUtils.dropIndexActionSupportCommand( sdb, csName,
-                            mainCLName, userMainCL, true );
-                    String indexName = "index_" + subCLName;
-                    rootSubCL1.createIndex( indexName,
+                    System.out.println( "!action dropIndex" );
+                    String indexName = "index_" + clName;
+                    rootCL.createIndex( indexName,
                             new BasicBSONObject( "a", 1 ), null );
                     try {
-                        userSubCL1.dropIndex( indexName );
+                        userCL.dropIndex( indexName );
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -227,54 +195,13 @@ public class Rbac32777 extends SdbTestBase {
                             throw e;
                         }
                     } finally {
-                        rootSubCL1.dropIndex( indexName );
+                        rootCL.dropIndex( indexName );
                     }
                     break;
                 case "truncate":
-                    userMainCL.truncate();
+                    System.out.println( "!action truncate" );
                     try {
-                        userSubCL1.truncate();
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
-                                .getErrorCode() ) {
-                            throw e;
-                        }
-                    }
-                    break;
-                case "copyIndex":
-                    // 主表创建索引
-                    indexName = "index_" + mainCLName;
-                    rootMainCL.createIndex( indexName,
-                            new BasicBSONObject( "a", 1 ), null );
-                    // 子表删除索引
-                    rootSubCL1.dropIndex( indexName );
-                    // 执行copyIndex
-                    userMainCL.copyIndex( "", "" );
-                    // 子表删除索引
-                    rootSubCL1.dropIndex( indexName );
-                    // 异步copyIndex
-                    long taskId = userMainCL.copyIndexAsync( "", "" );
-                    long[] taskIds = new long[ 1 ];
-                    taskIds[ 0 ] = taskId;
-                    sdb.waitTasks( taskIds );
-
-                    rootMainCL.dropIndex( indexName );
-                    // 主表创建索引
-                    try {
-                        userMainCL.createIndex( indexName,
-                                new BasicBSONObject( "a", 1 ), null );
-                        Assert.fail( "should error but success" );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
-                                .getErrorCode() ) {
-                            throw e;
-                        }
-                    }
-                    // 子表创建索引
-                    try {
-                        userMainCL.createIndex( indexName,
-                                new BasicBSONObject( "a", 1 ), null );
+                        userCL.truncate();
                         Assert.fail( "should error but success" );
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -286,12 +213,101 @@ public class Rbac32777 extends SdbTestBase {
                 default:
                     break;
                 }
+
+                // 再次重命名回原始名称
+                dbcs.renameCollection( clNameNew, clName );
+                userCL = userSdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                switch ( action ) {
+                case "find":
+                    RbacUtils.findActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "insert":
+                    RbacUtils.insertActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "update":
+                    RbacUtils.updateActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "remove":
+                    RbacUtils.removeActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "getDetail":
+                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "alterCL":
+                    RbacUtils.alterCLActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "createIndex":
+                    RbacUtils.createIndexActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "dropIndex":
+                    RbacUtils.dropIndexActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "truncate":
+                    userCL.truncate();
+                    break;
+                default:
+                    break;
+                }
+
+                // 删除集合后重建同名集合
+                dbcs.dropCollection( clName );
+                dbcs.createCollection( clName );
+                userCL = userSdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                switch ( action ) {
+                case "find":
+                    RbacUtils.findActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "insert":
+                    RbacUtils.insertActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "update":
+                    RbacUtils.updateActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "remove":
+                    RbacUtils.removeActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "getDetail":
+                    RbacUtils.getDetailActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "alterCL":
+                    RbacUtils.alterCLActionSupportCommand( sdb, csName, clName,
+                            userCL, true );
+                    break;
+                case "createIndex":
+                    RbacUtils.createIndexActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "dropIndex":
+                    RbacUtils.dropIndexActionSupportCommand( sdb, csName,
+                            clName, userCL, true );
+                    break;
+                case "truncate":
+                    userCL.truncate();
+                    break;
+                default:
+                    break;
+                }
             } finally {
                 if ( userSdb != null ) {
                     userSdb.close();
                 }
+                RbacUtils.removeUser( sdb, user, password );
                 sdb.dropRole( roleName );
-                sdb.removeUser( user, password );
             }
         }
     }

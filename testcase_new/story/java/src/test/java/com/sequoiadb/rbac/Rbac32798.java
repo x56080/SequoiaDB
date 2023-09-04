@@ -46,7 +46,6 @@ public class Rbac32798 extends SdbTestBase {
                 "listCollections" };
         BSONObject role = null;
         for ( String action : actions ) {
-            // 需要具备testCS和testCL权限
             String roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ Cluster:true}, Actions: ['"
                     + action + "'] }] }";

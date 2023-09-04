@@ -63,7 +63,6 @@ public class Rbac32793 extends SdbTestBase {
                 "listProcedures", "listBackup", "getDCInfo", "alterDC" };
         BSONObject role = null;
         for ( String action : actions ) {
-            // 指定权限为跨集合空间的同名集合
             String roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ cs:'" + csName
                     + "',cl:''}, Actions: ['" + action + "'] }"
@@ -74,8 +73,10 @@ public class Rbac32793 extends SdbTestBase {
                 sdb.createRole( role );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_INVALIDARG.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_INVALIDARG
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }

@@ -1019,6 +1019,14 @@ public class RbacUtils extends SdbTestBase {
         String backupName = "backup_" + csName;
 
         // 执行备份
+        try {
+            sdb.removeBackup( new BasicBSONObject( "Name", backupName ) );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_BAR_BACKUP_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
+        }
         userSdb.backup( new BasicBSONObject( "Name", backupName ) );
 
         // 执行部分不支持的操作
@@ -1223,7 +1231,7 @@ public class RbacUtils extends SdbTestBase {
         BSONObject role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
 
-        DBCursor cursor = userSdb.listRole( null );
+        DBCursor cursor = userSdb.listRoles( null );
         cursor.getNext();
         cursor.close();
 
@@ -1691,6 +1699,39 @@ public class RbacUtils extends SdbTestBase {
         }
     }
 
+    public static void evalActionSupportCommand( Sequoiadb sdb,
+            Sequoiadb userSdb, String csName, String clName,
+            boolean executeNotSupport ) {
+        String procedureName = csName + "_procedure";
+        try {
+            sdb.rmProcedure( procedureName );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_FMP_FUNC_NOT_EXIST
+                    .getErrorCode() ) {
+                throw e;
+            }
+        }
+        sdb.crtJSProcedure(
+                "function " + procedureName + "(x,y){return x+y;}" );
+        // 执行支持的操作
+        userSdb.evalJS( procedureName + "(1,2)" );
+
+        // 执行部分不支持的操作
+        if ( executeNotSupport ) {
+            try {
+                userSdb.rmProcedure( procedureName );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+        }
+
+        sdb.rmProcedure( procedureName );
+    }
+
     public static void flushConfigureActionSupportCommand( Sequoiadb sdb,
             Sequoiadb userSdb, String csName, String clName,
             boolean executeNotSupport ) {
@@ -1700,7 +1741,7 @@ public class RbacUtils extends SdbTestBase {
         // 执行部分不支持的操作
         if ( executeNotSupport ) {
             try {
-                DBCursor cursor = userSdb.listRole( null );
+                DBCursor cursor = userSdb.listRoles( null );
                 cursor.getNext();
                 cursor.close();
                 Assert.fail( "should error but success" );
@@ -1765,7 +1806,7 @@ public class RbacUtils extends SdbTestBase {
             }
 
             try {
-                DBCursor cursor = userSdb.listRole( null );
+                DBCursor cursor = userSdb.listRoles( null );
                 cursor.getNext();
                 cursor.close();
                 Assert.fail( "should error but success" );
@@ -1885,7 +1926,7 @@ public class RbacUtils extends SdbTestBase {
         // 执行部分不支持的操作
         if ( executeNotSupport ) {
             try {
-                DBCursor cursor = userSdb.listRole( null );
+                DBCursor cursor = userSdb.listRoles( null );
                 cursor.getNext();
                 cursor.close();
                 Assert.fail( "should error but success" );
@@ -2712,10 +2753,7 @@ public class RbacUtils extends SdbTestBase {
         // 执行支持的操作
         List< String > groupNames = CommLib.getDataGroupNames( sdb );
         ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
-        ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
-        Node rootSlaveNode = rootGroup.getSlave();
         Node slaveNode = group.getSlave();
-        rootSlaveNode.stop();
         slaveNode.start();
 
         // 执行部分不支持的操作
@@ -2740,10 +2778,8 @@ public class RbacUtils extends SdbTestBase {
         List< String > groupNames = CommLib.getDataGroupNames( sdb );
         ReplicaGroup group = userSdb.getReplicaGroup( groupNames.get( 0 ) );
         ReplicaGroup rootGroup = sdb.getReplicaGroup( groupNames.get( 0 ) );
-        Node rootSlaveNode = rootGroup.getSlave();
         Node slaveNode = group.getSlave();
         slaveNode.stop();
-        rootSlaveNode.start();
 
         // 执行部分不支持的操作
         if ( executeNotSupport ) {
@@ -2758,6 +2794,7 @@ public class RbacUtils extends SdbTestBase {
             }
         }
 
+        rootGroup.start();
         CommLib.waitGroupSelectMasterNode( sdb, groupNames.get( 0 ), 300 );
     }
 

@@ -70,20 +70,19 @@ public class Rbac32775 extends SdbTestBase {
                 "alterCL", "createIndex", "dropIndex", "truncate" };
         BSONObject role = null;
         for ( String action : actions ) {
-            Sequoiadb userSdb = null;
-            try {
-                // 需要具备testCS和testCL权限
-                String roleStr = "{Role:'" + roleName
-                        + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
-                        + clName + "'}, Actions: ['" + action + "'] }"
-                        + ",{ Resource: { cs: '" + csName
-                        + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
-                role = ( BSONObject ) JSON.parse( roleStr );
-                sdb.createRole( role );
-                sdb.createUser( user, password, ( BSONObject ) JSON
-                        .parse( "{Roles:['" + roleName + "']}" ) );
-                userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
+            // 需要具备testCS和testCL权限
+            String roleStr = "{Role:'" + roleName
+                    + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
+                    + clName + "'}, Actions: ['" + action + "'] }"
+                    + ",{ Resource: { cs: '" + csName
+                    + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
+            System.out.println( "roleStr -- " + roleStr );
+            role = ( BSONObject ) JSON.parse( roleStr );
+            sdb.createRole( role );
+            sdb.createUser( user, password, ( BSONObject ) JSON
+                    .parse( "{Roles:['" + roleName + "']}" ) );
+            try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
+                    password )) {
                 DBCollection userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 switch ( action ) {
@@ -126,7 +125,6 @@ public class Rbac32775 extends SdbTestBase {
                     break;
                 }
             } finally {
-                userSdb.close();
                 sdb.removeUser( user, password );
                 sdb.dropRole( roleName );
             }
@@ -155,8 +153,10 @@ public class Rbac32775 extends SdbTestBase {
                 userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
 
             try {
@@ -167,8 +167,10 @@ public class Rbac32775 extends SdbTestBase {
                 cursor.close();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_NO_PRIVILEGES.getErrorCode() );
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
             }
         } finally {
             sdb.removeUser( user, password );
