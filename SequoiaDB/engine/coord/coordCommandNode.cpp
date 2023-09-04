@@ -1157,6 +1157,7 @@ namespace engine
       const CHAR *pGroupName           = NULL ;
       const CHAR *pQuery               = NULL ;
       MsgOpQuery *pCreateReq           = (MsgOpQuery *)pMsg ;
+      vector<BSONObj> replyObjs;
 
       PD_TRACE_ENTRY ( COORD_CREATEGROUP_EXE ) ;
 
@@ -1189,12 +1190,21 @@ namespace engine
 
       /// execute on catalog
       pCreateReq->header.opCode = MSG_CAT_CREATE_GROUP_REQ ;
-      rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
+      rc = executeOnCataGroup( pMsg, cb, NULL, &replyObjs, TRUE, NULL, NULL ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to execute on catalog, rc: %d", rc ) ;
          goto error ;
       }
+
+      if ( replyObjs.empty() )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Failed to get group info from reply, rc: %d", rc);
+         goto error;
+      }
+
+      *buf = rtnContextBuf( replyObjs[0] );
 
    done :
       if ( pGroupName )
@@ -2090,6 +2100,12 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 _coordCMDCreateNode::_doOutput( rtnContextBuf *buf )
+   {
+      *buf = rtnContextBuf( _nodeInfo );
+      return SDB_OK;
+   }
+
    AUDIT_OBJ_TYPE _coordCMDCreateNode::_getAuditObjectType() const
    {
       return AUDIT_OBJ_NODE ;
@@ -2113,6 +2129,26 @@ namespace engine
          svcname = _pSvcName ;
       }
       return hostname + ":" + svcname ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CREATENODE_PARSECATP2RETURN, "_coordCMDCreateNode::parseCatP2Return" )
+   INT32 _coordCMDCreateNode::parseCatP2Return( coordCMDArguments *pArgs,
+                                                const std::vector< bson::BSONObj > &cataObjs )
+   {
+      INT32 rc = SDB_OK;
+      if ( cataObjs.empty() )
+      {
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Failed to get node info from catalog on phase 2" );
+         goto error;
+      }
+      _nodeInfo = cataObjs.at(0).getOwned();
+
+   done:
+      PD_TRACE_EXITRC( COORD_CREATENODE_PARSECATP2RETURN, rc );
+      return rc;
+   error:
+      goto done;
    }
 
    /*

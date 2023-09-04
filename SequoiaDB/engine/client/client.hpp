@@ -3249,12 +3249,14 @@ namespace sdbclient
       virtual INT32 createNode ( const CHAR *pHostName,
                                  const CHAR *pServiceName,
                                  const CHAR *pDatabasePath,
-                                 std::map<std::string,std::string> &config )= 0;
+                                 std::map<std::string,std::string> &config,
+                                 _sdbNode **ppNode = NULL ) = 0 ;
 
       virtual INT32 createNode ( const CHAR *pHostName,
                                  const CHAR *pServiceName,
                                  const CHAR *pDatabasePath,
-                                 const bson::BSONObj &options = _sdbStaticObject )= 0;
+                                 const bson::BSONObj &options = _sdbStaticObject,
+                                 _sdbNode **ppNode = NULL ) = 0 ;
 
       // remove the specified node in current replica group
       virtual INT32 removeNode ( const CHAR *pHostName,
@@ -3535,14 +3537,15 @@ namespace sdbclient
       INT32 createNode ( const CHAR *pHostName,
                          const CHAR *pServiceName,
                          const CHAR *pDatabasePath,
-                         std::map<std::string,std::string> &config )
+                         std::map<std::string,std::string> &config,
+                         _sdbNode **pNode = NULL )
       {
          if ( !pReplicaGroup )
          {
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->createNode ( pHostName, pServiceName,
-                                            pDatabasePath, config ) ;
+                                            pDatabasePath, config, pNode ) ;
       }
 
       /** \fn INT32 createNode ( const CHAR *pHostName,
@@ -3560,14 +3563,15 @@ namespace sdbclient
       INT32 createNode ( const CHAR *pHostName,
                          const CHAR *pServiceName,
                          const CHAR *pDatabasePath,
-                         const bson::BSONObj &options = _sdbStaticObject )
+                         const bson::BSONObj &options = _sdbStaticObject,
+                         _sdbNode **pNode = NULL )
       {
          if ( !pReplicaGroup )
          {
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->createNode ( pHostName, pServiceName,
-                                            pDatabasePath, options ) ;
+                                            pDatabasePath, options, pNode ) ;
       }
 
       /** \fn INT32 removeNode ( const CHAR *pHostName,

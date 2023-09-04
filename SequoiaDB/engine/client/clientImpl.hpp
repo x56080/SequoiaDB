@@ -910,12 +910,14 @@ namespace sdbclient
       INT32 createNode ( const CHAR *pHostName,
                          const CHAR *pServiceName,
                          const CHAR *pDatabasePath,
-                         std::map<std::string,std::string> &config ) ;
+                         std::map<std::string,std::string> &config,
+                         _sdbNode **ppNode = NULL ) ;
 
       INT32 createNode ( const CHAR *pHostName,
                          const CHAR *pServiceName,
                          const CHAR *pDatabasePath,
-                         const bson::BSONObj &options = _sdbStaticObject ) ;
+                         const bson::BSONObj &options = _sdbStaticObject,
+                         _sdbNode **ppNode = NULL ) ;
 
       // remove the specified node in current replica group
       INT32 removeNode ( const CHAR *pHostName,

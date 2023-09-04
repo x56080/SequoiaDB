@@ -5197,11 +5197,14 @@ do                                                            \
    INT32 _sdbReplicaGroupImpl::createNode ( const CHAR *pHostName,
                                             const CHAR *pServiceName,
                                             const CHAR *pDatabasePath,
-                                            const bson::BSONObj &options )
+                                            const bson::BSONObj &options,
+                                            _sdbNode **ppNode )
    {
       INT32 rc = SDB_OK ;
       BSONObj configuration ;
       BSONObjBuilder ob ;
+      _sdbCursor *cursor = NULL;
+      BSONObj nodeObj;
 
       if ( _replicaGroupName[0] == '\0' ||
            !pHostName || !pServiceName || !pDatabasePath )
@@ -5233,28 +5236,65 @@ do                                                            \
       configuration = ob.obj () ;
 
       // run command
-      rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_CREATE_NODE,
-                                      &configuration );
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_NODE, &configuration, NULL,
+                                     NULL, NULL, 0, 0, 0, -1, &cursor ) ;
       if ( rc )
       {
          goto error ;
       }
 
-   done :
+      if ( ppNode )
+      {
+         rc = cursor->next( nodeObj );
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = getNode( pHostName, pServiceName, ppNode );
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         if ( rc )
+         {
+            goto error;
+         }
+         else
+         {
+            rc = _extractNode( ppNode, nodeObj.objdata());
+            if ( rc )
+            {
+               goto error ;
+            }
+            // if no match, let's clear
+            if ( ossStrcmp( ( (_sdbNodeImpl *)( *ppNode ) )->_hostName, pHostName ) != 0 ||
+                 ossStrcmp( ( (_sdbNodeImpl *)( *ppNode ) )->_serviceName, pServiceName ) != 0 )
+            {
+               SDB_OSS_DEL( ( *ppNode ) );
+               *ppNode = NULL;
+               goto error;
+            }
+         }
+      }
+
+   done:
+      SAFE_OSS_DELETE( cursor ) ;
       return rc ;
-   error :
+   error:
       goto done ;
    }
 
    INT32 _sdbReplicaGroupImpl::createNode ( const CHAR *pHostName,
                                             const CHAR *pServiceName,
                                             const CHAR *pDatabasePath,
-                                            map<string,string> &config )
+                                            map<string,string> &config,
+                                            _sdbNode **ppNode )
    {
       INT32 rc = SDB_OK ;
       BSONObj configuration ;
       BSONObjBuilder ob ;
       map<string,string>::iterator it ;
+      _sdbCursor *cursor = NULL;
+      BSONObj nodeObj;
 
       if ( _replicaGroupName[0] == '\0' ||
            !pHostName || !pServiceName || !pDatabasePath )
@@ -5293,16 +5333,46 @@ do                                                            \
       configuration = ob.obj () ;
 
       // run command
-      rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_CREATE_NODE,
-                                      &configuration );
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_NODE, &configuration, NULL,
+                                     NULL, NULL, 0, 0, 0, -1, &cursor ) ;
       if ( rc )
       {
          goto error ;
       }
 
-   done :
+      if ( ppNode )
+      {
+         rc = cursor->next( nodeObj );
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = getNode( pHostName, pServiceName, ppNode );
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else
+         {
+            rc = _extractNode( ppNode, nodeObj.objdata());
+            if ( rc )
+            {
+               goto error ;
+            }
+            // if no match, let's clear
+            if ( ossStrcmp( ( (_sdbNodeImpl *)( *ppNode ) )->_hostName, pHostName ) != 0 ||
+                 ossStrcmp( ( (_sdbNodeImpl *)( *ppNode ) )->_serviceName, pServiceName ) != 0 )
+            {
+               SDB_OSS_DEL( ( *ppNode ) );
+               *ppNode = NULL;
+               goto error;
+            }
+         }
+      }
+
+   done:
+      SAFE_OSS_DELETE( cursor ) ;
       return rc ;
-   error :
+   error:
       goto done ;
    }
 
@@ -14401,6 +14471,7 @@ error:
       }
 
    done:
+      SAFE_OSS_DELETE( cursor ) ;
       return rc ;
    error:
       goto done ;

@@ -304,19 +304,13 @@ namespace engine
          goto error ;
       }
       rc = _rg.createNode( hostname.c_str(), svcname.c_str(), dbPath.c_str(),
-                           configs ) ;
+                           configs, &pNode ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to create node" ) ;
          goto error ;
       }
 
-      rc = _rg.getNode( hostname.c_str(), svcname.c_str(), &pNode ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to get node" ) ;
-         goto error ;
-      }
       rc = pNode->getNodeID( nodeID ) ;
       if( SDB_OK != rc )
       {

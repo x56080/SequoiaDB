@@ -839,7 +839,7 @@ namespace engine
       switch ( pQueryReq->header.opCode )
       {
          case MSG_CAT_CREATE_GROUP_REQ :
-            rc = processCmdCreateGrp( pQuery ) ;
+            rc = processCmdCreateGrp( pQuery, ctxBuff ) ;
             break ;
          case MSG_CAT_UPDATE_NODE_REQ :
             rc = processCmdUpdateNode( handle, pQuery, pFieldSelector ) ;
@@ -930,7 +930,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_PCREATEGRP, "catNodeManager::processCmdCreateGrp" )
-   INT32 catNodeManager::processCmdCreateGrp( const CHAR *pQuery )
+   INT32 catNodeManager::processCmdCreateGrp( const CHAR *pQuery, rtnContextBuf &buf )
    {
       INT32 rc = SDB_OK ;
       const CHAR *groupName = NULL ;
@@ -954,7 +954,7 @@ namespace engine
          goto error;
       }
 
-      rc = _createGrp( groupName ) ;
+      rc = _createGrp( groupName, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process create group request(rc=%d)",
                    rc ) ;
 
@@ -1923,7 +1923,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_CREATEGRP, "catNodeManager::_createGrp" )
-   INT32 catNodeManager::_createGrp( const CHAR *groupName )
+   INT32 catNodeManager::_createGrp( const CHAR *groupName, rtnContextBuf &buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_CREATEGRP ) ;
@@ -1997,6 +1997,7 @@ namespace engine
                       "collection, rc: %d", boGroupInfo.toString().c_str(),
                       rc ) ;
          _pCatCB->insertGroupID( newGroupID, groupName, FALSE ) ;
+         buf = rtnContextBuf( boGroupInfo );
       }
       catch( std::exception &e )
       {

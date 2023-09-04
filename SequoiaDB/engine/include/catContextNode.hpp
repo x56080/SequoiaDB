@@ -264,6 +264,8 @@ namespace engine
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
+      virtual INT32 _buildP2Reply( bson::BSONObjBuilder &builder );
+
       INT32 _checkLocalHost ( BOOLEAN isLocalHost,
                               BOOLEAN &isValid,
                               _pmdEDUCB *cb ) ;
