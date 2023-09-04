@@ -194,6 +194,11 @@ INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
 
 INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert ) ;
 
+/*
+   Caller show try/catch
+*/
+void  mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder, BSONObj *pOutObj = NULL ) ;
+
 INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf ) ;
 
 std::string mongoGetNonce() ;

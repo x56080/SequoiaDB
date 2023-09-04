@@ -2091,11 +2091,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    docList.toString().c_str(), name() ) ;
 
          builder.reset() ;
-         rc = _fixObject( ele.Obj(), insertor, builder ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
+         mongoFixInsertObject( ele.Obj(), builder, &insertor ) ;
 
          rc = sdbMsg.write( insertor, TRUE ) ;
          if ( rc )
@@ -2246,87 +2242,6 @@ done:
    return rc ;
 error:
    goto done ;
-}
-
-INT32 _mongoInsertCommand::_fixObject( const BSONObj &obj, BSONObj &out, BSONObjBuilder &builder )
-{
-   INT32 rc = SDB_OK ;
-   BSONElement idEle ;
-   INT32 fixPos = -1 ;
-   ossTimestamp tm ;
-
-   INT32 index = -1 ;
-   BSONObjIterator itr ( obj ) ;
-   while( itr.more() )
-   {
-      ++index ;
-      BSONElement e = itr.next() ;
-
-      if ( -1 == fixPos && Timestamp == e.type() && 0 == e.timestampTime() && 0 == e.timestampInc() )
-      {
-         fixPos = index ;
-      }
-      else if ( idEle.eoo() && (Date_t)0 == ossStrcmp( e.fieldName(), FAP_MONGO_FIELD_NAME_ID ) )
-      {
-         idEle = e ;
-      }
-
-      if ( -1 != fixPos && !idEle.eoo() )
-      {
-         break ;
-      }
-   }
-
-   if ( !idEle.eoo() && -1 == fixPos )
-   {
-      out = obj ;
-      goto done ;
-   }
-
-   /// rebuild object
-   if ( idEle.eoo() )
-   {
-      builder.appendOID( FAP_MONGO_FIELD_NAME_ID, NULL, TRUE ) ;
-   }
-   else
-   {
-      builder.append( idEle ) ;
-   }
-
-   index = -1 ;
-   itr = BSONObjIterator( obj ) ;
-   while( itr.more() )
-   {
-      ++index ;
-      BSONElement e = itr.next() ;
-      /// skip _id
-      if ( !idEle.eoo() && idEle.fieldName() == e.fieldName() )
-      {
-         idEle = BSONElement() ;
-      }
-      else if ( index < fixPos )
-      {
-         builder.append( e ) ;
-      }
-      else if ( Timestamp == e.type() && (Date_t)0 == e.timestampTime() && 0 == e.timestampInc() )
-      {
-         if ( 0 == tm.time )
-         {
-            ossGetCurrentTime( tm ) ;
-         }
-         OpTime opTm( tm.time, tm.microtm ) ;
-         builder.appendTimestamp( e.fieldName(), opTm.asDate() ) ;
-      }
-      else
-      {
-         builder.append( e ) ;
-      }
-   }
-
-   out = builder.done() ;
-
-done:
-   return rc ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
@@ -2640,7 +2555,14 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             ctx.setError( 9, "multi update is not supported for replacement-style update" ) ;
             goto error ;
          }
-         updator = BSON( FAP_MONGO_OPERATOR_REPLACE << updator ) ;
+         else
+         {
+            BSONObjBuilder builder( updator.objsize() + 16 ) ;
+            BSONObjBuilder sub( builder.subobjStart( FAP_MONGO_OPERATOR_REPLACE ) ) ;
+
+            mongoFixInsertObject( updator, sub, NULL ) ;
+            updator = builder.obj() ;
+         }
       }
 
       // upsert operation requires _id to return

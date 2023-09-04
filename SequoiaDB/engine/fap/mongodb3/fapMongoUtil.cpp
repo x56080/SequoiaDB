@@ -841,6 +841,103 @@ namespace fap
       goto done ;
    }
 
+   void mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder, BSONObj *pOutObj )
+   {
+      BSONElement idEle ;
+      INT32 fixPos = -1 ;
+      ossTimestamp tm ;
+
+      INT32 index = -1 ;
+      BSONObjIterator itr ( inObj ) ;
+      while( itr.more() )
+      {
+         ++index ;
+         BSONElement e = itr.next() ;
+
+         if ( -1 == fixPos && Timestamp == e.type() &&
+              (Date_t)0 == e.timestampTime() && 0 == e.timestampInc() )
+         {
+            fixPos = index ;
+         }
+         else if ( idEle.eoo() && 0 == ossStrcmp( e.fieldName(), FAP_MONGO_FIELD_NAME_ID ) )
+         {
+            idEle = e ;
+         }
+   
+         if ( -1 != fixPos && !idEle.eoo() )
+         {
+            break ;
+         }
+      }
+
+      if ( !idEle.eoo() && -1 == fixPos )
+      {
+         if ( pOutObj )
+         {
+            *pOutObj = inObj ;
+         }
+         else
+         {
+            builder.appendElements( inObj ) ;
+            builder.done() ;
+         }
+         goto done ;
+      }
+
+      /// rebuild object
+      if ( idEle.eoo() )
+      {
+         builder.appendOID( FAP_MONGO_FIELD_NAME_ID, NULL, TRUE ) ;
+      }
+      else
+      {
+         builder.append( idEle ) ;
+      }
+
+      index = -1 ;
+      itr = BSONObjIterator( inObj ) ;
+      while( itr.more() )
+      {
+         ++index ;
+         BSONElement e = itr.next() ;
+         /// skip _id
+         if ( !idEle.eoo() && idEle.fieldName() == e.fieldName() )
+         {
+            idEle = BSONElement() ;
+         }
+         else if ( -1 == fixPos || index < fixPos )
+         {
+            builder.append( e ) ;
+         }
+         else if ( Timestamp == e.type() && (Date_t)0 == e.timestampTime() &&
+                   0 == e.timestampInc() )
+         {
+            if ( 0 == tm.time )
+            {
+               ossGetCurrentTime( tm ) ;
+            }
+            OpTime opTm( tm.time, tm.microtm ) ;
+            builder.appendTimestamp( e.fieldName(), opTm.asDate() ) ;
+         }
+         else
+         {
+            builder.append( e ) ;
+         }
+      }
+
+      if ( pOutObj )
+      {
+         *pOutObj = builder.done() ;
+      }
+      else
+      {
+         builder.done() ;
+      }
+
+   done:
+      return ;
+   }
+
    INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf )
    {
       INT32 rc = SDB_OK ;

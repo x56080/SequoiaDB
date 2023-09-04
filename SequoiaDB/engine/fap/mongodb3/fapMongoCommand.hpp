@@ -393,9 +393,6 @@ class _mongoInsertCommand : public _mongoCollectionCommand
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
 
-   protected:
-      INT32 _fixObject( const BSONObj &obj, BSONObj &out, BSONObjBuilder &builder ) ;
-
    private:
       INT64    _insertedNum ;
       INT32    _index ;
