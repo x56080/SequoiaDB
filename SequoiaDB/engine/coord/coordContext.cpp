@@ -1090,7 +1090,7 @@ namespace engine
       }
 
       if ( !_hitEnd && _emptyContextMap.empty() &&
-           _orderedContexts.empty() && _prepareContextMap.empty() )
+           _orderedContexts.empty() && _prepareContextMap.empty() && isEmpty() )
       {
          _hitEnd = TRUE ;
       }
