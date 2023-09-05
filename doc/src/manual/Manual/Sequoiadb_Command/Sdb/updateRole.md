@@ -4,7 +4,7 @@ updateRole - 更新角色
 
 ##语法##
 
-**db.updateRole( <rolename>, <role> )**
+**db.updateRole(\<rolename\>, \<role\>)**
 
 ##类别##
 
@@ -22,7 +22,7 @@ Sdb
 
    * Privileges （ *array* ） 授予角色的权限数组。一个权限由一个Resource和Actions组成。
 
-   * Roles （ *array*） 该角色继承权限的角色数组。可以包含其他的自定义角色或者[内建角色][builtin_roles]。
+   * Roles （ *array* ） 该角色继承权限的角色数组。可以包含其他的自定义角色或者[内建角色][builtin_roles]。
 
 ##返回值##
 
@@ -31,6 +31,13 @@ Sdb
 函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
+
+常见异常如下：
+
+| 错误码 | 错误类型 | 描述 | 解决方法 |
+| ------ | ------ | --- | ------ |
+| -6   | SDB_INVALIDARG          | 参数错误 | 检查权限定义是否符合模型 |
+| -409 | SDB_AUTH_ROLE_NOT_EXIST | 指定角色不存在 | |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 

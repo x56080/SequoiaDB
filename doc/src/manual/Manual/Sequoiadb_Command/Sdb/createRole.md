@@ -4,7 +4,7 @@ createRole - 创建角色
 
 ##语法##
 
-**db.createRole( <role> )**
+**db.createRole(\<role\>)**
 
 ##类别##
 
@@ -33,6 +33,13 @@ role （ *object，必填* ）
 函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
+
+常见异常如下：
+
+| 错误码 | 错误类型 | 描述 | 解决方法 |
+| ------ | ------ | --- | ------ |
+| -6 | SDB_INVALIDARG | 参数错误 | 检查角色定义是否符合模型 |
+| -408 | SDB_AUTH_ROLE_EXIST | 同名角色已存在 | |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 

@@ -1,8 +1,8 @@
-## NAME ##
+##NAME##
 
 invalidateUserCache - Clear User Privileges Cache on Nodes
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
 **db.invalidateUserCache( [username], [options])**
 
@@ -12,7 +12,7 @@ Sdb
 
 ## DESCRIPTION ##
 
-This function is used to clear the cache information on nodes.
+This function is used to clear the user privileges cache on nodes.
 
 ## PARAMETERS ##
 

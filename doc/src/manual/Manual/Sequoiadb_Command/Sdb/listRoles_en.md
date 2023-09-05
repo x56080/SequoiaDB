@@ -1,8 +1,8 @@
-## NAME ##
+##NAME##
 
 listRoles - Get Information of All Roles
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
 **db.listRoles([options])**
 
@@ -24,7 +24,7 @@ This function is used to get information about all [custom roles][user_defined_r
 
 ## RETURN VALUE ##
 
-Upon successful execution, this function prints information about roles.
+Upon successful execution, this function will return a SdbCursor object through which the roles information can be obtained.
 
 Upon failure, it throws an exception and outputs an error message.
 

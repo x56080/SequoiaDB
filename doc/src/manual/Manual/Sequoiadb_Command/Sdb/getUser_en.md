@@ -1,8 +1,8 @@
-## NAME ##
+##NAME##
 
-GETUSER - Get User Information
+getUser - Get User Information
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
 **db.getUser(<username>, [options])**
 
@@ -24,11 +24,17 @@ This function is used to retrieve information about a specified user.
 
 ## RETURN VALUE ##
 
-Upon successful execution, this function prints information about the user.
+Upon successful execution, this function will return a BSONObj through which the user information can be obtained.
 
 Upon failure, it throws an exception and outputs an error message.
 
 ## ERRORS ##
+
+Common exceptions are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ------ | ------ | --- | ------ |
+| -300 | SDB_AUTH_USER_NOT_EXIST | The specified user does not exist | |
 
 When an exception is thrown, you can retrieve the error message using [getLastErrMsg()][getLastErrMsg] or the [error code][error_code] using [getLastError()][getLastError]. For more error handling, refer to the [Common Error Handling Guide][faq].
 
