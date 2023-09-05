@@ -804,7 +804,8 @@ namespace engine
    INT32 _dmsIndexStat::evalRangeOperator ( dmsStatKey &startKey,
                                             dmsStatKey &stopKey,
                                             UINT32 prefixEqualNum,
-                                            double curSelectivity,
+                                            double curPredSelectivity,
+                                            double curScanSelectivity,
                                             double &predSelectivity,
                                             double &scanSelectivity ) const
    {
@@ -813,7 +814,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALRANGEOPTR ) ;
 
       rc = _evalOperator( &startKey, &stopKey, prefixEqualNum,
-                          curSelectivity, predSelectivity, scanSelectivity ) ;
+                          curPredSelectivity, curScanSelectivity,
+                          predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALRANGEOPTR, rc ) ;
 
@@ -822,7 +824,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXSTAT_EVALETOPTR, "_dmsIndexStat::evalETOperator" )
    INT32 _dmsIndexStat::evalETOperator ( dmsStatKey &key,
-                                         double curSelectivity,
+                                         double curPredSelectivity,
+                                         double curScanSelectivity,
                                          double &predSelectivity,
                                          double &scanSelectivity ) const
    {
@@ -851,8 +854,9 @@ namespace engine
       {
          // the value is not in MCV set, evaluate with the rest of values
          predSelectivity = OSS_MIN( DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
-                                    OSS_MIN( _sampleStepPercent, curSelectivity ) ) ;
-         scanSelectivity = predSelectivity ;
+                                    OSS_MIN( _sampleStepPercent, curPredSelectivity ) ) ;
+         scanSelectivity = OSS_MIN( DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
+                                    OSS_MIN( _sampleStepPercent, curScanSelectivity ) ) ;
       }
       else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ||
                 predSelectivity < DMS_STAT_PRED_MIN_FRAC )
@@ -862,8 +866,9 @@ namespace engine
          // so the value should be treat as not common, adjust by the
          // current selectivity
          predSelectivity = OSS_MIN( DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
-                                    OSS_MIN( predSelectivity, curSelectivity ) ) ;
-         scanSelectivity = predSelectivity ;
+                                    OSS_MIN( predSelectivity, curPredSelectivity ) ) ;
+         scanSelectivity = OSS_MIN( DMS_STAT_PRED_EQ_DEF_SELECTIVITY,
+                                    OSS_MIN( scanSelectivity, curScanSelectivity ) ) ;
       }
 
    done :
@@ -883,7 +888,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALGTOPTR );
 
       rc = _evalOperator( &startKey, NULL, 0, DMS_STAT_PRED_DEF_SELECTIVITY,
-                          predSelectivity, scanSelectivity ) ;
+                          DMS_STAT_PRED_DEF_SELECTIVITY, predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALGTOPTR, rc ) ;
 
@@ -900,7 +905,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT_EVALLTOPTR );
 
       rc = _evalOperator( NULL, &stopKey, 0, DMS_STAT_PRED_DEF_SELECTIVITY,
-                          predSelectivity, scanSelectivity ) ;
+                          DMS_STAT_PRED_DEF_SELECTIVITY, predSelectivity, scanSelectivity ) ;
 
       PD_TRACE_EXITRC( SDB_DMSIDXSTAT_EVALLTOPTR, rc ) ;
 
@@ -911,7 +916,8 @@ namespace engine
    INT32 _dmsIndexStat::_evalOperator ( dmsStatKey *pStartKey,
                                         dmsStatKey *pStopKey,
                                         UINT32 numEqualKeys,
-                                        double curSelectivity,
+                                        double curPredSelectivity,
+                                        double curScanSelectivity,
                                         double &predSelectivity,
                                         double &scanSelectivity ) const
    {
@@ -932,8 +938,9 @@ namespace engine
       {
          // the value is not in MCV set, evaluate with the rest of values
          predSelectivity = OSS_MIN( DMS_STAT_PRED_RANGE_DEF_SELECTIVITY,
-                                    OSS_MIN( _sampleStepPercent, curSelectivity ) ) ;
-         scanSelectivity = predSelectivity ;
+                                    OSS_MIN( _sampleStepPercent, curPredSelectivity ) ) ;
+         scanSelectivity = OSS_MIN( DMS_STAT_PRED_RANGE_DEF_SELECTIVITY,
+                                    OSS_MIN( _sampleStepPercent, curScanSelectivity ) ) ; ;
       }
       else if ( predSelectivity < _sampleFrac * DMS_STAT_PRED_SAMPLE_FRAC_MAGNIFICATION ||
                 predSelectivity < DMS_STAT_PRED_MIN_FRAC )
@@ -944,8 +951,10 @@ namespace engine
          // current selectivity
          predSelectivity =
                OSS_MIN( DMS_STAT_PRED_RANGE_DEF_SELECTIVITY,
-                        OSS_MIN( predSelectivity, curSelectivity ) ) ;
-         scanSelectivity = predSelectivity ;
+                        OSS_MIN( predSelectivity, curPredSelectivity ) ) ;
+         scanSelectivity =
+               OSS_MIN( DMS_STAT_PRED_RANGE_DEF_SELECTIVITY,
+                        OSS_MIN( scanSelectivity, curScanSelectivity ) ) ;
       }
 
    done :

@@ -140,22 +140,22 @@ namespace engine
 
    static const UINT32 _optStatMaxPredNum = 32 ;
 
-   static FLOAT64 _optStatGetEQSel( UINT32 numEqual )
+   static FLOAT64 _optStatGetEQSel( UINT32 numKeys )
    {
-      if ( numEqual > _optStatMaxPredNum )
+      if ( numKeys > _optStatMaxPredNum )
       {
          return _optStatPredEQSel[ _optStatMaxPredNum ] ;
       }
-      return _optStatPredEQSel[ numEqual ] ;
+      return _optStatPredEQSel[ numKeys ] ;
    }
 
-   static FLOAT64 _optStatGetRangeSel( UINT32 numEqual )
+   static FLOAT64 _optStatGetRangeSel( UINT32 numKeys )
    {
-      if ( numEqual > _optStatMaxPredNum )
+      if ( numKeys > _optStatMaxPredNum )
       {
          return _optStatPredRangeSel[ _optStatMaxPredNum ] ;
       }
-      return _optStatPredRangeSel[ numEqual ] ;
+      return _optStatPredRangeSel[ numKeys ] ;
    }
 
    /*
@@ -551,7 +551,9 @@ namespace engine
                                       optStatListKey &stopKeys,
                                       UINT32 keyLevelNum,
                                       UINT32 prefixEqualNum,
-                                      double curSelectivity,
+                                      BOOLEAN needCalcScanSel,
+                                      double curPredSelectivity,
+                                      double curScanSelectivity,
                                       double &predSelectivity,
                                       double &scanSelectivity ) const
    {
@@ -568,14 +570,15 @@ namespace engine
       {
          if ( isEqual && startKeys.size() == pIndexStat->getNumKeys() )
          {
-            rc = pIndexStat->evalETOperator( startKeys, curSelectivity,
+            rc = pIndexStat->evalETOperator( startKeys, curPredSelectivity, curScanSelectivity,
                                              predSelectivity, scanSelectivity ) ;
          }
          else
          {
             rc = pIndexStat->evalRangeOperator( startKeys, stopKeys,
                                                 prefixEqualNum,
-                                                curSelectivity,
+                                                curPredSelectivity,
+                                                curScanSelectivity,
                                                 predSelectivity,
                                                 scanSelectivity ) ;
          }
@@ -597,7 +600,8 @@ namespace engine
                   iterSSKey != pPredicate->_startStopKeys.end() ;
                   iterSSKey ++ )
             {
-               BOOLEAN subIsEqual = isEqual && iterSSKey->isEquality() ;
+               BOOLEAN curIsEqual = iterSSKey->isEquality() ;
+               BOOLEAN subIsEqual = isEqual && curIsEqual ;
                double subScanSel = 1.0, subPredSel = 1.0 ;
                double curKeySel = 1.0 ;
 
@@ -644,12 +648,17 @@ namespace engine
                                                 iterSSKey->_stopKey._inclusive ) ;
                }
 
-               double nextSel = curSelectivity * curKeySel ;
+               double nextPredSel = curPredSelectivity * curKeySel ;
+               double nextScanSel = ( needCalcScanSel ) ?
+                                    ( ( curIsEqual || 0 == keyLevelNum ) ?
+                                      ( curScanSelectivity * curKeySel ) :
+                                      ( curScanSelectivity * curKeySel * OPT_IDX_SCAN_FAN_OUT ) ) :
+                                    ( curScanSelectivity ) ;
                rc = _evalKeyPair( pIndexStat, nextPred, endIter,
                                   startKeys, stopKeys,
                                   keyLevelNum + 1,
                                   subIsEqual ? prefixEqualNum + 1 : prefixEqualNum,
-                                  nextSel, subPredSel, subScanSel ) ;
+                                  needCalcScanSel, nextPredSel, nextScanSel, subPredSel, subScanSel ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
@@ -675,8 +684,8 @@ namespace engine
             stopKeys.pushKeyBound( &maxKeyBound ) ;
 
             rc = _evalKeyPair( pIndexStat, nextPred, endIter, startKeys, stopKeys,
-                               keyLevelNum + 1, prefixEqualNum,
-                               curSelectivity, predSelectivity, scanSelectivity ) ;
+                               keyLevelNum + 1, prefixEqualNum, FALSE,
+                               curPredSelectivity, curScanSelectivity, predSelectivity, scanSelectivity ) ;
 
             startKeys.popElement( startIncluded ) ;
             stopKeys.popElement( stopIncluded ) ;
@@ -698,7 +707,8 @@ namespace engine
    : _optStatUnit( collectionStat.getTotalRecords( TRUE ) ),
      _collectionStat( collectionStat ),
      _pIndexStat( collectionStat.getIndexStat( indexCB.getLogicalID() ) ),
-     _keyPattern( indexCB.keyPattern() )
+     _keyPattern( indexCB.keyPattern() ),
+     _isUnique( indexCB.unique() )
    {
       _keyPattern = _keyPattern.getOwned() ;
    }
@@ -727,7 +737,8 @@ namespace engine
          rtnStatPredList::iterator endIter = predList.end() ;
          optStatListKey startKeys, stopKeys ;
          rc = _evalKeyPair( _pIndexStat, predIter, endIter, startKeys, stopKeys,
-                            0, 0, OPT_PRED_DEFAULT_SELECTIVITY,
+                            0, 0, TRUE,
+                            OPT_PRED_DEFAULT_SELECTIVITY, OPT_PRED_DEFAULT_SELECTIVITY,
                             predSelectivity, scanSelectivity ) ;
       }
 
@@ -774,12 +785,14 @@ namespace engine
             FLOAT64 curSelectivity = _optStatGetEQSel( startKey.size() ) ;
             rc = _pIndexStat->evalETOperator( startKey,
                                               curSelectivity,
+                                              curSelectivity,
                                               predSelectivity,
                                               scanSelectivity ) ;
          }
          else
          {
             FLOAT64 curSelectivity = OPT_PRED_DEFAULT_SELECTIVITY ;
+            FLOAT64 curScanFanOut = 1.0 ;
             if ( isEqual )
             {
                curSelectivity = _optStatGetEQSel( startKey.size() ) ;
@@ -787,9 +800,11 @@ namespace engine
             else
             {
                curSelectivity = _optStatGetRangeSel( startKey.size() ) ;
+               curScanFanOut = startKey.size() > 1 ? OPT_IDX_SCAN_FAN_OUT : 1.0 ;
             }
             rc = _pIndexStat->evalRangeOperator( startKey, stopKey, 0,
                                                  curSelectivity,
+                                                 OPT_ROUND_SELECTIVITY( curSelectivity * curScanFanOut ),
                                                  predSelectivity,
                                                  scanSelectivity ) ;
          }
@@ -941,7 +956,8 @@ namespace engine
          optStatListKey startKeys, stopKeys ;
          INT32 rc = _optStatUnit::_evalKeyPair( pIndexStat, predIter, endIter,
                                                 startKeys, stopKeys,
-                                                0, 0, OPT_PRED_DEFAULT_SELECTIVITY,
+                                                0, 0, TRUE, OPT_PRED_DEFAULT_SELECTIVITY,
+                                                OPT_PRED_DEFAULT_SELECTIVITY,
                                                 selectivity,
                                                 scanSelectivity ) ;
 
@@ -1004,6 +1020,7 @@ namespace engine
             optStatElementKey eleKey( beStart, TRUE ) ;
             rc = pIndexStat->evalETOperator( eleKey,
                                              OPT_PRED_EQ_DEF_SELECTIVITY,
+                                             OPT_PRED_EQ_DEF_SELECTIVITY,
                                              predSelectivity, scanSelectivity ) ;
          }
          else
@@ -1011,10 +1028,9 @@ namespace engine
             // First key only
             optStatElementKey startEleKey( beStart, startIncluded ) ;
             optStatElementKey stopEleKey( beStop, stopIncluded ) ;
+            double tmpSel = isEqual ? OPT_PRED_EQ_DEF_SELECTIVITY : OPT_PRED_RANGE_DEF_SELECTIVITY ;
             rc = pIndexStat->evalRangeOperator( startEleKey, stopEleKey,
-                                                isEqual ? 1 : 0,
-                                                isEqual ? OPT_PRED_EQ_DEF_SELECTIVITY :
-                                                          OPT_PRED_RANGE_DEF_SELECTIVITY,
+                                                isEqual ? 1 : 0, tmpSel, tmpSel,
                                                 predSelectivity, scanSelectivity ) ;
          }
       }
@@ -1057,11 +1073,13 @@ namespace engine
          if ( pIndexStat->getNumKeys() == 1 )
          {
             rc = pIndexStat->evalETOperator( statKey, OPT_PRED_EQ_DEF_SELECTIVITY,
+                                             OPT_PRED_EQ_DEF_SELECTIVITY,
                                              selectivity, dummy ) ;
          }
          else
          {
             rc = pIndexStat->evalRangeOperator( statKey, statKey, 1,
+                                                OPT_PRED_EQ_DEF_SELECTIVITY,
                                                 OPT_PRED_EQ_DEF_SELECTIVITY,
                                                 selectivity, dummy ) ;
          }
@@ -1239,9 +1257,9 @@ namespace engine
       }
       else if ( recordNum > 0 )
       {
-         // Assume that each records have different values
+         // Assume that each 2 records have different values
          selectivity = OSS_MIN( OPT_PRED_EQ_DEF_SELECTIVITY,
-                                1.0 / (double)recordNum ) ;
+                                OPT_PRED_EQ_DEF_NUM_KEYS / (double)recordNum ) ;
       }
 
       PD_TRACE_EXIT( SDB__OPTEVALDFTETOPTR ) ;

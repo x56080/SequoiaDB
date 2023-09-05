@@ -1854,7 +1854,10 @@ namespace engine
 
       // The statistics of index are invalid, we need to evaluate each predicate
       // in the predicate set
-      BOOLEAN fieldOnly = !indexStat->isValid() ;
+      BOOLEAN isStatValid = indexStat->isValid() ;
+      BOOLEAN needCalcScanSel = TRUE ;
+      BOOLEAN isAllEqual = TRUE ;
+      UINT32 predPathNum = 1 ;
 
       mthMatchTree *matcher = planHelper.getMatchTree() ;
       RTN_PREDICATE_MAP &predicates = planHelper.getPredicates() ;
@@ -1948,6 +1951,7 @@ namespace engine
                needMatchOrder = FALSE ;
             }
             iterIdx ++ ;
+            isAllEqual = FALSE ;
             continue ;
          }
 
@@ -1958,18 +1962,21 @@ namespace engine
          {
             // The key is not included in the predicates
             // Cover all values in this key
-            if ( !fieldOnly && !isBestIndex )
+            if ( isStatValid && !isBestIndex )
             {
                predicateList.push_back( NULL ) ;
                encoder.append( pFieldName, TRUE ) ;
             }
             isEqual = FALSE ;
+            needCalcScanSel = FALSE ;
          }
          else
          {
             rtnPredicate &curPredicate = iterPred->second ;
 
-            if ( fieldOnly )
+            predPathNum *= curPredicate._startStopKeys.size() ;
+
+            if ( !isStatValid )
             {
                // Evaluate the predicate for this field only
                BOOLEAN curIsAllRange = FALSE ;
@@ -1978,9 +1985,21 @@ namespace engine
                         curIsAllRange ) ;
 
                predSelectivity *= curSelectivity ;
-               if ( iterIdx == 0 )
+               if ( needCalcScanSel )
                {
-                  scanSelectivity = curSelectivity ;
+                  if ( curPredicate.isAllRange() )
+                  {
+                     needCalcScanSel = FALSE ;
+                  }
+                  else if ( ( curPredicate.isAllEqual() ) ||
+                            ( 0 == iterIdx ) )
+                  {
+                     scanSelectivity *= curSelectivity ;
+                  }
+                  else
+                  {
+                     scanSelectivity *= OPT_ROUND_SELECTIVITY( curSelectivity * OPT_IDX_SCAN_FAN_OUT ) ;
+                  }
                }
             }
             else if ( !isBestIndex )
@@ -1991,9 +2010,14 @@ namespace engine
                encoder.append( pFieldName, FALSE ) ;
             }
 
-            isEqual = curPredicate.isEquality() ;
+            isEqual = curPredicate.isAllEqual() ;
             savedCPUCost += curPredicate.getSavedCPUCost() ;
             matchedFields ++ ;
+         }
+
+         if ( isAllEqual && !isEqual )
+         {
+            isAllEqual = FALSE ;
          }
 
          if ( needRecheckOrder )
@@ -2027,10 +2051,22 @@ namespace engine
       // Matched key in index
       if ( matchedFields > 0 )
       {
-         if ( fieldOnly )
+         if ( !isStatValid )
          {
-            // Do nothing
             // scanSelectivity is estimated by the first field
+            // round by unique index
+            if ( isAllEqual && indexStat->isUniqux() )
+            {
+               FLOAT64 uniqSelectivity =
+                     OPT_ROUND_SELECTIVITY(
+                           OSS_MIN( OPT_PRED_EQ_UNIQ_DEF_SELECTIVITY,
+                                    OPT_PRED_EQ_DEF_NUM_KEYS *
+                                    OPT_PRED_EQ_UNIQ_DEF_SELECTIVITY /
+                                    indexStat->getTotalRecords() ) *
+                           FLOAT64( predPathNum ) ) ;
+               predSelectivity = OSS_MIN( predSelectivity, uniqSelectivity ) ;
+               scanSelectivity = OSS_MIN( scanSelectivity, uniqSelectivity ) ;
+            }
          }
          else if ( isBestIndex )
          {
