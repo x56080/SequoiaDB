@@ -44,7 +44,7 @@ SequoiaDB 提供了一系列的命令来管理用户和角色。这些命令包�
    })
 ```
 
-创建角色`foo_bar_write`，授予其角色`foo_bar_read`。
+创建角色`foo_bar_write`，继承角色`foo_bar_read`。
 
 ```lang-javascript
 > db.createRole({
