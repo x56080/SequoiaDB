@@ -896,10 +896,23 @@ namespace engine
                   }
                   else if ( opCode == EN_MATCH_OPERATOR_REGEX )
                   {
-                     PD_CHECK( String == subElement.type() && NULL == regex,
+                     PD_CHECK( ( String == subElement.type() || RegEx == subElement.type() ) &&
+                               NULL == regex,
                                SDB_INVALIDARG, invalidate, PDERROR,
                                "Failed to parse regex" ) ;
-                     regex = subElement.valuestr() ;
+                     if ( RegEx == subElement.type() )
+                     {
+                        regex = subElement.regex() ;
+                        if ( subElement.regexFlags() && *subElement.regexFlags() )
+                        {
+                           options = subElement.regexFlags() ;
+                        }
+                     }
+                     else
+                     {
+                        regex = subElement.valuestr() ;
+                     }
+
                      if ( options != NULL )
                      {
                         // { ..., $options: 'xx', $regex : 'xx', ... }

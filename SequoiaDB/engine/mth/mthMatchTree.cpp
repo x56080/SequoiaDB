@@ -1349,15 +1349,24 @@ namespace engine
       if ( EN_MATCH_OPERATOR_REGEX == nodeType ||
            EN_MATCH_OPERATOR_OPTIONS == nodeType )
       {
-         if ( innerEle.type() != String )
+         if ( String != innerEle.type() && RegEx != innerEle.type() )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "regex's type should be String type:fieldName=%s,"
+            PD_LOG( PDERROR, "regex's type should be String or RegEx type:fieldName=%s,"
                     "innerEle=%s,type=%d", ele.fieldName(),
                     innerEle.toString().c_str(), innerEle.type() ) ;
             goto error ;
          }
-         if ( EN_MATCH_OPERATOR_REGEX == nodeType )
+
+         if ( RegEx == innerEle.type() )
+         {
+            regex = innerEle.regex() ;
+            if ( innerEle.regexFlags() && *innerEle.regexFlags() )
+            {
+               options = innerEle.regexFlags() ;
+            }
+         }
+         else if ( EN_MATCH_OPERATOR_REGEX == nodeType )
          {
             regex = innerEle.valuestrsafe() ;
          }
@@ -1576,8 +1585,7 @@ namespace engine
             if ( NULL != options )
             {
                //previous is options. regex must come next
-               rc = _paresePrevOptions( fieldName, embEle, options, funcList,
-                                        parent ) ;
+               rc = _paresePrevOptions( fieldName, embEle, options, funcList, parent ) ;
                PD_RC_CHECK( rc, PDERROR, "_paresePrevOptions failed:"
                             "fieldName=%s,options=%s,rc=%d",
                             fieldName, options, rc ) ;
@@ -1590,8 +1598,7 @@ namespace engine
             {
                //previous is regex. check if options come next
                EN_MATCH_OP_FUNC_TYPE type ;
-               type = mthGetMatchNodeFactory()->getMatchNodeType(
-                                                                embFieldName ) ;
+               type = mthGetMatchNodeFactory()->getMatchNodeType( embFieldName ) ;
                if ( EN_MATCH_OPERATOR_OPTIONS == type )
                {
                   const CHAR *tmpOptions = embEle.valuestrsafe() ;
@@ -1616,6 +1623,17 @@ namespace engine
             rc = _pareseObjectInnerOp( ele, embEle, funcList, parent, regex,
                                        options ) ;
             PD_RC_CHECK( rc, PDERROR, "_pareseObjectInnerOp failed:rc=%d", rc ) ;
+
+            /// when element is RegEx type
+            if ( regex && options )
+            {
+               rc = _addRegExOp( fieldName, regex, options, funcList, parent ) ;
+               PD_RC_CHECK( rc, PDERROR, "_addRegExOp failed:fieldName=%s,"
+                            "regex=%s,rc=%d", fieldName, regex, rc ) ;
+
+               regex = NULL ;
+               options = NULL ;
+            }
          }
 
          if ( NULL != regex )
