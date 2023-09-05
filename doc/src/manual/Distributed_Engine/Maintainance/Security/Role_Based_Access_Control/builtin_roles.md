@@ -67,6 +67,7 @@ SequoiaDB 预定义了内建角色来提供常用的不同级别的访问权限�
 授予对集群的监控权限，通过提供在集群资源上的以下操作：
 * list
 * snapshot
+* resetSnapshot
 * getSequenceCurrentValue
 * getDCInfo
 * getDetailBin

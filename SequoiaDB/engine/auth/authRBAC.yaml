@@ -327,6 +327,7 @@ BUILTIN_ROLES:
         actions:
           - list
           - snapshot
+          - resetSnapshot
           - getSequenceCurrentValue
           - getDCInfo
           - getDetailBin
