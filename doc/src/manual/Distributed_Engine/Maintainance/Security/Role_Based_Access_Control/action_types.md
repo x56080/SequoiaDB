@@ -43,9 +43,11 @@
 用户可执行以下命令：
 
 - [update](manual/Manual/Sequoiadb_Command/SdbCollection/update.md)
-- [upsert](manual/Manual/Sequoiadb_Command/SdbCollection/upsert.md)
+- [upsert](manual/Manual/Sequoiadb_Command/SdbCollection/upsert.md) 仅发生更新
 - [truncateLob](manual/Manual/Sequoiadb_Command/SdbCollection/truncateLob.md)
 
+ 如果 upsert 命令将发生插入，需要额外被授予 insert 操作。
+ 
  find().update() 命令需要被授予 find 和 update 操作。
 
 ## remove
@@ -100,13 +102,13 @@
 
 将该操作应用在集合资源上。
 
-用户可执行[createIndex](manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md)命令。
+用户可执行[createIndex](manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md)和[createIndexAsync](manual/Manual/Sequoiadb_Command/SdbCollection/createIndexAsync.md)命令。
 
 ## dropIndex
 
 将该操作应用在集合资源上。
 
-用户可执行[dropIndex](manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md)命令。
+用户可执行[dropIndex](manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md)和[dropIndexAsync](manual/Manual/Sequoiadb_Command/SdbCollection/dropIndexAsync.md)命令。
 
 ## truncate
 
@@ -131,8 +133,6 @@
 - [alter (on collection space)](manual/Manual/Sequoiadb_Command/SdbCS/alter.md)
 - [setDomain](manual/Manual/Sequoiadb_Command/SdbCS/setDomain.md)
 - [removeDomain](manual/Manual/Sequoiadb_Command/SdbCS/removeDomain.md)
-- enableCapped
-- disableCapped
 - [setAttributes (on collection space)](manual/Manual/Sequoiadb_Command/SdbCS/setAttributes.md)
 
 ## createCL
@@ -200,13 +200,15 @@
 
 将该操作应用在集群资源上。
 
+用户可执行 list(SDB_LIST_RECYCLEBIN) 命令。
+
 用户可在 SdbRecycleBin 对象上执行[list](manual/Manual/Sequoiadb_Command/SdbRecycleBin/list.md)命令。
 
 ## returnItemBin
 
 将该操作应用在集群资源上。
 
-用户可在 SdbRecycleBin 对象上执行[returnItem](manual/Manual/Sequoiadb_Command/SdbRecycleBin/returnItem.md)命令。
+用户可在 SdbRecycleBin 对象上执行[returnItem](manual/Manual/Sequoiadb_Command/SdbRecycleBin/returnItem.md)和[returnItemToName](manual/Manual/Sequoiadb_Command/SdbRecycleBin/returnItemToName.md)命令。
 
 ## snapshotBin
 
@@ -235,8 +237,14 @@
 用户可执行以下命令：
 
 - [getRG](manual/Manual/Sequoiadb_Command/Sdb/getRG.md)
-- [getNode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getNode.md)
 - [listGroups](manual/Manual/Sequoiadb_Command/SdbDomain/listGroups.md)
+
+用户可在 SdbReplicaGroup 对象上执行以下命令：
+
+- [getNode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getNode.md)
+- [getDetailObj](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getDetailObj.md)
+- [getMaster](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getMaster.md)
+- [getSlave](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getSlave.md)
 
 ## removeRG
 
@@ -287,8 +295,14 @@
 用户可执行以下命令：
 
 - [getRG](manual/Manual/Sequoiadb_Command/Sdb/getRG.md)
-- [getNode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getNode.md)
 - [listGroups](manual/Manual/Sequoiadb_Command/SdbDomain/listGroups.md)
+
+用户可在 SdbReplicaGroup 对象上执行以下命令：
+
+- [getNode](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getNode.md)
+- [getDetailObj](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getDetailObj.md)
+- [getMaster](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getMaster.md)
+- [getSlave](manual/Manual/Sequoiadb_Command/SdbReplicaGroup/getSlave.md)
 
 ## startRG
 
@@ -325,7 +339,7 @@
 
 将该操作应用在集群资源上。
 
-用户可在 SdbNode 上执行[stop](manual/Manual/Sequoiadb_Command/SdbNode/stop.md)命令。
+用户可在 SdbNode 对象上执行[stop](manual/Manual/Sequoiadb_Command/SdbNode/stop.md)命令。
 
 ## alterNode
 
@@ -348,7 +362,7 @@
 
 将该操作应用在集合资源上。
 
-用户可执行[copyIndex](manual/Manual/Sequoiadb_Command/SdbCollection/copyIndex.md)命令。
+用户可执行[copyIndex](manual/Manual/Sequoiadb_Command/SdbCollection/copyIndex.md)和[copyIndexAsync](manual/Manual/Sequoiadb_Command/SdbCollection/copyIndexAsync.md)命令。
 
 ## detachCL
 
@@ -381,18 +395,6 @@
 将该操作应用在集群资源上。
 
 用户可执行[dropCS](manual/Manual/Sequoiadb_Command/Sdb/dropCS.md)命令。
-
-## loadCS
-
-将该操作应用在集群资源上。
-
-用户可执行[loadCS](manual/Manual/Sequoiadb_Command/Sdb/loadCS.md)命令。
-
-## unloadCS
-
-将该操作应用在集群资源上。
-
-用户可执行[unloadCS](manual/Manual/Sequoiadb_Command/Sdb/unloadCS.md)命令。
 
 ## cancelTask
 
@@ -568,12 +570,6 @@
 
 用户可执行[sync](manual/Manual/Sequoiadb_Command/Sdb/sync.md)命令。
 
-## alterUser
-
-将该操作应用在集群资源上。
-
-用户可执行 alterUser 命令。
-
 ## alterDataSource
 
 将该操作应用在集群资源上。
@@ -716,7 +712,7 @@
 - [listCollections](manual/Manual/Sequoiadb_Command/Sdb/listCollections.md)
 - [listCollectionSpaces](manual/Manual/Sequoiadb_Command/Sdb/listCollectionSpaces.md)
 - [getRG](manual/Manual/Sequoiadb_Command/Sdb/getRG.md)
-- [listGroups](manual/Manual/Sequoiadb_Command/Sdb/listGroups.md)
+- [listGroups](manual/Manual/Sequoiadb_Command/SdbDomain/listGroups.md)
 - [getDomain](manual/Manual/Sequoiadb_Command/Sdb/getDomain.md)
 - [listDomains](manual/Manual/Sequoiadb_Command/Sdb/listDomains.md)
 - [listBackup](manual/Manual/Sequoiadb_Command/Sdb/listBackup.md)
@@ -748,7 +744,7 @@
 
 将该操作应用在集群资源上。
 
-用户可执行[listCollectionSpaces](manual/Manual/Sequoiadb_Command/Sdb/listCollectionSpaces.md)命令。
+用户可执行[listCollectionSpaces](manual/Manual/Sequoiadb_Command/Sdb/listCollectionSpaces.md)和list(SDB_LIST_COLLECTIONSPACES)命令。
 
 用户可在 SdbCS 对象上执行以下命令：
 
@@ -800,32 +796,7 @@
 
 将该操作应用在集群资源上。
 
-用户可执行[listBackup](manual/Manual/Sequoiadb_Command/Sdb/listBackup.md)命令。
-
-## getDCInfo
-
-将该操作应用在集群资源上。
-
-用户可在 SdbDataCenter 对象上执行 getDetail 命令。
-
-## alterDC
-
-将该操作应用在集群资源上。
-
-用户可在 dbDataCenter 对象上执行以下命令：
-- activateDC
-- deactivateDC
-- enableReadOnly
-- createImage
-- removeImage
-- enableImage
-- disableImage
-- attachGroups
-- detachGroups
-- setActiveLocation
-- setLocation
-- startMaintenanceMode
-- stopMaintenanceMode
+用户可执行[listBackup](manual/Manual/Sequoiadb_Command/Sdb/listBackup.md)和list(SDB_LIST_BACKUPS)命令。
 
 ## changeStream
 

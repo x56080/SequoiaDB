@@ -55,16 +55,10 @@ No privilege for actions [find] on collection foo.bar
 }
 ```
 
-为用户`myuser`撤销内建角色`_foo.read`，此时用户`myuser`执行`find`命令可能会出现两种情况：
-
-1. 全局用户缓存中已经存在用户`myuser`的权限列表，此时用户`myuser`仍然可以执行`find`命令。
-2. 全局用户缓存中不存在用户`myuser`的权限列表，会重新获取用户的权限列表。此时用户`myuser`执行`find`命令将抛出错误`SDB_NO_PRIVILEGES`。
-
-可以使用`invalidateUserCache()`命令来清除全局用户缓存，确保重新获取用户的权限列表。
+为用户`myuser`撤销内建角色`_foo.read`，用户`myuser`执行`find`命令将抛出错误`SDB_NO_PRIVILEGES`。
 
 ```lang-javascript
 > su.revokeRolesFromUser("myuser", ["_foo.read"]);
-> su.invalidateUserCache("myuser");
 > myuser.foo.bar.find()
 sdb.js:692 uncaught exception: -393
 No privileges for the operation:
@@ -74,4 +68,4 @@ No privilege for actions [find] on collection foo.bar
 
 [^_^]:
     本文使用的所有引用和链接
-[config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
