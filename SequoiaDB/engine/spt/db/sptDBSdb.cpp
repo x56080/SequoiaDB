@@ -4064,15 +4064,20 @@ namespace engine
          sdbCursor cursor;
          BSONObj options;
 
-         rc = arg.getBsonobj( 0, options );
-         if ( SDB_OUT_OF_BOUND == rc )
+         if ( arg.argc() > 0 )
          {
-            rc = SDB_OK;
-         }
-         else if ( SDB_OK != rc )
-         {
-            detail = BSON( SPT_ERR << "Options name must be string" );
-            goto error;
+            if ( !arg.isObject( 0 ) || arg.isArray( 0 ) )
+            {
+               rc = SDB_INVALIDARG;
+               detail = BSON( SPT_ERR << "Options must be object" );
+               goto error;
+            }
+            rc = arg.getBsonobj( 0, options );
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Failed to get argument options" );
+               goto error;
+            }
          }
 
          rc = _sptSdb.listRoles( cursor, options );
