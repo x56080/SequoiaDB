@@ -1,10 +1,10 @@
-## NAME ##
+##NAME##
 
 createRole - Create Role
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
-**db.createRole(<role>)**
+**db.createRole(\<role\>)**
 
 ## CATEGORY ##
 
@@ -33,6 +33,13 @@ When the function executes successfully, there is no return value.
 When the function execution fails, an exception will be thrown, and an error message will be displayed.
 
 ## ERRORS ##
+
+Common exceptions are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ------ | ------ | --- | ------ |
+| -6 | SDB_INVALIDARG | Invalid arguments | Check if the definition of role matches the schema |
+| -408 | SDB_AUTH_ROLE_EXIST | A role with the same name already exists | |
 
 When an exception is thrown, you can retrieve the error message using [getLastErrMsg()][getLastErrMsg] or get the [error code][error_code] using [getLastError()][getLastError]. For more error handling, refer to the [Common Error Handling Guide][faq].
 

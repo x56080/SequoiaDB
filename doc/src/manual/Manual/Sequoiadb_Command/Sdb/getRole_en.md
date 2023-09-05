@@ -1,10 +1,9 @@
-## NAME ##
+##NAME##
 
 getRole - Get role information
 
-## SYNOPSIS ##
-
-**db.getRole(<rolename>, [options])**
+##SYNOPSIS##
+**db.getRole(\<rolename\>, [options])**
 
 ## CATEGORY ##
 
@@ -16,18 +15,24 @@ This function is used to retrieve information about a specified custom role [Cus
 
 ## PARAMETERS ##
 
-* rolename (_string, required_) - Specifies the role by its name.
+* rolename (*string, required*) - Specifies the role by its name.
 
-* options (_object, optional_) - Additional parameters.
-  * ShowPrivileges (_boolean_) - Show the role's privileges. Default value is `false`.
+* options (*object, optional*) - Additional parameters.
+  * ShowPrivileges (*boolean*) - Show the role's privileges. Default value is `false`.
 
 ## RETURN VALUE ##
 
-Upon successful execution, this function prints information about the role.
+Upon successful execution, this function will return a BSONObj through which the role information can be obtained.
 
 Upon failure, it throws an exception and outputs an error message.
 
 ## ERRORS ##
+
+Common exceptions are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ------ | ------ | --- | ------ |
+| -409 | SDB_AUTH_ROLE_NOT_EXIST | The specified role does not exist | |
 
 When an exception is thrown, you can retrieve the error message using [getLastErrMsg()][getLastErrMsg] or the [error code][error_code] using [getLastError()][getLastError]. For more error handling, refer to the [Common Error Handling Guide][faq].
 

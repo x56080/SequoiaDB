@@ -16,17 +16,23 @@ Sdb
 
 ##参数##
 
-- options （_object，选填_） 额外参数
-  - ShowPrivileges （ _boolean_ ） 展示角色的权限，默认值为 `false`
-  - ShowBuiltinRoles （ _boolean_ ） 额外获取内建角色，默认值为 `false`
+- options （ *object，选填* ） 额外参数
+  - ShowPrivileges （ *boolean* ） 展示角色的权限，默认值为 `false`
+  - ShowBuiltinRoles （ *boolean* ） 额外获取内建角色，默认值为 `false`
 
 ##返回值##
 
-函数执行成功时，打印角色的信息。
+函数执行成功时，将返回一个 SdbCursor 类型的对象。通过该对象获取所有角色的详细信息。
 
 函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
+
+常见异常如下：
+
+| 错误码 | 错误类型 | 描述 | 解决方法 |
+| ------ | ------ | --- | ------ |
+| -409 | SDB_AUTH_ROLE_NOT_EXIST | 指定角色不存在 | |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 

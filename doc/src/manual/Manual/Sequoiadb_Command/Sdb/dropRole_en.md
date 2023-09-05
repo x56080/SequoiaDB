@@ -1,10 +1,10 @@
-## NAME ##
+##NAME##
 
 dropRole - Delete Custom Role
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
-**db.dropRole(<rolename>)**
+**db.dropRole(\<rolename\>)**
 
 ## CATEGORY ##
 
@@ -27,6 +27,12 @@ There is no return value when the function is executed successfully.
 When the function execution fails, an exception will be thrown with an error message.
 
 ## ERRORS ##
+
+Common exceptions are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ------ | ------ | --- | ------ |
+| -409 | SDB_AUTH_ROLE_NOT_EXIST | The specified role does not exist | |
 
 When an exception is thrown, you can retrieve the error message through [getLastErrMsg()][getLastErrMsg] or [getLastError()][getLastError] to get the [error code][error_code]. For more error handling, you can refer to the [Common Error Handling Guide][faq].
 

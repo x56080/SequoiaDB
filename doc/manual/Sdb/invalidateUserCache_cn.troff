@@ -14,7 +14,7 @@ invalidateUserCache \- 清除节点的用户权限缓存
 Sdb
 .SH 描述
 .PP
-该函数用于清除节点的缓存信息。
+该函数用于清除节点的用户权限缓存信息。
 .SH 参数
 .PP
 .TS

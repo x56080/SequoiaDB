@@ -1,10 +1,10 @@
-## NAME ##
+##NAME##
 
 revokePrivilegesFromRole - Revoke Role Privileges
 
-## SYNOPSIS ##
+##SYNOPSIS##
 
-**db.revokePrivilegesFromRole(<rolename>, <privileges>)**
+**db.revokePrivilegesFromRole(\<rolename\>, \<privileges\>)**
 
 ## CATEGORY ##
 
@@ -28,6 +28,12 @@ Upon successful execution, this function does not return anything.
 Upon failure, it throws an exception and outputs an error message.
 
 ## ERRORS ##
+
+Common exceptions are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ------ | ------ | --- | ------ |
+| -409 | SDB_AUTH_ROLE_NOT_EXIST | The specified role does not exist | |
 
 When an exception is thrown, you can retrieve the error message using [getLastErrMsg()][getLastErrMsg] or the [error code][error_code] using [getLastError()][getLastError]. For more error handling, refer to the [Common Error Handling Guide][faq].
 
