@@ -167,6 +167,25 @@ public class CommLib extends M2STestBase {
     }
 
     /**
+     * 收集集群信息
+     * 
+     * @param ssh
+     * @param userName
+     * @param password
+     * @param database
+     * @throws Exception
+     */
+    public static void collectCluster( Ssh ssh, String userName,
+            String password, String database ) throws Exception {
+        String afterAt = mongodbUri.substring( mongodbUri.indexOf( "@" ) + 1 );
+        String collectorUri = "mongodb://" + userName + ":" + password + "@"
+                + afterAt + "/" + database;
+        String collectCommand = collectorPath + " -t cluster -o "
+                + collectorOutputPath + " -u " + collectorUri;
+        ssh.exec( collectCommand );
+    }
+
+    /**
      * 收集集合信息
      * 
      * @param ssh
@@ -188,6 +207,46 @@ public class CommLib extends M2STestBase {
         }
         String collectCommand = collectorPath + " -t collection -o "
                 + collectorOutputPath + " -u " + collectorUri + " -s " + sample;
+        ssh.exec( collectCommand );
+    }
+
+    /**
+     * 收集集合信息
+     * 
+     * @param ssh
+     * @param sample
+     * @param userName
+     * @param password
+     * @param databaseName
+     * @throws Exception
+     */
+    public static void collectCollection( Ssh ssh, int sample, String userName,
+            String password, String databaseName ) throws Exception {
+        String afterAt = mongodbUri.substring( mongodbUri.indexOf( "@" ) + 1 );
+        String collectorUri = "mongodb://" + userName + ":" + password + "@"
+                + afterAt + "/" + databaseName;
+        String collectCommand = collectorPath + " -t collection -o "
+                + collectorOutputPath + " -u " + collectorUri + " -s " + sample;
+        ssh.exec( collectCommand );
+    }
+
+    /**
+     * 收集所有信息
+     * 
+     * @param ssh
+     * @param sample
+     * @param userName
+     * @param password
+     * @param databaseName
+     * @throws Exception
+     */
+    public static void collectALL( Ssh ssh, int sample, String userName,
+            String password, String databaseName ) throws Exception {
+        String afterAt = mongodbUri.substring( mongodbUri.indexOf( "@" ) + 1 );
+        String collectorUri = "mongodb://" + userName + ":" + password + "@"
+                + afterAt + "/" + databaseName;
+        String collectCommand = collectorPath + "  -o " + collectorOutputPath
+                + " -u " + collectorUri + " -s " + sample;
         ssh.exec( collectCommand );
     }
 
