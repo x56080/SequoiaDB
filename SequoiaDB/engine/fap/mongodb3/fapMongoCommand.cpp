@@ -5035,9 +5035,21 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       /* eg: { pipeline: [ { $match: { b: 1 } },
                            { $group: { _id: "$a", b: { $sum: "$b" } } }
                          ] } */
-      BSONObjIterator it( _obj.getObjectField( FAP_MONGO_FIELD_NAME_PIPELINE ) ) ;
+      BSONElement ePipe = _obj.getField( FAP_MONGO_FIELD_NAME_PIPELINE ) ;
+      UINT32 stageCount = 0 ;
+      BSONObjIterator it ;
+
+      if ( Array != ePipe.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "'pipeline' option must be specified as an array" ) ;
+         goto error ;
+      }
+
+      it = BSONObjIterator( ePipe.embeddedObject() ) ;
       while ( it.more() )
       {
+         ++stageCount ;
          BSONElement ele = it.next() ;
          if ( ele.type() != Object )
          {
@@ -5139,6 +5151,15 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                goto error ;
             }
          }
+      }
+
+      /// when pipeline is empty, push a { $match:{} }
+      if ( 0 == stageCount )
+      {
+         BSONObjBuilder operatorBob( 64 ) ;
+         BSONObjBuilder subBob( operatorBob.subobjStart( FAP_MONGO_AGGR_PIPELINE_STAGE_MATCH ) ) ;
+         subBob.done() ;
+         sdbMsg.write( operatorBob.obj(), TRUE ) ;
       }
 
       sdbMsg.doneLen() ;
