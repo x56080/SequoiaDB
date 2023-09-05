@@ -284,7 +284,9 @@ namespace engine
                               optStatListKey &stopKeys,
                               UINT32 keyLevelNum,
                               UINT32 prefixEqualNum,
-                              double curSelectivity,
+                              BOOLEAN needCalcScanSel,
+                              double curPredSelectivity,
+                              double curScanSelectivity,
                               double &predSelectivity,
                               double &scanSelectivity ) const ;
 
@@ -350,11 +352,17 @@ namespace engine
             return ( isValid() ? _pIndexStat->getCreateTime() : 0 ) ;
          }
 
+         OSS_INLINE virtual BOOLEAN isUniqux() const
+         {
+            return _isUnique ;
+         }
+
       protected :
          const optCollectionStat &  _collectionStat ;
          const dmsIndexStat *       _pIndexStat ;
 
          BSONObj                    _keyPattern ;
+         BOOLEAN                    _isUnique ;
    } ;
 
    typedef _optIndexStat optIndexStat ;
