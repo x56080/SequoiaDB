@@ -135,8 +135,17 @@ namespace engine
    // Default selectivity of a $et predicate
    #define OPT_PRED_EQ_DEF_SELECTIVITY       ( 0.005 )
 
+   // Default selectivity of a $et predicate with unique index
+   #define OPT_PRED_EQ_UNIQ_DEF_SELECTIVITY  ( 0.0001 )
+
    // Default selectivity of a null values
    #define OPT_PRED_NULL_DEF_SELECTIVITY     ( 0.001 )
+
+   // Default fan out of index scan due to relocation
+   #define OPT_IDX_SCAN_FAN_OUT              ( 1.001 )
+
+   // Estimate each 2 keys have the same value
+   #define OPT_PRED_EQ_DEF_NUM_KEYS          ( 2.0 )
 
    // Mininum selectivity of a range predicate
    // NOTE: should be larger than $eq

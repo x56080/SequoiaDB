@@ -562,12 +562,14 @@ namespace engine
          INT32 evalRangeOperator ( dmsStatKey &startKey,
                                    dmsStatKey &stopKey,
                                    UINT32 prefixEqualNum,
-                                   double curSelectivity,
+                                   double curPredSelectivity,
+                                   double curScanSelectivity,
                                    double &predSelectivity,
                                    double &scanSelectivity ) const ;
 
          INT32 evalETOperator ( dmsStatKey &key,
-                                double curSelectivity,
+                                double curPredSelectivity,
+                                double curScanSelectivity,
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
@@ -595,7 +597,8 @@ namespace engine
          INT32 _evalOperator ( dmsStatKey *pStartKey,
                                dmsStatKey *pStopKey,
                                UINT32 numEqualKeys,
-                               double curSelectivity,
+                               double curPredSelectivity,
+                               double curScanSelectivity,
                                double &predSelectivity,
                                double &scanSelectivity ) const ;
 

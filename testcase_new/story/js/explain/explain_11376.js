@@ -38,7 +38,7 @@ function test ( args )
    checkExplain( cl, cond, expIndexName, expScanType, sortCond );
 
    var cond = { "a": 1, "b": 1 };
-   var expIndexName = idxName2;
+   var expIndexName = idxName1;
    var expScanType = "ixscan";
    var sortCond = { "a": 1, "c": -1 };
    checkExplain( cl, cond, expIndexName, expScanType, sortCond );
@@ -65,7 +65,7 @@ function test ( args )
    checkExplain( cl, cond, expIndexName, expScanType, sortCond );
 
    var cond = { "a": 1, "b": 1 };
-   var expIndexName = idxName2;
+   var expIndexName = idxName1;
    var expScanType = "ixscan";
    var sortCond = { "a": 1, "c": -1 };
    checkExplain( cl, cond, expIndexName, expScanType, sortCond );
