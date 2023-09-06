@@ -4062,7 +4062,8 @@ namespace engine
          rc = arg.getString( 0, roleName ) ;
          if ( SDB_OUT_OF_BOUND == rc )
          {
-            detail = BSON( SPT_ERR << "Role name must be config" ) ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "Role name must be configured" ) ;
             goto error ;
          }
          else if ( SDB_OK != rc )
@@ -4071,10 +4072,24 @@ namespace engine
             goto error ;
          }
 
-         rc = arg.getBsonobj( 1, roles ) ;
-         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         if ( arg.argc() < 2 )
          {
-            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            rc = SDB_INVALIDARG;
+            detail = BSON( SPT_ERR << "Roles must be configured" ) ;
+            goto error ;
+         }
+
+         if ( !arg.isArray(1) )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "Roles must be array" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get argument roles" ) ;
             goto error ;
          }
 
@@ -4153,7 +4168,8 @@ namespace engine
          rc = arg.getString( 0, userName ) ;
          if ( SDB_OUT_OF_BOUND == rc )
          {
-            detail = BSON( SPT_ERR << "User name must be config" ) ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "User name must be configured" ) ;
             goto error ;
          }
          else if ( SDB_OK != rc )
@@ -4162,10 +4178,24 @@ namespace engine
             goto error ;
          }
 
-         rc = arg.getBsonobj( 1, roles ) ;
-         if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         if ( arg.argc() < 2 )
          {
-            detail = BSON( SPT_ERR << "Roles must be obj" ) ;
+            rc = SDB_INVALIDARG;
+            detail = BSON( SPT_ERR << "Roles must be configured" ) ;
+            goto error ;
+         }
+
+         if ( !arg.isArray(1) )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "Roles must be array" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 1, roles ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get argument roles" ) ;
             goto error ;
          }
 
