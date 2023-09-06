@@ -2207,6 +2207,7 @@ namespace engine
                                                 const std::vector< bson::BSONObj > &cataObjs )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( COORD_CREATENODE_PARSECATP2RETURN );
       if ( cataObjs.empty() )
       {
          rc = SDB_SYS;
