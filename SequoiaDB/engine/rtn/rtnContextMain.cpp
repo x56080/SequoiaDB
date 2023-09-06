@@ -524,7 +524,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextMain::_getAdvanceOrderby( BSONObj &orderby, 
+   INT32 _rtnContextMain::_getAdvanceOrderby( BSONObj &orderby,
                                               BOOLEAN isRange ) const
    {
       orderby = _options.getOrderBy() ;
