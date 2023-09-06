@@ -31,10 +31,10 @@ import java.util.*;
  */
 public class ReplicaGroup {
     private final String name;
-    private Integer id;
-    private Sequoiadb sequoiadb;
+    private final int id;
+    private final Sequoiadb sequoiadb;
     private final boolean isCataRG;
-    private Random rand = new Random();
+    private final Random rand = new Random();
 
 
     /**
@@ -48,10 +48,6 @@ public class ReplicaGroup {
      * @return the current replica group's id
      */
     public int getId() {
-        if (id == null) {
-            BSONObject detail = getDetail();
-            id = Integer.parseInt(detail.get(SdbConstants.FIELD_NAME_GROUPID).toString());
-        }
         return id;
     }
 
@@ -62,7 +58,7 @@ public class ReplicaGroup {
         return name;
     }
 
-    ReplicaGroup(Sequoiadb sdb, Integer id, String name) {
+    ReplicaGroup(Sequoiadb sdb, int id, String name) {
         this.sequoiadb = sdb;
         this.id = id;
         this.name = name;
@@ -70,7 +66,7 @@ public class ReplicaGroup {
     }
 
     ReplicaGroup(Sequoiadb sdb, String name) {
-        this(sdb, null, name);
+        this(sdb, (Integer) sdb.getDetailByName(name).get(SdbConstants.FIELD_NAME_GROUPID), name);
     }
 
     /**
@@ -460,6 +456,18 @@ public class ReplicaGroup {
         SdbReply response = sequoiadb.requestAndResponse(request);
         String msg = "node = " + hostName + ":" + port + ", options = " + options;
         sequoiadb.throwIfError(response, msg);
+
+        // This operation is for compatibility with older versions of sdb. Newer versions of sdb will return metadata
+        // information after a successful operation.
+        BSONObject result = response.getReturnData();
+        if (result != null) {
+            Object nodeId = result.get(SdbConstants.FIELD_NAME_NODEID);
+            if (nodeId instanceof Integer) {
+                return new Node(hostName, port, (Integer) nodeId, this);
+            }
+            throw new BaseException(SDBError.SDB_NET_BROKEN_MSG);
+        }
+
         return new Node(hostName, port, this);
     }
 
@@ -576,6 +584,18 @@ public class ReplicaGroup {
                 ", dbPath = " + dbPath +
                 ", configure = " + configure;
         sequoiadb.throwIfError(response, msg);
+
+        // This operation is for compatibility with older versions of sdb. Newer versions of sdb will return metadata
+        // information after a successful operation.
+        BSONObject result = response.getReturnData();
+        if (result != null) {
+            Object nodeId = result.get(SdbConstants.FIELD_NAME_NODEID);
+            if (nodeId instanceof Integer) {
+                return new Node(hostName, port, (Integer) nodeId, this);
+            }
+            throw new BaseException(SDBError.SDB_NET_BROKEN_MSG);
+        }
+
         return new Node(hostName, port, this);
     }
 
@@ -777,7 +797,7 @@ public class ReplicaGroup {
         query.put(SdbConstants.FIELD_NAME_ACTION, taskName);
         query.put(SdbConstants.FIELD_NAME_OPTIONS, options);
 
-        hint.put(SdbConstants.FIELD_NAME_GROUPID, getId());
+        hint.put(SdbConstants.FIELD_NAME_GROUPID, id);
         AdminRequest request = new AdminRequest(AdminCommand.ALTER_GROUP, query, hint);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);

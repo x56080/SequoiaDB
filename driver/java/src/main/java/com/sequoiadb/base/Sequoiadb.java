@@ -2533,6 +2533,10 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("Group with the name[%s] does not exist", rgName));
         }
+        Object groupId = rg.get(SdbConstants.FIELD_NAME_GROUPID);
+        if (groupId instanceof Integer) {
+            return new ReplicaGroup(this, (Integer) groupId, rgName);
+        }
         return new ReplicaGroup(this, rgName);
     }
 
@@ -2570,6 +2574,17 @@ public class Sequoiadb implements Closeable {
         AdminRequest request = new AdminRequest(AdminCommand.CREATE_GROUP, rg);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, rgName);
+
+        // This operation is for compatibility with older versions of sdb. Newer versions of sdb will return metadata
+        // information after a successful operation.
+        BSONObject result = response.getReturnData();
+        if (result != null) {
+            Object groupId = result.get(SdbConstants.FIELD_NAME_GROUPID);
+            if (groupId instanceof Integer) {
+                return new ReplicaGroup(this, (Integer) groupId, rgName);
+            }
+            throw new BaseException(SDBError.SDB_NET_BROKEN_MSG);
+        }
         return new ReplicaGroup(this, rgName);
     }
 

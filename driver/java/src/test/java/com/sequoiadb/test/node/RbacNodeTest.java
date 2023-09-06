@@ -3,7 +3,6 @@ package com.sequoiadb.test.node;
 import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.TestConfig;
 import com.sequoiadb.test.rbac.Privilege;
@@ -15,8 +14,9 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static com.sequoiadb.test.AssertUtil.assertNotThrows;
+import static com.sequoiadb.test.AssertUtil.assertSDBError;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class RbacNodeTest {
     private Sequoiadb adminDb;
@@ -29,7 +29,7 @@ public class RbacNodeTest {
             .addPrivilege(
                     Privilege.builder()
                             .resource(true)
-                            .addActions("createRG", "createNode")
+                            .addActions("createRG", "createNode", "alterNode", "alterRG")
                             .build()
             )
             .build();
@@ -79,7 +79,7 @@ public class RbacNodeTest {
     }
 
     @Test
-    public void test() {
+    public void createNodeTest() {
         String newGroupName = "group_test";
         try {
             ReplicaGroup replicaGroup = userDb.createReplicaGroup(newGroupName);
@@ -88,27 +88,31 @@ public class RbacNodeTest {
                     12920,
                     TestConfig.getRbacNewNodeDbPathPrefix() + "/12920"
             );
-            assertNotPrivileges(node::getNodeId);
-            assertNotPrivileges(node::getStatus);
+
+            assertNotThrows(node::getNodeId);
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, node::getStatus);
 
             adminDb.updateRole(roleName, role2.toBson());
-            node.getNodeId();
             assertEquals(Node.NodeStatus.SDB_NODE_ACTIVE, node.getStatus());
         } finally {
             adminDb.removeReplicaGroup(newGroupName);
         }
     }
 
-    private void assertNotPrivileges(Runnable action) {
-        assertSDBError(SDBError.SDB_NO_PRIVILEGES, action);
-    }
-
-    private void assertSDBError(SDBError expected, Runnable action) {
+    @Test
+    public void setLocationTest() {
+        String newGroupName = "group_test";
         try {
-            action.run();
-            fail();
-        } catch (BaseException e) {
-            assertEquals(expected.getErrorCode(), e.getErrorCode());
+            ReplicaGroup replicaGroup = userDb.createReplicaGroup(newGroupName);
+            Node node = replicaGroup.createNode(
+                    TestConfig.getRbacCoordHost(),
+                    12920,
+                    TestConfig.getRbacNewNodeDbPathPrefix() + "/12920"
+            );
+            assertNotThrows(() -> node.setLocation("shanghai"));
+            assertNotThrows(() -> replicaGroup.setActiveLocation("shanghai"));
+        } finally {
+            adminDb.removeReplicaGroup(newGroupName);
         }
     }
 

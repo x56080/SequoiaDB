@@ -2,7 +2,6 @@ package com.sequoiadb.test.rg;
 
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.TestConfig;
 import com.sequoiadb.test.rbac.Privilege;
@@ -14,6 +13,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static com.sequoiadb.test.AssertUtil.*;
 import static org.junit.Assert.*;
 
 public class RbacRgTest {
@@ -83,6 +83,7 @@ public class RbacRgTest {
         try {
             ReplicaGroup replicaGroup = userDb.createReplicaGroup(newGroupName);
 
+            assertNotThrows(replicaGroup::getId);
             assertEquals(newGroupName, replicaGroup.getGroupName());
             assertFalse(replicaGroup.isCatalog());
         } finally {
@@ -96,11 +97,10 @@ public class RbacRgTest {
         try {
             ReplicaGroup replicaGroup = userDb.createReplicaGroup(newGroupName);
 
-            assertNotPrivileges(replicaGroup::getId);
-            assertNotPrivileges(replicaGroup::getDetail);
-            assertNotPrivileges(replicaGroup::getMaster);
-            assertNotPrivileges(replicaGroup::getSlave);
-            assertNotPrivileges(() -> replicaGroup.getNode(TestConfig.getRbacCoordHost(), 12910));
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, replicaGroup::getDetail);
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, replicaGroup::getMaster);
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, replicaGroup::getSlave);
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, () -> replicaGroup.getNode(TestConfig.getRbacCoordHost(), 12910));
 
             adminDb.updateRole(roleName, role3.toBson());
             replicaGroup.createNode(
@@ -109,11 +109,10 @@ public class RbacRgTest {
                     TestConfig.getRbacNewNodeDbPathPrefix() + "/12930"
             );
 
-            replicaGroup.getId();
-            replicaGroup.getDetail();
+            assertNotThrows(replicaGroup::getDetail);
             assertNotSDBError(SDBError.SDB_NO_PRIVILEGES, replicaGroup::getMaster);
-            replicaGroup.getSlave();
-            replicaGroup.getNode(TestConfig.getRbacCoordHost(), 12930);
+            assertNotThrows(replicaGroup::getSlave);
+            assertNotThrows(() -> replicaGroup.getNode(TestConfig.getRbacCoordHost(), 12930));
         } finally {
             adminDb.removeReplicaGroup(newGroupName);
         }
@@ -125,17 +124,17 @@ public class RbacRgTest {
         try {
             ReplicaGroup replicaGroup = userDb.createReplicaGroup(newGroupName);
 
-            assertNotPrivileges(() -> replicaGroup.createNode(
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, () -> replicaGroup.createNode(
                     TestConfig.getRbacCoordHost(),
                     13920,
                     TestConfig.getRbacNewNodeDbPathPrefix() + "/13920"
             ));
-            assertNotPrivileges(() -> replicaGroup.detachNode(
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, () -> replicaGroup.detachNode(
                     TestConfig.getRbacCoordHost(),
                     13920,
                     new BasicBSONObject()
             ));
-            assertNotPrivileges(() -> replicaGroup.attachNode(
+            assertSDBError(SDBError.SDB_NO_PRIVILEGES, () -> replicaGroup.attachNode(
                     TestConfig.getRbacCoordHost(),
                     13920,
                     new BasicBSONObject()
@@ -155,32 +154,10 @@ public class RbacRgTest {
             assertNotSDBError(SDBError.SDB_NO_PRIVILEGES, () -> replicaGroup.attachNode(
                     TestConfig.getRbacCoordHost(),
                     13920,
-                    new BasicBSONObject()
+                    new BasicBSONObject("KeepData", false)
             ));
         } finally {
             adminDb.removeReplicaGroup(newGroupName);
-        }
-    }
-
-    private void assertNotPrivileges(Runnable action) {
-        assertSDBError(SDBError.SDB_NO_PRIVILEGES, action);
-    }
-
-    private void assertSDBError(SDBError expected, Runnable action) {
-        try {
-            action.run();
-            fail();
-        } catch (BaseException e) {
-            assertEquals(expected.getErrorCode(), e.getErrorCode());
-        }
-    }
-
-    private void assertNotSDBError(SDBError expected, Runnable action) {
-        try {
-            action.run();
-            fail();
-        } catch (BaseException e) {
-            assertNotEquals(expected.getErrorCode(), e.getErrorCode());
         }
     }
 
