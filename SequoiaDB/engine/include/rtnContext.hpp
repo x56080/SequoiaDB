@@ -650,6 +650,7 @@ namespace engine
          UINT64                  _opID ;
          _rtnContextStoreBuf     _buffer ;
          INT64                   _totalRecords ;
+         BOOLEAN                 _preHitEnd ;
          // mutex
          ossRWMutex              _dataLock ;
          ctxMutexPtr             _prefetchLock ;

@@ -520,6 +520,7 @@ namespace engine
 
       _hitEnd              = TRUE ;
       _isOpened            = FALSE ;
+      _preHitEnd           = FALSE ;
 
       _prefetchID          = 0 ;
       _isInPrefetch        = FALSE ;
@@ -1117,8 +1118,20 @@ namespace engine
             // if get all data
             if ( isEmpty() && !eof() )
             {
-               _buffer.empty() ;
-               _onDataEmpty() ;
+               if ( _preHitEnd )
+               {
+                  _hitEnd = _preHitEnd ;
+               }
+               else
+               {
+                  _buffer.empty() ;
+                  _onDataEmpty() ;
+               }
+            }
+            else if ( !isEmpty() && eof() )
+            {
+               _preHitEnd = _hitEnd ;
+               _hitEnd = FALSE ;
             }
          }
       }
