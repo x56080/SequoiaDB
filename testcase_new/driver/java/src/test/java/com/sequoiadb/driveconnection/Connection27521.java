@@ -1,21 +1,23 @@
 package com.sequoiadb.driveconnection;
 
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.datasource.SequoiadbDatasource;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.testcommon.SdbTestBase;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.datasource.SequoiadbDatasource;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.testcommon.SdbTestBase;
+
 /**
+ * @author xumingxing
+ * @version 1.0
  * @Description seqDB-27521:SequoiadbDatasource.builder()方式设置serverAddress(String
  *              address)
- * @author xumingxing
  * @Date 2022.09.14
- * @version 1.0
  */
 
 public class Connection27521 extends SdbTestBase {
@@ -29,6 +31,10 @@ public class Connection27521 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
+        ConfigOptions netOpt = new ConfigOptions();
+        netOpt.setConnectTimeout( 2 * 1000 );
+        netOpt.setMaxAutoConnectRetryTime( 2 * 1000 );
+
         // test a：指定可用地址
         ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )
                 .build();
@@ -84,7 +90,7 @@ public class Connection27521 extends SdbTestBase {
         wrongUrl = SdbTestBase.hostName + ":" + "30";
         try {
             ds = SequoiadbDatasource.builder().serverAddress( wrongUrl )
-                    .build();
+                    .configOptions( netOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
@@ -97,7 +103,7 @@ public class Connection27521 extends SdbTestBase {
         try {
             ds = SequoiadbDatasource.builder()
                     .serverAddress( SdbTestBase.coordUrl )
-                    .serverAddress( wrongUrl ).build();
+                    .serverAddress( wrongUrl ).configOptions( netOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
