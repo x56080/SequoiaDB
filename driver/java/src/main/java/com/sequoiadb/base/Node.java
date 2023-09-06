@@ -30,11 +30,11 @@ public class Node {
     private final String hostName;
     private final int port;
     private final String nodeName;
-    private Integer id;
+    private final int id;
     private final ReplicaGroup rg;
     private Sequoiadb sequoiadb;
 
-    Node(String hostName, int port, Integer nodeId, ReplicaGroup rg) {
+    Node(String hostName, int port, int nodeId, ReplicaGroup rg) {
         this.rg = rg;
         this.hostName = hostName;
         this.port = port;
@@ -43,7 +43,7 @@ public class Node {
     }
 
     Node(String hostName, int port, ReplicaGroup rg) {
-        this(hostName, port, null, rg);
+        this(hostName, port, rg.getNodeId(hostName, port), rg);
     }
 
     /**
@@ -80,9 +80,6 @@ public class Node {
      * @return Current node's id.
      */
     public int getNodeId() {
-        if (id == null) {
-            id = rg.getNodeId(hostName, port);
-        }
         return id;
     }
 
