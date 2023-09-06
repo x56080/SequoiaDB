@@ -51,13 +51,11 @@ public class Rbac32859 extends SdbTestBase {
         // 创建多个角色，具有不同的权限
         String roleStr1 = "{Role:'" + roleName1
                 + "',Privileges:[{Resource:{ Cluster:true}, Actions: ['list'] }] }";
-        System.out.println( "roleStr1 -- " + roleStr1 );
         BSONObject role1 = ( BSONObject ) JSON.parse( roleStr1 );
         sdb.createRole( role1 );
 
         String roleStr2 = "{Role:'" + roleName2
                 + "',Privileges:[{Resource:{ Cluster:true}, Actions: ['snapshot'] }] }";
-        System.out.println( "roleStr2 -- " + roleStr2 );
         BSONObject role2 = ( BSONObject ) JSON.parse( roleStr2 );
         sdb.createRole( role2 );
 

@@ -392,15 +392,12 @@ public class SdbTestBase {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                     options )) {
                 privilegecheck = CommLib.getPrivilegecheck( sdb );
-                System.out.println( "privilegecheck: " + privilegecheck );
             }
             if ( !privilegecheck ) {
-                System.out.println( "set privilegecheck true" );
                 CommLib.setPrivilegecheck( !privilegecheck );
             }
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
                     rootUserName, rootUserPassword, options )) {
-                System.out.println( "create root user" );
                 BSONObject options = ( BSONObject ) JSON
                         .parse( "{Roles:['_root']}" );
                 sdb.createUser( rootUserName, rootUserPassword, options );
@@ -416,11 +413,9 @@ public class SdbTestBase {
         } else if ( testGroup.equals( RBAC ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
                     rootUserName, rootUserPassword, options )) {
-                System.out.println( "remove root user" );
                 sdb.removeUser( rootUserName, rootUserPassword );
             }
             if ( !privilegecheck ) {
-                System.out.println( "set privilegecheck false" );
                 CommLib.setPrivilegecheck( privilegecheck );
             }
         } else if ( testGroup.equals( RECYCLEBIN ) ) {

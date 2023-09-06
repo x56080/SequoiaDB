@@ -66,21 +66,18 @@ public class Rbac32862_32863 extends SdbTestBase {
                 + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'" + clName
                 + "'}, Actions: ['find'] }" + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS'] }] }";
-        System.out.println( "roleStr1 -- " + roleStr1 );
         BSONObject role1 = ( BSONObject ) JSON.parse( roleStr1 );
         sdb.createRole( role1 );
 
         String roleStr2 = "{Role:'" + roleName2
                 + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'" + clName
                 + "'}, Actions: ['insert'] }] }";
-        System.out.println( "roleStr2 -- " + roleStr2 );
         BSONObject role2 = ( BSONObject ) JSON.parse( roleStr2 );
         sdb.createRole( role2 );
 
         String roleStr3 = "{Role:'" + roleName3
                 + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'" + clName
                 + "'}, Actions: ['remove'] }] }";
-        System.out.println( "roleStr3 -- " + roleStr3 );
         BSONObject role3 = ( BSONObject ) JSON.parse( roleStr3 );
         sdb.createRole( role3 );
 
@@ -178,9 +175,21 @@ public class Rbac32862_32863 extends SdbTestBase {
             }
         }
 
-        // 再次创建一个_root角色用户
+        // 再次创建一个_root角色用户，并添加一个其他的内置角色
         sdb.createUser( rootUser, rootPassword,
-                ( BSONObject ) JSON.parse( "{Roles:['_root']}" ) );
+                ( BSONObject ) JSON.parse( "{Roles:['_root','_dbAdmin']}" ) );
+
+        // 撤销非_root角色
+        roles.clear();
+        roles.add( "_dbAdmin" );
+        sdb.revokeRolesFromUser( rootUser, roles );
+
+        // 校验用户角色
+        userInfo = sdb.getUser( rootUser, null );
+        actRoles = ( BasicBSONList ) userInfo.get( "Roles" );
+        expRolesStr = "['_root']";
+        expRoles = ( BasicBSONList ) JSON.parse( expRolesStr );
+        Assert.assertEquals( actRoles, expRoles );
 
         // 撤销_root角色用户的角色
         roles.clear();

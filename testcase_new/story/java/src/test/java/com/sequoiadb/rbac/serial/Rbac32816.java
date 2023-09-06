@@ -80,6 +80,10 @@ public class Rbac32816 extends SdbTestBase {
             RbacUtils.stopRGActionSupportCommand( sdb, userSdb, false );
             RbacUtils.listActionSupportCommand( sdb, userSdb, csName, clName,
                     false );
+            RbacUtils.startNodeActionSupportCommand( sdb, userSdb, false );
+            RbacUtils.stopNodeActionSupportCommand( sdb, userSdb, false );
+            RbacUtils.snapshotActionSupportCommand( sdb, userSdb, csName,
+                    clName, false );
 
             // 执行不支持的操作
             try {

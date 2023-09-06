@@ -82,7 +82,6 @@ public class Rbac32776 extends SdbTestBase {
                 + csName + "',cl:'" + clName + "'}, Actions: [" + action + "] }"
                 + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,
@@ -97,50 +96,40 @@ public class Rbac32776 extends SdbTestBase {
         try {
             for ( String act : actions ) {
                 if ( action.contains( act ) ) {
-                    System.out.println( "action -- " + act );
                     switch ( act ) {
                     case "find":
-                        System.out.println( "action find" );
                         RbacUtils.findActionSupportCommand( sdb, csName, clName,
                                 userCL, false );
                         break;
                     case "insert":
-                        System.out.println( "action insert" );
                         RbacUtils.insertActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "update":
-                        System.out.println( "action update" );
                         RbacUtils.updateActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "remove":
-                        System.out.println( "action remove" );
                         RbacUtils.removeActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "getDetail":
-                        System.out.println( "action getDetail" );
                         RbacUtils.getDetailActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "alterCL":
-                        System.out.println( "action alterCL" );
                         RbacUtils.alterCLActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "createIndex":
-                        System.out.println( "action createIndex" );
                         RbacUtils.createIndexActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "dropIndex":
-                        System.out.println( "action dropIndex" );
                         RbacUtils.dropIndexActionSupportCommand( sdb, csName,
                                 clName, userCL, false );
                         break;
                     case "truncate":
-                        System.out.println( "action truncate" );
                         userCL.truncate();
                         break;
                     default:
@@ -149,10 +138,8 @@ public class Rbac32776 extends SdbTestBase {
                 }
 
                 if ( !action.contains( act ) ) {
-                    System.out.println( "!action -- " + act );
                     switch ( act ) {
                     case "find":
-                        System.out.println( "!action find" );
                         try {
                             userCL.queryOne();
                             Assert.fail( "should error but success" );
@@ -164,7 +151,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "insert":
-                        System.out.println( "!action insert" );
                         try {
                             userCL.insertRecord(
                                     new BasicBSONObject( "a", 1 ) );
@@ -177,7 +163,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "update":
-                        System.out.println( "!action update" );
                         try {
                             userCL.updateRecords( new BasicBSONObject( "a", 1 ),
                                     new BasicBSONObject( "$set",
@@ -191,7 +176,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "remove":
-                        System.out.println( "!action remove" );
                         try {
                             userCL.deleteRecords(
                                     new BasicBSONObject( "a", 2 ) );
@@ -207,7 +191,6 @@ public class Rbac32776 extends SdbTestBase {
                         // 与find权限支持操作重复
                         break;
                     case "alterCL":
-                        System.out.println( "!action alterCL" );
                         try {
                             userCL.alterCollection(
                                     new BasicBSONObject( "ReplSize", -1 ) );
@@ -220,7 +203,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "createIndex":
-                        System.out.println( "!action createIndex" );
                         try {
                             String indexName = "index_" + clName;
                             userCL.createIndex( indexName,
@@ -234,7 +216,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "dropIndex":
-                        System.out.println( "!action dropIndex" );
                         String indexName = "index_" + clName;
                         rootCL.createIndex( indexName,
                                 new BasicBSONObject( "a", 1 ), null );
@@ -251,7 +232,6 @@ public class Rbac32776 extends SdbTestBase {
                         }
                         break;
                     case "truncate":
-                        System.out.println( "!action truncate" );
                         try {
                             userCL.truncate();
                             Assert.fail( "should error but success" );

@@ -89,7 +89,6 @@ public class Rbac32797 extends SdbTestBase {
                 String roleStr = "{Role:'" + roleName
                         + "',Privileges:[{Resource:{ Cluster:true}, Actions: ['"
                         + action + "'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
                 role = ( BSONObject ) JSON.parse( roleStr );
                 sdb.createRole( role );
                 sdb.createUser( user, password, ( BSONObject ) JSON
@@ -285,7 +284,6 @@ public class Rbac32797 extends SdbTestBase {
                             csName, clName, true );
                     break;
                 default:
-                    System.out.println( "action -- " + action );
                     break;
                 }
             } finally {

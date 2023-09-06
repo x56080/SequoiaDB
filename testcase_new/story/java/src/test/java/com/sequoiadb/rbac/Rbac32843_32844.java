@@ -63,7 +63,6 @@ public class Rbac32843_32844 extends SdbTestBase {
                 + csName + "',cl:'" + clName + "'}, Actions: ['insert'] }"
                 + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         BSONObject role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
 
@@ -75,7 +74,6 @@ public class Rbac32843_32844 extends SdbTestBase {
         BSONObject errorPrivilege = ( BSONObject ) JSON
                 .parse( errorPrivilegeStr );
         errorPrivileges.add( errorPrivilege );
-        System.out.println( "errorPrivileges -- " + errorPrivileges );
         try {
             sdb.grantPrivilegesToRole( roleName, errorPrivileges );
             Assert.fail( "should error but success" );
@@ -91,7 +89,6 @@ public class Rbac32843_32844 extends SdbTestBase {
                 + "'}, Actions: ['createCS'] }";
         errorPrivilege = ( BSONObject ) JSON.parse( errorPrivilegeStr );
         errorPrivileges.add( errorPrivilege );
-        System.out.println( "errorPrivileges -- " + errorPrivileges );
         try {
             sdb.grantPrivilegesToRole( roleName, errorPrivileges );
             Assert.fail( "should error but success" );

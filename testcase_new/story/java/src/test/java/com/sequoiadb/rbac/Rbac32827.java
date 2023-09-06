@@ -62,7 +62,6 @@ public class Rbac32827 extends SdbTestBase {
                 + "'}, Actions: ['insert','update','remove'] }"
                 + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + mainRoleStr );
         BSONObject mainRole = ( BSONObject ) JSON.parse( mainRoleStr );
         sdb.createRole( mainRole );
 
@@ -73,7 +72,6 @@ public class Rbac32827 extends SdbTestBase {
                 + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] ,Roles:['"
                 + mainRoleName + "'] }";
-        System.out.println( "roleStr -- " + subRoleStr );
         BSONObject subRole = ( BSONObject ) JSON.parse( subRoleStr );
         sdb.createRole( subRole );
 

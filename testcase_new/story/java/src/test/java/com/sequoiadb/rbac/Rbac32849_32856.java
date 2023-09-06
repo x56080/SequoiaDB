@@ -49,14 +49,12 @@ public class Rbac32849_32856 extends SdbTestBase {
         String roleStr1 = "{Role:'" + roleName1
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['find'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr1 -- " + roleStr1 );
         BSONObject role1 = ( BSONObject ) JSON.parse( roleStr1 );
         sdb.createRole( role1 );
 
         String roleStr2 = "{Role:'" + roleName2
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['insert','createCL'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr2 -- " + roleStr2 );
         BSONObject role2 = ( BSONObject ) JSON.parse( roleStr2 );
         sdb.createRole( role2 );
 
@@ -128,7 +126,6 @@ public class Rbac32849_32856 extends SdbTestBase {
         String roleStr3 = "{Role:'" + roleName3
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['alterCL','remove'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr3 -- " + roleStr3 );
         BSONObject role3 = ( BSONObject ) JSON.parse( roleStr3 );
         sdb.createRole( role3 );
 

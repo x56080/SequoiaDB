@@ -82,7 +82,6 @@ public class Rbac32780 extends SdbTestBase {
                 + "'}, Actions: ['attachCL','find','insert','update','remove'] }"
                 + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         BSONObject role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,
@@ -117,7 +116,6 @@ public class Rbac32780 extends SdbTestBase {
                 + csName + "',cl:'" + subCLName + "'}, Actions: ['detachCL'] }"
                 + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         BSONObject role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,

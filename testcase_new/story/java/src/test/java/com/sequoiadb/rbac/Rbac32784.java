@@ -62,7 +62,6 @@ public class Rbac32784 extends SdbTestBase {
         String roleStr = "{Role:'" + roleName
                 + "',Privileges:[{Resource:{ cs:'SYSSTAT',cl:'SYSINDEXSTAT'}, Actions: ['find','testCL'] }"
                 + ",{ Resource: { cs: 'SYSSTAT', cl: '' }, Actions: ['testCS'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,

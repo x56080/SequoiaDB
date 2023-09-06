@@ -79,7 +79,6 @@ public class Rbac32820 extends SdbTestBase {
                         + clName + "'}, Actions: ['" + action + "'] }"
                         + ",{ Resource: { cs: '" + csName
                         + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
                 role = ( BSONObject ) JSON.parse( roleStr );
                 sdb.createRole( role );
                 // 创建两个用户，使用相同的角色

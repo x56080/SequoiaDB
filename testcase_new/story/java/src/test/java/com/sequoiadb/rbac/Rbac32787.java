@@ -63,7 +63,6 @@ public class Rbac32787 extends SdbTestBase {
         // 需要具备testCS和testCL权限
         String roleStr = "{Role:'" + roleName
                 + "',Privileges:[{Resource:{ cs:'SYSSTAT',cl:''}, Actions: ['find','testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,

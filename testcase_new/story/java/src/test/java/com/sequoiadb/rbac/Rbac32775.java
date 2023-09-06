@@ -76,7 +76,6 @@ public class Rbac32775 extends SdbTestBase {
                     + clName + "'}, Actions: ['" + action + "'] }"
                     + ",{ Resource: { cs: '" + csName
                     + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-            System.out.println( "roleStr -- " + roleStr );
             role = ( BSONObject ) JSON.parse( roleStr );
             sdb.createRole( role );
             sdb.createUser( user, password, ( BSONObject ) JSON
@@ -89,6 +88,10 @@ public class Rbac32775 extends SdbTestBase {
                 case "find":
                     RbacUtils.findActionSupportCommand( sdb, csName, clName,
                             userCL, true );
+                    // 单独部分内置sql操作
+                    DBCursor cursor = sdb.exec( "select * from " + csName + "." + clName );
+                    cursor.getNext();
+                    cursor.close();
                     break;
                 case "insert":
                     RbacUtils.insertActionSupportCommand( sdb, csName, clName,
@@ -138,7 +141,6 @@ public class Rbac32775 extends SdbTestBase {
                 + csName + "',cl:'" + clName + "'}, Actions: ['" + action
                 + "'] }" + ",{ Resource: { cs: '" + csName
                 + "', cl: '' }, Actions: ['testCS'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         sdb.createUser( user, password,
@@ -165,6 +167,17 @@ public class Rbac32775 extends SdbTestBase {
                         null, null );
                 cursor.getNext();
                 cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                String testCLName = "testCLName" + clName;
+                userCS.createCollection( testCLName );
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES

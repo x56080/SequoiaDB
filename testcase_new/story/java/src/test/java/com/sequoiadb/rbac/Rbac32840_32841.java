@@ -60,7 +60,6 @@ public class Rbac32840_32841 extends SdbTestBase {
                 + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'" + clName
                 + "'}, Actions: ['insert','remove'] }" + ",{ Resource: { cs: '"
                 + csName + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr1 -- " + roleStr1 );
         BSONObject role1 = ( BSONObject ) JSON.parse( roleStr1 );
         sdb.createRole( role1 );
 

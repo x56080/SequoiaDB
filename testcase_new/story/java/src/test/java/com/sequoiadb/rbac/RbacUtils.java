@@ -1,9 +1,6 @@
 package com.sequoiadb.rbac;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
@@ -46,6 +43,11 @@ public class RbacUtils extends SdbTestBase {
         cursor.getNext();
         cursor.close();
 
+        List< BSONObject > aggregateObj = new ArrayList< BSONObject >();
+        BSONObject limitObj = ( BSONObject ) JSON.parse( "{$limit:5}" );
+        aggregateObj.add( limitObj );
+        dbcl.aggregate( aggregateObj );
+
         dbcl.queryOne();
 
         dbcl.getCount();
@@ -67,6 +69,13 @@ public class RbacUtils extends SdbTestBase {
         DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ );
         byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
         rLob.read( rbuff );
+        rLob.close();
+
+        rLob = dbcl.openLob( oid, DBLob.SDB_LOB_SHAREREAD );
+        rLob.close();
+
+        rLob = dbcl.openLob( oid );
+        rLob.close();
 
         // 执行部分不支持的操作
         if ( executeNotSupport ) {
@@ -135,7 +144,7 @@ public class RbacUtils extends SdbTestBase {
         DBLob lob = dbcl.createLob();
         lob.write( wlobBuff );
         lob.close();
-        lob.getID();
+        ObjectId oid = lob.getID();
 
         dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
 
@@ -164,6 +173,16 @@ public class RbacUtils extends SdbTestBase {
                     throw e;
                 }
             }
+
+            try {
+                dbcl.openLob( oid, DBLob.SDB_LOB_WRITE );
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
         }
 
         rootCL.truncate();
@@ -175,16 +194,26 @@ public class RbacUtils extends SdbTestBase {
                 .getCollection( clName );
         rootCL.insertRecord( new BasicBSONObject( "a", 1 ) );
 
+        Random random = new Random();
+        int writeLobSize = random.nextInt( 1024 * 1024 );
+        byte[] wlobBuff = getRandomBytes( writeLobSize );
+        DBLob lob = rootCL.createLob();
+        lob.write( wlobBuff );
+        lob.close();
+        ObjectId oid = lob.getID();
+
         // 执行权限支持的操作
-        // upsert插入数据报错
-        // dbcl.upsertRecords( new BasicBSONObject( "a", 3 ),
-        // new BasicBSONObject( "$set", new BasicBSONObject( "a", 1 ) ) );
         dbcl.updateRecords( new BasicBSONObject( "a", 1 ),
                 new BasicBSONObject( "$set", new BasicBSONObject( "a", 2 ) ) );
         dbcl.updateRecords( new BasicBSONObject( "a", 2 ),
                 new BasicBSONObject( "$set", new BasicBSONObject( "a", 1 ) ) );
 
         // 执行lob偏移写操作
+        DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_WRITE );
+        rLob.lockAndSeek( writeLobSize, writeLobSize );
+        rLob.write( wlobBuff );
+        rLob.getID();
+        rLob.close();
 
         // 执行部分不支持的操作
         if ( executeNotSupport ) {
@@ -229,6 +258,16 @@ public class RbacUtils extends SdbTestBase {
                         null, null, null, -1, -1, 0 );
                 cursor.getNext();
                 cursor.close();
+                Assert.fail( "should error but success" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+                        .getErrorCode() ) {
+                    throw e;
+                }
+            }
+
+            try {
+                dbcl.createLob();
                 Assert.fail( "should error but success" );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
@@ -715,7 +754,6 @@ public class RbacUtils extends SdbTestBase {
         // 执行权限支持的操作
         // dbcs.getDomainName();
         // String domain = dbcs.getDomainName();
-        // System.out.println( "domain -- " + domain );
         // List< String > test = dbcs.getCollectionNames();
 
         // 执行部分不支持的操作

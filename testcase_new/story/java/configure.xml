@@ -182,5 +182,16 @@
         </packages>
     </test>
 
+    <test name="rbacsync" parallel="classes" thread-count="1">
+        <groups>
+            <run>
+                <include name="rbac" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.rbac.serial" />
+        </packages>
+    </test>
+
 </suite>
     

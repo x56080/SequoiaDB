@@ -70,7 +70,6 @@ public class Rbac32845_32846 extends SdbTestBase {
         // 创建角色role
         String roleStr = "{Role:'" + roleName + "',Privileges:[{Resource:{ cs:'"
                 + csName + "',cl:'" + clName + "'}, Actions: ['insert'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         BSONObject role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
 
@@ -98,7 +97,6 @@ public class Rbac32845_32846 extends SdbTestBase {
                 + csName + "',cl:'" + clName
                 + "'}, Actions: ['insert','remove'] }" + ",{ Resource: { cs: '"
                 + csName + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
 

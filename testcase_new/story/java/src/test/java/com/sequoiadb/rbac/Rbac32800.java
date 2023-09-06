@@ -97,7 +97,6 @@ public class Rbac32800 extends SdbTestBase {
                         + "',Privileges:[{Resource:{ AnyResource:true }, Actions: ['"
                         + action + "'] }"
                         + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
                 role = ( BSONObject ) JSON.parse( roleStr );
                 sdb.createRole( role );
                 sdb.createUser( user, password, ( BSONObject ) JSON
@@ -351,7 +350,6 @@ public class Rbac32800 extends SdbTestBase {
                             csName, clName, true );
                     break;
                 default:
-                    System.out.println( "action -- " + action );
                     break;
                 }
             } finally {

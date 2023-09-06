@@ -50,7 +50,6 @@ public class Rbac32838_32839 extends SdbTestBase {
         String roleStr1 = "{Role:'" + roleName1
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['find'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr1 -- " + roleStr1 );
         BSONObject role1 = ( BSONObject ) JSON.parse( roleStr1 );
         sdb.createRole( role1 );
 
@@ -58,7 +57,6 @@ public class Rbac32838_32839 extends SdbTestBase {
         String roleStr2 = "{Role:'" + roleName2
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['insert','createCL'] }],Roles:['"
                 + roleName1 + "'] }";
-        System.out.println( "roleStr2 -- " + roleStr2 );
         BSONObject role2 = ( BSONObject ) JSON.parse( roleStr2 );
         sdb.createRole( role2 );
 
@@ -66,7 +64,6 @@ public class Rbac32838_32839 extends SdbTestBase {
         String updateRoleStr1 = "{Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['find'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }],Roles:['"
                 + roleName2 + "'] }";
-        System.out.println( "updateRoleStr1 -- " + updateRoleStr1 );
         BSONObject updateRole1 = ( BSONObject ) JSON.parse( updateRoleStr1 );
         try {
             sdb.updateRole( roleName1, updateRole1 );
@@ -95,7 +92,6 @@ public class Rbac32838_32839 extends SdbTestBase {
         String roleStr3 = "{Role:'" + roleName3
                 + "',Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['insert','createCL'] }],Roles:['"
                 + roleName2 + "'] }";
-        System.out.println( "roleStr3 -- " + roleStr3 );
         BSONObject role3 = ( BSONObject ) JSON.parse( roleStr3 );
         sdb.createRole( role3 );
 
@@ -103,7 +99,6 @@ public class Rbac32838_32839 extends SdbTestBase {
         updateRoleStr1 = "{Privileges:[{Resource:{ cs:'',cl:''}, Actions: ['find'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }],Roles:['"
                 + roleName3 + "'] }";
-        System.out.println( "updateRoleStr1 -- " + updateRoleStr1 );
         updateRole1 = ( BSONObject ) JSON.parse( updateRoleStr1 );
         try {
             sdb.updateRole( roleName1, updateRole1 );

@@ -71,7 +71,6 @@ public class Rbac32785 extends SdbTestBase {
             String roleStr = "{Role:'" + roleName
                     + "',Privileges:[{Resource:{ cs:'" + csName + "',cl:'"
                     + clName + "'}, Actions: ['" + action + "'] }] }";
-            System.out.println( "roleStr -- " + roleStr );
             role = ( BSONObject ) JSON.parse( roleStr );
             try {
                 sdb.createRole( role );
@@ -88,7 +87,6 @@ public class Rbac32785 extends SdbTestBase {
         String roleStr = "{Role:'" + roleName + "',Privileges:[{Resource:{ cs:'"
                 + csName + "',cl:'" + clName + "'}, Actions: ['testCL'] }"
                 + ",{ Resource: { cs: '', cl: '' }, Actions: ['testCS','testCL'] }] }";
-        System.out.println( "roleStr -- " + roleStr );
         role = ( BSONObject ) JSON.parse( roleStr );
         sdb.createRole( role );
         // 创建一个同名角色

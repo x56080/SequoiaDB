@@ -80,7 +80,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                         + clName + "'}, Actions: ['" + action + "'] }"
                         + ",{ Resource: { cs: '" + csName
                         + "', cl: '' }, Actions: ['testCS','testCL'] }] }";
-                System.out.println( "roleStr -- " + roleStr );
                 role = ( BSONObject ) JSON.parse( roleStr );
                 sdb.createRole( role );
                 sdb.createUser( user, password, ( BSONObject ) JSON
@@ -94,7 +93,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                         .getCollection( clNameNew );
                 switch ( action ) {
                 case "find":
-                    System.out.println( "!action find" );
                     try {
                         userCL.queryOne();
                         Assert.fail( "should error but success" );
@@ -106,7 +104,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "insert":
-                    System.out.println( "!action insert" );
                     try {
                         userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                         Assert.fail( "should error but success" );
@@ -118,7 +115,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "update":
-                    System.out.println( "!action update" );
                     try {
                         userCL.updateRecords( new BasicBSONObject( "a", 1 ),
                                 new BasicBSONObject( "$set",
@@ -132,7 +128,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "remove":
-                    System.out.println( "!action remove" );
                     try {
                         userCL.deleteRecords( new BasicBSONObject( "a", 2 ) );
                         Assert.fail( "should error but success" );
@@ -155,7 +150,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "alterCL":
-                    System.out.println( "!action alterCL" );
                     try {
                         userCL.alterCollection(
                                 new BasicBSONObject( "ReplSize", -1 ) );
@@ -168,7 +162,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "createIndex":
-                    System.out.println( "!action createIndex" );
                     try {
                         String indexName = "index_" + clName;
                         userCL.createIndex( indexName,
@@ -182,7 +175,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "dropIndex":
-                    System.out.println( "!action dropIndex" );
                     String indexName = "index_" + clName;
                     rootCL.createIndex( indexName,
                             new BasicBSONObject( "a", 1 ), null );
@@ -199,7 +191,6 @@ public class Rbac32781_32782 extends SdbTestBase {
                     }
                     break;
                 case "truncate":
-                    System.out.println( "!action truncate" );
                     try {
                         userCL.truncate();
                         Assert.fail( "should error but success" );
