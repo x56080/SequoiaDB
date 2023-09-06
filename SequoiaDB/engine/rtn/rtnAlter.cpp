@@ -55,7 +55,8 @@ namespace engine
                              _dpsLogWrapper * dpsCB,
                              _dmsMBContext * mbContext,
                              _dmsStorageUnit * su,
-                             utilWriteResult *pResult )
+                             utilWriteResult *pResult,
+                             BOOLEAN * pWriteDpsLog = NULL )
    {
       INT32 rc = SDB_OK ;
 
@@ -75,6 +76,10 @@ namespace engine
       {
          /// already exists
          rc = SDB_OK ;
+         if ( pWriteDpsLog )
+         {
+            *pWriteDpsLog = FALSE ;
+         }
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
@@ -92,7 +97,8 @@ namespace engine
                            _pmdEDUCB * cb,
                            _dpsLogWrapper * dpsCB,
                            _dmsMBContext * mbContext,
-                           _dmsStorageUnit * su )
+                           _dmsStorageUnit * su,
+                           BOOLEAN * pWriteDpsLog = NULL )
    {
       INT32 rc = SDB_OK ;
 
@@ -112,6 +118,10 @@ namespace engine
       {
          // Already dropped
          rc = SDB_OK ;
+         if ( pWriteDpsLog )
+         {
+            *pWriteDpsLog = FALSE ;
+         }
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
@@ -980,6 +990,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_RTNALTERCOLLECTION_MB ) ;
 
       DMS_FILE_TYPE dpsType = DMS_FILE_EMPTY ;
+      BOOLEAN writeDpsLog = TRUE ;
 
       switch ( task->getActionType() )
       {
@@ -991,13 +1002,13 @@ namespace engine
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get create id index task" ) ;
             rc = _rtnCreateIDIndex( collection, localTask->getSortBufferSize(),
-                                    cb, dpsCB, mbContext, su, pResult ) ;
+                                    cb, dpsCB, mbContext, su, pResult, &writeDpsLog ) ;
             break ;
          }
          case RTN_ALTER_CL_DROP_ID_INDEX :
          {
             OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
-            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su ) ;
+            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su, &writeDpsLog ) ;
             break ;
          }
          case RTN_ALTER_CL_ENABLE_SHARDING :
@@ -1065,7 +1076,7 @@ namespace engine
                    collection, rc ) ;
 
    done :
-      if ( SDB_OK == rc )
+      if ( SDB_OK == rc && writeDpsLog )
       {
          rc = _rtnAlter2DPSLog( collection, task, options, cb, dpsCB,
                                 mbContext, su, dpsType ) ;
@@ -1148,6 +1159,7 @@ namespace engine
                                    _SDB_DMSCB * dmsCB )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN writeDpsLog = TRUE ;
 
       PD_TRACE_ENTRY( SDB_RTNALTERCOLLECTIONSPACE_SU ) ;
 
@@ -1190,7 +1202,7 @@ namespace engine
                    collectionSpace, rc ) ;
 
    done :
-      if ( SDB_OK == rc )
+      if ( SDB_OK == rc && writeDpsLog )
       {
          rc = _rtnAlter2DPSLog( collectionSpace, task, options, cb, dpsCB,
                                 NULL, su, DMS_FILE_EMPTY ) ;
