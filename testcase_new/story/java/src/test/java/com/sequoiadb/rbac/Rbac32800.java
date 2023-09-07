@@ -102,6 +102,10 @@ public class Rbac32800 extends SdbTestBase {
                 sdb.createUser( user, password, ( BSONObject ) JSON
                         .parse( "{Roles:['" + roleName + "']}" ) );
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
+                userSdb.getSessionAttr();
+                userSdb.setSessionAttr(
+                        new BasicBSONObject( "Source", csName ) );
+                userSdb.setSessionAttr( new BasicBSONObject( "Source", "" ) );
                 CollectionSpace userCS = userSdb.getCollectionSpace( csName );
                 DBCollection userCL = userCS.getCollection( clName );
                 switch ( action ) {

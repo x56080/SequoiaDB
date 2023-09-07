@@ -2,6 +2,7 @@ package com.sequoiadb.rbac;
 
 import com.sequoiadb.base.*;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -94,6 +95,10 @@ public class Rbac32797 extends SdbTestBase {
                 sdb.createUser( user, password, ( BSONObject ) JSON
                         .parse( "{Roles:['" + roleName + "']}" ) );
                 userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
+                userSdb.getSessionAttr();
+                userSdb.setSessionAttr(
+                        new BasicBSONObject( "Source", csName ) );
+                userSdb.setSessionAttr( new BasicBSONObject( "Source", "" ) );
                 switch ( action ) {
                 case "alterBin":
                     RbacUtils.alterBinActionSupportCommand( sdb, userSdb,

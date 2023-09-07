@@ -84,12 +84,17 @@ public class Rbac32775 extends SdbTestBase {
                     password )) {
                 DBCollection userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
+                userSdb.getSessionAttr();
+                userSdb.setSessionAttr(
+                        new BasicBSONObject( "Source", csName ) );
+                userSdb.setSessionAttr( new BasicBSONObject( "Source", "" ) );
                 switch ( action ) {
                 case "find":
                     RbacUtils.findActionSupportCommand( sdb, csName, clName,
                             userCL, true );
                     // 单独部分内置sql操作
-                    DBCursor cursor = sdb.exec( "select * from " + csName + "." + clName );
+                    DBCursor cursor = sdb
+                            .exec( "select * from " + csName + "." + clName );
                     cursor.getNext();
                     cursor.close();
                     break;
