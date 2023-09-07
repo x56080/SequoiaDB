@@ -1956,7 +1956,7 @@ namespace engine
          }
 
          RTN_PREDICATE_MAP::iterator iterPred = predicates.find( pFieldName ) ;
-         BOOLEAN isEqual = TRUE ;
+         BOOLEAN isCurSingleEqual = TRUE, isCurAllEqual = TRUE ;
 
          if ( iterPred == predicates.end() )
          {
@@ -1967,7 +1967,8 @@ namespace engine
                predicateList.push_back( NULL ) ;
                encoder.append( pFieldName, TRUE ) ;
             }
-            isEqual = FALSE ;
+            isCurSingleEqual = FALSE ;
+            isCurAllEqual = FALSE ;
             needCalcScanSel = FALSE ;
          }
          else
@@ -2010,12 +2011,13 @@ namespace engine
                encoder.append( pFieldName, FALSE ) ;
             }
 
-            isEqual = curPredicate.isAllEqual() ;
+            isCurSingleEqual = curPredicate.isEquality() ;
+            isCurAllEqual = curPredicate.isAllEqual() ;
             savedCPUCost += curPredicate.getSavedCPUCost() ;
             matchedFields ++ ;
          }
 
-         if ( isAllEqual && !isEqual )
+         if ( isAllEqual && !isCurAllEqual )
          {
             isAllEqual = FALSE ;
          }
@@ -2025,7 +2027,7 @@ namespace engine
             // if the order requires recheck, and the predicate is equal,
             // we could skip this field for order matching, otherwise, we could
             // mark the order is not matched
-            if ( isEqual )
+            if ( isCurSingleEqual )
             {
                if ( isOrderField )
                {
