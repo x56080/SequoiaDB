@@ -841,13 +841,15 @@ namespace fap
       goto done ;
    }
 
-   void mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder, BSONObj *pOutObj )
+   void mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder,
+                              BOOLEAN &hasRebuildOID, BSONObj *pOutObj )
    {
       BSONElement idEle ;
       INT32 fixPos = -1 ;
       ossTimestamp tm ;
-
       INT32 index = -1 ;
+      hasRebuildOID = FALSE ;
+
       BSONObjIterator itr ( inObj ) ;
       while( itr.more() )
       {
@@ -863,7 +865,7 @@ namespace fap
          {
             idEle = e ;
          }
-   
+
          if ( -1 != fixPos && !idEle.eoo() )
          {
             break ;
@@ -888,6 +890,7 @@ namespace fap
       if ( idEle.eoo() )
       {
          builder.appendOID( FAP_MONGO_FIELD_NAME_ID, NULL, TRUE ) ;
+         hasRebuildOID = TRUE ;
       }
       else
       {

@@ -1057,7 +1057,7 @@ INT32 _mongoGlobalCommand::_processMongoQueryObj( const BSONObj &inObj,
       BOOLEAN canPushDown = TRUE ;
 
       BSONObjIterator itr( tmpObj ) ;
-      while ( itr.more() ) 
+      while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
 
@@ -1145,7 +1145,7 @@ INT32 _mongoGlobalCommand::_processMongoReplyObj( const BSONObj &inObj,
       const CHAR* pFieldName = NULL ;
 
       BSONObjIterator itr( tmpObj ) ;
-      while ( itr.more() ) 
+      while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
 
@@ -1220,7 +1220,7 @@ INT32 _mongoDatabaseCommand::_processMongoQueryObj( const BSONObj &inObj,
       BSONObjBuilder outBob, patternBob ;
 
       BSONObjIterator itr( tmpObj ) ;
-      while ( itr.more() ) 
+      while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
 
@@ -1308,7 +1308,7 @@ INT32 _mongoDatabaseCommand::_processMongoReplyObj( const BSONObj &inObj,
       BSONObjBuilder bob ;
       BSONObjIterator itr( tmpObj ) ;
 
-      while ( itr.more() ) 
+      while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
 
@@ -1526,7 +1526,7 @@ INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
          while ( offset < bodyBuf.size() )
          {
             BSONObj obj( bodyBuf.data() + offset ) ;
-            
+
             offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
 
             rc = _processMongoReplyObj( obj, tmpObj, matched ) ;
@@ -2032,6 +2032,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpInsert *pInsert    = NULL ;
    BSONObj docList ;
    BSONElement e ;
+   BOOLEAN hasRebuildOID = FALSE ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpInsert ) ) ;
    if ( rc )
@@ -2091,7 +2092,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    docList.toString().c_str(), name() ) ;
 
          builder.reset() ;
-         mongoFixInsertObject( ele.Obj(), builder, &insertor ) ;
+         mongoFixInsertObject( ele.Obj(), builder, hasRebuildOID, &insertor ) ;
 
          rc = sdbMsg.write( insertor, TRUE ) ;
          if ( rc )
@@ -2469,6 +2470,7 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpUpdate *pUpdate = NULL ;
    BSONObj query, updator, hint, setOnObj, objList, updateObj ;
    BSONObjBuilder operatorBob ;
+   BOOLEAN hasRebuildOID = FALSE ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpUpdate ) ) ;
    if ( rc )
@@ -2558,9 +2560,17 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          else
          {
             BSONObjBuilder builder( updator.objsize() + 16 ) ;
-            BSONObjBuilder sub( builder.subobjStart( FAP_MONGO_OPERATOR_REPLACE ) ) ;
+            BSONObjBuilder replaceSub( builder.subobjStart( FAP_MONGO_OPERATOR_REPLACE ) ) ;
 
-            mongoFixInsertObject( updator, sub, NULL ) ;
+            mongoFixInsertObject( updator, replaceSub, hasRebuildOID, NULL ) ;
+
+            if ( hasRebuildOID )
+            {
+               BSONObjBuilder keepSub( builder.subobjStart( FAP_MONGO_OPERATOR_KEEP ) ) ;
+               keepSub.append( FAP_MONGO_FIELD_NAME_ID, 1 ) ;
+               keepSub.done() ;
+            }
+
             updator = builder.obj() ;
          }
       }
@@ -8339,7 +8349,7 @@ INT32 _mongoListCollectionCommand::_preProcessQueryObj( const BSONObj &inObj,
       string clFullName ;
       BSONObjBuilder bob( inObj.objsize() + 64 ) ;
       BSONObjIterator itr( inObj ) ;
-      while ( itr.more() ) 
+      while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
          if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_FIELD_NAME ) )

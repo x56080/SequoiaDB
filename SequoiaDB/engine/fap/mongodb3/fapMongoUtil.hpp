@@ -197,7 +197,8 @@ INT32 mongoCheckUpdator( BSONObj &updator, BOOLEAN &hasOp, BSONObj &setOnInsert 
 /*
    Caller show try/catch
 */
-void  mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder, BSONObj *pOutObj = NULL ) ;
+void  mongoFixInsertObject( const BSONObj &inObj, BSONObjBuilder &builder,
+                            BOOLEAN& hasRebuildOID, BSONObj *pOutObj = NULL ) ;
 
 INT32 mongoRebuildOKReply( engine::rtnContextBuf &bodyBuf ) ;
 

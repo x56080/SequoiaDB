@@ -213,6 +213,7 @@ namespace fap
 #define FAP_MONGO_OPERATOR_ISNULL    "$isnull"
 #define FAP_MONGO_UPDATOR_SETINSERT  "$setOnInsert"
 #define FAP_MONGO_UPDATOR_SET        "$set"
+#define FAP_MONGO_OPERATOR_KEEP      "$keep"
 
 // MongoDB aggregation pipeline stages
 #define FAP_MONGO_AGGR_PIPELINE_STAGE_PREFIX          "$"
