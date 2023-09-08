@@ -129,6 +129,61 @@ namespace engine
       return _data.insert( std::make_pair( userName, acl ) );
    }
 
+   INT32 _rtnUserCache::_fetchForCoord( pmdEDUCB *cb,
+                                        const KEY_TYPE &userName,
+                                        const CHAR *pMsgBuffer,
+                                        BSONObj &privsObj )
+   {
+      INT32 rc = SDB_OK;
+      INT64 contextID = -1;
+      rtnContextBuf buf;
+      coordResource *pResource = sdbGetResourceContainer()->getResource();
+      _coordCMDGetUser opr;
+      BSONObj userInfo;
+
+      rc = opr.init( pResource, cb );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init operator[%s], rc: %d", opr.getName(), rc );
+         goto error;
+      }
+
+      rc = opr.execute( (MsgHeader *)pMsgBuffer, cb, contextID, &buf );
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute get user, rc: %d", rc );
+
+      rc = rtnGetMore( contextID, 1, buf, cb, sdbGetRTNCB() );
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_AUTH_USER_NOT_EXIST;
+         contextID = -1;
+         PD_LOG( PDERROR, "User[%s] doesn't exist, rc: %d", userName.c_str(), rc );
+         goto error;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Get more record from context[%lld] failed[%d]", contextID, rc );
+         contextID = -1;
+         goto error;
+      }
+
+      rc = buf.nextObj( userInfo );
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to get user, rc: %d", rc );
+         goto error;
+      }
+
+      privsObj = userInfo.getObjectField( AUTH_FIELD_NAME_INHERITED_PRIVILEGES ).getOwned();
+   done:
+      if ( -1 != contextID )
+      {
+         sdbGetRTNCB()->contextDelete( contextID, cb );
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 _rtnUserCache::_fetch( pmdEDUCB *cb, const KEY_TYPE &userName, VALUE_TYPE &acl )
    {
       INT32 rc = SDB_OK;
@@ -147,46 +202,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build query msg, rc: %d", rc );
       if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
-         INT64 contextID = -1;
-         rtnContextBuf buf;
-
-         coordResource *pResource = sdbGetResourceContainer()->getResource();
-         _coordCMDGetUser opr;
-
-         rc = opr.init( pResource, cb );
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to init operator[%s], rc: %d", opr.getName(), rc );
-            goto error;
-         }
-
-         rc = opr.execute( (MsgHeader *)pBuffer, cb, contextID, &buf );
-         PD_RC_CHECK( rc, PDERROR, "Failed to execute get user, rc: %d", rc );
-
-         rc = rtnGetMore( contextID, 1, buf, cb, pmdGetKRCB()->getRTNCB() );
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_AUTH_USER_NOT_EXIST;
-            contextID = -1;
-            PD_LOG( PDERROR, "User[%s] doesn't exist, rc: %d", userName.c_str(), rc );
-            goto error;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Get more record from context[%lld] failed[%d]", contextID, rc );
-            contextID = -1;
-            goto error;
-         }
-
-         BSONObj userInfo;
-         rc = buf.nextObj( userInfo );
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to get user, rc: %d", rc );
-            goto error;
-         }
-
-         privsObj = userInfo.getObjectField( AUTH_FIELD_NAME_INHERITED_PRIVILEGES ).getOwned();
+         rc = _fetchForCoord( cb, userName, pBuffer, privsObj );
+         PD_RC_CHECK( rc, PDERROR, "Failed to fetch acl, rc: %d", rc );
       }
       else
       {

@@ -69,6 +69,10 @@ namespace engine
       std::pair< DATA_TYPE::iterator, bool > _insert( const KEY_TYPE &userName,
                                                       const VALUE_TYPE &acl );
       INT32 _fetch( pmdEDUCB *cb, const KEY_TYPE &userName, VALUE_TYPE &acl );
+      INT32 _fetchForCoord( pmdEDUCB *cb,
+                            const KEY_TYPE &userName,
+                            const CHAR *pMsgBuffer,
+                            BSONObj &privsObj );
 
    private:
       ossSpinSLatch _latch;
