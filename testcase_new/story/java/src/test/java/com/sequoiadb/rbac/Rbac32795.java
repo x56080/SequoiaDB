@@ -49,6 +49,7 @@ public class Rbac32795 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( csName2 ) ) {
             sdb.dropCollectionSpace( csName2 );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         CollectionSpace cs = sdb.createCollectionSpace( csName1 );
         // 创建多个集合

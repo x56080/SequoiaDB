@@ -961,7 +961,7 @@ public class CommLib {
     }
 
     /**
-     * @description: 获取所有节点privilegecheck的值求与
+     * @description: 集群设置privilegecheck，会重启节点，只能修改SdbTestBase.coordUrl不支持传入sdb
      * @param privilegecheck
      *            需要设置的privilegecheck值
      * @return

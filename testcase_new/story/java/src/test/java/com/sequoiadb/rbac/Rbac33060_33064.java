@@ -48,6 +48,7 @@ public class Rbac33060_33064 extends SdbTestBase {
         if ( sdb.isDomainExist( domainName ) ) {
             sdb.dropDomain( domainName );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         sdb.createDomain( domainName,
                 new BasicBSONObject( "Groups", groupNames ) );

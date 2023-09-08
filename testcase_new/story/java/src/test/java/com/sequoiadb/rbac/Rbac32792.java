@@ -40,6 +40,7 @@ public class Rbac32792 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         List< String > groupsName = CommLib.getDataGroupNames( sdb );
         srcGroupName = groupsName.get( 0 );

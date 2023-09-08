@@ -108,6 +108,9 @@ public class Rbac32783_32791 extends SdbTestBase {
             try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
                     password )) {
                 // 新建一个集合空间和集合
+                if ( sdb.isCollectionSpaceExist( csName + csNum ) ) {
+                    sdb.dropCollectionSpace( csName + csNum );
+                }
                 sdb.createCollectionSpace( csName + csNum )
                         .createCollection( clName );
                 // 对所有跨集合空间的同名集合执行操作

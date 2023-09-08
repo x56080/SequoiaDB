@@ -42,6 +42,7 @@ public class Rbac32778 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         BasicBSONObject optionsM = new BasicBSONObject();

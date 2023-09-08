@@ -45,6 +45,7 @@ public class Rbac33059_33063 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
 
+        RbacUtils.dropRole( sdb, roleName );
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName );
         try {

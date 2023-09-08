@@ -1,6 +1,7 @@
 package com.sequoiadb.rbac;
 
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.exception.BaseException;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -41,6 +42,7 @@ public class Rbac32800 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName );
@@ -356,7 +358,10 @@ public class Rbac32800 extends SdbTestBase {
                 default:
                     break;
                 }
+            } catch ( BaseException e ) {
+                e.printStackTrace();
             } finally {
+                System.out.println( "action:" + action );
                 if ( userSdb != null ) {
                     userSdb.close();
                 }

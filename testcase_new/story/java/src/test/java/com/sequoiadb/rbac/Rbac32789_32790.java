@@ -44,6 +44,7 @@ public class Rbac32789_32790 extends SdbTestBase {
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
+        RbacUtils.dropRole( sdb, roleName );
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         cs.createCollection( clName );
