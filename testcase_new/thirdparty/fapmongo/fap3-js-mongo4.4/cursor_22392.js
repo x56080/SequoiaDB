@@ -103,9 +103,17 @@ function main ()
    // batchSize empty
    var rc = cl.find().batchSize();
    checkResults( rc, JSON.stringify( docs ) );
-   // batchSize invalid, sdb rc all docs, mongodb rc code: 9 --not bug
-   var rc = cl.find().batchSize( 'test' );
-   checkResults( rc, JSON.stringify( docs ) );
+   // batchSize invalid,
+   // mongo 引擎直接报错
+   // fapmongo 一次getMore能取完则不报错，一次getMore不能取完则报错。实现机制问题，考虑到性能影响，暂不优化（SEQUOIADBMAINSTREAM-9938）
+   try
+   {
+      cl.find().batchSize( 'test' );
+   }
+   catch( e )
+   {
+      assert.eq( db.getLastError(), "Invalid Argument" );
+   }
 
 
    // composite scene      
