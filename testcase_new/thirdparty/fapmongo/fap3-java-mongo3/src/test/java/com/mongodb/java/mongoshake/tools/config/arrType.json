@@ -1,0 +1,79 @@
+[
+  {
+    "database": "mgocs_arr",
+    "collection": "mgocl",
+    "count": 100,
+    "content": {
+      "autoIncrementInt32": {
+        "type": "autoincrement",
+        "autoType": "int",
+        "start": 0
+      },
+      "date": {
+        "type": "date",
+        "startDate": "1900-01-01T00:00:00+00:00",
+        "endDate": "9999-12-31T23:59:59+00:00"
+      },
+      "constArray": {
+        "type": "array",
+        "minLength": 2,
+        "maxLength": 2,
+        "arrayContent": {
+          "type": "constant",
+          "constVal": "const"
+        }
+      },
+      "array1": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 3,
+        "arrayContent": {
+          "type": "int",
+          "min": 0,
+          "max": 10
+        }
+      },
+      "stringFromArray": {
+        "type": "enum",
+        "values": [
+          "2012-10-10",
+          "2012-12-12",
+          "2014-01-01",
+          "2016-05-05"
+        ]
+      },
+      "array2": {
+        "type": "array",
+        "arrayContent": {
+          "type": "object",
+          "objectContent": {
+            "arrsub1": {
+              "type": "array",
+              "minLength": 1,
+              "maxLength": 2,
+              "arrayContent": {
+                "type": "constant",
+                "constVal": "arraystring"
+              }
+            },
+            "arrsub2": {
+              "type": "long",
+              "nullPercentage": 10,
+              "min": 100,
+              "max": 200
+            }
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_1",
+        "key": {
+          "int32": 1,
+          "array1": 1
+        }
+      }
+    ]
+  }
+]

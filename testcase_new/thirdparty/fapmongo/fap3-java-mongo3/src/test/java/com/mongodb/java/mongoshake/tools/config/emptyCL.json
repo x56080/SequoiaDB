@@ -1,0 +1,28 @@
+[
+  {
+    "database": "mgocs_emptydata",
+    "collection": "mgocl_empty",
+    "count": 1,
+    "content": {
+      "_id": {
+        "type": "reference",
+        "id": 1,
+        "refContent": {
+          "type": "objectId"
+        }
+      }
+    }
+  },
+  {
+    "database": "mgocs_emptydata",
+    "collection": "mgocl_subcl",
+    "count": 10,
+    "content": {
+      "int32": {
+        "type": "int",
+        "min": -20000000,
+        "max": 20000000
+      }
+    }
+  }
+]

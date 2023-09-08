@@ -1,0 +1,33 @@
+[
+  {
+    "database": "mgocs_idindex",
+    "collection": "mgocl",
+    "count": 10,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 500,
+        "minLength": 0,
+        "maxLength": 500
+      },
+      "int": {
+        "type": "int",
+        "min": -2000000,
+        "max": 2000000
+      },
+      "testlong": {
+        "type": "long",
+        "min": -90000000000000,
+        "max": 9000000000000000
+      }
+    },
+    "indexes": [
+      {
+        "name": "testIndex",
+        "key": {
+          "int": -1
+        }
+      }
+    ]
+  }
+]

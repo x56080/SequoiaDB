@@ -1,0 +1,68 @@
+[
+  {
+    "database": "mgocs_array",
+    "collection": "mgocl",
+    "count": 10,
+    "content": {
+      "int32": {
+        "type": "int",
+        "min": 10,
+        "max": 20
+      },
+      "array1": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 5,
+        "arrayContent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3
+        }
+      },
+      "array2": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 5,
+        "arrayContent": {
+          "type": "array",
+          "minLength": 3,
+          "maxLength": 5,
+          "arrayContent": {
+            "type": "int",
+            "min": 10,
+            "max": 20
+          }
+        }
+      },
+      "array3": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 5,
+        "arrayContent": {
+          "type": "array",
+          "minLength": 3,
+          "maxLength": 5,
+          "arrayContent": {
+            "type": "array",
+            "minLength": 3,
+            "maxLength": 5,
+            "arrayContent": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 3
+            }
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_1",
+        "key": {
+          "int32": 1,
+          "array1": 1
+        }
+      }
+    ]
+  }
+]

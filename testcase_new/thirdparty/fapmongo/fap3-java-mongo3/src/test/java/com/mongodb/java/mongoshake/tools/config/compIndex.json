@@ -1,0 +1,55 @@
+[
+  {
+    "database": "mgocs_compindex",
+    "collection": "mgocl",
+    "count": 100,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 500,
+        "minLength": 0,
+        "maxLength": 20
+      },
+      "int": {
+        "type": "int",
+        "min": -214748364,
+        "max": 2147483647
+      },
+      "long": {
+        "type": "long",
+        "min": -9223372036854775808,
+        "max": 9223372036854775807
+      },
+      "float": {
+        "type": "double",
+        "min": -10000.0,
+        "max": 100000.0
+      },
+      "testdate": {
+        "type": "date",
+        "startDate": "1990-01-10T00:00:00+00:00",
+        "endDate": "3083-01-01T22:00:00+00:00"
+      }
+    },
+    "indexes": [
+      {
+        "name": "compindex",
+        "key": {
+          "string": 1,
+          "int": 1,
+          "long": -1,
+          "date": 1
+        },
+        "collation": {
+          "locale": "fr",
+          "strength": 3,
+          "backwards": false,
+          "normalization": false,
+          "numericOrdering": false,
+          "alternate": "shifted",
+          "caseLevel": false
+        }
+      }
+    ]
+  }
+]

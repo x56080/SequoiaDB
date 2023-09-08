@@ -1,0 +1,182 @@
+[
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_string",
+    "count": 10,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 500,
+        "minLength": 0,
+        "maxLength": 20
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_string",
+        "key": {
+          "string": 1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_int",
+    "count": 10,
+    "content": {
+      "int": {
+        "type": "int",
+        "min": 0,
+        "max": 10
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_int",
+        "key": {
+          "int": 1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_long",
+    "count": 10,
+    "content": {
+      "int": {
+        "type": "long",
+        "min": -9223372036854775808,
+        "max": 9223372036854775807
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_long",
+        "key": {
+          "long": -1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_float",
+    "count": 10,
+    "content": {
+      "float": {
+        "type": "double",
+        "min": -10000.0,
+        "max": 100000.0
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_f",
+        "key": {
+          "float": -1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_boolean",
+    "count": 10,
+    "content": {
+      "boolean": {
+        "type": "boolean"
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_boolean",
+        "key": {
+          "boolean": 1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_obj",
+    "count": 10,
+    "content": {
+      "testobj": {
+        "type": "object",
+        "objectContent": {
+          "k1": {
+            "type": "string",
+            "unique": true,
+            "minLength": 3,
+            "maxLength": 5
+          },
+          "k2": {
+            "type": "int",
+            "min": -1000000000,
+            "max": 2147483647
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_obj",
+        "key": {
+          "testobj": 1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_date",
+    "count": 10,
+    "content": {
+      "testdate": {
+        "type": "date",
+        "startDate": "1990-01-10T00:00:00+00:00",
+        "endDate": "3083-01-01T22:00:00+00:00"
+      }
+    },
+    "indexes": [
+      {
+        "name": "testdate",
+        "key": {
+          "testdate": 1
+        }
+      }
+    ]
+  },
+  {
+    "database": "mgocs_index",
+    "collection": "mgocl_arr",
+    "count": 10,
+    "content": {
+      "testdate": {
+        "type": "date",
+        "startDate": "1990-01-10T00:00:00+00:00",
+        "endDate": "3083-01-01T22:00:00+00:00"
+      },
+      "array": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 3,
+        "arrayContent": {
+          "type": "int",
+          "min": -200000,
+          "max": 1000000000
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "testarr",
+        "key": {
+          "array": 1
+        }
+      }
+    ]
+  }
+]

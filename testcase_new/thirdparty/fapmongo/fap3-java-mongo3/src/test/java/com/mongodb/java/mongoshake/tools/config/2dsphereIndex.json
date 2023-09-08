@@ -1,0 +1,52 @@
+[
+  {
+    "database": "mgocs_geosIndex",
+    "collection": "mgocl",
+    "count": 1000,
+    "content": {
+      "location": {
+        "type": "object",
+        "objectContent": {
+          "type": {
+            "type": "constant",
+            "constVal": "Point"
+          },
+          "coordinates": {
+            "type": "coordinates"
+          }
+        }
+      },
+      "int": {
+        "type": "int",
+        "min": -2000000,
+        "max": 2000000
+      },
+      "testlong": {
+        "type": "long",
+        "min": -90000000000000,
+        "max": 9000000000000000
+      }
+    },
+    "indexes": [
+      {
+        "name": "geo2dIndex",
+        "key": {
+          "location": "2dsphere"
+        },
+        "bits": 22,
+        "min": -180.0,
+        "max": 180.0
+      },
+      {
+        "name": "geo2dIndex2",
+        "key": {
+          "location": "2dsphere",
+          "int": 1
+        },
+        "bits": 22,
+        "min": -180.0,
+        "max": 180.0
+      }
+    ]
+  }
+]

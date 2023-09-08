@@ -1,0 +1,83 @@
+[
+  {
+    "database": "mgocs_obj",
+    "collection": "mgocl",
+    "count": 100,
+    "content": {
+      "autoIncrementInt32": {
+        "type": "autoincrement",
+        "autoType": "int",
+        "start": 0
+      },
+      "date": {
+        "type": "date",
+        "startDate": "0000-01-01T00:00:00+00:00",
+        "endDate": "9999-12-31T23:59:59+00:00"
+      },
+      "object1": {
+        "type": "object",
+        "objectContent": {
+          "no": {
+            "type": "int",
+            "min": 0,
+            "max": 10
+          }
+        }
+      },
+      "object2": {
+        "type": "object",
+        "objectContent": {
+          "test": {
+            "type": "object",
+            "objectContent": {
+              "arr": {
+                "type": "array",
+                "minLength": 2,
+                "maxLength": 2,
+                "arrayContent": {
+                  "type": "constant",
+                  "constVal": "const"
+                }
+              }
+            }
+          }
+        }
+      },
+      "object3": {
+        "type": "object",
+        "objectContent": {
+          "k1": {
+            "type": "string",
+            "unique": true,
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "k2": {
+            "type": "int",
+            "min": -10,
+            "max": -5
+          },
+          "sub-ob": {
+            "type": "object",
+            "objectContent": {
+              "s-k": {
+                "type": "int",
+                "min": 0,
+                "max": 10
+              }
+            }
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_1",
+        "key": {
+          "int32": 1,
+          "object1.no": 1
+        }
+      }
+    ]
+  }
+]

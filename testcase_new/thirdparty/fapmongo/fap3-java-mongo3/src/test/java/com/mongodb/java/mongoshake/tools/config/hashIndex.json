@@ -1,0 +1,45 @@
+[
+  {
+    "database": "mgocs_hashindex",
+    "collection": "mgocl",
+    "count": 1000,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 500,
+        "minLength": 0,
+        "maxLength": 500
+      },
+      "int": {
+        "type": "int",
+        "min": -2000000,
+        "max": 2000000
+      },
+      "testlong": {
+        "type": "long",
+        "min": -90000000000000,
+        "max": 9000000000000000
+      }
+    },
+    "indexes": [
+      {
+        "name": "hashIndex",
+        "key": {
+          "string": "hashed"
+        }
+      },
+      {
+        "name": "index2",
+        "key": {
+          "int": "hashed"
+        }
+      },
+      {
+        "name": "index3",
+        "key": {
+          "long": "hashed"
+        }
+      }
+    ]
+  }
+]

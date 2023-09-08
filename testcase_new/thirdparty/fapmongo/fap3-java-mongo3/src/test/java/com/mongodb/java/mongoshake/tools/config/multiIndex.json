@@ -1,0 +1,94 @@
+[
+  {
+    "database": "mgocs_multiIndex",
+    "collection": "mgocl",
+    "count": 1000,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 50,
+        "minLength": 0,
+        "maxLength": 20
+      },
+      "int": {
+        "type": "int",
+        "unique": true,
+        "min": -1000000000,
+        "max": 1000000000
+      },
+      "long": {
+        "type": "long",
+        "min": -922337203685477000,
+        "max": 9223372036854770000
+      },
+      "float": {
+        "type": "double",
+        "min": -10000.0,
+        "max": 100000.0
+      },
+      "boolean": {
+        "type": "boolean"
+      },
+      "testobj": {
+        "type": "object",
+        "objectContent": {
+          "k1": {
+            "type": "string",
+            "unique": true,
+            "minLength": 3,
+            "maxLength": 5
+          },
+          "k2": {
+            "type": "int",
+            "min": -1000000000,
+            "max": 2000000000
+          }
+        }
+      },
+      "testdate": {
+        "type": "date",
+        "startDate": "1990-01-10T00:00:00+00:00",
+        "endDate": "3083-01-01T22:00:00+00:00"
+      },
+      "array": {
+        "type": "array",
+        "minLength": 3,
+        "maxLength": 3,
+        "arrayContent": {
+          "type": "int",
+          "min": -200000,
+          "max": 1000000000
+        }
+      }
+    },
+    "indexes": [
+      {
+        "name": "index_1",
+        "key": {
+          "date": 1
+        }
+      },
+      {
+        "name": "index_2",
+        "key": {
+          "string": 1,
+          "long": 1,
+          "testobj": 1
+        }
+      },
+      {
+        "name": "index_unquie",
+        "key": {
+          "int": 1
+        },
+        "unique": true
+      },
+      {
+        "name": "index_array",
+        "key": {
+          "array": 1
+        }
+      }
+    ]
+  }
+]

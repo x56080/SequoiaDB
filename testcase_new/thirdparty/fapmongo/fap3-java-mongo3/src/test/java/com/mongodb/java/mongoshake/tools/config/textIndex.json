@@ -1,0 +1,48 @@
+[
+  {
+    "database": "mgocs_textindex",
+    "collection": "mgocl",
+    "count": 10,
+    "content": {
+      "string": {
+        "type": "string",
+        "maxDistinctValue": 500,
+        "minLength": 0,
+        "maxLength": 500
+      },
+      "word": {
+        "type": "enum",
+        "values": [
+          "Cafe",
+          "Cofee",
+          "Café",
+          "Coffee Shopping",
+          "coffee and cream",
+          "Cafe con Leche"
+        ]
+      },
+      "language": {
+        "type": "enum",
+        "nullPercentage": 80,
+        "values": [
+          "french",
+          "english"
+        ]
+      }
+    },
+    "indexes": [
+      {
+        "name": "textIndex",
+        "key": {
+          "word": "text"
+        },
+        "weights": {
+          "word": 1
+        },
+        "defaultLanguage": "french",
+        "languageOverride": "language",
+        "textIndexVersion": 3
+      }
+    ]
+  }
+]
