@@ -24,7 +24,7 @@
         </spring-data-mongodb.version>
         <spring-data-commons.version>1.13.10.RELEASE
         </spring-data-commons.version>
-        <mongo-java-driver.version>3.12.2</mongo-java-driver.version>
+        <mongo-java-driver.version>${mongo-java-driver}</mongo-java-driver.version>
         <lombok.version>1.16.18</lombok.version>
 
         <!-- jars properties -->
@@ -275,14 +275,6 @@
                     <source>1.7</source>
                     <target>1.7</target>
                     <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
                 </configuration>
             </plugin>
         </plugins>
