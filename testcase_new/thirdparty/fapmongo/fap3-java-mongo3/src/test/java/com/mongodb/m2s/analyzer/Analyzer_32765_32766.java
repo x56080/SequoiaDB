@@ -34,11 +34,21 @@ import com.mongodb.utils.Ssh;
 public class Analyzer_32765_32766 extends M2STestBase {
     private MongoClient mongoClient = null;
     private Ssh ssh = null;
+    String deployMode = null;
 
     @BeforeClass
     public void setup() throws Exception {
         mongoClient = MongoClients.create( mongodbUri );
         ssh = new Ssh( remoteHost, remoteUser, remotePwd );
+        if ( CommLib.isSharded( mongoClient ) ) {
+            deployMode = "shards";
+        } else if ( CommLib.isReplicaSet( mongoClient ) ) {
+            deployMode = "replicaSet";
+        } else if ( CommLib.isStandalone( mongoClient ) ) {
+            deployMode = "standalone";
+        } else {
+            Assert.fail( "unknown deploy mode" );
+        }
         String version = CommLib.getMongoDBVersion( mongoClient );
         if ( CommLib.compareVersion( version, "3.4" ) >= 0
                 && CommLib.compareVersion( version, "4.4" ) < 0 ) {
@@ -51,17 +61,6 @@ public class Analyzer_32765_32766 extends M2STestBase {
 
     @Test
     public void test() throws Exception {
-        String deployMode = null;
-        if ( CommLib.isSharded( mongoClient ) ) {
-            deployMode = "shards";
-        } else if ( CommLib.isReplicaSet( mongoClient ) ) {
-            deployMode = "replicaSet";
-        } else if ( CommLib.isStandalone( mongoClient ) ) {
-            deployMode = "standalone";
-        } else {
-            Assert.fail( "unknown deploy mode" );
-        }
-
         // 启动sniffer工具
         CommLib.snifferStart( ssh );
 
@@ -77,7 +76,6 @@ public class Analyzer_32765_32766 extends M2STestBase {
         DataBaseCmd dataBaseCmd = new DataBaseCmd( snifferUri );
         dataBaseCmd.runAllCommands();
 
-        Thread.sleep( 5000 );
         // 停止sniffer工具并分析消息日志文件
         CommLib.snifferStopAndAnalyze( ssh );
         ssh.exec( "cat " + snifferOutputPath + "*.json" );

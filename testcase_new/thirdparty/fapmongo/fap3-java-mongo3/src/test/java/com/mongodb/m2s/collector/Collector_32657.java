@@ -62,6 +62,7 @@ public class Collector_32657 extends M2STestBase {
                 Assert.assertFalse( database.getBoolean( "empty" ) );
                 Assert.assertFalse( database.getBoolean( "gridfs" ) );
                 containDB1 = true;
+                break;
             }
         }
         Assert.assertTrue( containDB1 );
@@ -88,6 +89,7 @@ public class Collector_32657 extends M2STestBase {
                 Assert.assertFalse( database.getBoolean( "empty" ) );
                 Assert.assertFalse( database.getBoolean( "gridfs" ) );
                 containDB2 = true;
+                break;
             }
         }
         Assert.assertTrue( containDB2 );

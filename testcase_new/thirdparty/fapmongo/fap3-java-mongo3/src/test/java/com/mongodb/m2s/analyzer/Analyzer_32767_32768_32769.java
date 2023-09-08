@@ -65,7 +65,6 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
 
         // insert data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.insertOne( new Document( "name", "MongoDB" ).append( "count", i )
                     .append( "versions",
                             Arrays.asList( "v3.2", "v3.0", "v2.6" ) )
@@ -75,7 +74,6 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
 
         // query data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl.find();
             MongoCursor< Document > cursor = findIt.iterator();
             if ( cursor.hasNext() ) {
@@ -83,7 +81,6 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
             }
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl
                     .find( new Document( "count", new Document( "$lt", 50 ) ) );
             MongoCursor< Document > cursor = findIt.iterator();
@@ -92,7 +89,6 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
             }
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl.find( new Document( "$or",
                     Arrays.asList(
                             new Document( "count", new Document( "$lt", 50 ) ),
@@ -106,17 +102,14 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
 
         // update data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateOne( new Document( "count", i ),
                     new Document( "$inc", new Document( "updateNum", 1 ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateMany( new Document( "count", new Document( "$lt", i ) ),
                     new Document( "$inc", new Document( "updateNum", 1 ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateMany(
                     new Document( "$and", Arrays.asList(
                             new Document( "count", new Document( "$lt", 50 ) ),
@@ -127,15 +120,12 @@ public class Analyzer_32767_32768_32769 extends M2STestBase {
 
         // delete data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteOne( new Document( "count", i ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteMany( new Document( "count", new Document( "$lt", i ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteMany( new Document( "$and", Arrays.asList(
                     new Document( "count", new Document( "$gt", 50 ) ),
                     new Document( "info.x", new Document( "$gt", 500 ) ) ) ) );

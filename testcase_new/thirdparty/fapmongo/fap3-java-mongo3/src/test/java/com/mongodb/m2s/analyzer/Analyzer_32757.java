@@ -50,12 +50,6 @@ public class Analyzer_32757 extends M2STestBase {
     @Test
     public void test() throws Exception {
         MongoDatabase database = mongoClient.getDatabase( databaseName );
-        if ( CommLib.collectionExist( database, commColl ) ) {
-            database.getCollection( commColl ).drop();
-        }
-        if ( CommLib.collectionExist( database, collationColl ) ) {
-            database.getCollection( collationColl ).drop();
-        }
         database.createCollection( commColl );
         for ( int i = 0; i < 100; i++ ) {
             database.getCollection( commColl )
@@ -89,13 +83,13 @@ public class Analyzer_32757 extends M2STestBase {
         JSONArray collections = JSONObject.parseArray( ssh.getStdout() );
         for ( int i = 0; i < collections.size(); i++ ) {
             JSONObject collection = collections.getJSONObject( i );
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + commColl ) ) {
+            Assert.assertEquals( collection.getIntValue( "count" ), 100 );
+            String collectionName = collection.getString( "collection" );
+            if ( collectionName.equals( databaseName + "." + commColl ) ) {
                 Assert.assertNull( collection.get( "collation" ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
             }
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + collationColl ) ) {
+            if ( collectionName.equals( databaseName + "." + collationColl ) ) {
                 Assert.assertNotNull( collection.get( "collation" ) );
                 JSONArray incompatible = collection
                         .getJSONArray( "incompatible" );
@@ -105,6 +99,11 @@ public class Analyzer_32757 extends M2STestBase {
                         incompatible.toJSONString() );
             }
         }
+        // 汇总报告集合数量准确
+        ssh.exec( "cat " + analyzerOutputPath + "summary.json" );
+        JSONObject summary = JSONObject.parseObject( ssh.getStdout() );
+        int collectionNum = summary.getIntValue( "collectionNum" );
+        Assert.assertEquals( collectionNum, collections.size(), collectionNum );
 
     }
 

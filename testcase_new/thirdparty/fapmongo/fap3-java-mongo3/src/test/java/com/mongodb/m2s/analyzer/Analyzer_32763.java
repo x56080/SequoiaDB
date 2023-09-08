@@ -79,18 +79,18 @@ public class Analyzer_32763 extends M2STestBase {
         JSONArray indexes = JSONObject.parseArray( ssh.getStdout() );
         for ( int i = 0; i < indexes.size(); i++ ) {
             JSONObject index = indexes.getJSONObject( i );
+            String collectionName = index.getString( "collection" );
+            String indexName = index.getString( "index" );
             String expected = new Document( "name", 1 ).toJson();
-            if ( index.getString( "collection" )
-                    .equals( databaseName + "." + collectionName1 )
-                    && index.getString( "index" ).equals( indexName ) ) {
+            if ( collectionName.equals( databaseName + "." + collectionName1 )
+                    && indexName.equals( this.indexName ) ) {
                 Assert.assertNull( index.get( "incompatible" ) );
                 Assert.assertEquals( index.getJSONObject( "key" ),
                         JSONObject.parseObject( expected ) );
                 containIndex1 = true;
             }
-            if ( index.getString( "collection" )
-                    .equals( databaseName + "." + collectionName2 )
-                    && index.getString( "index" ).equals( indexName ) ) {
+            if ( collectionName.equals( databaseName + "." + collectionName2 )
+                    && indexName.equals( this.indexName ) ) {
                 Assert.assertNull( index.get( "incompatible" ) );
                 Assert.assertEquals( index.getJSONObject( "key" ),
                         JSONObject.parseObject( expected ) );

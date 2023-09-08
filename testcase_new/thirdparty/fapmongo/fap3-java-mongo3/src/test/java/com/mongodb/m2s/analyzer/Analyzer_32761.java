@@ -91,27 +91,30 @@ public class Analyzer_32761 extends M2STestBase {
         JSONArray indexes = JSONObject.parseArray( ssh.getStdout() );
         for ( int i = 0; i < indexes.size(); i++ ) {
             JSONObject index = indexes.getJSONObject( i );
-            if ( index.getString( "collection" )
-                    .equals( databaseName + "." + collectionName )
-                    && index.getString( "index" ).equals( commonIndex ) ) {
-                String expected = new Document( "name", 1 ).toJson();
-                Assert.assertEquals( index.getJSONObject( "key" ),
-                        JSONObject.parseObject( expected ) );
-                Assert.assertNull( index.get( "collation" ) );
-                Assert.assertNull( index.get( "incompatible" ) );
-            }
-            if ( index.getString( "collection" )
-                    .equals( databaseName + "." + collectionName )
-                    && index.getString( "index" ).equals( collationIndex ) ) {
-                String expected = new Document( "age", 1 ).toJson();
-                Assert.assertEquals( index.getJSONObject( "key" ),
-                        JSONObject.parseObject( expected ) );
-                Assert.assertNotNull( index.get( "collation" ) );
-                JSONArray incompatible = index.getJSONArray( "incompatible" );
-                Assert.assertEquals( incompatible.size(), 1,
-                        incompatible.toJSONString() );
-                Assert.assertTrue( incompatible.contains( "collation" ),
-                        incompatible.toJSONString() );
+            String collectionName = index.getString( "collection" );
+            String indexName = index.getString( "index" );
+            if ( collectionName
+                    .equals( databaseName + "." + this.collectionName ) ) {
+                if ( indexName.equals( commonIndex ) ) {
+                    String expected = new Document( "name", 1 ).toJson();
+                    Assert.assertEquals( index.getJSONObject( "key" ),
+                            JSONObject.parseObject( expected ) );
+                    Assert.assertNull( index.get( "collation" ) );
+                    Assert.assertNull( index.get( "incompatible" ) );
+                }
+                if ( indexName.equals( collationIndex ) ) {
+                    String expected = new Document( "age", 1 ).toJson();
+                    Assert.assertEquals( index.getJSONObject( "key" ),
+                            JSONObject.parseObject( expected ) );
+                    Assert.assertNotNull( index.get( "collation" ) );
+                    JSONArray incompatible = index
+                            .getJSONArray( "incompatible" );
+                    Assert.assertEquals( incompatible.size(), 1,
+                            incompatible.toJSONString() );
+                    Assert.assertTrue( incompatible.contains( "collation" ),
+                            incompatible.toJSONString() );
+                }
+                break;
             }
         }
 

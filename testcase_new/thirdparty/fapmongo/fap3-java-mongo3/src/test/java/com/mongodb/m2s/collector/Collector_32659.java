@@ -84,7 +84,8 @@ public class Collector_32659 extends M2STestBase {
                             new BsonJavaScriptWithScope( "function(){}",
                                     new BsonDocument().append( "key",
                                             new BsonInt32( i ) ) ) );
-            mongoDatabase.getCollection( collectionName1 ).insertOne( document );
+            mongoDatabase.getCollection( collectionName1 )
+                    .insertOne( document );
         }
         CommLib.collectCluster( ssh );
         CommLib.collectCollection( ssh, collectSample );
@@ -107,8 +108,10 @@ public class Collector_32659 extends M2STestBase {
         boolean containColl1 = false;
         for ( String i : collections1 ) {
             JSONObject collection = JSONObject.parseObject( i );
-            if ( collection.getString( "database" ).equals( databaseName ) ) {
-                if ( collection.getString( "name" ).equals( collectionName1 ) ) {
+            String databaseName = collection.getString( "database" );
+            String collectionName = collection.getString( "name" );
+            if ( databaseName.equals( this.databaseName ) ) {
+                if ( collectionName.equals( collectionName1 ) ) {
                     containColl1 = true;
                     // 文档数量为100
                     Assert.assertEquals( collection.getIntValue( "count" ),
@@ -151,7 +154,7 @@ public class Collector_32659 extends M2STestBase {
 
         // 校验集群信息,目标数据库集合数量为2
         CommLib.collectCluster( ssh );
-        CommLib.collectCollection( ssh, collectSample );
+        CommLib.collectCollection( ssh, 102 );
         ssh.exec( "cat " + collectorOutputPath + "cluster.json" );
         JSONObject cluster2 = JSONObject.parseObject( ssh.getStdout() );
         JSONArray databases2 = JSONObject
@@ -170,22 +173,26 @@ public class Collector_32659 extends M2STestBase {
         boolean containColl2 = false;
         for ( String i : collections2 ) {
             JSONObject collection = JSONObject.parseObject( i );
-            if ( collection.getString( "database" ).equals( databaseName ) ) {
-                if ( collection.getString( "name" ).equals( collection ) ) {
+            String databaseName = collection.getString( "database" );
+            String collectionName = collection.getString( "name" );
+            if ( databaseName.equals( this.databaseName ) ) {
+                if ( collectionName.equals( collectionName1 ) ) {
                     // 文档数量为100
                     Assert.assertEquals( collection.getIntValue( "count" ),
                             150 );
                     // 文档抽样信息
                     JSONObject sample = JSONObject
                             .parseObject( collection.getString( "sample" ) );
+                    // 抽样数量为102
+                    Assert.assertEquals( sample.getIntValue( "n" ), 102 );
                     // 最大嵌套层数为5
                     Assert.assertEquals( sample.getIntValue( "maxObjDepth" ),
                             5 );
-                    // 最小嵌套层数为5
+                    // 最小嵌套层数为1
                     Assert.assertEquals( sample.getIntValue( "minObjDepth" ),
                             1 );
                 }
-                if ( collection.getString( "name" ).equals( collectionName2 ) ) {
+                if ( collectionName.equals( collectionName2 ) ) {
                     containColl2 = true;
                     // 文档数量为50
                     Assert.assertEquals( collection.getIntValue( "count" ),
@@ -195,10 +202,10 @@ public class Collector_32659 extends M2STestBase {
                             .parseObject( collection.getString( "sample" ) );
                     // 不包含数组元素
                     Assert.assertFalse( sample.getBoolean( "arrayField" ) );
-                    // 最大嵌套层数为5
+                    // 最大嵌套层数为1
                     Assert.assertEquals( sample.getIntValue( "maxObjDepth" ),
                             1 );
-                    // 最小嵌套层数为5
+                    // 最小嵌套层数为1
                     Assert.assertEquals( sample.getIntValue( "minObjDepth" ),
                             1 );
                     // 抽样数量为文档数量

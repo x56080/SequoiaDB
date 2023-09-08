@@ -77,6 +77,7 @@ public class Analyzer_32759 extends M2STestBase {
                     .equals( databaseName + "." + collectionName1 ) ) {
                 Assert.assertFalse( collection.getBoolean( "capped" ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
+                continue;
             }
             if ( collection.getString( "collection" )
                     .equals( databaseName + "." + collectionName2 ) ) {
@@ -87,6 +88,7 @@ public class Analyzer_32759 extends M2STestBase {
                         incompatible.toJSONString() );
                 Assert.assertTrue( incompatible.contains( "capped" ),
                         incompatible.toJSONString() );
+                continue;
             }
         }
 

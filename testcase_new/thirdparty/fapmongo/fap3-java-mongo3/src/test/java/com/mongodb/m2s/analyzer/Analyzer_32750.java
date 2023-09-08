@@ -33,46 +33,33 @@ public class Analyzer_32750 extends M2STestBase {
     @Test
     public void test() throws Exception {
         // 测试--outputtype/-t参数有效值
-        CommLib.initDir( ssh, analyzerOutputPath );
-        ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
-                + analyzerOutputPath );
+        analyzeWithType( null );
         ssh.exec( "ls " + analyzerOutputPath );
         Assert.assertTrue( ssh.getStdout().contains( "summary.json" ) );
         Assert.assertFalse(
                 ssh.getStdout().contains( "m2s-analyze-report.xlsx" ) );
-        CommLib.rmDir( ssh, analyzerOutputPath );
 
-        CommLib.initDir( ssh, analyzerOutputPath );
-        ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
-                + analyzerOutputPath + " -t json" );
+        analyzeWithType( "json" );
         ssh.exec( "ls " + analyzerOutputPath );
         Assert.assertTrue( ssh.getStdout().contains( "summary.json" ) );
         Assert.assertFalse(
                 ssh.getStdout().contains( "m2s-analyze-report.xlsx" ) );
-        CommLib.rmDir( ssh, analyzerOutputPath );
 
-        CommLib.initDir( ssh, analyzerOutputPath );
-        ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
-                + analyzerOutputPath + " --outputtype excel" );
+        analyzeWithType( "excel" );
         ssh.exec( "ls " + analyzerOutputPath );
         Assert.assertFalse( ssh.getStdout().contains( "summary.json" ) );
         Assert.assertTrue(
                 ssh.getStdout().contains( "m2s-analyze-report.xlsx" ) );
-        CommLib.rmDir( ssh, analyzerOutputPath );
 
-        CommLib.initDir( ssh, analyzerOutputPath );
-        ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
-                + analyzerOutputPath + " --outputtype json,excel" );
+        analyzeWithType( "json,excel" );
         ssh.exec( "ls " + analyzerOutputPath );
         Assert.assertTrue( ssh.getStdout().contains( "summary.json" ) );
         Assert.assertTrue(
                 ssh.getStdout().contains( "m2s-analyze-report.xlsx" ) );
-        CommLib.rmDir( ssh, analyzerOutputPath );
 
         // 测试--outputtype/-t无效值
         try {
-            ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
-                    + analyzerOutputPath + " --outputtype txt" );
+            analyzeWithType( "txt" );
             Assert.fail( "expect error but success" );
         } catch ( Exception e ) {
             String expectError = "error: invalid output type: txt" + "\n";
@@ -87,6 +74,16 @@ public class Analyzer_32750 extends M2STestBase {
             mongoClient.close();
         if ( ssh != null )
             ssh.disconnect();
+    }
+
+    private void analyzeWithType( String type ) throws Exception {
+        CommLib.initDir( ssh, analyzerOutputPath );
+        String analyzeCmd = analyzerPath + " -s " + sdbVersion + " -o "
+                + analyzerOutputPath;
+        if ( type != null ) {
+            analyzeCmd += " -t " + type;
+        }
+        ssh.exec( analyzeCmd );
     }
 
 }

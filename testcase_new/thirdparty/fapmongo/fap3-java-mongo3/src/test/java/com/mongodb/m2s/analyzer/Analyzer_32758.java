@@ -28,12 +28,12 @@ import org.testng.annotations.Test;
 public class Analyzer_32758 extends M2STestBase {
     private MongoClient mongoClient = null;
     private Ssh ssh = null;
-    private String databaseName = "db_32758";
-    String commColl = "commColl";
-    String rangeColl = "rangeColl";
-    String hashedColl = "hashedColl";
-    String compoundColl1 = "compoundColl1";
-    String compoundColl2 = "compoundColl2";
+    private final String databaseName = "db_32758";
+    final String commColl = "commColl";
+    final String rangeColl = "rangeColl";
+    final String hashedColl = "hashedColl";
+    final String compoundColl1 = "compoundColl1";
+    final String compoundColl2 = "compoundColl2";
 
     @BeforeClass
     public void setup() throws Exception {
@@ -82,7 +82,6 @@ public class Analyzer_32758 extends M2STestBase {
 
         database.createCollection( compoundColl2 );
         try {
-            // Currently only single field hashed index supported.
             database.getCollection( compoundColl2 ).createIndex(
                     new Document( "name", 1 ).append( "age", "hashed" ) );
             adminDatabase.runCommand( new Document( "shardCollection",
@@ -90,6 +89,7 @@ public class Analyzer_32758 extends M2STestBase {
                             new Document( "name", 1 ).append( "age",
                                     "hashed" ) ) );
         } catch ( MongoCommandException e ) {
+            // error 16763: Currently only single field hashed index supported.
             if ( e.getErrorCode() == 16763 ) {
                 database.getCollection( compoundColl2 ).drop();
             } else {
@@ -110,41 +110,41 @@ public class Analyzer_32758 extends M2STestBase {
         JSONArray collections = JSONObject.parseArray( ssh.getStdout() );
         for ( int i = 0; i < collections.size(); i++ ) {
             JSONObject collection = collections.getJSONObject( i );
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + commColl ) ) {
+            String collectionName = collection.getString( "collection" );
+            switch ( collectionName ) {
+            case databaseName + "." + commColl:
                 Assert.assertNull( collection.get( "shardingKey" ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
-            }
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + rangeColl ) ) {
+                break;
+            case databaseName + "." + rangeColl:
                 String expected = new Document( "age", 1 ).toJson();
                 Assert.assertEquals( collection.getJSONObject( "shardingKey" ),
                         JSONObject.parseObject( expected ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
-            }
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + hashedColl ) ) {
-                String expected = new Document( "age", "hashed" ).toJson();
+                break;
+            case databaseName + "." + hashedColl:
+                expected = new Document( "age", "hashed" ).toJson();
                 Assert.assertEquals( collection.getJSONObject( "shardingKey" ),
                         JSONObject.parseObject( expected ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
-            }
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + compoundColl1 ) ) {
-                String expected = new Document( "name", 1 ).append( "age", 1 )
+                break;
+            case databaseName + "." + compoundColl1:
+                expected = new Document( "name", 1 ).append( "age", 1 )
                         .toJson();
                 Assert.assertEquals( collection.getJSONObject( "shardingKey" ),
                         JSONObject.parseObject( expected ) );
                 Assert.assertNull( collection.get( "incompatible" ) );
-            }
-            if ( collection.getString( "collection" )
-                    .equals( databaseName + "." + compoundColl2 ) ) {
-                String expected = new Document( "name", 1 )
-                        .append( "age", "hashed" ).toJson();
+                break;
+            case databaseName + "." + compoundColl2:
+                expected = new Document( "name", 1 ).append( "age", "hashed" )
+                        .toJson();
                 Assert.assertEquals( collection.get( "shardingKey" ),
                         JSONObject.parseObject( expected ) );
                 Assert.assertTrue( collection.getJSONArray( "incompatible" )
                         .contains( "shardingType" ) );
+                break;
+            default:
+                continue;
             }
         }
 

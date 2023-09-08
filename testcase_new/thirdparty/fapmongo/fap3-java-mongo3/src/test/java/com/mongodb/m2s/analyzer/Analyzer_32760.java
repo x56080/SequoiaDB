@@ -125,6 +125,7 @@ public class Analyzer_32760 extends M2STestBase {
                 // 检验集合最大嵌套层数为5
                 Assert.assertEquals( collection.getIntValue( "maxObjectDepth" ),
                         5 );
+                break;
             }
         }
 

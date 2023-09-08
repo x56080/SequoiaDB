@@ -34,23 +34,10 @@ public class CommLib extends M2STestBase {
             ssh.exec( "ls " + path );
             ssh.exec( "rm -rf " + path );
         } catch ( Exception e ) {
-            if ( e.getMessage().contains( "No such file or directory" ) ) {
-                return;
-            } else {
+            if ( !e.getMessage().contains( "No such file or directory" ) ) {
                 throw e;
             }
         }
-    }
-
-    // 判断集合是否存在
-    public static boolean collectionExist( MongoDatabase database,
-            String collectionName ) {
-        for ( String name : database.listCollectionNames() ) {
-            if ( name.equals( collectionName ) ) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // 判断是否为分片集群

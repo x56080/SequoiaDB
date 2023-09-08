@@ -37,7 +37,6 @@ public class Analyzer_32751 extends M2STestBase {
         ssh.exec( analyzerPath + " -s " + sdbVersion );
         Assert.assertTrue( ssh.getStdout().contains( "analysis complete" ) );
         // 指定有效路径，路径下不存在分析报告
-        CommLib.rmDir( ssh, analyzerOutputPath );
         CommLib.initDir( ssh, analyzerOutputPath );
         ssh.exec( analyzerPath + " -s " + sdbVersion + " -o "
                 + analyzerOutputPath );

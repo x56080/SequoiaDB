@@ -35,11 +35,21 @@ public class Analyzer_32753_32754_32755 extends M2STestBase {
     private String gridfsDB = "gridfsDB";
     private String commonDB = "commonDB";
     private String collectionName = "coll_32753_32755";
+    String deployMode = null;
 
     @BeforeClass
     public void setup() throws Exception {
         mongoClient = MongoClients.create( mongodbUri );
         ssh = new Ssh( remoteHost, remoteUser, remotePwd );
+        if ( CommLib.isSharded( mongoClient ) ) {
+            deployMode = "shards";
+        } else if ( CommLib.isReplicaSet( mongoClient ) ) {
+            deployMode = "replset";
+        } else if ( CommLib.isStandalone( mongoClient ) ) {
+            deployMode = "standalone";
+        } else {
+            Assert.fail( "unknown deploy mode" );
+        }
         CommLib.initDir( ssh, collectorOutputPath );
         CommLib.initDir( ssh, analyzerOutputPath );
         mongoClient.getDatabase( gridfsDB ).drop();
@@ -82,16 +92,6 @@ public class Analyzer_32753_32754_32755 extends M2STestBase {
         }
         Assert.assertEquals( collectDB.size(), 2, collectDB.toString() );
 
-        String deployMode = null;
-        if ( CommLib.isSharded( mongoClient ) ) {
-            deployMode = "shards";
-        } else if ( CommLib.isReplicaSet( mongoClient ) ) {
-            deployMode = "replset";
-        } else if ( CommLib.isStandalone( mongoClient ) ) {
-            deployMode = "standalone";
-        } else {
-            Assert.fail( "unknown deploy mode" );
-        }
         // 集群模式分析准确
         ssh.exec( "cat " + analyzerOutputPath + "cluster.json" );
         JSONObject cluster = JSONObject.parseObject( ssh.getStdout() );

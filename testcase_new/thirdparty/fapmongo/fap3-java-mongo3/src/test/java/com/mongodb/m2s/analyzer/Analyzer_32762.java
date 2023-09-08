@@ -176,7 +176,7 @@ public class Analyzer_32762 extends M2STestBase {
                             JSONObject.parseObject( expected ) );
                     Assert.assertNull( index.get( "incompatible" ) );
                     allTypeIndex.remove( "singleIndex" );
-                    continue;
+                    break;
                 case "hashedIndex":
                     expected = new Document( "hashedField", "hashed" ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -189,7 +189,7 @@ public class Analyzer_32762 extends M2STestBase {
                             incompatible.contains( "indexType: hashed" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "hashedIndex" );
-                    continue;
+                    break;
                 case "compoundIndex1":
                     expected = new Document( "compoundPart1", 1 )
                             .append( "compoundPart2", 1 ).toJson();
@@ -197,7 +197,7 @@ public class Analyzer_32762 extends M2STestBase {
                             JSONObject.parseObject( expected ) );
                     Assert.assertNull( index.get( "incompatible" ) );
                     allTypeIndex.remove( "compoundIndex1" );
-                    continue;
+                    break;
                 case "compoundIndex2":
                     expected = new Document( "compoundPart3", 1 )
                             .append( "compoundPart4", "hashed" ).toJson();
@@ -210,14 +210,14 @@ public class Analyzer_32762 extends M2STestBase {
                             incompatible.contains( "indexType: UNKNOWN" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "compoundIndex2" );
-                    continue;
+                    break;
                 case "multiIndex":
                     expected = new Document( "multiField.a", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
                             JSONObject.parseObject( expected ) );
                     Assert.assertNull( index.get( "incompatible" ) );
                     allTypeIndex.remove( "multiIndex" );
-                    continue;
+                    break;
                 case "partialIndex":
                     expected = new Document( "partialField", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -233,7 +233,7 @@ public class Analyzer_32762 extends M2STestBase {
                             index.getJSONObject( "partialFilterExpression" ),
                             JSONObject.parseObject( expected ) );
                     allTypeIndex.remove( "partialIndex" );
-                    continue;
+                    break;
                 case "wildcardIndex":
                     expected = new Document( "wildcardField.$**", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -245,7 +245,7 @@ public class Analyzer_32762 extends M2STestBase {
                             incompatible.contains( "indexType: wildcard" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "wildcardIndex" );
-                    continue;
+                    break;
                 case "sparseIndex":
                     expected = new Document( "sparseField", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -257,7 +257,7 @@ public class Analyzer_32762 extends M2STestBase {
                     Assert.assertTrue( incompatible.contains( "sparse" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "sparseIndex" );
-                    continue;
+                    break;
                 case "uniqueIndex":
                     expected = new Document( "uniqueField", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -265,7 +265,7 @@ public class Analyzer_32762 extends M2STestBase {
                     Assert.assertTrue( index.getBoolean( "unique" ) );
                     Assert.assertNull( index.get( "incompatible" ) );
                     allTypeIndex.remove( "uniqueIndex" );
-                    continue;
+                    break;
                 case "ttlIndex":
                     expected = new Document( "ttlField", 1 ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -277,7 +277,7 @@ public class Analyzer_32762 extends M2STestBase {
                     Assert.assertTrue( incompatible.contains( "ttl" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "ttlIndex" );
-                    continue;
+                    break;
                 case "textIndex":
                     expected = new Document( "_fts", "text" )
                             .append( "_ftsx", 1 ).toJson();
@@ -285,7 +285,7 @@ public class Analyzer_32762 extends M2STestBase {
                             JSONObject.parseObject( expected ) );
                     Assert.assertNull( index.get( "incompatible" ) );
                     allTypeIndex.remove( "textIndex" );
-                    continue;
+                    break;
                 case "2dIndex":
                     expected = new Document( "2dField", "2d" ).toJson();
                     Assert.assertEquals( index.getJSONObject( "key" ),
@@ -296,7 +296,7 @@ public class Analyzer_32762 extends M2STestBase {
                     Assert.assertTrue( incompatible.contains( "indexType: 2d" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "2dIndex" );
-                    continue;
+                    break;
                 case "2dsphereIndex":
                     expected = new Document( "2dsphereField", "2dsphere" )
                             .toJson();
@@ -309,7 +309,7 @@ public class Analyzer_32762 extends M2STestBase {
                             incompatible.contains( "indexType: 2dsphere" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "2dsphereIndex" );
-                    continue;
+                    break;
                 case "geoHaystackIndex":
                     expected = new Document( "category", 1 )
                             .append( "geoHaystackField.coordinates",
@@ -324,8 +324,9 @@ public class Analyzer_32762 extends M2STestBase {
                             incompatible.contains( "indexType: UNKNOWN" ),
                             incompatible.toJSONString() );
                     allTypeIndex.remove( "geoHaystackIndex" );
-                default:
                     break;
+                default:
+                    continue;
                 }
             }
         }

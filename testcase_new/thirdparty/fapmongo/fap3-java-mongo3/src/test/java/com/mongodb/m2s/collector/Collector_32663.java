@@ -37,6 +37,11 @@ public class Collector_32663 extends M2STestBase {
     private final String uniqueIndex = "uniqueIndex";
     private final String compoundIndex1 = "compoundIndex1";
     private final String compoundIndex2 = "compoundIndex2";
+    boolean containCommonIndex1 = false;
+    boolean containCommonIndex2 = false;
+    boolean containUniqueIndex = false;
+    boolean containCompoundIndex1 = false;
+    boolean containCompoundIndex2 = false;
 
     @BeforeClass
     public void setup() throws Exception {
@@ -81,65 +86,8 @@ public class Collector_32663 extends M2STestBase {
         // 收集集合信息
         CommLib.collectCollection( ssh, collectSample );
 
-        boolean containCommonIndex1 = false;
-        boolean containCommonIndex2 = false;
-        boolean containUniqueIndex = false;
-        boolean containCompoundIndex1 = false;
-        boolean containCompoundIndex2 = false;
-        // 校验集合信息
-        ssh.exec( "cat " + collectorOutputPath + "collection.json" );
-        String[] collections1 = ssh.getStdout().split( "\n" );
-        for ( String str : collections1 ) {
-            JSONObject collectionJson = JSONObject.parseObject( str );
-            if ( collectionJson.getString( "database" )
-                    .equals( databaseName ) ) {
-                if ( collectionJson.getString( "name" )
-                        .equals( collectionName ) ) {
-                    JSONArray indexes = collectionJson
-                            .getJSONArray( "indexes" );
-                    for ( int i = 0; i < indexes.size(); i++ ) {
-                        JSONObject index = indexes.getJSONObject( i );
-                        String indexName = index.getString( "name" );
-                        switch ( indexName ) {
-                        case commonIndex1:
-                            containCommonIndex1 = true;
-                            String expectKey = new Document( "name", 1 )
-                                    .toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        case commonIndex2:
-                            containCommonIndex2 = true;
-                            break;
-                        case uniqueIndex:
-                            containUniqueIndex = true;
-                            expectKey = new Document( "age", 1 ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            Assert.assertTrue( index.getBoolean( "unique" ) );
-                            break;
-                        case compoundIndex1:
-                            containCompoundIndex1 = true;
-                            expectKey = new Document( "part1", 1 )
-                                    .append( "part2", 1 ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        case compoundIndex2:
-                            containCompoundIndex2 = true;
-                            expectKey = new Document( "part3", 1 )
-                                    .append( "part4", "hashed" ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        default:
-                            continue;
-                        }
-                    }
-                }
-                break;
-            }
-        }
+        // 校验索引信息
+        verifyIndexes();
         Assert.assertTrue( containCommonIndex1 );
         Assert.assertFalse( containCommonIndex2 );
         Assert.assertTrue( containUniqueIndex );
@@ -153,78 +101,8 @@ public class Collector_32663 extends M2STestBase {
         collection.createIndex( new Document( "high", 1 ),
                 new IndexOptions().name( commonIndex2 ) );
         CommLib.collectCollection( ssh, collectSample );
-
-        containCommonIndex1 = false;
-        containCommonIndex2 = false;
-        containUniqueIndex = false;
-        containCompoundIndex1 = false;
-        containCompoundIndex2 = false;
-        // 校验集合信息
-        ssh.exec( "cat " + collectorOutputPath + "collection.json" );
-        String[] collections2 = ssh.getStdout().split( "\n" );
-        for ( String str : collections2 ) {
-            JSONObject collectionJson = JSONObject.parseObject( str );
-            if ( collectionJson.getString( "database" )
-                    .equals( databaseName ) ) {
-                if ( collectionJson.getString( "name" )
-                        .equals( collectionName ) ) {
-                    JSONArray indexes = collectionJson
-                            .getJSONArray( "indexes" );
-                    for ( int i = 0; i < indexes.size(); i++ ) {
-                        JSONObject index = indexes.getJSONObject( i );
-                        String indexName = index.getString( "name" );
-                        switch ( indexName ) {
-                        case commonIndex1:
-                            containCommonIndex1 = true;
-                            String expectKey = new Document( "name", 1 )
-                                    .toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        case commonIndex2:
-                            containCommonIndex2 = true;
-                            expectKey = new Document( "high", 1 ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        case uniqueIndex:
-                            containUniqueIndex = true;
-                            expectKey = new Document( "age", 1 ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            Assert.assertTrue( index.getBoolean( "unique" ) );
-                            break;
-                        case compoundIndex1:
-                            containCompoundIndex1 = true;
-                            expectKey = new Document( "part1", 1 )
-                                    .append( "part2", 1 ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        case compoundIndex2:
-                            containCompoundIndex2 = true;
-                            expectKey = new Document( "part3", 1 )
-                                    .append( "part4", "hashed" ).toJson();
-                            Assert.assertEquals( index.getJSONObject( "key" ),
-                                    JSONObject.parseObject( expectKey ) );
-                            break;
-                        default:
-                            continue;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        Assert.assertTrue( containCommonIndex1 );
+        verifyIndexes();
         Assert.assertTrue( containCommonIndex2 );
-        Assert.assertTrue( containUniqueIndex );
-        Assert.assertTrue( containCompoundIndex1 );
-        if ( CommLib.compareVersion( CommLib.getMongoDBVersion( mongoClient ),
-                "4.4" ) >= 0 ) {
-            Assert.assertTrue( containCompoundIndex2 );
-        }
-
     }
 
     @AfterClass
@@ -236,6 +114,66 @@ public class Collector_32663 extends M2STestBase {
         }
         if ( ssh != null ) {
             ssh.disconnect();
+        }
+    }
+
+    private void verifyIndexes() throws Exception {
+        ssh.exec( "cat " + collectorOutputPath + "collection.json" );
+        String[] collections = ssh.getStdout().split( "\n" );
+        for ( String str : collections ) {
+            JSONObject collectionJson = JSONObject.parseObject( str );
+            if ( collectionJson.getString( "database" )
+                    .equals( databaseName ) ) {
+                if ( collectionJson.getString( "name" )
+                        .equals( collectionName ) ) {
+                    JSONArray indexes = collectionJson
+                            .getJSONArray( "indexes" );
+                    for ( int i = 0; i < indexes.size(); i++ ) {
+                        JSONObject index = indexes.getJSONObject( i );
+                        String indexName = index.getString( "name" );
+                        JSONObject key = index.getJSONObject( "key" );
+                        switch ( indexName ) {
+                        case commonIndex1:
+                            String expectKey = new Document( "name", 1 )
+                                    .toJson();
+                            Assert.assertEquals( key,
+                                    JSONObject.parseObject( expectKey ) );
+                            containCommonIndex1 = true;
+                            break;
+                        case commonIndex2:
+                            expectKey = new Document( "high", 1 ).toJson();
+                            Assert.assertEquals( key,
+                                    JSONObject.parseObject( expectKey ) );
+                            containCommonIndex2 = true;
+                            break;
+                        case uniqueIndex:
+                            expectKey = new Document( "age", 1 ).toJson();
+                            Assert.assertEquals( key,
+                                    JSONObject.parseObject( expectKey ) );
+                            Assert.assertTrue( index.getBoolean( "unique" ) );
+                            containUniqueIndex = true;
+                            break;
+                        case compoundIndex1:
+                            expectKey = new Document( "part1", 1 )
+                                    .append( "part2", 1 ).toJson();
+                            Assert.assertEquals( key,
+                                    JSONObject.parseObject( expectKey ) );
+                            containCompoundIndex1 = true;
+                            break;
+                        case compoundIndex2:
+                            expectKey = new Document( "part3", 1 )
+                                    .append( "part4", "hashed" ).toJson();
+                            Assert.assertEquals( key,
+                                    JSONObject.parseObject( expectKey ) );
+                            containCompoundIndex2 = true;
+                            break;
+                        default:
+                            continue;
+                        }
+                    }
+                    break;
+                }
+            }
         }
     }
 

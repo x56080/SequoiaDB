@@ -35,61 +35,29 @@ public class Analyzer_32745 extends M2STestBase {
     @Test
     public void test() throws Exception {
         // 指定为正确的版本格式（包含一个或两个小数点），包含7.0以上版本和7.0以下版本
-        ssh.exec( analyzerPath + " -s 7.0.0 -o " + analyzerOutputPath );
-        ssh.exec( "cat " + analyzerOutputPath + "summary.json" );
-        JSONObject summaryJson1 = JSONObject.parseObject( ssh.getStdout() );
-        Assert.assertTrue(
-                "7.0.0".equals( summaryJson1.getString( "SequoiaDB" ) ) );
-        ssh.exec( analyzerPath + " --sdbversion 3.6 -o " + analyzerOutputPath );
-        ssh.exec( "cat " + analyzerOutputPath + "summary.json" );
-        JSONObject summaryJson2 = JSONObject.parseObject( ssh.getStdout() );
-        Assert.assertTrue(
-                "3.6".equals( summaryJson2.getString( "SequoiaDB" ) ) );
+        analyzeWithSDBVersion( "7.0.0", null );
+        analyzeWithSDBVersion( "3.6", null );
 
         // 测试--sdbversion/-s无效值
         String expectError;
-        try {
-            ssh.exec( analyzerPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: missing parameter: sdbversion" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
-        try {
-            ssh.exec( analyzerPath + " -s -7.0 -o " + analyzerOutputPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: invalid version format: -7.0" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
-        try {
-            ssh.exec( analyzerPath + " -s hello -o " + analyzerOutputPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: invalid version format: hello" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
-        try {
-            ssh.exec( analyzerPath + " -s null -o " + analyzerOutputPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: invalid version format: null" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
-        try {
-            ssh.exec( analyzerPath + " -s 7.-1.0 -o " + analyzerOutputPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: invalid version format: 7.-1.0" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
-        try {
-            ssh.exec( analyzerPath + " -s 7.0.0.0 -o " + analyzerOutputPath );
-            Assert.fail( "expect error but success" );
-        } catch ( Exception e ) {
-            expectError = "error: invalid version format: 7.0.0.0" + "\n";
-            Assert.assertTrue( expectError.equals( ssh.getStderr() ) );
-        }
+        expectError = "error: missing parameter: sdbversion" + "\n";
+        analyzeWithSDBVersion( null, expectError );
+
+        expectError = "error: invalid version format: -7.0" + "\n";
+        analyzeWithSDBVersion( "-7.0", expectError );
+
+        expectError = "error: invalid version format: hello" + "\n";
+        analyzeWithSDBVersion( "hello", expectError );
+
+        expectError = "error: invalid version format: null" + "\n";
+        analyzeWithSDBVersion( "null", expectError );
+
+        expectError = "error: invalid version format: 7.-1.0" + "\n";
+        analyzeWithSDBVersion( "7.-1.0", expectError );
+
+        expectError = "error: invalid version format: 7.0.0.0" + "\n";
+        analyzeWithSDBVersion( "7.0.0.0", expectError );
+
     }
 
     @AfterClass
@@ -101,4 +69,25 @@ public class Analyzer_32745 extends M2STestBase {
             ssh.disconnect();
     }
 
+    private void analyzeWithSDBVersion( String sdbVersion, String errorMsg )
+            throws Exception {
+        String analyzeCmd = analyzerPath + " -o " + analyzerOutputPath;
+        if ( sdbVersion != null ) {
+            analyzeCmd = analyzeCmd + " -s " + sdbVersion;
+        }
+        if ( errorMsg == null ) {
+            ssh.exec( analyzeCmd );
+            ssh.exec( "cat " + analyzerOutputPath + "summary.json" );
+            JSONObject summaryJson = JSONObject.parseObject( ssh.getStdout() );
+            Assert.assertTrue(
+                    sdbVersion.equals( summaryJson.getString( "SequoiaDB" ) ) );
+        } else {
+            try {
+                ssh.exec( analyzeCmd );
+                Assert.fail( "expect error but success" );
+            } catch ( Exception e ) {
+                Assert.assertTrue( errorMsg.equals( ssh.getStderr() ) );
+            }
+        }
+    }
 }
