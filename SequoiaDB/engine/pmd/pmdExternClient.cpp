@@ -458,8 +458,8 @@ namespace engine
             replyHeader.startFrom = MSG_GET_INNER_REPLY_STARTFROM(pAuthRes) ;
             ossMemcpy( &(replyHeader.header), pAuthRes, sizeof( MsgHeader ) ) ;
 
-            if ( MSG_AUTH_VERIFY1_REQ == pMsg->opCode && SDB_OK == rc &&
-                 pAuthRes->messageLength > (INT32)sizeof( MsgOpReply ) )
+            if ( ( MSG_AUTH_VERIFY_REQ == pMsg->opCode || MSG_AUTH_VERIFY1_REQ == pMsg->opCode ) &&
+                 SDB_OK == rc && pAuthRes->messageLength > (INT32)sizeof( MsgOpReply ) )
             {
                try
                {
