@@ -358,10 +358,6 @@ public class Rbac32800 extends SdbTestBase {
                 default:
                     break;
                 }
-                // SEQUOIADBMAINSTREAM-9940
-                sdb.closeAllCursors();
-            } catch ( BaseException e ) {
-                e.printStackTrace();
             } finally {
                 if ( userSdb != null ) {
                     userSdb.close();

@@ -293,10 +293,6 @@ public class Rbac32797 extends SdbTestBase {
                 default:
                     break;
                 }
-                // SEQUOIADBMAINSTREAM-9940
-                sdb.closeAllCursors();
-            } catch ( BaseException e ) {
-                e.printStackTrace();
             } finally {
                 if ( userSdb != null ) {
                     userSdb.close();
