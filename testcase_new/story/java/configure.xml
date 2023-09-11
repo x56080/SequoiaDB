@@ -188,5 +188,28 @@
         </packages>
     </test>
 
+    <!--未开启privilegecheck执行用例会重启节点，开启privilegecheck可直接执行用例-->
+    <test name="rbac" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rbac" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.rbac" />
+        </packages>
+    </test>
+
+    <test name="rbacsync" parallel="classes" thread-count="1">
+        <groups>
+            <run>
+                <include name="rbac" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.rbac.serial" />
+        </packages>
+    </test>
+
 </suite>
     

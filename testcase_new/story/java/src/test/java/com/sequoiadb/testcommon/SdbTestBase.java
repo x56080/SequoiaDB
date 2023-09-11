@@ -87,6 +87,9 @@ public class SdbTestBase {
     public static final String LOCATION = "location";
     public static ArrayList< String > expandGroupNames = new ArrayList<>();
     public static ArrayList< BasicBSONObject > expandNodeInfos = null;
+    public static final String RBAC = "rbac";
+    public static final String rootUserName = "rootUserName";
+    public static final String rootUserPassword = "rootUserPassword";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -100,6 +103,7 @@ public class SdbTestBase {
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
+    private static boolean privilegecheck = false;
 
     static {
         group2Conf.put( RU, new BasicBSONObject() );
@@ -389,9 +393,9 @@ public class SdbTestBase {
 
     @Parameters({ "EXPANDNODENUM" })
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
-            LOCKESCALATION, RECYCLEBIN, LOCATION })
+            LOCKESCALATION, RECYCLEBIN, LOCATION, RBAC })
     public static synchronized void initTestGroups(
-            @Optional("0") int EXPANDNODENUM ) {
+            @Optional("0") int EXPANDNODENUM ) throws Exception {
         if ( testGroup == null ) {
             return;
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
@@ -419,15 +423,39 @@ public class SdbTestBase {
         }
         System.out.println( "init " + testGroup + " Groups..........." );
         modifyNodeConf( group2Conf.get( testGroup ), null );
+
+        if ( testGroup.equals( RBAC ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                    options )) {
+                privilegecheck = CommLib.getPrivilegecheck( sdb );
+            }
+            if ( !privilegecheck ) {
+                CommLib.setPrivilegecheck( !privilegecheck );
+            }
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                    rootUserName, rootUserPassword, options )) {
+                BSONObject options = ( BSONObject ) JSON
+                        .parse( "{Roles:['_root']}" );
+                sdb.createUser( rootUserName, rootUserPassword, options );
+            }
+        }
     }
 
     @Parameters({ "EXPANDNODENUM" })
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
-            LOCKESCALATION, RECYCLEBIN, LOCATION }, alwaysRun = true)
+            LOCKESCALATION, RECYCLEBIN, LOCATION, RBAC }, alwaysRun = true)
     public static synchronized void finiTestGroups(
-            @Optional("0") int EXPANDNODENUM ) {
+            @Optional("0") int EXPANDNODENUM ) throws Exception {
         if ( testGroup == null ) {
             return;
+        } else if ( testGroup.equals( RBAC ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                    rootUserName, rootUserPassword, options )) {
+                sdb.removeUser( rootUserName, rootUserPassword );
+            }
+            if ( !privilegecheck ) {
+                CommLib.setPrivilegecheck( privilegecheck );
+            }
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
             // 执行完用例后将回收站配置改为执行用例前配置
             modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINUSERATTR ) );

@@ -956,6 +956,107 @@ public class CommLib {
     }
 
     /**
+     * @description: 获取所有节点privilegecheck的值求与
+     * @param sdb
+     *            db连接
+     * @return
+     */
+    public static boolean getPrivilegecheck( Sequoiadb sdb ) {
+        boolean privilegecheck = true;
+        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                new BasicBSONObject( "privilegecheck", 1 ), null );
+        while ( cursor.hasNext() ) {
+            BasicBSONObject obj = ( BasicBSONObject ) cursor.getNext();
+            boolean nodePrivilegecheck = Boolean
+                    .parseBoolean( ( String ) obj.get( "privilegecheck" ) );
+            privilegecheck = privilegecheck && nodePrivilegecheck;
+        }
+        cursor.close();
+        return privilegecheck;
+    }
+
+    /**
+     * @description: 集群设置privilegecheck，会重启节点，只能修改SdbTestBase.coordUrl不支持传入sdb
+     * @param privilegecheck
+     *            需要设置的privilegecheck值
+     * @return
+     */
+    public static void setPrivilegecheck( boolean privilegecheck )
+            throws Exception {
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        try {
+            sdb.updateConfig(
+                    new BasicBSONObject( "privilegecheck", privilegecheck ) );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_RTN_CONF_NOT_TAKE_EFFECT
+                    .getErrorCode()
+                    && e.getErrorCode() != SDBError.SDB_COORD_NOT_ALL_DONE
+                            .getErrorCode() ) {
+                e.printStackTrace();
+            }
+        }
+
+        List< String > coordUrls = CommLib.getAllCoordUrls( sdb );
+        ArrayList< String > groupNames = sdb.getReplicaGroupNames();
+        groupNames.remove( "SYSCoord" );
+
+        if ( coordUrls.size() == 1 ) {
+            System.out.println( "only one coord" );
+            ArrayList< String > hostNames = CommLib.getHostNames( sdb );
+            for ( String hostName : hostNames ) {
+                Ssh ssh = new Ssh( hostName, "root", SdbTestBase.rootPwd );
+                try {
+                    ssh.exec( "cat /etc/default/sequoiadb |grep INSTALL_DIR" );
+                    String str = ssh.getStdout();
+                    if ( str.length() <= 0 ) {
+                        throw new Exception(
+                                "exec command:cat /etc/default/sequoiadb |grep INSTALL_DIR can not find sequoiadb install dir" );
+                    }
+                    String installPath = str.substring( str.indexOf( "=" ) + 1,
+                            str.length() - 1 );
+                    String cmdStopNode = installPath + "/bin/sdbstop -t db";
+                    ssh.exec( cmdStopNode );
+                    String cmdStartNode = installPath + "/bin/sdbstart";
+                    ssh.exec( cmdStartNode );
+                } finally {
+                    ssh.disconnect();
+                }
+            }
+        } else {
+            System.out.println( "more than one coord" );
+            for ( String groupName : groupNames ) {
+                ReplicaGroup replicaGroup = sdb.getReplicaGroup( groupName );
+                replicaGroup.stop();
+                replicaGroup.start();
+            }
+
+            // 连接第一个coord重启后面coord
+            Sequoiadb sdb1 = new Sequoiadb( coordUrls.get( 0 ), "", "" );
+            ReplicaGroup coordRG = sdb1.getReplicaGroup( "SYSCoord" );
+            for ( int i = 1; i < coordUrls.size(); i++ ) {
+                coordRG.getNode( coordUrls.get( i ) ).stop();
+                coordRG.getNode( coordUrls.get( i ) ).start();
+            }
+            sdb1.close();
+
+            // 连接第二个coord重启第一个coord
+            Sequoiadb sdb2 = new Sequoiadb( coordUrls.get( 1 ), "", "" );
+            coordRG = sdb2.getReplicaGroup( "SYSCoord" );
+            coordRG.getNode( coordUrls.get( 0 ) ).stop();
+            coordRG.getNode( coordUrls.get( 0 ) ).start();
+            sdb2.close();
+        }
+
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        waitGroupSelectMasterNode( sdb, groupNames, 300 );
+        for ( String groupName : groupNames ) {
+            CommLib.isLSNConsistency( sdb, groupName );
+        }
+
+        sdb.close();
+    }
+
+    /**
      * @description: 获取集群所在所有机器的主机名
      * @param db
      *            需要获取集群的db连接
@@ -1354,5 +1455,52 @@ public class CommLib {
             sbBuilder.append( str.substring( 0, subTimes ) );
         }
         return sbBuilder.toString();
+    }
+
+    /**
+     * @description: 等待group中选出PrimaryNode
+     * @param db
+     *            db连接
+     * @param groupNames
+     *            需要获取的groups名
+     * @param timeOut
+     *            等待超时时间
+     */
+    public static void waitGroupSelectMasterNode( Sequoiadb db,
+            ArrayList< String > groupNames, int timeOut ) {
+        int doTime = 0;
+        for ( String groupName : groupNames ) {
+            while ( doTime < timeOut ) {
+                ReplicaGroup replicaGroup = db.getReplicaGroup( groupName );
+                try {
+                    replicaGroup.getMaster();
+                    break;
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() != SDBError.SDB_RTN_NO_PRIMARY_FOUND
+                            .getErrorCode() ) {
+                        throw e;
+                    }
+                }
+
+                try {
+                    Thread.sleep( 1000 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+
+                doTime++;
+            }
+        }
+
+        if ( doTime >= timeOut ) {
+            Assert.fail( "there is no primary node in group " );
+        }
+    }
+
+    public static void waitGroupSelectMasterNode( Sequoiadb db,
+            String groupName, int timeOut ) {
+        ArrayList< String > groupNames = new ArrayList<>();
+        groupNames.add( groupName );
+        waitGroupSelectMasterNode( db, groupNames, timeOut );
     }
 }

@@ -91,7 +91,8 @@ public class TimePrinterListener extends TestListenerAdapter {
     private void dbMsgBeginTime( ITestResult tr ) {
         Sequoiadb sdb = null;
         try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
+                    SdbTestBase.rootUserPassword );
             sdb.msg( getCurTimeStr() + "\tBegin testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
@@ -106,7 +107,8 @@ public class TimePrinterListener extends TestListenerAdapter {
     private void dbMsgEndTime( ITestResult tr ) {
         Sequoiadb sdb = null;
         try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
+                    SdbTestBase.rootUserPassword );
             sdb.msg( getCurTimeStr() + "\tEnd testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
