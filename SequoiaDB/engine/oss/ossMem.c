@@ -39,6 +39,7 @@
 #include "ossUtil.h"
 #if defined (_LINUX) || defined (_AIX)
 #include <stdlib.h>
+#include <malloc.h>
 #elif defined (_WINDOWS)
 #include <malloc.h>
 #endif
@@ -105,6 +106,7 @@ UINT32  ossMemDebugSize    = 0 ;
 void ossMemTrack ( void *p ) {}
 void ossMemUnTrack ( void *p ) {}
 INT32 ossMemTrace ( const CHAR *pPath ) { return 0 ; }
+INT32 ossMemDump ( const CHAR *pPath ) { return 0 ; }
 void  ossOnMemConfigChange( BOOLEAN debugEnable,
                             UINT32  memDebugSize,
                             BOOLEAN memDebugVerify,
@@ -112,6 +114,116 @@ void  ossOnMemConfigChange( BOOLEAN debugEnable,
                             UINT32  memDebugMask )
 {}
 #endif
+
+static INT32 g_lastMxFast = -1 ;
+static INT32 g_lastTrimThreshold = -1 ;
+static INT32 g_lastMmapThreshold = -1 ;
+static INT32 g_lastMmapMax = -1 ;
+static INT32 g_lastTopPad = -1 ;
+
+void ossSetSysMemInfo( INT32 mxfast,
+                       INT32 trimThreshold,
+                       INT32 mmapThreshold,
+                       INT32 mmapMax,
+                       INT32 topPad )
+{
+#ifndef _WINDOWS
+   INT32 ret = 0 ;
+
+   /// M_MXFAST
+   if ( mxfast != g_lastMxFast && -1 != mxfast )
+   {
+      ret = mallopt( M_MXFAST, mxfast ) ;
+#ifdef SDB_ENGINE
+      if ( 0 == ret )
+      {
+         PD_LOG( PDWARNING, "Set M_MXFAST to %d failed", mxfast ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Set M_MXFAST to %d succeed", mxfast ) ;
+         g_lastMxFast = mxfast ;
+      }
+#endif // SDB_ENGINE
+   }
+
+   /// M_TRIM_THRESHOLD
+   if ( trimThreshold != g_lastTrimThreshold && -1 != trimThreshold )
+   {
+      ret = mallopt( M_TRIM_THRESHOLD, trimThreshold ) ;
+#ifdef SDB_ENGINE
+      if ( 0 == ret )
+      {
+         PD_LOG( PDWARNING, "Set M_TRIM_THRESHOLD to %d failed", trimThreshold ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Set M_TRIM_THRESHOLD to %d succeed", trimThreshold ) ;
+         g_lastTrimThreshold = trimThreshold ;
+      }
+#endif // SDB_ENGINE
+   }
+
+   /// M_MMAP_THRESHOLD
+   if ( mmapThreshold != g_lastMmapThreshold && -1 != mmapThreshold )
+   {
+      ret = mallopt( M_MMAP_THRESHOLD, mmapThreshold ) ;
+#ifdef SDB_ENGINE
+      if ( 0 == ret )
+      {
+         PD_LOG( PDWARNING, "Set M_MMAP_THRESHOLD to %d failed", mmapThreshold ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Set M_MMAP_THRESHOLD to %d succeed", mmapThreshold ) ;
+         g_lastMmapThreshold = mmapThreshold ;
+      }
+#endif // SDB_ENGINE
+   }
+
+   /// M_MMAP_MAX
+   if ( mmapMax != g_lastMmapMax && -1 != mmapMax )
+   {
+      ret = mallopt( M_MMAP_MAX, mmapMax ) ;
+#ifdef SDB_ENGINE
+      if ( 0 == ret )
+      {
+         PD_LOG( PDWARNING, "Set M_MMAP_MAX to %d failed", mmapMax ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Set M_MMAP_MAX to %d succeed", mmapMax ) ;
+         g_lastMmapMax = mmapMax ;
+      }
+#endif // SDB_ENGINE
+   }
+
+   /// M_TOP_PAD
+   if ( topPad != g_lastTopPad && -1 != topPad )
+   {
+      ret = mallopt( M_TOP_PAD, topPad ) ;
+#ifdef SDB_ENGINE
+      if ( 0 == ret )
+      {
+         PD_LOG( PDWARNING, "Set M_TOP_PAD to %d failed", topPad ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Set M_TOP_PAD to %d succeed", topPad ) ;
+         g_lastTopPad = topPad ;
+      }
+#endif // SDB_ENGINE
+
+      SDB_UNUSED( ret ) ;
+   }
+
+#endif // not define _WINDOWS
+}
+
+INT32 ossMemTrim()
+{
+   return malloc_trim( 0 ) ;
+}
 
 BOOLEAN ossMemSanityCheck ( void *p )
 {

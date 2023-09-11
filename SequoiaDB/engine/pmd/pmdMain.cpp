@@ -250,6 +250,12 @@ namespace engine
          PD_LOG( PDEVENT, "All configs: %s", confObj.toString().c_str() ) ;
       }
 
+      ossSetSysMemInfo( pmdGetOptionCB()->getMemMXFast(),
+                        pmdGetOptionCB()->getMemTrimThreshold(),
+                        pmdGetOptionCB()->getMemMmapThreshold(),
+                        pmdGetOptionCB()->getMemMmapMax(),
+                        pmdGetOptionCB()->getMemTopPad() ) ;
+
       // 4. dump limit info
       {
          PD_LOG( PDEVENT, "dump limit info:\n%s",

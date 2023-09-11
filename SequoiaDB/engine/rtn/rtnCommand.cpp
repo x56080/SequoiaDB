@@ -5137,5 +5137,112 @@ error:
       goto done ;
    }
 
+   /*
+      _rtnMemTrim implement
+   */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnMemTrim )
+   _rtnMemTrim::_rtnMemTrim()
+   {
+      _mask = 0 ;
+   }
+
+   _rtnMemTrim::~_rtnMemTrim()
+   {
+   }
+
+   INT32 _rtnMemTrim::init( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                            const CHAR *pMatcherBuff, const CHAR *pSelectBuff,
+                            const CHAR *pOrderByBuff,const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj matcher( pMatcherBuff ) ;
+         BSONElement ele = matcher.getField( FIELD_NAME_MASK ) ;
+         if ( ele.eoo() )
+         {
+            _mask = OSS_MEMDEBUG_MASK_OSSMALLOC ;
+         }
+         else if ( String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be string(OSS|POOL|TC...)",
+                        FIELD_NAME_MASK ) ;
+            goto error ;
+         }
+
+         if ( '\0' == ele.valuestr()[0] )
+         {
+            _mask = OSS_MEMDEBUG_MASK_OSSMALLOC ;
+         }
+         else if ( !ossString2MemDebugMask( ele.valuestr(), _mask ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be 'OSS' or 'OSS|POOL|TC...'",
+                        FIELD_NAME_MASK ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnMemTrim::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB,
+                            _dpsLogWrapper *dpsCB, INT16 w, INT64 *pContextID )
+   {
+      BOOLEAN needSleep = FALSE ;
+
+      if ( _mask & OSS_MEMDEBUG_MASK_THREADALLOC )
+      {
+         pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
+         pMgr->killByThreadID( OSS_MEM_TRIM_SIGNAL_INTERNAL ) ;
+         /// shink self thread
+         utilShrinkThreadMemPool( TRUE ) ;
+         needSleep = TRUE ;
+      }
+
+      if ( _mask & OSS_MEMDEBUG_MASK_POOLALLOC )
+      {
+         if ( needSleep )
+         {
+            needSleep = FALSE ;
+            /// wait other thread to trim memory
+            ossSleep( OSS_ONE_SEC ) ;
+         }
+         /// trim mempool
+         utilGetGlobalMemPool()->shrink( TRUE ) ;
+      }
+
+      if ( _mask & OSS_MEMDEBUG_MASK_OSSMALLOC )
+      {
+         if ( needSleep )
+         {
+            needSleep = FALSE ;
+            /// wait other thread to trim memory
+            ossSleep( 2 * OSS_ONE_SEC ) ;
+         }
+         /// trim system
+         if ( 1 == ossMemTrim() )
+         {
+            PD_LOG( PDEVENT, "Has trimmed some memory" ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Has trimmed none memory" ) ;
+         }
+      }
+
+      return SDB_OK ;
+   }
 }
 

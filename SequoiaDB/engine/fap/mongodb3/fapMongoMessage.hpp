@@ -427,6 +427,8 @@ struct _mongoCommandResponse
 } ;
 typedef _mongoCommandResponse mongoCommandResponse ;
 
+#pragma pack()
+
 // sizeof( mongoResponse ) is 36, sizeof( mongoCommandResponse ) is 16.
 // Allocate a space to store response, no matter what kind of response.
 #define MONG_RESPONSE_MAX_SIZE 36

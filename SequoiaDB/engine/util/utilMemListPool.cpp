@@ -45,7 +45,7 @@
    #include "pmdEnv.hpp"
 #endif // SDB_ENGINE
 
-#if UTIL_MEM_LIST_BASE_EXPONENT < 2
+#if UTIL_MEM_LIST_BASE_EXPONENT < 5
    #error "Invalid UTIL_MEM_LIST_BASE_EXPONENT define"
 #endif
 
@@ -143,7 +143,7 @@ namespace engine
       }
 
 #ifdef _DEBUG
-      SDB_ASSERT( size <= _blockSize, "Size should <= blockSize" ) ;
+      SDB_ASSERT( size + UTIL_MEM_TOTAL_FILL_LEN <= _blockSize, "Size should <= blockSize" ) ;
 #endif //_DEBUG
 
       void *ptr = NULL ;
@@ -177,8 +177,7 @@ namespace engine
          }
 
          /// set tc inuse flag
-         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(ptr) ) =
-            UTIL_MEM_FLAG_TC_INUSE ;
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(ptr) ) = UTIL_MEM_FLAG_TC_INUSE ;
 
          if ( ossMemDebugEnabled )
          {
@@ -210,15 +209,6 @@ namespace engine
                               pFile, line,
                               pRealSize,
                               pInfo ) ;
-
-         if ( ptr )
-         {
-            if ( pRealSize )
-            {
-               *pRealSize = canAllocBlockSize ?
-                            ( _blockSize - UTIL_MEM_TOTAL_FILL_LEN ) : size ;
-            }
-         }
       }
 
       return ptr ;
@@ -243,8 +233,7 @@ namespace engine
       if ( _canCacheBlock() )
       {
          /// set tc nouse flag
-         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
-            UTIL_MEM_FLAG_TC_NOUSE ;
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) = UTIL_MEM_FLAG_TC_NOUSE ;
 
          utilMemListNode *pNode = (utilMemListNode*)p ;
          pNode->_next = _header ;
@@ -286,6 +275,33 @@ namespace engine
       _shrinkSize = 0 ;
 
       _lastAllocTick = 0 ;
+   }
+
+   UINT64 _utilMemListItem::shrinkAll()
+   {
+      UINT64 freedSize = 0 ;
+      utilMemListNode *pNode = NULL ;
+
+      while ( _header )
+      {
+         pNode = _header ;
+         _header = pNode->_next ;
+         utilPoolRelease( (void*&)pNode ) ;
+
+         freedSize += _blockSize ;
+#ifdef _DEBUG
+         SDB_ASSERT( _cachedSize >= _blockSize, "Invalid cachedSize" ) ;
+#endif //_DEBUG
+         _cachedSize -= _blockSize ;
+      }
+
+      if ( freedSize > 0 && _pEvent )
+      {
+         _pEvent->onReleaseCache( freedSize ) ;
+      }
+      _shrinkSize += freedSize ;
+
+      return freedSize ;
    }
 
    UINT32 _utilMemListItem::dump( CHAR * pBuff, UINT32 buffSize )
@@ -415,6 +431,7 @@ namespace engine
 
       _outrangeAlloc = 0 ;
       _outrangeDealloc = 0 ;
+      _outpoolDealloc = 0 ;
    }
 
    _utilMemListPool::~_utilMemListPool()
@@ -544,21 +561,61 @@ namespace engine
 
       _outrangeAlloc = 0 ;
       _outrangeDealloc = 0 ;
+      _outpoolDealloc = 0 ;
    }
 
-   void _utilMemListPool::shrink()
+   UINT64 _utilMemListPool::shrinkAll()
    {
       ossSignalShield shield ;
       shield.doNothing() ;
 
       if ( 0 == _cachedSize )
       {
-         return ;
+         return 0 ;
+      }
+
+#ifdef SDB_ENGINE
+      _lastShrinkTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
+
+      utilMemListItem *pMemList = NULL ;
+      UINT64 freeSize = 0 ;
+
+      for ( UINT32 i = 0 ; i < UTIL_MEM_POOL_LIST_NUM ; ++i )
+      {
+         pMemList = _arrayList[ i ] ;
+         freeSize += pMemList->shrinkAll() ;
+      }
+
+      /// EBB
+      if ( _pEBB )
+      {
+         freeSize += _EBBSize ;
+         clearEBB() ;
+      }
+
+      if ( freeSize > 0 )
+      {
+         PD_LOG( PDDEBUG, "MemList freed %llu space", freeSize ) ;
+         _shrinkSize += freeSize ;
+      }
+
+      return freeSize ;
+   }
+
+   UINT64 _utilMemListPool::shrink()
+   {
+      ossSignalShield shield ;
+      shield.doNothing() ;
+
+      if ( 0 == _cachedSize )
+      {
+         return 0 ;
       }
 #ifdef SDB_ENGINE
       else if ( pmdGetTickSpanTime( _lastShrinkTick ) < UTIL_TC_SHRINK_INTERVAL )
       {
-         return ;
+         return 0 ;
       }
       _lastShrinkTick = pmdGetDBTick() ;
 #endif // SDB_ENGINE
@@ -594,6 +651,8 @@ namespace engine
          PD_LOG( PDDEBUG, "MemList freed %llu space", freeSize ) ;
          _shrinkSize += freeSize ;
       }
+
+      return freeSize ;
    }
 
    void _utilMemListPool::onAllocCache( UINT32 blockSize )
@@ -660,8 +719,7 @@ namespace engine
          }
 
          /// set tc inuse flag
-         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
-            UTIL_MEM_FLAG_TC_INUSE ;
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) = UTIL_MEM_FLAG_TC_INUSE ;
 
          onAllocCache( _EBBSize ) ;
 
@@ -830,8 +888,7 @@ namespace engine
          clearEBB() ;
 
          /// set tc nouse flag
-         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
-            UTIL_MEM_FLAG_TC_NOUSE ;
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) = UTIL_MEM_FLAG_TC_NOUSE ;
 
          _pEBB = (CHAR*)p ;
          _EBBSize = size ;
@@ -842,7 +899,15 @@ namespace engine
       }
       else
       {
-         ++_outrangeDealloc ;
+         if ( size + UTIL_MEM_TOTAL_FILL_LEN <=
+              _utilMemBlockPool::type2Size( (_utilMemBlockPool::MEMBLOCKPOOL_TYPE)_maxType ) )
+         {
+            ++_outpoolDealloc ;
+         }
+         else
+         {
+            ++_outrangeDealloc ;
+         }
          SDB_POOL_FREE( p ) ;
       }
    }
@@ -899,23 +964,24 @@ namespace engine
 
       /// dump self
       len = ossSnprintf( pBuff, buffSize,
-                         "   CacheSize : %llu"OSS_NEWLINE
-                         "    EBB Size : %u"OSS_NEWLINE
-                         "  AllocCount : %llu"OSS_NEWLINE
-                         "   OOR Alloc : %llu"OSS_NEWLINE
-                         "   EBB Alloc : %llu"OSS_NEWLINE
-                         "ReallocCount : %llu"OSS_NEWLINE
-                         "DeallocCount : %llu"OSS_NEWLINE
-                         " OOR Dealloc : %llu"OSS_NEWLINE
-                         "  ShrinkSize : %llu"OSS_NEWLINE
-                         "    HitCount : %llu (%.2f%%)"OSS_NEWLINE
-                         "   PushCount : %llu (%.2f%%)"OSS_NEWLINE
-                         "   CopyCount : %llu (%.2f%%)"OSS_NEWLINE,
+                         "   CacheSize : %llu" OSS_NEWLINE
+                         "    EBB Size : %u" OSS_NEWLINE
+                         "  AllocCount : %llu" OSS_NEWLINE
+                         "   OOR Alloc : %llu" OSS_NEWLINE
+                         "   EBB Alloc : %llu" OSS_NEWLINE
+                         "ReallocCount : %llu" OSS_NEWLINE
+                         "DeallocCount : %llu" OSS_NEWLINE
+                         " OOR Dealloc : %llu" OSS_NEWLINE
+                         " OOP Dealloc : %llu" OSS_NEWLINE
+                         "  ShrinkSize : %llu" OSS_NEWLINE
+                         "    HitCount : %llu (%.2f%%)" OSS_NEWLINE
+                         "   PushCount : %llu (%.2f%%)" OSS_NEWLINE
+                         "   CopyCount : %llu (%.2f%%)" OSS_NEWLINE,
                          _cachedSize,
                          _EBBSize,
                          _allocCount, _outrangeAlloc, _allocEBBCount,
                          _reallocCount, _deallocCount, _outrangeDealloc,
-                         _shrinkSize,
+                         _outpoolDealloc, _shrinkSize,
                          _hitCount, hitRatio,
                          _pushCount, pushRatio,
                          _copyCount, copyRatio ) ;
@@ -982,6 +1048,23 @@ namespace engine
       {
          SDB_ASSERT( FALSE, "Mempool is already valid" ) ;
       }
+   }
+
+   UINT64 utilShrinkThreadMemPool( BOOLEAN forced )
+   {
+      if ( g_thdMemPool )
+      {
+         if ( forced )
+         {
+            return g_thdMemPool->shrinkAll() ;
+         }
+         else
+         {
+            return g_thdMemPool->shrink() ;
+         }
+      }
+
+      return 0 ;
    }
 
    void utilClearThreadMemPool()

@@ -5245,6 +5245,9 @@ namespace sdbclient
       virtual INT32 setPDLevel( INT32 level,
          const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
+      virtual INT32 memTrim( const CHAR *maskStr = "",
+                             const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+
       virtual INT32 msg( const CHAR* msg ) = 0 ;
 
       virtual INT32 loadCS( const CHAR* csName,
@@ -7285,6 +7288,31 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->setPDLevel( level, options ) ;
+      }
+
+      /** \fn INT32 memTrim(const CHAR *maskStr,
+                            const bson::BSONObj &options)
+          \brief Trim the node's memory
+          \param [in] maskStr The memory mask. value 'OSS','POOL','TC', can use '|' to join them
+          \param [in] options The control options:(Only take effect in coordinate nodes)
+
+              GroupID:INT32,
+              GroupName:String,
+              NodeID:INT32,
+              HostName:String,
+              svcname:String,
+              ...
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 memTrim( const CHAR *maskStr = "",
+                     const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->memTrim( maskStr, options ) ;
       }
 
       INT32 msg( const CHAR* msg )

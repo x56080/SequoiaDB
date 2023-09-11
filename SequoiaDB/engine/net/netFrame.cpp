@@ -307,6 +307,8 @@ namespace engine
       _route.clear() ;
       _timers.clear() ;
       _opposite.clear() ;
+      _mainSuitPtr = netEvSuitPtr() ;
+      _vecEvSuit.clear() ;
       PD_TRACE_EXIT ( SDB__NETFRAME_DECONS );
    }
 
@@ -502,6 +504,7 @@ namespace engine
 
       // close listen
       closeListen( NET_FRAME_MASK_ALL ) ;
+      _restartTimer.stopDummyTimer() ;
 
       /// WARNING: try catch each exceptions of each steps during stop
       /// to make sure each step can tell related sessions and net suits to

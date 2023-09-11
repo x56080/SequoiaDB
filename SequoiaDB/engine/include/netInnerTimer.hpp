@@ -68,6 +68,7 @@ namespace engine
       void  setInfo( const CHAR *hostName, const CHAR *serviceName ) ;
       void  startTimer() ;
       INT32 startDummyTimer() ;
+      void  stopDummyTimer() ;
 
    protected:
       netFrame *     _frame ;

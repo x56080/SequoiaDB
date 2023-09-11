@@ -111,6 +111,8 @@ void _mongoAccess::_release()
       // should not delete here, just make it point to nullptr
       _pResource = NULL ;
    }
+
+   mongoReleaseErrorBson() ;
 }
 
 }

@@ -251,6 +251,23 @@ namespace engine
    } ;
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
+   
+   /*
+      _coordCMDMemTrim define
+   */
+   class _coordCMDMemTrim : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDMemTrim() ;
+         virtual ~_coordCMDMemTrim() ;
+      private:
+         virtual BOOLEAN _useContext() { return FALSE ; }
+         virtual INT32   _onLocalMode( INT32 flag ) ;
+         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual UINT32  _getControlMask() const ;
+   } ;
+   typedef _coordCMDMemTrim coordCMDMemTrim ;
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

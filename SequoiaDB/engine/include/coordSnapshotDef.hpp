@@ -70,6 +70,7 @@
                                                 freeLogSpace:{$sum:\"$freeLogSpace\"},\
                                                 vsize:{$sum:\"$vsize\"},\
                                                 rss:{$sum:\"$rss\"},\
+                                                MemShared:{$sum:\"$MemShared\"},\
                                                 fault:{$sum:\"$fault\"},\
                                                 TotalMapped:{$sum:\"$TotalMapped\"},\
                                                 svcNetIn:{$sum:\"$svcNetIn\"},\
@@ -77,7 +78,11 @@
                                                 shardNetIn:{$sum:\"$shardNetIn\"},\
                                                 shardNetOut:{$sum:\"$shardNetOut\"},\
                                                 replNetIn:{$sum:\"$replNetIn\"},\
-                                                replNetOut:{$sum:\"$replNetOut\"}"
+                                                replNetOut:{$sum:\"$replNetOut\"},\
+                                                MemPoolSize:{$sum:\"$MemPoolSize\"},\
+                                                MemPoolFree:{$sum:\"$MemPoolFree\"},\
+                                                MemPoolUsed:{$sum:\"$MemPoolUsed\"},\
+                                                MemPoolMaxOOLSize:{$max:\"$MemPoolMaxOOLSize\"}"
 
 #define COORD_SNAPSHOTDB_INPUT_SHOW_ERR    COORD_SNAPSHOTDB_INPUT_BASE",\
                                                 ErrNodes:{$mergearrayset:\"$ErrNodes\"}\

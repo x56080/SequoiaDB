@@ -1681,6 +1681,32 @@ namespace engine
       const CHAR *      _ixname ;
       rtnAnalyzeParam   _param ;
    } ;
+
+   /*
+      _rtnMemTrim define
+   */
+   class _rtnMemTrim : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnMemTrim() ;
+         virtual ~_rtnMemTrim() ;
+
+      public:
+         virtual const CHAR * name () { return NAME_MEM_TRIM ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_MEM_TRIM ; }
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      private:
+         UINT32      _mask ;
+   } ;
+
 }
 
 const UINT32 pdGetTraceFunctionListNum();

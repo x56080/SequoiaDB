@@ -1463,12 +1463,14 @@ namespace engine
          {
             ob.append( FIELD_NAME_VSIZE, memInfo.vSize ) ;
             ob.append( FIELD_NAME_RSS, memInfo.rss ) ;
+            ob.append( FIELD_NAME_MEM_SHARED, memInfo.shr ) ;
             ob.append( FIELD_NAME_FAULT, memInfo.fault ) ;
          }
          else
          {
             ob.append( FIELD_NAME_VSIZE, 0 ) ;
             ob.append( FIELD_NAME_RSS, 0 ) ;
+            ob.append( FIELD_NAME_MEM_SHARED, 0 ) ;
             ob.append( FIELD_NAME_FAULT, 0 ) ;
             PD_RC_CHECK( rc, PDERROR,
                         "failed to dump memory info(rc=%d)",
@@ -4148,8 +4150,20 @@ namespace engine
 
          sdbGetClsCB()->dumpSchedInfo( ob ) ;
 
-         ob.append ( FIELD_NAME_MEMPOOL_SIZE,
-                     (INT64)krcb->getMemBlockPool()->getTotalSize() ) ;
+         UINT64 memTotalSize = krcb->getMemBlockPool()->getTotalSize() ;
+         UINT64 memUsedSize = krcb->getMemBlockPool()->getUsedSize() ;
+         ob.append ( FIELD_NAME_MEMPOOL_SIZE, (INT64)memTotalSize ) ;
+         ob.append ( FIELD_NAME_MEMPOOL_USED, (INT64)memUsedSize ) ;
+         if ( memTotalSize > memUsedSize )
+         {
+            ob.append ( FIELD_NAME_MEMPOOL_FREE, (INT64)( memTotalSize - memUsedSize ) ) ;
+         }
+         else
+         {
+            ob.append ( FIELD_NAME_MEMPOOL_FREE, (INT64)0 ) ;
+         }
+         ob.append ( FIELD_NAME_MEMPOOL_MAX_OOLSZ,
+                     (INT64)krcb->getMemBlockPool()->getMaxOOLSize() ) ;
 
          obj = ob.done() ;
       }

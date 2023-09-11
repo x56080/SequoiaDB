@@ -512,6 +512,8 @@ sequoiadb
 │       │   ├── listSequences_en.troff
 │       │   ├── listTasks_cn.troff
 │       │   ├── listTasks_en.troff
+│       │   ├── memTrim_cn.troff
+│       │   ├── memTrim_en.troff
 │       │   ├── reloadConf_cn.troff
 │       │   ├── reloadConf_en.troff
 │       │   ├── removeBackup_cn.troff

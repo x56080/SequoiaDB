@@ -107,18 +107,17 @@ class _mongoErrorObjAssit : public SDBObject
 {
 public:
    _mongoErrorObjAssit() ;
+   ~_mongoErrorObjAssit(){ release() ; }
 
-   ~_mongoErrorObjAssit(){}
-
-   BSONObj getErrorObj( INT32 errorCode )
-   {
-      return _errorObjsArray[ SDB_MAX_ERROR + errorCode ] ;
-   }
+   void release() ;
+   BSONObj getErrorObj( INT32 errorCode ) ;
 
 private:
    BSONObj _errorObjsArray[ SDB_MAX_ERROR + SDB_MAX_WARNING + 1 ] ;
 };
 typedef _mongoErrorObjAssit mongoErrorObjAssit ;
+
+void  mongoReleaseErrorBson() ;
 
 INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                               const BSONObj &updatorObj,
