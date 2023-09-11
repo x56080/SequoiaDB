@@ -2248,10 +2248,14 @@ function test_crud_largeData_22505 ()
                   else
                   {
                      // ready data
-                     const docsNum = 2200;
+                     const docsNumArray = [2100, 10000, 50000];
+                     const docsNum = docsNumArray[Math.floor( Math.random() * docsNumArray.length )];
+                     console.log( "---test_crud_largeData_22505 docsNum: " + docsNum );
+
                      const updateDocsNum = docsNum - 100;
                      const deleteDocsNum = docsNum - 100;
                      const findDocsNum = docsNum - 100;
+
                      var docs = [];
                      var expDocsForInsert = [];
                      var expDocsForUpdate = [];
@@ -2579,7 +2583,7 @@ function test_find_maxTimeMS_33083 ()
                                     }
                                  }
                               );
-                              console.log( "--test find maxTimeMS success" );
+                              console.log( "---test find maxTimeMS success" );
                            }
                         }
                      );
@@ -2646,7 +2650,7 @@ function test_createIndexes_maxTimeMS_33083 ()
                            }
                         }
                      );
-                     console.log( "--test createIndexes maxTimeMS success" );
+                     console.log( "---test createIndexes maxTimeMS success" );
                   }
                }
             );
@@ -2712,7 +2716,7 @@ function test_aggregate_maxTimeMS_33083 ()
                                     }
                                  }
                               ).option( { "maxTimeMS": 30 * 1000 } );
-                              console.log( "--test aggregate maxTimeMS success" );
+                              console.log( "---test aggregate maxTimeMS success" );
                            }
                         }
                      );
@@ -2785,7 +2789,7 @@ function test_aggregate_unwind_33085 ()
                                     }
                                  }
                               ).option( { "maxTimeMS": 30 * 1000 } );
-                              console.log( "--test aggregate unwind success" );
+                              console.log( "---test aggregate unwind success" );
                            }
                         }
                      );
