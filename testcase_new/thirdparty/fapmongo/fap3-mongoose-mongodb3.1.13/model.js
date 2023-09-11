@@ -1,14 +1,19 @@
 /*
  * @description 兼容mongodb，mongoose驱动测试
+      注意事项：
+      1、mongoose中test执行存在特殊性，方法都是后天执行，即：执行方法后不会等返回，方法里面的方法也是一样的，如test中同一个层级的方法。如果B方法依赖A方法的执行结果，则需要将B方法写在A方法里面。
+      2、不支持创建/删除database、collection，跑用例前后需要手工干预清理环境，否则可能会受数据残留影响导致用例执行失败
  * @testcase sequoiaDB / Story测试 / 兼容mongodb / 驱动测试 / mongoose驱动
  * @author XiaoNi Huang 2020-07-03
+ * @modify XiaoNi Huang 2023-08-20
 */
 const Mongoose = require( 'mongoose' );
 const Assert = require( 'assert' );
 
-var dbName = 'cs_mongoose_model';
-var SequoiaDB_URL = 'mongodb://localhost:11817/' + dbName;
+const dbName = 'cs_mongoose_model';
+const SequoiaDB_URL = 'mongodb://localhost:11817/' + dbName;
 const Schema = Mongoose.Schema( { "_id": Number, "a": Number, "b": Number } );
+const modelName = "comm_model";
 
 main();
 function main ()
@@ -45,8 +50,8 @@ function main ()
    test_selector_22467();
 
    // seqDB-22468:更新符测试
-   test_updater_22468_object();
-   test_updater_22468_array();
+   test_updater_object_22468();
+   test_updater_array_22468();
 
    // seqDB-22469:聚集操作
    test_aggregate_22469();
@@ -72,8 +77,8 @@ function main ()
 */
 function test_createCollection_22461 ()
 {
-   var clName = 'cl_createCollection_22461';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_createCollection_22461';
+   const Test = Mongoose.model( modelName, Schema, clName );
    Test.createCollection().then(
       function()
       {
@@ -98,8 +103,8 @@ function test_createCollection_22461 ()
 
 function test_autoCreateCSCL_22461 ()
 {
-   var clName = 'cl_autoCreateCSCL_22461';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_autoCreateCSCL_22461';
+   const Test = Mongoose.model( modelName, Schema, clName );
    Test.insertMany( [{ '_id': 1, 'a': 1 }, { '_id': 2, 'a': 2 }],
       function( err )
       {
@@ -131,7 +136,7 @@ function test_autoCreateCSCL_22461 ()
 */
 function test_createIndexes_22462 ()
 {
-   var clName = 'cl_createIndexes_22462';
+   const clName = 'cl_createIndexes_22462';
 
    // Schema指定索引属性创建索引
    const Schema2 = Mongoose.Schema( {
@@ -139,7 +144,7 @@ function test_createIndexes_22462 ()
       "a": { "type": String, "unique": true },
       "b": { "type": String, "unique": false }
    } );
-   var Test = Mongoose.model( 'test_indexes', Schema2, clName );
+   const Test = Mongoose.model( 'test_createIndexes_22462', Schema2, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -203,7 +208,7 @@ function test_createIndexes_22462 ()
                                           {
                                              if( err )
                                              {
-                                                if( err.message !== 'Duplicate key exist' ) 
+                                                if( err.code !== -38 ) 
                                                 {
                                                    throw new Error( err );
                                                 }
@@ -243,8 +248,8 @@ function test_createIndexes_22462 ()
 
 function test_create_22463 ()
 {
-   var clName = 'cl_create_22463';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_create_22463';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -304,8 +309,8 @@ function test_create_22463 ()
 
 function test_insertMany_22463 ()
 {
-   var clName = 'cl_insertMany_22463';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_insertMany_22463';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -335,7 +340,7 @@ function test_insertMany_22463 ()
                            }
                            else
                            {
-                              var expDocs = [{ "_id": 1, "a": 1, "__v": 0 }, { "_id": 2, "a": 2, "__v": 0 }];
+                              const expDocs = [{ "_id": 1, "a": 1, "__v": 0 }, { "_id": 2, "a": 2, "__v": 0 }];
                               Assert.equal( objectKeysSort( rc ), objectKeysSort( expDocs ) );
 
                               // check results
@@ -366,8 +371,8 @@ function test_insertMany_22463 ()
 
 function test_prototype_save_22463 ()
 {
-   var clName = 'cl_prototype_save_22463';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_prototype_save_22463';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -389,7 +394,7 @@ function test_prototype_save_22463 ()
                   else
                   {
                      // save
-                     var doc = new Test( { '_id': 1, 'a': 1 } );
+                     const doc = new Test( { '_id': 1, 'a': 1 } );
                      doc.save(
                         function( err, rc )
                         {
@@ -429,8 +434,8 @@ function test_prototype_save_22463 ()
 
 function test_update_22464 ()
 {
-   var clName = 'cl_update_22464';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_update_22464';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -502,8 +507,8 @@ function test_update_22464 ()
 
 function test_updateMany_22464 ()
 {
-   var clName = 'cl_updateMany_22464';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_updateMany_22464';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -575,8 +580,8 @@ function test_updateMany_22464 ()
 
 function test_deleteOne_22465 ()
 {
-   var clName = 'cl_deleteOne_22465';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_deleteOne_22465';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -648,8 +653,8 @@ function test_deleteOne_22465 ()
 
 function test_deleteMany_22465 ()
 {
-   var clName = 'cl_deleteMany_22465';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_deleteMany_22465';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -721,8 +726,8 @@ function test_deleteMany_22465 ()
 
 function test_remove_22465 ()
 {
-   var clName = 'cl_remove_22465';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_remove_22465';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -794,8 +799,8 @@ function test_remove_22465 ()
 
 function test_prototype_delete_22465 ()
 {
-   var clName = 'cl_prototype_delete_22465';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_prototype_delete_22465';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -828,7 +833,7 @@ function test_prototype_delete_22465 ()
                               Assert.equal( objectKeysSort( rc ), objectKeysSort( [{ "_id": 1, "a": 1, "__v": 0 }, { "_id": 2, "a": 2, "__v": 0 }] ) );
 
                               // delete
-                              var doc = new Test( { '_id': 1, 'a': 1 } );
+                              const doc = new Test( { '_id': 1, 'a': 1 } );
                               doc.delete(
                                  function( err, rc )
                                  {
@@ -871,8 +876,8 @@ function test_prototype_delete_22465 ()
 
 function test_prototype_remove_22465 ()
 {
-   var clName = 'cl_prototype_remove_22465';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_prototype_remove_22465';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -905,7 +910,7 @@ function test_prototype_remove_22465 ()
                               Assert.equal( objectKeysSort( rc ), objectKeysSort( [{ "_id": 1, "a": 1, "__v": 0 }, { "_id": 2, "a": 2, "__v": 0 }] ) );
 
                               // remove
-                              var doc = new Test( { '_id': 1, 'a': 1 } );
+                              const doc = new Test( { '_id': 1, 'a': 1 } );
                               doc.remove(
                                  function( err, rc )
                                  {
@@ -951,9 +956,9 @@ function test_prototype_remove_22465 ()
 */
 function test_matcher_22466 ()
 {
-   var clName = 'cl_matcher_22466';
+   const clName = 'cl_matcher_22466';
    const Schema2 = Mongoose.Schema( { "_id": Number, "a": Number, "b": Number, "c": Number, "d": String, "e": Array } );
-   var Test = Mongoose.model( 'test_matcher', Schema2, clName );
+   const Test = Mongoose.model( 'test_matcher_22466', Schema2, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1001,7 +1006,7 @@ function test_matcher_22466 ()
                                     }
                                  }
                               );
-                              
+
                               // $ne
                               Test.find( { "a": { "$lte": 4 }, "b": { "$ne": 1 } }, { "_id": 1, "a": 1, "b": 1 }, { "$sort": { "_id": 1 } },
                                  function( err, rc )
@@ -1139,9 +1144,9 @@ function test_matcher_22466 ()
 */
 function test_selector_22467 ()
 {
-   var clName = 'cl_selector_22467';
+   const clName = 'cl_selector_22467';
    const Schema2 = Mongoose.Schema( { "_id": Number, "a": Number, "b": Number, "c": Array } );
-   var Test = Mongoose.model( 'test_selector', Schema2, clName );
+   const Test = Mongoose.model( 'cl_selector_22467', Schema2, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1250,10 +1255,10 @@ function test_selector_22467 ()
 /*
 * 更新符测试
 */
-function test_updater_22468_object ()
+function test_updater_object_22468 ()
 {
-   var clName = 'cl_updater_22468_object';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_updater_object_22468';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1508,11 +1513,11 @@ function test_updater_22468_object ()
    );
 }
 
-function test_updater_22468_array ()
+function test_updater_array_22468 ()
 {
-   var clName = 'cl_updater_22468_array';
+   const clName = 'cl_updater_array_22468';
    const Schema2 = Mongoose.Schema( { "_id": Number, "a": Number, "b": Array, "c": Array } );
-   var Test = Mongoose.model( 'cl_updater_22468_array', Schema2, clName );
+   const Test = Mongoose.model( 'test_updater_array_22468', Schema2, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1650,9 +1655,9 @@ function test_updater_22468_array ()
 
 function test_aggregate_22469 ()
 {
-   var clName = 'cl_aggregate_22469';
+   const clName = 'cl_aggregate_22469';
    const Schema2 = Mongoose.Schema( { "_id": Number, "a": String, "b": Number, "c": String, "d": Number } );
-   var Test = Mongoose.model( 'test_aggregate', Schema2, clName );
+   const Test = Mongoose.model( 'test_aggregate_22469', Schema2, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1673,7 +1678,7 @@ function test_aggregate_22469 ()
                   }
                   else
                   {
-                     var docs = [
+                     const docs = [
                         { "_id": 1, "a": "A", "b": 86, "c": "test", "d": 1 },
                         { "_id": 2, "a": "B", "b": 90, "c": "dev", "d": 1 },
                         { "_id": 3, "a": "C", "b": 100, "c": "test", "d": 2 },
@@ -1906,8 +1911,8 @@ function test_aggregate_22469 ()
 
 function test_count_22470 ()
 {
-   var clName = 'cl_count_22470';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_count_22470';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -1928,7 +1933,7 @@ function test_count_22470 ()
                   }
                   else
                   {
-                     var docsNum = 2100;
+                     const docsNum = 2100;
                      var docs = [];
                      for( var i = 0; i < docsNum; i++ )
                      {
@@ -2029,8 +2034,8 @@ function test_count_22470 ()
 
 function test_distinct_22471 ()
 {
-   var clName = 'cl_distinct_22471';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_distinct_22471';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -2119,8 +2124,8 @@ function test_distinct_22471 ()
 
 function test_prototype_increment_22472 ()
 {
-   var clName = 'cl_prototype_increment_22472';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_prototype_increment_22472';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -2208,8 +2213,8 @@ function test_prototype_increment_22472 ()
 
 function test_crud_largeData_22505 ()
 {
-   var clName = 'cl_crud_largeData_22505';
-   var Test = Mongoose.model( 'test', Schema, clName );
+   const clName = 'cl_crud_largeData_22505';
+   const Test = Mongoose.model( modelName, Schema, clName );
    // 没有创建/删除集合的接口，需要插入记录时自动创建，否则下一步remove清理数据时会报集合不存在
    Test.create( [{ "_id": -1 }],
       function( err )
@@ -2231,7 +2236,14 @@ function test_crud_largeData_22505 ()
                   else
                   {
                      // ready data
-                     var docsNum = 2100;
+                     const docsNumArray = [2100, 10000, 50000];
+                     const docsNum = docsNumArray[Math.floor( Math.random() * docsNumArray.length )];
+                     console.log( "---test_crud_largeData_22505 docsNum: " + docsNum );
+
+                     const updateDocsNum = docsNum - 100;
+                     const deleteDocsNum = docsNum - 100;
+                     const findDocsNum = docsNum - 100;
+
                      var docs = [];
                      var expDocsForInsert = [];
                      var expDocsForUpdate = [];
@@ -2252,7 +2264,7 @@ function test_crud_largeData_22505 ()
                            }
                            else
                            {
-                              Assert.equal( objectKeysSort( rc ), objectKeysSort( expDocsForInsert ) );
+                              checkLargeData( rc, expDocsForInsert );
 
                               // check results
                               Test.find( {},
@@ -2264,10 +2276,9 @@ function test_crud_largeData_22505 ()
                                     }
                                     else
                                     {
-                                       Assert.equal( objectKeysSort( rc ), objectKeysSort( expDocsForInsert ) );
+                                       checkLargeData( rc, expDocsForInsert );
 
                                        // update large data
-                                       var updateDocsNum = 2000;
                                        Test.updateMany( { "a": { "$lt": updateDocsNum } }, { "$inc": { "b": 1 } }, {},
                                           function( err, rc )
                                           {
@@ -2277,7 +2288,10 @@ function test_crud_largeData_22505 ()
                                              }
                                              else
                                              {
-                                                Assert.equal( objectKeysSort( rc ), objectKeysSort( { "n": updateDocsNum, "nModified": updateDocsNum, "ok": 1 } ) );
+                                                // 返回 { "n": updateDocsNum, "nModified": updateDocsNum, "ok": 1 } ，但字段顺序不固定
+                                                Assert.equal( rc.ok, 1 );
+                                                Assert.equal( rc.n, updateDocsNum );
+                                                Assert.equal( rc.nModified, updateDocsNum );
 
                                                 // check results
                                                 Test.find( { "a": { "$lt": updateDocsNum } },
@@ -2289,10 +2303,9 @@ function test_crud_largeData_22505 ()
                                                       }
                                                       else
                                                       {
-                                                         Assert.equal( objectKeysSort( rc ), objectKeysSort( expDocsForUpdate.slice( 0, updateDocsNum ) ) );
+                                                         checkLargeData( rc, expDocsForUpdate.slice( 0, updateDocsNum ) );
 
                                                          // delete large data
-                                                         var deleteDocsNum = 2000;
                                                          Test.deleteMany( { "a": { "$lt": deleteDocsNum } },
                                                             function( err, rc )
                                                             {
@@ -2314,13 +2327,13 @@ function test_crud_largeData_22505 ()
                                                                         }
                                                                         else
                                                                         {
-                                                                           Assert.equal( objectKeysSort( rc ), objectKeysSort( expDocsForInsert.slice( deleteDocsNum ) ) );
+                                                                           checkLargeData( rc, expDocsForInsert.slice( deleteDocsNum ) );
                                                                         }
                                                                      }
                                                                   );
 
                                                                   // find, rc num = 1
-                                                                  Test.find( { "a": 2000 },
+                                                                  Test.find( { "a": findDocsNum },
                                                                      function( err, rc )
                                                                      {
                                                                         if( err )
@@ -2329,7 +2342,7 @@ function test_crud_largeData_22505 ()
                                                                         }
                                                                         else
                                                                         {
-                                                                           Assert.equal( objectKeysSort( rc ), objectKeysSort( [{ "__v": 0, "_id": 2000, "a": 2000, "b": 1 }] ) );
+                                                                           Assert.equal( objectKeysSort( rc ), objectKeysSort( [{ "__v": 0, "_id": findDocsNum, "a": findDocsNum, "b": 1 }] ) );
                                                                         }
                                                                      }
                                                                   );
@@ -2377,12 +2390,12 @@ function test_crud_largeData_22505 ()
 // lack: replaceOne / deleteMany
 function test_bulkWrite ()
 {
-   var clName = 'cl_bulkWrite';
+   const clName = 'cl_bulkWrite';
    const Schema2 = Mongoose.Schema( { "_id": Number, "a": Number, "b": Number, "c": Number } );
-   var Test = Mongoose.model( 'test_bulkWrite', Schema2, clName );
+   const Test = Mongoose.model( 'test_bulkWrite', Schema2, clName );
    try
    {
-      var hanldResult = Test.bulkWrite(
+      const hanldResult = Test.bulkWrite(
          [
             { // clean, then test
                insertOne:
@@ -2490,4 +2503,58 @@ function objectKeysSort ( object )
       }
       return JSON.stringify( newObj );
    }
+}
+
+function checkLargeData ( actDocs, expDocs )
+{
+   // 检查长度，无论长度是否相等均遍历记录正确性
+   if( actDocs.length != expDocs.length )
+   {
+      console.log( "------actDocs.length = " + actDocs.length + ", expDocs.length = " + expDocs.length );
+
+   }
+   // 检查记录正确性
+   // 返回的记录keys有隐藏字段，需要先转string，再转bson
+   var actDocs = JSON.parse( JSON.stringify( actDocs ) );
+   var expDocs = JSON.parse( JSON.stringify( expDocs ) );
+   // 数组元素排序
+   var actDocsNew = arraySort( actDocs );
+   var expDocsNew = arraySort( expDocs );
+   // 遍历检查每条记录，不符合预期则抛出异常
+   for( var i = 0; i < actDocs.length; i++ )
+   {
+      if( JSON.stringify( actDocsNew[i] ) != JSON.stringify( expDocsNew[i] ) )
+      {
+         console.log( "------actDoc = " + JSON.stringify( actDocsNew[i] ) + ", " + "expDoc = " + JSON.stringify( expDocsNew[i] ) );
+         throw new Error( "------checkLargeData failed" );
+      }
+   }
+   // 如果实际记录数少于预期记录数，输出多余预期记录并抛出异常
+   if( actDocs.length < expDocs.length )
+   {
+      console.log( "------expDocs, last n docs = " + JSON.stringify( expDocsNew.slice( actDocsNew.length - 1, expDocsNew.length - 1 ) ) );
+      throw new Error( "------checkLargeData failed" );
+   }
+}
+
+function arraySort ( docs )
+{
+   // 返回的记录keys有隐藏字段，需要先转string，再转bson
+   var object = JSON.parse( JSON.stringify( docs ) );
+   // sort
+   var objLen = docs.length;
+   // array
+   var newDocs = [];
+   for( var j = 0; j < objLen; j++ )
+   {
+      var obj = docs[j];
+      var newKeys = Object.keys( obj ).sort();
+      var newObj = {};
+      for( var i = 0; i < newKeys.length; i++ )
+      {
+         newObj[newKeys[i]] = obj[newKeys[i]]
+      }
+      newDocs.push( newObj );
+   }
+   return newDocs;
 }
