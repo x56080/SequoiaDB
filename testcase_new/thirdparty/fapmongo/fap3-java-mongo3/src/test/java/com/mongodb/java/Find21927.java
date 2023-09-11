@@ -26,6 +26,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.mongodb.MongoQueryException;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -51,7 +52,8 @@ public class Find21927 extends MongodbTestBase {
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
-        db = MongodbTestBase.getDataBase( client );
+        db = MongodbTestBase.getDataBase( client )
+                .withReadPreference( ReadPreference.secondaryPreferred() );
         clName = javaDBNameWithVersion + "_cl21927";
         list = new ArrayList<>();
         for ( int i = 0; i < num; i++ ) {

@@ -19,6 +19,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.mongodb.ReadPreference;
 import com.mongodb.utils.Entity;
 import com.mongodb.utils.MongodbTestBase;
 
@@ -43,6 +44,7 @@ public class Find21927 extends MongodbTestBase {
                     new Entity( "a" + i, Entity.SEXS[ i % Entity.SEXS.length ],
                             i, i, Entity.COURSES ) );
         }
+        mongoTemplate.setReadPreference( ReadPreference.secondaryPreferred() );
         mongoTemplate.insert( list, clName );
         mongoTemplate.indexOps( clName ).ensureIndex(
                 new Index().named( "name" ).on( "name", Sort.Direction.ASC ) );

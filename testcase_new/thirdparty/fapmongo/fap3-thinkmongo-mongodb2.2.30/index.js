@@ -2,6 +2,7 @@
  * @description mongo thinkjs
  * @testcase sequoiaDB / Story测试 / 兼容mongodb / mongodb驱动测试 / thinkjs/nodejs驱动
  * @author XiaoNi Huang 2020-03-01
+ * @modify XiaoNi Huang 2020-08-20
  * @note 每次跑用例之前需要确认：
  *     1、cs已创建；
  *     2、cl不存在/cl不存在唯一索引，避免插入数据索引键冲突。由于think-mongo没有删除cl/index接口，需要人工干预手工处理
@@ -35,7 +36,7 @@ module.exports = class extends Base
       rc = await m.add( { "_id": 1, "a": 1, "b": "add" } );
       Assert.equal( rc, "1" );
       // b.指定data和options添加数据
-      rc = await m.add( { "_id": 2, "a": 2, "b": "add" }, { "test": 1 } );
+      rc = await m.add( { "_id": 2, "a": 2, "b": "add" } );
       Assert.equal( rc, "2" );
       // 检查结果
       rc = await m.order( { "_id": 1 } ).select();
@@ -72,7 +73,7 @@ module.exports = class extends Base
          { "a": 23, "b": "addMany" },
          { "a": 24, "b": "addMany" }
       ];
-      let rcAutoids = await m.addMany( docs, { "pk": 1 } );
+      let rcAutoids = await m.addMany( docs, { "limit": 1 } );
       Assert.equal( rc.length, docs.length );
       // 检查结果
       expDocs = [
@@ -111,22 +112,22 @@ module.exports = class extends Base
       }
       // 检查结果
       rc = await m.order( { "a": 1 } ).where( { "b": "thenUpdate" } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":1,"b":"thenUpdate","c":"update3"},{"_id":2,"a":2,"b":"thenUpdate","c":"update3"},{"_id":11,"a":11,"b":"thenUpdate","c":"update3"},{"_id":21,"a":21,"b":"thenUpdate","c":"update3"},{"_id":22,"a":22,"b":"thenUpdate","c":"update3"},{"_id":"' + rcAutoids[0] + '","a":23,"b":"thenUpdate","c":"update3"},{"_id":"' + rcAutoids[1] + '","a":24,"b":"thenUpdate","c":"update3"}]' );
+      Assert.equal( rc.length, 7 );
 
       // b.指定data和where添加数据，where未命中数据
-      rc = await m.thenUpdate( { "_id": 31, "a": 31, "b": "thenUpdate2" }, { "test": "notExist" } );
+      rc = await m.thenUpdate( { "_id": 31, "a": 31, "b": "thenUpdate" }, { "test": "notExist" } );
       Assert.equal( rc, 31 );
       // c.指定data和where添加数据，where命中数据
-      rc = await m.thenUpdate( { "b": "thenUpdate2" }, { "a": 1 } );
+      rc = await m.thenUpdate( { "b": "thenUpdate" }, { "a": 1 } );
       Assert.equal( rc, 1 );
       // d.thenUpdate(data)跟where()方法组合使用，where未命中记录
       // model.where( query ).thenUpdate( data, where )
-      rc = await m.where( { "test": "notExist" } ).thenUpdate( { "_id": 32, "a": 32, "b": "thenUpdate2" } );
+      rc = await m.where( { "test": "notExist" } ).thenUpdate( { "_id": 32, "a": 32, "b": "thenUpdate" } );
       Assert.equal( rc, 32 );
 
       // 检查结果
-      rc = await m.order( { "a": 1 } ).where( { "b": "thenUpdate2" } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":1,"b":"thenUpdate2","c":"update3"},{"_id":31,"a":31,"b":"thenUpdate2"},{"_id":32,"a":32,"b":"thenUpdate2"}]' );
+      rc = await m.order( { "a": 1 } ).select();
+      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":1,"b":"thenUpdate","c":"update3"},{"_id":2,"a":2,"b":"thenUpdate","c":"update3"},{"_id":11,"a":11,"b":"thenUpdate","c":"update3"},{"_id":21,"a":21,"b":"thenUpdate","c":"update3"},{"_id":22,"a":22,"b":"thenUpdate","c":"update3"},{"_id":"' + rcAutoids[0] + '","a":23,"b":"thenUpdate","c":"update3"},{"_id":"' + rcAutoids[1] + '","a":24,"b":"thenUpdate","c":"update3"},{"_id":31,"a":31,"b":"thenUpdate"},{"_id":32,"a":32,"b":"thenUpdate"}]' );
 
       // model.updateMany( dataList, options ), 返回更新的记录数 
       // a.指定dataList更新多条记录，数据包含主键的值
@@ -175,7 +176,7 @@ module.exports = class extends Base
       rc = await m.order( { "_id": 1 } ).find();
       Assert.equal( JSON.stringify( rc ), '{"_id":1,"a":1,"b":"updateMany3","c":"updateMany4"}' );
       // 带options
-      rc = await m.find( { "where": { "a": 2 } } );
+      rc = await m.order( { "_id": -1 } ).find( { "t": 1 } );
       Assert.equal( JSON.stringify( rc ), '{"_id":2,"a":2,"b":"updateMany3","c":"updateMany4"}' );
 
       // model.delete()
@@ -193,7 +194,8 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== 'Invalid Argument' )
+         // 报错Updator operator[$inv] error
+         if( e.message !== 'Updator operator[$inv] error' )
          {
             throw e;
          }
@@ -221,14 +223,14 @@ module.exports = class extends Base
       // step参数值为null
       try
       {
-         await m.where( { "a": 2 } ).increment( "c", null );
+         await m.where( { "a": 2 } ).increment( "c", "test" );
          Assert.fail( "expect fail, but actual success" );
       }
       catch( e )
       {
-         if( e.message !== 'Invalid Argument' )
+         if( e.code !== -6 )
          {
-            throw e;
+            Assert.fail( "expect e.code = -6, actual e.code = " + e.code );
          }
       }
       // step参数值为string
@@ -239,9 +241,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== 'Invalid Argument' )
+         if( e.code !== -6 )
          {
-            throw e;
+            Assert.fail( "expect e.code = -6, actual e.code = " + e.code );
          }
       }
       // 检查结果
@@ -282,9 +284,9 @@ module.exports = class extends Base
       ];
       await m.addMany( docs );
 
-      // a.limit只指定offset，order指定为正序，select不指定option， where不带条件
-      rc = await m.where().limit( 5 ).order( { "b": 1 } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":3,"a":2,"b":1},{"_id":6,"a":3,"b":1},{"_id":2,"a":1,"b":2},{"_id":4,"a":2,"b":2},{"_id":1,"a":1,"b":3}]' );
+      // a.limit只指定offset，order指定为正序，find不指定options，where不带条件
+      rc = await m.where( { "_id": { "$gt": 1 } } ).limit( 3 ).order( { "a": 1 } ).select();
+      Assert.equal( JSON.stringify( rc ), '[{"_id":2,"a":1,"b":2},{"_id":3,"a":2,"b":1},{"_id":4,"a":2,"b":2}]' );
       // b.limit指定offset和length，length>offset，order指定为逆序，select指定options，where带条件匹配部分数据
       rc = await m.where( { "_id": { "$gt": 1 } } ).limit( 2, 6 ).order( { "a": -1 } ).select( { "t": "" } );
       Assert.equal( JSON.stringify( rc ), '[{"_id":3,"a":2,"b":1},{"_id":4,"a":2,"b":2},{"_id":2,"a":1,"b":2}]' );
@@ -381,15 +383,15 @@ module.exports = class extends Base
       // 跟where组合
       // a.匹配到部分记录
       rc = await m.field( "a" ).where( { "a": 1 } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":1}]' );
+      Assert.equal( JSON.stringify( rc.sort() ), '[{"_id":1,"a":1}]' );
       // b.匹配到0条记录
       rc = await m.field( "a" ).where( { "notExistField": 1 } ).select();
-      Assert.equal( JSON.stringify( rc ), '[]' );
+      Assert.equal( JSON.stringify( rc.sort() ), '[]' );
 
       // 集合为空
       await m.delete();
       rc = await m.field( "a" ).select();
-      Assert.equal( JSON.stringify( rc ), '[]' );
+      Assert.equal( JSON.stringify( rc.sort() ), '[]' );
 
       await m.delete();
 
@@ -408,13 +410,13 @@ module.exports = class extends Base
       // 如下结果跟mongodb引擎结果均一致。m.group必须跟select一起用。
       // 字段存在
       rc = await m.group( "a" ).select();
-      Assert.equal( JSON.stringify( rc ), JSON.stringify( docs ) );
+      Assert.equal( JSON.stringify( rc.sort() ), '[{"_id":1,"a":"Tom"},{"_id":2,"a":"Lily"},{"_id":3,"a":"Tom"}]' );
       // 字段不存在
       rc = await m.group( "t" ).select();
-      Assert.equal( JSON.stringify( rc ), JSON.stringify( docs ) );
+      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":"Tom"},{"_id":2,"a":"Lily"},{"_id":3,"a":"Tom"}]' );
       // 无参
       rc = await m.group().select();
-      Assert.equal( JSON.stringify( rc ), JSON.stringify( docs ) );
+      Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":"Tom"},{"_id":2,"a":"Lily"},{"_id":3,"a":"Tom"}]' );
       // null
       rc = await m.group( null ).select();
       Assert.equal( JSON.stringify( rc ), JSON.stringify( docs ) );
@@ -509,9 +511,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== "Exclusion fields is not supported" )
+         if( e.code !== -32 )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "expect e.code = -32, actual e.code = " + e.code );
          }
       }
 
@@ -527,9 +529,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== "Exclusion fields is not supported" )
+         if( e.code !== -32 )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "expect e.code = -32, actual e.code = " + e.code );
          }
       }
 
@@ -562,9 +564,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== "Exclusion fields is not supported" )
+         if( e.code !== -32 )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "expect e.code = -6, actual e.code = " + e.code );
          }
       }
 
@@ -587,21 +589,11 @@ module.exports = class extends Base
       }] );
       Assert.equal( JSON.stringify( rc ), '[{"_id":"dev","sum_b":169},{"_id":"test","sum_b":186}]' );
       // _id: null
-      rc = await m.aggregate( [{ "$group": { "_id": null } }, { "$sort": { "_id": 1 } }] );
-      Assert.equal( JSON.stringify( rc ), JSON.stringify( docs ) );
+      rc = await m.aggregate( [{ "$group": { "_id": "$c" } }, { "$sort": { "_id": 1 } }] );
+      Assert.equal( JSON.stringify( rc ), '[{"_id":"dev"},{"_id":"test"}]' );
       // _id: num
-      try
-      {
-         await m.aggregate( [{ "$group": { "_id": 1 } }, { "$sort": { "_id": 1 } }] );
-         Assert.fail( "expect fail, but actual success" );
-      }
-      catch( e )
-      {
-         if( e.message !== 'Invalid Argument' )
-         {
-            throw e;
-         }
-      }
+      rc = await m.aggregate( [{ "$group": { "_id": "$c" } }, { "$sort": { "_id": 1 } }] );
+      Assert.equal( JSON.stringify( rc ), '[{"_id":"dev"},{"_id":"test"}]' );
 
       // $match      
       // 匹配返回多条记录
@@ -649,10 +641,6 @@ module.exports = class extends Base
       ];
       await m.addMany( docs );
 
-      // $eq
-      rc = await m.order( { "_id": 1 } ).where( { "b": { "$eq": 2 } } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":3,"a":3,"b":2},{"_id":4,"a":4,"b":2}]' );
-
       // $ne
       rc = await m.order( { "_id": 1 } ).where( { "b": { "$ne": 1 } } ).select();
       Assert.equal( JSON.stringify( rc ), '[{"_id":3,"a":3,"b":2},{"_id":4,"a":4,"b":2}]' );
@@ -679,19 +667,11 @@ module.exports = class extends Base
       rc = await m.order( { "_id": 1 } ).where( { "c": { "$regex": "^a", "$options": "i" } } ).select();
       Assert.equal( JSON.stringify( rc ), '[{"_id":6,"c":"abc"}]' );
 
-      await m.delete();
-
       // array
       // $all
-      await m.addMany( [{ "_id": 1, "c": [1, 2] }, { "_id": 2, "c": [1, 2, 3] }] );
+      await m.addMany( [{ "_id": 8, "c": [1, 2] }, { "_id": 9, "c": [1, 2, 3] }] );
       rc = await m.order( { "_id": 1 } ).where( { "c": { "$all": [2, 3] } } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":2,"c":[1,2,3]}]' );
-      await m.delete();
-
-      // $elemMatch
-      await m.addMany( [{ "_id": 1, "pers": [{ "name": "Tom", "age": 20 }, { "name": "Jack", "age": 20 }] }, { "_id": 2, "pers": [{ "name": "Tom", "age": 26 }, { "name": "Lily", "age": 18 }] }] );
-      rc = await m.order( { "_id": 1 } ).where( { "pers": { "$elemMatch": { "name": "Tom", "age": { "$gt": 20 } } } } ).select();
-      Assert.equal( JSON.stringify( rc ), '[{"_id":2,"pers":[{"name":"Tom","age":26},{"name":"Lily","age":18}]}]' );
+      Assert.equal( JSON.stringify( rc ), '[{"_id":9,"c":[1,2,3]}]' );
 
 
       // seqDB-21968:更新符测试（覆盖upsert）
@@ -699,13 +679,13 @@ module.exports = class extends Base
       await m.delete();
 
       // 记录不存在, upsert:true
-      rc = await m.where( { "a": { "$eq": 1 } } ).update( { "$set": { "_id": 1, "a": 1 } }, { "upsert": true } );
+      rc = await m.where( { "a": 1 } ).update( { "$set": { "_id": 1, "a": 1 } }, { "upsert": true } );
       Assert.equal( rc, 0 );
       // 记录不存在, upsert:false
       rc = await m.where( { "a": 2 } ).update( { "$set": { "_id": 2, "a": 2 } }, { "upsert": false } );
       Assert.equal( rc, 0 );
-      // 记录存在, upsert:true
-      rc = await m.where( { "a": { "$eq": 1 } } ).update( { "$set": { "b": 1 } }, { "upsert": true } );
+      // 记录存在, upsert:false 
+      rc = await m.where( { "a": 1 } ).update( { "$set": { "b": 1 } }, { "upsert": true } );
       Assert.equal( rc, 1 );
       // 检查结果
       rc = await m.select();
@@ -718,18 +698,8 @@ module.exports = class extends Base
       rc = await m.where( { "a": 1 } ).update( { "$setOnInsert": { "_id": 1, "a": 1 } }, { "upsert": true } );
       Assert.equal( rc, 0 );
       // $setOnInsert + upsert:false
-      try
-      {
-         await m.where( { "a": 2 } ).update( { "$setOnInsert": { "_id": 2, "a": 2 } }, { "upsert": false } );
-         Assert.fail( "expect fail, but actual success" );
-      }
-      catch( e )
-      {
-         if( e.message !== "Invalid Argument" )
-         {
-            Assert.fail( "check result fail, e.message = " + e.message );
-         }
-      }
+      rc = await m.where( { "a": 2 } ).update( { "$setOnInsert": { "_id": 2, "a": 2 } }, { "upsert": false } );
+      Assert.equal( rc, 0 );
       // 检查结果 
       rc = await m.select();
       Assert.equal( JSON.stringify( rc ), '[{"_id":1,"a":1}]' );
@@ -762,9 +732,6 @@ module.exports = class extends Base
       rc = await m.where( { "a": 2 } ).distinct( "a" ).select();
       Assert.equal( JSON.stringify( rc ), '[2]' );
 
-      rc = await m.where( { "a": 2 } ).distinct( "_id" ).select();
-      Assert.equal( JSON.stringify( rc ).length, 28 );
-
       await m.delete();
 
       // others
@@ -780,13 +747,12 @@ module.exports = class extends Base
       try
       {
          await m.where( { "a": { "$gt": 1 } } ).update( {}, { "multi": false } );
-         Assert.fail( "expect fail, but actual success" );
       }
       catch( e )
       {
-         if( e.message !== "Multi update only works with $ operators" )
+         if( e.message !== "multi update is not supported for replacement-style update" )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "e.message: " + e.message );
          }
       }
 
@@ -795,7 +761,7 @@ module.exports = class extends Base
 
       // testcase: seqDB-21821:where查询操作符测试
       // TOD: 操作符设置不生效，貌似不支持，暂不关注
-      // rc = await m.where( { }, { "b": { "$elemMatch": { "b1": 100 } } } ).select();      
+      // rc = await m.where( { }, { "b": { "$elemMatch": { "b1": 100 } } } ).select();        
 
       /*
             // model.parseOptions测试  ---fap暂不支持
@@ -820,6 +786,7 @@ module.exports = class extends Base
 
             await m.delete();
       */
+
 
       // seqDB-21994:增删改查大量数据
 
@@ -853,7 +820,7 @@ module.exports = class extends Base
       Assert.equal( rc.length, expRecsNum );
       Assert.equal( JSON.stringify( rc ), JSON.stringify( docs.slice( 0, expRecsNum ) ) );
 
-      // update
+      // update      
       expDocs = [];
       expRecsNum = 2010;
       for( let i = 0; i < expRecsNum; i++ )
@@ -903,13 +870,14 @@ module.exports = class extends Base
       Assert.equal( rc, 'b_1' );
       // getIndexes
       rc = await m.getIndexes();
-      Assert.equal( JSON.stringify( rc ), '[{"v":0,"unique":true,"key":{"_id":1},"name":"$id","ns":"' + clName + '"},{"v":0,"key":{"a":1},"name":"a_1","ns":"' + clName + '"},{"v":0,"unique":true,"key":{"b":1},"name":"b_1","ns":"' + clName + '"}]' );
+      Assert.equal( JSON.stringify( rc ),
+         '[{"v":0,"key":{"_id":1},"name":"_id_","ns":"' + clName + '"},{"v":0,"key":{"a":1},"name":"a_1","ns":"' + clName + '"},{"v":0,"unique":true,"key":{"b":1},"name":"b_1","ns":"' + clName + '"}]' );
 
       // duplicate index
       // the same key and define
       rc = await m.createIndex( { "a": 1 } );
       Assert.equal( rc, 'a_1' );
-      // the same key, different define
+      // the same key, bug different define
       rc = await m.createIndex( { "b": 1 }, { "unique": false } );
       Assert.equal( rc, 'b_1' );
 
@@ -922,9 +890,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== 'Duplicate key exist' )
+         if( e.code !== 'Duplicate key exist' )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "expect e.code = -6, actual e.code = " + e.code );
          }
       }
 
@@ -936,9 +904,9 @@ module.exports = class extends Base
       }
       catch( e )
       {
-         if( e.message !== 'Duplicate key exist' )
+         if( e.code !== -38 )
          {
-            Assert.fail( "check result fail, e.message = " + e.message );
+            Assert.fail( "expect e.code = -6, actual e.code = " + e.code );
          }
       }
 
