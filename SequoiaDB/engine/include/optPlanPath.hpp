@@ -167,6 +167,12 @@ namespace engine
             return NULL != _pScanNode && _pScanNode->isCandidate() ;
          }
 
+         // indicates the plan is a good candidate in default priority
+         OSS_INLINE BOOLEAN isGoodCandidate() const
+         {
+            return NULL != _pScanNode && _pScanNode->isGoodCandidate() ;
+         }
+
          OSS_INLINE BSONObj getIXBound () const
          {
             return ( NULL != _pScanNode ) ? _pScanNode->getIXBound() :
@@ -270,6 +276,12 @@ namespace engine
             _optPlanPath::clearPath() ;
             _pScanNode = NULL ;
             _sortRequired = FALSE ;
+         }
+
+         OSS_INLINE BOOLEAN isTbScan () const
+         {
+            return ( NULL != _pScanNode &&
+                     OPT_PLAN_TB_SCAN == _pScanNode->getType() ) ;
          }
 
          OSS_INLINE BOOLEAN isIxScan () const
