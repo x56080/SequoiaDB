@@ -999,6 +999,7 @@ public class CommLib {
         List< String > coordUrls = CommLib.getAllCoordUrls( sdb );
         ArrayList< String > groupNames = sdb.getReplicaGroupNames();
         groupNames.remove( "SYSCoord" );
+        groupNames.remove( "SYSCatalogGroup" );
 
         if ( coordUrls.size() == 1 ) {
             System.out.println( "only one coord" );
@@ -1024,6 +1025,14 @@ public class CommLib {
             }
         } else {
             System.out.println( "more than one coord" );
+
+            // 先重启catalog，然后等待catalog选出主节点
+            ReplicaGroup catalogRG = sdb.getReplicaGroup( "SYSCatalogGroup" );
+            catalogRG.stop();
+            catalogRG.start();
+            waitGroupSelectMasterNode( sdb, "SYSCatalogGroup", 300 );
+            CommLib.isLSNConsistency( sdb, "SYSCatalogGroup" );
+
             for ( String groupName : groupNames ) {
                 ReplicaGroup replicaGroup = sdb.getReplicaGroup( groupName );
                 replicaGroup.stop();
@@ -1471,13 +1480,15 @@ public class CommLib {
         int doTime = 0;
         for ( String groupName : groupNames ) {
             while ( doTime < timeOut ) {
-                ReplicaGroup replicaGroup = db.getReplicaGroup( groupName );
                 try {
+                    ReplicaGroup replicaGroup = db.getReplicaGroup( groupName );
                     replicaGroup.getMaster();
                     break;
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != SDBError.SDB_RTN_NO_PRIMARY_FOUND
-                            .getErrorCode() ) {
+                            .getErrorCode()
+                            && e.getErrorCode() != SDBError.SDB_CLS_NOT_PRIMARY
+                                    .getErrorCode() ) {
                         throw e;
                     }
                 }
