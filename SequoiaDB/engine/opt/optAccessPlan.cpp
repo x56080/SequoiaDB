@@ -695,7 +695,7 @@ namespace engine
 
       optCollectionStat collectionStat( su->getPageSizeLog2(), mbContext,
                                         planHelper, statCache ) ;
-      UINT32 candidateCount = 0 ;
+      UINT32 candidateSearchedCount = 0 ;
 
       optScanType scanType = UNKNOWNSCAN ;
       OPT_PLAN_PATH_PRIORITY priority = OPT_PLAN_DEFAULT_PRIORITY ;
@@ -772,7 +772,11 @@ namespace engine
                   {
                      bestPath.setPath( ixScanPath, TRUE ) ;
                   }
-                  candidateCount ++ ;
+                  if ( OPT_PLAN_DEFAULT_PRIORITY == priority ||
+                       ixScanPath.isGoodCandidate() )
+                  {
+                     candidateSearchedCount ++ ;
+                  }
                }
             }
          }
@@ -829,11 +833,15 @@ namespace engine
                {
                   bestPath.setPath( ixScanPath, TRUE ) ;
                }
-               candidateCount ++ ;
+               if ( OPT_PLAN_DEFAULT_PRIORITY == priority ||
+                    ixScanPath.isGoodCandidate() )
+               {
+                  candidateSearchedCount ++ ;
+               }
 
                // Needn't to evaluate all indexes if we got enough
                // candidate plans
-               if ( candidateCount >= OPT_MAX_CANDIDATE_COUNT )
+               if ( candidateSearchedCount >= OPT_MAX_CANDIDATE_COUNT )
                {
                   break ;
                }

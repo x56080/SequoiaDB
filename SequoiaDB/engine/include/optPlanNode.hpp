@@ -531,6 +531,9 @@ namespace engine
 
          virtual optScanType getScanType () const = 0 ;
 
+         // indicates the plan is a good candidate in default priority
+         virtual BOOLEAN isGoodCandidate() const = 0 ;
+
          OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const
          {
             return _clFromStat ;
@@ -684,6 +687,13 @@ namespace engine
             return TBSCAN ;
          }
 
+         // indicates the plan is a good candidate in default priority
+         OSS_INLINE virtual BOOLEAN isGoodCandidate() const
+         {
+            // table scan is always a good candidate
+            return _isCandidate ;
+         }
+
       public :
          void preEvaluate ( const rtnQueryOptions & queryOptions,
                             optAccessPlanHelper & planHelper,
@@ -825,6 +835,19 @@ namespace engine
          OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const
          {
             return _ixFromStat ;
+         }
+
+         // indicates the plan is a good candidate in default priority
+         OSS_INLINE virtual BOOLEAN isGoodCandidate() const
+         {
+            // for index scan, it is a good candidate in below case
+            // - index cover
+            // - selectivity <= 10%
+            // - sorted index
+            return ( _isCandidate ) &&
+                   ( ( _readIndexOnly && _matchedFields > 0 ) ||
+                     ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
+                     ( _sorted ) ) ;
          }
 
       public :
