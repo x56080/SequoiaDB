@@ -120,132 +120,12 @@ public class Sniffer_32603_32604 extends M2STestBase {
             System.out.println( msg.toString() );
 
             switch ( msg.getString( "databaseCmd" ) ) {
-                case "find": {
-                    // find params
-                    Param msgParam = new Param();
-
-                    ArrayList< Param > subParams = new ArrayList<>();
-                    subParams.add( new Param( "find", 3 ) );
-                    subParams.add( new Param( "filter", 3 ) );
-                    subParams.add( new Param( "limit", 1 ) );
-                    Param dbParam = new Param( "databaseCmdParameters", 0,
-                            subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "filter",
-                      "operators": [
-                        {
-                          "operator": "$eq",
-                          "count": 1,
-                          "subOperators": []
-                        },
-                        {
-                          "operator": "$or",
-                          "count": 2,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 4,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 1,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                    Param filter_eqParam = new Param( "$eq", 1 );
-                    Param filter_or_ltParam = new Param( "$lt", 4 );
-                    Param filter_orParam = new Param( "$or", 2 );
-                    filter_orParam.addSubParam( filter_or_ltParam );
-                    Param filter_ltParam = new Param( "$lt", 1 );
-                    Param filterParam = new Param( "filter", 0 );
-                    filterParam.addSubParam( filter_eqParam );
-                    filterParam.addSubParam( filter_orParam );
-                    filterParam.addSubParam( filter_ltParam );
-                    Param opParam = new Param( "operators", 0 );
-                    opParam.addSubParam( filterParam );
-
-                    Param.checkRecordParams( msg, "find", 3, msgParam, dbParam,
-                            opParam );
+                case "find":
+                    checkFindInfo( msg );
                     break;
-                }
-                case "update": {
-                    Param msgParam = new Param();
-
-                    ArrayList< Param > subParams = new ArrayList<>();
-                    subParams.add( new Param( "updates.multi", 3 ) );
-                    subParams.add( new Param( "bypassDocumentValidation", 1 ) );
-                    subParams.add( new Param( "updates.upsert", 1 ) );
-                    Param dbParam = new Param( "databaseCmdParameters", 0,
-                            subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "updates.u",
-                      "operators": [
-                        {
-                          "operator": "$inc",
-                          "count": 2,
-                          "subOperators": []
-                        },
-                        {
-                          "operator": "$set",
-                          "count": 1,
-                          "subOperators": []
-                        }
-                      ]
-                    },
-                    {
-                      "param": "updates.q",
-                      "operators": [
-                        {
-                          "operator": "$and",
-                          "count": 1,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 2,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 2,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                    Param updatesu_incParam = new Param( "$inc", 2 );
-                    Param updatesu_setParam = new Param( "$set", 1 );
-                    Param updatesuParam = new Param( "updates.u", 0 );
-                    updatesuParam.addSubParam( updatesu_incParam );
-                    updatesuParam.addSubParam( updatesu_setParam );
-                    Param updatesq_and_ltParam = new Param( "$lt", 2 );
-                    Param updatesq_andParam = new Param( "$and", 1 );
-                    updatesq_andParam.addSubParam( updatesq_and_ltParam );
-                    Param updatesq_ltParam = new Param( "$lt", 2 );
-                    Param updatesqParam = new Param( "updates.q", 0 );
-                    updatesqParam.addSubParam( updatesq_andParam );
-                    updatesqParam.addSubParam( updatesq_ltParam );
-                    Param opParam = new Param( "operators", 0 );
-                    opParam.addSubParam( updatesuParam );
-                    opParam.addSubParam( updatesqParam );
-                    Param.checkRecordParams( msg, "update", 3, msgParam, dbParam,
-                            opParam );
+                case "update":
+                    checkUpdateInfo( msg );
                     break;
-                }
                 default:
                     continue;
             }
@@ -272,5 +152,131 @@ public class Sniffer_32603_32604 extends M2STestBase {
             jsonArray.add( JSONObject.parseObject( line ) );
         }
         return jsonArray;
+    }
+
+    void checkFindInfo( JSONObject msg ){
+        // find params
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "find", 3 ) );
+        subParams.add( new Param( "filter", 3 ) );
+        subParams.add( new Param( "limit", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "filter",
+              "operators": [
+                {
+                  "operator": "$eq",
+                  "count": 1,
+                  "subOperators": []
+                },
+                {
+                  "operator": "$or",
+                  "count": 2,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 4,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 1,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param filter_eqParam = new Param( "$eq", 1 );
+        Param filter_or_ltParam = new Param( "$lt", 4 );
+        Param filter_orParam = new Param( "$or", 2 );
+        filter_orParam.addSubParam( filter_or_ltParam );
+        Param filter_ltParam = new Param( "$lt", 1 );
+        Param filterParam = new Param( "filter", 0 );
+        filterParam.addSubParam( filter_eqParam );
+        filterParam.addSubParam( filter_orParam );
+        filterParam.addSubParam( filter_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( filterParam );
+
+        Param.checkRecordParams( msg, "find", 3, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkUpdateInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "updates.multi", 3 ) );
+        subParams.add( new Param( "bypassDocumentValidation", 1 ) );
+        subParams.add( new Param( "updates.upsert", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "updates.u",
+              "operators": [
+                {
+                  "operator": "$inc",
+                  "count": 2,
+                  "subOperators": []
+                },
+                {
+                  "operator": "$set",
+                  "count": 1,
+                  "subOperators": []
+                }
+              ]
+            },
+            {
+              "param": "updates.q",
+              "operators": [
+                {
+                  "operator": "$and",
+                  "count": 1,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 2,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 2,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param updatesu_incParam = new Param( "$inc", 2 );
+        Param updatesu_setParam = new Param( "$set", 1 );
+        Param updatesuParam = new Param( "updates.u", 0 );
+        updatesuParam.addSubParam( updatesu_incParam );
+        updatesuParam.addSubParam( updatesu_setParam );
+        Param updatesq_and_ltParam = new Param( "$lt", 2 );
+        Param updatesq_andParam = new Param( "$and", 1 );
+        updatesq_andParam.addSubParam( updatesq_and_ltParam );
+        Param updatesq_ltParam = new Param( "$lt", 2 );
+        Param updatesqParam = new Param( "updates.q", 0 );
+        updatesqParam.addSubParam( updatesq_andParam );
+        updatesqParam.addSubParam( updatesq_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( updatesuParam );
+        opParam.addSubParam( updatesqParam );
+        Param.checkRecordParams( msg, "update", 3, msgParam, dbParam,
+                opParam );
     }
 }

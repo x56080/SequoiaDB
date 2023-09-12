@@ -120,94 +120,27 @@ public class Sniffer_32610_32611 extends M2STestBase {
             System.out.println( msg.toString() );
 
             switch ( msg.getString( "databaseCmd" ) ) {
-            case "getMore": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                subParam.add( new Param( "batchSize", 20 ) );
-                subParam.add( new Param( "getMore", 20 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "getMore", 20, msgParam, dbParam,
-                        opParam );
+            case "getMore":
+                checkGetMoreInfo( msg );
                 break;
-            }
-            case "killCursors": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                subParam.add( new Param( "killCursors", 1 ) );
-                subParam.add( new Param( "cursors", 1 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "killCursors", 1, msgParam, dbParam,
-                        opParam );
+            case "killCursors":
+                checkKillCursorsInfo( msg );
                 break;
-            }
-            case "create": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                // subParams.add( new Param( "capped", 1 ) );
-                subParam.add( new Param( "size", 1 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "create", 4, msgParam, dbParam,
-                        opParam );
+            case "create":
+                checkCreateInfo( msg );
                 break;
-            }
-            case "createIndexes": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                subParam.add( new Param( "indexes.ns", 3 ) );
-                subParam.add( new Param( "indexes.background", 1 ) );
-                subParam.add( new Param( "indexes.unique", 1 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "createIndexes", 3, msgParam, dbParam,
-                        opParam );
+            case "createIndexes":
+                checkCreateIndexesInfo( msg );
                 break;
-            }
-            case "dropIndexes": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                subParam.add( new Param( "dropIndexes", 3 ) );
-                subParam.add( new Param( "index", 3 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "dropIndexes", 3, msgParam, dbParam,
-                        opParam );
+            case "dropIndexes":
+                checkDropIndexesInfo( msg );
                 break;
-            }
-            case "drop": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParam = new ArrayList<>();
-                subParam.add( new Param( "drop", 3 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParam );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "drop", 3, msgParam, dbParam,
-                        opParam );
+            case "drop":
+                checkDropInfo( msg );
                 break;
-            }
             default:
                 continue;
             }
-
         }
     }
 
@@ -229,5 +162,88 @@ public class Sniffer_32610_32611 extends M2STestBase {
             jsonArray.add( JSONObject.parseObject( line ) );
         }
         return jsonArray;
+    }
+
+    void checkGetMoreInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "batchSize", 20 ) );
+        subParam.add( new Param( "getMore", 20 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "getMore", 20, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkKillCursorsInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "killCursors", 1 ) );
+        subParam.add( new Param( "cursors", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "killCursors", 1, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkCreateInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "size", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "create", 4, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkCreateIndexesInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "indexes.ns", 3 ) );
+        subParam.add( new Param( "indexes.background", 1 ) );
+        subParam.add( new Param( "indexes.unique", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "createIndexes", 3, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkDropIndexesInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "dropIndexes", 3 ) );
+        subParam.add( new Param( "index", 3 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "dropIndexes", 3, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkDropInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParam = new ArrayList<>();
+        subParam.add( new Param( "drop", 3 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParam );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "drop", 3, msgParam, dbParam,
+                opParam );
     }
 }

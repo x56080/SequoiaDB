@@ -3,6 +3,8 @@ package com.mongodb.m2s.sniffer;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.mongodb.client.*;
+import com.mongodb.client.model.CountOptions;
+import com.mongodb.client.model.EstimatedDocumentCountOptions;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.m2s.testcommon.CommLib;
 import com.mongodb.m2s.testcommon.M2STestBase;
@@ -67,8 +69,14 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
 
         // count data
         int totalCount = 0;
-        for ( int i = 0; i < 10; i++ ) {
-            cl.estimatedDocumentCount();
+        for ( int i = 0; i < 5; i++ ) {
+            database.runCommand( new Document( "count", collectionName ) );
+            database.runCommand( new Document( "count", collectionName )
+                    .append( "query", new Document( "count",
+                            new Document( "$lt", 50 ) ) ) );
+            database.runCommand( new Document( "count", collectionName )
+                    .append( "query", new Document( "count", -100 ) )
+                    .append( "limit", 100 ) );
         }
 
         // find and modify data
@@ -108,116 +116,19 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
             System.out.println( msg.toString() );
 
             switch ( msg.getString( "databaseCmd" ) ) {
-            case "count": {
-                Param msgParam = new Param();
-                Param dbParam = new Param();
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "count", 10, msgParam, dbParam,
-                        opParam );
+            case "count":
+                checkCountInfo( msg );
                 break;
-            }
-            case "findAndModify": {
-                // find params
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParams = new ArrayList<>();
-                subParams.add( new Param( "update", 2 ) );
-                subParams.add( new Param( "remove", 1 ) );
-                subParams.add( new Param( "new", 2 ) );
-                subParams.add( new Param( "upsert", 1 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "query",
-                      "operators": [
-                        {
-                          "operator": "$lt",
-                          "count": 1,
-                          "subOperators": []
-                        }
-                      ]
-                    },
-                    {
-                      "param": "update",
-                      "operators": [
-                        {
-                          "operator": "$inc",
-                          "count": 2,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                Param query_ltParam = new Param( "$lt", 1 );
-                Param queryParam = new Param( "query", 0 );
-                queryParam.addSubParam( query_ltParam );
-                Param update_incParam = new Param( "$inc", 2 );
-                Param updateParam = new Param( "query", 0 );
-                updateParam.addSubParam( update_incParam );
-                Param opParam = new Param( "operators", 0 );
-                opParam.addSubParam( queryParam );
-                opParam.addSubParam( updateParam );
-
-                Param.checkRecordParams( msg, "findAndModify", 3, msgParam,
-                        dbParam, opParam );
+            case "findAndModify":
+                checkFindAndModifyInfo( msg );
                 break;
-            }
-            case "distinct": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParams = new ArrayList<>();
-                subParams.add( new Param( "query", 2 ) );
-                subParams.add( new Param( "distinct", 3 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "query",
-                      "operators": [
-                        {
-                          "operator": "$or",
-                          "count": 1,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 2,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 1,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                Param query_or_ltParam = new Param( "$lt", 2 );
-                Param query_orParam = new Param( "$or", 1 );
-                query_orParam.addSubParam( query_or_ltParam );
-                Param query_ltParam = new Param( "$lt", 1 );
-                Param queryParam = new Param( "query", 0 );
-                queryParam.addSubParam( query_orParam );
-                queryParam.addSubParam( query_ltParam );
-                Param opParam = new Param( "operators", 0 );
-                opParam.addSubParam( queryParam );
-                Param.checkRecordParams( msg, "distinct", 3, msgParam, dbParam,
-                        opParam );
+            case "distinct":
+                checkDistinctInfo( msg );
                 break;
-            }
             default:
                 continue;
             }
         }
-
     }
 
     @AfterClass
@@ -238,5 +149,135 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
             jsonArray.add( JSONObject.parseObject( line ) );
         }
         return jsonArray;
+    }
+
+    void checkCountInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "count", 15 ) );
+        subParams.add( new Param( "limit", 5 ) );
+        subParams.add( new Param( "query", 10 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "query",
+              "operators": [
+                {
+                  "operator": "$lt",
+                  "count": 5,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param query_ltParam = new Param( "$lt", 5 );
+        Param queryParam = new Param( "query", 0 );
+        queryParam.addSubParam( query_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( queryParam );
+        Param.checkRecordParams( msg, "count", 15, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkFindAndModifyInfo( JSONObject msg ){
+        // find params
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "update", 2 ) );
+        subParams.add( new Param( "remove", 1 ) );
+        subParams.add( new Param( "new", 2 ) );
+        subParams.add( new Param( "upsert", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "query",
+              "operators": [
+                {
+                  "operator": "$lt",
+                  "count": 1,
+                  "subOperators": []
+                }
+              ]
+            },
+            {
+              "param": "update",
+              "operators": [
+                {
+                  "operator": "$inc",
+                  "count": 2,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param query_ltParam = new Param( "$lt", 1 );
+        Param queryParam = new Param( "query", 0 );
+        queryParam.addSubParam( query_ltParam );
+        Param update_incParam = new Param( "$inc", 2 );
+        Param updateParam = new Param( "query", 0 );
+        updateParam.addSubParam( update_incParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( queryParam );
+        opParam.addSubParam( updateParam );
+
+        Param.checkRecordParams( msg, "findAndModify", 3, msgParam,
+                dbParam, opParam );
+    }
+
+    void checkDistinctInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "query", 2 ) );
+        subParams.add( new Param( "distinct", 3 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "query",
+              "operators": [
+                {
+                  "operator": "$or",
+                  "count": 1,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 2,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 1,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param query_or_ltParam = new Param( "$lt", 2 );
+        Param query_orParam = new Param( "$or", 1 );
+        query_orParam.addSubParam( query_or_ltParam );
+        Param query_ltParam = new Param( "$lt", 1 );
+        Param queryParam = new Param( "query", 0 );
+        queryParam.addSubParam( query_orParam );
+        queryParam.addSubParam( query_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( queryParam );
+        Param.checkRecordParams( msg, "distinct", 3, msgParam, dbParam,
+                opParam );
     }
 }

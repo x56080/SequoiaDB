@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.*;
+import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.m2s.testcommon.CommLib;
 import com.mongodb.m2s.testcommon.M2STestBase;
 import com.mongodb.utils.Ssh;
@@ -14,6 +15,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -61,7 +63,6 @@ public class Sniffer_32612 extends M2STestBase {
 
         // insert data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.insertOne( new Document( "name", "MongoDB" ).append( "count", i )
                     .append( "versions",
                             Arrays.asList( "v3.2", "v3.0", "v2.6" ) )
@@ -69,9 +70,21 @@ public class Sniffer_32612 extends M2STestBase {
                             new Document( "x", i * 2 ).append( "y", i * 3 ) ) );
         }
 
+        for ( int i = 0; i < 10; i++ ) {
+            ArrayList< Document > docs = new ArrayList<>();
+
+            for ( int j = 0; j < 100; j++ ) {
+                docs.add( new Document( "name", "MongoDB" ).append( "count", j )
+                        .append( "versions",
+                                Arrays.asList( "v3.2", "v3.0", "v2.6" ) )
+                        .append( "info", new Document( "x", j * 2 ).append( "y",
+                                j * 3 ) ) );
+            }
+            cl.insertMany( docs );
+        }
+
         // query data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl.find();
             MongoCursor< Document > cursor = findIt.iterator();
             if ( cursor.hasNext() ) {
@@ -79,7 +92,6 @@ public class Sniffer_32612 extends M2STestBase {
             }
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl
                     .find( new Document( "count", new Document( "$lt", 50 ) ) );
             MongoCursor< Document > cursor = findIt.iterator();
@@ -88,7 +100,6 @@ public class Sniffer_32612 extends M2STestBase {
             }
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             FindIterable< Document > findIt = cl.find( new Document( "$or",
                     Arrays.asList(
                             new Document( "count", new Document( "$lt", 50 ) ),
@@ -102,17 +113,14 @@ public class Sniffer_32612 extends M2STestBase {
 
         // update data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateOne( new Document( "count", i ),
                     new Document( "$inc", new Document( "updateNum", 1 ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateMany( new Document( "count", new Document( "$lt", i ) ),
                     new Document( "$inc", new Document( "updateNum", 1 ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.updateMany(
                     new Document( "$and", Arrays.asList(
                             new Document( "count", new Document( "$lt", 50 ) ),
@@ -123,15 +131,12 @@ public class Sniffer_32612 extends M2STestBase {
 
         // delete data
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteOne( new Document( "count", i ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteMany( new Document( "count", new Document( "$lt", i ) ) );
         }
         for ( int i = 0; i < 10; i++ ) {
-            Thread.sleep( 10 );
             cl.deleteMany( new Document( "$and", Arrays.asList(
                     new Document( "count", new Document( "$gt", 50 ) ),
                     new Document( "info.x", new Document( "$gt", 500 ) ) ) ) );
@@ -149,7 +154,7 @@ public class Sniffer_32612 extends M2STestBase {
 
             switch ( msg.getString( "opCode" ) ) {
             case "OP_INSERT": {
-                Assert.assertEquals( msg.get( "count" ), 10,
+                Assert.assertEquals( msg.get( "count" ), 1010,
                         msg.getString( "opCode" )
                                 + " param count is not equal" );
                 break;
@@ -172,7 +177,6 @@ public class Sniffer_32612 extends M2STestBase {
             default:
                 continue;
             }
-
         }
     }
 

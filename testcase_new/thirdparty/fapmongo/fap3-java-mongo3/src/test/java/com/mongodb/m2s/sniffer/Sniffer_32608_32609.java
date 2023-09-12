@@ -104,124 +104,16 @@ public class Sniffer_32608_32609 extends M2STestBase {
             System.out.println( msg.toString() );
 
             switch ( msg.getString( "databaseCmd" ) ) {
-                case "explain.find": {
-                    // insert params
-                    Param msgParam = new Param();
-
-                    ArrayList< Param > subParams = new ArrayList<>();
-                    subParams.add( new Param( "find.find", 2 ) );
-                    subParams.add( new Param( "find.filter", 2 ) );
-                    subParams.add( new Param( "explain.explain", 2 ) );
-                    Param dbParam = new Param( "databaseCmdParameters", 0,
-                            subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "find.filter",
-                      "operators": [
-                        {
-                          "operator": "$eq",
-                          "count": 1,
-                          "subOperators": []
-                        },
-                        {
-                          "operator": "$or",
-                          "count": 1,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 2,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 1,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                    Param filter_or_ltParam = new Param( "$lt", 2 );
-                    Param filter_orParam = new Param( "$or", 1 );
-                    filter_orParam.addSubParam( filter_or_ltParam );
-                    Param filter_ltParam = new Param( "$lt", 1 );
-                    Param filter_eqParam = new Param( "$eq", 1 );
-                    Param filterParam = new Param( "find.filter", 0 );
-                    filterParam.addSubParam( filter_orParam );
-                    filterParam.addSubParam( filter_ltParam );
-                    filterParam.addSubParam( filter_eqParam );
-                    Param opParam = new Param( "operators", 0 );
-                    opParam.addSubParam( filterParam );
-                    Param.checkRecordParams( msg, "explain.find", 2, msgParam, dbParam,
-                            opParam );
+                case "explain.find":
+                    checkExplainInfo( msg );
                     break;
-                }
-                case "aggregate": {
-                    Param msgParam = new Param();
-
-                    ArrayList< Param > subParams = new ArrayList<>();
-                    subParams.add( new Param( "aggregate", 1 ) );
-                    subParams.add( new Param( "pipeline", 1 ) );
-                    Param dbParam = new Param( "databaseCmdParameters", 0,
-                            subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "pipeline",
-                      "operators": [
-                        {
-                          "operator": "$group",
-                          "count": 1,
-                          "subOperators": [
-                            {
-                              "operator": "$sum",
-                              "count": 1,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$match",
-                          "count": 1,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 1,
-                              "subOperators": []
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                    Param pipeline_group_sumParam = new Param( "$sum", 1 );
-                    Param pipeline_groupParam = new Param( "$group", 1 );
-                    pipeline_groupParam.addSubParam( pipeline_group_sumParam );
-                    Param pipeline_match_ltParam = new Param( "$lt", 1 );
-                    Param pipeline_matchParam = new Param( "$match", 1 );
-                    pipeline_matchParam.addSubParam( pipeline_match_ltParam );
-                    Param pipelineParam = new Param( "pipeline", 0 );
-                    pipelineParam.addSubParam( pipeline_groupParam );
-                    pipelineParam.addSubParam( pipeline_matchParam );
-                    Param opParam = new Param( "operators", 0 );
-                    opParam.addSubParam( pipelineParam );
-
-                    Param.checkRecordParams( msg, "aggregate", 1, msgParam, dbParam,
-                            opParam );
+                case "aggregate":
+                    checkAggregateInfo( msg );
                     break;
-                }
                 default:
                     continue;
             }
-
         }
-
     }
 
     @AfterClass
@@ -242,5 +134,116 @@ public class Sniffer_32608_32609 extends M2STestBase {
             jsonArray.add( JSONObject.parseObject( line ) );
         }
         return jsonArray;
+    }
+
+    void checkExplainInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "find.find", 2 ) );
+        subParams.add( new Param( "find.filter", 2 ) );
+        subParams.add( new Param( "explain.explain", 2 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "find.filter",
+              "operators": [
+                {
+                  "operator": "$eq",
+                  "count": 1,
+                  "subOperators": []
+                },
+                {
+                  "operator": "$or",
+                  "count": 1,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 2,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 1,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param filter_or_ltParam = new Param( "$lt", 2 );
+        Param filter_orParam = new Param( "$or", 1 );
+        filter_orParam.addSubParam( filter_or_ltParam );
+        Param filter_ltParam = new Param( "$lt", 1 );
+        Param filter_eqParam = new Param( "$eq", 1 );
+        Param filterParam = new Param( "find.filter", 0 );
+        filterParam.addSubParam( filter_orParam );
+        filterParam.addSubParam( filter_ltParam );
+        filterParam.addSubParam( filter_eqParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( filterParam );
+        Param.checkRecordParams( msg, "explain.find", 2, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkAggregateInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "aggregate", 1 ) );
+        subParams.add( new Param( "pipeline", 1 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "pipeline",
+              "operators": [
+                {
+                  "operator": "$group",
+                  "count": 1,
+                  "subOperators": [
+                    {
+                      "operator": "$sum",
+                      "count": 1,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$match",
+                  "count": 1,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 1,
+                      "subOperators": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+         */
+        Param pipeline_group_sumParam = new Param( "$sum", 1 );
+        Param pipeline_groupParam = new Param( "$group", 1 );
+        pipeline_groupParam.addSubParam( pipeline_group_sumParam );
+        Param pipeline_match_ltParam = new Param( "$lt", 1 );
+        Param pipeline_matchParam = new Param( "$match", 1 );
+        pipeline_matchParam.addSubParam( pipeline_match_ltParam );
+        Param pipelineParam = new Param( "pipeline", 0 );
+        pipelineParam.addSubParam( pipeline_groupParam );
+        pipelineParam.addSubParam( pipeline_matchParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( pipelineParam );
+
+        Param.checkRecordParams( msg, "aggregate", 1, msgParam, dbParam,
+                opParam );
     }
 }

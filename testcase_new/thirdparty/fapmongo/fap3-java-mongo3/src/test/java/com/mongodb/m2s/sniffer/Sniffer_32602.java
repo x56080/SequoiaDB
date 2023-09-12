@@ -144,183 +144,21 @@ public class Sniffer_32602 extends M2STestBase {
             System.out.println( msg.toString() );
 
             switch ( msg.getString( "databaseCmd" ) ) {
-            case "insert": {
-                // insert params
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParams = new ArrayList<>();
-                subParams.add( new Param( "bypassDocumentValidation", 50 ) );
-                subParams.add( new Param( "ordered", 150 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParams );
-
-                Param opParam = new Param();
-                Param.checkRecordParams( msg, "insert", 150, msgParam, dbParam,
-                        opParam );
+            case "insert":
+                checkInsertInfo( msg );
                 break;
-            }
-            case "find": {
-                // find params
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParams = new ArrayList<>();
-                subParams.add( new Param( "find", 150 ) );
-                subParams.add( new Param( "filter", 100 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "filter",
-                      "operators": [
-                        {
-                          "operator": "$or",
-                          "count": 50,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 100,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 50,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                Param filter_or_ltParam = new Param( "$lt", 100 );
-                Param filter_orParam = new Param( "$or", 50 );
-                filter_orParam.addSubParam( filter_or_ltParam );
-                Param filter_ltParam = new Param( "$lt", 50 );
-                Param filterParam = new Param( "filter", 0 );
-                filterParam.addSubParam( filter_orParam );
-                filterParam.addSubParam( filter_ltParam );
-                Param opParam = new Param( "operators", 0 );
-                opParam.addSubParam( filterParam );
-
-                Param.checkRecordParams( msg, "find", 150, msgParam, dbParam,
-                        opParam );
+            case "find":
+               checkFindInfo( msg );
                 break;
-            }
-            case "update": {
-                Param msgParam = new Param();
-
-                ArrayList< Param > subParams = new ArrayList<>();
-                subParams.add( new Param( "updates.multi", 100 ) );
-                subParams.add( new Param( "ordered", 150 ) );
-                subParams.add( new Param( "updates.q", 150 ) );
-                Param dbParam = new Param( "databaseCmdParameters", 0,
-                        subParams );
-
-                /*
-                    "operators": [
-                    {
-                      "param": "updates.u",
-                      "operators": [
-                        {
-                          "operator": "$inc",
-                          "count": 150,
-                          "subOperators": []
-                        }
-                      ]
-                    },
-                    {
-                      "param": "updates.q",
-                      "operators": [
-                        {
-                          "operator": "$and",
-                          "count": 50,
-                          "subOperators": [
-                            {
-                              "operator": "$lt",
-                              "count": 100,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 50,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                Param updatesu_incParam = new Param( "$inc", 150 );
-                Param updatesuParam = new Param( "updates.u", 0 );
-                updatesuParam.addSubParam( updatesu_incParam );
-                Param updatesq_and_ltParam = new Param( "$lt", 100 );
-                Param updatesq_andParam = new Param( "$and", 50 );
-                updatesq_andParam.addSubParam( updatesq_and_ltParam );
-                Param updatesq_ltParam = new Param( "$lt", 50 );
-                Param updatesqParam = new Param( "updates.q", 0 );
-                updatesqParam.addSubParam( updatesq_andParam );
-                updatesqParam.addSubParam( updatesq_ltParam );
-                Param opParam = new Param( "operators", 0 );
-                opParam.addSubParam( updatesuParam );
-                opParam.addSubParam( updatesqParam );
-                Param.checkRecordParams( msg, "update", 150, msgParam, dbParam,
-                        opParam );
+            case "update":
+                checkUpdateInfo( msg );
                 break;
-            }
-                case "delete": {
-                    Param msgParam = new Param();
-
-                    ArrayList< Param > subParams = new ArrayList<>();
-                    subParams.add( new Param( "deletes", 150 ) );
-                    subParams.add( new Param( "deletes.q", 150 ) );
-                    Param dbParam = new Param( "databaseCmdParameters", 0,
-                            subParams );
-
-                /*
-                  "operators": [
-                    {
-                      "param": "deletes.q",
-                      "operators": [
-                        {
-                          "operator": "$and",
-                          "count": 50,
-                          "subOperators": [
-                            {
-                              "operator": "$gt",
-                              "count": 100,
-                              "subOperators": []
-                            }
-                          ]
-                        },
-                        {
-                          "operator": "$lt",
-                          "count": 50,
-                          "subOperators": []
-                        }
-                      ]
-                    }
-                  ]
-                 */
-                    Param deletesq_and_gtParam = new Param( "$gt", 100 );
-                    Param deletesq_andParam = new Param( "$and", 50 );
-                    deletesq_andParam.addSubParam( deletesq_and_gtParam );
-                    Param deletesq_ltParam = new Param( "$lt", 50 );
-                    Param deletesqParam = new Param( "deletes.q", 0 );
-                    deletesqParam.addSubParam( deletesq_andParam );
-                    deletesqParam.addSubParam( deletesq_ltParam );
-                    Param opParam = new Param( "operators", 0 );
-                    opParam.addSubParam( deletesqParam );
-                    Param.checkRecordParams( msg, "delete", 150, msgParam, dbParam,
-                            opParam );
-                    break;
-                }
+            case "delete":
+                checkDeleteInfo( msg );
+                break;
             default:
                 continue;
             }
-
         }
     }
 
@@ -342,5 +180,178 @@ public class Sniffer_32602 extends M2STestBase {
             jsonArray.add( JSONObject.parseObject( line ) );
         }
         return jsonArray;
+    }
+
+    void checkInsertInfo( JSONObject msg ){
+        // insert params
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "bypassDocumentValidation", 50 ) );
+        subParams.add( new Param( "ordered", 150 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        Param opParam = new Param();
+        Param.checkRecordParams( msg, "insert", 150, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkFindInfo( JSONObject msg ){
+        // find params
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "find", 150 ) );
+        subParams.add( new Param( "filter", 100 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "filter",
+              "operators": [
+                {
+                  "operator": "$or",
+                  "count": 50,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 100,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 50,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param filter_or_ltParam = new Param( "$lt", 100 );
+        Param filter_orParam = new Param( "$or", 50 );
+        filter_orParam.addSubParam( filter_or_ltParam );
+        Param filter_ltParam = new Param( "$lt", 50 );
+        Param filterParam = new Param( "filter", 0 );
+        filterParam.addSubParam( filter_orParam );
+        filterParam.addSubParam( filter_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( filterParam );
+
+        Param.checkRecordParams( msg, "find", 150, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkUpdateInfo( JSONObject msg){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "updates.multi", 100 ) );
+        subParams.add( new Param( "ordered", 150 ) );
+        subParams.add( new Param( "updates.q", 150 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+            "operators": [
+            {
+              "param": "updates.u",
+              "operators": [
+                {
+                  "operator": "$inc",
+                  "count": 150,
+                  "subOperators": []
+                }
+              ]
+            },
+            {
+              "param": "updates.q",
+              "operators": [
+                {
+                  "operator": "$and",
+                  "count": 50,
+                  "subOperators": [
+                    {
+                      "operator": "$lt",
+                      "count": 100,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 50,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param updatesu_incParam = new Param( "$inc", 150 );
+        Param updatesuParam = new Param( "updates.u", 0 );
+        updatesuParam.addSubParam( updatesu_incParam );
+        Param updatesq_and_ltParam = new Param( "$lt", 100 );
+        Param updatesq_andParam = new Param( "$and", 50 );
+        updatesq_andParam.addSubParam( updatesq_and_ltParam );
+        Param updatesq_ltParam = new Param( "$lt", 50 );
+        Param updatesqParam = new Param( "updates.q", 0 );
+        updatesqParam.addSubParam( updatesq_andParam );
+        updatesqParam.addSubParam( updatesq_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( updatesuParam );
+        opParam.addSubParam( updatesqParam );
+        Param.checkRecordParams( msg, "update", 150, msgParam, dbParam,
+                opParam );
+    }
+
+    void checkDeleteInfo( JSONObject msg ){
+        Param msgParam = new Param();
+
+        ArrayList< Param > subParams = new ArrayList<>();
+        subParams.add( new Param( "deletes", 150 ) );
+        subParams.add( new Param( "deletes.q", 150 ) );
+        Param dbParam = new Param( "databaseCmdParameters", 0,
+                subParams );
+
+        /*
+          "operators": [
+            {
+              "param": "deletes.q",
+              "operators": [
+                {
+                  "operator": "$and",
+                  "count": 50,
+                  "subOperators": [
+                    {
+                      "operator": "$gt",
+                      "count": 100,
+                      "subOperators": []
+                    }
+                  ]
+                },
+                {
+                  "operator": "$lt",
+                  "count": 50,
+                  "subOperators": []
+                }
+              ]
+            }
+          ]
+         */
+        Param deletesq_and_gtParam = new Param( "$gt", 100 );
+        Param deletesq_andParam = new Param( "$and", 50 );
+        deletesq_andParam.addSubParam( deletesq_and_gtParam );
+        Param deletesq_ltParam = new Param( "$lt", 50 );
+        Param deletesqParam = new Param( "deletes.q", 0 );
+        deletesqParam.addSubParam( deletesq_andParam );
+        deletesqParam.addSubParam( deletesq_ltParam );
+        Param opParam = new Param( "operators", 0 );
+        opParam.addSubParam( deletesqParam );
+        Param.checkRecordParams( msg, "delete", 150, msgParam, dbParam,
+                opParam );
     }
 }
