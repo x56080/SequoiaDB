@@ -6,7 +6,6 @@
  * @LastEditTime  : 2023-09-08
  * @LastEditors   : huangxiaoni huangxiaoni@sequoiadb.com
  ******************************************************************************/
-load( "../fap3-js-mongo4.4/common.js" );
 
 main();
 function main ()
@@ -56,4 +55,16 @@ function main ()
    checkResults( rc, "[{\"_id\":\"\",\"averageC\":9},{\"_id\":8,\"averageC\":8},{\"_id\":null,\"averageC\":6.75},{\"_id\":6,\"averageC\":6},{\"_id\":{\"a1\":[1,2]},\"averageC\":5},{\"_id\":{\"a1\":[3,4]},\"averageC\":5},{\"_id\":3,\"averageC\":2.5},{\"_id\":2,\"averageC\":1.5},{\"_id\":1,\"averageC\":1}]" );
 
    cl.drop();
+}
+
+function checkResults ( cursor, expDocs )
+{
+   var docs = new Array();
+   while( cursor.hasNext() )
+   {
+      var doc = cursor.next();
+      docs.push( doc );
+   }
+   cursor.close();
+   assert.eq( JSON.stringify( docs ), expDocs );
 }

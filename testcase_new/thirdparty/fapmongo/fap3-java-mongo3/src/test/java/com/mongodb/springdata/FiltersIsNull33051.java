@@ -56,8 +56,9 @@ public class FiltersIsNull33051 extends MongodbTestBase {
 
         // {a:null}
         query = new Query( Criteria.where( "a" ).is( null ) );
-        Assert.assertEquals( query.getQueryObject().toString(),
-                "{ \"a\" :  null }" );
+        Assert.assertEquals(
+                query.getQueryObject().toString().replace( " ", "" ),
+                "{\"a\":null}" );
         actDocs = mongoTemplate.find( query, MyEntity.class, clName );
         Assert.assertEquals( actDocs.size(), 2 );
         for ( MyEntity doc : actDocs )
@@ -67,8 +68,9 @@ public class FiltersIsNull33051 extends MongodbTestBase {
         // {a:{$isnull:1}}
         query = new Query(
                 Criteria.where( "a" ).is( new Document( "$isnull", 1 ) ) );
-        Assert.assertEquals( query.getQueryObject().toString(),
-                "{ \"a\" : { \"$isnull\" : 1}}" );
+        Assert.assertEquals(
+                query.getQueryObject().toString().replace( " ", "" ),
+                "{\"a\":{\"$isnull\":1}}" );
         actDocs = mongoTemplate.find( query, MyEntity.class, clName );
         Assert.assertEquals( actDocs.size(), 2 );
         for ( MyEntity doc : actDocs )

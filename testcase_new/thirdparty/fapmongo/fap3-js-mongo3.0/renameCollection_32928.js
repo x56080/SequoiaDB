@@ -4,8 +4,7 @@
  * @CreateTime    : 2023.08.16
  * @LastEditTime  : 2023.08.16
  * @LastEditors   : XiaoNi Huang
-*********************************************/
-load( "../fap3-js-mongo4.0/common.js" );
+******************************************************************************/
 
 main();
 function main ()
@@ -66,4 +65,15 @@ function main ()
 
    cl_1.drop();
    cl_2.drop();
+}
+
+function checkResults ( cursor, expDocs )
+{
+   var docs = new Array();
+   while( cursor.hasNext() )
+   {
+      var doc = cursor.next();
+      docs.push( doc );
+   }
+   assert.eq( JSON.stringify( docs ), expDocs );
 }
