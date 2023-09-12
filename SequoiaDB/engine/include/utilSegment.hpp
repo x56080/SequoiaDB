@@ -2078,7 +2078,7 @@ namespace engine
 
          virtual ~_utilSegmentManager() { fini(); }
 
-         virtual const CHAR* getName() const override
+         virtual const CHAR* getName() const
          {
             return _name ;
          }
@@ -2086,7 +2086,7 @@ namespace engine
          virtual INT32 init( UINT32 blockSize,
                              UINT64 maxSize,
                              UINT8  poolNum,
-                             utilSegmentHandler *pHandler ) override
+                             utilSegmentHandler *pHandler )
          {
             INT32 rc = SDB_OK ;
             UINT64 poolMaxSize = 0 ;
@@ -2135,7 +2135,7 @@ namespace engine
             goto done ;
          }
 
-         virtual void setMaxSize( UINT64 maxSize ) override
+         virtual void setMaxSize( UINT64 maxSize )
          {
             UINT64 poolMaxSize = maxSize / _poolNum ;
 
@@ -2153,7 +2153,7 @@ namespace engine
             }
          }
 
-         virtual UINT32 getNumOfObjs() const override
+         virtual UINT32 getNumOfObjs() const
          {
             UINT32 objs = 0 ;
             for ( UINT32 i = 0; i < _poolNum ; i++ )
@@ -2163,7 +2163,7 @@ namespace engine
             return objs ;
          }
 
-         virtual void getSizeInfo( UINT64 &total, UINT64 &used ) const override
+         virtual void getSizeInfo( UINT64 &total, UINT64 &used ) const
          {
             UINT64 poolTotal = 0 ;
             UINT64 poolUsed = 0 ;
@@ -2175,7 +2175,7 @@ namespace engine
             }
          }
 
-         virtual UINT64 getUsedSize() const override
+         virtual UINT64 getUsedSize() const
          {
             UINT64 total = 0 ;
             UINT64 used = 0 ;
@@ -2183,7 +2183,7 @@ namespace engine
             return used ;
          }
 
-         virtual BOOLEAN hasPendingSeg() const override
+         virtual BOOLEAN hasPendingSeg() const
          {
             for ( UINT32 i = 0; i < _poolNum ; i++ )
             {
@@ -2195,7 +2195,7 @@ namespace engine
             return FALSE ;
          }
 
-         virtual BOOLEAN hasEmptySeg() const override
+         virtual BOOLEAN hasEmptySeg() const
          {
             for ( UINT32 i = 0; i < _poolNum ; i++ )
             {
@@ -2207,7 +2207,7 @@ namespace engine
             return FALSE ;
          }
 
-         virtual BOOLEAN hasPendingOrEmptySeg() const override
+         virtual BOOLEAN hasPendingOrEmptySeg() const
          {
             for ( UINT32 i = 0; i < _poolNum ; i++ )
             {
@@ -2220,7 +2220,7 @@ namespace engine
             return FALSE ;
          }
 
-         virtual UINT32  getPendingSegNum() const override
+         virtual UINT32  getPendingSegNum() const
          {
             UINT32 pendingSegNum = 0 ;
             for ( UINT32 i = 0; i < _poolNum ; i++ )
@@ -2230,7 +2230,7 @@ namespace engine
             return pendingSegNum ;
          }
 
-         virtual UINT32  getEmptySegNum() const override
+         virtual UINT32  getEmptySegNum() const
          {
             UINT32 emptySegNum = 0 ;
             for ( UINT32 i = 0; i < _poolNum ; i++ )
@@ -2240,7 +2240,7 @@ namespace engine
             return emptySegNum ;
          }
 
-         virtual UINT32  getPendingAndEmptySegNum() const override
+         virtual UINT32  getPendingAndEmptySegNum() const
          {
             UINT32 segNum = 0 ;
             for ( UINT32 i = 0; i < _poolNum ; i++ )
@@ -2251,7 +2251,7 @@ namespace engine
             return segNum ;
          }
 
-         virtual UINT32  getFullSegNum() const override
+         virtual UINT32  getFullSegNum() const
          {
             UINT32 fullSegNum = 0 ;
             for ( UINT32 i = 0; i < _poolNum ; i++ )
@@ -2261,7 +2261,7 @@ namespace engine
             return fullSegNum ;
          }
 
-         virtual UINT64  getSegBlockSize() const override
+         virtual UINT64  getSegBlockSize() const
          {
             if ( _poolNum > 0 )
             {
@@ -2314,7 +2314,7 @@ namespace engine
             return result ;
          }
 
-         virtual INT32 acquire( void * &pT, UTIL_OBJIDX *pIndex = NULL ) override
+         virtual INT32 acquire( void * &pT, UTIL_OBJIDX *pIndex = NULL )
          {
             INT32 rc = SDB_OK ;
             UINT32 pool ;
@@ -2341,7 +2341,7 @@ namespace engine
             return rc ;
          }
 
-         virtual INT32 release( const void * pT ) override
+         virtual INT32 release( const void * pT )
          {
             UINT32 pool = _getPoolIdByAddr( pT ) ;
             if ( UTIL_INVALID_OBJ_INDEX != pool )
@@ -2356,7 +2356,7 @@ namespace engine
 
          virtual INT32 shrink( UINT32 freeSegToKeep = 1,
                                UINT64 *pFreedSize = NULL,
-                               UINT64 expectSize = 0 ) override
+                               UINT64 expectSize = 0 )
          {
             // REVISIT :
             // proper scheduling algorithm to be implemented
@@ -2398,7 +2398,7 @@ namespace engine
                               UINT64 *pReleaseTimes = NULL,
                               UINT64 *pOOMTimes = NULL,
                               UINT64 *pOOLTimes = NULL,
-                              UINT64 *pShrinkSize = NULL ) override
+                              UINT64 *pShrinkSize = NULL )
          {
             UINT32 len = 0 ;
 
