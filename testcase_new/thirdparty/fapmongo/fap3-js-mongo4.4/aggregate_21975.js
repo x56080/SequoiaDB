@@ -81,6 +81,7 @@ function main ()
       var errorJson = convertErrorToJSON( e );
       assert.eq( errorJson, { "ok": 0, "errmsg": "Exclusion fields is not supported", "code": -32, "codeName": "Option is not supported yet" } );
    }
+   assert.eq( db.getLastError(), "Exclusion fields is not supported" );
 
 
    // $match + $group + $sort(1) + $limit

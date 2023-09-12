@@ -33,6 +33,9 @@ function main ()
          assert.eq( e, "Error: user specified is not exist or password is invalid" );
       }
    }
+   assert.eq( db.getLastError(), "user specified is not exist or password is invalid" );
+
+
    cl.drop();
 }
 

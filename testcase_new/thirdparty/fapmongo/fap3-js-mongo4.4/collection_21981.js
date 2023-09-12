@@ -19,15 +19,9 @@ function main ()
    // create collection
    var rc = db.createCollection( clName + "_1" );
    assert.eq( rc, { "ok": 1 } );
-   // repeat create collection
-   try
-   {
-      db.createCollection( clName + "_1" );
-   }
-   catch( e )
-   {
-      assert.eq( e, 'Error: [{ "ok" : 0, "code" : -22, "errmsg" : "Collection already exists" }]' );
-   }
+   // repeat create collection，打印错误提示但不抛异常，同mongo引擎 
+   db.createCollection( clName + "_1" );
+   assert.eq( db.getLastError(), "Collection already exists" );
 
    // drop and create same collection  
    var cl = db.getCollection( clName + "_1" );
@@ -43,11 +37,9 @@ function main ()
    var rc = db.getCollectionNames();
    assert.eq( rc, ["cl21981_1", "cl21981_2"] );
 
-   /* sdb not support, only rc name
-   // getCollectionInfos
+   // getCollectionInfos，sdb only rc name
    var rc = db.getCollectionInfos();
-   assert.eq(rc, [ { "name" : "cl21981_1" }, { "name" : "cl21981_2" } ] );
-   */
+   assert.eq( rc, [{ "name": "cl21981_1" }, { "name": "cl21981_2" }] );
 
    // drop cl
    var cl = db.getCollection( clName + "_1" );
@@ -60,7 +52,6 @@ function main ()
    // repeat drop cl
    var rc = cl.drop();
    assert.eq( rc, false );
-
 
    db.dropDatabase();
 }

@@ -136,6 +136,7 @@ function testFindOneAndUpdateWithSort ( cl )
    {
       assert.eq( e.code, -288 )
    }
+   assert.eq( db.getLastError(), "Sorting of 'query and modify' must use index" );
    // 检查结果
    var rc = cl.find().sort( { "_id": 1 } );
    checkResults( rc, "[{\"_id\":1,\"a\":1,\"b\":2},{\"_id\":2,\"a\":2,\"b\":3}]" );

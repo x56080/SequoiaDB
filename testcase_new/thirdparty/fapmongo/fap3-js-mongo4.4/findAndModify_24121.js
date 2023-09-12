@@ -50,6 +50,7 @@ function testFindAndModify_parameter ( cl )
    {
       assert.eq( e.code, -6 );
    }
+   assert.eq( db.getLastError(), "Either an update or remove = true must be specified" );
 }
 
 function testFindAndModifyWithUpdate ( cl )

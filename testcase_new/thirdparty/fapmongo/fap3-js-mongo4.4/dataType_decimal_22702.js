@@ -315,6 +315,8 @@ function main ()
          throw new Error( e );
       }
    }
+   // 此场景在客户端就报错了，同原生mongo返回null
+   assert.eq( db.getLastError(), null );
    assert.eq( cl.count(), 0 );
 
    cl.drop();
