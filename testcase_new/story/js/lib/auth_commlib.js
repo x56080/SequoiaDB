@@ -195,11 +195,29 @@ function cleanUsers ( user )
    }
    catch( e )
    {
-      if( e.message != SDB_AUTH_USER_NOT_EXIST )
+      if( e != SDB_AUTH_USER_NOT_EXIST )
       {
          throw new Error( e );
       }
    }
 }
 
-
+/************************************
+*@Description: try to drop role by name
+*@author:      tangtao
+*@createDate:  2023/09/05
+**************************************/
+function cleanRole ( roleName )
+{
+   try
+   {
+      db.dropRole( roleName );
+   }
+   catch( e )
+   {
+      if( e != SDB_AUTH_ROLE_NOT_EXIST )
+      {
+         throw new Error( e );
+      }
+   }
+}
