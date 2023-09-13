@@ -151,7 +151,7 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
         return jsonArray;
     }
 
-    void checkCountInfo( JSONObject msg ){
+    private void checkCountInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParams = new ArrayList<>();
@@ -184,7 +184,7 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
                 opParam );
     }
 
-    void checkFindAndModifyInfo( JSONObject msg ){
+    private void checkFindAndModifyInfo( JSONObject msg ){
         // find params
         Param msgParam = new Param();
 
@@ -234,7 +234,7 @@ public class Sniffer_32605_32606_32607 extends M2STestBase {
                 dbParam, opParam );
     }
 
-    void checkDistinctInfo( JSONObject msg ){
+    private void checkDistinctInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParams = new ArrayList<>();

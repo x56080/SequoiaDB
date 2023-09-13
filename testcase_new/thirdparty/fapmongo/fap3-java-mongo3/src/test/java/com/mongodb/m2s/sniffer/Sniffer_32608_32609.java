@@ -136,7 +136,7 @@ public class Sniffer_32608_32609 extends M2STestBase {
         return jsonArray;
     }
 
-    void checkExplainInfo( JSONObject msg ){
+    private void checkExplainInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParams = new ArrayList<>();
@@ -191,7 +191,7 @@ public class Sniffer_32608_32609 extends M2STestBase {
                 opParam );
     }
 
-    void checkAggregateInfo( JSONObject msg ){
+    private void checkAggregateInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParams = new ArrayList<>();

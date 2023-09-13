@@ -164,7 +164,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
         return jsonArray;
     }
 
-    void checkGetMoreInfo( JSONObject msg ){
+    private void checkGetMoreInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
@@ -178,7 +178,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
                 opParam );
     }
 
-    void checkKillCursorsInfo( JSONObject msg ){
+    private void checkKillCursorsInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
@@ -192,7 +192,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
                 opParam );
     }
 
-    void checkCreateInfo( JSONObject msg ){
+    private void checkCreateInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
@@ -205,7 +205,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
                 opParam );
     }
 
-    void checkCreateIndexesInfo( JSONObject msg ){
+    private void checkCreateIndexesInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
@@ -220,7 +220,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
                 opParam );
     }
 
-    void checkDropIndexesInfo( JSONObject msg ){
+    private void checkDropIndexesInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
@@ -234,7 +234,7 @@ public class Sniffer_32610_32611 extends M2STestBase {
                 opParam );
     }
 
-    void checkDropInfo( JSONObject msg ){
+    private void checkDropInfo( JSONObject msg ){
         Param msgParam = new Param();
 
         ArrayList< Param > subParam = new ArrayList<>();
