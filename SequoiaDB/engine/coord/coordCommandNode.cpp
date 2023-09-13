@@ -3179,6 +3179,7 @@ namespace engine
    {
       INT32          rc = SDB_OK ;
       INT32          rcTmp = SDB_OK ;
+      INT32          rcInner = SDB_OK ;
 
       SET_ROUTEID    sendNodes ;
       ROUTE_RC_MAP   faileds ;
@@ -3197,6 +3198,18 @@ namespace engine
          _updatedGrpInfo = TRUE ;
          _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
          nodeID = _groupInfoPtr->primary( MSG_ROUTE_SHARD_SERVCIE, _locationID ) ;
+      }
+
+      // The location primary node info may be updated by other slave nodes,
+      // if the updated location primary node has already stopped, there is no need to execute on it.
+      if ( MSG_INVALID_ROUTEID != nodeID.value )
+      {
+         INT32 primaryPos = _groupInfoPtr->nodePos( nodeID.columns.nodeID ) ;
+         if ( primaryPos == SDB_CLS_NODE_NOT_EXIST || 
+               _groupInfoPtr->isNodeInStatus( primaryPos, NET_NODE_STAT_OFFLINE ) )
+         {
+            nodeID.value = MSG_INVALID_ROUTEID ;
+         }
       }
 
       // If location has no primary node, match other location slave node
@@ -3257,9 +3270,10 @@ namespace engine
             MsgRouteID primaryNodeID ;
             primaryNodeID.value = nodeID.value ;
             primaryNodeID.columns.nodeID = newPrimaryID ;
-            rcTmp = _groupInfoPtr->updateLocationPrimary( primaryNodeID, _locationID ) ;
-            if ( SDB_OK != rcTmp )
+            rcInner = _groupInfoPtr->updateLocationPrimary( primaryNodeID, _locationID ) ;
+            if ( SDB_OK != rcInner )
             {
+               rcTmp = rcInner ;
                PD_LOG( PDWARNING, "Failed to update location primary node, rc: %d",
                        nodeID.columns.groupID, rcTmp ) ;
             }
@@ -3268,9 +3282,10 @@ namespace engine
       }
       else if ( SDB_INVALID_ROUTEID == rcTmp )
       {
-         rcTmp = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
-         if ( SDB_OK != rcTmp )
+         rcInner = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+         if ( SDB_OK != rcInner )
          {
+            rcTmp = rcInner ;
             PD_LOG( PDWARNING, "Update group[%u] info from remote failed, "
                     "rc: %d", nodeID.columns.groupID, rcTmp ) ;
          }
