@@ -127,7 +127,7 @@ public class Sniffer_32608_32609 extends M2STestBase {
     }
 
     // 输入的str有多行，每行一个json，返回一个json数组
-    JSONArray getJsonArray( String str ) {
+    private JSONArray getJsonArray( String str ) {
         JSONArray jsonArray = new JSONArray();
         String[] lines = str.split( "\n" );
         for ( String line : lines ) {
