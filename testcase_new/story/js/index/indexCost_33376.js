@@ -16,10 +16,10 @@ function test ()
 
    var indexabcd = "index_abcd";
    var indexab = "index_ab";
-   var indexbc = "index_b";
+   var indexb = "index_b";
    cl.createIndex( indexabcd, { a: 1, c: 1, b: 1, d: 1 } );
    cl.createIndex( indexab, { a: 1, b: 1 } );
-   cl.createIndex( indexbc, { b: 1 } );
+   cl.createIndex( indexb, { b: 1 } );
 
    var aValues = [];
    for( var i = 0; i < 100; i++ )
