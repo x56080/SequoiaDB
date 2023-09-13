@@ -2,7 +2,7 @@
  * @Description   : seqDB-33377:创建复合索引和单键索引，查询条件为复合索引字段覆盖字段且包含多个值和等值字段时索引选择
  * @Author        : wuyan
  * @CreateTime    : 2022.09.12
- * @LastEditTime  : 2023.09.12
+ * @LastEditTime  : 2023.09.13
  * @LastEditors   : wu yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -16,10 +16,10 @@ function test ()
 
    var indexabcd = "index_abcd";
    var indexab = "index_ab";
-   var indexbc = "index_b";
+   var indexb = "index_b";
    cl.createIndex( indexabcd, { a: 1, c: 1, b: 1, d: 1 } );
    cl.createIndex( indexab, { a: 1, b: 1 } );
-   cl.createIndex( indexbc, { b: 1 } );
+   cl.createIndex( indexb, { b: 1 } );
 
 
    var aValues = [];
