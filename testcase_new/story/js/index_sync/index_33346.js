@@ -2,7 +2,7 @@
  * @Description   : seqDB-33346:创建唯一索引冲突后查看IndexCommitLSN
  * @Author        : liuli
  * @CreateTime    : 2023.09.12
- * @LastEditTime  : 2023.09.12
+ * @LastEditTime  : 2023.09.14
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -76,4 +76,25 @@ function checkIndexCommitLSNConsistent ()
    {
       throw new Error( "IndexCommitLSN is not consistent ," + JSON.stringify( objs ) );
    }
+}
+
+function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
+{
+   if( undefined == recordStart ) { recordStart = 0; }
+   if( undefined == recordEnd ) { recordEnd = recordNum; }
+   try
+   {
+      var doc = [];
+      for( var i = 0; i < recordNum; i++ )
+      {
+         var bValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+         doc.push( { a: i, b: bValue, c: i, no: i } );
+      }
+      dbcl.insert( doc );
+   }
+   catch( e )
+   {
+      throw buildException( "insertBulkData()", e, "insert", "insert data :" + JSON.stringify( doc ), "insert fail" );
+   }
+   return doc;
 }
