@@ -2,8 +2,8 @@
  * @Description   : seqDB-27847:目标组无lob，源组部分切分至目标组
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.10.13
- * @LastEditTime  : 2023.04.14
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.09.15
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27847";
 testConf.clName = COMMCLNAME + "_27847";
@@ -40,7 +40,7 @@ function test ( testPara )
 
    // 由于目标组节点数量难以预测，直接在目标组创建一个CL用来构造预期数据
    commDropCS( db, expCSName );
-   var expcl = commCreateCL( db, expCSName, expCLName, { ShardingKey: { a: 1 }, Group: dstGroupName } );
+   var expcl = commCreateCL( db, expCSName, expCLName, { ShardingKey: { a: 1 }, Group: dstGroupName, ReplSize: 0 } );
    for( var i = 0; i < lobs; i++ )
    {
       dbcl.putLob( filePath + fileName );
