@@ -2,8 +2,8 @@
  * @Description   : seqDB-27846:目标组无lob，源组100%切分至目标组 
  * @Author        : liuli
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2023.04.14
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.09.15
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27846";
 testConf.clName = COMMCLNAME + "_27846";
@@ -37,7 +37,7 @@ function test ( testPara )
 
    // 由于目标组节点数量难以预测，直接在目标组创建一个CL用来构造预期数据
    commDropCS( db, expCSName );
-   var expcl = commCreateCL( db, expCSName, expCLName, { Group: dstGroupNames[0] } );
+   var expcl = commCreateCL( db, expCSName, expCLName, { Group: dstGroupNames[0], ReplSize: 0 } );
    for( var i = 0; i < lobs; i++ )
    {
       expcl.putLob( filePath + fileName );
