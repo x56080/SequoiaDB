@@ -1,6 +1,8 @@
 package com.sequoiadb.testcommon;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 import org.testng.ITestResult;
@@ -90,9 +92,17 @@ public class TimePrinterListener extends TestListenerAdapter {
 
     private void dbMsgBeginTime( ITestResult tr ) {
         Sequoiadb sdb = null;
+        ArrayList< String > groups = new ArrayList<>(
+                Arrays.asList( tr.getMethod().getGroups() ) );
+
         try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
-                    SdbTestBase.rootUserPassword );
+            if ( groups.contains( SdbTestBase.RBAC ) ) {
+                sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                        SdbTestBase.rootUserName,
+                        SdbTestBase.rootUserPassword );
+            } else {
+                sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            }
             sdb.msg( getCurTimeStr() + "\tBegin testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
@@ -106,9 +116,17 @@ public class TimePrinterListener extends TestListenerAdapter {
 
     private void dbMsgEndTime( ITestResult tr ) {
         Sequoiadb sdb = null;
+        ArrayList< String > groups = new ArrayList<>(
+                Arrays.asList( tr.getMethod().getGroups() ) );
+
         try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, SdbTestBase.rootUserName,
-                    SdbTestBase.rootUserPassword );
+            if ( groups.contains( SdbTestBase.RBAC ) ) {
+                sdb = new Sequoiadb( SdbTestBase.coordUrl,
+                        SdbTestBase.rootUserName,
+                        SdbTestBase.rootUserPassword );
+            } else {
+                sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            }
             sdb.msg( getCurTimeStr() + "\tEnd testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
