@@ -396,8 +396,8 @@ public class SdbTestBase {
             if ( !privilegecheck ) {
                 CommLib.setPrivilegecheck( !privilegecheck );
             }
-            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl,
-                    rootUserName, rootUserPassword, options )) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                    options )) {
                 BSONObject options = ( BSONObject ) JSON
                         .parse( "{Roles:['_root']}" );
                 sdb.createUser( rootUserName, rootUserPassword, options );
