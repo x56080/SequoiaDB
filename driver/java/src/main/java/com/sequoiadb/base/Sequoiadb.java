@@ -3682,6 +3682,10 @@ public class Sequoiadb implements Closeable {
         }
     }
 
+    boolean getInfoEncryption() {
+        return globalClientConf.getInfoEncryption();
+    }
+
     private SysInfoResponse getSysInfo() {
         sendRequest(new SysInfoRequest());
         return receiveSysInfoResponse();

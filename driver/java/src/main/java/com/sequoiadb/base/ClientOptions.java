@@ -40,6 +40,8 @@ public class ClientOptions {
     private long cacheInterval;
     private boolean exactlyDate;
 
+    private boolean infoEncryption;
+
     /**
      * The construction method of ClientOptions.
      */
@@ -47,6 +49,7 @@ public class ClientOptions {
         enableCache = true;
         cacheInterval = CACHE_INTERVAL_DEFAULT;
         exactlyDate = false;
+        infoEncryption = true;
     }
 
     /**
@@ -86,7 +89,7 @@ public class ClientOptions {
 
 
     /**
-     * @return A boolean value to indicate whether use exactly date or not
+     * @return A boolean value indicating whether to use the exact date or not.
      */
     public Boolean getExactlyDate() {
         return exactlyDate;
@@ -109,5 +112,23 @@ public class ClientOptions {
      */
     public void setExactlyDate( boolean exactlyDate ) {
         this.exactlyDate = exactlyDate;
+    }
+
+    /**
+     * @return A boolean value indicating whether to use information encryption.
+     */
+    public boolean getInfoEncryption() {
+        return infoEncryption;
+    }
+
+    /**
+     * Whether to use data encryption. The default is 'true.' When set to 'false,' it indicates printing raw
+     * record data in logs and exception stack traces. When set to 'true,' it indicates printing encrypted
+     * record data in logs and exception stack traces. Encrypted data can be decrypted using sdbsecuretool.
+     *
+     * @param infoEncryption True or false.
+     */
+    public void setInfoEncryption(boolean infoEncryption) {
+        this.infoEncryption = infoEncryption;
     }
 }

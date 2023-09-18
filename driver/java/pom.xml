@@ -160,6 +160,8 @@
                         <exclude>com/sequoiadb/log/LogFactory.java</exclude>
                         <exclude>com/sequoiadb/util/AuthAlgorithmSHA256.java</exclude>
                         <exclude>com/sequoiadb/util/lobid/UtilBitAssist.java</exclude>
+                        <exclude>com/sequoiadb/util/SdbBase64.java</exclude>
+                        <exclude>com/sequoiadb/util/SdbSecureUtil.java</exclude>
                     </sourceFileExcludes>
                 </configuration>
             </plugin>

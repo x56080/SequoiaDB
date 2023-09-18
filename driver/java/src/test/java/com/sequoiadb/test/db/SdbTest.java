@@ -13,9 +13,6 @@ public class SdbTest {
     private static Sequoiadb sdb;
     private static CollectionSpace cs;
     private static DBCollection cl;
-    private static ReplicaGroup rg;
-    private static Node node;
-    private static DBCursor cursor;
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
@@ -53,39 +50,17 @@ public class SdbTest {
         int port = sdb.getPort();
         assertTrue(hostName != null && !hostName.isEmpty());
         assertTrue(port != 0);
-//        System.out.println(String.format("%s:%d", hostName, port));
     }
 
     @Test
-    public void sdbisValid() {
+    public void infoEncryptionTest() {
+        ClientOptions options = new ClientOptions();
+
+        // case 1: check default value
+        assertTrue(options.getInfoEncryption());
+
+        // case 2: check set
+        options.setInfoEncryption(false);
+        Assert.assertFalse(options.getInfoEncryption());
     }
-//	@Test
-//	public void sdbisValid(){
-//		Sequoiadb conn = null;
-//		DBCursor cur = null;
-//		boolean result = false ;
-//		conn = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-//		cur = conn.listCollections();
-//		assertTrue(cur != null);
-//		// TODO:
-//		// case 1: the connection is valid
-//		result = conn.isValid();
-//		assertTrue(result == true);
-//		System.out.println("before disconnect from database, result is " + result);
-//		
-//		/*
-//		// case 2(manually): disconnect from server, we can get a packet come from server
-//		result = conn.isValid();
-//		assertTrue(result == false);
-//		
-//		// case 3(manually): network error, we can't get any message from server
-//		*/
-//		// case 4 : disconnect by client
-//		conn.disconnect();
-//		result = conn.isValid();
-//		assertTrue(result == false);
-//		System.out.println("after disconnect from database, result is " + result);
-//		
-//		System.out.println("ok.");
-//	}
 }
