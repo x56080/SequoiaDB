@@ -2059,6 +2059,9 @@ done:
       _streamIdleTimeout = PMD_DFT_STREAM_IDLE_TIMEOUT ;
       _changeStreamResumableWindow = PMD_DFT_CHANGE_STREAM_RESUMABLE_WINDOW ;
 
+      _privilegeCheckEnabled = FALSE ;
+      _userCacheInterval = PMD_DFT_USER_CACHE_INTERVAL ;
+
       _memMXFast = PMD_DFT_MEM_MXFAST ;
       _memTrimThreshold = PMD_DFT_MEM_TRIM_THRESHOLD ;
       _memMmapThreshold = PMD_DFT_MEM_MMAP_THRESHOLD ;
