@@ -681,6 +681,7 @@ namespace engine
          {
             _buffSize = buffSize ;
             pBuff = _pCompressBuff ;
+            ossMemset( pBuff, 0, buffSize ) ;
          }
       }
 
