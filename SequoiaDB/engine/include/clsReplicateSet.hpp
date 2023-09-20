@@ -609,6 +609,8 @@ namespace engine
          UINT64   getLastConsultTick() const ;
          void     setLastConsultTick( UINT64 tick ) ;
 
+         BOOLEAN isReadyToReplay() ;
+
       private:
          INT32 _checkGroupInfo( const CLS_GROUP_VERSION &version,
                                 const map<UINT64, _netRouteNode> &nodes ) ;
