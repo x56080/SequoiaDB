@@ -305,7 +305,7 @@ namespace engine
                   CLS_SESSION_STATUS_SYNC ) ;
          goto done ;
       }
-      else if ( !_sync->isReadyToReplay() )
+      else if ( !_repl->isReadyToReplay() )
       {
          PD_LOG ( PDDEBUG, "Session[%s]: Not ready to replay, ignore",
                   sessionName() ) ;

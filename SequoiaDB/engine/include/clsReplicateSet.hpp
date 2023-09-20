@@ -398,6 +398,8 @@ namespace engine
          UINT64   getLastConsultTick() const ;
          void     setLastConsultTick( UINT64 tick ) ;
 
+         BOOLEAN isReadyToReplay() ;
+
       private:
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
                              map<UINT64, _netRouteNode> &nodes,
