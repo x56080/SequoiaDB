@@ -651,6 +651,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSBS__GETRGEKEY );
+      ossScopedLock lock( &_LSNlatch ) ;
       _rangeKeyObj = BSONObj() ;
       _rangeEndKeyObj = BSONObj() ;
       try
