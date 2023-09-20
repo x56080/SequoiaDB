@@ -77,7 +77,7 @@ namespace engine
       PD_CHECK( _dictBuff, SDB_OOM, error, PDERROR,
                 "Failed to allocate memory for dictionary, requested size: %d",
                 totalSize ) ;
-
+      ossMemset( _dictBuff, 0, totalSize ) ;
       _head = ( utilLZWDictHead *)_dictBuff ;
       _nodes = ( utilLZWNode *)( (CHAR *)_head + sizeof( utilLZWDictHead ) ) ;
       _maxNodeNum = UTIL_MAX_DICT_BUILD_ITEM_NUM ;
