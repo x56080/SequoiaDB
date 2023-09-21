@@ -1,7 +1,7 @@
-package com.sequoiadb.rbac;
+package com.sequoiadb.rbac.serial;
 
 import com.sequoiadb.base.*;
-import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.rbac.RbacUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;

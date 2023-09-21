@@ -1,5 +1,6 @@
-package com.sequoiadb.rbac;
+package com.sequoiadb.rbac.serial;
 
+import com.sequoiadb.rbac.RbacUtils;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
