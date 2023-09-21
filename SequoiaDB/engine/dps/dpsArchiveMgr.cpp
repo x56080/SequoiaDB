@@ -579,22 +579,22 @@ namespace engine
          UINT32 logFileSz = logMgr->getLogFileSz() ;
          UINT32 logFileNum = logMgr->getLogFileNum() ;
 
-         logFile = logMgr->getLogFile( curFileId ) ;
+         logFile = logMgr->getLogFileByLogicalID( curFileId ) ;
          if ( NULL == logFile )
          {
-            SDB_ASSERT( FALSE, "logFile can't be NULL" ) ;
             rc = SDB_SYS ;
             PD_LOG( PDERROR, "Failed to get replica log file[%u], rc=%d", curFileId, rc ) ;
+            SDB_ASSERT( FALSE, "logFile can't be NULL" ) ;
             goto error ;
          }
 
          if ( logFile->header()._logID != curFileId )
          {
-            SDB_ASSERT( FALSE, "logicalFileId must be the same" ) ;
             rc = SDB_SYS ;
             PD_LOG( PDERROR, "Invalid logical file id" \
                     "(expect=%u, real=%u), rc=%d",
                     logFile->header()._logID, curFileId , rc ) ;
+            SDB_ASSERT( FALSE, "logicalFileId must be the same" ) ;
             goto error ;
          }
 

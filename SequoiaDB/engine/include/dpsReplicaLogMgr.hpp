@@ -251,6 +251,11 @@ namespace engine
          return _logger.getLogFile( fileId ) ;
       }
 
+      _dpsLogFile* getLogFileByLogicalID( UINT32 logicalFileId )
+      {
+         return _logger.getLogFile( logicalFileId % getLogFileNum() ) ;
+      }
+
       UINT32 calcFileID ( DPS_LSN_OFFSET offset )
       {
          return ( offset / getLogFileSz () ) % getLogFileNum () ;
