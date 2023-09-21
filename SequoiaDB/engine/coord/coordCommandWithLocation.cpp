@@ -840,6 +840,20 @@ namespace engine
            SDB_ANALYZE_MODE_CLEAR == mode )
       {
          ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+         try
+         {
+            if ( _supportMaintenanceMode() )
+            {
+               // Ignore the node in maintenance mode
+               ignoreRCList.insert( SDB_CLS_NODE_IN_MAINTENANCE ) ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
+         }
       }
 
    done :

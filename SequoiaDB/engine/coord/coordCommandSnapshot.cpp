@@ -191,6 +191,21 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get groups of collection[%s], rc: %d",
                       collection, rc ) ;
       }
+      
+      try 
+      {
+         if ( _supportMaintenanceMode() )
+         {
+            // Ignore the node in maintenance mode
+            ignoreRCList.insert( SDB_CLS_NODE_IN_MAINTENANCE ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
    done :
       return rc ;

@@ -248,6 +248,11 @@ namespace engine
                                       pmdEDUCB *cb,
                                       coordCtrlParam &ctrlParam,
                                       SET_RC &ignoreRCList ) ;
+         
+         virtual BOOLEAN _supportMaintenanceMode() const
+         {
+            return TRUE ;
+         }
 
          INT32 _checkPrivileges( pmdEDUCB *cb, const CHAR *csname, const CHAR *clname );
    } ;

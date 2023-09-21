@@ -102,6 +102,11 @@ namespace engine
             return COORD_SHOWERRORMODE_AGGR ;
          }
 
+         virtual BOOLEAN _supportMaintenanceMode() const
+         {
+            return FALSE ;
+         }
+
       protected :
          INT32   _getCSGrps ( const CHAR * collectionSpace,
                               pmdEDUCB * cb,

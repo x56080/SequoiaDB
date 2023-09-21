@@ -93,6 +93,11 @@ namespace engine
                                       coordCtrlParam &ctrlParam,
                                       SET_RC &ignoreRCList ) ;
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
+
+         virtual BOOLEAN _supportMaintenanceMode() const
+         {
+            return TRUE ;
+         }
    } ;
    typedef _coordCmdSnapshotReset coordCmdSnapshotReset ;
 
