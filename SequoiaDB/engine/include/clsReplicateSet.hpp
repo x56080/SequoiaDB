@@ -239,6 +239,11 @@ namespace engine
                pStatus = it->second ;
                ++it ;
 
+               if ( CLS_GROUP_MODE_MAINTENANCE == pStatus->grpMode )
+               {
+                  continue ;
+               }
+
                // If the remoteLocationConsistency is false,
                // don't care whether the remote node failed.
                locationID = pStatus->beat.locationID ;
@@ -252,8 +257,7 @@ namespace engine
                   continue ;
                }
 
-               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat && 
-                    CLS_GROUP_MODE_MAINTENANCE != pStatus->grpMode )
+               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
                {
                   --aliveCnt ;
                   continue ;
