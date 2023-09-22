@@ -916,7 +916,7 @@ namespace engine
       {
          rc = SDB_OPERATION_CONFLICT ;
          PD_LOG_MSG( PDERROR, "Group[%u] doesn't support to %s critical mode",
-                     isStartMode ? "start" : "stop", _groupID ) ;
+                     _groupID, isStartMode ? "start" : "stop" ) ;
          goto error ;
       }
 
@@ -1036,7 +1036,7 @@ namespace engine
       {
          rc = SDB_OPERATION_CONFLICT ;
          PD_LOG_MSG( PDERROR, "Group[%u] doesn't support to %s maintenance mode",
-                     isStartMode ? "start" : "stop", _groupID ) ;
+                     _groupID, isStartMode ? "start" : "stop" ) ;
          goto error ;
       }
 
