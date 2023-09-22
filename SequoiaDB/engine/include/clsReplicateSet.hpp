@@ -252,7 +252,8 @@ namespace engine
                   continue ;
                }
 
-               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
+               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat && 
+                    CLS_GROUP_MODE_MAINTENANCE != pStatus->grpMode )
                {
                   --aliveCnt ;
                   continue ;
