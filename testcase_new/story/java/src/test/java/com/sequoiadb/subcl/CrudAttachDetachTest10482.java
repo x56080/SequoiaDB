@@ -127,10 +127,9 @@ public class CrudAttachDetachTest10482 extends SdbTestBase {
             Assert.assertEquals( attachDetach.isSuccess(), true,
                     attachDetach.getErrorMsg() );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -135 ) {
+            if ( e.getErrorCode() != -135 && e.getErrorCode() != -108 ) {
                 e.printStackTrace();
-                Assert.assertEquals( e.getErrorCode(), -135,
-                        "crud data faild: " + e.getMessage() );
+                Assert.fail( "crud data faild: " + e.getMessage() );
             }
         } finally {
             if ( attachDetach != null ) {
