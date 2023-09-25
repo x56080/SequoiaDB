@@ -2142,20 +2142,6 @@ namespace engine
       _lastConsultTick = tick ;
    }
 
-   BOOLEAN _clsReplicateSet::isReadyToReplay()
-   {
-      if ( ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) ||
-             _vote.isStatus( CLS_ELECTION_STATUS_SEC ) ) &&
-           _sync.isReadyToReplay() )
-      {
-         return TRUE ;
-      }
-      else
-      {
-         return FALSE ;
-      }
-   }
-
    UINT64 _clsReplicateSet::getLastConsultTick() const
    {
       return _lastConsultTick ;
