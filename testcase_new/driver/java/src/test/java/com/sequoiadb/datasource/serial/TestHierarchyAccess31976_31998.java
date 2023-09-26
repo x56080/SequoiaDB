@@ -42,11 +42,12 @@ import java.util.Set;
  */
 
 public class TestHierarchyAccess31976_31998 extends SdbTestBase {
-    private final static int PORT1 = 51000;
-    private final static int PORT2 = 52000;
-    private final static int PORT3 = 53000;
-    private final static int PORT4 = 54000;
-    private final static int PORT5 = 55000;
+    private static int PORT1;
+    private static int PORT2;
+    private static int PORT3;
+    private static int PORT4;
+    private static int PORT5;
+
     private static Sequoiadb db;
     private static ReplicaGroup coordRG;
     private static String dbPath;
@@ -67,14 +68,25 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         }
         coordRG = db.getReplicaGroup( "SYSCoord" );
 
-        // create coord group
-        dbPath = SdbTestBase.reservedDir + "/coord";
+        PORT1 = SdbTestBase.reservedPortBegin + 10;
+        PORT2 = SdbTestBase.reservedPortBegin + 20;
+        PORT3 = SdbTestBase.reservedPortBegin + 30;
+        PORT4 = SdbTestBase.reservedPortBegin + 40;
+        PORT5 = SdbTestBase.reservedPortBegin + 50;
 
-        node1 = coordRG.createNode( SdbTestBase.hostName, PORT1, dbPath + PORT1 );
-        node2 = coordRG.createNode( SdbTestBase.hostName, PORT2, dbPath + PORT2 );
-        node3 = coordRG.createNode( SdbTestBase.hostName, PORT3, dbPath + PORT3 );
-        node4 = coordRG.createNode( SdbTestBase.hostName, PORT4, dbPath + PORT4 );
-        node5 = coordRG.createNode( SdbTestBase.hostName, PORT5, dbPath + PORT5 );
+        // create coord group
+        dbPath = SdbTestBase.reservedDir + "/coord/";
+
+        node1 = coordRG.createNode( SdbTestBase.hostName, PORT1,
+                dbPath + PORT1 );
+        node2 = coordRG.createNode( SdbTestBase.hostName, PORT2,
+                dbPath + PORT2 );
+        node3 = coordRG.createNode( SdbTestBase.hostName, PORT3,
+                dbPath + PORT3 );
+        node4 = coordRG.createNode( SdbTestBase.hostName, PORT4,
+                dbPath + PORT4 );
+        node5 = coordRG.createNode( SdbTestBase.hostName, PORT5,
+                dbPath + PORT5 );
     }
 
     @AfterClass
@@ -93,40 +105,41 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
     @BeforeMethod
     public void setUp() {
         netConfig = new ConfigOptions();
-        netConfig.setConnectTimeout(100);
-        netConfig.setMaxAutoConnectRetryTime(200);
+        netConfig.setConnectTimeout( 100 );
+        netConfig.setMaxAutoConnectRetryTime( 200 );
 
         options = new DatasourceOptions();
-        options.setMaxCount(10);
-        options.setMinIdleCount(3);
-        options.setMaxIdleCount(5);
-        options.setConnectStrategy(ConnectStrategy.SERIAL);
-        options.setSyncCoordInterval(0);
+        options.setMaxCount( 10 );
+        options.setMinIdleCount( 3 );
+        options.setMaxIdleCount( 5 );
+        options.setConnectStrategy( ConnectStrategy.SERIAL );
+        options.setSyncCoordInterval( 0 );
 
         coordRG.start();
 
-        node1.setLocation("");
-        node2.setLocation("");
-        node3.setLocation("");
-        node4.setLocation("");
-        node5.setLocation("");
+        node1.setLocation( "" );
+        node2.setLocation( "" );
+        node3.setLocation( "" );
+        node4.setLocation( "" );
+        node5.setLocation( "" );
     }
 
     @AfterMethod
     public void tearDown() {
-        if (ds != null) {
+        if ( ds != null ) {
             ds.close();
         }
     }
 
-    //seqDB-31989:初始化连接池设置location接口参数校验
+    // seqDB-31989:初始化连接池设置location接口参数校验
     @Test
     public void locationNameTest31989() throws Exception {
         try {
             createDSWithLocation( null );
             Assert.fail( "should fail but success!" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
         }
 
         createDSWithLocation( "guangzhou" );
@@ -146,7 +159,8 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         try {
             options.setSyncCoordInterval( -1 );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode() );
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_INVALIDARG.getErrorCode() );
         }
 
         String location = "guangzhou.nansha";
@@ -168,7 +182,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node2.setLocation( "nansha" );
         node3.setLocation( "" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -186,7 +200,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node2.setLocation( "nansha" );
         node3.setLocation( "" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -194,7 +208,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
 
         // locationPriority is medium
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList = new ArrayList<>();
+        List< String > connList = new ArrayList<>();
         connList.add( node1.getNodeName() );
         checkConn( ds, connList );
     }
@@ -207,7 +221,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node3.setLocation( "guangzhou.baiyun" );
         node4.setLocation( "shanghai" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -215,7 +229,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
 
         // locationPriority is high
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList = new ArrayList<>();
+        List< String > connList = new ArrayList<>();
         connList.add( node1.getNodeName() );
         checkConn( ds, connList );
     }
@@ -228,7 +242,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node3.setLocation( "nansha" );
         node4.setLocation( "" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -236,9 +250,9 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         addrLst.add( node5.getNodeName() );
 
         // locationPriority is medium
-//        options.setSyncLocationInterval( 1 * 100 );
+        // options.setSyncLocationInterval( 1 * 100 );
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList1 = new ArrayList<>();
+        List< String > connList1 = new ArrayList<>();
         connList1.add( node1.getNodeName() );
         connList1.add( node2.getNodeName() );
         checkConn( ds, connList1 );
@@ -246,7 +260,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         // stop node2
         node2.stop();
         try {
-            List<String> connList2 = new ArrayList<>();
+            List< String > connList2 = new ArrayList<>();
             connList2.add( node1.getNodeName() );
             checkConn( ds, connList2 );
         } finally {
@@ -256,7 +270,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         // stop node1
         node1.stop();
         try {
-            List<String> connList3 = new ArrayList<>();
+            List< String > connList3 = new ArrayList<>();
             connList3.add( node3.getNodeName() );
             connList3.add( node4.getNodeName() );
             connList3.add( node5.getNodeName() );
@@ -276,7 +290,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node3.setLocation( "nansha" );
         node4.setLocation( "NANSHA" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -285,7 +299,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         // locationPriority is high
         options.setSyncLocationInterval( 1 * 1000 );
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList1 = new ArrayList<>();
+        List< String > connList1 = new ArrayList<>();
         connList1.add( node2.getNodeName() );
         checkConn( ds, connList1 );
 
@@ -295,7 +309,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         // wait SynchronizeAddressTask run
         Thread.sleep( 2 * 1000 );
         try {
-            List<String> connList2 = new ArrayList<>();
+            List< String > connList2 = new ArrayList<>();
             connList2.add( node1.getNodeName() );
             connList2.add( node2.getNodeName() );
             connList2.add( node3.getNodeName() );
@@ -334,7 +348,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node4.setLocation( "shanghai" );
         node5.setLocation( "" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         addrLst.add( node2.getNodeName() );
         addrLst.add( node3.getNodeName() );
@@ -344,7 +358,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         // locationPriority is medium
         options.setSyncLocationInterval( 1 * 1000 );
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList1 = new ArrayList<>();
+        List< String > connList1 = new ArrayList<>();
         connList1.add( node1.getNodeName() );
         connList1.add( node2.getNodeName() );
         connList1.add( node3.getNodeName() );
@@ -355,7 +369,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
 
         // wait SynchronizeAddressTask run
         Thread.sleep( 2 * 1000 );
-        List<String> connList2 = new ArrayList<>();
+        List< String > connList2 = new ArrayList<>();
         connList2.add( node2.getNodeName() );
         connList2.add( node3.getNodeName() );
         checkConn( ds, connList2 );
@@ -365,7 +379,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
 
         // wait SynchronizeAddressTask run
         Thread.sleep( 2 * 1000 );
-        List<String> connList3 = new ArrayList<>();
+        List< String > connList3 = new ArrayList<>();
         connList3.add( node1.getNodeName() );
         checkConn( ds, connList3 );
     }
@@ -377,12 +391,12 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         node2.setLocation( "guangzhou" );
         node3.setLocation( "shanghai" );
 
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node2.getNodeName() );
 
         options.setSyncLocationInterval( 1 * 1000 );
         ds = createDS( addrLst, "guangzhou.nansha", options );
-        List<String> connList1 = new ArrayList<>();
+        List< String > connList1 = new ArrayList<>();
         connList1.add( node2.getNodeName() );
         checkConn( ds, connList1 );
 
@@ -391,7 +405,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         ds.addCoord( node3.getNodeName() );
         // wait SynchronizeAddressTask run
         Thread.sleep( 1 * 1000 );
-        List<String> connList2 = new ArrayList<>();
+        List< String > connList2 = new ArrayList<>();
         connList2.add( node1.getNodeName() );
         checkConn( ds, connList2 );
 
@@ -400,103 +414,105 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         ds.removeCoord( node2.getNodeName() );
         // wait SynchronizeAddressTask run
         Thread.sleep( 1 * 1000 );
-        List<String> connList3 = new ArrayList<>();
+        List< String > connList3 = new ArrayList<>();
         connList3.add( node3.getNodeName() );
         checkConn( ds, connList3 );
     }
 
-    private void checkSyncLocation(String location, int syncLocationInterval, boolean sync) throws Exception {
-        List<String> addrLst = new ArrayList<>();
-        addrLst.add(node1.getNodeName());
-        addrLst.add(node2.getNodeName());
-        addrLst.add(node3.getNodeName());
+    private void checkSyncLocation( String location, int syncLocationInterval,
+            boolean sync ) throws Exception {
+        List< String > addrLst = new ArrayList<>();
+        addrLst.add( node1.getNodeName() );
+        addrLst.add( node2.getNodeName() );
+        addrLst.add( node3.getNodeName() );
 
-        options.setSyncLocationInterval(syncLocationInterval);
-        SequoiadbDatasource ds = createDS(addrLst, location, options);
+        options.setSyncLocationInterval( syncLocationInterval );
+        SequoiadbDatasource ds = createDS( addrLst, location, options );
         try {
-            node1.setLocation(location);
-            node2.setLocation(location);
+            node1.setLocation( location );
+            node2.setLocation( location );
             node2.stop();
-            Thread.sleep(syncLocationInterval + 100);
-            if (sync) {
-                addrLst.remove(node3.getNodeName());
+            Thread.sleep( syncLocationInterval + 100 );
+            if ( sync ) {
+                addrLst.remove( node3.getNodeName() );
             }
-            addrLst.remove(node2.getNodeName());
-            checkConn(ds, addrLst);
+            addrLst.remove( node2.getNodeName() );
+            checkConn( ds, addrLst );
         } finally {
             node2.start();
-            node1.setLocation("");
-            node2.setLocation("");
+            node1.setLocation( "" );
+            node2.setLocation( "" );
             ds.close();
         }
     }
 
     private void createDSWithLocation( String location ) throws Exception {
-        List<String> addrLst = new ArrayList<>();
+        List< String > addrLst = new ArrayList<>();
         addrLst.add( node1.getNodeName() );
         ds = createDS( addrLst, location, options );
         Assert.assertEquals( location, ds.getLocation() );
     }
 
-    private SequoiadbDatasource createDS(List<String> addrLst, String location, DatasourceOptions options) throws Exception {
+    private SequoiadbDatasource createDS( List< String > addrLst,
+            String location, DatasourceOptions options ) throws Exception {
         SequoiadbDatasource ds = SequoiadbDatasource.builder()
-                .serverAddress(addrLst)
-                .location(location)
-                .datasourceOptions(options)
-                .configOptions(netConfig)
+                .serverAddress( addrLst ).location( location )
+                .datasourceOptions( options ).configOptions( netConfig )
                 .build();
 
-        List<Sequoiadb> connList = new ArrayList<>();
-        for (int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++) {
-            connList.add(ds.getConnection());
+        List< Sequoiadb > connList = new ArrayList<>();
+        for ( int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++ ) {
+            connList.add( ds.getConnection() );
         }
-        for (Sequoiadb db : connList) {
-            ds.releaseConnection(db);
+        for ( Sequoiadb db : connList ) {
+            ds.releaseConnection( db );
         }
 
         return ds;
     }
 
-    private void checkConn(SequoiadbDatasource ds, List<String> addressList) throws Exception {
-        List<Sequoiadb> connList = new ArrayList<>();
-        Set<String> addrSet = new HashSet<>();
+    private void checkConn( SequoiadbDatasource ds, List< String > addressList )
+            throws Exception {
+        List< Sequoiadb > connList = new ArrayList<>();
+        Set< String > addrSet = new HashSet<>();
         // clear old conn
-        for (int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++) {
-            connList.add(ds.getConnection());
+        for ( int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++ ) {
+            connList.add( ds.getConnection() );
         }
-        for (Sequoiadb db : connList) {
+        for ( Sequoiadb db : connList ) {
             try {
                 db.close();
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 // ignore
             }
-            ds.releaseConnection(db);
+            ds.releaseConnection( db );
         }
         connList.clear();
 
         // get new conn
-        for (int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++) {
+        for ( int i = 0; i < ds.getDatasourceOptions().getMaxCount(); i++ ) {
             Sequoiadb db = ds.getConnection();
-            connList.add(db);
-            addrSet.add(db.getNodeName());
+            connList.add( db );
+            addrSet.add( db.getNodeName() );
         }
-        for (Sequoiadb db : connList) {
-            ds.releaseConnection(db);
+        for ( Sequoiadb db : connList ) {
+            ds.releaseConnection( db );
         }
 
         // parse hostname:port to ip:port
-        List<String> addrLst = new ArrayList<>();
-        for (String addr : addressList) {
-            addrLst.add(Helper.parseAddress(addr));
+        List< String > addrLst = new ArrayList<>();
+        for ( String addr : addressList ) {
+            addrLst.add( Helper.parseAddress( addr ) );
         }
 
         // check
-        String errMsg = "\n" + "Expected: " + addrLst + "\n" + "Actual: " + addrSet;
-        for (String addr : addrLst) {
-            Assert.assertTrue(addrSet.contains(addr), errMsg);
+        String errMsg = "\n" + "Expected: " + addrLst + "\n" + "Actual: "
+                + addrSet;
+        for ( String addr : addrLst ) {
+            Assert.assertTrue( addrSet.contains( addr ), errMsg );
         }
-        for (String addr : addrSet) {
-            Assert.assertTrue(addrLst.contains(addr), errMsg);
+        for ( String addr : addrSet ) {
+            Assert.assertTrue( addrLst.contains( addr ), errMsg );
         }
     }
 }
