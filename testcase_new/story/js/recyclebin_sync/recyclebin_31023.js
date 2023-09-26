@@ -1,9 +1,9 @@
 /******************************************************************************
  * @Description   : seqDB-31023:获取回收站项目快照，指定Role为all/data/coord/catalog
  * @Author        : Bi Qin
- * @CreateTime    : 2023.04.19
- * @LastEditTime  : 2023.04.19
- * @LastEditors   : Bi Qin
+ * @CreateTime    : 2023.04.04
+ * @LastEditTime  : 2023.09.26
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -16,7 +16,7 @@ function test ()
    commDropCS( db, csName );
    cleanRecycleBin( db, csName );
    var dbcs = commCreateCS( db, csName );
-   commCreateCL( db, csName, clName );
+   commCreateCL( db, csName, clName, { ReplSize: 0 } );
    dbcs.dropCL( clName );
 
    var rawdata = [true, false];
