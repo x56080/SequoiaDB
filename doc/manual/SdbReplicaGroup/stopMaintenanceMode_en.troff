@@ -65,7 +65,7 @@ Stop Maintenance mode for all nodes in replication group "group1".
 .nf
 \f[C]
 > var rg = db.getRG("group1")
-> rg.stopCriticalMode()
+> rg.stopMaintenanceMode()
 \f[]
 .fi
 .PP
