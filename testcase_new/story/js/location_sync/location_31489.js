@@ -2,14 +2,13 @@
  * @Description   : seqDB-31489: reelectLocation()接口中的hostName参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.22
- * @LastEditTime  : 2023.07.20
+ * @LastEditTime  : 2023.06.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
 
-// SEQUOIADBMAINSTREAM-9759
-// main( test );
+main( test );
 function test ()
 {
    var location = "location_31489";

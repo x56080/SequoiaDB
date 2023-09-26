@@ -2,14 +2,13 @@
  * @Description   : seqDB-31488: reelectLocation()接口中的NodeID参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.11
- * @LastEditTime  : 2023.07.20
+ * @LastEditTime  : 2023.06.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
 
-// SEQUOIADBMAINSTREAM-9759
-// main( test );
+main( test );
 function test ()
 {
    var location = "location_31488";
