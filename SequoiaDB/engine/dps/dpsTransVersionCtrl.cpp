@@ -1740,6 +1740,7 @@ namespace engine
 
       pNewRecord->unsetCompressed() ;
       pNewRecord->unsetEncrypted() ;
+      pNewRecord->unsetHasGlobTransID() ;
       pNewRecord->setSize( recSize ) ;
 
       /// copy data

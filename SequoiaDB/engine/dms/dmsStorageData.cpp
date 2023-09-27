@@ -392,6 +392,7 @@ namespace engine
       dmsRecordData newRecordData ;
 
       BOOLEAN needUndoIndex        = FALSE ;
+      UINT32 headerSize            = DMS_RECORD_METADATA_SZ ;
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
 
@@ -417,7 +418,7 @@ namespace engine
       SDB_ASSERT ( !recordData.isEmpty(), "recordData can't be empty" ) ;
 
       // Check the new object size
-      if ( newObj.objsize() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
+      if ( newObj.objsize() + headerSize > DMS_RECORD_USER_MAX_SZ )
       {
          PD_LOG ( PDERROR, "record is too big: %d", newObj.objsize() ) ;
          rc = SDB_DMS_RECORD_TOO_BIG ;
@@ -436,6 +437,15 @@ namespace engine
       {
          pExtent = extRW.readPtr<dmsExtent>() ;
          pRecord = recordRW.writePtr( 0 ) ;
+
+         headerSize = pRecord->getHeaderSize();
+         // double check
+         if ( newObj.objsize() + headerSize > DMS_RECORD_USER_MAX_SZ )
+         {
+            PD_LOG ( PDERROR, "record is too big: %d", newObj.objsize() ) ;
+            rc = SDB_DMS_RECORD_TOO_BIG ;
+            goto error ;
+         }
 
          newRecordData.setData( newObj.objdata(), newObj.objsize(),
                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
@@ -500,7 +510,7 @@ namespace engine
          }
 
          // add metadata to size
-         dmsRecordSize += DMS_RECORD_METADATA_SZ ;
+         dmsRecordSize += headerSize ;
          {
             // before moving on, let's first make sure the new object doesn't
             // violate any index unique rule
@@ -606,10 +616,10 @@ namespace engine
             const dmsExtent *pNewExtent = NULL ;
             dmsRecord *pNewRecord = NULL ;
 
-            dmsRecordSize -= DMS_RECORD_METADATA_SZ ;
+            dmsRecordSize -= headerSize ;
             // get the recordsize that we have to allocate
             _overflowSize( dmsRecordSize ) ;
-            dmsRecordSize += DMS_RECORD_METADATA_SZ ;
+            dmsRecordSize += headerSize ;
             // record is ALWAYS 4 bytes aligned
             dmsRecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                      ossAlignX ( dmsRecordSize, 4 ) ) ;
