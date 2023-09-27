@@ -3,6 +3,7 @@ package com.sequoiadb.location.killnode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.sequoiadb.base.*;
 import org.bson.BSONObject;
@@ -74,7 +75,7 @@ public class Critical31778 extends SdbTestBase {
     }
 
     @Test
-    public void test() throws ReliabilityException {
+    public void test() throws ReliabilityException, InterruptedException {
         ReplicaGroup group = sdb.getReplicaGroup( groupName );
         ArrayList< BasicBSONObject > primaryLocationNodes = LocationUtils
                 .getGroupLocationNodes( sdb, groupName, primaryLocation );
@@ -124,16 +125,13 @@ public class Critical31778 extends SdbTestBase {
         LocationUtils.checkGroupStopCriticalMode( sdb, groupName );
 
         // 插入Lob并校验
-        byte[] testLobBuff = new byte[ 32 * 1024 ];
-        Arrays.fill( testLobBuff, ( byte ) 'a' );
-        ObjectId oid = dbcl.putLob( testLobBuff );
+        int lobtimes = 1;
+        LinkedBlockingQueue< LocationUtils.SaveOidAndMd5 > id2md5 = LocationUtils
+                .writeLobAndGetMd5( dbcl, lobtimes );
+        List< LinkedBlockingQueue< LocationUtils.SaveOidAndMd5 > > id2md5List = new ArrayList<>();
+        id2md5List.add( id2md5 );
 
-        byte[] actual = new byte[ testLobBuff.length ];
-        try ( DBLob lob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
-            Assert.assertEquals( testLobBuff.length, lob.getSize() );
-            lob.read( actual );
-            Assert.assertEquals( testLobBuff, actual );
-        }
+        LocationUtils.ReadLob( dbcl, id2md5List.get( 0 ) );
     }
 
     @AfterClass

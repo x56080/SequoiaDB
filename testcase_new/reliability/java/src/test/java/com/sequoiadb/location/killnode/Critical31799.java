@@ -158,7 +158,9 @@ public class Critical31799 extends SdbTestBase {
         primaryLocationMasterNode.stop();
 
         // 等待选出主节点
-        waitElect( sdb, groupName, timeout );
+        waitElect( sdb, groupName, primaryLocationMasterNode.getNodeName(),
+                timeout );
+        LocationUtils.isLSNConsistencyNormalNode( sdb, groupName );
 
         // 插入数据并校验
         dbcl.truncate();
@@ -168,6 +170,7 @@ public class Critical31799 extends SdbTestBase {
 
         // 主中心节点全部异常停止
         primaryLocationMasterNode.start();
+
         mgr.clear();
         for ( BasicBSONObject primaryLocationNode : primaryLocationNodes ) {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
@@ -180,7 +183,9 @@ public class Critical31799 extends SdbTestBase {
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
         // 等待选出主节点
-        waitElect( sdb, groupName, timeout );
+        waitElect( sdb, groupName, primaryLocationMasterNode.getNodeName(),
+                timeout );
+        LocationUtils.isLSNConsistencyNormalNode( sdb, groupName );
 
         // group保持Critical模式
         LocationUtils.checkGroupStartCriticalMode( sdb, groupName );
@@ -214,14 +219,18 @@ public class Critical31799 extends SdbTestBase {
     }
 
     // 等待选出主节点
-    private void waitElect( Sequoiadb db, String groupName, int timeOut ) {
+    private void waitElect( Sequoiadb db, String groupName,
+            String originalMasterNodeName, int timeOut ) {
         boolean existPrimaryNode = false;
         ReplicaGroup group = db.getReplicaGroup( groupName );
         int doTime = 0;
         while ( doTime < timeOut ) {
             try {
-                group.getMaster();
-                existPrimaryNode = true;
+                Node masterNode = group.getMaster();
+                String masterNodeName = masterNode.getNodeName();
+                if ( !masterNodeName.equals( originalMasterNodeName ) ) {
+                    existPrimaryNode = true;
+                }
             } catch ( BaseException e ) {
                 System.out.println( "e -- " + e );
                 if ( e.getErrorCode() != SDBError.SDB_RTN_NO_PRIMARY_FOUND

@@ -1,8 +1,14 @@
 package com.sequoiadb.location;
 
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.exception.ReliabilityException;
@@ -11,6 +17,7 @@ import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.TaskMgr;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.bson.types.ObjectId;
 import org.testng.Assert;
 
 import com.sequoiadb.base.*;
@@ -804,4 +811,212 @@ public class LocationUtils {
         cursor.close();
     }
 
+    public static byte[] getRandomBytes( int length ) {
+        byte[] bytes = new byte[ length ];
+        Random random = new Random();
+        random.nextBytes( bytes );
+        return bytes;
+    }
+
+    public static class SaveOidAndMd5 {
+        private ObjectId oid;
+        private String md5;
+
+        public SaveOidAndMd5( ObjectId oid, String md5 ) {
+            this.oid = oid;
+            this.md5 = md5;
+        }
+
+        public ObjectId getOid() {
+            return oid;
+        }
+
+        public String getMd5() {
+            return md5;
+        }
+    }
+
+    public static void ReadLob( DBCollection dbcl,
+            LinkedBlockingQueue< SaveOidAndMd5 > id2md5 )
+            throws InterruptedException {
+        SaveOidAndMd5 oidAndMd5 = id2md5.take();
+        ObjectId oid = oidAndMd5.getOid();
+
+        try ( DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
+            byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
+            rLob.read( rbuff );
+            String curMd5 = getMd5( rbuff );
+            String prevMd5 = oidAndMd5.getMd5();
+            Assert.assertEquals( curMd5, prevMd5 );
+        }
+        id2md5.offer( oidAndMd5 );
+    }
+
+    /**
+     * get the buff MD5 value
+     *
+     * @param inbuff
+     *            the object of need to get the MD5
+     * @return the MD5 value
+     */
+    public static String getMd5( Object inbuff ) {
+        MessageDigest md5 = null;
+        String value = "";
+
+        try {
+            md5 = MessageDigest.getInstance( "MD5" );
+            if ( inbuff instanceof ByteBuffer ) {
+                md5.update( ( ByteBuffer ) inbuff );
+            } else if ( inbuff instanceof String ) {
+                md5.update( ( ( String ) inbuff ).getBytes() );
+            } else if ( inbuff instanceof byte[] ) {
+                md5.update( ( byte[] ) inbuff );
+            } else {
+                Assert.fail( "invalid parameter!" );
+            }
+            BigInteger bi = new BigInteger( 1, md5.digest() );
+            value = bi.toString( 16 );
+        } catch ( NoSuchAlgorithmException e ) {
+            e.printStackTrace();
+            Assert.fail( "fail to get md5!" + e.getMessage() );
+        }
+        return value;
+    }
+
+    public static LinkedBlockingQueue< SaveOidAndMd5 > writeLobAndGetMd5(
+            DBCollection dbcl, int lobtimes ) {
+        Random random = new Random();
+        LinkedBlockingQueue< SaveOidAndMd5 > id2md5 = new LinkedBlockingQueue<>();
+        for ( int i = 0; i < lobtimes; i++ ) {
+            int writeLobSize = random.nextInt( 1024 * 1024 );
+            byte[] wlobBuff = getRandomBytes( writeLobSize );
+            ObjectId oid = createAndWriteLob( dbcl, wlobBuff );
+
+            // save oid and md5
+            String prevMd5 = getMd5( wlobBuff );
+            id2md5.offer( new SaveOidAndMd5( oid, prevMd5 ) );
+        }
+        return id2md5;
+    }
+
+    public static ObjectId createAndWriteLob( DBCollection dbcl, byte[] data ) {
+        return createAndWriteLob( dbcl, null, data );
+    }
+
+    static ObjectId createAndWriteLob( DBCollection dbcl, ObjectId id,
+            byte[] data ) {
+        DBLob lob = dbcl.createLob( id );
+        lob.write( data );
+        lob.close();
+        return lob.getID();
+    }
+
+    /**
+     * get node address
+     *
+     * @param sdb
+     * @param rgName
+     * @return nodeAddrs, eg.[host1:11840, host2:11850]
+     */
+    public static List< String > getNormalNodeAddress( Sequoiadb sdb,
+            String rgName ) {
+        List< String > nodeAddrs = new ArrayList<>();
+
+        BasicBSONObject matcher = new BasicBSONObject();
+        matcher.put( "GroupName", rgName );
+        // matcher.put( "ShowError", "ignore" );
+        BasicBSONObject selector = new BasicBSONObject();
+        selector.put( "NodeName", 1 );
+        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_HEALTH, matcher,
+                selector, null );
+        while ( cursor.hasNext() ) {
+            BasicBSONObject node = ( BasicBSONObject ) cursor.getNext();
+            String nodeName = ( String ) node.get( "NodeName" );
+            if ( nodeName != null ) {
+                nodeAddrs.add( nodeName );
+            }
+        }
+
+        return nodeAddrs;
+    }
+
+    /**
+     * 检查CL主备节点集合CompleteLSN一致 *
+     *
+     * @param db
+     *            new db连接
+     * @param groupName
+     *            组名
+     * @return boolean 如果主节点CompleteLSN小于等于备节点CompleteLSN返回true,否则返回false
+     * @throws Exception
+     * @author luweikang
+     */
+    public static boolean isLSNConsistencyNormalNode( Sequoiadb db,
+            String groupName ) {
+        boolean isConsistency = false;
+        List< String > nodeNames = getNormalNodeAddress( db, groupName );
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+        Node masterNode = rg.getMaster();
+        String masterNodeName = masterNode.getHostName() + ":"
+                + masterNode.getPort();
+        try ( Sequoiadb masterSdb = new Sequoiadb( masterNodeName, "", "" )) {
+            long completeLSN = -2;
+            DBCursor cursor = masterSdb.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
+                    null, "{CompleteLSN: ''}", null );
+            if ( cursor.hasNext() ) {
+                BasicBSONObject snapshot = ( BasicBSONObject ) cursor.getNext();
+                if ( snapshot.containsField( "CompleteLSN" ) ) {
+                    completeLSN = ( long ) snapshot.get( "CompleteLSN" );
+                }
+            } else {
+                Assert.fail( masterSdb.getNodeName()
+                        + " can't not find system snapshot" );
+            }
+            cursor.close();
+
+            for ( String nodeName : nodeNames ) {
+                if ( masterNode.getNodeName().equals( nodeName ) ) {
+                    continue;
+                }
+                isConsistency = false;
+                try ( Sequoiadb nodeConn = new Sequoiadb( nodeName, "", "" )) {
+                    DBCursor cur = null;
+                    long checkCompleteLSN = -3;
+                    for ( int i = 0; i < 600; i++ ) {
+                        cur = nodeConn.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
+                                null, "{CompleteLSN: ''}", null );
+                        if ( cur.hasNext() ) {
+                            BasicBSONObject checkSnapshot = ( BasicBSONObject ) cur
+                                    .getNext();
+                            if ( checkSnapshot
+                                    .containsField( "CompleteLSN" ) ) {
+                                checkCompleteLSN = ( long ) checkSnapshot
+                                        .get( "CompleteLSN" );
+                            }
+                        }
+                        cur.close();
+
+                        if ( completeLSN <= checkCompleteLSN ) {
+                            isConsistency = true;
+                            break;
+                        }
+                        try {
+                            Thread.sleep( 1000 );
+                        } catch ( InterruptedException e ) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if ( !isConsistency ) {
+                        System.out.println( "Group [" + groupName
+                                + "] node system snapshot is not the same, masterNode "
+                                + masterNode.getNodeName() + " CompleteLSN: "
+                                + completeLSN + ", " + nodeName
+                                + " CompleteLSN: " + checkCompleteLSN );
+                    }
+                }
+            }
+        }
+
+        return isConsistency;
+    }
 }
