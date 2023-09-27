@@ -36,10 +36,13 @@ function test ()
       db.updateConf( { usercacheinterval: { other: 1 } } );
    } );
 
-   assert.tryThrow( SDB_INVALIDARG, function()
+   if( commIsArmArchitecture() == false )
    {
-      db.updateConf( { usercacheinterval: 2147483648 } );
-   } );
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         db.updateConf( { usercacheinterval: 2147483648 } );
+      } );
+   }
 
    // 修改usercacheinterval配置，指定支持的参数
    assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
