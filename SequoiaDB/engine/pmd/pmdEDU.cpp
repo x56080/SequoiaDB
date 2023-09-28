@@ -1341,6 +1341,7 @@ namespace engine
 
       full._monApplCB = _monApplCB ;
       full._threadHdl = _threadHdl ;
+      full._eduContextList.clear() ;
 
       _contextCopy( full._eduContextList ) ;
 
