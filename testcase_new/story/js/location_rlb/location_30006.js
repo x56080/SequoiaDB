@@ -2,8 +2,8 @@
  * @Description   : seqDB-30006:复制组节点与位置集主节点相同/不相同时，使用reelectLocation方法
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.02.06
- * @LastEditTime  : 2023.02.16
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.10.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -26,6 +26,7 @@ function test ()
    }
 
    // 检查复制组主节点与location主节点是否一致
+   checkAndGetLocationHasPrimary( db, dataGroupName, location, 60 );
    var cursor = db.snapshot( SDB_SNAP_SYSTEM, { RawData: true, GroupName: dataGroupName, IsPrimary: true } );
    while( cursor.next() )
    {
