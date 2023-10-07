@@ -2719,7 +2719,6 @@ done:
       {
          std::cerr << PMD_OPTION_MVCCON << " value error, use default"
                    << endl ;
-         _mvccOn = FALSE ;
       }
       // for catalog, om, coord, no need to use mvcc
       if ( SDB_ROLE_CATALOG == dbRole ||
@@ -2741,7 +2740,6 @@ done:
       {
          std::cerr << PMD_OPTION_GLOBTRANSON << " value error, use default"
                    << endl ;
-         _globTransOn = FALSE ;
       }
 
       // audit mask check
