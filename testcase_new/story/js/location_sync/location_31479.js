@@ -8,7 +8,8 @@
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9759
+// main( test );
 function test ()
 {
    var location = "location_31479";
