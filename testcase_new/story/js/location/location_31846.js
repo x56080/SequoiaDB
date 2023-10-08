@@ -2,9 +2,11 @@
  * @Description   : seqDB-31846:SdbDC.setActiveLocation(<location>)参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.26
- * @LastEditTime  : 2023.06.08
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.10.08
+ * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 function test ()
 {
