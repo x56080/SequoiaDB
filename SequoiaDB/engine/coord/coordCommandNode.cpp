@@ -50,6 +50,7 @@
 #include "utilCommon.hpp"
 #include "coordCMDEventHandler.hpp"
 #include "coordRemoteSession.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson;
 
@@ -3484,6 +3485,28 @@ namespace engine
          {
             // Notify all group nodes to update group info in _clsShardMgr
             helper.notify2AllNodes( _pResource, TRUE, cb ) ;
+         }
+         
+         {
+            std::string groupName ;
+            rc = _pResource->groupID2Name( _groupID, groupName ) ;
+            if ( SDB_OK == rc && !groupName.empty() )
+            {
+               coordCacheInvalidator cacheInvalidator( _pResource ) ;
+               rc = cacheInvalidator.notify( COORD_CACHE_GROUP,
+                                             groupName.c_str(),
+                                             cb ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDWARNING, "Failed to invalidate coord group cache, rc:%d", rc ) ;
+                  rc = SDB_OK ;
+               }
+            }
+            else
+            {
+               // Failure to fetch the group name means the coord cache has been invalidated.
+               rc = SDB_OK ;
+            }
          }
       }
 
