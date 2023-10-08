@@ -2,8 +2,10 @@ package com.sequoiadb.basicoperation;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -28,6 +30,10 @@ public class TestSetLocation32261 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
+        }
         if ( sdb.isDomainExist( domainName ) ) {
             sdb.dropDomain( domainName );
         }
