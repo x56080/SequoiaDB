@@ -42,6 +42,8 @@ FileTest.prototype.testChmodNoPermission = function()
    try
    {
       this.file.chmod( "/etc/passwd", 0755 );
+      println( this.cmd.run( "whoami" ).split( "\n" )[0] );
+      println( this.cmd.run( "ls -l /etc/passwd" ) );
       throw new Error( "should error" );
    } catch( e )
    {
