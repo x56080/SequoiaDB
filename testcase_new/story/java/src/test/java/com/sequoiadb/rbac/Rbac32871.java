@@ -5,6 +5,7 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -92,7 +93,9 @@ public class Rbac32871 extends SdbTestBase {
             es.run();
 
             try {
-                userSdb.getCollectionSpace( csName ).getCollection( clName );
+                DBCollection userCL = userSdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
                 Assert.fail( "should throw exception" );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
