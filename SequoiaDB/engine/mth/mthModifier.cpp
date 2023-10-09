@@ -480,29 +480,6 @@ namespace engine
                         rc ) ;
             goto error ;
          }
-         // If the specified field dose not exist in the original record, just
-         // keep the original field.
-         if ( elt.eoo() )
-         {
-            bb.append( in ) ;
-            goto done ;
-         }
-         else if ( !elt.isNumber() )
-         {
-            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR),
-                        "Field %s is not a number in record: %s",
-                        me.getSourceFieldName(), _sourceRecord.toString().c_str() ) ;
-            if ( _ignoreTypeError )
-            {
-               bb.append( in ) ;
-               goto done ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
       }
       else if ( me._isSimple )
       {
@@ -511,6 +488,39 @@ namespace engine
       else
       {
          elt = me._valueEle ;
+      }
+
+      // If the inc value dose not exist, just keep the original field.
+      if ( elt.eoo() )
+      {
+         bb.append( in ) ;
+         goto done ;
+      }
+      else if ( !elt.isNumber() )
+      {
+         if ( me.isModifyByField() )
+         {
+            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR ),
+                        "Field %s is not a number in record: %s",
+                        me.getSourceFieldName(), _sourceRecord.toString().c_str() ) ;
+         }
+         else
+         {
+            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR ),
+                        "The added value is not a number: %s",
+                        elt.toString().c_str() ) ;
+         }
+
+         if ( _ignoreTypeError )
+         {
+            bb.append( in ) ;
+            goto done ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
 
       if ( mthIsBiggerNumberType( me._minEle, in )
@@ -579,29 +589,6 @@ namespace engine
             PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d", rc ) ;
             goto error ;
          }
-         // If the specified field dose not exist in the original record, just
-         // keep the original field.
-         if ( elt.eoo() )
-         {
-            bb.append( in ) ;
-            goto done ;
-         }
-         else if ( !elt.isNumber() )
-         {
-            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR ),
-                        "Field %s is not a number in record: %s",
-                        me.getSourceFieldName(), _sourceRecord.toString().c_str() ) ;
-            if ( _ignoreTypeError )
-            {
-               bb.append( in ) ;
-               goto done ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
       }
       else if ( me._isSimple )
       {
@@ -610,6 +597,39 @@ namespace engine
       else
       {
          elt = me._valueEle ;
+      }
+
+      // If the mul value dose not exist, just keep the original field.
+      if ( elt.eoo() )
+      {
+         bb.append( in ) ;
+         goto done ;
+      }
+      else if ( !elt.isNumber() )
+      {
+         if ( me.isModifyByField() )
+         {
+            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR ),
+                        "Field %s is not a number in record: %s",
+                        me.getSourceFieldName(), _sourceRecord.toString().c_str() ) ;
+         }
+         else
+         {
+            PD_LOG_MSG( ( _ignoreTypeError ?  PDDEBUG : PDERROR ),
+                        "The multiplied value is not a number: %s",
+                        elt.toString().c_str() ) ;
+         }
+
+         if ( _ignoreTypeError )
+         {
+            bb.append( in ) ;
+            goto done ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
 
       if ( mthIsBiggerNumberType( me._minEle, in ) ||
