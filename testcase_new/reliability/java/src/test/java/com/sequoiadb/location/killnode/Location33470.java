@@ -38,11 +38,11 @@ public class Location33470 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private GroupMgr groupMgr;
     private CollectionSpace dbcs = null;
-    private String csName = "cs_33466";
-    private String clName = "cl_33466";
-    private String primaryLocation = "guangzhou.nansha_33466";
-    private String sameCityLocation = "guangzhou.panyu_33466";
-    private String offsiteLocation = "shenzhan.nanshan_33466";
+    private String csName = "cs_33470";
+    private String clName = "cl_33470";
+    private String primaryLocation = "guangzhou.nansha_33470";
+    private String sameCityLocation = "guangzhou.panyu_33470";
+    private String offsiteLocation = "shenzhan.nanshan_33470";
     private String expandGroupName;
     private int recordNum = 1000;
 
@@ -161,9 +161,8 @@ public class Location33470 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws ReliabilityException {
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) ).start();
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) )
-                .stopMaintenanceMode();
+        sdb.getReplicaGroup( expandGroupName ).start();
+        sdb.getReplicaGroup( expandGroupName ).stopMaintenanceMode();
         Assert.assertTrue(
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );

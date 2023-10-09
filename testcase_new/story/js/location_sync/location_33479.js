@@ -2,7 +2,7 @@
  * @Description   : seqDB-33479:节点处于运维模式，查看快照
  * @Author        : liuli
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.09.21
+ * @LastEditTime  : 2023.10.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -52,19 +52,31 @@ function test ()
    // 直连数据节点查看数据库
    var node = group.getNode( slaveNodeNames[0] ).connect();
    var cursor = node.snapshot( SDB_SNAP_DATABASE );
-   if( !cursor.next() )
+   while( cursor.next() )
    {
-      throw new Error( "snapshot failed" );
+      var obj = cursor.current().toObj();
+      var actNodeName = obj["NodeName"];
+      var actStatus = obj["Status"];
+      snapshotNodes.push( obj["NodeName"] );
    }
    cursor.close();
+   assert.equal( actNodeName, slaveNodeNames[0], JSON.stringify( obj ) );
+   var expStatus = "Normal";
+   assert.equal( actStatus, expStatus, JSON.stringify( obj ) );
 
    // 直连数据节点查看健康快照
    var cursor = node.snapshot( SDB_SNAP_HEALTH );
-   if( !cursor.next() )
+   while( cursor.next() )
    {
-      throw new Error( "snapshot failed" );
+      var obj = cursor.current().toObj();
+      var actNodeName = obj["NodeName"];
+      var actStatus = obj["Status"];
+      snapshotNodes.push( obj["NodeName"] );
    }
    cursor.close();
+   assert.equal( actNodeName, slaveNodeNames[0], JSON.stringify( obj ) );
+   var expStatus = "Normal";
+   assert.equal( actStatus, expStatus, JSON.stringify( obj ) );
 
    node.close();
 

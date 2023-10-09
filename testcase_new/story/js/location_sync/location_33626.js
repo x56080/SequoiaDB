@@ -2,12 +2,12 @@
  * @Description   : seqDB-33626:节点设置运维模式后指定集合执行resetSnapshot和analyze
  * @Author        : liuli
  * @CreateTime    : 2023.09.26
- * @LastEditTime  : 2023.09.26
+ * @LastEditTime  : 2023.10.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
-testConf.clName = COMMCLNAME + "_33448";
+testConf.clName = COMMCLNAME + "_33626";
 
 main( test );
 function test ()

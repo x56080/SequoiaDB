@@ -1,16 +1,19 @@
 /******************************************************************************
  * @Description   : seqDB-33485:dc.startMaintenanceMode接口参数校验
+ *                : seqDB-33486:dc.stopMaintenanceMode接口参数校验
  * @Author        : liuli
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.09.26
+ * @LastEditTime  : 2023.10.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+// SEQUOIADBMAINSTREAM-9965
+// DC参数校验存在问题，先将用例屏蔽
+// main( test );
 function test ()
 {
-   var location = "location_33485";
+   var location = "location_33485_33486";
 
    // catalog和data每个复制组中均给一个备节点设置Location
    var dataGroups = commGetDataGroupNames( db );

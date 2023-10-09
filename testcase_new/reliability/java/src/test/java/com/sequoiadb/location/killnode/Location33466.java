@@ -68,12 +68,11 @@ public class Location33466 extends SdbTestBase {
 
     @Test
     public void test() throws ReliabilityException {
-        // 同城备中心节点异常
+        // 异地备中心节点异常
         ReplicaGroup group = sdb.getReplicaGroup( expandGroupName );
         ArrayList< BasicBSONObject > offsiteLocationNodes = LocationUtils
                 .getGroupLocationNodes( sdb, expandGroupName, offsiteLocation );
 
-        // 同城主备中心节点异常停止
         TaskMgr mgr = new TaskMgr();
         for ( BasicBSONObject offsiteLocationNode : offsiteLocationNodes ) {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
@@ -124,9 +123,8 @@ public class Location33466 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws ReliabilityException {
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) ).start();
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) )
-                .stopMaintenanceMode();
+        sdb.getReplicaGroup( expandGroupName ).start();
+        sdb.getReplicaGroup( expandGroupName ).stopMaintenanceMode();
         Assert.assertTrue(
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );

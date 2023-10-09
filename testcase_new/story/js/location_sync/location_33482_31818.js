@@ -3,7 +3,7 @@
  *                : seqDB-31818:不支持启动Critical模式的节点启动Critical模式
  * @Author        : liuli
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.09.26
+ * @LastEditTime  : 2023.10.09
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -11,7 +11,7 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   var location = "location_33482";
+   var location = "location_33482_31818";
    var coordUrls = getCoordUrl( db );
 
    // 指定coord节点启动运维模式

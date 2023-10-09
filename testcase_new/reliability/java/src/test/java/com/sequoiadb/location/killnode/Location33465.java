@@ -125,9 +125,8 @@ public class Location33465 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws ReliabilityException {
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) ).start();
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) )
-                .stopMaintenanceMode();
+        sdb.getReplicaGroup( expandGroupName ).start();
+        sdb.getReplicaGroup( expandGroupName ).stopMaintenanceMode();
         Assert.assertTrue(
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );

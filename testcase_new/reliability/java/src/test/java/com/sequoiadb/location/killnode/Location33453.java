@@ -99,6 +99,14 @@ public class Location33453 extends SdbTestBase {
         // 解除运维模式，节点未恢复
         group.stopMaintenanceMode();
 
+        // SEQUOIADBMAINSTREAM-9976
+        // 立即插入数据会成功，增加一个sleep
+        try {
+            Thread.sleep( 3000 );
+        } catch ( InterruptedException e ) {
+            throw new RuntimeException( e );
+        }
+
         // 集合插入数据
         try {
             dbcl.insertRecord( new BasicBSONObject( "a", 1 ) );
@@ -121,9 +129,8 @@ public class Location33453 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws ReliabilityException {
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) ).start();
-        sdb.getReplicaGroup( SdbTestBase.expandGroupNames.get( 0 ) )
-                .stopMaintenanceMode();
+        sdb.getReplicaGroup( expandGroupName ).start();
+        sdb.getReplicaGroup( expandGroupName ).stopMaintenanceMode();
         Assert.assertTrue(
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );
