@@ -68,7 +68,8 @@ function prepareDate ( typeFile )
       {
          right = right.substring( 0, right.length - 1 );
       }
-      if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+      var type = typeFile.split( "." ).pop();
+      if( type == "csv" )
       {
          file.write( id + "," + left + "\n" );
          ++id;
