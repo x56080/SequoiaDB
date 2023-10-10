@@ -14,6 +14,7 @@ var installDir = getInstallDir();
 
 var tmpFileDir = WORKDIR + '/sdbreplay/';
 var testCaseDir = getTestCaseDir();
+var rtCmd = null;
 
 
 /* ****************************************************
@@ -52,8 +53,8 @@ function getRemoteCmd ( groupName )
 {
    var hostName = getMasterHostName( groupName );
    var remote = new Remote( hostName, CMSVCNAME );
-
-   var rtCmd = remote.getCmd();
+   println( "---remote host is " + hostName );
+   rtCmd = remote.getCmd();
    return rtCmd;
 }
 
@@ -164,6 +165,8 @@ function getOutputConfFile ( groupName, csName, clName, confName )
    var sourceFilePath = testCaseDir + "conf/" + confName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
    File.scp( sourceFilePath, mstHostName + ":" + CMSVCNAME + "@" + targetConfPath );
+   //http://jira.web:8080/browse/CI-2526 CI上调整WORKDIR传参后，替换写死公共目录的用例适配外部传参目录
+   rtCmd.run( "sed -i 's#/tmp/jstest/sdbreplay#" + tmpFileDir + "#g' " + targetConfPath );
 }
 
 /* ****************************************************
