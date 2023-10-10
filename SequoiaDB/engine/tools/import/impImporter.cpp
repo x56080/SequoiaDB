@@ -30,6 +30,7 @@
 
 *******************************************************************************/
 #include "impImporter.hpp"
+#include "impDef.hpp"
 #include "impRecordImporter.hpp"
 #include "pd.hpp"
 #include <sstream>
@@ -184,6 +185,8 @@ namespace import
                                options->password(),
                                options->csname(),
                                options->clname(),
+                               options->matchFields(),
+                               options->importMode(),
                                options->useSSL(),
                                options->enableTransaction(),
                                options->allowKeyDuplication(),
@@ -201,6 +204,7 @@ namespace import
          Dryrun means tryrun, corresponding to the
          hidden input parameter --dryrun */
       dryRun = options->dryRun() ;
+      IMPORT_MODE mode = options->importMode() ;
 
       {
          stringstream ss ;
@@ -223,6 +227,16 @@ namespace import
          goto error ;
       }
 
+      if ( UPSERT == mode )
+      {
+         rc = importer.constructHint( options->hint() ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to construct hint, rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+
       while( TRUE )
       {
          PageInfo pageInfo ;
@@ -236,24 +250,72 @@ namespace import
 
          if ( !dryRun )
          {
-            rc = importer.import( &pageInfo ) ;
-            if ( rc )
+            if ( INSERT == mode )
             {
-               _writeRecords( logFile, pageInfo.pages, pageInfo.recordNum ) ;
+               rc = importer.insert( &pageInfo ) ;
+               if ( rc )
+               {
+                  _writeRecords( logFile, pageInfo.pages, pageInfo.recordNum ) ;
 
-               freeQueue->pushPages( pageInfo.pages ) ;
+                  freeQueue->pushPages( pageInfo.pages ) ;
 
-               self->_failedNum.add( pageInfo.recordNum ) ;
+                  self->_failedNum.add( pageInfo.recordNum ) ;
 
-               PD_LOG( PDERROR, "Failed to import records, rc=%d", rc ) ;
-               continue ;
+                  PD_LOG( PDERROR, "Failed to insert records, rc=%d", rc ) ;
+                  continue ;
+               }
+            }
+            else if ( UPSERT == mode )
+            {
+               BsonPage* pages = pageInfo.pages ;
+               bson record ;
+               bson_init( &record ) ;
+               while ( pages )
+               {
+                  INT32 curOffset = 0 ;
+                  INT32 dataLen = 0 ;
+                  while ( curOffset < pages->getUsedSize() )
+                  {
+                     rc = pages->read( curOffset, &record, dataLen ) ;
+                     if ( rc )
+                     {
+                        freeQueue->pushPages( pageInfo.pages ) ;
+                        PD_LOG( PDERROR, "Failed to get record, rc=%d", rc ) ;
+                        goto error ;
+                     }
+
+                     curOffset += dataLen ;
+
+                     rc = importer.upsert( &record, &pageInfo ) ;
+                     if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Failed to upsert record, rc=%d", rc ) ;
+                        logFile->write( &record ) ;
+                        self->_failedNum.add( 1 ) ;
+                        // don't go to error
+                     }
+                     bson_init_by_reset( &record ) ;
+                  }
+                  pages = pages->getNext() ;
+               // Since the record's memory is not owned, don't need to free it.
+               }
             }
          }
 
          freeQueue->pushPages( pageInfo.pages ) ;
 
-         self->_importedNum.add( pageInfo.recordNum ) ;
-         self->_duplicatedNum.add( pageInfo.duplicatedNum ) ;
+         if ( INSERT == mode )
+         {
+            self->_importedNum.add( pageInfo.recordNum ) ;
+            self->_duplicatedNum.add( pageInfo.duplicatedNum ) ;
+         }
+         else if ( UPSERT == mode )
+         {
+            self->_importedNum.add( pageInfo.updatedNum + pageInfo.insertedNum ) ;
+            self->_updatedNum.add( pageInfo.updatedNum ) ;
+            self->_modifiedNum.add( pageInfo.modifiedNum ) ;
+            self->_insertedNum.add( pageInfo.insertedNum ) ;
+         }
       }
 
    done:
@@ -283,7 +345,10 @@ namespace import
                           _livingNum( 0 ),
                           _importedNum( 0 ),
                           _failedNum( 0 ),
-                          _duplicatedNum( 0 ) 
+                          _duplicatedNum( 0 ),
+                          _updatedNum( 0 ),
+                          _modifiedNum( 0 ),
+                          _insertedNum( 0 )
    {
    }
 

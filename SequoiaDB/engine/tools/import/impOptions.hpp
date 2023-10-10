@@ -36,39 +36,12 @@
 #include "oss.hpp"
 #include "impHosts.hpp"
 #include "utilOptions.hpp"
+#include "impDef.hpp"
 
 using namespace std;
 
 namespace import
 {
-
-   enum INPUT_TYPE
-   {
-      INPUT_FILE = 0,
-      INPUT_STDIN,
-      INPUT_EXEC
-   };
-
-   enum INPUT_FORMAT
-   {
-      FORMAT_CSV = 0,
-      FORMAT_JSON
-   };
-
-   enum STR_TRIM_TYPE
-   {
-      STR_TRIM_NO = 0,
-      STR_TRIM_RIGHT,
-      STR_TRIM_LEFT,
-      STR_TRIM_BOTH
-   };
-
-   enum DECIMAL_TO_TYPE
-   {
-      DECIMALTO_DEFAULT = 0,
-      DECIMALTO_DOUBLE,
-      DECIMALTO_STRING
-   };
 
    class Options: public engine::utilOptions
    {
@@ -110,6 +83,9 @@ namespace import
       inline BOOLEAN allowIDKeyDuplication() const { return _allowIDKeyDuplication; }
       inline BOOLEAN replaceIDKeyDuplication() const { return _replaceIDKeyDuplication ; }
       inline BOOLEAN mustHasIDField() const { return _mustHasIDField ; }
+      inline IMPORT_MODE importMode() const { return _mode ; }
+      inline const vector<string>& matchFields() { return _matchFields ; }
+      inline const vector<string>& hint() { return _hint ; }
 
       /* input */
       inline const vector<string>& files() const { return _files; }
@@ -180,6 +156,9 @@ namespace import
       BOOLEAN        _replaceIDKeyDuplication ;
       // it must be TRUE to ensure that every record contains the '_id' field.
       BOOLEAN        _mustHasIDField ; 
+      IMPORT_MODE    _mode ;
+      vector<string> _matchFields ;
+      vector<string> _hint ;
 
       /* input */
       vector<string> _files;

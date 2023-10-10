@@ -379,17 +379,33 @@ namespace import
       if ( _isInit )
       {
          stringstream ss;
+         IMPORT_MODE mode = _options.importMode() ;
 
          ss << "Parsed records: " << _parser.parsedNum() << std::endl
-            << "Parsed failure: " << _parser.failedNum() << std::endl;
+            << "Parsed failure: " << _parser.failedNum() << std::endl ;
 
-         ss << "Sharding records: " << _packer.shardingNum() << std::endl
-            << "Sharding failure: " << _packer.failedNum() << std::endl;
+         if ( INSERT == mode )
+         {
+            ss << "Sharding records: " << _packer.shardingNum() << std::endl
+               << "Sharding failure: " << _packer.failedNum() << std::endl ;
+         }
 
          ss << "Imported records: " << _importer.importedNum() << std::endl
-            << "Imported failure: " << _importer.failedNum() << std::endl;
+            << "Imported failure: " << _importer.failedNum() << std::endl ;
 
-         ss << "Duplicated records: " << _importer.duplicatedNum() << std::endl;
+         if ( INSERT == mode )
+         {
+            ss << "Duplicated records: " << _importer.duplicatedNum() << std::endl ;
+         }
+
+         if ( UPSERT == mode )
+         {
+            ss << "Updated records: " << _importer.updatedNum() << std::endl ;
+
+            ss << "Modified records: " << _importer.modifiedNum() << std::endl ;
+
+            ss << "Inserted records: " << _importer.insertedNum() << std::endl ;
+         }
 
          if ( _parser.failedNum() > 0 )
          {

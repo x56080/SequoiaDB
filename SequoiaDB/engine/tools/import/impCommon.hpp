@@ -39,6 +39,7 @@
 #include "pd.hpp"
 #include "msg.h"
 #include "common.h"
+#include "../client/bson/bson.h"
 
 namespace import
 {
@@ -187,7 +188,9 @@ namespace import
 
       INT32 init( INT32 size ) ;
 
-      INT32 write( const CHAR *data, INT32 size ) ;
+      INT32 write( const CHAR *data, INT32 size, BOOLEAN writeFull ) ;
+
+      INT32 read( INT32 offset, bson *data, INT32 &dataLen ) ;
 
       inline void reset()
       {
@@ -276,9 +279,11 @@ namespace import
 
       INT32 getFreeSize() ;
 
+      INT32 getFreeSizeInPage( INT32 size ) ;
+
       INT32 getUsedSize() ;
 
-      INT32 write( const CHAR *data, INT32 size ) ;
+      INT32 write( const CHAR *data, INT32 size, BOOLEAN writeFull ) ;
 
       inline void reset()
       {
@@ -328,13 +333,20 @@ namespace import
    {
       INT32 recordNum ;
       INT32 duplicatedNum ;
+      INT32 updatedNum ;
+      INT32 modifiedNum ;
+      INT32 insertedNum ;
       BsonPage *pages ;
 
-      _PageInfo( INT32 num = 0, BsonPage* pPages = NULL, INT32 duplNum = 0 )
+      _PageInfo( INT32 num = 0, BsonPage* pPages = NULL, INT32 duplNum = 0,
+                 INT32 updNum = 0, INT32 modNum = 0, INT32 insNum = 0 )
       {
          recordNum     = num ;
          pages         = pPages ;
          duplicatedNum = duplNum ;
+         updatedNum    = updNum ;
+         modifiedNum   = modNum ;
+         insertedNum   = insNum ;
       }
    } ;
    typedef struct _PageInfo PageInfo ;

@@ -88,6 +88,7 @@ namespace import
          rc = SDB_OOM ;
          goto error ;
       }
+      ossMemset( _buffer, 0, _bufferSize ) ;
 
       _inited = TRUE ;
 
@@ -208,15 +209,26 @@ namespace import
       goto done ;
    }
 
-   INT32 _BsonPage::write( const CHAR *data, INT32 size )
+   INT32 _BsonPage::write( const CHAR *data, INT32 size, BOOLEAN writeFull )
    {
       INT32 free = 0 ;
       INT32 tmp  = 0 ;
       BOOLEAN isFull = FALSE ;
+      BOOLEAN isEnough = FALSE ;
       SDB_ASSERT( NULL != data, "data can't be NULL" ) ;
 
       free   = _bufferSize - _used ;
       isFull = free <= size ;
+
+      // when writeFull is false, if the space on the current page is not enough to write the record
+      // it needs to be written to the next page.
+      if ( free < size && !writeFull )
+      {
+         // need to four-byte align
+         _recordsSize = ossRoundUpToMultipleX( _recordsSize, 4 ) ;
+         goto done ;
+      }
+
       tmp    = isFull ? free : size ;
 
       if ( 0 < tmp )
@@ -231,7 +243,36 @@ namespace import
          _used += alignSize ;
       }
 
+   done:
       return tmp ;
+   }
+
+   INT32 _BsonPage::read( INT32 offset, bson *obj, INT32 &dataLen )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( offset <= _used, "offset is invalid" ) ;
+
+      // the data has been taken in full
+      if ( offset == _used )
+      {
+         dataLen = 0 ;
+         goto done ;
+      }
+
+      rc = bson_init_finished_data( obj, &_buffer[offset] ) ;
+      if ( rc )
+      {
+         rc = SDB_CORRUPTED_RECORD ;
+         goto error ;
+      }
+
+      dataLen = ossRoundUpToMultipleX( bson_size( obj ), 4 ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    _BsonPageHeader::_BsonPageHeader() : _totalSize( 0 ),
@@ -293,6 +334,24 @@ namespace import
       return freeSize ;
    }
 
+   INT32 _BsonPageHeader::getFreeSizeInPage( INT32 size )
+   {
+      INT32 freeSize = 0 ;
+      BsonPage* next = _cur ;
+
+      while( next )
+      {
+         if ( size <= next->getFreeSize() )
+         {
+            freeSize = next->getFreeSize() ;
+            break ;
+         }
+         next = next->getNext() ;
+      }
+
+      return freeSize ;
+   }
+
    INT32 _BsonPageHeader::getUsedSize()
    {
       INT32 usedSize = 0 ;
@@ -307,7 +366,7 @@ namespace import
       return usedSize ;
    }
 
-   INT32 _BsonPageHeader::write( const CHAR *data, INT32 size )
+   INT32 _BsonPageHeader::write( const CHAR *data, INT32 size, BOOLEAN writeFull )
    {
       INT32 writeSize = 0 ;
       SDB_ASSERT( NULL != data, "data can't be NULL" ) ;
@@ -320,7 +379,7 @@ namespace import
          */
          _cur->alignRecords() ;
 
-         writeSize += _cur->write( data + writeSize, size - writeSize ) ;
+         writeSize += _cur->write( data + writeSize, size - writeSize, writeFull ) ;
 
          if ( NULL == _cur->getNext() )
          {

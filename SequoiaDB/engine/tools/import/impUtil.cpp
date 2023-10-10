@@ -43,6 +43,8 @@ namespace fs = boost::filesystem;
 
 namespace import
 {
+   #define IMP_STRING_DELIMITER       ","
+
    UINT32 RC2ShellRC(INT32 rc)
    {
       return engine::utilRC2ShellRC(rc);
@@ -61,13 +63,26 @@ namespace import
       return FALSE;
    }
 
+   static BOOLEAN _isDuplicate( const vector<string>&strVec, const string& str )
+   {
+      for ( vector<string>::const_iterator it = strVec.begin(); it != strVec.end(); it++ )
+      {
+         if ( *it == str )
+         {
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
    INT32 parseFileList( const string& fileList, vector<string>& files )
    {
       INT32 rc = SDB_OK;
 
       try
       {
-         boost::char_separator<char> hostSep(",");
+         boost::char_separator<char> hostSep(IMP_STRING_DELIMITER);
          typedef boost::tokenizer<boost::char_separator<char> > CustomTokenizer;
          CustomTokenizer fileTok(fileList, hostSep);
 
@@ -437,5 +452,42 @@ namespace import
                     ossGetCurrentProcessID(),
                     ossGetCurrentThreadID() ) ;
       return SDB_OK ;
+   }
+
+   INT32 parseStringListToVec( const string& str, vector<string> &strVec )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         boost::char_separator<char> strSep( IMP_STRING_DELIMITER ) ;
+         typedef boost::tokenizer<boost::char_separator<char> > customTokenizer;
+         customTokenizer strTok( str, strSep ) ;
+
+         strVec.clear() ;
+
+         for ( customTokenizer::iterator it = strTok.begin(); it != strTok.end(); it++ )
+         {
+            string str = *it ;
+            str = boost::algorithm::trim_copy_if( str, boost::is_space() ) ;
+            if ( str.empty() )
+            {
+               // ignore empty string or white space
+               continue ;
+            }
+            else if ( !_isDuplicate( strVec, str ) )
+            {
+               strVec.push_back( str ) ;
+            }
+         }
+      }
+      catch ( std::exception& e )
+      {
+         rc = SDB_INVALIDARG ;
+         std::cerr << "Unexpected error happened: " << e.what() << std::endl ;
+         PD_LOG( PDERROR, "Unexpected error happened: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 }

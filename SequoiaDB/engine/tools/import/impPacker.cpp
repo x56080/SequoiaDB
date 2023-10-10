@@ -75,7 +75,8 @@ namespace import
       _importQueue = importQueue ;
 
       if ( !_options->enableSharding() ||
-           _options->batchSize() <= 1 )
+           _options->batchSize() <= 1 ||
+           UPSERT == _options->importMode() )
       {
          rc = _initPageMap() ;
          if ( rc )
@@ -167,6 +168,7 @@ namespace import
       const CHAR* data = NULL ;
       BsonPageHeader* pageHeader = NULL ;
       PageMap::iterator it ;
+      BOOLEAN writeFull = ( _options->importMode() == INSERT ) ? TRUE : FALSE ;
 
       SDB_ASSERT( NULL != record, "record can't be NULL" ) ;
 
@@ -188,7 +190,14 @@ namespace import
    begin:
       pageHeader->lock() ;
 
-      freeSize = pageHeader->getFreeSize() ;
+      if ( writeFull )
+      {
+         freeSize = pageHeader->getFreeSize() ;
+      }
+      else
+      {
+         freeSize = pageHeader->getFreeSizeInPage( dataSize ) ;
+      }
 
       if ( freeSize < dataSize )
       {
@@ -231,7 +240,7 @@ namespace import
          pageHeader->append( page ) ;
       }
 
-      writeSize = pageHeader->write( data, dataSize ) ;
+      writeSize = pageHeader->write( data, dataSize, writeFull ) ;
       SDB_ASSERT( writeSize == dataSize, "Page buffer not enough space" ) ;
 
       if ( _needSharding )

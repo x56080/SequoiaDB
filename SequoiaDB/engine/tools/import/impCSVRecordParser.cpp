@@ -160,8 +160,6 @@ namespace import
 
    #define CSV_MAX_STRING_SIZE (1024 * 1024 * 16)
 
-   #define RECORD_ID_NAME "_id"
-
    static string  _dateFormat;
    static string  _timestampFormat;
    static STR_TRIM_TYPE _stringTrimType = STR_TRIM_NO;
@@ -5250,7 +5248,7 @@ namespace import
 
    INT32 CSVRecordParser::_pushField(CSVField* field)
    {
-      static string recordIdName = RECORD_ID_NAME;
+      static string recordIdName = IMP_FILED_NAME_ID;
       INT32 size = _fieldVec.size();
       INT32 rc = SDB_OK;
 
@@ -5310,7 +5308,7 @@ namespace import
       {
          bson_oid_t oid;
          bson_oid_gen(&oid);
-         rc = bson_append_oid(&obj, RECORD_ID_NAME, &oid);
+         rc = bson_append_oid(&obj, IMP_FILED_NAME_ID, &oid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "Failed to append record id, rc=%d", rc);

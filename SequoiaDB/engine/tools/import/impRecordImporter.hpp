@@ -32,6 +32,7 @@
 #ifndef IMP_RECORD_IMPORTER_HPP_
 #define IMP_RECORD_IMPORTER_HPP_
 
+#include "impDef.hpp"
 #include "msg.h"
 #include "core.hpp"
 #include "oss.hpp"
@@ -52,6 +53,8 @@ namespace import
                       const string& password,
                       const string& csname,
                       const string& clname,
+                      const vector<string>& matchFields,
+                      IMPORT_MODE mode = INSERT,
                       BOOLEAN useSSL = FALSE,
                       BOOLEAN enableTransaction = FALSE,
                       BOOLEAN allowKeyDuplication = TRUE,
@@ -67,12 +70,22 @@ namespace import
 
       void disconnect() ;
 
-      INT32 import( PageInfo* pageInfo ) ;
+      INT32 insert( PageInfo* pageInfo ) ;
+
+      INT32 upsert( bson* record, PageInfo* pageInfo ) ;
+
+      INT32 constructHint( const vector<string>&hintVec ) ;
 
    private:
       INT32 _initInsertMsg() ;
 
       INT32 _bulkInsert( PageInfo* pageInfo, SINT32 flag ) ;
+
+      INT32 _upsert( bson* record, PageInfo* pageInfo ) ;
+
+      INT32 _constructUpsertCond( const bson *record, bson *cond ) ;
+
+      INT32 _constructUpsertRule( const bson *record, bson *rule ) ;
 
       INT32 _send( const CHAR *pMsg, INT32 len, BOOLEAN isHeader = TRUE ) ;
 
@@ -83,6 +96,8 @@ namespace import
       INT32 _setSessionAttr() ;
 
       INT32 _getLastResultObj( bson *result ) ;
+
+      INT32 _getUpsertResult( const bson *result, PageInfo* pageInfo ) ;
 
    private:
       INT32 _insertBufferSize ;
@@ -97,6 +112,10 @@ namespace import
       BOOLEAN  _replaceIDKeyDuplication ;
       BOOLEAN  _endianConvert ;
       BOOLEAN  _mustHasIDField ;
+
+      IMPORT_MODE    _mode ;
+      vector<string> _matchFields ;
+      bson           _hint ;
 
       // db handle
       sdbConnectionHandle  _connection ;

@@ -85,6 +85,9 @@ namespace import
    #define IMP_OPTION_REPLACEKEYDUP     "replacekeydup"
    #define IMP_OPTION_ALLOWKEYDUP_ID    "allowidkeydup"
    #define IMP_OPTION_REPLACEKEYDUP_ID  "replaceidkeydup"
+   #define IMP_OPTION_MODE              "mode"
+   #define IMP_OPTION_HINT              "hint"
+   #define IMP_OPTION_MATCHFIELDS       "matchfields"
    #define IMP_OPTION_HELPFULL          "helpfull"
    #define IMP_OPTION_RECORDSMEM        "recordsmem"
    #define IMP_OPTION_CAST              "cast"
@@ -113,7 +116,7 @@ namespace import
    #define IMP_EXPLAIN_DELRECORD        "record delimiter, default: '\\n'"
    #define IMP_EXPLAIN_COLLECTSPACE     "collection space name"
    #define IMP_EXPLAIN_COLLECTION       "collection name"
-   #define IMP_EXPLAIN_BATCHSIZE        "batch insert records number, minimun 1, maximum 100000, default: 1000"
+   #define IMP_EXPLAIN_BATCHSIZE        "batch insert records number, minimun 1, maximum 100000, default: 1000 (insert mode only)"
    #define IMP_EXPLAIN_FILENAME         "input files name, multiple files or directories must be separated by ',', don't support subdirectories recursively. use standard input if both --exec and --file are not specified"
    #define IMP_EXPLAIN_TYPE             "type of record to load, default: csv (json,csv)"
    #define IMP_EXPLAIN_FIELDS           "field name, separated by comma (',')(e.g. --fields \"name,age\"). "\
@@ -131,13 +134,16 @@ namespace import
    #define IMP_EXPLAIN_DRYRUN           "only parse record, don't import to database"
    #define IMP_EXPLAIN_VERBOSE          "print run time details"
    #define IMP_EXPLAIN_EXEC             "execute external program to get data, the program should output data to standard outpupt"
-   #define IMP_EXPLAIN_SHARDING         "repackage records by sharding, default: true"
+   #define IMP_EXPLAIN_SHARDING         "repackage records by sharding, default: true (insert mode only)"
    #define IMP_EXPLAIN_COORD            "find coordinators automatically, default: true"
    #define IMP_EXPLAIN_TRANSACTION      "enable transaction, default: false"
-   #define IMP_EXPLAIN_ALLOWKEYDUP      "allow key duplication, default: true"
-   #define IMP_EXPLAIN_REPLACEKEYDUP    "replace records of duplicate index keys, default: false"
-   #define IMP_EXPLAIN_ALLOWKEYDUP_ID   "allow id index key duplication, default: false"
-   #define IMP_EXPLAIN_REPLACEKEYDUP_ID "replace records of duplicate id index key, default: false"
+   #define IMP_EXPLAIN_ALLOWKEYDUP      "allow key duplication, default: true (insert mode only)"
+   #define IMP_EXPLAIN_REPLACEKEYDUP    "replace records of duplicate index keys, default: false (insert mode only)"
+   #define IMP_EXPLAIN_ALLOWKEYDUP_ID   "allow id index key duplication, default: false (insert mode only)"
+   #define IMP_EXPLAIN_REPLACEKEYDUP_ID "replace records of duplicate id index key, default: false (insert mode only)"
+   #define IMP_EXPLAIN_MODE             "import mode (arg: [insert|upsert]), default: insert"
+   #define IMP_EXPLAIN_HINT             "index names, separated by ',', default: none (upsert mode only)"
+   #define IMP_EXPLAIN_MATCHFIELDS      "fields matched, separated by ',', default: _id ( upsert mode only )"
    #define IMP_EXPLAIN_HELPFULL         "print all options"
    #define IMP_EXPLAIN_RECORDSMEM       "the maximum memory size used by records, the unit is MB, range is [128~81920], default: 512"
    #define IMP_EXPLAIN_CAST             "allow type cast when lost precision, default: false"
@@ -190,6 +196,7 @@ namespace import
       (IMP_OPTION_VERBOSE",v",          /* no arg */     IMP_EXPLAIN_VERBOSE) \
 
    #define IMP_IMPORT_OPTIONS \
+      (IMP_OPTION_MODE,                _TYPE(string),    IMP_EXPLAIN_MODE) \
       (IMP_OPTION_BATCHSIZE",n",       _TYPE(INT32),     IMP_EXPLAIN_BATCHSIZE) \
       (IMP_OPTION_JOBS",j",            _TYPE(INT32),     IMP_EXPLAIN_JOBS) \
       (IMP_OPTION_PARSERS,             _TYPE(INT32),     IMP_EXPLAIN_PARSERS) \
@@ -200,6 +207,8 @@ namespace import
       (IMP_OPTION_REPLACEKEYDUP,       _TYPE(string),    IMP_EXPLAIN_REPLACEKEYDUP) \
       (IMP_OPTION_ALLOWKEYDUP_ID,      _TYPE(string),    IMP_EXPLAIN_ALLOWKEYDUP_ID) \
       (IMP_OPTION_REPLACEKEYDUP_ID,    _TYPE(string),    IMP_EXPLAIN_REPLACEKEYDUP_ID) \
+      (IMP_OPTION_HINT,                _TYPE(string),    IMP_EXPLAIN_HINT) \
+      (IMP_OPTION_MATCHFIELDS,         _TYPE(string),    IMP_EXPLAIN_MATCHFIELDS) \
 
    #define IMP_INPUT_OPTIONS \
       (IMP_OPTION_FILENAME,            _TYPE(string),    IMP_EXPLAIN_FILENAME) \
@@ -345,6 +354,7 @@ namespace import
       _allowIDKeyDuplication = FALSE ;
       _replaceIDKeyDuplication = FALSE ;
       _mustHasIDField = TRUE ;
+      _mode = INSERT ;
 
       _isUnicode = TRUE ;
       _decimalto = DECIMALTO_DEFAULT ;
@@ -761,8 +771,40 @@ namespace import
          }
       }
 
+      if ( has( IMP_OPTION_MODE ) )
+      {
+         string mode = get<string>( IMP_OPTION_MODE ) ;
+         if ( "insert" == mode )
+         {
+            _mode = INSERT ;
+         }
+         else if ( "upsert" == mode )
+         {
+            _mode = UPSERT ;
+         }
+         else
+         {
+            std::cerr << "Invalid argument of "
+                      << "'" IMP_OPTION_MODE << "'"
+                      << ": " << mode
+                      << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
       if (has(IMP_OPTION_BATCHSIZE))
       {
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_BATCHSIZE << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
          _batchSize = get<INT32>(IMP_OPTION_BATCHSIZE);
          if (_batchSize <= 0 || _batchSize > 100000)
          {
@@ -1156,7 +1198,18 @@ namespace import
 
       if (has(IMP_OPTION_SHARDING))
       {
-         string sharding = get<string>(IMP_OPTION_SHARDING);
+         string sharding ;
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_SHARDING << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         sharding = get<string>(IMP_OPTION_SHARDING);
          rc = ossStrToBoolean( sharding.c_str(), &_enableSharding ) ;
          SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
                                        sharding.c_str(), IMP_OPTION_SHARDING ) ;
@@ -1178,9 +1231,93 @@ namespace import
                                        tx.c_str(), IMP_OPTION_TRANSACTION ) ;
       }
 
+      if ( has( IMP_OPTION_MATCHFIELDS ) )
+      {
+         string matchFields ;
+         if ( UPSERT != _mode )
+         {
+            std::cerr << "Only upsert mode supports the "
+                      << "'" << IMP_OPTION_MATCHFIELDS << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         matchFields = get<string>( IMP_OPTION_MATCHFIELDS ) ;
+         rc = parseStringListToVec( matchFields, _matchFields ) ;
+         if ( rc || _matchFields.empty() )
+         {
+            std::cerr << "Invalid "
+                      << "'" << IMP_OPTION_MATCHFIELDS << "'"
+                      << ": " << matchFields
+                      << std::endl ;
+            goto error ;
+         }
+      }
+      else if ( UPSERT == _mode )
+      {
+         try
+         {
+            _matchFields.push_back( IMP_FILED_NAME_ID ) ;
+         }
+         catch ( std::exception& e )
+         {
+            rc = SDB_INVALIDARG ;
+            std::cerr << "Unexpected error happened: " << e.what()
+                      << std::endl ;
+            PD_LOG( PDERROR, "Unexpected error happened: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+      if ( has( IMP_OPTION_HINT ) )
+      {
+         string hint ;
+         if ( UPSERT != _mode )
+         {
+            std::cerr << "Only upsert mode supports the "
+                      << "'" << IMP_OPTION_HINT << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         hint = get<string>( IMP_OPTION_HINT ) ;
+         rc = parseStringListToVec( hint, _hint ) ;
+         if ( rc )
+         {
+            std::cerr << "Invalid "
+                      << "'" << IMP_OPTION_HINT << "'"
+                      << ": " << hint
+                      << std::endl ;
+            goto error ;
+         }
+         else if ( _hint.size() < IMP_HINT_MIN_NUM ||
+                   _hint.size() > IMP_HINT_MAX_NUM )
+         {
+            std::cerr << "The number of hint is out of range [1, 64]: "
+                      << _hint.size() << std::endl;
+            rc = SDB_INVALIDARG;
+            goto error ;
+         }
+      }
+
       if (has(IMP_OPTION_ALLOWKEYDUP))
       {
-         string allowKeyDup = get<string>(IMP_OPTION_ALLOWKEYDUP);
+         string allowKeyDup ;
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_ALLOWKEYDUP << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         allowKeyDup = get<string>(IMP_OPTION_ALLOWKEYDUP);
          rc = ossStrToBoolean( allowKeyDup.c_str(), &_allowKeyDuplication ) ;
          SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
                                        allowKeyDup.c_str(), IMP_OPTION_ALLOWKEYDUP ) ;
@@ -1188,7 +1325,18 @@ namespace import
 
       if( has( IMP_OPTION_REPLACEKEYDUP ) )
       {
-         string replaceKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP ) ;
+         string replaceKeyDup ;
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_REPLACEKEYDUP << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         replaceKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP ) ;
          rc = ossStrToBoolean( replaceKeyDup.c_str(),
                                &_replaceKeyDuplication ) ;
          SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
@@ -1215,7 +1363,18 @@ namespace import
 
       if ( has( IMP_OPTION_ALLOWKEYDUP_ID ) )
       {
-         string allowIDKeyDup = get<string>( IMP_OPTION_ALLOWKEYDUP_ID ) ;
+         string allowIDKeyDup ;
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_ALLOWKEYDUP_ID << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         allowIDKeyDup = get<string>( IMP_OPTION_ALLOWKEYDUP_ID ) ;
          rc = ossStrToBoolean( allowIDKeyDup.c_str(),
                                &_allowIDKeyDuplication ) ;
          SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
@@ -1252,7 +1411,18 @@ namespace import
 
       if( has( IMP_OPTION_REPLACEKEYDUP_ID ) )
       {
-         string replaceIDKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP_ID ) ;
+         string replaceIDKeyDup ;
+         if ( INSERT != _mode )
+         {
+            std::cerr << "Only insert mode supports the "
+                      << "'" << IMP_OPTION_REPLACEKEYDUP_ID << "' "
+                      << "argument"
+                      << std::endl ;
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            goto error ;
+         }
+
+         replaceIDKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP_ID ) ;
          rc = ossStrToBoolean( replaceIDKeyDup.c_str(),
                                &_replaceIDKeyDuplication ) ;
          SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",

@@ -165,20 +165,24 @@ CSV（Comma Separated Values）格式以逗号分隔数值。默认情况下记�
 
 | 参数名        | 缩写 | 描述 |
 | ------------- | ---- | ---- |
-| --insertnum   | -n   | 指定每次导入的记录数，取值范围为 1~100000，默认值为 1000 |
+| --mode        |      | 指定导入模式，可以是 insert 或者 upsert， 默认值为 insert |
+| --insertnum   | -n   | 指定每次导入的记录数，取值范围为 1~100000，默认值为 1000 （仅 insert 模式支持） |
 | --jobs        | -j   | 指定导入连接数（每个连接一个线程），取值范围为 1~1000，默认值为 4 |
 | --parsers     |      | 指定解析任务数（每个任务一个线程），取值范围为 1~1000，默认值为 4 |
 | --coord       |      | 指定是否自动查找协调节点，默认值为 true，自动查找协调节点 |
-| --sharding    |      | 指定是否按分区信息重新打包记录，默认值为 true，按照分区信息重新打包信息 |
+| --sharding    |      | 指定是否按分区信息重新打包记录，默认值为 true，按照分区信息重新打包信息 （仅 insert 模式支持） |
 | --transaction |      | 指定导入数据时是否开启事务，默认为 false，不开启事务<br>**注意：此功能需要服务端开启事务** |
-| --allowkeydup |      | 指定是否允许唯一索引的键出现重复时忽略错误继续导入，默认值为 true，忽略错误继续导入 |
-| --replacekeydup |      | 指定唯一索引键重复时替换记录，默认值为 false |
-| --allowidkeydup |      | 指定是否允许 $id 索引的键出现重复时忽略错误继续导入，默认值为 false |
-| --replaceidkeydup |      | 指定 $id 索引键重复时替换记录，默认值为 false |
+| --allowkeydup |      | 指定是否允许唯一索引的键出现重复时忽略错误继续导入，默认值为 true，忽略错误继续导入 （仅 insert 模式支持） |
+| --replacekeydup |      | 指定唯一索引键重复时替换记录，默认值为 false （仅 insert 模式支持） |
+| --allowidkeydup |      | 指定是否允许 $id 索引的键出现重复时忽略错误继续导入，默认值为 false （仅 insert 模式支持） |
+| --replaceidkeydup |      | 指定 $id 索引键重复时替换记录，默认值为 false （仅 insert 模式支持） |
+| --matchfields |      | 指定匹配的字段，用“,”分隔多个字段，默认值为 _id 字段 （仅 upsert 模式支持） |
+| --hint        |      | 指定索引名字， 用“,”分隔多个索引， 默认值为空 （仅 upsert 模式支持） |
 
 > **Note:**  
 >
-> 对于参数 --allowkeydup、--replacekeydup、--allowidkeydup 和 --replaceidkeydup，不支持同时设置为 true。当任意一个参数设置为 true 时，其余参数将默认为 false。
+> * 对于参数 --allowkeydup、--replacekeydup、--allowidkeydup 和 --replaceidkeydup，不支持同时设置为 true。当任意一个参数设置为 true 时，其余参数将默认为 false。
+> * 为了提高 upsert 模式的性能， --matchfields 参数指定的字段最好已经建立了索引，如果没有，可使用--hint 参数指定具体索引。
 
 ###JSON 参数###
 
@@ -260,8 +264,10 @@ CSV（Comma Separated Values）格式以逗号分隔数值。默认情况下记�
 
 导入操作完成后，将会返回如下字段：
 
+insert 模式：
+
 | 字段名 | 描述 |
-| ------ | ---- | 
+| ------ | ---- |
 | Parsed records | 解析成功的记录条数 |
 | Parsed failure | 解析失败的记录条数 |
 | Sharding records | 根据分区信息打包成功的记录条数 |
@@ -273,6 +279,18 @@ CSV（Comma Separated Values）格式以逗号分隔数值。默认情况下记�
 > **Note:**
 >
 > Sharding records 和 Sharding failure 仅在导入集合为分区集合且参数 --sharding 为 true 时统计。
+
+upsert 模式：
+
+| 字段名 | 描述 |
+| ------ | ---- |
+| Parsed records | 解析成功的记录条数 |
+| Parsed failure | 解析失败的记录条数 |
+| Imported records | 导入成功的记录条数 |
+| Imported failure | 导入失败的记录条数 |
+| Updated records  | 成功更新的记录数 |
+| Modified records | 成功更新且发生数据变化的记录数 |
+| Inserted records | 成功插入的记录数 |
 
 ##常见场景##
 
@@ -315,6 +333,22 @@ $ sdbimprt --hosts "localhost:11810" --type csv -c sample -l employee --headerli
 
 ```lang-bash
 $ sdbimprt --hosts "localhost:11810" --type csv -c sample -l employee --fields 'id long, name string default "Anonymous", age int, identity, phone_number, email, country' --file test.csv
+```
+
+###以 upsert 模式导入文件###
+
+文件 `test.json` 中存在如下数据：
+
+```lang-text
+{ "_id": { "$oid": "6507a5dc831d092db86ab281" }, "studentId": 1, "name": "Jack", "age": 20 }
+{ "_id": { "$oid": "650ac881c33eb99011a450e2" }, "studentId": 2, "name": "Mike", "age": 22 }
+{ "_id": { "$oid": "6507a5dc831d092db86ab483" }, "studentId": 3, "name": "Woody", "age": 25 }
+```
+
+将数据导入集合 sample.employee 中，并通过参数 --mode 指定为 upsert 模式
+
+```lang-bash
+$ sdbimprt --hosts "localhost:11810" --mode upsert --matchfields "studentId,name" -c sample -l employee --type json --file test.json
 ```
 
 ###导入数据目录###

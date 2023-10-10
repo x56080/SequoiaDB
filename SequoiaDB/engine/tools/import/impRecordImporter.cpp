@@ -30,6 +30,7 @@
 
 *******************************************************************************/
 #include "impRecordImporter.hpp"
+#include "impDef.hpp"
 #include "ossUtil.h"
 #include "pd.hpp"
 #include "msgDef.h"
@@ -47,7 +48,10 @@ namespace import
    #define IMP_MAX_RECORDS_SIZE (SDB_MAX_MSG_LENGTH - 1024 * 1024 * 1)
    #define IMP_DEFAULT_NETWORK_TIMEOUT (-1)
    #define BSON_MIN_SIZE 5
-   #define IMP_DUPLICATED_NUMBER "DuplicatedNum" 
+   #define IMP_DUPLICATED_NUMBER "DuplicatedNum"
+   #define IMP_UPDATE_NUMBER     "UpdatedNum"
+   #define IMP_MODIFIED_NUMBER   "ModifiedNum"
+   #define IMP_INSERT_NUMBER     "InsertedNum"
    static INT32 defaultVersion = 1 ;
    static INT16 defaultW = 0 ;
 
@@ -57,6 +61,8 @@ namespace import
                                    const string& password,
                                    const string& csname,
                                    const string& clname,
+                                   const vector<string>& matchFields,
+                                   IMPORT_MODE mode,
                                    BOOLEAN useSSL,
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
@@ -76,6 +82,8 @@ namespace import
            _replaceIDKeyDuplication( replaceIDKeyDuplication ),
            _endianConvert( FALSE ),
            _mustHasIDField( mustHasIDField ),
+           _mode( mode ),
+           _matchFields( matchFields ),
            _connection( SDB_INVALID_HANDLE ),
            _collectionSpace( SDB_INVALID_HANDLE ),
            _collection( SDB_INVALID_HANDLE ),
@@ -93,7 +101,7 @@ namespace import
            _msgConvertor( NULL ),
            _peerProtocolVersion( SDB_PROTOCOL_VER_INVALID )
    {
-
+      bson_init( &_hint ) ;
    }
 
    RecordImporter::~RecordImporter()
@@ -108,6 +116,7 @@ namespace import
          delete _msgConvertor ;
          _msgConvertor = NULL ;
       }
+      bson_destroy( &_hint ) ;
    }
 
    INT32 RecordImporter::connect()
@@ -257,7 +266,7 @@ namespace import
       }
    }
 
-   INT32 RecordImporter::import( PageInfo* pageInfo )
+   INT32 RecordImporter::insert( PageInfo* pageInfo )
    {
       INT32 rc = SDB_OK;
       INT32 flag = 0;
@@ -317,6 +326,58 @@ namespace import
             }
          }
 
+         goto error ;
+      }
+
+      if ( _enableTransaction )
+      {
+         rc = sdbTransactionCommit( _connection ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to commit transaction, rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::upsert( bson* record, PageInfo* pageInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != pageInfo, "pageInfo can't be NULL" ) ;
+      SDB_ASSERT( NULL != record, "record can't be NULL" ) ;
+
+      if ( _enableTransaction )
+      {
+         rc = sdbTransactionBegin( _connection ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to begin transaction, rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = _upsert( record, pageInfo ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to upsert, rc=%d", rc ) ;
+         if ( _enableTransaction )
+         {
+            INT32 ret = SDB_OK ;
+
+            ret = sdbTransactionRollback( _connection ) ;
+            if ( ret )
+            {
+               PD_LOG( PDERROR, "Failed to rollback transaction, rc=%d", ret ) ;
+               rc = ret ;
+               goto error ;
+            }
+         }
          goto error ;
       }
 
@@ -491,6 +552,239 @@ namespace import
          rc = SDB_OK ;
       }
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::_constructUpsertCond( const bson *record, bson *cond )
+   {
+      INT32 rc = SDB_OK ;
+      bson_type type ;
+      bson_iterator bsonIter ;
+
+      if ( !cond )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      for ( vector<string>::const_iterator it =
+            _matchFields.begin(); it != _matchFields.end(); it++ )
+      {
+         const CHAR* key = (*it).c_str() ;
+         type = bson_find( &bsonIter, record, key ) ;
+         if ( BSON_EOO != type )
+         {
+            rc = bson_append_element( cond, key, &bsonIter ) ;
+            if ( SDB_OK != rc )
+            {
+               rc = SDB_DRIVER_BSON_ERROR ;
+               goto error ;
+            }
+         }
+      }
+
+      rc = bson_finish( cond ) ;
+      if ( SDB_OK != rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::_constructUpsertRule( const bson *record, bson *rule )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !rule )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = bson_append_start_object( rule, "$set" ) ;
+      if( rc != BSON_OK )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = bson_append_elements( rule, record ) ;
+      if( rc != BSON_OK )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = bson_append_finish_object( rule ) ;
+      if ( SDB_OK != rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = bson_finish( rule ) ;
+      if ( SDB_OK != rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::constructHint( const vector<string>&hintVec )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 hintIndex = 0 ;
+      const INT32 hintStrLen = 3 ;
+      CHAR indexStr [ hintStrLen ] = { 0 } ;
+
+      for ( vector<string>::const_iterator it =
+            hintVec.begin(); it != hintVec.end(); it++ )
+      {
+         ossItoa( hintIndex, indexStr, hintStrLen ) ;
+         rc = bson_append_string( &_hint, indexStr, (*it).c_str() ) ;
+         if ( rc != BSON_OK )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+         hintIndex ++ ;
+      }
+
+      rc = bson_append_finish_object( &_hint ) ;
+      if ( SDB_OK != rc )
+      {
+          rc = SDB_DRIVER_BSON_ERROR ;
+          goto error ;
+      }
+      rc = bson_finish( &_hint ) ;
+      if ( SDB_OK != rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::_getUpsertResult( const bson *result, PageInfo* pageInfo )
+   {
+      INT32 rc = SDB_OK ;
+      bson_iterator it ;
+      bson_type type ;
+
+      if ( !result )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      bson_iterator_init ( &it, result ) ;
+      while ( BSON_EOO != bson_iterator_next ( &it ) )
+      {
+         const CHAR *key = bson_iterator_key ( &it ) ;
+         type = bson_iterator_type( &it ) ;
+         if ( 0 == ossStrcmp ( key, IMP_UPDATE_NUMBER ) )
+         {
+            if ( BSON_LONG == type )
+            {
+               pageInfo->updatedNum += bson_iterator_long( &it ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to get updated count. "
+                       "UpdatedNum's type is %d , but it must be BSON_LONG", type ) ;
+            }
+         }
+         else if ( 0 == ossStrcmp ( key, IMP_MODIFIED_NUMBER ) )
+         {
+            if ( BSON_LONG == type )
+            {
+               pageInfo->modifiedNum += bson_iterator_long( &it ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to get modified count. "
+                       "ModifiedNum's type is %d , but it must be BSON_LONG", type ) ;
+            }
+         }
+         else if ( 0 == ossStrcmp ( key, IMP_INSERT_NUMBER ) )
+         {
+            if ( BSON_LONG == type )
+            {
+               pageInfo->insertedNum += bson_iterator_long( &it ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to get inserted count. "
+                       "InsertedNum's type is %d , but it must be BSON_LONG", type ) ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RecordImporter::_upsert( bson *record, PageInfo* pageInfo )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0 ;
+      flag |= FLG_UPDATE_RETURNNUM ;
+      bson cond, rule, result ;
+
+      bson_init( &cond ) ;
+      bson_init( &rule ) ;
+      bson_init( &result ) ;
+
+      rc = _constructUpsertRule( record, &rule ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to construct upsert rule, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _constructUpsertCond( record, &cond ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to construct upsert condition, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = sdbUpsert3( _collection, &rule, &cond, &_hint, NULL, flag, &result ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to upsert, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _getUpsertResult( &result, pageInfo ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get upsert result, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      bson_destroy( &cond ) ;
+      bson_destroy( &rule ) ;
+      bson_destroy( &result ) ;
       return rc ;
    error:
       goto done ;
