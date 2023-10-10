@@ -1,3 +1,10 @@
+/******************************************************************************
+ * @Description   : 
+ * @Author        : wu yan
+ * @CreateTime    : Do not edit
+ * @LastEditTime  : 2023.10.10
+ * @LastEditors   : wu yan
+ ******************************************************************************/
 /************************************************************************
 *@Description:  seqDB-18945:底数的整数位和小数位前n位后m位为0，有效整数位+指数=308位（如01.010e+308） 
 *@Author     :  2019-8-8  zhaoxiaoni
@@ -49,7 +56,8 @@ function prepareDate ( typeFile )
          {
             rightR = rightR + "0";
             right = rightL + rightR;
-            if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+            var type = typeFile.split( "." ).pop();
+            if( type == "csv" )
             {
                file.write( left + "." + right + "e+" + ( 310 + j ) + "\n" );
             }

@@ -1,3 +1,10 @@
+/******************************************************************************
+ * @Description   : 
+ * @Author        : wu yan
+ * @CreateTime    : Do not edit
+ * @LastEditTime  : 2023.10.10
+ * @LastEditors   : wu yan
+ ******************************************************************************/
 /************************************************************************
 *@Description:  seqDB-18940: 整数位不为0，小数位前x位后y位为0（如10.010）   
 *@Author     :  2019-8-7  zhaoxiaoni
@@ -54,7 +61,8 @@ function prepareDate ( typeFile )
       {
          rightR = rightR + "0";
          var right = rightL + rightR;
-         if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+         var type = typeFile.split( "." ).pop();
+         if( type == "csv" )
          {
             file.write( id + "," + left + "." + right + "\n" );
          }

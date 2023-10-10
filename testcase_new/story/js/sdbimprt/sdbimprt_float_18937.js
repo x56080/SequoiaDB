@@ -60,7 +60,8 @@ function prepareDate ( typeFile )
    {
       var right = "";
       left = left + "1";
-      if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+      var type = typeFile.split( "." ).pop();
+      if( type == "csv" )
       {
          file.write( id + "," + left + "\n" );
       }
@@ -72,7 +73,7 @@ function prepareDate ( typeFile )
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+         if( type == "csv" )
          {
             file.write( id + "," + left + "." + right + "\n" );
          }
