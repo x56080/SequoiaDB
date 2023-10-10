@@ -1,4 +1,4 @@
-package com.sequoiadb.sdb;
+package com.sequoiadb.sdb.serial;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Node;

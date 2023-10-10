@@ -1,4 +1,4 @@
-package com.sequoiadb.basicoperation;
+package com.sequoiadb.metadata.sync;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.SDBError;
