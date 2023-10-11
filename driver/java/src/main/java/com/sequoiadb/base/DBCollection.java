@@ -2359,7 +2359,8 @@ public class DBCollection {
         if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
             return null;
         } else if (response.getFlag() != 0) {
-            String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
+            String matcherInfo = SdbSecureUtil.toSecurityStr(matcher, sequoiadb.getInfoEncryption());
+            String msg = "query = " + matcherInfo + ", hint = " + hint + ", orderBy = " + orderBy
                     + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
             sequoiadb.throwIfError(response, msg);
         }

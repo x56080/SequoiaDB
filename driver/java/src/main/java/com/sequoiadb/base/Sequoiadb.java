@@ -25,6 +25,7 @@ import com.sequoiadb.message.request.*;
 import com.sequoiadb.message.response.*;
 import com.sequoiadb.util.AuthAlgorithmSHA256;
 import com.sequoiadb.util.Helper;
+import com.sequoiadb.util.SdbSecureUtil;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -1582,7 +1583,8 @@ public class Sequoiadb implements Closeable {
         }
         SQLRequest request = new SQLRequest(sql);
         SdbReply response = requestAndResponse(request);
-        throwIfError(response, sql);
+        String securityInfo = SdbSecureUtil.toSecurityStr(sql, getInfoEncryption());
+        throwIfError(response, "sql: " + securityInfo);
     }
 
     /**
@@ -1604,7 +1606,8 @@ public class Sequoiadb implements Closeable {
             if (flag == SDBError.SDB_DMS_EOC.getErrorCode()) {
                 return null;
             } else {
-                throwIfError(response, sql);
+                String securityInfo = SdbSecureUtil.toSecurityStr(sql, getInfoEncryption());
+                throwIfError(response, "sql: " + securityInfo);
             }
         }
 

@@ -47,12 +47,23 @@ public class SdbSecureUtil {
             return null;
         }
 
-        String bsonStr = data.toString();
-        if (!data.isEmpty() && encrypt) {
-            String encryptStr = sdbBase64.encode(bsonStr);
+        if (data.isEmpty()) {
+            return data.toString();
+        }
+
+        return toSecurityStr(data.toString(), encrypt);
+    }
+
+    public static String toSecurityStr(String str, boolean encrypt) {
+        if (str == null) {
+            return null;
+        }
+
+        if (!str.isEmpty() && encrypt) {
+            String encryptStr = sdbBase64.encode(str);
             return format(encryptStr);
         }
 
-        return bsonStr;
+        return str;
     }
 }
