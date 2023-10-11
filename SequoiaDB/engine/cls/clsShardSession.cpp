@@ -1619,6 +1619,7 @@ namespace engine
       rtnContextRenameCS::sharePtr pCtx ;
       CHAR csNameInData[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
       rtnContextBuf buffObj ;
+      BOOLEAN allowOldSYS = FALSE, allowNewSYS = FALSE ;
 
       PD_CHECK( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ),
                 SDB_INVALIDARG, error, PDERROR,
@@ -1640,6 +1641,14 @@ namespace engine
       PD_CHECK( 0 != ossStrcmp( csName, csNameInData ), SDB_OK, done, PDINFO,
                 "Collection space name[%s] is the same, don't need to rename",
                 csNameInData ) ;
+      if ( dmsIsSysRecycleName( csNameInData ) )
+      {
+         allowOldSYS = TRUE ;
+      }
+      if ( dmsIsSysRecycleName( csName ) )
+      {
+         allowNewSYS = TRUE ;
+      }
 
       /// 2) rename cs phase 1
       rc = _pRtnCB->contextNew( RTN_CONTEXT_RENAMECS, pCtx,
@@ -1648,7 +1657,7 @@ namespace engine
                    "rename collection space[%s] to[%s], rc: %d",
                    csNameInData, csName, rc ) ;
 
-      rc = pCtx->open( csNameInData, csName, _pEDUCB, FALSE );
+      rc = pCtx->open( csNameInData, csName, _pEDUCB, FALSE, allowOldSYS, allowNewSYS );
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, "
                    "rename collection space[%s] to[%s], rc: %d",
                    csNameInData, csName, rc ) ;

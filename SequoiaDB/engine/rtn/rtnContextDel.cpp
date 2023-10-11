@@ -943,7 +943,9 @@ namespace engine
    INT32 _rtnContextRenameCS::open( const CHAR *pCSName,
                                     const CHAR *pNewCSName,
                                     _pmdEDUCB *cb,
-                                    BOOLEAN useLocalTask )
+                                    BOOLEAN useLocalTask,
+                                    BOOLEAN allowOldSYS,
+                                    BOOLEAN allowNewSYS )
    {
       INT32 rc = SDB_OK ;
       INT32 rcNew = SDB_OK ;
@@ -960,10 +962,10 @@ namespace engine
       PD_CHECK( pNewCSName, SDB_INVALIDARG, error, PDERROR,
                 "new cs name is null!" );
 
-      rc = dmsCheckCSName( pCSName, _flagAllowOldSYS() );
+      rc = dmsCheckCSName( pCSName, _flagAllowOldSYS() || allowOldSYS ) ;
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pCSName );
 
-      rc = dmsCheckCSName( pNewCSName, _flagAllowNewSYS() );
+      rc = dmsCheckCSName( pNewCSName, _flagAllowNewSYS() || allowNewSYS );
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pNewCSName );
 
       ossStrncpy( _oldName, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;

@@ -243,7 +243,9 @@ namespace engine
       }
 
       INT32 open( const CHAR *pCSName, const CHAR *pNewCSName,
-                  _pmdEDUCB *cb, BOOLEAN useLocalTask = TRUE );
+                  _pmdEDUCB *cb, BOOLEAN useLocalTask = TRUE,
+                  BOOLEAN allowOldSYS = FALSE,
+                  BOOLEAN allowNewSYS = FALSE );
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
