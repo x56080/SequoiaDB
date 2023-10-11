@@ -2,7 +2,7 @@
  * @Description   : seqDB-33477:运维模式中指定查询访问备节点
  * @Author        : liuli
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.09.26
+ * @LastEditTime  : 2023.10.11
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -10,8 +10,7 @@ testConf.useSrcGroup = true;
 testConf.clName = COMMCLNAME + "_33477";
 testConf.clOpt = { ReplSize: 0 };
 
-// SEQUOIADBMAINSTREAM-9962
-// main( test );
+main( test );
 function test ()
 {
    var dbcl = testPara.testCL;

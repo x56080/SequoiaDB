@@ -397,19 +397,17 @@ function checkStartCriticalMode ( db, groupName, properties )
    delete properties.NodeID;
    delete properties.LocationID;
 
-   var cursor = db.list( SDB_LIST_GROUPMODES, { GroupID: groupName } );
+   var cursor = db.list( SDB_LIST_GROUPMODES, { GroupName: groupName } );
    while( cursor.next() )
    {
       var groupModeInfo = cursor.current().toObj();
       var actGroupMode = groupModeInfo["GroupMode"];
       var actProperties = groupModeInfo["Properties"][0];
-      println( JSON.stringify( actProperties ) );
       delete actProperties.MinKeepTime;
-      println( JSON.stringify( actProperties ) );
       delete actProperties.MaxKeepTime;
-      println( JSON.stringify( actProperties ) );
       delete actProperties.UpdateTime;
-      println( JSON.stringify( actProperties ) );
+      delete actProperties.NodeID;
+      delete actProperties.LocationID;
 
       assert.equal( actGroupMode, groupMode );
       assert.equal( actProperties, properties );
@@ -423,9 +421,7 @@ function checkStartCriticalMode ( db, groupName, properties )
 **************************************************************************/
 function checkStopCriticalMode ( db, groupName )
 {
-   var groupID = db.list( SDB_LIST_GROUPS, { GroupName: groupName } ).current().toObj()["GroupID"];
-
-   var cursor = db.list( SDB_LIST_GROUPMODES, { GroupID: groupID } );
+   var cursor = db.list( SDB_LIST_GROUPMODES, { GroupName: groupName } );
    while( cursor.next() )
    {
       var groupModeInfo = cursor.current().toObj();
@@ -721,45 +717,6 @@ function getSnapshotSystem ( db, NodeName )
    return values;
 }
 
-/************************************************************************
-*@Description: 返回指定group中的备节点名
-*@input: db            
-         groups     指定的group
-**************************************************************************/
-function getGroupSlaveNodeName ( db, groups )
-{
-   if( typeof ( groups ) == "string" ) { groups = [groups]; }
-   var slaveNodeName = [];
-   for( var i in groups )
-   {
-      var cursor = db.list( SDB_LIST_GROUPS, { "GroupName": groups[i] } );
-      while( cursor.next() )
-      {
-         var groupInfo = cursor.current().toObj();
-         var primaryNode = groupInfo.PrimaryNode;
-         var nodeInfos = groupInfo.Group;
-         for( var i in nodeInfos )
-         {
-            if( nodeInfos[i].NodeID != primaryNode )
-            {
-               var service = nodeInfos[i].Service;
-               for( var j in service )
-               {
-                  if( service[j].Type == 0 )
-                  {
-                     svcname = service[j].Name;
-                  }
-                  break;
-               }
-               slaveNodeName.push( nodeInfos[i].HostName + ":" + svcname );
-            }
-         }
-      }
-      cursor.close();
-   }
-   return slaveNodeName;
-}
-
 /******************************************************************************
  * @description: 获取节点的NodeID
  *  @param {string} group  // 节点所在的group
@@ -834,180 +791,4 @@ function checkGroupStopMode ( db, groupName )
    {
       throw new Error( "group mode is not : " + JSON.stringify( obj ) );
    }
-}
-
-/************************************************************************
-*@Description: 从beginTime开始等待waitTime分钟
-*@input: beginTime      开始时间
-         waitTime       等待时间，单位为分钟
-**************************************************************************/
-function validateWaitTime ( beginTime, waitTime )
-{
-   // 获取当前时间
-   var currentTime = new Date();
-   println( "当前时间 -- " + currentTime )
-   println( "beginTime -- " + beginTime )
-   // 检查 beginTime 是否大于当前时间
-   if( beginTime > currentTime )
-   {
-      throw new Error( "开始时间大于当前时间" );
-   }
-
-   // 计算等待时间的结束时间，将分钟转换为毫秒
-   var endTime = new Date( beginTime.getTime() + waitTime * 60000 );
-
-   // 等待时间循环检查
-   while( true )
-   {
-      currentTime = new Date(); // 更新当前时间
-
-      // 检查当前时间是否超过等待时间
-      if( currentTime >= endTime )
-      {
-         println( "currentTime -- " + currentTime )
-         return;
-      }
-
-      sleep( 1000 );
-   }
-}
-
-/************************************************************************
-*@Description: 返回指定group中的备节点名
-*@input: db            
-         groups     指定的group
-**************************************************************************/
-function getGroupSlaveNodeName ( db, groups )
-{
-   if( typeof ( groups ) == "string" ) { groups = [groups]; }
-   var slaveNodeName = [];
-   for( var i in groups )
-   {
-      var cursor = db.list( SDB_LIST_GROUPS, { "GroupName": groups[i] } );
-      while( cursor.next() )
-      {
-         var groupInfo = cursor.current().toObj();
-         var primaryNode = groupInfo.PrimaryNode;
-         var nodeInfos = groupInfo.Group;
-         for( var i in nodeInfos )
-         {
-            if( nodeInfos[i].NodeID != primaryNode )
-            {
-               var service = nodeInfos[i].Service;
-               for( var j in service )
-               {
-                  if( service[j].Type == 0 )
-                  {
-                     svcname = service[j].Name;
-                  }
-                  break;
-               }
-               slaveNodeName.push( nodeInfos[i].HostName + ":" + svcname );
-            }
-         }
-      }
-      cursor.close();
-   }
-   return slaveNodeName;
-}
-
-/************************************************************************
-*@Description: 返回指定group中的主节点名
-*@input: db            
-         groups     指定的group
-**************************************************************************/
-function getGroupMasterNodeName ( db, groups )
-{
-   if( typeof ( groups ) == "string" ) { groups = [groups]; }
-   var masterNodeName = [];
-   for( var i in groups )
-   {
-      var cursor = db.list( SDB_LIST_GROUPS, { "GroupName": groups[i] } );
-      while( cursor.next() )
-      {
-         var groupInfo = cursor.current().toObj();
-         var primaryNode = groupInfo.PrimaryNode;
-         var nodeInfos = groupInfo.Group;
-         for( var i in nodeInfos )
-         {
-            if( nodeInfos[i].NodeID == primaryNode )
-            {
-               var service = nodeInfos[i].Service;
-               for( var j in service )
-               {
-                  if( service[j].Type == 0 )
-                  {
-                     svcname = service[j].Name;
-                  }
-                  break;
-               }
-               masterNodeName.push( nodeInfos[i].HostName + ":" + svcname );
-            }
-         }
-      }
-      cursor.close();
-   }
-   return masterNodeName;
-}
-
-/************************************************************************
-*@Description: 校验启动Critical模式
-*@input: groupName      指定的group
-         properties     校验的properties信息
-**************************************************************************/
-function checkStartCriticalMode ( db, groupName, properties )
-{
-   var groupMode = "critical";
-
-   // 只校验NodeName和Location字段
-   delete properties.MinKeepTime;
-   delete properties.MaxKeepTime;
-   delete properties.NodeID;
-   delete properties.LocationID;
-
-   var cursor = db.list( SDB_LIST_GROUPMODES, { GroupID: groupName } );
-   while( cursor.next() )
-   {
-      var groupModeInfo = cursor.current().toObj();
-      var actGroupMode = groupModeInfo["GroupMode"];
-      var actProperties = groupModeInfo["Properties"][0];
-      println( JSON.stringify( actProperties ) );
-      delete actProperties.MinKeepTime;
-      println( JSON.stringify( actProperties ) );
-      delete actProperties.MaxKeepTime;
-      println( JSON.stringify( actProperties ) );
-      delete actProperties.UpdateTime;
-      println( JSON.stringify( actProperties ) );
-
-      assert.equal( actGroupMode, groupMode );
-      assert.equal( actProperties, properties );
-   }
-   cursor.close();
-}
-
-/************************************
-*@Description: bulk insert data
-*@author:      wuyan
-*@createDate:  2021.04.02
-**************************************/
-function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
-{
-   if( undefined == recordStart ) { recordStart = 0; }
-   if( undefined == recordEnd ) { recordEnd = recordNum; }
-   try
-   {
-      var doc = [];
-      for( var i = 0; i < recordNum; i++ )
-      {
-         var bValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
-         doc.push( { a: i, b: bValue, c: i, no: i } );
-      }
-      dbcl.insert( doc );
-      println( "---bulk insert data success" );
-   }
-   catch( e )
-   {
-      throw buildException( "insertBulkData()", e, "insert", "insert data :" + JSON.stringify( doc ), "insert fail" );
-   }
-   return doc;
 }

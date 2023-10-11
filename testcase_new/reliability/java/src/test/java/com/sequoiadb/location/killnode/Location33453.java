@@ -59,7 +59,9 @@ public class Location33453 extends SdbTestBase {
         expandGroupName = SdbTestBase.expandGroupNames.get( 0 );
         LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
                 primaryLocation, sameCityLocation, offsiteLocation );
-        CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName, 120 );
+        if ( !CommLib.isLSNConsistency( sdb, expandGroupName ) ) {
+            Assert.fail( "LSN is not consistency" );
+        }
 
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );

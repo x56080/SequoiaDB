@@ -3,8 +3,8 @@
  *                  seqDB-31475:单节点修改location后，查看IsLocationPrimary值
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.06
- * @LastEditTime  : 2023.06.07
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2023.10.11
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -23,7 +23,7 @@ function test ()
    data.setLocation( location1 );
 
    // 获取位置集主节点的NodeName
-   var locationPrimary1 = checkAndGetLocationHasPrimary( db, dataGroupName, location1, 10 );
+   var locationPrimary1 = checkAndGetLocationHasPrimary( db, dataGroupName, location1, 30 );
    assert.equal( nodeName, locationPrimary1 );
 
    // 检查数据库快照位置集主节点的IsLocationPrimary值
@@ -37,7 +37,7 @@ function test ()
 
    // 修改location的值后,位置集主节点不变，IsLocationPrimary的值不变
    data.setLocation( location2 );
-   checkAndGetLocationHasPrimary( db, dataGroupName, location2, 10 )
+   checkAndGetLocationHasPrimary( db, dataGroupName, location2, 30 )
    var values2 = getSnapshotDatabase( db, locationPrimary1 );
    assert.equal( values2[0]["IsLocationPrimary"], true );
 

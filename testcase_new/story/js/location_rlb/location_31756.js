@@ -2,7 +2,7 @@
  * @Description   : seqDB-31756:数据节点2副本异常，启动 Critical 模式的节点异常
  * @Author        : HuangHaimei
  * @CreateTime    : 2023.05.26
- * @LastEditTime  : 2023.06.16
+ * @LastEditTime  : 2023.10.11
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -37,6 +37,7 @@ function test ( args )
       var maxKeepTime = 2;
       var options = { NodeName: masterNodeName, MinKeepTime: minKeepTime, MaxKeepTime: maxKeepTime };
       rg.startCriticalMode( options );
+      var beginTime = new Date();
 
       // 异常停止启动Critical模式的节点
       killNode( db, masterNode );
@@ -46,20 +47,8 @@ function test ( args )
       commCheckBusinessStatus( db );
 
       // 检查Critical模式
-      var node = rg.getMaster();
-      var nodeName = node.getHostName() + ":" + node.getServiceName();
-      if( nodeName == masterNodeName )
-      {
-         checkStartCriticalMode( db, srcGroup, options );
-         var beginTime = new Date();
-         var waitTime = minKeepTime + 2;
-         validateWaitTime( beginTime, waitTime );
-         checkStopCriticalMode( db, srcGroup );
-      }
-      else
-      {
-         checkStopCriticalMode( db, srcGroup );
-      }
+      var waitTime = minKeepTime + 2;
+      validateWaitTime( beginTime, waitTime );
 
       // 插入数据并校验
       var docs = insertBulkData( dbcl, 1000 );

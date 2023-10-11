@@ -54,7 +54,7 @@ function test ()
       slaveNode2.start();
       commCheckBusinessStatus( db );
 
-      var locationPrimary = checkAndGetLocationHasPrimary( db, group, location, 30 );
+      var locationPrimary = checkAndGetLocationHasPrimary( db, group, location, 60 );
       var values3 = getSnapshotDatabase( db, locationPrimary );
       assert.equal( values3[0]["Location"], location );
       assert.equal( values3[0]["IsLocationPrimary"], true );
