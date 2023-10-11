@@ -40,8 +40,6 @@
 #include "oss.hpp"
 #include <boost/thread.hpp>
 #include <boost/thread/cv_status.hpp>
-#include <mutex>
-#include <condition_variable>
 
 namespace engine
 {
@@ -101,8 +99,8 @@ namespace engine
       INT32 reset() ;
 
    protected:
-      std::mutex              _mutex ;
-      std::condition_variable _cond ;
+      boost::mutex              _mutex ;
+      boost::condition_variable _cond ;
       UINT32                  _signal ;
    };
 
