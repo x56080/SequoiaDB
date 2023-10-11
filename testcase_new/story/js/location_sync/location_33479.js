@@ -2,7 +2,7 @@
  * @Description   : seqDB-33479:节点处于运维模式，查看快照
  * @Author        : liuli
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.10.09
+ * @LastEditTime  : 2023.10.11
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -57,7 +57,6 @@ function test ()
       var obj = cursor.current().toObj();
       var actNodeName = obj["NodeName"];
       var actStatus = obj["Status"];
-      snapshotNodes.push( obj["NodeName"] );
    }
    cursor.close();
    assert.equal( actNodeName, slaveNodeNames[0], JSON.stringify( obj ) );
@@ -71,7 +70,6 @@ function test ()
       var obj = cursor.current().toObj();
       var actNodeName = obj["NodeName"];
       var actStatus = obj["Status"];
-      snapshotNodes.push( obj["NodeName"] );
    }
    cursor.close();
    assert.equal( actNodeName, slaveNodeNames[0], JSON.stringify( obj ) );
