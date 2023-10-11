@@ -608,6 +608,25 @@ public class LocationUtils {
     }
 
     /**
+     * @description: 检测复制组处于maintenance模式
+     * @param db
+     *            db连接
+     * @param groupName
+     *            复制组名
+     */
+    public static void checkGroupInMaintenanceMode( Sequoiadb db,
+                                                 String groupName ) {
+        ReplicaGroup group = db.getReplicaGroup( groupName );
+        BasicBSONObject groupInfo = ( BasicBSONObject ) group.getDetail();
+        String mode = groupInfo.getString( "GroupMode" );
+        if ( mode == null || !mode.equals( "maintenance" ) ) {
+            Assert.fail(
+                    "group " + groupName + " is not in maintenance mode, detail:"
+                            + groupInfo.toString() );
+        }
+    }
+
+    /**
      * @description: 检测复制组退出critical模式
      * @param db
      *            db连接
