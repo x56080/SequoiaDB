@@ -1389,38 +1389,6 @@ public class CommLib {
     }
 
     /**
-     * 等待复制组所在主备节点CompleteLSN一致 *
-     *
-     * @param db
-     *            new db连接
-     * @param groupName
-     *            组名
-     * @param timeOut
-     *            等待超时时间
-     */
-    public static void waitLSNConsistency( Sequoiadb db, String groupName,
-            int timeOut ) {
-        boolean isConsistency = false;
-        int doTime = 0;
-        while ( doTime < timeOut ) {
-            isConsistency = isLSNConsistency( db, groupName );
-            if ( isConsistency ) {
-                break;
-            }
-            try {
-                Thread.sleep( 1000 );
-            } catch ( InterruptedException e ) {
-                throw new RuntimeException( e );
-            }
-            doTime++;
-        }
-        if ( doTime >= timeOut ) {
-            Assert.fail(
-                    "failed to wait LSN consistency within the expected time" );
-        }
-    }
-
-    /**
      * @description: 等待group中选出主节点
      * @param db
      *            需要获取group的db连接
@@ -1539,7 +1507,7 @@ public class CommLib {
     }
 
     public static ArrayList< BSONObject > insertData( DBCollection dbcl,
-                                                      int recordNum, int length ) {
+            int recordNum, int length ) {
         ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
         int batchNum = 5000;
         if ( recordNum < batchNum ) {
@@ -1568,7 +1536,7 @@ public class CommLib {
     }
 
     public static void checkRecords( DBCollection dbcl,
-                                     List< BSONObject > expRecords, BasicBSONObject orderBy ) {
+            List< BSONObject > expRecords, BasicBSONObject orderBy ) {
         DBCursor cursor = dbcl.query( null, null, orderBy, null );
 
         int count = 0;
@@ -1589,7 +1557,7 @@ public class CommLib {
     }
 
     public static ArrayList< BSONObject > insertData( DBCollection dbcl,
-                                                      int recordNum ) {
+            int recordNum ) {
         return insertData( dbcl, recordNum, 50 );
     }
 

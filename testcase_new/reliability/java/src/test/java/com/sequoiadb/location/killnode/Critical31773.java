@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sequoiadb.base.*;
+import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.location.LocationUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -14,31 +15,28 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.commlib.CommLib;
-import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.ReliabilityException;
 
 /**
- * @Description seqDB-31331:集合设置ReplSize为3，主位置多数派优先，PrimaryLocation中备节点全部异常
- * @Author liuli
- * @Date 2023.05.05
- * @UpdateAuthor liuli
- * @UpdateDate 2023.05.05
- * @version 1.10
+ * @version 1.0
+ * @Description seqDB-31773:Critical模式中修改ActiveLocation
+ * @Author TangTao
+ * @Date 2023.05.26
+ * @UpdateAuthor TangTao
+ * @UpdateDate 2023.05.26
  */
 @Test(groups = "location")
-public class Location31331 extends SdbTestBase {
+public class Critical31773 extends SdbTestBase {
 
     private Sequoiadb sdb = null;
-    private GroupMgr groupMgr;
     private DBCollection dbcl = null;
-    private String csName = "cs_31331";
-    private String clName = "cl_31331";
-    private String primaryLocation = "guangzhou.nansha_31331";
-    private String sameCityLocation = "guangzhou.panyu_31331";
-    private String offsiteLocation = "shenzhan.nanshan_31331";
-    private List< BSONObject > batchRecords;
-    private int recordNum = 200000;
+    private GroupMgr groupMgr;
+    private String csName = "cs_31773";
+    private String clName = "cl_31773";
+    private String primaryLocation = "guangzhou.nansha_31773";
+    private String sameCityLocation = "guangzhou.panyu_31773";
+    private int recordNum = 10000;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -50,8 +48,11 @@ public class Location31331 extends SdbTestBase {
         if ( !groupMgr.checkBusiness( 120, true, SdbTestBase.coordUrl ) ) {
             throw new SkipException( "checkBusiness return false" );
         }
-        LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
-                primaryLocation, sameCityLocation, offsiteLocation );
+        LocationUtils.setTwoLocationInSameCity( sdb, expandGroupName,
+                primaryLocation, sameCityLocation );
+        sdb.getReplicaGroup( expandGroupName )
+                .setActiveLocation( primaryLocation );
+
         if ( !CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName ) ) {
             Assert.fail( "LSN is not consistency" );
         }
@@ -61,50 +62,54 @@ public class Location31331 extends SdbTestBase {
         }
 
         CollectionSpace dbcs = sdb.createCollectionSpace( csName );
-
-        BasicBSONObject option1 = new BasicBSONObject();
-        option1.put( "ReplSize", 3 );
-        option1.put( "ConsistencyStrategy", 3 );
-        option1.put( "Group", SdbTestBase.expandGroupNames.get( 0 ) );
-        dbcl = dbcs.createCollection( clName, option1 );
     }
 
     @Test
     public void test() throws ReliabilityException {
-        String groupName = SdbTestBase.expandGroupNames.get( 0 );
+        String groupName = SdbTestBase.expandGroupName;
         ReplicaGroup group = sdb.getReplicaGroup( groupName );
-
-        ArrayList< BasicBSONObject > primaryLocationSlaveNodes = LocationUtils
-                .getGroupLocationSlaveNodes( sdb, groupName, primaryLocation );
+        ArrayList< BasicBSONObject > primaryLocationNodes = LocationUtils
+                .getGroupLocationNodes( sdb, groupName, primaryLocation );
         ArrayList< BasicBSONObject > sameCityLocationNodes = LocationUtils
                 .getGroupLocationNodes( sdb, groupName, sameCityLocation );
 
-        // 停止 PrimaryLocation 中的备节点
-        for ( BasicBSONObject primaryLocationSlaveNode : primaryLocationSlaveNodes ) {
-            String nodeName = primaryLocationSlaveNode.getString( "hostName" )
-                    + ":" + primaryLocationSlaveNode.getString( "svcName" );
-            Node node = group.getNode( nodeName );
-            node.stop();
-        }
+        // 主中心异常停止，然后stop节点模拟故障无法启动
+        LocationUtils.stopNodeAbnormal( sdb, groupName, primaryLocationNodes );
 
-        batchRecords = CommLib.insertData( dbcl, recordNum );
-        // 校验数据已经同步到具有亲和性的Location
-        LocationUtils.checkRecordSync( csName, clName, recordNum,
-                sameCityLocationNodes );
+        // 同城备中心启动Critical模式
+        BasicBSONObject options1 = new BasicBSONObject();
+        options1.put( "MinKeepTime", 5 );
+        options1.put( "MaxKeepTime", 10 );
+        options1.put( "Location", sameCityLocation );
+        group.startCriticalMode( options1 );
+        BasicBSONObject criticalInfo = LocationUtils.getGroupCriticalInfo( sdb,
+                groupName );
 
-        for ( BasicBSONObject primaryLocationSlaveNode : primaryLocationSlaveNodes ) {
-            String nodeName = primaryLocationSlaveNode.getString( "hostName" )
-                    + ":" + primaryLocationSlaveNode.getString( "svcName" );
-            Node node = group.getNode( nodeName );
-            node.start();
-        }
+        group.setActiveLocation( sameCityLocation );
+
+        BasicBSONObject criticalInfoNew = LocationUtils
+                .getGroupCriticalInfo( sdb, groupName );
+        Assert.assertEquals( criticalInfo.getString( "Location" ),
+                criticalInfoNew.getString( "Location" ),
+                "criticalInfo is not equal" );
+
+        // 创建集合、插入数据并校验
+        BasicBSONObject option = new BasicBSONObject();
+        option.put( "Group", expandGroupName );
+        dbcl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                option );
+
+        List< BSONObject > batchRecords1 = CommLib.insertData( dbcl,
+                recordNum );
+        BasicBSONObject orderBy = new BasicBSONObject( "a", 1 );
+        CommLib.checkRecords( dbcl, batchRecords1, orderBy );
 
         // 集群环境恢复后校验数据
+        group.start();
+        group.stopCriticalMode();
         Assert.assertTrue(
                 groupMgr.checkBusiness( 600, true, SdbTestBase.coordUrl ),
                 "failed to restore business" );
-        BasicBSONObject orderBy = new BasicBSONObject( "a", 1 );
-        CommLib.checkRecords( dbcl, batchRecords, orderBy );
     }
 
     @AfterClass
@@ -122,4 +127,5 @@ public class Location31331 extends SdbTestBase {
             sdb.close();
         }
     }
+
 }

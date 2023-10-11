@@ -308,7 +308,6 @@ function getGroupMasterNodeName ( db, groups )
    return masterNodeName;
 }
 
-
 /************************************************************************
 *@Description: 校验复制组中ActiveLocation字段
 *@input: db            

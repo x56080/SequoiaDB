@@ -62,7 +62,9 @@ public class Critical31780 extends SdbTestBase {
                 sameCityLocation );
         sdb.getReplicaGroup( groupName ).setActiveLocation( primaryLocation );
 
-        CommLib.waitLSNConsistency( sdb, groupName, 30 );
+        if ( !CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName ) ) {
+            Assert.fail( "LSN is not consistency" );
+        }
 
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
@@ -135,7 +137,9 @@ public class Critical31780 extends SdbTestBase {
                 throw e;
             }
         }
-        CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName, 30 );
+        if ( !CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName ) ) {
+            Assert.fail( "LSN is not consistency" );
+        }
         LocationUtils.checkGroupStopCriticalMode( sdb, groupName );
 
         BasicBSONObject option = new BasicBSONObject();

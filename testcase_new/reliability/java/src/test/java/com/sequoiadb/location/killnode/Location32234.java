@@ -78,7 +78,9 @@ public class Location32234 extends SdbTestBase {
             String offsiteLocation ) throws ReliabilityException {
         LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
                 primaryLocation, sameCityLocation, offsiteLocation );
-        CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName, 120 );
+        if ( !CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName ) ) {
+            Assert.fail( "LSN is not consistency" );
+        }
 
         String groupName = SdbTestBase.expandGroupNames.get( 0 );
         ReplicaGroup group = sdb.getReplicaGroup( groupName );

@@ -233,8 +233,10 @@ public class SdbTestBase {
                 System.out.println( "expandNodeInfos -- " + expandNodeInfos );
                 // 扩容完成后校验LSN一致
                 CommLib.waitGroupSelectPrimaryNode( sdb, expandGroupName, 60 );
-                CommLib.waitLSNConsistency( sdb, SdbTestBase.expandGroupName,
-                        timeout );
+                if ( !CommLib.isLSNConsistency( sdb,
+                        SdbTestBase.expandGroupName ) ) {
+                    Assert.fail( "LSN is not consistency" );
+                }
             }
         }
 
@@ -261,7 +263,10 @@ public class SdbTestBase {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 for ( String expandGroupName : expandGroupNames ) {
-                    CommLib.waitLSNConsistency( sdb, expandGroupName, timeout );
+                    if ( !CommLib.isLSNConsistency( sdb,
+                            SdbTestBase.expandGroupName ) ) {
+                        Assert.fail( "LSN is not consistency" );
+                    }
                     System.out.println( "backupPath -- " + backupPath );
                     System.out.println( "backupPath.equals -- "
                             + ( !backupPath.equals( "" ) ) );
