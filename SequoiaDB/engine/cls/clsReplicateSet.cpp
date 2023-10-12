@@ -900,6 +900,7 @@ namespace engine
             }
             _locationActive = TRUE ;
             changedLocation = TRUE ;
+            _setElectionWeight( activeLocation ) ;
          }
       }
       else
@@ -943,40 +944,7 @@ namespace engine
             changedLocation = TRUE ;
          }
 
-         // Handle activeLocation and affinitiveLocation flag
-         if ( ! activeLocation.empty() )
-         {
-            if ( _locationInfo.localLocation == activeLocation )
-            {
-               // Add new activeLocation flag
-               _vote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-
-               // Add new affinitiveLocation flag
-               _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-            }
-            else
-            {
-               // Remove old activeLocation flag
-               _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
-
-               if ( utilCalAffinity( _locationInfo.localLocation.c_str(), activeLocation.c_str() ) )
-               {
-                  // Add new affinitiveLocation flag
-                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-               }
-               else
-               {
-                  // Remove old affinitiveLocation flag
-                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-               }
-            }
-         }
-         else
-         {
-            // Remove old activeLocation and affinitiveLocation flag
-            _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
-                                       CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
-         }
+         _setElectionWeight( activeLocation ) ;
       }
 
       if ( changedLocation )
@@ -1002,6 +970,45 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _clsReplicateSet::_setElectionWeight( const ossPoolString &activeLocation )
+   {
+      // Handle activeLocation and affinitiveLocation flag
+      if ( ! activeLocation.empty() )
+      {
+         if ( _locationInfo.localLocation == activeLocation )
+         {
+            // Add new activeLocation flag
+            _vote.setElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+
+            // Add new affinitiveLocation flag
+            _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+         }
+         else
+         {
+            // Remove old activeLocation flag
+            _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+
+            if ( utilCalAffinity( _locationInfo.localLocation.c_str(), activeLocation.c_str() ) )
+            {
+               // Add new affinitiveLocation flag
+               _vote.setElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+            }
+            else
+            {
+               // Remove old affinitiveLocation flag
+               _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+            }
+         }
+      }
+      else
+      {
+         // Remove old activeLocation and affinitiveLocation flag
+         _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION |
+                                    CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+      }
+      return ;
    }
 
    void _clsReplicateSet::_calLocationAffinity( const map<UINT64, _netRouteNode> &nodes,

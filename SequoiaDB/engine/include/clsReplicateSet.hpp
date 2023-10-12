@@ -630,6 +630,8 @@ namespace engine
                                  CLS_LOC_INFO_MAP &locationInfoMap,
                                  const ossPoolString &activeLocation ) ;
 
+         void _setElectionWeight( const ossPoolString &activeLocation ) ;
+
          BOOLEAN _isUDPHandle( NET_HANDLE handle ) ;
 
          INT32 _alive( const _MsgRouteID &id,
