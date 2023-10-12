@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.commlib.GroupMgr;
@@ -134,16 +135,12 @@ public class Critical31800 extends SdbTestBase {
                 "failed to restore business" );
 
         // 插入Lob并校验
-        byte[] testLobBuff = new byte[ 32 * 1024 ];
-        Arrays.fill( testLobBuff, ( byte ) 'a' );
-        ObjectId oid = dbcl1.putLob( testLobBuff );
-
-        byte[] actual = new byte[ testLobBuff.length ];
-        try ( DBLob lob = dbcl1.openLob( oid, DBLob.SDB_LOB_READ )) {
-            Assert.assertEquals( testLobBuff.length, lob.getSize() );
-            lob.read( actual );
-            Assert.assertEquals( testLobBuff, actual );
-        }
+        int lobtimes = 1;
+        LinkedBlockingQueue< LocationUtils.SaveOidAndMd5 > id2md5 = LocationUtils
+                .writeLobAndGetMd5( dbcl1, lobtimes );
+        List< LinkedBlockingQueue< LocationUtils.SaveOidAndMd5 > > id2md5List = new ArrayList<>();
+        id2md5List.add( id2md5 );
+        LocationUtils.ReadLob( dbcl1, id2md5List.get( 0 ) );
     }
 
     @AfterClass
