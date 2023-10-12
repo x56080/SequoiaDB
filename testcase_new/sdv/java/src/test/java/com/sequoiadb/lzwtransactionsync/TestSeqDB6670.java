@@ -34,6 +34,7 @@ public class TestSeqDB6670 extends SdbTestBase {
     private int port1;
     private int port2;
     private int port3;
+    private boolean runSuccess = false;
 
     @BeforeClass()
     public void setUp() {
@@ -148,6 +149,8 @@ public class TestSeqDB6670 extends SdbTestBase {
         if ( ( double ) after.get( "CurrentCompressionRatio" ) >= 1 ) {
             Assert.fail( "CurrentCompressionRatio >= 1 !" );
         }
+
+        runSuccess = true;
     }
 
     public BSONObject getSnapshotDetail() {
@@ -183,9 +186,11 @@ public class TestSeqDB6670 extends SdbTestBase {
 
     @AfterClass()
     public void tearDown() {
-        cs.dropCollection( clName );
-        if ( sdb.isReplicaGroupExist( rgName ) ) {
-            sdb.removeReplicaGroup( rgName );
+        if ( runSuccess ) {
+            cs.dropCollection( clName );
+            if ( sdb.isReplicaGroupExist( rgName ) ) {
+                sdb.removeReplicaGroup( rgName );
+            }
         }
         sdb.close();
     }
