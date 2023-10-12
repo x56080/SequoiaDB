@@ -2,8 +2,8 @@
  * @Description   : seqDB-31758:节点已经恢复，超过MinKeepTime自动停止 Critical 模式
  * @Author        : tangtao
  * @CreateTime    : 2023.05.24
- * @LastEditTime  : 2023.05.24
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -24,7 +24,6 @@ function test ( args )
    // 获取主节点
    var rg = db.getRG( srcGroup );
    var masterNode = rg.getMaster();
-   var masterNodeID = masterNode.getNodeDetail().split( ":" )[0];
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
@@ -42,7 +41,7 @@ function test ( args )
       rg.startCriticalMode( options );
 
       // 检查Critical模式
-      var properties = { NodeID: masterNodeID };
+      var properties = { NodeName: masterNodeName };
       checkStartCriticalMode( db, srcGroup, properties );
 
       var beginTime = new Date();
@@ -69,7 +68,7 @@ function test ( args )
       checkStopCriticalMode( db, srcGroup );
 
       // 插入数据并校验
-      var options = { ReplSize: 0, Group : srcGroup };
+      var options = { ReplSize: 0, Group: srcGroup };
       var dbcl2 = args.testCS.createCL( clName, options );
       var docs2 = insertBulkData( dbcl2, 1000 );
       var cursor = dbcl2.find().sort( { a: 1 } );

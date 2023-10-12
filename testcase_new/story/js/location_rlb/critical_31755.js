@@ -2,8 +2,8 @@
  * @Description   : seqDB-31755:数据节点2副本异常，重复启动 Critical 模式
  * @Author        : tangtao
  * @CreateTime    : 2023.05.24
- * @LastEditTime  : 2023.05.24
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -22,7 +22,6 @@ function test ( args )
    // 获取主节点
    var rg = db.getRG( srcGroup );
    var masterNode = rg.getMaster();
-   var masterNodeID = masterNode.getNodeDetail().split( ":" )[0];
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
@@ -48,7 +47,7 @@ function test ( args )
       assert.notEqual( properties1, properties2 );
 
       // 检查Critical模式
-      var properties = { NodeID: masterNodeID };
+      var properties = { NodeName: masterNodeName };
       checkStartCriticalMode( db, srcGroup, properties );
 
 

@@ -2,8 +2,8 @@
  * @Description   : seqDB-31761:超过MaxKeepTime节点未恢复，自动停止Critical模式
  * @Author        : tangtao
  * @CreateTime    : 2023.05.24
- * @LastEditTime  : 2023.05.24
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -23,7 +23,6 @@ function test ( args )
    // 获取主节点
    var rg = db.getRG( srcGroup );
    var masterNode = rg.getMaster();
-   var masterNodeID = masterNode.getNodeDetail().split( ":" )[0];
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
@@ -45,7 +44,7 @@ function test ( args )
       // 等待超过MinKeepTime
       var waitTime = minKeepTime + 1;
       validateWaitTime( beginTime, waitTime );
-      var properties = { NodeID: masterNodeID };
+      var properties = { NodeName: masterNodeName };
       checkStartCriticalMode( db, srcGroup, properties );
 
       // 等待超过MaxKeepTime

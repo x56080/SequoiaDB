@@ -2,8 +2,8 @@
  * @Description   : seqDB-31819:启动Critical模式同时指定NodeName和Location
  * @Author        : tangtao
  * @CreateTime    : 2023.06.05
- * @LastEditTime  : 2023.06.05
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -25,13 +25,10 @@ function test ( args )
    // 获取主节点
    var rg = db.getRG( srcGroup );
    var masterNode = rg.getMaster();
-   var masterNodeID = masterNode.getNodeDetail().split( ":" )[0];
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    var slaveNode1 = rg.getNode( slaveNodes[0] );
    var slaveNode2 = rg.getNode( slaveNodes[1] );
-   var salveNodeID1 = slaveNode1.getNodeDetail().split( ":" )[0];
-   var salveNodeID2 = slaveNode2.getNodeDetail().split( ":" )[0];
 
    // 节点设置Location
    masterNode.setLocation( location1 );
@@ -40,22 +37,26 @@ function test ( args )
    try
    {
       // 主节点启动Critical模式并检查Critical模式
-      var options = { NodeName: masterNodeName, Location: location1,
-                      MinKeepTime: 5, MaxKeepTime: 15 };
+      var options = {
+         NodeName: masterNodeName, Location: location1,
+         MinKeepTime: 5, MaxKeepTime: 15
+      };
       rg.startCriticalMode( options );
 
-      var properties1 = { NodeID: masterNodeID };
+      var properties1 = { NodeName: masterNodeName };
       checkStartCriticalMode( db, srcGroup, properties1 );
 
       // 恢复环境
       rg.stopCriticalMode();
 
       // 备节点启动Critical模式并检查Critical模式
-      var options = { NodeName: slaveNodes[1], Location: location1,
-                      MinKeepTime: 5, MaxKeepTime: 15 };
+      var options = {
+         NodeName: slaveNodes[1], Location: location1,
+         MinKeepTime: 5, MaxKeepTime: 15
+      };
       rg.startCriticalMode( options );
 
-      var properties2 = { NodeID: salveNodeID2 };
+      var properties2 = { NodeName: slaveNodes[1] };
       checkStartCriticalMode( db, srcGroup, properties2 );
 
       // 恢复环境

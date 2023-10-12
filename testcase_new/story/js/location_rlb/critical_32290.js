@@ -2,8 +2,8 @@
  * @Description   : seqDB-32290:集群指定节点开启critical模式，组内重选举
  * @Author        : tangtao
  * @CreateTime    : 2023.07.04
- * @LastEditTime  : 2023.07.04
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -20,7 +20,6 @@ function test ( args )
 
    // 获取主节点
    var rg = db.getRG( srcGroup );
-   var masterNode = rg.getMaster();
 
    var slaveNode1 = rg.getNode( slaveNodes[0] );
    var slaveNode2 = rg.getNode( slaveNodes[1] );
@@ -30,7 +29,7 @@ function test ( args )
    // 备节点启动Critical模式并检查Critical模式
    var options = { NodeName: slaveNodes[0], MinKeepTime: 5, MaxKeepTime: 15 };
    rg.startCriticalMode( options );
-   var properties1 = { NodeID: salveNodeID1 };
+   var properties1 = { NodeName: slaveNodes[0] };
    checkStartCriticalMode( db, srcGroup, properties1 );
 
    // 重选举并校验主节点
@@ -47,7 +46,7 @@ function test ( args )
    // 另一个备节点启动Critical模式并检查Critical模式
    var options = { NodeName: slaveNodes[1], MinKeepTime: 5, MaxKeepTime: 15 };
    rg.startCriticalMode( options );
-   var properties2 = { NodeID: salveNodeID2 };
+   var properties2 = { NodeName: slaveNodes[1] };
    checkStartCriticalMode( db, srcGroup, properties2 );
 
    // 重选举并校验主节点

@@ -2,8 +2,8 @@
  * @Description   : seqDB-31820:startCriticalMode接口参数校验
  * @Author        : tangtao
  * @CreateTime    : 2023.06.05
- * @LastEditTime  : 2023.06.05
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -26,7 +26,6 @@ function test ( args )
    // 获取主节点
    var rg = db.getRG( srcGroup );
    var masterNode = rg.getMaster();
-   var masterNodeID = masterNode.getNodeDetail().split( ":" )[0];
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    var slaveNode1 = rg.getNode( slaveNodes[0] );
