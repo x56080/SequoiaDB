@@ -51,7 +51,7 @@ public class SequoiadbDatasource {
     private String _username = null;
     private String _password = null;
     private ConfigOptions _normalNwOpt = null;
-    private ConfigOptions _abnormalNwOpt = null;
+    private ConfigOptions _internalNwOpt = null;
     private ConfigOptions _userNwOpt = null;
     private DatasourceOptions _dsOpt = null;
     private long _currentSequenceNumber = 0;
@@ -73,7 +73,7 @@ public class SequoiadbDatasource {
     private static final int _deleteInterval = 180000; // 3min
     // for error report
     private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
-    private static final int MIN_CONNECTION_TIME = 100; // 100ms
+    private static final int FAST_CONNECTION_TIME = 200; // 200ms
     private static Log log = LogFactory.getLog(SequoiadbDatasource.class);
 
     private boolean needUpdateLocation = false;
@@ -227,7 +227,7 @@ public class SequoiadbDatasource {
                 for (ServerAddress serAddr : serAddrLst) {
                     Sequoiadb db = null;
                     try {
-                        db = new Sequoiadb(serAddr.getAddress(), _username, _password, _abnormalNwOpt);
+                        db = new Sequoiadb(serAddr.getAddress(), _username, _password, _internalNwOpt);
                         addrMgr.enableAddress(serAddr.getAddress());
                         log.debug(String.format("Change abnormal address %s to normal address", serAddr.getAddress()));
                     } catch (Exception e) {
@@ -551,7 +551,7 @@ public class SequoiadbDatasource {
                     "new %s", _dsOpt.toString(), dsOpt.toString()));
             // update network block timeout
             _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
-            _abnormalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
+            _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
 
             // when _maxCount is set to 0, disable data source and return
             if (_dsOpt.getMaxCount() == 0) {
@@ -961,7 +961,7 @@ public class SequoiadbDatasource {
         try {
             // used inside of the connection pool
             _normalNwOpt = (ConfigOptions) temp.clone();
-            _abnormalNwOpt = (ConfigOptions) temp.clone();
+            _internalNwOpt = (ConfigOptions) temp.clone();
             // used outside of the connection pool
             _userNwOpt = (ConfigOptions) temp.clone();
         } catch (CloneNotSupportedException e) {
@@ -970,10 +970,10 @@ public class SequoiadbDatasource {
         // set the network block timeout inside the connection pool
         // to avoid socket stuck due to network errors.
         _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
-        _abnormalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
-        // to reduce the connection time of abnormal address
-        _abnormalNwOpt.setConnectTimeout(MIN_CONNECTION_TIME);  // 100ms
-        _abnormalNwOpt.setMaxAutoConnectRetryTime(0);  //0ms
+        _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
+        // for fast connection, no need to set retry
+        _internalNwOpt.setConnectTimeout(FAST_CONNECTION_TIME);
+        _internalNwOpt.setMaxAutoConnectRetryTime(0);
 
         if (!addrMgr.getLocation().isEmpty()) {
             updateLocationInfo();
@@ -1123,7 +1123,14 @@ public class SequoiadbDatasource {
 
     private Sequoiadb createConnByAddr(Timer timer) throws BaseException {
         try {
-            Sequoiadb db = createConnByNormalAddr(timer);
+            // quickly skip unavailable addresses
+            Sequoiadb db = fastCreateConn(timer);
+            if (db != null) {
+                return db;
+            }
+
+            // create connection with normal timeout
+            db = createConnByNormalAddr(timer);
             if (db == null) {
                 db = createConnByAbnormalAddr(timer);
             }
@@ -1144,6 +1151,49 @@ public class SequoiadbDatasource {
         } catch (Exception e) {
             throw new BaseException(SDBError.SDB_SYS, e);
         }
+    }
+
+    private Sequoiadb fastCreateConn(Timer timer) throws BaseException {
+        Sequoiadb db = null;
+        ServerAddress serAddr;
+        List<ServerAddress> serAddrLst = addrMgr.getAddress();
+
+        while (!serAddrLst.isEmpty()) {
+            if (timer.isTimeout()) {
+                throw new BaseException(SDBError.SDB_TIMEOUT, "Get connection timeout: " + timer.getOriginTime());
+            }
+
+            // check disable
+            if (_isDatasourceOn) {
+                serAddr = _strategy.selectAddress(serAddrLst);
+            } else {
+                serAddr = serAddrLst.get(_rand.nextInt(serAddrLst.size()));
+            }
+
+            if (serAddr == null) {
+                break;
+            }
+
+            long startTime = System.currentTimeMillis();
+            try {
+                // use _internalNwOpt to quickly skip unavailable addresses
+                db = new Sequoiadb(serAddr.getAddress(), _username, _password, _internalNwOpt);
+                clearLastException();
+                break;
+            } catch (BaseException e) {
+                _setLastException(e);
+                if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
+                    throw e;
+                }
+                serAddrLst.remove(serAddr);
+            } finally {
+                timer.consumeTime(startTime);
+            }
+        }
+
+        return db;
     }
 
     private Sequoiadb createConnByNormalAddr(Timer timer) throws BaseException {
@@ -1215,9 +1265,8 @@ public class SequoiadbDatasource {
                 long startTime = System.currentTimeMillis();
                 String addr = serAddr.getAddress();
                 try {
-                    // it takes very little time to create a connection with an abnormal address,
-                    // so there is no need to use the timer to rest the connection timeout
-                    retConn = new Sequoiadb(addr, _username, _password, _abnormalNwOpt);
+                    // it takes very little time to create a connection with an abnormal address
+                    retConn = new Sequoiadb(addr, _username, _password, _internalNwOpt);
                     clearLastException();
                 } catch (BaseException e) {
                     _setLastException(e);
@@ -1225,8 +1274,7 @@ public class SequoiadbDatasource {
                 } catch (Exception e) {
                     _setLastException(new BaseException(SDBError.SDB_SYS, e));
                     continue;
-                }
-                finally {
+                } finally {
                     timer.consumeTime(startTime);
                 }
                 addrMgr.enableAddress(addr);
@@ -1467,7 +1515,7 @@ public class SequoiadbDatasource {
     }
 
     private void updateConnConf(Sequoiadb sdb, ConfigOptions config){
-        // the difference of _normalNwOpt, _abnormalNwOpt and _userNwOpt:
+        // the difference of _normalNwOpt, _internalNwOpt and _userNwOpt:
         // 1. maxAutoConnectRetryTime, used to create connection, without updating
         // 2. connectTimeout, used to create connection, without updating
         // 3. socketTimeout, used for I/O socket read operations, need updating
@@ -1693,7 +1741,7 @@ public class SequoiadbDatasource {
             return;
         }
 
-        long time = Math.max(timer.getTime(), MIN_CONNECTION_TIME);
+        long time = Math.max(timer.getTime(), FAST_CONNECTION_TIME);
 
         long retryTimeOut = Math.min(time, netOpt.getMaxAutoConnectRetryTime());
         long connTimeout = netOpt.getConnectTimeout();

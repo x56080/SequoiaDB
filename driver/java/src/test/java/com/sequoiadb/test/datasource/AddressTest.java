@@ -404,4 +404,66 @@ public class AddressTest {
             ds.releaseConnection(db);
         }
     }
+
+    @Test
+    public void unavailableAddressTest() throws Exception {
+        node1.stop();
+        // node2 had stopped
+        node3.stop();
+
+        List<String> addressList = new ArrayList<>();
+        // unavailable address
+        addressList.add(node1.getNodeName());
+        addressList.add(node2.getNodeName());
+        addressList.add(node3.getNodeName());
+        // normal address
+        addressList.add(node4.getNodeName());
+
+        String nodeAddr = Helper.parseAddress(node4.getNodeName());
+
+        // case 1: enable conn pool
+        unavailableAddressWithStatusTest(true, addressList, nodeAddr);
+
+        // case 2: disable conn pool
+        unavailableAddressWithStatusTest(false, addressList, nodeAddr);
+    }
+
+    private void unavailableAddressWithStatusTest(boolean enable, List<String> addressList, String expectedAddr) throws Exception {
+
+        int connTimeOut = 3 * 1000; // 3s
+        int maxRetryTime = 3 * 1000; // 3s
+
+        ConfigOptions netConfig = new ConfigOptions();
+        netConfig.setConnectTimeout(connTimeOut);
+        netConfig.setMaxAutoConnectRetryTime(maxRetryTime);
+
+        int maxCount = 20;
+        options.setMaxCount(maxCount);
+        options.setConnectStrategy(ConnectStrategy.SERIAL);
+        options.setSyncCoordInterval(0);
+
+        ds = SequoiadbDatasource.builder()
+                .configOptions(netConfig)
+                .serverAddress(addressList)
+                .datasourceOptions(options)
+                .build();
+
+        if (!enable) {
+            ds.disableDatasource();
+        }
+
+        long t1 = System.currentTimeMillis();
+        Sequoiadb db = ds.getConnection(2000); // 2s
+        long t2 = System.currentTimeMillis();
+        System.out.println("get conn time: " + (t2 - t1) + "ms");
+
+        // check conn
+        Assert.assertEquals(addressList.size(), ds.getNormalAddrNum());
+        Assert.assertNotNull(db);
+        Assert.assertTrue(db.isValid());
+        Assert.assertEquals(expectedAddr, db.getNodeName());
+
+        ds.releaseConnection(db);
+        ds.close();
+    }
 }
