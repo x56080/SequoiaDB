@@ -182,7 +182,8 @@ namespace engine
                     DMS_LOB_META_SU_EXT_NAME ) ||
                     rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
                     DMS_COLLECTION_SPACE_NAME_SZ, sequence,
-                    DMS_LOB_DATA_SU_EXT_NAME ) )
+                    DMS_LOB_DATA_SU_EXT_NAME ) ||
+                    SDB_FILE_RENAME_INFO == rtnParseFileName( fileName.c_str() ) )
                {
                   const std::string pathName = dir_iter->path().string() ;
                   rc = ossDelete( pathName.c_str() ) ;
@@ -581,6 +582,7 @@ namespace engine
 
          // clean dms storages
          std::cout << "Begin to clean dms storages..." << std::endl ;
+
          rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getDbPath() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to clean data[%s] su, rc: %d",
                       pmdGetOptionCB()->getDbPath(), rc ) ;
@@ -672,6 +674,7 @@ namespace engine
       clsRecycleBinManager recycleBinMgr ;
       rsOptionMgr optMgr ;
       BSONObj baseConf ;
+      BOOLEAN hasRegHandlers = FALSE ;
 
       // 1. read command line first
       rc = resolveArguments( argc, argv, optMgr ) ;
@@ -786,6 +789,7 @@ namespace engine
          std::cerr << "register recycle bin manager failed, " << rc << std::endl ;
          return rc ;
       }
+      hasRegHandlers = TRUE ;
 
       // {
       //    EVP_PKEY *pKey = NULL ;
@@ -802,7 +806,7 @@ namespace engine
 
       //    // rc = utilSecReadMKPair( mkPrivateContent, &pKey, FALSE, TRUE );
       // }
-      
+
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
       rc = startRestoreJob( &agentEDU, &restoreLogger ) ;
@@ -822,8 +826,11 @@ namespace engine
       rc = krcb->getShutdownCode() ;
 
    done :
-      // unregister recycle bin manager
-      sdbGetDMSCB()->unregHandler( &recycleBinMgr ) ;
+      if ( hasRegHandlers )
+      {
+         // unregister recycle bin manager
+         sdbGetDMSCB()->unregHandler( &recycleBinMgr ) ;
+      }
       recycleBinMgr.fini() ;
 
       PMD_SHUTDOWN_DB( rc ) ;
