@@ -662,6 +662,7 @@ namespace engine
       std::map<UINT64, _clsSharingStatus>::iterator itr2 ;
       CLS_LOC_INFO_MAP::const_iterator locItr ;
       changeStatus = FALSE ;
+      UINT8 remoteLocationNodeSize = 0 ;
 
       _info.version = version ;
 
@@ -760,16 +761,25 @@ namespace engine
                itr2->second.isAffinitiveLocation = locItr->second._isAffinitiveLocation ;
                itr2->second.locationID = locItr->second._locationID ;
                itr2->second.locationIndex = locItr->second._locationIndex ;
+               if ( !itr2->second.isAffinitiveLocation )
+               {
+                  remoteLocationNodeSize++ ;
+               }
             }
             else
             {
                itr2->second.isAffinitiveLocation = FALSE ;
                itr2->second.locationID = MSG_INVALID_LOCATIONID ;
                itr2->second.locationIndex = 0xFF ;
+               remoteLocationNodeSize++ ;
             }
             ++itr2 ;
          }
       } // for ( ; itr2 != _info.info.end(); itr2++ )
+
+      _info.mtx.lock_w() ;
+      _info.remoteLocationNodeSize = remoteLocationNodeSize ;
+      _info.mtx.release_w() ;
 
       _sync.updateNotifyList( TRUE ) ;
 
@@ -2650,7 +2660,7 @@ namespace engine
       if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
       {
          finalW = w ;
-         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
+         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode(), _remoteLocationConsistency ) ;
          goto done ;
       }
 
@@ -2793,7 +2803,7 @@ namespace engine
          timeout += OSS_ONE_SEC ;
          continue ;
       }
-      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
+      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode(), _remoteLocationConsistency ) ;
 
    done:
       if ( hasBlock )

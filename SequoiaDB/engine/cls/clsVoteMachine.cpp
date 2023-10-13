@@ -375,6 +375,7 @@ namespace engine
          // Save global group mode to _clsSharingStatus
          VEC_GRPMODE_ITEM::const_iterator grpModeItr ;
          CLS_NODE_STATUS_MAP::iterator nodeItr = _groupInfo->info.begin() ;
+         UINT8 remoteLocationNodeSize = 0 ;
 
          while ( _groupInfo->info.end() != nodeItr )
          {
@@ -397,7 +398,18 @@ namespace engine
             {
                status.grpMode = CLS_GROUP_MODE_NONE ;
             }
+
+            if ( !status.isAffinitiveLocation &&
+                 !status.isInMaintenanceMode() )
+            {
+               remoteLocationNodeSize ++ ;
+            }
+
             ++nodeItr ;
+         }
+         if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->grpMode.mode )
+         {
+            _groupInfo->remoteLocationNodeSize = remoteLocationNodeSize ;
          }
       }
 

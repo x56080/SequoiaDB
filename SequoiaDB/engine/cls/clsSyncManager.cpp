@@ -933,6 +933,10 @@ namespace engine
                }
                isMarked.setBit( _notifyList[i].locationIndex ) ;
             }
+            else if ( _notifyList[i].affinitive )
+            {
+               wakePlan.affinitiveNodes = 1 ;
+            }
          }
          plan.insert( wakePlan ) ;
       }

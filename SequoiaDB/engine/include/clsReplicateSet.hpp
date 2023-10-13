@@ -206,7 +206,7 @@ namespace engine
             UINT8 locations = 0 ;
             _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
             BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
-            UINT32 remoteNodeCnt = 0 ;
+            UINT32 remoteAliveNodeCnt = 0 ;
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
@@ -249,11 +249,10 @@ namespace engine
                locationID = pStatus->beat.locationID ;
                if ( MSG_INVALID_LOCATIONID != selfLocationID &&
                     isActiveLocation() &&
-                    selfLocationID != locationID &&
                     !pStatus->isAffinitiveLocation &&
                     !_remoteLocationConsistency )
                {
-                  ++remoteNodeCnt ;
+                  ++remoteAliveNodeCnt ;
                   continue ;
                }
 
@@ -312,10 +311,24 @@ namespace engine
                locationInfo->affinitiveLocations = affinitiveLocations ;
             }
 
-            if ( !_remoteLocationConsistency && remoteNodeCnt > 0 )
+            if ( !_remoteLocationConsistency && isActiveLocation() )
             {
-               nodeCnt -= remoteNodeCnt ;
-               aliveCnt -= remoteNodeCnt ;
+               if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
+               {
+                  const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
+
+                  // This is critical node mode, use alive node count
+                  if ( INVALID_NODEID != grpModeItem.nodeID )
+                  {
+                     nodeCnt -= remoteAliveNodeCnt ;
+                     aliveCnt -= remoteAliveNodeCnt ;
+                  }
+               }
+               else
+               {
+                  nodeCnt -= _info.remoteLocationNodeSize ;
+                  aliveCnt -= remoteAliveNodeCnt ;
+               }
                if ( NULL != locationInfo )
                {
                   locationInfo->affinitiveNodes = nodeCnt ;

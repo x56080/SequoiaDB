@@ -595,6 +595,8 @@ namespace engine
       BOOLEAN                            enforcedGrpMode ;
       CLS_GROUP_MODE                     localGrpMode ;
 
+      UINT8                              remoteLocationNodeSize ;
+
    private:
       UINT32 _hashCode ;
 
@@ -602,7 +604,7 @@ namespace engine
       _clsGroupInfo()
       : localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
         localLocationID( MSG_INVALID_LOCATIONID ), enforcedGrpMode( FALSE),
-        localGrpMode( CLS_GROUP_MODE_NONE ), _hashCode( 0 )
+        localGrpMode( CLS_GROUP_MODE_NONE ), remoteLocationNodeSize( 0 ), _hashCode( 0 )
       {
          local.value = 0 ;
          primary.value = 0 ;
@@ -629,6 +631,7 @@ namespace engine
          grpMode.reset() ;
          enforcedGrpMode = FALSE ;
          localGrpMode = CLS_GROUP_MODE_NONE ;
+         remoteLocationNodeSize = 0 ;
       }
 
       UINT32 nextBeatID()
