@@ -777,9 +777,12 @@ namespace engine
          }
       } // for ( ; itr2 != _info.info.end(); itr2++ )
 
-      _info.mtx.lock_w() ;
-      _info.remoteLocationNodeSize = remoteLocationNodeSize ;
-      _info.mtx.release_w() ;
+      if ( _info.remoteLocationNodeSize != remoteLocationNodeSize )
+      {
+         _info.mtx.lock_w() ;
+         _info.remoteLocationNodeSize = remoteLocationNodeSize ;
+         _info.mtx.release_w() ;
+      }
 
       _sync.updateNotifyList( TRUE ) ;
 
