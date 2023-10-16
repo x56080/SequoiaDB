@@ -68,6 +68,7 @@ public class SequoiadbDatasource {
     private volatile BSONObject _sessionAttr = null;
     // for others
     private final Random _rand = new Random(47);
+    private int minTimeOut = 0;
     private static final double MULTIPLE = 1.5;
     private volatile int _preDeleteInterval = 0;
     private static final int _deleteInterval = 180000; // 3min
@@ -972,7 +973,12 @@ public class SequoiadbDatasource {
         _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         // for fast connection, no need to set retry
-        _internalNwOpt.setConnectTimeout(FAST_CONNECTION_TIME);
+        if (_normalNwOpt.getConnectTimeout() == 0) {
+            minTimeOut = FAST_CONNECTION_TIME;
+        } else {
+            minTimeOut = Math.min(FAST_CONNECTION_TIME, _normalNwOpt.getConnectTimeout());
+        }
+        _internalNwOpt.setConnectTimeout(minTimeOut);
         _internalNwOpt.setMaxAutoConnectRetryTime(0);
 
         if (!addrMgr.getLocation().isEmpty()) {
@@ -1741,7 +1747,7 @@ public class SequoiadbDatasource {
             return;
         }
 
-        long time = Math.max(timer.getTime(), FAST_CONNECTION_TIME);
+        long time = Math.max(timer.getTime(), minTimeOut);
 
         long retryTimeOut = Math.min(time, netOpt.getMaxAutoConnectRetryTime());
         long connTimeout = netOpt.getConnectTimeout();
