@@ -2,8 +2,8 @@
  * @Description   : seqDB-33449:2个节点启动运维模式，节点未恢复停止运维模式
  * @Author        : tangtao
  * @CreateTime    : 2023.09.21
- * @LastEditTime  : 2023.09.21
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.10.16
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -47,15 +47,16 @@ function test ()
       } );
 
       var loop = 0;
-      while( loop < 10 )
+      // CI搭建集群将sharingbreak调整为20000
+      while( loop < 30 )
       {
          try
          {
-            group.getMaster();
+            var master = group.getMaster();
             loop++;
-            if( loop == 10 )
+            if( loop == 30 )
             {
-               assert.fail( "stop Maintenance Mode, group has master node" );
+               throw new Error( "stop Maintenance Mode, group has master node. " + master.getHostName() + ":" + master.getServiceName() );
             }
             sleep( 1000 );
          }
