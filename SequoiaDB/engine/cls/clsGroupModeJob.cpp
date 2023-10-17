@@ -174,7 +174,7 @@ namespace engine
       // MinKeepTime <= curTime < MaxKeepTime
       else if ( curTime.time < localItem.maxKeepTime.time )
       {
-         ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+         _info->mtx.lock_r() ;
 
          UINT32 aliveNum = _info->aliveSize() ;
          UINT32 nodeNum = _info->groupSize() ;
@@ -190,7 +190,7 @@ namespace engine
             const UINT64 diffOffset = CLS_CRITICAL_RESTORE_THRESHOLD * totalLogSize ;
             UINT64 minLsnOffset = expectLsn.offset > diffOffset ? expectLsn.offset - diffOffset : 0 ;
             UINT32 sucNum = _info->getAlivesByLsn( minLsnOffset ) ;
-
+            _info->mtx.release_r() ;
             // Check if majority nodes achieve a threshold lsn
             if ( ( nodeNum / 2 ) < sucNum )
             {
@@ -208,6 +208,7 @@ namespace engine
          }
          else
          {
+            _info->mtx.release_r() ;
             result = UTIL_LJOB_DO_CONT ;
          }
       }
