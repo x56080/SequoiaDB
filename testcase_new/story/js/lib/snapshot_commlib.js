@@ -16,7 +16,10 @@ function checkStatistics ( actStatistics, expStatistics )
          {
             for( var key in expStatistics[j] )
             {
-               assert.equal( expStatistics[i][key], actStatistics[j][key] );
+               assert.equal( actStatistics[j][key], expStatistics[i][key],
+                  "Filed " + key + "is not equal, expStatistics = " +
+                  JSON.stringify( expStatistics[i], "", 1 ) + ",actStatistics = " +
+                  JSON.stringify( actStatistics[j], "", 1 ) );
             }
             break;
          }
