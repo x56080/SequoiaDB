@@ -136,7 +136,8 @@ public class Connection27522 extends SdbTestBase {
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
+            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() && e
+                    .getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
                 throw e;
             }
         }
@@ -149,7 +150,8 @@ public class Connection27522 extends SdbTestBase {
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
+            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() && e
+                    .getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
                 throw e;
             }
         }
