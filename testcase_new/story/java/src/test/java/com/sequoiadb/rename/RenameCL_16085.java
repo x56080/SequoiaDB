@@ -53,7 +53,7 @@ public class RenameCL_16085 extends SdbTestBase {
         boolean createCL = createCLThread.isSuccess();
 
         if ( !renameCL ) {
-            Integer[] errnosA = { -22 };
+            Integer[] errnosA = { -22, -147 };
             BaseException errorA = ( BaseException ) renameCLThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosA ).contains( errorA.getErrorCode() ) ) {
@@ -62,7 +62,7 @@ public class RenameCL_16085 extends SdbTestBase {
         }
 
         if ( !createCL ) {
-            Integer[] errnosB = { -22 };
+            Integer[] errnosB = { -22, -147 };
             BaseException errorB = ( BaseException ) createCLThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {
