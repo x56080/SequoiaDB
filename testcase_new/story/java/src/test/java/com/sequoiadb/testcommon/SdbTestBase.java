@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeSuite;
@@ -418,7 +419,9 @@ public class SdbTestBase {
                         expandNodeNum );
                 // 扩容完成后校验LSN一致
                 CommLib.waitGroupSelectPrimaryNode( sdb, expandGroupName, 60 );
-                CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName );
+                if ( !CommLib.isLSNConsistency( sdb, expandGroupName ) ) {
+                    Assert.fail( "LSN is not consistency" );
+                }
             }
         }
         System.out.println( "init " + testGroup + " Groups..........." );

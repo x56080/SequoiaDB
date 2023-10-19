@@ -1,8 +1,14 @@
 package com.sequoiadb.location;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.CommLib;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -11,37 +17,31 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * @Description seqDB-31318:同城备中心与主中心具备亲和性，集合设置同步一致性策略
- * @Author liuli
+ * @version 1.0
+ * @Description seqDB-31317:Location不具备亲和性，集合设置同步一致性策略
+ * @Author TangTao
  * @Date 2023.04.28
- * @UpdateAuthor liuli
+ * @UpdateAuthor TangTao
  * @UpdateDate 2023.04.28
- * @version 1.10
  */
 @Test(groups = "location")
-public class Location31318 extends SdbTestBase {
+public class Location31317 extends SdbTestBase {
 
     private Sequoiadb sdb = null;
     private DBCollection dbcl1 = null;
     private DBCollection dbcl2 = null;
     private DBCollection dbcl3 = null;
     private DBCollection dbcl4 = null;
-    private String csName = "cs_31318";
-    private String clName1 = "cl_31318_1";
-    private String clName2 = "cl_31318_2";
-    private String clName3 = "cl_31318_3";
-    private String clName4 = "cl_31318_4";
-    private String primaryLocation = "guangzhou.nansha_31318";
-    private String sameCityLocation = "guangzhou.panyu_31318";
-    private String offsiteLocation = "shenzhan.nanshan_31318";
-    private int recordNum = 100000;
+    private String csName = "cs_31317";
+    private String clName1 = "cl_31317_1";
+    private String clName2 = "cl_31317_2";
+    private String clName3 = "cl_31317_3";
+    private String clName4 = "cl_31317_4";
+    private String primaryLocation = "guangzhou.nansha_31317";
+    private String offsiteLocation1 = "shanghai.pudong_31317";
+    private String offsiteLocation2 = "shenzhen.nanshan_31317";
+    private int recordNum = 200000;
 
     @BeforeClass
     public void setUp() {
@@ -50,7 +50,7 @@ public class Location31318 extends SdbTestBase {
             throw new SkipException( "is standalone skip testcase" );
         }
         LocationUtils.setTwoCityAndThreeLocation( sdb, expandGroupName,
-                primaryLocation, sameCityLocation, offsiteLocation );
+                primaryLocation, offsiteLocation1, offsiteLocation2 );
 
         if ( !CommLib.isLSNConsistency( sdb, SdbTestBase.expandGroupName ) ) {
             Assert.fail( "LSN is not consistency" );
@@ -90,15 +90,17 @@ public class Location31318 extends SdbTestBase {
     @Test
     public void test() {
         String groupName = SdbTestBase.expandGroupName;
-        ArrayList< BasicBSONObject > sameCityLocationNodes = LocationUtils
-                .getGroupLocationNodes( sdb, groupName, sameCityLocation );
         ArrayList< BasicBSONObject > primaryLocationSlaveNodes = LocationUtils
                 .getGroupLocationSlaveNodes( sdb, groupName, primaryLocation );
+        ArrayList< BasicBSONObject > otherLocationNodes = LocationUtils
+                .getGroupLocationNodes( sdb, groupName, offsiteLocation1 );
+        otherLocationNodes.addAll( LocationUtils.getGroupLocationNodes( sdb,
+                groupName, offsiteLocation2 ) );
 
         List< BSONObject > batchRecords1 = CommLib.insertData( dbcl1,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName1, recordNum,
-                sameCityLocationNodes );
+                otherLocationNodes );
 
         List< BSONObject > batchRecords2 = CommLib.insertData( dbcl2,
                 recordNum );
@@ -108,7 +110,7 @@ public class Location31318 extends SdbTestBase {
         List< BSONObject > batchRecords3 = CommLib.insertData( dbcl3,
                 recordNum );
         LocationUtils.checkRecordSync( csName, clName3, recordNum,
-                sameCityLocationNodes );
+                otherLocationNodes );
         LocationUtils.checkRecordSync( csName, clName3, recordNum,
                 primaryLocationSlaveNodes );
 
@@ -117,7 +119,7 @@ public class Location31318 extends SdbTestBase {
         LocationUtils.checkRecordSync( csName, clName4, recordNum,
                 primaryLocationSlaveNodes );
         LocationUtils.checkRecordSync( csName, clName4, recordNum,
-                sameCityLocationNodes );
+                otherLocationNodes );
 
         BasicBSONObject orderBy = new BasicBSONObject( "a", 1 );
         CommLib.checkRecords( dbcl1, batchRecords1, orderBy );
@@ -136,5 +138,4 @@ public class Location31318 extends SdbTestBase {
             sdb.close();
         }
     }
-
 }
