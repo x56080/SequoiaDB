@@ -77,17 +77,23 @@ protected:
 class ThreadArg : public WorkerArgs
 {
 public:
-   sdbReplicaGroupHandle rg ;	// replicaGroup
+   CHAR* rgName ;	// replicaGroupName
    INT32 rid ;				    // rg id
    CHAR* hostname ;         // hostname
 } ;
 
 void func_rg( ThreadArg* arg )
 {
-   sdbReplicaGroupHandle rg = arg->rg ;
+   sdbReplicaGroupHandle rg ;
+   CHAR* rgName = arg->rgName ;
    INT32 i = arg->rid ;
    INT32 rc = SDB_OK ;
    CHAR* hostName = arg->hostname ;
+   sdbConnectionHandle sdb ;
+   rc = sdbConnect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd(), &sdb ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to connect sdb" ;
+   rc = sdbGetReplicaGroup( sdb, rgName, &rg ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get group" ;
 
    CHAR svcName1[10] ;
    sprintf( svcName1, "%d", atoi( ARGS->rsrvPortBegin() ) + 2 * i * 10 ) ;
@@ -130,7 +136,7 @@ TEST_F( concurrentRgTest, replicaGroup )
    ThreadArg arg[ThreadNum] ;
    for( INT32 i = 0;i < ThreadNum;++i )
    {
-      arg[i].rg = rg[i] ;
+      arg[i].rgName = rgName[i] ;
       arg[i].rid = i ;
       arg[i].hostname = hostName ;
       workers[i] = new Worker( (WorkerRoutine)func_rg, &arg[i], false ) ;
