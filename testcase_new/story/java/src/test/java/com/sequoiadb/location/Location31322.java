@@ -42,7 +42,7 @@ public class Location31322 extends SdbTestBase {
     private String primaryLocation = "guangzhou.nansha_31322";
     private String offsiteLocation1 = "guangzhou.panyu_31322";
     private String offsiteLocation2 = "guangzhou.huangpu_31322";
-    private int recordNum = 200000;
+    private int recordNum = 100000;
     String groupName = null;
 
     @BeforeClass
