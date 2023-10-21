@@ -52,7 +52,8 @@ public class ConnectionPool33848 extends DataSourceTestBase {
         long timeDifference = endTime - startTime;
         long connectTimeout = 200;
         if ( timeDifference < connectTimeout ) {
-            Assert.fail( "获取连接时间小于200ms,timeDifference:" + timeDifference );
+            Assert.fail( "获取连接时间小于200ms,timeDifference:" + timeDifference
+                    + ", url:" + sdb.getHost() + ":" + sdb.getPort() );
         }
 
         sdb.close();
