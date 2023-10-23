@@ -2,7 +2,7 @@
  * @Description   : seqDB-31809:catalog节点异常，未超过MinKeepTime，手动停止Critical模式
  * @Author        : liuli
  * @CreateTime    : 2023.10.19
- * @LastEditTime  : 2023.10.19
+ * @LastEditTime  : 2023.10.23
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -33,7 +33,33 @@ function test ( args )
 
       // 剩余catalog执行强制选主
       cata = new Sdb( masterNodeName );
-      cata.forceStepUp( { Seconds: 300 } );
+      var timeOut = 30;
+      var doTime = 0;
+
+      // 先sleep一秒，再强制选主
+      while( doTime < timeOut )
+      {
+         sleep( 1000 );
+         try
+         {
+            cata.forceStepUp( { Seconds: 300 } );
+            break;
+         } catch( e )
+         {
+            if( e == SDB_CLS_NODE_INFO_EXPIRED )
+            {
+               doTime++;
+            } else
+            {
+               throw e;
+            }
+         }
+      }
+
+      if( doTime >= timeOut )
+      {
+         cata.forceStepUp( { Seconds: 300 } );
+      }
 
       // catalog启动Critical模式
       var options = { NodeName: masterNodeName, MinKeepTime: 10, MaxKeepTime: 20 };
