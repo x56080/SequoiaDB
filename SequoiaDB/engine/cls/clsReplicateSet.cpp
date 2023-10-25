@@ -1853,22 +1853,31 @@ namespace engine
 
       if ( needUpdateGrp )
       {
-         // For cata group, we need to check if there are two primary nodes first
          if ( CAT_CATALOG_GROUPID == beat.identity.columns.groupID &&
-              CLS_GROUP_ROLE_PRIMARY == beat.role && _vote.primaryIsMe() )
+              CLS_GROUP_ROLE_PRIMARY == beat.role )
          {
-            DPS_LSN lsn  = _logger->expectLsn() ;
-            if ( 0 >= lsn.compare( beat.endLsn ) )
+            // For cata group, we need to check if there are two primary nodes first
+            if ( _vote.primaryIsMe() )
             {
-               _info.mtx.lock_w() ;
-               _info.primary = beat.identity ;
-               _info.mtx.release_w() ;
-               _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-               PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
-                       " higher(or equal) than local lsn[%d:%lld],"
-                       " we change to silence.",
-                       beat.endLsn.version, beat.endLsn.offset,
-                       lsn.version, lsn.offset ) ;
+               DPS_LSN lsn  = _logger->expectLsn() ;
+               if ( 0 >= lsn.compare( beat.endLsn ) )
+               {
+                  _info.mtx.lock_w() ;
+                  _info.primary = beat.identity ;
+                  _info.mtx.release_w() ;
+                  _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                  PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
+                          " higher(or equal) than local lsn[%d:%lld],"
+                          " we change to silence.",
+                          beat.endLsn.version, beat.endLsn.offset,
+                          lsn.version, lsn.offset ) ;
+               }
+            }
+            // just update primary beat
+            if ( itr != _info.info.end() )
+            {
+               _clsSharingStatus &statusItem = itr->second ;
+               statusItem.beat = beat ;
             }
          }
 
