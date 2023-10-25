@@ -124,17 +124,31 @@
 
 2. 修复故障
 
-3. 重启所有节点
+3. 逐一启动故障数据节点
 
     ```lang-bash
-    $ sdbstart
+    $ sdbstart -p <故障节点端口号>
     ```
 
-4. 检查各主机的节点是否成功启动
+4. 通过 sdblist 检查各故障数据节点的 GroupID(GID) 和 NodeID(NID) 是否生成，确保故障数据节点注册成功
 
     ```lang-bash
     $ sdblist -l
     ```
+
+5. 逐一启动故障编目节点
+
+    ```lang-bash
+    $ sdbstart -p <故障节点端口号>
+    ```
+
+6. 检查各主机的节点是否成功启动
+
+    ```lang-bash
+    $ sdblist -l
+    ```
+
+7. 检查节点健康检测快照，确定各节点状态恢复为 Normal
 
 ###恢复集群配置###
 
