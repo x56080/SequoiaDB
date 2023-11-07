@@ -99,9 +99,9 @@ public class ClusterManager19297 extends SdbTestBase {
             }
         }
 
-        // isRelicaGroupExist null rgName 失败
+        // isReplicaGroupExist null rgName 失败
         try {
-            sdb.isRelicaGroupExist( null );
+            sdb.isReplicaGroupExist( null );
             Assert.fail( "rgName can't be null" );
         } catch ( BaseException e ) {
             if ( -6 != e.getErrorCode() ) {
