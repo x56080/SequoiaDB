@@ -77,12 +77,12 @@ public class TestSeqDB6670 extends SdbTestBase {
         String hostName = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster()
                 .getHostName();
         ReplicaGroup rg = sdb.createReplicaGroup( rgName );
-        rg.createNode( hostName, port1, SdbTestBase.reservedDir + port1 + "/",
-                configure );
-        rg.createNode( hostName, port2, SdbTestBase.reservedDir + port2 + "/",
-                configure );
-        rg.createNode( hostName, port3, SdbTestBase.reservedDir + port3 + "/",
-                configure );
+        rg.createNode( hostName, port1,
+                SdbTestBase.reservedDir + "/data/" + port1 + "/", configure );
+        rg.createNode( hostName, port2,
+                SdbTestBase.reservedDir + "/data/" + port2 + "/", configure );
+        rg.createNode( hostName, port3,
+                SdbTestBase.reservedDir + "/data/" + port3 + "/", configure );
         rg.start();
 
         // 2.集合创建在新建的组上
