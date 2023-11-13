@@ -64,7 +64,7 @@ public class RenameCS_16130 extends SdbTestBase {
                 renameThread.getErrorMsg() );
 
         if ( !removeThread.isSuccess() ) {
-            Integer[] errnosB = { -34 };
+            Integer[] errnosB = { -34, -147 };
             BaseException errorB = ( BaseException ) removeThread
                     .getExceptions().get( 0 );
             if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {

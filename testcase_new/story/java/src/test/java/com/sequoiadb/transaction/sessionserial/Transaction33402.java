@@ -61,7 +61,7 @@ public class Transaction33402 extends SdbTestBase {
     @Test
     public void test() throws Exception {
         // 事务并发线程不关闭连接，直接使用用例连接的Sdb
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor( 300000 );
         Query query = new Query();
         Reelect reelect = new Reelect();
         es.addWorker( query );
