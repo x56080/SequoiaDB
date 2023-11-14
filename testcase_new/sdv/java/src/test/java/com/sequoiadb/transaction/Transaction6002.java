@@ -41,7 +41,7 @@ public class Transaction6002 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor( 300000 );
         es.addWorker( new TransInsert6002() );
         es.addWorker( new TransDelete6002() );
         es.run();
