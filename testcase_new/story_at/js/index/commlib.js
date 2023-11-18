@@ -11,6 +11,12 @@ function selectPrimaryNode( db, csName, clName )
    return node.connect() ;
 }
 
+function selectGroup( db, csName, clName )
+{
+   var groups = commGetCLGroups( db, csName + "." + clName ) ;
+   return groups[ 0 ] ;
+}
+
 function getOneSample( db, csName, clName, ixName )
 {
    var cl = db.getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ) ;

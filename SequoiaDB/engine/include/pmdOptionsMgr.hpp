@@ -642,6 +642,7 @@ namespace engine
          OSS_INLINE UINT32 getPageAllocTimeout() const { return _pageAllocTimeout ; }
          OSS_INLINE BOOLEAN isEnabledPerfStat() const { return _perfStat ; }
          OSS_INLINE INT32 getOptCostThreshold() const { return _optCostThreshold ; }
+         OSS_INLINE INT32 getPlanCacheMainCLThreshold() const { return _planCacheMainCLThreshold ; }
          OSS_INLINE BOOLEAN isEnabledMixCmp() const { return _enableMixCmp ; }
          OSS_INLINE UINT32  getDataErrorOp() const { return _dataErrorOp ; }
          OSS_INLINE UINT32 getPlanCacheLevel() const { return _planCacheLevel ; }
@@ -810,6 +811,7 @@ namespace engine
          UINT32      _pageAllocTimeout ;  // ms
          BOOLEAN     _perfStat ;
          INT32       _optCostThreshold ;
+         INT32       _planCacheMainCLThreshold ;
          BOOLEAN     _enableMixCmp ;
          UINT32      _planCacheLevel ;
          UINT32      _instanceID ;

@@ -1834,6 +1834,26 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_PLAN_CACHE_MAINCL_THRESHOLD</name>
+      <long>plancachemainclthreshold</long>
+      <description>
+         <en>The collection has a number of data pages larger than threshold can use main-collection plan, default: 20, 0 means to use main-collection plan always, -1 means never to use main-collection plan, value range[-1, 2^31 - 1].</en>
+         <cn>集合的查询计划复用主表查询计划的最小的页数，数据页数小于阈值时，将不使用主表查询计划，默认值：20，0表示一直使用主表查询计划，-1表示从不使用主表查询计划，取值范围[-1, 2^31 - 1]</cn>
+      </description>
+      <type>int</type>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next query</en>
+         <cn>下次查询生效</cn>
+      </reloadstrategy>
+      <default>20</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_MAX_CONN</name>
       <long>maxconn</long>
       <description>

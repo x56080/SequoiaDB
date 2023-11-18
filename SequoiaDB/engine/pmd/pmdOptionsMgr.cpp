@@ -104,6 +104,7 @@ namespace engine
    #define PMD_DFT_CACHE_MERGE_SZ      (0)   // ms
    #define PMD_DFT_PAGE_ALLOC_TIMEOUT  (0)
    #define PMD_DFT_OPT_COST_THRESHOLD  (20)
+   #define PMD_DFT_PLAN_CACHE_MAINCL_THRESHOLD (20)
    #define PMD_DFT_ENABLE_MIX_CMP      (FALSE)
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
@@ -2446,6 +2447,11 @@ done:
       rdxInt( pEX, PMD_OPTION_OPT_COST_THRESHOLD, _optCostThreshold, FALSE,
               PMD_CFG_CHANGE_RUN, PMD_DFT_OPT_COST_THRESHOLD, TRUE ) ;
       rdvMinMax( pEX, _optCostThreshold, -1, INT_MAX, TRUE ) ;
+
+      // --plancachemainclthreshold
+      rdxInt( pEX, PMD_OPTION_PLAN_CACHE_MAINCL_THRESHOLD, _planCacheMainCLThreshold, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PLAN_CACHE_MAINCL_THRESHOLD, TRUE ) ;
+      rdvMinMax( pEX, _planCacheMainCLThreshold, -1, INT_MAX, TRUE ) ;
 
       // --enablemixcmp
       rdxBooleanS( pEX, PMD_OPTION_ENABLE_MIX_CMP, _enableMixCmp, FALSE,

@@ -364,6 +364,7 @@ namespace engine
                       UINT32 sortBufferSize,
                       INT32 optCostThreshold,
                       BOOLEAN enableMixCmp,
+                      INT32 planCacheMainCLThreshold,
                       UINT32 optStartCostLimit ) ;
 
          INT32 reinit ( UINT32 bucketNum,
@@ -371,6 +372,7 @@ namespace engine
                         UINT32 sortBufferSize,
                         INT32 optCostThreshold,
                         BOOLEAN enableMixCmp,
+                        INT32 planCacheMainCLThreshold,
                         UINT32 optStartCostLimit ) ;
 
          INT32 fini () ;
