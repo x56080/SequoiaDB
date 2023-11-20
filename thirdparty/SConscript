@@ -22,6 +22,7 @@ Import("fuse_lib_dir")
 Import("usemdocml")
 Import("usefuse")
 Import("intel_decimal_lib_dir")
+Import("zstd_lib_dir")
 
 
 ERROR = 1
@@ -632,18 +633,51 @@ class IntelDecimalLibCompiler(CompilerBase):
            elif 'win32' == self.platform:
               shutil.copy(os.path.join(self.src_root, 'LIBRARY/libbid.lib'),
                           self._get_lib_archive_dir())
- 
+
+class zstdCompiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "zstd", src_root)
+
+    def _get_lib_archive_dir(self):
+        return zstd_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        mkCmd = ' CPPFLAGS=-DZSTD_MULTITHREAD make '
+        if g_silent == True:
+            mkCmd += ' --silent'
+        self.append_cmd( mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           libs = ['libzstd.a']
+        elif 'win32' == self.platform:
+           libs = ['libzstd.lib']
+        return libs
+
+    def archive(self):
+        if 'linux' == self.platform:
+            shutil.copy(os.path.join(self.src_root, 'lib', 'libzstd.a'),
+                        self._get_lib_archive_dir())
+        elif 'win32' == self.platform:
+            shutil.copy(os.path.join(self.src_root, 'lib', 'libzstd.lib'),
+                        self._get_lib_archive_dir())
+
 components = []
 
 snappy_compiler = SnappyCompiler('snappy')
 lz4_compiler = LZ4Compiler('lz4')
 zlib_compiler = ZlibCompiler('zlib')
 intelDecimal_compiler = IntelDecimalLibCompiler('intelDecimal')
+zstd_compiler = zstdCompiler( 'zstd' )
 
 components.append(snappy_compiler)
 components.append(lz4_compiler)
 components.append(zlib_compiler)
 components.append(intelDecimal_compiler)
+components.append(zstd_compiler)
 
 if usemdocml:
     mdocml_compiler = MdocmlCompiler('mdocml')

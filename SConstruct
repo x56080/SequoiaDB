@@ -60,6 +60,8 @@ driver_dir = join(db_dir,'driver')
 java_dir = join(root_dir,'java')
 fuse_dir = join(thirdparty_dir, 'fuse')
 fuse_lib_dir = join(fuse_dir, 'lib')
+zstd_dir = join(thirdparty_dir, 'zstd')
+zstd_lib_dir = join(zstd_dir, 'lib')
 # --- options ----
 
 options = {}
@@ -531,7 +533,7 @@ def findVersion( root , choices ):
 env.Append(
 CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
-         join(snappy_dir,'include'),join(gtest_dir,'include'),
+         join(snappy_dir,'include'),join(zstd_dir,'lib'),join(gtest_dir,'include'),
          pcre_dir, boost_dir, ssh2_dir] )
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H", "BOOST_THREAD_HAS_CONDATTR_SET_CLOCK_MONOTONIC"] )
@@ -545,9 +547,11 @@ if guess_os is not None:
     zlib_lib_dir = join(zlib_lib_dir, platform_dir, build_dir)
     lz4_lib_dir = join(lz4_lib_dir, platform_dir, build_dir)
     snappy_lib_dir = join(snappy_lib_dir, platform_dir, build_dir)
+    zstd_lib_dir = join(zstd_lib_dir, platform_dir, build_dir)
     intel_decimal_lib_dir = join(intel_decimal_lib_dir, platform_dir, build_dir)
     env.Append(EXTRALIBPATH=[boost_lib_dir, ssl_lib_dir, zlib_lib_dir,
-                             lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir])
+                             lz4_lib_dir, snappy_lib_dir, zstd_lib_dir,
+                             intel_decimal_lib_dir])
     # use project-related spidermonkey library
     if usesm:
         env.Append(CPPPATH=join(sm_lib_dir, platform_dir, 'include'))
@@ -611,9 +615,9 @@ if guess_os == "linux":
     # Or there will be two same openssl symbol existing in one mysqld program
     # in case of mysqld building openssl in.
     if hasNoLinkSSL == False:
-        env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy'])
+        env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy', 'zstd'])
     else:
-        env.Append(LIBS=['lz4', 'zlib', 'snappy'])
+        env.Append(LIBS=['lz4', 'zlib', 'snappy', 'zstd'])
 
     ssllib_file = join(ssl_lib_dir, 'libcrypto.a')
     ssllib_file1 = join(ssl_lib_dir, 'libssl.a')
@@ -633,6 +637,8 @@ if guess_os == "linux":
     zlib_lib = join(zlib_lib_dir, 'libzlib.a')
     lz4_lib = join(lz4_lib_dir, 'liblz4.a')
     snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
+    # zstd
+    zstd_lib = join(zstd_lib_dir, 'libzstd.a')
 
     nix = True
 
@@ -661,12 +667,13 @@ elif guess_os == "win32":
 
     # SSL
     # env.Append( LIBS=['ssleay32', 'libeay32', 'liblz4', 'libzlib', 'libsnappy'])
-    env.Append( LIBS=['libcrypto', 'libssl', 'liblz4', 'libzlib', 'libsnappy'])
+    env.Append( LIBS=['libcrypto', 'libssl', 'liblz4', 'libzlib', 'libsnappy', 'libzstd'])
     ssllib_file = join(ssl_lib_dir, 'libcrypto.lib')
     ssllib_file1 = join(ssl_lib_dir, 'libssl.lib')
     zlib_lib = join(zlib_lib_dir, 'libzlib.lib')
     lz4_lib = join(lz4_lib_dir, 'liblz4.lib')
     snappy_lib = join(snappy_lib_dir, 'libsnappy.lib')
+    zstd_lib = join(zstd_lib_dir, 'libzstd.lib')
 
     # UNICODE
     env.Append( CPPDEFINES=[ "_UNICODE" ] )
@@ -755,10 +762,11 @@ elif guess_os == 'aix':
       env.Append( LIBS=['js_static'] )
 
    # lz4, zlib and snappy
-   env.Append( LIBS=['lz4', 'zlib', 'snappy'] )
+   env.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
    zlib_lib = join(zlib_lib_dir, 'libzlib.a')
    lz4_lib = join(lz4_lib_dir, 'liblz4.a')
    snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
+   zstd_lib = join(zstd_lib_dir, 'libzstd.a')
 else:
     platform_valid = False
     print( "No special config for [" + os.sys.platform + "] which probably means it won't work" )
@@ -963,6 +971,7 @@ Export("ssllib_file1")
 Export("zlib_lib")
 Export("lz4_lib")
 Export("snappy_lib")
+Export("zstd_lib")
 if usemdocml:
    Export("mdocml_lib")
 if usefuse:
@@ -984,6 +993,7 @@ Export("intel_decimal_lib_dir")
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
                          "ssl_lib_dir", "zlib_lib_dir", "lz4_lib_dir", "snappy_lib_dir",
+                         "zstd_dir", "zstd_lib_dir",
                          "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir"], duplicate=False)
 
 if not has_option("noautogen"):
