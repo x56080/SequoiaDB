@@ -186,10 +186,8 @@ function test ()
    query( dbclPrimary, findConf, null, null, 0 );
    query( dbclSlave, findConf, null, null, 0 );
 
-   //检查访问计划快照
-   var tmp = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" }];
-   var expAccessPlan = tmp.concat( tmp );
+   //检查访问计划快照，子表TotalDataPages均小于20时不会使用主表缓存访问计划快照
+   var expAccessPlan = [];
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
