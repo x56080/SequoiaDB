@@ -1374,7 +1374,7 @@ namespace exprt
          {
             cerr << "Invalid value for option "
                  << OPTION_FILELIMIT <<endl;
-            PD_LOG( PDERROR, "Invalid value for option "OPTION_FILELIMIT);
+            PD_LOG( PDERROR, "Invalid value for option " OPTION_FILELIMIT);
             goto error ;
          }
       }

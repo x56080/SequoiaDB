@@ -457,10 +457,10 @@ namespace memcheck
          }
 
          /*
-         ossPrintf( "Pasrse ELF header succeed:"OSS_NEWLINE
-                    "  Elf Phoff : %llu"OSS_NEWLINE
-                    "  Elf Phnum : %llu"OSS_NEWLINE
-                    "  Elf Phsize: %llu"OSS_NEWLINE,
+         ossPrintf( "Pasrse ELF header succeed:" OSS_NEWLINE
+                    "  Elf Phoff : %llu" OSS_NEWLINE
+                    "  Elf Phnum : %llu" OSS_NEWLINE
+                    "  Elf Phsize: %llu" OSS_NEWLINE,
                     g_elfPhoff,
                     g_elfPhnum,
                     g_elfPhsize ) ; */
@@ -474,7 +474,7 @@ namespace memcheck
       if ( g_elfParsedPhnum >= g_elfPhnum )
       {
          g_elfParsed = TRUE ;
-         // ossPrintf( "Parse ELF Header table succeed"OSS_NEWLINE ) ;
+         // ossPrintf( "Parse ELF Header table succeed" OSS_NEWLINE ) ;
          goto done ;
       }
       else if ( g_readPos + g_dataLen < g_elfPhoff + sizeof( Elf_Phdr ) )
@@ -493,8 +493,8 @@ namespace memcheck
          Elf_Phdr *pPhdr = ( Elf_Phdr* )( g_pBuff + pos ) ;
 
          /*
-         ossPrintf( "PHDR Item (%llu)"OSS_NEWLINE
-                    "offset: %lx, vaddr: %lx, paddr: %lx, filesz: %lx, memsz: %lx"OSS_NEWLINE,
+         ossPrintf( "PHDR Item (%llu)" OSS_NEWLINE
+                    "offset: %lx, vaddr: %lx, paddr: %lx, filesz: %lx, memsz: %lx" OSS_NEWLINE,
                     g_elfParsedPhnum + 1,
                     pPhdr->p_offset, pPhdr->p_vaddr,
                     pPhdr->p_paddr, pPhdr->p_filesz,
@@ -507,7 +507,7 @@ namespace memcheck
          if ( g_elfParsedPhnum >= g_elfPhnum )
          {
             g_elfParsed = TRUE ;
-            // ossPrintf( "Parse ELF Header table succeed"OSS_NEWLINE ) ;
+            // ossPrintf( "Parse ELF Header table succeed" OSS_NEWLINE ) ;
             break ;
          }
       }

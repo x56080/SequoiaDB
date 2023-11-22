@@ -71,23 +71,23 @@ int main ( int argc, char **argv )
    OSSNPIPE handle ;
    if ( argc != 2 )
    {
-      printf ( "Syntax: %s <pipe name>"OSS_NEWLINE,
+      printf ( "Syntax: %s <pipe name>" OSS_NEWLINE,
                argv[0] ) ;
       return 0 ;
    }
    CHAR *pPipeName = argv[1] ;
-   ossPrintf ( "Open named pipe: %s"OSS_NEWLINE, pPipeName ) ;
+   ossPrintf ( "Open named pipe: %s" OSS_NEWLINE, pPipeName ) ;
    rc = ossOpenNamedPipe ( pPipeName, OSS_NPIPE_DUPLEX | OSS_NPIPE_BLOCK,
                            OSS_NPIPE_INFINITE_TIMEOUT,
                            handle ) ;
    if ( rc && SDB_FE != rc )
    {
-      PD_LOG ( PDERROR, "Failed to create named pipe: %s, rc %d"OSS_NEWLINE,
+      PD_LOG ( PDERROR, "Failed to create named pipe: %s, rc %d" OSS_NEWLINE,
                pPipeName, rc ) ;
       goto open_error ;
    }
 
-   ossPrintf ( "Write to named pipe: %s"OSS_NEWLINE, pPipeName ) ;
+   ossPrintf ( "Write to named pipe: %s" OSS_NEWLINE, pPipeName ) ;
    while ( TRUE )
    {
       rc = readInput ( "Input", 1 ) ;
@@ -101,7 +101,7 @@ int main ( int argc, char **argv )
                                NULL ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to read packet size"OSS_NEWLINE ) ;
+         PD_LOG ( PDERROR, "Failed to read packet size" OSS_NEWLINE ) ;
          goto error ;
       }
       if ( ossStrncmp ( receiveBuffer, EXIT_CODE, sizeof(EXIT_CODE) ) == 0 )
@@ -111,7 +111,7 @@ error :
    rc = ossCloseNamedPipe ( handle ) ;
    if ( rc )
    {
-      PD_LOG ( PDERROR, "Failed to close named pipe"OSS_NEWLINE ) ;
+      PD_LOG ( PDERROR, "Failed to close named pipe" OSS_NEWLINE ) ;
       goto open_error ;
    }
 open_error :

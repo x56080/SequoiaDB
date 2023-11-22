@@ -352,12 +352,12 @@ namespace engine
          rc = _transCB->transLockTryS( cb, logicalCSID, DMS_INVALID_MBID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction-lock of "
-                      "collection space [%s], rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "collection space [%s], rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       collectionSpace, rc,
                       lockConflict._eduID,
                       lockConflict._tid,
