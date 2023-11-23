@@ -2,10 +2,11 @@
  * @Description   : seqDB-33898:大记录的集合作为源执行插入数据
  * @Author        : tangtao
  * @CreateTime    : 2023.11.13
- * @LastEditTime  : 2023.11.13
- * @LastEditors   : tangtao
+ * @LastEditTime  : 2023.11.23
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_qgm_33898";
+testConf.skipStandAlone = true;
 
 main( test );
 function test ( testPara )
