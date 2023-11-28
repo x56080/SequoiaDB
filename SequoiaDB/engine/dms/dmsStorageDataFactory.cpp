@@ -41,19 +41,20 @@
 namespace engine
 {
    _dmsStorageDataCommon* _dmsStorageDataFactory::createProduct(
+                                                IStorageService *engine,
+                                                dmsSUDescriptor *suDescriptor,
                                                 DMS_STORAGE_TYPE type,
                                                 const CHAR *suFileName,
-                                                dmsStorageInfo *info,
                                                 _IDmsEventHolder *pEventHolder )
    {
       _dmsStorageDataCommon *data = NULL ;
       switch ( type )
       {
       case DMS_STORAGE_NORMAL:
-         data = SDB_OSS_NEW dmsStorageData( suFileName, info, pEventHolder ) ;
+         data = SDB_OSS_NEW dmsStorageData( engine, suDescriptor, suFileName, pEventHolder ) ;
          break ;
       case DMS_STORAGE_CAPPED:
-         data = SDB_OSS_NEW dmsStorageDataCapped( suFileName, info,
+         data = SDB_OSS_NEW dmsStorageDataCapped( engine, suDescriptor, suFileName,
                                                   pEventHolder ) ;
          break ;
       default:

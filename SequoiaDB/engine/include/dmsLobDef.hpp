@@ -47,7 +47,7 @@
 namespace engine
 {
    #define DMS_LOB_OID_LEN                   12
-   #define DMS_LOB_INVALID_PAGEID            DMS_INVALID_EXTENT
+   #define DMS_LOB_INVALID_PAGEID            ( -1 )
 
    typedef SINT32 DMS_LOB_PAGEID ;
 

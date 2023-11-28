@@ -69,6 +69,12 @@ namespace engine
       " IXM_FIELD_NAME_UNIQUE "    : true, \
       " IXM_FIELD_NAME_ENFORCED "  : true }"
 
+   const utilCSUniqueID DMS_STAT_CSUID = UTIL_CSUNIQUEID_SYS_MIN + 4 ;
+   const utilCLUniqueID DMS_STAT_CL_CLUID =
+               utilBuildCLUniqueID( DMS_STAT_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 1 ) ;
+   const utilCLUniqueID DMS_STAT_IDX_CLUID =
+               utilBuildCLUniqueID( DMS_STAT_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 2 ) ;
+
    /*
       _dmsStatSUMgr implement
     */
@@ -107,7 +113,7 @@ namespace engine
          // create new SYSSTAT collection space
          rc = rtnCreateCollectionSpaceCommand ( DMS_STAT_SPACE_NAME, NULL,
                                                 _dmsCB, NULL,
-                                                UTIL_UNIQUEID_NULL,
+                                                DMS_STAT_CSUID,
                                                 DMS_PAGE_SIZE_MAX,
                                                 DMS_DO_NOT_CREATE_LOB,
                                                 DMS_STORAGE_NORMAL, TRUE ) ;
@@ -1186,11 +1192,11 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       rc = rtnTestAndCreateCL( DMS_STAT_COLLECTION_CL_NAME, cb, _dmsCB, NULL,
-                               TRUE ) ;
+                               DMS_STAT_CL_CLUID, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_STAT_COLLECTION_CL_NAME, rc ) ;
 
-      rc = rtnTestAndCreateCL( DMS_STAT_INDEX_CL_NAME, cb, _dmsCB, NULL, TRUE ) ;
+      rc = rtnTestAndCreateCL( DMS_STAT_INDEX_CL_NAME, cb, _dmsCB, NULL, DMS_STAT_IDX_CLUID, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_STAT_INDEX_CL_NAME, rc ) ;
 

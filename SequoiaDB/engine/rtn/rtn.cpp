@@ -775,86 +775,6 @@ namespace engine
       return fileType ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRESUMECLDICTCREATE, "rtnResumeClDictCreate" )
-   static INT32 rtnResumeClDictCreate( const CHAR *csName, SDB_DMSCB *dmsCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNRESUMECLDICTCREATE ) ;
-
-      dmsStorageUnit *su = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
-      dmsMBContext *context = NULL ;
-      dmsMB *mb = NULL ;
-
-      rc = dmsCB->nameToSUAndLock( csName, suID, &su ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get and lock collectionspace[%s], "
-                 "rc: %d", csName, rc ) ;
-         goto error ;
-      }
-
-      for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
-      {
-         // If the collection does not exist, lock will failed.
-         rc = su->data()->getMBContext( &context, mbID,
-                                        DMS_INVALID_CLID,
-                                        DMS_INVALID_CLID,
-                                        SHARED ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_NOTEXIST == rc )
-            {
-               rc = SDB_OK ;
-               continue ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
-
-         mb = context->mb() ;
-
-         /*
-          * Three conditions should be matched to resume dictionary creating job
-          * for a collection:
-          * (1) 'Compressed' option is set as true
-          * (2) 'CompressionType' is set as 'lzw'
-          * (3) The dictionary extent id is invalid currently, which means the
-          *     dictionary has not been created yet.
-          *
-          * The in use flag in mb is checked when taking the lock, so no need to
-          * check here.
-          */
-         if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED )
-              && ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
-              && ( DMS_INVALID_EXTENT == mb->_dictExtentID ) )
-         {
-            dmsCB->pushDictJob( dmsDictJob( su->CSID(), su->LogicalCSID(),
-                                context->mbID(), context->clLID() ) ) ;
-         }
-
-         su->data()->releaseMBContext( context ) ;
-      }
-
-   done:
-      if ( context )
-      {
-         su->data()->releaseMBContext( context ) ;
-      }
-      if ( DMS_INVALID_SUID != suID )
-      {
-         dmsCB->suUnlock( suID ) ;
-         suID = DMS_INVALID_SUID ;
-      }
-      PD_TRACE_EXIT( SDB_RTNRESUMECLDICTCREATE ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // load a single collection name from given path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCS, "rtnLoadCollectionSpace" )
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
@@ -909,7 +829,8 @@ namespace engine
 
                      if ( !checkOnly )
                      {
-                        storageUnit = SDB_OSS_NEW dmsStorageUnit( csName,
+                        storageUnit = SDB_OSS_NEW dmsStorageUnit( dmsCB->getStorageService(),
+                                                                  csName,
                                                                   UTIL_UNIQUEID_NULL,
                                                                   sequence,
                                                                   pmdGetBuffPool(),
@@ -990,11 +911,11 @@ namespace engine
                          * done if the system restarted before the dictionary was
                          * created.
                          */
-                        rc = rtnResumeClDictCreate( csName, dmsCB ) ;
-                        PD_RC_CHECK( rc, PDERROR,
-                                     "Failed to resume dictionary creating "
-                                     "job for %s, rc: %d",
-                                     csName, rc ) ;
+                        // rc = rtnResumeClDictCreate( csName, dmsCB ) ;
+                        // PD_RC_CHECK( rc, PDERROR,
+                        //              "Failed to resume dictionary creating "
+                        //              "job for %s, rc: %d",
+                        //              csName, rc ) ;
                      }
 
                      rc = SDB_OK ;
@@ -1124,7 +1045,8 @@ namespace engine
                   continue ;
                }
 
-               storageUnit = SDB_OSS_NEW dmsStorageUnit ( csName,
+               storageUnit = SDB_OSS_NEW dmsStorageUnit ( dmsCB->getStorageService(),
+                                                          csName,
                                                           UTIL_UNIQUEID_NULL,
                                                           sequence,
                                                           pmdGetBuffPool(),
@@ -1178,9 +1100,9 @@ namespace engine
                 * done if the system restarted before the dictionary was
                 * created.
                 */
-               rc = rtnResumeClDictCreate( csName, dmsCB ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to resume dictionary creating "
-                            "job for %s, rc: %d", csName, rc ) ;
+               // rc = rtnResumeClDictCreate( csName, dmsCB ) ;
+               // PD_RC_CHECK( rc, PDERROR, "Failed to resume dictionary creating "
+               //              "job for %s, rc: %d", csName, rc ) ;
             } // if ( rtnVerifyCollectionSpaceFileName
             else if ( SDB_FILE_UNKNOW == rtnParseFileName( fileName.c_str() ) )
             {
@@ -2318,6 +2240,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCRTCL, "rtnTestAndCreateCL" )
    INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
+                              utilCLUniqueID clUID,
                               BOOLEAN sys )
    {
       INT32 rc = SDB_OK ;
@@ -2328,8 +2251,7 @@ namespace engine
       if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
       {
          rc = rtnCreateCollectionCommand( pCLFullName, 0, cb, dmsCB, dpsCB,
-                                          UTIL_UNIQUEID_NULL,
-                                          UTIL_COMPRESSOR_INVALID,
+                                          clUID, UTIL_COMPRESSOR_INVALID,
                                           FLG_CREATE_WHEN_NOT_EXIST, sys ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create collection[%s], rc: %d",
                       pCLFullName, rc ) ;

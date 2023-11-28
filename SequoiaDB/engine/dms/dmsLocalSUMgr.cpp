@@ -49,6 +49,12 @@ using namespace bson ;
 namespace engine
 {
 
+   const utilCSUniqueID DMS_LOCAL_CSUID = UTIL_CSUNIQUEID_SYS_MIN + 3 ;
+   const utilCLUniqueID DMS_LOCAL_TASK_CLUID =
+               utilBuildCLUniqueID( DMS_LOCAL_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 1 ) ;
+   const utilCLUniqueID DMS_LOCAL_RECYCLEITEM_CLUID =
+               utilBuildCLUniqueID( DMS_LOCAL_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 2 ) ;
+
    /*
       _dmsLocalSUMgr implement
    */
@@ -84,7 +90,7 @@ namespace engine
          // create new SYSSTAT collection space
          rc = rtnCreateCollectionSpaceCommand ( DMS_SYSLOCAL_CS_NAME, NULL,
                                                 _dmsCB, NULL,
-                                                UTIL_UNIQUEID_NULL,
+                                                DMS_LOCAL_CSUID,
                                                 DMS_PAGE_SIZE_MAX,
                                                 DMS_DO_NOT_CREATE_LOB,
                                                 DMS_STORAGE_NORMAL, TRUE ) ;
@@ -125,12 +131,12 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       rc = rtnTestAndCreateCL( DMS_SYSLOCALTASK_CL_NAME, cb, _dmsCB, NULL,
-                               TRUE ) ;
+                               DMS_LOCAL_TASK_CLUID, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_SYSLOCALTASK_CL_NAME, rc ) ;
 
       rc = rtnTestAndCreateCL( DMS_SYSLOCALRECYCLEITEM_CL_NAME, cb, _dmsCB,
-                               NULL, TRUE ) ;
+                               NULL, DMS_LOCAL_RECYCLEITEM_CLUID, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_SYSLOCALRECYCLEITEM_CL_NAME, rc ) ;
 

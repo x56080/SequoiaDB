@@ -752,7 +752,7 @@ namespace engine
          if ( maxPages >= 0 )
          {
             if ( mb->_firstExtentID != DMS_INVALID_EXTENT &&
-                 mb->_firstExtentID > maxPages )
+                 mb->_firstExtentID > (UINT32)maxPages )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "Error: Invalid first extent: 0x%08lx (%d), "
@@ -762,7 +762,7 @@ namespace engine
                ++localErr ;
             }
             if ( mb->_lastExtentID != DMS_INVALID_EXTENT &&
-                 mb->_lastExtentID > maxPages )
+                 mb->_lastExtentID > (UINT32)maxPages )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "Error: Invalid last extent: 0x%08lx (%d), "
@@ -805,7 +805,7 @@ namespace engine
             for ( UINT16 i = 0 ; i < dmsMB::_max ; i++ )
             {
                if ( DMS_INVALID_EXTENT != mb->_deleteList[i]._extent &&
-                    mb->_deleteList[i]._extent > maxPages )
+                    mb->_deleteList[i]._extent > (UINT32)maxPages )
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
                                        "Error: Invalid extent for deleteList[%d]: "
@@ -889,7 +889,7 @@ namespace engine
          nextExtent = DMS_INVALID_EXTENT ;
          ++localErr ;
       }
-      if ( DMS_INVALID_EXTENT != nextExtent && nextExtent > maxPages )
+      if ( DMS_INVALID_EXTENT != nextExtent && nextExtent > (UINT32)maxPages )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Next extent is out of range: "
@@ -1680,7 +1680,7 @@ namespace engine
       dmsOffset nextRecord = extent->_firstRecordOffset ;
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
       {
-         if ( nextRecord >= (SINT32)inSize )
+         if ( nextRecord >= inSize )
          {
             len += ossSnprintf (  outBuf + len, outSize - len,
                                   "Error : nextRecord %d is greater "
@@ -1765,7 +1765,7 @@ namespace engine
          dmsCappedRecord *record = NULL ;
          INT64 logicalID = -1 ;
          dmsOffset myOffset = DMS_INVALID_OFFSET ;
-         if ( nextRecord >= (SINT32)inSize )
+         if ( nextRecord >= inSize )
          {
             len += ossSnprintf (  outBuf + len, outSize - len,
                                   "Error : nextRecord %d is greater "

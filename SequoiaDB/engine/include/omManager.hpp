@@ -193,16 +193,6 @@ namespace engine
 
          INT32             _createJobs() ;
 
-         INT32             _createCollectionIndex ( const CHAR *pCollection,
-                                                    const CHAR *pIndex,
-                                                    pmdEDUCB *cb ) ;
-
-         INT32             _dropCollectionIndex( const CHAR *pCollection,
-                                                 const CHAR *pIndex,
-                                                 pmdEDUCB *cb ) ;
-
-         INT32             _createCollection ( const CHAR *pCollection,
-                                               pmdEDUCB *cb ) ;
          void              _readAgentPort() ;
 
          BOOLEAN           _isCommand( const CHAR *pCheckName ) ;

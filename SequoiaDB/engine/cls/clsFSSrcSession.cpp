@@ -2096,7 +2096,7 @@ namespace engine
             {
                _deqLSN.push_back ( offset ) ;
             }
-            else if ( extLID < _lobFetcher.toBeFetched() )
+            else if ( extLID < (UINT32)( _lobFetcher.toBeFetched() ) )
             {
                _deqLSN.push_back ( offset ) ;
             }
@@ -2864,7 +2864,7 @@ namespace engine
       {
          if ( inEndMap ||
               _lobFetcher.hitEnd() ||
-              extLID < _lobFetcher.toBeFetched() )
+              extLID < (UINT32)( _lobFetcher.toBeFetched() ) )
          {
             BOOLEAN need2Notify = FALSE ;
             const bson::OID *oid = NULL ;

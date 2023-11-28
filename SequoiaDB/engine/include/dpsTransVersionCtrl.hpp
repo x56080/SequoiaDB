@@ -68,16 +68,16 @@ namespace engine
    public:
       UINT32  _csID;   // collectionspace id
       UINT16  _clID;   // collection id
-      SINT32  _idxLID; // index logic id
+      dmsExtentID  _idxLID; // index logic id
 
       globIdxID()
       {
          _csID = DMS_INVALID_SUID ;
          _clID = DMS_INVALID_MBID ;
-         _idxLID = -1 ;
+         _idxLID = DMS_INVALID_EXTENT ;
       }
 
-      globIdxID( UINT32 csID, UINT16 clID, SINT32 idxLID )
+      globIdxID( UINT32 csID, UINT16 clID, dmsExtentID idxLID )
       {
          _csID = csID ;
          _clID = clID ;

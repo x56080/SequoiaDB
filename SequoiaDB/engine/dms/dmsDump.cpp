@@ -1283,7 +1283,7 @@ namespace engine
 
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
       {
-         if ( nextRecord >= (SINT32)inSize )
+         if ( nextRecord >= inSize )
          {
             len += ossSnprintf (  outBuf + len, outSize - len,
                                   "Error : nextRecord %d is greater "
@@ -1345,7 +1345,7 @@ namespace engine
          dmsCappedRecord *record = NULL ;
          INT64 logicalID = -1 ;
          dmsOffset myOffset = DMS_INVALID_OFFSET ;
-         if ( nextRecord >= (SINT32)inSize )
+         if ( nextRecord >= inSize )
          {
             len += ossSnprintf (  outBuf + len, outSize - len,
                                   "Error : nextRecord %d is greater "

@@ -344,6 +344,7 @@ namespace engine
          rtnReturnOptions           _returnOptions ;
 
          // TBSCAN
+         dmsRecordID                _recordID ;
          dmsExtentID                _extentID ;
          dmsExtentID                _lastExtentID ;
          dmsExtentID                _lastExtLID ;

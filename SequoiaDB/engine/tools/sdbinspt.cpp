@@ -1483,7 +1483,7 @@ retry :
       }
       // first record doesn't go wild
       if ( extentHead._firstRecordOffset >=
-            extentHead._blockSize * (SINT32)pageSize )
+            (UINT32)extentHead._blockSize * (UINT32)pageSize )
       {
          dumpPrintf ( "Error: Bad first record offset: %d" OSS_NEWLINE,
                       extentHead._firstRecordOffset ) ;
@@ -1491,7 +1491,7 @@ retry :
       }
       // last record doens't go wild
       if ( extentHead._lastRecordOffset >=
-           extentHead._blockSize * (SINT32)pageSize )
+           (UINT32)extentHead._blockSize * (UINT32)pageSize )
       {
          dumpPrintf ( "Error: Bad last record offset: %d" OSS_NEWLINE,
                       extentHead._lastRecordOffset ) ;
@@ -1764,7 +1764,7 @@ void inspectOverflowedRecords ( OSSFILE &file, UINT32 pageSize,
    {
       dmsRecordID rid = *it ;
       dmsOffset offset = 0 ;
-      if ( rid._extent > (SINT32)gPageNum )
+      if ( rid._extent > gPageNum )
       {
          dumpPrintf ( "Error: overflowed rid extent is out of range: "
                       "0x08lx (%d) 0x08lx (%d)" OSS_NEWLINE,
@@ -2102,7 +2102,7 @@ void inspectIndexExtents ( OSSFILE &file, UINT32 pageSize,
       dmsExtentID childID = childExtents.front() ;
       childExtents.pop_front() ;
 
-      if ( childID == DMS_INVALID_EXTENT || childID >= (SINT32)gPageNum )
+      if ( childID == DMS_INVALID_EXTENT || childID >= gPageNum )
       {
          dumpPrintf ( "Error: index extent ID is not valid: 0x%08lx (%d)"
                       OSS_NEWLINE, childID, childID ) ;

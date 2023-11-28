@@ -192,7 +192,7 @@ namespace engine
    }
 
    static INT32 _rtnParseQueryMeta( const BSONObj &meta, const CHAR *&scanType,
-                                    const CHAR *&indexName, INT32 &indexLID,
+                                    const CHAR *&indexName, dmsExtentID &indexLID,
                                     INT32 &direction, BSONObj &blockObj )
    {
       INT32 rc = SDB_OK ;
@@ -210,7 +210,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       FIELD_NAME_INDEXNAME, rc ) ;
 
-         rc = rtnGetIntElement( meta, FIELD_NAME_INDEXLID, indexLID ) ;
+         rc = rtnGetIntElement( meta, FIELD_NAME_INDEXLID, (INT32 &)indexLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       FIELD_NAME_INDEXLID, rc ) ;
 
@@ -573,7 +573,7 @@ namespace engine
       BSONObj *pBlockObj = NULL ;
       const CHAR *indexName = NULL ;
       const CHAR *scanType  = NULL ;
-      INT32 indexLID = DMS_INVALID_EXTENT ;
+      dmsExtentID indexLID = DMS_INVALID_EXTENT ;
       INT32 direction = 1 ;
       rtnQueryType queryType = RTN_QUERY_NORMAL ;
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;

@@ -39,6 +39,8 @@
 *******************************************************************************/
 #include "dmsCB.hpp"
 #include "dms.hpp"
+#include "dmsDef.hpp"
+#include "dmsOprtOptions.hpp"
 #include "dmsStorageUnit.hpp"
 #include "ossLatch.hpp"
 #include "ossUtil.hpp"
@@ -54,6 +56,7 @@
 #include "ossLatch.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
+#include "dmsStorageServiceFactory.hpp"
 
 #include <list>
 
@@ -109,7 +112,9 @@ namespace engine
    */
 
    _SDB_DMSCB::_SDB_DMSCB()
-   :_mutex( MON_LATCH_SDB_DMSCB_MUTEX ),
+   :_storageService( nullptr ),
+    _csUIDGen( UTIL_UNIQUEID_NULL + 1 ),
+    _mutex( MON_LATCH_SDB_DMSCB_MUTEX ),
     _stateMtx( MON_LATCH_DMSCB_STATEMTX ),
     _writeCounter(0),
     _dmsCBState(DMS_STATE_NORMAL),
@@ -159,6 +164,23 @@ namespace engine
       // 1. load all
       if ( SDB_ROLE_COORD != pmdGetDBRole() )
       {
+         DMS_STORAGE_ENGINE_TYPE engineType = DMS_STORAGE_ENGINE_UNKNOWN ;
+         rc = _detectEngineType( pmdGetOptionCB()->getDbPath(), engineType ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to detect storage engine type, rc: %d", rc ) ;
+
+         rc = dmsStorageServiceFactory::create( engineType, _storageService ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create storage service "
+                      "for engine [%s], rc: %d",
+                      dmsGetStorageEngineName( engineType ), rc ) ;
+
+         PD_LOG( PDEVENT, "Created storage service for engine: %s",
+                 dmsGetStorageEngineName( engineType ) ) ;
+
+         dmsOpenEngineOptions options ;
+         rc = _storageService->openEngine( options ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open engine [%s], rc: %d",
+                      dmsGetStorageEngineName( engineType ), rc ) ;
+
          rc = rtnLoadCollectionSpaces ( pmdGetOptionCB()->getDbPath(),
                                         pmdGetOptionCB()->getIndexPath(),
                                         pmdGetOptionCB()->getLobPath(),
@@ -247,6 +269,21 @@ namespace engine
             _vecCSMutex[ i ] = NULL ;
          }
       }
+
+      if ( nullptr != _storageService )
+      {
+         dmsCloseEngineOptions options ;
+         DMS_STORAGE_ENGINE_TYPE engineType = _storageService->getEngineType() ;
+         INT32 tmpRC = _storageService->closeEngine( options ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to open engine [%s], rc: %d",
+                    dmsGetStorageEngineName( engineType ), tmpRC ) ;
+         }
+
+         dmsStorageServiceFactory::release( _storageService ) ;
+      }
+      _storageService = nullptr ;
 
       return SDB_OK ;
    }
@@ -1834,6 +1871,24 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DETECTENGINETYPE, "_SDB_DMSCB::_detectEngineType" )
+   INT32 _SDB_DMSCB::_detectEngineType( const CHAR *dbPath,
+                                        DMS_STORAGE_ENGINE_TYPE &engineType )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_DETECTENGINETYPE ) ;
+
+      engineType = pmdGetOptionCB()->getStorageEngineType() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_DETECTENGINETYPE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // input: clInfoObj
    // [
    //    { "Name": "bar1", "UniqueID": 2667174690817 } ,
@@ -2021,6 +2076,48 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_ALLOCCSUID, "_SDB_DMSCB::allocCSUniqueID" )s
+   INT32 _SDB_DMSCB::allocCSUniqueID( utilCSUniqueID &res )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_ALLOCCSUID ) ;
+
+      res = UTIL_UNIQUEID_NULL ;
+      ossScopedLock lock( &_mutex, EXCLUSIVE ) ;
+      for ( UINT32 tryCount = 0 ; tryCount < UTIL_CLINNERID_MAX ; ++ tryCount )
+      {
+         // allocate a unique ID from generator
+         utilCSUniqueID tmp = _csUIDGen ++ ;
+         if ( tmp > UTIL_CLINNERID_MAX )
+         {
+            _csUIDGen = UTIL_UNIQUEID_NULL + 1 ;
+            continue ;
+         }
+         // from local, mark it
+         OSS_BIT_SET( tmp, UTIL_UNIQUEID_LOCAL_BIT ) ;
+         // check if unique ID is used
+         if ( !_cscbIDMap.count( tmp ) )
+         {
+            res = tmp ;
+            break ;
+         }
+      }
+      if ( UTIL_UNIQUEID_NULL == res )
+      {
+         PD_LOG( PDWARNING, "Faield to allocate collection space unique ID" ) ;
+         rc = SDB_CAT_CS_UNIQUEID_EXCEEDED ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_ALLOCCSUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_ADDCS, "_SDB_DMSCB::addCollectionSpace" )
    INT32 _SDB_DMSCB::addCollectionSpace( const CHAR * pName,
                                          UINT32 topSequence,
@@ -2106,8 +2203,37 @@ namespace engine
       }
 
       rc = _CSCBNameInsert ( pName, topSequence, su, suID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save CS[%s], rc: %d", pName, rc ) ;
+
+      if ( _storageService )
+      {
+         if ( isCreate )
+         {
+            dmsCSMetadata metadata( su ) ;
+            dmsCreateCSOptions options ;
+            rc = _storageService->createCS( metadata, options, cb ) ;
+            if ( SDB_OK != rc )
+            {
+               _cscbVec[ suID ] = NULL ;
+               _tmpCscbVec[ suID ] = NULL ;
+               _tmpCscbStatusVec[ suID ] = DMS_CSCB_STATUS_NONE ;
+               _cscbNameMap.erase( pName ) ;
+               if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
+               {
+                  _cscbIDMap.erase( csUniqueID ) ;
+               }
+               _freeList.push( suID ) ;
+               PD_LOG( PDERROR, "Failed to create collection [%s] on "
+                       "engine [%s], rc: %d", pName,
+                       dmsGetStorageEngineName( _storageService->getEngineType() ),
+                       rc ) ;
+               goto error ;
+            }
+         }
+      }
+
       // write dps
-      if ( SDB_OK == rc && dpsCB )
+      if ( dpsCB )
       {
          UINT32 suLID = su->LogicalCSID() ;
          info.setInfoEx( suLID, ~0, DMS_INVALID_EXTENT, cb ) ;
@@ -2470,6 +2596,28 @@ namespace engine
          {
             // if remove file failed, we can do nothing
             rc = pCSCB->_su->remove() ;
+
+            if ( _storageService )
+            {
+               dmsCSMetadata metadata( pCSCB->_su ) ;
+               dmsDropCSOptions tmpOptions ;
+               if ( NULL == options )
+               {
+                  options = &tmpOptions ;
+               }
+               INT32 tmpRC = _storageService->dropCS( metadata, *options, cb ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to drop collection space [%s] on "
+                          "engine [%s], rc: %d", pName,
+                          dmsGetStorageEngineName( _storageService->getEngineType() ),
+                          tmpRC ) ;
+               }
+               if ( options == &tmpOptions )
+               {
+                  options = NULL ;
+               }
+            }
 
             pCSCB->_su->getEventHolder()->onDropCS( DMS_EVENT_MASK_ALL,
                                                     SDB_EVT_OCCUR_AFTER,

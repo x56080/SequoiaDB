@@ -85,6 +85,7 @@ namespace engine
                               const CHAR* indexJson,
                               _pmdEDUCB* cb ) ;
       INT32 _createSysCollection ( const CHAR* clFullName,
+                                   utilCLUniqueID clUID,
                                    _pmdEDUCB* cb ) ;
 
       // add collection unique ID to sequence

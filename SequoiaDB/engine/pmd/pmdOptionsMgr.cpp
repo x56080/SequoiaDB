@@ -36,6 +36,7 @@
 *******************************************************************************/
 
 #include "pmdOptionsMgr.hpp"
+#include "dmsDef.hpp"
 #include "pd.hpp"
 #include "utilCommon.hpp"
 #include "utilStr.hpp"
@@ -127,6 +128,8 @@ namespace engine
    #define PMD_DFT_MEM_MMAP_THRESHOLD  (1024)
    #define PMD_DFT_MEM_MMAP_MAX        (4194304)
    #define PMD_DFT_MEM_TOP_PAD         (-1)
+
+   #define PMD_DFT_WT_CACHE_SIZE       (2048)
 
    /*
       _pmdCfgExchange implement
@@ -2056,6 +2059,9 @@ done:
       _memMmapMax = PMD_DFT_MEM_MMAP_MAX ;
       _memTopPad = PMD_DFT_MEM_TOP_PAD ;
 
+      ossMemset( _storageEngineName, 0, sizeof( _storageEngineName ) ) ;
+      _storageEngineType = DMS_STORAGE_ENGINE_UNKNOWN ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2679,6 +2685,15 @@ done:
               PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_TOP_PAD, TRUE ) ;
       rdvMinMax( pEX, _memTopPad, -1, 16777216, TRUE ) ;
 
+      // --storageengine
+      rdxString( pEX, PMD_OPTION_STORAGEENGINE, _storageEngineName,
+                 sizeof( _storageEngineName ), FALSE, PMD_CFG_CHANGE_FORBIDDEN,
+                 DMS_STORAGE_ENGINE_NAME_WIREDTIGER ) ;
+
+      // --wtcachesize
+      rdxUInt( pEX, PMD_OPTION_WT_CACHE_SIZE, _wtCacheSize, FALSE,
+               PMD_CFG_CHANGE_FORBIDDEN, PMD_DFT_WT_CACHE_SIZE ) ;
+
       // end map
 
       return getResult () ;
@@ -2700,6 +2715,22 @@ done:
          std::cerr << "Invalid svcname: " << _krcbSvcName << endl ;
          rc = SDB_INVALIDARG ;
          goto error ;
+      }
+
+      if ( 0 != ossStrlen( _storageEngineName ) )
+      {
+         DMS_STORAGE_ENGINE_TYPE engineType = dmsGetStorageEngine( _storageEngineName ) ;
+         if ( DMS_STORAGE_ENGINE_UNKNOWN == engineType )
+         {
+            std::cerr << "Invalid storage engine name: " << _storageEngineName << endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _storageEngineType = engineType ;
+      }
+      else
+      {
+         _storageEngineType = DMS_STORAGE_ENGINE_MMAP ;
       }
 
       // logbuffsize check

@@ -85,9 +85,10 @@ namespace engine
    class _dmsStorageLob : public _dmsStorageBase
    {
    public:
-      _dmsStorageLob( const CHAR *lobmFileName,
+      _dmsStorageLob( IStorageService *service,
+                      dmsSUDescriptor *suDescriptor,
+                      const CHAR *lobmFileName,
                       const CHAR *lobdFileName,
-                      dmsStorageInfo *info,
                       dmsStorageDataCommon *pDataSu,
                       utilCacheUnit* pCacheUnit ) ;
       virtual ~_dmsStorageLob() ;

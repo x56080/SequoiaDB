@@ -695,7 +695,7 @@ namespace engine
 
    INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
-                              BOOLEAN sys = TRUE ) ;
+                              utilCLUniqueID clUID, BOOLEAN sys ) ;
 
    INT32 rtnTestAndCreateIndex ( const CHAR *pCLFullName,
                                  const BSONObj &indexDef,

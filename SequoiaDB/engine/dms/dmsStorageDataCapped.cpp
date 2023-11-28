@@ -49,10 +49,11 @@ using namespace bson ;
 
 namespace engine
 {
-   _dmsStorageDataCapped::_dmsStorageDataCapped( const CHAR* pSuFileName,
-                                                 dmsStorageInfo *pInfo,
+   _dmsStorageDataCapped::_dmsStorageDataCapped( IStorageService *service,
+                                                 dmsSUDescriptor *suDescriptor,
+                                                 const CHAR* pSuFileName,
                                                  _IDmsEventHolder *pEventHolder )
-   : _dmsStorageDataCommon( pSuFileName, pInfo, pEventHolder )
+   : _dmsStorageDataCommon( service, suDescriptor, pSuFileName, pEventHolder )
    {
       ossMemset( (CHAR *)_options, 0, sizeof(_options) ) ;
       _disableBlockScan() ;
@@ -1500,7 +1501,7 @@ namespace engine
       workExtInfo->_freeSpace = extent->_freeSpace ;
       workExtInfo->_firstRecordOffset = extent->_firstRecordOffset ;
       workExtInfo->_lastRecordOffset = extent->_lastRecordOffset ;
-      if ( (INT32)DMS_INVALID_OFFSET == extent->_lastRecordOffset )
+      if ( DMS_INVALID_OFFSET == extent->_lastRecordOffset )
       {
          workExtInfo->_writePos = 0 ;
          workExtInfo->_recNo = 0 ;
@@ -1508,7 +1509,7 @@ namespace engine
       else
       {
          SDB_ASSERT( extent->_lastRecordOffset >=
-                     (INT32)DMS_METAEXTENT_HEADER_SZ,
+                     DMS_METAEXTENT_HEADER_SZ,
                      "Last record offset is invalid" ) ;
          dmsRecordID recordID( extID, extent->_lastRecordOffset ) ;
          dmsRecordRW recordRW = record2RW( recordID, collectionID ) ;

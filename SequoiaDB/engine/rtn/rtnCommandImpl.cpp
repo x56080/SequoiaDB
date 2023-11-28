@@ -1438,8 +1438,17 @@ retry:
          }
       }
 
+      if ( !UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
+      {
+         rc = dmsCB->allocCSUniqueID( csUniqueID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to allocate colleciton space "
+                      "unique ID, rc: %d", rc ) ;
+         PD_LOG( PDEVENT, "Allocate collection space unique ID [%u]", csUniqueID ) ;
+      }
+
       // new storage unit, will insert into dmsCB->addCollectionSpace
-      su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace,
+      su = SDB_OSS_NEW dmsStorageUnit ( dmsCB->getStorageService(),
+                                        pCollectionSpace,
                                         csUniqueID, 1,
                                         pmdGetBuffPool(),
                                         pageSize,

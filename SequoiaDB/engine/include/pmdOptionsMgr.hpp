@@ -45,6 +45,7 @@
 #include "pmdDef.hpp"
 #include "ossSocket.hpp"
 #include "utilParam.hpp"
+#include "dmsDef.hpp"
 #include "dpsDef.hpp"
 #include "sdbInterface.hpp"
 #include "ossMemPool.hpp"
@@ -731,6 +732,21 @@ namespace engine
          OSS_INLINE INT32  getMemMmapMax() const { return _memMmapMax ; }
          OSS_INLINE INT32  getMemTopPad() const { return _memTopPad ; }
 
+         OSS_INLINE const CHAR *getStorageEngineName() const
+         {
+            return _storageEngineName ;
+         }
+
+         OSS_INLINE DMS_STORAGE_ENGINE_TYPE getStorageEngineType() const
+         {
+            return _storageEngineType ;
+         }
+
+         OSS_INLINE UINT32 getWTCacheSize() const
+         {
+            return _wtCacheSize ;
+         }
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -892,6 +908,10 @@ namespace engine
          INT32       _memMmapThreshold ;
          INT32       _memMmapMax ;
          INT32       _memTopPad ;
+
+         CHAR        _storageEngineName[ PMD_MAX_ENUM_STR_LEN  + 1 ] ;
+         DMS_STORAGE_ENGINE_TYPE _storageEngineType ;
+         UINT32      _wtCacheSize ;
 
 #ifdef SDB_ENTERPRISE
 

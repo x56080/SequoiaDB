@@ -4236,11 +4236,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 omDatabaseTool::createCollection( const CHAR *pCollection )
+   INT32 omDatabaseTool::createCollection( const CHAR *pCollection,
+                                           utilCLUniqueID clUID )
    {
       INT32 rc = SDB_OK ;
 
-      rc = rtnTestAndCreateCL( pCollection, _cb, _pDMSCB, NULL, TRUE ) ;
+      rc = rtnTestAndCreateCL( pCollection, _cb, _pDMSCB, NULL, clUID, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to create collection: name=%s, rc=%d",

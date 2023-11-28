@@ -40,6 +40,7 @@
 #define DMSSTORAGE_BASE_HPP_
 
 #include "core.hpp"
+#include "interface/IStorageService.hpp"
 #include "oss.hpp"
 #include "utilPooledObject.hpp"
 #include "ossMmap.hpp"
@@ -49,11 +50,11 @@
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 #include "../bson/oid.h"
+#include "dmsSUDescriptor.hpp"
 #include "dmsSMEMgr.hpp"
 #include "dmsLobDef.hpp"
 #include "pmdEnv.hpp"
 #include "sdbIPersistence.hpp"
-#include "dmsExtDataHandler.hpp"
 
 #include <string>
 
@@ -64,71 +65,8 @@ namespace engine
 {
 
    #define DMS_HEADER_EYECATCHER_LEN         (8)
-   #define DMS_SU_NAME_SZ                    DMS_COLLECTION_SPACE_NAME_SZ
 
 #pragma pack(4)
-   /*
-      _dmsStorageInfo defined
-   */
-   struct _dmsStorageInfo
-   {
-      UINT32      _pageSize ;
-      CHAR        _suName [ DMS_SU_NAME_SZ + 1 ] ; // storage unit file name is
-                                                   // foo.0 / foo.1, where foo
-                                                   // is suName, and 0/1 are
-                                                   // _sequence
-      UINT32      _sequence ;
-      UINT64      _secretValue ;
-      UINT32      _lobdPageSize ;
-
-      UINT32      _overflowRatio ;
-      UINT32      _extentThreshold ;
-
-      BOOLEAN     _enableSparse ;
-      BOOLEAN     _directIO ;
-      UINT32      _cacheMergeSize ;
-      UINT32      _pageAllocTimeout ;
-
-      /// Data is OK
-      BOOLEAN     _dataIsOK ;
-      UINT64      _curLSNOnStart ;
-
-      DMS_STORAGE_TYPE _type ;
-      IDmsExtDataHandler *_extDataHandler ;
-
-      utilCSUniqueID _csUniqueID ;
-
-      UINT64      _createTime ;
-      UINT64      _updateTime ;
-
-      _dmsStorageInfo ()
-      {
-         _pageSize      = DMS_PAGE_SIZE_DFT ;
-         ossMemset( _suName, 0, sizeof( _suName ) ) ;
-         _sequence      = 0 ;
-         _secretValue   = 0 ;
-         _lobdPageSize  = DMS_DO_NOT_CREATE_LOB ;
-
-         _overflowRatio = 0 ;
-         _extentThreshold = 0 ;
-         _enableSparse = FALSE ;
-         _directIO = FALSE ;
-         _cacheMergeSize = 0 ;
-         _pageAllocTimeout = 0 ;
-
-         _dataIsOK       = FALSE ;
-         _curLSNOnStart  = ~0 ;
-         _type = DMS_STORAGE_NORMAL ;
-         _extDataHandler = NULL ;
-
-         _csUniqueID     = UTIL_UNIQUEID_NULL ;
-
-         _createTime     = 0 ;
-         _updateTime     = 0 ;
-      }
-   };
-   typedef _dmsStorageInfo dmsStorageInfo ;
-
    /*
       Storage Unit Header : 65536(64K)
    */
@@ -155,7 +93,8 @@ namespace engine
       utilIdxInnerID _idxInnerHWM ;                      // index InnerID hwm
       UINT64 _createTime ;                               // create time
       UINT64 _updateTime ;                               // update time
-      CHAR   _pad [ 65308 ] ;
+      utilCLInnerID _clInnderHWM ;
+      CHAR   _pad [ 65304 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -375,8 +314,9 @@ namespace engine
       typedef boost::shared_ptr<ossSpinSLatch>     sharedMutexPtr ;
 
       public:
-         _dmsStorageBase( const CHAR *pSuFileName,
-                          dmsStorageInfo *pInfo ) ;
+         _dmsStorageBase( IStorageService *service,
+                          dmsSUDescriptor *suDescriptor,
+                          const CHAR *pSuFileName ) ;
          virtual ~_dmsStorageBase() ;
 
       /// For Persistence
@@ -453,11 +393,11 @@ namespace engine
          OSS_INLINE dmsExtentID segment2Extent( UINT32 segID,
                                                 UINT32 segOffset = 0 ) const ;
 
-         OSS_INLINE dmsExtRW    extent2RW( INT32 extentID,
+         OSS_INLINE dmsExtRW    extent2RW( dmsExtentID extentID,
                                            INT32 collectionID = -1 ) const ;
          OSS_INLINE dmsExtentID rw2extentID( const dmsExtRW &rw ) ;
 
-         OSS_INLINE const ossValuePtr beginFixedAddr( INT32 extentID,
+         OSS_INLINE const ossValuePtr beginFixedAddr( dmsExtentID extentID,
                                                       UINT32 pageNum ) ;
          OSS_INLINE void        endFixedAddr( const ossValuePtr ptr ) ;
 
@@ -468,7 +408,7 @@ namespace engine
 
          OSS_INLINE DMS_STORAGE_TYPE getStorageType() const
          {
-            return _pStorageInfo->_type ;
+            return _suDescriptor->getStorageInfo()._type ;
          }
 
          void                  setTransSupport( BOOLEAN supported ) ;
@@ -477,7 +417,7 @@ namespace engine
          /*
             Make these function internal
          */
-         OSS_INLINE ossValuePtr extentAddr( INT32 extentID ) const ;
+         OSS_INLINE ossValuePtr extentAddr( dmsExtentID extentID ) const ;
          OSS_INLINE dmsExtentID extentID( ossValuePtr extendAddr ) const ;
 
       public:
@@ -501,7 +441,7 @@ namespace engine
          INT32 flushMeta( BOOLEAN sync = FALSE,
                           UINT32 *pExceptID = NULL,
                           UINT32 num = 0 ) ;
-         INT32 flushPages( SINT32 pageID, UINT16 pageNum,
+         INT32 flushPages( dmsExtentID pageID, UINT16 pageNum,
                            BOOLEAN sync = FALSE ) ;
          INT32 flushSegment( UINT32 segmentID, BOOLEAN sync = FALSE ) ;
          INT32 flushAll( BOOLEAN sync = FALSE ) ;
@@ -600,7 +540,7 @@ namespace engine
 
       protected:
          // No space will extent new segment
-         INT32    _findFreeSpace ( UINT16 numPages, SINT32 &foundPage,
+         INT32    _findFreeSpace ( UINT16 numPages, dmsExtentID &foundPage,
                                    dmsContext *context ) ;
          INT32    _releaseSpace ( SINT32 pageStart, UINT16 numPages ) ;
 
@@ -629,11 +569,12 @@ namespace engine
          INT32    _postOpen( INT32 cause ) ;
 
       protected:
+         IStorageService               *_service ;
+         dmsSUDescriptor               *_suDescriptor ;
          dmsStorageUnitHeader          *_dmsHeader ;     // 64KB
          dmsSpaceManagementExtent      *_dmsSME ;        // 16MB
          CHAR                          _suFileName[ DMS_SU_FILENAME_SZ + 1 ] ;
 
-         dmsStorageInfo                *_pStorageInfo ;
          UINT32                        _pageSize ;    // cache, not use header
          UINT32                        _lobPageSize ; // cache, not use header
          UINT32                        _segmentSize ; // cache, not use header
@@ -760,7 +701,7 @@ namespace engine
       // the same with: ( segID - _dataSegID ) * _segmentPages + segOffset
       return (( segID - _dataSegID ) << _segmentPagesSquare ) + segOffset ;
    }
-   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID ) const
+   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( dmsExtentID extentID ) const
    {
       if ( DMS_INVALID_EXTENT == extentID )
       {
@@ -805,7 +746,7 @@ namespace engine
       }
       return segment2Extent( (UINT32)segID, segOffset ) ;
    }
-   OSS_INLINE dmsExtRW _dmsStorageBase::extent2RW( INT32 extentID,
+   OSS_INLINE dmsExtRW _dmsStorageBase::extent2RW( dmsExtentID extentID,
                                                    INT32 collectionID ) const
    {
       dmsExtRW rw ;
@@ -819,7 +760,7 @@ namespace engine
    {
       return extentID( rw._ptr ) ;
    }
-   OSS_INLINE const ossValuePtr _dmsStorageBase::beginFixedAddr( INT32 extentID,
+   OSS_INLINE const ossValuePtr _dmsStorageBase::beginFixedAddr( dmsExtentID extentID,
                                                                  UINT32 pageNum )
    {
       return extentAddr( extentID ) ;

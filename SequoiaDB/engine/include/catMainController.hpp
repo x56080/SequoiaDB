@@ -174,6 +174,7 @@ namespace engine
                               const CHAR *pIndex,
                               pmdEDUCB *cb ) ;
       INT32 _createSysCollection ( const CHAR *pCollection,
+                                   utilCLUniqueID clUID,
                                    pmdEDUCB *cb ) ;
       void _delContextByHandle( const UINT32 &handle ) ;
       void _delContext( const UINT32 &handle, UINT32 tid ) ;

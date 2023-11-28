@@ -143,7 +143,9 @@ namespace engine
    class _dmsStorageIndex : public _dmsStorageBase
    {
       public:
-         _dmsStorageIndex ( const CHAR *pSuFileName, dmsStorageInfo *pInfo,
+         _dmsStorageIndex ( IStorageService *service,
+                            dmsSUDescriptor *suDescriptor,
+                            const CHAR *pSuFileName,
                             _dmsStorageDataCommon *pDataSu ) ;
          ~_dmsStorageIndex () ;
 

@@ -61,6 +61,54 @@ namespace engine
    #define CAT_SYNC_FIRST_INTERVAL ( 200 ) // ms
    #define CAT_SYNC_INTERVAL ( 0 ) // ms
 
+   const utilCSUniqueID SYS_CAT_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 0 ;
+   const utilCLUniqueID SYS_CAT_NODE_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+   const utilCLUniqueID SYS_CAT_CS_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 2 ) ;
+   const utilCLUniqueID SYS_CAT_CL_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 3 ) ;
+   const utilCLUniqueID SYS_CAT_TASKS_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 4 ) ;
+   const utilCLUniqueID SYS_CAT_INDEXES_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 5 ) ;
+   const utilCLUniqueID SYS_CAT_DOMAINS_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 6 ) ;
+   const utilCLUniqueID SYS_CAT_HISTORY_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 7 ) ;
+   const utilCLUniqueID SYS_CAT_DATASOURCES_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 8 ) ;
+   const utilCLUniqueID SYS_CAT_GROUPMODES_CLUID =
+               utilBuildCLUniqueID( SYS_CAT_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 9 ) ;
+
+   const utilCSUniqueID SYS_PROCEDURES_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 1 ;
+   const utilCLUniqueID SYS_PROCEDURES_CLUID =
+               utilBuildCLUniqueID( SYS_PROCEDURES_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+
+   const utilCSUniqueID SYS_INFO_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 2 ;
+   const utilCLUniqueID SYS_INFO_DCBASE_CLUID =
+               utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+   const utilCLUniqueID SYS_INFO_LOG_CLUID[ CAT_SYSLOG_CL_NUM ] =
+   {
+      utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 2 ),
+      utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 3 ),
+      utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 4 ),
+      utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 5 ),
+      utilBuildCLUniqueID( SYS_INFO_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 6 ),
+   } ;
+
+   const utilCSUniqueID SYS_RECYCLEBIN_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 3 ;
+   const utilCLUniqueID SYS_RECYCLEBIN_ITEMS_CLUID =
+               utilBuildCLUniqueID( SYS_RECYCLEBIN_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+   const utilCLUniqueID SYS_RECYCLEBIN_CS_CLUID =
+               utilBuildCLUniqueID( SYS_RECYCLEBIN_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 2 ) ;
+   const utilCLUniqueID SYS_RECYCLEBIN_CL_CLUID =
+               utilBuildCLUniqueID( SYS_RECYCLEBIN_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 3 ) ;
+   const utilCLUniqueID SYS_RECYCLEBIN_SEQ_CLUID =
+               utilBuildCLUniqueID( SYS_RECYCLEBIN_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 4 ) ;
+   const utilCLUniqueID SYS_RECYCLEBIN_INDEXES_CLUID =
+               utilBuildCLUniqueID( SYS_RECYCLEBIN_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 5 ) ;
+
    BEGIN_OBJ_MSG_MAP( catMainController, _pmdObjBase )
       ON_EVENT( PMD_EDU_EVENT_ACTIVE, _onActiveEvent )
       ON_EVENT( PMD_EDU_EVENT_DEACTIVE, _onDeactiveEvent )
@@ -581,6 +629,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT__CREATESYSCOL, "catMainController::_createSysCollection" )
    INT32 catMainController::_createSysCollection ( const CHAR *pCollection,
+                                                   utilCLUniqueID clUID,
                                                    pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -588,7 +637,7 @@ namespace engine
       PD_TRACE1 ( SDB_CATMAINCT__CREATESYSCOL,
                   PD_PACK_STRING ( pCollection ) ) ;
 
-      rc = rtnTestAndCreateCL( pCollection, cb, _pDmsCB, NULL, TRUE ) ;
+      rc = rtnTestAndCreateCL( pCollection, cb, _pDmsCB, NULL, clUID, TRUE ) ;
       if ( rc )
       {
          goto error ;
@@ -610,7 +659,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATMAINCT__ENSUREMETADATA ) ;
 
       // create SYSCAT.SYSNODES
-      rc = _createSysCollection( CAT_NODE_INFO_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_NODE_INFO_COLLECTION,
+                                 SYS_CAT_NODE_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -629,7 +679,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSCOLLECTIONSPACES
-      rc = _createSysCollection ( CAT_COLLECTION_SPACE_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_COLLECTION_SPACE_COLLECTION,
+                                  SYS_CAT_CS_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -648,7 +699,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSCOLLECTIONS
-      rc = _createSysCollection ( CAT_COLLECTION_INFO_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_COLLECTION_INFO_COLLECTION,
+                                  SYS_CAT_CL_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -673,7 +725,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSTASKS
-      rc = _createSysCollection ( CAT_TASK_INFO_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_TASK_INFO_COLLECTION,
+                                  SYS_CAT_TASKS_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -698,7 +751,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSINDEXES
-      rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION,
+                                  SYS_CAT_INDEXES_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -711,7 +765,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSDOMAINS
-      rc = _createSysCollection ( CAT_DOMAIN_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_DOMAIN_COLLECTION,
+                                  SYS_CAT_DOMAINS_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -724,7 +779,8 @@ namespace engine
       }
 
       // create SYSCAT.SYSHISTORY
-      rc = _createSysCollection( CAT_HISTORY_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_HISTORY_COLLECTION,
+                                 SYS_CAT_HISTORY_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -737,7 +793,8 @@ namespace engine
       }
 
       /// procedures
-      rc = _createSysCollection ( CAT_PROCEDURES_COLLECTION, cb ) ;
+      rc = _createSysCollection ( CAT_PROCEDURES_COLLECTION,
+                                  SYS_PROCEDURES_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -750,7 +807,8 @@ namespace engine
       }
 
       /// SYSINFO
-      rc = _createSysCollection( CAT_SYSDCBASE_COLLECTION_NAME, cb ) ;
+      rc = _createSysCollection( CAT_SYSDCBASE_COLLECTION_NAME,
+                                 SYS_INFO_DCBASE_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -763,7 +821,8 @@ namespace engine
       }
 
       /// SYSDATASOURCES
-      rc = _createSysCollection( CAT_DATASOURCE_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_DATASOURCE_COLLECTION,
+                                 SYS_CAT_DATASOURCES_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -782,7 +841,8 @@ namespace engine
       }
 
       /// SYSGROUPMODES
-      rc = _createSysCollection( CAT_GROUP_MODE_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_GROUP_MODE_COLLECTION,
+                                 SYS_CAT_GROUPMODES_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -800,7 +860,7 @@ namespace engine
          CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
          ossSnprintf( clName, sizeof( clName ), "%s%d",
                       CAT_SYSLOG_COLLECTION_NAME, i ) ;
-         rc = _createSysCollection( clName, cb ) ;
+         rc = _createSysCollection( clName, SYS_INFO_LOG_CLUID[ i ], cb ) ;
          if ( rc )
          {
             goto error ;
@@ -818,7 +878,8 @@ namespace engine
       }
 
       // collection for recycle bin item
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                                 SYS_RECYCLEBIN_ITEMS_CLUID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
 
@@ -855,7 +916,8 @@ namespace engine
                    CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
 
       // collection for recycled collection space
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION,
+                                 SYS_RECYCLEBIN_CS_CLUID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
 
@@ -868,7 +930,8 @@ namespace engine
                    CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
 
       // collection for recycled collection
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION,
+                                 SYS_RECYCLEBIN_CL_CLUID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
 
@@ -889,7 +952,8 @@ namespace engine
                    CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
 
       // collection for recycled sequence
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION,
+                                 SYS_RECYCLEBIN_SEQ_CLUID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
 
@@ -902,7 +966,8 @@ namespace engine
                    CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
 
       // collection for recycled index
-      rc = _createSysCollection( CAT_SYSRECYCLEBIN_IDX_COLLECTION, cb ) ;
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_IDX_COLLECTION,
+                                 SYS_RECYCLEBIN_INDEXES_CLUID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_IDX_COLLECTION, rc ) ;
 

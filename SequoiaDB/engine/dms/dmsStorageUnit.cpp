@@ -1609,7 +1609,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU, "_dmsStorageUnit::_dmsStorageUnit" )
-   _dmsStorageUnit::_dmsStorageUnit ( const CHAR *pSUName,
+   _dmsStorageUnit::_dmsStorageUnit ( IStorageService *storageService,
+                                      const CHAR *pSUName,
                                       UINT32 csUniqueID,
                                       UINT32 sequence,
                                       utilCacheMgr *pMgr,
@@ -1617,7 +1618,23 @@ namespace engine
                                       INT32 lobPageSize,
                                       DMS_STORAGE_TYPE type,
                                       IDmsExtDataHandler *extDataHandler )
-   :_pDataSu( NULL ),
+   :_dmsSUDescriptor( pSUName,
+                      csUniqueID,
+                      sequence,
+                      pageSize,
+                      lobPageSize,
+                      type,
+                      pmdGetOptionCB()->getOverFlowRatio(),
+                      pmdGetOptionCB()->getExtendThreshold() << 20,
+                      pmdGetOptionCB()->sparseFile(),
+                      pmdGetOptionCB()->useDirectIOInLob(),
+                      pmdGetOptionCB()->getCacheMergeSize(),
+                      pmdGetOptionCB()->getPageAllocTimeout(),
+                      pmdGetStartup().isOK(),
+                      pmdGetSyncMgr()->getCompleteLSN(),
+                      extDataHandler ),
+    _storageService( storageService ),
+    _pDataSu( NULL ),
     _pIndexSu( NULL ),
     _pLobSu( NULL ),
     _pMgr( pMgr ),
@@ -1626,39 +1643,6 @@ namespace engine
     _cacheHolder ( this )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU ) ;
-      SDB_ASSERT ( pSUName, "name can't be null" ) ;
-
-      pmdOptionsCB *options = pmdGetOptionCB() ;
-
-      if ( 0 == pageSize )
-      {
-         pageSize = DMS_PAGE_SIZE_DFT ;
-      }
-
-      if ( 0 == lobPageSize )
-      {
-         lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-      }
-
-      _storageInfo._pageSize = pageSize ;
-      _storageInfo._lobdPageSize = lobPageSize ;
-      ossStrncpy( _storageInfo._suName, pSUName, DMS_SU_NAME_SZ ) ;
-      _storageInfo._suName[DMS_SU_NAME_SZ] = 0 ;
-      _storageInfo._csUniqueID = csUniqueID ;
-      _storageInfo._sequence = sequence ;
-      _storageInfo._overflowRatio = options->getOverFlowRatio() ;
-      _storageInfo._extentThreshold = options->getExtendThreshold() << 20 ;
-      _storageInfo._enableSparse = options->sparseFile() ;
-      _storageInfo._directIO = options->useDirectIOInLob() ;
-      _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
-      _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
-      _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
-      _storageInfo._curLSNOnStart = pmdGetSyncMgr()->getCompleteLSN() ;
-      // make secret value
-      _storageInfo._secretValue = ossPack32To64( (UINT32)time(NULL),
-                                                 (UINT32)(ossRand()*239641) ) ;
-      _storageInfo._type = type ;
-      _storageInfo._extDataHandler = extDataHandler ;
 
       // Create caches
       _cacheHolder.createSUCache( DMS_CACHE_TYPE_STAT ) ;
@@ -2017,7 +2001,7 @@ namespace engine
       dmsExtRW extRW ;
       dmsExtent *sourceExt  = (dmsExtent*)pBuffer ;
       dmsExtent *extAddr = NULL ;
-      SINT32 allocatedExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID allocatedExtent = DMS_INVALID_EXTENT ;
 
       // allocate a new extent
       rc = _pDataSu->_allocateExtent( mbContext, numPages, FALSE, toLoad,
@@ -4700,9 +4684,10 @@ namespace engine
                    _storageInfo._suName, _storageInfo._sequence,
                    DMS_INDEX_SU_EXT_NAME ) ;
 
-      _pDataSu = getDMSStorageDataFactory()->createProduct( _storageInfo._type,
+      _pDataSu = getDMSStorageDataFactory()->createProduct( _storageService,
+                                                            this,
+                                                            _storageInfo._type,
                                                             dataFileName,
-                                                            &_storageInfo,
                                                             &_eventHolder ) ;
       if ( !_pDataSu )
       {
@@ -4713,8 +4698,8 @@ namespace engine
          goto error ;
       }
 
-      _pIndexSu = SDB_OSS_NEW dmsStorageIndex( idxFileName, &_storageInfo,
-                                               _pDataSu ) ;
+      _pIndexSu = SDB_OSS_NEW dmsStorageIndex( _storageService, this,
+                                               idxFileName, _pDataSu ) ;
       if ( !_pIndexSu )
       {
          rc = SDB_OOM ;
@@ -4743,9 +4728,9 @@ namespace engine
                    _storageInfo._suName, _storageInfo._sequence,
                    DMS_LOB_DATA_SU_EXT_NAME ) ;
 
-      _pLobSu = SDB_OSS_NEW dmsStorageLob( dataFileName, idxFileName,
-                                           &_storageInfo, _pDataSu,
-                                           _pCacheUnit ) ;
+      _pLobSu = SDB_OSS_NEW dmsStorageLob( _storageService, this,
+                                           dataFileName, idxFileName,
+                                           _pDataSu, _pCacheUnit ) ;
       if ( !_pLobSu )
       {
          rc = SDB_OOM ;

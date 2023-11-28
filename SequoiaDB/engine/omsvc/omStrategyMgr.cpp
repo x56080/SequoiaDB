@@ -41,6 +41,14 @@ using namespace std ;
 namespace engine
 {
 
+   const utilCSUniqueID OM_STRATEGY_CSUID = UTIL_CSUNIQUEID_SYS_MIN + 1 ;
+   const utilCLUniqueID OM_STRATEGY_META =
+               utilBuildCLUniqueID( OM_STRATEGY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 1 ) ;
+   const utilCLUniqueID OM_STRATEGY_TASK =
+               utilBuildCLUniqueID( OM_STRATEGY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 2 ) ;
+   const utilCLUniqueID OM_STRATEGY_STRATEGY =
+               utilBuildCLUniqueID( OM_STRATEGY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 3 ) ;
+
    static const BSONObj s_emptyObj ;
 
    /*
@@ -73,7 +81,7 @@ namespace engine
 
       /// SYSSTRATEGY.SYSMETADATA
       rc = rtnTestAndCreateCL( OM_CS_STRATEGY_CL_META_DATA,
-                               cb, dmsCB, NULL, TRUE ) ;
+                               cb, dmsCB, NULL, OM_STRATEGY_META, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Create collection[%s] failed, rc: %d",
@@ -94,7 +102,7 @@ namespace engine
 
       /// SYSSTRATEGY.SYSTASKPROPERTY
       rc = rtnTestAndCreateCL( OM_CS_STRATEGY_CL_TASK_PRO,
-                               cb, dmsCB, NULL, TRUE ) ;
+                               cb, dmsCB, NULL, OM_STRATEGY_TASK, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Create collection[%s] failed, rc: %d",
@@ -137,7 +145,7 @@ namespace engine
 
       /// SYSSTRATEGY.SYSSTRATEGYPROPERTY
       rc = rtnTestAndCreateCL( OM_CS_STRATEGY_CL_STRATEGY_PRO,
-                               cb, dmsCB, NULL, TRUE ) ;
+                               cb, dmsCB, NULL, OM_STRATEGY_STRATEGY, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Create collection[%s] failed, rc: %d",

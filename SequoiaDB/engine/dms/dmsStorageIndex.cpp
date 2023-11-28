@@ -87,10 +87,11 @@ namespace engine
       }
    }
 
-   _dmsStorageIndex::_dmsStorageIndex( const CHAR * pSuFileName,
-                                       dmsStorageInfo * pInfo,
+   _dmsStorageIndex::_dmsStorageIndex( IStorageService *service,
+                                       dmsSUDescriptor *suDescriptor,
+                                       const CHAR * pSuFileName,
                                        dmsStorageDataCommon * pDataSu )
-   :_dmsStorageBase( pSuFileName, pInfo )
+   :_dmsStorageBase( service, suDescriptor, pSuFileName )
    {
       SDB_ASSERT( pDataSu, "Data Su can't be NULL" ) ;
       // TODO: temporary cast
@@ -149,10 +150,10 @@ namespace engine
          PD_LOG( PDERROR, "Incompatible version: %u", pHeader->_version ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;
       }
-      else if ( pHeader->_secretValue != _pStorageInfo->_secretValue )
+      else if ( pHeader->_secretValue != _suDescriptor->getStorageInfo()._secretValue )
       {
          PD_LOG( PDERROR, "Secret value[%llu] not the same with data su[%llu]",
-                 pHeader->_secretValue, _pStorageInfo->_secretValue ) ;
+                 pHeader->_secretValue, _suDescriptor->getStorageInfo()._secretValue ) ;
          rc = SDB_DMS_SECRETVALUE_NOT_SAME ;
       }
       return rc ;
@@ -194,7 +195,7 @@ namespace engine
                   if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN )
                   {
                      _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN =
-                        _pStorageInfo->_curLSNOnStart ;
+                        _suDescriptor->getStorageInfo()._curLSNOnStart ;
                   }
                   _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 1 ;
                   needFlushMME = TRUE ;
@@ -246,10 +247,10 @@ namespace engine
                   // data handler, and invoke the onOpenTextIdx method.
                   if ( !extHandler )
                   {
-                     SDB_ASSERT( _pStorageInfo->_extDataHandler,
+                     SDB_ASSERT( _suDescriptor->getStorageInfo()._extDataHandler,
                                  "External data handler in storage info is "
                                  "NULL" ) ;
-                     _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
+                     _pDataSu->regExtDataHandler( _suDescriptor->getStorageInfo()._extDataHandler ) ;
                      extHandler = _pDataSu->getExtDataHandler() ;
                   }
                   if ( extHandler )
@@ -688,7 +689,7 @@ namespace engine
       dpsLogRecord &record = info.getMergeBlock().record() ;
       UINT32 logRecSize = 0 ;
       CHAR indexName[ IXM_INDEX_NAME_SIZE + 1 ] = { 0 } ;
-      utilCSUniqueID csUniqID = _pStorageInfo->_csUniqueID ;
+      utilCSUniqueID csUniqID = _suDescriptor->getStorageInfo()._csUniqueID ;
       BSONObj option ;
       utilIdxUniqueID newIdxUniqID = UTIL_UNIQUEID_NULL ;
       utilIdxUniqueID oldIdxUniqID = UTIL_UNIQUEID_NULL ;
@@ -1375,6 +1376,26 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
             goto error ;
          }
+
+         if ( _service )
+         {
+            dmsIdxMetadata metadata( _suDescriptor,
+                                     context->mb(),
+                                     context->mbStat(),
+                                     indexCB.getUniqueID(),
+                                     indexCB.getLogicalID() ) ;
+            dmsDropIdxOptions options ;
+            rc = _service->dropIdx( metadata, options, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to drop index [%s] on collection [%s] on "
+                       "engine [%s], rc: %d", indexCB.getName(), fullName,
+                       dmsGetStorageEngineName( _service->getEngineType() ),
+                       rc ) ;
+               goto error ;
+            }
+         }
+
          // set to dropping
          indexCB.clearLogicID() ;
 
@@ -1647,6 +1668,25 @@ namespace engine
          }
          indexCB.setRoot ( rootExtentID ) ;
 
+         if ( _service )
+         {
+            dmsIdxMetadata metadata( _suDescriptor,
+                                     context->mb(),
+                                     context->mbStat(),
+                                     indexCB.getUniqueID(),
+                                     indexCB.getLogicalID() ) ;
+            dmsCreateIdxOptions options ;
+            rc = _service->createIdx( metadata, options, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to create index [%s] on collection [%s] on "
+                       "engine [%s], rc: %d", indexName, fullName,
+                       dmsGetStorageEngineName( _service->getEngineType() ),
+                       rc ) ;
+               goto error ;
+            }
+         }
+
          if ( indexCB.unique() )
          {
             context->mbStat()->_uniqueIdxNum++ ;
@@ -1849,7 +1889,7 @@ namespace engine
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       SDB_DPSCB *dropDps = NULL ;
       OID indexOID ;    // Used for dropping THIS index in case of error.
-      IDmsExtDataHandler *handler  = _pStorageInfo->_extDataHandler ;
+      IDmsExtDataHandler *handler  = _suDescriptor->getStorageInfo()._extDataHandler ;
       BSONObj option ;
 
       SDB_ASSERT( handler, "External handler is NULL" ) ;
@@ -3602,6 +3642,26 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to truncate index(%s), rc: %d",
                      indexCB.getDef().toString().c_str(), rc ) ;
             goto error ;
+         }
+
+         if ( _service )
+         {
+            dmsIdxMetadata metadata( _suDescriptor,
+                                     context->mb(),
+                                     context->mbStat(),
+                                     indexCB.getUniqueID(),
+                                     indexCB.getLogicalID() ) ;
+            dmsTruncateIdxOptions options ;
+            rc = _service->truncateIdx( metadata, options, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to truncate index [%s] on collection [%s.%s] on "
+                       "engine [%s], rc: %d", indexCB.getName(),
+                       _pDataSu->getSuName(), context->mb()->_collectionName,
+                       dmsGetStorageEngineName( _service->getEngineType() ),
+                       rc ) ;
+               goto error ;
+            }
          }
       }
 

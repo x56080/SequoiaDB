@@ -37,6 +37,7 @@
 
 *******************************************************************************/
 #include "rtnContextData.hpp"
+#include "ossUtil.hpp"
 #include "rtn.hpp"
 #include "pmd.hpp"
 #include "rtnIXScannerFactory.hpp"
@@ -1235,43 +1236,9 @@ namespace engine
 
       if ( blockObj )
       {
-         SEGMENT_VEC segExtents ;
-         rc = _parseSegments( *blockObj, _segments ) ;
-         PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
-                      blockObj->toString().c_str(), rc ) ;
-
-         // Check once again if the block ids given by the user are still valid.
-         rc = su->getSegExtents( mbContext->mb()->_collectionName,
-                                 segExtents, mbContext ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
-                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
-
-         for ( SEGMENT_VEC_CITR cItr = _segments.begin();
-               cItr != _segments.end(); ++cItr )
-         {
-            if ( segExtents.end() ==
-                 std::find( segExtents.begin(), segExtents.end(), *cItr ) )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
-                           "belong to collection %s, rc: %d",
-                           *cItr, mbContext->mb()->_collectionName, rc ) ;
-               goto error ;
-            }
-         }
-
-         _segmentScan = TRUE ;
-         _extentID = _segments.size() > 0 ? *_segments.begin() :
-                     DMS_INVALID_EXTENT ;
-      }
-      else
-      {
-         _extentID = mbContext->mb()->_firstExtentID ;
-      }
-
-      if ( DMS_INVALID_EXTENT == _extentID )
-      {
-         _hitEnd = TRUE ;
+         PD_LOG( PDERROR, "Block scan is not supported for table scan" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         goto error ;
       }
 
    done:
@@ -1753,7 +1720,11 @@ namespace engine
                                             vector<INT64>* dollarList )
    {
       INT32 rc = SDB_OK ;
-      INT32 startNumRecords = numRecords() ;
+
+      const INT32 maxNum = 1000000 ;
+      const INT32 breakBufferSize = 2097152 ; /// 2MB
+      const INT32 minRecordNum = 4 ;
+
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
       _mthRecordGenerator generator ;
@@ -1761,8 +1732,6 @@ namespace engine
       monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
       mthSelector *selector   = NULL ;
-      dmsExtScannerFactory* extFactory = dmsGetScannerFactory() ;
-      dmsExtScannerBase* extScanner = NULL ;
 
       PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN );
 
@@ -1771,164 +1740,137 @@ namespace engine
          selector = &_selector ;
       }
 
-      if ( DMS_INVALID_EXTENT == _extentID )
-      {
-         SDB_ASSERT( FALSE, "extentID can't be INVALID" ) ;
-         _hitEnd = TRUE ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
       if ( NULL != _queryModifier )
       {
          generator.setQueryModify( TRUE ) ;
       }
 
-      extScanner = extFactory->create( _su->data(), _mbContext, matchRuntime,
-                                       _extentID, _lastExtentID, accessType,
-                                       _numToReturn, _numToSkip,
-                                       _returnOptions.getFlag() ) ;
-      if ( !extScanner )
+      PD_LOG( PDDEBUG, "Start scanner [%s] from extent: %u, offset: %u",
+              _planRuntime.getCLFullName(), _recordID._extent, _recordID._offset ) ;
+
+      dmsDataScanner scanner( _su->data(),
+                              _mbContext,
+                              _recordID,
+                              matchRuntime,
+                              accessType,
+                              _numToReturn,
+                              _numToSkip,
+                              _returnOptions.getFlag() ) ;
+      UINT32 recordSelected = 0 ;
+      _mthMatchTreeContext mthContext( NULL ) ;
+      if ( NULL != dollarList )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to create extent scanner" ) ;
+         mthContext.enableDollarList() ;
+      }
+
+      // prefetch
+      if ( eduID() != cb->getID() && !isOpened() )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
          goto error ;
       }
 
-      while ( numRecords() == startNumRecords )
+      while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb, &mthContext ) ) )
       {
-         _mthMatchTreeContext mthContext( NULL ) ;
-         if ( NULL != dollarList )
+         try
          {
-            mthContext.enableDollarList() ;
-         }
+            generator.getDataPtr( recordDataPtr ) ;
+            BSONObj obj( (const CHAR*)recordDataPtr ) ;
 
-         // prefetch
-         if ( eduID() != cb->getID() && !isOpened() )
-         {
-            rc = SDB_DMS_CONTEXT_IS_CLOSE ;
-            goto error ;
-         }
-
-         while ( SDB_OK == ( rc = extScanner->advance( recordID, generator,
-                                                       cb, &mthContext ) ) )
-         {
-            try
+            if ( _rsFilter )
             {
-               generator.getDataPtr( recordDataPtr ) ;
-               BSONObj obj( (const CHAR*)recordDataPtr ) ;
-
-               if ( _rsFilter )
+               if ( _appendRIDFilter )
                {
-                  if ( _appendRIDFilter )
+                  BOOLEAN pushed = FALSE ;
+                  rc = _rsFilter->push( recordID, pushed ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to push record ID to "
+                               "result set filter, rc: %d", rc ) ;
+                  if ( !pushed )
                   {
-                     BOOLEAN pushed = FALSE ;
-                     rc = _rsFilter->push( recordID, pushed ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Push record id to result set "
-                                  "filter failed: %d", rc ) ;
-                     if ( !pushed )
-                     {
-                        continue ;
-                     }
+                     continue ;
                   }
-                  else
-                  {
-                     if ( _rsFilter->isFiltered( recordID ) )
-                     {
-                        continue ;
-                     }
-                  }
-               }
-
-               if ( _queryModifier )
-               {
-                  //dollarList is pointed to _queryModifier->getDollarList()
-                  mthContext.getDollarList( dollarList ) ;
-                  rc = _queryModify( cb, recordID, recordDataPtr,
-                                     obj, extScanner->callbackHandler(),
-                                     extScanner->recordInfo() ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
-                  generator.resetValue( obj, &mthContext ) ;
-               }
-
-               rc = _innerAppend( selector, generator ) ;
-               PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
-            }
-            catch ( std::exception &e )
-            {
-               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            // increase counter
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-            // decrease numToReturn
-            if ( _numToReturn > 0 )
-            {
-               --_numToReturn ;
-            }
-
-            //do not clear dollarlist flag
-            mthContext.clearRecordInfo() ;
-         } // end while
-
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Extent scanner failed, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         _numToReturn = extScanner->getMaxRecords() ;
-         _numToSkip   = extScanner->getSkipNum() ;
-
-         if ( 0 == _numToReturn )
-         {
-            _hitEnd = TRUE ;
-            break ;
-         }
-
-         if ( _segmentScan )
-         {
-            if ( DMS_INVALID_EXTENT == extScanner->nextExtentID() ||
-                 _su->data()->extent2Segment( *_segments.begin() ) !=
-                 _su->data()->extent2Segment( extScanner->nextExtentID() ) )
-            {
-               _segments.erase( _segments.begin() ) ;
-               if ( _segments.size() > 0 )
-               {
-                  _extentID = *_segments.begin() ;
                }
                else
                {
-                  _extentID = DMS_INVALID_EXTENT ;
+                  if ( _rsFilter->isFiltered( recordID ) )
+                  {
+                     continue ;
+                  }
                }
             }
-            else
-            {
-               _extentID = extScanner->nextExtentID() ;
-            }
-         }
-         else
-         {
-            _lastExtentID = extScanner->curExtentID() ;
-            _extentID = extScanner->nextExtentID() ;
-         }
-         _lastExtLID = extScanner->curExtent()->_logicID ;
 
-         // If the next extent is valid, let's step to it. Otherwise, the end
-         // is hit.
-         if ( DMS_INVALID_EXTENT == _extentID ||
-              SDB_DMS_EOC == extScanner->stepToNextExtent() )
+            if ( _queryModifier )
+            {
+               //dollarList is pointed to _queryModifier->getDollarList()
+               mthContext.getDollarList( dollarList ) ;
+               rc = _queryModify( cb, recordID, recordDataPtr,
+                                  obj, scanner.callbackHandler(),
+                                  scanner.recordInfo() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to query modify, rc: %d", rc ) ;
+               generator.resetValue( obj, &mthContext ) ;
+            }
+
+            rc = _innerAppend( selector, generator ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
+         }
+         catch ( exception &e )
          {
-            _hitEnd = TRUE ;
+            PD_LOG( PDERROR, "Failed to fetch data, occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+         // increase counter
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
+         ++ recordSelected ;
+         // decrease numToReturn
+         if ( _numToReturn > 0 )
+         {
+            --_numToReturn ;
+         }
+
+         //do not clear dollarlist flag
+         mthContext.clearRecordInfo() ;
+
+         if ( minRecordNum <= recordSelected && buffEndOffset() >= breakBufferSize )
+         {
             break ;
          }
-
-         if ( !hasLocked )
+         else if ( buffEndOffset() + DMS_RECORD_MAX_SZ > RTN_RESULTBUFFER_SIZE_MAX )
          {
-            _mbContext->pause() ;
+            break ;
          }
-      } // end while
+         else if ( recordSelected >= maxNum )
+         {
+            break ;
+         }
+      }
+
+      if ( SDB_OK != rc && SDB_DMS_EOC != rc )
+      {
+         PD_LOG( PDERROR, "Failed to run scanner, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      _numToReturn = scanner.getMaxRecords() ;
+      _numToSkip   = scanner.getSkipNum() ;
+
+      if ( ( SDB_DMS_EOC == rc ) ||
+           ( 0 == _numToReturn ) ||
+           ( scanner.isHitEnd() ) )
+      {
+         _hitEnd = TRUE ;
+      }
+      else
+      {
+         _recordID = scanner.getCurRID() ;
+         PD_LOG( PDDEBUG, "Stop scanner [%s] by extent: %u, offset: %u",
+                 _planRuntime.getCLFullName(), _recordID._extent, _recordID._offset ) ;
+      }
+
+      if ( !hasLocked )
+      {
+         _mbContext->pause() ;
+      }
 
       if ( !isEmpty() )
       {
@@ -1945,12 +1887,9 @@ namespace engine
       {
          _mbContext->pause() ;
       }
-      if ( extScanner )
-      {
-         SDB_OSS_DEL extScanner ;
-      }
-      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, rc );
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }

@@ -40,6 +40,8 @@
 #ifndef DMSSTORAGEUNIT_HPP_
 #define DMSSTORAGEUNIT_HPP_
 
+#include "dmsDef.hpp"
+#include "dmsSUDescriptor.hpp"
 #include "dmsStorageDataCommon.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageLob.hpp"
@@ -337,13 +339,14 @@ namespace engine
    /*
       _dmsStorageUnit define
    */
-   class _dmsStorageUnit : public SDBObject
+   class _dmsStorageUnit : public _dmsSUDescriptor
    {
       friend class _dmsTempSUMgr ;
       friend class _SDB_DMSCB ;
 
       public:
-         _dmsStorageUnit ( const CHAR *pSUName,
+         _dmsStorageUnit ( IStorageService *storageService,
+                           const CHAR *pSUName,
                            UINT32 csUniqueID,
                            UINT32 sequence,
                            utilCacheMgr *pMgr,
@@ -698,9 +701,9 @@ namespace engine
                                  DMS_STORAGE_TYPE &type ) ;
 
       private :
+         IStorageService                     *_storageService ;
          dmsStorageDataCommon                *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;
-         dmsStorageInfo                      _storageInfo ;
          dmsStorageLob                       *_pLobSu ;
 
          utilCacheMgr                        *_pMgr ;

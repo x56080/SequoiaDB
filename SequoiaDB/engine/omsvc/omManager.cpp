@@ -58,6 +58,28 @@ namespace engine
    #define OM_UPDATE_PLUGIN_PASSWD_TIMEOUT         (86400)
    #define OM_WAIT_CB_ATTACH_TIMEOUT               ( 300 * OSS_ONE_SEC )
 
+   const utilCSUniqueID OM_DEPLOY_CSUID = UTIL_CSUNIQUEID_SYS_MIN + 2 ;
+   const utilCLUniqueID OM_DEPLOY_CLUSTER_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 1 ) ;
+   const utilCLUniqueID OM_DEPLOY_HOST_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 2 ) ;
+   const utilCLUniqueID OM_DEPLOY_BUSINESS_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 3 ) ;
+   const utilCLUniqueID OM_DEPLOY_CONF_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 4 ) ;
+   const utilCLUniqueID OM_DEPLOY_TASKINFO_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 5 ) ;
+   const utilCLUniqueID OM_DEPLOY_BUSINESS_AUTH_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 6 ) ;
+   const utilCLUniqueID OM_DEPLOY_RELATIONSHIP_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 7 ) ;
+   const utilCLUniqueID OM_DEPLOY_PLUGINS_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 8 ) ;
+   const utilCLUniqueID OM_DEPLOY_SETTINGS_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 9 ) ;
+   const utilCLUniqueID OM_DEPLOY_HISTORY_CLUID =
+               utilBuildCLUniqueID( OM_DEPLOY_CSUID, UTIL_CSUNIQUEID_SYS_MIN + 10 ) ;
+
    /*
       Message Map
    */
@@ -361,7 +383,7 @@ namespace engine
       omAuthTool authTool( cb, pAuthCB ) ;
 
       // SYSDEPLOY.SYSCLUSTER
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CLUSTER ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CLUSTER, OM_DEPLOY_CLUSTER_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -375,7 +397,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSHOST
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HOST ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HOST, OM_DEPLOY_HOST_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -396,7 +418,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSBUSINESS
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS, OM_DEPLOY_BUSINESS_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -409,14 +431,14 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSCONFIGURE
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CONFIGURE ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CONFIGURE, OM_DEPLOY_CONF_CLUID ) ;
       if ( rc )
       {
          goto error ;
       }
 
       // SYSDEPLOY.SYSTASKINFO
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_TASKINFO ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_TASKINFO, OM_DEPLOY_TASKINFO_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -430,7 +452,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSBUSINESSAUTH
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS_AUTH ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS_AUTH, OM_DEPLOY_BUSINESS_AUTH_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -444,7 +466,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSRELATIONSHIP
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_RELATIONSHIP ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_RELATIONSHIP, OM_DEPLOY_RELATIONSHIP_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -458,7 +480,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSPLUGINS
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_PLUGINS ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_PLUGINS, OM_DEPLOY_PLUGINS_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -490,7 +512,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSSETTINGS
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_SETTINGS ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_SETTINGS, OM_DEPLOY_SETTINGS_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -510,7 +532,7 @@ namespace engine
       }
 
       // SYSDEPLOY.SYSHISTORY
-      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HISTORY ) ;
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HISTORY, OM_DEPLOY_HISTORY_CLUID ) ;
       if ( rc )
       {
          goto error ;
@@ -1282,35 +1304,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 _omManager::_createCollectionIndex ( const CHAR *pCollection,
-                                              const CHAR *pIndex,
-                                              pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj indexDef ;
-
-      rc = fromjson ( pIndex, indexDef ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to build index object, rc = %d",
-                    rc ) ;
-
-      rc = rtnTestAndCreateIndex( pCollection, indexDef, cb, _pDmsCB,
-                                  NULL, TRUE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done :
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   INT32 _omManager::_createCollection ( const CHAR *pCollection, pmdEDUCB *cb )
-   {
-      return rtnTestAndCreateCL( pCollection, cb, _pDmsCB, NULL, TRUE ) ;
    }
 
    INT32 _omManager::active ()

@@ -44,6 +44,13 @@ using namespace bson ;
 
 namespace engine
 {
+
+   const utilCSUniqueID SYS_AUTH_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 5 ;
+   const utilCLUniqueID SYS_AUTH_USER_CLUID =
+               utilBuildCLUniqueID( SYS_AUTH_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+   const utilCLUniqueID SYS_AUTH_ROLE_CLUID =
+               utilBuildCLUniqueID( SYS_AUTH_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 2 ) ;
+
    _authCB::_authCB()
    :_authEnabled( TRUE )
    {
@@ -1095,7 +1102,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_AUTHCB_INITAUTH ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      rc = rtnTestAndCreateCL( AUTH_USR_COLLECTION, cb, dmsCB, NULL, TRUE ) ;
+      rc = rtnTestAndCreateCL( AUTH_USR_COLLECTION, cb, dmsCB, NULL,
+                               SYS_AUTH_USER_CLUID, TRUE ) ;
       if ( rc )
       {
          goto error ;
@@ -1117,7 +1125,8 @@ namespace engine
          }
       }
 
-      rc = rtnTestAndCreateCL( AUTH_ROLE_COLLECTION, cb, dmsCB, NULL, TRUE );
+      rc = rtnTestAndCreateCL( AUTH_ROLE_COLLECTION, cb, dmsCB, NULL,
+                               SYS_AUTH_ROLE_CLUID, TRUE );
       if ( rc )
       {
          goto error;

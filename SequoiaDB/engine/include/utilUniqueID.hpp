@@ -50,10 +50,15 @@ namespace engine
    typedef UINT32 utilIdxInnerID ;
 
    /// cs unique id, valid values range from 1 to 4294967040
-   #define UTIL_CSUNIQUEID_MAX       0xFFFFFF00
+   #define UTIL_CSUNIQUEID_MAX       0x7FFFFFFF
    /// cl unique id (64bit) = cs unqiue id (32bit) + cl inner id (32bit)
    /// cl inner id: valid values range from 1 to 4294967040
-   #define UTIL_CLINNERID_MAX        0xFFFFFF00
+   #define UTIL_CLINNERID_MAX        0x7FFFFFFF
+
+   #define UTIL_CSUNIQUEID_CAT_MIN   0xFFFFFF00
+   #define UTIL_CSUNIQUEID_SYS_MIN   0xFFFFFFF0
+
+   #define UTIL_UNIQUEID_LOCAL_BIT   0x80000000
 
    /// Before version 3.0.1, cs/cl has not its unique id. After the upgrade
    /// to version 3.0.1+, unique id will be set. But if the cs only exists

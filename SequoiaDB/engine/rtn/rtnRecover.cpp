@@ -878,8 +878,8 @@ namespace engine
       nextOffset = pExtent->_firstRecordOffset ;
       while( DMS_INVALID_OFFSET != nextOffset )
       {
-         if ( nextOffset < (INT32)sizeof(dmsExtent) ||
-              nextOffset > (INT32)(extentSize - sizeof(dmsRecord) )  )
+         if ( nextOffset < sizeof(dmsExtent) ||
+              nextOffset > extentSize - sizeof(dmsRecord) )
          {
             /// offset error
             PD_LOG( PDERROR, "Reocrd[%d.%d]'s next offset[%d] is error",

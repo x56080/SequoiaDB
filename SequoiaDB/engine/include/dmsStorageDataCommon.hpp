@@ -170,7 +170,8 @@ namespace engine
 
       // for persistence
       UINT64         _maxGlobTransID ;
-      CHAR           _pad2[ 8 ] ;  // reserved
+      UINT32         _origLID ;
+      utilCLInnerID  _origInnerUID ;
       UINT32         _commitFlag ;
       UINT64         _commitLSN ;
       UINT64         _commitTime ;
@@ -195,7 +196,9 @@ namespace engine
       UINT64         _createTime ;
       UINT64         _updateTime ;
 
-      CHAR           _pad [ 244 ] ;
+      UINT64         _ridGen ;
+
+      CHAR           _pad [ 236 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -262,6 +265,8 @@ namespace engine
          _totalValidLobSize      = 0 ;
 
          _maxGlobTransID         = 0 ;
+         _origLID                = clLID ;
+         _origInnerUID                = utilGetCLInnerID( clUniqueID ) ;
          _commitFlag             = 0 ;
          _commitLSN              = ~0 ;
          _commitTime             = 0 ;
@@ -283,8 +288,9 @@ namespace engine
          _createTime             = 0 ;
          _updateTime             = 0 ;
 
+         _ridGen                 = 0 ;
+
          // pad
-         ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
       }
    } ;
@@ -465,6 +471,8 @@ namespace engine
       // cache of update time
       UINT64      _updateTime ;
 
+      ossAtomic64 _ridGen ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -510,6 +518,7 @@ namespace engine
          _lastSearchRID.reset() ;
          _createTime             = 0 ;
          _updateTime             = 0 ;
+         _ridGen.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -713,7 +722,8 @@ namespace engine
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
-        _rcTotalRecords( 0 )
+        _rcTotalRecords( 0 ),
+        _ridGen( 0 )
       {
          reset() ;
       }
@@ -754,10 +764,22 @@ namespace engine
 
          virtual     UINT16 mbID () const { return _mbID ; }
          OSS_INLINE  dmsMB* mb () { return _mb ; }
+         OSS_INLINE  const dmsMB* mb() const { return _mb ; }
          OSS_INLINE  dmsMBStatInfo* mbStat() { return _mbStat ; }
+         OSS_INLINE  const dmsMBStatInfo* mbStat() const { return _mbStat ; }
          OSS_INLINE  UINT32 clLID () const { return _clLID ; }
          OSS_INLINE  UINT32 startLID() const { return _startLID ; }
          OSS_INLINE  INT32  mbLockType() const { return _mbLockType ; }
+
+         OSS_INLINE const CHAR *clName() const
+         {
+            return _mb ? _mb->_collectionName : NULL ;
+         }
+
+         OSS_INLINE std::shared_ptr< ICollection > &getCollPtr() const
+         {
+            return _collPtr ;
+         }
 
       private:
          OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry ) ;
@@ -771,6 +793,7 @@ namespace engine
          INT32             _mbLockType ;
          INT32             _resumeType ;
          _IContext         *_pSubContext ;
+         mutable std::shared_ptr< ICollection > _collPtr ;
    };
    typedef _dmsMBContext   dmsMBContext ;
 
@@ -1084,8 +1107,9 @@ namespace engine
       typedef COLID_MAP::const_iterator COLID_MAP_CIT ;
 
       public:
-         _dmsStorageDataCommon ( const CHAR *pSuFileName,
-                                 dmsStorageInfo *pInfo,
+         _dmsStorageDataCommon ( IStorageService *service,
+                                 dmsSUDescriptor *suDescriptor,
+                                 const CHAR *pSuFileName,
                                  _IDmsEventHolder *pEventHolder ) ;
          virtual ~_dmsStorageDataCommon () ;
 
@@ -1280,6 +1304,11 @@ namespace engine
             Caller must hold the mbContext
          */
          virtual INT32 extractData( const dmsMBContext *mbContext,
+                                    const dmsRecordID &recordID,
+                                    _pmdEDUCB *cb,
+                                    dmsRecordData &recordData,
+                                    BOOLEAN needIncDataRead = TRUE ) ;
+         virtual INT32 extractData( const dmsMBContext *mbContext,
                                     const dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData,
@@ -1411,9 +1440,9 @@ namespace engine
          virtual void   _onHeaderUpdated( UINT64 updateTime = 0 )
          {
             _dmsStorageBase::_onHeaderUpdated( updateTime ) ;
-            if ( NULL != _dmsHeader && NULL != _pStorageInfo )
+            if ( NULL != _dmsHeader && NULL != _suDescriptor )
             {
-               _pStorageInfo->_updateTime = _dmsHeader->_updateTime ;
+               _suDescriptor->getStorageInfo()._updateTime = _dmsHeader->_updateTime ;
             }
          }
 
@@ -1688,11 +1717,11 @@ namespace engine
    }
    OSS_INLINE void _dmsStorageDataCommon::_overflowSize( UINT32 &size )
    {
-      if ( _pStorageInfo && _pStorageInfo->_overflowRatio > 0 )
+      if ( _suDescriptor && _suDescriptor->getStorageInfo()._overflowRatio > 0 )
       {
-         size += ( size * _pStorageInfo->_overflowRatio + 50 ) / 100 ;
+         size += ( size * _suDescriptor->getStorageInfo()._overflowRatio + 50 ) / 100 ;
       }
-      else if ( !_pStorageInfo )
+      else if ( !_suDescriptor )
       {
          size = size * DMS_RECORD_OVERFLOW_RATIO ;
       }
@@ -1714,6 +1743,8 @@ namespace engine
                                                          UINT32 startLID,
                                                          INT32 lockType )
    {
+      BOOLEAN isInUsed = FALSE ;
+
       if ( mbID >= DMS_MME_SLOTS )
       {
          return SDB_INVALIDARG ;
@@ -1732,7 +1763,17 @@ namespace engine
          {
             startLID = _mbStatInfo[mbID]._startLID ;
          }
+         isInUsed = DMS_IS_MB_INUSE( _dmsMME->_mbList[ mbID ]._flag ) ;
          _metadataLatch.release_shared() ;
+      }
+      else
+      {
+         isInUsed = DMS_IS_MB_INUSE( _dmsMME->_mbList[ mbID ]._flag ) ;
+      }
+
+      if ( !isInUsed )
+      {
+         return SDB_DMS_NOTEXIST ;
       }
 
       // context lock
@@ -1758,6 +1799,22 @@ namespace engine
       (*pContext)->_mb = &_dmsMME->_mbList[mbID] ;
       (*pContext)->_mbStat = &_mbStatInfo[mbID] ;
       (*pContext)->_latch = &_mblock[mbID] ;
+      if ( _service )
+      {
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         dmsCLMetadataKey key( (*pContext)->_mb ) ;
+         INT32 rc = _service->getCollection( key, cb, (*pContext)->_collPtr ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            dmsCLMetadata metadata( _suDescriptor, (*pContext)->_mb, (*pContext)->_mbStat ) ;
+            rc = _service->loadCollection( metadata, cb, (*pContext)->_collPtr ) ;
+         }
+         if ( rc )
+         {
+            releaseMBContext( *pContext ) ;
+            return rc ;
+         }
+      }
       if ( SHARED == lockType || EXCLUSIVE == lockType )
       {
          INT32 rc = (*pContext)->mbLock( lockType ) ;

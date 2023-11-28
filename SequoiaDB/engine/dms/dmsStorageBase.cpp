@@ -397,12 +397,16 @@ namespace engine
    /*
       _dmsStorageBase : implement
    */
-   _dmsStorageBase::_dmsStorageBase( const CHAR *pSuFileName,
-                                     dmsStorageInfo *pInfo )
+   _dmsStorageBase::_dmsStorageBase( IStorageService *service,
+                                     dmsSUDescriptor *suDescriptor,
+                                     const CHAR *pSuFileName )
    {
+      SDB_ASSERT( service, "Service can't be NULL" ) ;
+      SDB_ASSERT( suDescriptor, "SU descriptor can't be NULL" ) ;
       SDB_ASSERT( pSuFileName, "SU file name can't be NULL" ) ;
 
-      _pStorageInfo       = pInfo ;
+      _service            = service ;
+      _suDescriptor       = suDescriptor ;
       _dmsHeader          = NULL ;
       _dmsSME             = NULL ;
       _dataSegID          = 0 ;
@@ -424,7 +428,7 @@ namespace engine
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
       ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
 
-      _resetInfoByName( pInfo->_suName ) ;
+      _resetInfoByName( suDescriptor->getStorageInfo()._suName ) ;
 
       _pSyncMgr           = NULL ;
       _pStatMgr           = NULL ;
@@ -450,8 +454,9 @@ namespace engine
       SDB_ASSERT( !ossMmapFile::_opened, "Must Call closeStorage before "
                   "delete the object" ) ;
       closeStorage() ;
-      _pStorageInfo = NULL ;
       _dirtyList.destroy() ;
+      _suDescriptor = NULL ;
+      _service = NULL ;
    }
 
    BOOLEAN _dmsStorageBase::isClosed() const
@@ -725,9 +730,9 @@ namespace engine
 
    const CHAR* _dmsStorageBase::getSuName () const
    {
-      if ( _pStorageInfo )
+      if ( _suDescriptor )
       {
-         return _pStorageInfo->_suName ;
+         return _suDescriptor->getStorageInfo()._suName ;
       }
       return "" ;
    }
@@ -746,7 +751,7 @@ namespace engine
 
       SDB_ASSERT( pPath, "path can't be NULL" ) ;
 
-      if ( NULL == _pStorageInfo || NULL == pSyncMgr )
+      if ( NULL == _suDescriptor || NULL == pSyncMgr )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -880,7 +885,7 @@ namespace engine
       }
       else if ( !createNew )
       {
-         if ( _pStorageInfo->_dataIsOK && 0 == _dmsHeader->_commitFlag )
+         if ( _suDescriptor->getStorageInfo()._dataIsOK && 0 == _dmsHeader->_commitFlag )
          {
             /// upgrade from old version( _dmsHeader->_commitLsn = 0 )
             if ( 0 == _dmsHeader->_commitLsn )
@@ -888,7 +893,7 @@ namespace engine
                ossTimestamp t ;
                ossGetCurrentTime( t ) ;
                _dmsHeader->_commitTime = t.time * 1000 + t.microtm / 1000 ;
-               _dmsHeader->_commitLsn = _pStorageInfo->_curLSNOnStart ;
+               _dmsHeader->_commitLsn = _suDescriptor->getStorageInfo()._curLSNOnStart ;
             }
             _dmsHeader->_commitFlag = 1 ;
          }
@@ -1232,9 +1237,9 @@ namespace engine
    INT32 _dmsStorageBase::updateCSUniqueIDFromInfo()
    {
       // if the cs without lob, lobd file isn't exist, then _dmsHeader is NULL.
-      if ( _dmsHeader )
+      if ( _dmsHeader && _suDescriptor )
       {
-         _dmsHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
+         _dmsHeader->_csUniqueID = _suDescriptor->getStorageInfo()._csUniqueID ;
          _onHeaderUpdated() ;
          flushHeader( TRUE ) ;
       }
@@ -1247,7 +1252,10 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       _lobPageSize = lobPageSize ;
-      _pStorageInfo->_lobdPageSize = lobPageSize ;
+      if ( _suDescriptor )
+      {
+         _suDescriptor->getStorageInfo()._lobdPageSize = lobPageSize ;
+      }
 
       if ( _dmsHeader )
       {
@@ -1405,20 +1413,21 @@ namespace engine
       ossStrncpy( pHeader->_eyeCatcher, _getEyeCatcher(),
                   DMS_HEADER_EYECATCHER_LEN ) ;
       pHeader->_version = _curVersion() ;
-      _initHeaderPageSize( pHeader, _pStorageInfo ) ;
+      _initHeaderPageSize( pHeader, &( _suDescriptor->getStorageInfo() ) ) ;
       pHeader->_storageUnitSize = _dataOffset() / pHeader->_pageSize ;
-      ossStrncpy ( pHeader->_name, _pStorageInfo->_suName, DMS_SU_NAME_SZ ) ;
-      pHeader->_sequence = _pStorageInfo->_sequence ;
+      ossStrncpy ( pHeader->_name, _suDescriptor->getStorageInfo()._suName, DMS_SU_NAME_SZ ) ;
+      pHeader->_sequence = _suDescriptor->getStorageInfo()._sequence ;
       pHeader->_numMB    = 0 ;
       pHeader->_MBHWM    = 0 ;
       pHeader->_pageNum  = 0 ;
-      pHeader->_secretValue = _pStorageInfo->_secretValue ;
+      pHeader->_secretValue = _suDescriptor->getStorageInfo()._secretValue ;
       pHeader->_createLobs = 0 ;
       pHeader->_commitFlag = 0 ;
       pHeader->_commitLsn  = ~0 ;
       pHeader->_commitTime = 0 ;
-      pHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
+      pHeader->_csUniqueID = _suDescriptor->getStorageInfo()._csUniqueID ;
       pHeader->_idxInnerHWM = 0 ;
+      pHeader->_clInnderHWM = 0 ;
    }
 
    INT32 _dmsStorageBase::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -1465,9 +1474,9 @@ namespace engine
 
       // must be set storage info page size here, because lob meta page size
       // is 256B, so can't be assign to storage page size in later code
-      if ( (UINT32)_pStorageInfo->_pageSize != pHeader->_pageSize )
+      if ( (UINT32)_suDescriptor->getStorageInfo()._pageSize != pHeader->_pageSize )
       {
-         _pStorageInfo->_pageSize = pHeader->_pageSize ;
+         _suDescriptor->getStorageInfo()._pageSize = pHeader->_pageSize ;
       }
 
    done:
@@ -1530,7 +1539,7 @@ namespace engine
                  pHeader->_storageUnitSize ) ;
          rc = SDB_SYS ;
       }
-      else if ( 0 != ossStrncmp ( _pStorageInfo->_suName, pHeader->_name,
+      else if ( 0 != ossStrncmp ( _suDescriptor->getStorageInfo()._suName, pHeader->_name,
                                   DMS_SU_NAME_SZ ) )
       {
          PD_LOG ( PDERROR, "Invalid storage unit name: %s", pHeader->_name ) ;
@@ -1549,17 +1558,17 @@ namespace engine
          goto error ;
       }
 
-      if ( _pStorageInfo->_secretValue != pHeader->_secretValue )
+      if ( _suDescriptor->getStorageInfo()._secretValue != pHeader->_secretValue )
       {
-         _pStorageInfo->_secretValue = pHeader->_secretValue ;
+         _suDescriptor->getStorageInfo()._secretValue = pHeader->_secretValue ;
       }
-      if ( _pStorageInfo->_sequence != pHeader->_sequence )
+      if ( _suDescriptor->getStorageInfo()._sequence != pHeader->_sequence )
       {
-         _pStorageInfo->_sequence = pHeader->_sequence ;
+         _suDescriptor->getStorageInfo()._sequence = pHeader->_sequence ;
       }
-      if ( (UINT32)_pStorageInfo->_lobdPageSize != pHeader->_lobdPageSize )
+      if ( (UINT32)_suDescriptor->getStorageInfo()._lobdPageSize != pHeader->_lobdPageSize )
       {
-         _pStorageInfo->_lobdPageSize =  pHeader->_lobdPageSize ;
+         _suDescriptor->getStorageInfo()._lobdPageSize =  pHeader->_lobdPageSize ;
       }
       _pageNum = pHeader->_pageNum ;
       _segmentPages = _getSegmentSize() >> _pageSizeSquare ;
@@ -1572,9 +1581,9 @@ namespace engine
          goto error ;
       }
 
-      if ( _pStorageInfo->_csUniqueID != pHeader->_csUniqueID )
+      if ( _suDescriptor->getStorageInfo()._csUniqueID != pHeader->_csUniqueID )
       {
-         _pStorageInfo->_csUniqueID = pHeader->_csUniqueID ;
+         _suDescriptor->getStorageInfo()._csUniqueID = pHeader->_csUniqueID ;
       }
 
       PD_LOG ( PDDEBUG, "Validated storage unit file %s\n"
@@ -1736,13 +1745,13 @@ namespace engine
          // extend file size
       retry:
          rc = ossExtend( &_file, fileSize, incFileSize,
-                         _pStorageInfo->_enableSparse ) ;
+                         _suDescriptor->getStorageInfo()._enableSparse ) ;
          if ( rc )
          {
             INT32 rc1 = SDB_OK ;
             PD_LOG ( PDWARNING, "Failed to extend storage unit for %llu "
                      "bytes, sparse:%s, rc: %d", incFileSize,
-                     _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
+                     _suDescriptor->getStorageInfo()._enableSparse ? "TRUE" : "FALSE", rc ) ;
 
             // truncate the file when it's failed to extend file
             rc1 = ossTruncateFile ( &_file, fileSize ) ;
@@ -1755,9 +1764,9 @@ namespace engine
                ossPanic () ;
             }
 
-            if ( SDB_INVALIDARG == rc && _pStorageInfo->_enableSparse )
+            if ( SDB_INVALIDARG == rc && _suDescriptor->getStorageInfo()._enableSparse )
             {
-               _pStorageInfo->_enableSparse = FALSE ;
+               _suDescriptor->getStorageInfo()._enableSparse = FALSE ;
                goto retry ;
             }
             // we need to manage how to truncate the file to original size here
@@ -1906,9 +1915,9 @@ namespace engine
       {
          return DMS_SYS_EXTEND_THRESHOLD_SIZE >> _pageSizeSquare ;
       }
-      else if ( _pStorageInfo )
+      else if ( _suDescriptor )
       {
-         return _pStorageInfo->_extentThreshold >> _pageSizeSquare ;
+         return _suDescriptor->getStorageInfo()._extentThreshold >> _pageSizeSquare ;
       }
       return (UINT32)( DMS_EXTEND_THRESHOLD_SIZE >> _pageSizeSquare ) ;
    }
@@ -1923,7 +1932,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__FINDFREESPACE, "_dmsStorageBase::_findFreeSpace" )
-   INT32 _dmsStorageBase::_findFreeSpace( UINT16 numPages, SINT32 & foundPage,
+   INT32 _dmsStorageBase::_findFreeSpace( UINT16 numPages, dmsExtentID & foundPage,
                                           dmsContext *context )
    {
       UINT32 totalDataPageNum = 0 ;
@@ -2103,7 +2112,7 @@ namespace engine
       return rc ;
    }
 
-   INT32 _dmsStorageBase::flushPages( SINT32 pageID, UINT16 pageNum,
+   INT32 _dmsStorageBase::flushPages( dmsExtentID pageID, UINT16 pageNum,
                                       BOOLEAN sync )
    {
       INT32 rc = SDB_OK ;

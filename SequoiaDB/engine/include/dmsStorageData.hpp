@@ -51,8 +51,9 @@ namespace engine
    {
       friend class _dmsStorageUnit ;
    public:
-      _dmsStorageData ( const CHAR *pSuFileName,
-                        dmsStorageInfo *pInfo,
+      _dmsStorageData ( IStorageService *service,
+                        dmsSUDescriptor *suDescriptor,
+                        const CHAR *pSuFileName,
                         _IDmsEventHolder *pEventHolder ) ;
       virtual ~_dmsStorageData () ;
 

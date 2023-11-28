@@ -38,8 +38,8 @@
 *******************************************************************************/
 #ifndef DMS_HPP_
 #define DMS_HPP_
-#include "core.hpp"
-#include "oss.hpp"
+
+#include "dmsDef.hpp"
 #include "utilUniqueID.hpp"
 
 #include <string>
@@ -118,8 +118,8 @@ namespace engine
 
 #define DMS_INVALID_SUID            -1
 #define DMS_INVALID_CLID            ~0
-#define DMS_INVALID_OFFSET          -1
-#define DMS_INVALID_EXTENT          -1
+#define DMS_INVALID_OFFSET          0xFFFFFFFF
+#define DMS_INVALID_EXTENT          0xFFFFFFFF
 #define DMS_MAX_SCANNED_EXTENT      OSS_SINT32_MAX
 #define DMS_INVALID_MBID            65535
 #define DMS_INVALID_PAGESIZE        0
@@ -302,8 +302,8 @@ namespace engine
    typedef enum _DMS_ACCESS_TYPE DMS_ACCESS_TYPE ;
 
    typedef SINT32 dmsStorageUnitID ;
-   typedef SINT32 dmsExtentID ;
-   typedef SINT32 dmsOffset ;
+   typedef UINT32 dmsExtentID ;
+   typedef UINT32 dmsOffset ;
 
    /*
       _dmsRecordID defined
@@ -324,6 +324,10 @@ namespace engine
          _extent = extent ;
          _offset = offset ;
       }
+      _dmsRecordID( UINT64 value )
+      {
+         fromUINT64( value ) ;
+      }
       _dmsRecordID& operator=(const _dmsRecordID &rhs)
       {
          _extent=rhs._extent;
@@ -337,6 +341,14 @@ namespace engine
       BOOLEAN isValid () const
       {
          return DMS_INVALID_EXTENT != _extent ;
+      }
+      BOOLEAN isMax() const
+      {
+         return 0xFFFFFFFE == _extent && 0xFFFFFFFF == _offset ;
+      }
+      BOOLEAN isMin() const
+      {
+         return 0 == _extent && 0 == _offset ;
       }
       BOOLEAN operator!=(const _dmsRecordID &rhs) const
       {
@@ -372,13 +384,23 @@ namespace engine
       }
       void resetMax()
       {
-         _extent = 0x7FFFFFFF ;
-         _offset = 0x7FFFFFFF ;
+         _extent = 0x7FFFFFFE ;
+         _offset = 0xFFFFFFFF ;
       }
       void resetMin()
       {
          _extent = 0 ;
          _offset = 0 ;
+      }
+
+      UINT64 toUINT64() const
+      {
+         return ossPack32To64( _extent, _offset ) ;
+      }
+
+      void fromUINT64( UINT64 value )
+      {
+         ossUnpack32From64( value, (UINT32 &)_extent, (UINT32 &)_offset ) ;
       }
    } ;
    typedef class _dmsRecordID dmsRecordID ;

@@ -247,7 +247,7 @@ namespace engine
       UINT32               _clLID ;
       INT32                _csID ;
       UINT16               _clID ;
-      SINT32               _latchedIdxLid ; // which we are holding a latch on
+      dmsExtentID          _latchedIdxLid ; // which we are holding a latch on
       _rtnIXScanner       *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 

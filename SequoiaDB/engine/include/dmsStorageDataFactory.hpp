@@ -48,9 +48,10 @@ namespace engine
       _dmsStorageDataFactory() {}
       ~_dmsStorageDataFactory() {}
 
-      dmsStorageDataCommon* createProduct( DMS_STORAGE_TYPE type,
+      dmsStorageDataCommon* createProduct( IStorageService *engine,
+                                           dmsSUDescriptor *suDescriptor,
+                                           DMS_STORAGE_TYPE type,
                                            const CHAR *suFileName,
-                                           dmsStorageInfo *info,
                                            _IDmsEventHolder *pEventHolder ) ;
    } ;
    typedef _dmsStorageDataFactory dmsStorageDataFactory ;

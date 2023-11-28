@@ -41,6 +41,8 @@
 #define DMSCB_HPP_
 
 #include "core.hpp"
+#include "dmsDef.hpp"
+#include "interface/IStorageService.hpp"
 #include "oss.hpp"
 #include "ossMem.hpp"
 #include "dms.hpp"
@@ -170,6 +172,9 @@ namespace engine
    class _SDB_DMSCB : public _IControlBlock
    {
    private :
+      IStorageService *_storageService ;
+      utilCSUniqueID _csUIDGen ;
+
       monSpinSLatch _mutex ;
 
       struct cmp_cscb
@@ -345,6 +350,9 @@ namespace engine
                                   const ossPoolVector<BSONObj>& idxInfoObj,
                                   pmdEDUCB* cb ) ;
 
+      INT32 _detectEngineType( const CHAR *dbPath,
+                               DMS_STORAGE_ENGINE_TYPE &engineType ) ;
+
    public:
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
@@ -397,6 +405,8 @@ namespace engine
                             pmdEDUCB* cb,
                             SDB_DPSCB* dpsCB,
                             BOOLEAN isLoadCS = FALSE ) ;
+
+      INT32 allocCSUniqueID( utilCSUniqueID &res ) ;
 
       INT32 addCollectionSpace ( const CHAR *pName, UINT32 topSequence,
                                  _dmsStorageUnit *su, _pmdEDUCB *cb,
@@ -550,6 +560,18 @@ namespace engine
 
       INT32 regHandler ( _IDmsEventHandler *pHandler ) ;
       void unregHandler ( _IDmsEventHandler *pHandler ) ;
+
+      DMS_STORAGE_ENGINE_TYPE getEngineType() const
+      {
+         return _storageService ?
+                _storageService->getEngineType() :
+                DMS_STORAGE_ENGINE_UNKNOWN ;
+      }
+
+      IStorageService *getStorageService()
+      {
+         return _storageService ;
+      }
    } ;
    typedef class _SDB_DMSCB SDB_DMSCB ;
 

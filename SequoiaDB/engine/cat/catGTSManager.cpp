@@ -44,6 +44,11 @@
 
 namespace engine
 {
+
+   const utilCSUniqueID SYS_GTS_CSUID = UTIL_CSUNIQUEID_CAT_MIN + 4 ;
+   const utilCLUniqueID SYS_GTS_SEQ_CLUID =
+               utilBuildCLUniqueID( SYS_GTS_CSUID, UTIL_CSUNIQUEID_CAT_MIN + 1 ) ;
+
    _catGTSManager::_catGTSManager()
    {
       _dmsCB = NULL ;
@@ -212,7 +217,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB_GTS_MGR__ENSURE_METADATA ) ;
 
       // create SYSGTS.SEQUENCES
-      rc = _createSysCollection( GTS_SEQUENCE_COLLECTION_NAME, cb ) ;
+      rc = _createSysCollection( GTS_SEQUENCE_COLLECTION_NAME,
+                                 SYS_GTS_SEQ_CLUID, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -269,6 +275,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MGR__CREATE_SYS_CL, "_catGTSManager::_createSysCollection" )
    INT32 _catGTSManager::_createSysCollection( const CHAR* clFullName,
+                                               utilCLUniqueID clUID,
                                                _pmdEDUCB* cb )
    {
       INT32 rc = SDB_OK ;
@@ -276,7 +283,7 @@ namespace engine
       PD_TRACE1 ( SDB_GTS_MGR__CREATE_SYS_CL,
                   PD_PACK_STRING ( clFullName ) ) ;
 
-      rc = rtnTestAndCreateCL( clFullName, cb, _dmsCB, NULL, TRUE ) ;
+      rc = rtnTestAndCreateCL( clFullName, cb, _dmsCB, NULL, clUID, TRUE ) ;
       if ( rc )
       {
          goto error ;

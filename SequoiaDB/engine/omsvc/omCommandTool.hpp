@@ -311,7 +311,7 @@ namespace engine
       INT32 countHistory( const BSONObj& condition, INT64& count ) ;
 
       //collection
-      INT32 createCollection( const CHAR *pCollection ) ;
+      INT32 createCollection( const CHAR *pCollection, utilCLUniqueID clUID ) ;
       INT32 createCollectionIndex( const CHAR *pCollection,
                                    const CHAR *pIndex ) ;
       INT32 removeCollectionIndex( const CHAR *pCollection,

@@ -361,7 +361,18 @@ dmsFiles = [
       "dms/dmsCachedPlanUnit.cpp",
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
-      "dms/dmsLightJob.cpp"
+      "dms/dmsLightJob.cpp",
+      "dms/dmsMetadata.cpp",
+      "dms/dmsStorageServiceFactory.cpp",
+      "dms/dmsDataCursor.cpp",
+      "dms/wiredtiger/dmsWTStorageService.cpp",
+      "dms/wiredtiger/dmsWTStorageEngine.cpp",
+      "dms/wiredtiger/dmsWTSession.cpp",
+      "dms/wiredtiger/dmsWTCursor.cpp",
+      "dms/wiredtiger/dmsWTUtil.cpp",
+      "dms/wiredtiger/dmsWTHandler.cpp",
+      "dms/wiredtiger/dmsWTCollection.cpp",
+      "dms/wiredtiger/dmsWTDataCursor.cpp"
       ]
 
 ixmFiles = [

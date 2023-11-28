@@ -71,15 +71,18 @@ namespace engine
    /*
       _dmsStorageLob implement
    */
-   _dmsStorageLob::_dmsStorageLob( const CHAR *lobmFileName,
+   _dmsStorageLob::_dmsStorageLob( IStorageService *service,
+                                   dmsSUDescriptor *suDescriptor,
+                                   const CHAR *lobmFileName,
                                    const CHAR *lobdFileName,
-                                   dmsStorageInfo *info,
                                    dmsStorageDataCommon *pDataSu,
                                    utilCacheUnit *pCacheUnit )
-   :_dmsStorageBase( lobmFileName, info ),
+   :_dmsStorageBase( service, suDescriptor, lobmFileName ),
     _dmsBME( NULL ),
     _dmsData( (dmsStorageData *)pDataSu ),      // TODO: temporary cast
-    _data( lobdFileName, info->_enableSparse, info->_directIO ),
+    _data( lobdFileName,
+           suDescriptor->getStorageInfo()._enableSparse,
+           suDescriptor->getStorageInfo()._directIO ),
     _delayOpenLatch( MON_LATCH_DMSSTORAGELOB_DELAYOPENLATCH ),
     _pCacheUnit( pCacheUnit ),
     _pSyncMgrTmp( NULL ),
@@ -415,18 +418,18 @@ namespace engine
       }
 
       /// Init cache unit
-      rc = _pCacheUnit->init( getLobData(), _pStorageInfo->_lobdPageSize,
-                              _pStorageInfo->_pageAllocTimeout ) ;
+      rc = _pCacheUnit->init( getLobData(), _suDescriptor->getStorageInfo()._lobdPageSize,
+                              _suDescriptor->getStorageInfo()._pageAllocTimeout ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Init cache unit failed, rc: %d", rc ) ;
          goto error ;
       }
 
-      if ( _pStorageInfo->_cacheMergeSize > 0 )
+      if ( _suDescriptor->getStorageInfo()._cacheMergeSize > 0 )
       {
-         rc = _pCacheUnit->enableMerge( _pStorageInfo->_directIO,
-                                        _pStorageInfo->_cacheMergeSize ) ;
+         rc = _pCacheUnit->enableMerge( _suDescriptor->getStorageInfo()._directIO,
+                                        _suDescriptor->getStorageInfo()._cacheMergeSize ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Enable cache merge for lob[%s] failed, rc: %d",
@@ -449,7 +452,7 @@ namespace engine
       }
 
       rc = _data.open( path, createNew, _dataSegmentSize,
-                       getHeader()->_pageNum, *_pStorageInfo,
+                       getHeader()->_pageNum, _suDescriptor->getStorageInfo(),
                        pmdGetThreadEDUCB() ) ;
       if ( SDB_OK != rc )
       {
@@ -1341,7 +1344,7 @@ namespace engine
                   record._dataLen + record._offset <= getLobdPageSize(),
                   "invalid lob record" ) ;
 
-      rc = _findFreeSpace( 1, page, context ) ;
+      rc = _findFreeSpace( 1, (dmsExtentID &)page, context ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find free space, rc:%d", rc ) ;
@@ -2002,9 +2005,9 @@ namespace engine
 
    UINT32 _dmsStorageLob::_extendThreshold() const
    {
-      if ( _pStorageInfo )
+      if ( _suDescriptor )
       {
-         return _pStorageInfo->_extentThreshold >> _data.pageSizeSquareRoot() ;
+         return _suDescriptor->getStorageInfo()._extentThreshold >> _data.pageSizeSquareRoot() ;
       }
       return (UINT32)( DMS_LOB_EXTEND_THRESHOLD_SIZE >> pageSizeSquareRoot() ) ;
    }
@@ -2068,10 +2071,10 @@ namespace engine
          PD_LOG( PDERROR, "Incompatible version: %u", pHeader->_version ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;
       }
-      else if ( pHeader->_secretValue != _pStorageInfo->_secretValue )
+      else if ( pHeader->_secretValue != _suDescriptor->getStorageInfo()._secretValue )
       {
          PD_LOG( PDERROR, "Secret value[%llu] not the same with data su[%llu]",
-                 pHeader->_secretValue, _pStorageInfo->_secretValue ) ;
+                 pHeader->_secretValue, _suDescriptor->getStorageInfo()._secretValue ) ;
          rc = SDB_DMS_SECRETVALUE_NOT_SAME ;
       }
       return rc ;
@@ -2109,7 +2112,7 @@ namespace engine
                   if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitLSN )
                   {
                      _dmsData->_dmsMME->_mbList[i]._lobCommitLSN =
-                        _pStorageInfo->_curLSNOnStart ;
+                        _suDescriptor->getStorageInfo()._curLSNOnStart ;
                   }
                   _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 1 ;
                   needFlushMME = TRUE ;

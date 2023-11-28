@@ -3191,4 +3191,39 @@
       <typeofweb>num</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_STORAGEENGINE</name>
+      <long>storageengine</long>
+      <description>
+         <en>Type of storage engine</en>
+         <cn>存储引擎的类型</cn>
+      </description>
+      <default>wiredtiger</default>
+      <detail>
+         <en>Type of storage engine</en>
+         <cn>存储引擎的类型</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_CACHE_SIZE</name>
+      <long>wtcachesize</long>
+      <description>
+         <en>Cache size of WiredTiger engine(unit: MB)</en>
+         <cn>WiredTiger的缓存大小（单位：MB）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Cache size of WiredTiger engine(unit: MB)</en>
+         <cn>WiredTiger的缓存大小（单位：MB）</cn>
+      </detail>
+      <type>int</type>
+      <default>2048</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
 </optlist>

@@ -49,10 +49,11 @@
 namespace engine
 {
 
-   _dmsStorageData::_dmsStorageData( const CHAR *pSuFileName,
-                                     dmsStorageInfo *pInfo,
+   _dmsStorageData::_dmsStorageData( IStorageService *service,
+                                     dmsSUDescriptor *suDescriptor,
+                                     const CHAR *pSuFileName,
                                      _IDmsEventHolder *pEventHolder )
-   : _dmsStorageDataCommon( pSuFileName, pInfo, pEventHolder )
+   : _dmsStorageDataCommon( service, suDescriptor, pSuFileName, pEventHolder )
    {
    }
 
@@ -330,11 +331,11 @@ namespace engine
          // or current record ( scale down to 0.8x )
          UINT32 avgDataSize = context->mbStat()->getAvgDataSize() ;
          UINT32 minRemainSize = ( 0 == avgDataSize ) ?
-                                ( recordSize ) :
-                                ( OSS_MIN( recordSize, avgDataSize ) ) ;
+                              ( recordSize ) :
+                              ( OSS_MIN( recordSize, avgDataSize ) ) ;
          // scale down to 0.8
          minRemainSize = (UINT32)( (FLOAT64)( minRemainSize ) *
-                                   DMS_REMAIN_SIZE_RATIO ) ;
+                                 DMS_REMAIN_SIZE_RATIO ) ;
          if ( remainSize > minRemainSize )
          {
             // original offset+new size = new delete offset
@@ -1125,10 +1126,10 @@ namespace engine
          goto error ;
       }
       else if ( !recordData.isCompressed()
-                && recordData.len() < DMS_MIN_RECORD_DATA_SZ )
+               && recordData.len() < DMS_MIN_RECORD_DATA_SZ )
       {
          PD_LOG( PDERROR, "Bson obj size[%d] is invalid",
-                 recordData.len() ) ;
+               recordData.len() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -1154,14 +1155,14 @@ namespace engine
          // finally add the record into list
          extent->_recCount++ ;
          _increaseMBStat( context->mb()->_clUniqueID,
-                          &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+                        &( _mbStatInfo[ context->mbID() ] ), cb ) ;
          // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
             // if there is already record in the extent
             dmsRecordRW preRW = record2RW( dmsRecordID( extRW.getExtentID(),
-                                                        offset ),
-                                           context->mbID() ) ;
+                                                      offset ),
+                                          context->mbID() ) ;
             dmsRecord *preRecord = preRW.writePtr() ;
             // set the next of previous point to the new record
             preRecord->setNextOffset( myOffset ) ;

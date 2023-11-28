@@ -188,8 +188,9 @@ namespace engine
       friend class _dmsRBSSUMgr ;
       typedef ossPoolMap<UINT32, UINT32> SIZE_REQ_MAP ;
    public:
-      _dmsStorageDataCapped( const CHAR* pSuFileName,
-                             dmsStorageInfo *pInfo,
+      _dmsStorageDataCapped( IStorageService *service,
+                             dmsSUDescriptor *suDescriptor,
+                             const CHAR* pSuFileName,
                              _IDmsEventHolder *pEventHolder ) ;
       virtual ~_dmsStorageDataCapped() ;
 
@@ -270,7 +271,6 @@ namespace engine
                                             INT64 position,
                                             dmsRecordID &foundRID,
                                             _pmdEDUCB *cb ) ;
-
       virtual INT32 _extentInsertRecord( dmsMBContext *context,
                                          dmsExtRW &extRW,
                                          dmsRecordRW &recordRW,
