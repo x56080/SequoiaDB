@@ -14,16 +14,19 @@ Import("debugBuild")
 Import("boost_lib_dir")
 Import("ssl_lib_dir")
 Import("mdocml_lib_dir")
+Import("zlib_dir")
 Import("zlib_lib_dir")
+Import("lz4_dir")
 Import("lz4_lib_dir")
+Import("snappy_dir")
 Import("snappy_lib_dir")
 Import("sm_lib_dir")
 Import("fuse_lib_dir")
 Import("usemdocml")
 Import("usefuse")
 Import("intel_decimal_lib_dir")
+Import("zstd_dir")
 Import("zstd_lib_dir")
-
 
 ERROR = 1
 WARNING = 2
@@ -176,6 +179,9 @@ class CompilerBase:
     def _init_linux_cmds(self, arch):
         return 0
 
+    def _prepare_build(self):
+        return 0
+
     def get_name(self):
         return self.name
 
@@ -206,7 +212,7 @@ class CompilerBase:
             if not os.path.exists(lib_path):
                 print_msg(INFO, "Library {} does not exist".format(lib_path))
                 return True
-                
+
         libs = sorted(libs,
                       key=lambda x: os.path.getmtime(os.path.join(arch_dir, x)),
                       reverse=True)
@@ -258,6 +264,11 @@ class CompilerBase:
                 print_msg(ERROR, 'Create lib archive directory failed: ' +
                           lib_path + ". Error: " + e.message())
                 return 1
+
+        rc = self._prepare_build()
+        if 0 != rc:
+            print_msg(ERROR, "Prepare build failed")
+            return rc
 
         print_msg(INFO, "Begin to compile " + self.name + "...")
         for cmd in self.cmds:
@@ -723,7 +734,7 @@ else:
 
 comm_config_opt = ''
 comm_build_opt = ''
-if "arm64" == guess_arch:
+if "arm64" == guess_arch or "ia64" == guess_arch:
     comm_job_num = int(GetOption('num_jobs'))
 else:
     comm_job_num = 1

@@ -62,6 +62,7 @@ fuse_dir = join(thirdparty_dir, 'fuse')
 fuse_lib_dir = join(fuse_dir, 'lib')
 zstd_dir = join(thirdparty_dir, 'zstd')
 zstd_lib_dir = join(zstd_dir, 'lib')
+wiredtiger_dir = join(thirdparty_dir, 'wiredtiger')
 # --- options ----
 
 options = {}
@@ -310,6 +311,7 @@ toolVariantDir = variantDir + "tool"
 fmpVariantDir = variantDir + "fmp"
 driverDir = variantDir + "driver"
 fapVariantDir = variantDir + "fap"
+wtVariantDir = variantDir + "wiredtiger"
 
 def printLocalInfo():
    import sys, SCons
@@ -363,7 +365,7 @@ if not debugBuild and cov:
    cov = False
 
 env = Environment( BUILD_DIR=variantDir,
-                   tools=["default", "gch", "mergelib" ],
+                   tools=["default", "gch", "mergelib", "textfile" ],
                    PYSYSPLATFORM=os.sys.platform,
                    )
 
@@ -528,8 +530,6 @@ def findVersion( root , choices ):
     raise RuntimeError("can't find a version of [" + repr(root) + "] choices: "
                        + repr(choices))
 
-
-
 env.Append(
 CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
@@ -615,9 +615,7 @@ if guess_os == "linux":
     # Or there will be two same openssl symbol existing in one mysqld program
     # in case of mysqld building openssl in.
     if hasNoLinkSSL == False:
-        env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy', 'zstd'])
-    else:
-        env.Append(LIBS=['lz4', 'zlib', 'snappy', 'zstd'])
+        env.Append(LIBS=['ssl', 'crypto'])
 
     ssllib_file = join(ssl_lib_dir, 'libcrypto.a')
     ssllib_file1 = join(ssl_lib_dir, 'libssl.a')
@@ -667,7 +665,7 @@ elif guess_os == "win32":
 
     # SSL
     # env.Append( LIBS=['ssleay32', 'libeay32', 'liblz4', 'libzlib', 'libsnappy'])
-    env.Append( LIBS=['libcrypto', 'libssl', 'liblz4', 'libzlib', 'libsnappy', 'libzstd'])
+    env.Append( LIBS=['libcrypto', 'libssl'])
     ssllib_file = join(ssl_lib_dir, 'libcrypto.lib')
     ssllib_file1 = join(ssl_lib_dir, 'libssl.lib')
     zlib_lib = join(zlib_lib_dir, 'libzlib.lib')
@@ -762,7 +760,6 @@ elif guess_os == 'aix':
       env.Append( LIBS=['js_static'] )
 
    # lz4, zlib and snappy
-   env.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
    zlib_lib = join(zlib_lib_dir, 'libzlib.a')
    lz4_lib = join(lz4_lib_dir, 'liblz4.a')
    snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
@@ -850,6 +847,9 @@ if linux:
    # add -lrt for boost_thread.a, need clock_gettime reference
    env.Append ( _LIBFLAGS=' -lrt ' )
 
+wtEnv = env.Clone()
+wtEnv["BUILD_DIR"] = wtVariantDir
+
 thirdpartyEnv = env.Clone()
 testEnv = env.Clone()
 testEnv.Append( CPPPATH=["../"] )
@@ -862,6 +862,25 @@ toolEnv = env.Clone() ;
 
 fmpEnv = None
 fmpEnv = env.Clone() ;
+
+env.Append( CPPPATH = wtVariantDir )
+env.Append( LIBS = "wiredtiger" )
+env.Append( LIBPATH = wtVariantDir )
+
+if windows:
+    env.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+    wtEnv.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+    shellEnv.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+    toolEnv.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+    fmpEnv.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+    testEnv.Append( LIBS=['liblz4', 'libzlib', 'libsnappy', 'libzstd'] )
+else:
+    env.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+    wtEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+    shellEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+    toolEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+    fmpEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+    testEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
 
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
@@ -959,6 +978,7 @@ Export("fmpEnv")
 Export("fapEnv")
 Export("clientCppEnv")
 Export("clientCEnv")
+Export("wtEnv")
 Export("installSetup getSysInfo")
 Export("usesm")
 Export("usefuse")
@@ -989,12 +1009,15 @@ Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
+Export("wiredtiger_dir")
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
-                         "ssl_lib_dir", "zlib_lib_dir", "lz4_lib_dir", "snappy_lib_dir",
+                         "ssl_lib_dir", "zlib_dir", "zlib_lib_dir",
+                         "lz4_dir", "lz4_lib_dir", "snappy_dir", "snappy_lib_dir",
                          "zstd_dir", "zstd_lib_dir",
-                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir"], duplicate=False)
+                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir",
+                         "wiredtiger_dir"], duplicate=False)
 
 if not has_option("noautogen"):
    language = get_option ( "language" )
@@ -1035,6 +1058,9 @@ if hasDoxygen:
    os._exit( errno )
 
 if hasEngine:
+   wtEnv.SConscript('thirdparty/wiredtiger/SConscript',
+                    variant_dir=wtVariantDir,
+                    duplicate=False)
    env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
 
 if hasClient:
