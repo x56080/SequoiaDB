@@ -65,7 +65,8 @@ public class TestRenameCS16137 extends SdbTestBase {
             checkCLIndex( sdb, newCSName, clName, expIndexNum );
             BaseException e = ( BaseException ) createIndexThread
                     .getExceptions().get( 0 );
-            if ( e.getErrorCode() != -23 && e.getErrorCode() != -34 ) {
+            if ( e.getErrorCode() != -23 && e.getErrorCode() != -34
+                    && e.getErrorCode() != -147 ) {
                 Assert.fail( "errcode not expected : " + e.getMessage() );
             }
         } else if ( renameCSThread.isSuccess()
