@@ -53,14 +53,14 @@ public :
    // size
 
    // regular new
-   void * operator new ( size_t size ) throw ( const char * )
+   void * operator new ( size_t size ) /* throw ( const char * ) */
    {
       void *p = SDB_OSS_MALLOC(size) ;
       if ( !p ) throw "allocation failure" ;
       return p ;
    }
 
-   void * operator new[] ( size_t size ) throw ( const char * )
+   void * operator new[] ( size_t size ) /* throw ( const char * ) */
    {
       void *p = SDB_OSS_MALLOC(size) ;
       if ( !p ) throw "allocation failure" ;
@@ -68,13 +68,13 @@ public :
    }
 
    // placement new
-   void * operator new ( size_t size, void* p ) throw ( const char * )
+   void * operator new ( size_t size, void* p ) /* throw ( const char * ) */
    {
       if ( !p ) throw "allocation failure" ;
       return p;
    }
 
-   void * operator new[] ( size_t size, void* p ) throw ( const char * )
+   void * operator new[] ( size_t size, void* p ) /* throw ( const char * ) */
    {
       if ( !p ) throw "allocation failure" ;
       return p;
@@ -91,17 +91,17 @@ public :
    }
 
    // placement delete (no-op)
-   void operator delete ( void* p , void* p2) throw ()
+   void operator delete ( void* p , void* p2) /* throw () */
    {
    }
 
-   void operator delete[] ( void* p, void* p2 ) throw ()
+   void operator delete[] ( void* p, void* p2 ) /* throw () */
    {
    }
 
    // new with file/line number
    void * operator new ( size_t size, const CHAR *pFile, UINT32 line )
-         throw ( const char * )
+         /* throw ( const char * ) */
    {
       void *p = SDB_OSS_MALLOC3(size, pFile, line ) ;
       if ( !p ) throw "allocation failure" ;
@@ -109,7 +109,7 @@ public :
    }
 
    void * operator new[] ( size_t size, const CHAR *pFile, UINT32 line )
-         throw ( const char * )
+         /* throw ( const char * ) */
    {
       void *p = SDB_OSS_MALLOC3(size, pFile, line ) ;
       if ( !p ) throw "allocation failure" ;

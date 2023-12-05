@@ -60,7 +60,7 @@ int versionGenForBuild::outputFile( int id, fileOutStream &fout,
    pos = content.find( REPLACE_TIMESTAMP_STRING, 0 ) ;
    if ( pos == string::npos )
    {
-      printLog( PD_WARNING ) << "Warning: Failed to locate "REPLACE_TIMESTAMP_STRING
+      printLog( PD_WARNING ) << "Warning: Failed to locate " REPLACE_TIMESTAMP_STRING
                              << endl ;
    }
 

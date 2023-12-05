@@ -368,6 +368,7 @@ env = Environment( BUILD_DIR=variantDir,
                    tools=["default", "gch", "mergelib", "textfile" ],
                    PYSYSPLATFORM=os.sys.platform,
                    )
+env.Decider( "MD5-timestamp" )
 
 needCompileDb = False
 needCompileDb = has_option( "compiledb" )
@@ -381,7 +382,7 @@ if guess_os == "linux":
    # Ignore warnings caused by the C++11 standard in debug version,
    # 'template<class> class std::auto_ptr' is deprecated.
    if debugBuild:
-      env.Append( CXXFLAGS=" -Wno-deprecated-declarations " )
+      env.Append( CXXFLAGS=" -Wno-deprecated-declarations -Wno-parentheses -Wno-class-memaccess " )
 
 libdeps.setup_environment( env )
 

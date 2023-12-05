@@ -12,6 +12,7 @@ Import("snappy_lib")
 Import("zstd_lib")
 Import("wiredtiger_dir")
 
+wtEnv.Decider( "MD5-timestamp" )
 wtEnv.Append(CPPPATH=[ join(wiredtiger_dir, "src", "include") ])
 wtEnv.Append(CPPPATH=[ "." ])
 

@@ -56,14 +56,14 @@ namespace engine
    // size
 
       // regular new
-      void * operator new ( size_t size ) throw ( const char * )
+      void * operator new ( size_t size ) /* throw ( const char * ) */
       {
          void *p = SDB_THREAD_ALLOC( size ) ;
          if ( !p ) throw "allocation failure" ;
          return p ;
       }
 
-      void * operator new[] ( size_t size ) throw ( const char * )
+      void * operator new[] ( size_t size ) /* throw ( const char * ) */
       {
          void *p = SDB_THREAD_ALLOC( size ) ;
          if ( !p ) throw "allocation failure" ;
@@ -71,13 +71,13 @@ namespace engine
       }
 
       // placement new
-      void * operator new ( size_t size, void* p ) throw ( const char * )
+      void * operator new ( size_t size, void* p ) /* throw ( const char * ) */
       {
          if ( !p ) throw "allocation failure" ;
          return p;
       }
 
-      void * operator new[] ( size_t size, void* p ) throw ( const char * )
+      void * operator new[] ( size_t size, void* p ) /* throw ( const char * ) */
       {
          if ( !p ) throw "allocation failure" ;
          return p;
@@ -94,17 +94,17 @@ namespace engine
       }
 
       // placement delete (no-op)
-      void operator delete ( void* p , void* p2) throw ()
+      void operator delete ( void* p , void* p2) /* throw () */
       {
       }
 
-      void operator delete[] ( void* p, void* p2 ) throw ()
+      void operator delete[] ( void* p, void* p2 ) /* throw () */
       {
       }
 
       // new with file/line number
       void * operator new ( size_t size, const CHAR *pFile, UINT32 line )
-            throw ( const char * )
+            /* throw ( const char * ) */
       {
          void *p = utilThreadAlloc( size, pFile, line ) ;
          if ( !p ) throw "allocation failure" ;
@@ -112,7 +112,7 @@ namespace engine
       }
 
       void * operator new[] ( size_t size, const CHAR *pFile, UINT32 line )
-            throw ( const char * )
+            /* throw ( const char * ) */
       {
          void *p = utilThreadAlloc( size, pFile, line ) ;
          if ( !p ) throw "allocation failure" ;
