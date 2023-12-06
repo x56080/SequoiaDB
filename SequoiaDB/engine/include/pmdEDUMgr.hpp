@@ -259,7 +259,7 @@ namespace engine
 
       private:
          VEC_IOSERVICE              _vecIOServices ;
-         ossSpinSLatch              _latch ;
+         ossSpinSLatchPOSIX         _latch ;
 
          EDUID                      _EDUIDBase ;
 
