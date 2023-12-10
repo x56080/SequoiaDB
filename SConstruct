@@ -382,7 +382,7 @@ if guess_os == "linux":
    # Ignore warnings caused by the C++11 standard in debug version,
    # 'template<class> class std::auto_ptr' is deprecated.
    if debugBuild:
-      env.Append( CXXFLAGS=" -Wno-deprecated-declarations -Wno-parentheses -Wno-class-memaccess " )
+      env.Append( CXXFLAGS=" -Wno-deprecated-declarations -Wno-parentheses " )
 
 libdeps.setup_environment( env )
 
