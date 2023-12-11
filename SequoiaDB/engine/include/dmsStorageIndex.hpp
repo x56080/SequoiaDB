@@ -43,6 +43,7 @@
 #include "dpsLogWrapper.hpp"
 #include "dpsOp2Record.hpp"
 #include "dmsPageMap.hpp"
+#include "ossTypes.h"
 #include "utilResult.hpp"
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
@@ -244,6 +245,11 @@ namespace engine
 
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
 
+         INT32    getIndex( _dmsMBContext *context,
+                            _ixmIndexCB *indexCB,
+                            pmdEDUCB *cb,
+                            std::shared_ptr<IIndex> &idxPtr ) ;
+
       private:
          INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
 
@@ -314,6 +320,21 @@ namespace engine
                                  _pmdEDUCB *cb,
                                  IDmsOprHandler *pOprHandle,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
+
+         INT32    _indexInsert( dmsMBContext *context,
+                                _ixmIndexCB *indexCB,
+                                const bson::BSONObj &key,
+                                const dmsRecordID &rid,
+                                const bson::Ordering& order,
+                                _pmdEDUCB *cb,
+                                BOOLEAN checkDuplicated,
+                                utilWriteResult *pResult = NULL ) ;
+         INT32    _indexDelete( _dmsMBContext *context,
+                                _ixmIndexCB *indexCB,
+                                const bson::BSONObj &key,
+                                const dmsRecordID &rid,
+                                const bson::Ordering& order,
+                                _pmdEDUCB *cb ) ;
 
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
                                        BSONObj &record ) ;

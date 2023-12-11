@@ -38,6 +38,7 @@
 
 #include "dms.hpp"
 #include "dmsExtDataHandler.hpp"
+#include "utilUniqueID.hpp"
 
 namespace engine
 {
@@ -173,6 +174,21 @@ namespace engine
       dmsStorageInfo &getStorageInfo()
       {
          return _storageInfo ;
+      }
+
+      const CHAR *getSUName() const
+      {
+         return _storageInfo._suName ;
+      }
+
+      utilCSUniqueID getCSUniqueID() const
+      {
+         return _storageInfo._csUniqueID ;
+      }
+
+      void setCSUniqueID( utilCSUniqueID csUniqueID )
+      {
+         _storageInfo._csUniqueID = csUniqueID ;
       }
 
    protected:

@@ -99,15 +99,16 @@ namespace keystring
          return ossBigEndianToNative( val ) ^ std::numeric_limits< T > ::min() ;
       }
 
-      /// 4bytes pid + 2bytes pos
-      static constexpr UINT32 RID_ENCODING_SIZE = 6 ;
+      /// 4 bytes extent ID + 4 bytes offset
+      static constexpr UINT32 RID_ENCODING_SIZE = 8 ;
       void encodeRID( const dmsRecordID &rid, void *buf ) ;
       dmsRecordID decodeToRID( const void *buf ) const ;
 
       void encodeLSN( UINT64 lsn, void *buf ) ;
       UINT64 decodeToLSN( const void *buf ) const ;
 
-      static constexpr UINT32 INDEX_ID_ENCODEING_SIZE = 12 ;
+      /// 8 bytes CL UID + 4 bytes CL LID + 4 bytes index inner ID
+      static constexpr UINT32 INDEX_ID_ENCODEING_SIZE = 16 ;
       void encodeIndexID( const dmsIdxMetadataKey &id,
                           BOOLEAN asUpperKey,
                           void *buf ) ;

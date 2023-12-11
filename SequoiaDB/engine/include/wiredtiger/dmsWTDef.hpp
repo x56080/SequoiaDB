@@ -87,6 +87,9 @@ namespace wiredtiger
    #define DMS_MIN_WT_CHECK_POINT_LOG_SIZE ( 1 )
    #define DMS_MAX_WT_CHECK_POINT_LOG_SIZE ( OSS_UINT32_MAX )
 
+   #define DMS_WT_FORMART_V1 ( 1 )
+   #define DMS_WT_FORMART_VER_CUR ( DMS_WT_FORMART_V1 )
+
 }
 }
 

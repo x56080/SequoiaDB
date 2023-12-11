@@ -62,9 +62,10 @@ namespace engine
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
                                            rtnPredicateList *predList,
                                            _dmsStorageUnit  *su,
+                                           _dmsMBContext    *mbContext,
                                            _pmdEDUCB        *cb,
                                            BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned )
+   :_rtnIXScanner( pIndexCB, predList, su, mbContext, cb, indexCBOwnned )
    {
       _fromDir = SCAN_NONE ;
       _savedRID.reset() ;
@@ -141,6 +142,7 @@ namespace engine
             pScanner = SDB_OSS_NEW _rtnDiskIXScanner( getIndexCB(),
                                                       getPredicateList(),
                                                       getSu(),
+                                                      getMBContext(),
                                                       getEDUCB(),
                                                       getIndexCBOwned() ) ;
             break ;
@@ -148,6 +150,7 @@ namespace engine
             pScanner = SDB_OSS_NEW _rtnMemIXTreeScanner( getIndexCB(),
                                                          getPredicateList(),
                                                          getSu(),
+                                                         getMBContext(),
                                                          getEDUCB(),
                                                          getIndexCBOwned() ) ;
             break ;
@@ -223,13 +226,13 @@ namespace engine
       }
 
    begin:
-      if ( !_leftEnabled || _leftIXScanner->eof() ||
+      if ( !_leftEnabled || _leftIXScanner->isEOF() ||
            !_leftIXScanner->isAvailable() )
       {
          _lrid.reset() ;
          leftDone = TRUE ;
       }
-      if ( !_rightEnabled || _rightIXScanner->eof() ||
+      if ( !_rightEnabled || _rightIXScanner->isEOF() ||
            !_rightIXScanner->isAvailable() )
       {
          _rrid.reset() ;
@@ -380,7 +383,7 @@ namespace engine
    done :
       if ( SDB_IXM_EOC == rc )
       {
-         _eof = TRUE ;
+         _isEOF = TRUE ;
       }
       PD_TRACE_EXITRC ( SDB__RTNMERGEIXSCAN_ADVANCE, rc ) ;
       return rc ;
@@ -483,7 +486,7 @@ namespace engine
 
       /// when left has changed, but last from right
       if ( SCAN_RIGHT == _fromDir && _leftEnabled &&
-           !_leftIXScanner->eof() &&
+           !_leftIXScanner->isEOF() &&
            ( !lIsSame || _lrid.isNull() ) )
       {
          rc = _leftIXScanner->advance( _lrid ) ;
@@ -499,7 +502,7 @@ namespace engine
       }
       /// when right has changed, but last from left
       if ( SCAN_LEFT == _fromDir && _rightEnabled &&
-           !_rightIXScanner->eof() &&
+           !_rightIXScanner->isEOF() &&
            ( !rIsSame || _rrid.isNull() ) )
       {
          rc = _rightIXScanner->advance( _rrid ) ;
@@ -608,7 +611,7 @@ namespace engine
                     rc ) ;
             goto error ;
          }
-         leftEOF = _leftIXScanner->eof() ;
+         leftEOF = _leftIXScanner->isEOF() ;
       }
 
       if ( _rightEnabled && _rightIXScanner )
@@ -620,10 +623,10 @@ namespace engine
                     rc ) ;
             goto error ;
          }
-         rightEOF = _rightIXScanner->eof() ;
+         rightEOF = _rightIXScanner->isEOF() ;
       }
 
-      _eof = ( leftEOF && rightEOF ) ? TRUE : FALSE ;
+      _isEOF = ( leftEOF && rightEOF ) ? TRUE : FALSE ;
       _fromDir = SCAN_NONE ;
 
    done:

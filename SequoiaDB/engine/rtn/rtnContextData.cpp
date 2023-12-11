@@ -40,7 +40,9 @@
 #include "ossUtil.hpp"
 #include "rtn.hpp"
 #include "pmd.hpp"
-#include "rtnIXScannerFactory.hpp"
+#include "rtnScannerFactory.hpp"
+#include "rtnIXScanner.hpp"
+#include "rtnTBScanner.hpp"
 #include "dpsTransLockCallback.hpp"
 #include "dmsScanner.hpp"
 #include "dmsCB.hpp"
@@ -127,9 +129,6 @@ namespace engine
       _numToReturn      = -1 ;
       _numToSkip        = 0 ;
 
-      _extentID         = DMS_INVALID_EXTENT ;
-      _lastExtentID     = DMS_INVALID_EXTENT ;
-      _lastExtLID       = DMS_INVALID_EXTENT ;
       _segmentScan      = FALSE ;
       _indexBlockScan   = FALSE ;
       _scanner          = NULL ;
@@ -149,6 +148,7 @@ namespace engine
    {
       rtnScannerFactory f ;
       f.releaseScanner( _scanner ) ;
+      _scanner = NULL ;
 
       // first release plan
       setQueryActivity( _hitEnd ) ;
@@ -172,6 +172,16 @@ namespace engine
          _dmsCB->writeDown( pmdGetThreadEDUCB() ) ;
       }
       _isPrevSec = FALSE ;
+   }
+
+   _rtnTBScanner* _rtnContextData::getTBScanner ()
+   {
+      return dynamic_cast<_rtnTBScanner *>( _scanner ) ;
+   }
+
+   _rtnIXScanner* _rtnContextData::getIXScanner ()
+   {
+      return dynamic_cast<_rtnIXScanner *>( _scanner ) ;
    }
 
    const CHAR* _rtnContextData::name() const
@@ -647,6 +657,10 @@ namespace engine
       BOOLEAN isAllEqual = FALSE ;
       ixmIndexCB *pIndexCB = NULL ;
 
+      rtnIXScanner *ixScanner = getIXScanner() ;
+      PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                "Failed to set advance section, not a index scanner" ) ;
+
       rc = _getAdvanceOrderby( _orderBy, TRUE ) ;
       if ( rc )
       {
@@ -654,7 +668,7 @@ namespace engine
       }
 
       // check index
-      pIndexCB = _scanner->getIndexCB() ;
+      pIndexCB = ixScanner->getIndexCB() ;
       if ( !pIndexCB )
       {
          PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
@@ -675,8 +689,8 @@ namespace engine
 
       // compare the historical index OID with the current index oid, to make
       // sure the index is not changed during the time
-      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
-           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
+      if ( !pIndexCB->isStillValid ( ixScanner->getIdxOID() ) ||
+           ixScanner->getIdxLID() != pIndexCB->getLogicalID() )
       {
          rc = SDB_DMS_INVALID_INDEXCB ;
          goto done ;
@@ -911,6 +925,10 @@ namespace engine
       ixmIndexCB *pIndexCB = NULL ;
       dmsRecordID rid ;
 
+      rtnIXScanner *ixScanner = getIXScanner() ;
+      PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                "Failed to do advance, not a index scanner" ) ;
+
       if ( IXSCAN != _scanType )
       {
          PD_LOG( PDWARNING, "Table scan does not support advance" ) ;
@@ -931,7 +949,7 @@ namespace engine
       }
 
       // check index
-      pIndexCB = _scanner->getIndexCB() ;
+      pIndexCB = ixScanner->getIndexCB() ;
       if ( !pIndexCB )
       {
          PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
@@ -952,8 +970,8 @@ namespace engine
 
       // compare the historical index OID with the current index oid, to make
       // sure the index is not changed during the time
-      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
-           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
+      if ( !pIndexCB->isStillValid ( ixScanner->getIdxOID() ) ||
+           ixScanner->getIdxLID() != pIndexCB->getLogicalID() )
       {
          rc = SDB_DMS_INVALID_INDEXCB ;
          goto done ;
@@ -968,7 +986,7 @@ namespace engine
          INT32 keyPatternNum = keyPattern.nFields() ;
          INT32 cmp = 0 ;
 
-         if ( _scanner->eof() )
+         if ( _scanner->isEOF() )
          {
             goto done ;
          }
@@ -987,7 +1005,7 @@ namespace engine
             goto error ;
          }
 
-         pSaveObj = _scanner->getSavedObj() ;
+         pSaveObj = ixScanner->getSavedObj() ;
          cmp = _woNCompare( keyVal, *pSaveObj, FALSE, prefixNum, orderby ) ;
          if ( cmp < 0 )
          {
@@ -1013,7 +1031,7 @@ namespace engine
          _buildNextRID( type, rid ) ;
 
          /// relocate
-         rc = _scanner->relocateRID( objLocate, rid ) ;
+         rc = ixScanner->relocateRID( objLocate, rid ) ;
          if ( rc )
          {
             PD_LOG_MSG( PDERROR, "Relocate failed, rc: %d", rc ) ;
@@ -1161,6 +1179,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPIXSC );
 
       rtnScannerFactory f ;
+      rtnIXScanner *tmp = NULL ;
       IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
       rtnPredicateList *predList = NULL ;
@@ -1168,6 +1187,14 @@ namespace engine
       // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
                            su->index(), NULL ) ;
+
+      // index block scan
+      if ( blockObj )
+      {
+         PD_LOG( PDERROR, "Block scan is not supported for index scan" ) ;
+         rc = SDB_ENTERPRISE_ONLY ;
+         goto error ;
+      }
 
       rc = rtnIsIndexCBValid( &indexCB, _planRuntime.getIndexCBExtent(),
                               _planRuntime.getIndexName(),
@@ -1188,34 +1215,15 @@ namespace engine
       if ( _scanner )
       {
          f.releaseScanner( _scanner ) ;
+         _scanner = NULL ;
       }
 
-      rc = f.createScanner( scanType, &indexCB, predList, su, cb, _scanner ) ;
+      rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, cb, tmp ) ;
       if ( rc )
       {
          goto error ;
       }
-      // index block scan
-      if ( blockObj )
-      {
-         SDB_ASSERT( direction == 1 || direction == -1,
-                     "direction must be 1 or -1" ) ;
-         if ( _direction != direction )
-         {
-            PD_LOG( PDERROR, "Direction is not the same with access plan" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         rc = _parseIndexBlocks( *blockObj, _indexBlocks, _indexRIDs ) ;
-         PD_RC_CHECK( rc, PDERROR, "Parse index blocks failed, rc: %d", rc ) ;
-         _indexBlockScan = TRUE ;
-
-         if ( _indexBlocks.size() < 2 )
-         {
-            _hitEnd = TRUE ;
-         }
-      }
+      _scanner = tmp ;
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNCONTEXTDATA_OPIXSC , rc );
@@ -1234,12 +1242,28 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPTBSC );
 
+      rtnScannerFactory f ;
+      rtnTBScanner *tmp = NULL ;
+
       if ( blockObj )
       {
          PD_LOG( PDERROR, "Block scan is not supported for table scan" ) ;
          rc = SDB_ENTERPRISE_ONLY ;
          goto error ;
       }
+
+      // create scanner
+      if ( _scanner )
+      {
+         f.releaseScanner( _scanner ) ;
+         _scanner = NULL ;
+      }
+      rc = f.createTBScanner( su, mbContext, cb, tmp ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      _scanner = tmp ;
 
    done:
       PD_TRACE_EXITRC ( SDB_RTNCONTEXTDATA_OPTBSC , rc );
@@ -1367,9 +1391,10 @@ namespace engine
 
          _evalIndexCover( selectSet ) ;
 
-         if ( _scanner )
+         rtnIXScanner *ixScanner = getIXScanner() ;
+         if ( ixScanner )
          {
-            _scanner->setIndexCover( _indexCover ) ;
+            ixScanner->setIndexCover( _indexCover ) ;
          }
       }
 
@@ -1476,7 +1501,7 @@ namespace engine
       _numToSkip = numToSkip > 0 ? numToSkip : 0 ;
 
       _isOpened = TRUE ;
-      _hitEnd = _scanner->eof() ? TRUE : FALSE ;
+      _hitEnd = _scanner->isEOF() ? TRUE : FALSE ;
 
       if ( 0 == _numToReturn )
       {
@@ -1597,11 +1622,17 @@ namespace engine
 
       if ( TBSCAN == _scanType )
       {
-         rc = _prepareByTBScan( cb, accessType, dollarList ) ;
+         rtnTBScanner *tbScanner = getTBScanner() ;
+         PD_CHECK( tbScanner, SDB_SYS, error, PDERROR,
+                   "Failed to prepare data, table scanner is invalid" ) ;
+         rc = _prepareByTBScan( tbScanner, cb, accessType, dollarList ) ;
       }
       else if ( IXSCAN == _scanType )
       {
-         rc = _prepareByIXScan( cb, accessType, dollarList ) ;
+         rtnIXScanner *ixScanner = getIXScanner() ;
+         PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                   "Failed to prepare data, index scanner is invalid" ) ;
+         rc = _prepareByIXScan( ixScanner, cb, accessType, dollarList ) ;
       }
       else
       {
@@ -1715,15 +1746,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, "_rtnContextData::_prepareByTBScan" )
-   INT32 _rtnContextData::_prepareByTBScan( pmdEDUCB * cb,
+   INT32 _rtnContextData::_prepareByTBScan( rtnTBScanner *tbScanner,
+                                            pmdEDUCB * cb,
                                             DMS_ACCESS_TYPE accessType,
                                             vector<INT64>* dollarList )
    {
       INT32 rc = SDB_OK ;
-
-      const INT32 maxNum = 1000000 ;
-      const INT32 breakBufferSize = 2097152 ; /// 2MB
-      const INT32 minRecordNum = 4 ;
 
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
@@ -1732,6 +1760,7 @@ namespace engine
       monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
       mthSelector *selector   = NULL ;
+      INT32 startNumRecords   = numRecords() ;
 
       PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN );
 
@@ -1745,131 +1774,117 @@ namespace engine
          generator.setQueryModify( TRUE ) ;
       }
 
-      PD_LOG( PDDEBUG, "Start scanner [%s] from extent: %u, offset: %u",
-              _planRuntime.getCLFullName(), _recordID._extent, _recordID._offset ) ;
-
-      dmsDataScanner scanner( _su->data(),
-                              _mbContext,
-                              _recordID,
-                              matchRuntime,
-                              accessType,
-                              _numToReturn,
-                              _numToSkip,
-                              _returnOptions.getFlag() ) ;
-      UINT32 recordSelected = 0 ;
-      _mthMatchTreeContext mthContext( NULL ) ;
-      if ( NULL != dollarList )
+      while ( numRecords() == startNumRecords )
       {
-         mthContext.enableDollarList() ;
-      }
-
-      // prefetch
-      if ( eduID() != cb->getID() && !isOpened() )
-      {
-         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
-         goto error ;
-      }
-
-      while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb, &mthContext ) ) )
-      {
-         try
+         dmsDataScanner scanner( _su->data(),
+                                 _mbContext,
+                                 tbScanner,
+                                 matchRuntime,
+                                 accessType,
+                                 _numToReturn,
+                                 _numToSkip,
+                                 _returnOptions.getFlag() ) ;
+         UINT32 recordSelected = 0 ;
+         _mthMatchTreeContext mthContext( NULL ) ;
+         if ( NULL != dollarList )
          {
-            generator.getDataPtr( recordDataPtr ) ;
-            BSONObj obj( (const CHAR*)recordDataPtr ) ;
-
-            if ( _rsFilter )
-            {
-               if ( _appendRIDFilter )
-               {
-                  BOOLEAN pushed = FALSE ;
-                  rc = _rsFilter->push( recordID, pushed ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to push record ID to "
-                               "result set filter, rc: %d", rc ) ;
-                  if ( !pushed )
-                  {
-                     continue ;
-                  }
-               }
-               else
-               {
-                  if ( _rsFilter->isFiltered( recordID ) )
-                  {
-                     continue ;
-                  }
-               }
-            }
-
-            if ( _queryModifier )
-            {
-               //dollarList is pointed to _queryModifier->getDollarList()
-               mthContext.getDollarList( dollarList ) ;
-               rc = _queryModify( cb, recordID, recordDataPtr,
-                                  obj, scanner.callbackHandler(),
-                                  scanner.recordInfo() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to query modify, rc: %d", rc ) ;
-               generator.resetValue( obj, &mthContext ) ;
-            }
-
-            rc = _innerAppend( selector, generator ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
+            mthContext.enableDollarList() ;
          }
-         catch ( exception &e )
+
+         // prefetch
+         if ( eduID() != cb->getID() && !isOpened() )
          {
-            PD_LOG( PDERROR, "Failed to fetch data, occur exception: %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
+            rc = SDB_DMS_CONTEXT_IS_CLOSE ;
             goto error ;
          }
-         // increase counter
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-         ++ recordSelected ;
-         // decrease numToReturn
-         if ( _numToReturn > 0 )
+
+         while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb, &mthContext ) ) )
          {
-            --_numToReturn ;
+            try
+            {
+               generator.getDataPtr( recordDataPtr ) ;
+               BSONObj obj( (const CHAR*)recordDataPtr ) ;
+
+               if ( _rsFilter )
+               {
+                  if ( _appendRIDFilter )
+                  {
+                     BOOLEAN pushed = FALSE ;
+                     rc = _rsFilter->push( recordID, pushed ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to push record ID to "
+                                 "result set filter, rc: %d", rc ) ;
+                     if ( !pushed )
+                     {
+                        continue ;
+                     }
+                  }
+                  else
+                  {
+                     if ( _rsFilter->isFiltered( recordID ) )
+                     {
+                        continue ;
+                     }
+                  }
+               }
+
+               if ( _queryModifier )
+               {
+                  //dollarList is pointed to _queryModifier->getDollarList()
+                  mthContext.getDollarList( dollarList ) ;
+                  rc = _queryModify( cb, recordID, recordDataPtr,
+                                    obj, scanner.callbackHandler(),
+                                    scanner.recordInfo() ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to query modify, rc: %d", rc ) ;
+                  generator.resetValue( obj, &mthContext ) ;
+               }
+
+               rc = _innerAppend( selector, generator ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to fetch data, occur exception: %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+            // increase counter
+            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
+            ++ recordSelected ;
+            // decrease numToReturn
+            if ( _numToReturn > 0 )
+            {
+               --_numToReturn ;
+            }
+
+            //do not clear dollarlist flag
+            mthContext.clearRecordInfo() ;
          }
 
-         //do not clear dollarlist flag
-         mthContext.clearRecordInfo() ;
-
-         if ( minRecordNum <= recordSelected && buffEndOffset() >= breakBufferSize )
+         if ( SDB_OK != rc && SDB_DMS_EOC != rc )
          {
+            PD_LOG( PDERROR, "Failed to run scanner, rc: %d", rc ) ;
+            goto error ;
+         }
+         rc = SDB_OK ;
+
+         _numToReturn = scanner.getMaxRecords() ;
+         _numToSkip   = scanner.getSkipNum() ;
+
+         if ( ( 0 == _numToReturn ) ||
+            ( scanner.isHitEnd() ) )
+         {
+            _hitEnd = TRUE ;
             break ;
          }
-         else if ( buffEndOffset() + DMS_RECORD_MAX_SZ > RTN_RESULTBUFFER_SIZE_MAX )
+         else
          {
-            break ;
+            _recordID = scanner.getCurRID() ;
          }
-         else if ( recordSelected >= maxNum )
+
+         if ( !hasLocked )
          {
-            break ;
+            _mbContext->pause() ;
          }
-      }
-
-      if ( SDB_OK != rc && SDB_DMS_EOC != rc )
-      {
-         PD_LOG( PDERROR, "Failed to run scanner, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      _numToReturn = scanner.getMaxRecords() ;
-      _numToSkip   = scanner.getSkipNum() ;
-
-      if ( ( SDB_DMS_EOC == rc ) ||
-           ( 0 == _numToReturn ) ||
-           ( scanner.isHitEnd() ) )
-      {
-         _hitEnd = TRUE ;
-      }
-      else
-      {
-         _recordID = scanner.getCurRID() ;
-         PD_LOG( PDDEBUG, "Stop scanner [%s] by extent: %u, offset: %u",
-                 _planRuntime.getCLFullName(), _recordID._extent, _recordID._offset ) ;
-      }
-
-      if ( !hasLocked )
-      {
-         _mbContext->pause() ;
       }
 
       if ( !isEmpty() )
@@ -1895,12 +1910,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__PREPAREBYIXSCAN, "_rtnContextData::_prepareByIXScan" )
-   INT32 _rtnContextData::_prepareByIXScan( pmdEDUCB *cb,
+   INT32 _rtnContextData::_prepareByIXScan( rtnIXScanner *ixScanner,
+                                            pmdEDUCB *cb,
                                             DMS_ACCESS_TYPE accessType,
                                             vector<INT64>* dollarList )
    {
       INT32 rc                   = SDB_OK ;
-      rtnIXScanner *scanner      = _scanner ;
       mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
       mthSelector *selector      = NULL ;
       monAppCB * pMonAppCB       = cb ? cb->getMonAppCB() : NULL ;
@@ -1919,6 +1934,9 @@ namespace engine
       _mthRecordGenerator generator ;
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
+
+      PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                "Failed to do advance, not a index scanner" ) ;
 
       if ( NULL != _queryModifier )
       {
@@ -1941,18 +1959,14 @@ namespace engine
             goto error ;
          }
 
-         dmsIXSecScanner secScanner( _su->data(), _mbContext, matchRuntime,
-                                     scanner, accessType, _numToReturn,
+         dmsIndexScanner secScanner( _su->data(),
+                                     _mbContext,
+                                     ixScanner,
+                                     matchRuntime,
+                                     accessType,
+                                     _numToReturn,
                                      _numToSkip,
                                      _returnOptions.getFlag() ) ;
-         if ( _indexBlockScan )
-         {
-            secScanner.enableIndexBlockScan( _indexBlocks[0],
-                                             _indexBlocks[1],
-                                             _indexRIDs[0],
-                                             _indexRIDs[1],
-                                             _direction ) ;
-         }
          if ( isCountMode() )
          {
             secScanner.enableCountMode() ;
@@ -1995,7 +2009,7 @@ namespace engine
                      //dollarList is pointed to _queryModifier->getDollarList()
                      mthContext.getDollarList( dollarList ) ;
                      rc = _queryModify( cb, recordID, recordDataPtr,
-                                        obj,  secScanner.callbackHandler(),
+                                        obj, secScanner.callbackHandler(),
                                         secScanner.recordInfo() ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
                      generator.resetValue( obj, &mthContext ) ;
@@ -2065,7 +2079,7 @@ namespace engine
             break ;
          }
 
-         if ( secScanner.eof() )
+         if ( secScanner.isHitEnd() )
          {
             if ( _indexBlockScan )
             {

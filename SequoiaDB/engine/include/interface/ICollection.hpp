@@ -37,9 +37,13 @@
 #define SDB_I_COLLECTION_HPP_
 
 #include "sdbInterface.hpp"
-#include "interface/IDataCursor.hpp"
+#include "interface/IIndex.hpp"
+#include "interface/ICursor.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
+#include "dmsMetadata.hpp"
+#include "dmsOprtOptions.hpp"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -47,13 +51,31 @@ namespace engine
    /*
       ICollection define
     */
-   class ICollection : public SDBObject
+   class ICollection : public _utilPooledObject,
+                       public std::enable_shared_from_this<ICollection>
    {
    public:
       ICollection() = default ;
       virtual ~ICollection() = default ;
       ICollection( const ICollection & ) = delete ;
       ICollection &operator =( const ICollection & ) = delete ;
+
+      virtual INT32 createIndex( const dmsIdxMetadata &metadata,
+                                 const dmsCreateIdxOptions &options,
+                                 IExecutor *executor ) = 0 ;
+      virtual INT32 dropIndex( const dmsIdxMetadata &metadata,
+                               const dmsDropIdxOptions &options,
+                               IExecutor *executor ) = 0 ;
+      virtual INT32 truncateIndex( const dmsIdxMetadata &metadata,
+                                   const dmsTruncateIdxOptions &options,
+                                   IExecutor *executor ) = 0 ;
+
+      virtual INT32 getIndex( const dmsIdxMetadataKey &metadataKey,
+                              IExecutor *executor,
+                              std::shared_ptr<IIndex> &idxPtr ) = 0 ;
+      virtual INT32 loadIndex( const dmsIdxMetadata &metadata,
+                               IExecutor *executor,
+                               std::shared_ptr<IIndex> &idxPtr ) = 0 ;
 
       virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) = 0 ;
       virtual INT32 insertRecord( const dmsRecordID &rid,
@@ -67,7 +89,7 @@ namespace engine
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
                                    IExecutor *executor ) = 0 ;
-      virtual INT32 createDataCursor( std::unique_ptr< IDataCursor > &cursor,
+      virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,

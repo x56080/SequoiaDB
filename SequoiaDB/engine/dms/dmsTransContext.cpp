@@ -48,21 +48,21 @@ namespace engine
 {
 
    /*
-      _dmsTBTransContext implement
+      _dmsScanTransContext implement
    */
-   _dmsTBTransContext::_dmsTBTransContext( _dmsMBContext *pMBContext,
-                                           DMS_ACCESS_TYPE accessType )
+   _dmsScanTransContext::_dmsScanTransContext( _dmsMBContext *pMBContext,
+                                               DMS_ACCESS_TYPE accessType )
    {
       SDB_ASSERT( pMBContext, "MB Context can't be NULL" ) ;
       _pMBContext    = pMBContext ;
       _accessType    = accessType ;
    }
 
-   _dmsTBTransContext::~_dmsTBTransContext()
+   _dmsScanTransContext::~_dmsScanTransContext()
    {
    }
 
-   INT32 _dmsTBTransContext::_checkAccess()
+   INT32 _dmsScanTransContext::_checkAccess()
    {
       INT32 rc = SDB_OK ;
 
@@ -77,16 +77,16 @@ namespace engine
       return rc ;
    }
 
-   INT32 _dmsTBTransContext::pause()
+   INT32 _dmsScanTransContext::pause()
    {
       return _pMBContext->pause() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSTBTRANSCONTEXT_RESUME, "_dmsTBTransContext::resume" )
-   INT32 _dmsTBTransContext::resume()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCANTRANSCONTEXT_RESUME, "_dmsScanTransContext::resume" )
+   INT32 _dmsScanTransContext::resume()
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSTBTRANSCONTEXT_RESUME ) ;
+      PD_TRACE_ENTRY ( SDB__DMSSCANTRANSCONTEXT_RESUME ) ;
 
       rc = _pMBContext->resume() ;
       if ( rc )
@@ -103,7 +103,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB__DMSTBTRANSCONTEXT_RESUME, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DMSSCANTRANSCONTEXT_RESUME, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -115,7 +115,7 @@ namespace engine
    _dmsIXTransContext::_dmsIXTransContext( _dmsMBContext *pMBContext,
                                            DMS_ACCESS_TYPE accessType,
                                            _rtnIXScanner *pScanner )
-   :_dmsTBTransContext( pMBContext, accessType )
+   :_dmsScanTransContext( pMBContext, accessType )
    {
       SDB_ASSERT( pScanner, "Scanner can't be NULL" ) ;
 
@@ -136,7 +136,7 @@ namespace engine
       rc = _pScanner->pauseScan() ;
       if ( SDB_OK == rc )
       {
-         rc = _dmsTBTransContext::pause() ;
+         rc = _dmsScanTransContext::pause() ;
       }
 
       return rc ;
@@ -149,7 +149,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSIXTRANSCONTEXT_RESUME ) ;
 
       /// first resume base
-      rc = _dmsTBTransContext::resume() ;
+      rc = _dmsScanTransContext::resume() ;
       if ( rc )
       {
          goto error ;
@@ -169,11 +169,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   BOOLEAN _dmsIXTransContext::isCursorSame() const
-   {
-      return _isSame ;
    }
 
 }

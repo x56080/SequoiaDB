@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsDataCursor.hpp
+   Source File Name = dmsIndexCursor.hpp
 
    Descriptive Name =
 
@@ -33,25 +33,25 @@
 
 *******************************************************************************/
 
-#ifndef SDB_DMS_DATA_CURSOR_HPP_
-#define SDB_DMS_DATA_CURSOR_HPP_
+#ifndef SDB_DMS_INDEX_CURSOR_HPP_
+#define SDB_DMS_INDEX_CURSOR_HPP_
 
-#include "interface/IDataCursor.hpp"
+#include "interface/ICursor.hpp"
 #include "dms.hpp"
 
 namespace engine
 {
 
    /*
-      _dmsDataCursor defined
+      _dmsIndexCursor defined
     */
-   class _dmsDataCursor : public IDataCursor
+   class _dmsIndexCursor : public IIndexCursor
    {
    public:
-      _dmsDataCursor() = default ;
-      virtual ~_dmsDataCursor() = default ;
-      _dmsDataCursor( const _dmsDataCursor & ) = delete ;
-      _dmsDataCursor &operator =( const _dmsDataCursor & ) = delete ;
+      _dmsIndexCursor() = default ;
+      virtual ~_dmsIndexCursor() = default ;
+      _dmsIndexCursor( const _dmsIndexCursor & ) = delete ;
+      _dmsIndexCursor &operator =( const _dmsIndexCursor & ) = delete ;
 
       virtual BOOLEAN isOpened() const
       {
@@ -78,28 +78,13 @@ namespace engine
          return _isEOF ;
       }
 
+      virtual INT32 getCurrentKeyString( keystring::keyString &key ) ;
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) ;
 
    protected:
-      void _setEOF()
-      {
-         _isEOF = TRUE ;
-      }
-
-      void _setCurrentRecordID( const dmsRecordID &recordID )
-      {
-         _curentRecordID = recordID ;
-      }
-
-      void _setCurrentRecord( const dmsRecordData &data )
-      {
-         _currentRecordData = data ;
-      }
-
-   protected:
-      std::shared_ptr< ICollection > _collPtr ;
-      dmsRecordID _curentRecordID ;
+      keystring::keyString _currentKey ;
+      dmsRecordID _currentRecordID ;
       dmsRecordData _currentRecordData ;
       BOOLEAN _isOpened = FALSE ;
       BOOLEAN _isClosed = FALSE ;
@@ -107,8 +92,8 @@ namespace engine
       BOOLEAN _isEOF = FALSE ;
    } ;
 
-   typedef class _dmsDataCursor dmsDataCursor ;
+   typedef class _dmsIndexCursor dmsIndexCursor ;
 
 }
 
-#endif // SDB_DMS_DATA_CURSOR_HPP_
+#endif // SDB_DMS_INDEX_CURSOR_HPP_

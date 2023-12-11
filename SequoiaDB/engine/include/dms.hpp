@@ -402,6 +402,16 @@ namespace engine
       {
          ossUnpack32From64( value, (UINT32 &)_extent, (UINT32 &)_offset ) ;
       }
+
+      static _dmsRecordID maxRID()
+      {
+         return _dmsRecordID( 0x7FFFFFFE, 0xFFFFFFFF ) ;
+      }
+
+      static _dmsRecordID minRID()
+      {
+         return _dmsRecordID( 0, 0 ) ;
+      }
    } ;
    typedef class _dmsRecordID dmsRecordID ;
 

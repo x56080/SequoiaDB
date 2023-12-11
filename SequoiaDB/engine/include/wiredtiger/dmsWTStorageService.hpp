@@ -72,6 +72,11 @@ namespace wiredtiger
          return &_engine ;
       }
 
+      const dmsWTEngineOptions &getEngineOptions() const
+      {
+         return _engineOptions ;
+      }
+
       virtual INT32 createCS( const dmsCSMetadata &metadata,
                               const dmsCreateCSOptions &options,
                               IExecutor *executor ) ;
@@ -89,22 +94,12 @@ namespace wiredtiger
                                 const dmsTruncCLOptions &options,
                                 IExecutor *executor ) ;
 
-      virtual INT32 createIdx( const dmsIdxMetadata &metadata,
-                               const dmsCreateIdxOptions &options,
-                               IExecutor *executor ) ;
-      virtual INT32 dropIdx( const dmsIdxMetadata &metadata,
-                             const dmsDropIdxOptions &options,
-                             IExecutor *executor ) ;
-      virtual INT32 truncateIdx( const dmsIdxMetadata &metadata,
-                                 const dmsTruncateIdxOptions &options,
-                                 IExecutor *executor ) ;
-
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,
                                    IExecutor *executor,
-                                   std::shared_ptr< ICollection > &collPtr ) ;
+                                   std::shared_ptr<ICollection> &collPtr ) ;
       virtual INT32 loadCollection( const dmsCLMetadata &metadata,
                                     IExecutor *executor,
-                                    std::shared_ptr< ICollection > &collPtr ) ;
+                                    std::shared_ptr<ICollection> &collPtr ) ;
 
    protected:
       INT32 _initEngineOptions( dmsWTEngineOptions &options ) ;
@@ -112,35 +107,23 @@ namespace wiredtiger
       INT32 _buildConfigString( const dmsWTEngineOptions &options,
                                 ossPoolString &configString ) ;
 
-      INT32 _buildDataConfigString( const dmsWTEngineOptions &options,
-                                    const dmsCreateCLOptions &createCLOptions,
-                                    ossPoolString &configString ) ;
-      INT32 _buildDataURI( utilCSUniqueID csUID,
-                           utilCLInnerID clInnerID,
-                           UINT32 clLID,
-                           ossPoolString &dataURI ) ;
-
-      INT32 _buildIdxConfigString( const dmsWTEngineOptions &options,
-                                   const dmsCreateIdxOptions &createIdxOptions,
-                                   ossPoolString &configString ) ;
-
-      INT32 _buildIdxURI( utilCSUniqueID csUID,
-                          utilCLInnerID clInnerID,
-                          UINT32 clLID,
-                          utilIdxInnerID idxInnerID,
-                          ossPoolString &idxURI ) ;
-
       INT32 _dumpURIListByCS( utilCSUniqueID csUID,
                               ossPoolList< ossPoolString > &uriList ) ;
+
+      INT32 _addCollection( const dmsCLMetadata &metadata,
+                            const dmsWTStore &store,
+                            std::shared_ptr<ICollection> &collPtr ) ;
+      void _removeCollection( const dmsCLMetadataKey &metadataKey ) ;
+      std::shared_ptr<ICollection> _getCollection( const dmsCLMetadataKey &metadataKey ) ;
 
    protected:
       dmsWTEngineOptions _engineOptions ;
       dmsWTStorageEngine _engine ;
 
-      typedef ossPoolMap< dmsCLMetadataKey,
-                          std::shared_ptr< ICollection > > _DMS_WT_COLL_MAP ;
-      typedef _DMS_WT_COLL_MAP::iterator _DMS_WT_COLL_MAP_ITER ;
-      _DMS_WT_COLL_MAP _collMap ;
+      typedef ossPoolMap<dmsCLMetadataKey,
+                         std::shared_ptr<ICollection>> _dmsWTCollMap ;
+      typedef _dmsWTCollMap::iterator _dmsWTCollMapIter ;
+      _dmsWTCollMap _collMap ;
       ossRWMutex _collMapMutex ;
    } ;
 

@@ -149,7 +149,7 @@ namespace engine
       void operator=(const _ixmKeyOwned&);
    public:
       // convert from BSON to key
-      _ixmKeyOwned ( const BSONObj &obj ) ;
+      _ixmKeyOwned ( const BSONObj &obj, BOOLEAN convert = TRUE ) ;
       // make a copy of key
       _ixmKeyOwned ( const _ixmKey &r ) ;
       // make empty key

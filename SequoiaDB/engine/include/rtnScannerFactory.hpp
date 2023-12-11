@@ -36,13 +36,14 @@
    Last Changed =
 
 *******************************************************************************/
-#ifndef RTNIXSCANNERFAC_HPP__
-#define RTNIXSCANNERFAC_HPP__
+#ifndef RTNSCANNERFAC_HPP__
+#define RTNSCANNERFAC_HPP__
 
 #include "rtnIXScanner.hpp"
 #include "rtnDiskIXScanner.hpp"
 #include "rtnMemIXTreeScanner.hpp"
 #include "rtnMergeIXScanner.hpp"
+#include "rtnTBScanner.hpp"
 
 namespace engine
 {
@@ -50,12 +51,36 @@ namespace engine
    class _rtnScannerFactory
    {
    public:
-      INT32             createScanner( IXScannerType type,
-                                       ixmIndexCB *indexCB,
-                                       rtnPredicateList *predList,
-                                       _dmsStorageUnit *su,
-                                       _pmdEDUCB *cb,
-                                       _rtnIXScanner *&pScanner )
+      INT32 createTBScanner( _dmsStorageUnit *su,
+                             _dmsMBContext *mbContext,
+                             _pmdEDUCB *cb,
+                             _rtnTBScanner *&pScanner )
+      {
+         INT32 rc = SDB_OK ;
+
+         pScanner = SDB_OSS_NEW rtnTBScanner( su, mbContext, dmsRecordID(),
+                                              FALSE, 1, cb ) ;
+         if ( !pScanner )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate scanner failed" ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 createIXScanner( IXScannerType type,
+                             ixmIndexCB *indexCB,
+                             rtnPredicateList *predList,
+                             _dmsStorageUnit *su,
+                             _dmsMBContext *mbContext,
+                             _pmdEDUCB *cb,
+                             _rtnIXScanner *&pScanner )
       {
          INT32 rc = SDB_OK ;
 
@@ -65,15 +90,15 @@ namespace engine
          {
             case SCANNER_TYPE_DISK:
                pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList,
-                                                        su, cb ) ;
+                                                        su, mbContext, cb ) ;
                break ;
             case SCANNER_TYPE_MEM_TREE:
                pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
-                                                           su, cb ) ;
+                                                           su, mbContext, cb ) ;
                break ;
             case SCANNER_TYPE_MERGE:
                pScanner = SDB_OSS_NEW rtnMergeIXScanner( indexCB, predList,
-                                                         su, cb ) ;
+                                                         su, mbContext, cb ) ;
                break;
             default :
                rc = SDB_SYS ;
@@ -105,12 +130,11 @@ namespace engine
          goto done ;
       }
 
-      void           releaseScanner( _rtnIXScanner *&pScanner )
+      void releaseScanner( _rtnScanner *pScanner )
       {
          if ( pScanner )
          {
             SDB_OSS_DEL pScanner ;
-            pScanner = NULL ;
          }
       }
 
@@ -120,5 +144,5 @@ namespace engine
 
 }
 
-#endif //RTNIXSCANNERFAC_HPP__
+#endif //RTNSCANNERFAC_HPP__
 

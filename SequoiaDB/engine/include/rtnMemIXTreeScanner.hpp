@@ -61,9 +61,10 @@ namespace engine
       _rtnMemIXTreeScanner( ixmIndexCB *pIndexCB,
                             rtnPredicateList *predList,
                             _dmsStorageUnit  *su,
+                            _dmsMBContext    *mbContext,
                             _pmdEDUCB        *cb,
                             BOOLEAN indexCBOwnned = FALSE ) ;
- 
+
       virtual ~_rtnMemIXTreeScanner() ;
 
    /// Interface

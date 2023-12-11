@@ -1,0 +1,362 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = dmsWTIndexCursor.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          11/20/2023  HGM Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
+#include "wiredtiger/dmsWTIndexCursor.hpp"
+#include "keystring/utilKeyStringBuilder.hpp"
+#include "wiredtiger/dmsWTIndex.hpp"
+#include "pdTrace.hpp"
+#include "dmsTrace.hpp"
+#include "pd.hpp"
+
+using namespace std ;
+using namespace bson ;
+using namespace engine::keystring ;
+
+namespace engine
+{
+namespace wiredtiger
+{
+
+   /*
+      _dmsWTIndexCursor implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_OPEN, "_dmsWTIndexCursor::open" )
+   INT32 _dmsWTIndexCursor::open( shared_ptr<IIndex> idxPtr,
+                                  const keyString &startKey,
+                                  BOOLEAN isAfterStartKey,
+                                  BOOLEAN isForward,
+                                  IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_OPEN ) ;
+
+      dmsWTIndex *wtIndex = dynamic_cast<dmsWTIndex *>( idxPtr.get() ) ;
+
+      PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
+                "Failed to open cursor, index is not WiredTiger index" ) ;
+
+      if ( startKey.isValid() )
+      {
+         dmsWTItem key( startKey.getKeySlice() ) ;
+         rc = _open( wtIndex->getEngine(),
+                     wtIndex->getStore().getURI(),
+                     "", key, isAfterStartKey, isForward, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _open( wtIndex->getEngine(),
+                     wtIndex->getStore().getURI(),
+                     "", isForward, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      }
+
+      _idxPtr = std::move( idxPtr ) ;
+      _resetCache() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_ADVANCE, "_dmsWTIndexCursor::advance" )
+   INT32 _dmsWTIndexCursor::advance( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_ADVANCE ) ;
+
+      _resetCache() ;
+      rc = _advance( executor ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_IXM_EOC ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to advance cursor, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_ADVANCE, rc ) ;
+      return rc ;
+
+   error:
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_LOCATE_BSON, "_dmsWTIndexCursor::locate" )
+   INT32 _dmsWTIndexCursor::locate( const BSONObj &key,
+                                    const Ordering &ordering,
+                                    const dmsRecordID &recordID,
+                                    BOOLEAN isAfterStartKey,
+                                    IExecutor *executor,
+                                    BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_LOCATE_BSON ) ;
+
+      keyStringStackBuilder builder ;
+
+      rc = builder.buildPredicate( key, ordering, recordID, _isForward,
+                                   isAfterStartKey ?
+                                         keyStringDiscriminator::EXCLUSIVE_AFTER :
+                                         keyStringDiscriminator::INCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      rc = locate( builder.getShallowKeyString(), FALSE, executor, isFound ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_IXM_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Failed to locate cursor, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_LOCATE_BSON, rc ) ;
+      return rc ;
+
+   error:
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_LOCATE, "_dmsWTIndexCursor::locate" )
+   INT32 _dmsWTIndexCursor::locate( const keystring::keyString &key,
+                                    BOOLEAN isAfterStartKey,
+                                    IExecutor *executor,
+                                    BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_LOCATE ) ;
+
+      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                "Failed to get current key string, cursor is hit end" ) ;
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get current key string, cursor is not opened" ) ;
+
+      if ( _isForward )
+      {
+         rc = _cursor.searchNext( dmsWTItem( key.getKeySlice() ),
+                                  isAfterStartKey,
+                                  isFound ) ;
+      }
+      else
+      {
+         rc = _cursor.searchPrev( dmsWTItem( key.getKeySlice() ),
+                                  isAfterStartKey,
+                                  isFound ) ;
+      }
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            _isEOF = TRUE ;
+            rc = SDB_IXM_EOC ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to locate cursor, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
+
+      _resetCache() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_LOCATE, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_GETCURKEYSTR, "_dmsWTIndexCursor::getCurrentKeyString" )
+   INT32 _dmsWTIndexCursor::getCurrentKeyString( keyString &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_GETCURKEYSTR ) ;
+
+      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                "Failed to get current key string, cursor is hit end" ) ;
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get current key string, cursor is not opened" ) ;
+
+      if ( _keyStringCache.isValid() )
+      {
+         key = _keyStringCache ;
+      }
+      else
+      {
+         dmsWTItem item ;
+
+         rc = _cursor.getKey( item ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+         rc = _keyStringCache.init( utilSlice( item.get()->size, item.get()->data ) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize key string, rc: %d", rc ) ;
+
+         key = _keyStringCache ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_GETCURKEYSTR, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_GETCURKEY, "_dmsWTIndexCursor::getCurrentKey" )
+   INT32 _dmsWTIndexCursor::getCurrentKey( BSONObj &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_GETCURKEY ) ;
+
+      if ( !_keyObjCache.isEmpty() )
+      {
+         key = _keyObjCache ;
+      }
+      else
+      {
+         keyString ks ;
+
+         rc = getCurrentKeyString( ks ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get key string, rc: %d", rc ) ;
+
+         try
+         {
+            _keyObjCache = ks.toBSON( _idxPtr->getMetadata().getKeyPattern() ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to get key object, occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+         key = _keyObjCache ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_GETCURKEY, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_GETCURRECID, "_dmsWTIndexCursor::getCurrentRecordID" )
+   INT32 _dmsWTIndexCursor::getCurrentRecordID( dmsRecordID &recordID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_GETCURRECID ) ;
+
+      // TODO: $id index
+
+      keyString key ;
+
+      rc = getCurrentKeyString( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key string, rc: %d", rc ) ;
+
+      recordID = key.getRID() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_GETCURRECID, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR__GETCURREC, "_dmsWTIndexCursor::getCurrentRecord" )
+   INT32 _dmsWTIndexCursor::getCurrentRecord( dmsRecordData &data )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR__GETCURREC ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR__GETCURREC, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      goto done ;
+   }
+
+}
+}

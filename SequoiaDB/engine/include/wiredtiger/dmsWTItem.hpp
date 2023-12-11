@@ -39,6 +39,7 @@
 #include "dmsDef.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.hpp"
+#include "keystring/utilKeyString.hpp"
 
 #include <wiredtiger.h>
 
@@ -81,6 +82,16 @@ namespace wiredtiger
 
       _dmsWTItem( const bson::BSONObj &obj )
       : _dmsWTItem( obj.objdata(), obj.objsize() )
+      {
+      }
+
+      _dmsWTItem( const keystring::keyString &keyString )
+      : _dmsWTItem( keyString.getRawDataPtr(), keyString.getRawDataSize() )
+      {
+      }
+
+      _dmsWTItem( const utilSlice &slice )
+      : _dmsWTItem( slice.getData(), slice.getSize() )
       {
       }
 

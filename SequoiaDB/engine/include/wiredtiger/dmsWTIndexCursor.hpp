@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTDataCursor.hpp
+   Source File Name = dmsWTCursor.hpp
 
    Descriptive Name =
 
@@ -33,11 +33,10 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_DATA_CURSOR_HPP_
-#define DMS_WT_DATA_CURSOR_HPP_
+#ifndef DMS_WT_INDEX_CURSOR_HPP_
+#define DMS_WT_INDEX_CURSOR_HPP_
 
 #include "interface/ICursor.hpp"
-#include "restAdaptor.hpp"
 #include "wiredtiger/dmsWTCursorHolder.hpp"
 
 namespace engine
@@ -46,15 +45,15 @@ namespace wiredtiger
 {
 
    /*
-      _dmsWTDataCursor define
+      _dmsWTIndexCursor define
     */
-   class _dmsWTDataCursor : public IDataCursor, public _dmsWTCursorHolder
+   class _dmsWTIndexCursor : public IIndexCursor, public _dmsWTCursorHolder
    {
    public:
-      _dmsWTDataCursor() = default ;
-      virtual ~_dmsWTDataCursor() = default ;
-      _dmsWTDataCursor( const _dmsWTDataCursor & ) = delete ;
-      _dmsWTDataCursor &operator =( const _dmsWTDataCursor & ) = delete ;
+      _dmsWTIndexCursor() = default ;
+      virtual ~_dmsWTIndexCursor() = default ;
+      _dmsWTIndexCursor( const _dmsWTIndexCursor & ) = delete ;
+      _dmsWTIndexCursor &operator =( const _dmsWTIndexCursor & ) = delete ;
 
       virtual BOOLEAN isOpened() const
       {
@@ -81,32 +80,50 @@ namespace wiredtiger
          return _isEOF ;
       }
 
-      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
-                          const dmsRecordID &startRID,
-                          BOOLEAN isAfterStartRID,
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          const keystring::keyString &startKey,
+                          BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
                           IExecutor *executor ) ;
+      virtual INT32 advance( IExecutor *executor ) ;
+      virtual INT32 locate( const bson::BSONObj &key,
+                            const bson::Ordering &ordering,
+                            const dmsRecordID &recordID,
+                            BOOLEAN isAfterStartKey,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) ;
+      virtual INT32 locate( const keystring::keyString &key,
+                            BOOLEAN isAfterStartKey,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) ;
 
       virtual INT32 close()
       {
+         _resetCache() ;
          return _close() ;
       }
 
-      virtual INT32 advance( IExecutor *executor )
-      {
-         return _advance( executor ) ;
-      }
-
+      virtual INT32 getCurrentKeyString( keystring::keyString &key ) ;
+      virtual INT32 getCurrentKey( bson::BSONObj &key ) ;
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) ;
 
    protected:
-      std::shared_ptr<ICollection> _collPtr ;
+      void _resetCache()
+      {
+         _keyStringCache.reset() ;
+         _keyObjCache = BSONObj() ;
+      }
+
+   protected:
+      std::shared_ptr<IIndex> _idxPtr ;
+      keystring::keyString _keyStringCache ;
+      bson::BSONObj _keyObjCache ;
    } ;
 
-   typedef class _dmsWTDataCursor dmsWTDataCursor ;
+   typedef class _dmsWTIndexCursor dmsWTIndexCursor ;
 
 }
 }
 
-#endif // DMS_WT_DATA_CURSOR_HPP_
+#endif // DMS_WT_INDEX_CURSOR_HPP_

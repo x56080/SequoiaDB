@@ -122,8 +122,13 @@ namespace engine
    }
 
    // convert from BSON to index key
-   _ixmKeyOwned::_ixmKeyOwned ( const BSONObj & obj )
+   _ixmKeyOwned::_ixmKeyOwned ( const BSONObj & obj, BOOLEAN convert )
    {
+      if ( !convert )
+      {
+         _traditional ( obj ) ;
+         return ;
+      }
       BSONObj::iterator i(obj) ;
       UINT8 bits = 0 ;
       while ( TRUE )

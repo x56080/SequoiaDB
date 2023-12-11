@@ -319,7 +319,8 @@ rtnFiles = [
       "rtn/rtnSnapshotProcessor.cpp",
       "rtn/rtnHintModifier.cpp",
       "rtn/rtnInsertModifier.cpp",
-      "rtn/rtnUserCache.cpp"
+      "rtn/rtnUserCache.cpp",
+      "rtn/rtnTBScanner.cpp"
       ]
 
 msgFiles = [
@@ -370,15 +371,17 @@ dmsFiles = [
       "dms/dmsLightJob.cpp",
       "dms/dmsMetadata.cpp",
       "dms/dmsStorageServiceFactory.cpp",
-      "dms/dmsDataCursor.cpp",
       "dms/wiredtiger/dmsWTStorageService.cpp",
       "dms/wiredtiger/dmsWTStorageEngine.cpp",
       "dms/wiredtiger/dmsWTSession.cpp",
       "dms/wiredtiger/dmsWTCursor.cpp",
+      "dms/wiredtiger/dmsWTCursorHolder.cpp",
       "dms/wiredtiger/dmsWTUtil.cpp",
       "dms/wiredtiger/dmsWTHandler.cpp",
       "dms/wiredtiger/dmsWTCollection.cpp",
-      "dms/wiredtiger/dmsWTDataCursor.cpp"
+      "dms/wiredtiger/dmsWTDataCursor.cpp",
+      "dms/wiredtiger/dmsWTIndex.cpp",
+      "dms/wiredtiger/dmsWTIndexCursor.cpp"
       ]
 
 ixmFiles = [

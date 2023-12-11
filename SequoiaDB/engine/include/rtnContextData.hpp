@@ -44,9 +44,12 @@
 #include "rtnQueryModifier.hpp"
 #include "rtnResultSetFilter.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "rtnScanner.hpp"
 
 namespace engine
 {
+
+   class _rtnTBScanner ;
    class _rtnIXScanner ;
    class _dpsITransLockCallback ;
 
@@ -173,11 +176,12 @@ namespace engine
          _rtnContextData ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextData () ;
 
-         _rtnIXScanner*    getIXScanner () { return _scanner ; }
+         _rtnTBScanner*    getTBScanner () ;
+         _rtnIXScanner*    getIXScanner () ;
          optScanType       scanType () const { return _scanType ; }
          _dmsMBContext*    getMBContext () { return _mbContext ; }
 
-         dmsExtentID       lastExtLID () const { return _lastExtLID ; }
+         dmsExtentID       lastExtLID () const { return _recordID._extent ; }
 
          virtual INT32 open( _dmsStorageUnit *su, _dmsMBContext *mbContext,
                              _pmdEDUCB *cb, const rtnReturnOptions &returnOptions,
@@ -273,10 +277,12 @@ namespace engine
 
       protected:
 
-         INT32    _prepareByTBScan( _pmdEDUCB *cb,
+         INT32    _prepareByTBScan( _rtnTBScanner *tbScanner,
+                                    _pmdEDUCB *cb,
                                     DMS_ACCESS_TYPE accessType,
                                     vector<INT64>* dollarList ) ;
-         INT32    _prepareByIXScan( _pmdEDUCB *cb,
+         INT32    _prepareByIXScan( _rtnIXScanner *ixScanner,
+                                    _pmdEDUCB *cb,
                                     DMS_ACCESS_TYPE accessType,
                                     vector<INT64>* dollarList ) ;
 
@@ -343,15 +349,13 @@ namespace engine
          // Original return options, number of skip, etc.
          rtnReturnOptions           _returnOptions ;
 
+         _rtnScanner               *_scanner ;
+
          // TBSCAN
          dmsRecordID                _recordID ;
-         dmsExtentID                _extentID ;
-         dmsExtentID                _lastExtentID ;
-         dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
          SEGMENT_VEC                _segments ;
          // Index scan
-         _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;
          std::vector< dmsRecordID > _indexRIDs ;
          BOOLEAN                    _indexBlockScan ;

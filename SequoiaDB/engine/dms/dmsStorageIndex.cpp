@@ -38,7 +38,9 @@
 *******************************************************************************/
 
 #include "dmsStorageIndex.hpp"
+#include "dmsMetadata.hpp"
 #include "dmsStorageData.hpp"
+#include "ossErr.h"
 #include "pmd.hpp"
 #include "dpsOp2Record.hpp"
 #include "dpsTransCB.hpp"
@@ -50,8 +52,10 @@
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "pdSecure.hpp"
+#include "keystring/utilKeyStringBuilder.hpp"
 
 using namespace bson ;
+using namespace engine::keystring ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
 
@@ -689,7 +693,7 @@ namespace engine
       dpsLogRecord &record = info.getMergeBlock().record() ;
       UINT32 logRecSize = 0 ;
       CHAR indexName[ IXM_INDEX_NAME_SIZE + 1 ] = { 0 } ;
-      utilCSUniqueID csUniqID = _suDescriptor->getStorageInfo()._csUniqueID ;
+      utilCSUniqueID csUniqID = _suDescriptor->getCSUniqueID() ;
       BSONObj option ;
       utilIdxUniqueID newIdxUniqID = UTIL_UNIQUEID_NULL ;
       utilIdxUniqueID oldIdxUniqID = UTIL_UNIQUEID_NULL ;
@@ -1377,15 +1381,14 @@ namespace engine
             goto error ;
          }
 
-         if ( _service )
+         if ( context->getCollPtr() )
          {
             dmsIdxMetadata metadata( _suDescriptor,
                                      context->mb(),
                                      context->mbStat(),
-                                     indexCB.getUniqueID(),
-                                     indexCB.getLogicalID() ) ;
+                                     &indexCB ) ;
             dmsDropIdxOptions options ;
-            rc = _service->dropIdx( metadata, options, cb ) ;
+            rc = context->getCollPtr()->dropIndex( metadata, options, cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to drop index [%s] on collection [%s] on "
@@ -1668,15 +1671,14 @@ namespace engine
          }
          indexCB.setRoot ( rootExtentID ) ;
 
-         if ( _service )
+         if ( context->getCollPtr() )
          {
             dmsIdxMetadata metadata( _suDescriptor,
                                      context->mb(),
                                      context->mbStat(),
-                                     indexCB.getUniqueID(),
-                                     indexCB.getLogicalID() ) ;
+                                     &indexCB ) ;
             dmsCreateIdxOptions options ;
-            rc = _service->createIdx( metadata, options, cb ) ;
+            rc = context->getCollPtr()->createIndex( metadata, options, cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to create index [%s] on collection [%s] on "
@@ -2318,6 +2320,15 @@ namespace engine
       BSONObjSet keySet ;
       BOOLEAN allUndefined = FALSE ;
 
+      // adjust allow duplicated flag
+      // - doing DPS log rollback: allow duplicated
+      // - doing transaction rollback on non-id index: allow duplicated
+      BOOLEAN checkDuplicated =
+                  ( NULL != cb &&
+                    ( cb->isDoRollback() ||
+                      ( cb->isInTransRollback() &&
+                        !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
+
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
@@ -2346,9 +2357,9 @@ namespace engine
 #ifdef _DEBUG
             PD_LOG ( PDDEBUG, "Insert key: %s", (*it).toString().c_str() ) ;
 #endif
-            ixmKeyOwned ko ((*it)) ;
-            rc = _indexInsert ( indexCB, ko, rid, order, cb,
-                                dupAllowed, dropDups, pResult ) ;
+            const BSONObj &keyObj = *it ;
+            ixmKeyOwned ko( keyObj, FALSE ) ;
+            rc = _indexInsert( context, indexCB, keyObj, rid, order, cb, checkDuplicated, pResult ) ;
             if ( rc )
             {
                if ( pResult )
@@ -2716,6 +2727,7 @@ namespace engine
       BOOLEAN dupAllowed   = FALSE ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
+      BOOLEAN checkDuplicated = FALSE ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
@@ -2736,10 +2748,11 @@ namespace engine
       // - doing DPS log rollback: allow duplicated
       // - doing transaction rollback on non-id index: allow duplicated
       // - non-unique index: allow duplicated
-      dupAllowed = ( NULL != cb &&
-                     ( cb->isDoRollback() ||
-                     ( cb->isInTransRollback() &&
-                           !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
+      checkDuplicated =
+                  ( NULL != cb &&
+                    ( cb->isDoRollback() ||
+                      ( cb->isInTransRollback() &&
+                        !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
 
       rc = indexCB->getKeysFromObject ( newObj,
                                         keySetNew,
@@ -2802,9 +2815,9 @@ namespace engine
             }
             else if ( result < 0 )
             {
-               ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-               ixmKeyOwned ko ((*itori)) ;
-               rc = rootidx.unindex ( ko, rid, order, indexCB, found ) ;
+               const BSONObj &keyObj = *itori ;
+               ixmKeyOwned ko( keyObj, FALSE ) ;
+               rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -2842,10 +2855,10 @@ namespace engine
             {
                // new smaller than original, that means the new one doesn't
                // appear in the original list, let's add it
-               ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-               ixmKeyOwned ko ((*itnew)) ;
-               rc = rootidx.insert ( ko, rid, order, dupAllowed, indexCB,
-                                     pResult ) ;
+               const BSONObj &keyObj = *itnew ;
+               ixmKeyOwned ko( keyObj, FALSE ) ;
+               rc = _indexInsert( context, indexCB, keyObj, rid, order, cb,
+                                  checkDuplicated, pResult ) ;
                if ( rc )
                {
                   // during rollback, since the previous change may half-way
@@ -2899,9 +2912,9 @@ namespace engine
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Key From %s", (*itori).toString().c_str() ) ;
 #endif
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-            ixmKeyOwned ko ((*itori)) ;
-            rc = rootidx.unindex ( ko, rid, order, indexCB, found ) ;
+            const BSONObj &keyObj = *itori ;
+            ixmKeyOwned ko( keyObj, FALSE ) ;
+            rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -2941,9 +2954,10 @@ namespace engine
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Key To %s", (*itnew).toString().c_str() ) ;
 #endif
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-            ixmKeyOwned ko ((*itnew)) ;
-            rc = rootidx.insert ( ko, rid, order, dupAllowed, indexCB, pResult ) ;
+            const BSONObj &keyObj = *itnew ;
+            ixmKeyOwned ko( keyObj, FALSE ) ;
+            rc = _indexInsert( context, indexCB, keyObj, rid, order, cb,
+                                 checkDuplicated, pResult ) ;
             if ( rc )
             {
                // during rollback, since the previous change may half-way
@@ -3285,11 +3299,10 @@ namespace engine
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Delete key: %s", (*it).toString().c_str() ) ;
 #endif
-            // get root in each loop, since root page may change after each
-            // insert (root split)
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-            ixmKeyOwned ko ((*it)) ;
-            rc = rootidx.unindex ( ko, rid, order, indexCB, result ) ;
+            const BSONObj &keyObj = *it ;
+            ixmKeyOwned ko( keyObj, FALSE ) ;
+
+            rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -3644,15 +3657,14 @@ namespace engine
             goto error ;
          }
 
-         if ( _service )
+         if ( context->getCollPtr() )
          {
             dmsIdxMetadata metadata( _suDescriptor,
                                      context->mb(),
                                      context->mbStat(),
-                                     indexCB.getUniqueID(),
-                                     indexCB.getLogicalID() ) ;
+                                     &indexCB ) ;
             dmsTruncateIdxOptions options ;
-            rc = _service->truncateIdx( metadata, options, cb ) ;
+            rc = context->getCollPtr()->truncateIndex( metadata, options, cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to truncate index [%s] on collection [%s.%s] on "
@@ -3876,7 +3888,110 @@ namespace engine
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_GETINDEX, "_dmsStorageIndex::getIndex" )
+   INT32 _dmsStorageIndex::getIndex( _dmsMBContext *context,
+                                     _ixmIndexCB *indexCB,
+                                     pmdEDUCB *cb,
+                                     shared_ptr<IIndex> &idxPtr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_GETINDEX ) ;
+
+      if ( context->getCollPtr() )
+      {
+         dmsIdxMetadataKey metadataKey( context->mb(), indexCB ) ;
+         rc = context->getCollPtr()->getIndex( metadataKey, cb, idxPtr ) ;
+         if ( SDB_IXM_NOTEXIST == rc )
+         {
+            dmsIdxMetadata metadata( _suDescriptor,
+                                     context->mb(),
+                                     context->mbStat(),
+                                     indexCB ) ;
+            rc = context->getCollPtr()->loadIndex( metadata, cb, idxPtr ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] of "
+                      "collection [%s.%s], rc: %d", indexCB->getName(),
+                      getSuName(), context->clName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_GETINDEX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageIndex::_indexInsert( dmsMBContext *context,
+                                         ixmIndexCB *indexCB,
+                                         const BSONObj &key,
+                                         const dmsRecordID &rid,
+                                         const Ordering& order,
+                                         pmdEDUCB *cb,
+                                         BOOLEAN checkDuplicated,
+                                         utilWriteResult *pResult )
+   {
+      INT32 rc = SDB_OK ;
+
+      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      shared_ptr<IIndex> idxPtr ;
+      keyStringStackBuilder keyBuilder ;
+
+      rc = getIndex( context, indexCB, cb, idxPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+      rc = keyBuilder.buildIndexEntryKey( key, order, rid ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      rc = idxPtr->index( keyBuilder.getShallowKeyString(), rid, checkDuplicated, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert key to index [%s] of "
+                   "collection [%s.%s], rc: %d", indexCB->getName(),
+                   getSuName(), context->clName(), rc ) ;
+
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageIndex::_indexDelete( dmsMBContext *context,
+                                         ixmIndexCB *indexCB,
+                                         const BSONObj &key,
+                                         const dmsRecordID &rid,
+                                         const Ordering& order,
+                                         pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      shared_ptr<IIndex> idxPtr ;
+      keyStringStackBuilder keyBuilder ;
+
+      rc = getIndex( context, indexCB, cb, idxPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+      rc = keyBuilder.buildIndexEntryKey( key, order, rid ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      rc = idxPtr->unindex( keyBuilder.getShallowKeyString(), rid, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove key to index [%s] of "
+                   "collection [%s.%s], rc: %d", indexCB->getName(),
+                   getSuName(), context->clName(), rc ) ;
+
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
-
-
-

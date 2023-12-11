@@ -98,7 +98,7 @@ namespace keystring
          goto error ;
       }
 
-      rid = _src.getRid() ;
+      rid = _src.getRID() ;
       if ( !force && !rid.isValid() )
       {
          PD_LOG( PDERROR, "can not modify invalid rid unforced" ) ;
@@ -152,7 +152,7 @@ namespace keystring
          goto error ;
       }
 
-      rid = _src.getRid() ;
+      rid = _src.getRID() ;
       if ( !force && !rid.isValid() )
       {
          PD_LOG( PDERROR, "can not modify invalid rid unforced" ) ;

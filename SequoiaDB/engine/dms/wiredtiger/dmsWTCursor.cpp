@@ -168,6 +168,27 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETKEY_INT, "_dmsWTCursor::getKey" )
+   INT32 _dmsWTCursor::getKey( UINT64 &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_GETKEY_INT ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      rc = WT_CALL( _cursor->get_key( _cursor, &key ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_GETKEY_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETKEY_STRING, "_dmsWTCursor::getKey" )
    INT32 _dmsWTCursor::getKey( const CHAR *&key )
    {
@@ -189,21 +210,21 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETKEY_UINT, "_dmsWTCursor::getKey" )
-   INT32 _dmsWTCursor::getKey( UINT64 &key )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETKEY_ITEM, "_dmsWTCursor::getKey" )
+   INT32 _dmsWTCursor::getKey( const dmsWTItem &key )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_GETKEY_UINT ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_GETKEY_ITEM ) ;
 
       PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to get key from cursor, cursor is not opened" ) ;
 
-      rc = WT_CALL( _cursor->get_key( _cursor, &key ), _session.getSession() ) ;
+      rc = WT_CALL( _cursor->get_key( _cursor, key.get() ), _session.getSession() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_GETKEY_UINT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_GETKEY_ITEM, rc ) ;
       return rc ;
 
    error:
@@ -231,12 +252,12 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_INSERT, "_dmsWTCursor::insert" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_INSERT_INT, "_dmsWTCursor::insert" )
    INT32 _dmsWTCursor::insert( UINT64 key, const dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_INSERT ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_INSERT_INT ) ;
 
       PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to insert key by cursor, cursor is not opened" ) ;
@@ -248,19 +269,19 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key by cursor, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_INSERT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_INSERT_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_UPDATE, "_dmsWTCursor::update" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_UPDATE_INT, "_dmsWTCursor::update" )
    INT32 _dmsWTCursor::update( UINT64 key, const dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_UPDATE ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_UPDATE_INT ) ;
 
       PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to update key by cursor, cursor is not opened" ) ;
@@ -272,19 +293,19 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to update key by cursor, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_UPDATE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_UPDATE_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_REMOVE, "_dmsWTCursor::remove" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_REMOVE_INT, "_dmsWTCursor::remove" )
    INT32 _dmsWTCursor::remove( UINT64 key )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_INSERT ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_REMOVE_INT ) ;
 
       PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to remove key by cursor, cursor is not opened" ) ;
@@ -295,12 +316,155 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to remove key by cursor, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_INSERT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_REMOVE_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_INSERT_STRING, "_dmsWTCursor::insert" )
+   INT32 _dmsWTCursor::insert( const CHAR *key, const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_INSERT_STRING ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to insert key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+      _cursor->set_value( _cursor, value.get() ) ;
+
+      rc = WT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_INSERT_STRING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_UPDATE_STRING, "_dmsWTCursor::update" )
+   INT32 _dmsWTCursor::update( const CHAR *key, const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_UPDATE_STRING ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to update key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+      _cursor->set_value( _cursor, value.get() ) ;
+
+      rc = WT_CALL( _cursor->update( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_UPDATE_STRING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_REMOVE_STRING, "_dmsWTCursor::remove" )
+   INT32 _dmsWTCursor::remove( const CHAR *key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_REMOVE_STRING ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to remove key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+
+      rc = WT_CALL( _cursor->remove( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_REMOVE_STRING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_INSERT_ITEM, "_dmsWTCursor::insert" )
+   INT32 _dmsWTCursor::insert( const dmsWTItem &key, const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_INSERT_ITEM ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to insert key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+      _cursor->set_value( _cursor, value.get() ) ;
+
+      rc = WT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_INSERT_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_UPDATE_ITEM, "_dmsWTCursor::update" )
+   INT32 _dmsWTCursor::update( const dmsWTItem &key, const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_UPDATE_ITEM ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to update key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+      _cursor->set_value( _cursor, value.get() ) ;
+
+      rc = WT_CALL( _cursor->update( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_UPDATE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_REMOVE_ITEM, "_dmsWTCursor::remove" )
+   INT32 _dmsWTCursor::remove( const dmsWTItem &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_REMOVE_ITEM ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to remove key by cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+
+      rc = WT_CALL( _cursor->remove( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove key by cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_REMOVE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCH_INT, "_dmsWTCursor::search" )
    INT32 _dmsWTCursor::search( UINT64 key )
@@ -348,8 +512,31 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCH_ITEM, "_dmsWTCursor::search" )
+   INT32 _dmsWTCursor::search( const dmsWTItem &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCH_ITEM ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+
+      rc = WT_CALL( _cursor->search( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCH_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHNEXT_INT, "_dmsWTCursor::searchNext" )
-   INT32 _dmsWTCursor::searchNext( UINT64 key )
+   INT32 _dmsWTCursor::searchNext( UINT64 key, BOOLEAN isAfter, BOOLEAN &isFound )
    {
       INT32 rc = SDB_OK ;
 
@@ -363,9 +550,11 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert key value to cursor, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
-      if ( exact <= 0 )
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 > exact ) ||
+           ( isAfter && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
@@ -373,6 +562,197 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHNEXT_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHNEXT_STRING, "_dmsWTCursor::searchNext" )
+   INT32 _dmsWTCursor::searchNext( const CHAR *key, BOOLEAN isAfter, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHNEXT_STRING ) ;
+
+      INT32 exact = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
+
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 > exact ) ||
+           ( isAfter && 0 == exact ) )
+      {
+         rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHNEXT_STRING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHNEXT_ITEM, "_dmsWTCursor::searchNext" )
+   INT32 _dmsWTCursor::searchNext( const dmsWTItem &key, BOOLEAN isAfter, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHNEXT_ITEM ) ;
+
+      INT32 exact = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
+
+#if defined(_DEBUG)
+      {
+         utilSlice keySlice( key.get()->size, key.get()->data ) ;
+         dmsWTItem curItem ;
+         _cursor->get_key( _cursor, curItem.get() ) ;
+         utilSlice curSlice( curItem.get()->size, curItem.get()->data ) ;
+         PD_LOG( PDEVENT, "search [%s], current [%s] exect %d",
+                 keySlice.toPoolString().c_str(),
+                 curSlice.toPoolString().c_str(),
+                 exact ) ;
+      }
+#endif
+
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 > exact ) ||
+           ( isAfter && 0 == exact ) )
+      {
+         rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHNEXT_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHPREV_INT, "_dmsWTCursor::searchPrev" )
+   INT32 _dmsWTCursor::searchPrev( UINT64 key, BOOLEAN isBefore, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHPREV_INT ) ;
+
+      INT32 exact = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
+
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 < exact ) ||
+           ( isBefore && 0 == exact ) )
+      {
+         rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHPREV_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHPREV_STRING, "_dmsWTCursor::searchPrev" )
+   INT32 _dmsWTCursor::searchPrev( const CHAR *key, BOOLEAN isBefore, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHPREV_STRING ) ;
+
+      INT32 exact = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key ) ;
+
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
+
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 < exact ) ||
+           ( isBefore && 0 == exact ) )
+      {
+         rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHPREV_STRING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHPREV_ITEM, "_dmsWTCursor::searchPrev" )
+   INT32 _dmsWTCursor::searchPrev( const dmsWTItem &key, BOOLEAN isBefore, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHPREV_ITEM ) ;
+
+      INT32 exact = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from cursor, cursor is not opened" ) ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
+
+#if defined(_DEBUG)
+      {
+         utilSlice keySlice( key.get()->size, key.get()->data ) ;
+         dmsWTItem curItem ;
+         _cursor->get_key( _cursor, curItem.get() ) ;
+         utilSlice curSlice( curItem.get()->size, curItem.get()->data ) ;
+         PD_LOG( PDEVENT, "search [%s], current [%s] exect %d",
+                 keySlice.toPoolString().c_str(),
+                 curSlice.toPoolString().c_str(),
+                 exact ) ;
+      }
+#endif
+
+      isFound = ( 0 == exact ) ;
+      if ( ( 0 < exact ) ||
+           ( isBefore && 0 == exact ) )
+      {
+         rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHPREV_ITEM, rc ) ;
       return rc ;
 
    error:
@@ -427,27 +807,24 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHNEXTANDGETVALUE_INT, "_dmsWTCursor::searchNextAndGetValue" )
-   INT32 _dmsWTCursor::searchNextAndGetValue( UINT64 key, INT64 &nextKey, dmsWTItem &value )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHANDGETVALUE_ITEM, "_dmsWTCursor::searchAndGetValue" )
+   INT32 _dmsWTCursor::searchAndGetValue( const dmsWTItem &key, dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHNEXTANDGETVALUE_INT ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHANDGETVALUE_ITEM ) ;
 
       PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
-                "Failed to get key from cursor, cursor is not opened" ) ;
+                "Failed to get key from WiredTiger cursor, cursor is not opened" ) ;
 
-      rc = searchNext( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to search next key from cursor, rc: %d", rc ) ;
-
-      rc = WT_CALL( _cursor->get_key( _cursor, &nextKey ), _session.getSession() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+      rc = search( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
       rc = WT_CALL( _cursor->get_value( _cursor, value.get() ), _session.getSession() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get value from WiredTiger cursor, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHNEXTANDGETVALUE_INT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHANDGETVALUE_ITEM, rc ) ;
       return rc ;
 
    error:

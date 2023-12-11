@@ -41,7 +41,7 @@
 #include "dmsCB.hpp"
 #include "mthSelector.hpp"
 #include "optAPM.hpp"
-#include "rtnIXScannerFactory.hpp"
+#include "rtnScannerFactory.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "rtnContextData.hpp"
@@ -1093,8 +1093,8 @@ retry:
          // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         rc = f.createScanner( scannerType, &indexCB, predList,
-                               su, cb, scanner ) ;
+         rc = f.createIXScanner( scannerType, &indexCB, predList,
+                               su, mbContext, cb, scanner ) ;
          if ( rc )
          {
             goto error ;
@@ -1149,6 +1149,7 @@ retry:
       if ( scanner )
       {
          f.releaseScanner( scanner ) ;
+         scanner = NULL ;
       }
       if ( DMS_INVALID_CS != suID )
       {

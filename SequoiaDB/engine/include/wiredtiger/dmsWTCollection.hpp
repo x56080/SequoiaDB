@@ -38,7 +38,10 @@
 
 #include "interface/ICollection.hpp"
 #include "dmsMetadata.hpp"
+#include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTStoreHolder.hpp"
+#include "wiredtiger/dmsWTIndex.hpp"
+#include <memory>
 
 namespace engine
 {
@@ -48,11 +51,12 @@ namespace wiredtiger
    /*
       _dmsWTCollection define
     */
-   class _dmsWTCollection : public ICollection, public _dmsWTStoreHolder
+   class _dmsWTCollection : public ICollection,
+                            public _dmsWTStoreHolder
    {
    public:
       _dmsWTCollection( const dmsCLMetadata &metadata,
-                        dmsWTStorageEngine *engine,
+                        dmsWTStorageEngine &engine,
                         const dmsWTStore &dataStore )
       : dmsWTStoreHolder( engine, dataStore),
         _metadata( metadata )
@@ -60,6 +64,23 @@ namespace wiredtiger
       }
 
       virtual ~_dmsWTCollection() = default ;
+
+      virtual INT32 createIndex( const dmsIdxMetadata &metadata,
+                                 const dmsCreateIdxOptions &options,
+                                 IExecutor *executor ) ;
+      virtual INT32 dropIndex( const dmsIdxMetadata &metadata,
+                               const dmsDropIdxOptions &options,
+                               IExecutor *executor ) ;
+      virtual INT32 truncateIndex( const dmsIdxMetadata &metadata,
+                                   const dmsTruncateIdxOptions &options,
+                                   IExecutor *executor ) ;
+
+      virtual INT32 getIndex( const dmsIdxMetadataKey &metadataKey,
+                              IExecutor *executor,
+                              std::shared_ptr<IIndex> &idxPtr ) ;
+      virtual INT32 loadIndex( const dmsIdxMetadata &metadata,
+                               IExecutor *executor,
+                               std::shared_ptr<IIndex> &idxPtr ) ;
 
       virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) ;
       virtual INT32 insertRecord( const dmsRecordID &rid,
@@ -80,8 +101,28 @@ namespace wiredtiger
                                       BOOLEAN isForward,
                                       IExecutor *executor ) ;
 
+      static INT32 buildDataConfigString( const dmsWTEngineOptions &options,
+                                          const dmsCreateCLOptions &createCLOptions,
+                                          ossPoolString &configString ) ;
+      static INT32 buildDataURI( utilCSUniqueID csUID,
+                                 utilCLInnerID clInnerID,
+                                 UINT32 clLID,
+                                 ossPoolString &dataURI ) ;
+
+      INT32 _addIndex( const dmsIdxMetadata &metadata,
+                       const dmsWTStore &store,
+                       std::shared_ptr<IIndex> &idxPtr ) ;
+      void _removeIndex( const dmsIdxMetadataKey &metadataKey ) ;
+      std::shared_ptr<IIndex> _getIndex( const dmsIdxMetadataKey &metadataKey ) ;
+
    protected:
       dmsCLMetadata _metadata ;
+
+      typedef ossPoolMap<dmsIdxMetadataKey,
+                         std::shared_ptr<IIndex>> _dmsWTIdxMap ;
+      typedef _dmsWTIdxMap::iterator _dmsWTIdxMapIter ;
+      _dmsWTIdxMap _idxMap ;
+      ossRWMutex _idxMapMutex ;
    } ;
 
    typedef class _dmsWTCollection dmsWTCollection ;

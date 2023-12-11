@@ -40,9 +40,15 @@
 #include "utilPooledObject.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
+#include "keystring/utilKeyString.hpp"
+#include <memory>
 
 namespace engine
 {
+
+   // forward declaration
+   class ICollection ;
+   class IIndex ;
 
    /*
       ICursor define
@@ -64,9 +70,63 @@ namespace engine
 
       virtual INT32 close() = 0 ;
 
-      virtual INT32 moveNext( IExecutor *executor ) = 0 ;
-      virtual INT32 movePrev( IExecutor *executor ) = 0 ;
+      virtual INT32 advance( IExecutor *executor ) = 0 ;
+   } ;
 
+   /*
+      IDataCursor define
+    */
+   class IDataCursor : public ICursor
+   {
+   public:
+      IDataCursor() = default ;
+      virtual ~IDataCursor() = default ;
+      IDataCursor( const IDataCursor & ) = delete ;
+      IDataCursor &operator =( const IDataCursor & ) = delete ;
+
+   public:
+      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
+                          const dmsRecordID &startRID,
+                          BOOLEAN isAfterStartRID,
+                          BOOLEAN isForward,
+                          IExecutor *executor ) = 0 ;
+
+      virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) = 0 ;
+      virtual INT32 getCurrentRecord( dmsRecordData &data ) = 0 ;
+   } ;
+
+   /*
+      IIndexCursor define
+    */
+   class IIndexCursor : public ICursor
+   {
+   public:
+      IIndexCursor() = default ;
+      virtual ~IIndexCursor() = default ;
+      IIndexCursor( const IIndexCursor & ) = delete ;
+      IIndexCursor &operator =( const IIndexCursor & ) = delete ;
+
+   public:
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          const keystring::keyString &startKey,
+                          BOOLEAN isAfterStartKey,
+                          BOOLEAN isForward,
+                          IExecutor *executor ) = 0 ;
+
+      virtual INT32 locate( const bson::BSONObj &key,
+                            const bson::Ordering &ordering,
+                            const dmsRecordID &recordID,
+                            BOOLEAN isAfterStartKey,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) = 0 ;
+
+      virtual INT32 locate( const keystring::keyString &key,
+                            BOOLEAN isAfterStartKey,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) = 0 ;
+
+      virtual INT32 getCurrentKeyString( keystring::keyString &key ) = 0 ;
+      virtual INT32 getCurrentKey( bson::BSONObj &key ) = 0 ;
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) = 0 ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) = 0 ;
    } ;

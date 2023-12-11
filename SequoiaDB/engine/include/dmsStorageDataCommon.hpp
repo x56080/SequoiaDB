@@ -793,7 +793,7 @@ namespace engine
          INT32             _mbLockType ;
          INT32             _resumeType ;
          _IContext         *_pSubContext ;
-         mutable std::shared_ptr< ICollection > _collPtr ;
+         mutable std::shared_ptr<ICollection> _collPtr ;
    };
    typedef _dmsMBContext   dmsMBContext ;
 
@@ -1806,7 +1806,9 @@ namespace engine
          INT32 rc = _service->getCollection( key, cb, (*pContext)->_collPtr ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
-            dmsCLMetadata metadata( _suDescriptor, (*pContext)->_mb, (*pContext)->_mbStat ) ;
+            dmsCLMetadata metadata( _suDescriptor,
+                                    (*pContext)->_mb,
+                                    (*pContext)->_mbStat ) ;
             rc = _service->loadCollection( metadata, cb, (*pContext)->_collPtr ) ;
          }
          if ( rc )

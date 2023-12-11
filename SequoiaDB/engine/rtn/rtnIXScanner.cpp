@@ -95,9 +95,10 @@ namespace engine
    _rtnIXScanner::_rtnIXScanner( ixmIndexCB *pIndexCB,
                                  rtnPredicateList *predList,
                                  _dmsStorageUnit *su,
+                                 _dmsMBContext *mbContext,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
-   :_direction( predList->getDirection() ),
+   :_rtnScanner( su, mbContext, predList->getDirection(), cb ),
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) ),
@@ -106,10 +107,7 @@ namespace engine
       _indexCB = NULL ;
       _owned = FALSE ;
       _pPredList = predList ;
-      _su = su ;
-      _cb = cb ;
       _isReadonly = TRUE ;
-      _eof = FALSE ;
       _indexCover = FALSE ;
 
       /// set shared info pointer
@@ -227,6 +225,11 @@ namespace engine
       return _su ;
    }
 
+   _dmsMBContext *_rtnIXScanner::getMBContext()
+   {
+      return _mbContext ;
+   }
+
    BOOLEAN _rtnIXScanner::getIndexCBOwned() const
    {
       return _owned ;
@@ -240,11 +243,6 @@ namespace engine
    INT32 _rtnIXScanner::compareWithCurKeyObj( const BSONObj &keyObj ) const
    {
       return getCurKeyObj()->woCompare( keyObj, _order, false ) * _direction ;
-   }
-
-   BOOLEAN _rtnIXScanner::eof() const
-   {
-      return _eof ;
    }
 
    BOOLEAN _rtnIXScanner::_insert2Dup( const dmsRecordID &rid )

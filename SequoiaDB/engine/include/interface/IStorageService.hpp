@@ -82,16 +82,6 @@ namespace engine
                                 const dmsTruncCLOptions &options,
                                 IExecutor *executor ) = 0 ;
 
-      virtual INT32 createIdx( const dmsIdxMetadata &metadata,
-                               const dmsCreateIdxOptions &options,
-                               IExecutor *executor ) = 0 ;
-      virtual INT32 dropIdx( const dmsIdxMetadata &metadata,
-                             const dmsDropIdxOptions &options,
-                             IExecutor *executor ) = 0 ;
-      virtual INT32 truncateIdx( const dmsIdxMetadata &metadata,
-                                 const dmsTruncateIdxOptions &options,
-                                 IExecutor *executor ) = 0 ;
-
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,
                                    IExecutor *executor,
                                    std::shared_ptr< ICollection > &collPtr ) = 0 ;

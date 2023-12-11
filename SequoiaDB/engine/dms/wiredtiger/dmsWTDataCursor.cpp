@@ -35,8 +35,6 @@
 
 #include "wiredtiger/dmsWTDataCursor.hpp"
 #include "wiredtiger/dmsWTCollection.hpp"
-#include "wiredtiger/dmsWTSession.hpp"
-#include "wiredtiger/dmsWTUtil.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "pd.hpp"
@@ -48,19 +46,19 @@ namespace engine
 namespace wiredtiger
 {
 
-   /*
-      _dmsWTCursor implement
-    */
-   _dmsWTDataCursor::_dmsWTDataCursor()
-   : _session(),
-     _cursor( _session )
-   {
-   }
+namespace
+{
+   static dmsRecordID s_minRID = dmsRecordID::minRID() ;
+   static dmsRecordID s_maxRID = dmsRecordID::maxRID() ;
+}
 
+   /*
+      _dmsWTDataCursor implement
+    */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_OPEN, "_dmsWTDataCursor::open" )
-   INT32 _dmsWTDataCursor::open( ICollection *collection,
+   INT32 _dmsWTDataCursor::open( shared_ptr<ICollection> collPtr,
                                  const dmsRecordID &startRID,
-                                 BOOLEAN afterStartRID,
+                                 BOOLEAN isAfterStartRID,
                                  BOOLEAN isForward,
                                  IExecutor *executor )
    {
@@ -68,222 +66,111 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_OPEN ) ;
 
-      dmsWTCollection *wtCollection = dynamic_cast< dmsWTCollection * >( collection ) ;
+      dmsWTCollection *wtCollection = dynamic_cast<dmsWTCollection *>( collPtr.get() ) ;
       UINT64 key = startRID.toUINT64() ;
 
       PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
                 "Failed to open cursor, collection is not WiredTiger collection" ) ;
 
-      rc = wtCollection->getEngine()->openSession( _session ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = _cursor.open( wtCollection->getDataStore().getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
       if ( startRID.isValid() )
       {
-         rc = _cursor.searchNext( key ) ;
-         if ( SDB_OK != rc )
+         // fix record ID key here, avoid move call inside WiredTiger
+         if ( isAfterStartRID )
          {
-            if ( SDB_DMS_EOC == rc )
+            if ( isForward )
             {
-               _setEOF() ;
+               if ( s_maxRID == startRID )
+               {
+                  rc = SDB_DMS_EOC ;
+                  _isEOF = TRUE ;
+                  goto error ;
+               }
+               ++ key ;
             }
-            else
+            else if ( !isForward )
             {
-               PD_LOG( PDERROR, "Failed to search next, rc: %d", rc ) ;
+               if ( s_minRID == startRID )
+               {
+                  rc = SDB_DMS_EOC ;
+                  _isEOF = TRUE ;
+                  goto error ;
+               }
+               -- key ;
             }
-            goto error ;
          }
+
+         rc = _open( wtCollection->getEngine(),
+                     wtCollection->getStore().getURI(),
+                     "", key, FALSE, isForward, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
-         rc = _cursor.next() ;
-         if ( SDB_OK != rc )
-         {
-            if ( SDB_DMS_EOC == rc )
-            {
-               _setEOF() ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to move next, rc: %d", rc ) ;
-            }
-            goto error ;
-         }
+         rc = _open( wtCollection->getEngine(),
+                     wtCollection->getStore().getURI(),
+                     "", isForward, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 
-      rc = _extractRecordID() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record ID, rc: %d", rc ) ;
-
-      rc = _extractRecordData() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record data, rc: %d", rc ) ;
-
-      _isOpened = TRUE ;
-      _isForward = isForward ;
+      _collPtr = std::move( collPtr ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_OPEN, rc ) ;
       return rc ;
 
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_CLOSE, "_dmsWTDataCursor::close" )
-   INT32 _dmsWTDataCursor::close()
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_CLOSE ) ;
-
-      rc = _cursor.close() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to close cursor, rc: %d", rc ) ;
-      }
-      _isClosed = TRUE ;
-
-      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_CLOSE, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_MOVENEXT, "_dmsWTDataCursor::moveNext" )
-   INT32 _dmsWTDataCursor::moveNext( IExecutor *executor )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_MOVENEXT ) ;
-
-      if ( isEOF() )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      PD_CHECK( isOpened(), SDB_SYS, error, PDERROR,
-                "Failed to move next, cursor is not opened" ) ;
-      PD_CHECK( !isClosed(), SDB_SYS, error, PDERROR,
-                "Failed to move next, cursor is not opened" ) ;
-
-      rc = _cursor.next() ;
-      if ( SDB_OK != rc )
-      {
-         if ( SDB_DMS_EOC == rc )
-         {
-            _setEOF() ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to move next, rc: %d", rc ) ;
-         }
-         goto error ;
-      }
-
-      rc = _extractRecordID() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record ID, rc: %d", rc ) ;
-
-      rc = _extractRecordData() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record data, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_MOVENEXT, rc ) ;
-      return rc ;
-
-   error:
       close() ;
       goto done ;
    }
 
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_MOVEPREV, "_dmsWTDataCursor::movePrev" )
-   INT32 _dmsWTDataCursor::movePrev( IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_GETCURRECID, "_dmsWTDataCursor::getCurrentRecordID" )
+   INT32 _dmsWTDataCursor::getCurrentRecordID( dmsRecordID &recordID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_MOVEPREV ) ;
-
-      if ( isEOF() )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      PD_CHECK( isOpened(), SDB_SYS, error, PDERROR,
-                "Failed to move prev, cursor is not opened" ) ;
-      PD_CHECK( !isClosed(), SDB_SYS, error, PDERROR,
-                "Failed to move prev, cursor is not opened" ) ;
-
-      rc = _cursor.prev() ;
-      if ( SDB_OK != rc )
-      {
-         if ( SDB_DMS_EOC == rc )
-         {
-            _setEOF() ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to move prev, rc: %d", rc ) ;
-         }
-         goto error ;
-      }
-
-      rc = _extractRecordID() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record ID, rc: %d", rc ) ;
-
-      rc = _extractRecordData() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract record data, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_MOVEPREV, rc ) ;
-      return rc ;
-
-   error:
-      close() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR__EXTRACTRECID, "_dmsWTDataCursor::_extractRecordID" )
-   INT32 _dmsWTDataCursor::_extractRecordID()
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR__EXTRACTRECID) ;
+      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_GETCURRECID ) ;
 
       UINT64 key = 0 ;
+
+      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                "Failed to get current record ID, cursor is hit end" ) ;
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get current record ID, cursor is not opened" ) ;
 
       rc = _cursor.getKey( key ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
 
-      _setCurrentRecordID( _dmsRecordID( key ) ) ;
+      recordID.fromUINT64( key ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR__EXTRACTRECID, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_GETCURRECID, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR__EXTRACTRECDATA, "_dmsWTDataCursor::_extractRecordData" )
-   INT32 _dmsWTDataCursor::_extractRecordData()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_GETCURREC, "_dmsWTDataCursor::getCurrentRecord" )
+   INT32 _dmsWTDataCursor::getCurrentRecord( dmsRecordData &data )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR__EXTRACTRECDATA ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_GETCURREC ) ;
 
       dmsWTItem value ;
+
+      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                "Failed to get current record ID, cursor is hit end" ) ;
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get current record ID, cursor is not opened" ) ;
 
       rc = _cursor.getValue( value ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
 
-      _setCurrentRecord(
-         dmsRecordData( (const CHAR *)( value.get()->data ),
-                        (UINT32)( value.get()->size ) ) ) ;
+      data.setData( (const CHAR *)( value.get()->data ), (UINT32)( value.get()->size ) ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR__EXTRACTRECDATA, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_GETCURREC, rc ) ;
       return rc ;
 
    error:

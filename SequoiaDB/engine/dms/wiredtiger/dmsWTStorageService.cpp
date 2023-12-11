@@ -34,6 +34,7 @@
 *******************************************************************************/
 
 #include "wiredtiger/dmsWTStorageService.hpp"
+#include "ossUtil.hpp"
 #include "wiredtiger/dmsWTCollection.hpp"
 #include "wiredtiger/dmsWTCursor.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
@@ -51,13 +52,12 @@ namespace engine
 namespace wiredtiger
 {
 
-   const int DMS_WT_FORMART_V1 = 1 ;
-   const int DMS_WT_FORMART_VER_CUR = DMS_WT_FORMART_V1 ;
-
    /*
       _dmsWTStorageService implement
     */
    _dmsWTStorageService::_dmsWTStorageService()
+   : _engineOptions(),
+     _engine( _engineOptions )
    {
    }
 
@@ -163,27 +163,22 @@ namespace wiredtiger
 
       dmsWTStore store ;
       ossPoolString dataURI, dataConfig ;
-      shared_ptr< ICollection > collPtr ;
+      shared_ptr<ICollection> collPtr ;
 
-      rc = _buildDataURI( metadata.getCSUID(),
-                          metadata.getCLOrigInnerID(),
-                          metadata.getCLOrigLID(),
-                          dataURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger data URI, rc: %d", rc ) ;
+      rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
+                                          metadata.getCLOrigInnerID(),
+                                          metadata.getCLOrigLID(),
+                                          dataURI ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
 
-      rc = _buildDataConfigString( _engineOptions, options, dataConfig ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger data config string, rc: %d", rc ) ;
+      rc = dmsWTCollection::buildDataConfigString( _engineOptions, options, dataConfig ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build data config string, rc: %d", rc ) ;
 
       rc = _engine.createStore( dataURI.c_str(), dataConfig.c_str(), store ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create WiredTiger data store, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create data store, rc: %d", rc ) ;
 
-      collPtr = make_shared<dmsWTCollection>( metadata, &_engine, store ) ;
-      PD_CHECK( collPtr, SDB_OOM, error, PDERROR, "Failed to create collection object" ) ;
-
-      {
-         ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
-         _collMap.insert( make_pair( metadata.getKey(), collPtr ) ) ;
-      }
+      rc = _addCollection( metadata, store, collPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add collection, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_CREATECL, rc ) ;
@@ -204,19 +199,16 @@ namespace wiredtiger
 
       ossPoolString dataURI ;
 
-      rc = _buildDataURI( metadata.getCSUID(),
-                          metadata.getCLOrigInnerID(),
-                          metadata.getCLOrigLID(),
-                          dataURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger data URI, rc: %d", rc ) ;
+      rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
+                                          metadata.getCLOrigInnerID(),
+                                          metadata.getCLOrigLID(),
+                                          dataURI ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
 
       rc = _engine.dropStore( dataURI.c_str(), "force,checkpoint_wait=false" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger data store, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop data store, rc: %d", rc ) ;
 
-      {
-         ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
-         _collMap.erase( metadata.getKey() ) ;
-      }
+      _removeCollection( metadata.getCLKey() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_DROPCL, rc ) ;
@@ -237,14 +229,14 @@ namespace wiredtiger
 
       ossPoolString dataURI ;
 
-      rc = _buildDataURI( metadata.getCSUID(),
-                          metadata.getCLOrigInnerID(),
-                          metadata.getCLOrigLID(),
-                          dataURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger data URI, rc: %d", rc ) ;
+      rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
+                                          metadata.getCLOrigInnerID(),
+                                          metadata.getCLOrigLID(),
+                                          dataURI ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
 
       rc = _engine.truncateStore( dataURI.c_str(), nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate WiredTiger data store, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_TRUNCCL, rc ) ;
@@ -254,121 +246,17 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_CREATEIDX, "_dmsWTStorageService::createIdx" )
-   INT32 _dmsWTStorageService::createIdx( const dmsIdxMetadata &metadata,
-                                          const dmsCreateIdxOptions &options,
-                                          IExecutor *executor )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_CREATEIDX ) ;
-
-      dmsWTStore store ;
-      ossPoolString idxURI, idxConfig ;
-
-      rc = _buildIdxURI( metadata.getCSUID(),
-                         metadata.getCLOrigInnerID(),
-                         metadata.getCLOrigLID(),
-                         metadata.getIdxInnerID(),
-                         idxURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger index URI, "
-                   "rc: %d", rc ) ;
-
-      rc = _buildIdxConfigString( _engineOptions, options, idxConfig ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger index config "
-                   "string, rc: %d", rc ) ;
-
-      rc = _engine.createStore( idxURI.c_str(), idxConfig.c_str(), store ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create WiredTiger index store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_CREATEIDX, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_DROPIDX, "_dmsWTStorageService::dropIdx" )
-   INT32 _dmsWTStorageService::dropIdx( const dmsIdxMetadata &metadata,
-                                        const dmsDropIdxOptions &options,
-                                        IExecutor *executor )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_DROPIDX ) ;
-
-      ossPoolString idxURI ;
-
-      rc = _buildIdxURI( metadata.getCSUID(),
-                         metadata.getCLOrigInnerID(),
-                         metadata.getCLOrigLID(),
-                         metadata.getIdxInnerID(),
-                         idxURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger index URI, "
-                   "rc: %d", rc ) ;
-
-      rc = _engine.dropStore( idxURI.c_str(), "force,checkpoint_wait=false" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger index store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_DROPIDX, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_TRUNCIDX, "_dmsWTStorageService::truncateIdx" )
-   INT32 _dmsWTStorageService::truncateIdx( const dmsIdxMetadata &metadata,
-                                            const dmsTruncateIdxOptions &options,
-                                            IExecutor *executor )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_TRUNCIDX ) ;
-
-      ossPoolString idxURI ;
-
-      rc = _buildIdxURI( metadata.getCSUID(),
-                         metadata.getCLOrigInnerID(),
-                         metadata.getCLOrigLID(),
-                         metadata.getIdxInnerID(),
-                         idxURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger index URI, rc: %d", rc ) ;
-
-      rc = _engine.truncateStore( idxURI.c_str(), nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate WiredTiger idnex store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_TRUNCIDX, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_GETCOLL, "_dmsWTStorageService::getCollection" )
    INT32 _dmsWTStorageService::getCollection( const dmsCLMetadataKey &metadataKey,
                                               IExecutor *executor,
-                                              shared_ptr< ICollection > &collPtr )
+                                              shared_ptr<ICollection> &collPtr )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_GETCOLL ) ;
 
-      collPtr.reset() ;
-
-      {
-         ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
-         _DMS_WT_COLL_MAP_ITER iter = _collMap.find( metadataKey ) ;
-         if ( iter != _collMap.end() )
-         {
-            collPtr = iter->second ;
-         }
-      }
-
-      PD_CHECK( collPtr, SDB_DMS_NOTEXIST, error, PDEVENT,
+      collPtr = _getCollection( metadataKey ) ;
+      PD_CHECK( collPtr, SDB_DMS_NOTEXIST, error, PDDEBUG,
                 "Failed to get collection, collection [UID: %llx, LID: %x] not exist",
                 metadataKey.getCLOrigUID(), metadataKey.getCLOrigLID() ) ;
 
@@ -383,7 +271,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_LOADCOLL, "_dmsWTStorageService::loadCollection" )
    INT32 _dmsWTStorageService::loadCollection( const dmsCLMetadata &metadata,
                                                IExecutor *executor,
-                                               shared_ptr< ICollection > &collPtr )
+                                               shared_ptr<ICollection> &collPtr )
    {
       INT32 rc = SDB_OK ;
 
@@ -394,23 +282,18 @@ namespace wiredtiger
 
       collPtr.reset() ;
 
-      rc = _buildDataURI( metadata.getCSUID(),
-                          metadata.getCLOrigInnerID(),
-                          metadata.getCLOrigLID(),
-                          dataURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger data URI, rc: %d", rc ) ;
+      rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
+                                          metadata.getCLOrigInnerID(),
+                                          metadata.getCLOrigLID(),
+                                          dataURI ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
 
       rc = _engine.loadStore( dataURI.c_str(), store ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to load WiredTiger data store [%s], rc: %d",
+      PD_RC_CHECK( rc, PDERROR, "Failed to load data store [%s], rc: %d",
                    dataURI.c_str(), rc ) ;
 
-      collPtr = make_shared<dmsWTCollection>( metadata, &_engine, store ) ;
-      PD_CHECK( collPtr, SDB_OOM, error, PDERROR, "Failed to create collection object" ) ;
-
-      {
-         ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
-         _collMap.insert( make_pair( metadata.getKey(), collPtr ) ) ;
-      }
+      rc = _addCollection( metadata, store, collPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add collection, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_LOADCOLL, rc ) ;
@@ -533,156 +416,6 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDDATACONFSTR, "_dmsWTStorageService::_buildDataConfigString" )
-   INT32 _dmsWTStorageService::_buildDataConfigString( const dmsWTEngineOptions &options,
-                                                       const dmsCreateCLOptions &createCLOptions,
-                                                       ossPoolString &configString )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__BLDDATACONFSTR ) ;
-
-      try
-      {
-         ossPoolStringStream ss ;
-
-         ss << "type=file," ;
-         ss << "memory_page_max=10m," ;
-         ss << "split_pct=90," ;
-         ss << "leaf_value_max=64MB," ;
-         ss << "checksum=on," ;
-         ss << "block_compressor=snappy," ;
-         ss << "key_format=q," ;
-         ss << "value_format=u," ;
-         ss << "app_metadata=(formatVersion=" << DMS_WT_FORMART_VER_CUR << ")," ;
-         ss << "log=(enabled=true)," ;
-
-         configString = ss.str();
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build WiredTiger data config string, "
-                 "occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDDATACONFSTR, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDDATAURI, "_dmsWTStorageService::_buildDataURI" )
-   INT32 _dmsWTStorageService::_buildDataURI( utilCSUniqueID csUID,
-                                              utilCLInnerID clInnerID,
-                                              UINT32 clLID,
-                                              ossPoolString &dataURI )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__BLDDATAURI ) ;
-
-      try
-      {
-         ossPoolStringStream ss ;
-
-         ss << "table:" ;
-         dmsWTBuildDataIdent( csUID, clInnerID, clLID, ss ) ;
-         dataURI = ss.str();
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build WiredTiger data URI, "
-                 "occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDDATAURI, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDIDXCONFSTR, "_dmsWTStorageService::_buildIdxConfigString" )
-   INT32 _dmsWTStorageService::_buildIdxConfigString( const dmsWTEngineOptions &options,
-                                                      const dmsCreateIdxOptions &createCLOptions,
-                                                      ossPoolString &configString )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__BLDIDXCONFSTR ) ;
-
-      try
-      {
-         ossPoolStringStream ss ;
-
-         ss << "type=file,internal_page_max=16k,leaf_page_max=16k,";
-         ss << "checksum=on,";
-         ss << "prefix_compression=true,";
-         ss << "key_format=u,";
-         ss << "value_format=u,";
-         ss << "app_metadata=(formatVersion=" << DMS_WT_FORMART_VER_CUR << ")," ;
-         ss << "log=(enabled=true)," ;
-
-         configString = ss.str();
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build WiredTiger index config string, "
-                 "occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDIDXCONFSTR, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDIDXURI, "_dmsWTStorageService::_buildIdxURI" )
-   INT32 _dmsWTStorageService::_buildIdxURI( utilCSUniqueID csUID,
-                                             utilCLInnerID clInnerID,
-                                             UINT32 clLID,
-                                             utilIdxInnerID idxInnerID,
-                                             ossPoolString &idxURI )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__BLDIDXURI ) ;
-
-      try
-      {
-         ossPoolStringStream ss ;
-
-         ss << "table:" ;
-         dmsWTBuildIndexIdent( csUID, clInnerID, clLID, idxInnerID, ss ) ;
-         idxURI = ss.str();
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build WiredTiger index URI, "
-                 "occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDIDXURI, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__DUMPURILISTBYCS, "_dmsWTStorageService::_dumpURIListByCS" )
    INT32 _dmsWTStorageService::_dumpURIListByCS( utilCSUniqueID csUID,
                                                  ossPoolList< ossPoolString > &uriList )
@@ -707,6 +440,71 @@ namespace wiredtiger
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__ADDCOLLECTION, "_dmsWTStorageService::_addCollection" )
+   INT32 _dmsWTStorageService::_addCollection( const dmsCLMetadata &metadata,
+                                               const dmsWTStore &store,
+                                               shared_ptr<ICollection> &collPtr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__ADDCOLLECTION ) ;
+
+      try
+      {
+         collPtr = make_shared<dmsWTCollection>( metadata, _engine, store ) ;
+         PD_CHECK( collPtr, SDB_OOM, error, PDERROR,
+                   "Failed to create collection object" ) ;
+
+         ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
+         _collMap.insert( make_pair( metadata.getCLKey(), collPtr ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save collection, occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__ADDCOLLECTION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTION, "_dmsWTStorageService::_removeCollection" )
+   void _dmsWTStorageService::_removeCollection( const dmsCLMetadataKey &metadataKey )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTION ) ;
+
+      ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
+      _collMap.erase( metadataKey ) ;
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTION ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION, "_dmsWTStorageService::_getCollection" )
+   shared_ptr<ICollection> _dmsWTStorageService::_getCollection( const dmsCLMetadataKey &metadataKey )
+   {
+      shared_ptr<ICollection> collPtr ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
+
+      {
+         ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
+         _dmsWTCollMapIter iter = _collMap.find( metadataKey ) ;
+         if ( iter != _collMap.end() )
+         {
+            collPtr = iter->second ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
+
+      return collPtr ;
    }
 
 }

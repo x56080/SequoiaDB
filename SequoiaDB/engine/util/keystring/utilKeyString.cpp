@@ -354,7 +354,7 @@ namespace keystring
       return getKeyElementsSlice().compare( ks.getKeyElementsSlice() ) ;
    }
 
-   dmsRecordID _keyString::getRid() const
+   dmsRecordID _keyString::getRID() const
    {
       SDB_ASSERT( isValid(), "can not be invalid" ) ;
       dmsRecordID rid ;
@@ -519,7 +519,7 @@ namespace keystring
       SDB_ASSERT( isValid(), "must be valid" ) ;
       utilSlice s = getKeyElementsSlice() ;
       _bodyReader br( s.data(), s.size(), getTypeBits().data(),
-                     getTypeBitsSize() ) ;
+                      getTypeBitsSize() ) ;
       br.toBSON( pattern, builder, withFieldName ) ;
       return builder.obj() ;
    }
@@ -532,7 +532,7 @@ namespace keystring
       SDB_ASSERT( isValid(), "must be valid" ) ;
       utilSlice s = getKeyElementsSlice() ;
       _bodyReader br( s.data(), s.size(), getTypeBits().data(),
-                     getTypeBitsSize() ) ;
+                      getTypeBitsSize() ) ;
       return br.toBSON( pattern, builder, withFieldName ) ;
    }
 
@@ -650,8 +650,9 @@ namespace keystring
          keyStringEncodedType type = static_cast<keyStringEncodedType>( _read<UINT8>(
                inverted ) ) ;
          keyStringDiscriminatorValue dv = static_cast<keyStringDiscriminatorValue>( type ) ;
-         if ( keyStringDiscriminatorValue::END == dv || keyStringDiscriminatorValue::LESS == dv
-              || keyStringDiscriminatorValue::GREATER == dv )
+         if ( keyStringDiscriminatorValue::END == dv ||
+              keyStringDiscriminatorValue::LESS == dv ||
+              keyStringDiscriminatorValue::GREATER == dv )
          {
             break ;
          }
@@ -665,8 +666,8 @@ namespace keystring
       {
          keyStringDiscriminatorValue dv = _read<keyStringDiscriminatorValue>( FALSE ) ;
          SDB_ASSERT(
-               keyStringDiscriminatorValue::LESS == dv || keyStringDiscriminatorValue::GREATER
-                     == dv,
+               keyStringDiscriminatorValue::LESS == dv ||
+               keyStringDiscriminatorValue::GREATER == dv,
                "Unexpected discriminator byte" ) ;
       }
       if ( KEY_STRING_ONLY_END_SIZE == _bufSize - _offset )

@@ -184,7 +184,7 @@ namespace keystring
                             BOOLEAN withFieldName = FALSE ) const ;
 
    public:
-      dmsRecordID getRid() const ;
+      dmsRecordID getRID() const ;
 
    public:
       ///WARNING: same code format only!

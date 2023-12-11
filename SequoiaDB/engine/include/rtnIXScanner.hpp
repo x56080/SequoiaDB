@@ -39,13 +39,10 @@
 #ifndef RTNIXSCANNER_HPP__
 #define RTNIXSCANNER_HPP__
 
-#include "oss.hpp"
-#include "dms.hpp"
 #include "ixm.hpp"
 #include "monCB.hpp"
-#include "utilPooledObject.hpp"
+#include "rtnScanner.hpp"
 #include "rtnPredicate.hpp"
-#include "ossMemPool.hpp"
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
 #include "utilPooledAutoPtr.hpp"
@@ -55,6 +52,7 @@ using namespace bson ;
 namespace engine
 {
    class _dmsStorageUnit ;
+   class _dmsMBContext ;
    class _pmdEDUCB ;
 
    // define type of index scanners
@@ -108,12 +106,13 @@ namespace engine
       _rtnIXScanner define
       This is a super class for all index scanners to inherit from
    */
-   class _rtnIXScanner : public _utilPooledObject
+   class _rtnIXScanner : public _rtnScanner
    {
    public:
       _rtnIXScanner( ixmIndexCB *pIndexCB,
                      rtnPredicateList *predList,
                      _dmsStorageUnit  *su,
+                     _dmsMBContext    *mbContext,
                      _pmdEDUCB        *cb,
                      BOOLEAN indexCBOwned = FALSE ) ;
 
@@ -133,6 +132,7 @@ namespace engine
       rtnScannerSharedInfo*   getSharedInfo() ;
 
       _dmsStorageUnit*        getSu() ;
+      _dmsMBContext*          getMBContext() ;
       ixmIndexCB*             getIndexCB() ;
       BOOLEAN                 getIndexCBOwned() const ;
       _pmdEDUCB*              getEDUCB() ;
@@ -140,7 +140,6 @@ namespace engine
       INT32       compareWithCurKeyObj( const BSONObj &keyObj ) const ;
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
 
-      BOOLEAN     eof() const ;
       BOOLEAN                isIndexCover() const ;
       void                   setIndexCover( const BOOLEAN indexCover ) ;
       ixmIndexCover&         getIndex() ;
@@ -150,7 +149,6 @@ namespace engine
       virtual INT32 init() ;
       virtual void  setReadonly( BOOLEAN isReadonly ) ;
 
-      virtual INT32 advance ( dmsRecordID &rid ) = 0 ;
       virtual INT32 resumeScan( BOOLEAN *pIsCursorSame = NULL ) = 0 ;
       virtual INT32 pauseScan() = 0 ;
 
@@ -186,16 +184,12 @@ namespace engine
       ixmIndexCB              *_indexCB ;
       BOOLEAN                 _owned ;
       rtnPredicateList        *_pPredList ;
-      _dmsStorageUnit         *_su ;
-      _pmdEDUCB               *_cb ;
       rtnScannerSharedInfo    *_pInfo ;
 
-      INT32                   _direction ;
       dmsExtentID             _indexLID ;
       dmsExtentID             _indexCBExtent ;
       OID                     _indexOID ;
       Ordering                _order ;
-      BOOLEAN                 _eof ;
 
    private:
       BOOLEAN                 _isReadonly ;

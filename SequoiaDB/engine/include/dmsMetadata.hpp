@@ -227,7 +227,7 @@ namespace engine
       }
 
    protected:
-      _dmsSUDescriptor *_su = nullptr ;
+      mutable _dmsSUDescriptor *_su = nullptr ;
       utilCSUniqueID _csUID = UTIL_UNIQUEID_NULL ;
    } ;
 
@@ -310,7 +310,7 @@ namespace engine
          return utilBuildCLUniqueID( getCSUID(), getCLOrigInnerID() ) ;
       }
 
-      _dmsMetadataBlock *getMB()
+      _dmsMetadataBlock *getMB() const
       {
          return _mb ;
       }
@@ -320,7 +320,7 @@ namespace engine
          _mb = mb ;
       }
 
-      _dmsMBStatInfo *getMBStat()
+      _dmsMBStatInfo *getMBStat() const
       {
          return _mbStat ;
       }
@@ -330,14 +330,14 @@ namespace engine
          _mbStat = mbStat ;
       }
 
-      dmsCLMetadataKey getKey() const
+      dmsCLMetadataKey getCLKey() const
       {
-         return dmsCLMetadataKey( getOrigUID(), getCLLID() ) ;
+         return dmsCLMetadataKey( getOrigUID(), getCLOrigLID() ) ;
       }
 
    protected:
-      _dmsMetadataBlock *_mb = nullptr ;
-      _dmsMBStatInfo *_mbStat = nullptr ;
+      mutable _dmsMetadataBlock *_mb = nullptr ;
+      mutable _dmsMBStatInfo *_mbStat = nullptr ;
       utilCLInnerID _clInnerID = UTIL_UNIQUEID_NULL ;
       UINT32 _clLID = DMS_INVALID_LOGICCLID ;
       utilCLInnerID _clOrigInnerID = UTIL_UNIQUEID_NULL ;
@@ -372,8 +372,9 @@ namespace engine
       _dmsIdxMetadata( _dmsSUDescriptor *su,
                        _dmsMetadataBlock *mb,
                        _dmsMBStatInfo *mbStat,
-                       utilIdxUniqueID idxUID,
-                       UINT32 idxLID ) ;
+                       _ixmIndexCB *indexCB ) ;
+
+      _dmsIdxMetadata( const _dmsIdxMetadata &o, BOOLEAN getOwned ) ;
 
       utilIdxInnerID getIdxInnerID() const
       {
@@ -405,9 +406,80 @@ namespace engine
          _idxInnerID = utilGetIdxInnerID( idxUID ) ;
       }
 
+      dmsIdxMetadataKey getIdxKey() const
+      {
+         return dmsIdxMetadataKey( getOrigUID(), getCLOrigLID(), getIdxInnerID() ) ;
+      }
+
+      const bson::BSONObj &getKeyPattern() const
+      {
+         return _keyPattern ;
+      }
+
+      void setKeyPattern( const bson::BSONObj &keyPattern )
+      {
+         _keyPattern = keyPattern.copy() ;
+      }
+
+      BOOLEAN isUnique() const
+      {
+         return _isUnique ;
+      }
+
+      void setUnique( BOOLEAN isUnique )
+      {
+         _isUnique = isUnique ;
+      }
+
+      BOOLEAN isStrictUnique() const
+      {
+         return _isStrictUnique ;
+      }
+
+      void setStrictUnique( BOOLEAN isStrictUnique )
+      {
+         _isStrictUnique = isStrictUnique ;
+      }
+
+      BOOLEAN isEnforced() const
+      {
+         return _isEnforced ;
+      }
+
+      void setEnforced( BOOLEAN isEnforced )
+      {
+         _isEnforced = isEnforced ;
+      }
+
+      BOOLEAN isNotNull() const
+      {
+         return _isNotNull ;
+      }
+
+      void setNotNull( BOOLEAN isNotNull )
+      {
+         _isNotNull = isNotNull ;
+      }
+
+      BOOLEAN isNotArray() const
+      {
+         return _isNotArray ;
+      }
+
+      void setNotArray( BOOLEAN isNotArray )
+      {
+         _isNotArray = isNotArray ;
+      }
+
    protected:
       utilIdxInnerID _idxInnerID = UTIL_UNIQUEID_NULL ;
       UINT32 _idxLID = DMS_INVALID_EXTENT ;
+      bson::BSONObj _keyPattern ;
+      BOOLEAN _isUnique = FALSE ;
+      BOOLEAN _isStrictUnique = FALSE ;
+      BOOLEAN _isEnforced = FALSE ;
+      BOOLEAN _isNotNull = FALSE ;
+      BOOLEAN _isNotArray = FALSE ;
    } ;
 
    typedef class _dmsIdxMetadata dmsIdxMetadata ;

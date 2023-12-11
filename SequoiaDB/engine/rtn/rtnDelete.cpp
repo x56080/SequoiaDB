@@ -429,7 +429,7 @@ retry:
 
          // relocate key
          {
-            rtnIXScanner *scanner = ((dmsIXScanner*)pScanner)->getScanner() ;
+            rtnIXScanner *scanner = (rtnIXScanner *)( ((dmsIXScanner *)pScanner)->getScanner() ) ;
             dmsRecordID rid ;
 
             if ( !scanner )

@@ -41,7 +41,6 @@
 #include "keystring/utilKeyStringCoder.hpp"
 #include "keystring/utilKeyStringMetaByte.hpp"
 #include "utilStreamAllocator.hpp"
-#include "utilInclusiveBitmap.hpp"
 #include "dmsMetadata.hpp"
 #include "dpsDef.hpp"
 
@@ -161,13 +160,22 @@ namespace keystring
 
       INT32 buildPredicate( const ossPoolVector<const bson::BSONElement*> &elements,
                             const bson::Ordering &o,
-                            const utilInclusiveBitmap &iv,
+                            const VEC_BOOLEAN &im,
                             BOOLEAN forward,
                             utilSlice keyHeader = utilSlice() ) ;
 
       INT32 buildPredicate( const bson::BSONObj &key,
                             const bson::Ordering &o,
-                            const utilInclusiveBitmap &im,
+                            const dmsRecordID &recordID,
+                            BOOLEAN forward,
+                            keyStringDiscriminator d,
+                            utilSlice keyHeader = utilSlice() ) ;
+
+      INT32 buildPredicate( const bson::BSONObj &prefixKey,
+                            UINT32 prefixNum,
+                            const ossPoolVector<const bson::BSONElement*> &elements,
+                            const bson::Ordering &o,
+                            const VEC_BOOLEAN &im,
                             BOOLEAN forward,
                             utilSlice keyHeader = utilSlice() ) ;
 

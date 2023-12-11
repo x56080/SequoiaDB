@@ -535,24 +535,6 @@ namespace engine
                                  INT64 position = -1,
                                  utilInsertResult *insertResult = NULL ) ;
 
-         INT32    updateRecords ( const CHAR *pName,
-                                  _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpscb,
-                                  _mthMatchRuntime *matchRuntime,
-                                  _mthModifier &modifier,
-                                  SINT64 maxUpdate = -1,
-                                  dmsMBContext *context = NULL,
-                                  IDmsOprHandler *pHandler = NULL,
-                                  utilUpdateResult *pResult = NULL ) ;
-
-         INT32    deleteRecords ( const CHAR *pName,
-                                  _pmdEDUCB * cb,
-                                  SDB_DPSCB *dpscb,
-                                  _mthMatchRuntime *matchRuntime,
-                                  SINT64 maxDelete = -1,
-                                  dmsMBContext *context = NULL,
-                                  utilDeleteResult *pResult = NULL ) ;
-
          INT32    recycleCollectionSpace( _pmdEDUCB *cb ) ;
 
          INT32    rebuildIndexes ( const CHAR *pName,

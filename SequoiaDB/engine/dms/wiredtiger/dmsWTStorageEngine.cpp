@@ -53,7 +53,8 @@ namespace wiredtiger
    /*
       _dmsWTStorageEngine implement
     */
-   _dmsWTStorageEngine::_dmsWTStorageEngine()
+   _dmsWTStorageEngine::_dmsWTStorageEngine( dmsWTEngineOptions &options )
+   : _options( options )
    {
    }
 
@@ -81,8 +82,6 @@ namespace wiredtiger
                                      &_conn ),
                     nullptr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open WiredTiger engine, rc: %d", rc ) ;
-
-      _dbPath = dbPath ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_OPEN, rc ) ;
@@ -295,14 +294,14 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE, "_dmsWTStorageEngine::insertToStore" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT, "_dmsWTStorageEngine::insertToStore" )
    INT32 _dmsWTStorageEngine::insertToStore( const dmsWTStore &store,
                                              UINT64 key,
                                              const dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT ) ;
 
       dmsWTSession sess ;
       dmsWTCursor cursor( sess ) ;
@@ -320,21 +319,21 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE, "_dmsWTStorageEngine::updateToStore" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT, "_dmsWTStorageEngine::updateToStore" )
    INT32 _dmsWTStorageEngine::updateToStore( const dmsWTStore &store,
                                              UINT64 key,
                                              const dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT ) ;
 
       dmsWTSession sess ;
       dmsWTCursor cursor( sess ) ;
@@ -352,20 +351,20 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE, "_dmsWTStorageEngine::removeFromStore" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT, "_dmsWTStorageEngine::removeFromStore" )
    INT32 _dmsWTStorageEngine::removeFromStore( const dmsWTStore &store,
                                                UINT64 key )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT ) ;
 
       dmsWTSession sess ;
       dmsWTCursor cursor( sess ) ;
@@ -383,21 +382,21 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE, "_dmsWTStorageEngine::extractFromStore" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_INT, "_dmsWTStorageEngine::extractFromStore" )
    INT32 _dmsWTStorageEngine::extractFromStore( const dmsWTStore &store,
                                                 UINT64 key,
                                                 dmsWTItem &value )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_INT ) ;
 
       dmsWTSession sess ;
       dmsWTCursor cursor( sess ) ;
@@ -415,7 +414,134 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM, "_dmsWTStorageEngine::insertToStore" )
+   INT32 _dmsWTStorageEngine::insertToStore( const dmsWTStore &store,
+                                             const dmsWTItem &key,
+                                             const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM ) ;
+
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to insert to store, engine is not opened" ) ;
+
+      rc = sess.open( _conn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      rc = cursor.open( store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.insert( key, value ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM, "_dmsWTStorageEngine::updateToStore" )
+   INT32 _dmsWTStorageEngine::updateToStore( const dmsWTStore &store,
+                                             const dmsWTItem &key,
+                                             const dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM ) ;
+
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to update to store, engine is not opened" ) ;
+
+      rc = sess.open( _conn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      rc = cursor.open( store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.update( key, value ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM, "_dmsWTStorageEngine::removeFromStore" )
+   INT32 _dmsWTStorageEngine::removeFromStore( const dmsWTStore &store,
+                                               const dmsWTItem &key )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM ) ;
+
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to remove from table, engine is not opened" ) ;
+
+      rc = sess.open( _conn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      rc = cursor.open( store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.remove( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM, "_dmsWTStorageEngine::extractFromStore" )
+   INT32 _dmsWTStorageEngine::extractFromStore( const dmsWTStore &store,
+                                                const dmsWTItem &key,
+                                                dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM ) ;
+
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to extract from store, engine is not opened" ) ;
+
+      rc = sess.open( _conn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      rc = cursor.open( store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.searchAndGetValue( key, value ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM, rc ) ;
       return rc ;
 
    error:

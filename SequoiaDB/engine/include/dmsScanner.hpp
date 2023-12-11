@@ -40,7 +40,6 @@
 #define DMSSCANNER_HPP__
 
 #include "core.hpp"
-#include "interface/IDataCursor.hpp"
 #include "oss.hpp"
 #include "dms.hpp"
 #include "dmsExtent.hpp"
@@ -56,6 +55,7 @@
 #include "mthMatchRuntime.hpp"
 #include "ossMemPool.hpp"
 #include "dmsTransLockCallback.hpp"
+#include "dmsTransContext.hpp"
 #include "dmsOprHandler.hpp"
 
 using namespace bson ;
@@ -69,6 +69,8 @@ namespace engine
    class _dmsStorageData ;
    class _dmsStorageDataCapped ;
    class _mthMatchTreeContext ;
+   class _rtnTBScanner ;
+   class _rtnScanner ;
    class _rtnIXScanner ;
    class _pmdEDUCB ;
    class _monAppCB ;
@@ -92,7 +94,9 @@ namespace engine
 
    protected:
       _dmsScanner *_pScanner ;
-   };
+   } ;
+   typedef class _dmsScannerContext dmsScannerContext ;
+   typedef class _dmsScannerContext dmsTBScannerContext ;
 
    /*
       _dmsIXScannerContext define
@@ -110,7 +114,9 @@ namespace engine
    private:
       BOOLEAN _hasPaused ;
       _rtnIXScanner *_pIXScanner ;
-   };
+   } ;
+
+   typedef class _dmsIXScannerContext dmsIXScannerContext ;
 
    /*
       _dmsScanner define
@@ -214,18 +220,28 @@ namespace engine
                              _dmsMBContext *mbContext,
                              const dmsRecordID &curRID,
                              pmdEDUCB *cb,
-                             _IContext *transContext,
+                             dmsScanTransContext *transContext,
                              dmsRecordRW &recordRW,
                              dmsRecordID &waitUnlockRID,
                              BOOLEAN &skipRecord ) ;
 
+      void _releaseTransLock( _dmsStorageDataCommon *su,
+                              _dmsMBContext *mbContext,
+                              const dmsRecordID &curRID,
+                              pmdEDUCB *cb ) ;
+
+      void _releaseAllLocks( _dmsStorageDataCommon *su,
+                              _dmsMBContext *mbContext,
+                              const dmsRecordID &curRID,
+                              pmdEDUCB *cb ) ;
+
       virtual void _onRecordSkipped( const dmsRecordID &curRID,
-                                     _IContext *transContext )
+                                     dmsScanTransContext *transContext )
       {
       }
 
       virtual void _onRecordLocked( const dmsRecordID &curRID,
-                                    _IContext *transContext,
+                                    dmsScanTransContext *transContext,
                                     BOOLEAN &skipRecord )
       {
       }
@@ -250,71 +266,34 @@ namespace engine
    typedef class _dmsScannerLockHandler dmsScannerLockHandler ;
 
    /*
-      _dmsInnerScanner define
+      _dmsSecScanner define
     */
-   class _dmsInnerScanner : public _dmsScanner, public _dmsScannerLockHandler
+   class _dmsSecScanner : public _dmsScanner, public _dmsScannerLockHandler
    {
    public:
-      _dmsInnerScanner( _dmsStorageDataCommon *su, _dmsMBContext *context,
+      _dmsSecScanner( _dmsStorageDataCommon *su, _dmsMBContext *context,
                         mthMatchRuntime *matchRuntime,
                         DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                         INT64 maxRecords = -1,
                         INT64 skipNum = 0,
                         INT32 flag = 0,
                         IDmsOprHandler *handler = NULL ) ;
-      virtual ~_dmsInnerScanner() ;
-
-      virtual dmsTransLockCallback *callbackHandler() ;
-      virtual const dmsTransRecordInfo *recordInfo() const ;
-      virtual BOOLEAN isHitEnd() const = 0 ;
-      virtual void reset( const dmsRecordID &startRID ) = 0 ;
+      virtual ~_dmsSecScanner() ;
 
       const dmsRecordID &getCurRID() const
       {
          return _curRID ;
       }
 
-   protected:
-      void _releaseLocks() ;
-
-   protected:
-      dmsRecordID          _curRID ;
-      dmsRecordRW          _recordRW ;
-      const dmsRecord      *_curRecordPtr ;
-      BOOLEAN              _firstRun ;
-      BOOLEAN              _firstFetch ;
-      _pmdEDUCB            *_cb ;
-   } ;
-   typedef class _dmsInnerScanner dmsInnerScanner ;
-
-   /*
-      _dmsDataScanner define
-    */
-   class _dmsDataScanner : public _dmsInnerScanner
-   {
-   public:
-      _dmsDataScanner( _dmsStorageDataCommon *su,
-                       _dmsMBContext *context,
-                       const dmsRecordID &startRID,
-                       mthMatchRuntime *matchRuntime,
-                       DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                       INT64 maxRecords = -1,
-                       INT64 skipNum = 0,
-                       INT32 flags = 0,
-                       IDmsOprHandler *opHandler = NULL ) ;
-      virtual ~_dmsDataScanner() ;
-
-   public:
       virtual INT32 advance( dmsRecordID &recordID,
                              _mthRecordGenerator &generator,
                              _pmdEDUCB *cb,
                              _mthMatchTreeContext *mthContext = NULL ) ;
+      virtual void pause() ;
       virtual void stop() ;
 
-      virtual _dmsScannerContext* getScannerContext()
-      {
-         return &_scannerContext ;
-      }
+      virtual dmsTransLockCallback *callbackHandler() ;
+      virtual const dmsTransRecordInfo *recordInfo() const ;
 
       virtual void initLockInfo( INT32 isolation,
                                  DPS_TRANSLOCK_TYPE lockType,
@@ -323,27 +302,161 @@ namespace engine
          _initLockInfo( isolation, lockType, lockOpMode ) ;
       }
 
-      virtual BOOLEAN isHitEnd() const
+      virtual void enableCountMode()
       {
-         return _cursorPtr ? _cursorPtr->isEOF() : TRUE ;
+         _isCountOnly = TRUE ;
       }
 
-      virtual void reset( const dmsRecordID &startRID ) ;
+      virtual BOOLEAN isHitEnd() const = 0 ;
 
    protected:
-      INT32 _firstInit( _pmdEDUCB *cb ) ;
+      INT32 _firstInit( pmdEDUCB *cb ) ;
       INT32 _fetchNext( dmsRecordID &recordID,
                         _mthRecordGenerator &generator,
                         _pmdEDUCB *cb,
-                        _mthMatchTreeContext *mhtContext = NULL) ;
+                        _mthMatchTreeContext *mthContext = NULL ) ;
+
+      virtual INT32 _onFirstInit( _pmdEDUCB *cb ) = 0 ;
+      virtual INT32 _onFetchEOC() = 0 ;
+      virtual void _onPause() = 0 ;
+      virtual void _onStop() = 0 ;
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) = 0 ;
+      virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) = 0 ;
+      virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) = 0 ;
+
+      virtual dmsScanTransContext &_getTransContext() = 0 ;
+
+      virtual UINT64 _getOnceRestNum() const = 0 ;
 
    protected:
-      std::unique_ptr< IDataCursor > _cursorPtr ;
-      BOOLEAN _isForward = TRUE ;
-      _dmsScannerContext _scannerContext ;
+      dmsRecordID          _curRID ;
+      dmsRecordRW          _recordRW ;
+      const dmsRecord      *_curRecordPtr ;
+      BOOLEAN              _isCountOnly ;
+      BOOLEAN              _firstRun ;
+      UINT64               _onceRestNum ;
+      _pmdEDUCB            *_cb ;
+   } ;
+   typedef class _dmsSecScanner dmsSecScanner ;
+
+   /*
+      _dmsDataScanner define
+    */
+   class _dmsDataScanner : public _dmsSecScanner
+   {
+   public:
+      _dmsDataScanner( _dmsStorageDataCommon *su,
+                       _dmsMBContext *context,
+                       _rtnTBScanner *scanner,
+                       mthMatchRuntime *matchRuntime,
+                       DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
+                       INT64 maxRecords = -1,
+                       INT64 skipNum = 0,
+                       INT32 flags = 0,
+                       IDmsOprHandler *opHandler = NULL ) ;
+      virtual ~_dmsDataScanner() = default ;
+
+   public:
+      virtual _dmsScannerContext* getScannerContext()
+      {
+         return &_scannerContext ;
+      }
+
+      virtual BOOLEAN isHitEnd() const ;
+
+   protected:
+      virtual INT32 _onFirstInit( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _onFetchEOC()
+      {
+         return SDB_OK ;
+      }
+
+      virtual void _onPause()
+      {
+      }
+
+      virtual void _onStop()
+      {
+      }
+
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) ;
+      virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) ;
+      virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) ;
+
+      virtual dmsScanTransContext &_getTransContext()
+      {
+         return _transContext ;
+      }
+
+      virtual UINT64 _getOnceRestNum() const ;
+
+   protected:
+      _rtnTBScanner *_scanner ;
+      dmsTBScannerContext _scannerContext ;
+      dmsTBTransContext _transContext ;
    } ;
 
    typedef class _dmsDataScanner dmsDataScanner ;
+
+   /*
+      _dmsIndexScanner define
+    */
+   class _dmsIndexScanner : public _dmsSecScanner
+   {
+   public:
+      _dmsIndexScanner( _dmsStorageDataCommon *su,
+                        _dmsMBContext *context,
+                        _rtnIXScanner *scanner,
+                        mthMatchRuntime *matchRuntime,
+                        DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
+                        INT64 maxRecords = -1,
+                        INT64 skipNum = 0,
+                        INT32 flags = 0,
+                        IDmsOprHandler *opHandler = NULL ) ;
+      virtual ~_dmsIndexScanner() = default ;
+
+      virtual BOOLEAN isHitEnd() const ;
+
+      virtual _dmsScannerContext* getScannerContext()
+      {
+         return &_scannerContext ;
+      }
+
+      _rtnIXScanner *getScanner()
+      {
+         return _scanner ;
+      }
+
+   protected:
+      virtual INT32 _onFirstInit( _pmdEDUCB *cb ) ;
+      virtual INT32 _onFetchEOC() ;
+      virtual void _onPause() ;
+      virtual void _onStop() ;
+
+      virtual void _onRecordSkipped( const dmsRecordID &curRID,
+                                     dmsScanTransContext *transContext ) ;
+      virtual void _onRecordLocked( const dmsRecordID &curRID,
+                                    dmsScanTransContext *transContext,
+                                    BOOLEAN &skipRecord ) ;
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) ;
+      virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) ;
+      virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) ;
+
+      virtual dmsScanTransContext &_getTransContext()
+      {
+         return _transContext ;
+      }
+
+      virtual UINT64 _getOnceRestNum() const ;
+
+   protected:
+      _rtnIXScanner *_scanner ;
+      dmsIXScannerContext _scannerContext ;
+      dmsIXTransContext _transContext ;
+   } ;
+
+   typedef class _dmsIndexScanner dmsIndexScanner ;
 
    /*
       _dmsExtScanner define
@@ -487,69 +600,113 @@ namespace engine
    typedef _dmsCappedExtScanner dmsCappedExtScanner ;
 
    /*
-      _dmsTBScanner define
-   */
-   class _dmsTBScanner : public _dmsScanner
+      _dmsEntireScanner define
+    */
+   class _dmsEntireScanner : public _dmsScanner
    {
-      public:
-         _dmsTBScanner ( _dmsStorageDataCommon *su, _dmsMBContext *context,
+   public:
+      _dmsEntireScanner( _dmsStorageDataCommon *su,
+                         _dmsMBContext *context,
                          mthMatchRuntime *matchRuntime,
+                         dmsSecScanner &secScanner,
+                         _rtnScanner *scanner,
+                         BOOLEAN ownedScanner,
+                         dmsScannerContext &scannerContext,
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                          INT64 maxRecords = -1,
                          INT64 skipNum = 0,
                          INT32 flag = 0,
                          IDmsOprHandler *opHandler = NULL ) ;
-         ~_dmsTBScanner () ;
+      virtual ~_dmsEntireScanner() ;
 
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
+      virtual dmsTransLockCallback *callbackHandler()
+      {
+         return _secScanner.callbackHandler() ;
+      }
 
-      public:
+      virtual const dmsTransRecordInfo *recordInfo() const
+      {
+         return _secScanner.recordInfo() ;
+      }
 
-         virtual INT32 advance ( dmsRecordID &recordID,
-                                 _mthRecordGenerator &generator,
-                                 _pmdEDUCB *cb,
-                                 _mthMatchTreeContext *mthContext = NULL ) ;
-         virtual void  stop () ;
+      virtual INT32 advance( dmsRecordID &recordID,
+                             _mthRecordGenerator &generator,
+                             _pmdEDUCB *cb,
+                             _mthMatchTreeContext *mthContext = NULL ) ;
+      virtual void  stop() ;
 
-         virtual _dmsScannerContext* getScannerContext()
+      virtual _dmsScannerContext *getScannerContext()
+      {
+         return &_scannerContext ;
+      }
+
+      virtual void initLockInfo( INT32 isolation,
+                                 DPS_TRANSLOCK_TYPE lockType,
+                                 DPS_TRANSLOCK_OP_MODE_TYPE lockOpMode )
+      {
+         if ( !_lockInited )
          {
-            return &_scannerContext ;
+            _isolation = isolation ;
+            _lockType = lockType ;
+            _lockOpMode = lockOpMode ;
+            _lockInited = TRUE ;
          }
+         _secScanner.initLockInfo( isolation, lockType, lockOpMode ) ;
+      }
 
-         virtual void initLockInfo( INT32 isolation,
-                                    DPS_TRANSLOCK_TYPE lockType,
-                                    DPS_TRANSLOCK_OP_MODE_TYPE lockOpMode )
-         {
-            if ( !_lockInited )
-            {
-               _isolation = isolation ;
-               _lockType = lockType ;
-               _lockOpMode = lockOpMode ;
-               _lockInited = TRUE ;
-            }
-            _scanner.initLockInfo( isolation, lockType, lockOpMode ) ;
-         }
+      _rtnScanner *getScanner()
+      {
+         return _scanner ;
+      }
 
-      protected:
-         void  _resetInnerScanner() ;
-         INT32 _firstInit() ;
+   protected:
+      void  _pauseInnerScanner() ;
+      INT32 _firstInit() ;
 
-      private:
-         dmsRecordID                _curRID ;
-         dmsDataScanner             _scanner ;
-         BOOLEAN                    _firstRun ;
-         _dmsScannerContext         _scannerContext ;
+      virtual INT32 _onInit() = 0 ;
 
-         BOOLEAN                    _lockInited ;
-         INT32                      _isolation ;
-         DPS_TRANSLOCK_TYPE         _lockType ;
-         DPS_TRANSLOCK_OP_MODE_TYPE _lockOpMode ;
+   protected:
+      dmsSecScanner &            _secScanner ;
+      _rtnScanner *              _scanner ;
+      BOOLEAN                    _ownedScanner ;
+      BOOLEAN                    _firstRun ;
+      dmsScannerContext &        _scannerContext ;
 
-         UINT32                     _selectStep ;
-         UINT32                     _selectedRecords ;
-   };
-   typedef _dmsTBScanner dmsTBScanner ;
+      BOOLEAN                    _lockInited ;
+      INT32                      _isolation ;
+      DPS_TRANSLOCK_TYPE         _lockType ;
+      DPS_TRANSLOCK_OP_MODE_TYPE _lockOpMode ;
+   } ;
+
+   typedef class _dmsEntireScanner dmsEntireScanner ;
+
+   /*
+      _dmsTBScanner define
+    */
+   class _dmsTBScanner : public _dmsEntireScanner
+   {
+   public:
+      _dmsTBScanner( _dmsStorageDataCommon *su,
+                     _dmsMBContext *context,
+                     mthMatchRuntime *matchRuntime,
+                     _rtnTBScanner *scanner,
+                     BOOLEAN ownedScanner = TRUE,
+                     DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
+                     INT64 maxRecords = -1,
+                     INT64 skipNum = 0,
+                     INT32 flag = 0,
+                     IDmsOprHandler *opHandler = NULL ) ;
+      virtual ~_dmsTBScanner() = default ;
+
+   protected:
+      virtual INT32 _onInit() ;
+
+   private:
+      dmsDataScanner _secScanner ;
+      dmsTBScannerContext _scannerContext ;
+   } ;
+
+   typedef class _dmsTBScanner dmsTBScanner ;
 
    class _dmsIXScanner ;
    /*
@@ -658,59 +815,29 @@ namespace engine
    /*
       _dmsIXScanner define
    */
-   class _dmsIXScanner : public _dmsScanner
+   class _dmsIXScanner : public _dmsEntireScanner
    {
-      public:
-         _dmsIXScanner ( dmsStorageDataCommon *su,
-                         _dmsMBContext *context,
-                         mthMatchRuntime *matchRuntime,
-                         _rtnIXScanner *scanner,
-                         BOOLEAN ownedScanner = FALSE,
-                         DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                         INT64 maxRecords = -1,
-                         INT64 skipNum = 0,
-                         INT32 flag = 0,
-                         IDmsOprHandler *opHandler = NULL ) ;
-         ~_dmsIXScanner () ;
+   public:
+      _dmsIXScanner( dmsStorageDataCommon *su,
+                     _dmsMBContext *context,
+                     mthMatchRuntime *matchRuntime,
+                     _rtnIXScanner *scanner,
+                     BOOLEAN ownedScanner = FALSE,
+                     DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
+                     INT64 maxRecords = -1,
+                     INT64 skipNum = 0,
+                     INT32 flag = 0,
+                     IDmsOprHandler *opHandler = NULL ) ;
+      ~_dmsIXScanner() = default ;
 
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
+   protected:
+      INT32 _onInit() ;
 
-         _rtnIXScanner* getScanner () { return _scanner ; }
-
-      public:
-         virtual INT32 advance ( dmsRecordID &recordID,
-                                 _mthRecordGenerator &generator,
-                                 _pmdEDUCB *cb,
-                                 _mthMatchTreeContext *mthContext = NULL ) ;
-         virtual void  stop () ;
-
-         virtual _dmsScannerContext* getScannerContext()
-         {
-            return &_ixScannerContext ;
-         }
-
-         virtual void initLockInfo( INT32 isolation,
-                                    DPS_TRANSLOCK_TYPE lockType,
-                                    DPS_TRANSLOCK_OP_MODE_TYPE lockOpMode )
-         {
-            _secScanner.initLockInfo( isolation,
-                                      lockType,
-                                      lockOpMode ) ;
-         }
-
-      protected:
-         void  _resetIXSecScanner() ;
-
-      private:
-         dmsIXSecScanner            _secScanner ;
-         _rtnIXScanner              *_scanner ;
-         BOOLEAN                    _eof ;
-         BOOLEAN                    _ownedScanner ;
-         _dmsIXScannerContext       _ixScannerContext ;
-
+   private:
+      dmsIndexScanner _secScanner ;
+      dmsIXScannerContext _scannerContext ;
    } ;
-   typedef _dmsIXScanner dmsIXScanner ;
+   typedef class _dmsIXScanner dmsIXScanner ;
 
    /*
       _dmsExtentItr define

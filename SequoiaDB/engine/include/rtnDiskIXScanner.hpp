@@ -57,6 +57,7 @@ namespace engine
       _rtnDiskIXScanner ( ixmIndexCB *pIndexCB,
                           rtnPredicateList *predList,
                           _dmsStorageUnit  *su,
+                          _dmsMBContext    *mbContext,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;
 
@@ -93,24 +94,21 @@ namespace engine
       virtual rtnPredicateListIterator*   getPredicateListInterator() ;
 
    protected:
-      void                    reset() ;
+      void                    _reset() ;
 
       INT32                   _relocateRID( const BSONObj &keyObj,
                                             const dmsRecordID &rid,
-                                            INT32 direction ) ;
+                                            INT32 direction,
+                                            BOOLEAN &isFound ) ;
 
-      INT32                   _isCursorSame( ixmExtent *pExtent,
-                                             const BSONObj &saveObj,
-                                             const dmsRecordID &saveRID,
-                                             BOOLEAN &isSame,
-                                             BOOLEAN *hasRead = NULL )  ;
+      INT32                   _firstInit() ;
+      INT32                   _advance() ;
+      INT32                   _fetchNext( dmsRecordID &rid, BOOLEAN &needAdvance ) ;
 
    private:
       rtnPredicateListIterator   _listIterator ;
       monContextCB               *_pMonCtxCB ;
 
-      // track the extent/slot of current scan
-      ixmRecordID                _curIndexRID ;
       // Flag to indicate if we need to locate/relocate the key
       BOOLEAN                    _init ;
 
@@ -123,8 +121,11 @@ namespace engine
       dmsRecordID              _savedRID ;
 
       BSONObj                  _curKeyObj ;
+      dmsRecordID              _curRID ;
 
       BufBuilder               _builder ;
+
+      std::unique_ptr<IIndexCursor> _cursorPtr ;
    } ;
    typedef class _rtnDiskIXScanner rtnDiskIXScanner ;
 

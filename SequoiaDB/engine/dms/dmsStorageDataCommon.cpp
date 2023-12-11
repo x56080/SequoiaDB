@@ -1315,6 +1315,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMM_EXTRACTDATA ) ;
 
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
       recordData.reset() ;
 
       if ( !mbContext->isMBLock() )
@@ -1328,9 +1330,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to extract record from "
                    "collection [%s.%s] with record ID "
                    "[ extent: %u, offset: %u ], rc: %d",
-                   _suDescriptor->getStorageInfo()._suName,
-                   mbContext->mb()->_collectionName,
+                   _suDescriptor->getSUName(), mbContext->clName(),
                    recordID._extent, recordID._offset, rc ) ;
+
+      if( needIncDataRead )
+      {
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMM_EXTRACTDATA, rc ) ;
@@ -2273,9 +2279,9 @@ namespace engine
       _clFullName( pName, fullName, sizeof(fullName) ) ;
 
       // fix uniqueID
-      if ( utilGetCSUniqueID( clUniqueID ) != _suDescriptor->getStorageInfo()._csUniqueID )
+      if ( utilGetCSUniqueID( clUniqueID ) != _suDescriptor->getCSUniqueID() )
       {
-         clUniqueID = utilBuildCLUniqueID( _suDescriptor->getStorageInfo()._csUniqueID,
+         clUniqueID = utilBuildCLUniqueID( _suDescriptor->getCSUniqueID(),
                                            utilGetCLInnerID( clUniqueID ) ) ;
       }
       if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
@@ -2307,7 +2313,7 @@ namespace engine
          metalocked = FALSE ;
 
          OSS_BIT_SET( innerID, UTIL_UNIQUEID_LOCAL_BIT ) ;
-         clUniqueID = utilBuildCLUniqueID( _suDescriptor->getStorageInfo()._csUniqueID, innerID ) ;
+         clUniqueID = utilBuildCLUniqueID( _suDescriptor->getCSUniqueID(), innerID ) ;
       }
 
       // calc the reserve dps size

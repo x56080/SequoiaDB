@@ -59,7 +59,7 @@ namespace wiredtiger
    class _dmsWTStorageEngine : public IStorageEngine
    {
    public:
-      _dmsWTStorageEngine() ;
+      _dmsWTStorageEngine( dmsWTEngineOptions &options ) ;
       virtual ~_dmsWTStorageEngine() ;
       _dmsWTStorageEngine( const _dmsWTStorageEngine &o ) = delete ;
       _dmsWTStorageEngine &operator =( const _dmsWTStorageEngine & ) = delete ;
@@ -68,6 +68,11 @@ namespace wiredtiger
       virtual DMS_STORAGE_ENGINE_TYPE getEngineType() const
       {
          return DMS_STORAGE_ENGINE_WIREDTIGER ;
+      }
+
+      const dmsWTEngineOptions &getOptions() const
+      {
+         return _options ;
       }
 
       INT32 open( const boost::filesystem::path &dbPath,
@@ -99,6 +104,17 @@ namespace wiredtiger
       INT32 extractFromStore( const dmsWTStore &store,
                               UINT64 key,
                               dmsWTItem &value ) ;
+      INT32 insertToStore( const dmsWTStore &store,
+                           const dmsWTItem &key,
+                           const dmsWTItem &value ) ;
+      INT32 updateToStore( const dmsWTStore &store,
+                           const dmsWTItem &key,
+                           const dmsWTItem &value ) ;
+      INT32 removeFromStore( const dmsWTStore &store,
+                             const dmsWTItem &key ) ;
+      INT32 extractFromStore( const dmsWTStore &store,
+                              const dmsWTItem &key,
+                              dmsWTItem &value ) ;
       INT32 loadStore( const CHAR *uri,
                        dmsWTStore &store ) ;
       INT32 openStoreCursor( const CHAR *uri,
@@ -113,7 +129,7 @@ namespace wiredtiger
       INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
 
    protected:
-      boost::filesystem::path _dbPath ;
+      dmsWTEngineOptions &_options ;
       dmsWTHandler _handler ;
       WT_CONNECTION *_conn = nullptr ;
    } ;

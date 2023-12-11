@@ -42,13 +42,13 @@
 #include "dmsOprHandler.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageDataCommon.hpp"
+#include "rtnTBScanner.hpp"
 #include "rtnIXScanner.hpp"
 #include "rtnDiskIXScanner.hpp"
 #include "rtnMergeIXScanner.hpp"
-#include "rtnIXScannerFactory.hpp"
+#include "rtnScannerFactory.hpp"
 #include "bpsPrefetch.hpp"
 #include "dmsCompress.hpp"
-#include "dmsTransContext.hpp"
 #include "dpsTransLockMgr.hpp"
 #include "dpsTransExecutor.hpp"
 #include "dmsTransLockCallback.hpp"
@@ -395,7 +395,7 @@ namespace engine
                                                   _dmsMBContext *mbContext,
                                                   const dmsRecordID &curRID,
                                                   pmdEDUCB *cb,
-                                                  _IContext *transContext,
+                                                  dmsScanTransContext *transContext,
                                                   dmsRecordRW &recordRW,
                                                   dmsRecordID &waitUnlockRID,
                                                   BOOLEAN &skipRecord )
@@ -544,108 +544,19 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _dmsInnerScanner implement
-    */
-   _dmsInnerScanner::_dmsInnerScanner( dmsStorageDataCommon *su,
-                                       dmsMBContext *context,
-                                       mthMatchRuntime *matchRuntime,
-                                       DMS_ACCESS_TYPE accessType,
-                                       INT64 maxRecords,
-                                       INT64 skipNum,
-                                       INT32 flags,
-                                       IDmsOprHandler *handler )
-   :_dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, handler ),
-    _dmsScannerLockHandler( handler, flags ),
-    _curRecordPtr( NULL ),
-    _firstRun( TRUE ),
-    _firstFetch( TRUE ),
-    _cb( NULL )
+   void _dmsScannerLockHandler::_releaseTransLock( dmsStorageDataCommon *su,
+                                                   dmsMBContext *mbContext,
+                                                   const dmsRecordID &curRID,
+                                                   pmdEDUCB *cb )
    {
-   }
-
-   _dmsInnerScanner::~_dmsInnerScanner()
-   {
-      _releaseLocks() ;
-   }
-
-   dmsTransLockCallback* _dmsInnerScanner::callbackHandler()
-   {
-      return &_callback ;
-   }
-
-   const dmsTransRecordInfo* _dmsInnerScanner::recordInfo() const
-   {
-      return _callback.getTransRecordInfo() ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINNERSCAN__RELEASELOCKS, "_dmsInnerScanner::_releaseLocks" )
-   void _dmsInnerScanner::_releaseLocks()
-   {
-      PD_TRACE_ENTRY( SDB__DMSINNERSCAN__RELEASELOCKS ) ;
-
-      if ( FALSE == _firstRun &&
-           _recordLock != DPS_TRANSLOCK_MAX &&
-           _hasLockedRecord &&
-           DMS_INVALID_OFFSET != _curRID._offset )
+      if ( _hasLockedRecord && curRID.isValid() )
       {
-         _pTransCB->transLockRelease( _cb,
-                                      _pSu->logicalID(),
-                                      _context->mbID(),
-                                      &_curRID,
-                                      &_callback ) ;
-         _hasLockedRecord = FALSE ;
-      }
-
-      _releaseCSCLLock( _pSu, _context, _cb ) ;
-
-      PD_TRACE_EXIT( SDB__DMSINNERSCAN__RELEASELOCKS ) ;
-   }
-
-   /*
-      _dmsDataScanner implement
-    */
-   _dmsDataScanner::_dmsDataScanner( dmsStorageDataCommon *su,
-                                     dmsMBContext *context,
-                                     const dmsRecordID &startRID,
-                                     mthMatchRuntime *matchRuntime,
-                                     DMS_ACCESS_TYPE accessType,
-                                     INT64 maxRecords,
-                                     INT64 skipNum,
-                                     INT32 flags,
-                                     IDmsOprHandler *opHandler )
-   :_dmsInnerScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, opHandler ),
-    _scannerContext( this )
-   {
-      _curRID = startRID ;
-   }
-
-   _dmsDataScanner::~_dmsDataScanner()
-   {
-   }
-
-   INT32 _dmsDataScanner::advance( dmsRecordID &recordID,
-                                   _mthRecordGenerator &generator,
-                                   pmdEDUCB *cb,
-                                   _mthMatchTreeContext *mthContext )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( _firstRun )
-      {
-         rc = _firstInit( cb ) ;
-         PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
-
-         _firstFetch = TRUE ;
-      }
-      else if ( DMS_INVALID_OFFSET != _curRID._offset )
-      {
-         if ( _hasLockedRecord && _needUnLock )
+         if ( _needUnLock )
          {
             // last run have record lock held, but not trans, need to release
             // record lock
-            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
-                                         _context->mbID(), &_curRID,
+            _pTransCB->transLockRelease( cb, su->logicalID(),
+                                         mbContext->mbID(), &curRID,
                                          &_callback ) ;
             _hasLockedRecord = FALSE ;
          }
@@ -658,12 +569,81 @@ namespace engine
             // if the record is deleted in the same transaction, we can
             // release the lock
             // NOTE: we need to keep the IX locks on CS and CL
-            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
-                                         _context->mbID(), &_curRID,
+            _pTransCB->transLockRelease( cb, su->logicalID(),
+                                         mbContext->mbID(), &curRID,
                                          &_callback, TRUE, FALSE ) ;
 
             _hasLockedRecord = FALSE ;
          }
+      }
+   }
+
+   void _dmsScannerLockHandler::_releaseAllLocks( dmsStorageDataCommon *su,
+                                                  dmsMBContext *mbContext,
+                                                  const dmsRecordID &curRID,
+                                                  pmdEDUCB *cb )
+   {
+      if ( _hasLockedRecord &&
+           curRID.isValid() )
+      {
+         _pTransCB->transLockRelease( cb,
+                                      su->logicalID(),
+                                      mbContext->mbID(),
+                                      &curRID,
+                                      &_callback ) ;
+         _hasLockedRecord = FALSE ;
+      }
+
+      _releaseCSCLLock( su, mbContext, cb ) ;
+   }
+
+   /*
+      _dmsSecScanner implement
+    */
+   _dmsSecScanner::_dmsSecScanner( dmsStorageDataCommon *su,
+                                   dmsMBContext *context,
+                                   mthMatchRuntime *matchRuntime,
+                                   DMS_ACCESS_TYPE accessType,
+                                   INT64 maxRecords,
+                                   INT64 skipNum,
+                                   INT32 flags,
+                                   IDmsOprHandler *handler )
+   : _dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, handler ),
+     _dmsScannerLockHandler( handler, flags ),
+     _curRecordPtr( NULL ),
+     _isCountOnly( FALSE ),
+     _firstRun( TRUE ),
+     _onceRestNum( pmdGetOptionCB()->indexScanStep() ),
+     _cb( NULL )
+   {
+   }
+
+   _dmsSecScanner::~_dmsSecScanner()
+   {
+      _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN_ADVANCE, "_dmsSecScanner::advance" )
+   INT32 _dmsSecScanner::advance( dmsRecordID &recordID,
+                                  _mthRecordGenerator &generator,
+                                  pmdEDUCB *cb,
+                                  _mthMatchTreeContext *mthContext )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSECSCAN_ADVANCE ) ;
+
+      if ( _firstRun )
+      {
+         rc = _firstInit( cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to call first init, rc: %d", rc ) ;
+
+         // unset first run
+         _firstRun = FALSE ;
+      }
+      else if ( _curRID.isValid() )
+      {
+         _releaseTransLock( _pSu, _context, _curRID, cb ) ;
       }
 
       rc = _fetchNext( recordID, generator, cb, mthContext ) ;
@@ -679,37 +659,47 @@ namespace engine
 
    done:
       _saveAdvancedRecrodID( recordID, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSECSCAN_ADVANCE, rc ) ;
       return rc ;
 
    error:
       recordID.reset() ;
-      _curRID.reset() ;
       goto done ;
    }
 
-   void _dmsDataScanner::stop()
+   void _dmsSecScanner::stop()
    {
-      _releaseLocks() ;
+      _onStop() ;
+      _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
       _curRID.reset() ;
    }
 
-   void _dmsDataScanner::reset( const dmsRecordID &recordID )
+   void _dmsSecScanner::pause()
    {
-      _releaseLocks() ;
+      _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
+      _context->pause() ;
       _firstRun = TRUE ;
-      _firstFetch = TRUE ;
-      _curRID = recordID ;
-      _cursorPtr.reset() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__FIRSTINIT, "_dmsDataScanner::_firstInit" )
-   INT32 _dmsDataScanner::_firstInit( pmdEDUCB *cb )
+   dmsTransLockCallback* _dmsSecScanner::callbackHandler()
+   {
+      return &_callback ;
+   }
+
+   const dmsTransRecordInfo* _dmsSecScanner::recordInfo() const
+   {
+      return _callback.getTransRecordInfo() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN__FIRSTINIT, "_dmsSecScanner::_firstInit" )
+   INT32 _dmsSecScanner::_firstInit( pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB__DMSDATASCAN__FIRSTINIT ) ;
+      PD_TRACE_ENTRY( SDB__DMSSECSCAN__FIRSTINIT ) ;
 
-      dmsTBTransContext tbTxContext( _context, _accessType ) ;
+      _cb = cb ;
+
       _initLockInfo( _pSu, _context, _accessType, cb ) ;
 
       if ( cb->isInterrupted() )
@@ -723,14 +713,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
-                                           _accessType ) )
-      {
-         PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  _context->mb()->_flag ) ;
-         rc = SDB_DMS_INCOMPATIBLE_MODE ;
-         goto error ;
-      }
+      PD_CHECK( dmsAccessAndFlagCompatiblity( _context->mb()->_flag,
+                                              _accessType ),
+                SDB_DMS_INCOMPATIBLE_MODE, error, PDERROR,
+                "Incompatible collection mode: %d", _context->mb()->_flag ) ;
 
       // set callback info
       _callback.setBaseInfo( _pTransCB, cb ) ;
@@ -738,79 +724,64 @@ namespace engine
                            _pSu->logicalID(),
                            _context->clLID() ) ;
 
-      _cb = cb ;
-
       // As a performance improvement, we are going to acquire the CS and
       // CL lock right in the beginning to avoid extra performance overhead
       // to acquire these locks when acquiring record lock in each step
       // We release and require the lock during pauseScan/resumeScan
-      rc = _acquireCSCLLock( _pSu, _context, cb, &tbTxContext ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = _acquireCSCLLock( _pSu, _context, cb, &( _getTransContext() ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to acquired collection space and "
+                   "collection locks, rc: %d", rc ) ;
 
-      rc = _context->getCollPtr()->createDataCursor( _cursorPtr,
-                                                     _curRID,
-                                                     TRUE,
-                                                     _isForward,
-                                                     cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create data cursor on "
-                   "collection [%s.%s], rc: %d", _pSu->getSuName(),
-                   _context->clName(), rc ) ;
+      rc = _onFirstInit( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to call first init, rc: %d", rc ) ;
 
-      // unset first run
-      _firstRun = FALSE ;
+      _onceRestNum = _getOnceRestNum() ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSDATASCAN__FIRSTINIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSECSCAN__FIRSTINIT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__FETCHNEXT, "_dmsDataScanner::_fetchNext" )
-   INT32 _dmsDataScanner::_fetchNext( dmsRecordID &recordID,
-                                      _mthRecordGenerator &generator,
-                                      pmdEDUCB *cb,
-                                      _mthMatchTreeContext *mthContext )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN__FETCHNEXT, "_dmsSecScanner::_fetchNext" )
+   INT32 _dmsSecScanner::_fetchNext( dmsRecordID &recordID,
+                                     _mthRecordGenerator &generator,
+                                     _pmdEDUCB *cb,
+                                     _mthMatchTreeContext *mthContext )
    {
-      INT32 rc                = SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSECSCAN__FETCHNEXT ) ;
+
       BOOLEAN result          = TRUE ;
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
 
       _hasLockedRecord        = FALSE ;
 
-      PD_TRACE_ENTRY( SDB__DMSDATASCAN__FETCHNEXT ) ;
-
-      while ( !( _cursorPtr->isEOF() ) && ( 0 != _maxRecords ) )
+      while ( ( !isHitEnd() ) &&
+              ( _onceRestNum -- > 0 ) &&
+              ( 0 != _maxRecords ) )
       {
-         dmsRecordID lastRID, nextRID ;
-
-         if ( _firstFetch )
+         dmsRecordID lastRID = _curRID ;
+         rc = _advanceScanner( cb ) ;
+         if ( SDB_OK != rc )
          {
-            _firstFetch = FALSE ;
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Failed to advance cursor, rc: %d", rc ) ;
+            }
+            goto error ;
          }
-         else
-         {
-            rc = _cursorPtr->moveNext( cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to move next, rc: %d", rc ) ;
-         }
-
-         rc = _cursorPtr->getCurrentRecordID( nextRID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get record ID, rc: %d", rc ) ;
-
-         lastRID = _curRID ;
-         _curRID = nextRID ;
 
          if ( DPS_TRANSLOCK_MAX != _recordLock )
          {
             BOOLEAN skipRecord = FALSE ;
-            dmsTBTransContext tbTxContext( _context, _accessType ) ;
-            rc = _checkTransLock( _pSu, _context, _curRID, cb, &tbTxContext,
+            dmsScanTransContext &transContext = _getTransContext() ;
+            transContext.reset() ;
+            rc = _checkTransLock( _pSu, _context, _curRID, cb, &transContext,
                                   _recordRW, lastRID, skipRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, rc: %d", rc ) ;
 
@@ -822,13 +793,28 @@ namespace engine
 
          if ( !_matchRuntime && _skipNum > 0 )
          {
-            --_skipNum ;
+            if ( _skipNum > 0 )
+            {
+               --_skipNum ;
+               continue ;
+            }
+            else if ( _isCountOnly )
+            {
+               if ( _maxRecords > 0 )
+               {
+                  --_maxRecords ;
+               }
+               recordID = _curRID ;
+               recordDataPtr = 0 ;
+               generator.setDataPtr( recordDataPtr ) ;
+               goto done ;
+            }
          }
          else
          {
             recordID = _curRID ;
 
-            rc = _cursorPtr->getCurrentRecord( recordData ) ;
+            rc = _getCurrentRecord( recordData ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get record data, rc: %d", rc ) ;
 
             recordDataPtr = ( ossValuePtr )recordData.data() ;
@@ -874,18 +860,18 @@ namespace engine
                      else
                      {
                         _checkMaxRecordsNum( generator ) ;
-                        goto done ; // find ok
+                        goto done ;
                      }
                   }
                }
-               catch( std::exception &e )
+               catch ( exception &e )
                {
-                  PD_LOG ( PDERROR, "Failed to create BSON object: %s",
-                           e.what() ) ;
-                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Failed to create BSON object, occur exception: %s",
+                          e.what() ) ;
+                  rc = ossException2RC( &e ) ;
                   goto error ;
                }
-            } // if ( _match )
+            }
             else
             {
                try
@@ -894,11 +880,11 @@ namespace engine
                   rc = generator.resetValue( obj, mthContext ) ;
                   PD_RC_CHECK( rc, PDERROR, "resetValue failed:rc=%d", rc ) ;
                }
-               catch( std::exception &e )
+               catch ( exception &e )
                {
-                  rc = SDB_SYS ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to create BSON object: %s",
-                               e.what() ) ;
+                  PD_LOG( PDERROR, "Failed to create BSON object, occur exception: %s",
+                          e.what() ) ;
+                  rc = ossException2RC( &e ) ;
                   goto error ;
                }
 
@@ -918,22 +904,350 @@ namespace engine
          }
       }
 
-      rc = SDB_DMS_EOC ;
+      rc = _onFetchEOC() ;
+      if ( SDB_OK == rc )
+      {
+         rc = SDB_DMS_EOC ;
+      }
       goto error ;
 
    done:
-      PD_TRACE_EXITRC ( SDB__DMSDATASCAN__FETCHNEXT, rc );
+      PD_TRACE_EXITRC( SDB__DMSSECSCAN__FETCHNEXT, rc ) ;
       return rc ;
 
    error:
-      _releaseLocks() ;
+      _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
 
       recordID.reset() ;
       recordDataPtr = 0 ;
       generator.setDataPtr( recordDataPtr ) ;
-      _curRID.reset() ;
 
       goto done ;
+   }
+
+   /*
+      _dmsDataScanner implement
+    */
+   _dmsDataScanner::_dmsDataScanner( dmsStorageDataCommon *su,
+                                     dmsMBContext *context,
+                                     _rtnTBScanner *scanner,
+                                     mthMatchRuntime *matchRuntime,
+                                     DMS_ACCESS_TYPE accessType,
+                                     INT64 maxRecords,
+                                     INT64 skipNum,
+                                     INT32 flags,
+                                     IDmsOprHandler *opHandler )
+   : _dmsSecScanner( su,
+                     context,
+                     matchRuntime,
+                     accessType,
+                     maxRecords,
+                     skipNum,
+                     flags,
+                     opHandler ),
+     _scannerContext( this ),
+     _transContext( context, accessType )
+   {
+      SDB_ASSERT( NULL != scanner, "scanner should not be NULL" ) ;
+      _scanner = scanner ;
+   }
+
+   BOOLEAN _dmsDataScanner::isHitEnd() const
+   {
+      return _scanner ? _scanner->isEOF() : TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__ONFIRSTINIT, "_dmsDataScanner::_onFirstInit" )
+   INT32 _dmsDataScanner::_onFirstInit( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__DMSDATASCAN__ONFIRSTINIT ) ;
+
+      if ( NULL == _scanner )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATASCAN__ONFIRSTINIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__ONADVANCESCANNER, "_dmsDataScanner::_advanceScanner" )
+   INT32 _dmsDataScanner::_advanceScanner( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATASCAN__ONADVANCESCANNER ) ;
+
+      rc = _scanner->advance( _curRID ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Failed to advance scanner, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATASCAN__ONADVANCESCANNER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__GETCURRID, "_dmsDataScanner::_getCurrentRID" )
+   INT32 _dmsDataScanner::_getCurrentRID( dmsRecordID &nextRID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATASCAN__GETCURRID ) ;
+
+      nextRID = _curRID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATASCAN__GETCURRID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__GETCURREC, "_dmsDataScanner::_getCurrentRecord" )
+   INT32 _dmsDataScanner::_getCurrentRecord( dmsRecordData &recordData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATASCAN__GETCURREC ) ;
+
+      rc = _scanner->getCurrentRecord( recordData ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATASCAN__GETCURREC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   UINT64 _dmsDataScanner::_getOnceRestNum() const
+   {
+      return (UINT64)( pmdGetOptionCB()->indexScanStep() * 10 ) ;
+   }
+
+   /*
+      _dmsIndexScanner implement
+    */
+   _dmsIndexScanner::_dmsIndexScanner( dmsStorageDataCommon *su,
+                                       dmsMBContext *context,
+                                       rtnIXScanner *scanner,
+                                       mthMatchRuntime *matchRuntime,
+                                       DMS_ACCESS_TYPE accessType,
+                                       INT64 maxRecords,
+                                       INT64 skipNum,
+                                       INT32 flags,
+                                       IDmsOprHandler *opHandler )
+   : _dmsSecScanner( su,
+                       context,
+                       matchRuntime,
+                       accessType,
+                       maxRecords,
+                       skipNum,
+                       flags,
+                       opHandler ),
+     _scannerContext( this, scanner ),
+     _transContext( context, accessType, scanner )
+   {
+      SDB_ASSERT( NULL != scanner, "scanner should not be NULL" ) ;
+      _scanner = scanner ;
+   }
+
+   BOOLEAN _dmsIndexScanner::isHitEnd() const
+   {
+      return _scanner ? _scanner->isEOF() : TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__ONFIRSTINIT, "_dmsIndexScanner::_onFirstInit" )
+   INT32 _dmsIndexScanner::_onFirstInit( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__DMSIDXSCAN__ONFIRSTINIT ) ;
+
+      if ( NULL == _scanner )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
+      _scanner->setReadonly( isReadOnly() ) ;
+      if ( DPS_TRANSLOCK_MAX == _recordLock ||
+           cb->getTransExecutor()->isLockEscalated( LOCKMGR_TRANS_LOCK ) )
+      {
+         _scanner->disableByType( SCANNER_TYPE_MEM_TREE ) ;
+      }
+
+      rc = _scanner->resumeScan() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resum index scanner, rc: %d", rc ) ;
+
+      _callback.setIXScanner( _scanner ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIDXSCAN__ONFIRSTINIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsIndexScanner::_onFetchEOC()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _scanner->pauseScan() ;
+      PD_RC_CHECK( rc, PDERROR, "Pause scan failed, rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   void _dmsIndexScanner::_onPause()
+   {
+      if ( _curRID.isValid() )
+      {
+         INT32 rc = _scanner->pauseScan() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
+         }
+      }
+   }
+
+   void _dmsIndexScanner::_onStop()
+   {
+      if ( _curRID.isValid() )
+      {
+         INT32 rc = _scanner->pauseScan() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
+         }
+      }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__ONADVANCESCANNER, "_dmsIndexScanner::_advanceScanner" )
+   INT32 _dmsIndexScanner::_advanceScanner( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSIDXSCAN__ONADVANCESCANNER ) ;
+
+      rc = _scanner->advance( _curRID ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_IXM_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Failed to advance scanner, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = SDB_DMS_EOC ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIDXSCAN__ONADVANCESCANNER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__GETCURRID, "_dmsIndexScanner::_getCurrentRID" )
+   INT32 _dmsIndexScanner::_getCurrentRID( dmsRecordID &nextRID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSIDXSCAN__GETCURRID ) ;
+
+      nextRID = _curRID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIDXSCAN__GETCURRID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__GETCURREC, "_dmsIndexScanner::_getCurrentRecord" )
+   INT32 _dmsIndexScanner::_getCurrentRecord( dmsRecordData &recordData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSIDXSCAN__GETCURREC ) ;
+
+      rc = _pSu->extractData( _context, _curRID, _cb, recordData, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIDXSCAN__GETCURREC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   void _dmsIndexScanner::_onRecordSkipped( const dmsRecordID &curRID,
+                                            dmsScanTransContext *transContext )
+   {
+      _scanner->removeDuplicatRID( curRID ) ;
+   }
+
+   void _dmsIndexScanner::_onRecordLocked( const dmsRecordID &curRID,
+                                           dmsScanTransContext *transContext,
+                                           BOOLEAN &skipRecord )
+   {
+      if ( !transContext->isCursorSame() || _callback.isSkipRecord() )
+      {
+         /// remove the duplicate key
+         _scanner->removeDuplicatRID( curRID ) ;
+
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
+                 "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
+                 "isSkipRecord(%d)",
+                 curRID._extent, curRID._offset,
+                 transContext->isCursorSame(), _onceRestNum,
+                 _callback.isSkipRecord()) ;
+#endif
+         // When cursor changed, we may need to go back to previous
+         // key to retry, don't count as a step. Also avoid potential
+         // pause here if step becomes 0, in which case we may unexpectly
+         // lose previously savedObj and savedRID and cause skip record.
+         if ( !transContext->isCursorSame() )
+         {
+            ++ _onceRestNum ;
+         }
+
+         skipRecord = TRUE ;
+      }
+   }
+
+   UINT64 _dmsIndexScanner::_getOnceRestNum() const
+   {
+      return (UINT64)( pmdGetOptionCB()->indexScanStep() ) ;
    }
 
    /*
@@ -1933,66 +2247,61 @@ namespace engine
    }
 
    /*
-      _dmsTBScanner implement
-   */
-   _dmsTBScanner::_dmsTBScanner( dmsStorageDataCommon *su,
-                                 dmsMBContext *context,
-                                 mthMatchRuntime *matchRuntime,
-                                 DMS_ACCESS_TYPE accessType,
-                                 INT64 maxRecords,
-                                 INT64 skipNum,
-                                 INT32 flag,
-                                 IDmsOprHandler *opHandler )
-   :_dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
-    _curRID(),
-    _scanner( su, context, _curRID, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
-    _scannerContext( this )
+      _dmsEntireScanner implement
+    */
+   _dmsEntireScanner::_dmsEntireScanner( dmsStorageDataCommon *su,
+                                         dmsMBContext *context,
+                                         mthMatchRuntime *matchRuntime,
+                                         dmsSecScanner &secScanner,
+                                         rtnScanner *scanner,
+                                         BOOLEAN ownedScanner,
+                                         dmsScannerContext &scannerContext,
+                                         DMS_ACCESS_TYPE accessType,
+                                         INT64 maxRecords,
+                                         INT64 skipNum,
+                                         INT32 flag,
+                                         IDmsOprHandler *opHandler )
+   : _dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
+     _secScanner( secScanner ),
+     _scanner( scanner ),
+     _scannerContext( scannerContext )
    {
       _firstRun      = TRUE ;
+      _scanner       = scanner ;
+      _ownedScanner  = ownedScanner ;
 
       _lockInited    = FALSE ;
       _isolation     = TRANS_ISOLATION_RU ;
       _lockType      = DPS_TRANSLOCK_MAX ;
       _lockOpMode    = DPS_TRANSLOCK_OP_MODE_ACQUIRE ;
-
-      _selectStep = pmdGetOptionCB()->indexScanStep() ;
-      _selectedRecords = 0 ;
    }
 
-   _dmsTBScanner::~_dmsTBScanner()
+   _dmsEntireScanner::~_dmsEntireScanner()
    {
+      if ( _ownedScanner )
+      {
+         SDB_OSS_DEL _scanner ;
+         _scanner = NULL ;
+      }
    }
 
-   dmsTransLockCallback* _dmsTBScanner::callbackHandler()
-   {
-      return _scanner.callbackHandler() ;
-   }
-
-   const dmsTransRecordInfo* _dmsTBScanner::recordInfo() const
-   {
-      return _scanner.recordInfo() ;
-   }
-
-   INT32 _dmsTBScanner::_firstInit()
+   INT32 _dmsEntireScanner::_firstInit()
    {
       INT32 rc = SDB_OK ;
 
       if ( _lockInited )
       {
-         _scanner.initLockInfo( _isolation, _lockType, _lockOpMode ) ;
+         _secScanner.initLockInfo( _isolation, _lockType, _lockOpMode ) ;
       }
 
-      if ( !_context->isMBLock( _scanner.getMBLockType() ) )
+      if ( !_context->isMBLock( _secScanner.getMBLockType() ) )
       {
-         rc = _context->mbLock( _scanner.getMBLockType() ) ;
+         rc = _context->mbLock( _secScanner.getMBLockType() ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
 
-      _context->mbStat()->_crudCB.increaseTbScan( 1 ) ;
-
-      _resetInnerScanner() ;
-      _firstRun = FALSE ;
-      _selectedRecords = 0 ;
+      rc = _onInit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init scanner, rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -2000,46 +2309,48 @@ namespace engine
       goto done ;
    }
 
-   void _dmsTBScanner::_resetInnerScanner()
+   void _dmsEntireScanner::_pauseInnerScanner()
    {
-      _scanner.reset( _curRID ) ;
+      _secScanner.pause() ;
    }
 
-   INT32 _dmsTBScanner::advance( dmsRecordID &recordID,
-                                 _mthRecordGenerator &generator,
-                                 pmdEDUCB *cb,
-                                 _mthMatchTreeContext *mthContext )
+   INT32 _dmsEntireScanner::advance( dmsRecordID &recordID,
+                                     _mthRecordGenerator &generator,
+                                     pmdEDUCB *cb,
+                                     _mthMatchTreeContext *mthContext )
    {
       INT32 rc = SDB_OK ;
       if ( _firstRun )
       {
          rc = _firstInit() ;
          PD_RC_CHECK( rc, PDERROR, "First init failed, rc: %d", rc ) ;
-      }
-      else if ( _selectedRecords >= _selectStep )
-      {
-         // just release for a while
-         _curRID = _scanner.getCurRID() ;
-         _resetInnerScanner() ;
-         _context->pause() ;
-
-         PD_LOG( PDDEBUG, "Pause scanner [%s.%s] at extent: %u, offset: %u",
-                 _pSu->getSuName(), _context->clName(), _curRID._extent, _curRID._offset ) ;
-         _selectedRecords = 0 ;
+         _firstRun = FALSE ;
       }
 
-      rc = _scanner.advance( recordID, generator, cb, mthContext ) ;
-      if ( SDB_DMS_EOC == rc )
+      while ( TRUE )
       {
-         goto error ;
-      }
-      else if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to advance scanner, rc: %d", rc ) ;
-         goto error ;
-      }
+         rc = _secScanner.advance( recordID, generator, cb, mthContext ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            if ( _secScanner.isHitEnd() )
+            {
+               goto error ;
+            }
 
-      ++ _selectedRecords ;
+            // just pause
+            _pauseInnerScanner() ;
+
+            rc = SDB_OK ;
+            continue ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to advance scanner, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         break ;
+      }
 
    done:
       _saveAdvancedRecrodID( recordID, rc ) ;
@@ -2048,10 +2359,40 @@ namespace engine
       goto done ;
    }
 
-   void _dmsTBScanner::stop()
+   void _dmsEntireScanner::stop()
    {
-      _scanner.stop() ;
-      _curRID.reset() ;
+      _secScanner.stop() ;
+   }
+
+   /*
+      _dmsTBScanner implement
+   */
+   _dmsTBScanner::_dmsTBScanner( dmsStorageDataCommon *su,
+                                 dmsMBContext *context,
+                                 mthMatchRuntime *matchRuntime,
+                                 rtnTBScanner *scanner,
+                                 BOOLEAN ownedScanner,
+                                 DMS_ACCESS_TYPE accessType,
+                                 INT64 maxRecords,
+                                 INT64 skipNum,
+                                 INT32 flag,
+                                 IDmsOprHandler *opHandler )
+   : _dmsEntireScanner( su, context, matchRuntime, _secScanner, scanner,
+                        ownedScanner, _scannerContext, accessType, maxRecords,
+                        skipNum, flag, opHandler ),
+     _secScanner( su, context, scanner, matchRuntime, accessType, maxRecords,
+                  skipNum, flag, opHandler ),
+     _scannerContext( this )
+   {
+   }
+
+   INT32 _dmsTBScanner::_onInit()
+   {
+      INT32 rc = SDB_OK ;
+
+      _context->mbStat()->_crudCB.increaseTbScan( 1 ) ;
+
+      return rc ;
    }
 
    class _dmsIXSecScanner::_SimpleBSONBuilder
@@ -3167,90 +3508,22 @@ namespace engine
                                  INT64 skipNum,
                                  INT32 flag,
                                  IDmsOprHandler *opHandler )
-   :_dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
-    _secScanner( su, context, matchRuntime, scanner, accessType, maxRecords,
-                 skipNum, flag, opHandler ),
-    _ixScannerContext( this, scanner )
+   : _dmsEntireScanner( su, context, matchRuntime, _secScanner, scanner,
+                        ownedScanner, _scannerContext, accessType, maxRecords, skipNum, flag,
+                        opHandler ),
+     _secScanner( su, context, scanner, matchRuntime, accessType, maxRecords,
+                  skipNum, flag, opHandler ),
+     _scannerContext( this, scanner )
    {
-      _scanner       = scanner ;
-      _eof           = FALSE ;
-      _ownedScanner  = ownedScanner ;
    }
 
-   _dmsIXScanner::~_dmsIXScanner()
-   {
-      _secScanner.release() ;
-      if ( _scanner && _ownedScanner )
-      {
-         SDB_OSS_DEL _scanner ;
-      }
-      _scanner       = NULL ;
-   }
-
-   dmsTransLockCallback* _dmsIXScanner::callbackHandler()
-   {
-      return _secScanner.callbackHandler() ;
-   }
-
-   const dmsTransRecordInfo* _dmsIXScanner::recordInfo() const
-   {
-      return _secScanner.recordInfo() ;
-   }
-
-   void _dmsIXScanner::_resetIXSecScanner ()
-   {
-      _secScanner._firstRun = TRUE ;
-   }
-
-   INT32 _dmsIXScanner::advance( dmsRecordID &recordID,
-                                 _mthRecordGenerator &generator,
-                                 pmdEDUCB * cb,
-                                 _mthMatchTreeContext *mthContext )
+   INT32 _dmsIXScanner::_onInit()
    {
       INT32 rc = SDB_OK ;
 
-      while ( !_eof )
-      {
-         rc = _secScanner.advance( recordID, generator, cb, mthContext ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            if ( 0 != _secScanner.getMaxRecords() &&
-                 !_secScanner.eof() )
-            {
-               _resetIXSecScanner() ;
-               _context->pause() ;
-               continue ;
-            }
-            else
-            {
-               _eof = TRUE ;
-               goto error ;
-            }
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "IX scanner failed, rc: %d", rc ) ;
-            goto error ;
-         }
-         else
-         {
-            goto done ;
-         }
-      }
-      rc = SDB_DMS_EOC ;
-      goto error ;
+      _context->mbStat()->_crudCB.increaseIxScan( 1 ) ;
 
-   done:
-      _saveAdvancedRecrodID( recordID, rc ) ;
       return rc ;
-   error:
-      goto done ;
-   }
-
-   void _dmsIXScanner::stop ()
-   {
-      _secScanner.stop() ;
-      _eof = TRUE ;
    }
 
    /*

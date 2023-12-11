@@ -37,6 +37,7 @@
 #define DMS_WT_CURSOR_HPP_
 
 #include "interface/IStorageService.hpp"
+#include "ossTypes.h"
 #include "wiredtiger/dmsWTEngineOptions.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
 #include "wiredtiger/dmsWTItem.hpp"
@@ -83,21 +84,39 @@ namespace wiredtiger
       INT32 next() ;
       INT32 prev() ;
 
-      INT32 getKey( const CHAR *&key ) ;
       INT32 getKey( UINT64 &key ) ;
+      INT32 getKey( const CHAR *&key ) ;
+      INT32 getKey( const dmsWTItem &key ) ;
+
       INT32 getValue( dmsWTItem &value ) ;
 
       INT32 insert( UINT64 key, const dmsWTItem &value ) ;
       INT32 update( UINT64 key, const dmsWTItem &value ) ;
       INT32 remove( UINT64 key ) ;
 
+      INT32 insert( const CHAR *key, const dmsWTItem &value ) ;
+      INT32 update( const CHAR *key, const dmsWTItem &value ) ;
+      INT32 remove( const CHAR *key ) ;
+
+      INT32 insert( const dmsWTItem &key, const dmsWTItem &value ) ;
+      INT32 update( const dmsWTItem &key, const dmsWTItem &value ) ;
+      INT32 remove( const dmsWTItem &key ) ;
+
       INT32 search( UINT64 key ) ;
       INT32 search( const CHAR *key ) ;
-      INT32 searchNext( UINT64 key ) ;
+      INT32 search( const dmsWTItem &key ) ;
+
+      INT32 searchNext( UINT64 key, BOOLEAN isAfter, BOOLEAN &isFound ) ;
+      INT32 searchNext( const CHAR *key, BOOLEAN isAfter, BOOLEAN &isFound ) ;
+      INT32 searchNext( const dmsWTItem &key, BOOLEAN isAfter, BOOLEAN &isFound ) ;
+
+      INT32 searchPrev( UINT64 key, BOOLEAN isBefore, BOOLEAN &isFound ) ;
+      INT32 searchPrev( const CHAR *key, BOOLEAN isBefore, BOOLEAN &isFound ) ;
+      INT32 searchPrev( const dmsWTItem &key, BOOLEAN isBefore, BOOLEAN &isFound ) ;
 
       INT32 searchAndGetValue( UINT64 key, dmsWTItem &value ) ;
       INT32 searchAndGetValue( const CHAR *key, dmsWTItem &value ) ;
-      INT32 searchNextAndGetValue( UINT64 key, INT64 &nextKey, dmsWTItem &value ) ;
+      INT32 searchAndGetValue( const dmsWTItem &key, dmsWTItem &value ) ;
 
    protected:
       _dmsWTSession &_session ;

@@ -428,7 +428,7 @@ namespace engine
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
       ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
 
-      _resetInfoByName( suDescriptor->getStorageInfo()._suName ) ;
+      _resetInfoByName( suDescriptor->getSUName() ) ;
 
       _pSyncMgr           = NULL ;
       _pStatMgr           = NULL ;
@@ -732,7 +732,7 @@ namespace engine
    {
       if ( _suDescriptor )
       {
-         return _suDescriptor->getStorageInfo()._suName ;
+         return _suDescriptor->getSUName() ;
       }
       return "" ;
    }
@@ -1239,7 +1239,7 @@ namespace engine
       // if the cs without lob, lobd file isn't exist, then _dmsHeader is NULL.
       if ( _dmsHeader && _suDescriptor )
       {
-         _dmsHeader->_csUniqueID = _suDescriptor->getStorageInfo()._csUniqueID ;
+         _dmsHeader->_csUniqueID = _suDescriptor->getCSUniqueID() ;
          _onHeaderUpdated() ;
          flushHeader( TRUE ) ;
       }
@@ -1415,7 +1415,7 @@ namespace engine
       pHeader->_version = _curVersion() ;
       _initHeaderPageSize( pHeader, &( _suDescriptor->getStorageInfo() ) ) ;
       pHeader->_storageUnitSize = _dataOffset() / pHeader->_pageSize ;
-      ossStrncpy ( pHeader->_name, _suDescriptor->getStorageInfo()._suName, DMS_SU_NAME_SZ ) ;
+      ossStrncpy ( pHeader->_name, _suDescriptor->getSUName(), DMS_SU_NAME_SZ ) ;
       pHeader->_sequence = _suDescriptor->getStorageInfo()._sequence ;
       pHeader->_numMB    = 0 ;
       pHeader->_MBHWM    = 0 ;
@@ -1425,7 +1425,7 @@ namespace engine
       pHeader->_commitFlag = 0 ;
       pHeader->_commitLsn  = ~0 ;
       pHeader->_commitTime = 0 ;
-      pHeader->_csUniqueID = _suDescriptor->getStorageInfo()._csUniqueID ;
+      pHeader->_csUniqueID = _suDescriptor->getCSUniqueID() ;
       pHeader->_idxInnerHWM = 0 ;
       pHeader->_clInnderHWM = 0 ;
    }
@@ -1539,7 +1539,7 @@ namespace engine
                  pHeader->_storageUnitSize ) ;
          rc = SDB_SYS ;
       }
-      else if ( 0 != ossStrncmp ( _suDescriptor->getStorageInfo()._suName, pHeader->_name,
+      else if ( 0 != ossStrncmp ( _suDescriptor->getSUName(), pHeader->_name,
                                   DMS_SU_NAME_SZ ) )
       {
          PD_LOG ( PDERROR, "Invalid storage unit name: %s", pHeader->_name ) ;
@@ -1581,9 +1581,9 @@ namespace engine
          goto error ;
       }
 
-      if ( _suDescriptor->getStorageInfo()._csUniqueID != pHeader->_csUniqueID )
+      if ( _suDescriptor->getCSUniqueID() != pHeader->_csUniqueID )
       {
-         _suDescriptor->getStorageInfo()._csUniqueID = pHeader->_csUniqueID ;
+         _suDescriptor->setCSUniqueID( pHeader->_csUniqueID ) ;
       }
 
       PD_LOG ( PDDEBUG, "Validated storage unit file %s\n"
@@ -2019,18 +2019,6 @@ namespace engine
             {
                break ;
             }
-         }
-      }
-
-      // start extend segment job
-      if ( _extendThreshold() > 0 &&
-           _smeMgr.totalFree() < _extendThreshold() &&
-           ossTestAndLatch( _segmentLatch.get(), EXCLUSIVE ) )
-      {
-         if ( _smeMgr.totalFree() >= _extendThreshold() ||
-              SDB_OK != startExtendSegmentJob( NULL, this ) )
-         {
-            ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
          }
       }
 

@@ -98,12 +98,26 @@ namespace engine
    _dmsIdxMetadata::_dmsIdxMetadata( dmsSUDescriptor *su,
                                      dmsMetadataBlock *mb,
                                      dmsMBStatInfo *mbStat,
-                                     utilIdxUniqueID idxUID,
-                                     UINT32 idxLID )
+                                     _ixmIndexCB *indexCB )
    : _dmsCLMetadata( su, mb, mbStat ),
-     _idxInnerID( utilGetIdxInnerID( idxUID ) ),
-     _idxLID( idxLID )
+     _idxInnerID( utilGetIdxInnerID( indexCB->getUniqueID() ) ),
+     _idxLID( indexCB->getLogicalID() ),
+     _keyPattern( indexCB->keyPattern() ),
+     _isUnique( indexCB->unique() ),
+     _isStrictUnique( indexCB->isIDIndex() ),
+     _isEnforced( indexCB->enforced() ),
+     _isNotNull( indexCB->notNull() ),
+     _isNotArray( indexCB->notArray() )
    {
+   }
+
+   _dmsIdxMetadata::_dmsIdxMetadata( const _dmsIdxMetadata &o, BOOLEAN getOwned )
+   : _dmsIdxMetadata( o )
+   {
+      if ( getOwned )
+      {
+         _keyPattern = _keyPattern.copy() ;
+      }
    }
 
 }

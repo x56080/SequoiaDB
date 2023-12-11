@@ -50,7 +50,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
-#include "rtnIXScannerFactory.hpp"
+#include "rtnScannerFactory.hpp"
 #include "dmsOprHandler.hpp"
 
 namespace fs = boost::filesystem ;
@@ -1850,19 +1850,18 @@ namespace engine
          // get the matcher from plan instead of manually loading it
          matchRuntime = planRuntime->getMatchRuntime( TRUE ) ;
 
-         rc = f.createScanner( scanType, &indexCB, predList, su, cb, scanner ) ;
+         rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, cb, scanner ) ;
          if ( rc )
          {
             goto error ;
          }
       }
 
-      mbContext->mbStat()->_crudCB.increaseIxScan( 1 ) ;
       mbContext->mbUnlock() ;
 
-      *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext,
-                                             matchRuntime, scanner, TRUE,
-                                             accessType, -1, 0, 0, opHandler ) ;
+      *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext, matchRuntime,
+                                             scanner, TRUE, accessType,
+                                             -1, 0, 0, opHandler ) ;
       if ( !(*ppScanner) )
       {
          PD_LOG( PDERROR, "Unable to allocate memory for dms ixscanner" ) ;
@@ -1877,6 +1876,7 @@ namespace engine
       if ( scanner )
       {
          f.releaseScanner( scanner ) ;
+         scanner = NULL ;
       }
       mbContext->mbUnlock() ;
       goto done ;
@@ -1893,6 +1893,8 @@ namespace engine
    {
       INT32 rc                 = SDB_OK ;
       mthMatchRuntime *matchRuntime = planRuntime->getMatchRuntime() ;
+      rtnScannerFactory f ;
+      rtnTBScanner *scanner = NULL ;
 
       SDB_ASSERT ( pCollectionShortName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( su, "su can't be NULL" ) ;
@@ -1900,8 +1902,14 @@ namespace engine
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "scanner can't be NULL" ) ;
 
-      *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext,
-                                             matchRuntime, accessType,
+      rc = f.createTBScanner( su, mbContext, cb, scanner ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext, matchRuntime,
+                                             scanner, TRUE, accessType,
                                              -1, 0, 0, opHandler ) ;
       if ( !(*ppScanner) )
       {

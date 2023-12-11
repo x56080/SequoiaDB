@@ -64,9 +64,10 @@ namespace engine
    _rtnMemIXTreeScanner::_rtnMemIXTreeScanner ( ixmIndexCB *pIndexCB,
                                                 rtnPredicateList *predList,
                                                 _dmsStorageUnit  *su,
+                                                _dmsMBContext    *mbContext,
                                                 _pmdEDUCB        *cb,
                                                 BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned ),
+   :_rtnIXScanner( pIndexCB, predList, su, mbContext, cb, indexCBOwnned ),
     _listIterator(*predList)
    {
       _pTransCB = pmdGetKRCB()->getTransCB() ;
@@ -226,7 +227,7 @@ namespace engine
          // mark _init to true so that advance won't call keyLocate again
          _init = TRUE ;
          // remove the eof flag so we will restart scan on the tree
-         _eof = _memIdxTree->isPosValid( _curIndexPos ) ? FALSE : TRUE ;
+         _isEOF = _memIdxTree->isPosValid( _curIndexPos ) ? FALSE : TRUE ;
       }
 
    done :
@@ -572,7 +573,7 @@ namespace engine
    done :
       if ( rc == SDB_IXM_EOC )
       {
-         _eof = TRUE ;
+         _isEOF = TRUE ;
          rid.reset() ;
 
          PD_LOG( PDDEBUG, "Hit end with obj(%s)",
@@ -674,7 +675,7 @@ namespace engine
 
          if ( !_memIdxTree.get() )
          {
-            _eof = TRUE ;
+            _isEOF = TRUE ;
             _available = FALSE ;
             goto done ;
          }
@@ -685,7 +686,7 @@ namespace engine
 
       if ( !_memIdxTree->isValid() )
       {
-         _eof = TRUE ;
+         _isEOF = TRUE ;
          _available = FALSE ;
          rc = SDB_DMS_INVALID_INDEXCB ;
          goto error ;

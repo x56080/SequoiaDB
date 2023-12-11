@@ -16,9 +16,11 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTStoreHolder.hpp
+   Source File Name = rtnScanner.hpp
 
-   Descriptive Name =
+   Descriptive Name = RunTime Scanner Header
+
+   When/how to use:
 
    Dependencies: N/A
 
@@ -33,51 +35,60 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_STORE_HOLDER_HPP_
-#define DMS_WT_STORE_HOLDER_HPP_
+#ifndef RTN_SCANNER_HPP__
+#define RTN_SCANNER_HPP__
 
-#include "wiredtiger/dmsWTStore.hpp"
-#include "wiredtiger/dmsWTUtil.hpp"
-#include "wiredtiger/dmsWTStorageEngine.hpp"
+#include "oss.hpp"
+#include "dms.hpp"
+#include "utilPooledObject.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
-namespace wiredtiger
-{
+
+   // forward declaration
+   class _dmsStorageUnit ;
+   class _dmsMBContext ;
+   class _pmdEDUCB ;
 
    /*
-      _dmsWTStoreHolder define
+      _rtnScanner define
     */
-   class _dmsWTStoreHolder
+   class _rtnScanner : public _utilPooledObject
    {
    public:
-      _dmsWTStoreHolder( dmsWTStorageEngine &engine,
-                         const dmsWTStore &store )
-      : _engine( engine ),
-        _store( store )
+      _rtnScanner( _dmsStorageUnit  *su,
+                   _dmsMBContext    *mbContext,
+                   INT32             direction,
+                   _pmdEDUCB        *cb )
+      : _su( su ),
+        _mbContext( mbContext ),
+        _direction( direction ),
+        _isEOF( FALSE ),
+        _cb( cb )
       {
       }
 
-      ~_dmsWTStoreHolder() = default ;
+      virtual ~_rtnScanner() {}
 
-      dmsWTStorageEngine &getEngine()
+   public:
+      BOOLEAN isEOF() const
       {
-         return _engine ;
+         return _isEOF ;
       }
 
-      dmsWTStore &getStore()
-      {
-         return _store ;
-      }
+      virtual INT32 advance( dmsRecordID &rid ) = 0 ;
 
    protected:
-      dmsWTStorageEngine &_engine ;
-      dmsWTStore _store ;
+      _dmsStorageUnit *_su ;
+      _dmsMBContext *_mbContext ;
+      INT32 _direction ;
+      BOOLEAN _isEOF ;
+      _pmdEDUCB *_cb ;
    } ;
 
-   typedef class _dmsWTStoreHolder dmsWTStoreHolder ;
+   typedef class _rtnScanner rtnScanner ;
 
 }
-}
 
-#endif // DMS_WT_STORE_HOLDER_HPP_
+#endif // RTN_SCANNER_HPP__

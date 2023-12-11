@@ -16,9 +16,11 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IDataCursor.hpp
+   Source File Name = rtnTBScanner.hpp
 
-   Descriptive Name =
+   Descriptive Name = RunTime Table Scanner Header
+
+   When/how to use:
 
    Dependencies: N/A
 
@@ -33,37 +35,48 @@
 
 *******************************************************************************/
 
-#ifndef SDB_I_DATA_CURSOR_HPP_
-#define SDB_I_DATA_CURSOR_HPP_
+#ifndef RTN_TB_SCANNER_HPP__
+#define RTN_TB_SCANNER_HPP__
 
+#include "rtnScanner.hpp"
 #include "interface/ICursor.hpp"
 
 namespace engine
 {
 
-   // forward declaration
-   class ICollection ;
-
    /*
-      IDataCursor define
+      _rtnTBScanner define
     */
-   class IDataCursor : public ICursor
+   class _rtnTBScanner : public _rtnScanner
    {
    public:
-      IDataCursor() = default ;
-      virtual ~IDataCursor() = default ;
-      IDataCursor( const IDataCursor & ) = delete ;
-      IDataCursor &operator =( const IDataCursor & ) = delete ;
+      _rtnTBScanner( _dmsStorageUnit  *su,
+                     _dmsMBContext    *mbContext,
+                     const dmsRecordID &startRID,
+                     BOOLEAN           isAfterStartRID,
+                     INT32             direction,
+                     _pmdEDUCB        *cb ) ;
+      virtual ~_rtnTBScanner() ;
 
    public:
-      virtual INT32 open( ICollection *collection,
-                          const dmsRecordID &startRID,
-                          BOOLEAN afterStartRID,
-                          BOOLEAN isForward,
-                          IExecutor *executor ) = 0 ;
+      BOOLEAN isEOF() const
+      {
+         return _isEOF ;
+      }
+
+      virtual INT32 advance( dmsRecordID &rid ) ;
+      INT32 getCurrentRID( dmsRecordID &nextRID ) ;
+      INT32 getCurrentRecord( dmsRecordData &recordData ) ;
+
+   protected:
+      dmsRecordID _startRID ;
+      BOOLEAN _isAfterStartRID ;
+
+      std::unique_ptr<IDataCursor> _cursorPtr ;
    } ;
+
+   typedef class _rtnTBScanner rtnTBScanner ;
 
 }
 
-
-#endif // SDB_I_DATA_CURSOR_HPP_
+#endif // RTN_TB_SCANNER_HPP__

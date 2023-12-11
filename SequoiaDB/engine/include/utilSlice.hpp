@@ -37,6 +37,7 @@
 #define UTIL_SLICE_HPP_
 
 #include "ossUtil.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -202,6 +203,21 @@ namespace engine
          return
                ( sizeof(T) + offset ) <= _size ?
                      reinterpret_cast<const T*>( _data ) : nullptr ;
+      }
+
+      ossPoolString toPoolString() const
+      {
+         ossPoolStringStream ss ;
+         ss << std::hex ;
+         for ( UINT32 i = 0 ; i < _size ; ++ i )
+         {
+            if ( i > 0 )
+            {
+               ss << " " ;
+            }
+            ss << (UINT32)( (UINT8)( _data[ i ] ) ) ;
+         }
+         return ss.str() ;
       }
 
    private:

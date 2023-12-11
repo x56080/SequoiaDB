@@ -48,16 +48,17 @@ namespace engine
 {
 
    class _dmsMBContext ;
+   class _rtnIXScanner ;
 
    /*
-      _dmsTBTransContext define
+      _dmsScanTransContext define
    */
-   class _dmsTBTransContext : public _IContext
+   class _dmsScanTransContext : public _IContext
    {
       public:
-         _dmsTBTransContext( _dmsMBContext *pMBContext,
-                             DMS_ACCESS_TYPE accessType ) ;
-         virtual ~_dmsTBTransContext() ;
+         _dmsScanTransContext( _dmsMBContext *pMBContext,
+                               DMS_ACCESS_TYPE accessType ) ;
+         virtual ~_dmsScanTransContext() ;
 
       protected:
          INT32       _checkAccess() ;
@@ -66,18 +67,27 @@ namespace engine
          virtual INT32 pause() ;
          virtual INT32 resume() ;
 
+         virtual void reset()
+         {
+         }
+
+         virtual BOOLEAN isCursorSame() const
+         {
+            return TRUE ;
+         }
+
       protected:
          _dmsMBContext           *_pMBContext ;
          DMS_ACCESS_TYPE         _accessType ;
 
    } ;
-   typedef _dmsTBTransContext dmsTBTransContext ;
+   typedef _dmsScanTransContext dmsScanTransContext ;
+   typedef _dmsScanTransContext dmsTBTransContext ;
 
-   class _rtnIXScanner ;
    /*
       _dmsIXTransContext define
    */
-   class _dmsIXTransContext : public _dmsTBTransContext
+   class _dmsIXTransContext : public _dmsScanTransContext
    {
       public:
          _dmsIXTransContext( _dmsMBContext *pMBContext,
@@ -85,15 +95,22 @@ namespace engine
                              _rtnIXScanner *pScanner ) ;
          virtual ~_dmsIXTransContext() ;
 
-         BOOLEAN  isCursorSame() const ;
-
       public:
          virtual INT32 pause() ;
          virtual INT32 resume() ;
 
+         virtual void reset()
+         {
+            _isSame = TRUE ;
+         }
+
+         virtual BOOLEAN isCursorSame() const
+         {
+            return _isSame ;
+         }
+
       protected:
          _rtnIXScanner           *_pScanner ;
-         BOOLEAN                 _isReadonly ;
          BOOLEAN                 _isSame ;
 
    } ;
