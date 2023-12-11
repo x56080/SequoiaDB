@@ -37,6 +37,10 @@ namespace bson {
             return ((1 << i) & bits) ? -1 : 1;
         }
 
+        unsigned getNKeys() const {
+            return nkeys;
+        }
+
         // for woCompare...
         unsigned descending(unsigned mask) const { return bits & mask; }
 

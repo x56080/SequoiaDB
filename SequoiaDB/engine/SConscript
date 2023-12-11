@@ -66,7 +66,8 @@ ossFiles = [
       "oss/ossVer.cpp",
       "oss/ossMem.cpp",
       "oss/ossDynamicLoad.cpp",
-      "oss/ossTimeZone.cpp"
+      "oss/ossTimeZone.cpp",
+      "oss/ossEndian.cpp"
       ]
 
 pmdFiles = [
@@ -209,7 +210,12 @@ utilFiles = [
       "util/utilRecycleBinConf.cpp",
       "util/utilRecycleReturnInfo.cpp",
       "util/utilSecure.cpp",
-      "util/utilLocation.cpp"
+      "util/utilLocation.cpp",
+      "util/utilStrictBuffer.cpp",
+      "util/keystring/utilKeyString.cpp",
+      "util/keystring/utilKeyStringBuilder.cpp",
+      "util/keystring/utilKeyStringCoder.cpp",
+      "util/keystring/utilKeyStringModifier.cpp",
       ]
 
 rtnFiles = [
