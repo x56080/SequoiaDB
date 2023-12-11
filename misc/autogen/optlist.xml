@@ -3211,7 +3211,7 @@
       <long>wtcachesize</long>
       <description>
          <en>Cache size of WiredTiger engine(unit: MB)</en>
-         <cn>WiredTiger的缓存大小（单位：MB）</cn>
+         <cn>WiredTigery引擎的缓存大小（单位：MB）</cn>
       </description>
       <reloadable>
          <en>Take effect after restart</en>
@@ -3219,10 +3219,210 @@
       </reloadable>
       <detail>
          <en>Cache size of WiredTiger engine(unit: MB)</en>
-         <cn>WiredTiger的缓存大小（单位：MB）</cn>
+         <cn>WiredTiger引擎的缓存大小（单位：MB）</cn>
       </detail>
       <type>int</type>
       <default>2048</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_TARGET</name>
+      <long>wtevicttarget</long>
+      <description>
+         <en>Evection target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的缓存页淘汰目标（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的缓存页淘汰目标（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>80</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_TRIGGER</name>
+      <long>wtevicttrigger</long>
+      <description>
+         <en>Evection trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的缓存页淘汰触发阈值（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的缓存页淘汰触发阈值（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>95</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_DIRTY_TARGET</name>
+      <long>wtevictdirtytarget</long>
+      <description>
+         <en>Evection dirty target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的脏页淘汰目标（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection dirty target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的脏页淘汰目标（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>5</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_DIRTY_TRIGGER</name>
+      <long>wtevictdirtytrigger</long>
+      <description>
+         <en>Evection dirty trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的脏页淘汰触发阈值（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection dirty trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的脏页淘汰触发阈值（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>20</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_UPDATES_TARGET</name>
+      <long>wtevictupdatestarget</long>
+      <description>
+         <en>Evection update target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的更新页淘汰目标（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection update target of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的更新页淘汰目标（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>2</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_UPDATES_TRIGGER</name>
+      <long>wtevictupdatestrigger</long>
+      <description>
+         <en>Evection update trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的更新页淘汰触发阈值（单位：%）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Evection update trigger threshold of WiredTiger engine(unit: %)</en>
+         <cn>WiredTiger引擎的更新页淘汰触发阈值（单位：%）</cn>
+      </detail>
+      <type>int</type>
+      <default>10</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_THREADS_MIN</name>
+      <long>wtevictthreadsmin</long>
+      <description>
+         <en>Minimum number of eviction threads in WiredTiger engine</en>
+         <cn>WiredTiger引擎的缓存页淘汰后台线程最小个数</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Minimum number of eviction threads in WiredTiger engine</en>
+         <cn>WiredTiger引擎的缓存页淘汰后台线程最小个数</cn>
+      </detail>
+      <type>int</type>
+      <default>4</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_EVICT_THREADS_MAX</name>
+      <long>wtevictthreadsmax</long>
+      <description>
+         <en>Maximum number of eviction threads in WiredTiger engine</en>
+         <cn>WiredTiger引擎的缓存页淘汰后台线程最大个数</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Maximum number of eviction threads in WiredTiger engine</en>
+         <cn>WiredTiger引擎的缓存页淘汰后台线程最大个数</cn>
+      </detail>
+      <type>int</type>
+      <default>4</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_CHECK_POINT_INTERVAL</name>
+      <long>wtcheckpointinterval</long>
+      <description>
+         <en>Interval of check point in WiredTiger engine(Unit: second)</en>
+         <cn>WiredTiger引擎的生成检查点的间隔（单位：秒）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Interval of check point in WiredTiger engine(Unit: second)</en>
+         <cn>WiredTiger引擎的生成检查点的间隔（单位：秒）</cn>
+      </detail>
+      <type>int</type>
+      <default>60</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_WT_CHECK_POINT_LOG_SIZE</name>
+      <long>wtcheckpointlogsize</long>
+      <description>
+         <en>Journal size to trigger check point in WiredTiger engine(Unit: MB)</en>
+         <cn>WiredTiger引擎的触发检查点的日志大小（单位：MB）</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Journal size to trigger check point in WiredTiger engine(Unit: MB)</en>
+         <cn>WiredTiger引擎的触发检查点的日志大小（单位：MB）</cn>
+      </detail>
+      <type>int</type>
+      <default>60</default>
       <typeofweb>num</typeofweb>
    </opt>
 

@@ -56,6 +56,7 @@
 #include "rtnContextDef.hpp"
 #include "rtnSortDef.hpp"
 #include "clsUtil.hpp"
+#include "wiredtiger/dmsWTDef.hpp"
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
@@ -128,8 +129,6 @@ namespace engine
    #define PMD_DFT_MEM_MMAP_THRESHOLD  (1024)
    #define PMD_DFT_MEM_MMAP_MAX        (4194304)
    #define PMD_DFT_MEM_TOP_PAD         (-1)
-
-   #define PMD_DFT_WT_CACHE_SIZE       (2048)
 
    /*
       _pmdCfgExchange implement
@@ -2692,7 +2691,75 @@ done:
 
       // --wtcachesize
       rdxUInt( pEX, PMD_OPTION_WT_CACHE_SIZE, _wtCacheSize, FALSE,
-               PMD_CFG_CHANGE_FORBIDDEN, PMD_DFT_WT_CACHE_SIZE ) ;
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CACHE_SIZE ) ;
+      rdvMinMax( pEX, _wtCacheSize, DMS_MIN_WT_CACHE_SIZE,
+                 DMS_MAX_WT_CACHE_SIZE, TRUE ) ;
+
+      // --wtevicttarget
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_TARGET, _wtEvictTarget, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_TARGET ) ;
+      rdvMinMax( pEX, _wtEvictTarget, DMS_MIN_WT_EVICT_TARGET,
+                 DMS_MAX_WT_EVICT_TARGET, TRUE ) ;
+
+      // --wtevicttrigger
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_TRIGGER, _wtEvictTrigger, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_TRIGGER ) ;
+      rdvMinMax( pEX, _wtEvictTrigger, DMS_MIN_WT_EVICT_TRIGGER,
+                 DMS_MAX_WT_EVICT_TRIGGER, TRUE ) ;
+
+      // --wtevictdirtytarget
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_DIRTY_TARGET, _wtEvictDirtyTarget, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_DIRTY_TARGET ) ;
+      rdvMinMax( pEX, _wtEvictDirtyTarget, DMS_MIN_WT_EVICT_DIRTY_TARGET,
+                 DMS_MAX_WT_EVICT_DIRTY_TARGET, TRUE ) ;
+
+      // --wtevictdirtytrigger
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_DIRTY_TRIGGER, _wtEvictDirtyTrigger, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_DIRTY_TRIGGER ) ;
+      rdvMinMax( pEX, _wtEvictDirtyTrigger, DMS_MIN_WT_EVICT_DIRTY_TRIGGER,
+                 DMS_MAX_WT_EVICT_DIRTY_TRIGGER, TRUE ) ;
+
+      // --wtevictupdatestarget
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_UPDATES_TARGET, _wtEvictUpdatesTarget, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_UPDATES_TARGET ) ;
+      rdvMinMax( pEX, _wtEvictUpdatesTarget, DMS_MIN_WT_EVICT_UPDATES_TARGET,
+                 DMS_MAX_WT_EVICT_UPDATES_TARGET, TRUE ) ;
+
+      // --wtevictupdatestrigger
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_UPDATES_TRIGGER, _wtEvictUpdatesTrigger, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_UPDATES_TRIGGER ) ;
+      rdvMinMax( pEX, _wtEvictUpdatesTrigger, DMS_MIN_WT_EVICT_UPDATES_TRIGGER,
+                 DMS_MAX_WT_EVICT_UPDATES_TRIGGER, TRUE ) ;
+
+      // --wtevictthreadsmin
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MIN, _wtEvictThreadsMin, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
+      rdvMinMax( pEX, _wtEvictThreadsMin, DMS_MIN_WT_EVICT_THREADS_MIN,
+                 DMS_MAX_WT_EVICT_THREADS_MIN, TRUE ) ;
+
+      // --wtevictthreadsmax
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MAX, _wtEvictThreadsMax, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MAX ) ;
+      rdvMinMax( pEX, _wtEvictThreadsMax, DMS_MIN_WT_EVICT_THREADS_MAX,
+                 DMS_MAX_WT_EVICT_THREADS_MAX, TRUE ) ;
+
+      // --wtevictthreadsmin
+      rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MIN, _wtEvictThreadsMin, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
+      rdvMinMax( pEX, _wtEvictThreadsMin, DMS_MIN_WT_EVICT_THREADS_MIN,
+                 DMS_MAX_WT_EVICT_THREADS_MIN, TRUE ) ;
+
+      // --wtcheckpointinterval
+      rdxUInt( pEX, PMD_OPTION_WT_CHECK_POINT_INTERVAL, _wtCheckPointInterval, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CHECK_POINT_INTERVAL ) ;
+      rdvMinMax( pEX, _wtCheckPointInterval, DMS_MIN_WT_CHECK_POINT_INTERVAL,
+                 DMS_MAX_WT_CHECK_POINT_INTERVAL, TRUE ) ;
+
+      // --wtcheckpointlogsize
+      rdxUInt( pEX, PMD_OPTION_WT_CHECK_POINT_LOG_SIZE, _wtCheckPointLogSize, FALSE,
+               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CHECK_POINT_LOG_SIZE ) ;
+      rdvMinMax( pEX, _wtCheckPointLogSize, DMS_MIN_WT_CHECK_POINT_LOG_SIZE,
+                 DMS_MAX_WT_CHECK_POINT_LOG_SIZE, TRUE ) ;
 
       // end map
 
@@ -2731,6 +2798,12 @@ done:
       else
       {
          _storageEngineType = DMS_STORAGE_ENGINE_MMAP ;
+      }
+
+      if ( DMS_STORAGE_ENGINE_WIREDTIGER == _storageEngineType )
+      {
+         // must enable transaction
+         _transactionOn = TRUE ;
       }
 
       // logbuffsize check

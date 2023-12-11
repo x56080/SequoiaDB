@@ -747,6 +747,56 @@ namespace engine
             return _wtCacheSize ;
          }
 
+         OSS_INLINE UINT32 getWTEvictTarget() const
+         {
+            return _wtEvictTarget ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictTrigger() const
+         {
+            return _wtEvictTrigger ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictDirtyTarget() const
+         {
+            return _wtEvictDirtyTarget ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictDirtyTrigger() const
+         {
+            return _wtEvictDirtyTrigger ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictUpdatesTarget() const
+         {
+            return _wtEvictUpdatesTarget ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictUpdatesTrigger() const
+         {
+            return _wtEvictUpdatesTrigger ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictThreadsMin() const
+         {
+            return _wtEvictThreadsMin ;
+         }
+
+         OSS_INLINE UINT32 getWTEvictThreadsMax() const
+         {
+            return _wtEvictThreadsMax ;
+         }
+
+         OSS_INLINE UINT32 getWTCheckPointInterval() const
+         {
+            return _wtCheckPointInterval ;
+         }
+
+         OSS_INLINE UINT32 getWTCheckPointLogSize() const
+         {
+            return _wtCheckPointLogSize ;
+         }
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -911,7 +961,18 @@ namespace engine
 
          CHAR        _storageEngineName[ PMD_MAX_ENUM_STR_LEN  + 1 ] ;
          DMS_STORAGE_ENGINE_TYPE _storageEngineType ;
+
          UINT32      _wtCacheSize ;
+         UINT32      _wtEvictTarget ;
+         UINT32      _wtEvictTrigger ;
+         UINT32      _wtEvictDirtyTarget ;
+         UINT32      _wtEvictDirtyTrigger ;
+         UINT32      _wtEvictUpdatesTarget ;
+         UINT32      _wtEvictUpdatesTrigger ;
+         UINT32      _wtEvictThreadsMin ;
+         UINT32      _wtEvictThreadsMax ;
+         UINT32      _wtCheckPointInterval ;
+         UINT32      _wtCheckPointLogSize ;
 
 #ifdef SDB_ENTERPRISE
 

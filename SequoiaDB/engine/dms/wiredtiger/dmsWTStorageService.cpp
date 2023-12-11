@@ -428,9 +428,24 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__INITENGINEOPTIONS ) ;
 
       pmdOptionsCB *optionCB = pmdGetOptionCB() ;
+
       boost::filesystem::path dbPath( optionCB->getDbPath() ) ;
       options.setDBPath( dbPath ) ;
+
       options.setCacheSizeMB( optionCB->getWTCacheSize() ) ;
+      options.setEvictTarget( optionCB->getWTEvictTarget() ) ;
+      options.setEvictTrigger( optionCB->getWTEvictTrigger() ) ;
+      options.setEvictDirtyTarget( optionCB->getWTEvictDirtyTarget() ) ;
+      options.setEvictDirtyTrigger( optionCB->getWTEvictDirtyTrigger() ) ;
+      options.setEvictUpdatesTarget( optionCB->getWTEvictUpdatesTarget() ) ;
+      options.setEvictUpdatesTrigger( optionCB->getWTEvictUpdatesTrigger() ) ;
+      options.setEvictThreadsMin( optionCB->getWTEvictThreadsMin() ) ;
+      options.setEvictThreadsMax( optionCB->getWTEvictThreadsMax() ) ;
+      options.setCheckPointInterval( optionCB->getWTCheckPointInterval() ) ;
+      options.setCheckPointLogSize( optionCB->getWTCheckPointLogSize() ) ;
+
+      options.fixOptions() ;
+
 
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__INITENGINEOPTIONS, rc ) ;
 
@@ -484,15 +499,19 @@ namespace wiredtiger
          ss << "create," ;
          ss << "cache_size=" << options.getCacheSizeMB() << "MB," ;
          ss << "session_max=33000," ;
-         ss << "eviction=(threads_min=4,threads_max=4)," ;
-         ss << "eviction_dirty_target=512MB," ;
-         ss << "eviction_dirty_trigger=1024MB," ;
+         ss << "eviction=(threads_min=" << options.getEvictThreadsMin()
+            << ",threads_max=" << options.getEvictThreadsMax() << ")," ;
+         ss << "eviction_target=" << options.getEvictTarget() << "," ;
+         ss << "eviction_trigger=" << options.getEvictTrigger() << "," ;
+         ss << "eviction_dirty_target=" << options.getEvictDirtyTarget() << "," ;
+         ss << "eviction_dirty_trigger=" << options.getEvictDirtyTrigger() << "," ;
+         ss << "eviction_updates_target=" << options.getEvictUpdatesTarget() << "," ;
+         ss << "eviction_updates_trigger=" << options.getEvictUpdatesTrigger() << "," ;
          ss << "config_base=false," ;
          ss << "statistics=(fast)," ;
          ss << "log=(enabled=true,remove=true,path=journal,compressor=snappy)," ;
          ss << "builtin_extension_config=(zstd=(compression_level=6))," ;
-         ss << "file_manager=(close_idle_time=600,close_scan_interval=10," ;
-         ss << "close_handle_minimum=2000)," ;
+         ss << "file_manager=(close_idle_time=600,close_scan_interval=10,close_handle_minimum=2000)," ;
          ss << "statistics_log=(wait=0)," ;
          ss << "json_output=(error,message)" ;
 
