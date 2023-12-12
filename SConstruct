@@ -298,6 +298,9 @@ add_option( "cov" , "generate coverage information" , 0, False )
 #compiledb
 add_option( "compiledb", "generate compile_commands.json", 0, False )
 
+#suppressWarning
+add_option( "suppressWarning", "suppress warning", 0, False )
+
 # don't run configure if user calls --help
 if GetOption('help'):
     Return()
@@ -334,11 +337,13 @@ if guess_os == "aix":
 
 release = True
 debugBuild = False
+suppressWarning = False
 
 release = has_option( "release" )
 
 # get whether we are using debug build
 debugBuild = has_option( "debugBuild" )
+suppressWarning = has_option( "suppressWarning" )
 
 # if neither release/debugBuild specified, by default using release
 # if both release/debugBuild specified, by defaul use debugBuild
@@ -383,6 +388,9 @@ if guess_os == "linux":
    # 'template<class> class std::auto_ptr' is deprecated.
    if debugBuild:
       env.Append( CXXFLAGS=" -Wno-deprecated-declarations -Wno-parentheses " )
+   if suppressWarning:
+      env.Append( CXXFLAGS=" -w " )
+      env.Append( CFLAGS=" -w " )
 
 libdeps.setup_environment( env )
 
