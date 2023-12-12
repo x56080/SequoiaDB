@@ -178,8 +178,10 @@ namespace keystring
       buffer.write( 0, _src.getRawDataSize(), _src.getRawData().data() ) ;
       keyStringCoder().encodeRID(
             rid, buffer.getWritablePtr( bufferOffset, sizeof( UINT32 ) + sizeof( UINT32 ) ) ) ;
-      done: return rc ;
-      error: goto done ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    keyString _keyStringModifier::getShallowKeyString() const
@@ -225,7 +227,6 @@ namespace keystring
 
    done:
       return rc ;
-
    error:
       goto done ;
    }

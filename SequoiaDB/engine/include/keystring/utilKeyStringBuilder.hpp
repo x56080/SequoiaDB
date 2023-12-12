@@ -116,7 +116,7 @@ namespace keystring
    class _keyStringBuilderImpl : public SDBObject
    {
    public:
-      _keyStringBuilderImpl( utilStreamPoolAllocator &allocator ) ;
+      _keyStringBuilderImpl( utilStreamAllocator &allocator ) ;
       ~_keyStringBuilderImpl() ;
 
       _keyStringBuilderImpl( const _keyStringBuilderImpl& ) = delete ;
@@ -384,21 +384,24 @@ namespace keystring
       _keyStringBuilder define
     */
    template<typename Allocator = utilStreamStackAllocator>
-   class _keyStringBuilder : public SDBObject
+   class _keyStringBuilder : public _keyStringBuilderImpl
    {
    public:
       _keyStringBuilder()
-      : _impl( _allocator )
+      : _keyStringBuilderImpl( _allocator )
       {
       }
 
-      ~_keyStringBuilder() = default ;
+      ~_keyStringBuilder()
+      {
+         reset() ;
+      }
+
       _keyStringBuilder( const _keyStringBuilder& ) = delete ;
       _keyStringBuilder operator=( const _keyStringBuilder& ) = delete ;
 
    protected:
       Allocator _allocator ;
-      _keyStringBuilderImpl _impl ;
    } ;
 
    using keyStringStackBuilder = _keyStringBuilder<utilStreamStackAllocator> ;

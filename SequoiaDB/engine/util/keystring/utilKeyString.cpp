@@ -200,7 +200,6 @@ namespace keystring
 
    done:
       return rc ;
-
    error:
       reset() ;
       goto done ;
@@ -257,8 +256,11 @@ namespace keystring
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
-      done: return rc ;
-      error: desc.reset() ;
+
+   done:
+      return rc ;
+   error:
+      desc.reset() ;
       goto done ;
    }
 
@@ -502,8 +504,10 @@ namespace keystring
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
-      done: return rc ;
-      error: desc.reset() ;
+   done:
+      return rc ;
+   error:
+      desc.reset() ;
       goto done ;
    }
 

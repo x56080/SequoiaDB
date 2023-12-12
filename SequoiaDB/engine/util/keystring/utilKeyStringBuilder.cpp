@@ -201,8 +201,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -217,8 +219,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -238,8 +242,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -259,8 +265,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -279,8 +287,10 @@ namespace keystring
          PD_LOG( PDERROR, "Failed to append bit, rc: %d", NumberInt, rc ) ;
          goto error ;
       }
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -299,8 +309,10 @@ namespace keystring
          PD_LOG( PDERROR, "Failed to append bit, rc: %d", rc ) ;
          goto error ;
       }
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -321,8 +333,10 @@ namespace keystring
          PD_LOG( PDERROR, "Failed to append bit, rc: %d", rc ) ;
          goto error ;
       }
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -344,8 +358,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -360,8 +376,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -376,8 +394,10 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -412,8 +432,10 @@ namespace keystring
          _capacity = needSize ;
       }
 
-      done: return rc ;
-      error: goto done ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _typeBitsBuilder::appendBits( const UINT8 *bytes,
@@ -431,8 +453,10 @@ namespace keystring
             goto error ;
          }
       }
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
@@ -458,15 +482,17 @@ namespace keystring
          goto error ;
       }
 
-      done: return rc ;
-      error: reset() ;
+   done:
+      return rc ;
+   error:
+      reset() ;
       goto done ;
    }
 
    /*
       _keyStringBuilderImpl implement
     */
-   _keyStringBuilderImpl::_keyStringBuilderImpl( utilStreamPoolAllocator &allocator )
+   _keyStringBuilderImpl::_keyStringBuilderImpl( utilStreamAllocator &allocator )
    : _allocator( allocator )
    {
    }
