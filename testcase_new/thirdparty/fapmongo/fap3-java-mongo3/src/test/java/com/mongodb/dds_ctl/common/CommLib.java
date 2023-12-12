@@ -8,6 +8,7 @@ import com.mongodb.utils.Ssh;
 import org.bson.Document;
 import org.testng.Assert;
 import org.yaml.snakeyaml.Yaml;
+import java.util.List;
 
 /**
  * @Descreption
@@ -185,8 +186,8 @@ public class CommLib extends CTLTestBase {
                 + configFilePath + "15000.yaml" );
 
         basicEntity basicEntity7 = CommLib.createBaseEntity( "file",
-                dataBasePath + "16000/mongod.log", true, "0.0.0.0", "16000", null,
-                null, null,
+                dataBasePath + "16000/mongos.log", true, "0.0.0.0", "16000",
+                null, null, null,
                 "rs/localhost:10000,localhost:11000,localhost:12000" );
         ssh.exec( "echo '" + yaml.dumpAsMap( basicEntity7 ) + "' > "
                 + configFilePath + "16000.yaml" );
@@ -259,6 +260,102 @@ public class CommLib extends CTLTestBase {
 
         // 删除configFile目录下的配置文件
         ssh.exec( "rm -rf " + configFilePath + "*.yaml" );
+    }
+
+    // 在多台机器上搭建三节点分片集群
+    public static void createShardingOnMulServers( Ssh ssh1, Ssh ssh2 )
+            throws Exception {
+        Yaml yaml = new Yaml();
+
+        // 生成配置文件
+        basicEntity entity1 = CommLib.createBaseEntity( "file",
+                dataBasePath + "10000/mongod.log", true, "0.0.0.0", "10000",
+                dataBasePath + "10000", "rs", "configsvr", null );
+        ssh1.exec( "echo '" + yaml.dumpAsMap( entity1 ) + "' > "
+                + configFilePath + "10000.yaml" );
+
+        basicEntity entity2 = CommLib.createBaseEntity( "file",
+                dataBasePath + "11000/mongod.log", true, "0.0.0.0", "11000",
+                dataBasePath + "11000", "rs", "configsvr", null );
+        ssh1.exec( "echo '" + yaml.dumpAsMap( entity2 ) + "' > "
+                + configFilePath + "11000.yaml" );
+
+        basicEntity entity3 = CommLib.createBaseEntity( "file",
+                dataBasePath + "12000/mongod.log", true, "0.0.0.0", "12000",
+                dataBasePath + "12000", "rs", "configsvr", null );
+        ssh2.exec( "echo '" + yaml.dumpAsMap( entity3 ) + "' > "
+                + configFilePath + "12000.yaml" );
+
+        basicEntity entity4 = CommLib.createBaseEntity( "file",
+                dataBasePath + "13000/mongod.log", true, "0.0.0.0", "13000",
+                dataBasePath + "13000", "shard", "shardsvr", null );
+        ssh1.exec( "echo '" + yaml.dumpAsMap( entity4 ) + "' > "
+                + configFilePath + "13000.yaml" );
+
+        basicEntity entity5 = CommLib.createBaseEntity( "file",
+                dataBasePath + "14000/mongod.log", true, "0.0.0.0", "14000",
+                dataBasePath + "14000", "shard", "shardsvr", null );
+        ssh1.exec( "echo '" + yaml.dumpAsMap( entity5 ) + "' > "
+                + configFilePath + "14000.yaml" );
+
+        basicEntity entity6 = CommLib.createBaseEntity( "file",
+                dataBasePath + "15000/mongod.log", true, "0.0.0.0", "15000",
+                dataBasePath + "15000", "shard", "shardsvr", null );
+        ssh2.exec( "echo '" + yaml.dumpAsMap( entity6 ) + "' > "
+                + configFilePath + "15000.yaml" );
+
+        basicEntity entity7 = CommLib.createBaseEntity( "file",
+                dataBasePath + "16000/mongos.log", true, "0.0.0.0", "16000",
+                null, null, null,
+                "rs/" + ssh1.getHost() + ":10000," + ssh1.getHost() + ":11000,"
+                        + ssh2.getHost() + ":12000" );
+        ssh1.exec( "echo '" + yaml.dumpAsMap( entity7 ) + "' > "
+                + configFilePath + "16000.yaml" );
+
+        // 将配置文件中不需要的参数去掉
+        ssh1.exec( "find " + configFilePath
+                + " -type f -exec sed -i '/: null$/d' {} \\;" );
+        ssh2.exec( "find " + configFilePath
+                + " -type f -exec sed -i '/: null$/d' {} \\;" );
+
+        // sdb_dds_ctl工具创建节点
+        ssh1.exec( ctlPath + " init --configfile " + configFilePath
+                + "10000.yaml" );
+        ssh1.exec( ctlPath + " init --configfile " + configFilePath
+                + "11000.yaml" );
+        ssh2.exec( ctlPath + " init --configfile " + configFilePath
+                + "12000.yaml" );
+        ssh1.exec( ctlPath + " init --configfile " + configFilePath
+                + "13000.yaml" );
+        ssh1.exec( ctlPath + " init --configfile " + configFilePath
+                + "14000.yaml" );
+        ssh2.exec( ctlPath + " init --configfile " + configFilePath
+                + "15000.yaml" );
+        ssh1.exec( ctlPath + " init --configfile " + configFilePath
+                + "16000.yaml" );
+
+        // sdb_dds_ctl工具启动节点
+        ssh1.exec( ctlPath + " start --all" );
+        ssh2.exec( ctlPath + " start --all" );
+
+        // 初始化分片集群
+        ssh1.exec( mongoshPath
+                + " --port 10000 --eval=\"rs.initiate({_id:'rs',version:1,members:[{_id:0,host:'"
+                + remoteHost + ":10000'},{_id:1,host:'" + remoteHost
+                + ":11000'},{_id:3,host:'" + ssh2.getHost() + ":12000'}]})\"" );
+        ssh1.exec( mongoshPath
+                + " --port 13000 --eval=\"rs.initiate({_id:'shard',version:1,members:[{_id:0,host:'"
+                + remoteHost + ":13000'},{_id:1,host:'" + remoteHost
+                + ":14000'},{_id:3,host:'" + ssh2.getHost() + ":15000'}]})\"" );
+        CommLib.checkCluster( 13000 );
+        ssh1.exec( mongoshPath + " --port 16000 --eval=\"sh.addShard('shard/"
+                + remoteHost + ":13000," + remoteHost + ":14000,"
+                + ssh2.getHost() + ":15000')\"" );
+
+        // 删除configFile目录下的配置文件
+        ssh1.exec( "rm -rf " + configFilePath + "*.yaml" );
+        ssh2.exec( "rm -rf " + configFilePath + "*.yaml" );
+
     }
 
     public static void createNode( Ssh ssh, basicEntity basicEntity,
@@ -378,5 +475,50 @@ public class CommLib extends CTLTestBase {
             Thread.sleep( 1000 );
         }
         throw new Exception( "移除分片失败" );
+    }
+
+    // ctl list命令输出信息的类型
+    public enum listType {
+        pid, port, replset_name, cluster_role, type, start_time, status, dbpath
+    }
+
+    // 获取ctl list命令输出信息
+    public static void getListInfo( String origin, List< String > listInfo,
+            listType type ) throws Exception {
+        String[] line = origin.split( "\n" );
+        for ( int i = 0; i < line.length; i++ ) {
+            if ( line[ i ].contains( "pid" ) ) {
+                continue;
+            }
+            String[] info = line[ i ].split( "\\s+" );
+            switch ( type ) {
+            case pid:
+                listInfo.add( info[ 0 ] );
+                break;
+            case port:
+                listInfo.add( info[ 1 ] );
+                break;
+            case replset_name:
+                listInfo.add( info[ 2 ] );
+                break;
+            case cluster_role:
+                listInfo.add( info[ 3 ] );
+                break;
+            case type:
+                listInfo.add( info[ 4 ] );
+                break;
+            case start_time:
+                listInfo.add( info[ 5 ] );
+                break;
+            case status:
+                listInfo.add( info[ 6 ] );
+                break;
+            case dbpath:
+                listInfo.add( info[ 7 ] );
+                break;
+            default:
+                break;
+            }
+        }
     }
 }

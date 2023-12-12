@@ -9,15 +9,17 @@ package com.mongodb.dds_ctl.common;
  */
 public class CTLTestBase {
     // SSH工具连接信息
-    public static String remoteHost = "192.168.31.48";
+    public static String remoteHost = "192.168.17.85";
+    public static String remoteHost1 = "192.168.18.46";
     public static String remoteUser = "root";
-    public static String remotePwd = "wangxingming_1035";
+    public static String remotePwd = "sequoiadb";
     public static String sdbUser = "sdbadmin";
     public static String sdbPwd = "Admin@1024";
 
     // 集群端口信息
     public static Integer shardingPort = 16000;
     public static Integer replicaSetPort = 10000;
+    public static Integer routePort = 20000;
 
     // sdb_dds_ctl工具路径
     private static String ddsPath = "/opt/sequoiadds/";
