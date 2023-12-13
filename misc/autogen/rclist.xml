@@ -3290,5 +3290,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ENTERPRISE_ONLY</name>
+         <description>
+            <en>The operation is for enterprise version only</en>
+            <cn>该操作仅适用于企业版</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

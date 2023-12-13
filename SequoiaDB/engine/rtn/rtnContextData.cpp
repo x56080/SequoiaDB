@@ -1237,7 +1237,7 @@ namespace engine
       if ( blockObj )
       {
          PD_LOG( PDERROR, "Block scan is not supported for table scan" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
+         rc = SDB_ENTERPRISE_ONLY ;
          goto error ;
       }
 
