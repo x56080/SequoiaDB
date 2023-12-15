@@ -133,7 +133,6 @@ namespace wiredtiger
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_LOCATE_BSON, "_dmsWTIndexCursor::locate" )
    INT32 _dmsWTIndexCursor::locate( const BSONObj &key,
-                                    const Ordering &ordering,
                                     const dmsRecordID &recordID,
                                     BOOLEAN isAfterStartKey,
                                     IExecutor *executor,
@@ -145,7 +144,12 @@ namespace wiredtiger
 
       keyStringStackBuilder builder ;
 
-      rc = builder.buildPredicate( key, ordering, recordID, _isForward,
+      rc = builder.buildPredicate( key,
+                                   _idxPtr->getMetadata().getOrdering(),
+                                   _idxPtr->getMetadata().isStrictUnique() ?
+                                         dmsRecordID() :
+                                         recordID,
+                                   _isForward,
                                    isAfterStartKey ?
                                          keyStringDiscriminator::EXCLUSIVE_AFTER :
                                          keyStringDiscriminator::INCLUSIVE ) ;
@@ -244,12 +248,17 @@ namespace wiredtiger
       }
       else
       {
-         dmsWTItem item ;
+         dmsWTItem keyItem, valueItem ;
 
-         rc = _cursor.getKey( item ) ;
+         rc = _cursor.getKey( keyItem ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
 
-         rc = _keyStringCache.init( utilSlice( item.get()->size, item.get()->data ) ) ;
+         rc = _cursor.getValue( valueItem ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+
+         rc = _keyStringCache.init(
+                           utilSlice( keyItem.getSize(), keyItem.getData() ),
+                           utilSlice( valueItem.getSize(), valueItem.getData() ) ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to initialize key string, rc: %d", rc ) ;
 
          key = _keyStringCache ;
@@ -318,8 +327,6 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_GETCURRECID ) ;
 
-      // TODO: $id index
-
       keyString key ;
 
       rc = getCurrentKeyString( key ) ;
@@ -345,6 +352,12 @@ namespace wiredtiger
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR__GETCURREC ) ;
+
+      BSONObj key ;
+      rc = getCurrentKey( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key, rc: %d", rc ) ;
+
+      data.setData( key.objdata(), key.objsize() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR__GETCURREC, rc ) ;

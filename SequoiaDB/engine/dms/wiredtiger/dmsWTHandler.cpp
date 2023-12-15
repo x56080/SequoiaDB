@@ -92,7 +92,7 @@ namespace wiredtiger
       PD_LOG( PDERROR, "[WiredTiger] error: %d, message: %s",
               errorCode, message ) ;
 
-      // TODO: Don't abort on WT_PANIC when repairing,
+      // TODO HGM: Don't abort on WT_PANIC when repairing,
       // as the error will be handled at a higher layer.
       if ( errorCode == WT_PANIC )
       {

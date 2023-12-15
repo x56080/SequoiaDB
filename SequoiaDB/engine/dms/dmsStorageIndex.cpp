@@ -52,10 +52,8 @@
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "pdSecure.hpp"
-#include "keystring/utilKeyStringBuilder.hpp"
 
 using namespace bson ;
-using namespace engine::keystring ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
 
@@ -2323,18 +2321,16 @@ namespace engine
       // adjust allow duplicated flag
       // - doing DPS log rollback: allow duplicated
       // - doing transaction rollback on non-id index: allow duplicated
-      BOOLEAN checkDuplicated =
-                  ( NULL != cb &&
-                    ( cb->isDoRollback() ||
-                      ( cb->isInTransRollback() &&
-                        !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
+      dupAllowed = ( NULL != cb &&
+                     ( cb->isDoRollback() ||
+                       ( cb->isInTransRollback() &&
+                         !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
 
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
       {
          BSONObjSet::iterator it ;
-         Ordering order = Ordering::make( indexCB->keyPattern() ) ;
 
          // only save the first key of new inserted keys for unique
          // index
@@ -2359,7 +2355,7 @@ namespace engine
 #endif
             const BSONObj &keyObj = *it ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
-            rc = _indexInsert( context, indexCB, keyObj, rid, order, cb, checkDuplicated, pResult ) ;
+            rc = _indexInsert( context, indexCB, keyObj, rid, cb, dupAllowed, pResult ) ;
             if ( rc )
             {
                if ( pResult )
@@ -2727,7 +2723,7 @@ namespace engine
       BOOLEAN dupAllowed   = FALSE ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
-      BOOLEAN checkDuplicated = FALSE ;
+      BOOLEAN allowDuplicated = FALSE ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
@@ -2748,7 +2744,7 @@ namespace engine
       // - doing DPS log rollback: allow duplicated
       // - doing transaction rollback on non-id index: allow duplicated
       // - non-unique index: allow duplicated
-      checkDuplicated =
+      allowDuplicated =
                   ( NULL != cb &&
                     ( cb->isDoRollback() ||
                       ( cb->isInTransRollback() &&
@@ -2789,7 +2785,6 @@ namespace engine
       {
          BSONObjSet::iterator itori ;
          BSONObjSet::iterator itnew ;
-         Ordering order = Ordering::make(indexCB->keyPattern()) ;
 
          // only save the first key of new updated keys, and the first key of
          // old updated keys for unique index
@@ -2817,7 +2812,7 @@ namespace engine
             {
                const BSONObj &keyObj = *itori ;
                ixmKeyOwned ko( keyObj, FALSE ) ;
-               rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
+               rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -2857,8 +2852,8 @@ namespace engine
                // appear in the original list, let's add it
                const BSONObj &keyObj = *itnew ;
                ixmKeyOwned ko( keyObj, FALSE ) ;
-               rc = _indexInsert( context, indexCB, keyObj, rid, order, cb,
-                                  checkDuplicated, pResult ) ;
+               rc = _indexInsert( context, indexCB, keyObj, rid, cb,
+                                  allowDuplicated, pResult ) ;
                if ( rc )
                {
                   // during rollback, since the previous change may half-way
@@ -2914,7 +2909,7 @@ namespace engine
 #endif
             const BSONObj &keyObj = *itori ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
-            rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
+            rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -2956,8 +2951,8 @@ namespace engine
 #endif
             const BSONObj &keyObj = *itnew ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
-            rc = _indexInsert( context, indexCB, keyObj, rid, order, cb,
-                                 checkDuplicated, pResult ) ;
+            rc = _indexInsert( context, indexCB, keyObj, rid, cb,
+                               allowDuplicated, pResult ) ;
             if ( rc )
             {
                // during rollback, since the previous change may half-way
@@ -3288,7 +3283,6 @@ namespace engine
 
       {
          BSONObjSet::iterator it ;
-         Ordering order = Ordering::make(indexCB->keyPattern()) ;
 
          // only save the first key of deleted keys for unique index
          BOOLEAN hashSaved = FALSE ;
@@ -3302,7 +3296,7 @@ namespace engine
             const BSONObj &keyObj = *it ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
 
-            rc = _indexDelete( context, indexCB, keyObj, rid, order, cb ) ;
+            rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -3928,9 +3922,8 @@ namespace engine
                                          ixmIndexCB *indexCB,
                                          const BSONObj &key,
                                          const dmsRecordID &rid,
-                                         const Ordering& order,
                                          pmdEDUCB *cb,
-                                         BOOLEAN checkDuplicated,
+                                         BOOLEAN allowDuplicated,
                                          utilWriteResult *pResult )
    {
       INT32 rc = SDB_OK ;
@@ -3938,15 +3931,11 @@ namespace engine
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
       shared_ptr<IIndex> idxPtr ;
-      keyStringStackBuilder keyBuilder ;
 
       rc = getIndex( context, indexCB, cb, idxPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
 
-      rc = keyBuilder.buildIndexEntryKey( key, order, rid ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
-
-      rc = idxPtr->index( keyBuilder.getShallowKeyString(), rid, checkDuplicated, cb ) ;
+      rc = idxPtr->index( key, rid, allowDuplicated, cb, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key to index [%s] of "
                    "collection [%s.%s], rc: %d", indexCB->getName(),
                    getSuName(), context->clName(), rc ) ;
@@ -3964,7 +3953,6 @@ namespace engine
                                          ixmIndexCB *indexCB,
                                          const BSONObj &key,
                                          const dmsRecordID &rid,
-                                         const Ordering& order,
                                          pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -3972,15 +3960,11 @@ namespace engine
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
       shared_ptr<IIndex> idxPtr ;
-      keyStringStackBuilder keyBuilder ;
 
       rc = getIndex( context, indexCB, cb, idxPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
 
-      rc = keyBuilder.buildIndexEntryKey( key, order, rid ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
-
-      rc = idxPtr->unindex( keyBuilder.getShallowKeyString(), rid, cb ) ;
+      rc = idxPtr->unindex( key, rid, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to remove key to index [%s] of "
                    "collection [%s.%s], rc: %d", indexCB->getName(),
                    getSuName(), context->clName(), rc ) ;

@@ -43,6 +43,7 @@
 #include "utilStreamAllocator.hpp"
 #include "dmsMetadata.hpp"
 #include "dpsDef.hpp"
+#include "rtnPredicate.hpp"
 
 #include <iomanip>
 #include <limits>
@@ -158,7 +159,7 @@ namespace keystring
                            BOOLEAN force = FALSE ) ;
       INT32 appendLSN( UINT64 lsn, BOOLEAN force = FALSE ) ;
 
-      INT32 buildPredicate( const ossPoolVector<const bson::BSONElement*> &elements,
+      INT32 buildPredicate( const VEC_ELE_CMP &elements,
                             const bson::Ordering &o,
                             const VEC_BOOLEAN &im,
                             BOOLEAN forward,
@@ -173,7 +174,7 @@ namespace keystring
 
       INT32 buildPredicate( const bson::BSONObj &prefixKey,
                             UINT32 prefixNum,
-                            const ossPoolVector<const bson::BSONElement*> &elements,
+                            const VEC_ELE_CMP &elements,
                             const bson::Ordering &o,
                             const VEC_BOOLEAN &im,
                             BOOLEAN forward,
@@ -291,6 +292,8 @@ namespace keystring
       UINT32 _capacity = 0 ;
       utilStreamAllocator &_allocator ;
    } ;
+
+   typedef class _keyStringBuilderImpl keyStringBuilderImpl ;
 
    template<typename T, typename >
    INT32 _keyStringBuilderImpl::appendUnsignedWithoutType( const T &val,

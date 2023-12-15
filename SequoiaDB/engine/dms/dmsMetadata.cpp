@@ -103,12 +103,15 @@ namespace engine
      _idxInnerID( utilGetIdxInnerID( indexCB->getUniqueID() ) ),
      _idxLID( indexCB->getLogicalID() ),
      _keyPattern( indexCB->keyPattern() ),
+     _ordering( Ordering::make( indexCB->keyPattern() ) ),
      _isUnique( indexCB->unique() ),
      _isStrictUnique( indexCB->isIDIndex() ),
      _isEnforced( indexCB->enforced() ),
      _isNotNull( indexCB->notNull() ),
      _isNotArray( indexCB->notArray() )
    {
+      // TODO HGM: use TRUE for $id index
+      _isStrictUnique = FALSE ;
    }
 
    _dmsIdxMetadata::_dmsIdxMetadata( const _dmsIdxMetadata &o, BOOLEAN getOwned )

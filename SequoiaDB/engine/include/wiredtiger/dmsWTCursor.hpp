@@ -118,6 +118,12 @@ namespace wiredtiger
       INT32 searchAndGetValue( const CHAR *key, dmsWTItem &value ) ;
       INT32 searchAndGetValue( const dmsWTItem &key, dmsWTItem &value ) ;
 
+      INT32 searchPrefix( const dmsWTItem &key,
+                          dmsWTItem &existsKey,
+                          dmsWTItem &existsValue,
+                          BOOLEAN &isFound,
+                          BOOLEAN &isExactMatch ) ;
+
    protected:
       _dmsWTSession &_session ;
       ossPoolString _configString ;

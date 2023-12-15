@@ -87,7 +87,6 @@ namespace wiredtiger
                           IExecutor *executor ) ;
       virtual INT32 advance( IExecutor *executor ) ;
       virtual INT32 locate( const bson::BSONObj &key,
-                            const bson::Ordering &ordering,
                             const dmsRecordID &recordID,
                             BOOLEAN isAfterStartKey,
                             IExecutor *executor,

@@ -146,7 +146,7 @@ namespace engine
                  SDB_IXM_UNEXPECTED_STATUS, error, PDERROR,
                  "Unexpected index status: %d", _indexCB->getFlag() ) ;
 
-      rc = _cursorPtr->locate( keyObj, _order, rid, FALSE, _cb, isFound ) ;
+      rc = _cursorPtr->locate( keyObj, rid, FALSE, _cb, isFound ) ;
       if ( SDB_IXM_EOC == rc )
       {
          _isEOF = TRUE ;

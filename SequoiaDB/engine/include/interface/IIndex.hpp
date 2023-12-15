@@ -41,6 +41,7 @@
 #include "keystring/utilKeyString.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
+#include "utilInsertResult.hpp"
 #include "utilPooledObject.hpp"
 
 namespace engine
@@ -60,11 +61,12 @@ namespace engine
 
       virtual const dmsIdxMetadata &getMetadata() const = 0 ;
 
-      virtual INT32 index( const keystring::keyString &keyString,
+      virtual INT32 index( const bson::BSONObj &key,
                            const dmsRecordID &rid,
-                           BOOLEAN checkDuplicated,
-                           IExecutor *executor ) = 0 ;
-      virtual INT32 unindex( const keystring::keyString &keyString,
+                           BOOLEAN allowDuplicated,
+                           IExecutor *executor,
+                           utilWriteResult *result ) = 0 ;
+      virtual INT32 unindex( const bson::BSONObj &key,
                              const dmsRecordID &rid,
                              IExecutor *executor ) = 0 ;
 

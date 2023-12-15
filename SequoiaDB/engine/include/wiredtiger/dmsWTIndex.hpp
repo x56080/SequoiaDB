@@ -39,6 +39,7 @@
 #include "interface/IIndex.hpp"
 #include "dmsMetadata.hpp"
 #include "wiredtiger/dmsWTStoreHolder.hpp"
+#include "keystring/utilKeyStringBuilder.hpp"
 
 namespace engine
 {
@@ -67,11 +68,12 @@ namespace wiredtiger
          return _metadata ;
       }
 
-      virtual INT32 index( const keystring::keyString &keyString,
+      virtual INT32 index( const bson::BSONObj &key,
                            const dmsRecordID &rid,
-                           BOOLEAN checkDuplicated,
-                           IExecutor *executor ) ;
-      virtual INT32 unindex( const keystring::keyString &keyString,
+                           BOOLEAN allowDuplicated,
+                           IExecutor *executor,
+                           utilWriteResult *result ) ;
+      virtual INT32 unindex( const bson::BSONObj &key,
                              const dmsRecordID &rid,
                              IExecutor *executor ) ;
 
@@ -92,8 +94,48 @@ namespace wiredtiger
                                 ossPoolString &idxURI ) ;
 
    protected:
-      BOOLEAN _isUnique = FALSE ;
-      BOOLEAN _isStrictUnique = FALSE ;
+      INT32 _buildKeyString( const bson::BSONObj &key,
+                             const dmsRecordID &rid,
+                             keystring::keyStringBuilderImpl &builder ) ;
+
+      INT32 _getKey( const keystring::keyString &ks,
+                     dmsWTItem &keyItem ) ;
+
+      INT32 _getKeyAndValue( const keystring::keyString &ks,
+                             BOOLEAN isRIDInValue,
+                             dmsWTItem &keyItem,
+                             dmsWTItem &valueItem ) ;
+
+      INT32 _getRecordID( const dmsWTItem &value,
+                          BOOLEAN isAtEnd,
+                          dmsRecordID &rid ) ;
+
+      INT32 _insertStrictUnique( dmsWTCursor &cursor,
+                                 const keystring::keyString &ks,
+                                 const dmsRecordID &rid,
+                                 utilWriteResult *result ) ;
+      INT32 _insertStrictUnique( dmsWTCursor &cursor,
+                                 const dmsWTItem &keyItem,
+                                 const dmsWTItem &valueItem,
+                                 const dmsRecordID &rid,
+                                 utilWriteResult *result ) ;
+
+      INT32 _insertUnique( dmsWTCursor &cursor,
+                           const keystring::keyString &ks,
+                           const dmsRecordID &rid,
+                           utilWriteResult *result ) ;
+
+      INT32 _insertStandard( dmsWTCursor &cursor,
+                             const keystring::keyString &ks,
+                             const dmsRecordID &rid,
+                             utilWriteResult *result ) ;
+
+      INT32 _checkUnique( dmsWTCursor &cursor,
+                          const keystring::keyString &ks,
+                          const dmsRecordID &rid,
+                          utilWriteResult *result ) ;
+
+   protected:
       dmsIdxMetadata _metadata ;
    } ;
 

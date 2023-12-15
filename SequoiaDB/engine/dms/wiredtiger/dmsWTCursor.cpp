@@ -831,5 +831,110 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_SEARCHPREFIX, "_dmsWTCursor::searchPrefix" )
+   INT32 _dmsWTCursor::searchPrefix( const dmsWTItem &key,
+                                     dmsWTItem &existsKey,
+                                     dmsWTItem &existsValue,
+                                     BOOLEAN &isFound,
+                                     BOOLEAN &isExactMatch )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_SEARCHPREFIX ) ;
+
+      BOOLEAN setSearchMode = FALSE ;
+      INT32 exact = 0 ;
+
+      isFound = FALSE ;
+      isExactMatch = FALSE ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get key from WiredTiger cursor, cursor is not opened" ) ;
+
+      // use prefix search
+      rc = WT_CALL( _cursor->reconfigure( _cursor, "prefix_search=true" ),
+                    _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set prefx search mode, rc: %d", rc ) ;
+      setSearchMode = TRUE ;
+
+      _cursor->set_key( _cursor, key.get() ) ;
+      rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
+
+      rc = WT_CALL( _cursor->get_key( _cursor, existsKey.get() ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+      if ( 0 == exact )
+      {
+         isExactMatch = TRUE ;
+      }
+      else if ( 0 == ossMemcmp( key.getData(), existsKey.getData(), key.getSize() ) )
+      {
+         exact = 0 ;
+      }
+      if ( 0 != exact )
+      {
+         existsKey.reset() ;
+         if ( exact < 0 )
+         {
+            rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               goto done ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to move cursor, rc: %d", rc ) ;
+         }
+         else if ( exact > 0 )
+         {
+            rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               goto done ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to move cursor, rc: %d", rc ) ;
+         }
+         rc = WT_CALL( _cursor->get_key( _cursor, existsKey.get() ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+         if ( 0 != ossMemcmp( key.getData(), existsKey.getData(), key.getSize() ) )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
+      }
+
+      rc = WT_CALL( _cursor->get_value( _cursor, existsValue.get() ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+
+      isFound = TRUE ;
+
+   done:
+      if ( nullptr != _cursor && setSearchMode )
+      {
+         // disable prefix search
+         INT32 tmpRC = WT_CALL( _cursor->reconfigure( _cursor, "prefix_search=false" ),
+                                _session.getSession() ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to set prefx search mode, rc: %d", tmpRC ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = tmpRC ;
+            }
+         }
+      }
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_SEARCHPREFIX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 }

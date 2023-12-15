@@ -70,7 +70,7 @@ namespace keystring
      1.0 / 256 / 256 / 256 / 256 / 256 / 256 / 256   // 2**(-56)
    } ;
 
-   UINT32 neededBytesNumForInteger( keyStringEncodedType type )
+   static UINT32 _neededBytesNumForInteger( keyStringEncodedType type )
    {
       if ( type <= keyStringEncodedType::numericNegative1ByteInt )
       {
@@ -100,10 +100,12 @@ namespace keystring
       reset() ;
    }
 
-   _keyString::_keyString( const utilSlice &s )
-   : _ref( s )
+   _keyString::_keyString( const utilSlice &data,
+                           const utilSlice &tail )
+   : _ref( data ),
+     _tailRef( tail )
    {
-      if ( SDB_OK != _parse( _ref, _desc ) )
+      if ( SDB_OK != _parse( _ref, _tailRef, _desc ) )
       {
          reset() ;
       }
@@ -112,7 +114,7 @@ namespace keystring
    _keyString::_keyString( UINT32 size, const CHAR *data )
    : _ref( size, data )
    {
-      if ( SDB_OK != _parse( _ref, _desc ) )
+      if ( SDB_OK != _parse( _ref, _tailRef, _desc ) )
       {
          reset() ;
       }
@@ -120,6 +122,7 @@ namespace keystring
 
    _keyString::_keyString( const _keyString &o )
    : _ref( o._ref ),
+     _tailRef( o._tailRef ),
      _desc( o._desc )
    {
    }
@@ -130,6 +133,7 @@ namespace keystring
       {
          reset() ;
          _ref = o._ref ;
+         _tailRef = o._tailRef ;
          _desc = o._desc ;
       }
       return *this ;
@@ -142,6 +146,7 @@ namespace keystring
          _bufferOwned = o._bufferOwned ;
          _bufferSize = o._bufferSize ;
          _ref = o._ref ;
+         _tailRef = o._tailRef ;
          _desc = o._desc ;
          o._bufferOwned = nullptr ;
          o.reset() ;
@@ -158,6 +163,7 @@ namespace keystring
             _bufferOwned = o._bufferOwned ;
             _bufferSize = o._bufferSize ;
             _ref = o._ref ;
+            _tailRef = o._tailRef ;
             _desc = o._desc ;
             o._bufferOwned = nullptr ;
             o.reset() ;
@@ -169,6 +175,7 @@ namespace keystring
    void _keyString::reset()
    {
       _ref.reset() ;
+      _tailRef.reset() ;
       _desc.reset() ;
       if ( nullptr != _bufferOwned )
       {
@@ -178,20 +185,22 @@ namespace keystring
       _bufferSize = 0 ;
    }
 
-   INT32 _keyString::init( const utilSlice &s )
+   INT32 _keyString::init( const utilSlice &data,
+                           const utilSlice &tail )
    {
       INT32 rc = SDB_OK ;
 
       reset() ;
 
-      if ( OSS_UNLIKELY( !s.isValid() ) )
+      if ( OSS_UNLIKELY( !data.isValid() ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      _ref = s ;
-      rc = _parse( _ref, _desc ) ;
+      _ref = data ;
+      _tailRef = tail ;
+      rc = _parse( _ref, _tailRef, _desc ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to parese key stirng data, rc: %d", rc ) ;
@@ -216,7 +225,8 @@ namespace keystring
       }
       else if ( !isOwned() )
       {
-         _bufferOwned = (CHAR *)( SDB_THREAD_ALLOC( _ref.getSize() ) ) ;
+         _bufferOwned = (CHAR *)(
+            SDB_THREAD_ALLOC( _ref.getSize() + _tailRef.getSize() ) ) ;
          if ( OSS_UNLIKELY( nullptr == _bufferOwned ) )
          {
             PD_LOG( PDERROR, "Failed to allocate memory" ) ;
@@ -224,35 +234,45 @@ namespace keystring
             goto error ;
          }
 
-         _bufferSize = _ref.getSize() ;
+         _bufferSize = _ref.getSize() + _tailRef.getSize() ;
          ossMemcpy( _bufferOwned, _ref.data(), _ref.getSize() ) ;
+         if ( _tailRef.isValid() )
+         {
+            ossMemcpy( _bufferOwned + _ref.getSize(),
+                       _tailRef.data(),
+                       _tailRef.getSize() ) ;
+         }
          _ref.reset( _ref.getSize(), _bufferOwned ) ;
+         _tailRef.reset() ;
       }
 
    done:
       return rc ;
+
    error:
       goto done ;
    }
 
-   INT32 _keyString::_parse( const utilSlice &s,
+   INT32 _keyString::_parse( const utilSlice &data,
+                             const utilSlice &tail,
                              keyStringDescriptor &desc ) const
    {
       INT32 rc = SDB_OK ;
+
       utilBytesReader reader ;
       desc.reset() ;
 
-      rc = parseMetaFromSlice( s, desc ) ;
+      rc = parseMetaFromSlice( tail.isValid() ? tail : data, desc ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to parse descriptor from slice, %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to parse descriptor from slice, %d", rc ) ;
          goto error ;
       }
 
-      if ( s.getSize() != desc.getStringSizeExpected() )
+      if ( data.getSize() + tail.getSize() != desc.getStringSizeExpected() )
       {
-         PD_LOG( PDERROR, "unexpected total string size[%d, %d]",
-                 s.getSize(), desc.getStringSizeExpected() ) ;
+         PD_LOG( PDERROR, "unexpected total string size[%d, %d, %d]",
+                 data.getSize(), tail.getSize(), desc.getStringSizeExpected() ) ;
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
@@ -264,8 +284,22 @@ namespace keystring
       goto done ;
    }
 
+   INT32 _keyString::_getOwnedWithException() const
+   {
+      INT32 rc = SDB_OK ;
+
+      keyString *ref = const_cast<keyString *>( this ) ;
+      rc = ref->getOwned() ;
+      if ( SDB_OK != rc )
+      {
+         throw pdGeneralException( rc, "Failed to get key string owned" ) ;
+      }
+      return rc ;
+   }
+
    BOOLEAN _keyString::_loadSizeData( utilBytesReader &reader,
-                                      BOOLEAN nonzero, UINT32 &size )
+                                      BOOLEAN nonzero,
+                                      UINT32 &size )
    {
       SDB_ASSERT( !reader.isOutOfBound(), "can not be invalid" ) ;
       size = 0 ;
@@ -293,6 +327,10 @@ namespace keystring
       }
       else
       {
+         if ( OSS_UNLIKELY( _ref.getSize() < _desc.keySize && _tailRef.isValid() ) )
+         {
+            _getOwnedWithException() ;
+         }
          return _ref.getSlice( 0, _desc.keySize ) ;
       }
    }
@@ -300,32 +338,35 @@ namespace keystring
    utilSlice _keyString::getKeyHeadSlice() const
    {
       return hasKeyHead() ?
-                   _ref.getSlice( 0, _desc.keyHeadSize ) :
-                   utilSlice() ;
+                  _ref.getSlice( 0, _desc.keyHeadSize ) :
+                  utilSlice() ;
    }
 
    utilSlice _keyString::getKeySliceAfterHeader() const
    {
       return _desc.keyHeadSize < _desc.keySize ?
-                   _ref.getSlice( _desc.keyHeadSize,
-                                  _desc.keySize - _desc.keyHeadSize ) :
-                   utilSlice() ;
+                  _ref.getSlice( _desc.keyHeadSize,
+                                 _desc.keySize - _desc.keyHeadSize ) :
+                  utilSlice() ;
    }
 
    utilSlice _keyString::getKeyElementsSlice() const
    {
       UINT32 size = getKeyElementsSize() ;
       return 0 < size ?
-                   _ref.getSlice( _desc.keyHeadSize, size ) :
-                   utilSlice() ;
+                  _ref.getSlice( _desc.keyHeadSize, size ) :
+                  utilSlice() ;
    }
 
    utilSlice _keyString::getKeyTailSlice() const
    {
       return hasKeyTail() ?
-                   _ref.getSlice( _desc.keySize - _desc.keyTailSize,
-                                  _desc.keyTailSize ) :
-                   utilSlice() ;
+                  ( ( ( _ref.getSize() <= _desc.keySize - _desc.keyTailSize ) &&
+                      ( _tailRef.isValid() ) ) ?
+                    ( _tailRef.getSlice( 0, _desc.keyTailSize ) ) :
+                    ( _ref.getSlice( _desc.keySize - _desc.keyTailSize,
+                                     _desc.keyTailSize ) ) ) :
+                  ( utilSlice() ) ;
    }
 
    utilSlice _keyString::getKeySliceExceptTail() const
@@ -335,17 +376,59 @@ namespace keystring
                    utilSlice() ;
    }
 
+   utilSlice _keyString::getSliceAfterKeyElements() const
+   {
+      if ( _desc.keyTailSize < _desc.keySize )
+      {
+         if ( !_tailRef.isValid() )
+         {
+            return _ref.getSliceFromOffsetToEnd( _desc.keySize - _desc.keyTailSize ) ;
+         }
+         else
+         {
+            _getOwnedWithException() ;
+            return _ref.getSliceFromOffsetToEnd( _desc.keySize - _desc.keyTailSize ) ;
+         }
+      }
+      return utilSlice() ;
+   }
+
+   utilSlice _keyString::getSliceAfterKey() const
+   {
+      return isValid() ?
+                  ( _tailRef.isValid() ?
+                    ( _desc.keySize >= _ref.getSize() ?
+                      _tailRef.getSliceFromOffsetToEnd( _desc.keySize - _ref.getSize() ) :
+                      utilSlice() ) :
+                    ( _ref.getSliceFromOffsetToEnd( _desc.keySize ) ) ) :
+                  ( utilSlice() ) ;
+   }
+
    utilSlice _keyString::getTypeBits() const
    {
       return isValid() && hasTypeBits() ?
-                   _ref.getSlice( _desc.keySize, _desc.typeBitsSize ) :
-                   utilSlice() ;
+                  ( _tailRef.isValid() ?
+                    ( _desc.keySize >= _ref.getSize() ?
+                      _tailRef.getSlice( _desc.keySize - _ref.getSize(),
+                                           _desc.typeBitsSize ) :
+                      utilSlice() ) :
+                    ( _ref.getSlice( _desc.keySize, _desc.typeBitsSize ) ) ) :
+                  ( utilSlice() ) ;
    }
 
    INT32 _keyString::compare( const _keyString &s ) const
    {
       SDB_ASSERT( isValid() && s.isValid(), "can not be invalid" ) ;
-      return getKeySlice().compare( s.getKeySlice() ) ;
+      if ( !_tailRef.isValid() && s._tailRef.isValid() )
+      {
+         return getKeySlice().compare( s.getKeySlice() ) ;
+      }
+      INT32 res = compareElements( s ) ;
+      if ( 0 == res )
+      {
+         return getRID().compare( s.getRID() ) ;
+      }
+      return res ;
    }
 
    INT32 _keyString::compareElements( const _keyString &ks ) const
@@ -404,7 +487,7 @@ namespace keystring
       return res ;
    }
 
-   INT32 _keyString::parseMetaFromSlice( const utilSlice &s,
+   INT32 _keyString::parseMetaFromSlice( const utilSlice &metadataSlice,
                                          keyStringDescriptor &desc )
    {
       INT32 rc = SDB_OK ;
@@ -413,36 +496,35 @@ namespace keystring
       utilBytesReader reader ;
       desc.reset() ;
 
-      if ( OSS_UNLIKELY( !s.isValid() ) )
+      if ( OSS_UNLIKELY( !metadataSlice.isValid() ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      else if ( s.getSize() <= KEY_STRING_MB_HEADER_SIZE )
+      else if ( metadataSlice.getSize() <= KEY_STRING_MB_HEADER_SIZE )
       {
-         PD_LOG( PDERROR, "invalid slice size:%d", s.getSize() ) ;
+         PD_LOG( PDERROR, "Failed to parse metadata, invalid slice size: %d",
+                 metadataSlice.getSize() ) ;
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
+      header = reinterpret_cast<const keyStringMetaBlockHeader *>(
+            metadataSlice.getData() + metadataSlice.getSize() - KEY_STRING_MB_HEADER_SIZE ) ;
 
-      header =
-            reinterpret_cast<const keyStringMetaBlockHeader*>( s.getData()
-                  + s.getSize()
-                                                               - KEY_STRING_MB_HEADER_SIZE ) ;
       if ( !header->isValid() )
       {
-         PD_LOG( PDERROR, "invalid key string meta block header" ) ;
+         PD_LOG( PDERROR, "Failed to parse metadata, invalid key string meta block header" ) ;
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
 
       mbyte.init( header->metaByte ) ;
-      reader.init( s.getSlice( 0, s.getSize() - KEY_STRING_MB_HEADER_SIZE ),
-                   TRUE ) ;
+      reader.init( metadataSlice.getSlice(
+         0, metadataSlice.getSize() - KEY_STRING_MB_HEADER_SIZE ), TRUE ) ;
 
       if ( !_loadSizeData( reader, FALSE, desc.keySize ) )
       {
-         PD_LOG( PDERROR, "failed to load key size" ) ;
+         PD_LOG( PDERROR, "Failed to load key size" ) ;
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
@@ -451,14 +533,14 @@ namespace keystring
       {
          if ( !reader.slide( 1 ) )
          {
-            PD_LOG( PDERROR, "failed to move to key head size begin pos" ) ;
+            PD_LOG( PDERROR, "Failed to move to key head size begin pos" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
 
          if ( !_loadSizeData( reader, TRUE, desc.keyHeadSize ) )
          {
-            PD_LOG( PDERROR, "failed to load key head size" ) ;
+            PD_LOG( PDERROR, "Failed to load key head size" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
@@ -468,14 +550,14 @@ namespace keystring
       {
          if ( !reader.slide( 1 ) )
          {
-            PD_LOG( PDERROR, "failed to move to key tail size begin pos" ) ;
+            PD_LOG( PDERROR, "Failed to move to key tail size begin pos" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
 
          if ( !_loadSizeData( reader, TRUE, desc.keyTailSize ) )
          {
-            PD_LOG( PDERROR, "failed to load key tail size" ) ;
+            PD_LOG( PDERROR, "Failed to load key tail size" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
@@ -485,14 +567,14 @@ namespace keystring
       {
          if ( !reader.slide( 1 ) )
          {
-            PD_LOG( PDERROR, "failed to move to type bits size begin pos" ) ;
+            PD_LOG( PDERROR, "Failed to move to type bits size begin pos" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
 
          if ( !_loadSizeData( reader, TRUE, desc.typeBitsSize ) )
          {
-            PD_LOG( PDERROR, "failed to load type bits size" ) ;
+            PD_LOG( PDERROR, "Failed to load type bits size" ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
@@ -504,8 +586,10 @@ namespace keystring
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
+
    done:
       return rc ;
+
    error:
       desc.reset() ;
       goto done ;
@@ -599,7 +683,7 @@ namespace keystring
                                          UINT32 typeBitsBufSize )
    : _buf( bodyBuf ),
      _bufSize( bufSize ),
-     typeReader( typeBitsBuf, typeBitsBufSize )
+     _typeReader( typeBitsBuf, typeBitsBufSize )
    {
    }
 
@@ -761,7 +845,7 @@ namespace keystring
       {
          ossPoolString s ;
          _decodeStringLike( inverted, s ) ;
-         keyStringTypeBitsType originalType = typeReader.readStringLike() ;
+         keyStringTypeBitsType originalType = _typeReader.readStringLike() ;
          if ( keyStringTypeBitsType::STRING == originalType )
          {
             fieldName ?
@@ -860,7 +944,7 @@ namespace keystring
       }
       case keyStringEncodedType::time :
       {
-         keyStringTypeBitsType originalType = typeReader.readTimestampOrDate() ;
+         keyStringTypeBitsType originalType = _typeReader.readTimestampOrDate() ;
          INT64 encoded = ossBigEndianToNative(
                _read<INT64>( inverted ) ) ;
          INT64 seconds = encoded ^ std::numeric_limits < INT64 > ::min() ;
@@ -957,7 +1041,7 @@ namespace keystring
                                              const CHAR *fieldName )
    {
 
-      keyStringTypeBitsType originalType = typeReader.readNumeric() ;
+      keyStringTypeBitsType originalType = _typeReader.readNumeric() ;
       BOOLEAN isNegative = FALSE ;
       switch ( type )
       {
@@ -995,7 +1079,7 @@ namespace keystring
          }
          else if ( originalType == keyStringTypeBitsType::DOUBLE )
          {
-            keyStringTypeBitsType zeroType = typeReader.readZero() ;
+            keyStringTypeBitsType zeroType = _typeReader.readZero() ;
             SDB_ASSERT(
                   zeroType == keyStringTypeBitsType::NEGATIVE_ZERO || zeroType
                         == keyStringTypeBitsType::POSITIVE_ZERO,
@@ -1008,7 +1092,7 @@ namespace keystring
          }
          else if ( originalType == keyStringTypeBitsType::DECIMAL )
          {
-            keyStringTypeBitsType zeroType = typeReader.readZero() ;
+            keyStringTypeBitsType zeroType = _typeReader.readZero() ;
             SDB_ASSERT(
                   zeroType == keyStringTypeBitsType::NEGATIVE_ZERO || zeroType
                         == keyStringTypeBitsType::POSITIVE_ZERO,
@@ -1081,8 +1165,8 @@ namespace keystring
                << ( isNegative ? -abs : abs ) ;
                bsonDecimal dec ;
                dec.fromString( ss.str().c_str() ) ;
-               INT32 typemod = typeReader.read<INT32>() ;
-               INT16 ndigit = typeReader.read<UINT16>() ;
+               INT32 typemod = _typeReader.read<INT32>() ;
+               INT16 ndigit = _typeReader.read<UINT16>() ;
                dec.updateTypemod( typemod ) ;
                SDB_ASSERT( dec.getNdigit() == ndigit,
                            "Expected to be equal" ) ;
@@ -1132,7 +1216,7 @@ namespace keystring
       case keyStringEncodedType::numericPositive8ByteInt :
       {
          UINT64 encoded = 0 ;
-         UINT32 integralNeededBytes = neededBytesNumForInteger( type ) ;
+         UINT32 integralNeededBytes = _neededBytesNumForInteger( type ) ;
          for ( UINT32 i = integralNeededBytes ; i ; i -- )
          {
             encoded = ( encoded << 8 ) | _read<UINT8>( inverted ) ;
@@ -1176,8 +1260,8 @@ namespace keystring
                {
                   bsonDecimal dec ;
                   dec.fromLong( integerValue ) ;
-                  INT32 typemod = typeReader.read<INT32>() ;
-                  /*INT16 ndigit = */typeReader.read<UINT16>() ;
+                  INT32 typemod = _typeReader.read<INT32>() ;
+                  /* INT16 ndigit = _typeReader.read<UINT16>() */
                   dec.updateTypemod( typemod ) ;
                   fieldName ?
                         builder.append( fieldName, dec ) :
@@ -1221,8 +1305,8 @@ namespace keystring
                << ( isNegative ? -abs : abs ) ;
                bsonDecimal decFromDouble ;
                decFromDouble.fromString( ss.str().c_str() ) ;
-               INT32 typemod = typeReader.read<INT32>() ;
-               INT16 ndigit = typeReader.read<UINT16>() ;
+               INT32 typemod = _typeReader.read<INT32>() ;
+               INT16 ndigit = _typeReader.read<UINT16>() ;
                decFromDouble.updateTypemod( typemod ) ;
                SDB_ASSERT( decFromDouble.getNdigit() == ndigit,
                            "Expected to be equal" ) ;
@@ -1271,8 +1355,8 @@ namespace keystring
       const UINT32 integerPartNdigit = ossBigEndianToNative(
             _read<UINT32>( inverted ) ) ;
       INT16 weight = 0 ;
-      INT32 typemod = typeReader.read<INT32>() ;
-      INT16 ndigit = typeReader.read<UINT16>() ;
+      INT32 typemod = _typeReader.read<INT32>() ;
+      INT16 ndigit = _typeReader.read<UINT16>() ;
       ossPoolString decStr ;
       if ( isNegative )
       {

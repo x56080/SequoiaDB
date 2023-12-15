@@ -113,7 +113,7 @@ namespace keystring
       }
       ++ rid._offset ;
 
-      rc = _ensureBuffer( _src.getRawDataSize() ) ;
+      rc = _ensureBuffer( _src.getRawDataSize() + _src.getTailDataSize() ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -121,7 +121,13 @@ namespace keystring
 
       bufferOffset = _src.getKeySizeExceptTail() ;
       buffer.makeWritable( _bufferSize, _buffer ) ;
-      buffer.write( 0, _src.getRawDataSize(), _src.getRawData().data() ) ;
+      buffer.write( 0, _src.getRawDataSize(), _src.getRawDataPtr() ) ;
+      if ( _src.getTailDataSize() > 0 )
+      {
+         buffer.write( _src.getRawDataSize(),
+                       _src.getTailDataSize(),
+                       _src.getTailDataPtr() ) ;
+      }
       keyStringCoder().encodeRID(
             rid, buffer.getWritablePtr( bufferOffset, sizeof( UINT32 ) + sizeof( UINT32 ) ) ) ;
 
@@ -167,7 +173,7 @@ namespace keystring
       }
       -- rid._offset ;
 
-      rc = _ensureBuffer( _src.getRawDataSize() ) ;
+      rc = _ensureBuffer( _src.getRawDataSize() + _src.getTailDataSize() ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -175,7 +181,13 @@ namespace keystring
 
       bufferOffset = _src.getKeySizeExceptTail() ;
       buffer.makeWritable( _bufferSize, _buffer ) ;
-      buffer.write( 0, _src.getRawDataSize(), _src.getRawData().data() ) ;
+      buffer.write( 0, _src.getRawDataSize(), _src.getRawDataPtr() ) ;
+      if ( _src.getTailDataSize() > 0 )
+      {
+         buffer.write( _src.getRawDataSize(),
+                       _src.getTailDataSize(),
+                       _src.getTailDataPtr() ) ;
+      }
       keyStringCoder().encodeRID(
             rid, buffer.getWritablePtr( bufferOffset, sizeof( UINT32 ) + sizeof( UINT32 ) ) ) ;
    done:

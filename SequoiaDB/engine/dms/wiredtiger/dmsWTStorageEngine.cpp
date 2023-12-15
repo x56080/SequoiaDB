@@ -422,7 +422,7 @@ namespace wiredtiger
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM, "_dmsWTStorageEngine::insertToStore" )
-   INT32 _dmsWTStorageEngine::insertToStore( const dmsWTStore &store,
+   INT32 _dmsWTStorageEngine::insertToStore( dmsWTCursor &cursor,
                                              const dmsWTItem &key,
                                              const dmsWTItem &value )
    {
@@ -430,17 +430,8 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM ) ;
 
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
       PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
                 "Failed to insert to store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
       rc = cursor.insert( key, value ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;

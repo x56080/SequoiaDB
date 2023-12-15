@@ -39,7 +39,7 @@
 #include "dmsDef.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.hpp"
-#include "keystring/utilKeyString.hpp"
+#include "utilSlice.hpp"
 
 #include <wiredtiger.h>
 
@@ -70,29 +70,26 @@ namespace wiredtiger
       _dmsWTItem( const _dmsWTItem &o ) = delete ;
       _dmsWTItem &operator =( const _dmsWTItem & ) = delete ;
 
-      _dmsWTItem( const ossPoolString &str )
-      : _dmsWTItem( str.c_str(), str.size() )
-      {
-      }
-
-      _dmsWTItem( const std::string &str )
-      : _dmsWTItem( str.c_str(), str.size() )
-      {
-      }
-
       _dmsWTItem( const bson::BSONObj &obj )
       : _dmsWTItem( obj.objdata(), obj.objsize() )
-      {
-      }
-
-      _dmsWTItem( const keystring::keyString &keyString )
-      : _dmsWTItem( keyString.getRawDataPtr(), keyString.getRawDataSize() )
       {
       }
 
       _dmsWTItem( const utilSlice &slice )
       : _dmsWTItem( slice.getData(), slice.getSize() )
       {
+      }
+
+      void init( const bson::BSONObj &obj )
+      {
+         _item.data = obj.objdata() ;
+         _item.size = obj.objsize() ;
+      }
+
+      void init( const utilSlice &slice )
+      {
+         _item.data = slice.getData() ;
+         _item.size = slice.getSize() ;
       }
 
       WT_ITEM *get()
@@ -103,6 +100,22 @@ namespace wiredtiger
       const WT_ITEM *get() const
       {
          return &_item ;
+      }
+
+      const void *getData() const
+      {
+         return _item.data ;
+      }
+
+      UINT32 getSize() const
+      {
+         return _item.size ;
+      }
+
+      void reset()
+      {
+         _item.data = nullptr ;
+         _item.size = 0 ;
       }
 
    protected:

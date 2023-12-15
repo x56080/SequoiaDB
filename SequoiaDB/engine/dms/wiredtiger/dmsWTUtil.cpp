@@ -57,7 +57,7 @@ namespace wiredtiger
          goto done ;
       }
 
-      PD_LOG( PDEVENT, "Got WiredTiger engine error message %s",
+      PD_LOG( PDDEBUG, "Got WiredTiger engine error message %s",
               wiredtiger_strerror( retCode ) ) ;
 
       switch ( retCode )
@@ -72,7 +72,7 @@ namespace wiredtiger
          rc = SDB_DMS_EOC ;
          break ;
       case WT_DUPLICATE_KEY:
-         rc = SDB_IXM_DUP_KEY ;
+         rc = pdError( SDB_IXM_DUP_KEY ) ;
          break ;
       default:
          rc = SDB_SYS ;

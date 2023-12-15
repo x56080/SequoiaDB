@@ -52,8 +52,6 @@ namespace engine
 namespace keystring
 {
 
-   UINT32 neededBytesNumForInteger(keyStringEncodedType type);
-
    /*
       _keyString define
     */
@@ -64,7 +62,8 @@ namespace keystring
    public:
       _keyString() = default ;
       ~_keyString() ;
-      explicit _keyString( const utilSlice &s ) ;
+      explicit _keyString( const utilSlice &data,
+                           const utilSlice &typeBits = utilSlice() ) ;
       explicit _keyString( UINT32 size, const CHAR *data ) ;
 
       /// WARNING: shallow copy!
@@ -76,7 +75,8 @@ namespace keystring
 
    public:
       void reset() ;
-      INT32 init( const utilSlice &s ) ;
+      INT32 init( const utilSlice &data,
+                  const utilSlice &tail = utilSlice() ) ;
       INT32 getOwned() ;
 
    public:
@@ -95,11 +95,6 @@ namespace keystring
          return _ref ;
       }
 
-      OSS_INLINE const utilSlice &getDataSlice() const
-      {
-         return _ref ;
-      }
-
       OSS_INLINE const CHAR *getRawDataPtr() const
       {
          return _ref.data() ;
@@ -108,6 +103,21 @@ namespace keystring
       OSS_INLINE UINT32 getRawDataSize() const
       {
          return _ref.getSize() ;
+      }
+
+      OSS_INLINE const utilSlice &getTailData() const
+      {
+         return _tailRef ;
+      }
+
+      OSS_INLINE const CHAR *getTailDataPtr() const
+      {
+         return _tailRef.data() ;
+      }
+
+      OSS_INLINE UINT32 getTailDataSize() const
+      {
+         return _tailRef.getSize() ;
       }
 
       OSS_INLINE UINT32 getComparableSize() const
@@ -176,6 +186,8 @@ namespace keystring
       utilSlice getKeyTailSlice() const ;
       utilSlice getKeySliceExceptTail() const ;
       utilSlice getKeySliceAfterHeader() const ;
+      utilSlice getSliceAfterKeyElements() const ;
+      utilSlice getSliceAfterKey() const ;
       utilSlice getTypeBits() const ;
       bson::BSONObj toBSON( const bson::BSONObj &pattern,
                             BOOLEAN withFieldName = FALSE ) const ;
@@ -197,7 +209,7 @@ namespace keystring
       static INT32 compareCoding( UINT32 sizea, const CHAR *bufa,
                                   UINT32 sizeb, const CHAR *bufb ) ;
 
-      static INT32 parseMetaFromSlice( const utilSlice &s,
+      static INT32 parseMetaFromSlice( const utilSlice &metadataSlice,
                                        keyStringDescriptor &desc ) ;
 
       /*
@@ -288,13 +300,14 @@ namespace keystring
          const CHAR *_buf = nullptr ;
          UINT32 _bufSize = 0 ;
          UINT32 _offset = 0 ;
-         _typeBitsReader typeReader ;
+         _typeBitsReader _typeReader ;
       } ;
 
    private:
-         INT32 _parse( const utilSlice &s,
+         INT32 _parse( const utilSlice &data,
+                       const utilSlice &typeBits,
                        keyStringDescriptor &desc ) const ;
-
+         INT32 _getOwnedWithException() const ;
    private:
          static BOOLEAN _loadSizeData( utilBytesReader &reader,
                                        BOOLEAN nonzero,
@@ -302,6 +315,7 @@ namespace keystring
 
    protected:
       utilSlice _ref ;
+      utilSlice _tailRef ;
       keyStringDescriptor _desc ;
 
    private:

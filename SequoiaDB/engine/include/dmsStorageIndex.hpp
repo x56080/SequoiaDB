@@ -325,15 +325,13 @@ namespace engine
                                 _ixmIndexCB *indexCB,
                                 const bson::BSONObj &key,
                                 const dmsRecordID &rid,
-                                const bson::Ordering& order,
                                 _pmdEDUCB *cb,
-                                BOOLEAN checkDuplicated,
+                                BOOLEAN allowDuplicated,
                                 utilWriteResult *pResult = NULL ) ;
          INT32    _indexDelete( _dmsMBContext *context,
                                 _ixmIndexCB *indexCB,
                                 const bson::BSONObj &key,
                                 const dmsRecordID &rid,
-                                const bson::Ordering& order,
                                 _pmdEDUCB *cb ) ;
 
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,

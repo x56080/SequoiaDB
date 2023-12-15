@@ -96,50 +96,54 @@ namespace keystring
          typeBitsSize = 0;
       }
 
-      OSS_INLINE BOOLEAN isValid()const
+      OSS_INLINE BOOLEAN isValid() const
       {
-         return ((UINT64)keyHeadSize + keyTailSize) <= (UINT64)keySize;
+         return ( (UINT64)keyHeadSize + keyTailSize ) <= (UINT64)keySize ;
       }
-      OSS_INLINE UINT32 getKeyElementsSize()const
+
+      OSS_INLINE UINT32 getKeyElementsSize() const
       {
-         return keySize - (keyHeadSize + keyTailSize);
+         return keySize - ( keyHeadSize + keyTailSize ) ;
       }
-      OSS_INLINE UINT32 getMetaBlockSize()const
+
+      OSS_INLINE UINT32 getMetaBlockSize() const
       {
-         UINT32 size = KEY_STRING_MB_HEADER_SIZE;
+         UINT32 size = KEY_STRING_MB_HEADER_SIZE ;
+
          size += keySize < KEY_STRING_TYNI_SIZE_BOUND ?
-                 KEY_STRING_TYNI_SWRORD_SIZE:
-                 KEY_STRING_EXT_SWORD_SIZE;
-         if (0 < keyHeadSize)
+                 KEY_STRING_TYNI_SWRORD_SIZE :
+                 KEY_STRING_EXT_SWORD_SIZE ;
+         if ( 0 < keyHeadSize )
          {
             size += keyHeadSize < KEY_STRING_TYNI_SIZE_BOUND ?
-                    KEY_STRING_TYNI_SWRORD_SIZE:
-                    KEY_STRING_EXT_SWORD_SIZE;
+                    KEY_STRING_TYNI_SWRORD_SIZE :
+                    KEY_STRING_EXT_SWORD_SIZE ;
          }
-         if (0 < keyTailSize)
+         if ( 0 < keyTailSize )
          {
             size += keyTailSize < KEY_STRING_TYNI_SIZE_BOUND ?
-                    KEY_STRING_TYNI_SWRORD_SIZE:
-                    KEY_STRING_EXT_SWORD_SIZE;
+                    KEY_STRING_TYNI_SWRORD_SIZE :
+                    KEY_STRING_EXT_SWORD_SIZE ;
          }
-         if (0 < typeBitsSize)
+         if ( 0 < typeBitsSize )
          {
             size += typeBitsSize < KEY_STRING_TYNI_SIZE_BOUND ?
-                    KEY_STRING_TYNI_SWRORD_SIZE:
-                    KEY_STRING_EXT_SWORD_SIZE;
+                    KEY_STRING_TYNI_SWRORD_SIZE :
+                    KEY_STRING_EXT_SWORD_SIZE ;
          }
 
-         return size;
-      }
-      OSS_INLINE UINT32 getStringSizeExpected()const
-      {
-         return keySize + typeBitsSize + getMetaBlockSize();
+         return size ;
       }
 
-      UINT32 keySize = 0;
-      UINT32 keyHeadSize = 0;
-      UINT32 keyTailSize = 0;
-      UINT32 typeBitsSize = 0;
+      OSS_INLINE UINT32 getStringSizeExpected() const
+      {
+         return keySize + typeBitsSize + getMetaBlockSize() ;
+      }
+
+      UINT32 keySize = 0 ;
+      UINT32 keyHeadSize = 0 ;
+      UINT32 keyTailSize = 0 ;
+      UINT32 typeBitsSize = 0 ;
    } ;
 
    typedef class _keyStringDescriptor keyStringDescriptor ;

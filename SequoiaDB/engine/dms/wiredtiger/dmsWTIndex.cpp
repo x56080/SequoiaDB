@@ -59,19 +59,49 @@ namespace
       _dmsWTIndex implement
     */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_INDEX, "_dmsWTIndex::index" )
-   INT32 _dmsWTIndex::index( const keyString &keyString,
+   INT32 _dmsWTIndex::index( const BSONObj &key,
                              const dmsRecordID &rid,
-                             BOOLEAN checkDuplicated,
-                             IExecutor *executor )
+                             BOOLEAN allowDuplicated,
+                             IExecutor *executor,
+                             utilWriteResult *result )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_INDEX ) ;
 
-      dmsWTItem key( keyString ) ;
+      keyStringStackBuilder builder ;
+      keyString ks ;
 
-      rc = _engine.insertToStore( _store, key, s_emptyItem ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      rc = _engine.openSession( sess ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      // for indexing, disable overwrite to check conflicts
+      rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = _buildKeyString( key, rid, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      ks = builder.getShallowKeyString() ;
+
+      if ( _metadata.isStrictUnique() )
+      {
+         rc = _insertStrictUnique( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
+      else if ( !allowDuplicated && _metadata.isUnique() )
+      {
+         rc = _insertUnique( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _insertStandard( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX_INDEX, rc ) ;
@@ -82,7 +112,7 @@ namespace
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_UNINDEX, "_dmsWTIndex::unindex" )
-   INT32 _dmsWTIndex::unindex( const keyString &keyString,
+   INT32 _dmsWTIndex::unindex( const BSONObj &key,
                                const dmsRecordID &rid,
                                IExecutor *executor )
    {
@@ -90,9 +120,16 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_UNINDEX ) ;
 
-      dmsWTItem key( keyString ) ;
+      keyStringStackBuilder builder ;
+      dmsWTItem keyItem ;
 
-      rc = _engine.removeFromStore( _store, key ) ;
+      rc = _buildKeyString( key, rid, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      rc = _getKey( builder.getShallowKeyString(), keyItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key, rc: %d", rc ) ;
+
+      rc = _engine.removeFromStore( _store, keyItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to remove index key from engine, rc: %d", rc ) ;
 
    done:
@@ -201,6 +238,371 @@ namespace
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX_BLDIDXURI, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__BLDKEYSTR, "_dmsWTIndex::_buildKeyString" )
+   INT32 _dmsWTIndex::_buildKeyString( const BSONObj &key,
+                                       const dmsRecordID &rid,
+                                       keyStringBuilderImpl &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__BLDKEYSTR ) ;
+
+      rc = builder.buildIndexEntryKey( key, _metadata.getOrdering(), rid ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__BLDKEYSTR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__GETKEY, "_dmsWTIndex::_getKey" )
+   INT32 _dmsWTIndex::_getKey( const keyString &ks,
+                               dmsWTItem &keyItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__GETKEY ) ;
+
+      try
+      {
+         if ( _metadata.isStrictUnique() )
+         {
+            keyItem.init( ks.getKeySliceExceptTail() ) ;
+         }
+         else
+         {
+            keyItem.init( ks.getKeySlice() ) ;
+            // record ID in key
+            PD_CHECK( keyItem.getSize() >= keyStringCoder::RID_ENCODING_SIZE,
+                      SDB_CORRUPTED_RECORD, error, PDERROR,
+                      "Failed to initialize key and value" ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize key, occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__GETKEY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__GETKEYANDVALUE, "_dmsWTIndex::_getKeyAndValue" )
+   INT32 _dmsWTIndex::_getKeyAndValue( const keyString &ks,
+                                       BOOLEAN isRIDInValue,
+                                       dmsWTItem &keyItem,
+                                       dmsWTItem &valueItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__GETKEYANDVALUE ) ;
+
+      try
+      {
+         if ( isRIDInValue )
+         {
+            keyItem.init( ks.getKeySliceExceptTail() ) ;
+            valueItem.init( ks.getSliceAfterKeyElements() ) ;
+            // record ID in value
+            PD_CHECK( valueItem.getSize() >= keyStringCoder::RID_ENCODING_SIZE,
+                      SDB_CORRUPTED_RECORD, error, PDERROR,
+                      "Failed to initialize key and value" ) ;
+         }
+         else
+         {
+            keyItem.init( ks.getKeySlice() ) ;
+            valueItem.init( ks.getSliceAfterKey() ) ;
+            // record ID in key
+            PD_CHECK( keyItem.getSize() >= keyStringCoder::RID_ENCODING_SIZE,
+                      SDB_CORRUPTED_RECORD, error, PDERROR,
+                      "Failed to initialize key and value" ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to initialize key and value, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__GETKEYANDVALUE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__GETRECID, "_dmsWTIndex::_getRecordID" )
+   INT32 _dmsWTIndex::_getRecordID( const dmsWTItem &value,
+                                    BOOLEAN isAtEnd,
+                                    dmsRecordID &rid )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__GETKEYANDVALUE ) ;
+
+      keyStringCoder coder ;
+
+      PD_CHECK( value.getSize() >= keyStringCoder::RID_ENCODING_SIZE,
+                SDB_CORRUPTED_RECORD, error, PDERROR,
+                "Invalid value size: %d", value.getSize() ) ;
+
+      if ( isAtEnd )
+      {
+         rid = coder.decodeToRID( (const CHAR *)value.getData() +
+                                  value.getSize() -
+                                  keyStringCoder::RID_ENCODING_SIZE ) ;
+      }
+      else
+      {
+         rid = coder.decodeToRID( (const CHAR *)value.getData() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__GETKEYANDVALUE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_KS, "_dmsWTIndex::_insertStrictUnique" )
+   INT32 _dmsWTIndex::_insertStrictUnique( dmsWTCursor &cursor,
+                                           const keyString &ks,
+                                           const dmsRecordID &rid,
+                                           utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_KS ) ;
+
+      dmsWTItem keyItem, valueItem ;
+
+      rc = _getKeyAndValue( ks, TRUE, keyItem, valueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key and value, rc: %d", rc ) ;
+
+      rc = _insertStrictUnique( cursor, keyItem, valueItem, rid, result ) ;
+      if ( SDB_IXM_IDENTICAL_KEY == rc ||
+           SDB_IXM_DUP_KEY == rc )
+      {
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_KS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_ITEM, "_dmsWTIndex::_insertStrictUnique" )
+   INT32 _dmsWTIndex::_insertStrictUnique( dmsWTCursor &cursor,
+                                           const dmsWTItem &keyItem,
+                                           const dmsWTItem &valueItem,
+                                           const dmsRecordID &rid,
+                                           utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_ITEM ) ;
+
+      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      if ( SDB_IXM_DUP_KEY == rc )
+      {
+         dmsWTItem conflictItem ;
+         dmsRecordID conflictRID ;
+         INT32 tmpRC = cursor.getValue( conflictItem ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to get conflict value from cursor, "
+                     "rc: %d", tmpRC ) ;
+            goto error ;
+         }
+         tmpRC = _getRecordID( conflictItem, FALSE, conflictRID ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to get conflict record ID, rc: %d", tmpRC ) ;
+            goto error ;
+         }
+         if ( conflictRID == rid )
+         {
+            rc = SDB_IXM_IDENTICAL_KEY ;
+            PD_LOG( PDEVENT, "Conflict record ID is identical to current record ID" ) ;
+         }
+         else if ( result )
+         {
+            result->setCurRID( rid ) ;
+            result->setPeerRID( conflictRID ) ;
+            PD_LOG( PDERROR, "Failed to insert index key [extent: %u, offset: %u] "
+                    "to engine, conflict with [extent: %u, offset: %u]",
+                    rid._extent, rid._offset, conflictRID._extent, conflictRID._offset ) ;
+         }
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_ITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__INSTUNIQUE_KS, "_dmsWTIndex::_insertUnique" )
+   INT32 _dmsWTIndex::_insertUnique( dmsWTCursor &cursor,
+                                     const keyString &ks,
+                                     const dmsRecordID &rid,
+                                     utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTUNIQUE_KS ) ;
+
+      dmsWTItem keyItem, valueItem ;
+
+      rc = _getKeyAndValue( ks, FALSE, keyItem, valueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key and value, rc: %d", rc ) ;
+
+      rc = _checkUnique( cursor, ks, rid, result ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check unqiue, rc: %d", rc ) ;
+
+      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__INSTUNIQUE_KS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__INSTSTANDARD, "_dmsWTIndex::_insertStandard" )
+   INT32 _dmsWTIndex::_insertStandard( dmsWTCursor &cursor,
+                                       const keyString &ks,
+                                       const dmsRecordID &rid,
+                                       utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTSTANDARD ) ;
+
+      dmsWTItem keyItem, valueItem ;
+
+      rc = _getKeyAndValue( ks, FALSE, keyItem, valueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key and value, rc: %d", rc ) ;
+
+      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__INSTSTANDARD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__CHECKUNIQ, "_dmsWTIndex::_checkUnique" )
+   INT32 _dmsWTIndex::_checkUnique( dmsWTCursor &cursor,
+                                    const keystring::keyString &ks,
+                                    const dmsRecordID &rid,
+                                    utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__CHECKUNIQ ) ;
+
+      dmsWTItem prefixKeyItem, prefixValueItem, existsKeyItem, existValueItem ;
+      BOOLEAN isFound = FALSE, isExactMatch = FALSE ;
+
+      rc = _getKeyAndValue( ks, TRUE, prefixKeyItem, prefixValueItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get prefix key and value, rc: %d", rc ) ;
+
+      // insert the prefix to reserve unique key during write of record,
+      // so other concurrent writes with the same unique key will be conflict
+      rc = _insertStrictUnique( cursor, prefixKeyItem, prefixValueItem, rid, result ) ;
+      if ( SDB_IXM_IDENTICAL_KEY == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to reserve prefix key to engine, rc: %d", rc ) ;
+
+      // remove the prefix, so the concurrent writes with the same unique key
+      // will continue conflict, but any writes after this write will not be
+      // conflict
+      rc = cursor.remove( prefixKeyItem ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove prefix key from engine, rc: %d", rc ) ;
+
+      // search if the same key exsits
+      rc = cursor.searchPrefix( prefixKeyItem,
+                                existsKeyItem,
+                                existValueItem,
+                                isFound,
+                                isExactMatch ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search prefix key, rc: %d", rc ) ;
+      if ( isFound )
+      {
+         dmsRecordID conflictRID ;
+
+         if ( isExactMatch )
+         {
+            // found key is exactly the same with prefix, record ID in value
+            rc = _getRecordID( existValueItem, FALSE, conflictRID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get conflict record ID, rc: %d", rc ) ;
+         }
+         else
+         {
+            // found key has the same prefix, record ID in key
+            rc = _getRecordID( existsKeyItem, TRUE, conflictRID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get conflict record ID, rc: %d", rc ) ;
+         }
+
+         if ( rid == conflictRID )
+         {
+            rc = SDB_IXM_IDENTICAL_KEY ;
+            PD_LOG( PDEVENT, "Conflict record ID is identical to current "
+                    "record ID [extent: %u, offset: %u]", rid._extent, rid._offset ) ;
+            goto error ;
+         }
+         else
+         {
+            result->setCurRID( rid ) ;
+            result->setPeerRID( conflictRID ) ;
+            rc = pdError( SDB_IXM_DUP_KEY ) ;
+            PD_LOG( PDERROR, "Failed to insert index key [extent: %u, offset: %u] "
+                    "to engine, conflict with [extent: %u, offset: %u]",
+                    rid._extent, rid._offset, conflictRID._extent, conflictRID._offset ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__CHECKUNIQ, rc ) ;
       return rc ;
 
    error:

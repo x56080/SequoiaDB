@@ -220,8 +220,7 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_ALLOCRECID ) ;
 
-      // TODO: no need to be aligned in WT
-      UINT64 tmpRID = _metadata.getMBStat()->_ridGen.add( ossAlignX( length, 4 ) ) ;
+      UINT64 tmpRID = _metadata.getMBStat()->_ridGen.inc() ;
       rid._extent = (dmsExtentID)( tmpRID >> 32 ) ;
       rid._offset = (dmsOffset)( tmpRID & 0xFFFFFFFF ) ;
 

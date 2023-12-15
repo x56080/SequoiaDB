@@ -114,7 +114,6 @@ namespace engine
                           IExecutor *executor ) = 0 ;
 
       virtual INT32 locate( const bson::BSONObj &key,
-                            const bson::Ordering &ordering,
                             const dmsRecordID &recordID,
                             BOOLEAN isAfterStartKey,
                             IExecutor *executor,

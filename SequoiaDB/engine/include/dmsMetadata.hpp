@@ -44,6 +44,7 @@
 #include "utilRenameLogger.hpp"
 #include "utilResult.hpp"
 #include "../bson/bson.hpp"
+#include "../bson/ordering.h"
 
 namespace engine
 {
@@ -194,15 +195,10 @@ namespace engine
    class _dmsCSMetadata : public SDBObject
    {
    public:
-      _dmsCSMetadata() = default ;
+      _dmsCSMetadata() = delete ;
       virtual ~_dmsCSMetadata() = default ;
       _dmsCSMetadata( const _dmsCSMetadata &o ) = default ;
       _dmsCSMetadata &operator =( const _dmsCSMetadata & ) = default ;
-
-      _dmsCSMetadata( utilCSUniqueID csUID )
-      : _csUID( csUID )
-      {
-      }
 
       _dmsCSMetadata( _dmsSUDescriptor *su ) ;
 
@@ -211,19 +207,9 @@ namespace engine
          return _csUID ;
       }
 
-      void setCSUID( utilCSUniqueID csUID )
-      {
-         _csUID = csUID ;
-      }
-
       _dmsSUDescriptor *getSU() const
       {
          return _su ;
-      }
-
-      void setSU( _dmsSUDescriptor *su )
-      {
-         _su = su ;
       }
 
    protected:
@@ -239,22 +225,10 @@ namespace engine
    class _dmsCLMetadata : public _dmsCSMetadata
    {
    public:
-      _dmsCLMetadata() = default ;
+      _dmsCLMetadata() = delete ;
       virtual ~_dmsCLMetadata() = default ;
       _dmsCLMetadata( const _dmsCLMetadata &o ) = default ;
       _dmsCLMetadata &operator =( const _dmsCLMetadata & ) = default ;
-
-      _dmsCLMetadata( utilCLUniqueID clUID,
-                      UINT32 clLID,
-                      utilCLInnerID clOrigInnerUID,
-                      UINT32 clOrigLID )
-      : _dmsCSMetadata( utilGetCSUniqueID( clUID ) ),
-        _clInnerID( utilGetCLInnerID( clUID ) ),
-        _clLID( clLID ),
-        _clOrigInnerID( clOrigInnerUID ),
-        _clOrigLID( clOrigLID )
-      {
-      }
 
       _dmsCLMetadata( _dmsSUDescriptor *su,
                       _dmsMetadataBlock *mb,
@@ -265,19 +239,9 @@ namespace engine
          return _clInnerID ;
       }
 
-      void setCLInnerID( utilCLInnerID clUID )
-      {
-         _clInnerID = clUID ;
-      }
-
       UINT32 getCLLID() const
       {
          return _clLID ;
-      }
-
-      void setCLLID( UINT32 clLID )
-      {
-         _clLID = clLID ;
       }
 
       utilCLInnerID getCLOrigInnerID() const
@@ -285,19 +249,9 @@ namespace engine
          return _clOrigInnerID ;
       }
 
-      void setCLOrigInnerID( utilCLInnerID clOrigInnerID )
-      {
-         _clOrigInnerID = clOrigInnerID ;
-      }
-
       UINT32 getCLOrigLID() const
       {
          return _clOrigLID ;
-      }
-
-      void setCLOrigLID( UINT32 clOrigLID )
-      {
-         _clOrigLID = clOrigLID ;
       }
 
       utilCLUniqueID getCLUID() const
@@ -315,19 +269,9 @@ namespace engine
          return _mb ;
       }
 
-      void setMB( _dmsMetadataBlock *mb )
-      {
-         _mb = mb ;
-      }
-
       _dmsMBStatInfo *getMBStat() const
       {
          return _mbStat ;
-      }
-
-      void setMBStat( _dmsMBStatInfo *mbStat )
-      {
-         _mbStat = mbStat ;
       }
 
       dmsCLMetadataKey getCLKey() const
@@ -352,22 +296,10 @@ namespace engine
    class _dmsIdxMetadata : public _dmsCLMetadata
    {
    public:
-      _dmsIdxMetadata() = default ;
+      _dmsIdxMetadata() = delete ;
       virtual ~_dmsIdxMetadata() = default ;
       _dmsIdxMetadata( const _dmsIdxMetadata &o ) = default ;
       _dmsIdxMetadata &operator =( const _dmsIdxMetadata & ) = default ;
-
-      _dmsIdxMetadata( utilCLUniqueID clUID,
-                       utilIdxUniqueID idxUID,
-                       UINT32 clLID,
-                       UINT32 idxLID,
-                       utilCLInnerID clOrigInnerUID,
-                       UINT32 clOrigLID )
-      : _dmsCLMetadata( clUID, clLID, clOrigInnerUID, clOrigLID ),
-        _idxInnerID( utilGetIdxInnerID( idxUID ) ),
-        _idxLID( idxLID )
-      {
-      }
 
       _dmsIdxMetadata( _dmsSUDescriptor *su,
                        _dmsMetadataBlock *mb,
@@ -381,29 +313,14 @@ namespace engine
          return _idxInnerID ;
       }
 
-      void setIdxInnerID( utilIdxInnerID idxInnerID )
-      {
-         _idxInnerID = idxInnerID ;
-      }
-
       UINT32 getIdxLID() const
       {
          return _idxLID ;
       }
 
-      void setIdxLID( UINT32 idxLID )
-      {
-         _idxLID = idxLID ;
-      }
-
       utilIdxUniqueID getIdxUID() const
       {
          return utilBuildIdxUniqueID( getCSUID(), getIdxInnerID() ) ;
-      }
-
-      void setIdxUID( utilIdxUniqueID idxUID )
-      {
-         _idxInnerID = utilGetIdxInnerID( idxUID ) ;
       }
 
       dmsIdxMetadataKey getIdxKey() const
@@ -416,9 +333,9 @@ namespace engine
          return _keyPattern ;
       }
 
-      void setKeyPattern( const bson::BSONObj &keyPattern )
+      const bson::Ordering &getOrdering() const
       {
-         _keyPattern = keyPattern.copy() ;
+         return _ordering ;
       }
 
       BOOLEAN isUnique() const
@@ -426,19 +343,9 @@ namespace engine
          return _isUnique ;
       }
 
-      void setUnique( BOOLEAN isUnique )
-      {
-         _isUnique = isUnique ;
-      }
-
       BOOLEAN isStrictUnique() const
       {
          return _isStrictUnique ;
-      }
-
-      void setStrictUnique( BOOLEAN isStrictUnique )
-      {
-         _isStrictUnique = isStrictUnique ;
       }
 
       BOOLEAN isEnforced() const
@@ -446,19 +353,9 @@ namespace engine
          return _isEnforced ;
       }
 
-      void setEnforced( BOOLEAN isEnforced )
-      {
-         _isEnforced = isEnforced ;
-      }
-
       BOOLEAN isNotNull() const
       {
          return _isNotNull ;
-      }
-
-      void setNotNull( BOOLEAN isNotNull )
-      {
-         _isNotNull = isNotNull ;
       }
 
       BOOLEAN isNotArray() const
@@ -466,15 +363,11 @@ namespace engine
          return _isNotArray ;
       }
 
-      void setNotArray( BOOLEAN isNotArray )
-      {
-         _isNotArray = isNotArray ;
-      }
-
    protected:
       utilIdxInnerID _idxInnerID = UTIL_UNIQUEID_NULL ;
       UINT32 _idxLID = DMS_INVALID_EXTENT ;
       bson::BSONObj _keyPattern ;
+      bson::Ordering _ordering ;
       BOOLEAN _isUnique = FALSE ;
       BOOLEAN _isStrictUnique = FALSE ;
       BOOLEAN _isEnforced = FALSE ;

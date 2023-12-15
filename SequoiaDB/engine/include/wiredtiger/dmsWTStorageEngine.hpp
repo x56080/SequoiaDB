@@ -104,7 +104,7 @@ namespace wiredtiger
       INT32 extractFromStore( const dmsWTStore &store,
                               UINT64 key,
                               dmsWTItem &value ) ;
-      INT32 insertToStore( const dmsWTStore &store,
+      INT32 insertToStore( dmsWTCursor &cursor,
                            const dmsWTItem &key,
                            const dmsWTItem &value ) ;
       INT32 updateToStore( const dmsWTStore &store,
