@@ -1400,7 +1400,7 @@ namespace engine
 
       if ( !_isSysSU )
       {
-         pHeader->_segmentSize= DMS_SEGMENT_SZ ;
+         pHeader->_segmentSize= DMS_SEGMENT_SZ_BASE ;
       }
       else
       {
