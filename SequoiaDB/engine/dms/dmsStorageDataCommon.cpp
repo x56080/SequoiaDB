@@ -3941,13 +3941,15 @@ namespace engine
                                                 const dmsRecordID &rid,
                                                 pmdEDUCB * cb,
                                                 IDmsOprHandler *pOprHandle,
+                                                dmsIndexWriteGuard &indexWriteGuard,
                                                 utilWriteResult *insertResult,
                                                 dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       INT32 rc = SDB_OK ;
       // insert object's indexes
       rc = _pIdxSU->indexesInsert( context, extLID, inputObj, rid, cb,
-                                   pOprHandle, insertResult, pUnqIdxHashArray ) ;
+                                   pOprHandle, indexWriteGuard, insertResult,
+                                   pUnqIdxHashArray ) ;
       if ( rc )
       {
          if ( insertResult &&
@@ -4021,6 +4023,8 @@ namespace engine
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+
+      dmsIndexWriteGuard indexWriteGuard( cb ) ;
 
       if ( !isTransSupport( context ) )
       {
@@ -4243,7 +4247,7 @@ namespace engine
 
          rc = _insertIndexes( context, foundRID._extent, insertObj,
                               foundRID, cb, dpsCB ? &callback : NULL,
-                              insertResult, pUnqIdxHashArray ) ;
+                              indexWriteGuard, insertResult, pUnqIdxHashArray ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert indexes, rc: %d", rc ) ;
       }
       catch ( exception &e )
@@ -4367,6 +4371,8 @@ namespace engine
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+
+      dmsIndexWriteGuard indexWriteGuard( cb ) ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -4507,7 +4513,8 @@ namespace engine
             // would be kept in the in memory tree under the cover
             rc = _pIdxSU->indexesDelete( context, recordID._extent,
                                          delObject, recordID, cb,
-                                         dpscb ? pHandler : NULL, isUndo,
+                                         dpscb ? pHandler : NULL,
+                                         indexWriteGuard, isUndo,
                                          pUnqIdxHashArray ) ;
             if ( rc )
             {
@@ -4664,6 +4671,7 @@ namespace engine
       BOOLEAN needUndoIndex = FALSE ;
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
+      dmsIndexWriteGuard indexWriteGuard( cb ) ;
 
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -4892,6 +4900,7 @@ namespace engine
 
             rc = _pIdxSU->indexesUpdate( context, recordID._extent, obj, newobj,
                                          recordID, cb, FALSE, pHandler,
+                                         indexWriteGuard,
                                          modifier.getIdxHashBitmap(), pResult,
                                          pNewUnqIdxHashArray,
                                          pOldUnqIdxHashArray ) ;
@@ -5035,7 +5044,7 @@ namespace engine
          // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, recordID._extent,
                                              newObj, oriObj, recordID, cb,
-                                             TRUE, NULL,
+                                             TRUE, NULL, indexWriteGuard,
                                              modifier.getIdxHashBitmap() ) ;
          if ( rc1 )
          {
@@ -5110,47 +5119,8 @@ namespace engine
             goto error ;
          }
 
-         extRW = extent2RW( recordID._extent, context->mbID() ) ;
-         recordRW = record2RW( recordID, context->mbID() ) ;
-         pExtent = extRW.readPtr<dmsExtent>() ;
-
-         // validate extent
-         if ( !pExtent->validate( context->mbID()) )
-         {
-            PD_LOG ( PDERROR, "Invalid extent[%d]", recordID._extent ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         pRecord = recordRW.readPtr() ;
-
-         // make sure the record is not deleted
-         // since we get the RID outside the latch scope, so there could be
-         // inconsistency happen, we need to make sure the flag is expected
-         if ( pRecord->isDeleted() )
-         {
-            rc = SDB_DMS_NOTEXIST ;
-            goto error ;
-         }
-         else if ( pRecord->isDeleting() )
-         {
-            rc = SDB_DMS_DELETING ;
-            goto error ;
-         }
-
-#ifdef _DEBUG
-         // but the status shouldn't be in other flag
-         if ( !pRecord->isNormal() && !pRecord->isOvf() )
-         {
-            PD_LOG ( PDERROR, "Record[%d:%d] flag[%d] error", recordID._extent,
-                     recordID._offset, pRecord->getState() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-#endif //_DEBUG
-
          // if this record is overflow from
-         rc = extractData( context, recordRW, cb, recordData ) ;
+         rc = extractData( context, recordID, cb, recordData ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract record data failed, rc: %d", rc ) ;
 
          if ( dataOwned )

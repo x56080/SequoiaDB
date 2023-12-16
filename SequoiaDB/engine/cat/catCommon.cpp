@@ -2523,7 +2523,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s]",
                          FIELD_NAME_UNIQUEID, result.toString().c_str(), rc ) ;
-            idxUniqHWM = utilBuildIdxUniqueID( csUniqID, 0 ) ;
+            idxUniqHWM = utilBuildIdxUniqueID( csUniqID, 1 ) ;
          }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field[%s] from obj[%s]",
@@ -2537,6 +2537,10 @@ namespace engine
                     "inner id can't exceed %u, idx unique id: %llu, rc: %d",
                     UTIL_IDXINNERID_MAX, idxUniqID, rc ) ;
             goto error ;
+         }
+         else if ( utilGetIdxInnerID( idxUniqHWM ) == UTIL_UNIQUEID_NULL )
+         {
+            ++ idxUniqHWM ;
          }
          idxUniqID = idxUniqHWM ;
 

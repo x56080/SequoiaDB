@@ -48,6 +48,7 @@
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
 #include "dmsTaskStatus.hpp"
+#include "dmsWriteGuard.hpp"
 
 using namespace bson ;
 
@@ -139,7 +140,7 @@ namespace engine
    } ;
 
    /*
-      _dmsStorageIndex defined
+      _dmsStorageIndex define
    */
    class _dmsStorageIndex : public _dmsStorageBase
    {
@@ -199,6 +200,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
+                                  dmsIndexWriteGuard &writeGuard,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -209,6 +211,7 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
+                                  dmsIndexWriteGuard &writeGuard,
                                   const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
@@ -219,6 +222,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
+                                  dmsIndexWriteGuard &writeGuard,
                                   BOOLEAN isUndo = FALSE,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -286,6 +290,7 @@ namespace engine
                                  dmsExtentID indexLID, _pmdEDUCB *cb,
                                  INT32 sortBufferSize,
                                  UINT16 indexType,
+                                 dmsIndexBuildLockPtr &lockPtr,
                                  IDmsOprHandler *pOprHandle = NULL,
                                  utilWriteResult *pResult = NULL,
                                  _dmsDupKeyProcessor *dkProcessor = NULL,
@@ -337,7 +342,11 @@ namespace engine
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
                                        BSONObj &record ) ;
 
-         BOOLEAN  _needProcessIndex( ixmIndexCB &indexCB, dmsExtentID extLID ) ;
+         INT32    _needProcessIndex( dmsMBContext *context,
+                                     ixmIndexCB &indexCB,
+                                     const dmsRecordID &rid,
+                                     dmsIndexWriteGuard &writeGuard,
+                                     BOOLEAN &needProcess ) ;
 
          INT32    _collectGIDXRecord( ixmIndexCB &indexCB, const _ixmKey &key,
                                       BOOLEAN isInsert,
@@ -348,21 +357,24 @@ namespace engine
                                       _pmdEDUCB *cb ) ;
 
          INT32    _globalIndexesDelete( _dmsMBContext *context,
-                                        dmsExtentID extLID,
+                                        const dmsRecordID &rid,
                                         BSONObj &inputObj,
+                                        dmsIndexWriteGuard &writeGuard,
                                         _pmdEDUCB *cb ) ;
 
          INT32    _globalIndexesUpdate( _dmsMBContext *context,
-                                        dmsExtentID extLID,
+                                        const dmsRecordID &rid,
                                         BSONObj &originalObj,
                                         BSONObj &newObj,
+                                        dmsIndexWriteGuard &writeGuard,
                                         _pmdEDUCB *cb,
                                         const ixmIdxHashBitmap &idxHashBitmap,
                                         utilWriteResult *pResult = NULL ) ;
 
          INT32    _globalIndexesInsert( _dmsMBContext *context,
-                                        dmsExtentID extLID,
+                                        const dmsRecordID &rid,
                                         BSONObj &inputObj,
+                                        dmsIndexWriteGuard &writeGuard,
                                         _pmdEDUCB *cb,
                                         utilWriteResult *pResult = NULL ) ;
 
@@ -410,10 +422,19 @@ namespace engine
                                const BSONObj &index,
                                INT32 &indexID ) ;
 
+         INT32 _registerBuildLock( const dmsIdxMetadataKey &key,
+                                   dmsIndexBuildLockPtr &lockPtr ) ;
+         void _unregisterBuildLock( const dmsIdxMetadataKey &key ) ;
+         dmsIndexBuildLockPtr _getBuildLock( const dmsIdxMetadataKey &key ) ;
+
       private:
          _dmsStorageData         *_pDataSu ;
          dmsPageMapUnit          _mbPageInfo ;
          INT32                   _idxKeySizeMax ; // max size of index key value
+
+         // locks to protect index build
+         ossRWMutex _buildLocksMutex ;
+         dmsIdxBuildLockMap _buildLocks ;
 
       friend class _dmsIndexBuilder ;
    };

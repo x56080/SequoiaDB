@@ -370,6 +370,7 @@ dmsFiles = [
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
       "dms/dmsMetadata.cpp",
+      "dms/dmsWriteGuard.cpp",
       "dms/dmsStorageServiceFactory.cpp",
       "dms/wiredtiger/dmsWTStorageService.cpp",
       "dms/wiredtiger/dmsWTStorageEngine.cpp",

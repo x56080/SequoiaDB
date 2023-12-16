@@ -30,9 +30,11 @@
 
 *******************************************************************************/
 #include "dmsIndexBuilder.hpp"
+#include "dmsStorageUnit.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
 #include "dmsIndexBuilderImpl.hpp"
+#include "dmsScanner.hpp"
 #include "dmsCB.hpp"
 #include "ixm.hpp"
 #include "pdSecure.hpp"
@@ -41,28 +43,31 @@ using namespace bson ;
 
 namespace engine
 {
-   _dmsIndexBuilder::_dmsIndexBuilder( _dmsStorageIndex* indexSU,
-                                       _dmsStorageData* dataSU,
+
+   /*
+      _dmsIndexBuilder implement
+    */
+   _dmsIndexBuilder::_dmsIndexBuilder( _dmsStorageUnit* su,
                                        _dmsMBContext* mbContext,
                                        _pmdEDUCB* eduCB,
                                        dmsExtentID indexExtentID,
                                        dmsExtentID indexLogicID,
+                                       dmsIndexBuildLockPtr &lockPtr,
                                        dmsDupKeyProcessor *dkProcessor,
                                        dmsIdxTaskStatus* pIdxStatus )
-   : _suIndex ( indexSU ),
-     _suData ( dataSU ),
+   : _su( su ),
+     _suIndex ( su->index() ),
+     _suData ( su->data() ),
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
+     _buildLockPtr( lockPtr ),
      _indexExtentID ( indexExtentID ),
      _indexLID( indexLogicID ),
      _dkProcessor( dkProcessor ),
      _pIdxStatus( pIdxStatus )
    {
       _indexCB = NULL ;
-      _scanExtLID = DMS_INVALID_EXTENT ;
-      _currentExtentID = DMS_INVALID_EXTENT ;
-      _lastExtentID = DMS_INVALID_EXTENT ;
-      _extent = NULL ;
+      _scanRID.reset() ;
       _unique = FALSE ;
       _dropDups = FALSE ;
       _pOprHandler = NULL ;
@@ -73,6 +78,10 @@ namespace engine
 
    _dmsIndexBuilder::~_dmsIndexBuilder()
    {
+      if ( _buildLockPtr )
+      {
+         _buildLockPtr->release_w() ;
+      }
       _suIndex = NULL ;
       _suData = NULL ;
       _mbContext = NULL ;
@@ -137,7 +146,7 @@ namespace engine
       // already creating, continue
       if ( IXM_INDEX_FLAG_CREATING == _indexCB->getFlag() )
       {
-         _scanExtLID = _indexCB->scanExtLID() ;
+         _scanRID = _indexCB->getScanRID() ;
       }
       else if ( IXM_INDEX_FLAG_NORMAL == _indexCB->getFlag() ||
                 IXM_INDEX_FLAG_INVALID == _indexCB->getFlag() )
@@ -173,6 +182,9 @@ namespace engine
          }
       }
 
+      rc = _suIndex->getIndex( _mbContext, _indexCB, _eduCB, _idxPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
       // set key pattern to key generator
       rc = _keyGen.setKeyPattern( _indexCB->keyPattern() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
@@ -207,18 +219,18 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       /// start rebuilding
-      _currentExtentID = _mbContext->mb()->_firstExtentID ;
-      if ( DMS_INVALID_EXTENT == _currentExtentID )
-      {
-         /// when the collection is empty, we complete the index creating
-         /// fast( when unlock the context and scan the data, because the
-         /// scanExtLID always is -1, so when scan finished, the new instor
-         /// will not insert to the index )
-         _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
-         _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
+      // _currentExtentID = _mbContext->mb()->_firstExtentID ;
+      // if ( DMS_INVALID_EXTENT == _currentExtentID )
+      // {
+      //    /// when the collection is empty, we complete the index creating
+      //    /// fast( when unlock the context and scan the data, because the
+      //    /// scanExtLID always is -1, so when scan finished, the new instor
+      //    /// will not insert to the index )
+      //    _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
+      //    _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
+      //    rc = SDB_DMS_EOC ;
+      //    goto error ;
+      // }
 
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
@@ -320,26 +332,6 @@ namespace engine
          goto error ;
       }
 
-      // get the address of extent indicated in context for where
-      // should we starts
-      _extRW = _suData->extent2RW( _currentExtentID, _mbContext->mbID() ) ;
-      _extRW.setNothrow( TRUE ) ;
-      _extent = _extRW.readPtr<dmsExtent>() ;
-      if ( NULL == _extent )
-      {
-         PD_LOG ( PDERROR, "Invalid extent: %d", _currentExtentID ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      // find the extent by logical id
-      if ( DMS_INVALID_EXTENT != _scanExtLID &&
-           _extent->_logicID < _scanExtLID )
-      {
-         _currentExtentID = _extent->_nextExtent ;
-         rc = _DMS_SKIP_EXTENT ;
-      }
-
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
          // in case _totalRecords has changed
@@ -350,28 +342,29 @@ namespace engine
    done:
       return rc ;
    error:
-      _extent = NULL ;
       goto done ;
    }
 
-   INT32 _dmsIndexBuilder::_afterExtent()
+   INT32 _dmsIndexBuilder::_afterExtent( const dmsRecordID &lastRID,
+                                         UINT64 scannedNum,
+                                         BOOLEAN isEOF )
    {
       INT32 rc = SDB_OK ;
 
-      if ( DMS_INVALID_EXTENT == _extent->_nextExtent )
+      if ( isEOF )
       {
          // done scan, set scanned extent to maximum value
          // so coming write operators will update this index
-         _indexCB->scanExtLID( DMS_MAX_SCANNED_EXTENT ) ;
+         _indexCB->setScanRID( dmsRecordID::maxRID() ) ;
       }
       else
       {
-         _indexCB->scanExtLID ( _extent->_logicID ) ;
+         _indexCB->setScanRID( lastRID ) ;
       }
 
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
-         _pIdxStatus->incPcsedRecNum( _extent->_recCount ) ;
+         _pIdxStatus->incPcsedRecNum( scannedNum ) ;
       }
 
       // check if scanner is interrupted
@@ -414,7 +407,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsIndexBuilder::_insertKey( const ixmKey &key,
+   INT32 _dmsIndexBuilder::_insertKey( const BSONObj &key,
                                        const dmsRecordID &rid,
                                        const Ordering& ordering )
    {
@@ -423,12 +416,10 @@ namespace engine
       // Callback to validate in memory tree
       if ( _pOprHandler && _indexCB->unique() )
       {
-         _bufBuilder.reset() ;
          rc = _pOprHandler->onInsertIndex( _mbContext, _indexCB,
                                            _indexCB->unique(),
                                            _indexCB->enforced(),
-                                           key.toBson( &_bufBuilder ),
-                                           rid, _eduCB, _pResult ) ;
+                                           key, rid, _eduCB, _pResult ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Insert index callback failed, rc: %d", rc ) ;
@@ -436,9 +427,7 @@ namespace engine
          }
       }
 
-      rc = _suIndex->_indexInsert( _indexCB, key, rid, ordering,
-                                   _eduCB, !_unique, _dropDups,
-                                   _pResult ) ;
+      rc = _idxPtr->index( key, rid, !( _indexCB->unique() ), _eduCB, _pResult ) ;
       if ( SDB_OK != rc )
       {
          // during index rebuild, it's possible some other
@@ -494,16 +483,11 @@ namespace engine
                    "Failed to insert global index due to primary change" ) ;
 
          // insert index to remote index cl
-         BSONObj insertor ;
-         rc = _suIndex->_builderIndexRecord( _indexCB, key, insertor ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build index insertor:rc=%d",
-                      rc ) ;
-
-         rc = _remoteOperator->insert( _indexCB->getIndexCLName(), insertor,
+         rc = _remoteOperator->insert( _indexCB->getIndexCLName(), key,
                                        0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert to remote:cl=%s,"
                       "insertor=%s,rc=%d", _indexCB->getIndexCLName(),
-                      PD_SECURE_OBJ( insertor ), rc ) ;
+                      PD_SECURE_OBJ( key ), rc ) ;
       }
 
    done:
@@ -552,8 +536,7 @@ namespace engine
 
       for ( it = keySet.begin() ; it != keySet.end() ; it++ )
       {
-         ixmKeyOwned ko( *it ) ;
-         rc = _insertKey( ko, rid, ordering ) ;
+         rc = _insertKey( *it, rid, ordering ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -689,14 +672,14 @@ namespace engine
    }
 
 
-   _dmsIndexBuilder* _dmsIndexBuilder::createInstance( _dmsStorageIndex* indexSU,
-                                                       _dmsStorageData* dataSU,
+   _dmsIndexBuilder* _dmsIndexBuilder::createInstance( dmsSUDescriptor* su,
                                                        _dmsMBContext* mbContext,
                                                        _pmdEDUCB* eduCB,
                                                        dmsExtentID indexExtentID,
                                                        dmsExtentID indexLogicID,
                                                        INT32 sortBufferSize,
                                                        UINT16 indexType,
+                                                       dmsIndexBuildLockPtr &lockPtr,
                                                        IDmsOprHandler *pOprHandler,
                                                        utilWriteResult *pResult,
                                                        dmsDupKeyProcessor *dkProcessor,
@@ -704,16 +687,20 @@ namespace engine
    {
       _dmsIndexBuilder* builder = NULL ;
 
-      SDB_ASSERT( indexSU != NULL, "indexSU can't be NULL" ) ;
-      SDB_ASSERT( dataSU != NULL, "dataSU can't be NULL" ) ;
+      SDB_ASSERT( su != NULL, "su can't be NULL" ) ;
       SDB_ASSERT( mbContext != NULL, "mbContext can't be NULL" ) ;
       SDB_ASSERT( eduCB != NULL, "eduCB can't be NULL" ) ;
 
+      dmsStorageUnit *storageUnit = static_cast<dmsStorageUnit*>( su ) ;
+
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
       {
-         builder = SDB_OSS_NEW _dmsIndexExtBuilder( indexSU, dataSU, mbContext,
-                                                    eduCB, indexExtentID,
+         builder = SDB_OSS_NEW _dmsIndexExtBuilder( storageUnit,
+                                                    mbContext,
+                                                    eduCB,
+                                                    indexExtentID,
                                                     indexLogicID,
+                                                    lockPtr,
                                                     dkProcessor ) ;
          if ( NULL == builder)
          {
@@ -728,12 +715,14 @@ namespace engine
          {
             PD_LOG ( PDERROR, "invalid sort buffer size: %d", sortBufferSize ) ;
          }
-         else if ( 0 == sortBufferSize )
+         else if ( 0 == sortBufferSize || !( sdbGetDMSCB()->hasIxmKeySorterCreator() ) )
          {
-            builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU, dataSU,
-                                                          mbContext, eduCB,
+            builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( storageUnit,
+                                                          mbContext,
+                                                          eduCB,
                                                           indexExtentID,
                                                           indexLogicID,
+                                                          lockPtr,
                                                           dkProcessor,
                                                           pIdxStatus ) ;
             if ( NULL == builder)
@@ -743,11 +732,13 @@ namespace engine
          }
          else
          {
-            builder = SDB_OSS_NEW _dmsIndexSortingBuilder( indexSU, dataSU,
-                                                           mbContext, eduCB,
+            builder = SDB_OSS_NEW _dmsIndexSortingBuilder( storageUnit,
+                                                           mbContext,
+                                                           eduCB,
                                                            indexExtentID,
                                                            indexLogicID,
                                                            sortBufferSize,
+                                                           lockPtr,
                                                            dkProcessor,
                                                            pIdxStatus ) ;
             if ( NULL == builder)

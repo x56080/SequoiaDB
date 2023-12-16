@@ -4965,7 +4965,8 @@ namespace engine
 
          if ( IXM_INDEX_FLAG_CREATING == index._indexFlag )
          {
-            ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanExtLID ) ;
+            ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanRID._extent ) ;
+            ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanRID._offset ) ;
          }
 
          UINT16 idxType = IXM_EXTENT_TYPE_NONE ;

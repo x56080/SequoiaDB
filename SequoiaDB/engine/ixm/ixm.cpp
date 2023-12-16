@@ -150,6 +150,7 @@ namespace engine
       // not creating index root page yet
       pExtent->_rootExtentID   = DMS_INVALID_EXTENT ;
       ossMemset( pExtent->_reserved, 0, sizeof( pExtent->_reserved ) ) ;
+      pExtent->_scanExtOffset  = DMS_INVALID_OFFSET ;
       // copy index def into extent. when it is replay op(has oid already),
       // no need to add oid.
       if ( !infoObj.hasField (DMS_ID_KEY_NAME) )
@@ -227,6 +228,15 @@ namespace engine
       pExtent->_logicID = DMS_INVALID_EXTENT ;
    }
 
+   void _ixmIndexCB::setScanRID( const dmsRecordID &rid )
+   {
+      SDB_ASSERT( _isInitialized, "index details must be initialized first" ) ;
+      dmsExtRW extRW = _pIndexSu->extent2RW( _extentID, _pContext->mbID() ) ;
+      ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
+      pExtent->_scanExtLID = rid._extent ;
+      pExtent->_scanExtOffset = rid._offset ;
+   }
+
    void _ixmIndexCB::scanExtLID ( UINT32 extLID )
    {
       SDB_ASSERT ( _isInitialized,
@@ -235,6 +245,14 @@ namespace engine
                                              _pContext->mbID() ) ;
       ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
       pExtent->_scanExtLID = extLID ;
+   }
+
+   void _ixmIndexCB::setScanExtOffset( UINT32 offset )
+   {
+      SDB_ASSERT( _isInitialized, "index details must be initialized first" ) ;
+      dmsExtRW extRW = _pIndexSu->extent2RW( _extentID, _pContext->mbID() ) ;
+      ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
+      pExtent->_scanExtOffset = offset ;
    }
 
    void _ixmIndexCB::setRoot ( dmsExtentID rootExtentID )

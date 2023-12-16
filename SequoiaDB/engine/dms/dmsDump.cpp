@@ -1964,6 +1964,9 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "Scan extent LID  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_scanExtLID, header->_scanExtLID ) ;
+      len += ossSnprintf ( outBuf + len, outSize - len,
+                           "Scan extent Offset  : 0x%08x (%d)" OSS_NEWLINE,
+                           header->_scanExtOffset, header->_scanExtOffset ) ;
       ossStrncpy ( tmpBuff, ixmGetIndexTypeDesp(header->_type).c_str(),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,

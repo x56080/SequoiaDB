@@ -73,7 +73,7 @@ namespace engine
       {
       }
 
-      _dmsCLMetadataKey( _dmsMetadataBlock *mb ) ;
+      _dmsCLMetadataKey( const _dmsMetadataBlock *mb ) ;
 
       BOOLEAN operator ==( const _dmsCLMetadataKey &o ) const
       {
@@ -92,6 +92,8 @@ namespace engine
          }
          return _clOrigLID < o._clOrigLID ;
       }
+
+      void init( const _dmsMetadataBlock *mb ) ;
 
       utilCLUniqueID getCLOrigUID() const
       {
@@ -145,8 +147,8 @@ namespace engine
       {
       }
 
-      _dmsIdxMetadataKey( _dmsMetadataBlock *mb,
-                          _ixmIndexCB *idxCB ) ;
+      _dmsIdxMetadataKey( const _dmsMetadataBlock *mb,
+                          const _ixmIndexCB *idxCB ) ;
 
       BOOLEAN operator ==( const _dmsIdxMetadataKey &o ) const
       {
@@ -166,6 +168,9 @@ namespace engine
          }
          return FALSE ;
       }
+
+      void init( const _dmsMetadataBlock *mb,
+                 const _ixmIndexCB *idxCB ) ;
 
       utilIdxInnerID getIdxInnerID() const
       {
@@ -377,6 +382,6 @@ namespace engine
 
    typedef class _dmsIdxMetadata dmsIdxMetadata ;
 
-} // namespace engine
+}
 
 #endif // SDB_DMS_METADATA_HPP_

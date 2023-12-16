@@ -45,12 +45,12 @@ namespace engine
    class _dmsIndexOnlineBuilder: public _dmsIndexBuilder
    {
    public:
-      _dmsIndexOnlineBuilder( _dmsStorageIndex* indexSU,
-                              _dmsStorageData* dataSU,
+      _dmsIndexOnlineBuilder( _dmsStorageUnit* su,
                               _dmsMBContext* mbContext,
                               _pmdEDUCB* eduCB,
                               dmsExtentID indexExtentID,
                               dmsExtentID indexLogicID,
+                              dmsIndexBuildLockPtr &lockPtr,
                               dmsDupKeyProcessor *dkProcessor,
                               dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       ~_dmsIndexOnlineBuilder() ;
@@ -65,20 +65,20 @@ namespace engine
    class _dmsIndexSortingBuilder: public _dmsIndexBuilder
    {
    public:
-      _dmsIndexSortingBuilder( _dmsStorageIndex* indexSU,
-                               _dmsStorageData* dataSU,
+      _dmsIndexSortingBuilder( _dmsStorageUnit* su,
                                _dmsMBContext* mbContext,
                                _pmdEDUCB* eduCB,
                                dmsExtentID indexExtentID,
                                dmsExtentID indexLogicID,
                                INT32 sortBufferSize,
+                               dmsIndexBuildLockPtr &lockPtr,
                                dmsDupKeyProcessor *dkProcessor,
                                dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       ~_dmsIndexSortingBuilder() ;
 
    private:
       INT32 _init() ;
-      INT32 _fillSorter() ;
+      INT32 _fillSorter( rtnTBScanner &scanner ) ;
       INT32 _insertKeys( const Ordering& ordering ) ;
       INT32 _build() ;
 
@@ -99,12 +99,12 @@ namespace engine
    {
       typedef _utilString<128>   idxNameString ;
    public:
-      _dmsIndexExtBuilder( _dmsStorageIndex* indexSU,
-                           _dmsStorageData* dataSU,
+      _dmsIndexExtBuilder( _dmsStorageUnit* su,
                            _dmsMBContext* mbContext,
                            _pmdEDUCB* eduCB,
                            dmsExtentID indexExtentID,
                            dmsExtentID indexLogicID,
+                           dmsIndexBuildLockPtr &lockPtr,
                            dmsDupKeyProcessor *dkProcessor ) ;
       ~_dmsIndexExtBuilder() ;
 

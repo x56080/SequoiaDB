@@ -453,12 +453,23 @@ namespace wiredtiger
 
       try
       {
-         collPtr = make_shared<dmsWTCollection>( metadata, _engine, store ) ;
+         dmsCLMetadataKey key( metadata.getCLKey() ) ;
+         PD_CHECK( key.isValid(), SDB_SYS, error, PDERROR,
+                   "Failed to save collection, collection [UID: %llx, LID: %x] "
+                   "is not valid", key.getCLOrigUID(), key.getCLOrigLID() ) ;
+         collPtr = std::make_shared<dmsWTCollection>( metadata, _engine, store ) ;
          PD_CHECK( collPtr, SDB_OOM, error, PDERROR,
                    "Failed to create collection object" ) ;
 
          ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
-         _collMap.insert( make_pair( metadata.getCLKey(), collPtr ) ) ;
+         auto res = _collMap.insert( make_pair( key, collPtr ) ) ;
+         if ( !res.second )
+         {
+            PD_LOG( PDDEBUG, "Failed to add collection, collection "
+                    "[UID: %llx, LID: %x] already exist",
+                    key.getCLOrigUID(), key.getCLOrigLID() ) ;
+            collPtr = res.first->second ;
+         }
       }
       catch ( exception &e )
       {

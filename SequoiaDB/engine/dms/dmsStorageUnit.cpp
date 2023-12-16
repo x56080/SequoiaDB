@@ -4132,7 +4132,7 @@ namespace engine
          {
             monIndex indexItem ;
             indexItem._indexFlag = indexCB.getFlag () ;
-            indexItem._scanExtLID = indexCB.scanExtLID () ;
+            indexItem._scanRID = indexCB.getScanRID() ;
             indexItem._indexLID = indexCB.getLogicalID () ;
             indexItem._version = indexCB.version () ;
             // copy the index def to it's owned buffer
@@ -4191,7 +4191,7 @@ namespace engine
               0 == ossStrcmp( indexCB.getName(), pIndexName ) )
          {
             resultIndex._indexFlag = indexCB.getFlag () ;
-            resultIndex._scanExtLID = indexCB.scanExtLID () ;
+            resultIndex._scanRID = indexCB.getScanRID() ;
             resultIndex._indexLID = indexCB.getLogicalID () ;
             resultIndex._version = indexCB.version () ;
             // copy the index def to it's owned buffer

@@ -39,12 +39,14 @@
 #include "clsRemoteOperator.hpp"
 #include "dmsTaskStatus.hpp"
 #include "dmsScanner.hpp"
+#include "rtnTBScanner.hpp"
+#include "dmsWriteGuard.hpp"
 
 namespace engine
 {
    class _dmsMBContext ;
    class _dmsStorageIndex ;
-   class _dmsStorageData ;
+   class _dmsStorageDataCommon ;
    class _pmdEDUCB ;
    class _ixmIndexCB ;
    class _dmsMBContext ;
@@ -67,7 +69,7 @@ namespace engine
       }
 
    public:
-      virtual INT32 processDupKeyRecord( _dmsStorageData *suData,
+      virtual INT32 processDupKeyRecord( _dmsStorageDataCommon *suData,
                                          _dmsMBContext *mbContext,
                                          const dmsRecordID &recordID,
                                          ossValuePtr recordDataPtr,
@@ -76,15 +78,18 @@ namespace engine
 
    typedef class _dmsDupKeyProcessor dmsDupKeyProcessor ;
 
+   /*
+      _dmsIndexBuilder define
+    */
    class _dmsIndexBuilder: public utilPooledObject
    {
    public:
-      _dmsIndexBuilder( _dmsStorageIndex* indexSU,
-                        _dmsStorageData* dataSU,
+      _dmsIndexBuilder( _dmsStorageUnit* su,
                         _dmsMBContext* mbContext,
                         _pmdEDUCB* eduCB,
                         dmsExtentID indexExtentID,
                         dmsExtentID indexLogicID,
+                        dmsIndexBuildLockPtr &lockPtr,
                         dmsDupKeyProcessor *dkProcessor,
                         dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       virtual ~_dmsIndexBuilder() ;
@@ -100,11 +105,13 @@ namespace engine
       // make sure the mbContext is locked before call _beforeExtent()/_afterExtent()
       #define _DMS_SKIP_EXTENT 1
       virtual INT32 _beforeExtent() ;
-      virtual INT32 _afterExtent() ;
+      virtual INT32 _afterExtent( const dmsRecordID &lastRID,
+                                  UINT64 scannedNum,
+                                  BOOLEAN isEOF ) ;
 
       INT32 _getKeySet( ossValuePtr recordDataPtr, BSONObjSet& keySet ) ;
       INT32 _insertKey( ossValuePtr recordDataPtr, const dmsRecordID &rid, const Ordering& ordering ) ;
-      INT32 _insertKey( const ixmKey &key, const dmsRecordID &rid, const Ordering& ordering ) ;
+      INT32 _insertKey( const bson::BSONObj &key, const dmsRecordID &rid, const Ordering& ordering ) ;
       INT32 _checkIndexAfterLock( INT32 lockType ) ;
       INT32 _mbLockAndCheck( INT32 lockType ) ;
 
@@ -117,19 +124,18 @@ namespace engine
       INT32 _finish() ;
 
    protected:
+      _dmsStorageUnit *  _su ;
       _dmsStorageIndex*  _suIndex ;
-      _dmsStorageData*   _suData ;
+      _dmsStorageDataCommon* _suData ;
       _dmsMBContext*     _mbContext ;
       _pmdEDUCB*         _eduCB ;
+      dmsIndexBuildLockPtr _buildLockPtr ;
+      std::shared_ptr<IIndex> _idxPtr ;
       dmsExtentID        _indexExtentID ;
       dmsExtentID        _indexLID ;
       _ixmIndexCB*       _indexCB ;
       OID                _indexOID ;
-      dmsExtentID        _scanExtLID ;
-      dmsExtentID        _currentExtentID ;
-      dmsExtentID        _lastExtentID ;
-      dmsExtRW           _extRW ;
-      const dmsExtent*   _extent ;
+      dmsRecordID        _scanRID ;
       BOOLEAN            _unique ;
       BOOLEAN            _dropDups ;
 
@@ -148,14 +154,14 @@ namespace engine
       IDmsScannerChecker * _checker ;
 
    public:
-      static _dmsIndexBuilder* createInstance( _dmsStorageIndex* indexSU,
-                                               _dmsStorageData* dataSU,
+      static _dmsIndexBuilder* createInstance( _dmsSUDescriptor *su,
                                                _dmsMBContext* mbContext,
                                                _pmdEDUCB* eduCB,
                                                dmsExtentID indexExtentID,
                                                dmsExtentID indexLogicID,
                                                INT32 sortBufferSize,
                                                UINT16 indexType,
+                                               dmsIndexBuildLockPtr &lockPtr,
                                                IDmsOprHandler *pOprHandler,
                                                utilWriteResult *pResult,
                                                dmsDupKeyProcessor *dkProcessor,

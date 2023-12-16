@@ -171,7 +171,8 @@ namespace engine
       dmsExtentID _scanExtLID ;  // only when flag is IXM_INDEX_FLAG_CREATING,
                                  // the _scanExtLID is valid
       UINT16      _type ;
-      CHAR        _reserved[6] ;
+      CHAR        _reserved[2] ;
+      dmsOffset   _scanExtOffset ;
    } ;
    typedef class _ixmIndexCBExtent ixmIndexCBExtent ;
    #define IXM_INDEX_CB_EXTENT_METADATA_SIZE (sizeof(ixmIndexCBExtent))
@@ -375,6 +376,17 @@ namespace engine
                       "index details must be initialized first" ) ;
          return _extent->_mbID ;
       }
+
+      dmsRecordID getScanRID() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         return dmsRecordID( _extent->_scanExtLID,
+                             _extent->_scanExtOffset ) ;
+      }
+
+      void setScanRID( const dmsRecordID &rid ) ;
+
       dmsExtentID scanExtLID () const
       {
          SDB_ASSERT ( _isInitialized,
@@ -383,6 +395,15 @@ namespace engine
       }
 
       void scanExtLID ( UINT32 extLID ) ;
+
+      dmsOffset getScanExtOffset () const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         return _extent->_scanExtOffset ;
+      }
+
+      void setScanExtOffset ( UINT32 offset ) ;
 
       // remove all field name from bson object
       BSONObj getKeyFromQuery ( const BSONObj & query ) const

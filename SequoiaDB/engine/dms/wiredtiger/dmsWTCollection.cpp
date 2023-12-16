@@ -439,12 +439,24 @@ namespace wiredtiger
 
       try
       {
-         idxPtr = make_shared<dmsWTIndex>( metadata, _engine, store ) ;
+         dmsIdxMetadataKey key( metadata.getIdxKey() ) ;
+         PD_CHECK( key.isValid(), SDB_SYS, error, PDERROR,
+                   "Failed to save index, collection [UID: %llx, LID: %x], "
+                   "index [UID: %x] is not valid",
+                   key.getCLOrigUID(), key.getCLOrigLID(), key.getIdxInnerID() ) ;
+         idxPtr = std::make_shared<dmsWTIndex>( metadata, _engine, store ) ;
          PD_CHECK( idxPtr, SDB_OOM, error, PDERROR,
                    "Failed to create index object" ) ;
 
          ossScopedRWLock lock( &_idxMapMutex, EXCLUSIVE ) ;
-         _idxMap.insert( make_pair( metadata.getIdxKey(), idxPtr ) ) ;
+         auto res = _idxMap.insert( make_pair( key, idxPtr ) ) ;
+         if ( !res.second )
+         {
+            PD_LOG( PDDEBUG, "Failed to add index, collection "
+                    "[UID: %llx, LID: %x], index [UID: %x] already exist",
+                    key.getCLOrigUID(), key.getCLOrigLID(), key.getIdxInnerID() ) ;
+            idxPtr = res.first->second ;
+         }
       }
       catch ( exception &e )
       {

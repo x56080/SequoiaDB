@@ -66,7 +66,7 @@ namespace engine
    /*
       Version define
    */
-   #define DMS_EXTENT_CURRENT_V           1
+   #define DMS_EXTENT_CURRENT_V           2
 
    /*
       _dmsExtent define

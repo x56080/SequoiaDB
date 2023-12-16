@@ -30,6 +30,7 @@
 
 *******************************************************************************/
 #include "dmsIndexBuilderImpl.hpp"
+#include "dmsStorageUnit.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
 #include "dmsScanner.hpp"
@@ -41,17 +42,16 @@
 
 namespace engine
 {
-   _dmsIndexOnlineBuilder::_dmsIndexOnlineBuilder( _dmsStorageIndex* indexSU,
-                                                   _dmsStorageData* dataSU,
+   _dmsIndexOnlineBuilder::_dmsIndexOnlineBuilder( _dmsStorageUnit* su,
                                                    _dmsMBContext* mbContext,
                                                    _pmdEDUCB* eduCB,
                                                    dmsExtentID indexExtentID,
                                                    dmsExtentID indexLogicID,
+                                                   dmsIndexBuildLockPtr &lockPtr,
                                                    dmsDupKeyProcessor *dkProcessor,
                                                    dmsIdxTaskStatus* pIdxStatus )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID,
-                       dkProcessor, pIdxStatus )
+   : _dmsIndexBuilder( su, mbContext, eduCB, indexExtentID, indexLogicID,
+                       lockPtr, dkProcessor, pIdxStatus )
    {
    }
 
@@ -62,7 +62,9 @@ namespace engine
    INT32 _dmsIndexOnlineBuilder::_build()
    {
       INT32 rc = SDB_OK ;
+
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
+      rtnTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
 
       if ( _pIdxStatus )
       {
@@ -70,8 +72,14 @@ namespace engine
       }
 
       // loop through each extent
-      while ( DMS_INVALID_EXTENT != _currentExtentID )
+      while ( !scanner.isEOF() )
       {
+         dmsDataScanner extScanner( _suData, _mbContext, &scanner, NULL ) ;
+         _mthRecordGenerator generator ;
+         dmsRecordID recordID ;
+         ossValuePtr recordDataPtr ;
+         UINT64 scannedNum = 0 ;
+
          rc = _mbLockAndCheck( SHARED ) ;
          if ( rc )
          {
@@ -79,51 +87,38 @@ namespace engine
             goto error ;
          }
 
-         rc = _beforeExtent() ;
-         if ( SDB_OK != rc )
          {
-            if ( _DMS_SKIP_EXTENT == rc )
+            ossScopedRWLock lock( _buildLockPtr.get(), EXCLUSIVE ) ;
+
+            rc = _beforeExtent() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check before scanner, rc: %d", rc ) ;
+
+            while ( SDB_OK == ( rc = extScanner.advance( recordID, generator, _eduCB ) ) )
             {
-               _mbContext->mbUnlock() ;
-               continue ;
+               generator.getDataPtr( recordDataPtr ) ;
+               rc = _insertKey( recordDataPtr, recordID, ordering ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               ++ scannedNum ;
             }
 
-            goto error ;
-         }
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG ( PDERROR, "Failed to get record: %d", rc ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_OK ;
+            }
 
-         dmsExtScanner extScanner( _suData, _mbContext, NULL,
-                                   _currentExtentID, _lastExtentID ) ;
-         _mthRecordGenerator generator ;
-         dmsRecordID recordID ;
-         ossValuePtr recordDataPtr ;
-
-         while ( SDB_OK == ( rc = extScanner.advance( recordID, generator, _eduCB ) ) )
-         {
-            generator.getDataPtr( recordDataPtr ) ;
-            rc = _insertKey( recordDataPtr, recordID, ordering ) ;
+            rc = _afterExtent( recordID, scannedNum, scanner.isEOF() ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-         }
-
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get record: %d", rc ) ;
-            goto error ;
-         }
-         else
-         {
-            rc = SDB_OK ;
-         }
-
-         _lastExtentID = extScanner.curExtentID() ;
-         _currentExtentID = extScanner.nextExtentID() ;
-
-         rc = _afterExtent() ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
          }
 
          _mbContext->mbUnlock() ;
@@ -140,18 +135,17 @@ namespace engine
       goto done ;
    }
 
-   _dmsIndexSortingBuilder::_dmsIndexSortingBuilder( _dmsStorageIndex* indexSU,
-                                                     _dmsStorageData* dataSU,
+   _dmsIndexSortingBuilder::_dmsIndexSortingBuilder( _dmsStorageUnit* su,
                                                      _dmsMBContext* mbContext,
                                                      _pmdEDUCB* eduCB,
                                                      dmsExtentID indexExtentID,
                                                      dmsExtentID indexLogicID,
                                                      INT32 sortBufferSize,
+                                                     dmsIndexBuildLockPtr &lockPtr,
                                                      dmsDupKeyProcessor *dkProcessor,
                                                      dmsIdxTaskStatus* pIdxStatus )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID,
-                       dkProcessor, pIdxStatus )
+   : _dmsIndexBuilder( su, mbContext, eduCB, indexExtentID, indexLogicID,
+                       lockPtr, dkProcessor, pIdxStatus )
    {
       _sorter = NULL ;
       _eoc = FALSE ;
@@ -161,7 +155,7 @@ namespace engine
       // and to prevent sorter's buffer overflowing.
       // so we assign max extent size to ensure the sorter can't
       // overflow when fetching records from a extent.
-      _bufExtSize = DMS_MAX_EXTENT_SZ(dataSU) ;
+      _bufExtSize = DMS_MAX_EXTENT_SZ( (su->data()) ) ;
    }
 
    _dmsIndexSortingBuilder::~_dmsIndexSortingBuilder()
@@ -194,13 +188,13 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsIndexSortingBuilder::_fillSorter()
+   INT32 _dmsIndexSortingBuilder::_fillSorter( rtnTBScanner &scanner )
    {
       INT32 rc = SDB_OK ;
 
       for(;;)
       {
-         if ( DMS_INVALID_EXTENT == _currentExtentID )
+         if ( scanner.isEOF() )
          {
             if ( _eoc )
             {
@@ -226,21 +220,13 @@ namespace engine
          }
 
          rc = _beforeExtent() ;
-         if ( SDB_OK != rc )
-         {
-            if ( _DMS_SKIP_EXTENT == rc )
-            {
-               continue ;
-            }
+         PD_RC_CHECK( rc, PDERROR, "Failed to check before scanner, rc: %d", rc ) ;
 
-            goto error ;
-         }
-
-         dmsExtScanner extScanner( _suData, _mbContext, NULL,
-                                   _currentExtentID, _lastExtentID ) ;
+         dmsDataScanner extScanner( _suData, _mbContext, &scanner, NULL ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr ;
+         UINT64 scannedNum = 0 ;
 
          while ( SDB_OK == ( rc = extScanner.advance( recordID, generator, _eduCB ) ) )
          {
@@ -275,15 +261,11 @@ namespace engine
             goto error ;
          }
 
-         _lastExtentID = extScanner.curExtentID() ;
-         _currentExtentID = extScanner.nextExtentID() ;
-
-         rc = _afterExtent() ;
+         rc = _afterExtent( recordID, scannedNum, scanner.isEOF() ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
-
       }
 
    done:
@@ -314,7 +296,8 @@ namespace engine
             rc = _sorter->fetch( key, recordID ) ;
             if ( SDB_OK == rc )
             {
-               rc = _insertKey( key, recordID, ordering ) ;
+               _bufBuilder.reset() ;
+               rc = _insertKey( key.toBson( &_bufBuilder ), recordID, ordering ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
@@ -350,6 +333,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
+      rtnTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
 
       rc = _init() ;
       if ( SDB_OK != rc )
@@ -376,44 +360,48 @@ namespace engine
             goto error ;
          }
 
-         if ( _pIdxStatus )
          {
-            _pIdxStatus->setOpInfo( OPINFO_SCAN_DATA ) ;
-         }
+            ossScopedRWLock lock( _buildLockPtr.get(), EXCLUSIVE ) ;
 
-         rc = _fillSorter() ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
+            if ( _pIdxStatus )
+            {
+               _pIdxStatus->setOpInfo( OPINFO_SCAN_DATA ) ;
+            }
 
-         if ( _pIdxStatus )
-         {
-            _pIdxStatus->setOpInfo( OPINFO_SORT_DATA ) ;
-         }
+            rc = _fillSorter( scanner ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
 
-         rc = _sorter->sort() ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
+            if ( _pIdxStatus )
+            {
+               _pIdxStatus->setOpInfo( OPINFO_SORT_DATA ) ;
+            }
 
-         // check if scanner is interrupted
-         rc = _checkInterrupt() ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
+            rc = _sorter->sort() ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
 
-         if ( _pIdxStatus )
-         {
-            _pIdxStatus->setOpInfo( OPINFO_INSERT_KEY ) ;
-         }
+            // check if scanner is interrupted
+            rc = _checkInterrupt() ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
 
-         rc = _insertKeys( ordering ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            if ( _pIdxStatus )
+            {
+               _pIdxStatus->setOpInfo( OPINFO_INSERT_KEY ) ;
+            }
+
+            rc = _insertKeys( ordering ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
 
          _mbContext->mbUnlock() ;
@@ -435,15 +423,15 @@ namespace engine
       goto done;
    }
 
-   _dmsIndexExtBuilder::_dmsIndexExtBuilder( dmsStorageIndex* indexSU,
-                                             dmsStorageData* dataSU,
+   _dmsIndexExtBuilder::_dmsIndexExtBuilder( _dmsStorageUnit* su,
                                              dmsMBContext* mbContext,
                                              pmdEDUCB* eduCB,
                                              dmsExtentID indexExtentID,
                                              dmsExtentID indexLogicID,
+                                             dmsIndexBuildLockPtr &lockPtr,
                                              dmsDupKeyProcessor *dkProcessor )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID, dkProcessor ),
+   : _dmsIndexBuilder( su, mbContext, eduCB, indexExtentID, indexLogicID,
+                       lockPtr, dkProcessor ),
      _extHandler( NULL )
    {
       ossMemset( _collectionName, 0, DMS_COLLECTION_NAME_SZ + 1 ) ;

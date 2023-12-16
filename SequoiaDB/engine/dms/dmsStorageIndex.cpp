@@ -89,6 +89,9 @@ namespace engine
       }
    }
 
+   /*
+      _dmsStorageIndex implement
+    */
    _dmsStorageIndex::_dmsStorageIndex( IStorageService *service,
                                        dmsSUDescriptor *suDescriptor,
                                        const CHAR * pSuFileName,
@@ -106,8 +109,9 @@ namespace engine
    _dmsStorageIndex::~_dmsStorageIndex()
    {
       _pDataSu->_detach() ;
-
       _pDataSu = NULL ;
+
+      SDB_ASSERT( _buildLocks.empty(), "Index build lock should be empty" ) ;
    }
 
    void _dmsStorageIndex::syncMemToMmap ()
@@ -855,9 +859,9 @@ namespace engine
                    "rc: %d", context->mbID(), rc ) ;
 
       // then let's reserve another extent for root extent ID
-      rc = reserveExtent ( context->mbID(), rootExtentID, context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to reserve root extent for collection"
-                   "[%u], rc: %d", context->mbID(), rc ) ;
+      // rc = reserveExtent ( context->mbID(), rootExtentID, context ) ;
+      // PD_RC_CHECK( rc, PDERROR, "Failed to reserve root extent for collection"
+      //              "[%u], rc: %d", context->mbID(), rc ) ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1491,7 +1495,7 @@ namespace engine
 
       // The different collections of the collection space can be creating index
       // at the same time. So we should use atomic operation.
-      inID = ossFetchAndIncrement32( &_pDataSu->_dmsHeader->_idxInnerHWM ) ;
+      inID = ossFetchAndIncrement32( &_pDataSu->_dmsHeader->_idxInnerHWM ) + 1 ;
 
       if ( inID > UTIL_IDXINNERID_MAX )
       {
@@ -1547,6 +1551,8 @@ namespace engine
       IDmsOprHandler *pOprHandler = NULL ;
       BSONObj option, newIndex ;
       BSONObjBuilder builder ;
+      dmsIdxMetadataKey metadataKey ;
+      dmsIndexBuildLockPtr lockPtr ;
 
       SDB_ASSERT( context->isMBLock(), "Caller should hold mb lock" ) ;
       SDB_ASSERT( DMS_INVALID_EXTENT != metaExtentID,
@@ -1663,6 +1669,7 @@ namespace engine
          }
 
          // initialize the root extent
+         if ( DMS_INVALID_EXTENT != rootExtentID )
          {
             // once the control block is allocated, let's do root extent
             ixmExtent idx( rootExtentID, context->mbID(), this ) ;
@@ -1695,6 +1702,10 @@ namespace engine
          {
             context->mbStat()->_globIdxNum ++ ;
          }
+
+         metadataKey.init( context->mb(), &indexCB ) ;
+         rc = _registerBuildLock( metadataKey, lockPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register build lock, rc: %d", rc ) ;
       }
 
       // change mb metadata
@@ -1746,13 +1757,16 @@ namespace engine
 
       /// flush some page
       flushPages( metaExtentID, 1, isSyncDeep() ) ;
-      flushPages( rootExtentID, 1, isSyncDeep() ) ;
+      if ( DMS_INVALID_EXTENT != rootExtentID )
+      {
+         flushPages( rootExtentID, 1, isSyncDeep() ) ;
+      }
 
       // now we finished allocation part, let's get into build part
       // As the mb lock has been released, the rebuild implementation should use
       // the context and indexLID to check if it's processing the right index.
       rc = _rebuildIndex( context, metaExtentID, indexLID,
-                          cb, sortBufferSize, indexType,
+                          cb, sortBufferSize, indexType, lockPtr,
                           pOprHandler, pResult, NULL, pIdxStatus ) ;
       if ( rc )
       {
@@ -1809,10 +1823,17 @@ namespace engine
       {
          _pDataSu->flushMME( isSyncDeep() ) ;
       }
+      if ( metadataKey.isValid() )
+      {
+         _unregisterBuildLock( metadataKey ) ;
+      }
       return rc ;
    error :
       releaseExtent ( metaExtentID, TRUE ) ;
-      releaseExtent ( rootExtentID ) ;
+      if ( DMS_INVALID_EXTENT != rootExtentID )
+      {
+         releaseExtent ( rootExtentID ) ;
+      }
       goto done ;
    error_after_create :
       INT32 rc1 = SDB_OK ;
@@ -1965,6 +1986,7 @@ namespace engine
 
          // For text index, the root extent is not used. But to be unified,
          // initialize it too.
+         if ( DMS_INVALID_EXTENT != rootExtentID )
          {
             ixmExtent idx( rootExtentID, context->mbID(), this ) ;
          }
@@ -2028,7 +2050,10 @@ namespace engine
       dropDps = dpscb ;
 
       flushPages( metaExtentID, 1, isSyncDeep() ) ;
-      flushPages( rootExtentID, 1, isSyncDeep() ) ;
+      if ( DMS_INVALID_EXTENT != rootExtentID )
+      {
+         flushPages( rootExtentID, 1, isSyncDeep() ) ;
+      }
 
       rc = context->mbLock( EXCLUSIVE ) ;
       if ( SDB_OK != rc )
@@ -2073,7 +2098,10 @@ namespace engine
    error :
       SDB_ASSERT( SDB_DMS_INVALID_INDEXCB != rc, "Index cb is invalid" ) ;
       releaseExtent ( metaExtentID, TRUE ) ;
-      releaseExtent ( rootExtentID ) ;
+      if ( DMS_INVALID_EXTENT != rootExtentID )
+      {
+         releaseExtent ( rootExtentID ) ;
+      }
       goto done ;
    error_after_create :
       // Whether replication log will be written depends on the value of
@@ -2095,6 +2123,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           INT32 sortBufferSize,
                                           UINT16 indexType,
+                                          dmsIndexBuildLockPtr &lockPtr,
                                           IDmsOprHandler *pOprHandle,
                                           utilWriteResult *pResult,
                                           dmsDupKeyProcessor *dkProcessor,
@@ -2152,10 +2181,10 @@ namespace engine
          sortBufferSize = DMS_INDEX_SORT_BUFFER_MIN_SIZE ;
       }
 
-      builder = dmsIndexBuilder::createInstance( this, _pDataSu, context, cb,
+      builder = dmsIndexBuilder::createInstance( _suDescriptor, context, cb,
                                                  indexExtentID, indexLID,
                                                  sortBufferSize, indexType,
-                                                 pOprHandle, pResult,
+                                                 lockPtr, pOprHandle, pResult,
                                                  dkProcessor, pIdxStatus ) ;
       if ( NULL == builder )
       {
@@ -2228,11 +2257,16 @@ namespace engine
          PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[indexID] ) ;
+         dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
+         dmsIndexBuildLockPtr lockPtr ;
+         rc = _registerBuildLock( metadataKey, lockPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register build lock, rc: %d", rc ) ;
 
          rc = _rebuildIndex( context, context->mb()->_indexExtent[ indexID ],
                              indexCB.getLogicalID(), cb, sortBufferSize,
-                             indexCB.getIndexType(), NULL, NULL,
+                             indexCB.getIndexType(), lockPtr, NULL, NULL,
                              dkProcessor ) ;
+         _unregisterBuildLock( metadataKey ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexID,
@@ -2524,8 +2558,9 @@ namespace engine
    }
 
    INT32 _dmsStorageIndex::_globalIndexesInsert( _dmsMBContext *context,
-                                                 dmsExtentID extLID,
+                                                 const dmsRecordID &rid,
                                                  BSONObj &inputObj,
+                                                 dmsIndexWriteGuard &writeGuard,
                                                  _pmdEDUCB *cb,
                                                  utilWriteResult *pResult )
    {
@@ -2563,7 +2598,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) )
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess )
          {
             continue ;
          }
@@ -2603,6 +2641,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
+                                          dmsIndexWriteGuard &writeGuard,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -2621,9 +2660,8 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesInsert( context, extLID, inputObj, cb, pResult ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to delete global index, rc: %d",
-                   rc ) ;
+      rc = _globalIndexesInsert( context, rid, inputObj, writeGuard, cb, pResult ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete global index, rc: %d", rc ) ;
 
       // loops through all potential indexes for the record
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
@@ -2637,7 +2675,10 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
                     PDERROR, "Failed to init index" ) ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) )
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess )
          {
             continue ;
          }
@@ -3007,9 +3048,10 @@ namespace engine
    }
 
    INT32 _dmsStorageIndex::_globalIndexesUpdate( _dmsMBContext *context,
-                                                 dmsExtentID extLID,
+                                                 const dmsRecordID &rid,
                                                  BSONObj &originalObj,
                                                  BSONObj &newObj,
+                                                 dmsIndexWriteGuard &writeGuard,
                                                  _pmdEDUCB *cb,
                                                  const ixmIdxHashBitmap &idxHashBitmap,
                                                  utilWriteResult *pResult )
@@ -3047,7 +3089,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) ||
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess ||
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
@@ -3148,6 +3193,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isUndo,
                                           IDmsOprHandler *pOprHandle,
+                                          dmsIndexWriteGuard &writeGuard,
                                           const ixmIdxHashBitmap &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
@@ -3173,7 +3219,7 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesUpdate( context, extLID, originalObj, newObj,
+      rc = _globalIndexesUpdate( context, rid, originalObj, newObj, writeGuard,
                                  cb, idxHashBitmap, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
@@ -3190,7 +3236,10 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
                     error, PDERROR, "Failed to init index" ) ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) ||
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess ||
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
@@ -3330,8 +3379,9 @@ namespace engine
    }
 
    INT32 _dmsStorageIndex::_globalIndexesDelete( _dmsMBContext *context,
-                                                 dmsExtentID extLID,
+                                                 const dmsRecordID &rid,
                                                  BSONObj &inputObj,
+                                                 dmsIndexWriteGuard &writeGuard,
                                                  _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -3367,7 +3417,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) )
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess )
          {
             continue ;
          }
@@ -3430,23 +3483,47 @@ namespace engine
       return TRUE ;
    }
 
-   BOOLEAN _dmsStorageIndex::_needProcessIndex( ixmIndexCB &indexCB,
-                                                dmsExtentID extLID )
+   INT32 _dmsStorageIndex::_needProcessIndex( dmsMBContext *context,
+                                              ixmIndexCB &indexCB,
+                                              const dmsRecordID &rid,
+                                              dmsIndexWriteGuard &writeGuard,
+                                              BOOLEAN &needProcess )
    {
-      // if index is 'IXM_INDEX_FLAG_CREATING', then judge extent LID
-      if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() &&
-           extLID > indexCB.scanExtLID() )
+      INT32 rc = SDB_OK ;
+
+      needProcess = TRUE ;
+
+      // if index is 'IXM_INDEX_FLAG_CREATING', then judge record ID
+      if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
       {
-         return FALSE ;
+         if ( writeGuard.isEnabled() )
+         {
+            dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
+            dmsIndexBuildLockPtr lockPtr ;
+            rc = _registerBuildLock( metadataKey, lockPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to register index build lock, rc: %d", rc ) ;
+
+            rc = writeGuard.lock( metadataKey, lockPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
+         }
+
+         if ( indexCB.getScanRID() < rid )
+         {
+            needProcess = FALSE ;
+         }
       }
       // only attempt to process normal and creating indexes
       else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
                 indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
       {
-         return FALSE ;
+         needProcess = FALSE ;
       }
 
-      return TRUE ;
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
@@ -3507,6 +3584,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
+                                          dmsIndexWriteGuard &writeGuard,
                                           BOOLEAN isUndo,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -3524,7 +3602,7 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesDelete( context, extLID, inputObj, cb ) ;
+      rc = _globalIndexesDelete( context, rid, inputObj, writeGuard, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to delete global index, rc: %d", rc ) ;
@@ -3556,7 +3634,10 @@ namespace engine
             goto error ;
          }
 
-         if ( !_needProcessIndex( indexCB, extLID ) )
+         BOOLEAN needProcess = FALSE ;
+         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+         if ( !needProcess )
          {
             continue ;
          }
@@ -3918,6 +3999,7 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__INDEXINSERT_BSON, "_dmsStorageIndex::_indexInsert" )
    INT32 _dmsStorageIndex::_indexInsert( dmsMBContext *context,
                                          ixmIndexCB *indexCB,
                                          const BSONObj &key,
@@ -3927,6 +4009,8 @@ namespace engine
                                          utilWriteResult *pResult )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXINSERT_BSON ) ;
 
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
@@ -3943,12 +4027,14 @@ namespace engine
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__INDEXINSERT_BSON, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__INDEXDELETE_BSON, "_dmsStorageIndex::_indexDelete" )
    INT32 _dmsStorageIndex::_indexDelete( dmsMBContext *context,
                                          ixmIndexCB *indexCB,
                                          const BSONObj &key,
@@ -3956,6 +4042,8 @@ namespace engine
                                          pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXDELETE_BSON ) ;
 
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
@@ -3972,10 +4060,87 @@ namespace engine
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__INDEXDELETE_BSON, rc ) ;
       return rc ;
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__REGBUILDLOCK, "_dmsStorageIndex::_registerBuildLock" )
+   INT32 _dmsStorageIndex::_registerBuildLock( const dmsIdxMetadataKey &key,
+                                               dmsIndexBuildLockPtr &lockPtr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__REGBUILDLOCK ) ;
+
+      PD_CHECK( key.isValid(), SDB_SYS, error, PDERROR,
+                  "Failed to register index build lock, collection [UID: %llx, LID: %x] "
+                  "is not valid", key.getCLOrigUID(), key.getCLOrigLID() ) ;
+
+      lockPtr = _getBuildLock( key ) ;
+      if ( lockPtr )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         lockPtr = std::make_shared<ossRWMutex>() ;
+         PD_CHECK( lockPtr, SDB_OOM, error, PDERROR, "Failed to allocate buld lock" ) ;
+
+         ossScopedRWLock lock( &_buildLocksMutex, EXCLUSIVE ) ;
+         auto res = _buildLocks.insert( make_pair( key, lockPtr ) ) ;
+         if ( !res.second )
+         {
+            lockPtr = res.first->second ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register build lock, occur exception: %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__REGBUILDLOCK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK, "_dmsStorageIndex::_unregisterBuildLock" )
+   void _dmsStorageIndex::_unregisterBuildLock( const dmsIdxMetadataKey &key )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK ) ;
+
+      ossScopedRWLock lock( &_buildLocksMutex, EXCLUSIVE ) ;
+      _buildLocks.erase( key ) ;
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__GETBUILDLOCK, "_dmsStorageIndex::_getBuildLock" )
+   dmsIndexBuildLockPtr _dmsStorageIndex::_getBuildLock( const dmsIdxMetadataKey &key )
+   {
+      shared_ptr<ossRWMutex> lockPtr ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__GETBUILDLOCK ) ;
+
+      ossScopedRWLock lock( &_buildLocksMutex, SHARED ) ;
+      dmsIdxBuildLockMapIter iter = _buildLocks.find( key ) ;
+      if ( iter != _buildLocks.end() )
+      {
+         lockPtr = iter->second ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__GETBUILDLOCK ) ;
+
+      return std::move( lockPtr ) ;
    }
 
 }

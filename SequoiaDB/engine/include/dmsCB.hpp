@@ -503,6 +503,10 @@ namespace engine
                                 const _dmsIxmKeyComparer& comparer,
                                 dmsIxmKeySorter** ppSorter ) ;
       void releaseIxmKeySorter( dmsIxmKeySorter* pSorter ) ;
+      BOOLEAN hasIxmKeySorterCreator() const
+      {
+         return _ixmKeySorterCreator != NULL ;
+      }
 
       void setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator ) ;
       INT32 createScannerChecker( UINT32 suLID,

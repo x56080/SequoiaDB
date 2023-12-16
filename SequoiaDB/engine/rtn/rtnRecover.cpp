@@ -71,7 +71,7 @@ namespace engine
       virtual ~_rtnRBDupKeyProcessor() ;
 
    public:
-      virtual INT32 processDupKeyRecord( dmsStorageData *suData,
+      virtual INT32 processDupKeyRecord( dmsStorageDataCommon *suData,
                                          dmsMBContext *mbContext,
                                          const dmsRecordID &recordID,
                                          ossValuePtr recordDataPtr,
@@ -133,7 +133,7 @@ namespace engine
       }
    }
 
-   INT32 _rtnRBDupKeyProcessor::processDupKeyRecord( dmsStorageData *suData,
+   INT32 _rtnRBDupKeyProcessor::processDupKeyRecord( dmsStorageDataCommon *suData,
                                                      dmsMBContext *mbContext,
                                                      const dmsRecordID &recordID,
                                                      ossValuePtr recordDataPtr,

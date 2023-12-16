@@ -126,15 +126,6 @@ namespace engine
                                    UTIL_LJOB_DO_RESULT &result,
                                    UINT64 &sleepTime )
    {
-      static dpsTransCB *pTransCB = sdbGetTransCB() ;
-      static SDB_DMSCB  *pDmsCB = sdbGetDMSCB() ;
-
-      INT32 rcTmp = SDB_OK ;
-      dmsStorageUnit *su = NULL ;
-      dmsMBContext *pContext = NULL ;
-      dpsTransRetInfo transRetInfo ;
-      sleepTime = 2000000 ;
-
       // This backgroud job, _dmsReleaseLockJob, is started by
       // dmsOnTransLockRelease() after it removed this old version
       // container from the chain.
@@ -148,101 +139,9 @@ namespace engine
          _pOldVer->releaseRecord() ;
       }
 
-      if ( !_isDiskDeleting || !pmdGetOptionCB()->recycleRecord() )
-      {
-         result = UTIL_LJOB_DO_FINISH ;
-         goto done ;
-      }
-
-      /// lock collectionspace
-      su = pDmsCB->suLock( _pOldVer->getCSID() ) ;
-      if ( !su || su->LogicalCSID() != _pOldVer->getCSLID() )
-      {
-         /// collectionspace has dropped
-         result = UTIL_LJOB_DO_FINISH ;
-         goto done ;
-      }
-
-      /// lock collection
-      if ( SDB_OK == su->data()->getMBContext( &pContext,
-                                               _pOldVer->getCLID(),
-                                               _pOldVer->getCLLID(),
-                                               _pOldVer->getCLLID() ) )
-      {
-         rcTmp = pContext->mbTryLock( EXCLUSIVE ) ;
-         if ( SDB_TIMEOUT == rcTmp )
-         {
-            result = UTIL_LJOB_DO_CONT ;
-            goto done ;
-         }
-         else if ( rcTmp )
-         {
-            /// collection has dropped or truncated
-            result = UTIL_LJOB_DO_FINISH ;
-            goto done ;
-         }
-      }
-      else
-      {
-         /// out-of-memory
-         result = UTIL_LJOB_DO_CONT ;
-         goto done ;
-      }
-
-      rcTmp = pTransCB->transLockTestX( (_pmdEDUCB*)pExe,
-                                        _pOldVer->getCSLID(),
-                                        _pOldVer->getCLID(),
-                                        &_pOldVer->getRecordID(),
-                                        &transRetInfo,
-                                        NULL ) ;
-      if ( SDB_OK == rcTmp )
-      {
-         result = UTIL_LJOB_DO_FINISH ;
-
-         dmsRecordRW recordRW ;
-         const dmsRecord *pRecord = NULL ;
-         const dmsRecordID &rid = _pOldVer->getRecordID() ;
-
-         recordRW = su->data()->record2RW( rid,
-                                           _pOldVer->getCLID() ) ;
-         recordRW.setNothrow( TRUE ) ;
-         pRecord = recordRW.readPtr<dmsRecord>() ;
-         if ( !pRecord || pRecord->getMyOffset() != rid._offset )
-         {
-            /// record not exist
-            goto done ;
-         }
-
-         if ( !pRecord->isDeleting() )
-         {
-            /// record not deleting
-            goto done ;
-         }
-
-         /// delete record
-         su->data()->deleteRecord( pContext, rid,
-                                   (ossValuePtr)pRecord,
-                                   (pmdEDUCB*)pExe, NULL, NULL, NULL ) ;
-      }
-      else if ( DPS_TRANSLOCK_X == transRetInfo._lockType )
-      {
-         /// other trans locked it, will clear
-         result = UTIL_LJOB_DO_FINISH ;
-      }
-      else
-      {
-         result = UTIL_LJOB_DO_CONT ;
-      }
+      result = UTIL_LJOB_DO_FINISH ;
 
    done:
-      if ( pContext )
-      {
-         su->data()->releaseMBContext( pContext ) ;
-      }
-      if ( su )
-      {
-         pDmsCB->suUnlock( su->CSID(), SHARED ) ;
-      }
       return SDB_OK ;
    }
 

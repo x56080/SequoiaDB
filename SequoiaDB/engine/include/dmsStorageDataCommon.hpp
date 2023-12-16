@@ -47,7 +47,7 @@
 #include "dmsCompress.hpp"
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
-
+#include "dmsWriteGuard.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
 #include "dmsOprHandler.hpp"
@@ -1554,6 +1554,7 @@ namespace engine
                                         const dmsRecordID &rid,
                                         pmdEDUCB * cb,
                                         IDmsOprHandler *pOprHandle,
+                                        dmsIndexWriteGuard &indexWriteGuard,
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 

@@ -68,7 +68,7 @@ namespace engine
    public:
       UINT16         _indexFlag ;
       CHAR           _version ;
-      dmsExtentID    _scanExtLID ;
+      dmsRecordID    _scanRID ;
       dmsExtentID    _indexLID ;
       BSONObj        _indexDef ;
       CHAR           _extDataName[ DMS_MAX_EXT_NAME_SIZE + 1 ] ;
@@ -77,7 +77,7 @@ namespace engine
       {
          _indexFlag = 0 ;
          _version = 0 ;
-         _scanExtLID = -1 ;
+         _scanRID.reset() ;
          _indexLID = -1 ;
          ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
       }

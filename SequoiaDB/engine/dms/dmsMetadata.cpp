@@ -48,7 +48,7 @@ namespace engine
    /*
       _dmsCLMetadataKey implement
     */
-   _dmsCLMetadataKey::_dmsCLMetadataKey( dmsMetadataBlock *mb )
+   _dmsCLMetadataKey::_dmsCLMetadataKey( const dmsMetadataBlock *mb )
    : _clOrigUID(
          utilBuildCLUniqueID(
                utilGetCSUniqueID( mb->_clUniqueID ),
@@ -57,14 +57,28 @@ namespace engine
    {
    }
 
+   void _dmsCLMetadataKey::init( const _dmsMetadataBlock *mb )
+   {
+      _clOrigUID = utilBuildCLUniqueID( utilGetCSUniqueID( mb->_clUniqueID ),
+                                        mb->_origInnerUID ) ;
+      _clOrigLID = mb->_origLID ;
+   }
+
    /*
       _dmsIdxMetadataKey implement
     */
-   _dmsIdxMetadataKey::_dmsIdxMetadataKey( _dmsMetadataBlock *mb,
-                                           _ixmIndexCB *idxCB )
+   _dmsIdxMetadataKey::_dmsIdxMetadataKey( const _dmsMetadataBlock *mb,
+                                           const _ixmIndexCB *idxCB )
    : _dmsCLMetadataKey( mb ),
      _idxInnerID( utilGetIdxInnerID( idxCB->getUniqueID() ) )
    {
+   }
+
+   void _dmsIdxMetadataKey::init( const _dmsMetadataBlock *mb,
+                                  const _ixmIndexCB *idxCB )
+   {
+      _dmsCLMetadataKey::init( mb ) ;
+      _idxInnerID = utilGetIdxInnerID( idxCB->getUniqueID() ) ;
    }
 
    /*
