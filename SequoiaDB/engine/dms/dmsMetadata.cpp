@@ -124,8 +124,6 @@ namespace engine
      _isNotNull( indexCB->notNull() ),
      _isNotArray( indexCB->notArray() )
    {
-      // TODO HGM: use TRUE for $id index
-      _isStrictUnique = FALSE ;
    }
 
    _dmsIdxMetadata::_dmsIdxMetadata( const _dmsIdxMetadata &o, BOOLEAN getOwned )
