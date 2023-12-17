@@ -77,6 +77,8 @@ namespace wiredtiger
          return _engineOptions ;
       }
 
+      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
+
       virtual INT32 createCS( const dmsCSMetadata &metadata,
                               const dmsCreateCSOptions &options,
                               IExecutor *executor ) ;

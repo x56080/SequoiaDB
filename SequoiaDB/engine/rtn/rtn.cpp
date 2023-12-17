@@ -2200,6 +2200,13 @@ namespace engine
          dmsCB->suUnlock( suID ) ;
       }
 
+      /// commit storage engine
+      if ( NULL != dmsCB->getStorageService() )
+      {
+         rc = dmsCB->getStorageService()->sync( TRUE, sync, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to commit storage engine, rc: %d", rc ) ;
+      }
+
       /// commit log again
       if ( !syncSpecCS )
       {

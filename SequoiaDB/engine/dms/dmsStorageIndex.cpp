@@ -3496,7 +3496,7 @@ namespace engine
       // if index is 'IXM_INDEX_FLAG_CREATING', then judge record ID
       if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
       {
-         if ( writeGuard.isEnabled() )
+         if ( writeGuard.isIndexGuardEnabled() )
          {
             dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
             dmsIndexBuildLockPtr lockPtr ;

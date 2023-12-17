@@ -38,6 +38,7 @@
 
 #include "interface/IStorageEngine.hpp"
 #include "ossTypes.h"
+#include "sdbIPersistence.hpp"
 #include "wiredtiger/dmsWTCursor.hpp"
 #include "wiredtiger/dmsWTItem.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
@@ -56,7 +57,7 @@ namespace wiredtiger
    /*
       _dmsWTStorageEngine define
     */
-   class _dmsWTStorageEngine : public IStorageEngine
+   class _dmsWTStorageEngine : public IStorageEngine, public IDataSyncBase
    {
    public:
       _dmsWTStorageEngine( dmsWTEngineOptions &options ) ;
@@ -125,6 +126,26 @@ namespace wiredtiger
                                  ossPoolList< ossPoolString > &uriList ) ;
       INT32 dumpURIList( ossPoolList< ossPoolString > &uriList ) ;
 
+      // for persistence
+      virtual BOOLEAN isClosed() const
+      {
+         return nullptr == _conn ;
+      }
+
+      virtual BOOLEAN canSync( BOOLEAN &force ) const ;
+
+      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
+
+      virtual void lock()
+      {
+         _persistLatch.get() ;
+      }
+
+      virtual void unlock()
+      {
+         _persistLatch.release() ;
+      }
+
    protected:
       INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
 
@@ -132,6 +153,8 @@ namespace wiredtiger
       dmsWTEngineOptions &_options ;
       dmsWTHandler _handler ;
       WT_CONNECTION *_conn = nullptr ;
+      ossSpinXLatch _persistLatch ;
+      UINT64 _lastPersistTick = 0 ;
    } ;
 
    typedef class _dmsWTStorageEngine dmsWTStorageEngine ;

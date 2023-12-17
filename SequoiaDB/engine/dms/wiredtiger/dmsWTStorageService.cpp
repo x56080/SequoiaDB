@@ -85,6 +85,8 @@ namespace wiredtiger
       rc = _engine.open( engineOptions.getDBPath(), config.c_str() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open WiredTiger engine, rc: %d", rc ) ;
 
+      pmdGetSyncMgr()->registerSync( &_engine ) ;
+
       _engineOptions = engineOptions ;
 
    done:
@@ -102,11 +104,33 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_CLOSE ) ;
 
+      pmdGetSyncMgr()->unregSync( &_engine ) ;
+
       rc = _engine.close( NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to close WiredTiger engine, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_CLOSE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_SYNC, "_dmsWTStorageService::sync" )
+   INT32 _dmsWTStorageService::sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_SYNC ) ;
+
+      _engine.lock() ;
+      rc = _engine.sync( force, sync, executor ) ;
+      _engine.unlock() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to sync WiredTiger engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_SYNC, rc ) ;
       return rc ;
 
    error:

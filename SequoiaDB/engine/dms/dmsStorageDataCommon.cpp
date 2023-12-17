@@ -4023,7 +4023,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
-      dmsIndexWriteGuard indexWriteGuard( cb ) ;
+      dmsWriteGuard writeGuard( this, context, cb ) ;
 
       if ( !isTransSupport( context ) )
       {
@@ -4246,7 +4246,7 @@ namespace engine
 
          rc = _insertIndexes( context, foundRID._extent, insertObj,
                               foundRID, cb, dpsCB ? &callback : NULL,
-                              indexWriteGuard, insertResult, pUnqIdxHashArray ) ;
+                              writeGuard, insertResult, pUnqIdxHashArray ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert indexes, rc: %d", rc ) ;
       }
       catch ( exception &e )
@@ -4371,7 +4371,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
-      dmsIndexWriteGuard indexWriteGuard( cb ) ;
+      dmsWriteGuard writeGuard( this, context, cb ) ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -4513,7 +4513,7 @@ namespace engine
             rc = _pIdxSU->indexesDelete( context, recordID._extent,
                                          delObject, recordID, cb,
                                          dpscb ? pHandler : NULL,
-                                         indexWriteGuard, isUndo,
+                                         writeGuard, isUndo,
                                          pUnqIdxHashArray ) ;
             if ( rc )
             {
@@ -4670,7 +4670,7 @@ namespace engine
       BOOLEAN needUndoIndex = FALSE ;
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
-      dmsIndexWriteGuard indexWriteGuard( cb ) ;
+      dmsWriteGuard writeGuard( this, context, cb ) ;
 
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -4899,7 +4899,7 @@ namespace engine
 
             rc = _pIdxSU->indexesUpdate( context, recordID._extent, obj, newobj,
                                          recordID, cb, FALSE, pHandler,
-                                         indexWriteGuard,
+                                         writeGuard,
                                          modifier.getIdxHashBitmap(), pResult,
                                          pNewUnqIdxHashArray,
                                          pOldUnqIdxHashArray ) ;
@@ -5043,7 +5043,7 @@ namespace engine
          // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, recordID._extent,
                                              newObj, oriObj, recordID, cb,
-                                             TRUE, NULL, indexWriteGuard,
+                                             TRUE, NULL, writeGuard,
                                              modifier.getIdxHashBitmap() ) ;
          if ( rc1 )
          {

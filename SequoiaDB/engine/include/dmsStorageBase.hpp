@@ -402,6 +402,7 @@ namespace engine
          OSS_INLINE void        endFixedAddr( const ossValuePtr ptr ) ;
 
          OSS_INLINE void        markAllDirty( DMS_CHG_STEP step ) ;
+         OSS_INLINE void        markDirty( INT32 collectionID, DMS_CHG_STEP stp ) ;
          OSS_INLINE void        markDirty( INT32 collectionID,
                                            INT32 extentID,
                                            DMS_CHG_STEP step ) ;
@@ -777,6 +778,22 @@ namespace engine
       }
       _lastWriteTick = pmdGetDBTick() ;
       _dirtyList.setFullDirty() ;
+      /// Notify Change
+      if ( _pSyncMgr && _syncRecordNum > 0 &&
+           _writeReordNum >= _syncRecordNum )
+      {
+         _pSyncMgr->notifyChange() ;
+      }
+   }
+   OSS_INLINE void _dmsStorageBase::markDirty( INT32 collectionID,
+                                               DMS_CHG_STEP step )
+   {
+      _markHeaderInvalid( collectionID, FALSE ) ;
+      if ( DMS_CHG_BEFORE == step )
+      {
+         return ;
+      }
+      _lastWriteTick = pmdGetDBTick() ;
       /// Notify Change
       if ( _pSyncMgr && _syncRecordNum > 0 &&
            _writeReordNum >= _syncRecordNum )

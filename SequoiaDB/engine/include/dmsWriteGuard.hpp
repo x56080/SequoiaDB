@@ -46,6 +46,8 @@ namespace engine
 
    // forward declaration
    class _pmdEDUCB ;
+   class _dmsStorageBase ;
+   class _dmsMBContext ;
 
    /*
       dmsIndexBuildLockPtr define
@@ -56,7 +58,7 @@ namespace engine
    /*
       _dmsIndexWriteGuard define
     */
-   class _dmsIndexWriteGuard : public SDBObject
+   class _dmsIndexWriteGuard
    {
    public:
       _dmsIndexWriteGuard( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
@@ -66,14 +68,9 @@ namespace engine
                   dmsIndexBuildLockPtr &lockPtr ) ;
       void releaseAll() ;
 
-      BOOLEAN isEnabled() const
+      BOOLEAN isIndexGuardEnabled() const
       {
          return _isEnabled ;
-      }
-
-      void setEnabled( BOOLEAN isEnabled )
-      {
-         _isEnabled = isEnabled ;
       }
 
    protected:
@@ -83,6 +80,54 @@ namespace engine
    } ;
 
    typedef class _dmsIndexWriteGuard dmsIndexWriteGuard ;
+
+   /*
+      _dmsDataWriteGuard define
+    */
+   class _dmsDataWriteGuard
+   {
+   public:
+      _dmsDataWriteGuard( _dmsStorageBase *su,
+                          _dmsMBContext *mbContext,
+                          _pmdEDUCB *cb,
+                          BOOLEAN isEnabled = TRUE ) ;
+      ~_dmsDataWriteGuard() ;
+
+      BOOLEAN isDataGuardEnabled() const
+      {
+         return _isEnabled ;
+      }
+
+      void setDataGuardEnabled( BOOLEAN isEnabled )
+      {
+         _isEnabled = isEnabled ;
+      }
+
+   protected:
+      _dmsStorageBase *_su ;
+      UINT16 _mbID ;
+      _pmdEDUCB *_eduCB ;
+      BOOLEAN _isEnabled ;
+   } ;
+
+   typedef class _dmsDataWriteGuard dmsDataWriteGuard ;
+
+   /*
+      _dmsWriteGuard define
+    */
+   class _dmsWriteGuard : public _dmsDataWriteGuard, public _dmsIndexWriteGuard
+   {
+   public:
+      _dmsWriteGuard( _dmsStorageBase *su,
+                      _dmsMBContext *mbContext,
+                      _pmdEDUCB *cb,
+                      BOOLEAN isDataWriteGuardEnabled = TRUE,
+                      BOOLEAN isIndexWriteGuardEnabled = TRUE ) ;
+
+      ~_dmsWriteGuard() = default ;
+   } ;
+
+   typedef class _dmsWriteGuard dmsWriteGuard ;
 
 }
 

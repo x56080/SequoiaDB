@@ -38,6 +38,7 @@
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "pmdEDU.hpp"
+#include "dmsStorageDataCommon.hpp"
 
 using namespace std ;
 
@@ -128,6 +129,47 @@ namespace engine
       _locks.clear() ;
 
       PD_TRACE_EXIT( SDB__DMSINDEXWRITEGUARD_RELEASEALL ) ;
+   }
+
+   /*
+      _dmsDataWriteGuard imeplement
+    */
+   _dmsDataWriteGuard::_dmsDataWriteGuard( dmsStorageBase *su,
+                                           dmsMBContext *mbContext,
+                                           pmdEDUCB *cb,
+                                           BOOLEAN isEnabled )
+   : _su( su ),
+     _mbID( mbContext->mbID() ),
+     _eduCB( cb ),
+     _isEnabled( isEnabled )
+   {
+      if ( _isEnabled )
+      {
+         _su->markDirty( _mbID, DMS_CHG_BEFORE ) ;
+         _su->incWritePtrCount( _mbID ) ;
+      }
+   }
+
+   _dmsDataWriteGuard::~_dmsDataWriteGuard()
+   {
+      if ( _isEnabled )
+      {
+         _su->markDirty( _mbID, DMS_CHG_AFTER ) ;
+         _su->decWritePtrCount( _mbID ) ;
+      }
+   }
+
+   /*
+      _dmsWriteGuard implement
+    */
+   _dmsWriteGuard::_dmsWriteGuard( dmsStorageBase *su,
+                                   dmsMBContext *mbContext,
+                                   pmdEDUCB *cb,
+                                   BOOLEAN isDataWriteGuardEnabled,
+                                   BOOLEAN isIndexWriteGuardEnabled )
+   : _dmsDataWriteGuard( su, mbContext, cb, isDataWriteGuardEnabled ),
+     _dmsIndexWriteGuard( cb, isIndexWriteGuardEnabled )
+   {
    }
 
 }

@@ -393,7 +393,7 @@ namespace engine
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
 
-      dmsIndexWriteGuard indexWriteGuard( cb ) ;
+      dmsWriteGuard writeGuard( this, context, cb ) ;
 
       SDB_ASSERT ( !recordData.isEmpty(), "recordData can't be empty" ) ;
 
@@ -495,7 +495,7 @@ namespace engine
                                          oriObj, newObj,
                                          recordRW.getRecordID(),
                                          cb, FALSE, pHandler,
-                                         indexWriteGuard,
+                                         writeGuard,
                                          idxHashBitmap,
                                          pResult,
                                          pNewUnqIdxHashArray,
@@ -649,7 +649,7 @@ namespace engine
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                              newObj, oriObj,
                                              recordRW.getRecordID(),
-                                             cb, TRUE, NULL, indexWriteGuard,
+                                             cb, TRUE, NULL, writeGuard,
                                              idxHashBitmap ) ;
          if ( rc1 )
          {

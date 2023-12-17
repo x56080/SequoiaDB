@@ -65,6 +65,8 @@ namespace engine
 
       virtual IStorageEngine *getEngine() = 0 ;
 
+      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) = 0 ;
+
       virtual INT32 createCS( const dmsCSMetadata &metadata,
                               const dmsCreateCSOptions &options,
                               IExecutor *executor ) = 0 ;
