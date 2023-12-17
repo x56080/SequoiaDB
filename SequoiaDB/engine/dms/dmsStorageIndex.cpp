@@ -2650,9 +2650,9 @@ namespace engine
       BOOLEAN dropDups             = FALSE ;
       vector<ixmIndexCB> textIdxCBs ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      if ( !context->isMBLock() )
       {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
                  context->toString().c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
@@ -3202,10 +3202,10 @@ namespace engine
       INT32 indexID                = 0 ;
       vector<ixmIndexCB> textIdxCBs ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      if ( !context->isMBLock() )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
                  context->toString().c_str() ) ;
          goto error ;
       }
@@ -3528,8 +3528,8 @@ namespace engine
    BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
                                                  const ixmIdxHashBitmap &idxHashBitmap )
    {
-      SDB_ASSERT( context->isMBLock( EXCLUSIVE ),
-                  "should have exclusive lock on metadata block context" ) ;
+      SDB_ASSERT( context->isMBLock(),
+                  "should have lock on metadata block context" ) ;
 
       // collections's index hash bitmap is empty, rebuild it
       // NOTE: for update, we should have $id index at least
@@ -3592,10 +3592,10 @@ namespace engine
       vector<ixmIndexCB> textIdxCBs ;
       INT32 rcGIndex               = SDB_OK ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      if ( !context->isMBLock() )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
                  context->toString().c_str() ) ;
          goto error ;
       }
@@ -3605,7 +3605,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to delete global index, rc: %d", rc ) ;
-         if ( !isUndo || !context->isMBLock( EXCLUSIVE ) )
+         if ( !isUndo || !context->isMBLock() )
          {
             // context may be paused in _globalIndexesDelete, in this case we
             // can't delete local index any more.

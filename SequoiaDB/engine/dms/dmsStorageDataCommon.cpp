@@ -4139,7 +4139,7 @@ namespace engine
          }
 
          // lock mb
-         rc = context->mbLock( EXCLUSIVE ) ;
+         rc = context->mbLock( SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // then make sure the collection compatiblity
@@ -4371,9 +4371,9 @@ namespace engine
 
       dmsWriteGuard writeGuard( this, context, cb ) ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      if ( !context->isMBLock() )
       {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
                  context->toString().c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
@@ -4527,7 +4527,7 @@ namespace engine
                   goto error ;
                }
 
-               if ( !context->isMBLock( EXCLUSIVE ) )
+               if ( !context->isMBLock() )
                {
                   // context may be paused in _pIdxSU->indexesDelete
                   PD_LOG( PDERROR, "context is paused[%s]",
@@ -4674,9 +4674,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed in permission check of update, rc: %d", rc ) ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      if ( !context->isMBLock() )
       {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
                  context->toString().c_str() ) ;
          rc = SDB_SYS ;
          goto error ;

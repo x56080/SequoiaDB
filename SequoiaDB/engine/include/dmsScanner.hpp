@@ -79,6 +79,15 @@ namespace engine
    class _dmsScanner ;
    class _dmsTBScanner ;
 
+   #define DMS_IS_WRITE_OPR(accessType)   \
+      ( DMS_ACCESS_TYPE_UPDATE == accessType || \
+        DMS_ACCESS_TYPE_DELETE == accessType ||\
+        DMS_ACCESS_TYPE_INSERT == accessType )
+
+   #define DMS_IS_READ_OPR(accessType) \
+      ( DMS_ACCESS_TYPE_QUERY == accessType || \
+        DMS_ACCESS_TYPE_FETCH == accessType )
+
    /*
       _dmsScannerContext define
    */
@@ -135,7 +144,7 @@ namespace engine
 
          BOOLEAN  isReadOnly() const
          {
-            return SHARED == _mbLockType ? TRUE : FALSE ;
+            return SHARED == _mbLockType && DMS_IS_WRITE_OPR( _accessType ) ? TRUE : FALSE ;
          }
 
          virtual dmsTransLockCallback*       callbackHandler() = 0 ;

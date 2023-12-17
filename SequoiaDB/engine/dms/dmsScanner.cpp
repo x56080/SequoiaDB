@@ -63,15 +63,6 @@ using namespace bson ;
 namespace engine
 {
 
-   #define DMS_IS_WRITE_OPR(accessType)   \
-      ( DMS_ACCESS_TYPE_UPDATE == accessType || \
-        DMS_ACCESS_TYPE_DELETE == accessType ||\
-        DMS_ACCESS_TYPE_INSERT == accessType )
-
-   #define DMS_IS_READ_OPR(accessType) \
-      ( DMS_ACCESS_TYPE_QUERY == accessType || \
-        DMS_ACCESS_TYPE_FETCH == accessType )
-
    /*
       _dmsIndexRecordRW implement
    */
@@ -108,11 +99,6 @@ namespace engine
       _matchRuntime = matchRuntime ;
       _accessType = accessType ;
       _mbLockType = SHARED ;
-
-      if ( DMS_IS_WRITE_OPR( _accessType ) )
-      {
-         _mbLockType = EXCLUSIVE ;
-      }
 
       _maxRecords = maxRecords ;
       _skipNum = skipNum ;
