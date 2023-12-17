@@ -3298,5 +3298,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ENGINE_NOT_SUPPORT</name>
+         <description>
+            <en>The operation is not supported in current storage engine</en>
+            <cn>当前存储引擎不支持该操作</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
