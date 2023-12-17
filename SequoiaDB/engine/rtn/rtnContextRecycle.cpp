@@ -181,7 +181,7 @@ namespace engine
          if ( SDB_OK == rc )
          {
             // get number of records and lobs
-            UINT64 totalRecords = mbContext->mbStat()->_totalRecords ;
+            UINT64 totalRecords = mbContext->mbStat()->_totalRecords.fetch() ;
             UINT64 totalLobs = mbContext->mbStat()->_totalLobs ;
 
             // make sure meta block is released

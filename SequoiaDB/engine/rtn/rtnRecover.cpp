@@ -1785,7 +1785,7 @@ namespace engine
       // In capped collection, the free space is only the remainning free space
       // in the last extent.
       context->mb()->_totalDataFreeSpace = remainSpace ;
-      context->mbStat()->_totalRecords = _totalRecord ;
+      context->mbStat()->_totalRecords.swap( _totalRecord ) ;
       context->mbStat()->_rcTotalRecords.init( _totalRecord ) ;
 
       _pSU->data()->flushMeta( TRUE ) ;

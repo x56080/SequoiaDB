@@ -2456,7 +2456,7 @@ void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
       pExtent = (dmsExtent*)gExtentBuffer ;
       gMBStat._totalDataPages += pExtent->_blockSize ;
       gMBStat._totalDataFreeSpace += pExtent->_freeSpace ;
-      gMBStat._totalRecords += pExtent->_recCount ;
+      gMBStat._totalRecords.add( pExtent->_recCount ) ;
       gMBStat._rcTotalRecords.add( pExtent->_recCount ) ;
 
       if ( pExpBuffer )
@@ -2545,12 +2545,12 @@ retry_data :
       dumpPrintf ( "Error: Collection is not compressed, but has %llu "
                    "compressed records" OSS_NEWLINE, compressedNum ) ;
    }
-   else if ( gMBStat._totalRecords != mb->_totalRecords )
+   else if ( gMBStat._totalRecords.fetch() != mb->_totalRecords )
    {
       dumpPrintf ( "Error: Collection records is not the same[ "
                    "mb->_totalRecords: %llu, ext total records: %llu"
                    OSS_NEWLINE, mb->_totalRecords,
-                   gMBStat._totalRecords ) ;
+                   gMBStat._totalRecords.fetch() ) ;
    }
    else if ( extScan && totalRecord != mb->_totalRecords )
    {
@@ -2698,7 +2698,7 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          "   Total OVF Record       : %llu" OSS_NEWLINE
                          "   Total Compressed Record: %llu" OSS_NEWLINE
                          "   Total Deleting Record  : %llu" OSS_NEWLINE,
-                         gMBStat._totalRecords,
+                         gMBStat._totalRecords.fetch(),
                          gMBStat._totalDataPages,
                          gMBStat._totalDataFreeSpace,
                          ovfNum,

@@ -791,7 +791,7 @@ namespace engine
                       pCLFullName, pIndexName, rc ) ;
 
          localParam._sampleRecords =
-               _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
+               _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords.fetch(), param ) ;
          localParam._sampleByNum = FALSE ;
 
          // Unlock first
@@ -1315,7 +1315,7 @@ namespace engine
 
       // Analyze collection
       localParam._sampleRecords =
-            _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
+            _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords.fetch(), param ) ;
       localParam._sampleByNum = TRUE ;
 
       rc = _rtnAnalyzeCLInternal( pSU, mbContext, localParam, TRUE, cb,
@@ -1438,10 +1438,10 @@ namespace engine
                 "Failed to allocate memory for collection statistics [%s.%s]",
                 pCSName, pCLName ) ;
 
-      pCollectionStat->setTotalRecords( mbContext->mbStat()->_totalRecords ) ;
+      pCollectionStat->setTotalRecords( mbContext->mbStat()->_totalRecords.fetch() ) ;
       pCollectionStat->setSampleRecords( param._sampleRecords ) ;
       pCollectionStat->setTotalDataPages( mbContext->mbStat()->_totalDataPages ) ;
-      pCollectionStat->setTotalDataSize( mbContext->mbStat()->_totalOrgDataLen ) ;
+      pCollectionStat->setTotalDataSize( mbContext->mbStat()->_totalOrgDataLen.fetch() ) ;
       pCollectionStat->setAvgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS ) ;
 
       rc = pCollectionStat->postInit() ;
@@ -1680,7 +1680,7 @@ namespace engine
 
       try
       {
-         UINT64 totalRecords = mbContext->mbStat()->_totalRecords ;
+         UINT64 totalRecords = mbContext->mbStat()->_totalRecords.fetch() ;
 
          pIndexStat = SDB_OSS_NEW dmsIndexStat( pCSName, pCLName, pIXName,
                                                 pSU->LogicalCSID(),

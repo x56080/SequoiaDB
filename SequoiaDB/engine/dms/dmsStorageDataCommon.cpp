@@ -654,10 +654,10 @@ namespace engine
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
             if ( _dmsMME->_mbList[i]._totalRecords !=
-                 _mbStatInfo[i]._totalRecords )
+                 _mbStatInfo[i]._totalRecords.fetch() )
             {
                _dmsMME->_mbList[i]._totalRecords =
-                  _mbStatInfo[i]._totalRecords ;
+                  _mbStatInfo[i]._totalRecords.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalDataPages !=
                  _mbStatInfo[i]._totalDataPages )
@@ -702,10 +702,10 @@ namespace engine
                   _mbStatInfo[i]._lastCompressRatio ;
             }
             if ( _dmsMME->_mbList[i]._totalDataLen !=
-                 _mbStatInfo[i]._totalDataLen )
+                 _mbStatInfo[i]._totalDataLen.fetch() )
             {
                _dmsMME->_mbList[i]._totalDataLen =
-                  _mbStatInfo[i]._totalDataLen ;
+                  _mbStatInfo[i]._totalDataLen.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalLobSize !=
                  _mbStatInfo[i]._totalLobSize )
@@ -720,10 +720,10 @@ namespace engine
                  _mbStatInfo[i]._totalValidLobSize ;
             }
             if ( _dmsMME->_mbList[i]._totalOrgDataLen !=
-                 _mbStatInfo[i]._totalOrgDataLen )
+                 _mbStatInfo[i]._totalOrgDataLen.fetch() )
             {
                _dmsMME->_mbList[i]._totalOrgDataLen =
-                  _mbStatInfo[i]._totalOrgDataLen ;
+                  _mbStatInfo[i]._totalOrgDataLen.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._maxGlobTransID !=
                  _mbStatInfo[i]._maxGlobTransID.peek() )
@@ -1028,7 +1028,7 @@ namespace engine
             _collectionInsert ( _dmsMME->_mbList[i]._collectionName, i,
                                 _dmsMME->_mbList[i]._clUniqueID ) ;
 
-            _mbStatInfo[i]._totalRecords = _dmsMME->_mbList[i]._totalRecords ;
+            _mbStatInfo[i]._totalRecords.init( _dmsMME->_mbList[i]._totalRecords ) ;
             _mbStatInfo[i]._rcTotalRecords.init( _dmsMME->_mbList[i]._totalRecords ) ;
             _mbStatInfo[i]._totalDataPages =
                _dmsMME->_mbList[i]._totalDataPages ;
@@ -1044,14 +1044,12 @@ namespace engine
                _dmsMME->_mbList[i]._totalLobs ;
             _mbStatInfo[i]._lastCompressRatio =
                _dmsMME->_mbList[i]._lastCompressRatio ;
-            _mbStatInfo[i]._totalDataLen =
-               _dmsMME->_mbList[i]._totalDataLen ;
+            _mbStatInfo[i]._totalDataLen.init( _dmsMME->_mbList[i]._totalDataLen ) ;
             _mbStatInfo[i]._totalLobSize =
                _dmsMME->_mbList[i]._totalLobSize ;
             _mbStatInfo[i]._totalValidLobSize =
                _dmsMME->_mbList[i]._totalValidLobSize;
-            _mbStatInfo[i]._totalOrgDataLen =
-               _dmsMME->_mbList[i]._totalOrgDataLen ;
+            _mbStatInfo[i]._totalOrgDataLen.init( _dmsMME->_mbList[i]._totalOrgDataLen ) ;
             _mbStatInfo[i]._startLID =
                _dmsMME->_mbList[i]._logicalID ;
 
@@ -1846,10 +1844,10 @@ namespace engine
 
       context->mbStat()->_totalDataFreeSpace = 0 ;
       context->mbStat()->_totalDataPages = 0 ;
-      context->mbStat()->_totalRecords = 0 ;
+      context->mbStat()->_totalRecords.init( 0 ) ;
       context->mbStat()->_rcTotalRecords.init( 0 ) ;
-      context->mbStat()->_totalDataLen = 0 ;
-      context->mbStat()->_totalOrgDataLen = 0 ;
+      context->mbStat()->_totalDataLen.init( 0 ) ;
+      context->mbStat()->_totalOrgDataLen.init( 0 ) ;
       context->mbStat()->_blockIndexCreatingCount = 0 ;
       context->mbStat()->_lastSearchSlot = dmsMB::_max ;
       context->mbStat()->_lastSearchRID.reset() ;
@@ -3007,7 +3005,7 @@ namespace engine
             newCLID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
          }
 
-         oldRecords = context->mbStat()->_totalRecords ;
+         oldRecords = context->mbStat()->_totalRecords.fetch() ;
          oldLobs = context->mbStat()->_totalLobs ;
 
          rc = _pIdxSU->truncateIndexes( context, cb ) ;
@@ -4236,8 +4234,8 @@ namespace engine
                           &( _mbStatInfo[ context->mbID() ] ), cb ) ;
          _mbStatInfo[context->mbID()]._lastCompressRatio =
             (UINT8)( recordData.getCompressRatio() * 100 ) ;
-         _mbStatInfo[context->mbID()]._totalOrgDataLen += recordData.orgLen() ;
-         _mbStatInfo[context->mbID()]._totalDataLen += recordData.len() ;
+         _mbStatInfo[context->mbID()]._totalOrgDataLen.add( recordData.orgLen() ) ;
+         _mbStatInfo[context->mbID()]._totalDataLen.add( recordData.len() ) ;
 
          hasInsert = TRUE ;
          // update totalInsert monitor counter
@@ -4544,8 +4542,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
+            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
          }
          catch ( std::exception &e )
          {
@@ -4942,10 +4940,10 @@ namespace engine
 
             _mbStatInfo[context->mbID()]._lastCompressRatio =
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            context->mbStat()->_totalDataLen += newRecordData.len() ;
-            context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
+            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
+            context->mbStat()->_totalDataLen.add(  newRecordData.len() ) ;
+            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
 
             if ( NULL != newRecord )
             {
@@ -5372,7 +5370,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT ) ;
 
       // update meta-block statistics
-      ++ ( mbStat->_totalRecords ) ;
+      mbStat->_totalRecords.inc() ;
 
       // update meta-block statistics for transaction RC counter
       if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
@@ -5382,7 +5380,8 @@ namespace engine
          // - primary switch is running
          // in these cases, no transactions can query the collection, so it
          // is safe to update the RC counter
-         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+         ossScopedLock lock( &_mbStatLatch ) ;
+         mbStat->_rcTotalRecords.swap( mbStat->_totalRecords.fetch() ) ;
       }
       else if ( cb->isInTransRollback() )
       {
@@ -5421,7 +5420,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
 
       // update meta-block statistics
-      -- ( mbStat->_totalRecords ) ;
+      mbStat->_totalRecords.dec() ;
 
       // update meta-block statistics for transaction RC counter
       if ( cb->isDoReplay() || sdbGetTransCB()->isDoRollback() )
@@ -5431,7 +5430,8 @@ namespace engine
          // - primary switch is running
          // in these cases, no transactions can query the collection, so it
          // is safe to update the RC counter
-         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+         ossScopedLock lock( &_mbStatLatch ) ;
+         mbStat->_rcTotalRecords.swap( mbStat->_totalRecords.fetch() ) ;
       }
       else if ( cb->isInTransRollback() )
       {

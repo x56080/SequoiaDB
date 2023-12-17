@@ -536,10 +536,10 @@ namespace engine
             //size,we should swap them.
             _mbStatInfo[context->mbID()]._lastCompressRatio =
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            context->mbStat()->_totalDataLen += newRecordData.len() ;
-            context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
+            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
+            context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
+            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
             goto done ;
          }
          else if ( pOvfRecord && dmsRecordSize <= pOvfRecord->getSize() )
@@ -552,10 +552,10 @@ namespace engine
             //size,we should swap them.
             _mbStatInfo[context->mbID()]._lastCompressRatio =
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            context->mbStat()->_totalDataLen += newRecordData.len() ;
-            context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
+            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
+            context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
+            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
             goto done ;
          }
          // over-flow recrod
@@ -624,8 +624,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
+            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
             // NOTE: last compress ratio is updated with insert of overflow-to record
          }
       }
@@ -1185,8 +1185,8 @@ namespace engine
 
       _mbStatInfo[context->mbID()]._lastCompressRatio =
          (UINT8)( recordData.getCompressRatio() * 100 ) ;
-      _mbStatInfo[context->mbID()]._totalOrgDataLen += recordData.orgLen() ;
-      _mbStatInfo[context->mbID()]._totalDataLen += recordData.len() ;
+      _mbStatInfo[context->mbID()]._totalOrgDataLen.add( recordData.orgLen() ) ;
+      _mbStatInfo[context->mbID()]._totalDataLen.add( recordData.len() ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, rc ) ;

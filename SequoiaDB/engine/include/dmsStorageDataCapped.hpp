@@ -432,11 +432,11 @@ namespace engine
                                                          UINT32 totalSize,
                                                          const dmsRecordData &recordData )
    {
-      ++( mbStat._totalRecords ) ;
+      mbStat._totalRecords.inc() ;
       mbStat._rcTotalRecords.inc() ;
       mbStat._totalDataFreeSpace -= totalSize ;
-      mbStat._totalOrgDataLen += totalSize ;
-      mbStat._totalDataLen += totalSize ;
+      mbStat._totalOrgDataLen.add( totalSize ) ;
+      mbStat._totalDataLen.add( totalSize ) ;
       mbStat._lastCompressRatio =
          (UINT8)( recordData.getCompressRatio() * 100 ) ;
    }
@@ -499,11 +499,11 @@ namespace engine
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,
                                                               UINT32 newNum )
    {
-      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
+      dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
       SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
 
       return ( _options[context->mbID()]->_maxRecNum > 0 &&
-               ( ( mbStatInfo->_totalRecords + newNum ) >
+               ( ( mbStatInfo->_totalRecords.fetch() + newNum ) >
                  (UINT64)_options[context->mbID()]->_maxRecNum ) ) ;
    }
 

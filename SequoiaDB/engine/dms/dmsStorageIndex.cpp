@@ -1268,8 +1268,7 @@ namespace engine
 
          if ( pIdxStatus && DMS_TASK_STATUS_RUN == pIdxStatus->status() )
          {
-            pIdxStatus->setTotalRecNum(
-               _pDataSu->getMBStatInfo( context->mbID() )->_totalRecords ) ;
+            pIdxStatus->setTotalRecNum( context->mbStat()->_totalRecords.fetch() ) ;
             pIdxStatus->resetPcsedRecNum() ;
             pIdxStatus->setIndexDef( indexCB.getDef() ) ;
          }

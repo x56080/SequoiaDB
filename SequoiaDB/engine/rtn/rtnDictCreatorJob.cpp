@@ -197,7 +197,7 @@ namespace engine
                                                 dmsDictJob &job )
    {
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
-      const dmsMBStatInfo *mbStatInfo = NULL ;
+      dmsMBStatInfo *mbStatInfo = NULL ;
       BOOLEAN result = FALSE ;
 
       if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID ||
@@ -209,9 +209,10 @@ namespace engine
       {
          mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
          SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
-         result = ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
-                    mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE &&
-                    mbStatInfo->_totalRecords != job._recordNum ) ;
+         UINT64 recNum = mbStatInfo->_totalRecords.fetch() ;
+         result = ( recNum >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
+                    mbStatInfo->_totalOrgDataLen.fetch() >= RTN_DICT_CREATE_REC_DATA_SIZE &&
+                    recNum != job._recordNum ) ;
       }
 
    done:
@@ -509,8 +510,8 @@ namespace engine
          }
          else if ( SDB_DMS_EOC == rc )
          {
-            const dmsMBStatInfo *mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
-            job._recordNum = mbStatInfo->_totalRecords ;
+            dmsMBStatInfo *mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
+            job._recordNum = mbStatInfo->_totalRecords.fetch() ;
          }
          goto error ;
       }

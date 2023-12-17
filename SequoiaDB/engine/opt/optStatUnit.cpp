@@ -854,9 +854,9 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_OPTCLSTAT__INITCURSTAT ) ;
 
-      _totalRecords = mbContext->mbStat()->_totalRecords ;
+      _totalRecords = mbContext->mbStat()->_totalRecords.fetch() ;
       _totalDataPages = mbContext->mbStat()->_totalDataPages ;
-      _totalDataSize = mbContext->mbStat()->_totalOrgDataLen ;
+      _totalDataSize = mbContext->mbStat()->_totalOrgDataLen.fetch() ;
 
       _numIndexes = mbContext->mb()->_numIndexes ;
       if ( _numIndexes > 0 )

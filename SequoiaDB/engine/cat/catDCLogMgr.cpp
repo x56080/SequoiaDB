@@ -116,7 +116,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get mb context failed, rc: %d", rc ) ;
 
       _clLID = mbContext->clLID() ;
-      _count = mbContext->mbStat()->_totalRecords ;
+      _count = mbContext->mbStat()->_totalRecords.fetch() ;
 
    done:
       if ( mbContext )

@@ -413,7 +413,7 @@ namespace engine
    */
    struct _dmsMBStatInfo
    {
-      UINT64      _totalRecords ;
+      ossAtomic64 _totalRecords ;
       UINT32      _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
@@ -425,8 +425,8 @@ namespace engine
       UINT8       _textIdxNum ;
       UINT8       _globIdxNum ;
       UINT8       _lastCompressRatio ;
-      UINT64      _totalOrgDataLen ;
-      UINT64      _totalDataLen ;
+      ossAtomic64 _totalOrgDataLen ;
+      ossAtomic64 _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
       UINT64      _totalLobSize ;
@@ -475,7 +475,7 @@ namespace engine
 
       void reset()
       {
-         _totalRecords           = 0 ;
+         _totalRecords.init( 0 ) ;
          _writePtrCount          = 0 ;
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
@@ -487,8 +487,8 @@ namespace engine
          _textIdxNum             = 0 ;
          _globIdxNum             = 0 ;
          _lastCompressRatio      = 100 ;
-         _totalOrgDataLen        = 0 ;
-         _totalDataLen           = 0 ;
+         _totalOrgDataLen.init( 0 ) ;
+         _totalDataLen.init( 0 ) ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
          _totalLobSize           = 0 ;
@@ -676,12 +676,13 @@ namespace engine
          return FALSE ;
       }
 
-      UINT32 getAvgDataSize() const
+      UINT32 getAvgDataSize()
       {
-         if ( 0 != _totalRecords )
+         UINT64 recNum = _totalRecords.fetch() ;
+         if ( 0 != recNum )
          {
             // calculate from total data length and total records
-            UINT64 avgSize = _totalDataLen / _totalRecords ;
+            UINT64 avgSize = _totalDataLen.fetch() / recNum ;
             avgSize = OSS_MAX( DMS_MIN_RECORD_SZ, avgSize ) ;
             avgSize = OSS_MIN( DMS_RECORD_USER_MAX_SZ, avgSize ) ;
             return (UINT32)( avgSize ) ;
@@ -715,7 +716,10 @@ namespace engine
       }
 
       _dmsMBStatInfo ()
-      : _commitFlag( 0 ),
+      : _totalRecords( 0 ),
+        _totalOrgDataLen( 0 ),
+        _totalDataLen( 0 ),
+        _commitFlag( 0 ),
         _lastLSN( 0 ),
         _maxGlobTransID( 0 ),
         _idxCommitFlag( 0 ),
@@ -1131,7 +1135,7 @@ namespace engine
          OSS_INLINE INT32  checkMBContext( const CHAR *pName, UINT16 mbID ) ;
          OSS_INLINE void   releaseMBContext( dmsMBContext *&pContext ) ;
 
-         OSS_INLINE const dmsMBStatInfo* getMBStatInfo( UINT16 mbID ) const ;
+         OSS_INLINE dmsMBStatInfo* getMBStatInfo( UINT16 mbID ) ;
          OSS_INLINE const dmsMB* getMBInfo( UINT16 mbID ) const ;
 
          OSS_INLINE UINT32 getCollectionNum() ;
@@ -1566,6 +1570,7 @@ namespace engine
          // requested exclusive latch on mblock is only when changing
          // metadata (say add an extent into the MB, or create/drop the MB)
          monSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
+         ossSpinXLatch                       _mbStatLatch ;
          dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
          monSpinSLatch                       _metadataLatch ;
          COLNAME_MAP                         _collectionNameMap ;
@@ -1915,7 +1920,7 @@ namespace engine
       return &_compressorEntry[ mbID ] ;
    }
 
-   OSS_INLINE const dmsMBStatInfo* _dmsStorageDataCommon::getMBStatInfo( UINT16 mbID ) const
+   OSS_INLINE dmsMBStatInfo* _dmsStorageDataCommon::getMBStatInfo( UINT16 mbID )
    {
       if ( mbID >= DMS_MME_SLOTS )
       {

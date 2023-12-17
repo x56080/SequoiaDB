@@ -234,8 +234,7 @@ namespace engine
 
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
-         _pIdxStatus->setTotalRecNum(
-            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
+         _pIdxStatus->setTotalRecNum( _mbContext->mbStat()->_totalRecords.fetch() ) ;
          _pIdxStatus->resetPcsedRecNum() ;
       }
 
@@ -335,8 +334,7 @@ namespace engine
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
          // in case _totalRecords has changed
-         _pIdxStatus->setTotalRecNum(
-            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
+         _pIdxStatus->setTotalRecNum( _mbContext->mbStat()->_totalRecords.fetch() ) ;
       }
 
    done:

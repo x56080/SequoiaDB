@@ -2536,7 +2536,7 @@ namespace engine
       }
       else
       {
-         recordNum = context->mbStat()->_totalRecords ;
+         recordNum = context->mbStat()->_totalRecords.fetch() ;
       }
 
    done :
@@ -2949,7 +2949,7 @@ namespace engine
       if ( !OSS_BIT_TEST( mb->_compressFlags, UTIL_COMPRESS_ALTERABLE_FLAG ) )
       {
          // Old version collection
-         if ( mbStat->_totalRecords > 0 )
+         if ( mbStat->_totalRecords.fetch() > 0 )
          {
             if ( mb->_compressorType == UTIL_COMPRESSOR_LZW )
             {
@@ -3943,7 +3943,7 @@ namespace engine
                ++statInfo._clNum ;
                statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
                statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
-               statInfo._totalCount += mbStat->_totalRecords ;
+               statInfo._totalCount += mbStat->_totalRecords.fetch() ;
                statInfo._totalDataPages += mbStat->_totalDataPages ;
                statInfo._totalIndexPages += mbStat->_totalIndexPages ;
                statInfo._totalLobPages += mbStat->_totalLobPages ;
@@ -3979,7 +3979,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
       const dmsMB *mb = NULL ;
-      const dmsMBStatInfo *mbStat = NULL ;
+      dmsMBStatInfo *mbStat = NULL ;
 
       PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u]", mbID ) ;
@@ -4001,7 +4001,7 @@ namespace engine
                                                      mb->_blockID,
                                                      mb->_flag,
                                                      mb->_logicalID,
-                                                     mbStat->_totalRecords,
+                                                     mbStat->_totalRecords.fetch(),
                                                      mbStat->_totalDataPages,
                                                      mbStat->_totalIndexPages,
                                                      mbStat->_totalLobPages,
@@ -4264,7 +4264,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSU__DUMPRECYCLEINFO_CL ) ;
 
-      const dmsMBStatInfo *mbStat = NULL ;
+      dmsMBStatInfo *mbStat = NULL ;
 
       PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u]", mbID ) ;
@@ -4275,7 +4275,7 @@ namespace engine
       item._pageSize = getPageSize() ;
       item._lobPageSize = getLobPageSize() ;
 
-      item._totalRecords = mbStat->_totalRecords ;
+      item._totalRecords = mbStat->_totalRecords.fetch() ;
       item._totalLobs = mbStat->_totalLobs ;
 
       item._totalDataSize = mbStat->_totalDataPages <<

@@ -703,7 +703,7 @@ namespace engine
    }
    OSS_INLINE void _dmsStorageUnit::addExtentRecordCount( dmsMB * mb, UINT32 count )
    {
-      _pDataSu->_mbStatInfo[ mb->_blockID ]._totalRecords += count ;
+      _pDataSu->_mbStatInfo[ mb->_blockID ]._totalRecords.add( count ) ;
       _pDataSu->_mbStatInfo[ mb->_blockID ]._rcTotalRecords.add( count ) ;
    }
    OSS_INLINE void _dmsStorageUnit::_setLogicalCSID( UINT32 logicalID )

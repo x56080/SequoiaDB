@@ -947,16 +947,16 @@ namespace engine
       extent->init( DMS_CAP_EXTENT_PAGE_NUM, mbID, DMS_CAP_EXTENT_SZ ) ;
       extent->_logicID = currExtLID + 1 ;
 
-      _mbStatInfo[mbID]._totalRecords -= extInfo->_recCount ;
+      _mbStatInfo[mbID]._totalRecords.sub( extInfo->_recCount ) ;
       _mbStatInfo[mbID]._rcTotalRecords.sub( extInfo->_recCount ) ;
-      _mbStatInfo[mbID]._totalDataLen -= totalSize ;
-      _mbStatInfo[mbID]._totalOrgDataLen -= totalSize ;
+      _mbStatInfo[mbID]._totalDataLen.sub( totalSize ) ;
+      _mbStatInfo[mbID]._totalOrgDataLen.sub( totalSize ) ;
       _mbStatInfo[mbID]._totalDataFreeSpace = DMS_CAP_EXTENT_BODY_SZ ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalRecords,
+      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalRecords.fetch(),
                   "Total records should be 0" ) ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalDataLen,
+      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalDataLen.fetch(),
                   "Total data length should be 0" ) ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalOrgDataLen,
+      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalOrgDataLen.fetch(),
                   "Total original data length should be 0" ) ;
 
       rc = _attachWorkExt( mbID, extID ) ;
@@ -998,11 +998,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Count record number and size failed[ %d ]",
                    rc ) ;
 
-      _mbStatInfo[mbID]._totalRecords -= recNum ;
+      _mbStatInfo[mbID]._totalRecords.sub( recNum ) ;
       _mbStatInfo[mbID]._rcTotalRecords.sub( recNum ) ;
       _mbStatInfo[mbID]._totalDataFreeSpace -= extent->_freeSpace ;
-      _mbStatInfo[mbID]._totalOrgDataLen -= totalSize ;
-      _mbStatInfo[mbID]._totalDataLen -= totalSize ;
+      _mbStatInfo[mbID]._totalOrgDataLen.sub( totalSize ) ;
+      _mbStatInfo[mbID]._totalDataLen.sub( totalSize ) ;
 
       rc = _freeExtent( context, extID ) ;
       PD_RC_CHECK( rc, PDERROR, "Free extent[%d] failed: %d", extID, rc ) ;
@@ -1680,10 +1680,10 @@ namespace engine
       }
 
       extent->_recCount -= recNum ;
-      _mbStatInfo[ context->mbID() ]._totalRecords -= recNum ;
+      _mbStatInfo[ context->mbID() ]._totalRecords.sub( recNum ) ;
       _mbStatInfo[ context->mbID() ]._rcTotalRecords.sub( recNum ) ;
-      _mbStatInfo[ context->mbID() ]._totalOrgDataLen -= totalSize ;
-      _mbStatInfo[ context->mbID() ]._totalDataLen -= totalSize ;
+      _mbStatInfo[ context->mbID() ]._totalOrgDataLen.sub( totalSize ) ;
+      _mbStatInfo[ context->mbID() ]._totalDataLen.sub( totalSize ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPFROMACTIVEEXTENT, rc ) ;
@@ -2323,7 +2323,7 @@ namespace engine
 #endif /* _DEBUG */
 
       // If the collection is emplty, return directly.
-      if ( 0 == _mbStatInfo[ context->mbID() ]._totalRecords )
+      if ( 0 == _mbStatInfo[ context->mbID() ]._totalRecords.fetch() )
       {
          goto done ;
       }
@@ -2398,7 +2398,7 @@ namespace engine
       while ( number-- > 0 )
       {
          INT64 recordLID = DMS_INVALID_REC_LOGICALID ;
-         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords )
+         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords.fetch() )
          {
             // No more records
             goto done ;
