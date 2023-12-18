@@ -2760,7 +2760,6 @@ namespace engine
       BSONObjSet keySetNew ;
       BOOLEAN unique       = FALSE ;
       BOOLEAN found        = FALSE ;
-      BOOLEAN dupAllowed   = FALSE ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
       BOOLEAN allowDuplicated = FALSE ;
@@ -3304,7 +3303,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__INDEXDELETE ) ;
       INT32       rc          = SDB_OK ;
       BSONObjSet  keySet ;
-      BOOLEAN     result      = FALSE ;
       monAppCB   *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN     allUndefined = FALSE ;
 

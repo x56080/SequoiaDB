@@ -215,9 +215,6 @@ namespace engine
 
       SDB_ASSERT ( _indexCB, "_indexCB can't be NULL" ) ;
 
-      monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
-      ixmRecordID lastRID ;
-
       while ( TRUE )
       {
          BOOLEAN needAdvance = TRUE ;
@@ -447,7 +444,6 @@ namespace engine
 
       keystring::keyStringStackBuilder builder ;
       shared_ptr<IIndex> idxPtr ;
-      BOOLEAN isForward = _direction > 0 ? TRUE : FALSE ;
 
       rc = _su->index()->getIndex( _mbContext, _indexCB, _cb, idxPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;

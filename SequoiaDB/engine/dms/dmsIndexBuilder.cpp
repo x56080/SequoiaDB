@@ -238,10 +238,7 @@ namespace engine
          _pIdxStatus->resetPcsedRecNum() ;
       }
 
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _dmsIndexBuilder::_finish()

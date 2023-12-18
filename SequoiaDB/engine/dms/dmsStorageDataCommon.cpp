@@ -5090,10 +5090,6 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       dmsRecordData recordData ;
-      dmsExtRW extRW ;
-      dmsRecordRW recordRW ;
-      const dmsExtent *pExtent     = NULL ;
-      const dmsRecord *pRecord     = NULL ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_FETCH ) ;
 

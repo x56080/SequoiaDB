@@ -998,12 +998,9 @@ namespace engine
 
       nextRID = _curRID ;
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSDATASCAN__GETCURRID, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__GETCURREC, "_dmsDataScanner::_getCurrentRecord" )
@@ -1169,12 +1166,9 @@ namespace engine
 
       nextRID = _curRID ;
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSIDXSCAN__GETCURRID, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__GETCURREC, "_dmsIndexScanner::_getCurrentRecord" )

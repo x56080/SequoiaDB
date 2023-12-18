@@ -2854,7 +2854,7 @@ namespace keystring
          while ( i < prefixNum && iter.more() )
          {
             auto elem = iter.next() ;
-            BOOLEAN invert = o.descending( mask ) == -1 ;
+            BOOLEAN invert = o.descending( mask ) ;
             rc = appendBSONElement( elem, invert ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
 

@@ -1881,12 +1881,9 @@ namespace engine
 
       engineType = pmdGetOptionCB()->getStorageEngineType() ;
 
-   done:
       PD_TRACE_EXITRC( SDB__SDB_DMSCB_DETECTENGINETYPE, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    // input: clInfoObj

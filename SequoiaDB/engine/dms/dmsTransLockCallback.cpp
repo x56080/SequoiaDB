@@ -141,7 +141,6 @@ namespace engine
 
       result = UTIL_LJOB_DO_FINISH ;
 
-   done:
       return SDB_OK ;
    }
 
