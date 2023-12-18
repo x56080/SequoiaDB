@@ -48,9 +48,13 @@
 
 namespace engine
 {
+
+   // forward declaration
    typedef class _authAccessControlList authAccessControlList;
    typedef class _authActionSet authActionSet;
    typedef class _authResource authResource;
+   class IOperationContext ;
+
    /*
       ENUM define
    */
@@ -357,6 +361,8 @@ namespace engine
          virtual BOOLEAN privilegeCheckEnabled() = 0;
 
          virtual INT32 getACL( boost::shared_ptr<const authAccessControlList> &acl ) = 0;
+
+         virtual IOperationContext *getOperationContext() = 0 ;
 
       protected:
          virtual void               _onAttach () {}

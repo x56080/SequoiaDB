@@ -384,7 +384,7 @@ namespace engine
       monAppCB       *pMonAppCB     = cb ? cb->getMonAppCB() : NULL ;
 
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), cb ) ;
-      dmsIndexWriteGuard indexWriteGuard( cb ) ;
+      dmsWriteGuard writeGuard( NULL, _su->data(), mbContext, cb ) ;
 
       SDB_ASSERT ( _su, "_su can't be NULL" ) ;
       SDB_ASSERT ( mbContext, "dms mb context can't be NULL" ) ;
@@ -493,7 +493,7 @@ namespace engine
 
                // attempt to insert into the index
                rc = _su->index()->indexesInsert( mbContext, tempExtentID, obj,
-                                                 recordID, cb, &callback, indexWriteGuard ) ;
+                                                 recordID, cb, &callback, writeGuard ) ;
                // if any error happen
                if ( rc )
                {

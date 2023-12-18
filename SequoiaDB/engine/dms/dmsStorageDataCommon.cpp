@@ -2879,6 +2879,7 @@ namespace engine
       BOOLEAN isTransLocked   = FALSE ;
 
       dmsEventCLItem clItem ;
+      dmsWriteGuard writeGuard ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2945,6 +2946,9 @@ namespace engine
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
+
+      rc = writeGuard.begin( _service, this, context, cb, TRUE, FALSE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
       // trans lock
       if ( cb && cb->getTransExecutor()->useTransLock() )
@@ -3026,6 +3030,22 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
                       pName, rc ) ;
 
+         if ( context->getCollPtr() )
+         {
+            dmsTruncCLOptions tmpOptions ;
+            if ( NULL == options )
+            {
+               options = &tmpOptions ;
+            }
+            rc = context->getCollPtr()->truncate( *options, cb ) ;
+            if ( options == &tmpOptions )
+            {
+               options = NULL ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s] data, "
+                         "rc: %d", pName, rc ) ;
+         }
+
          if ( truncateLob && _pLobSU->isOpened() )
          {
             rc = _pLobSU->truncate( context, cb, NULL ) ;
@@ -3041,30 +3061,6 @@ namespace engine
             context->_clLID           = newCLID ;
          }
          DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
-
-         if ( _service )
-         {
-            dmsCLMetadata metadata( _suDescriptor,
-                                    context->mb(),
-                                    context->mbStat() ) ;
-            dmsTruncCLOptions tmpOptions ;
-            if ( NULL == options )
-            {
-               options = &tmpOptions ;
-            }
-            INT32 tmpRC = _service->truncateCL( metadata, *options, cb ) ;
-            if ( SDB_OK != tmpRC )
-            {
-               PD_LOG( PDWARNING, "Failed to truncate collection [%s] on engine [%s], "
-                       "rc: %d", pName,
-                       dmsGetStorageEngineName( _service->getEngineType() ),
-                       tmpRC ) ;
-            }
-            if ( options == &tmpOptions )
-            {
-               options = NULL ;
-            }
-         }
       }
 
       if ( handler )
@@ -3098,6 +3094,13 @@ namespace engine
                             DMS_INVALID_EXTENT ) ;
       }
 
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
    done:
       if ( isTransLocked )
       {
@@ -3120,6 +3123,14 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTION, rc ) ;
       return rc ;
    error:
+      {
+         INT32 tmpRC = writeGuard.abort() ;
+         if ( tmpRC )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
+            ossPanic() ;
+         }
+      }
       goto done ;
    }
 
@@ -3938,14 +3949,14 @@ namespace engine
                                                 const dmsRecordID &rid,
                                                 pmdEDUCB * cb,
                                                 IDmsOprHandler *pOprHandle,
-                                                dmsIndexWriteGuard &indexWriteGuard,
+                                                dmsWriteGuard &writeGuard,
                                                 utilWriteResult *insertResult,
                                                 dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       INT32 rc = SDB_OK ;
       // insert object's indexes
       rc = _pIdxSU->indexesInsert( context, extLID, inputObj, rid, cb,
-                                   pOprHandle, indexWriteGuard, insertResult,
+                                   pOprHandle, writeGuard, insertResult,
                                    pUnqIdxHashArray ) ;
       if ( rc )
       {
@@ -4021,7 +4032,10 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
-      dmsWriteGuard writeGuard( this, context, cb ) ;
+      dmsWriteGuard writeGuard( _service, this, context, cb ) ;
+
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
       if ( !isTransSupport( context ) )
       {
@@ -4286,6 +4300,13 @@ namespace engine
          handler->done( DMS_EXTOPR_TYPE_INSERT, cb ) ;
       }
 
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
    done:
       // release the lock immediately if it is not transaction-operation,
       // the transaction-operation's lock will release in rollback or commit
@@ -4311,13 +4332,27 @@ namespace engine
       return rc ;
    error:
       ctrlAssist.switchToUndo() ;
-      ( void )_onInsertFail( context, hasInsert, foundRID, dropDps,
-                             (ossValuePtr)insertObj.objdata(),
-                             cb, callback.getTransRecordInfo() ) ;
+      if ( writeGuard.getPersistGuard().useAtomicAbort() )
+      {
+         INT32 tmpRC = _pIdxSU->indexesDelete( context, foundRID._extent,
+                                               insertObj, foundRID, cb,
+                                               NULL, writeGuard, TRUE,
+                                               pUnqIdxHashArray ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to undo indexes, rc: %d", tmpRC ) ;
+         }
+      }
+      else
+      {
+         ( void )_onInsertFail( context, hasInsert, foundRID, dropDps,
+                                (ossValuePtr)insertObj.objdata(),
+                                cb, callback.getTransRecordInfo() ) ;
+      }
       if ( !ctrlAssist.isUndoFinished() )
       {
          // undo is not finished
-         if (SDB_OK == cb->getTransRC() )
+         if ( SDB_OK == cb->getTransRC() )
          {
             cb->setTransRC( rc ) ;
          }
@@ -4326,6 +4361,15 @@ namespace engine
       if ( handler )
       {
          handler->abortOperation( DMS_EXTOPR_TYPE_INSERT, cb ) ;
+      }
+
+      {
+         INT32 tmpRC = writeGuard.abort() ;
+         if ( tmpRC )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
+            ossPanic() ;
+         }
       }
 
       goto done ;
@@ -4369,7 +4413,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
-      dmsWriteGuard writeGuard( this, context, cb ) ;
+      dmsWriteGuard writeGuard( _service, this, context, cb ) ;
 
       if ( !context->isMBLock() )
       {
@@ -4378,6 +4422,9 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
 #ifdef _DEBUG
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
@@ -4612,6 +4659,13 @@ namespace engine
          handler->done( DMS_EXTOPR_TYPE_DELETE, cb ) ;
       }
 
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
    done :
       if ( 0 != logRecSize )
       {
@@ -4627,6 +4681,14 @@ namespace engine
       if ( needSetTransRC && SDB_OK == cb->getTransRC() )
       {
          cb->setTransRC( rc ) ;
+      }
+      {
+         INT32 tmpRC = writeGuard.abort() ;
+         if ( tmpRC )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
+            ossPanic() ;
+         }
       }
       goto done ;
    }
@@ -4668,7 +4730,7 @@ namespace engine
       BOOLEAN needUndoIndex = FALSE ;
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
-      dmsWriteGuard writeGuard( this, context, cb ) ;
+      dmsWriteGuard writeGuard( _service, this, context, cb ) ;
 
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -4681,6 +4743,9 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
       if ( !isTransSupport( context ) )
       {
@@ -4896,8 +4961,7 @@ namespace engine
             }
 
             rc = _pIdxSU->indexesUpdate( context, recordID._extent, obj, newobj,
-                                         recordID, cb, FALSE, pHandler,
-                                         writeGuard,
+                                         recordID, cb, FALSE, pHandler, writeGuard,
                                          modifier.getIdxHashBitmap(), pResult,
                                          pNewUnqIdxHashArray,
                                          pOldUnqIdxHashArray ) ;
@@ -5006,6 +5070,13 @@ namespace engine
          handler->done( DMS_EXTOPR_TYPE_UPDATE, cb ) ;
       }
 
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
    done :
       if ( 0 != logRecSize )
       {
@@ -5059,6 +5130,14 @@ namespace engine
       if ( handler )
       {
          handler->abortOperation( DMS_EXTOPR_TYPE_UPDATE, cb ) ;
+      }
+      {
+         INT32 tmpRC = writeGuard.abort() ;
+         if ( tmpRC )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
+            ossPanic() ;
+         }
       }
       goto done ;
    }

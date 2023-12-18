@@ -66,9 +66,8 @@ namespace engine
       virtual INT32 dropIndex( const dmsIdxMetadata &metadata,
                                const dmsDropIdxOptions &options,
                                IExecutor *executor ) = 0 ;
-      virtual INT32 truncateIndex( const dmsIdxMetadata &metadata,
-                                   const dmsTruncateIdxOptions &options,
-                                   IExecutor *executor ) = 0 ;
+      virtual INT32 truncate( const dmsTruncCLOptions &options,
+                              IExecutor *executor ) = 0 ;
 
       virtual INT32 getIndex( const dmsIdxMetadataKey &metadataKey,
                               IExecutor *executor,
@@ -89,6 +88,7 @@ namespace engine
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
                                    IExecutor *executor ) = 0 ;
+
       virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,

@@ -2640,7 +2640,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
-                                          dmsIndexWriteGuard &writeGuard,
+                                          dmsWriteGuard &writeGuard,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -2659,7 +2659,8 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesInsert( context, rid, inputObj, writeGuard, cb, pResult ) ;
+      rc = _globalIndexesInsert( context, rid, inputObj,
+                                 writeGuard.getIndexWriteGuard(), cb, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete global index, rc: %d", rc ) ;
 
       // loops through all potential indexes for the record
@@ -2675,7 +2676,8 @@ namespace engine
                     PDERROR, "Failed to init index" ) ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, rid,
+                                 writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
          {
@@ -3191,7 +3193,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isUndo,
                                           IDmsOprHandler *pOprHandle,
-                                          dmsIndexWriteGuard &writeGuard,
+                                          dmsWriteGuard &writeGuard,
                                           const ixmIdxHashBitmap &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
@@ -3217,10 +3219,16 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesUpdate( context, rid, originalObj, newObj, writeGuard,
+      rc = _globalIndexesUpdate( context, rid, originalObj, newObj,
+                                 writeGuard.getIndexWriteGuard(),
                                  cb, idxHashBitmap, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
+
+      if ( isUndo && writeGuard.getPersistGuard().useAtomicAbort() )
+      {
+         goto done ;
+      }
 
       for ( indexID=0; indexID < DMS_COLLECTION_MAX_INDEX; indexID++ )
       {
@@ -3235,7 +3243,8 @@ namespace engine
                     error, PDERROR, "Failed to init index" ) ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, rid,
+                                 writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess ||
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
@@ -3493,7 +3502,7 @@ namespace engine
       // if index is 'IXM_INDEX_FLAG_CREATING', then judge record ID
       if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
       {
-         if ( writeGuard.isIndexGuardEnabled() )
+         if ( writeGuard.isEnabled() )
          {
             dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
             dmsIndexBuildLockPtr lockPtr ;
@@ -3581,7 +3590,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
-                                          dmsIndexWriteGuard &writeGuard,
+                                          dmsWriteGuard &writeGuard,
                                           BOOLEAN isUndo,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -3599,7 +3608,8 @@ namespace engine
       }
 
       // do global index first.
-      rc = _globalIndexesDelete( context, rid, inputObj, writeGuard, cb ) ;
+      rc = _globalIndexesDelete( context, rid, inputObj,
+                                 writeGuard.getIndexWriteGuard(), cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to delete global index, rc: %d", rc ) ;
@@ -3613,6 +3623,11 @@ namespace engine
          rc = SDB_OK ;
          // in undo flow, let's continue to delete local index
          // but we still return the return code.
+      }
+
+      if ( isUndo && writeGuard.getPersistGuard().useAtomicAbort() )
+      {
+         goto done ;
       }
 
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
@@ -3632,7 +3647,8 @@ namespace engine
          }
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, rid,
+                                 writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
          {
@@ -3731,12 +3747,13 @@ namespace engine
 
          if ( context->getCollPtr() )
          {
-            dmsIdxMetadata metadata( _suDescriptor,
-                                     context->mb(),
-                                     context->mbStat(),
-                                     &indexCB ) ;
+            shared_ptr<IIndex> idxPtr ;
             dmsTruncateIdxOptions options ;
-            rc = context->getCollPtr()->truncateIndex( metadata, options, cb ) ;
+
+            rc = getIndex( context, &indexCB, cb, idxPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+            rc = idxPtr->truncate( options, cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to truncate index [%s] on collection [%s.%s] on "

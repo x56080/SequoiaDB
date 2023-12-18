@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTSession.hpp
+   Source File Name = dmsWTPersistUnit.hpp
 
    Descriptive Name =
 
@@ -33,16 +33,13 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_SESSION_HPP_
-#define DMS_WT_SESSION_HPP_
+#ifndef DMS_WT_PERSIST_UNIT_HPP_
+#define DMS_WT_PERSIST_UNIT_HPP_
 
-#include "interface/IStorageService.hpp"
-#include "interface/IStorageSession.hpp"
-#include "wiredtiger/dmsWTEngineOptions.hpp"
+#include "dmsPersistUnit.hpp"
+#include "wiredtiger/dmsWTSession.hpp"
+#include "wiredtiger/dmsWTStorageEngine.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
-#include "interface/IOperationContext.hpp"
-
-#include <wiredtiger.h>
 
 namespace engine
 {
@@ -50,52 +47,47 @@ namespace wiredtiger
 {
 
    /*
-      _dmsWTSessionIsolation define
+      _dmsWTPersistUnit define
     */
-   enum class dmsWTSessIsolation
-   {
-      READ_UNCOMMITTED,
-      READ_COMMITTED,
-      SNAPSHOT
-   } ;
-
-   /*
-      _dmsWTSession define
-    */
-   class _dmsWTSession : public IStorageSession
+   class _dmsWTPersistUnit : public _dmsPersistUnit
    {
    public:
-      _dmsWTSession() ;
-      ~_dmsWTSession() ;
-      _dmsWTSession( const _dmsWTSession &o ) = delete ;
-      _dmsWTSession &operator =( const _dmsWTSession & ) = delete ;
+      _dmsWTPersistUnit( dmsWTStorageEngine &engine ) ;
+      ~_dmsWTPersistUnit() ;
+      _dmsWTPersistUnit( const _dmsWTPersistUnit &o ) = delete ;
+      _dmsWTPersistUnit &operator =( const _dmsWTPersistUnit & ) = delete ;
 
-      INT32 open( WT_CONNECTION *conn,
-                  dmsWTSessIsolation isolation = dmsWTSessIsolation::SNAPSHOT ) ;
-      INT32 close() ;
-
-      INT32 beginTrans() ;
-      INT32 prepareTrans() ;
-      INT32 commitTrans() ;
-      INT32 abortTrans() ;
-
-      WT_SESSION *getSession()
+      dmsWTSession &getSession()
       {
          return _session ;
       }
 
-      BOOLEAN isOpened() const
+      static dmsWTSession &getPersistSession( IExecutor *executor ) ;
+
+   protected:
+      virtual INT32 _beginUnit( IExecutor *executor ) ;
+      virtual INT32 _prepareUnit( IExecutor *executor ) ;
+      virtual INT32 _commitUnit( IExecutor *executor ) ;
+      virtual INT32 _abortUnit( IExecutor *executor ) ;
+
+      virtual BOOLEAN _isTransSupported() const
       {
-         return nullptr != _session ;
+         return FALSE ;
+      }
+
+      virtual BOOLEAN _isAtomicSupported() const
+      {
+         return TRUE ;
       }
 
    protected:
-      WT_SESSION *_session = nullptr ;
+      dmsWTStorageEngine &_engine ;
+      dmsWTSession _session ;
    } ;
 
-   typedef class _dmsWTSession dmsWTSession ;
+   typedef class _dmsWTPersistUnit dmsWTPersistUnit ;
 
 }
 }
 
-#endif // DMS_WT_ENGINE_HPP_
+#endif // DMS_WT_PERSIST_UNIT_HPP_

@@ -530,8 +530,10 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 == ruInfo->_dataCommitFlag )
+      if ( ( 0 == ruInfo->_dataCommitFlag ) &&
+           ( !( _pSU->getStorageService()->isDurable() ) ) )
       {
+         // TODO HGM: fix statistics
          /// force to index rebuild
          ruInfo->_idxCommitFlag = 0 ;
          rc = _rebuildData( cb, mbContext ) ;
@@ -550,8 +552,10 @@ namespace engine
          DMS_SET_MB_OFFLINE_REORG_REBUILD( mbContext->mb()->_flag ) ;
       }
 
-      if ( 0 == ruInfo->_idxCommitFlag )
+      if ( ( 0 == ruInfo->_idxCommitFlag ) &&
+           ( !( _pSU->getStorageService()->isDurable() ) ) )
       {
+         // TODO HGM: fix statistics
          /// rebuild index
          rc = _rebuildIndex( cb, mbContext ) ;
          if ( rc )
@@ -1598,7 +1602,6 @@ namespace engine
          rc = _rebuild( cb, context, ruInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Rebuild collection[%s] failed, rc: %d",
                       _clFullName.c_str(), rc ) ;
-
       }
 
    done:

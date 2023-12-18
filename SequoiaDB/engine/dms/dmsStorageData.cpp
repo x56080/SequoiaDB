@@ -393,9 +393,12 @@ namespace engine
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
 
-      dmsWriteGuard writeGuard( this, context, cb ) ;
+      dmsWriteGuard writeGuard( _service, this, context, cb ) ;
 
       SDB_ASSERT ( !recordData.isEmpty(), "recordData can't be empty" ) ;
+
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
       // Check the new object size
       if ( newObj.objsize() + headerSize > DMS_RECORD_USER_MAX_SZ )
@@ -636,6 +639,13 @@ namespace engine
          goto error ;
       }
 
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, rc ) ;
       return rc ;
@@ -662,6 +672,12 @@ namespace engine
                }
             }
             PD_LOG ( PDERROR, "Failed to rollback update due to rc %d", rc1 ) ;
+         }
+         rc1 = writeGuard.abort() ;
+         if ( SDB_OK != rc1 )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", rc1 ) ;
+            ossPanic() ;
          }
       }
 

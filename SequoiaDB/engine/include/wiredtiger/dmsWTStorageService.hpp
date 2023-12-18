@@ -38,6 +38,7 @@
 
 #include "interface/IStorageService.hpp"
 #include "interface/ICollection.hpp"
+#include "ossUtil.hpp"
 #include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTEngineOptions.hpp"
 #include "wiredtiger/dmsWTStorageEngine.hpp"
@@ -72,12 +73,18 @@ namespace wiredtiger
          return &_engine ;
       }
 
+      virtual BOOLEAN isDurable() const
+      {
+         return TRUE ;
+      }
+
       const dmsWTEngineOptions &getEngineOptions() const
       {
          return _engineOptions ;
       }
 
       virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
+      virtual INT32 getPersistUnit( IExecutor *executor, IPersistUnit *&persistUnit ) ;
 
       virtual INT32 createCS( const dmsCSMetadata &metadata,
                               const dmsCreateCSOptions &options,
@@ -92,9 +99,6 @@ namespace wiredtiger
       virtual INT32 dropCL( const dmsCLMetadata &metadata,
                             const dmsDropCLOptions &options,
                             IExecutor *executor ) ;
-      virtual INT32 truncateCL( const dmsCLMetadata &metadata,
-                                const dmsTruncCLOptions &options,
-                                IExecutor *executor ) ;
 
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,
                                    IExecutor *executor,

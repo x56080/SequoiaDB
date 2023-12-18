@@ -94,6 +94,9 @@ namespace wiredtiger
 
       INT32 truncateStore( const CHAR *uri,
                            const CHAR *config ) ;
+      INT32 truncateStore( dmsWTSession &session,
+                           const CHAR *uri,
+                           const CHAR *config ) ;
 
       INT32 insertToStore( const dmsWTStore &store,
                            UINT64 key,
@@ -106,17 +109,28 @@ namespace wiredtiger
       INT32 extractFromStore( const dmsWTStore &store,
                               UINT64 key,
                               dmsWTItem &value ) ;
+
+      INT32 insertToStore( dmsWTCursor &cursor,
+                           UINT64 key,
+                           const dmsWTItem &value ) ;
+      INT32 updateToStore( dmsWTCursor &cursor,
+                           UINT64 key,
+                           const dmsWTItem &value ) ;
+      INT32 removeFromStore( dmsWTCursor &cursor,
+                             UINT64 key ) ;
+
       INT32 insertToStore( dmsWTCursor &cursor,
                            const dmsWTItem &key,
                            const dmsWTItem &value ) ;
-      INT32 updateToStore( const dmsWTStore &store,
+      INT32 updateToStore( dmsWTCursor &cursor,
                            const dmsWTItem &key,
                            const dmsWTItem &value ) ;
-      INT32 removeFromStore( const dmsWTStore &store,
+      INT32 removeFromStore( dmsWTCursor &cursor,
                              const dmsWTItem &key ) ;
       INT32 extractFromStore( const dmsWTStore &store,
                               const dmsWTItem &key,
                               dmsWTItem &value ) ;
+
       INT32 loadStore( const CHAR *uri,
                        dmsWTStore &store ) ;
       INT32 openStoreCursor( const CHAR *uri,

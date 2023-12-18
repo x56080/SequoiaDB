@@ -46,8 +46,144 @@ namespace engine
 {
 
    /*
+      _dmsDataWriteGuard imeplement
+    */
+   _dmsDataWriteGuard::_dmsDataWriteGuard()
+   : _su( nullptr ),
+     _mbID( DMS_INVALID_MBID ),
+     _eduCB( nullptr ),
+     _isEnabled( FALSE ),
+     _isInWrite( FALSE )
+   {
+   }
+
+   _dmsDataWriteGuard::_dmsDataWriteGuard( dmsStorageBase *su,
+                                           dmsMBContext *mbContext,
+                                           pmdEDUCB *cb,
+                                           BOOLEAN isEnabled )
+   : _su( su ),
+     _mbID( mbContext->mbID() ),
+     _eduCB( cb ),
+     _isEnabled( isEnabled ),
+     _isInWrite( FALSE )
+   {
+   }
+
+   _dmsDataWriteGuard::~_dmsDataWriteGuard()
+   {
+      abort() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEFOREWRITE, "_dmsDataWriteGuard::beforeWrite" )
+   void _dmsDataWriteGuard::beforeWrite()
+   {
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_BEFOREWRITE ) ;
+
+      if ( _isEnabled && !_isInWrite )
+      {
+         _su->markDirty( _mbID, DMS_CHG_BEFORE ) ;
+         _su->incWritePtrCount( _mbID ) ;
+         _isInWrite = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSDATAWRITEGUARD_BEFOREWRITE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_AFTERWRITE, "_dmsDataWriteGuard::afterWrite" )
+   void _dmsDataWriteGuard::afterWrite()
+   {
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_AFTERWRITE ) ;
+
+      if ( _isEnabled && _isInWrite )
+      {
+         _su->markDirty( _mbID, DMS_CHG_AFTER ) ;
+         _su->decWritePtrCount( _mbID ) ;
+         _isInWrite = FALSE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSDATAWRITEGUARD_AFTERWRITE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEGIN_INIT, "_dmsDataWriteGuard::begin" )
+   INT32 _dmsDataWriteGuard::begin( dmsStorageBase *su,
+                                    dmsMBContext *mbContext,
+                                    pmdEDUCB *cb,
+                                    BOOLEAN isEnabled )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_BEGIN_INIT ) ;
+
+      PD_CHECK( !_isInWrite, SDB_SYS, error, PDERROR,
+                "Failed to begin data write guard, already in guard" ) ;
+
+      _su = su ;
+      _mbID = mbContext->mbID() ;
+      _eduCB = cb ;
+      _isEnabled = isEnabled ;
+
+      rc = begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin data write guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATAWRITEGUARD_BEGIN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEGIN, "_dmsDataWriteGuard::begin" )
+   INT32 _dmsDataWriteGuard::begin()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_BEGIN ) ;
+
+      beforeWrite() ;
+
+      PD_TRACE_EXITRC( SDB__DMSDATAWRITEGUARD_BEGIN, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_COMMIT, "_dmsDataWriteGuard::commit" )
+   INT32 _dmsDataWriteGuard::commit()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_COMMIT ) ;
+
+      afterWrite() ;
+
+      PD_TRACE_EXITRC( SDB__DMSDATAWRITEGUARD_COMMIT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_ABORT, "_dmsDataWriteGuard::abort" )
+   INT32 _dmsDataWriteGuard::abort( BOOLEAN isForced )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_ABORT ) ;
+
+      afterWrite() ;
+
+      PD_TRACE_EXITRC( SDB__DMSDATAWRITEGUARD_ABORT, rc ) ;
+
+      return rc ;
+   }
+
+   /*
       _dmsIndexWriteGaurd imeplement
     */
+   _dmsIndexWriteGuard::_dmsIndexWriteGuard()
+   : _eduCB( nullptr ),
+     _isEnabled( FALSE )
+   {
+   }
+
    _dmsIndexWriteGuard::_dmsIndexWriteGuard( pmdEDUCB *cb, BOOLEAN isEnabled )
    : _eduCB( cb ),
      _isEnabled( isEnabled )
@@ -56,7 +192,7 @@ namespace engine
 
    _dmsIndexWriteGuard::~_dmsIndexWriteGuard()
    {
-      releaseAll() ;
+      abort() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_LOCK, "_dmsIndexWriteGuard::lock" )
@@ -131,45 +267,334 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSINDEXWRITEGUARD_RELEASEALL ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT, "_dmsIndexWriteGuard::begin" )
+   INT32 _dmsIndexWriteGuard::begin( pmdEDUCB *cb, BOOLEAN isEnabled )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT ) ;
+
+      PD_CHECK( _locks.empty(), SDB_SYS, error, PDERROR,
+                "Failed to begin index write guard, already in guard" ) ;
+
+      _eduCB = cb ;
+      _isEnabled = isEnabled ;
+
+      rc = begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_BEGIN, "_dmsIndexWriteGuard::begin" )
+   INT32 _dmsIndexWriteGuard::begin()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_BEGIN ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSINDEXWRITEGUARD_BEGIN, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_COMMIT, "_dmsIndexWriteGuard::commit" )
+   INT32 _dmsIndexWriteGuard::commit()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_COMMIT ) ;
+
+      releaseAll() ;
+
+      PD_TRACE_EXITRC( SDB__DMSINDEXWRITEGUARD_COMMIT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_ABORT, "_dmsIndexWriteGuard::abort" )
+   INT32 _dmsIndexWriteGuard::abort( BOOLEAN isForced )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_ABORT ) ;
+
+      releaseAll() ;
+
+      PD_TRACE_EXITRC( SDB__DMSINDEXWRITEGUARD_ABORT, rc ) ;
+
+      return rc ;
+   }
+
    /*
-      _dmsDataWriteGuard imeplement
+      _dmsPersistGuard implement
     */
-   _dmsDataWriteGuard::_dmsDataWriteGuard( dmsStorageBase *su,
-                                           dmsMBContext *mbContext,
-                                           pmdEDUCB *cb,
-                                           BOOLEAN isEnabled )
-   : _su( su ),
-     _mbID( mbContext->mbID() ),
+   _dmsPersistGuard::_dmsPersistGuard()
+   : _service( nullptr ),
+     _persistUnit( nullptr ),
+     _eduCB( nullptr ),
+     _isEnabled( FALSE )
+   {
+   }
+
+   _dmsPersistGuard::_dmsPersistGuard( IStorageService *service,
+                                       pmdEDUCB *cb,
+                                       BOOLEAN isEnabled )
+   : _service( service ),
+     _persistUnit( nullptr ),
      _eduCB( cb ),
      _isEnabled( isEnabled )
    {
-      if ( _isEnabled )
-      {
-         _su->markDirty( _mbID, DMS_CHG_BEFORE ) ;
-         _su->incWritePtrCount( _mbID ) ;
-      }
    }
 
-   _dmsDataWriteGuard::~_dmsDataWriteGuard()
+   _dmsPersistGuard::~_dmsPersistGuard()
    {
-      if ( _isEnabled )
+      abort() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN_INIT, "_dmsPersistGuard::begin" )
+   INT32 _dmsPersistGuard::begin( IStorageService *service,
+                                  pmdEDUCB *cb,
+                                  BOOLEAN isEnabled )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_BEGIN_INIT ) ;
+
+      PD_CHECK( !_persistUnit, SDB_SYS, error, PDERROR,
+                "Failed to begin persist guard, already in guard" ) ;
+
+      _service = service ;
+      _eduCB = cb ;
+      _isEnabled = isEnabled ;
+
+      rc = begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_BEGIN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN, "_dmsPersistGuard::begin" )
+   INT32 _dmsPersistGuard::begin()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_BEGIN ) ;
+
+      if ( !_isEnabled || !_service )
       {
-         _su->markDirty( _mbID, DMS_CHG_AFTER ) ;
-         _su->decWritePtrCount( _mbID ) ;
+         goto done ;
       }
+
+      if ( !_persistUnit )
+      {
+         rc = _service->getPersistUnit( _eduCB, _persistUnit ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+      }
+
+      rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_BEGIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_COMMIT, "_dmsPersistGuard::commit" )
+   INT32 _dmsPersistGuard::commit()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_COMMIT ) ;
+
+      if ( _isEnabled && _persistUnit )
+      {
+         rc = _persistUnit->commitUnit( _eduCB, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to commit persist unit, rc: %d", rc ) ;
+
+         _persistUnit = nullptr ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_COMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_ABORT, "_dmsPersistGuard::abort" )
+   INT32 _dmsPersistGuard::abort( BOOLEAN isForced )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_ABORT ) ;
+
+      if ( _isEnabled && _persistUnit )
+      {
+         rc = _persistUnit->abortUnit( _eduCB, FALSE, isForced ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to abort persist unit, rc: %d", rc ) ;
+
+         _persistUnit = nullptr ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_ABORT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
       _dmsWriteGuard implement
     */
-   _dmsWriteGuard::_dmsWriteGuard( dmsStorageBase *su,
+   _dmsWriteGuard::_dmsWriteGuard( IStorageService *service,
+                                   dmsStorageBase *su,
                                    dmsMBContext *mbContext,
                                    pmdEDUCB *cb,
                                    BOOLEAN isDataWriteGuardEnabled,
-                                   BOOLEAN isIndexWriteGuardEnabled )
-   : _dmsDataWriteGuard( su, mbContext, cb, isDataWriteGuardEnabled ),
-     _dmsIndexWriteGuard( cb, isIndexWriteGuardEnabled )
+                                   BOOLEAN isIndexWriteGuardEnabled,
+                                   BOOLEAN isPersistGuardEnabled )
+   : _dataGuard( su, mbContext, cb, isDataWriteGuardEnabled ),
+     _indexGuard( cb, isIndexWriteGuardEnabled ),
+     _persistGuard( service, cb, isPersistGuardEnabled)
    {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_BEGIN_INIT, "_dmsWriteGuard::begin" )
+   INT32 _dmsWriteGuard::begin( IStorageService *service,
+                                dmsStorageBase *su,
+                                dmsMBContext *mbContext,
+                                pmdEDUCB *cb,
+                                BOOLEAN isDataWriteGuardEnabled,
+                                BOOLEAN isIndexWriteGuardEnabled,
+                                BOOLEAN isPersistGuardEnabled )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_BEGIN_INIT ) ;
+
+      rc = _dataGuard.begin( su, mbContext, cb, isDataWriteGuardEnabled ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin data write guard, rc: %d", rc ) ;
+
+      rc = _indexGuard.begin( cb, isIndexWriteGuardEnabled ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
+
+      rc = _persistGuard.begin( service, cb, isPersistGuardEnabled ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_BEGIN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_BEGIN, "_dmsWriteGuard::begin" )
+   INT32 _dmsWriteGuard::begin()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_BEGIN ) ;
+
+      rc = _dataGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin data write guard, rc: %d", rc ) ;
+
+      rc = _indexGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
+
+      rc = _persistGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_BEGIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_COMMIT, "_dmsWriteGuard::commit" )
+   INT32 _dmsWriteGuard::commit()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_COMMIT ) ;
+
+      rc = _dataGuard.commit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit data write guard, rc: %d", rc ) ;
+
+      rc = _indexGuard.commit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit index write guard, rc: %d", rc ) ;
+
+      rc = _persistGuard.commit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit persist guard, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_COMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_ABORT, "_dmsWriteGuard::abort" )
+   INT32 _dmsWriteGuard::abort( BOOLEAN isForced )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_COMMIT ) ;
+
+      INT32 tmpRC = SDB_OK ;
+
+      tmpRC = _dataGuard.abort( isForced ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         PD_LOG( PDWARNING, "Failed to abort data write guard, rc: %d", tmpRC ) ;
+         rc = tmpRC ;
+      }
+
+      tmpRC = _indexGuard.abort( isForced ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         PD_LOG( PDWARNING, "Failed to abort index write guard, rc: %d", tmpRC ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = tmpRC ;
+         }
+      }
+
+      tmpRC = _persistGuard.abort( isForced ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         PD_LOG( PDWARNING, "Failed to abort persist guard, rc: %d", tmpRC ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = tmpRC ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_COMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

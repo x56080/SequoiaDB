@@ -34,10 +34,11 @@
 *******************************************************************************/
 
 #include "wiredtiger/dmsWTStorageService.hpp"
-#include "ossUtil.hpp"
 #include "wiredtiger/dmsWTCollection.hpp"
 #include "wiredtiger/dmsWTCursor.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
+#include "interface/IOperationContext.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "pmd.hpp"
@@ -131,6 +132,49 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_SYNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_GETPERSISTUNIT, "_dmsWTStorageService::getPersistUnit" )
+   INT32 _dmsWTStorageService::getPersistUnit( IExecutor *executor,
+                                               IPersistUnit *&persistUnit )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_GETPERSISTUNIT ) ;
+
+      IOperationContext *optCtx = nullptr ;
+      persistUnit = nullptr ;
+
+      PD_CHECK( executor, SDB_SYS, error, PDERROR,
+                "Failed to get persist unit, executor is invalid" ) ;
+      PD_CHECK( executor->getSession(), SDB_SYS, error, PDERROR,
+                "Failed to get persist unit, session is invalid" ) ;
+
+      optCtx = executor->getSession()->getOperationContext() ;
+      PD_CHECK( optCtx, SDB_SYS, error, PDERROR,
+                "Failed to get persist unit, operation context is invalid" ) ;
+
+      persistUnit = optCtx->getPersistUnit() ;
+      if ( persistUnit )
+      {
+         goto done ;
+      }
+      else
+      {
+         std::unique_ptr<IPersistUnit> puPtr =
+               std::unique_ptr<dmsWTPersistUnit>( new dmsWTPersistUnit( _engine ) ) ;
+         PD_CHECK( puPtr, SDB_OOM, error, PDERROR,
+                   "Failed to create persist unit object" ) ;
+         persistUnit = puPtr.get() ;
+         optCtx->setPersistUnit( std::move(puPtr) ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_GETPERSISTUNIT, rc ) ;
       return rc ;
 
    error:
@@ -236,34 +280,6 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_DROPCL, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_TRUNCCL, "_dmsWTStorageService::truncateCL" )
-   INT32 _dmsWTStorageService::truncateCL( const dmsCLMetadata &metadata,
-                                           const dmsTruncCLOptions &options,
-                                           IExecutor *executor )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_TRUNCCL ) ;
-
-      ossPoolString dataURI ;
-
-      rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
-                                          metadata.getCLOrigInnerID(),
-                                          metadata.getCLOrigLID(),
-                                          dataURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
-
-      rc = _engine.truncateStore( dataURI.c_str(), nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_TRUNCCL, rc ) ;
       return rc ;
 
    error:

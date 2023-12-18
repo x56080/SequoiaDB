@@ -16,9 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTSession.hpp
-
-   Descriptive Name =
+   Source File Name = pmdOperationContext.hpp
 
    Dependencies: N/A
 
@@ -33,69 +31,43 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_SESSION_HPP_
-#define DMS_WT_SESSION_HPP_
+#ifndef PMD_OPERATION_CONTEXT_HPP_
+#define PMD_OPERATION_CONTEXT_HPP_
 
-#include "interface/IStorageService.hpp"
-#include "interface/IStorageSession.hpp"
-#include "wiredtiger/dmsWTEngineOptions.hpp"
-#include "wiredtiger/dmsWTUtil.hpp"
+#include "ossUtil.hpp"
+#include "sdbInterface.hpp"
 #include "interface/IOperationContext.hpp"
-
-#include <wiredtiger.h>
 
 namespace engine
 {
-namespace wiredtiger
-{
 
    /*
-      _dmsWTSessionIsolation define
+      _pmdOperationContext define
     */
-   enum class dmsWTSessIsolation
-   {
-      READ_UNCOMMITTED,
-      READ_COMMITTED,
-      SNAPSHOT
-   } ;
-
-   /*
-      _dmsWTSession define
-    */
-   class _dmsWTSession : public IStorageSession
+   class _pmdOperationContext : public IOperationContext
    {
    public:
-      _dmsWTSession() ;
-      ~_dmsWTSession() ;
-      _dmsWTSession( const _dmsWTSession &o ) = delete ;
-      _dmsWTSession &operator =( const _dmsWTSession & ) = delete ;
+      _pmdOperationContext() = default ;
+      virtual ~_pmdOperationContext() = default ;
+      _pmdOperationContext( const _pmdOperationContext &o ) = delete ;
+      _pmdOperationContext &operator =( const _pmdOperationContext &o ) = delete ;
 
-      INT32 open( WT_CONNECTION *conn,
-                  dmsWTSessIsolation isolation = dmsWTSessIsolation::SNAPSHOT ) ;
-      INT32 close() ;
-
-      INT32 beginTrans() ;
-      INT32 prepareTrans() ;
-      INT32 commitTrans() ;
-      INT32 abortTrans() ;
-
-      WT_SESSION *getSession()
+      virtual IPersistUnit *getPersistUnit()
       {
-         return _session ;
+         return _persistUnit.get() ;
       }
 
-      BOOLEAN isOpened() const
+      virtual void setPersistUnit( std::unique_ptr<IPersistUnit> persistUnit )
       {
-         return nullptr != _session ;
+         _persistUnit = std::move( persistUnit ) ;
       }
 
    protected:
-      WT_SESSION *_session = nullptr ;
+      std::unique_ptr<IPersistUnit> _persistUnit ;
    } ;
 
-   typedef class _dmsWTSession dmsWTSession ;
+   typedef class _pmdOperationContext pmdOperationContext ;
 
 }
-}
 
-#endif // DMS_WT_ENGINE_HPP_
+#endif // PMD_OPERATION_CONTEXT_HPP_

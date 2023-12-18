@@ -39,6 +39,7 @@
 #include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTDataCursor.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
 #include "dmsStorageDataCommon.hpp"
 #include "pdTrace.hpp"
@@ -125,29 +126,28 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_TRUNCIDX, "_dmsWTCollection::truncateIndex" )
-   INT32 _dmsWTCollection::truncateIndex( const dmsIdxMetadata &metadata,
-                                          const dmsTruncateIdxOptions &options,
-                                          IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_TRUNC, "_dmsWTCollection::truncate" )
+   INT32 _dmsWTCollection::truncate( const dmsTruncCLOptions &options,
+                                     IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_TRUNCIDX ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_TRUNC ) ;
 
-      ossPoolString idxURI ;
-
-      rc = dmsWTIndex::buildIdxURI( metadata.getCSUID(),
-                                    metadata.getCLOrigInnerID(),
-                                    metadata.getCLOrigLID(),
-                                    metadata.getIdxInnerID(),
-                                    idxURI ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build index URI, rc: %d", rc ) ;
-
-      rc = _engine.truncateStore( idxURI.c_str(), nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         rc = _engine.truncateStore( session, _store.getURI().c_str(), nullptr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _engine.truncateStore( _store.getURI().c_str(), nullptr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
+      }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_TRUNCIDX, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_TRUNC, rc ) ;
       return rc ;
 
    error:
@@ -241,8 +241,22 @@ namespace wiredtiger
       UINT64 key = rid.toUINT64() ;
       dmsWTItem value( recordData.data(), recordData.len() ) ;
 
-      rc = _engine.insertToStore( _store, key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert record to engine, rc: %d", rc ) ;
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         dmsWTCursor cursor( session ) ;
+
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _engine.insertToStore( cursor, key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert record to engine, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _engine.insertToStore( _store, key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert record to engine, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_INSERTREC, rc ) ;
@@ -264,8 +278,22 @@ namespace wiredtiger
       UINT64 key = rid.toUINT64() ;
       dmsWTItem value( recordData.data(), recordData.len() ) ;
 
-      rc = _engine.updateToStore( _store, key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update record to engine, rc: %d", rc ) ;
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         dmsWTCursor cursor( session ) ;
+
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _engine.updateToStore( cursor, key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update record to engine, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _engine.updateToStore( _store, key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update record to engine, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_UPDATEREC, rc ) ;
@@ -285,8 +313,22 @@ namespace wiredtiger
 
       UINT64 key = rid.toUINT64() ;
 
-      rc = _engine.removeFromStore( _store, key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove record from engine, rc: %d", rc ) ;
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         dmsWTCursor cursor( session ) ;
+
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _engine.removeFromStore( cursor, key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove record to engine, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _engine.removeFromStore( _store, key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove record from engine, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_RMREC, rc ) ;

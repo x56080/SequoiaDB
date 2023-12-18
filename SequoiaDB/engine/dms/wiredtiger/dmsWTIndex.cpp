@@ -35,6 +35,7 @@
 
 #include "wiredtiger/dmsWTIndex.hpp"
 #include "wiredtiger/dmsWTIndexCursor.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
 #include "dmsStorageDataCommon.hpp"
@@ -58,6 +59,35 @@ namespace
    /*
       _dmsWTIndex implement
     */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_TRUNC, "_dmsWTIndex::truncate" )
+   INT32 _dmsWTIndex::truncate( const dmsTruncateIdxOptions &options,
+                                IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_TRUNC ) ;
+
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+
+         rc = _engine.truncateStore( session, _store.getURI().c_str(), nullptr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _engine.truncateStore( _store.getURI().c_str(), nullptr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX_TRUNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_INDEX, "_dmsWTIndex::index" )
    INT32 _dmsWTIndex::index( const BSONObj &key,
                              const dmsRecordID &rid,
@@ -69,38 +99,32 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_INDEX ) ;
 
-      keyStringStackBuilder builder ;
-      keyString ks ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      rc = _engine.openSession( sess ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      // for indexing, disable overwrite to check conflicts
-      rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = _buildKeyString( key, rid, builder ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
-
-      ks = builder.getShallowKeyString() ;
-
-      if ( _metadata.isStrictUnique() )
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
       {
-         rc = _insertStrictUnique( cursor, ks, rid, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
-      }
-      else if ( !allowDuplicated && _metadata.isUnique() )
-      {
-         rc = _insertUnique( cursor, ks, rid, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+         dmsWTCursor cursor( session ) ;
+
+         // for indexing, disable overwrite to check conflicts
+         rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _index( cursor, key, rid, allowDuplicated, executor, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key, rc: %d", rc ) ;
       }
       else
       {
-         rc = _insertStandard( cursor, ks, rid, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+         dmsWTSession sess ;
+         dmsWTCursor cursor( sess ) ;
+
+         rc = _engine.openSession( sess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+         // for indexing, disable overwrite to check conflicts
+         rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _index( cursor, key, rid, allowDuplicated, executor, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key, rc: %d", rc ) ;
       }
 
    done:
@@ -120,17 +144,31 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_UNINDEX ) ;
 
-      keyStringStackBuilder builder ;
-      dmsWTItem keyItem ;
+      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         dmsWTCursor cursor( session ) ;
 
-      rc = _buildKeyString( key, rid, builder ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-      rc = _getKey( builder.getShallowKeyString(), keyItem ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get key, rc: %d", rc ) ;
+         rc = _unindex( cursor, key, rid, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove index key, rc: %d", rc ) ;
+      }
+      else
+      {
+         dmsWTSession sess ;
+         dmsWTCursor cursor( sess ) ;
 
-      rc = _engine.removeFromStore( _store, keyItem ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove index key from engine, rc: %d", rc ) ;
+         rc = _engine.openSession( sess ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = _unindex( cursor, key, rid, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove index key, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX_UNINDEX, rc ) ;
@@ -377,6 +415,80 @@ namespace
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX__GETKEYANDVALUE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__INDEX, "_dmsWTIndex::_index" )
+   INT32 _dmsWTIndex::_index( dmsWTCursor &cursor,
+                              const BSONObj &key,
+                              const dmsRecordID &rid,
+                              BOOLEAN allowDuplicated,
+                              IExecutor *executor,
+                              utilWriteResult *result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_INDEX ) ;
+
+      keyStringStackBuilder builder ;
+      keyString ks ;
+
+      rc = _buildKeyString( key, rid, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      ks = builder.getShallowKeyString() ;
+
+      if ( _metadata.isStrictUnique() )
+      {
+         rc = _insertStrictUnique( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
+      else if ( !allowDuplicated && _metadata.isUnique() )
+      {
+         rc = _insertUnique( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _insertStandard( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX_INDEX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__UNINDEX, "_dmsWTIndex::_unindex" )
+   INT32 _dmsWTIndex::_unindex( dmsWTCursor &cursor,
+                                const BSONObj &key,
+                                const dmsRecordID &rid,
+                                IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__UNINDEX ) ;
+
+      keyStringStackBuilder builder ;
+      dmsWTItem keyItem ;
+
+      rc = _buildKeyString( key, rid, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+
+      rc = _getKey( builder.getShallowKeyString(), keyItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key, rc: %d", rc ) ;
+
+      rc = _engine.removeFromStore( cursor, keyItem ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove index key from engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__UNINDEX, rc ) ;
       return rc ;
 
    error:

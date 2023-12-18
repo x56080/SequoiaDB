@@ -371,6 +371,7 @@ dmsFiles = [
       "dms/dmsMetadata.cpp",
       "dms/dmsWriteGuard.cpp",
       "dms/dmsStorageServiceFactory.cpp",
+      "dms/dmsPersistUnit.cpp",
       "dms/wiredtiger/dmsWTStorageService.cpp",
       "dms/wiredtiger/dmsWTStorageEngine.cpp",
       "dms/wiredtiger/dmsWTSession.cpp",
@@ -381,7 +382,8 @@ dmsFiles = [
       "dms/wiredtiger/dmsWTCollection.cpp",
       "dms/wiredtiger/dmsWTDataCursor.cpp",
       "dms/wiredtiger/dmsWTIndex.cpp",
-      "dms/wiredtiger/dmsWTIndexCursor.cpp"
+      "dms/wiredtiger/dmsWTIndexCursor.cpp",
+      "dms/wiredtiger/dmsWTPersistUnit.cpp"
       ]
 
 ixmFiles = [

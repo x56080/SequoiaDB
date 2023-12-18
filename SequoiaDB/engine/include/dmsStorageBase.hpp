@@ -356,6 +356,7 @@ namespace engine
 
          void                 enableSync( BOOLEAN enable ) ;
 
+         IStorageService *    getStorageService() { return _service ; }
          IDataSyncManager*    getSyncMgr() { return _pSyncMgr ; }
 
          IDataStatManager*    getStatMgr() { return _pStatMgr ; }

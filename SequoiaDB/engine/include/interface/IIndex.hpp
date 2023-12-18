@@ -41,6 +41,7 @@
 #include "keystring/utilKeyString.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
+#include "dmsOprtOptions.hpp"
 #include "utilInsertResult.hpp"
 #include "utilPooledObject.hpp"
 
@@ -60,6 +61,9 @@ namespace engine
       IIndex &operator =( const IIndex & ) = delete ;
 
       virtual const dmsIdxMetadata &getMetadata() const = 0 ;
+
+      virtual INT32 truncate( const dmsTruncateIdxOptions &options,
+                              IExecutor *executor ) = 0 ;
 
       virtual INT32 index( const bson::BSONObj &key,
                            const dmsRecordID &rid,

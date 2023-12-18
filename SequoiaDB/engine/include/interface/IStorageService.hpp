@@ -36,6 +36,7 @@
 #ifndef SDB_I_STORAGE_SERVICE_HPP_
 #define SDB_I_STORAGE_SERVICE_HPP_
 
+#include "interface/IPersistUnit.hpp"
 #include "sdbInterface.hpp"
 #include "interface/IStorageEngine.hpp"
 #include "interface/ICollection.hpp"
@@ -65,7 +66,10 @@ namespace engine
 
       virtual IStorageEngine *getEngine() = 0 ;
 
+      virtual BOOLEAN isDurable() const = 0 ;
+
       virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) = 0 ;
+      virtual INT32 getPersistUnit( IExecutor *executor, IPersistUnit *&persistUnit ) = 0 ;
 
       virtual INT32 createCS( const dmsCSMetadata &metadata,
                               const dmsCreateCSOptions &options,
@@ -80,9 +84,6 @@ namespace engine
       virtual INT32 dropCL( const dmsCLMetadata &metadata,
                             const dmsDropCLOptions &options,
                             IExecutor *executor ) = 0 ;
-      virtual INT32 truncateCL( const dmsCLMetadata &metadata,
-                                const dmsTruncCLOptions &options,
-                                IExecutor *executor ) = 0 ;
 
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,
                                    IExecutor *executor,

@@ -100,14 +100,14 @@ namespace
          }
 
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_UNCOMMITTED, key, FALSE,
+                     "", dmsWTSessIsolation::READ_COMMITTED, key, FALSE,
                      isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_UNCOMMITTED, isForward, executor ) ;
+                     "", dmsWTSessIsolation::READ_COMMITTED, isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 

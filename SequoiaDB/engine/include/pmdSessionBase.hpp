@@ -36,6 +36,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "pmdOperationContext.hpp"
 #include "sdbInterface.hpp"
 #include "pmdIProcessor.hpp"
 #include "pmdOperator.hpp"
@@ -85,8 +86,14 @@ namespace engine
 
       virtual INT32 getACL( boost::shared_ptr<const authAccessControlList> &acl );
 
+      virtual IOperationContext *getOperationContext()
+      {
+         return &_operationContext ;
+      }
+
    protected:
       _pmdProcessorBase *_processor ;
+      pmdOperationContext _operationContext ;
    } ;
 
    typedef _pmdSessionBase pmdSessionBase ;

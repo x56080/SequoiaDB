@@ -68,6 +68,9 @@ namespace wiredtiger
          return _metadata ;
       }
 
+      virtual INT32 truncate( const dmsTruncateIdxOptions &options,
+                              IExecutor *executor ) ;
+
       virtual INT32 index( const bson::BSONObj &key,
                            const dmsRecordID &rid,
                            BOOLEAN allowDuplicated,
@@ -109,6 +112,17 @@ namespace wiredtiger
       INT32 _getRecordID( const dmsWTItem &value,
                           BOOLEAN isAtEnd,
                           dmsRecordID &rid ) ;
+
+      virtual INT32 _index( dmsWTCursor &cursor,
+                            const bson::BSONObj &key,
+                            const dmsRecordID &rid,
+                            BOOLEAN allowDuplicated,
+                            IExecutor *executor,
+                            utilWriteResult *result ) ;
+      virtual INT32 _unindex( dmsWTCursor &cursor,
+                              const bson::BSONObj &key,
+                              const dmsRecordID &rid,
+                              IExecutor *executor ) ;
 
       INT32 _insertStrictUnique( dmsWTCursor &cursor,
                                  const keystring::keyString &ks,

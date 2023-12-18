@@ -780,7 +780,7 @@ namespace engine
             return _mb ? _mb->_collectionName : NULL ;
          }
 
-         OSS_INLINE std::shared_ptr< ICollection > &getCollPtr() const
+         OSS_INLINE std::shared_ptr<ICollection> &getCollPtr() const
          {
             return _collPtr ;
          }
@@ -1558,7 +1558,7 @@ namespace engine
                                         const dmsRecordID &rid,
                                         pmdEDUCB * cb,
                                         IDmsOprHandler *pOprHandle,
-                                        dmsIndexWriteGuard &indexWriteGuard,
+                                        dmsWriteGuard &writeGuard,
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 

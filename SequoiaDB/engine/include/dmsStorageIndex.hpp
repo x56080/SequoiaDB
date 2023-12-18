@@ -200,7 +200,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-                                  dmsIndexWriteGuard &writeGuard,
+                                  dmsWriteGuard &writeGuard,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -211,7 +211,7 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
-                                  dmsIndexWriteGuard &writeGuard,
+                                  dmsWriteGuard &writeGuard,
                                   const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
@@ -222,7 +222,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-                                  dmsIndexWriteGuard &writeGuard,
+                                  dmsWriteGuard &writeGuard,
                                   BOOLEAN isUndo = FALSE,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 

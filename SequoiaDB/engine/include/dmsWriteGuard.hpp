@@ -37,6 +37,7 @@
 #define SDB_DMS_WRITE_GUARD_HPP_
 
 #include "ossUtil.hpp"
+#include "interface/IStorageService.hpp"
 #include "dms.hpp"
 #include "ossRWMutex.hpp"
 #include "dmsMetadata.hpp"
@@ -50,6 +51,45 @@ namespace engine
    class _dmsMBContext ;
 
    /*
+      _dmsDataWriteGuard define
+    */
+   class _dmsDataWriteGuard : public SDBObject
+   {
+   public:
+      _dmsDataWriteGuard() ;
+      _dmsDataWriteGuard( _dmsStorageBase *su,
+                          _dmsMBContext *mbContext,
+                          _pmdEDUCB *cb,
+                          BOOLEAN isEnabled = TRUE ) ;
+      ~_dmsDataWriteGuard() ;
+
+      void beforeWrite() ;
+      void afterWrite() ;
+
+      INT32 begin( _dmsStorageBase *su,
+                   _dmsMBContext *mbContext,
+                   _pmdEDUCB *cb,
+                   BOOLEAN isEnabled = TRUE ) ;
+      INT32 begin() ;
+      INT32 commit() ;
+      INT32 abort( BOOLEAN isForced = FALSE ) ;
+
+      BOOLEAN isEnabled() const
+      {
+         return _isEnabled ;
+      }
+
+   protected:
+      _dmsStorageBase *_su = nullptr ;
+      UINT16 _mbID ;
+      _pmdEDUCB *_eduCB ;
+      BOOLEAN _isEnabled ;
+      BOOLEAN _isInWrite ;
+   } ;
+
+   typedef class _dmsDataWriteGuard dmsDataWriteGuard ;
+
+   /*
       dmsIndexBuildLockPtr define
     */
    typedef std::shared_ptr<ossRWMutex> dmsIndexBuildLockPtr ;
@@ -58,9 +98,10 @@ namespace engine
    /*
       _dmsIndexWriteGuard define
     */
-   class _dmsIndexWriteGuard
+   class _dmsIndexWriteGuard : public SDBObject
    {
    public:
+      _dmsIndexWriteGuard() ;
       _dmsIndexWriteGuard( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
       ~_dmsIndexWriteGuard() ;
 
@@ -68,7 +109,12 @@ namespace engine
                   dmsIndexBuildLockPtr &lockPtr ) ;
       void releaseAll() ;
 
-      BOOLEAN isIndexGuardEnabled() const
+      INT32 begin( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
+      INT32 begin() ;
+      INT32 commit() ;
+      INT32 abort( BOOLEAN isForced = FALSE ) ;
+
+      BOOLEAN isEnabled() const
       {
          return _isEnabled ;
       }
@@ -82,49 +128,92 @@ namespace engine
    typedef class _dmsIndexWriteGuard dmsIndexWriteGuard ;
 
    /*
-      _dmsDataWriteGuard define
+      _dmsPersistGuard define
     */
-   class _dmsDataWriteGuard
+   class _dmsPersistGuard : public SDBObject
    {
    public:
-      _dmsDataWriteGuard( _dmsStorageBase *su,
-                          _dmsMBContext *mbContext,
-                          _pmdEDUCB *cb,
-                          BOOLEAN isEnabled = TRUE ) ;
-      ~_dmsDataWriteGuard() ;
+      _dmsPersistGuard() ;
+      _dmsPersistGuard( IStorageService *service,
+                        _pmdEDUCB *cb,
+                        BOOLEAN isEnabled = TRUE ) ;
+      ~_dmsPersistGuard() ;
 
-      BOOLEAN isDataGuardEnabled() const
+      BOOLEAN isGuardEnabled() const
       {
          return _isEnabled ;
       }
 
-      void setDataGuardEnabled( BOOLEAN isEnabled )
+      BOOLEAN useAtomicAbort() const
       {
-         _isEnabled = isEnabled ;
+         return _isEnabled &&
+                _persistUnit != nullptr &&
+                _persistUnit->useAtomicAbort() ;
       }
 
+      INT32 begin( IStorageService *service,
+                   _pmdEDUCB *cb,
+                   BOOLEAN isEnabled = TRUE ) ;
+      INT32 begin() ;
+      INT32 commit() ;
+      INT32 abort( BOOLEAN isForced = FALSE ) ;
+
    protected:
-      _dmsStorageBase *_su ;
-      UINT16 _mbID ;
+      IStorageService *_service ;
+      IPersistUnit *_persistUnit ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
    } ;
 
-   typedef class _dmsDataWriteGuard dmsDataWriteGuard ;
+   typedef class _dmsPersistGuard dmsPersistGuard ;
 
    /*
       _dmsWriteGuard define
     */
-   class _dmsWriteGuard : public _dmsDataWriteGuard, public _dmsIndexWriteGuard
+   class _dmsWriteGuard : public SDBObject
    {
    public:
-      _dmsWriteGuard( _dmsStorageBase *su,
+      _dmsWriteGuard() = default ;
+      _dmsWriteGuard( IStorageService *service,
+                      _dmsStorageBase *su,
                       _dmsMBContext *mbContext,
                       _pmdEDUCB *cb,
                       BOOLEAN isDataWriteGuardEnabled = TRUE,
-                      BOOLEAN isIndexWriteGuardEnabled = TRUE ) ;
+                      BOOLEAN isIndexWriteGuardEnabled = TRUE,
+                      BOOLEAN isPersistGuardEnabled = TRUE ) ;
 
       ~_dmsWriteGuard() = default ;
+
+      INT32 begin( IStorageService *service,
+                   _dmsStorageBase *su,
+                   _dmsMBContext *mbContext,
+                   _pmdEDUCB *cb,
+                   BOOLEAN isDataWriteGuardEnabled = TRUE,
+                   BOOLEAN isIndexWriteGuardEnabled = TRUE,
+                   BOOLEAN isPersistGuardEnabled = TRUE ) ;
+      INT32 begin() ;
+      INT32 commit() ;
+      INT32 abort( BOOLEAN isForced = FALSE ) ;
+
+      dmsDataWriteGuard &getDataWriteGuard()
+      {
+         return _dataGuard ;
+      }
+
+      dmsIndexWriteGuard &getIndexWriteGuard()
+      {
+         return _indexGuard ;
+      }
+
+      dmsPersistGuard &getPersistGuard()
+      {
+         return _persistGuard ;
+      }
+
+   protected:
+      dmsDataWriteGuard _dataGuard ;
+      dmsIndexWriteGuard _indexGuard ;
+      dmsPersistGuard _persistGuard ;
    } ;
 
    typedef class _dmsWriteGuard dmsWriteGuard ;

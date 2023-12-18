@@ -673,6 +673,11 @@ namespace engine
          dmsStatCache *getStatCache () ;
          dmsCachedPlanMgr *getCachedPlanMgr () ;
 
+         IStorageService *getStorageService()
+         {
+            return _storageService ;
+         }
+
       public :
          // monitor CRUD helper functions
          void clearMBCRUDCB () ;
