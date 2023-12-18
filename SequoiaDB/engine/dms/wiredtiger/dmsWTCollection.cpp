@@ -144,7 +144,7 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to build index URI, rc: %d", rc ) ;
 
       rc = _engine.truncateStore( idxURI.c_str(), nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate idnex store, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_TRUNCIDX, rc ) ;

@@ -99,16 +99,15 @@ namespace
             }
          }
 
-         rc = _open( wtCollection->getEngine(),
-                     wtCollection->getStore().getURI(),
-                     "", key, FALSE, isForward, executor ) ;
+         rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
+                     "", dmsWTSessIsolation::READ_UNCOMMITTED, key, FALSE,
+                     isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
-         rc = _open( wtCollection->getEngine(),
-                     wtCollection->getStore().getURI(),
-                     "", isForward, executor ) ;
+         rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
+                     "", dmsWTSessIsolation::READ_UNCOMMITTED, isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 

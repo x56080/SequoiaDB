@@ -68,6 +68,7 @@ namespace wiredtiger
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
+                   dmsWTSessIsolation isolation,
                    UINT64 startKey,
                    BOOLEAN isAfterStartKey,
                    BOOLEAN isForward,
@@ -75,6 +76,7 @@ namespace wiredtiger
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
+                   dmsWTSessIsolation isolation,
                    const dmsWTItem &startKey,
                    BOOLEAN isAfterStartKey,
                    BOOLEAN isForward,
@@ -82,6 +84,7 @@ namespace wiredtiger
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
+                   dmsWTSessIsolation isolation,
                    BOOLEAN isForward,
                    IExecutor *executor ) ;
 

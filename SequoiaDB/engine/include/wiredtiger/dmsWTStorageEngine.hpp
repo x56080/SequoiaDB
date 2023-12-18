@@ -80,7 +80,8 @@ namespace wiredtiger
                   const CHAR *config ) ;
       INT32 close( const CHAR *config ) ;
 
-      INT32 openSession( dmsWTSession &session ) ;
+      INT32 openSession( dmsWTSession &session,
+                         dmsWTSessIsolation isolation = dmsWTSessIsolation::SNAPSHOT ) ;
 
       INT32 createStore( const CHAR *uri,
                          const CHAR *config,

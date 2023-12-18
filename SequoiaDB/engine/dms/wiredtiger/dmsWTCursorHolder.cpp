@@ -52,6 +52,7 @@ namespace wiredtiger
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
+                                    dmsWTSessIsolation isolation,
                                     UINT64 startKey,
                                     BOOLEAN isAfterStartKey,
                                     BOOLEAN isForward,
@@ -63,7 +64,7 @@ namespace wiredtiger
 
       BOOLEAN isFound = FALSE ;
 
-      rc = engine.openSession( _session ) ;
+      rc = engine.openSession( _session, isolation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;
@@ -106,6 +107,7 @@ namespace wiredtiger
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
+                                    dmsWTSessIsolation isolation,
                                     const dmsWTItem &startKey,
                                     BOOLEAN isAfterStartKey,
                                     BOOLEAN isForward,
@@ -117,7 +119,7 @@ namespace wiredtiger
 
       BOOLEAN isFound = FALSE ;
 
-      rc = engine.openSession( _session ) ;
+      rc = engine.openSession( _session, isolation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;
@@ -160,6 +162,7 @@ namespace wiredtiger
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
+                                    dmsWTSessIsolation isolation,
                                     BOOLEAN isForward,
                                     IExecutor *executor )
    {
@@ -167,7 +170,7 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN ) ;
 
-      rc = engine.openSession( _session ) ;
+      rc = engine.openSession( _session, isolation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;

@@ -71,16 +71,15 @@ namespace wiredtiger
       if ( startKey.isValid() )
       {
          dmsWTItem key( startKey.getKeySlice() ) ;
-         rc = _open( wtIndex->getEngine(),
-                     wtIndex->getStore().getURI(),
-                     "", key, isAfterStartKey, isForward, executor ) ;
+         rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
+                     "", dmsWTSessIsolation::READ_UNCOMMITTED, key, isAfterStartKey,
+                     isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
-         rc = _open( wtIndex->getEngine(),
-                     wtIndex->getStore().getURI(),
-                     "", isForward, executor ) ;
+         rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
+                     "", dmsWTSessIsolation::READ_UNCOMMITTED, isForward, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 

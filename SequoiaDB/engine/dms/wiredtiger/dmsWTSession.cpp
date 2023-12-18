@@ -60,21 +60,39 @@ namespace wiredtiger
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSESSION_OPEN, "_dmsWTSession::open" )
-   INT32 _dmsWTSession::open( WT_CONNECTION *conn )
+   INT32 _dmsWTSession::open( WT_CONNECTION *conn,
+                              dmsWTSessIsolation isolation )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTSESSION_OPEN ) ;
+
+      const CHAR *config = nullptr ;
+      switch ( isolation )
+      {
+      case dmsWTSessIsolation::READ_UNCOMMITTED:
+         config = "isolation=read-uncommitted" ;
+         break ;
+      case dmsWTSessIsolation::READ_COMMITTED:
+         config = "isolation=read-committed" ;
+         break ;
+      case dmsWTSessIsolation::SNAPSHOT:
+         config = "isolation=snapshot" ;
+         break ;
+      default:
+         PD_LOG( PDERROR, "Invalid WiredTiger session isolation: %d",
+                  isolation ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
       PD_CHECK( nullptr != conn, SDB_SYS, error, PDERROR,
                 "Failed to open WiredTiger session, connection is not opened" ) ;
       PD_CHECK( nullptr == _session, SDB_SYS, error, PDERROR,
                 "Failed to open WiredTiger session, already opened" ) ;
 
-      rc = WT_CALL( conn->open_session( conn, nullptr, nullptr, &_session ),
-                    nullptr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open WiredTiger session, "
-                   "rc: %d", rc ) ;
+      rc = WT_CALL( conn->open_session( conn, nullptr, config, &_session ), nullptr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open WiredTiger session, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSESSION_OPEN, rc ) ;

@@ -119,7 +119,8 @@ namespace wiredtiger
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_OPENSESSION, "_dmsWTStorageEngine::openSession" )
-   INT32 _dmsWTStorageEngine::openSession( dmsWTSession &session )
+   INT32 _dmsWTStorageEngine::openSession( dmsWTSession &session,
+                                           dmsWTSessIsolation isolation )
    {
       INT32 rc = SDB_OK ;
 
@@ -128,7 +129,7 @@ namespace wiredtiger
       PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
                 "Failed to open session, engine is not opened" ) ;
 
-      rc = session.open( _conn ) ;
+      rc = session.open( _conn, isolation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
    done:

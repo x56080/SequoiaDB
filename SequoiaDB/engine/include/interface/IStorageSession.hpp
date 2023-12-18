@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTSession.hpp
+   Source File Name = IStorageSession.hpp
 
    Descriptive Name =
 
@@ -33,63 +33,29 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_SESSION_HPP_
-#define DMS_WT_SESSION_HPP_
+#ifndef SDB_I_STORAGE_SESSION_HPP_
+#define SDB_I_STORAGE_SESSION_HPP_
 
-#include "interface/IStorageService.hpp"
-#include "interface/IStorageSession.hpp"
-#include "wiredtiger/dmsWTEngineOptions.hpp"
-#include "wiredtiger/dmsWTUtil.hpp"
-
-#include <wiredtiger.h>
+#include "sdbInterface.hpp"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
-namespace wiredtiger
-{
 
    /*
-      _dmsWTSessionIsolation define
+      IStorageSession define
     */
-   enum class dmsWTSessIsolation
-   {
-      READ_UNCOMMITTED,
-      READ_COMMITTED,
-      SNAPSHOT
-   } ;
-
-   /*
-      _dmsWTSession define
-    */
-   class _dmsWTSession : public IStorageSession
+   class IStorageSession : public _utilPooledObject
    {
    public:
-      _dmsWTSession() ;
-      ~_dmsWTSession() ;
-      _dmsWTSession( const _dmsWTSession &o ) = delete ;
-      _dmsWTSession &operator =( const _dmsWTSession & ) = delete ;
+      IStorageSession() = default ;
+      virtual ~IStorageSession() = default ;
+      IStorageSession( const IStorageSession &o ) = delete ;
+      IStorageSession &operator =( const IStorageSession & ) = delete ;
 
-      INT32 open( WT_CONNECTION *conn,
-                  dmsWTSessIsolation isolation = dmsWTSessIsolation::SNAPSHOT ) ;
-      INT32 close() ;
-
-      WT_SESSION *getSession()
-      {
-         return _session ;
-      }
-
-      BOOLEAN isOpened() const
-      {
-         return nullptr != _session ;
-      }
-
-   protected:
-      WT_SESSION *_session = nullptr ;
+   public:
    } ;
 
-   typedef class _dmsWTSession dmsWTSession ;
-
-}
 }
 
-#endif // DMS_WT_ENGINE_HPP_
+#endif // SDB_I_STORAGE_SESSION_HPP_
