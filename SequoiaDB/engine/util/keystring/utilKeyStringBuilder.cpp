@@ -2768,6 +2768,8 @@ namespace keystring
          rc = _append( dv, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
 
+         _sizeOfElements = _bufSize - _sizeAheadElements ;
+
          if ( tmpRID.isValid() )
          {
             rc = appendRID( tmpRID ) ;
@@ -2795,8 +2797,8 @@ namespace keystring
                PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
             }
          }
+         _sizeOfElements = _bufSize - _sizeAheadElements ;
       }
-      _sizeOfElements = _bufSize - _sizeAheadElements ;
       rc = done() ;
       if ( SDB_OK != rc )
       {
