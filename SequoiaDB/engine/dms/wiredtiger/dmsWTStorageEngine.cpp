@@ -278,15 +278,6 @@ namespace wiredtiger
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
 
-      // check if collection is empty
-      rc = cursor.next() ;
-      if ( SDB_DMS_EOC == rc )
-      {
-         rc = SDB_OK ;
-         goto done ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to move data cursor to next, rc: %d", rc ) ;
-
       s = session.getSession() ;
       SDB_ASSERT( nullptr != s, "session should not be null" ) ;
 
