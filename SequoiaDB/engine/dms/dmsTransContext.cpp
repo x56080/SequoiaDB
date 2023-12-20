@@ -50,12 +50,15 @@ namespace engine
    /*
       _dmsScanTransContext implement
    */
-   _dmsScanTransContext::_dmsScanTransContext( _dmsMBContext *pMBContext,
+   _dmsScanTransContext::_dmsScanTransContext( dmsMBContext *pMBContext,
+                                               rtnScanner *pScanner,
                                                DMS_ACCESS_TYPE accessType )
+   : _pMBContext( pMBContext ),
+     _pScanner( pScanner ),
+     _accessType( accessType ),
+     _isCursorSame( TRUE )
    {
       SDB_ASSERT( pMBContext, "MB Context can't be NULL" ) ;
-      _pMBContext    = pMBContext ;
-      _accessType    = accessType ;
    }
 
    _dmsScanTransContext::~_dmsScanTransContext()
@@ -77,9 +80,29 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCANTRANSCONTEXT_PAUSE, "_dmsScanTransContext::pause" )
    INT32 _dmsScanTransContext::pause()
    {
-      return _pMBContext->pause() ;
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSCANTRANSCONTEXT_PAUSE ) ;
+
+      if ( _pScanner )
+      {
+         rc = _pScanner->pauseScan() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pause scanner, rc: %d", rc ) ;
+      }
+
+      rc = _pMBContext->pause() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to pause mb context [%s], rc: %d",
+                   _pMBContext->toString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSSCANTRANSCONTEXT_PAUSE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCANTRANSCONTEXT_RESUME, "_dmsScanTransContext::resume" )
@@ -89,84 +112,22 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSCANTRANSCONTEXT_RESUME ) ;
 
       rc = _pMBContext->resume() ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Resume dms mblock[%s] failed, rc: %d",
-                 _pMBContext->toString().c_str(), rc ) ;
-         goto error ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to resume mb context [%s], rc: %d",
+                   _pMBContext->toString().c_str(), rc ) ;
 
       rc = _checkAccess() ;
-      if ( rc )
+      PD_RC_CHECK( rc, PDERROR, "Failed to check access, rc: %d", rc ) ;
+
+      if ( _pScanner )
       {
-         goto error ;
+         rc = _pScanner->resumeScan( _isCursorSame ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resume scanner, rc: %d", rc ) ;
       }
 
    done:
       PD_TRACE_EXITRC ( SDB__DMSSCANTRANSCONTEXT_RESUME, rc ) ;
       return rc ;
-   error:
-      goto done ;
-   }
 
-   /*
-      _dmsIXTransContext implement
-   */
-   _dmsIXTransContext::_dmsIXTransContext( _dmsMBContext *pMBContext,
-                                           DMS_ACCESS_TYPE accessType,
-                                           _rtnIXScanner *pScanner )
-   :_dmsScanTransContext( pMBContext, accessType )
-   {
-      SDB_ASSERT( pScanner, "Scanner can't be NULL" ) ;
-
-      _pScanner      = pScanner ;
-      _isSame        = TRUE ;
-   }
-
-   _dmsIXTransContext::~_dmsIXTransContext()
-   {
-   }
-
-   INT32 _dmsIXTransContext::pause()
-   {
-      INT32 rc = SDB_OK ;
-
-      _isSame = TRUE ;
-
-      rc = _pScanner->pauseScan() ;
-      if ( SDB_OK == rc )
-      {
-         rc = _dmsScanTransContext::pause() ;
-      }
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXTRANSCONTEXT_RESUME, "_dmsIXTransContext::resume" )
-   INT32 _dmsIXTransContext::resume()
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSIXTRANSCONTEXT_RESUME ) ;
-
-      /// first resume base
-      rc = _dmsScanTransContext::resume() ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      /// then resume scanner
-      rc = _pScanner->resumeScan( &_isSame ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Resume index scanner failed, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSIXTRANSCONTEXT_RESUME, rc ) ;
-      return rc ;
    error:
       goto done ;
    }

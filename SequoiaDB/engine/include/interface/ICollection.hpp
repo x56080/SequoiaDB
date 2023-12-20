@@ -60,6 +60,10 @@ namespace engine
       ICollection( const ICollection & ) = delete ;
       ICollection &operator =( const ICollection & ) = delete ;
 
+      virtual const dmsCLMetadata &getMetadata() const = 0 ;
+      virtual dmsCLMetadata &getMetadata() = 0 ;
+      virtual UINT64 fetchSnapshotID() = 0 ;
+
       virtual INT32 createIndex( const dmsIdxMetadata &metadata,
                                  const dmsCreateIdxOptions &options,
                                  IExecutor *executor ) = 0 ;
@@ -77,6 +81,7 @@ namespace engine
                                std::shared_ptr<IIndex> &idxPtr ) = 0 ;
 
       virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) = 0 ;
+
       virtual INT32 insertRecord( const dmsRecordID &rid,
                                   const dmsRecordData &recordData,
                                   IExecutor *executor ) = 0 ;

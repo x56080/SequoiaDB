@@ -471,7 +471,11 @@ namespace engine
       // cache of update time
       UINT64      _updateTime ;
 
+      // generator of record ID
       ossAtomic64 _ridGen ;
+
+      // snapshot ID of metadata block
+      ossAtomic64 _snapshotID ;
 
       void reset()
       {
@@ -519,6 +523,7 @@ namespace engine
          _createTime             = 0 ;
          _updateTime             = 0 ;
          _ridGen.init( 0 ) ;
+         _snapshotID.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -727,7 +732,8 @@ namespace engine
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 ),
-        _ridGen( 0 )
+        _ridGen( 0 ),
+        _snapshotID( 0 )
       {
          reset() ;
       }

@@ -657,9 +657,7 @@ namespace engine
       BOOLEAN isAllEqual = FALSE ;
       ixmIndexCB *pIndexCB = NULL ;
 
-      rtnIXScanner *ixScanner = getIXScanner() ;
-      PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
-                "Failed to set advance section, not a index scanner" ) ;
+      rtnIXScanner *ixScanner = NULL ;
 
       rc = _getAdvanceOrderby( _orderBy, TRUE ) ;
       if ( rc )
@@ -668,6 +666,9 @@ namespace engine
       }
 
       // check index
+      ixScanner = getIXScanner() ;
+      PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                "Failed to set advance section, not a index scanner" ) ;
       pIndexCB = ixScanner->getIndexCB() ;
       if ( !pIndexCB )
       {
@@ -1620,23 +1621,25 @@ namespace engine
          }
       }
 
-      if ( TBSCAN == _scanType )
       {
-         rtnTBScanner *tbScanner = getTBScanner() ;
-         PD_CHECK( tbScanner, SDB_SYS, error, PDERROR,
-                   "Failed to prepare data, table scanner is invalid" ) ;
-         rc = _prepareByTBScan( tbScanner, cb, accessType, dollarList ) ;
-      }
-      else if ( IXSCAN == _scanType )
-      {
-         rtnIXScanner *ixScanner = getIXScanner() ;
-         PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
-                   "Failed to prepare data, index scanner is invalid" ) ;
-         rc = _prepareByIXScan( ixScanner, cb, accessType, dollarList ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
+         if ( TBSCAN == _scanType )
+         {
+            rtnTBScanner *tbScanner = getTBScanner() ;
+            PD_CHECK( tbScanner, SDB_SYS, error, PDERROR,
+                     "Failed to prepare data, table scanner is invalid" ) ;
+            rc = _prepareByTBScan( tbScanner, cb, accessType, dollarList ) ;
+         }
+         else if ( IXSCAN == _scanType )
+         {
+            rtnIXScanner *ixScanner = getIXScanner() ;
+            PD_CHECK( ixScanner, SDB_SYS, error, PDERROR,
+                     "Failed to prepare data, index scanner is invalid" ) ;
+            rc = _prepareByIXScan( ixScanner, cb, accessType, dollarList ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+         }
       }
 
    done:
@@ -1784,7 +1787,6 @@ namespace engine
                                  _numToReturn,
                                  _numToSkip,
                                  _returnOptions.getFlag() ) ;
-         UINT32 recordSelected = 0 ;
          _mthMatchTreeContext mthContext( NULL ) ;
          if ( NULL != dollarList )
          {
@@ -1849,7 +1851,6 @@ namespace engine
             }
             // increase counter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-            ++ recordSelected ;
             // decrease numToReturn
             if ( _numToReturn > 0 )
             {

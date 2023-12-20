@@ -116,6 +116,10 @@ namespace engine
          */
          virtual ISession*    getSession() { return _pSession ; }
          virtual IRemoteSite* getRemoteSite() { return _pRemoteSite ; }
+         virtual IOperationContext *getOperationContext()
+         {
+            return _pSession ? _pSession->getOperationContext() : NULL ;
+         }
 
          /*
             Status and Control

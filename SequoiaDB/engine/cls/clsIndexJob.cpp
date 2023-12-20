@@ -46,7 +46,6 @@ namespace engine
    // normal thread use it
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type, UINT32 locationID,
                                clsIdxTask* pTask )
-   : _session( TRUE )
    {
       _type = type ;
 
@@ -94,7 +93,6 @@ namespace engine
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type,
                                dmsIdxTaskStatusPtr idxStatPtr,
                                CLS_INDEX_THREAD_MODE threadMod )
-   : _session( TRUE )
    {
       _type = type ;
 
@@ -139,8 +137,7 @@ namespace engine
 
    void _clsIndexJob::_onAttach()
    {
-      // attach cb for dummy session
-      _session.attachCB( eduCB() ) ;
+      _rtnIndexJob::_onAttach() ;
 
       // switch status if it is a rollback thread
       if ( _taskStatusPtr.get() )
@@ -197,8 +194,7 @@ namespace engine
       // update task status to FINISH in catalog
       clsCB->getTaskEvent()->signal() ;
 
-      // detach cb for dummy session
-      _session.detachCB() ;
+      _rtnIndexJob::_onDetach() ;
    }
 
    // master node use the function

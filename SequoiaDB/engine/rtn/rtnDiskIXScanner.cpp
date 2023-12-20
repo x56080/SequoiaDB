@@ -146,6 +146,22 @@ namespace engine
                  SDB_IXM_UNEXPECTED_STATUS, error, PDERROR,
                  "Unexpected index status: %d", _indexCB->getFlag() ) ;
 
+      if ( !_init )
+      {
+         rc = _firstInit() ;
+         if ( SDB_IXM_EOC == rc )
+         {
+            _init = TRUE ;
+            goto done ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to init scanner, rc: %d", rc ) ;
+
+         _init = TRUE ;
+      }
+
+      PD_CHECK( _cursorPtr, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+               "Failed to relocate record, cursor is clsoed" ) ;
+
       rc = _cursorPtr->locate( keyObj, rid, FALSE, _cb, isFound ) ;
       if ( SDB_IXM_EOC == rc )
       {
@@ -176,6 +192,13 @@ namespace engine
 
       BOOLEAN isFound = FALSE ;
       rc = _relocateRID( keyObj, rid, _direction, isFound ) ;
+      if ( SDB_IXM_EOC == rc )
+      {
+         _isEOF = TRUE ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
 
       rc = _cursorPtr->getCurrentKey( _savedObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
@@ -183,10 +206,8 @@ namespace engine
       rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
 
-      if ( isFound && !isReadonly() )
-      {
-         _savedRID._offset -= 1 ;
-      }
+      _savedObj = _savedObj.getOwned() ;
+      _relocatedRID = _savedRID ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNDISKIXSCAN_RELORID, rc ) ;
@@ -196,7 +217,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnDiskIXScanner::relocateRID( BOOLEAN &found )
+   INT32 _rtnDiskIXScanner::_relocateRID( BOOLEAN &found )
    {
       return _relocateRID( _savedObj, _savedRID, _direction, found ) ;
    }
@@ -215,6 +236,11 @@ namespace engine
 
       SDB_ASSERT ( _indexCB, "_indexCB can't be NULL" ) ;
 
+      if ( _isEOF )
+      {
+         rc = SDB_IXM_EOC ;
+         goto error ;
+      }
       while ( TRUE )
       {
          BOOLEAN needAdvance = TRUE ;
@@ -224,13 +250,14 @@ namespace engine
             rc = _firstInit() ;
             if ( SDB_IXM_EOC == rc )
             {
+               _init = TRUE ;
                goto done ;
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to init scanner, rc: %d", rc ) ;
 
             _init = TRUE ;
          }
-         else
+         else if ( !_savedRID.isValid() )
          {
             rc = _advance() ;
             if ( SDB_IXM_EOC == rc )
@@ -238,6 +265,12 @@ namespace engine
                goto done ;
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to advance scanner, rc: %d", rc ) ;
+         }
+         else
+         {
+            _savedRID.reset() ;
+            _relocatedRID.reset() ;
+            _savedObj = BSONObj() ;
          }
 
          rc = _fetchNext( rid, needAdvance ) ;
@@ -255,7 +288,7 @@ namespace engine
       }
 
    done :
-      if ( SDB_IXM_EOC == rc )
+      if ( SDB_IXM_EOC == rc && !_isEOF )
       {
          _isEOF = TRUE ;
          rid.reset() ;
@@ -286,20 +319,17 @@ namespace engine
          goto done ;
       }
 
-      // for write mode, since we write _savedRID and _savedObj in advance, we
-      // don't do it here
-      if ( isReadonly() )
-      {
-         rc = _cursorPtr->getCurrentKey( _savedObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
+      rc = _cursorPtr->getCurrentKey( _savedObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
+      _savedObj = _savedObj.getOwned() ;
 
-         rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
+      rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
 
-         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                 PD_SECURE_OBJ( _savedObj ),
-                 _savedRID._extent, _savedRID._offset ) ;
-      }
+      PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
+              PD_SECURE_OBJ( _savedObj ),
+              _savedRID._extent, _savedRID._offset ) ;
+      _relocatedRID.reset() ;
 
    done:
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_PAUSESCAN, rc ) ;
@@ -315,12 +345,12 @@ namespace engine
    // the new position for the saved key+rid
    // this is used in query scan only
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RESUMESCAN, "_rtnDiskIXScanner::resumeScan" )
-   INT32 _rtnDiskIXScanner::resumeScan( BOOLEAN *pIsCursorSame )
+   INT32 _rtnDiskIXScanner::resumeScan( BOOLEAN &isCursorSame )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_RESUMESCAN ) ;
-      BOOLEAN isSame = TRUE ;
 
+      isCursorSame = TRUE ;
       _curKeyObj = BSONObj() ;
 
       if ( !_indexCB )
@@ -356,83 +386,57 @@ namespace engine
          goto done ;
       }
 
-      rc = isCursorSame( _savedObj, _savedRID, isSame ) ;
-      if ( rc )
+      if ( !_cursorPtr || !_savedRID.isValid() )
       {
-         goto error ;
-      }
-      if ( isSame )
-      {
-         _curKeyObj = _savedObj ;
-      }
-
-      if ( !isReadonly() )
-      {
+         isCursorSame = TRUE ;
          goto done ;
       }
 
-      if ( isSame )
+      rc = _relocateRID( isCursorSame ) ;
+      if ( SDB_IXM_EOC == rc )
       {
-         // this means the last scaned record is still here, so let's
-         // reset _savedRID so that we'll call advance()
+         _isEOF = TRUE ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to relocate record, rc: %d", rc ) ;
+
+      PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d,%d), found(%d)",
+              PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
+              _savedRID._offset, isCursorSame ) ;
+
+      if ( isCursorSame && _relocatedRID != _savedRID )
+      {
          _savedRID.reset() ;
+         _curKeyObj = _savedObj ;
       }
-      else
-      {
-         // when we get here, it means something changed and we need to
-         // relocateRID
-         // note relocateRID may relocate to the index that already read.
-         // However after advance() returning the RID we'll check if the
-         // index already has been read, so we should be safe to not
-         // reset _savedRID
-         rc = relocateRID( isSame ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d,%d), found(%d)",
-                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
-                 _savedRID._offset, isSame ) ;
-
-         if ( isSame )
-         {
-            _savedRID.reset() ;
-            _curKeyObj = _savedObj ;
-         }
-      }
+      _relocatedRID.reset() ;
 
    done:
-      if ( pIsCursorSame )
-      {
-         *pIsCursorSame = isSame ;
-      }
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_RESUMESCAN, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   rtnPredicateListIterator* _rtnDiskIXScanner::getPredicateListInterator()
-   {
-      return &_listIterator ;
-   }
-
-   INT32 _rtnDiskIXScanner::isCursorSame( const BSONObj &saveObj,
-                                          const dmsRecordID &saveRID,
-                                          BOOLEAN &isSame )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXTREESCAN_CHECKSNAPSHOTID, "_rtnDiskIXScanner::checkSnapshotID" )
+   INT32 _rtnDiskIXScanner::checkSnapshotID( BOOLEAN &isCursorSame )
    {
       INT32 rc = SDB_OK ;
 
-      isSame = FALSE ;
+      PD_TRACE_ENTRY( SDB__RTNDISKIXTREESCAN_CHECKSNAPSHOTID ) ;
 
-      if ( _init )
-      {
-         isSame = TRUE ;
-      }
+      isCursorSame = _mbContext->mbStat()->_snapshotID.compare(
+                                                _cursorPtr->getSnapshotID() ) ;
+
+      PD_TRACE_EXITRC( SDB__RTNDISKIXTREESCAN_CHECKSNAPSHOTID, rc ) ;
 
       return rc ;
+   }
+
+   rtnPredicateListIterator* _rtnDiskIXScanner::_getPredicateListInterator()
+   {
+      return &_listIterator ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN__FIRSTINIT, "_rtnDiskIXScanner::_firstInit" )
@@ -483,7 +487,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNDISKIXSCAN__ADVANCE ) ;
 
-      // TODO: check cursor same
       rc = _cursorPtr->advance( _cb ) ;
       if ( SDB_OK != rc )
       {
@@ -559,11 +562,11 @@ namespace engine
          // otherwise let's attempt to get dms rid
          else
          {
-            rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
+            rc = _cursorPtr->getCurrentRecordID( rid ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get record ID, rc: %d", rc ) ;
 
             // make sure the RID we read is not psuedo-deleted
-            if ( _savedRID.isNull() || !_insert2Dup( _savedRID ) )
+            if ( rid.isNull() || !_insert2Dup( rid ) )
             {
                // usually this means a psuedo-deleted rid, we should jump
                // back to beginning of the function and advance to next
@@ -571,25 +574,9 @@ namespace engine
                // if we are able to find the recordid in dupBuffer, that
                // means we've already processed the record, so let's also
                // jump back to begin
-               _savedRID.reset() ;
+               rid.reset() ;
                needAdvance = TRUE ;
                goto done ;
-            }
-
-            // ready to return to caller
-            rid = _savedRID ;
-
-            // if we are write mode, let's record the _savedObj as well
-            if ( !isReadonly() )
-            {
-               _savedObj = _curKeyObj.getOwned() ;
-            }
-            // otherwise if we are read mode, let's reset _savedRID
-            else
-            {
-               // in readonly scenario, _savedRID should always be null
-               // unless pauseScan() is called
-               _savedRID.reset() ;
             }
             rc = SDB_OK ;
             break ;

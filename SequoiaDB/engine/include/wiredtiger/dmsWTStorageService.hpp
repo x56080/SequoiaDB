@@ -41,6 +41,7 @@
 #include "ossUtil.hpp"
 #include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTEngineOptions.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTStorageEngine.hpp"
 
 namespace engine

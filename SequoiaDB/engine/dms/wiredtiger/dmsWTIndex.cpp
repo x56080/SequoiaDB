@@ -34,6 +34,7 @@
 *******************************************************************************/
 
 #include "wiredtiger/dmsWTIndex.hpp"
+#include "wiredtiger/dmsWTStorageService.hpp"
 #include "wiredtiger/dmsWTIndexCursor.hpp"
 #include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
@@ -67,10 +68,9 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_TRUNC ) ;
 
-      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
       if ( session.isOpened() )
       {
-
          rc = _engine.truncateStore( session, _store.getURI().c_str(), nullptr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
       }
@@ -99,7 +99,7 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_INDEX ) ;
 
-      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
       if ( session.isOpened() )
       {
          dmsWTCursor cursor( session ) ;
@@ -144,7 +144,7 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_UNINDEX ) ;
 
-      dmsWTSession &session = dmsWTPersistUnit::getPersistSession( executor ) ;
+      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
       if ( session.isOpened() )
       {
          dmsWTCursor cursor( session ) ;
@@ -189,13 +189,26 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_CREATEINDEXCURSOR ) ;
 
-      cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor() ) ;
+      UINT64 snapshotID = 0 ;
+      IPersistUnit *persistUnit = nullptr ;
+      dmsWTPersistUnit *wtUnit = nullptr ;
+
+      rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+
+      wtUnit = dynamic_cast<dmsWTPersistUnit *>( persistUnit ) ;
+      PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
+                "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
+
+      cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor( wtUnit->getSession() ) ) ;
       PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
 
-      rc = cursor->open( std::move( shared_from_this() ),
+      snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
+      rc = cursor->open( shared_from_this(),
                          startKey,
                          isAfterStartKey,
                          isForward,
+                         snapshotID,
                          executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open data cursor, rc: %d", rc ) ;
 

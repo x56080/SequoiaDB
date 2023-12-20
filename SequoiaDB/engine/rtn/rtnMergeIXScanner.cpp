@@ -398,24 +398,23 @@ namespace engine
    // the new position for the saved key+rid
    // this is used in query scan only
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEIXSCAN_RESUMESCAN, "_rtnMergeIXScanner::resumeScan" )
-   INT32 _rtnMergeIXScanner::resumeScan( BOOLEAN *pIsCursorSame )
+   INT32 _rtnMergeIXScanner::resumeScan( BOOLEAN &isCursorSame )
    {
       SINT32 rc = SDB_OK ;
       SINT32 rcl = SDB_OK ;
       SINT32 rcr = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNMERGEIXSCAN_RESUMESCAN ) ;
 
-      BOOLEAN isSame  = TRUE ;
       BOOLEAN lIsSame = TRUE ;
       BOOLEAN rIsSame = TRUE ;
 
       if ( _leftEnabled )
       {
-         rcl = _leftIXScanner->resumeScan( &lIsSame ) ;
+         rcl = _leftIXScanner->resumeScan( lIsSame ) ;
       }
       if ( _rightEnabled )
       {
-         rcr = _rightIXScanner->resumeScan( &rIsSame ) ;
+         rcr = _rightIXScanner->resumeScan( rIsSame ) ;
       }
 
       rc = rcl ? rcl : rcr ;
@@ -426,11 +425,11 @@ namespace engine
 
       if ( SCAN_LEFT == _fromDir )
       {
-         isSame = lIsSame ;
+         isCursorSame = lIsSame ;
       }
       else if ( SCAN_RIGHT == _fromDir )
       {
-         isSame = rIsSame ;
+         isCursorSame = rIsSame ;
       }
 
       /// sync left to right
@@ -518,10 +517,6 @@ namespace engine
       }
 
    done :
-      if ( pIsCursorSame )
-      {
-         *pIsCursorSame = isSame ;
-      }
       PD_TRACE_EXITRC ( SDB__RTNMERGEIXSCAN_RESUMESCAN, rc ) ;
       return rc ;
    error :
@@ -571,6 +566,41 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEIXSCAN_CHECKSNAPSHOTID, "_rtnMergeIXScanner::checkSnapshotID" )
+   INT32 _rtnMergeIXScanner::checkSnapshotID( BOOLEAN &isCursorSame )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNMERGEIXSCAN_CHECKSNAPSHOTID ) ;
+
+      SDB_ASSERT( SCAN_NONE != _fromDir, "Invalid scann from" ) ;
+
+      if ( SCAN_LEFT == _fromDir )
+      {
+         rc = _leftIXScanner->checkSnapshotID( isCursorSame ) ;
+      }
+      else
+      {
+         rc = _rightIXScanner->checkSnapshotID( isCursorSame ) ;
+      }
+      if ( SDB_IXM_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to check snapshot ID, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNMERGEIXSCAN_CHECKSNAPSHOTID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    const dmsRecordID& _rtnMergeIXScanner::getSavedRIDFromChild() const
    {
       SDB_ASSERT( SCAN_NONE != _fromDir, "Invalid scann from" ) ;
@@ -587,7 +617,7 @@ namespace engine
                                         _rightIXScanner->getSavedObj() ;
    }
 
-   INT32 _rtnMergeIXScanner::relocateRID( BOOLEAN &found )
+   INT32 _rtnMergeIXScanner::_relocateRID( BOOLEAN &found )
    {
       SDB_ASSERT( FALSE, "Can't call the function" ) ;
       return SDB_SYS ;
@@ -691,21 +721,10 @@ namespace engine
       return -1 ;
    }
 
-   rtnPredicateListIterator*  _rtnMergeIXScanner::getPredicateListInterator()
+   rtnPredicateListIterator*  _rtnMergeIXScanner::_getPredicateListInterator()
    {
       SDB_ASSERT( FALSE, "Can't call the function" ) ;
       return NULL ;
-   }
-
-   INT32 _rtnMergeIXScanner::isCursorSame( const BSONObj &saveObj,
-                                           const dmsRecordID &saveRID,
-                                           BOOLEAN &isSame )
-   {
-      SDB_ASSERT( SCAN_NONE != _fromDir, "Invalid scann from" ) ;
-
-      return ( SCAN_LEFT == _fromDir ) ?
-             _leftIXScanner->isCursorSame( saveObj, saveRID, isSame ) :
-             _rightIXScanner->isCursorSame( saveObj, saveRID, isSame ) ;
    }
 
    const BSONObj* _rtnMergeIXScanner::getCurKeyObj() const

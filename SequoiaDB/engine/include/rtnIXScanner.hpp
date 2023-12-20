@@ -149,9 +149,6 @@ namespace engine
       virtual INT32 init() ;
       virtual void  setReadonly( BOOLEAN isReadonly ) ;
 
-      virtual INT32 resumeScan( BOOLEAN *pIsCursorSame = NULL ) = 0 ;
-      virtual INT32 pauseScan() = 0 ;
-
       virtual INT32 relocateRID( const BSONObj &keyObj,
                                  const dmsRecordID &rid ) = 0 ;
 
@@ -169,13 +166,9 @@ namespace engine
       virtual const dmsRecordID& getSavedRID () const = 0 ;
       virtual const BSONObj*  getSavedObj () const = 0 ;
 
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) = 0 ;
-
    protected:
-      virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;
-      virtual rtnPredicateListIterator*   getPredicateListInterator() = 0 ;
+      virtual INT32 _relocateRID( BOOLEAN &found ) = 0 ;
+      virtual rtnPredicateListIterator*   _getPredicateListInterator() = 0 ;
 
    protected:
       BOOLEAN                 _insert2Dup( const dmsRecordID &rid ) ;

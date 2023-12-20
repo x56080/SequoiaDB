@@ -65,6 +65,21 @@ namespace wiredtiger
 
       virtual ~_dmsWTCollection() = default ;
 
+      virtual const dmsCLMetadata &getMetadata() const
+      {
+         return _metadata ;
+      }
+
+      virtual dmsCLMetadata &getMetadata()
+      {
+         return _metadata ;
+      }
+
+      virtual UINT64 fetchSnapshotID()
+      {
+         return _metadata.fetchSnapshotID() ;
+      }
+
       virtual INT32 createIndex( const dmsIdxMetadata &metadata,
                                  const dmsCreateIdxOptions &options,
                                  IExecutor *executor ) ;
@@ -82,6 +97,7 @@ namespace wiredtiger
                                std::shared_ptr<IIndex> &idxPtr ) ;
 
       virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) ;
+
       virtual INT32 insertRecord( const dmsRecordID &rid,
                                   const dmsRecordData &recordData,
                                   IExecutor *executor ) ;
@@ -108,6 +124,7 @@ namespace wiredtiger
                                  UINT32 clLID,
                                  ossPoolString &dataURI ) ;
 
+   protected:
       INT32 _addIndex( const dmsIdxMetadata &metadata,
                        const dmsWTStore &store,
                        std::shared_ptr<IIndex> &idxPtr ) ;

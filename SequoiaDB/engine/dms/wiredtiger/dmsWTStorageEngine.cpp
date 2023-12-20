@@ -53,8 +53,10 @@ namespace wiredtiger
    /*
       _dmsWTStorageEngine implement
     */
-   _dmsWTStorageEngine::_dmsWTStorageEngine( dmsWTEngineOptions &options )
-   : _options( options )
+   _dmsWTStorageEngine::_dmsWTStorageEngine( _dmsWTStorageService &service,
+                                             dmsWTEngineOptions &options )
+   : _service( service ),
+     _options( options )
    {
    }
 
@@ -443,6 +445,26 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT, "_dmsWTStorageEngine::extractFromStore" )
+   INT32 _dmsWTStorageEngine::extractFromStore( dmsWTCursor &cursor,
+                                                UINT64 key,
+                                                dmsWTItem &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT ) ;
+
+      rc = cursor.searchAndGetValue( key, value ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT, rc ) ;
       return rc ;
 
    error:

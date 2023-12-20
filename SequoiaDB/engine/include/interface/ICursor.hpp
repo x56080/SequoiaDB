@@ -71,6 +71,9 @@ namespace engine
       virtual INT32 close() = 0 ;
 
       virtual INT32 advance( IExecutor *executor ) = 0 ;
+
+      virtual UINT64 getSnapshotID() const = 0 ;
+      virtual void resetSnapshotID( UINT64 snapshotID ) = 0 ;
    } ;
 
    /*
@@ -89,7 +92,13 @@ namespace engine
                           const dmsRecordID &startRID,
                           BOOLEAN isAfterStartRID,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
                           IExecutor *executor ) = 0 ;
+
+      virtual INT32 locate( const dmsRecordID &rid,
+                            BOOLEAN isAfterStartRID,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) = 0 ;
 
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) = 0 ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) = 0 ;
@@ -111,6 +120,7 @@ namespace engine
                           const keystring::keyString &startKey,
                           BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
                           IExecutor *executor ) = 0 ;
 
       virtual INT32 locate( const bson::BSONObj &key,

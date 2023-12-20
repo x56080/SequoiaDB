@@ -89,6 +89,8 @@ namespace wiredtiger
          return nullptr != _session ;
       }
 
+      static _dmsWTSession &getPersistSession( IExecutor *executor ) ;
+
    protected:
       WT_SESSION *_session = nullptr ;
    } ;

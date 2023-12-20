@@ -68,6 +68,16 @@ namespace wiredtiger
          return _metadata ;
       }
 
+      virtual dmsIdxMetadata &getMetadata()
+      {
+         return _metadata ;
+      }
+
+      virtual UINT64 fetchSnapshotID()
+      {
+         return _metadata.fetchSnapshotID() ;
+      }
+
       virtual INT32 truncate( const dmsTruncateIdxOptions &options,
                               IExecutor *executor ) ;
 

@@ -106,6 +106,11 @@ namespace engine
    {
    }
 
+   UINT64 _dmsCLMetadata::fetchSnapshotID()
+   {
+      return _mbStat ? _mbStat->_snapshotID.fetch() : DMS_INVALID_SNAPSHOT_ID ;
+   }
+
    /*
       _dmsIdxMetadata implement
     */

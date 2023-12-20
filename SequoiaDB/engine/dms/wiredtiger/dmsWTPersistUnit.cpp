@@ -65,12 +65,12 @@ namespace wiredtiger
       _session.close() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTPERSISTUNIT__BEGINUNIT, "_dmsWTPersistUnit::_beginUnit" )
-   INT32 _dmsWTPersistUnit::_beginUnit( IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTPERSISTUNIT_INITUNIT, "_dmsWTPersistUnit::initUnit" )
+   INT32 _dmsWTPersistUnit::initUnit( IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__BEGINUNIT ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT_INITUNIT ) ;
 
       if ( !_session.isOpened() )
       {
@@ -78,6 +78,21 @@ namespace wiredtiger
          rc = _engine.openSession( _session, dmsWTSessIsolation::SNAPSHOT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
       }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTPERSISTUNIT_INITUNIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTPERSISTUNIT__BEGINUNIT, "_dmsWTPersistUnit::_beginUnit" )
+   INT32 _dmsWTPersistUnit::_beginUnit( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__BEGINUNIT ) ;
 
       rc = _session.beginTrans() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc ) ;
@@ -151,34 +166,6 @@ namespace wiredtiger
 
    error:
       goto done ;
-   }
-
-   dmsWTSession &_dmsWTPersistUnit::getPersistSession( IExecutor *executor )
-   {
-      static dmsWTSession s_emptySession ;
-
-      dmsWTPersistUnit *pu = nullptr ;
-
-      SDB_ASSERT( executor &&
-                  executor->getSession() &&
-                  executor->getSession()->getOperationContext(),
-                  "executor is invalid" ) ;
-
-      if ( executor &&
-           executor->getSession() &&
-           executor->getSession()->getOperationContext() &&
-           executor->getSession()->getOperationContext()->getPersistUnit() )
-      {
-         pu = dynamic_cast<dmsWTPersistUnit *>(
-               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
-
-         if ( pu )
-         {
-            return pu->getSession() ;
-         }
-      }
-
-      return s_emptySession ;
    }
 
 }

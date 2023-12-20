@@ -69,7 +69,9 @@ namespace engine
       {
       }
 
-      virtual ~_rtnScanner() {}
+      virtual ~_rtnScanner()
+      {
+      }
 
    public:
       BOOLEAN isEOF() const
@@ -78,6 +80,10 @@ namespace engine
       }
 
       virtual INT32 advance( dmsRecordID &rid ) = 0 ;
+      virtual INT32 resumeScan( BOOLEAN &isCursorSame ) = 0 ;
+      virtual INT32 pauseScan() = 0 ;
+
+      virtual INT32 checkSnapshotID( BOOLEAN &isCursorSame ) = 0 ;
 
    protected:
       _dmsStorageUnit *_su ;

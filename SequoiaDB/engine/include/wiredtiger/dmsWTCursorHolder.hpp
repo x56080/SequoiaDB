@@ -51,15 +51,10 @@ namespace wiredtiger
    /*
       _dmsWTCursorHolder define
     */
-   class _dmsWTCursorHolder
+   class _dmsWTCursorHolder : public _utilPooledObject
    {
    public:
-      _dmsWTCursorHolder()
-      : _session(),
-        _cursor( _session )
-      {
-      }
-
+      _dmsWTCursorHolder( dmsWTSession &session ) ;
       virtual ~_dmsWTCursorHolder() = default ;
       _dmsWTCursorHolder( const _dmsWTCursorHolder & ) = delete ;
       _dmsWTCursorHolder &operator =( const _dmsWTCursorHolder & ) = delete ;
@@ -68,24 +63,24 @@ namespace wiredtiger
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
-                   dmsWTSessIsolation isolation,
                    UINT64 startKey,
                    BOOLEAN isAfterStartKey,
                    BOOLEAN isForward,
+                   UINT64 snapshotID,
                    IExecutor *executor ) ;
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
-                   dmsWTSessIsolation isolation,
                    const dmsWTItem &startKey,
                    BOOLEAN isAfterStartKey,
                    BOOLEAN isForward,
+                   UINT64 snapshotID,
                    IExecutor *executor ) ;
       INT32 _open( dmsWTStorageEngine &engine,
                    const ossPoolString &uri,
                    const ossPoolString &config,
-                   dmsWTSessIsolation isolation,
                    BOOLEAN isForward,
+                   UINT64 snapshotID,
                    IExecutor *executor ) ;
 
       INT32 _advance( IExecutor *executor ) ;
@@ -93,8 +88,8 @@ namespace wiredtiger
       INT32 _close() ;
 
    protected:
-      dmsWTSession _session ;
       dmsWTCursor _cursor ;
+      UINT64 _snapshotID = DMS_INVALID_SNAPSHOT_ID ;
       BOOLEAN _isOpened = FALSE ;
       BOOLEAN _isClosed = FALSE ;
       BOOLEAN _isForward = TRUE ;

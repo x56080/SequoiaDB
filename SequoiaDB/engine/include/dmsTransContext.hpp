@@ -48,7 +48,7 @@ namespace engine
 {
 
    class _dmsMBContext ;
-   class _rtnIXScanner ;
+   class _rtnScanner ;
 
    /*
       _dmsScanTransContext define
@@ -57,6 +57,7 @@ namespace engine
    {
       public:
          _dmsScanTransContext( _dmsMBContext *pMBContext,
+                               _rtnScanner *pScanner,
                                DMS_ACCESS_TYPE accessType ) ;
          virtual ~_dmsScanTransContext() ;
 
@@ -69,52 +70,24 @@ namespace engine
 
          virtual void reset()
          {
+            _isCursorSame = TRUE ;
          }
 
          virtual BOOLEAN isCursorSame() const
          {
-            return TRUE ;
+            return _isCursorSame ;
          }
 
       protected:
          _dmsMBContext           *_pMBContext ;
+         _rtnScanner             *_pScanner ;
          DMS_ACCESS_TYPE         _accessType ;
+         BOOLEAN                 _isCursorSame ;
 
    } ;
    typedef _dmsScanTransContext dmsScanTransContext ;
    typedef _dmsScanTransContext dmsTBTransContext ;
-
-   /*
-      _dmsIXTransContext define
-   */
-   class _dmsIXTransContext : public _dmsScanTransContext
-   {
-      public:
-         _dmsIXTransContext( _dmsMBContext *pMBContext,
-                             DMS_ACCESS_TYPE accessType,
-                             _rtnIXScanner *pScanner ) ;
-         virtual ~_dmsIXTransContext() ;
-
-      public:
-         virtual INT32 pause() ;
-         virtual INT32 resume() ;
-
-         virtual void reset()
-         {
-            _isSame = TRUE ;
-         }
-
-         virtual BOOLEAN isCursorSame() const
-         {
-            return _isSame ;
-         }
-
-      protected:
-         _rtnIXScanner           *_pScanner ;
-         BOOLEAN                 _isSame ;
-
-   } ;
-   typedef _dmsIXTransContext dmsIXTransContext ;
+   typedef _dmsScanTransContext dmsIXTransContext ;
 
 }
 

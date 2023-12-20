@@ -65,13 +65,22 @@ namespace engine
       }
 
       virtual INT32 advance( dmsRecordID &rid ) ;
+      virtual INT32 resumeScan( BOOLEAN &isCursorSame ) ;
+      virtual INT32 pauseScan() ;
+      virtual INT32 checkSnapshotID( BOOLEAN &isCursorSame ) ;
+
       INT32 getCurrentRID( dmsRecordID &nextRID ) ;
       INT32 getCurrentRecord( dmsRecordData &recordData ) ;
 
    protected:
+      INT32 _firstInit() ;
+      INT32 _relocateRID( dmsRecordID &rid, BOOLEAN &isFound ) ;
+
+   protected:
+      BOOLEAN _init ;
       dmsRecordID _startRID ;
       BOOLEAN _isAfterStartRID ;
-
+      dmsRecordID _savedRID ;
       std::unique_ptr<IDataCursor> _cursorPtr ;
    } ;
 

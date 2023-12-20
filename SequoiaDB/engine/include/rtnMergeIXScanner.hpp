@@ -77,8 +77,9 @@ namespace engine
       virtual void  setReadonly( BOOLEAN isReadonly ) ;
 
       virtual INT32 advance ( dmsRecordID &rid ) ;
-      virtual INT32 resumeScan( BOOLEAN *pIsCursorSame = NULL ) ;
+      virtual INT32 resumeScan( BOOLEAN &isCursorSame ) ;
       virtual INT32 pauseScan() ;
+      virtual INT32 checkSnapshotID( BOOLEAN &isCursorSame ) ;
 
       virtual INT32 relocateRID( const BSONObj &keyObj,
                                  const dmsRecordID &rid ) ;
@@ -94,13 +95,9 @@ namespace engine
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) ;
-
    protected:
-      virtual INT32 relocateRID( BOOLEAN &found ) ;
-      virtual rtnPredicateListIterator*   getPredicateListInterator() ;
+      virtual INT32 _relocateRID( BOOLEAN &found ) ;
+      virtual rtnPredicateListIterator*   _getPredicateListInterator() ;
 
    protected:
       const BSONObj*       getSavedObjFromChild() const ;

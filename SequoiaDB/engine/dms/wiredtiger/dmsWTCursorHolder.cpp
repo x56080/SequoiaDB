@@ -48,14 +48,19 @@ namespace wiredtiger
    /*
       _dmsWTCursorHolder implement
     */
+   _dmsWTCursorHolder::_dmsWTCursorHolder( dmsWTSession &session )
+   : _cursor( session )
+   {
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSORHOLDER__OPEN_INT, "_dmsWTCursorHolder::_open" )
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
-                                    dmsWTSessIsolation isolation,
                                     UINT64 startKey,
                                     BOOLEAN isAfterStartKey,
                                     BOOLEAN isForward,
+                                    UINT64 snapshotID,
                                     IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -63,9 +68,6 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN_INT ) ;
 
       BOOLEAN isFound = FALSE ;
-
-      rc = engine.openSession( _session, isolation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
@@ -91,8 +93,9 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
       _isForward = isForward ;
+      _snapshotID = snapshotID ;
+      _isOpened = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_INT, rc ) ;
@@ -107,10 +110,10 @@ namespace wiredtiger
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
-                                    dmsWTSessIsolation isolation,
                                     const dmsWTItem &startKey,
                                     BOOLEAN isAfterStartKey,
                                     BOOLEAN isForward,
+                                    UINT64 snapshotID,
                                     IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -118,9 +121,6 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN_ITEM ) ;
 
       BOOLEAN isFound = FALSE ;
-
-      rc = engine.openSession( _session, isolation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
@@ -146,8 +146,9 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
       _isForward = isForward ;
+      _snapshotID = snapshotID ;
+      _isOpened = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_ITEM, rc ) ;
@@ -162,16 +163,13 @@ namespace wiredtiger
    INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
                                     const ossPoolString &uri,
                                     const ossPoolString &config,
-                                    dmsWTSessIsolation isolation,
                                     BOOLEAN isForward,
+                                    UINT64 snapshotID,
                                     IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN ) ;
-
-      rc = engine.openSession( _session, isolation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
@@ -198,8 +196,9 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
       _isForward = isForward ;
+      _snapshotID = snapshotID ;
+      _isOpened = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN, rc ) ;

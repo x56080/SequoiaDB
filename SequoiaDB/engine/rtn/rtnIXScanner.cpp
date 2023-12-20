@@ -282,7 +282,7 @@ namespace engine
          goto error ;
       }
 
-      sourcePredIter = source->getPredicateListInterator() ;
+      sourcePredIter = source->_getPredicateListInterator() ;
       if ( NULL == sourcePredIter )
       {
          rc = SDB_INVALIDARG ;
@@ -290,7 +290,7 @@ namespace engine
          goto error ;
       }
 
-      targetPredIter = getPredicateListInterator() ;
+      targetPredIter = _getPredicateListInterator() ;
       if ( NULL == targetPredIter )
       {
          rc = SDB_INVALIDARG ;

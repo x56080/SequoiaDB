@@ -65,7 +65,7 @@ namespace engine
 
    /*
       _dmsIndexRecordRW implement
-   */
+    */
    class _dmsIndexRecordRW : public _dmsRecordRW
    {
       public:
@@ -80,6 +80,65 @@ namespace engine
          }
    } ;
    typedef _dmsIndexRecordRW dmsIndexRecordRW ;
+
+   /*
+      _dmsScannerContext implement
+    */
+   _dmsScannerContext::_dmsScannerContext( dmsSecScanner *scanner )
+   : _hasPaused( FALSE ),
+     _scanner( scanner )
+   {
+   }
+
+   _dmsScannerContext::~_dmsScannerContext ()
+   {
+      _hasPaused = FALSE ;
+      _scanner = NULL ;
+   }
+
+   INT32 _dmsScannerContext::pause()
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isHolding = FALSE ;
+      dpsTransRetInfo dpsTxResInfo ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      isHolding = transCB->transIsHolding( _scanner->getEDUCB(),
+                                           _scanner->getDataSU()->logicalID(),
+                                           _scanner->getMBContext()->mbID(),
+                                           &_scanner->getAdvancedRecordID() ) ;
+
+      if ( isHolding )
+      {
+         _hasPaused = TRUE ;
+         // don't need to release transaction locks here, since we need them holding
+         return  _scanner->getScanner()->pauseScan() ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _dmsScannerContext::resume()
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isCursorSame = FALSE ;
+
+      if ( !_hasPaused )
+      {
+         goto done ;
+      }
+
+      _hasPaused = FALSE ;
+      rc  = _scanner->getScanner()->resumeScan( isCursorSame ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resume scan, rc: %d", rc ) ;
+
+      SDB_ASSERT( TRUE == isCursorSame, "Must be same" ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
    /*
       _dmsScanner implement
@@ -523,6 +582,7 @@ namespace engine
       _onRecordLocked( curRID, transContext, skipRecord ) ;
 
    done:
+      _callback.detachRecordRW() ;
       PD_TRACE_EXITRC( SDB__DMSIXSECSCAN__CHECKTRANSLOCK, rc ) ;
       return rc ;
 
@@ -588,6 +648,7 @@ namespace engine
     */
    _dmsSecScanner::_dmsSecScanner( dmsStorageDataCommon *su,
                                    dmsMBContext *context,
+                                   rtnScanner *scanner,
                                    mthMatchRuntime *matchRuntime,
                                    DMS_ACCESS_TYPE accessType,
                                    INT64 maxRecords,
@@ -596,6 +657,9 @@ namespace engine
                                    IDmsOprHandler *handler )
    : _dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, handler ),
      _dmsScannerLockHandler( handler, flags ),
+     _scanner( scanner ),
+     _transContext( context, scanner, accessType ),
+     _scannerContext( this ),
      _curRecordPtr( NULL ),
      _isCountOnly( FALSE ),
      _firstRun( TRUE ),
@@ -655,13 +719,28 @@ namespace engine
 
    void _dmsSecScanner::stop()
    {
-      _onStop() ;
+      if ( _curRID.isValid() )
+      {
+         INT32 rc = _scanner->pauseScan() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
+         }
+      }
       _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
       _curRID.reset() ;
    }
 
    void _dmsSecScanner::pause()
    {
+      if ( _curRID.isValid() )
+      {
+         INT32 rc = _scanner->pauseScan() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
+         }
+      }
       _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
       _context->pause() ;
       _firstRun = TRUE ;
@@ -675,6 +754,11 @@ namespace engine
    const dmsTransRecordInfo* _dmsSecScanner::recordInfo() const
    {
       return _callback.getTransRecordInfo() ;
+   }
+
+   BOOLEAN _dmsSecScanner::isHitEnd() const
+   {
+      return _scanner ? _scanner->isEOF() : TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN__FIRSTINIT, "_dmsSecScanner::_firstInit" )
@@ -714,7 +798,7 @@ namespace engine
       // CL lock right in the beginning to avoid extra performance overhead
       // to acquire these locks when acquiring record lock in each step
       // We release and require the lock during pauseScan/resumeScan
-      rc = _acquireCSCLLock( _pSu, _context, cb, &( _getTransContext() ) ) ;
+      rc = _acquireCSCLLock( _pSu, _context, cb, &_transContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to acquired collection space and "
                    "collection locks, rc: %d", rc ) ;
 
@@ -741,17 +825,18 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSECSCAN__FETCHNEXT ) ;
 
-      BOOLEAN result          = TRUE ;
+      BOOLEAN result = TRUE ;
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
 
-      _hasLockedRecord        = FALSE ;
+      _hasLockedRecord = FALSE ;
 
       while ( ( !isHitEnd() ) &&
               ( _onceRestNum -- > 0 ) &&
               ( 0 != _maxRecords ) )
       {
          dmsRecordID lastRID = _curRID ;
+         dmsRecordRW recordRW ;
          rc = _advanceScanner( cb ) ;
          if ( SDB_OK != rc )
          {
@@ -765,13 +850,30 @@ namespace engine
          if ( DPS_TRANSLOCK_MAX != _recordLock )
          {
             BOOLEAN skipRecord = FALSE ;
-            dmsScanTransContext &transContext = _getTransContext() ;
-            transContext.reset() ;
-            rc = _checkTransLock( _pSu, _context, _curRID, cb, &transContext,
-                                  _recordRW, lastRID, skipRecord ) ;
+            _transContext.reset() ;
+            rc = _checkTransLock( _pSu, _context, _curRID, cb, &_transContext,
+                                  recordRW, lastRID, skipRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, rc: %d", rc ) ;
 
             if ( skipRecord )
+            {
+               continue ;
+            }
+         }
+
+         if ( recordRW.isEmpty() )
+         {
+            BOOLEAN isSnapshotSame = FALSE ;
+            rc = _checkSnapshotID( isSnapshotSame ) ;
+            if ( SDB_OK != rc )
+            {
+               if ( SDB_DMS_EOC != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to check snapshot ID, rc: %d", rc ) ;
+               }
+               goto error ;
+            }
+            if ( !isSnapshotSame )
             {
                continue ;
             }
@@ -800,8 +902,16 @@ namespace engine
          {
             recordID = _curRID ;
 
-            rc = _getCurrentRecord( recordData ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get record data, rc: %d", rc ) ;
+            if ( recordRW.isEmpty() )
+            {
+               rc = _getCurrentRecord( recordData ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get record data, rc: %d", rc ) ;
+            }
+            else
+            {
+               const dmsRecord *record = recordRW.readPtr( 0 ) ;
+               recordData.setData( record->getData(), record->getDataLength() ) ;
+            }
 
             recordDataPtr = ( ossValuePtr )recordData.data() ;
             generator.setDataPtr( recordDataPtr ) ;
@@ -890,11 +1000,10 @@ namespace engine
          }
       }
 
-      rc = _onFetchEOC() ;
-      if ( SDB_OK == rc )
-      {
-         rc = SDB_DMS_EOC ;
-      }
+      // pause scanner on section EOC
+      rc = _scanner->pauseScan() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ; ;
+      rc = SDB_DMS_EOC ;
       goto error ;
 
    done:
@@ -925,22 +1034,16 @@ namespace engine
                                      IDmsOprHandler *opHandler )
    : _dmsSecScanner( su,
                      context,
+                     scanner,
                      matchRuntime,
                      accessType,
                      maxRecords,
                      skipNum,
                      flags,
                      opHandler ),
-     _scannerContext( this ),
-     _transContext( context, accessType )
+     _scanner( scanner )
    {
       SDB_ASSERT( NULL != scanner, "scanner should not be NULL" ) ;
-      _scanner = scanner ;
-   }
-
-   BOOLEAN _dmsDataScanner::isHitEnd() const
-   {
-      return _scanner ? _scanner->isEOF() : TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__ONFIRSTINIT, "_dmsDataScanner::_onFirstInit" )
@@ -950,11 +1053,13 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSDATASCAN__ONFIRSTINIT ) ;
 
-      if ( NULL == _scanner )
-      {
-         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
-         goto error ;
-      }
+      BOOLEAN isCursorSame = FALSE ;
+
+      PD_CHECK( _scanner, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to init scanner, scanner is invalid" ) ;
+
+      rc = _scanner->resumeScan( isCursorSame ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resum scanner, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSDATASCAN__ONFIRSTINIT, rc ) ;
@@ -983,6 +1088,40 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DMSDATASCAN__ONADVANCESCANNER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__CHECKSNAPSHOTID, "_dmsDataScanner::_checkSnapshotID" )
+   INT32 _dmsDataScanner::_checkSnapshotID( BOOLEAN &isSnapshotSame )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSDATASCAN__CHECKSNAPSHOTID ) ;
+
+      rc = _scanner->checkSnapshotID( isSnapshotSame ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check snapshot ID, rc: %d", rc ) ;
+
+      if ( !isSnapshotSame )
+      {
+         rc = _scanner->pauseScan() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ; ;
+
+         rc = _scanner->resumeScan( isSnapshotSame ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Failed to resume scanner, rc: %d", rc ) ;
+            }
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSDATASCAN__CHECKSNAPSHOTID, rc ) ;
       return rc ;
 
    error:
@@ -1039,23 +1178,17 @@ namespace engine
                                        INT32 flags,
                                        IDmsOprHandler *opHandler )
    : _dmsSecScanner( su,
-                       context,
-                       matchRuntime,
-                       accessType,
-                       maxRecords,
-                       skipNum,
-                       flags,
-                       opHandler ),
-     _scannerContext( this, scanner ),
-     _transContext( context, accessType, scanner )
+                     context,
+                     scanner,
+                     matchRuntime,
+                     accessType,
+                     maxRecords,
+                     skipNum,
+                     flags,
+                     opHandler ),
+     _scanner( scanner )
    {
       SDB_ASSERT( NULL != scanner, "scanner should not be NULL" ) ;
-      _scanner = scanner ;
-   }
-
-   BOOLEAN _dmsIndexScanner::isHitEnd() const
-   {
-      return _scanner ? _scanner->isEOF() : TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__ONFIRSTINIT, "_dmsIndexScanner::_onFirstInit" )
@@ -1065,11 +1198,11 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSIDXSCAN__ONFIRSTINIT ) ;
 
-      if ( NULL == _scanner )
-      {
-         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
-         goto error ;
-      }
+      BOOLEAN isCursorSame = FALSE ;
+
+      PD_CHECK( _scanner, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to init scanner, scanner is invalid" ) ;
+
       _scanner->setReadonly( isReadOnly() ) ;
       if ( DPS_TRANSLOCK_MAX == _recordLock ||
            cb->getTransExecutor()->isLockEscalated( LOCKMGR_TRANS_LOCK ) )
@@ -1077,7 +1210,7 @@ namespace engine
          _scanner->disableByType( SCANNER_TYPE_MEM_TREE ) ;
       }
 
-      rc = _scanner->resumeScan() ;
+      rc = _scanner->resumeScan( isCursorSame ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resum index scanner, rc: %d", rc ) ;
 
       _callback.setIXScanner( _scanner ) ;
@@ -1088,44 +1221,6 @@ namespace engine
 
    error:
       goto done ;
-   }
-
-   INT32 _dmsIndexScanner::_onFetchEOC()
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _scanner->pauseScan() ;
-      PD_RC_CHECK( rc, PDERROR, "Pause scan failed, rc: %d", rc ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   void _dmsIndexScanner::_onPause()
-   {
-      if ( _curRID.isValid() )
-      {
-         INT32 rc = _scanner->pauseScan() ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
-         }
-      }
-   }
-
-   void _dmsIndexScanner::_onStop()
-   {
-      if ( _curRID.isValid() )
-      {
-         INT32 rc = _scanner->pauseScan() ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to pause scanner, rc: %d", rc ) ;
-         }
-      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__ONADVANCESCANNER, "_dmsIndexScanner::_advanceScanner" )
@@ -1151,6 +1246,44 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DMSIDXSCAN__ONADVANCESCANNER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__CHECKSNAPSHOTID, "_dmsIndexScanner::_checkSnapshotID" )
+   INT32 _dmsIndexScanner::_checkSnapshotID( BOOLEAN &isSnapshotSame )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSIDXSCAN__CHECKSNAPSHOTID ) ;
+
+      rc = _scanner->checkSnapshotID( isSnapshotSame ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check snapshot ID, rc: %d", rc ) ;
+
+      if ( !isSnapshotSame )
+      {
+         rc = _scanner->pauseScan() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ; ;
+
+         rc = _scanner->resumeScan( isSnapshotSame ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( SDB_IXM_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Failed to resume scanner, rc: %d", rc ) ;
+            }
+            else
+            {
+               rc = SDB_DMS_EOC ;
+            }
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIDXSCAN__CHECKSNAPSHOTID, rc ) ;
       return rc ;
 
    error:
@@ -1245,8 +1378,7 @@ namespace engine
                                            IDmsOprHandler *handler )
    :_dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, handler ),
     _dmsScannerLockHandler( handler, flags ),
-    _curRecordPtr( NULL ),
-    _scannerContext( this )
+    _curRecordPtr( NULL )
    {
       _maxRecords          = maxRecords ;
       _skipNum             = skipNum ;
@@ -1434,7 +1566,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSEXTSCAN__FIRSTINIT );
 
-      dmsTBTransContext tbTxContext( _context, _accessType ) ;
+      dmsTBTransContext tbTxContext( _context, NULL, _accessType ) ;
 
       _initLockInfo( _pSu, _context, _accessType, cb ) ;
 
@@ -1593,7 +1725,7 @@ namespace engine
 
          if ( _recordLock != DPS_TRANSLOCK_MAX )
          {
-            dmsTBTransContext tbTxContext( _context, _accessType ) ;
+            dmsTBTransContext tbTxContext( _context, NULL, _accessType ) ;
             dpsTransRetInfo   lockConflict ;
 
             // attach the recordRW in callback
@@ -2300,6 +2432,7 @@ namespace engine
                                      _mthMatchTreeContext *mthContext )
    {
       INT32 rc = SDB_OK ;
+
       if ( _firstRun )
       {
          rc = _firstInit() ;
@@ -2362,7 +2495,7 @@ namespace engine
                         skipNum, flag, opHandler ),
      _secScanner( su, context, scanner, matchRuntime, accessType, maxRecords,
                   skipNum, flag, opHandler ),
-     _scannerContext( this )
+     _scannerContext( &_secScanner )
    {
    }
 
@@ -2503,8 +2636,7 @@ namespace engine
                                        IDmsOprHandler *opHandler )
    :_dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
     _dmsScannerLockHandler( opHandler, flag ),
-    _curRecordPtr( NULL ),
-    _ixScannerContext( this, scanner )
+    _curRecordPtr( NULL )
    {
       _maxRecords          = maxRecords ;
       _skipNum             = skipNum ;
@@ -2638,7 +2770,8 @@ namespace engine
    {
       INT32 rc          = SDB_OK ;
 
-      dmsIXTransContext ixTxContext( _context, _accessType, _scanner ) ;
+      BOOLEAN isCursorSame = FALSE ;
+      dmsIXTransContext ixTxContext( _context, _scanner, _accessType ) ;
 
       _initLockInfo( _pSu, _context, _accessType, cb ) ;
 
@@ -2673,9 +2806,9 @@ namespace engine
          goto error ;
       }
 
-      rc = _scanner->resumeScan() ;
+      rc = _scanner->resumeScan( isCursorSame ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
-      _cb   = cb ;
+      _cb = cb ;
 
       // As a performance improvement, we are going to acquire the CS and
       // CL lock right in the beginning to avoid extra performance overhead
@@ -2758,7 +2891,7 @@ namespace engine
       if ( _recordLock != DPS_TRANSLOCK_MAX )
       {
          dpsTransRetInfo   lockConflict ;
-         dmsIXTransContext ixTxContext( _context, _accessType, _scanner ) ;
+         dmsIXTransContext ixTxContext( _context, _scanner, _accessType ) ;
 
          /// already locked, but not the same, should release lock first
          if ( waitUnlockRID.isValid() && _curRID != waitUnlockRID )
@@ -3409,75 +3542,9 @@ namespace engine
       _curRID._offset = DMS_INVALID_OFFSET ;
    }
 
-   _dmsScannerContext::_dmsScannerContext( _dmsScanner *pScanner )
-   {
-      _pScanner = pScanner ;
-   }
-
-   _dmsScannerContext::~_dmsScannerContext()
-   {
-      _pScanner = NULL ;
-   }
-
-   _dmsIXScannerContext::_dmsIXScannerContext( _dmsScanner *pScanner,
-                                               _rtnIXScanner *pIXScanner )
-                        :_dmsScannerContext( pScanner ),
-                         _hasPaused( FALSE ), _pIXScanner( pIXScanner )
-   {
-   }
-
-   _dmsIXScannerContext::~_dmsIXScannerContext ()
-   {
-      _hasPaused = FALSE ;
-      _pIXScanner = NULL ;
-   }
-
-   INT32 _dmsIXScannerContext::pause()
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN isHolding = FALSE ;
-      dpsTransRetInfo dpsTxResInfo ;
-      dpsTransCB *transCB = sdbGetTransCB() ;
-
-      isHolding = transCB->transIsHolding( _pIXScanner->getEDUCB(),
-                                           _pIXScanner->getSu()->LogicalCSID(),
-                                           _pIXScanner->getIndexCB()->getMBID(),
-                                           &_pScanner->getAdvancedRecordID() ) ;
-
-      if ( isHolding )
-      {
-         _hasPaused = TRUE ;
-         return  _pIXScanner->pauseScan() ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _dmsIXScannerContext::resume()
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN isCursorSame = FALSE ;
-
-      if ( !_hasPaused )
-      {
-         goto done ;
-      }
-
-      _hasPaused = FALSE ;
-      rc  = _pIXScanner->resumeScan( &isCursorSame ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resume scan, rc: %d", rc ) ;
-
-      SDB_ASSERT( TRUE == isCursorSame, "Must be same" ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    /*
       _dmsIXScanner implement
-   */
+    */
    _dmsIXScanner::_dmsIXScanner( dmsStorageDataCommon *su,
                                  dmsMBContext *context,
                                  mthMatchRuntime *matchRuntime,
@@ -3493,7 +3560,7 @@ namespace engine
                         opHandler ),
      _secScanner( su, context, scanner, matchRuntime, accessType, maxRecords,
                   skipNum, flag, opHandler ),
-     _scannerContext( this, scanner )
+     _scannerContext( &_secScanner )
    {
    }
 

@@ -446,6 +446,7 @@ namespace engine
          */
          virtual ISession* getSession() = 0 ;
          virtual IRemoteSite* getRemoteSite() = 0 ;
+         virtual IOperationContext *getOperationContext() = 0 ;
 
          /*
             Status and Control

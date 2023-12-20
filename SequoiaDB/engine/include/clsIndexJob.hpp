@@ -84,7 +84,6 @@ namespace engine
          BOOLEAN _isCLNameExist() ;
 
       private:
-         _pmdDummySession      _session ;
          CLS_INDEX_THREAD_MODE _threadMode ;
          BOOLEAN               _hasSetIndexObj ; // protect _indexObj
          BOOLEAN               _retryLater ;

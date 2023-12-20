@@ -54,13 +54,17 @@ namespace engine
 namespace wiredtiger
 {
 
+   // forward declaration
+   class _dmsWTStorageService ;
+
    /*
       _dmsWTStorageEngine define
     */
    class _dmsWTStorageEngine : public IStorageEngine, public IDataSyncBase
    {
    public:
-      _dmsWTStorageEngine( dmsWTEngineOptions &options ) ;
+      _dmsWTStorageEngine( _dmsWTStorageService &service,
+                           dmsWTEngineOptions &options ) ;
       virtual ~_dmsWTStorageEngine() ;
       _dmsWTStorageEngine( const _dmsWTStorageEngine &o ) = delete ;
       _dmsWTStorageEngine &operator =( const _dmsWTStorageEngine & ) = delete ;
@@ -69,6 +73,11 @@ namespace wiredtiger
       virtual DMS_STORAGE_ENGINE_TYPE getEngineType() const
       {
          return DMS_STORAGE_ENGINE_WIREDTIGER ;
+      }
+
+      _dmsWTStorageService &getService()
+      {
+         return _service ;
       }
 
       const dmsWTEngineOptions &getOptions() const
@@ -107,6 +116,9 @@ namespace wiredtiger
       INT32 removeFromStore( const dmsWTStore &store,
                              UINT64 key ) ;
       INT32 extractFromStore( const dmsWTStore &store,
+                              UINT64 key,
+                              dmsWTItem &value ) ;
+      INT32 extractFromStore( dmsWTCursor &cursor,
                               UINT64 key,
                               dmsWTItem &value ) ;
 
@@ -165,6 +177,7 @@ namespace wiredtiger
       INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
 
    protected:
+      _dmsWTStorageService &_service ;
       dmsWTEngineOptions &_options ;
       dmsWTHandler _handler ;
       WT_CONNECTION *_conn = nullptr ;

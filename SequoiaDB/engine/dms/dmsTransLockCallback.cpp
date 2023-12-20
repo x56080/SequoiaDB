@@ -718,7 +718,7 @@ namespace engine
 
             _pScanner->disableByType( SCANNER_TYPE_MEM_TREE ) ;
 
-            rc = _pScanner->resumeScan( &isCursorSame ) ;
+            rc = _pScanner->resumeScan( isCursorSame ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to resume scanner, rc: %d", rc ) ;
 
             if ( !isCursorSame && !_skipRecord )

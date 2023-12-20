@@ -479,6 +479,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search( _cursor ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
    done:
@@ -502,6 +506,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search( _cursor ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
    done:
@@ -525,6 +533,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key.get() ) ;
 
       rc = WT_CALL( _cursor->search( _cursor ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
    done:
@@ -550,6 +562,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
       isFound = ( 0 == exact ) ;
@@ -557,6 +573,10 @@ namespace wiredtiger
            ( isAfter && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
       }
 
@@ -583,6 +603,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
       isFound = ( 0 == exact ) ;
@@ -590,6 +614,10 @@ namespace wiredtiger
            ( isAfter && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
       }
 
@@ -616,6 +644,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key.get() ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
 #if defined(_DEBUG)
@@ -636,6 +668,10 @@ namespace wiredtiger
            ( isAfter && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->next( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to next, rc: %d", rc ) ;
       }
 
@@ -662,6 +698,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
       isFound = ( 0 == exact ) ;
@@ -669,6 +709,10 @@ namespace wiredtiger
            ( isBefore && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
       }
 
@@ -695,6 +739,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
       isFound = ( 0 == exact ) ;
@@ -702,6 +750,10 @@ namespace wiredtiger
            ( isBefore && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
       }
 
@@ -728,6 +780,10 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key.get() ) ;
 
       rc = WT_CALL( _cursor->search_near( _cursor, &exact ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search near key from cursor, rc: %d", rc ) ;
 
 #if defined(_DEBUG)
@@ -748,6 +804,10 @@ namespace wiredtiger
            ( isBefore && 0 == exact ) )
       {
          rc = WT_CALL( _cursor->prev( _cursor ), _session.getSession() ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to prev, rc: %d", rc ) ;
       }
 
@@ -770,6 +830,10 @@ namespace wiredtiger
                 "Failed to get key from cursor, cursor is not opened" ) ;
 
       rc = search( key ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
       rc = WT_CALL( _cursor->get_value( _cursor, value.get() ), _session.getSession() ) ;
@@ -794,6 +858,10 @@ namespace wiredtiger
                 "Failed to get key from WiredTiger cursor, cursor is not opened" ) ;
 
       rc = search( key ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
       rc = WT_CALL( _cursor->get_value( _cursor, value.get() ), _session.getSession() ) ;
@@ -818,6 +886,10 @@ namespace wiredtiger
                 "Failed to get key from WiredTiger cursor, cursor is not opened" ) ;
 
       rc = search( key ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to search key from cursor, rc: %d", rc ) ;
 
       rc = WT_CALL( _cursor->get_value( _cursor, value.get() ), _session.getSession() ) ;

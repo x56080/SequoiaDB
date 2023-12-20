@@ -37,6 +37,7 @@
 #define SDB_I_PERSIST_UNIT_HPP_
 
 #include "sdbInterface.hpp"
+#include "interface/IStorageSession.hpp"
 #include "utilPooledObject.hpp"
 
 namespace engine

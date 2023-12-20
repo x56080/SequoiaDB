@@ -58,7 +58,7 @@ namespace wiredtiger
     */
    _dmsWTStorageService::_dmsWTStorageService()
    : _engineOptions(),
-     _engine( _engineOptions )
+     _engine( *this, _engineOptions )
    {
    }
 
@@ -151,24 +151,23 @@ namespace wiredtiger
 
       PD_CHECK( executor, SDB_SYS, error, PDERROR,
                 "Failed to get persist unit, executor is invalid" ) ;
-      PD_CHECK( executor->getSession(), SDB_SYS, error, PDERROR,
-                "Failed to get persist unit, session is invalid" ) ;
 
-      optCtx = executor->getSession()->getOperationContext() ;
+      optCtx = executor->getOperationContext() ;
       PD_CHECK( optCtx, SDB_SYS, error, PDERROR,
                 "Failed to get persist unit, operation context is invalid" ) ;
 
       persistUnit = optCtx->getPersistUnit() ;
-      if ( persistUnit )
+      if ( !persistUnit )
       {
-         goto done ;
-      }
-      else
-      {
-         std::unique_ptr<IPersistUnit> puPtr =
-               std::unique_ptr<dmsWTPersistUnit>( new dmsWTPersistUnit( _engine ) ) ;
-         PD_CHECK( puPtr, SDB_OOM, error, PDERROR,
+         dmsWTPersistUnit *wtUnit = SDB_OSS_NEW dmsWTPersistUnit( _engine ) ;
+         PD_CHECK( wtUnit, SDB_OOM, error, PDERROR,
                    "Failed to create persist unit object" ) ;
+         std::unique_ptr<IPersistUnit> puPtr = std::unique_ptr<dmsWTPersistUnit>( wtUnit ) ;
+         PD_CHECK( puPtr, SDB_OOM, error, PDERROR,
+                   "Failed to create persist unit pointer" ) ;
+         rc = wtUnit->initUnit( executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init persist unit, rc: %d", rc ) ;
+
          persistUnit = puPtr.get() ;
          optCtx->setPersistUnit( std::move(puPtr) ) ;
       }

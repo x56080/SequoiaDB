@@ -59,6 +59,7 @@ namespace engine
                                 UINT64 lsnOffset, BOOLEAN isRollBackLog,
                                 INT32 sortBufSize, UINT64 taskID,
                                 UINT64 mainTaskID )
+   : _session( TRUE )
    {
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
       _type = type ;
@@ -83,6 +84,7 @@ namespace engine
    }
 
    _rtnIndexJob::_rtnIndexJob ()
+   : _session( TRUE )
    {
       _type = RTN_JOB_CREATE_INDEX ;
       ossMemset( _clFullName, 0, sizeof( _clFullName ) ) ;
@@ -461,6 +463,18 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _rtnIndexJob::_onAttach()
+   {
+      // attach cb for dummy session
+      _session.attachCB( eduCB() ) ;
+   }
+
+   void _rtnIndexJob::_onDetach()
+   {
+      // detach cb for dummy session
+      _session.detachCB() ;
    }
 
    const CHAR* _rtnIndexJob::getIndexName () const

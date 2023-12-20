@@ -490,6 +490,10 @@ namespace engine
                                const CHAR* pDesPath = NULL ) ;
 
    BOOLEAN  dmsIsSysRecycleName ( const CHAR *collectionName ) ;
+
+   #define DMS_INVALID_SNAPSHOT_ID ( 0xFFFFFFFFFFFFFFFF )
+   #define DMS_UNIVERSAL_SNAPSHOT_ID ( 0x0 )
+
 }
 
 #endif /* DMS_HPP_ */

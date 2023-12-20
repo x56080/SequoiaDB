@@ -81,6 +81,7 @@ namespace engine
 
    protected:
       _dmsStorageDataCommon *_su = nullptr ;
+      _dmsMBStatInfo *_mbStat = nullptr ;
       UINT16 _mbID ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
@@ -141,7 +142,7 @@ namespace engine
                         BOOLEAN isEnabled = TRUE ) ;
       ~_dmsPersistGuard() ;
 
-      BOOLEAN isGuardEnabled() const
+      BOOLEAN isEnabled() const
       {
          return _isEnabled ;
       }
@@ -152,6 +153,9 @@ namespace engine
                 _persistUnit != nullptr &&
                 _persistUnit->useAtomicAbort() ;
       }
+
+      INT32 init() ;
+      INT32 fini() ;
 
       INT32 begin( IStorageService *service,
                    _dmsStorageDataCommon *su,
@@ -206,6 +210,7 @@ namespace engine
       UINT64 _orgDataLenDecDelta = 0 ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
+      BOOLEAN _hasBegin ;
    } ;
 
    typedef class _dmsPersistGuard dmsPersistGuard ;

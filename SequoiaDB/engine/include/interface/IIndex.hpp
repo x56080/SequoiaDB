@@ -61,6 +61,8 @@ namespace engine
       IIndex &operator =( const IIndex & ) = delete ;
 
       virtual const dmsIdxMetadata &getMetadata() const = 0 ;
+      virtual dmsIdxMetadata &getMetadata() = 0 ;
+      virtual UINT64 fetchSnapshotID() = 0 ;
 
       virtual INT32 truncate( const dmsTruncateIdxOptions &options,
                               IExecutor *executor ) = 0 ;

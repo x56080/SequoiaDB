@@ -284,6 +284,8 @@ namespace engine
          return dmsCLMetadataKey( getOrigUID(), getCLOrigLID() ) ;
       }
 
+      UINT64 fetchSnapshotID() ;
+
    protected:
       mutable _dmsMetadataBlock *_mb = nullptr ;
       mutable _dmsMBStatInfo *_mbStat = nullptr ;

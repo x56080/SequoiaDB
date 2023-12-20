@@ -196,9 +196,10 @@ namespace engine
 
       if ( !_treeLatchHeld )
       {
+         BOOLEAN isCursorSame = FALSE ;
          _savedObj = BSONObj() ;
 
-         rc = resumeScan() ;
+         rc = resumeScan( isCursorSame ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Resume scan failed, rc: %d", rc ) ;
@@ -302,7 +303,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnMemIXTreeScanner::relocateRID( BOOLEAN &found )
+   INT32 _rtnMemIXTreeScanner::_relocateRID( BOOLEAN &found )
    {
       return _relocateRID( found, _direction ) ;
    }
@@ -409,7 +410,7 @@ namespace engine
 
             BOOLEAN isSame = FALSE ;
 
-            rc = isCursorSame( _savedObj, _savedRID, isSame ) ;
+            rc = _checkCursorSame( _savedObj, _savedRID, isSame ) ;
             if ( rc )
             {
                goto error ;
@@ -419,7 +420,7 @@ namespace engine
             // the index, let's relocate RID
             if ( !isSame )
             {
-               rc = relocateRID( isSame ) ;
+               rc = _relocateRID( isSame ) ;
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
@@ -652,13 +653,13 @@ namespace engine
    // the new position for the saved key+rid
    // this is used in readonly query scan only
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMEMIXTREESCAN_RESUMESCAN, "_rtnMemIXTreeScanner::resumeScan" )
-   INT32 _rtnMemIXTreeScanner::resumeScan( BOOLEAN *pIsCursorSame )
+   INT32 _rtnMemIXTreeScanner::resumeScan( BOOLEAN &isCursorSame )
    {
       PD_TRACE_ENTRY ( SDB__RTNMEMIXTREESCAN_RESUMESCAN ) ;
       INT32 rc = SDB_OK ;
-      BOOLEAN isSame = TRUE ;
       oldVersionCB * oldVCB = _pTransCB->getOldVCB() ;
 
+      isCursorSame = TRUE ;
       _curKeyObj = BSONObj() ;
 
       SDB_ASSERT( !_treeLatchHeld, "Tree latch shouldn't be held" ) ;
@@ -718,12 +719,12 @@ namespace engine
            !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )
       {
          // this means the last scaned record is still here
-         isSame = TRUE ;
+         isCursorSame = TRUE ;
          _curKeyObj = _savedObj ;
       }
       else
       {
-         isSame = FALSE ;
+         isCursorSame = FALSE ;
       }
 
       if ( !isReadonly() )
@@ -731,7 +732,7 @@ namespace engine
          goto done ;
       }
 
-      if ( isSame )
+      if ( isCursorSame )
       {
          // this means the last scaned record is still here, so let's
          // reset _savedRID so that we'll call advance()
@@ -745,13 +746,13 @@ namespace engine
          // However after advance() returning the RID we'll check if the
          // index already has been read, so we should be save to not
          // reset _savedRID
-         rc = relocateRID( isSame ) ;
+         rc = _relocateRID( isCursorSame ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
             goto error ;
          }
-         if ( isSame )
+         if ( isCursorSame )
          {
             _savedRID.reset() ;
             _curKeyObj = _savedObj ;
@@ -760,10 +761,6 @@ namespace engine
       }
 
    done :
-      if ( pIsCursorSame )
-      {
-         *pIsCursorSame = isSame ;
-      }
       PD_TRACE_EXITRC ( SDB__RTNMEMIXTREESCAN_RESUMESCAN, rc ) ;
       return rc ;
    error :
@@ -775,9 +772,24 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnMemIXTreeScanner::isCursorSame( const BSONObj &saveObj,
-                                             const dmsRecordID &saveRID,
-                                             BOOLEAN &isSame )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMEMIXTREESCAN_CHECKSNAPSHOTID, "_rtnMemIXTreeScanner::checkSnapshotID" )
+   INT32 _rtnMemIXTreeScanner::checkSnapshotID( BOOLEAN &isCursorSame )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNMEMIXTREESCAN_CHECKSNAPSHOTID ) ;
+
+      SDB_ASSERT( _treeLatchHeld, "tree latch should be held" ) ;
+      isCursorSame = TRUE ;
+
+      PD_TRACE_EXITRC( SDB__RTNMEMIXTREESCAN_CHECKSNAPSHOTID, rc ) ;
+
+      return rc ;
+   }
+
+   INT32 _rtnMemIXTreeScanner::_checkCursorSame( const BSONObj &saveObj,
+                                                 const dmsRecordID &saveRID,
+                                                 BOOLEAN &isSame )
    {
       isSame = FALSE ;
 
@@ -801,7 +813,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   rtnPredicateListIterator* _rtnMemIXTreeScanner::getPredicateListInterator()
+   rtnPredicateListIterator* _rtnMemIXTreeScanner::_getPredicateListInterator()
    {
       return &_listIterator ;
    }

@@ -841,6 +841,8 @@ namespace engine
       BOOLEAN ready                = FALSE ;
       UINT16 indexType             = 0 ;
 
+      dmsPersistGuard guard( _service, _pDataSu, context, cb, TRUE ) ;
+
       rc = ixmIndexCB::checkIndexDef( index, isSys ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Index pattern[%s] is not valid, rc: %d",
@@ -874,6 +876,9 @@ namespace engine
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
+
+      rc = guard.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init persist guard, rc: %d", rc ) ;
 
       // Once we are ready, the internal function should release the extents by
       // themselves in case of any error.
@@ -1201,8 +1206,8 @@ namespace engine
       try
       {
 
-      dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(),
-                                     cb ) ;
+      dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), cb ) ;
+      dmsPersistGuard guard( _service, _pDataSu, context, cb, TRUE ) ;
 
       PD_TRACE2( SDB__DMSSTORAGEINDEX_DROPIDX2,
                  PD_PACK_INT(indexID),
@@ -1226,6 +1231,9 @@ namespace engine
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
+
+      rc = guard.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init persist guard, rc: %d", rc ) ;
 
       {
          // get index control block

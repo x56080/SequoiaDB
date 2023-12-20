@@ -55,11 +55,17 @@ namespace
    /*
       _dmsWTDataCursor implement
     */
+   _dmsWTDataCursor::_dmsWTDataCursor( dmsWTSession &session )
+   : _dmsWTCursorHolder( session )
+   {
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_OPEN, "_dmsWTDataCursor::open" )
    INT32 _dmsWTDataCursor::open( shared_ptr<ICollection> collPtr,
                                  const dmsRecordID &startRID,
                                  BOOLEAN isAfterStartRID,
                                  BOOLEAN isForward,
+                                 UINT64 snapshotID,
                                  IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -72,6 +78,8 @@ namespace
       PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
                 "Failed to open cursor, collection is not WiredTiger collection" ) ;
 
+      resetSnapshotID( collPtr->fetchSnapshotID() ) ;
+      _resetCache() ;
       if ( startRID.isValid() )
       {
          // fix record ID key here, avoid move call inside WiredTiger
@@ -100,14 +108,13 @@ namespace
          }
 
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_COMMITTED, key, FALSE,
-                     isForward, executor ) ;
+                     "", key, FALSE, isForward, snapshotID, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_COMMITTED, isForward, executor ) ;
+                     "", isForward, snapshotID, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 
@@ -122,6 +129,55 @@ namespace
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_LOCATE, "_dmsWTDataCursor::locate" )
+   INT32 _dmsWTDataCursor::locate( const dmsRecordID &rid,
+                                   BOOLEAN isAfterRID,
+                                   IExecutor *executor,
+                                   BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_LOCATE ) ;
+
+      UINT64 key = rid.toUINT64() ;
+
+      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                "Failed to get current key string, cursor is hit end" ) ;
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get current key string, cursor is not opened" ) ;
+
+      resetSnapshotID( _collPtr->fetchSnapshotID() ) ;
+      _resetCache() ;
+      if ( _isForward )
+      {
+         rc = _cursor.searchNext( key, isAfterRID, isFound ) ;
+      }
+      else
+      {
+         rc = _cursor.searchPrev( key, isAfterRID, isFound ) ;
+      }
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            _isEOF = TRUE ;
+            rc = SDB_IXM_EOC ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to locate cursor, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_LOCATE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_GETCURRECID, "_dmsWTDataCursor::getCurrentRecordID" )
    INT32 _dmsWTDataCursor::getCurrentRecordID( dmsRecordID &recordID )
    {
@@ -129,17 +185,25 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_GETCURRECID ) ;
 
-      UINT64 key = 0 ;
+      if ( _recordIDCache.isValid() )
+      {
+         recordID = _recordIDCache ;
+      }
+      else
+      {
+         UINT64 key = 0 ;
 
-      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
-                "Failed to get current record ID, cursor is hit end" ) ;
-      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
-                "Failed to get current record ID, cursor is not opened" ) ;
+         PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
+                   "Failed to get current record ID, cursor is hit end" ) ;
+         PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                   "Failed to get current record ID, cursor is not opened" ) ;
 
-      rc = _cursor.getKey( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+         rc = _cursor.getKey( key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
 
-      recordID.fromUINT64( key ) ;
+         _recordIDCache.fromUINT64( key ) ;
+         recordID = _recordIDCache ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_GETCURRECID, rc ) ;

@@ -34,6 +34,7 @@
 *******************************************************************************/
 
 #include "wiredtiger/dmsWTSession.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
@@ -208,6 +209,34 @@ namespace wiredtiger
 
    error:
       goto done ;
+   }
+
+   dmsWTSession &_dmsWTSession::getPersistSession( IExecutor *executor )
+   {
+      static dmsWTSession s_emptySession ;
+
+      dmsWTPersistUnit *pu = nullptr ;
+
+      SDB_ASSERT( executor &&
+                  executor->getSession() &&
+                  executor->getSession()->getOperationContext(),
+                  "executor is invalid" ) ;
+
+      if ( executor &&
+           executor->getSession() &&
+           executor->getSession()->getOperationContext() &&
+           executor->getSession()->getOperationContext()->getPersistUnit() )
+      {
+         pu = dynamic_cast<dmsWTPersistUnit *>(
+               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
+
+         if ( pu )
+         {
+            return pu->getSession() ;
+         }
+      }
+
+      return s_emptySession ;
    }
 
 }

@@ -50,7 +50,7 @@ namespace wiredtiger
    class _dmsWTIndexCursor : public IIndexCursor, public _dmsWTCursorHolder
    {
    public:
-      _dmsWTIndexCursor() = default ;
+      _dmsWTIndexCursor( dmsWTSession &session ) ;
       virtual ~_dmsWTIndexCursor() = default ;
       _dmsWTIndexCursor( const _dmsWTIndexCursor & ) = delete ;
       _dmsWTIndexCursor &operator =( const _dmsWTIndexCursor & ) = delete ;
@@ -84,15 +84,16 @@ namespace wiredtiger
                           const keystring::keyString &startKey,
                           BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
                           IExecutor *executor ) ;
       virtual INT32 advance( IExecutor *executor ) ;
       virtual INT32 locate( const bson::BSONObj &key,
                             const dmsRecordID &recordID,
-                            BOOLEAN isAfterStartKey,
+                            BOOLEAN isAfterKey,
                             IExecutor *executor,
                             BOOLEAN &isFound ) ;
       virtual INT32 locate( const keystring::keyString &key,
-                            BOOLEAN isAfterStartKey,
+                            BOOLEAN isAfterKey,
                             IExecutor *executor,
                             BOOLEAN &isFound ) ;
 
@@ -107,17 +108,29 @@ namespace wiredtiger
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) ;
 
+      virtual UINT64 getSnapshotID() const
+      {
+         return _snapshotID ;
+      }
+
+      virtual void resetSnapshotID( UINT64 snapshotID )
+      {
+         _snapshotID = snapshotID ;
+      }
+
    protected:
       void _resetCache()
       {
          _keyStringCache.reset() ;
          _keyObjCache = BSONObj() ;
+         _recordIDCache.reset() ;
       }
 
    protected:
       std::shared_ptr<IIndex> _idxPtr ;
       keystring::keyString _keyStringCache ;
       bson::BSONObj _keyObjCache ;
+      dmsRecordID _recordIDCache ;
    } ;
 
    typedef class _dmsWTIndexCursor dmsWTIndexCursor ;

@@ -41,6 +41,7 @@
 #include "dpsLogWrapper.hpp"
 #include "dmsCB.hpp"
 #include "dmsTaskStatus.hpp"
+#include "pmdDummySession.hpp"
 #include <string>
 
 #include "../bson/bsonobj.h"
@@ -88,11 +89,15 @@ namespace engine
          virtual INT32 doit () ;
 
       protected:
+         virtual void _onAttach() ;
+         virtual void _onDetach() ;
+
          virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
          INT32 _buildJobName() ;
          virtual BOOLEAN _needRetry( INT32 rc, BOOLEAN &retryLater ) ;
 
       protected:
+         _pmdDummySession        _session ;
          RTN_JOB_TYPE            _type ;
          CHAR                    _clFullName[DMS_COLLECTION_FULL_NAME_SZ + 1] ;
          utilCLUniqueID          _clUniqID ;

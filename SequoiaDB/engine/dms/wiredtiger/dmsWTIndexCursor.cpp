@@ -52,11 +52,17 @@ namespace wiredtiger
    /*
       _dmsWTIndexCursor implement
     */
+   _dmsWTIndexCursor::_dmsWTIndexCursor( dmsWTSession &session )
+   : _dmsWTCursorHolder( session )
+   {
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_OPEN, "_dmsWTIndexCursor::open" )
    INT32 _dmsWTIndexCursor::open( shared_ptr<IIndex> idxPtr,
                                   const keyString &startKey,
                                   BOOLEAN isAfterStartKey,
                                   BOOLEAN isForward,
+                                  UINT64 snapshotID,
                                   IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -68,23 +74,23 @@ namespace wiredtiger
       PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
                 "Failed to open cursor, index is not WiredTiger index" ) ;
 
+      resetSnapshotID( idxPtr->fetchSnapshotID() ) ;
+      _resetCache() ;
       if ( startKey.isValid() )
       {
          dmsWTItem key( startKey.getKeySlice() ) ;
          rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_COMMITTED, key, isAfterStartKey,
-                     isForward, executor ) ;
+                     "", key, isAfterStartKey, isForward, snapshotID, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
          rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
-                     "", dmsWTSessIsolation::READ_COMMITTED, isForward, executor ) ;
+                     "", isForward, snapshotID, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 
       _idxPtr = std::move( idxPtr ) ;
-      _resetCache() ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_OPEN, rc ) ;
@@ -133,7 +139,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_LOCATE_BSON, "_dmsWTIndexCursor::locate" )
    INT32 _dmsWTIndexCursor::locate( const BSONObj &key,
                                     const dmsRecordID &recordID,
-                                    BOOLEAN isAfterStartKey,
+                                    BOOLEAN isAfterKey,
                                     IExecutor *executor,
                                     BOOLEAN &isFound )
    {
@@ -149,7 +155,7 @@ namespace wiredtiger
                                          dmsRecordID() :
                                          recordID,
                                    _isForward,
-                                   isAfterStartKey ?
+                                   isAfterKey ?
                                          keyStringDiscriminator::EXCLUSIVE_AFTER :
                                          keyStringDiscriminator::INCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
@@ -175,7 +181,7 @@ namespace wiredtiger
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_LOCATE, "_dmsWTIndexCursor::locate" )
    INT32 _dmsWTIndexCursor::locate( const keystring::keyString &key,
-                                    BOOLEAN isAfterStartKey,
+                                    BOOLEAN isAfterKey,
                                     IExecutor *executor,
                                     BOOLEAN &isFound )
    {
@@ -188,16 +194,18 @@ namespace wiredtiger
       PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to get current key string, cursor is not opened" ) ;
 
+      resetSnapshotID( _idxPtr->fetchSnapshotID() ) ;
+      _resetCache() ;
       if ( _isForward )
       {
          rc = _cursor.searchNext( dmsWTItem( key.getKeySlice() ),
-                                  isAfterStartKey,
+                                  isAfterKey,
                                   isFound ) ;
       }
       else
       {
          rc = _cursor.searchPrev( dmsWTItem( key.getKeySlice() ),
-                                  isAfterStartKey,
+                                  isAfterKey,
                                   isFound ) ;
       }
       if ( SDB_OK != rc )
@@ -213,8 +221,6 @@ namespace wiredtiger
          }
          goto error ;
       }
-
-      _resetCache() ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_LOCATE, rc ) ;
@@ -326,12 +332,20 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_GETCURRECID ) ;
 
-      keyString key ;
+      if ( _recordIDCache.isValid() )
+      {
+         recordID = _recordIDCache ;
+      }
+      else
+      {
+         keyString key ;
 
-      rc = getCurrentKeyString( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get key string, rc: %d", rc ) ;
+         rc = getCurrentKeyString( key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get key string, rc: %d", rc ) ;
 
-      recordID = key.getRID() ;
+         _recordIDCache = key.getRID() ;
+         recordID = _recordIDCache ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_GETCURRECID, rc ) ;

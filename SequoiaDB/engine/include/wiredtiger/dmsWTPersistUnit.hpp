@@ -62,7 +62,7 @@ namespace wiredtiger
          return _session ;
       }
 
-      static dmsWTSession &getPersistSession( IExecutor *executor ) ;
+      INT32 initUnit( IExecutor *executor ) ;
 
    protected:
       virtual INT32 _beginUnit( IExecutor *executor ) ;

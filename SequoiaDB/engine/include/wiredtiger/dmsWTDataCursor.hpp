@@ -51,7 +51,7 @@ namespace wiredtiger
    class _dmsWTDataCursor : public IDataCursor, public _dmsWTCursorHolder
    {
    public:
-      _dmsWTDataCursor() = default ;
+      _dmsWTDataCursor( dmsWTSession &session ) ;
       virtual ~_dmsWTDataCursor() = default ;
       _dmsWTDataCursor( const _dmsWTDataCursor & ) = delete ;
       _dmsWTDataCursor &operator =( const _dmsWTDataCursor & ) = delete ;
@@ -85,23 +85,48 @@ namespace wiredtiger
                           const dmsRecordID &startRID,
                           BOOLEAN isAfterStartRID,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
                           IExecutor *executor ) ;
 
       virtual INT32 close()
       {
+         _resetCache() ;
          return _close() ;
       }
 
       virtual INT32 advance( IExecutor *executor )
       {
+         _resetCache() ;
          return _advance( executor ) ;
       }
+
+      virtual INT32 locate( const dmsRecordID &rid,
+                            BOOLEAN isAfterRID,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) ;
 
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) ;
 
+      virtual UINT64 getSnapshotID() const
+      {
+         return _snapshotID ;
+      }
+
+      virtual void resetSnapshotID( UINT64 snapshotID )
+      {
+         _snapshotID = snapshotID ;
+      }
+
+   protected:
+      void _resetCache()
+      {
+         _recordIDCache.reset() ;
+      }
+
    protected:
       std::shared_ptr<ICollection> _collPtr ;
+      dmsRecordID _recordIDCache ;
    } ;
 
    typedef class _dmsWTDataCursor dmsWTDataCursor ;

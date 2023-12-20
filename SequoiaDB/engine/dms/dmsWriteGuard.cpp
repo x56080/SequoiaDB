@@ -62,6 +62,7 @@ namespace engine
                                            pmdEDUCB *cb,
                                            BOOLEAN isEnabled )
    : _su( su ),
+     _mbStat( mbContext->mbStat() ),
      _mbID( mbContext->mbID() ),
      _eduCB( cb ),
      _isEnabled( isEnabled ),
@@ -83,6 +84,7 @@ namespace engine
       {
          _su->markDirty( _mbID, DMS_CHG_BEFORE ) ;
          _su->incWritePtrCount( _mbID ) ;
+         _mbStat->_snapshotID.inc() ;
          _isInWrite = TRUE ;
       }
 
@@ -118,6 +120,7 @@ namespace engine
                 "Failed to begin data write guard, already in guard" ) ;
 
       _su = su ;
+      _mbStat = mbContext->mbStat() ;
       _mbID = mbContext->mbID() ;
       _eduCB = cb ;
       _isEnabled = isEnabled ;
@@ -340,7 +343,8 @@ namespace engine
      _su( nullptr ),
      _mbStat( nullptr ),
      _eduCB( nullptr ),
-     _isEnabled( FALSE )
+     _isEnabled( FALSE ),
+     _hasBegin( FALSE )
    {
    }
 
@@ -361,7 +365,58 @@ namespace engine
 
    _dmsPersistGuard::~_dmsPersistGuard()
    {
-      abort() ;
+      if ( _hasBegin )
+      {
+         abort() ;
+      }
+      else
+      {
+         fini() ;
+      }
+
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_INIT, "_dmsPersistGuard::init" )
+   INT32 _dmsPersistGuard::init()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_INIT ) ;
+
+      PD_CHECK( !_persistUnit, SDB_SYS, error, PDERROR,
+                "Failed to begin persist guard, already in guard" ) ;
+
+      if ( !_isEnabled || !_service )
+      {
+         goto done ;
+      }
+
+      if ( !_persistUnit )
+      {
+         rc = _service->getPersistUnit( _eduCB, _persistUnit ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_FINI, "_dmsPersistGuard::fini" )
+   INT32 _dmsPersistGuard::fini()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_FINI ) ;
+
+      _persistUnit = nullptr ;
+
+      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_FINI, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN_INIT, "_dmsPersistGuard::begin" )
@@ -417,6 +472,8 @@ namespace engine
       rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;
 
+      _hasBegin = TRUE ;
+
    done:
       PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_BEGIN, rc ) ;
       return rc ;
@@ -432,7 +489,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_COMMIT ) ;
 
-      if ( _isEnabled && _persistUnit )
+      if ( _isEnabled && _persistUnit && _hasBegin )
       {
          if ( _mbStat )
          {
@@ -480,6 +537,7 @@ namespace engine
          rc = _persistUnit->commitUnit( _eduCB, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to commit persist unit, rc: %d", rc ) ;
 
+         _hasBegin = FALSE ;
          _persistUnit = nullptr ;
       }
 
@@ -498,11 +556,12 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_ABORT ) ;
 
-      if ( _isEnabled && _persistUnit )
+      if ( _isEnabled && _persistUnit && _hasBegin )
       {
          rc = _persistUnit->abortUnit( _eduCB, FALSE, isForced ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to abort persist unit, rc: %d", rc ) ;
 
+         _hasBegin = FALSE ;
          _persistUnit = nullptr ;
       }
 
@@ -641,15 +700,15 @@ namespace engine
       if ( SDB_OK != tmpRC )
       {
          PD_LOG( PDWARNING, "Failed to abort data write guard, rc: %d", tmpRC ) ;
-         rc = tmpRC ;
+         if ( SDB_OK == rc )
+         {
+            rc = tmpRC ;
+         }
       }
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_COMMIT, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
 }
