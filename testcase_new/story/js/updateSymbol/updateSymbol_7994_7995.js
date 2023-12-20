@@ -3,12 +3,19 @@
                seqDB-7995:update使用addtoset更新符更新已存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.17
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_addtoset7994";
 testConf.clName = COMMCLNAME + "_addtoset7994";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert data   
    var doc1 = [{ object1: [10, 30, 20] },
    { object2: 12 },
@@ -87,6 +94,7 @@ function test ( testPara )
       object6: { name: [500, 505] }
    }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //delete all data
    testPara.testCL.remove();
@@ -138,6 +146,7 @@ function test ( testPara )
          null]
    }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 
 }
 

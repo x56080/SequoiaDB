@@ -2,13 +2,19 @@
 *@Description: seqDB-22138 :: 使用inc更新多个对象 
 *@author:      wuyan
 *@createdate:  2020.5.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_update_field_22138";
 testConf.clName = COMMCLNAME + "_update_field_22138";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    var doc1 = [{ no: 0, a: 0, b: -21470, testc: "test0", num: 720368547, field: -345111 },
    { no: 1, a: 1, b: { $numberLong: "9223372036854775800" }, testc: "test1", num: { $decimal: "42345.02" }, field: 1.3e+10 },
    {
@@ -28,6 +34,7 @@ function test ( testPara )
       num: { no1: { $decimal: "42345.02" }, no2: 2 }, field: -23.45
    }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    var updateCondition2 = { $inc: { a: { $field: 'b.2.1' }, 'b.1': { $field: 'num.no2' }, no: { $field: 'num.no1' }, 'num.no2': { $field: 'field' } } };
    var findCondition2 = { testc: "test2" };
@@ -39,6 +46,6 @@ function test ( testPara )
       num: { no1: { $decimal: "42345.02" }, no2: -21.45 }, field: -23.45
    }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
-
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

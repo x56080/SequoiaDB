@@ -5,13 +5,19 @@
               seqDB-22163: 使用pull_by更新多个对象 
               seqDB-22168: 使用push更新多个对象 
 modify list: 2020-5-14  Zhao Xiaoni 
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 ******************************************************************************/
+testConf.csName = "cs_22146_22153_22158_22163_22168";
 testConf.clName = "cl_22146_22153_22158_22163_22168";
-
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //使用set更新多个对象
    var expResult = [];
    for( var i = 0; i < allTypeData.length; i++ )
@@ -23,6 +29,7 @@ function test ( testPara )
 
    var cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { a: 1 } );
    testPara.testCL.remove();
 
    //使用pop更新多个对象
@@ -38,6 +45,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { a: 1 } );
    testPara.testCL.remove();
 
    //使用pull更新多个对象
@@ -53,6 +61,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { a: 1 } );
    testPara.testCL.remove();
 
    //使用pull_by更新多个对象
@@ -68,6 +77,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { a: 1 } );
    testPara.testCL.remove();
 
    //使用push更新多个对象
@@ -81,4 +91,5 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { a: 1 } );
 }

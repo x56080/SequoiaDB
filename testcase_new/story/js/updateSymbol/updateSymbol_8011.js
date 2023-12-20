@@ -2,12 +2,19 @@
 *@Description: seqDB-8011:匹配不到记录，upsert使用push_all更新符更新数组对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_push_all8011";
 testConf.clName = COMMCLNAME + "_push_all8011";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert object
    var doc = { a: 1 };
    testPara.testCL.insert( doc );
@@ -48,6 +55,7 @@ function test ( testPara )
    },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    var upsertCondition2 = {
@@ -85,6 +93,7 @@ function test ( testPara )
    },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { a: 1 } );
 
    //delete all data
    testPara.testCL.remove();
@@ -113,5 +122,6 @@ function test ( testPara )
       object8: [11]
    }];
    checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs3, { a: 1 } );
 }
 

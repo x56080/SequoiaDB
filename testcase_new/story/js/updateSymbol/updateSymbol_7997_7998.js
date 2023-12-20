@@ -3,13 +3,19 @@
                seqDB-7998:update使用pop更新符更新已存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_pop7997";
 testConf.clName = COMMCLNAME + "_pop7997";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert arr and common data   
    var doc1 = [{ object1: [10, 30, 20] },
    { object2: 12 },
@@ -78,6 +84,7 @@ function test ( testPara )
    { object10: [200, [305, 299, 400], 100] },
    { object11: [10, 30, 20] }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use addtoset,with matches
    var updateCondition2 = {
@@ -112,5 +119,6 @@ function test ( testPara )
    { object10: [200, [305, 299, 400], 100] },
    { object11: [10, 30, 20] }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

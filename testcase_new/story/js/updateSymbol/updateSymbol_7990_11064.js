@@ -3,13 +3,19 @@
                seqDB-11064:upsert不存在的记录，匹配条件使用$or下只包含单条件
 *@author:      zhaoyu
 *@createdate:  2016.5.17
-*@update:      2017.2.17/zhaoyu
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_set7990";
 testConf.clName = COMMCLNAME + "_set7990";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert object
    var doc = { a: 1 };
    testPara.testCL.insert( doc );
@@ -63,6 +69,7 @@ function test ( testPara )
    },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    var upsertCondition2 = {
@@ -129,6 +136,7 @@ function test ( testPara )
    },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { a: 1 } );
 
    //delete all data
    testPara.testCL.remove();
@@ -179,6 +187,7 @@ function test ( testPara )
       object14: null
    }];
    checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs3, { a: 1 } );
 
    //delete all data
    testPara.testCL.remove();
@@ -189,6 +198,7 @@ function test ( testPara )
    testPara.testCL.upsert( upsertCondition4, findCondition4 );
    var expRecs4 = [{ a: 1, b: 1 }];
    checkResult( testPara.testCL, null, null, expRecs4, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs4, { a: 1 } );
 
    var upsertCondition5 = { $set: { a: 2 } };
    var findCondition5 = { $or: [{ b: { $et: 2 } }] };
@@ -196,6 +206,7 @@ function test ( testPara )
    var expRecs5 = [{ a: 1, b: 1 },
    { a: 2, b: 2 }];
    checkResult( testPara.testCL, null, null, expRecs5, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs5, { a: 1 } );
 
    var upsertCondition6 = { $set: { a: 3 } };
    var findCondition6 = { $or: [{ b: { $all: [3] } }] };
@@ -204,4 +215,5 @@ function test ( testPara )
    { a: 2, b: 2 },
    { a: 3, b: [3] }];
    checkResult( testPara.testCL, null, null, expRecs6, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs6, { a: 1 } );
 }

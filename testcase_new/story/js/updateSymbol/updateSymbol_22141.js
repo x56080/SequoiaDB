@@ -2,12 +2,19 @@
 *@Description: seqDB-22141 :使用inc更新后数值溢出  
 *@author:      wuyan
 *@createdate:  2020.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_update_field_22141";
 testConf.clName = COMMCLNAME + "_update_field_22141";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    var docs = [{ no: 0, a: 12.34, testa: { $numberLong: "9000000000000000000" }, fieldb: { $numberLong: "223372036854775808" }, testc: "test0" },
    { no: 1, a: -1, testa: { $numberLong: "-1" }, fieldb: { $numberLong: "-9223372036854775808" }, testc: "test1" },
    { no: 2, a: 20, testa: 1, fieldb: { $numberLong: "9223372036854775807" }, testc: "test2" },
@@ -21,6 +28,7 @@ function test ( testPara )
    { no: 2, a: 20, testa: { "$decimal": "9223372036854775808" }, fieldb: { $numberLong: "9223372036854775807" }, testc: "test2" },
    { no: 3, a: 20, testa: { "$numberLong": "9203372034707292159" }, fieldb: { $numberLong: "9203372036854775807" }, testc: "test2" }];
    checkResult( testPara.testCL, null, null, expRecs, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs, { _id: 1 } );
 }
 
 

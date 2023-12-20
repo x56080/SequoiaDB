@@ -2,15 +2,20 @@
 *@Description: update any object(exist or not exist) use operator pull
 *@author:      zhaoyu
 *@createdate:  2016.5.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_8000_8001";
+testConf.clName = COMMCLNAME + "_8000_8001";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
-function test ()
-{
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+function test ( testPara )
+{
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
+   var dbcl = testPara.testCL;
 
    //insert arr and common data   
    var doc1 = [{ object1: [10, -30, 20] },
@@ -93,6 +98,7 @@ function test ()
    { object10: [200, [305, 299, 400], 100] },
    { object11: [10, 30, 20] }];
    checkResult( dbcl, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use pull,with matches
    var updateCondition2 = {
@@ -140,4 +146,5 @@ function test ()
    { object10: [200, [305, 299, 400], 100] },
    { object11: [10, 30, 20] }];
    checkResult( dbcl, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }

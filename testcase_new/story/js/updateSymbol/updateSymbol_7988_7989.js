@@ -3,12 +3,18 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.17
 *@Modifier:    2020-08-11 Zixian Yan
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_7988_7989";
 testConf.clName = COMMCLNAME + "_7988_7989";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
 
    var dbCL = testPara.testCL;
 
@@ -49,6 +55,7 @@ function test ( testPara )
    { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: { 0: 25 }, e: { name: { firstName: null } } },
    { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: { 0: 25 }, e: { name: { firstName: null } } }];
    checkResult( dbCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use set,with matches
    var updateCondition2 = { $set: { a: { $regex: "^z", $options: "i" }, b: { $timestamp: "2016-05-16-13.14.26.124233" }, c: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, "d.1": 35, "e.name.firstName": true, f: 56 } };
@@ -71,6 +78,7 @@ function test ( testPara )
    { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: { 0: 25 }, e: { name: { firstName: null } } },
    { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: { 0: 25 }, e: { name: { firstName: null } } }];
    checkResult( dbCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 
    matches_isnull_feildExistOrNot_update( dbCL );
 

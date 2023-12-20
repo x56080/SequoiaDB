@@ -4,12 +4,19 @@
                seqDB-12765:update使用pull_all_by更新含嵌套对象的数组对象
 *@author:      liuxiaoxuan
 *@createdate:  2017.09.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_pull_all_by_12763";
 testConf.clName = COMMCLNAME + "_pull_all_by_12763";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //create index
    var indexName = 'b';
    var key = { b: 1 }
@@ -80,6 +87,7 @@ function test ( testPara )
    { b12: [{ obj1: { obj2_1: -1, obj2_2: -2 } }, { obj1: { obj2_1: 0, obj2_2: 1 } }, { obj1: { obj2_1: 1, obj2_2: 2 } }] },
    { b13: [{ obj1: { obj2: { obj3: 1 } }, obj4: 'tb13obj4aa' }, { obj1: { obj2: { obj3: 2 } }, obj4: 'tb13obj4bb' }, { obj1: { obj2: { obj3: 2 } } }] }];
    checkResult( testPara.testCL, null, null, expResult1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expResult1, { _id: 1 } );
 
    //pull_all_by , part of / all match
    var updateRule2 = {
@@ -133,5 +141,6 @@ function test ( testPara )
    { b12: [{ obj1: { obj2_1: -1, obj2_2: -2 } }, { obj1: { obj2_1: 0, obj2_2: 1 } }, { obj1: { obj2_1: 1, obj2_2: 2 } }] },
    { b13: [{ obj1: { obj2: { obj3: 2 } }, obj4: 'tb13obj4bb' }, { obj1: { obj2: { obj3: 2 } } }] }];
    checkResult( testPara.testCL, null, null, expResult2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expResult2, { _id: 1 } );
 }
 

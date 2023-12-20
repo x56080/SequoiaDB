@@ -2,12 +2,19 @@
 *@Description: seqDB-7984:更新符inc的值为非数值
 *@author:      zhaoyu
 *@createdate:  2016.5.16
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_inc7984";
 testConf.clName = COMMCLNAME + "_inc7984";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert all kind of data   
    var doc1 = [{ a: -2147483640, b: -2147483640, c: -2147483640 },
    { a: 2147483640, b: 2147483640, c: 2147483640 },
@@ -36,6 +43,7 @@ function test ( testPara )
 
    //check result
    checkResult( testPara.testCL, null, null, doc1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, doc1, { _id: 1 } );
 
    //update use $inc a non numberic
    var updateCondition2 = { $inc: { a: 1, b: "string", c: 1 } };
@@ -43,4 +51,5 @@ function test ( testPara )
 
    //check result
    checkResult( testPara.testCL, null, null, doc1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, doc1, { _id: 1 } );
 }

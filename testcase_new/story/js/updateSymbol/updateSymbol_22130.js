@@ -2,13 +2,19 @@
 *@Description: seqDB-22130:使用inc更新对象为数值，$field指定字段值为数值
 *@author:      wuyan
 *@createdate:  2020.5.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_update_field_22130";
 testConf.clName = COMMCLNAME + "_update_field_22130";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    var doc1 = [{ no: 0, a: 0, fieldb: -21470, testc: "test0" },
    { no: 1, a: 1, fieldb: { $numberLong: "9223372036854775800" }, testc: "test1" },
    { no: 2, a: 20, fieldb: 100.707, testc: "test2" },
@@ -28,6 +34,7 @@ function test ( testPara )
    { no: 4, a: -234, a1: 20, fieldb: { num1: 20, num2: 0 }, fieldb1: { num: { a: 12.01 } }, testc: "test4" },
    { no: 5, a: -10.23, a1: 1203333, fieldb: ["test0", 10.23, [0, -123]], testc: "test5" }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //$field指定字段值为对象类型
    var updateCondition2 = { $inc: { a: { $field: 'fieldb.num1' }, a1: { $field: 'fieldb1.num.a' } } };
@@ -40,6 +47,7 @@ function test ( testPara )
    { no: 4, a: -214, a1: 32.01, fieldb: { num1: 20, num2: 0 }, fieldb1: { num: { a: 12.01 } }, testc: "test4" },
    { no: 5, a: -10.23, a1: 1203333, fieldb: ["test0", 10.23, [0, -123]], testc: "test5" }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 
    //$field指定字段值为数组类型
    var updateCondition3 = { $inc: { a: { $field: 'fieldb.1' }, a1: { $field: 'fieldb.2.1' } } };
@@ -52,5 +60,6 @@ function test ( testPara )
    { no: 4, a: -214, a1: 32.01, fieldb: { num1: 20, num2: 0 }, fieldb1: { num: { a: 12.01 } }, testc: "test4" },
    { no: 5, a: 0, a1: 1203210, fieldb: ["test0", 10.23, [0, -123]], testc: "test5" }];
    checkResult( testPara.testCL, null, null, expRecs3, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs3, { _id: 1 } );
 }
 

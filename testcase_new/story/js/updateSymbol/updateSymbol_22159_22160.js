@@ -2,13 +2,19 @@
 @Description : seqDB-22159: 使用pull_by指定field字段更新对象 
                seqDB-22160: 使用pull_by指定field字段更新对象，field指定不同类型值   
 @Modify list : 2020-5-14  Zhao Xiaoni 
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 ******************************************************************************/
+testConf.csName = "cs_22159_22160";
 testConf.clName = "cl_22159_22160";
-
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //字段a为非数组
    var expResult = [{ "a": { "parent": { "child": 1 } }, "b": { "child": 1 } }];
    testPara.testCL.insert( { "a": { "parent": { "child": 1 } }, "b": { "child": 1 } } );
@@ -16,6 +22,7 @@ function test ( testPara )
 
    var cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
    testPara.testCL.remove();
 
    //字段a为数组，$field字段为对象中的值
@@ -25,6 +32,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
    testPara.testCL.remove();
 
    //字段a为对象数组，$field字段为嵌套对象中的对象
@@ -34,6 +42,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
    testPara.testCL.remove();
 
    //字段a为对象数组，$field字段为数组对象中的对象
@@ -43,6 +52,7 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
    testPara.testCL.remove();
 
    //字段a为数组，$field字段为其它所有类型
@@ -58,4 +68,5 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, { c: 1 } );
 }

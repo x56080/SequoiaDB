@@ -3,13 +3,19 @@
                seqDB-22137 :: 使用inc更新对象，$field指定字段不存在
 *@author:      wuyan
 *@createdate:  2020.5.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_update_field_22134";
 testConf.clName = COMMCLNAME + "_update_field_22134";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    var docs = [{ no: 0, a: -21470, fieldb: -21470, testc: "test0" },
    { no: 1, a: { $numberLong: "9223372036854775801" }, fieldb: { $numberLong: "9223372036854775800" }, testc: "test1" },
    { no: 2, a: 120.707, fieldb: 100.707, testc: "test2" },
@@ -21,6 +27,7 @@ function test ( testPara )
    var updateCondition = { $inc: { 'no': { $field: 'testno' } } };
    testPara.testCL.update( updateCondition );
    checkResult( testPara.testCL, null, null, docs, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, docs, { _id: 1 } );
 
    //testcase22134：不使用匹配符更新
    var updateCondition1 = { $inc: { 'testno': { $field: 'fieldb' } } };
@@ -30,6 +37,7 @@ function test ( testPara )
    { no: 2, a: 120.707, fieldb: 100.707, testc: "test2", testno: 100.707 },
    { no: 3, a: { $decimal: "22" }, fieldb: { $decimal: "20" }, testc: "test3", testno: { $decimal: "20" } }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //testcase22134：使用匹配符更新
    var updateCondition2 = { $inc: { 'testno1': { $field: 'a' } } };
@@ -40,5 +48,6 @@ function test ( testPara )
    { no: 2, a: 120.707, fieldb: 100.707, testc: "test2", testno: 100.707, testno1: 120.707 },
    { no: 3, a: { $decimal: "22" }, fieldb: { $decimal: "20" }, testc: "test3", testno: { $decimal: "20" }, testno1: { $decimal: "22" } }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

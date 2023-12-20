@@ -2,12 +2,19 @@
 *@Description: seqDB-12760:条件不匹配，upsert使用pull_by更新数组对象
 *@author:      liuxiaoxuan
 *@createdate:  2017.09.18
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_pull_by_12760";
 testConf.clName = COMMCLNAME + "_pull_by_12760";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert object
    var doc = [{ a: 1 }, { a: 'a' }];
    testPara.testCL.insert( doc );
@@ -74,6 +81,7 @@ function test ( testPara )
    { a: 1 },
    { a: 'a' }];
    checkResult( testPara.testCL, null, null, expectResult, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expectResult, { a: 1 } );
 
    //remove data
    testPara.testCL.remove();
@@ -89,5 +97,6 @@ function test ( testPara )
    //check result
    expectResult = [{ a: -1 }, { a: 'test' }];
    checkResult( testPara.testCL, null, null, expectResult, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expectResult, { _id: 1 } );
 }
 

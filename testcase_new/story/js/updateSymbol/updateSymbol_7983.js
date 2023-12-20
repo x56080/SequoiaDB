@@ -2,12 +2,19 @@
 *@Description: seqDB-7983:更新符inc的所有数值类型运算边界测试
 *@author:      zhaoyu
 *@createdate:  2016.5.16
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_inc7983";
 testConf.clName = COMMCLNAME + "_inc7983";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert numberic data 
    var doc1 = [{ a: -2147483648 },
    { a: 2147483647 },
@@ -38,6 +45,9 @@ function test ( testPara )
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
    checkResult( testPara.testCL, { a: { $type: 1, $et: 18 } }, null, expRecsFindByType1, { _id: 1 } );
    checkResult( testPara.testCL, { a: { $type: 1, $et: 100 } }, null, expRecsFindByDecimailType1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, { a: { $type: 1, $et: 18 } }, null, expRecsFindByType1, { _id: 1 } );
+   checkResultSync( csName, clName, { a: { $type: 1, $et: 100 } }, null, expRecsFindByDecimailType1, { _id: 1 } );
 
    //update use $inc,result out of range
    var updateCondition2 = { $inc: { a: 2 } };
@@ -58,4 +68,7 @@ function test ( testPara )
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
    checkResult( testPara.testCL, { a: { $type: 1, $et: 18 } }, null, expRecsFindByType2, { _id: 1 } );
    checkResult( testPara.testCL, { a: { $type: 1, $et: 100 } }, null, expRecsFindByDecimailType2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, { a: { $type: 1, $et: 18 } }, null, expRecsFindByType2, { _id: 1 } );
+   checkResultSync( csName, clName, { a: { $type: 1, $et: 100 } }, null, expRecsFindByDecimailType2, { _id: 1 } );
 }

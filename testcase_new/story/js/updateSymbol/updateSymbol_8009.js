@@ -2,12 +2,19 @@
 *@Description: seqDB-8009:update使用push_all更新符更新不存在的数组对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_push_all8009";
 testConf.clName = COMMCLNAME + "_push_all8009";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert data
    var doc1 = [{ object0: [10, -30, 20] }];
    testPara.testCL.insert( doc1 );
@@ -28,6 +35,7 @@ function test ( testPara )
       object4: { 1: [5, { $date: "2016-05-16" }, 7, 4] }
    }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //insert data
    var doc2 = [{ object5: [10, -30, 20] }];
@@ -51,5 +59,6 @@ function test ( testPara )
    },
    { object5: [10, -30, 20] }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

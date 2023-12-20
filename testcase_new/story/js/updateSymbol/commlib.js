@@ -74,6 +74,31 @@ function checkRec ( rc, expRecs )
 }
 
 /************************************
+*@Description: check the master and slave node consistency in a replica group
+*@author:      tangtao
+*@createDate:  2023/10/23
+*@parameters:               
+**************************************/
+function checkResultSync ( csName, clName, findCondition, findCondition2, expRecs, sortCondition )
+{
+   if( commIsStandalone( db ) ) return;
+   if( typeof ( findCondition ) == "undefined" ) { findCondition = null; }
+
+   var nodes = commGetCLNodes( db, csName + "." + clName );
+
+   for( var i = 0; i < nodes.length; i++ )
+   {
+      var seqdb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+      var dbcl = seqdb.getCS( csName ).getCL( clName );
+      var cursor = dbcl.find( findCondition, findCondition2 ).sort( sortCondition );
+      println( "Compare result with " + nodes[i].HostName + ":" + nodes[i].svcname );
+      commCompareResults( cursor, expRecs );
+      cursor.close();
+      seqdb.close();
+   };
+}
+
+/************************************
 *@Description: check result when the expect result of update data is failed.
 *@author:      zhaoyu 
 *@createDate:  2016/5/16

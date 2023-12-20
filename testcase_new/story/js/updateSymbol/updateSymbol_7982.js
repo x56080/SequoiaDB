@@ -2,12 +2,19 @@
 *@Description: seqDB-7982:inc更新符的数值运算功能测试
 *@author:      zhaoyu
 *@createdate:  2016.5.16
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_inc7982";
 testConf.clName = COMMCLNAME + "_inc7982";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
+
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert all kind of type data
    var doc1 = [{ a: -2147483640 },
    { a: 2147483640 },
@@ -55,6 +62,7 @@ function test ( testPara )
    { a: ["b", 0] },
    { a: null }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use $inc a positive number,in range,then check
    var updateCondition2 = { $inc: { a: 15 } };
@@ -81,5 +89,6 @@ function test ( testPara )
    { a: ["b", 0] },
    { a: null }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

@@ -1,13 +1,19 @@
 /******************************************************************************
 @Description: seqDB-22169: 匹配不到记录，upsert使用push更新符  
 modify list:  2020-5-14  Zhao Xiaoni 
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 ******************************************************************************/
+testConf.csName = "cs_22169";
 testConf.clName = "cl_22169";
-
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    var expResult = [];
    var allTypeData = [2147483646, 9223372036854775806, 1.7E+30, { "$decimal": "123.456" }, "String", { "$oid": "123abcd00ef12358902300ef" }, true, { "$date": "2012-01-01" }, { "$timestamp": "2012-01-01-13.14.26.124233" }, { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" }, [1, "string"], { "$minKey": 1 }, { "$maxKey": 1 }, { "parent": { "child": 1 } }, [["child1", "child11"], ["child2", "child22"]]];
 
@@ -22,6 +28,7 @@ function test ( testPara )
 
    var cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
    testPara.testCL.remove();
 
    //指定$field为不存在的字段b，匹配条件为不存在的字段b
@@ -36,4 +43,5 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 }

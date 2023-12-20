@@ -2,12 +2,19 @@
 *@Description:  seqDB-8002:匹配不到记录，upsert使用pull更新符更新数组对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_pull8002";
 testConf.clName = COMMCLNAME + "_pull8002";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert object
    var doc = { a: 1 };
    testPara.testCL.insert( doc );
@@ -63,6 +70,7 @@ function test ( testPara )
    },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    /*var upsertCondition2 = {$pull:{object1:40,object2:-8,object3:0,

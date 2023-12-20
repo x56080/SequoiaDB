@@ -2,12 +2,19 @@
 *@Description: seqDB-8007:update使用push更新符更新已存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_push8007";
 testConf.clName = COMMCLNAME + "_push8007";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert data
    var doc1 = [{ object1: [10, -30, 20] },
    { object2: 12 },
@@ -131,6 +138,7 @@ function test ( testPara )
       object8: [200, [305, -299, 400, 1, 50, 1000], 400]
    }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use push exist object,with matches
    var updateCondition2 = {
@@ -233,5 +241,6 @@ function test ( testPara )
       object8: [200, [305, -299, 400, 1, 50, 1000], 400]
    }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 
