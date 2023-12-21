@@ -2183,10 +2183,6 @@ namespace engine
          }
          rc = _matches( matchTarget, result, *context ) ;
          PD_RC_CHECK( rc, PDERROR, "_matches failed:rc=%d", rc ) ;
-
-         rc = context->onMatchDone( matchTarget, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to call match done event, "
-                      "rc: %d", rc ) ;
       }
 
    done:

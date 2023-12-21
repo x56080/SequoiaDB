@@ -94,6 +94,7 @@ namespace engine
    */
    _rtnIXScanner::_rtnIXScanner( ixmIndexCB *pIndexCB,
                                  rtnPredicateList *predList,
+                                 IRtnIXScannerHandler *pHandler,
                                  _dmsStorageUnit *su,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
@@ -101,6 +102,7 @@ namespace engine
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) ),
+    _pHandler( pHandler ),
     _index( pIndexCB->keyPattern() )
    {
       _indexCB = NULL ;

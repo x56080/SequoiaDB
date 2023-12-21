@@ -56,6 +56,7 @@ namespace engine
    public:
       _rtnDiskIXScanner ( ixmIndexCB *pIndexCB,
                           rtnPredicateList *predList,
+                          IRtnIXScannerHandler *pHandler,
                           _dmsStorageUnit  *su,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;

@@ -1093,7 +1093,7 @@ retry:
          // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         rc = f.createScanner( scannerType, &indexCB, predList,
+         rc = f.createScanner( scannerType, &indexCB, predList, context.get(),
                                su, cb, scanner ) ;
          if ( rc )
          {

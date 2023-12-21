@@ -271,25 +271,12 @@ namespace engine
    } ;
 
    /*
-      _IMthMatchEventHandler define
-    */
-   class _IMthMatchEventHandler
-   {
-   public:
-      _IMthMatchEventHandler() {}
-      virtual ~_IMthMatchEventHandler() {}
-      virtual INT32 onMatchDone( const bson::BSONObj &record,
-                                 BOOLEAN isMatched ) = 0 ;
-   } ;
-   typedef class _IMthMatchEventHandler IMthMatchEventHandler ;
-
-   /*
       _mthMatchTreeContext define
     */
    class _mthMatchTreeContext
    {
       public:
-         _mthMatchTreeContext( IMthMatchEventHandler * eventHandler = NULL ) ;
+         _mthMatchTreeContext() ;
          ~_mthMatchTreeContext() ;
 
          void clear() ;
@@ -337,14 +324,6 @@ namespace engine
          const RTN_ELEMENT_SET * getParamValueSet ( INT8 index ) ;
          BOOLEAN paramDoneByPred ( INT8 index ) ;
 
-         // events
-         INT32 onMatchDone( const bson::BSONObj &record, BOOLEAN isMatched )
-         {
-            return ( NULL != _eventHandler ) ?
-                   ( _eventHandler->onMatchDone( record, isMatched ) ) :
-                   ( SDB_OK ) ;
-         }
-
       private:
          INT32 _replaceDollar() ;
 
@@ -372,7 +351,6 @@ namespace engine
       protected :
          // parameters
          rtnParamList *_parameters ;
-         IMthMatchEventHandler * _eventHandler ;
    } ;
 
    void mthContextClearRecordInfoSafe( _mthMatchTreeContext *context ) ;

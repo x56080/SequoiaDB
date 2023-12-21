@@ -2638,7 +2638,7 @@ namespace engine
                                       &_curRID, &_callback ) ;
          _hasLockedRecord = FALSE ;
       }
-      if ( DMS_INVALID_OFFSET != _curRID._offset )
+
       {
          INT32 rc = _scanner->pauseScan() ;
          if ( rc )

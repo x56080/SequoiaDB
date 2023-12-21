@@ -40,6 +40,7 @@
 #define RTN_CONTEXT_DATA_HPP_
 
 #include "rtnContext.hpp"
+#include "rtnIXScanner.hpp"
 #include "rtnQueryOptions.hpp"
 #include "rtnQueryModifier.hpp"
 #include "rtnResultSetFilter.hpp"
@@ -162,7 +163,7 @@ namespace engine
    /*
       _rtnContextData define
    */
-   class _rtnContextData : public _rtnContextBase, public _IMthMatchEventHandler
+   class _rtnContextData : public _rtnContextBase, public _IRtnIXScannerHandler
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
 
@@ -236,11 +237,10 @@ namespace engine
 
          INT32   setAdvanceSection ( const BSONObj &arg ) ;
 
-         virtual INT32 validate ( const BSONObj &record ) ;
-         virtual INT32 onMatchDone( const bson::BSONObj &record,
-                                    BOOLEAN isMatched )
+         virtual INT32 validate ( const BSONObj &record, BOOLEAN isRecord ) ;
+         virtual INT32 onScannerAdvanced( const bson::BSONObj &record, BOOLEAN isRecord  )
          {
-            return ( isMatched ) ? ( SDB_OK ) : ( validate( record ) ) ;
+            return validate( record, isRecord ) ;
          }
 
       protected:

@@ -61,10 +61,11 @@ namespace engine
 
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
                                            rtnPredicateList *predList,
+                                           IRtnIXScannerHandler *pHandler,
                                            _dmsStorageUnit  *su,
                                            _pmdEDUCB        *cb,
                                            BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned )
+   :_rtnIXScanner( pIndexCB, predList, pHandler, su, cb, indexCBOwnned )
    {
       _fromDir = SCAN_NONE ;
       _savedRID.reset() ;
@@ -140,6 +141,7 @@ namespace engine
          case SCANNER_TYPE_DISK :
             pScanner = SDB_OSS_NEW _rtnDiskIXScanner( getIndexCB(),
                                                       getPredicateList(),
+                                                      getScannerHandler(),
                                                       getSu(),
                                                       getEDUCB(),
                                                       getIndexCBOwned() ) ;
@@ -147,6 +149,7 @@ namespace engine
          case SCANNER_TYPE_MEM_TREE :
             pScanner = SDB_OSS_NEW _rtnMemIXTreeScanner( getIndexCB(),
                                                          getPredicateList(),
+                                                         getScannerHandler(),
                                                          getSu(),
                                                          getEDUCB(),
                                                          getIndexCBOwned() ) ;

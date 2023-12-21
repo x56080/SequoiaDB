@@ -63,10 +63,11 @@ namespace engine
    //    All input except su should not be NULL
    _rtnMemIXTreeScanner::_rtnMemIXTreeScanner ( ixmIndexCB *pIndexCB,
                                                 rtnPredicateList *predList,
+                                                IRtnIXScannerHandler *pHandler,
                                                 _dmsStorageUnit  *su,
                                                 _pmdEDUCB        *cb,
                                                 BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned ),
+   :_rtnIXScanner( pIndexCB, predList, pHandler, su, cb, indexCBOwnned ),
     _listIterator(*predList)
    {
       _pTransCB = pmdGetKRCB()->getTransCB() ;
@@ -489,9 +490,19 @@ namespace engine
                rc = SDB_IXM_EOC ;
                goto done ;
             }
+            if ( _pHandler )
+            {
+               INT32 tmpRC = _pHandler->onScannerAdvanced( _curKeyObj, FALSE ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDERROR, "Failed to call advance callback, rc: %d", tmpRC ) ;
+                  rc = tmpRC ;
+                  goto error ;
+               }
+            }
             // if >=0, that means the key is not selected and we want to
             // further advance the key in index.
-            else if ( rc >= 0 )
+            if ( rc >= 0 )
             {
                // Starting from _curIndexIter, move the key the best matching
                // key based on the updated listIterator

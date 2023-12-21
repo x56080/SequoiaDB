@@ -735,7 +735,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" )
-   INT32 _rtnContextData::validate ( const BSONObj &record )
+   INT32 _rtnContextData::validate ( const BSONObj &record, BOOLEAN isRecord )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCTXDATA_VALIDATE ) ;
@@ -759,23 +759,30 @@ namespace engine
 
       sec = *_nextAdvanceSecIt ;
 
-      /// generate keyVal
-      if ( !_keyGen.isInit() )
+      if ( isRecord )
       {
-         rc = _keyGen.setKeyPattern( _orderBy ) ;
+         /// generate keyVal
+         if ( !_keyGen.isInit() )
+         {
+            rc = _keyGen.setKeyPattern( _orderBy ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Set index generate pattern failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+
+         rc = _keyGen.getKeys( record, curKeyObj ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Set index generate pattern failed, rc: %d", rc ) ;
+            PD_LOG( PDERROR, "Generate key from obj(%s) failed, rc: %d",
+                           record.toPoolString().c_str(), rc ) ;
             goto error ;
          }
       }
-
-      rc = _keyGen.getKeys( record, curKeyObj ) ;
-      if ( rc )
+      else
       {
-         PD_LOG( PDERROR, "Generate key from obj(%s) failed, rc: %d",
-                          record.toPoolString().c_str(), rc ) ;
-         goto error ;
+         curKeyObj = record ;
       }
 
       try
@@ -974,14 +981,16 @@ namespace engine
 
          if ( prefixNum > keyPatternNum )
          {
-            PD_LOG ( PDWARNING, "PrefixNum[%s] is too long, truncate to "
+            PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
                      "the same as the number of order by field", prefixNum ) ;
             prefixNum = keyPatternNum ;
          }
 
          if ( !_compareFieldName( orderby, keyPattern, prefixNum ) )
          {
-            PD_LOG_MSG( PDERROR, "Orderby is not the prefix of key pattern" ) ;
+            PD_LOG_MSG( PDERROR, "Orderby [%s] is not the %d prefix of key pattern [%s]",
+                        orderby.toPoolString().c_str(), prefixNum,
+                        keyPattern.toPoolString().c_str() ) ;
             rc = SDB_OPTION_NOT_SUPPORT ;
             goto error ;
          }
@@ -1189,7 +1198,7 @@ namespace engine
          f.releaseScanner( _scanner ) ;
       }
 
-      rc = f.createScanner( scanType, &indexCB, predList, su, cb, _scanner ) ;
+      rc = f.createScanner( scanType, &indexCB, predList, this, su, cb, _scanner ) ;
       if ( rc )
       {
          goto error ;
@@ -1797,7 +1806,7 @@ namespace engine
 
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext( NULL ) ;
+         _mthMatchTreeContext mthContext ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;
@@ -1989,7 +1998,7 @@ namespace engine
       // loop until we read something in the buffer
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext( _needValidate() ? this : NULL ) ;
+         _mthMatchTreeContext mthContext ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;

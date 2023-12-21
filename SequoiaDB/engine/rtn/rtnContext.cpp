@@ -64,7 +64,6 @@ namespace engine
       _readOffset = 0 ;
       _writeOffset = 0 ;
       _countOnly = FALSE ;
-      _contextValidator = NULL ;
    }
 
    _rtnContextStoreBuf::~_rtnContextStoreBuf()
@@ -170,20 +169,6 @@ namespace engine
 
       if ( !isCountMode() )
       {
-         if ( _contextValidator )
-         {
-            if ( !orgObj )
-            {
-               orgObj = &obj ;
-            }
-            rc = _contextValidator->validate( *orgObj ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to validate record, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
-
          _writeOffset = ossAlign4( (UINT32)_writeOffset ) ;
          if ( _writeOffset + obj.objsize () > _bufferSize )
          {
@@ -481,12 +466,6 @@ namespace engine
       }
    }
 
-   void _rtnContextStoreBuf::setContextValidator(
-                             _rtnContextValidator *contextValidator )
-   {
-      _contextValidator = contextValidator ;
-   }
-
    /*
       Functions
    */
@@ -548,8 +527,6 @@ namespace engine
       _lastProcessTick     = pmdGetDBTick() ;
       _needTimeout         = TRUE ;
       _needCloseOnEOF      = FALSE ;
-
-      _buffer.setContextValidator( this ) ;
    }
 
    _rtnContextBase::~_rtnContextBase()

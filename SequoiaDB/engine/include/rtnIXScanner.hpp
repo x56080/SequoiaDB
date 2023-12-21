@@ -105,6 +105,20 @@ namespace engine
    typedef _rtnScannerSharedInfo rtnScannerSharedInfo ;
 
    /*
+      _IRtnIXScannerHandler define
+    */
+   class _IRtnIXScannerHandler
+   {
+   public:
+      _IRtnIXScannerHandler() {}
+      virtual ~_IRtnIXScannerHandler() {}
+
+      virtual INT32 onScannerAdvanced( const bson::BSONObj &key, BOOLEAN isRecord ) = 0 ;
+   } ;
+
+   typedef class _IRtnIXScannerHandler IRtnIXScannerHandler ;
+
+   /*
       _rtnIXScanner define
       This is a super class for all index scanners to inherit from
    */
@@ -113,6 +127,7 @@ namespace engine
    public:
       _rtnIXScanner( ixmIndexCB *pIndexCB,
                      rtnPredicateList *predList,
+                     IRtnIXScannerHandler *pHandler,
                      _dmsStorageUnit  *su,
                      _pmdEDUCB        *cb,
                      BOOLEAN indexCBOwned = FALSE ) ;
@@ -131,6 +146,10 @@ namespace engine
 
       rtnPredicateList*       getPredicateList () ;
       rtnScannerSharedInfo*   getSharedInfo() ;
+      IRtnIXScannerHandler*   getScannerHandler()
+      {
+         return _pHandler ;
+      }
 
       _dmsStorageUnit*        getSu() ;
       ixmIndexCB*             getIndexCB() ;
@@ -196,6 +215,8 @@ namespace engine
       OID                     _indexOID ;
       Ordering                _order ;
       BOOLEAN                 _eof ;
+
+      IRtnIXScannerHandler    *_pHandler ;
 
    private:
       BOOLEAN                 _isReadonly ;

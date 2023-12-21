@@ -190,7 +190,7 @@ namespace engine
    class _rtnContextValidator: public _utilPooledObject
    {
    public:
-      virtual  INT32 validate( const BSONObj &record ) = 0 ;
+      virtual  INT32 validate( const BSONObj &record, BOOLEAN isRecord ) = 0 ;
       virtual ~_rtnContextValidator() { }
    } ;
 
@@ -219,8 +219,6 @@ namespace engine
       INT32    pop( UINT32 num = 1 ) ;
 
       void     release() ;
-
-      void     setContextValidator( _rtnContextValidator *contextValidator ) ;
 
    public:
       OSS_INLINE void      enableCountMode() { _countOnly = TRUE ; }
@@ -270,7 +268,6 @@ namespace engine
       INT32    _readOffset ;
       INT32    _writeOffset ;
       BOOLEAN  _countOnly ;
-      _rtnContextValidator *_contextValidator ;
    } ;
    typedef _rtnContextStoreBuf rtnContextStoreBuf ;
 
@@ -510,7 +507,7 @@ namespace engine
          {
          }
 
-         virtual INT32 validate ( const BSONObj &record )
+         virtual INT32 validate ( const BSONObj &record, BOOLEAN isRecord )
          {
             // Do nothing
             return 0;

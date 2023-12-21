@@ -61,6 +61,7 @@ namespace engine
    public:
       _rtnMergeIXScanner( ixmIndexCB *pIndexCB,
                           rtnPredicateList *predList,
+                          IRtnIXScannerHandler *pHandler,
                           _dmsStorageUnit  *su,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;

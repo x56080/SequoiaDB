@@ -53,6 +53,7 @@ namespace engine
       INT32             createScanner( IXScannerType type,
                                        ixmIndexCB *indexCB,
                                        rtnPredicateList *predList,
+                                       IRtnIXScannerHandler *pHandler,
                                        _dmsStorageUnit *su,
                                        _pmdEDUCB *cb,
                                        _rtnIXScanner *&pScanner )
@@ -64,15 +65,15 @@ namespace engine
          switch (type)
          {
             case SCANNER_TYPE_DISK:
-               pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList, pHandler,
                                                         su, cb ) ;
                break ;
             case SCANNER_TYPE_MEM_TREE:
-               pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList, pHandler,
                                                            su, cb ) ;
                break ;
             case SCANNER_TYPE_MERGE:
-               pScanner = SDB_OSS_NEW rtnMergeIXScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnMergeIXScanner( indexCB, predList, pHandler,
                                                          su, cb ) ;
                break;
             default :
