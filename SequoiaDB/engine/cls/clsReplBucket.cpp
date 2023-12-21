@@ -1437,7 +1437,8 @@ namespace engine
             {
                _replayEventHandler->onReplayLog( info._dataExInfo._csLID,
                                                  info._dataExInfo._clLID,
-                                                 info._dataExInfo._extLID,
+                                                 info._dataExInfo._extID,
+                                                 info._dataExInfo._extOffset,
                                                  offset ) ;
             }
          }
@@ -1462,7 +1463,8 @@ namespace engine
                {
                   _replayEventHandler->onReplayLog( tmpInfo._dataExInfo._csLID,
                                                     tmpInfo._dataExInfo._clLID,
-                                                    tmpInfo._dataExInfo._extLID,
+                                                    tmpInfo._dataExInfo._extID,
+                                                    tmpInfo._dataExInfo._extOffset,
                                                     it->first ) ;
                }
                _memPool.release( tmpInfo._pData, tmpInfo._len ) ;

@@ -68,7 +68,8 @@ namespace engine
          }
          cb->incEventCount() ;
          pReplCb->notify2Session( lsnInfo._csLID, lsnInfo._clLID,
-                                  lsnInfo._extLID, lsnInfo._offset ) ;
+                                  lsnInfo._extID, lsnInfo._extOffset,
+                                  lsnInfo._offset ) ;
       }
 
    done :

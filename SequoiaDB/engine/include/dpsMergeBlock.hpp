@@ -118,12 +118,13 @@ namespace engine
             _dummyBlock.clear() ;
             _hasDummy = FALSE ;
          }
-         void setInfoEx( UINT32 csLID, UINT32 clLID, dmsExtentID extLID,
-                         IExecutor *cb )
+         void setInfoEx( UINT32 csLID, UINT32 clLID, dmsExtentID extID,
+                         dmsOffset extOffset, IExecutor *cb )
          {
             _csLID   = csLID ;
             _clLID   = clLID ;
-            _extLID  = extLID ;
+            _extID  = extID ;
+            _extOffset = extOffset ;
             _needNty = TRUE ;
             _pCB     = cb ;
          }
@@ -141,7 +142,8 @@ namespace engine
          BOOLEAN isTransEnabled() const { return _transEnabled ; }
          UINT32  getCSLID() const { return _csLID ; }
          UINT32  getCLLID() const { return _clLID ; }
-         dmsExtentID getExtentLID() const { return _extLID ; }
+         dmsExtentID getExtentID() const { return _extID ; }
+         dmsOffset getExtentOffset() const { return _extOffset ; }
          IExecutor* getEDUCB() const { return _pCB ; }
 
       private:
@@ -152,7 +154,8 @@ namespace engine
 
          UINT32               _csLID ;
          UINT32               _clLID ;
-         dmsExtentID          _extLID ;
+         dmsExtentID          _extID ;
+         dmsOffset            _extOffset ;
          BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
          IExecutor            *_pCB ;

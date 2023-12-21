@@ -1752,7 +1752,8 @@ namespace engine
          if ( info._isValid && NULL != _replayEventHandler )
          {
             _replayEventHandler->onReplayLog( info._csLID, info._clLID,
-                                              info._extLID, recordHeader->_lsn ) ;
+                                              info._extID, info._extOffset,
+                                              recordHeader->_lsn ) ;
          }
          // pass info for notification when replay parallelly
          if ( dataExInfo )
@@ -2797,7 +2798,7 @@ namespace engine
       dpsMergeInfo info ;
 
       // no need for notify LSN
-      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, eduCB ) ;
+      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, eduCB ) ;
 
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
@@ -3302,7 +3303,8 @@ namespace engine
       else
       {
          cb->setDataExInfo( collection, indexJob->getCSLID(),
-                            indexJob->getCLLID(), DMS_INVALID_EXTENT ) ;
+                            indexJob->getCLLID(), DMS_INVALID_EXTENT,
+                            DMS_INVALID_OFFSET ) ;
       }
 
       // do job

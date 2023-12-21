@@ -73,7 +73,8 @@ namespace engine
    {
       _csLID   = ~0 ;
       _clLID   = ~0 ;
-      _extLID  = DMS_INVALID_EXTENT ;
+      _extID  = DMS_INVALID_EXTENT ;
+      _extOffset = DMS_INVALID_OFFSET ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
    }
@@ -84,7 +85,8 @@ namespace engine
    {
       _csLID   = ~0 ;
       _clLID   = ~0 ;
-      _extLID  = DMS_INVALID_EXTENT ;
+      _extID  = DMS_INVALID_EXTENT ;
+      _extOffset = DMS_INVALID_OFFSET ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
    }

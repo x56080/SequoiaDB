@@ -444,13 +444,15 @@ namespace engine
             _ntyReplayOffset = offset ;
          }
 
-         void notify2Session( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
+         void notify2Session( UINT32 suLID, UINT32 clLID,
+                              dmsExtentID extID, dmsOffset extOffset,
                               const DPS_LSN_OFFSET &offset ) ;
 
          virtual void onWriteLog( DPS_LSN_OFFSET offset ) ;
 
          virtual void onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                    INT32 extLID, DPS_LSN_OFFSET offset ) ;
+                                    UINT32 extID, UINT32 extOffset,
+                                    DPS_LSN_OFFSET offset ) ;
 
          virtual void onMoveLog( DPS_LSN_OFFSET moveToOffset,
                                  DPS_LSN_VER moveToVersion,
@@ -460,7 +462,8 @@ namespace engine
                                  INT32 errcode ) ;
 
          virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
-                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;
+                                   UINT32 extID, UINT32 extOffset,
+                                   DPS_LSN_OFFSET offset ) ;
 
          virtual INT32 canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb ) ;
 
@@ -665,7 +668,8 @@ namespace engine
          INT32 _handleGroupModeUpdate( const clsGroupMode *pGrpMode ) ;
 
          void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
-                                  INT32 extLID, DPS_LSN_OFFSET offset ) ;
+                                  UINT32 extID, UINT32 extOffset,
+                                  DPS_LSN_OFFSET offset ) ;
 
          void _forceSrcSessions() ;
 

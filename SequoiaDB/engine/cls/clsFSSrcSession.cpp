@@ -97,7 +97,7 @@ namespace engine
       _pRepl = sdbGetReplCB() ;
       _init = FALSE ;
       _timeCounter = 0 ;
-      _curExtID = DMS_INVALID_EXTENT ;
+      _curRID.reset() ;
       _curCollection = ~0 ;
       _curCSLID = DMS_INVALID_LOGICCSID ;
       _curMBID = DMS_INVALID_MBID ;
@@ -213,7 +213,7 @@ namespace engine
       _findEnd = FALSE ;
       _needData = 1 ;
       _hasMeta = FALSE ;
-      _curExtID = DMS_INVALID_EXTENT ;
+      _curRID.reset() ;
       _curScanKeyObj = BSONObj() ;
       _curCollection = ~0 ;
       _lastSyncDetail[0] = 0 ;
@@ -1023,9 +1023,9 @@ namespace engine
             if ( TBSCAN == _scanType() )
             {
                ossScopedLock _lock( &_LSNlatch ) ;
-               _curExtID = _context->lastExtLID() ;
-               PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %d",
-                        sessionName(), _curExtID ) ;
+               _curRID = _context->lastRID() ;
+               PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %u, offset: %u",
+                        sessionName(), _curRID._extent, _curRID._offset ) ;
             }
             else
             {
@@ -2037,7 +2037,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSSS_NTFLSN, "_clsFSSrcSession::notifyLSN" )
    INT32 _clsFSSrcSession::notifyLSN ( UINT32 suLID, UINT32 clLID,
-                                       dmsExtentID extLID,
+                                       dmsExtentID extID, dmsOffset extOffset,
                                        const DPS_LSN_OFFSET &offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSFSSS_NTFLSN );
@@ -2058,13 +2058,15 @@ namespace engine
       needSetBeginLSN = TRUE ;
 
       PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
-               "extLID:%d, offset:%lld], curScan extLID:%d", sessionName(),
-               suLID, clLID, extLID, offset, _curExtID ) ;
+               "extID:%u, extOffset:%u, offset:%lld], "
+               "curScan recordID[extID:%u, extOffset:%u], curLob page[%u]",
+               sessionName(), suLID, clLID, extID, extOffset, offset,
+               _curRID._extent, _curRID._offset, _lobFetcher.toBeFetched() ) ;
 
       // already complete collection
       it = _mapOveredCLs.find ( fullCLLID ) ;
 
-      if ( DMS_INVALID_EXTENT == extLID ||
+      if ( DMS_INVALID_EXTENT == extID ||
            it != _mapOveredCLs.end() )
       {
          _deqLSN.push_back ( offset ) ;
@@ -2096,7 +2098,7 @@ namespace engine
             {
                _deqLSN.push_back ( offset ) ;
             }
-            else if ( extLID < (UINT32)( _lobFetcher.toBeFetched() ) )
+            else if ( extID < (UINT32)( _lobFetcher.toBeFetched() ) )
             {
                _deqLSN.push_back ( offset ) ;
             }
@@ -2105,7 +2107,7 @@ namespace engine
                goto done ;
             }
          }
-         else if ( _findEnd || extLID <= _curExtID )
+         else if ( _findEnd || dmsRecordID( extID, extOffset ) <= _curRID )
          {
             _deqLSN.push_back ( offset ) ;
          }
@@ -2776,7 +2778,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLSS_NTFLSN, "_clsSplitSrcSession::notifyLSN" )
    INT32 _clsSplitSrcSession::notifyLSN( UINT32 suLID, UINT32 clLID,
-                                         dmsExtentID extLID,
+                                         dmsExtentID extID, dmsOffset extOffset,
                                          const DPS_LSN_OFFSET & offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_NTFLSN );
@@ -2795,6 +2797,12 @@ namespace engine
       {
          goto done ;
       }
+
+      PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
+               "extID:%u, extOffset:%u, offset:%lld], "
+               "curScan recordID[extID:%u, extOffset:%u], curLob page[%u]",
+               sessionName(), suLID, clLID, extID, extOffset, offset,
+               _curRID._extent, _curRID._offset, _lobFetcher.toBeFetched() ) ;
 
       _LSNlatch.get() ;
       locked = TRUE ;
@@ -2828,7 +2836,7 @@ namespace engine
 
       // if the lsn is in my self, and the extLID not invalid, need to read lsn
       // from file
-      if ( DMS_INVALID_EXTENT == extLID )
+      if ( DMS_INVALID_EXTENT == extID )
       {
          _deqLSN.push_back( offset ) ;
          goto done ;
@@ -2856,7 +2864,8 @@ namespace engine
       // no sharding index, scan by table
       // log of lob can be ignored, coz _findEnd is false.
       if ( TBSCAN == _scanType() && !inEndMap && !_findEnd &&
-           extLID > _curExtID && !( CLS_IS_LOB_LOG( record.head()._type ) ) )
+           _curRID < dmsRecordID( extID, extOffset ) &&
+           !( CLS_IS_LOB_LOG( record.head()._type ) ) )
       {
          goto done ;
       }
@@ -2864,7 +2873,7 @@ namespace engine
       {
          if ( inEndMap ||
               _lobFetcher.hitEnd() ||
-              extLID < (UINT32)( _lobFetcher.toBeFetched() ) )
+              extID < (UINT32)( _lobFetcher.toBeFetched() ) )
          {
             BOOLEAN need2Notify = FALSE ;
             const bson::OID *oid = NULL ;
@@ -2953,8 +2962,10 @@ namespace engine
 
             if ( _GEThanRangeKey( keyObj ) && _LThanRangeEndKey( keyObj ) &&
                  ( _findEnd || inEndMap ||
-                  ( IXSCAN == _scanType() && _LEThanScanObj( keyObj ) ) ||
-                  ( TBSCAN == _scanType() && extLID <= _curExtID ) ) )
+                  ( IXSCAN == _scanType() &&
+                    _LEThanScanObj( keyObj ) ) ||
+                  ( TBSCAN == _scanType() &&
+                    dmsRecordID( extID, extOffset ) <= _curRID ) ) )
             {
                _deqLSN.push_back( offset ) ;
                /*PD_LOG( PDERROR, "Session[%s]: push queue: %s, curObj: "

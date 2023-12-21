@@ -1937,7 +1937,7 @@ namespace engine
       if ( NULL != dpsCB )
       {
          dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
 
          rc = dpsInvalidCata2Record( DPS_LOG_INVALIDCATA_TYPE_STAT,
@@ -1962,7 +1962,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pCLFullName, ~0, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( pCLFullName, ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done :

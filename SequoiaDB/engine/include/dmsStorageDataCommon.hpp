@@ -1522,7 +1522,7 @@ namespace engine
 
          INT32 _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                         _pmdEDUCB *cb, dmsMBContext *context,
-                        dmsExtentID extLID, BOOLEAN needUnLock,
+                        dmsExtentID extID, dmsOffset extOffset, BOOLEAN needUnLock,
                         DMS_FILE_TYPE type, UINT32 *clLID = NULL ) ;
 
          INT32 _freeExtent ( dmsExtentID extentID, INT32 collectionID ) ;
@@ -1547,7 +1547,8 @@ namespace engine
          INT32          _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                                  _pmdEDUCB * cb, ossSLatch *pLatch,
                                  OSS_LATCH_MODE mode, BOOLEAN &locked,
-                                 UINT32 clLID, dmsExtentID extLID ) ;
+                                 UINT32 clLID, dmsExtentID extID,
+                                 dmsOffset extOffset ) ;
 
          INT32          _initCompressorEntry( UINT16 mbID ) ;
 

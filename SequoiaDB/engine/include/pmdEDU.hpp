@@ -289,14 +289,15 @@ namespace engine
          }
 
          void setDataExInfo( const CHAR *fullName, UINT32 csLID,
-                             UINT32 clLID, SINT32 extLID )
+                             UINT32 clLID, UINT32 extLID, UINT32 extOffset )
          {
             if ( ( 0 == _curProcessName[0] && ( NULL == fullName || 0 == fullName[0] ) ) ||
                  ( NULL != fullName && 0 == ossStrcmp( fullName, _curProcessName ) ) )
             {
                _dataExInfo._csLID  = csLID ;
                _dataExInfo._clLID  = clLID ;
-               _dataExInfo._extLID = extLID ;
+               _dataExInfo._extID = extLID ;
+               _dataExInfo._extOffset = extOffset ;
                _dataExInfo._isValid = TRUE ;
             }
          }

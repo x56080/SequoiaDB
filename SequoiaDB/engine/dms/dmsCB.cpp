@@ -773,7 +773,7 @@ namespace engine
       csLID = pCSCB->_su->LogicalCSID() ;
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -787,7 +787,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pNewName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( pNewName, csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       // Release the mutex first, since event handler needs the mutex
@@ -928,7 +928,7 @@ namespace engine
 
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -943,7 +943,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( pName, csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done :
@@ -1066,7 +1066,7 @@ namespace engine
       csLID = pCSCB->_su->LogicalCSID() ;
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -1081,7 +1081,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( pName, ~0, DMS_INVALID_EXTENT, csLID ) ;
+         cb->setDataExInfo( pName, csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done :
@@ -2001,7 +2001,7 @@ namespace engine
       // write dps
       if ( dpsCB )
       {
-         info.setInfoEx( cscb->_su->LogicalCSID(), ~0, DMS_INVALID_EXTENT, cb );
+         info.setInfoEx( cscb->_su->LogicalCSID(), ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb );
          rc = dpsCB->prepare ( info ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to insert cscrt into log, rc: %d",
@@ -2015,7 +2015,7 @@ namespace engine
       else if ( NULL != cb )
       {
          cb->setDataExInfo( csname, cscb->_su->LogicalCSID(), ~0,
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       if ( isMetaLocked )
@@ -2233,7 +2233,7 @@ namespace engine
       if ( dpsCB )
       {
          UINT32 suLID = su->LogicalCSID() ;
-         info.setInfoEx( suLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( suLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
@@ -2247,7 +2247,7 @@ namespace engine
       else if ( NULL != cb )
       {
          cb->setDataExInfo( pName, su->LogicalCSID(), ~0,
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       su->setEventHandlers( &_handlers ) ;
@@ -3224,7 +3224,7 @@ namespace engine
 
       if ( dpsCB )
       {
-         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
          rc = dpsCB->prepare( info ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert DPS log, rc: %d", rc ) ;
 
@@ -3235,7 +3235,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( originName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( originName, csLID, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       PD_LOG( PDDEBUG, "Finish return collection space P2 [origin: %s, "

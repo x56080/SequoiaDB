@@ -181,7 +181,7 @@ namespace engine
          optScanType       scanType () const { return _scanType ; }
          _dmsMBContext*    getMBContext () { return _mbContext ; }
 
-         dmsExtentID       lastExtLID () const { return _recordID._extent ; }
+         const dmsRecordID &lastRID () const { return _recordID ; }
 
          virtual INT32 open( _dmsStorageUnit *su, _dmsMBContext *mbContext,
                              _pmdEDUCB *cb, const rtnReturnOptions &returnOptions,

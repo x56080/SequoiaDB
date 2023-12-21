@@ -210,7 +210,7 @@ namespace engine
          goto error ;
       }
 
-      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
+      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
       info.enableTrans() ;
       rc = dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
@@ -311,7 +311,7 @@ namespace engine
          goto error ;
       }
 
-      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
+      info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
       info.enableTrans() ;
       rc = dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "

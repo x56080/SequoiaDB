@@ -182,7 +182,8 @@ namespace engine
       {
          _csLID   = ~0 ;
          _clLID   = ~0 ;
-         _extLID  = -1 ;
+         _extID  = ~0 ;
+         _extOffset = ~0 ;
          _isValid = FALSE ;
       }
 
@@ -190,7 +191,8 @@ namespace engine
       {
          _csLID   = info._csLID ;
          _clLID   = info._clLID ;
-         _extLID  = info._extLID ;
+         _extID  = info._extID ;
+         _extOffset = info._extOffset ;
          _isValid = info._isValid ;
          return *this ;
       }
@@ -199,13 +201,15 @@ namespace engine
       {
          _csLID  = ~0 ;
          _clLID  = ~0 ;
-         _extLID = -1 ;
+         _extID = ~0 ;
+         _extOffset = ~0 ;
          _isValid = FALSE ;
       }
 
       UINT32  _csLID ;
       UINT32  _clLID ;
-      SINT32  _extLID ;
+      UINT32  _extID ;
+      UINT32  _extOffset ;
       BOOLEAN _isValid ;
    } ;
 

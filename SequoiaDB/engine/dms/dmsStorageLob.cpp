@@ -664,7 +664,7 @@ namespace engine
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, cb ) ;
+                         pageID, DMS_INVALID_OFFSET, cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -680,7 +680,7 @@ namespace engine
       else
       {
          cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID ) ;
+                            mbContext->clLID(), pageID, DMS_INVALID_OFFSET ) ;
       }
 
       /// update last lsn
@@ -951,7 +951,7 @@ namespace engine
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, cb ) ;
+                         pageID, DMS_INVALID_OFFSET, cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -963,7 +963,7 @@ namespace engine
       else
       {
          cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID ) ;
+                            mbContext->clLID(), pageID, DMS_INVALID_OFFSET ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -1691,7 +1691,8 @@ namespace engine
          }
 
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(), page, cb ) ;
+         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(), page,
+                         DMS_INVALID_OFFSET, cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -1708,7 +1709,7 @@ namespace engine
       else
       {
          cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), page ) ;
+                            mbContext->clLID(), page, DMS_INVALID_OFFSET ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -3007,7 +3008,7 @@ namespace engine
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(),
                          mbContext->clLID(),
-                         DMS_INVALID_EXTENT, cb ) ;
+                         DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
 
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
@@ -3030,7 +3031,7 @@ namespace engine
       {
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_LOB ) ;
          cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), DMS_INVALID_EXTENT ) ;
+                            mbContext->clLID(), DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done:

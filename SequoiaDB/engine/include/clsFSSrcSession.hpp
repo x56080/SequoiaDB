@@ -92,7 +92,7 @@ namespace engine
 
       public:
          virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
-                                   dmsExtentID extLID,
+                                   dmsExtentID extID, dmsOffset extOffset,
                                    const DPS_LSN_OFFSET &offset ) = 0 ;
 
       protected:
@@ -190,7 +190,7 @@ namespace engine
          UINT64                           _curCollection ; // suLID+clLID
          UINT32                           _curCSLID ;
          UINT16                           _curMBID ;
-         dmsExtentID                      _curExtID ;
+         dmsRecordID                      _curRID ;
          BSONObj                          _curScanKeyObj ;
          deque<DPS_LSN_OFFSET>            _deqLSN ;
          ossSpinXLatch                    _LSNlatch ;
@@ -222,7 +222,8 @@ namespace engine
       virtual EDU_TYPES eduType () const ;
 
    public:
-      virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
+      virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
+                                dmsExtentID extID, dmsOffset extOffset,
                                 const DPS_LSN_OFFSET &offset ) ;
 
    //message function
@@ -283,7 +284,8 @@ namespace engine
          _clsSplitSrcSession( UINT64 sessionID, _netRouteAgent *agent ) ;
          virtual ~_clsSplitSrcSession () ;
 
-         INT32 notifyLSN ( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
+         INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
+                           dmsExtentID extID, dmsOffset extOffset,
                            const DPS_LSN_OFFSET &offset ) ;
 
       public:

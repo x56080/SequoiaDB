@@ -943,22 +943,25 @@ namespace engine
    {
       UINT32               _csLID ;
       UINT32               _clLID ;
-      dmsExtentID          _extLID ;
+      dmsExtentID          _extID ;
+      dmsOffset            _extOffset ;
       DPS_LSN_OFFSET       _offset ;
 
       _clsLSNNtyInfo ()
       {
          _csLID = ~0 ;
          _clLID = ~0 ;
-         _extLID = -1 ;
+         _extID = DMS_INVALID_EXTENT ;
+         _extOffset = DMS_INVALID_OFFSET ;
          _offset = 0 ;
       }
-      _clsLSNNtyInfo( UINT32 csLID, UINT32 clLID, dmsExtentID extLID,
-                      DPS_LSN_OFFSET offset )
+      _clsLSNNtyInfo( UINT32 csLID, UINT32 clLID, dmsExtentID extID,
+                      dmsOffset extOffset, DPS_LSN_OFFSET offset )
       {
          _csLID      = csLID ;
          _clLID      = clLID ;
-         _extLID     = extLID ;
+         _extID      = extID ;
+         _extOffset  = extOffset ;
          _offset     = offset ;
       }
    } ;
@@ -974,7 +977,8 @@ namespace engine
          virtual ~_clsReplayEventHandler () {}
 
          virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
-                                   INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
+                                   UINT32 extID, UINT32 extOffset,
+                                   DPS_LSN_OFFSET offset ) = 0 ;
    } ;
 
    typedef _clsReplayEventHandler clsReplayEventHandler ;

@@ -794,7 +794,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                                 TRUE, DMS_FILE_IDX ) ;
+                                 DMS_INVALID_OFFSET, TRUE, DMS_FILE_IDX ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to insert ixcrt into log, rc = %d", rc ) ;
@@ -808,7 +808,7 @@ namespace engine
                                                    cb->isDoRollback() ) ;
 
          cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       PD_LOG( PDEVENT, "Change index[%s:%s] unique id from [%llu] to [%llu]",
@@ -1448,7 +1448,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context,
-                                 DMS_INVALID_EXTENT, TRUE,
+                                 DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, TRUE,
                                  DMS_FILE_IDX ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert ixdel into log, "
                       "rc: %d", rc ) ;
@@ -1459,7 +1459,7 @@ namespace engine
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
          cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       }
@@ -1744,7 +1744,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                                 TRUE, DMS_FILE_IDX ) ;
+                                 DMS_INVALID_OFFSET, TRUE, DMS_FILE_IDX ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to insert ixcrt into log, rc = %d", rc ) ;
@@ -1758,7 +1758,7 @@ namespace engine
                                                    cb->isDoRollback() ) ;
 
          cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
       dropDps = dpscb ;
 
@@ -2038,7 +2038,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                                 TRUE, DMS_FILE_IDX ) ;
+                                 DMS_INVALID_OFFSET, TRUE, DMS_FILE_IDX ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Insert ixcrt into log failed[%d]", rc ) ;
@@ -2052,7 +2052,7 @@ namespace engine
                                                    cb->isDoRollback() ) ;
 
          cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
       dropDps = dpscb ;
 

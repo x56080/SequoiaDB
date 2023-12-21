@@ -211,7 +211,8 @@ namespace engine
          virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) = 0 ;
 
          virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
-                                     INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
+                                     UINT32 extID, UINT32 extOffset,
+                                     DPS_LSN_OFFSET offset ) = 0 ;
 
          virtual void  onWriteLog( DPS_LSN_OFFSET offset ) = 0 ;
 

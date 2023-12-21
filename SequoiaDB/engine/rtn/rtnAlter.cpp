@@ -701,7 +701,7 @@ namespace engine
       {
 
          dpsMergeInfo info ;
-         info.setInfoEx( csLID, clLID, DMS_INVALID_EXTENT, cb ) ;
+         info.setInfoEx( csLID, clLID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
 
          dpsLogRecord & record = info.getMergeBlock().record() ;
 
@@ -736,7 +736,7 @@ namespace engine
       }
       else if ( NULL != cb )
       {
-         cb->setDataExInfo( name, csLID, clLID, DMS_INVALID_EXTENT ) ;
+         cb->setDataExInfo( name, csLID, clLID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done :

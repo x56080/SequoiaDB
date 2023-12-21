@@ -471,7 +471,8 @@ namespace engine
                {
                   _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
                                                      info.getCLLID(),
-                                                     info.getExtentLID(),
+                                                     info.getExtentID(),
+                                                     info.getExtentOffset(),
                                                      dummyhead._lsn ) ;
                }
             }
@@ -522,7 +523,8 @@ namespace engine
          {
             _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
                                                info.getCLLID(),
-                                               info.getExtentLID(),
+                                               info.getExtentID(),
+                                               info.getExtentOffset(),
                                                head._lsn ) ;
          }
       }

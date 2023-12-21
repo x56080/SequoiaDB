@@ -1390,12 +1390,13 @@ namespace engine
                                          OSS_LATCH_MODE mode,
                                          BOOLEAN & locked,
                                          UINT32 clLID,
-                                         dmsExtentID extLID )
+                                         dmsExtentID extID,
+                                         dmsOffset extOffset )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__LOGDPS ) ;
-      info.setInfoEx( _logicalCSID, clLID, extLID, cb ) ;
+      info.setInfoEx( _logicalCSID, clLID, extID, extOffset, cb ) ;
       rc = dpsCB->prepare( info ) ;
       if ( rc )
       {
@@ -1427,7 +1428,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__LOGDPS1, "_dmsStorageDataCommon::_logDPS" )
    INT32 _dmsStorageDataCommon::_logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                                          pmdEDUCB *cb, dmsMBContext *context,
-                                         dmsExtentID extLID,
+                                         dmsExtentID extID, dmsOffset extOffset,
                                          BOOLEAN needUnLock,
                                          DMS_FILE_TYPE type,
                                          UINT32 *clLID )
@@ -1438,7 +1439,7 @@ namespace engine
       info.setInfoEx( logicalID(),
                       NULL == clLID ?
                       context->clLID() : *clLID,
-                      extLID, cb ) ;
+                      extID, extOffset, cb ) ;
       rc = dpsCB->prepare( info ) ;
       if ( rc )
       {
@@ -2481,14 +2482,14 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE,
-                       metalocked, logicalID, DMS_INVALID_EXTENT ) ;
+                       metalocked, logicalID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLcrt record to log, "
                       "rc = %d", rc ) ;
       }
       else if ( NULL != cb )
       {
          cb->setDataExInfo( fullName, _logicalCSID, logicalID,
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       // release meta lock
@@ -2813,14 +2814,14 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
-                       context->clLID(), DMS_INVALID_EXTENT ) ;
+                       context->clLID(), DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLDel record to log, rc: "
                       "%d", rc ) ;
       }
       else if ( NULL != cb )
       {
          cb->setDataExInfo( fullName, _logicalCSID, context->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
    done:
@@ -3083,7 +3084,7 @@ namespace engine
                                fullName, rc, "RecordNum:%llu, LobNum:%llu",
                                oldRecords, oldLobs ) ;
          rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                       TRUE, DMS_FILE_ALL, &oldCLID ) ;
+                       DMS_INVALID_OFFSET, TRUE, DMS_FILE_ALL, &oldCLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
                       "rc: %d", rc ) ;
       }
@@ -3091,7 +3092,7 @@ namespace engine
       {
          context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
          cb->setDataExInfo( fullName, logicalID(), oldCLID,
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       rc = writeGuard.commit() ;
@@ -3388,7 +3389,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
-                       clLID, DMS_INVALID_EXTENT ) ;
+                       clLID, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert clrename to log, rc = %d",
                       rc ) ;
       }
@@ -3396,7 +3397,7 @@ namespace engine
       {
          _clFullName( newName, fullName, sizeof(fullName) ) ;
          cb->setDataExInfo( fullName, _logicalCSID, clLID,
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       if ( _pEventHolder )
@@ -3860,7 +3861,7 @@ namespace engine
       if ( dpsCB )
       {
          rc = _logDPS( dpsCB, info, cb, mbContext, DMS_INVALID_EXTENT,
-                       FALSE, DMS_FILE_ALL, NULL ) ;
+                       DMS_INVALID_OFFSET, FALSE, DMS_FILE_ALL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write recycle record to log, "
                       "rc: %d", rc ) ;
       }
@@ -3869,7 +3870,7 @@ namespace engine
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
          _clFullName( originName, fullName, sizeof(fullName) ) ;
          cb->setDataExInfo( fullName, logicalID(), mbContext->clLID(),
-                            DMS_INVALID_EXTENT ) ;
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
       }
 
       if ( NULL != mbContext )
@@ -4279,7 +4280,7 @@ namespace engine
             info.enableTrans() ;
          }
          rc = _logDPS( dpsCB, info, cb, context,
-                       foundRID._extent, canUnLock,
+                       foundRID._extent, foundRID._offset, canUnLock,
                        DMS_FILE_DATA ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, "
                        "rc: %d", rc ) ;
@@ -4291,7 +4292,7 @@ namespace engine
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
          cb->setDataExInfo( fullName, logicalID(), context->clLID(),
-                            foundRID._extent ) ;
+                            foundRID._extent, foundRID._offset ) ;
       }
 
       if ( handler )
@@ -4638,8 +4639,8 @@ namespace engine
          {
             info.enableTrans() ;
          }
-         rc = _logDPS( dpscb, info, cb, context, recordID._extent, FALSE,
-                       DMS_FILE_DATA ) ;
+         rc = _logDPS( dpscb, info, cb, context, recordID._extent,
+                       recordID._offset, FALSE, DMS_FILE_DATA ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d",
                       rc ) ;
       }
@@ -4649,7 +4650,7 @@ namespace engine
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
          cb->setDataExInfo( fullName, logicalID(), context->clLID(),
-                            recordID._extent ) ;
+                            recordID._extent, recordID._offset ) ;
       }
 
       if ( handler )
@@ -5049,8 +5050,8 @@ namespace engine
          {
             info.enableTrans() ;
          }
-         rc = _logDPS( dpscb, info, cb, context, recordID._extent, FALSE,
-                       DMS_FILE_DATA ) ;
+         rc = _logDPS( dpscb, info, cb, context, recordID._extent,
+                       recordID._offset, FALSE, DMS_FILE_DATA ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert update record into log, "
                       "rc: %d", rc ) ;
       }
@@ -5060,7 +5061,7 @@ namespace engine
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
          cb->setDataExInfo( fullName, logicalID(), context->clLID(),
-                            recordID._extent ) ;
+                            recordID._extent, recordID._offset ) ;
       }
 
       if ( handler )

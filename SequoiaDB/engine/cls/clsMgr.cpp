@@ -1378,7 +1378,7 @@ namespace engine
          /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
          rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
          if ( SDB_OK != rc )
@@ -1430,7 +1430,7 @@ namespace engine
          /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
          UINT8 type = DPS_LOG_INVALIDCATA_TYPE_CATA ;
          rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
@@ -1506,7 +1506,7 @@ namespace engine
          /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
          UINT8 type = DPS_LOG_INVALIDCATA_TYPE_PLAN ;
          rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
