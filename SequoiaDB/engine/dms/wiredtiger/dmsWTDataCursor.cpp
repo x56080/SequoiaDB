@@ -109,12 +109,20 @@ namespace
 
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
                      "", key, FALSE, isForward, snapshotID, executor ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
          rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
                      "", isForward, snapshotID, executor ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 

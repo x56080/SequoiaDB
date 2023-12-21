@@ -469,7 +469,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
       }
 
-      if ( !_persistUnit )
+      if ( _persistUnit )
       {
          rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;

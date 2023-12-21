@@ -81,12 +81,20 @@ namespace wiredtiger
          dmsWTItem key( startKey.getKeySlice() ) ;
          rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
                      "", key, isAfterStartKey, isForward, snapshotID, executor ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
       else
       {
          rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
                      "", isForward, snapshotID, executor ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 

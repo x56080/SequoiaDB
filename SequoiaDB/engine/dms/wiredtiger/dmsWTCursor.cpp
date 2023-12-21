@@ -656,7 +656,7 @@ namespace wiredtiger
          dmsWTItem curItem ;
          _cursor->get_key( _cursor, curItem.get() ) ;
          utilSlice curSlice( curItem.get()->size, curItem.get()->data ) ;
-         PD_LOG( PDEVENT, "search [%s], current [%s] exect %d",
+         PD_LOG( PDDEBUG, "search [%s], current [%s] exect %d",
                  keySlice.toPoolString().c_str(),
                  curSlice.toPoolString().c_str(),
                  exact ) ;
@@ -792,7 +792,7 @@ namespace wiredtiger
          dmsWTItem curItem ;
          _cursor->get_key( _cursor, curItem.get() ) ;
          utilSlice curSlice( curItem.get()->size, curItem.get()->data ) ;
-         PD_LOG( PDEVENT, "search [%s], current [%s] exect %d",
+         PD_LOG( PDDEBUG, "search [%s], current [%s] exect %d",
                  keySlice.toPoolString().c_str(),
                  curSlice.toPoolString().c_str(),
                  exact ) ;

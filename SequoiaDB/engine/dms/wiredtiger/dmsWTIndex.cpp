@@ -217,7 +217,7 @@ namespace
                          isForward,
                          snapshotID,
                          executor ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open data cursor, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open index cursor, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX_CREATEINDEXCURSOR, rc ) ;

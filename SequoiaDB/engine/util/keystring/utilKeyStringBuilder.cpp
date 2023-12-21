@@ -1707,11 +1707,6 @@ namespace keystring
                                             BOOLEAN invert )
    {
       INT32 rc = SDB_OK ;
-      if ( !val.isSet() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
 
       _verifyStatus() ;
       rc = _append( keyStringEncodedType::oid, invert ) ;
@@ -1818,7 +1813,7 @@ namespace keystring
                                                    BOOLEAN invert )
    {
       INT32 rc = SDB_OK ;
-      if ( nullptr == code.data() || scope.isEmpty() )
+      if ( nullptr == code.data() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -1866,7 +1861,7 @@ namespace keystring
                                                 BOOLEAN invert )
    {
       INT32 rc = SDB_OK ;
-      if ( nullptr == data || 0 == dataSize )
+      if ( nullptr == data )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -1915,11 +1910,14 @@ namespace keystring
          goto error ;
       }
 
-      rc = _appendBytes( data, dataSize, invert ) ;
-      if ( SDB_OK != rc )
+      if ( dataSize > 0 )
       {
-         PD_LOG( PDERROR, "Failed to append bin data value, rc: %d" ) ;
-         goto error ;
+         rc = _appendBytes( data, dataSize, invert ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to append bin data value, rc: %d" ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -1988,7 +1986,7 @@ namespace keystring
                                               BOOLEAN invert )
    {
       INT32 rc = SDB_OK ;
-      if ( nullptr == dbrefNS.data() || !dbrefOID.isSet() )
+      if ( nullptr == dbrefNS.data() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -2038,11 +2036,6 @@ namespace keystring
    {
       INT32 rc = SDB_OK ;
       BSONObjIterator it ;
-      if ( val.isEmpty() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
 
       _verifyStatus() ;
       rc = _append( keyStringEncodedType::array, invert ) ;
@@ -2135,12 +2128,6 @@ namespace keystring
    {
       INT32 rc = SDB_OK ;
 
-      if ( val.isEmpty() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
       _verifyStatus() ;
       rc = _append( keyStringEncodedType::object, invert ) ;
       if ( SDB_OK != rc )
@@ -2231,13 +2218,6 @@ namespace keystring
       INT32 rc = SDB_OK ;
       BSONObjIterator it ;
       _verifyStatus() ;
-      SDB_ASSERT( !obj.isEmpty(), "can not be empty" ) ;
-
-      if ( obj.isEmpty() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
 
       it = BSONObjIterator( obj ) ;
       while ( it.more() )
