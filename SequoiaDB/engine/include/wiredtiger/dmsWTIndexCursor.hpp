@@ -135,6 +135,30 @@ namespace wiredtiger
 
    typedef class _dmsWTIndexCursor dmsWTIndexCursor ;
 
+   /*
+      _dmsWTIndexAsyncCursor define
+    */
+   class _dmsWTIndexAsyncCursor : public _dmsWTIndexCursor
+   {
+   public:
+      _dmsWTIndexAsyncCursor() ;
+      virtual ~_dmsWTIndexAsyncCursor() = default ;
+      _dmsWTIndexAsyncCursor( const _dmsWTIndexAsyncCursor & ) = delete ;
+      _dmsWTIndexAsyncCursor &operator =( const _dmsWTIndexAsyncCursor & ) = delete ;
+
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          const keystring::keyString &startKey,
+                          BOOLEAN isAfterStartKey,
+                          BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+
+   protected:
+      dmsWTSession _asyncSession ;
+   } ;
+
+   typedef class _dmsWTIndexAsyncCursor dmsWTIndexAsyncCursor ;
+
 }
 }
 

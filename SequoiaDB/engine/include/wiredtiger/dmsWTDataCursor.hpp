@@ -131,6 +131,30 @@ namespace wiredtiger
 
    typedef class _dmsWTDataCursor dmsWTDataCursor ;
 
+   /*
+      _dmsWTDataAsyncCursor define
+    */
+   class _dmsWTDataAsyncCursor : public _dmsWTDataCursor
+   {
+   public:
+      _dmsWTDataAsyncCursor() ;
+      virtual ~_dmsWTDataAsyncCursor() = default ;
+      _dmsWTDataAsyncCursor( const _dmsWTDataAsyncCursor & ) = delete ;
+      _dmsWTDataAsyncCursor &operator =( const _dmsWTDataAsyncCursor & ) = delete ;
+
+      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
+                          const dmsRecordID &startRID,
+                          BOOLEAN isAfterStartRID,
+                          BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+
+   protected:
+      dmsWTSession _asyncSession ;
+   } ;
+
+   typedef class _dmsWTDataAsyncCursor dmsWTDataAsyncCursor ;
+
 }
 }
 

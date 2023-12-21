@@ -384,5 +384,46 @@ namespace wiredtiger
       goto done ;
    }
 
+   /*
+      _dmsWTIndexAsyncCursor implement
+    */
+   _dmsWTIndexAsyncCursor::_dmsWTIndexAsyncCursor()
+   : _dmsWTIndexCursor( _asyncSession )
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXASYNCCURSOR_OPEN, "_dmsWTIndexAsyncCursor::open" )
+   INT32 _dmsWTIndexAsyncCursor::open( shared_ptr<IIndex> idxPtr,
+                                       const keyString &startKey,
+                                       BOOLEAN isAfterStartKey,
+                                       BOOLEAN isForward,
+                                       UINT64 snapshotID,
+                                       IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXASYNCCURSOR_OPEN ) ;
+
+      if ( !_asyncSession.isOpened() )
+      {
+         dmsWTIndex *wtIndex = dynamic_cast<dmsWTIndex *>( idxPtr.get() ) ;
+         PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
+                  "Failed to open cursor, index is not WiredTiger index" ) ;
+         rc = wtIndex->getEngine().openSession( _asyncSession,
+                                                dmsWTSessIsolation::SNAPSHOT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+      rc = _dmsWTIndexCursor::open( idxPtr, startKey, isAfterStartKey,
+                                    isForward, snapshotID, executor ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXASYNCCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 }

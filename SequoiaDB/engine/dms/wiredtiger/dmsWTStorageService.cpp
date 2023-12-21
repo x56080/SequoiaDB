@@ -149,13 +149,13 @@ namespace wiredtiger
       IOperationContext *optCtx = nullptr ;
       persistUnit = nullptr ;
 
-      PD_CHECK( executor, SDB_SYS, error, PDERROR,
-                "Failed to get persist unit, executor is invalid" ) ;
+      if ( !executor ||
+           !executor->getOperationContext() )
+      {
+         goto done ;
+      }
 
       optCtx = executor->getOperationContext() ;
-      PD_CHECK( optCtx, SDB_SYS, error, PDERROR,
-                "Failed to get persist unit, operation context is invalid" ) ;
-
       persistUnit = optCtx->getPersistUnit() ;
       if ( !persistUnit )
       {

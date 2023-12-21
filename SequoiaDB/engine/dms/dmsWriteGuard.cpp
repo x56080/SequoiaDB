@@ -469,10 +469,13 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
       }
 
-      rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;
+      if ( !_persistUnit )
+      {
+         rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;
 
-      _hasBegin = TRUE ;
+         _hasBegin = TRUE ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_BEGIN, rc ) ;

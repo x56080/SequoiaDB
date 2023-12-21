@@ -191,17 +191,24 @@ namespace
 
       UINT64 snapshotID = 0 ;
       IPersistUnit *persistUnit = nullptr ;
-      dmsWTPersistUnit *wtUnit = nullptr ;
 
       rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
 
-      wtUnit = dynamic_cast<dmsWTPersistUnit *>( persistUnit ) ;
-      PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
-                "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
+      if ( persistUnit )
+      {
+         dmsWTPersistUnit *wtUnit = dynamic_cast<dmsWTPersistUnit *>( persistUnit ) ;
+         PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
+                  "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
 
-      cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor( wtUnit->getSession() ) ) ;
-      PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
+         cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor( wtUnit->getSession() ) ) ;
+         PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
+      }
+      else
+      {
+         cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexAsyncCursor() ) ;
+         PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
+      }
 
       snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
       rc = cursor->open( shared_from_this(),

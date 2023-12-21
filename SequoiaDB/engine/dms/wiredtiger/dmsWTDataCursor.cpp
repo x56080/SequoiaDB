@@ -240,5 +240,46 @@ namespace
       goto done ;
    }
 
+   /*
+      _dmsWTDataAsyncCursor implement
+    */
+   _dmsWTDataAsyncCursor::_dmsWTDataAsyncCursor()
+   : _dmsWTDataCursor( _asyncSession )
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATAASYNCCURSOR_OPEN, "_dmsWTDataAsyncCursor::open" )
+   INT32 _dmsWTDataAsyncCursor::open( shared_ptr<ICollection> collPtr,
+                                      const dmsRecordID &startRID,
+                                      BOOLEAN isAfterStartRID,
+                                      BOOLEAN isForward,
+                                      UINT64 snapshotID,
+                                      IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTDATAASYNCCURSOR_OPEN ) ;
+
+      if ( !_asyncSession.isOpened() )
+      {
+         dmsWTCollection *wtCollection = dynamic_cast<dmsWTCollection *>( collPtr.get() ) ;
+         PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
+                  "Failed to open cursor, collection is not WiredTiger collection" ) ;
+         rc = wtCollection->getEngine().openSession( _asyncSession,
+                                                     dmsWTSessIsolation::SNAPSHOT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+      rc = _dmsWTDataCursor::open( collPtr, startRID, isAfterStartRID,
+                                   isForward, snapshotID, executor ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTDATAASYNCCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 }
