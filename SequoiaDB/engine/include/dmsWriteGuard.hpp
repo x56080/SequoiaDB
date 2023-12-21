@@ -47,7 +47,7 @@ namespace engine
 
    // forward declaration
    class _pmdEDUCB ;
-   class _dmsStorageBase ;
+   class _dmsStorageDataCommon ;
    class _dmsMBContext ;
 
    /*
@@ -57,7 +57,7 @@ namespace engine
    {
    public:
       _dmsDataWriteGuard() ;
-      _dmsDataWriteGuard( _dmsStorageBase *su,
+      _dmsDataWriteGuard( _dmsStorageDataCommon *su,
                           _dmsMBContext *mbContext,
                           _pmdEDUCB *cb,
                           BOOLEAN isEnabled = TRUE ) ;
@@ -66,7 +66,7 @@ namespace engine
       void beforeWrite() ;
       void afterWrite() ;
 
-      INT32 begin( _dmsStorageBase *su,
+      INT32 begin( _dmsStorageDataCommon *su,
                    _dmsMBContext *mbContext,
                    _pmdEDUCB *cb,
                    BOOLEAN isEnabled = TRUE ) ;
@@ -80,7 +80,7 @@ namespace engine
       }
 
    protected:
-      _dmsStorageBase *_su = nullptr ;
+      _dmsStorageDataCommon *_su = nullptr ;
       UINT16 _mbID ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
@@ -135,6 +135,8 @@ namespace engine
    public:
       _dmsPersistGuard() ;
       _dmsPersistGuard( IStorageService *service,
+                        _dmsStorageDataCommon *su,
+                        _dmsMBContext *mbContext,
                         _pmdEDUCB *cb,
                         BOOLEAN isEnabled = TRUE ) ;
       ~_dmsPersistGuard() ;
@@ -152,15 +154,56 @@ namespace engine
       }
 
       INT32 begin( IStorageService *service,
+                   _dmsStorageDataCommon *su,
+                   _dmsMBContext *mbContext,
                    _pmdEDUCB *cb,
                    BOOLEAN isEnabled = TRUE ) ;
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
 
+      void incRecordCount()
+      {
+         ++ _recordCountIncDelta ;
+      }
+
+      void decRecordCount()
+      {
+         ++ _recordCountDecDelta ;
+      }
+
+      void incDataLen( UINT64 dataLen )
+      {
+         _dataLenIncDelta += dataLen ;
+      }
+
+      void decDataLen( UINT64 dataLen )
+      {
+         _dataLenDecDelta += dataLen ;
+      }
+
+      void incOrgDataLen( UINT64 orgDataLen )
+      {
+         _orgDataLenIncDelta += orgDataLen ;
+      }
+
+      void decOrgDataLen( UINT64 orgDataLen )
+      {
+         _orgDataLenDecDelta += orgDataLen ;
+      }
+
    protected:
-      IStorageService *_service ;
-      IPersistUnit *_persistUnit ;
+      IStorageService *_service = nullptr ;
+      IPersistUnit *_persistUnit = nullptr ;
+      _dmsStorageDataCommon *_su = nullptr ;
+      _dmsMBStatInfo *_mbStat = nullptr ;
+      utilCLUniqueID _clUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT64 _recordCountIncDelta = 0 ;
+      UINT64 _recordCountDecDelta = 0 ;
+      UINT64 _dataLenIncDelta = 0 ;
+      UINT64 _dataLenDecDelta = 0 ;
+      UINT64 _orgDataLenIncDelta = 0 ;
+      UINT64 _orgDataLenDecDelta = 0 ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
    } ;
@@ -175,7 +218,7 @@ namespace engine
    public:
       _dmsWriteGuard() = default ;
       _dmsWriteGuard( IStorageService *service,
-                      _dmsStorageBase *su,
+                      _dmsStorageDataCommon *su,
                       _dmsMBContext *mbContext,
                       _pmdEDUCB *cb,
                       BOOLEAN isDataWriteGuardEnabled = TRUE,
@@ -185,7 +228,7 @@ namespace engine
       ~_dmsWriteGuard() = default ;
 
       INT32 begin( IStorageService *service,
-                   _dmsStorageBase *su,
+                   _dmsStorageDataCommon *su,
                    _dmsMBContext *mbContext,
                    _pmdEDUCB *cb,
                    BOOLEAN isDataWriteGuardEnabled = TRUE,

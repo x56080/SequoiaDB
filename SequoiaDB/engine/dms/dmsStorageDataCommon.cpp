@@ -4244,12 +4244,11 @@ namespace engine
          rc = context->getCollPtr()->insertRecord( foundRID, recordData, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record, rc: %d", rc ) ;
 
-         _increaseMBStat( context->mb()->_clUniqueID,
-                          &( _mbStatInfo[ context->mbID() ] ), cb ) ;
          _mbStatInfo[context->mbID()]._lastCompressRatio =
             (UINT8)( recordData.getCompressRatio() * 100 ) ;
-         _mbStatInfo[context->mbID()]._totalOrgDataLen.add( recordData.orgLen() ) ;
-         _mbStatInfo[context->mbID()]._totalDataLen.add( recordData.len() ) ;
+         writeGuard.getPersistGuard().incRecordCount() ;
+         writeGuard.getPersistGuard().incOrgDataLen( recordData.orgLen() ) ;
+         writeGuard.getPersistGuard().incDataLen( recordData.len() ) ;
 
          hasInsert = TRUE ;
          // update totalInsert monitor counter
@@ -4585,12 +4584,6 @@ namespace engine
 
                // if local index delete fail, let's continue remove the record
             }
-            //here when we sub the remove data info,
-            //if the record has compresssed,the orgLen mean the record size
-            //in DB,len mean the uncompress size. So when we substract the
-            //size,we should swap them.
-            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
-            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
          }
          catch ( std::exception &e )
          {
@@ -4604,8 +4597,13 @@ namespace engine
          rc = context->getCollPtr()->removeRecord( recordID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to remove record, rc: %d", rc ) ;
 
-         _decreaseMBStat( context->mb()->_clUniqueID,
-                          &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+         //here when we sub the remove data info,
+         //if the record has compresssed,the orgLen mean the record size
+         //in DB,len mean the uncompress size. So when we substract the
+         //size,we should swap them.
+         writeGuard.getPersistGuard().decRecordCount() ;
+         writeGuard.getPersistGuard().decDataLen( recordData.orgLen() ) ;
+         writeGuard.getPersistGuard().decOrgDataLen( recordData.len() ) ;
 
          //increase data write counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
@@ -5434,18 +5432,19 @@ namespace engine
       return pRecord->getDataLength() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT, "_dmsStorageDataCommon::_increaseMBStat" )
-   void _dmsStorageDataCommon::_increaseMBStat ( utilCLUniqueID clUniqueID,
-                                                 dmsMBStatInfo * mbStat,
-                                                 _pmdEDUCB * cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INCMBSTAT, "_dmsStorageDataCommon::increaseMBStat" )
+   void _dmsStorageDataCommon::increaseMBStat ( utilCLUniqueID clUniqueID,
+                                                dmsMBStatInfo * mbStat,
+                                                UINT64 delta,
+                                                _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
       SDB_ASSERT( NULL != cb, "EDUCB should not be NULL" ) ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_INCMBSTAT ) ;
 
       // update meta-block statistics
-      mbStat->_totalRecords.inc() ;
+      mbStat->_totalRecords.add( delta ) ;
 
       // update meta-block statistics for transaction RC counter
       if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
@@ -5467,35 +5466,36 @@ namespace engine
          // in transaction, update the RC counter in transaction executor
          // first
          if ( !cb->getTransExecutor()->incMBTotalRecords(
-                           clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+                           clUniqueID, &( mbStat->_rcTotalRecords ), delta ) )
          {
             // failed to update the RC counter in transaction executor, which
             // means the collection unique ID may be invalid, update the
             // RC counter directly
-            mbStat->_rcTotalRecords.inc() ;
+            mbStat->_rcTotalRecords.add( delta ) ;
          }
       }
       else
       {
          // not a transaction, update the RC counter
-         mbStat->_rcTotalRecords.inc() ;
+         mbStat->_rcTotalRecords.add( delta ) ;
       }
 
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT ) ;
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_INCMBSTAT ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT, "_dmsStorageDataCommon::_decreaseMBStat" )
-   void _dmsStorageDataCommon::_decreaseMBStat ( utilCLUniqueID clUniqueID,
-                                                 dmsMBStatInfo * mbStat,
-                                                 _pmdEDUCB * cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_DECMBSTAT, "_dmsStorageDataCommon::decreaseMBStat" )
+   void _dmsStorageDataCommon::decreaseMBStat ( utilCLUniqueID clUniqueID,
+                                                dmsMBStatInfo * mbStat,
+                                                UINT64 delta,
+                                                _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
       SDB_ASSERT( NULL != cb, "EDUCB should not be NULL" ) ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_DECMBSTAT ) ;
 
       // update meta-block statistics
-      mbStat->_totalRecords.dec() ;
+      mbStat->_totalRecords.sub( delta ) ;
 
       // update meta-block statistics for transaction RC counter
       if ( cb->isDoReplay() || sdbGetTransCB()->isDoRollback() )
@@ -5517,21 +5517,21 @@ namespace engine
          // in transaction, update the RC counter in transaction executor
          // first
          if ( !cb->getTransExecutor()->decMBTotalRecords(
-                        clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+                        clUniqueID, &( mbStat->_rcTotalRecords ), delta ) )
          {
             // failed to update the RC counter in transaction executor, which
             // means the collection unique ID may be invalid, update the
             // RC counter directly
-            mbStat->_rcTotalRecords.dec() ;
+            mbStat->_rcTotalRecords.sub( delta ) ;
          }
       }
       else
       {
          // not a transaction, update the RC counter
-         mbStat->_rcTotalRecords.dec() ;
+         mbStat->_rcTotalRecords.sub( delta ) ;
       }
 
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_DECMBSTAT ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED, "_dmsStorageDataCommon::_onMBUpdated" )

@@ -785,6 +785,11 @@ namespace engine
             return _collPtr ;
          }
 
+         OSS_INLINE utilCLUniqueID getCLUniqueID() const
+         {
+            return _mb ? _mb->_clUniqueID : UTIL_UNIQUEID_NULL ;
+         }
+
       private:
          OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry ) ;
       private:
@@ -1335,6 +1340,15 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
+         void increaseMBStat ( utilCLUniqueID clUniqueID,
+                               dmsMBStatInfo * mbStat,
+                               UINT64 delta,
+                               _pmdEDUCB * cb ) ;
+         void decreaseMBStat ( utilCLUniqueID clUniqueID,
+                               dmsMBStatInfo * mbStat,
+                               UINT64 delta,
+                               _pmdEDUCB * cb ) ;
+
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
                                               dmsExtentID &extOptExtent,
@@ -1507,13 +1521,6 @@ namespace engine
 
          INT32 _freeExtent ( dmsExtentID extentID, INT32 collectionID ) ;
          INT32 _freeExtent ( dmsMBContext *context, dmsExtentID extentID ) ;
-
-         void _increaseMBStat ( utilCLUniqueID clUniqueID,
-                                dmsMBStatInfo * mbStat,
-                                _pmdEDUCB * cb ) ;
-         void _decreaseMBStat ( utilCLUniqueID clUniqueID,
-                                dmsMBStatInfo * mbStat,
-                                _pmdEDUCB * cb ) ;
 
          void _onMBUpdated( UINT16 mbID ) ;
 

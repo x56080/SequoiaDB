@@ -539,10 +539,10 @@ namespace engine
             //size,we should swap them.
             _mbStatInfo[context->mbID()]._lastCompressRatio =
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
-            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
-            context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
-            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
+            writeGuard.getPersistGuard().decDataLen( recordData.orgLen() ) ;
+            writeGuard.getPersistGuard().decOrgDataLen( recordData.len() ) ;
+            writeGuard.getPersistGuard().incDataLen( newRecordData.len() ) ;
+            writeGuard.getPersistGuard().incOrgDataLen( newRecordData.orgLen() ) ;
             goto done ;
          }
          else if ( pOvfRecord && dmsRecordSize <= pOvfRecord->getSize() )
@@ -555,10 +555,10 @@ namespace engine
             //size,we should swap them.
             _mbStatInfo[context->mbID()]._lastCompressRatio =
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
-            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
-            context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
-            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
+            writeGuard.getPersistGuard().decDataLen( recordData.orgLen() ) ;
+            writeGuard.getPersistGuard().decOrgDataLen( recordData.len() ) ;
+            writeGuard.getPersistGuard().incDataLen( newRecordData.len() ) ;
+            writeGuard.getPersistGuard().incOrgDataLen( newRecordData.orgLen() ) ;
             goto done ;
          }
          // over-flow recrod
@@ -627,8 +627,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
-            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
-            context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
+            writeGuard.getPersistGuard().decDataLen( recordData.orgLen() ) ;
+            writeGuard.getPersistGuard().decOrgDataLen( recordData.len() ) ;
             // NOTE: last compress ratio is updated with insert of overflow-to record
          }
       }
@@ -1175,8 +1175,8 @@ namespace engine
          dmsOffset   offset      = extent->_lastRecordOffset ;
          // finally add the record into list
          extent->_recCount++ ;
-         _increaseMBStat( context->mb()->_clUniqueID,
-                        &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+         increaseMBStat( context->mb()->_clUniqueID,
+                        &( _mbStatInfo[ context->mbID() ] ), 1, cb ) ;
          // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
@@ -1271,8 +1271,8 @@ namespace engine
          if ( decCount )
          {
             --(pExtent->_recCount) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            decreaseMBStat( context->mb()->_clUniqueID,
+                            &( _mbStatInfo[ context->mbID() ] ), 1, cb ) ;
          }
       }
       //increase data write counter

@@ -57,7 +57,7 @@ namespace engine
    {
    }
 
-   _dmsDataWriteGuard::_dmsDataWriteGuard( dmsStorageBase *su,
+   _dmsDataWriteGuard::_dmsDataWriteGuard( dmsStorageDataCommon *su,
                                            dmsMBContext *mbContext,
                                            pmdEDUCB *cb,
                                            BOOLEAN isEnabled )
@@ -105,7 +105,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEGIN_INIT, "_dmsDataWriteGuard::begin" )
-   INT32 _dmsDataWriteGuard::begin( dmsStorageBase *su,
+   INT32 _dmsDataWriteGuard::begin( dmsStorageDataCommon *su,
                                     dmsMBContext *mbContext,
                                     pmdEDUCB *cb,
                                     BOOLEAN isEnabled )
@@ -337,16 +337,23 @@ namespace engine
    _dmsPersistGuard::_dmsPersistGuard()
    : _service( nullptr ),
      _persistUnit( nullptr ),
+     _su( nullptr ),
+     _mbStat( nullptr ),
      _eduCB( nullptr ),
      _isEnabled( FALSE )
    {
    }
 
    _dmsPersistGuard::_dmsPersistGuard( IStorageService *service,
+                                       dmsStorageDataCommon *su,
+                                       dmsMBContext *mbContext,
                                        pmdEDUCB *cb,
                                        BOOLEAN isEnabled )
    : _service( service ),
      _persistUnit( nullptr ),
+     _su( su ),
+     _mbStat( mbContext ? mbContext->mbStat() : nullptr ),
+     _clUniqueID( mbContext ? mbContext->getCLUniqueID() : UTIL_UNIQUEID_NULL ),
      _eduCB( cb ),
      _isEnabled( isEnabled )
    {
@@ -359,6 +366,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN_INIT, "_dmsPersistGuard::begin" )
    INT32 _dmsPersistGuard::begin( IStorageService *service,
+                                  dmsStorageDataCommon *su,
+                                  dmsMBContext *mbContext,
                                   pmdEDUCB *cb,
                                   BOOLEAN isEnabled )
    {
@@ -370,6 +379,9 @@ namespace engine
                 "Failed to begin persist guard, already in guard" ) ;
 
       _service = service ;
+      _su = su ;
+      _mbStat = mbContext->mbStat() ;
+      _clUniqueID = mbContext->getCLUniqueID() ;
       _eduCB = cb ;
       _isEnabled = isEnabled ;
 
@@ -422,6 +434,49 @@ namespace engine
 
       if ( _isEnabled && _persistUnit )
       {
+         if ( _mbStat )
+         {
+            if ( _su && UTIL_UNIQUEID_NULL != _clUniqueID )
+            {
+               if ( _recordCountIncDelta > 0 )
+               {
+                  _su->increaseMBStat( _clUniqueID, _mbStat, _recordCountIncDelta, _eduCB ) ;
+               }
+               if ( _recordCountDecDelta > 0 )
+               {
+                  _su->decreaseMBStat( _clUniqueID, _mbStat, _recordCountDecDelta, _eduCB ) ;
+               }
+            }
+            else
+            {
+               if ( _recordCountIncDelta > 0 )
+               {
+                  _mbStat->_totalRecords.add( _recordCountIncDelta ) ;
+                  _mbStat->_rcTotalRecords.add( _recordCountIncDelta ) ;
+               }
+               if ( _recordCountDecDelta > 0 )
+               {
+                  _mbStat->_totalRecords.sub( _recordCountDecDelta ) ;
+                  _mbStat->_rcTotalRecords.sub( _recordCountDecDelta ) ;
+               }
+            }
+            if ( _dataLenIncDelta > 0 )
+            {
+               _mbStat->_totalDataLen.add( _dataLenIncDelta ) ;
+            }
+            if ( _dataLenDecDelta > 0 )
+            {
+               _mbStat->_totalDataLen.sub( _dataLenDecDelta ) ;
+            }
+            if ( _orgDataLenIncDelta > 0 )
+            {
+               _mbStat->_totalOrgDataLen.add( _orgDataLenIncDelta ) ;
+            }
+            if ( _orgDataLenDecDelta > 0 )
+            {
+               _mbStat->_totalOrgDataLen.sub( _orgDataLenDecDelta ) ;
+            }
+         }
          rc = _persistUnit->commitUnit( _eduCB, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to commit persist unit, rc: %d", rc ) ;
 
@@ -463,7 +518,7 @@ namespace engine
       _dmsWriteGuard implement
     */
    _dmsWriteGuard::_dmsWriteGuard( IStorageService *service,
-                                   dmsStorageBase *su,
+                                   dmsStorageDataCommon *su,
                                    dmsMBContext *mbContext,
                                    pmdEDUCB *cb,
                                    BOOLEAN isDataWriteGuardEnabled,
@@ -471,13 +526,13 @@ namespace engine
                                    BOOLEAN isPersistGuardEnabled )
    : _dataGuard( su, mbContext, cb, isDataWriteGuardEnabled ),
      _indexGuard( cb, isIndexWriteGuardEnabled ),
-     _persistGuard( service, cb, isPersistGuardEnabled)
+     _persistGuard( service, su, mbContext, cb, isPersistGuardEnabled)
    {
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_BEGIN_INIT, "_dmsWriteGuard::begin" )
    INT32 _dmsWriteGuard::begin( IStorageService *service,
-                                dmsStorageBase *su,
+                                dmsStorageDataCommon *su,
                                 dmsMBContext *mbContext,
                                 pmdEDUCB *cb,
                                 BOOLEAN isDataWriteGuardEnabled,
@@ -494,7 +549,7 @@ namespace engine
       rc = _indexGuard.begin( cb, isIndexWriteGuardEnabled ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
 
-      rc = _persistGuard.begin( service, cb, isPersistGuardEnabled ) ;
+      rc = _persistGuard.begin( service, su, mbContext, cb, isPersistGuardEnabled ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
 
    done:
@@ -536,14 +591,14 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_COMMIT ) ;
 
-      rc = _dataGuard.commit() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to commit data write guard, rc: %d", rc ) ;
+      rc = _persistGuard.commit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit persist guard, rc: %d", rc ) ;
 
       rc = _indexGuard.commit() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to commit index write guard, rc: %d", rc ) ;
 
-      rc = _persistGuard.commit() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to commit persist guard, rc: %d", rc ) ;
+      rc = _dataGuard.commit() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit data write guard, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_COMMIT, rc ) ;
@@ -562,11 +617,14 @@ namespace engine
 
       INT32 tmpRC = SDB_OK ;
 
-      tmpRC = _dataGuard.abort( isForced ) ;
+      tmpRC = _persistGuard.abort( isForced ) ;
       if ( SDB_OK != tmpRC )
       {
-         PD_LOG( PDWARNING, "Failed to abort data write guard, rc: %d", tmpRC ) ;
-         rc = tmpRC ;
+         PD_LOG( PDWARNING, "Failed to abort persist guard, rc: %d", tmpRC ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = tmpRC ;
+         }
       }
 
       tmpRC = _indexGuard.abort( isForced ) ;
@@ -579,14 +637,11 @@ namespace engine
          }
       }
 
-      tmpRC = _persistGuard.abort( isForced ) ;
+      tmpRC = _dataGuard.abort( isForced ) ;
       if ( SDB_OK != tmpRC )
       {
-         PD_LOG( PDWARNING, "Failed to abort persist guard, rc: %d", tmpRC ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = tmpRC ;
-         }
+         PD_LOG( PDWARNING, "Failed to abort data write guard, rc: %d", tmpRC ) ;
+         rc = tmpRC ;
       }
 
    done:
