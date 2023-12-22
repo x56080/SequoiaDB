@@ -242,6 +242,8 @@ namespace engine
       rc = _cursorPtr->getCurrentRecord( recordData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
 
+      DMS_MON_OP_COUNT_INC( _cb->getMonAppCB(), MON_DATA_READ, 1 ) ;
+
    done:
       PD_TRACE_EXITRC( SDB__RTNTBSCAN_GETCURREC, rc ) ;
       return rc ;
