@@ -418,6 +418,14 @@ namespace engine
          {
             compressorType = "snappy" ;
          }
+         else if ( UTIL_COMPRESSOR_LZ4 == mb->_compressorType )
+         {
+            compressorType = "lz4" ;
+         }
+         else if ( UTIL_COMPRESSOR_ZLIB == mb->_compressorType )
+         {
+            compressorType = "zlib" ;
+         }
          else if ( UTIL_COMPRESSOR_INVALID == mb->_compressorType )
          {
             compressorType = "none" ;

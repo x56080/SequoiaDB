@@ -2457,6 +2457,7 @@ namespace engine
       {
          dmsCLMetadata metadata( _suDescriptor, mb, mbStat ) ;
          dmsCreateCLOptions options ;
+         options._compressorType = compressionType ;
          rc = _service->createCL( metadata, options, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s] on "
                       "engine [%s], rc: %d", pName,

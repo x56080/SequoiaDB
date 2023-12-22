@@ -660,6 +660,14 @@ namespace engine
          {
             _compressorType = UTIL_COMPRESSOR_SNAPPY ;
          }
+         else if ( 0 == ossStrcmp( compressionType, VALUE_NAME_LZ4 ) )
+         {
+            _compressorType = UTIL_COMPRESSOR_LZ4 ;
+         }
+         else if ( 0 == ossStrcmp( compressionType, VALUE_NAME_ZLIB ) )
+         {
+            _compressorType = UTIL_COMPRESSOR_ZLIB ;
+         }
          else
          {
             PD_LOG( PDERROR, "Compression type[%s] is invalid",
@@ -671,7 +679,7 @@ namespace engine
 
       if ( isCompressed && !hasCompressType )
       {
-         _compressorType = UTIL_COMPRESSOR_LZW ;
+         _compressorType = UTIL_COMPRESSOR_SNAPPY ;
       }
       if ( !hasCompressed && hasCompressType )
       {
@@ -687,7 +695,7 @@ namespace engine
       if ( !capped && !hasCompressed && !hasCompressType )
       {
          isCompressed = TRUE ;
-         _compressorType = UTIL_COMPRESSOR_LZW ;
+         _compressorType = UTIL_COMPRESSOR_SNAPPY ;
       }
       if ( isCompressed )
       {

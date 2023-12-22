@@ -108,6 +108,11 @@ namespace wiredtiger
                                     IExecutor *executor,
                                     std::shared_ptr<ICollection> &collPtr ) ;
 
+      virtual BOOLEAN supportAlterCompressor() const
+      {
+         return FALSE ;
+      }
+
    protected:
       INT32 _initEngineOptions( dmsWTEngineOptions &options ) ;
       INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;

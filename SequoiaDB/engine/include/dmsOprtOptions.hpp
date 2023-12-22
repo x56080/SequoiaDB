@@ -100,6 +100,9 @@ namespace engine
       virtual ~_dmsCreateCLOptions() = default ;
       _dmsCreateCLOptions( const _dmsCreateCLOptions &o ) = default ;
       _dmsCreateCLOptions &operator =( const _dmsCreateCLOptions & ) = default ;
+
+   public:
+      UINT8 _compressorType = UTIL_COMPRESSOR_TYPE::UTIL_COMPRESSOR_SNAPPY ;
    } ;
 
    typedef class _dmsCreateCLOptions dmsCreateCLOptions ;

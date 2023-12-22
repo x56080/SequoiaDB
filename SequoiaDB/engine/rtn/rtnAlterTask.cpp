@@ -708,6 +708,14 @@ namespace engine
          {
             _compressorType = UTIL_COMPRESSOR_LZW ;
          }
+         else if ( 0 == ossStrcmp( VALUE_NAME_LZ4, _compressorName ) )
+         {
+            _compressorType = UTIL_COMPRESSOR_LZ4 ;
+         }
+         else if ( 0 == ossStrcmp( VALUE_NAME_ZLIB, _compressorName ) )
+         {
+            _compressorType = UTIL_COMPRESSOR_ZLIB ;
+         }
          else
          {
             rc = SDB_INVALIDARG ;
@@ -735,7 +743,7 @@ namespace engine
          // Only Compressed is set
          if ( _compressed )
          {
-            setCompress( UTIL_COMPRESSOR_LZW ) ;
+            setCompress( UTIL_COMPRESSOR_SNAPPY ) ;
          }
          else
          {
@@ -1525,7 +1533,7 @@ namespace engine
 
       if ( !_compressArgument.isCompressed() )
       {
-         _compressArgument.setCompress( UTIL_COMPRESSOR_LZW ) ;
+         _compressArgument.setCompress( UTIL_COMPRESSOR_SNAPPY ) ;
          _compressArgument.setArgumentMask( UTIL_CL_COMPRESSED_FIELD |
                                             UTIL_CL_COMPRESSTYPE_FIELD ) ;
       }

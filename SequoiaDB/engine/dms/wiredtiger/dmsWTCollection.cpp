@@ -450,7 +450,23 @@ namespace wiredtiger
          ss << "split_pct=90," ;
          ss << "leaf_value_max=64MB," ;
          ss << "checksum=on," ;
-         ss << "block_compressor=snappy," ;
+
+         switch ( createCLOptions._compressorType )
+         {
+         case UTIL_COMPRESSOR_SNAPPY:
+            ss << "block_compressor=snappy," ;
+            break ;
+         case UTIL_COMPRESSOR_ZLIB:
+            ss << "block_compressor=zlib," ;
+            break ;
+         case UTIL_COMPRESSOR_LZ4:
+            ss << "block_compressor=lz4," ;
+            break ;
+         default:
+            ss << "block_compressor=none," ;
+            break ;
+         }
+
          ss << "key_format=q," ;
          ss << "value_format=u," ;
          ss << "app_metadata=(formatVersion=" << DMS_WT_FORMART_VER_CUR << ")," ;

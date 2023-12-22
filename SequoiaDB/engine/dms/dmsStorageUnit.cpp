@@ -2946,6 +2946,15 @@ namespace engine
       dmsMBStatInfo * mbStat = context->mbStat() ;
       SDB_ASSERT( NULL != mbStat, "stat block is invalid" ) ;
 
+      if ( !_storageService->supportAlterCompressor() )
+      {
+         PD_LOG( PDERROR, "Failed to change compressor, "
+                 "storage service [%s] is not supported",
+                 dmsGetStorageEngineName( _storageService->getEngineType() ) ) ;
+         rc = SDB_ENGINE_NOT_SUPPORT ;
+         goto error ;
+      }
+
       if ( !OSS_BIT_TEST( mb->_compressFlags, UTIL_COMPRESS_ALTERABLE_FLAG ) )
       {
          // Old version collection

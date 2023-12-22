@@ -234,7 +234,7 @@ namespace
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_BLDIDXCONFSTR, "_dmsWTIndex::buildIdxConfigString" )
    INT32 _dmsWTIndex::buildIdxConfigString( const dmsWTEngineOptions &options,
-                                            const dmsCreateIdxOptions &createCLOptions,
+                                            const dmsCreateIdxOptions &createIdxOptions,
                                             ossPoolString &configString )
    {
       INT32 rc = SDB_OK ;

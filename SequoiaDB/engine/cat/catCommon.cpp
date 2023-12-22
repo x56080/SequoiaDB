@@ -8129,6 +8129,14 @@ namespace engine
             {
                clInfo._compressorType = UTIL_COMPRESSOR_SNAPPY ;
             }
+            else if ( 0 == ossStrcmp( eleTmp.valuestr(), CAT_COMPRESSOR_LZ4 ) )
+            {
+               clInfo._compressorType = UTIL_COMPRESSOR_LZ4 ;
+            }
+            else if ( 0 == ossStrcmp( eleTmp.valuestr(), CAT_COMPRESSOR_ZLIB ) )
+            {
+               clInfo._compressorType = UTIL_COMPRESSOR_ZLIB ;
+            }
             else
             {
                PD_LOG( PDWARNING,
@@ -8317,7 +8325,7 @@ namespace engine
       if ( clInfo._isCompressed &&
            !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
       {
-         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+         clInfo._compressorType = UTIL_COMPRESSOR_SNAPPY ;
       }
 
       if ( !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
@@ -8355,7 +8363,7 @@ namespace engine
       {
          clInfo._isCompressed = TRUE ;
          fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
-         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+         clInfo._compressorType = UTIL_COMPRESSOR_SNAPPY ;
       }
 
       if ( clInfo._capped )

@@ -491,7 +491,7 @@ namespace engine
       {
          rc = su->canSetCollectionCompressor( mbContext ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check compress for collection "
-                      "[%s], rc: %d", rc ) ;
+                      "[%s], rc: %d", collection, rc ) ;
       }
 
       // Check ext options

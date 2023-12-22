@@ -91,6 +91,8 @@ namespace engine
       virtual INT32 loadCollection( const dmsCLMetadata &metadata,
                                     IExecutor *executor,
                                     std::shared_ptr< ICollection > &collPtr ) = 0 ;
+
+      virtual BOOLEAN supportAlterCompressor() const = 0 ;
    } ;
 
 }
