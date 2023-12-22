@@ -488,6 +488,19 @@ namespace engine
 
    void _dpsTransExecutor::assertLocks()
    {
+      if ( _lockCount[LOCKMGR_TRANS_LOCK] > 0 )
+      {
+         dpsTransLRB *curLRB = _lastLRB[LOCKMGR_TRANS_LOCK] ;
+         while ( curLRB )
+         {
+            PD_LOG( PDWARNING, "lock leak [CSID: %u, CLID: %u, extID: %u, extOffset: %u]",
+                    curLRB->lrbHdr->lockId.csID(),
+                    curLRB->lrbHdr->lockId.clID(),
+                    curLRB->lrbHdr->lockId.extentID(),
+                    curLRB->lrbHdr->lockId.offset() ) ;
+            curLRB = curLRB->eduLrbNext ;
+         }
+      }
       SDB_ASSERT( _mapCSCLLockID[LOCKMGR_TRANS_LOCK].size() == 0,
                   "Trans lock must be 0" ) ;
       SDB_ASSERT( _mapCSCLLockID[LOCKMGR_INDEX_LOCK].size() == 0,

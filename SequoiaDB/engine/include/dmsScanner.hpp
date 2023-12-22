@@ -337,7 +337,7 @@ namespace engine
                         _mthMatchTreeContext *mthContext = NULL ) ;
 
       virtual INT32 _onFirstInit( _pmdEDUCB *cb ) = 0 ;
-      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) = 0 ;
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb, dmsRecordID &rid ) = 0 ;
       virtual INT32 _checkSnapshotID( BOOLEAN &isSnapshotSame ) = 0 ;
       virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) = 0 ;
       virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) = 0 ;
@@ -377,7 +377,7 @@ namespace engine
 
    protected:
       virtual INT32 _onFirstInit( _pmdEDUCB *cb ) ;
-      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) ;
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb, dmsRecordID &rid ) ;
       virtual INT32 _checkSnapshotID( BOOLEAN &isSnapshotSame ) ;
       virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) ;
       virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) ;
@@ -415,7 +415,7 @@ namespace engine
       virtual void _onRecordLocked( const dmsRecordID &curRID,
                                     dmsScanTransContext *transContext,
                                     BOOLEAN &skipRecord ) ;
-      virtual INT32 _advanceScanner( _pmdEDUCB *cb ) ;
+      virtual INT32 _advanceScanner( _pmdEDUCB *cb, dmsRecordID &rid ) ;
       virtual INT32 _checkSnapshotID( BOOLEAN &isSnapshotSame ) ;
       virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) ;
       virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) ;

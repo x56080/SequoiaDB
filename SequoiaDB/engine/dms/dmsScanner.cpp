@@ -829,15 +829,14 @@ namespace engine
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
 
-      _hasLockedRecord = FALSE ;
-
       while ( ( !isHitEnd() ) &&
               ( _onceRestNum -- > 0 ) &&
               ( 0 != _maxRecords ) )
       {
          dmsRecordID lastRID = _curRID ;
+         dmsRecordID nextRID ;
          dmsRecordRW recordRW ;
-         rc = _advanceScanner( cb ) ;
+         rc = _advanceScanner( cb, nextRID ) ;
          if ( SDB_OK != rc )
          {
             if ( SDB_DMS_EOC != rc )
@@ -851,7 +850,7 @@ namespace engine
          {
             BOOLEAN skipRecord = FALSE ;
             _transContext.reset() ;
-            rc = _checkTransLock( _pSu, _context, _curRID, cb, &_transContext,
+            rc = _checkTransLock( _pSu, _context, nextRID, cb, &_transContext,
                                   recordRW, lastRID, skipRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, rc: %d", rc ) ;
 
@@ -860,8 +859,9 @@ namespace engine
                continue ;
             }
          }
+         _curRID = nextRID ;
 
-         if ( recordRW.isEmpty() )
+         if ( recordRW.isEmpty() && !_hasLockedRecord )
          {
             BOOLEAN isSnapshotSame = FALSE ;
             rc = _checkSnapshotID( isSnapshotSame ) ;
@@ -1070,13 +1070,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATASCAN__ONADVANCESCANNER, "_dmsDataScanner::_advanceScanner" )
-   INT32 _dmsDataScanner::_advanceScanner( pmdEDUCB *cb )
+   INT32 _dmsDataScanner::_advanceScanner( pmdEDUCB *cb, dmsRecordID &rid )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSDATASCAN__ONADVANCESCANNER ) ;
 
-      rc = _scanner->advance( _curRID ) ;
+      rc = _scanner->advance( rid ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -1224,13 +1224,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIDXSCAN__ONADVANCESCANNER, "_dmsIndexScanner::_advanceScanner" )
-   INT32 _dmsIndexScanner::_advanceScanner( pmdEDUCB *cb )
+   INT32 _dmsIndexScanner::_advanceScanner( pmdEDUCB *cb, dmsRecordID &rid )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSIDXSCAN__ONADVANCESCANNER ) ;
 
-      rc = _scanner->advance( _curRID ) ;
+      rc = _scanner->advance( rid ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_IXM_EOC != rc )
