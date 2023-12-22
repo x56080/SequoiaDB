@@ -349,8 +349,6 @@ namespace engine
       dmsScanTransContext  _transContext ;
       dmsScannerContext    _scannerContext ;
       dmsRecordID          _curRID ;
-      dmsRecordRW          _recordRW ;
-      const dmsRecord      *_curRecordPtr ;
       BOOLEAN              _isCountOnly ;
       BOOLEAN              _firstRun ;
       UINT64               _onceRestNum ;
@@ -421,6 +419,8 @@ namespace engine
       virtual INT32 _getCurrentRecord( dmsRecordData &recordData ) ;
 
       virtual UINT64 _getOnceRestNum() const ;
+
+      const CHAR *_buildIndexRecord() ;
 
    protected:
       _rtnIXScanner *_scanner ;

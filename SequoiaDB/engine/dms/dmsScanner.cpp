@@ -82,6 +82,202 @@ namespace engine
    typedef _dmsIndexRecordRW dmsIndexRecordRW ;
 
    /*
+      _dmsIndexCoverRecordBuilder define and implement
+    */
+   class _dmsIndexCoverRecordBuilder
+   {
+   public:
+      _dmsIndexCoverRecordBuilder( CHAR *pBuf )
+      {
+         _pBuf    = pBuf ;
+         _pCur    = _pBuf ;
+         _ppPos   = NULL ;
+         _hasDone = FALSE ;
+
+         init() ;
+      }
+
+      _dmsIndexCoverRecordBuilder( CHAR **ppPos )
+      {
+         _pBuf    = *ppPos ;
+         _pCur    = _pBuf ;
+         _ppPos   = ppPos ;
+         _hasDone = FALSE ;
+
+         init() ;
+      }
+
+      ~_dmsIndexCoverRecordBuilder()
+      {
+         done() ;
+      }
+
+      BOOLEAN isEmpty() const
+      {
+         return len() <= 5 ? TRUE : FALSE ;
+      }
+
+      UINT32 len() const
+      {
+         return _pCur - _pBuf ;
+      }
+
+      const CHAR *done()
+      {
+         if ( !_hasDone )
+         {
+            _hasDone = TRUE ;
+            *_pCur = (CHAR)EOO ;
+            ++ _pCur ;
+            /// set size
+            *( (UINT32 *)_pBuf ) = _pCur - _pBuf ;
+            /// set pos
+            if ( _ppPos )
+            {
+               *_ppPos = _pCur ;
+            }
+         }
+         return _pBuf ;
+      }
+
+      _dmsIndexCoverRecordBuilder *appendElement( BSONElement &ele )
+      {
+         ossMemcpy( _pCur, ele.rawdata(), ele.size() ) ;
+         _pCur += ele.size() ;
+         return this ;
+      }
+
+      _dmsIndexCoverRecordBuilder* appendAs( const BSONElement &e,
+                                             const StringData &fieldName )
+      {
+         *_pCur = (CHAR)( e.type() ) ;
+         _pCur += 1 ;
+
+         INT32 len ;
+         len = fieldName.size() ;
+         ossMemcpy( _pCur, fieldName.data(), len ) ;
+         _pCur += len ;
+         *_pCur = 0 ;
+         _pCur += 1 ;
+
+         len = e.valuesize() ;
+         ossMemcpy( _pCur, (void *)( e.value() ), len ) ;
+         _pCur += len ;
+
+         return this ;
+      }
+
+      CHAR **subobjStart( const StringData &fieldName )
+      {
+         *_pCur = (CHAR) Object ;
+         _pCur += 1 ;
+
+         const INT32 len = fieldName.size() ;
+         ossMemcpy( _pCur, fieldName.data(), len ) ;
+         _pCur += len ;
+         *_pCur = 0 ;
+         _pCur += 1 ;
+
+         return &_pCur ;
+      }
+
+      void abortSubobj( const StringData &fieldName, _dmsIndexCoverRecordBuilder &sub )
+      {
+         _pCur -= 1 ;
+         const INT32 len = fieldName.size() + 1 ;
+         _pCur -= len ;
+         _pCur -= sub.len() ;
+      }
+
+      static BOOLEAN buildObj( ixmIndexNode *node,
+                               IXM_ELE_RAWDATA_ARRAY &value,
+                               _dmsIndexCoverRecordBuilder &builder ) ;
+
+   protected:
+      void init()
+      {
+         *((UINT32*)_pBuf) = 0 ;
+         _pCur = _pBuf + 4 ;
+      }
+
+   private:
+      CHAR * _pBuf ;
+      CHAR * _pCur ;
+      CHAR ** _ppPos ;
+      BOOLEAN _hasDone ;
+   } ;
+
+   typedef class _dmsIndexCoverRecordBuilder dmsIndexCoverRecordBuilder ;
+
+   BOOLEAN _dmsIndexCoverRecordBuilder::buildObj( ixmIndexNode *node,
+                                                  IXM_ELE_RAWDATA_ARRAY &value,
+                                                  _dmsIndexCoverRecordBuilder &builder )
+   {
+      BOOLEAN finished = FALSE ;
+
+      // node tree:      a
+      //                 |
+      //            b(1) c(2) d(EOO)
+      // then builder obj is : a{b:1,c:2}
+
+      IXM_INDEX_NODE_PTR_ARRAY &children = node->getChildren() ;
+
+      try
+      {
+         for ( UINT32 i = 0; i < node->childrenSize(); i++ )
+         {
+            if( 0 == children[i]->childrenSize() )
+            {
+               UINT32 fieldIndex = children[i]->getFieldIndex() ;
+               SDB_ASSERT( fieldIndex < value.size(), "Field index bigger than field size" ) ;
+
+               BSONElement ele( value[ fieldIndex ] ) ;
+
+               if( Undefined != ele.type() )
+               {
+                  builder.appendAs( ele, children[i]->getName() );
+               }
+               else if( children[i]->isEmbedded() )
+               {
+                  // if index fields is {"a.b":1,c:1},insert {a:10,c:10}
+                  // key value is {"":{"Undefined":1},"c":10}
+                  // dms value is {a:10,c:10}
+                  // not the same so we should to read dms value again
+                  goto done ;
+               }
+            }
+            else
+            {
+               _dmsIndexCoverRecordBuilder sub(
+                           builder.subobjStart( children[i]->getName() ) ) ;
+               if( FALSE == buildObj( children[i], value, sub ) )
+               {
+                  goto done ;
+               }
+               sub.done() ;
+               if( sub.isEmpty() )
+               {
+                  builder.abortSubobj( children[i]->getName(), sub ) ;
+               }
+            }
+         }
+         finished = TRUE ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to build index value object, "
+                 "occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return finished ;
+
+   error:
+      goto done ;
+   }
+
+   /*
       _dmsScannerContext implement
     */
    _dmsScannerContext::_dmsScannerContext( dmsSecScanner *scanner )
@@ -660,7 +856,6 @@ namespace engine
      _scanner( scanner ),
      _transContext( context, scanner, accessType ),
      _scannerContext( this ),
-     _curRecordPtr( NULL ),
      _isCountOnly( FALSE ),
      _firstRun( TRUE ),
      _onceRestNum( pmdGetOptionCB()->indexScanStep() ),
@@ -1311,6 +1506,21 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSIDXSCAN__GETCURREC ) ;
 
+      if( ( _scanner->isIndexCover() ) &&
+          ( DMS_IS_READ_OPR( _accessType ) ) )
+      {
+         const CHAR *record = _buildIndexRecord() ;
+         if ( NULL != record )
+         {
+            dmsRecordRW recordRW ;
+
+            recordRW = dmsIndexRecordRW( recordRW, record ) ;
+            const dmsRecord *record = recordRW.readPtr( 0 ) ;
+            recordData.setData( record->getData(), record->getDataLength() ) ;
+            goto done ;
+         }
+      }
+
       rc = _pSu->extractData( _context, _curRID, _cb, recordData, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
 
@@ -1361,6 +1571,79 @@ namespace engine
    UINT64 _dmsIndexScanner::_getOnceRestNum() const
    {
       return (UINT64)( pmdGetOptionCB()->indexScanStep() ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSCAN__BUILDIDINDEXRECORD, "_dmsIndexScanner::_buildIndexRecord" )
+   const CHAR *_dmsIndexScanner::_buildIndexRecord()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSIXSCAN__BUILDIDINDEXRECORD ) ;
+
+      dmsRecord *pNewRecord = NULL ;
+      ixmIndexCover &index = _scanner->getIndex() ;
+      const BSONObj *keyValue = _scanner->getCurKeyObj() ;
+      CHAR *recordPtr = NULL ;
+      BSONObjIterator iter( *keyValue ) ;
+      IXM_ELE_RAWDATA_ARRAY& container = index.getContainer() ;
+      UINT32 extraSize = 0 ;
+      UINT32 evalBufSize = 0 ;
+
+      //1. pre caculte buf size
+      rc = index.getExtraSize( extraSize ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get index value extra size, rc: %d", rc ) ;
+
+      evalBufSize = DMS_RECORD_METADATA_SZ + extraSize + keyValue->objsize() ;
+
+      rc = index.ensureBuff( evalBufSize, recordPtr ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get index buffer [%u], rc: %d",
+                   evalBufSize, rc ) ;
+
+      try
+      {
+         //2. parse keyValue element to vector
+         //   index node tree will find element by vector index
+         rc = index.reInitContainer() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to reserve container space, rc: %d", rc ) ;
+         while( iter.more() )
+         {
+            rc = container.append( iter.next().rawdata() ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to append index field value, rc: %d", rc ) ;
+         }
+
+         //3. reset header
+         ossMemset( recordPtr, 0, DMS_RECORD_METADATA_SZ ) ;
+         //4. build body(BSONObj)
+         _dmsIndexCoverRecordBuilder builder( recordPtr + DMS_RECORD_METADATA_SZ ) ;
+         ixmIndexNode *pTree =  NULL ;
+         rc = index.getTree( pTree ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get index tree, rc: %d", rc ) ;
+         if( FALSE == _dmsIndexCoverRecordBuilder::buildObj( pTree, container, builder ) )
+         {
+            goto done ;
+         }
+         builder.done() ;
+
+         pNewRecord = (dmsRecord *)recordPtr ;
+         pNewRecord->setNormal() ;
+         pNewRecord->resetAttr() ;
+         pNewRecord->setSize( DMS_RECORD_METADATA_SZ + builder.len() ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING, "Failed to build record, occur exception: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSIXSCAN__BUILDIDINDEXRECORD, rc ) ;
+      return (const CHAR *)( pNewRecord ) ;
+
+   error:
+      pNewRecord = nullptr ;
+      goto done ;
    }
 
    /*

@@ -217,6 +217,10 @@ namespace
                          isForward,
                          snapshotID,
                          executor ) ;
+      if ( SDB_IXM_EOC == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to open index cursor, rc: %d", rc ) ;
 
    done:

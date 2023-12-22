@@ -417,6 +417,10 @@ namespace wiredtiger
                          isForward,
                          snapshotID,
                          executor ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto done ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to open data cursor, rc: %d", rc ) ;
 
    done:
