@@ -2769,6 +2769,33 @@ int sdb_decimal_cmp( const bson_decimal *left, const bson_decimal *right )
       return 1 ;
    }
 
+   /*
+    * postgresql's define:
+    *    We consider all NANs to be equal and larger than any non-NAN. This is
+    *    somewhat arbitrary; the important thing is to have a consistent sort
+    *    order.
+    *
+    * while bson's define is the opposite:
+    *    NAN's is smaller than any non-NAN.  bsonobj.cpp:compareElementValues
+    *
+    * conclusion:  we use bson's define!
+    */
+   if ( sdb_decimal_is_nan( left ) )
+   {
+      if ( sdb_decimal_is_nan( right ) )
+      {
+         return 0 ;       /* NAN = NAN */
+      }
+      else
+      {
+         return -1 ;       /* NAN < non-NAN */
+      }
+   }
+   else if ( sdb_decimal_is_nan( right ) )
+   {
+      return 1 ;         /* non-NAN > NAN */
+   }
+
    // min is equal min;  min is less than any non-min.
    if ( sdb_decimal_is_min( left ) )
    {
@@ -2801,33 +2828,6 @@ int sdb_decimal_cmp( const bson_decimal *left, const bson_decimal *right )
    else if ( sdb_decimal_is_max( right ) )
    {
       return -1 ;
-   }
-
-   /*
-    * postgresql's define:
-    *    We consider all NANs to be equal and larger than any non-NAN. This is
-    *    somewhat arbitrary; the important thing is to have a consistent sort
-    *    order.
-    *
-    * while bson's define is the opposite:
-    *    NAN's is smaller than any non-NAN.  bsonobj.cpp:compareElementValues
-    *
-    * conclusion:  we use bson's define!
-    */
-   if ( sdb_decimal_is_nan( left ) )
-   {
-      if ( sdb_decimal_is_nan( right ) )
-      {
-         return 0 ;       /* NAN = NAN */
-      }
-      else
-      {
-         return -1 ;       /* NAN < non-NAN */
-      }
-   }
-   else if ( sdb_decimal_is_nan( right ) )
-   {
-      return 1 ;         /* non-NAN > NAN */
    }
 
    if ( left->ndigits == 0 )

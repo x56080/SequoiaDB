@@ -62,6 +62,9 @@ namespace bson {
       void           setMax() ;
       BOOLEAN        isMax() const ;
 
+      void           setNan() ;
+      BOOLEAN        isNan() const ;
+
       INT32          fromInt( INT32 value ) ;
       INT32          toInt( INT32 *value ) const ;
 

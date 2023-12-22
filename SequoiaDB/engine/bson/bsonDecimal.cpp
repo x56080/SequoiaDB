@@ -141,6 +141,16 @@ namespace bson {
       return sdb_decimal_is_max( &_decimal ) ;
    }
 
+   void bsonDecimal::setNan()
+   {
+      sdb_decimal_set_nan( &_decimal ) ;
+   }
+
+   BOOLEAN bsonDecimal::isNan() const
+   {
+      return sdb_decimal_is_nan( &_decimal ) ;
+   }
+
    INT32 bsonDecimal::fromInt( INT32 value )
    {
       return sdb_decimal_from_int( value, &_decimal ) ;

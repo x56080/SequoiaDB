@@ -1051,10 +1051,18 @@ namespace keystring
             fieldName ?
                   builder.appendNumber(
                         fieldName,
-                        std::numeric_limits < FLOAT64 > ::quiet_NaN() ) :
+                        std::numeric_limits<FLOAT64>::quiet_NaN() ) :
                   builder.appendNumber(
                         "",
-                        std::numeric_limits < FLOAT64 > ::quiet_NaN() ) ;
+                        std::numeric_limits<FLOAT64>::quiet_NaN() ) ;
+         }
+         else if ( originalType == keyStringTypeBitsType::DECIMAL )
+         {
+            bsonDecimal dec ;
+            dec.setNan() ;
+            fieldName ?
+                  builder.append( fieldName, dec ) :
+                  builder.append( "", dec ) ;
          }
          else
          {
@@ -1122,8 +1130,7 @@ namespace keystring
          {
             if ( originalType == keyStringTypeBitsType::DOUBLE )
             {
-               FLOAT64 num = std::numeric_limits < FLOAT64
-                     > ::infinity() ;
+               FLOAT64 num = std::numeric_limits<FLOAT64>::infinity() ;
                fieldName ?
                      builder.appendNumber( fieldName,
                                            isNegative ? -num : num ) :
