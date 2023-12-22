@@ -200,15 +200,21 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_LOCK, "_dmsIndexWriteGuard::lock" )
    INT32 _dmsIndexWriteGuard::lock( const dmsIdxMetadataKey &metadataKey,
-                                    shared_ptr<ossRWMutex> &lockPtr )
+                                    const ixmIndexCB &indexCB,
+                                    const dmsRecordID &rid,
+                                    shared_ptr<ossRWMutex> &lockPtr,
+                                    BOOLEAN &needProcess )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_LOCK ) ;
 
+      needProcess = TRUE ;
+
       // already locked
       if ( _locks.count( metadataKey ) > 0 )
       {
+         needProcess = ( rid <= indexCB.getScanRID() ? TRUE : FALSE ) ;
          goto done ;
       }
 
@@ -231,6 +237,17 @@ namespace engine
             rc = SDB_OK ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to lock index write guard, rc: %d", rc ) ;
+      }
+
+      if ( rid <= indexCB.getScanRID() )
+      {
+         needProcess = TRUE ;
+         lockPtr->release_r() ;
+         goto done ;
+      }
+      else
+      {
+         needProcess = FALSE ;
       }
 
       try

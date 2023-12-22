@@ -3524,18 +3524,20 @@ namespace engine
       // if index is 'IXM_INDEX_FLAG_CREATING', then judge record ID
       if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
       {
+         BOOLEAN isChecked = FALSE ;
          if ( writeGuard.isEnabled() )
          {
             dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
-            dmsIndexBuildLockPtr lockPtr ;
-            rc = _registerBuildLock( metadataKey, lockPtr ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to register index build lock, rc: %d", rc ) ;
-
-            rc = writeGuard.lock( metadataKey, lockPtr ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
+            dmsIndexBuildLockPtr lockPtr = _getBuildLock( metadataKey ) ;
+            if ( lockPtr )
+            {
+               rc = writeGuard.lock( metadataKey, indexCB, rid, lockPtr, needProcess ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
+               isChecked = TRUE ;
+            }
          }
 
-         if ( indexCB.getScanRID() < rid )
+         if ( !isChecked && indexCB.getScanRID() < rid )
          {
             needProcess = FALSE ;
          }

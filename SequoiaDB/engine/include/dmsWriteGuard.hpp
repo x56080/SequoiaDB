@@ -39,6 +39,7 @@
 #include "ossUtil.hpp"
 #include "interface/IStorageService.hpp"
 #include "dms.hpp"
+#include "ixm.hpp"
 #include "ossRWMutex.hpp"
 #include "dmsMetadata.hpp"
 #include "pmdDummySession.hpp"
@@ -108,7 +109,10 @@ namespace engine
       ~_dmsIndexWriteGuard() ;
 
       INT32 lock( const dmsIdxMetadataKey &metadataKey,
-                  dmsIndexBuildLockPtr &lockPtr ) ;
+                  const ixmIndexCB &indexCB,
+                  const dmsRecordID &rid,
+                  dmsIndexBuildLockPtr &lockPtr,
+                  BOOLEAN &needProcess ) ;
       void releaseAll() ;
 
       INT32 begin( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
