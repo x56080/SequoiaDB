@@ -544,13 +544,22 @@ namespace engine
             keystring::keyStringStackBuilder builder ;
             BOOLEAN isFound = FALSE ;
 
-            rc = builder.buildPredicate( _curKeyObj,
-                                         (UINT32)iterRes,
-                                         _listIterator.cmp(),
-                                         _order,
-                                         _listIterator.inc(),
-                                         _direction > 0 ? TRUE : FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+            if ( iterRes > 0 )
+            {
+               rc = builder.buildPredicate( _curKeyObj,
+                                          (UINT32)iterRes,
+                                          _order,
+                                          _direction > 0 ? TRUE : FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+            }
+            else
+            {
+               rc = builder.buildPredicate( _listIterator.cmp(),
+                                            _order,
+                                            _listIterator.inc(),
+                                            _direction > 0 ? TRUE : FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
+            }
 
             rc = _cursorPtr->locate( builder.getShallowKeyString(), FALSE, _cb, isFound ) ;
             if ( SDB_IXM_EOC == rc )

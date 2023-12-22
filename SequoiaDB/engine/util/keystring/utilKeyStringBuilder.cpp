@@ -2796,112 +2796,59 @@ namespace keystring
 
    INT32 _keyStringBuilderImpl::buildPredicate( const bson::BSONObj &prefixKey,
                                                 UINT32 prefixNum,
-                                                const VEC_ELE_CMP &elements,
                                                 const bson::Ordering &o,
-                                                const VEC_BOOLEAN &im,
                                                 BOOLEAN forward,
                                                 utilSlice keyHeader )
    {
       INT32 rc = SDB_OK ;
 
-      if ( 0 == prefixNum )
+      INT32 mask = 1 ;
+      UINT32 i = 0 ;
+      BSONObjIterator iter( prefixKey ) ;
+
+      reset() ;
+
+      if ( keyHeader.isValid() )
       {
-         rc = buildPredicate( elements, o, im, forward, keyHeader ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build predicate, rc: %d", rc ) ;
+         rc = _ensureBytes( keyHeader.size() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to extend buf:%d", rc ) ;
+            goto error ;
+         }
+         ossMemcpy( _buf + _bufSize, keyHeader.data(), keyHeader.size() ) ;
+         _bufSize += keyHeader.size() ;
+         _transition( keyStringBuilderStatus::BEFORE_ELEMENTS ) ;
+      }
+
+      _verifyStatus() ;
+
+      while ( i < prefixNum && iter.more() )
+      {
+         auto elem = iter.next() ;
+         BOOLEAN invert = o.descending( mask ) ;
+         rc = appendBSONElement( elem, invert ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
+
+         i ++ ;
+         mask <<= 1 ;
+      }
+
+      if ( forward )
+      {
+         rc = _append( keyStringDiscriminatorValue::GREATER, FALSE ) ;
       }
       else
       {
-         BOOLEAN hasDiscriminator = FALSE ;
-
-         reset() ;
-
-         if ( keyHeader.isValid() )
-         {
-            rc = _ensureBytes( keyHeader.size() ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to extend buf:%d", rc ) ;
-               goto error ;
-            }
-            ossMemcpy( _buf + _bufSize, keyHeader.data(), keyHeader.size() ) ;
-            _bufSize += keyHeader.size() ;
-            _transition( keyStringBuilderStatus::BEFORE_ELEMENTS ) ;
-         }
-
-         _verifyStatus() ;
-
-         INT32 mask = 1 ;
-         UINT32 i = 0 ;
-         BSONObjIterator iter( prefixKey ) ;
-         while ( i < prefixNum && iter.more() )
-         {
-            auto elem = iter.next() ;
-            BOOLEAN invert = o.descending( mask ) ;
-            rc = appendBSONElement( elem, invert ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
-
-            i ++ ;
-            mask <<= 1 ;
-         }
-
-         if ( i < elements.size() )
-         {
-            for ( ; i < elements.size() ; ++ i, mask <<= 1 )
-            {
-               BOOLEAN invert = o.descending( mask ) ;
-               rc = appendBSONElement( *elements[ i ], invert ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
-               if ( forward )
-               {
-                  if ( im[ i ] )
-                  {
-                     continue ;
-                  }
-                  else
-                  {
-                     rc = _append( keyStringDiscriminatorValue::GREATER, FALSE ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
-                     hasDiscriminator = TRUE ;
-                     break ;
-                  }
-               }
-               else
-               {
-                  if ( im[ i ] )
-                  {
-                     continue ;
-                  }
-                  else
-                  {
-                     rc = _append( keyStringDiscriminatorValue::LESS, FALSE ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
-                     hasDiscriminator = TRUE ;
-                     break ;
-                  }
-               }
-            }
-         }
-
-         if ( !hasDiscriminator )
-         {
-            if ( forward )
-            {
-               rc = _append( keyStringDiscriminatorValue::LESS, FALSE ) ;
-            }
-            else
-            {
-               rc = _append( keyStringDiscriminatorValue::GREATER, FALSE ) ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
-            hasDiscriminator = TRUE ;
-         }
-         _sizeOfElements = _bufSize - _sizeAheadElements ;
-         rc = done() ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to be done , rc: %d", rc ) ;
-            goto error ;
-         }
+         rc = _append( keyStringDiscriminatorValue::LESS, FALSE ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
+      _sizeOfElements = _bufSize - _sizeAheadElements ;
+      rc = done() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to be done , rc: %d", rc ) ;
+         goto error ;
       }
 
    done:

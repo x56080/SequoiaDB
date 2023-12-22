@@ -172,11 +172,9 @@ namespace keystring
                             keyStringDiscriminator d,
                             utilSlice keyHeader = utilSlice() ) ;
 
-      INT32 buildPredicate( const bson::BSONObj &prefixKey,
+      INT32 buildPredicate( const bson::BSONObj &key,
                             UINT32 prefixNum,
-                            const VEC_ELE_CMP &elements,
                             const bson::Ordering &o,
-                            const VEC_BOOLEAN &im,
                             BOOLEAN forward,
                             utilSlice keyHeader = utilSlice() ) ;
 
