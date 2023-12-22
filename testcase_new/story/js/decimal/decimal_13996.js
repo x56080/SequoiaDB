@@ -17,8 +17,8 @@ function test ()
    cl.insert( docs );
 
    var cursor = cl.aggregate( { $sort: { a: 1 } } );
-   var expRecs = [{ a: { $decimal: "MIN" } },
-   { a: { $decimal: "NaN" } },
+   var expRecs = [{ a: { $decimal: "NaN" } },
+   { a: { $decimal: "MIN" } },
    { a: { $decimal: "MAX" } }];
    commCompareResults( cursor, expRecs );
 
@@ -47,7 +47,7 @@ function test ()
    commCompareResults( cursor, expRecs );
 
    cursor = cl.aggregate( { $group: { _id: "$gid", b: { $min: "$a" } } } );
-   expRecs = [{ b: { $decimal: "MIN" } }];
+   expRecs = [{ b: { $decimal: "NaN" } }];
    commCompareResults( cursor, expRecs );
 
    cursor = cl.aggregate( { $group: { _id: "$gid", b: { $avg: "$a" } } } );

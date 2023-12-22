@@ -52,8 +52,8 @@ function testAddToSet ( cl )
       { b: { $exists: 1 } } );
    var cursor = cl.find( { b: { $exists: 1 } } );
    var expRecs = [{
-      b: [{ "$decimal": "MIN" },
-      { "$decimal": "NaN" },
+      b: [{ "$decimal": "NaN" },
+      { "$decimal": "MIN" },
       { "$decimal": "MAX" }]
    }];
    commCompareResults( cursor, expRecs );
