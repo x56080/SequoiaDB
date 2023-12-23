@@ -142,7 +142,7 @@ namespace wiredtiger
    {
    public:
       _dmsWTIndexAsyncCursor() ;
-      virtual ~_dmsWTIndexAsyncCursor() = default ;
+      virtual ~_dmsWTIndexAsyncCursor() ;
       _dmsWTIndexAsyncCursor( const _dmsWTIndexAsyncCursor & ) = delete ;
       _dmsWTIndexAsyncCursor &operator =( const _dmsWTIndexAsyncCursor & ) = delete ;
 

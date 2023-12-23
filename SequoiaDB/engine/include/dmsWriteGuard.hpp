@@ -41,6 +41,7 @@
 #include "dms.hpp"
 #include "ossRWMutex.hpp"
 #include "dmsMetadata.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
@@ -201,6 +202,7 @@ namespace engine
       IPersistUnit *_persistUnit = nullptr ;
       _dmsStorageDataCommon *_su = nullptr ;
       _dmsMBStatInfo *_mbStat = nullptr ;
+      pmdDummySession _dummySession ;
       utilCLUniqueID _clUniqueID = UTIL_UNIQUEID_NULL ;
       UINT64 _recordCountIncDelta = 0 ;
       UINT64 _recordCountDecDelta = 0 ;

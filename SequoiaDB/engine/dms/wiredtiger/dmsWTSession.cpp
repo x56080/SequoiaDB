@@ -217,15 +217,9 @@ namespace wiredtiger
 
       dmsWTPersistUnit *pu = nullptr ;
 
-      SDB_ASSERT( executor &&
-                  executor->getSession() &&
-                  executor->getSession()->getOperationContext(),
-                  "executor is invalid" ) ;
-
       if ( executor &&
-           executor->getSession() &&
-           executor->getSession()->getOperationContext() &&
-           executor->getSession()->getOperationContext()->getPersistUnit() )
+           executor->getOperationContext() &&
+           executor->getOperationContext()->getPersistUnit() )
       {
          pu = dynamic_cast<dmsWTPersistUnit *>(
                executor->getSession()->getOperationContext()->getPersistUnit() ) ;

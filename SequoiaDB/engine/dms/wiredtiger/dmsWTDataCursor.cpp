@@ -256,6 +256,13 @@ namespace
    {
    }
 
+   _dmsWTDataAsyncCursor::~_dmsWTDataAsyncCursor()
+   {
+      // should close cursor before close session
+      _cursor.close() ;
+      _asyncSession.close() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATAASYNCCURSOR_OPEN, "_dmsWTDataAsyncCursor::open" )
    INT32 _dmsWTDataAsyncCursor::open( shared_ptr<ICollection> collPtr,
                                       const dmsRecordID &startRID,

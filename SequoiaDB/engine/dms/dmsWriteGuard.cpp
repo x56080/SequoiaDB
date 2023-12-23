@@ -373,7 +373,10 @@ namespace engine
       {
          fini() ;
       }
-
+      if ( _dummySession.eduCB() )
+      {
+         _dummySession.detachCB() ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_INIT, "_dmsPersistGuard::init" )
@@ -391,11 +394,12 @@ namespace engine
          goto done ;
       }
 
-      if ( !_persistUnit )
+      if ( !_eduCB->getSession() )
       {
-         rc = _service->getPersistUnit( _eduCB, _persistUnit ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+         _dummySession.attachCB( _eduCB ) ;
       }
+      rc = _service->getPersistUnit( _eduCB, _persistUnit ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_INIT, rc ) ;
@@ -465,6 +469,10 @@ namespace engine
 
       if ( !_persistUnit )
       {
+         if ( !_eduCB->getSession() )
+         {
+            _dummySession.attachCB( _eduCB ) ;
+         }
          rc = _service->getPersistUnit( _eduCB, _persistUnit ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
       }

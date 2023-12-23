@@ -138,7 +138,7 @@ namespace wiredtiger
    {
    public:
       _dmsWTDataAsyncCursor() ;
-      virtual ~_dmsWTDataAsyncCursor() = default ;
+      virtual ~_dmsWTDataAsyncCursor() ;
       _dmsWTDataAsyncCursor( const _dmsWTDataAsyncCursor & ) = delete ;
       _dmsWTDataAsyncCursor &operator =( const _dmsWTDataAsyncCursor & ) = delete ;
 

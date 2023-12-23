@@ -400,6 +400,13 @@ namespace wiredtiger
    {
    }
 
+   _dmsWTIndexAsyncCursor::~_dmsWTIndexAsyncCursor()
+   {
+      // should close cursor before close session
+      _cursor.close() ;
+      _asyncSession.close() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXASYNCCURSOR_OPEN, "_dmsWTIndexAsyncCursor::open" )
    INT32 _dmsWTIndexAsyncCursor::open( shared_ptr<IIndex> idxPtr,
                                        const keyString &startKey,
