@@ -142,7 +142,8 @@ namespace keystring
       INT32 appendAllElements( const bson::BSONObj &obj,
                                const bson::Ordering &o,
                                keyStringDiscriminator d =
-                                     keyStringDiscriminator::INCLUSIVE ) ;
+                                     keyStringDiscriminator::INCLUSIVE,
+                               BOOLEAN *isAllUndefined = nullptr ) ;
       template<typename T,
                typename = typename std::enable_if<std::is_unsigned<T>::value>::type>
       INT32 appendUnsignedWithoutType( const T &val,
@@ -182,7 +183,8 @@ namespace keystring
                                 const bson::Ordering &o,
                                 const dmsRecordID &rid,
                                 const dmsIdxMetadataKey *indexid = nullptr,
-                                const UINT64 *lsn = nullptr ) ;
+                                const UINT64 *lsn = nullptr,
+                                BOOLEAN *isAllUndefined = nullptr ) ;
 
       INT32 rebuildEntryKey( const keyString &ks,
                              const dmsRecordID &rid,

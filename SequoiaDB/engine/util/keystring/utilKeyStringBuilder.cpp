@@ -682,11 +682,12 @@ namespace keystring
 
    INT32 _keyStringBuilderImpl::appendAllElements( const BSONObj &obj,
                                                    const Ordering &o,
-                                                   keyStringDiscriminator d )
+                                                   keyStringDiscriminator d,
+                                                   BOOLEAN *isAllUndefined )
    {
       INT32 rc = SDB_OK ;
       BSONObjIterator it( obj ) ;
-      UINT32 elemCount = 0 ;
+      UINT32 elemCount = 0, undefinedCount = 0 ;
       if ( obj.isEmpty() )
       {
          rc = SDB_INVALIDARG ;
@@ -705,6 +706,10 @@ namespace keystring
             PD_LOG( PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
             goto error ;
          }
+         if ( elem.type() == Undefined )
+         {
+            undefinedCount ++ ;
+         }
          elemCount += 1 ;
       }
       if ( elemCount > o.getNKeys() )
@@ -712,6 +717,10 @@ namespace keystring
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Failed append bson elements, rc: %d", rc ) ;
          goto error ;
+      }
+      if ( nullptr != isAllUndefined )
+      {
+         *isAllUndefined = ( elemCount == undefinedCount ) ;
       }
       rc = _appendDiscriminator( d ) ;
       if ( SDB_OK != rc )
@@ -2863,7 +2872,8 @@ namespace keystring
                                                     const Ordering &o,
                                                     const dmsRecordID &rid,
                                                     const dmsIdxMetadataKey *indexid,
-                                                    const UINT64 *lsn )
+                                                    const UINT64 *lsn,
+                                                    BOOLEAN *isAllUndefined )
    {
       INT32 rc = SDB_OK ;
       reset() ;
@@ -2877,7 +2887,7 @@ namespace keystring
          }
       }
 
-      rc = appendAllElements( key, o ) ;
+      rc = appendAllElements( key, o, keyStringDiscriminator::INCLUSIVE, isAllUndefined ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to append bson elements, rc: %d", rc ) ;

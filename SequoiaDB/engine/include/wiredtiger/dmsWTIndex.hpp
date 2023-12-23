@@ -109,7 +109,8 @@ namespace wiredtiger
    protected:
       INT32 _buildKeyString( const bson::BSONObj &key,
                              const dmsRecordID &rid,
-                             keystring::keyStringBuilderImpl &builder ) ;
+                             keystring::keyStringBuilderImpl &builder,
+                             BOOLEAN *isAllUndefined = nullptr ) ;
 
       INT32 _getKey( const keystring::keyString &ks,
                      dmsWTItem &keyItem ) ;
@@ -147,6 +148,7 @@ namespace wiredtiger
       INT32 _insertUnique( dmsWTCursor &cursor,
                            const keystring::keyString &ks,
                            const dmsRecordID &rid,
+                           BOOLEAN isAllUndefined,
                            utilWriteResult *result ) ;
 
       INT32 _insertStandard( dmsWTCursor &cursor,

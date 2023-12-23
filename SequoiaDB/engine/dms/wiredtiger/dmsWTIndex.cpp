@@ -309,13 +309,15 @@ namespace
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__BLDKEYSTR, "_dmsWTIndex::_buildKeyString" )
    INT32 _dmsWTIndex::_buildKeyString( const BSONObj &key,
                                        const dmsRecordID &rid,
-                                       keyStringBuilderImpl &builder )
+                                       keyStringBuilderImpl &builder,
+                                       BOOLEAN *isAllUndefined )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX__BLDKEYSTR ) ;
 
-      rc = builder.buildIndexEntryKey( key, _metadata.getOrdering(), rid ) ;
+      rc = builder.buildIndexEntryKey( key, _metadata.getOrdering(), rid,
+                                       nullptr, nullptr, isAllUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
 
    done:
@@ -459,8 +461,9 @@ namespace
 
       keyStringStackBuilder builder ;
       keyString ks ;
+      BOOLEAN isAllUndefined = FALSE ;
 
-      rc = _buildKeyString( key, rid, builder ) ;
+      rc = _buildKeyString( key, rid, builder, &isAllUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build key string, rc: %d", rc ) ;
 
       ks = builder.getShallowKeyString() ;
@@ -472,7 +475,7 @@ namespace
       }
       else if ( !allowDuplicated && _metadata.isUnique() )
       {
-         rc = _insertUnique( cursor, ks, rid, result ) ;
+         rc = _insertUnique( cursor, ks, rid, isAllUndefined, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
       }
       else
@@ -608,6 +611,7 @@ namespace
    INT32 _dmsWTIndex::_insertUnique( dmsWTCursor &cursor,
                                      const keyString &ks,
                                      const dmsRecordID &rid,
+                                     BOOLEAN isAllUndefined,
                                      utilWriteResult *result )
    {
       INT32 rc = SDB_OK ;
@@ -619,8 +623,17 @@ namespace
       rc = _getKeyAndValue( ks, FALSE, keyItem, valueItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key and value, rc: %d", rc ) ;
 
-      rc = _checkUnique( cursor, ks, rid, result ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check unqiue, rc: %d", rc ) ;
+      // if we find duplicate, let's check whether the key includes all
+      // Undefined. If this is the case, it's a special case that user
+      // doesn't define those keys, so we should allow it proceed ( which
+      // may violate unique definition ). If we restricted this behavior,
+      // user cannot insert records that does not contains the keys twice,
+      // which is very violating "schemaless"
+      if ( _metadata.isEnforced() || !isAllUndefined )
+      {
+         rc = _checkUnique( cursor, ks, rid, result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check unqiue, rc: %d", rc ) ;
+      }
 
       rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
