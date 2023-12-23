@@ -4051,7 +4051,22 @@ namespace engine
          recordData.setData( record.objdata(), record.objsize(),
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
-
+         // check ID index for normal update
+         // NOTE: for sequoiadb upgrade, if the old data before upgrade
+         //       contains invalid _id field, we could not report error,
+         //       we need to allow update if _id field is not changed
+         if( !cb->isDoReplay() &&
+             !cb->isInTransRollback() &&
+             !cb->isDoRollback() )
+         {
+            const CHAR *pCheckErr = "" ;
+            if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
+            {
+               PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
          // judge must oid
          if ( mustOID && ele.eoo() )
          {
