@@ -174,7 +174,8 @@ namespace wiredtiger
       }
 
    protected:
-      INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
+      INT32 _checkDBPath( const boost::filesystem::path &dbPath,
+                          boost::filesystem::path &enginePath ) ;
 
    protected:
       _dmsWTStorageService &_service ;

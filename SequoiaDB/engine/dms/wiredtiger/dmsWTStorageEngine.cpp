@@ -72,13 +72,15 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_OPEN ) ;
 
+      boost::filesystem::path enginePath ;
+
       PD_CHECK( nullptr == _conn, SDB_SYS, error, PDERROR,
                 "Failed to open WiredTiger engine, already opened" ) ;
 
-      rc = _checkDBPath( dbPath ) ;
+      rc = _checkDBPath( dbPath, enginePath ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check db path, rc: %d", rc ) ;
 
-      rc = WT_CALL( wiredtiger_open( dbPath.c_str(),
+      rc = WT_CALL( wiredtiger_open( enginePath.c_str(),
                                      _handler.getHandler(),
                                      config,
                                      &_conn ),
@@ -797,13 +799,29 @@ namespace wiredtiger
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE__CHKDBPATH, "_dmsWTStorageEngine::_checkDBPath" )
-   INT32 _dmsWTStorageEngine::_checkDBPath( const boost::filesystem::path &dbPath )
+   INT32 _dmsWTStorageEngine::_checkDBPath( const boost::filesystem::path &dbPath,
+                                            boost::filesystem::path &enginePath )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE__CHKDBPATH ) ;
 
-      boost::filesystem::path journalPath = dbPath / "journal" ;
+      enginePath = dbPath / "wiredtiger" ;
+      boost::filesystem::path journalPath = enginePath / "journal" ;
+      if ( !boost::filesystem::exists( enginePath ) )
+      {
+         try
+         {
+               boost::filesystem::create_directory( enginePath ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to create engine directory, "
+                    "occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
       if ( !boost::filesystem::exists( journalPath ) )
       {
          try
@@ -813,7 +831,7 @@ namespace wiredtiger
          catch ( exception &e )
          {
             PD_LOG( PDERROR, "Failed to create journal directory, "
-                  "occur exception: %s", e.what() ) ;
+                    "occur exception: %s", e.what() ) ;
             rc = ossException2RC( &e ) ;
             goto error ;
          }
