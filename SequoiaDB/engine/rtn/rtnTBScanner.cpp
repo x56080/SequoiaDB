@@ -297,9 +297,9 @@ namespace engine
       if ( !_init )
       {
          rc = _firstInit() ;
-         if ( SDB_IXM_EOC == rc )
+         if ( SDB_DMS_EOC == rc )
          {
-            _init = TRUE ;
+            _isEOF = TRUE ;
             goto done ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to init scanner, rc: %d", rc ) ;

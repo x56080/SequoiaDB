@@ -169,7 +169,6 @@ namespace
          if ( SDB_DMS_EOC == rc )
          {
             _isEOF = TRUE ;
-            rc = SDB_IXM_EOC ;
          }
          else
          {
