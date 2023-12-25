@@ -211,6 +211,8 @@ namespace wiredtiger
       rc = _engine.dropStores( uriList, "force,checkpoint_wait=false" ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger stores, rc: %d", rc ) ;
 
+      _removeCollections( metadata.getCSUID() ) ;
+
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_DROPCS, rc ) ;
       return rc ;
@@ -534,6 +536,25 @@ namespace wiredtiger
       _collMap.erase( metadataKey ) ;
 
       PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTION ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTIONS, "_dmsWTStorageService::_removeCollections" )
+   void _dmsWTStorageService::_removeCollections( utilCSUniqueID csUID )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTIONS ) ;
+
+      dmsCLMetadataKey lowBound( utilBuildCLUniqueID( csUID, 0 ), 0 ) ;
+      dmsCLMetadataKey upBound( utilBuildCLUniqueID( csUID + 1, 0 ), 0 ) ;
+
+      ossScopedRWLock lock( &_collMapMutex, EXCLUSIVE ) ;
+      _dmsWTCollMapIter lowIter = _collMap.lower_bound( lowBound ) ;
+      _dmsWTCollMapIter upIter = _collMap.lower_bound( upBound ) ;
+      if ( lowIter != upIter )
+      {
+         _collMap.erase( lowIter, upIter ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__REMOVECOLLECTIONS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION, "_dmsWTStorageService::_getCollection" )

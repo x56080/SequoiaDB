@@ -126,6 +126,7 @@ namespace wiredtiger
                             const dmsWTStore &store,
                             std::shared_ptr<ICollection> &collPtr ) ;
       void _removeCollection( const dmsCLMetadataKey &metadataKey ) ;
+      void _removeCollections( utilCSUniqueID csUID ) ;
       std::shared_ptr<ICollection> _getCollection( const dmsCLMetadataKey &metadataKey ) ;
 
    protected:
