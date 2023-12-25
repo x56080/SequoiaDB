@@ -208,6 +208,7 @@ namespace engine
          */
          INT32    _rebuildData( pmdEDUCB *cb,
                                 dmsMBContext *mbContext ) ;
+
          /*
             Reubild index
          */

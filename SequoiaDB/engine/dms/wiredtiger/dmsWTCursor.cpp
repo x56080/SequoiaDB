@@ -1008,5 +1008,92 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_MOVETOHEAD, "_dmsWTCursor::moveToHead" )
+   INT32 _dmsWTCursor::moveToHead()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_MOVETOHEAD ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to move cursor to tail, cursor is not opened" ) ;
+
+      rc = WT_CALL( _cursor->reset( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reset cursor, rc: %d", rc ) ;
+
+      rc = next() ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to move cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_MOVETOHEAD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_MOVETOTAIL, "_dmsWTCursor::moveToTail" )
+   INT32 _dmsWTCursor::moveToTail()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_MOVETOTAIL ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to move cursor to tail, cursor is not opened" ) ;
+
+      rc = WT_CALL( _cursor->largest_key( _cursor ), _session.getSession() ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to end, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_MOVETOTAIL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETCOUNT, "_dmsWTCursor::getCount" )
+   INT32 _dmsWTCursor::getCount( UINT64 &count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_GETCOUNT ) ;
+
+      count = 0 ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get count from WiredTiger cursor, cursor is not opened" ) ;
+
+      rc = WT_CALL( _cursor->reset( _cursor ), _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reset cursor, rc: %d", rc ) ;
+
+      while ( TRUE )
+      {
+         rc = next() ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         ++ count ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_GETCOUNT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 }

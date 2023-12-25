@@ -432,6 +432,89 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETCOUNT, "_dmsWTCollection::getCount" )
+   INT32 _dmsWTCollection::getCount( UINT64 &count,
+                                     BOOLEAN isFast,
+                                     IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETCOUNT ) ;
+
+      if ( isFast )
+      {
+         count = _metadata.getMBStat()->_totalRecords.fetch() ;
+      }
+      else
+      {
+         dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
+         if ( session.isOpened() )
+         {
+            dmsWTCursor cursor( session ) ;
+
+            rc = cursor.open( _store.getURI(), "" ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+            rc = cursor.getCount( count ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = _engine.countFromStore( _store, count ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get count from engine, rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETCOUNT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_VALIDATEDATA, "_dmsWTCollection::validateData" )
+   INT32 _dmsWTCollection::validateData( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_VALIDATEDATA ) ;
+
+      UINT64 recordCount = 0 ;
+      dmsRecordID maxRID ;
+
+      // recover record count
+      rc = getCount( recordCount, FALSE, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get record count, rc: %d", rc ) ;
+
+      PD_LOG( PDEVENT, "Reset total record count [%llu]", recordCount ) ;
+      _metadata.getMBStat()->_totalRecords.poke( recordCount ) ;
+      _metadata.getMBStat()->_rcTotalRecords.poke( recordCount ) ;
+
+      // recover record ID generator
+      rc = _getMaxRecordID( maxRID, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
+
+      if ( maxRID.isValid() )
+      {
+         PD_LOG( PDEVENT, "Move record ID to [extent: %u, offset: %u]",
+                 maxRID._extent, maxRID._offset ) ;
+         _metadata.getMBStat()->_ridGen.poke( maxRID.toUINT64() + 1 ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Move record ID to [extent: 0, offset: 0]" ) ;
+         _metadata.getMBStat()->_ridGen.poke( 0 ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_VALIDATEDATA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_BLDDATACONFSTR, "_dmsWTCollection::buildDataConfigString" )
    INT32 _dmsWTCollection::buildDataConfigString( const dmsWTEngineOptions &options,
                                                   const dmsCreateCLOptions &createCLOptions,
@@ -598,6 +681,76 @@ namespace wiredtiger
       PD_TRACE_EXIT( SDB__DMSWTCOLLECTION__GETINDEX ) ;
 
       return idxPtr ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__GETMAXRECORDID, "_dmsWTCollection::_getMaxRecordID" )
+   INT32 _dmsWTCollection::_getMaxRecordID( dmsRecordID &rid, IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETMAXRECORDID ) ;
+
+      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
+      if ( session.isOpened() )
+      {
+         rc = _getMaxRecordID( session, rid, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
+      }
+      else
+      {
+         dmsWTSession tmpSession ;
+         dmsWTCursor cursor( tmpSession ) ;
+
+         rc = _engine.openSession( tmpSession ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+         rc = _getMaxRecordID( tmpSession, rid, executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__GETMAXRECORDID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__GETMAXRECORDID_SESS, "_dmsWTCollection::_getMaxRecordID" )
+   INT32 _dmsWTCollection::_getMaxRecordID( dmsWTSession &session,
+                                            dmsRecordID &rid,
+                                            IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETMAXRECORDID_SESS ) ;
+
+      dmsWTCursor cursor( session ) ;
+      UINT64 key = 0 ;
+
+      rc = cursor.open( _store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.moveToTail() ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rid.reset() ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
+
+      rc = cursor.getKey( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+      rid.fromUINT64( key ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__GETMAXRECORDID_SESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

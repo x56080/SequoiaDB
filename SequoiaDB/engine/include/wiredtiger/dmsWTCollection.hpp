@@ -110,11 +110,16 @@ namespace wiredtiger
                                    dmsRecordData &recordData,
                                    IExecutor *executor ) ;
 
-      virtual INT32 createDataCursor( std::unique_ptr< IDataCursor > &cursor,
+      virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
                                       IExecutor *executor ) ;
+
+      virtual INT32 getCount( UINT64 &count,
+                              BOOLEAN isFast,
+                              IExecutor *executor ) ;
+      virtual INT32 validateData( IExecutor *executor ) ;
 
       static INT32 buildDataConfigString( const dmsWTEngineOptions &options,
                                           const dmsCreateCLOptions &createCLOptions,
@@ -130,6 +135,11 @@ namespace wiredtiger
                        std::shared_ptr<IIndex> &idxPtr ) ;
       void _removeIndex( const dmsIdxMetadataKey &metadataKey ) ;
       std::shared_ptr<IIndex> _getIndex( const dmsIdxMetadataKey &metadataKey ) ;
+
+      INT32 _getMaxRecordID( dmsRecordID &rid, IExecutor *executor ) ;
+      INT32 _getMaxRecordID( dmsWTSession &session,
+                             dmsRecordID &rid,
+                             IExecutor *executor ) ;
 
    protected:
       dmsCLMetadata _metadata ;

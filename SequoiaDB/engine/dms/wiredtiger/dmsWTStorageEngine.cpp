@@ -626,6 +626,36 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE, "_dmsWTStorageEngine::countFromStore" )
+   INT32 _dmsWTStorageEngine::countFromStore( const dmsWTStore &store,
+                                              UINT64 &count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE ) ;
+
+      dmsWTSession sess ;
+      dmsWTCursor cursor( sess ) ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to count from store, engine is not opened" ) ;
+
+      rc = sess.open( _conn ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+
+      rc = cursor.open( store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.getCount( count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_LOADSTORE, "_dmsWTStorageEngine::loadStore" )
    INT32 _dmsWTStorageEngine::loadStore( const CHAR *uri,
                                          dmsWTStore &store )

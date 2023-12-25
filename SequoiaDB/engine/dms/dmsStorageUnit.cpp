@@ -2946,7 +2946,7 @@ namespace engine
       dmsMBStatInfo * mbStat = context->mbStat() ;
       SDB_ASSERT( NULL != mbStat, "stat block is invalid" ) ;
 
-      if ( !_storageService->supportAlterCompressor() )
+      if ( !_storageService->isCompressorAlterable() )
       {
          PD_LOG( PDERROR, "Failed to change compressor, "
                  "storage service [%s] is not supported",

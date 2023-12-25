@@ -74,11 +74,6 @@ namespace wiredtiger
          return &_engine ;
       }
 
-      virtual BOOLEAN isDurable() const
-      {
-         return TRUE ;
-      }
-
       const dmsWTEngineOptions &getEngineOptions() const
       {
          return _engineOptions ;
@@ -108,7 +103,12 @@ namespace wiredtiger
                                     IExecutor *executor,
                                     std::shared_ptr<ICollection> &collPtr ) ;
 
-      virtual BOOLEAN supportAlterCompressor() const
+      virtual BOOLEAN isDurable() const
+      {
+         return TRUE ;
+      }
+
+      virtual BOOLEAN isCompressorAlterable() const
       {
          return FALSE ;
       }

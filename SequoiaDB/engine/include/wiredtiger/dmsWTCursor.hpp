@@ -123,6 +123,10 @@ namespace wiredtiger
                           dmsWTItem &existsValue,
                           BOOLEAN &isFound,
                           BOOLEAN &isExactMatch ) ;
+      INT32 moveToHead() ;
+      INT32 moveToTail() ;
+
+      INT32 getCount( UINT64 &count ) ;
 
    protected:
       _dmsWTSession &_session ;

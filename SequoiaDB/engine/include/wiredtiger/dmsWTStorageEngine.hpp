@@ -143,6 +143,9 @@ namespace wiredtiger
                               const dmsWTItem &key,
                               dmsWTItem &value ) ;
 
+      INT32 countFromStore( const dmsWTStore &store,
+                            UINT64 &count ) ;
+
       INT32 loadStore( const CHAR *uri,
                        dmsWTStore &store ) ;
       INT32 openStoreCursor( const CHAR *uri,

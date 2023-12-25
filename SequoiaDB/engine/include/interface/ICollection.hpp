@@ -99,6 +99,8 @@ namespace engine
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
                                       IExecutor *executor ) = 0 ;
+      virtual INT32 getCount( UINT64 &count, BOOLEAN isFast, IExecutor *executor ) = 0 ;
+      virtual INT32 validateData( IExecutor *executor ) = 0 ;
    } ;
 
 }

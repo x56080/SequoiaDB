@@ -530,10 +530,8 @@ namespace engine
          goto error ;
       }
 
-      if ( ( 0 == ruInfo->_dataCommitFlag ) &&
-           ( !( _pSU->getStorageService()->isDurable() ) ) )
+      if ( 0 == ruInfo->_dataCommitFlag )
       {
-         // TODO HGM: fix statistics
          /// force to index rebuild
          ruInfo->_idxCommitFlag = 0 ;
          rc = _rebuildData( cb, mbContext ) ;
@@ -552,10 +550,8 @@ namespace engine
          DMS_SET_MB_OFFLINE_REORG_REBUILD( mbContext->mb()->_flag ) ;
       }
 
-      if ( ( 0 == ruInfo->_idxCommitFlag ) &&
-           ( !( _pSU->getStorageService()->isDurable() ) ) )
+      if ( 0 == ruInfo->_idxCommitFlag )
       {
-         // TODO HGM: fix statistics
          /// rebuild index
          rc = _rebuildIndex( cb, mbContext ) ;
          if ( rc )
@@ -1110,143 +1106,31 @@ namespace engine
                                         dmsMBContext *mbContext )
    {
       INT32 rc = SDB_OK ;
-      dmsReorgUnit regSU ;
-      UINT16 flag = mbContext->mb()->_flag ;
-      BOOLEAN canClean = FALSE ;
-      UINT16 phase = 0 ;
 
-      if ( (flag & DMS_MB_OPR_TYPE_MASK) == DMS_MB_FLAG_OFFLINE_REORG )
-      {
-         phase = flag & DMS_MB_OPR_PHASE_MASK ;
-      }
-      else
-      {
-         phase = DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY ;
-      }
+      rc = mbContext->getCollPtr()->validateData( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to validate data of colleciton [%s], "
+                   "rc: %d", _clFullName.c_str(), rc ) ;
 
-      if ( DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY == phase )
-      {
-         rc = _openRegSU( &regSU, TRUE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Open reorg file failed, rc: %d", rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Start rebuild collection[%s]'s data with reorg "
-                 "file[%s]", _clFullName.c_str(), regSU.getFileName() ) ;
+      /// data file is restored
+      mbContext->mbStat()->_commitFlag.init( 1 ) ;
+      mbContext->mbStat()->_isCrash = FALSE ;
+      mbContext->mbStat()->_lastLSN.init( RTN_REBUILD_RESET_LSN ) ;
+      mbContext->mb()->_commitFlag = 1 ;
+      mbContext->mb()->_commitLSN = (UINT64)~0 ;
 
-         canClean = TRUE ;
-         /// shadow copy
-         DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ;
-         mbContext->mb()->_flag = flag ;
-         PD_LOG( PDEVENT, "Begin shadow copy phase" ) ;
+      mbContext->mbStat()->_idxCommitFlag.init( 0 ) ;
+      mbContext->mbStat()->_idxIsCrash = TRUE ;
+      mbContext->mb()->_idxCommitFlag = 0 ;
 
-         rc = _exportByExtents( cb, mbContext, &regSU ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Shadow copy failed, rc: %d", rc ) ;
-            goto error ;
-         }
-         rc = regSU.flush() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to flush data to reorg file, rc: %d", rc ) ;
-            goto error ;
-         }
+      /// flush meta
+      _pSU->data()->flushMeta( TRUE ) ;
 
-         /// truncate
-         DMS_SET_MB_OFFLINE_REORG_TRUNCATE( flag ) ;
-         mbContext->mb()->_flag = flag ;
-         phase = DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ;
-      }
-
-      if ( DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE == phase ||
-           DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK == phase )
-      {
-         PD_LOG( PDEVENT, "Begin truncate phase" ) ;
-
-         /// when truncate failed, can't clean the reorg file
-         canClean = FALSE ;
-         rc = _pSU->data()->truncateCollection( _clName.c_str(), cb, NULL,
-                                                TRUE, mbContext, FALSE,
-                                                FALSE ) ;
-         if ( ( SDB_OK != rc ) && ( SDB_DMS_CORRUPTED_EXTENT != rc ) )
-         {
-            PD_LOG( PDERROR, "Truncate collection[%s] failed, rc: %d",
-                    _clFullName.c_str(), rc ) ;
-            goto error ;
-         }
-
-         /// copyback
-         DMS_SET_MB_OFFLINE_REORG_COPY_BACK( flag ) ;
-         mbContext->mb()->_flag = flag ;
-         phase = DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK ;
-
-         if ( !regSU.isOpened() )
-         {
-            rc = _openRegSU( &regSU, FALSE ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Open reorg file failed, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
-         PD_LOG( PDEVENT, "Begin copyback phase" ) ;
-
-         rc = _copyBack( cb, mbContext, &regSU ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to copyback data to collection[%s], "
-                    "rc: %d", _clFullName.c_str(), rc ) ;
-            goto error ;
-         }
-
-         /// flush data
-         _pSU->data()->flushAll( TRUE ) ;
-         /// change to rebuild
-         DMS_SET_MB_OFFLINE_REORG_REBUILD( flag ) ;
-         mbContext->mb()->_flag = flag ;
-         phase = DMS_MB_FLAG_OFFLINE_REORG_REBUILD ;
-
-         /// when change to rebuild, can't clean reorg file
-         canClean = TRUE ;
-
-         /// data file is restored
-         mbContext->mbStat()->_commitFlag.init( 1 ) ;
-         mbContext->mbStat()->_isCrash = FALSE ;
-         mbContext->mbStat()->_lastLSN.init( RTN_REBUILD_RESET_LSN ) ;
-         mbContext->mb()->_commitFlag = 1 ;
-         mbContext->mb()->_commitLSN = (UINT64)~0 ;
-
-         mbContext->mbStat()->_idxCommitFlag.init( 0 ) ;
-         mbContext->mbStat()->_idxIsCrash = TRUE ;
-         mbContext->mb()->_idxCommitFlag = 0 ;
-
-         /// flush meta
-         _pSU->data()->flushMeta( TRUE ) ;
-
-         // copy data without index, so set index file crashed
-         _pSU->index()->setCrashed() ;
-      }
+      // rebuild data without index, so set index file crashed
+      _pSU->index()->setCrashed() ;
 
    done:
-      if ( canClean )
-      {
-         INT32 rcTmp = regSU.cleanup() ;
-         if ( rcTmp )
-         {
-            PD_LOG( PDERROR, "Failed to cleanup reorg file[%s], rc: %d",
-                    regSU.getFileName(), rcTmp ) ;
-         }
-      }
       return rc ;
    error:
-      /// Failed when copyback, need to reset the flag normal
-      if ( DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY == phase )
-      {
-         DMS_SET_MB_NORMAL(flag) ;
-         mbContext->mb()->_flag = flag ;
-      }
       goto done ;
    }
 
@@ -1254,63 +1138,24 @@ namespace engine
                                          dmsMBContext *mbContext )
    {
       INT32 rc = SDB_OK ;
+
       UINT16 flag = mbContext->mb()->_flag ;
-      UINT16 phase = 0 ;
 
-      if ( (flag & DMS_MB_OPR_TYPE_MASK) == DMS_MB_FLAG_OFFLINE_REORG )
-      {
-         phase = flag & DMS_MB_OPR_PHASE_MASK ;
-      }
+      /// Change status
+      DMS_SET_MB_NORMAL( flag ) ;
+      mbContext->mb()->_flag = flag ;
 
-      if ( DMS_MB_FLAG_OFFLINE_REORG_REBUILD == phase )
-      {
-         PD_LOG( PDEVENT, "Start rebuild phase" ) ;
+      mbContext->mb()->_idxCommitFlag = 1 ;
+      mbContext->mb()->_idxCommitLSN = (UINT64)~0 ;
+      mbContext->mbStat()->_idxCommitFlag.init( 1 ) ;
+      mbContext->mbStat()->_idxLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
+      mbContext->mbStat()->_idxIsCrash = FALSE ;
 
-         rtnRBDupKeyProcessor dkProcessor( _clFullName.c_str(),
-                                           mbContext->mb()->_clUniqueID ) ;
+      _indexNum = mbContext->mb()->_numIndexes ;
 
-         rc = _pSU->index()->rebuildIndexes( mbContext, cb,
-                                             SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                             &dkProcessor ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Rebuild indexes failed, rc: %d", rc ) ;
-            goto error ;
-         }
+      _pSU->data()->flushMeta( TRUE ) ;
 
-         /// Release the lock before flush.
-         mbContext->mbUnlock() ;
-
-         /// flush all
-         _pSU->index()->flushAll( TRUE ) ;
-
-         /// Take the lock again to modify meta data.
-         rc = mbContext->mbLock( EXCLUSIVE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Lock mb context failed, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         /// Change status
-         DMS_SET_MB_NORMAL( flag ) ;
-         mbContext->mb()->_flag = flag ;
-
-         mbContext->mb()->_idxCommitFlag = 1 ;
-         mbContext->mb()->_idxCommitLSN = (UINT64)~0 ;
-         mbContext->mbStat()->_idxCommitFlag.init( 1 ) ;
-         mbContext->mbStat()->_idxLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
-         mbContext->mbStat()->_idxIsCrash = FALSE ;
-
-         _indexNum = mbContext->mb()->_numIndexes ;
-
-         _pSU->data()->flushMeta( TRUE ) ;
-      }
-
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _rtnCLRebuilder::_rebuildLob( pmdEDUCB *cb,

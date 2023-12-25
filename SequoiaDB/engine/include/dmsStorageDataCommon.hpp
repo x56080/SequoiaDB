@@ -722,6 +722,7 @@ namespace engine
 
       _dmsMBStatInfo ()
       : _totalRecords( 0 ),
+        _writePtrCount( 0 ),
         _totalOrgDataLen( 0 ),
         _totalDataLen( 0 ),
         _commitFlag( 0 ),
