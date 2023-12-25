@@ -89,13 +89,39 @@ namespace wiredtiger
          return nullptr != _session ;
       }
 
-      static _dmsWTSession &getPersistSession( IExecutor *executor ) ;
-
    protected:
       WT_SESSION *_session = nullptr ;
    } ;
 
    typedef class _dmsWTSession dmsWTSession ;
+
+   /*
+      _dmsWTSessionHolder define
+    */
+   class _dmsWTSessionHolder : public _utilPooledObject
+   {
+   public:
+      _dmsWTSessionHolder() = default ;
+      ~_dmsWTSessionHolder() = default ;
+      _dmsWTSessionHolder( const _dmsWTSessionHolder &o ) = delete ;
+      _dmsWTSessionHolder &operator =( const _dmsWTSessionHolder & ) = delete ;
+
+      dmsWTSession &getSession()
+      {
+         return _session ? *_session : _tmpSession ;
+      }
+
+      void setSession( dmsWTSession *session )
+      {
+         _session = session ;
+      }
+
+   protected:
+      dmsWTSession *_session = nullptr ;
+      dmsWTSession _tmpSession ;
+   } ;
+
+   typedef class _dmsWTSessionHolder dmsWTSessionHolder ;
 
 }
 }

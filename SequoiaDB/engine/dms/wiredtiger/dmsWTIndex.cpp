@@ -68,17 +68,14 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_TRUNC ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
-      {
-         rc = _engine.truncateStore( session, _store.getURI().c_str(), nullptr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.truncateStore( _store.getURI().c_str(), nullptr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
-      }
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
+      rc = _engine.truncateStore( sessionHolder.getSession(),
+                                  _store.getURI().c_str(),
+                                  nullptr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTINDEX_TRUNC, rc ) ;
@@ -99,25 +96,12 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_INDEX ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
-
-         // for indexing, disable overwrite to check conflicts
-         rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-         rc = _index( cursor, key, rid, allowDuplicated, executor, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert index key, rc: %d", rc ) ;
-      }
-      else
-      {
-         dmsWTSession sess ;
-         dmsWTCursor cursor( sess ) ;
-
-         rc = _engine.openSession( sess ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
          // for indexing, disable overwrite to check conflicts
          rc = cursor.open( _store.getURI(), "overwrite=false" ) ;
@@ -144,24 +128,12 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX_UNINDEX ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
-
-         rc = cursor.open( _store.getURI(), "" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-         rc = _unindex( cursor, key, rid, executor ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to remove index key, rc: %d", rc ) ;
-      }
-      else
-      {
-         dmsWTSession sess ;
-         dmsWTCursor cursor( sess ) ;
-
-         rc = _engine.openSession( sess ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
@@ -511,7 +483,7 @@ namespace
       rc = _getKey( builder.getShallowKeyString(), keyItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key, rc: %d", rc ) ;
 
-      rc = _engine.removeFromStore( cursor, keyItem ) ;
+      rc = cursor.remove( keyItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to remove index key from engine, rc: %d", rc ) ;
 
    done:
@@ -564,7 +536,7 @@ namespace
 
       PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_ITEM ) ;
 
-      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      rc = cursor.insert( keyItem, valueItem ) ;
       if ( SDB_IXM_DUP_KEY == rc )
       {
          dmsWTItem conflictItem ;
@@ -635,7 +607,7 @@ namespace
          PD_RC_CHECK( rc, PDERROR, "Failed to check unqiue, rc: %d", rc ) ;
       }
 
-      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      rc = cursor.insert( keyItem, valueItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
 
    done:
@@ -661,7 +633,7 @@ namespace
       rc = _getKeyAndValue( ks, FALSE, keyItem, valueItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key and value, rc: %d", rc ) ;
 
-      rc = _engine.insertToStore( cursor, keyItem, valueItem ) ;
+      rc = cursor.insert( keyItem, valueItem ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert index key to engine, rc: %d", rc ) ;
 
    done:

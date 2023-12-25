@@ -211,27 +211,5 @@ namespace wiredtiger
       goto done ;
    }
 
-   dmsWTSession &_dmsWTSession::getPersistSession( IExecutor *executor )
-   {
-      static dmsWTSession s_emptySession ;
-
-      dmsWTPersistUnit *pu = nullptr ;
-
-      if ( executor &&
-           executor->getOperationContext() &&
-           executor->getOperationContext()->getPersistUnit() )
-      {
-         pu = dynamic_cast<dmsWTPersistUnit *>(
-               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
-
-         if ( pu )
-         {
-            return pu->getSession() ;
-         }
-      }
-
-      return s_emptySession ;
-   }
-
 }
 }

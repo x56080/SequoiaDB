@@ -35,6 +35,7 @@
 
 #include "wiredtiger/dmsWTStorageEngine.hpp"
 #include "wiredtiger/dmsWTCursor.hpp"
+#include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
@@ -296,366 +297,6 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_TRUNCSTORE, "_dmsWTStorageEngine::truncateStore" )
-   INT32 _dmsWTStorageEngine::truncateStore( const CHAR *uri,
-                                             const CHAR *config )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_TRUNCSTORE ) ;
-
-      dmsWTSession sess ;
-
-      SDB_ASSERT( nullptr != uri, "uri should be valid" ) ;
-      PD_CHECK( nullptr != uri, SDB_INVALIDARG, error, PDERROR,
-                "Failed to truncate table, uri is null" ) ;
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to truncate table, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = truncateStore( sess, uri, config ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_TRUNCSTORE, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_STORE_INT, "_dmsWTStorageEngine::insertToStore" )
-   INT32 _dmsWTStorageEngine::insertToStore( const dmsWTStore &store,
-                                             UINT64 key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_STORE_INT ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to insert to store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.insert( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_STORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_STORE_INT, "_dmsWTStorageEngine::updateToStore" )
-   INT32 _dmsWTStorageEngine::updateToStore( const dmsWTStore &store,
-                                             UINT64 key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_STORE_INT ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to update to store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.update( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_STORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_STORE_INT, "_dmsWTStorageEngine::removeFromStore" )
-   INT32 _dmsWTStorageEngine::removeFromStore( const dmsWTStore &store,
-                                               UINT64 key )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_STORE_INT ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to remove from table, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.remove( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_STORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_INT, "_dmsWTStorageEngine::extractFromStore" )
-   INT32 _dmsWTStorageEngine::extractFromStore( const dmsWTStore &store,
-                                                UINT64 key,
-                                                dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_INT ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to extract from store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.searchAndGetValue( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT, "_dmsWTStorageEngine::extractFromStore" )
-   INT32 _dmsWTStorageEngine::extractFromStore( dmsWTCursor &cursor,
-                                                UINT64 key,
-                                                dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT ) ;
-
-      rc = cursor.searchAndGetValue( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_STORE_CURSOR_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT, "_dmsWTStorageEngine::insertToStore" )
-   INT32 _dmsWTStorageEngine::insertToStore( dmsWTCursor &cursor,
-                                             UINT64 key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT ) ;
-
-      rc = cursor.insert( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT, "_dmsWTStorageEngine::updateToStore" )
-   INT32 _dmsWTStorageEngine::updateToStore( dmsWTCursor &cursor,
-                                             UINT64 key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT ) ;
-
-      rc = cursor.update( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT, "_dmsWTStorageEngine::removeFromStore" )
-   INT32 _dmsWTStorageEngine::removeFromStore( dmsWTCursor &cursor,
-                                               UINT64 key )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT ) ;
-
-      rc = cursor.remove( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_INT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM, "_dmsWTStorageEngine::insertToStore" )
-   INT32 _dmsWTStorageEngine::insertToStore( dmsWTCursor &cursor,
-                                             const dmsWTItem &key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to insert to store, engine is not opened" ) ;
-
-      rc = cursor.insert( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_INSERTTOSTORE_ITEM, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM, "_dmsWTStorageEngine::updateToStore" )
-   INT32 _dmsWTStorageEngine::updateToStore( dmsWTCursor &cursor,
-                                             const dmsWTItem &key,
-                                             const dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM ) ;
-
-      rc = cursor.update( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_UPDATETOSTORE_ITEM, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM, "_dmsWTStorageEngine::removeFromStore" )
-   INT32 _dmsWTStorageEngine::removeFromStore( dmsWTCursor &cursor,
-                                               const dmsWTItem &key )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM ) ;
-
-      rc = cursor.remove( key ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RMFROMSTORE_ITEM, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM, "_dmsWTStorageEngine::extractFromStore" )
-   INT32 _dmsWTStorageEngine::extractFromStore( const dmsWTStore &store,
-                                                const dmsWTItem &key,
-                                                dmsWTItem &value )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to extract from store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.searchAndGetValue( key, value ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_EXTRACTFROMSTORE_ITEM, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE, "_dmsWTStorageEngine::countFromStore" )
-   INT32 _dmsWTStorageEngine::countFromStore( const dmsWTStore &store,
-                                              UINT64 &count )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE ) ;
-
-      dmsWTSession sess ;
-      dmsWTCursor cursor( sess ) ;
-
-      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
-                "Failed to count from store, engine is not opened" ) ;
-
-      rc = sess.open( _conn ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
-
-      rc = cursor.open( store.getURI(), "" ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-      rc = cursor.getCount( count ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_COUNTFROMSTORE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_LOADSTORE, "_dmsWTStorageEngine::loadStore" )
    INT32 _dmsWTStorageEngine::loadStore( const CHAR *uri,
                                          dmsWTStore &store )
@@ -822,6 +463,43 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE__DUMPURILIST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_GETPERSISTSESSION, "_dmsWTStorageEngine::getPersistSession" )
+   INT32 _dmsWTStorageEngine::getPersistSession( IExecutor *executor,
+                                                 dmsWTSessionHolder &sessionHolder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_GETPERSISTSESSION ) ;
+
+      dmsWTPersistUnit *pu = nullptr ;
+
+      if ( executor &&
+           executor->getOperationContext() &&
+           executor->getOperationContext()->getPersistUnit() )
+      {
+         pu = dynamic_cast<dmsWTPersistUnit *>(
+               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
+
+         if ( pu )
+         {
+            sessionHolder.setSession( &( pu->getSession() ) ) ;
+         }
+      }
+
+      if ( !sessionHolder.getSession().isOpened() )
+      {
+         rc = openSession( sessionHolder.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_GETPERSISTSESSION, rc ) ;
       return rc ;
 
    error:

@@ -132,17 +132,14 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_TRUNC ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
-      {
-         rc = _engine.truncateStore( session, _store.getURI().c_str(), nullptr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.truncateStore( _store.getURI().c_str(), nullptr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
-      }
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
+      rc = _engine.truncateStore( sessionHolder.getSession(),
+                                  _store.getURI().c_str(),
+                                  nullptr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate data store, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_TRUNC, rc ) ;
@@ -239,21 +236,18 @@ namespace wiredtiger
       UINT64 key = rid.toUINT64() ;
       dmsWTItem value( recordData.data(), recordData.len() ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-         rc = _engine.insertToStore( cursor, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert record to engine, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.insertToStore( _store, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert record to engine, rc: %d", rc ) ;
+         rc = cursor.insert( key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert key to store, rc: %d", rc ) ;
       }
 
    done:
@@ -276,21 +270,18 @@ namespace wiredtiger
       UINT64 key = rid.toUINT64() ;
       dmsWTItem value( recordData.data(), recordData.len() ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-         rc = _engine.updateToStore( cursor, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update record to engine, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.updateToStore( _store, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update record to engine, rc: %d", rc ) ;
+         rc = cursor.update( key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update key to store, rc: %d", rc ) ;
       }
 
    done:
@@ -311,21 +302,18 @@ namespace wiredtiger
 
       UINT64 key = rid.toUINT64() ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-         rc = _engine.removeFromStore( cursor, key ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to remove record to engine, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.removeFromStore( _store, key ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to remove record from engine, rc: %d", rc ) ;
+         rc = cursor.remove( key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
       }
 
    done:
@@ -346,29 +334,26 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_EXTRACTREC ) ;
 
       UINT64 key = rid.toUINT64() ;
-      dmsWTItem value ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
       {
-         dmsWTCursor cursor( session ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
+         dmsWTItem value ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-         rc = _engine.extractFromStore( cursor, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to extract record from engine, rc: %d", rc ) ;
-      }
-      else
-      {
-         rc = _engine.extractFromStore( _store, key, value ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to extract record from engine, rc: %d", rc ) ;
-      }
+         rc = cursor.searchAndGetValue( key, value ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
 
-      recordData.setData( (const CHAR *)( value.get()->data ),
-                          value.get()->size,
-                          UTIL_COMPRESSOR_INVALID,
-                          TRUE ) ;
+         recordData.setData( (const CHAR *)( value.get()->data ),
+                             value.get()->size,
+                             UTIL_COMPRESSOR_INVALID,
+                             TRUE ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_EXTRACTREC, rc ) ;
@@ -447,22 +432,17 @@ namespace wiredtiger
       }
       else
       {
-         dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-         if ( session.isOpened() )
-         {
-            dmsWTCursor cursor( session ) ;
+         dmsWTSessionHolder sessionHolder ;
+         rc = _engine.getPersistSession( executor, sessionHolder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
 
-            rc = cursor.open( _store.getURI(), "" ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+         dmsWTCursor cursor( sessionHolder.getSession() ) ;
 
-            rc = cursor.getCount( count ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
-         }
-         else
-         {
-            rc = _engine.countFromStore( _store, count ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get count from engine, rc: %d", rc ) ;
-         }
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = cursor.getCount( count ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
       }
 
    done:
@@ -690,23 +670,13 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETMAXRECORDID ) ;
 
-      dmsWTSession &session = dmsWTSession::getPersistSession( executor ) ;
-      if ( session.isOpened() )
-      {
-         rc = _getMaxRecordID( session, rid, executor ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
-      }
-      else
-      {
-         dmsWTSession tmpSession ;
-         dmsWTCursor cursor( tmpSession ) ;
+      dmsWTSessionHolder sessionHolder ;
 
-         rc = _engine.openSession( tmpSession ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
 
-         rc = _getMaxRecordID( tmpSession, rid, executor ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
-      }
+      rc = _getMaxRecordID( sessionHolder.getSession(), rid, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__GETMAXRECORDID, rc ) ;

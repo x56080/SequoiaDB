@@ -101,50 +101,9 @@ namespace wiredtiger
       INT32 dropStores( const ossPoolList<ossPoolString> &uris,
                         const CHAR *config ) ;
 
-      INT32 truncateStore( const CHAR *uri,
-                           const CHAR *config ) ;
       INT32 truncateStore( dmsWTSession &session,
                            const CHAR *uri,
                            const CHAR *config ) ;
-
-      INT32 insertToStore( const dmsWTStore &store,
-                           UINT64 key,
-                           const dmsWTItem &value ) ;
-      INT32 updateToStore( const dmsWTStore &store,
-                           UINT64 key,
-                           const dmsWTItem &value ) ;
-      INT32 removeFromStore( const dmsWTStore &store,
-                             UINT64 key ) ;
-      INT32 extractFromStore( const dmsWTStore &store,
-                              UINT64 key,
-                              dmsWTItem &value ) ;
-      INT32 extractFromStore( dmsWTCursor &cursor,
-                              UINT64 key,
-                              dmsWTItem &value ) ;
-
-      INT32 insertToStore( dmsWTCursor &cursor,
-                           UINT64 key,
-                           const dmsWTItem &value ) ;
-      INT32 updateToStore( dmsWTCursor &cursor,
-                           UINT64 key,
-                           const dmsWTItem &value ) ;
-      INT32 removeFromStore( dmsWTCursor &cursor,
-                             UINT64 key ) ;
-
-      INT32 insertToStore( dmsWTCursor &cursor,
-                           const dmsWTItem &key,
-                           const dmsWTItem &value ) ;
-      INT32 updateToStore( dmsWTCursor &cursor,
-                           const dmsWTItem &key,
-                           const dmsWTItem &value ) ;
-      INT32 removeFromStore( dmsWTCursor &cursor,
-                             const dmsWTItem &key ) ;
-      INT32 extractFromStore( const dmsWTStore &store,
-                              const dmsWTItem &key,
-                              dmsWTItem &value ) ;
-
-      INT32 countFromStore( const dmsWTStore &store,
-                            UINT64 &count ) ;
 
       INT32 loadStore( const CHAR *uri,
                        dmsWTStore &store ) ;
@@ -155,6 +114,9 @@ namespace wiredtiger
       INT32 dumpURIListByPrefix( const CHAR *prefix,
                                  ossPoolList< ossPoolString > &uriList ) ;
       INT32 dumpURIList( ossPoolList< ossPoolString > &uriList ) ;
+
+      INT32 getPersistSession( IExecutor *executor,
+                               dmsWTSessionHolder &sessionHolder ) ;
 
       // for persistence
       virtual BOOLEAN isClosed() const
