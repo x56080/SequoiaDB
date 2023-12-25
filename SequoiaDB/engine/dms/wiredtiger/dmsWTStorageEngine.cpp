@@ -553,33 +553,14 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_CANSYNC, "_dmsWTStorageEngine::canSync" )
-   BOOLEAN _dmsWTStorageEngine::canSync( BOOLEAN &force ) const
-   {
-      BOOLEAN res = FALSE ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_CANSYNC ) ;
-
-      if ( pmdGetTickSpanTime( _lastPersistTick ) >=
-                  (UINT64)_options.getCheckPointInterval() * OSS_ONE_SEC )
-      {
-         res = TRUE ;
-      }
-
-      PD_TRACE_EXIT( SDB__DMSWTSTORAGEENGINE_CANSYNC ) ;
-
-      return res ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_SYNC, "_dmsWTStorageEngine::sync" )
-   INT32 _dmsWTStorageEngine::sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_CHECKPOINT, "_dmsWTStorageEngine::checkPoint" )
+   INT32 _dmsWTStorageEngine::checkPoint( IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_SYNC ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_CHECKPOINT ) ;
 
       // checkpoint
-
       dmsWTSession sess ;
       WT_SESSION *s = nullptr ;
 
@@ -590,11 +571,10 @@ namespace wiredtiger
       rc = WT_CALL( s->checkpoint( s, nullptr ), s ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to checkpoint, rc: %d", rc ) ;
 
-      _lastPersistTick = pmdGetDBTick() ;
-      PD_LOG( PDEVENT, "checkpoint done" ) ;
+      PD_LOG( PDEVENT, "Checkpoint done" ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_SYNC, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_CHECKPOINT, rc ) ;
       return rc ;
 
    error:

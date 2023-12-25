@@ -38,7 +38,6 @@
 
 #include "interface/IStorageEngine.hpp"
 #include "ossTypes.h"
-#include "sdbIPersistence.hpp"
 #include "wiredtiger/dmsWTCursor.hpp"
 #include "wiredtiger/dmsWTItem.hpp"
 #include "wiredtiger/dmsWTSession.hpp"
@@ -60,7 +59,7 @@ namespace wiredtiger
    /*
       _dmsWTStorageEngine define
     */
-   class _dmsWTStorageEngine : public IStorageEngine, public IDataSyncBase
+   class _dmsWTStorageEngine : public IStorageEngine
    {
    public:
       _dmsWTStorageEngine( _dmsWTStorageService &service,
@@ -83,6 +82,16 @@ namespace wiredtiger
       const dmsWTEngineOptions &getOptions() const
       {
          return _options ;
+      }
+
+      BOOLEAN isClosed() const
+      {
+         return nullptr == _conn ;
+      }
+
+      BOOLEAN isOpened() const
+      {
+         return nullptr != _conn ;
       }
 
       INT32 open( const boost::filesystem::path &dbPath,
@@ -118,25 +127,7 @@ namespace wiredtiger
       INT32 getPersistSession( IExecutor *executor,
                                dmsWTSessionHolder &sessionHolder ) ;
 
-      // for persistence
-      virtual BOOLEAN isClosed() const
-      {
-         return nullptr == _conn ;
-      }
-
-      virtual BOOLEAN canSync( BOOLEAN &force ) const ;
-
-      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
-
-      virtual void lock()
-      {
-         _persistLatch.get() ;
-      }
-
-      virtual void unlock()
-      {
-         _persistLatch.release() ;
-      }
+      INT32 checkPoint( IExecutor *executor ) ;
 
    protected:
       INT32 _checkDBPath( const boost::filesystem::path &dbPath,
@@ -147,8 +138,6 @@ namespace wiredtiger
       dmsWTEngineOptions &_options ;
       dmsWTHandler _handler ;
       WT_CONNECTION *_conn = nullptr ;
-      ossSpinXLatch _persistLatch ;
-      UINT64 _lastPersistTick = 0 ;
    } ;
 
    typedef class _dmsWTStorageEngine dmsWTStorageEngine ;

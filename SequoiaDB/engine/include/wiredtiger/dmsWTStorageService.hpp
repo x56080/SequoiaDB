@@ -38,6 +38,7 @@
 
 #include "interface/IStorageService.hpp"
 #include "interface/ICollection.hpp"
+#include "sdbIPersistence.hpp"
 #include "ossUtil.hpp"
 #include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTEngineOptions.hpp"
@@ -52,7 +53,7 @@ namespace wiredtiger
    /*
       _dmsWTStorageService define
     */
-   class _dmsWTStorageService : public IStorageService
+   class _dmsWTStorageService : public IStorageService, public IDataSyncBase
    {
    public:
       _dmsWTStorageService() ;
@@ -79,7 +80,7 @@ namespace wiredtiger
          return _engineOptions ;
       }
 
-      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
+      virtual INT32 fsync( BOOLEAN isForce, BOOLEAN isSync, IExecutor *executor ) ;
       virtual INT32 getPersistUnit( IExecutor *executor, IPersistUnit *&persistUnit ) ;
 
       virtual INT32 createCS( const dmsCSMetadata &metadata,
@@ -113,6 +114,26 @@ namespace wiredtiger
          return FALSE ;
       }
 
+      // for persistence
+      virtual BOOLEAN isClosed() const
+      {
+         return _engine.isClosed() ;
+      }
+
+      virtual BOOLEAN canSync( BOOLEAN &force ) const ;
+
+      virtual INT32 sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor ) ;
+
+      virtual void lock()
+      {
+         _persistLatch.get() ;
+      }
+
+      virtual void unlock()
+      {
+         _persistLatch.release() ;
+      }
+
    protected:
       INT32 _initEngineOptions( dmsWTEngineOptions &options ) ;
       INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
@@ -138,6 +159,9 @@ namespace wiredtiger
       typedef _dmsWTCollMap::iterator _dmsWTCollMapIter ;
       _dmsWTCollMap _collMap ;
       ossRWMutex _collMapMutex ;
+
+      ossSpinXLatch _persistLatch ;
+      UINT64 _lastPersistTick = 0 ;
    } ;
 
    typedef class _dmsWTStorageService dmsWTStorageService ;

@@ -86,9 +86,9 @@ namespace wiredtiger
       rc = _engine.open( engineOptions.getDBPath(), config.c_str() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open WiredTiger engine, rc: %d", rc ) ;
 
-      pmdGetSyncMgr()->registerSync( &_engine ) ;
-
       _engineOptions = engineOptions ;
+
+      pmdGetSyncMgr()->registerSync( this ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_OPENENGINE, rc ) ;
@@ -105,7 +105,7 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_CLOSE ) ;
 
-      pmdGetSyncMgr()->unregSync( &_engine ) ;
+      pmdGetSyncMgr()->unregSync( this ) ;
 
       rc = _engine.close( NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to close WiredTiger engine, rc: %d", rc ) ;
@@ -118,20 +118,20 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_SYNC, "_dmsWTStorageService::sync" )
-   INT32 _dmsWTStorageService::sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_FSYNC, "_dmsWTStorageService::fsync" )
+   INT32 _dmsWTStorageService::fsync( BOOLEAN isForce, BOOLEAN isSync, IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_SYNC ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_FSYNC ) ;
 
-      _engine.lock() ;
-      rc = _engine.sync( force, sync, executor ) ;
-      _engine.unlock() ;
+      lock() ;
+      rc = sync( isForce, isSync, executor ) ;
+      unlock() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to sync WiredTiger engine, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_SYNC, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_FSYNC, rc ) ;
       return rc ;
 
    error:
@@ -338,6 +338,45 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_LOADCOLL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_CANSYNC, "_dmsWTStorageService::canSync" )
+   BOOLEAN _dmsWTStorageService::canSync( BOOLEAN &force ) const
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_CANSYNC ) ;
+
+      if ( pmdGetTickSpanTime( _lastPersistTick ) >=
+                  (UINT64)( _engineOptions.getCheckPointInterval() ) * OSS_ONE_SEC )
+      {
+         res = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE_CANSYNC ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_SYNC, "_dmsWTStorageService::sync" )
+   INT32 _dmsWTStorageService::sync( BOOLEAN force, BOOLEAN sync, IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_SYNC ) ;
+
+      // checkpoint
+      rc = _engine.checkPoint( executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to checkpoint, rc: %d", rc ) ;
+
+      _lastPersistTick = pmdGetDBTick() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_SYNC, rc ) ;
       return rc ;
 
    error:

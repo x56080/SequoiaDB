@@ -2203,7 +2203,7 @@ namespace engine
       /// commit storage engine
       if ( NULL != dmsCB->getStorageService() )
       {
-         rc = dmsCB->getStorageService()->sync( TRUE, sync, cb ) ;
+         rc = dmsCB->getStorageService()->fsync( TRUE, sync, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to commit storage engine, rc: %d", rc ) ;
       }
 
