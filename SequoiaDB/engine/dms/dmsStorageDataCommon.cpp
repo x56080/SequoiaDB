@@ -1218,7 +1218,7 @@ namespace engine
                _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
                _dmsMME->_mbList[i]._commitTime = lastTime ;
 
-               if ( _mbStatInfo[i]._writePtrCount > 0 && !isClosed() )
+               if ( _mbStatInfo[i]._writePtrCount.fetch() > 0 && !isClosed() )
                {
                   // Don't set _dmsMME->_mbList[i]._commitFlag to 1
                   // Don't set header commitFlag to 1
@@ -1289,7 +1289,7 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         ++_mbStatInfo[ collectionID ]._writePtrCount ;
+         _mbStatInfo[ collectionID ]._writePtrCount.inc() ;
       }
    }
 
@@ -1297,7 +1297,7 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         --_mbStatInfo[ collectionID ]._writePtrCount ;
+         _mbStatInfo[ collectionID ]._writePtrCount.dec() ;
       }
    }
 

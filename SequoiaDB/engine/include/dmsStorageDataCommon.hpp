@@ -414,7 +414,7 @@ namespace engine
    struct _dmsMBStatInfo
    {
       ossAtomic64 _totalRecords ;
-      UINT32      _writePtrCount ;
+      ossAtomic32 _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
       UINT32      _totalLobPages ;
@@ -480,7 +480,7 @@ namespace engine
       void reset()
       {
          _totalRecords.init( 0 ) ;
-         _writePtrCount          = 0 ;
+         _writePtrCount.init( 0 ) ;
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
