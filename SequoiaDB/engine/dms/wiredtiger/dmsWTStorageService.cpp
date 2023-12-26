@@ -654,12 +654,9 @@ namespace wiredtiger
                        freeIndexSize ) ;
       }
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__SYNCSTATS, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__UPDATESTATS, "_dmsWTStorageService::_updateStats" )

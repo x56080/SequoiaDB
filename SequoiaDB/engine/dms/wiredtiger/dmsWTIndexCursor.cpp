@@ -74,7 +74,7 @@ namespace wiredtiger
       PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
                 "Failed to open cursor, index is not WiredTiger index" ) ;
 
-      resetSnapshotID( idxPtr->fetchSnapshotID() ) ;
+      _idxPtr = std::move( idxPtr ) ;
       _resetCache() ;
       if ( startKey.isValid() )
       {
@@ -98,10 +98,47 @@ namespace wiredtiger
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 
-      _idxPtr = std::move( idxPtr ) ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_IXM_EOC ;
+      }
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXCURSOR_OPEN_SAMPLE, "_dmsWTIndexCursor::open" )
+   INT32 _dmsWTIndexCursor::open( shared_ptr<IIndex> idxPtr,
+                                  UINT64 sampleNum,
+                                  UINT64 snapshotID,
+                                  IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_OPEN_SAMPLE ) ;
+
+      dmsWTIndex *wtIndex = dynamic_cast<dmsWTIndex *>( idxPtr.get() ) ;
+
+      PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
+                "Failed to open cursor, index is not WiredTiger index" ) ;
+
+      _idxPtr = std::move( idxPtr ) ;
+      _resetCache() ;
+
+      rc = _open( wtIndex->getEngine(), wtIndex->getStore().getURI(),
+                  "", sampleNum, snapshotID, executor ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:
@@ -423,7 +460,7 @@ namespace wiredtiger
       {
          dmsWTIndex *wtIndex = dynamic_cast<dmsWTIndex *>( idxPtr.get() ) ;
          PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
-                  "Failed to open cursor, index is not WiredTiger index" ) ;
+                   "Failed to open cursor, index is not WiredTiger index" ) ;
          rc = wtIndex->getEngine().openSession( _asyncSession,
                                                 dmsWTSessIsolation::SNAPSHOT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
@@ -434,6 +471,36 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXASYNCCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTIDXASYNCCURSOR_OPEN_SAMPLE, "_dmsWTIndexAsyncCursor::open" )
+   INT32 _dmsWTIndexAsyncCursor::open( shared_ptr<IIndex> idxPtr,
+                                       UINT64 sampleNum,
+                                       UINT64 snapshotID,
+                                       IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTIDXASYNCCURSOR_OPEN_SAMPLE ) ;
+
+      if ( !_asyncSession.isOpened() )
+      {
+         dmsWTIndex *wtIndex = dynamic_cast<dmsWTIndex *>( idxPtr.get() ) ;
+         PD_CHECK( wtIndex, SDB_SYS, error, PDERROR,
+                   "Failed to open cursor, index is not WiredTiger index" ) ;
+         rc = wtIndex->getEngine().openSession( _asyncSession,
+                                                dmsWTSessIsolation::SNAPSHOT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+      rc = _dmsWTIndexCursor::open( idxPtr, sampleNum, snapshotID, executor ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTIDXASYNCCURSOR_OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:

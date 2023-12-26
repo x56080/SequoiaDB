@@ -81,6 +81,9 @@ namespace engine
                                        BOOLEAN isAfterStartKey,
                                        BOOLEAN isForward,
                                        IExecutor *executor ) = 0 ;
+      virtual INT32 createIndexSampleCursor( std::unique_ptr<IIndexCursor> &cursor,
+                                             UINT64 sampleNum,
+                                             IExecutor *executor ) = 0 ;
       virtual INT32 getIndexStats( UINT64 &totalSize,
                                    UINT64 &freeSize,
                                    BOOLEAN isFast,

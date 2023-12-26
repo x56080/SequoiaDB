@@ -150,18 +150,14 @@ namespace
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_CREATEINDEXCURSOR, "_dmsWTIndex::createIndexCursor" )
-   INT32 _dmsWTIndex::createIndexCursor( unique_ptr<IIndexCursor> &cursor,
-                                         const keyString &startKey,
-                                         BOOLEAN isAfterStartKey,
-                                         BOOLEAN isForward,
-                                         IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX__CREATEINDEXCURSOR, "_dmsWTIndex::_createIndexCursor" )
+   INT32 _dmsWTIndex::_createIndexCursor( unique_ptr<IIndexCursor> &cursor,
+                                          IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTINDEX_CREATEINDEXCURSOR ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX__CREATEINDEXCURSOR ) ;
 
-      UINT64 snapshotID = 0 ;
       IPersistUnit *persistUnit = nullptr ;
 
       rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
@@ -181,6 +177,33 @@ namespace
          cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexAsyncCursor() ) ;
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
       }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX__CREATEINDEXCURSOR, rc ) ;
+      return rc ;
+
+   error:
+      cursor.release() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_CREATEINDEXCURSOR, "_dmsWTIndex::createIndexCursor" )
+   INT32 _dmsWTIndex::createIndexCursor( unique_ptr<IIndexCursor> &cursor,
+                                         const keyString &startKey,
+                                         BOOLEAN isAfterStartKey,
+                                         BOOLEAN isForward,
+                                         IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_CREATEINDEXCURSOR ) ;
+
+      UINT64 snapshotID = 0 ;
+
+      rc = _createIndexCursor( cursor, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
+      SDB_ASSERT( cursor, "cursor should be valid" ) ;
+      PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor" ) ;
 
       snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
       rc = cursor->open( shared_from_this(),
@@ -204,7 +227,40 @@ namespace
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETINDEXSTATS, "_dmsWTIndex::getIndexStats" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_CREATEINDEXSAMPLECURSOR, "_dmsWTIndex::createIndexSampleCursor" )
+   INT32 _dmsWTIndex::createIndexSampleCursor( unique_ptr<IIndexCursor> &cursor,
+                                               UINT64 sampleNum,
+                                               IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_CREATEINDEXSAMPLECURSOR ) ;
+
+      UINT64 snapshotID = 0 ;
+
+      rc = _createIndexCursor( cursor, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
+      SDB_ASSERT( cursor, "cursor should be valid" ) ;
+      PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor" ) ;
+
+      snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
+      rc = cursor->open( shared_from_this(), sampleNum, snapshotID, executor ) ;
+      if ( SDB_IXM_EOC == rc )
+      {
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to open index cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX_CREATEINDEXSAMPLECURSOR, rc ) ;
+      return rc ;
+
+   error:
+      cursor.release() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_GETINDEXSTATS, "_dmsWTIndex::getIndexStats" )
    INT32 _dmsWTIndex::getIndexStats( UINT64 &totalSize,
                                      UINT64 &freeSize,
                                      BOOLEAN isFast,
@@ -212,17 +268,17 @@ namespace
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETINDEXSTATS ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_GETINDEXSTATS ) ;
 
       rc = _dmsWTStoreHolder::getStoreTotalSize( totalSize, executor ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to store total size, rc: %d", rc ) ;
-      totalSize = ossRoundDownToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
+      totalSize = ossRoundUpToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
 
       rc = _dmsWTStoreHolder::getStoreFreeSize( freeSize, executor ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to store free size, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETINDEXSTATS, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX_GETINDEXSTATS, rc ) ;
       return rc ;
 
    error:

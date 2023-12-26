@@ -95,6 +95,9 @@ namespace wiredtiger
                                        BOOLEAN isAfterStartKey,
                                        BOOLEAN isForward,
                                        IExecutor *executor ) ;
+      virtual INT32 createIndexSampleCursor( std::unique_ptr<IIndexCursor> &cursor,
+                                             UINT64 sampleNum,
+                                             IExecutor *executor ) ;
 
       virtual INT32 getIndexStats( UINT64 &totalSize,
                                    UINT64 &freeSize,
@@ -165,6 +168,9 @@ namespace wiredtiger
                           const keystring::keyString &ks,
                           const dmsRecordID &rid,
                           utilWriteResult *result ) ;
+
+      INT32 _createIndexCursor( unique_ptr<IIndexCursor> &cursor,
+                                IExecutor *executor ) ;
 
    protected:
       dmsIdxMetadata _metadata ;

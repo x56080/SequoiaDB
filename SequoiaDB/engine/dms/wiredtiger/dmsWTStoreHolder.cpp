@@ -142,7 +142,7 @@ namespace wiredtiger
 
       rc = getStats( WT_STAT_DSRC_BLOCK_REUSE_BYTES, dmsWTStatsCatalog::STATS_FAST,
                      (INT64 &)freeSize, executor ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get store free size, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get store free size, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTOREHOLDER_GESSTOREFREESIZE, rc ) ;

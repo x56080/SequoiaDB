@@ -363,18 +363,14 @@ namespace wiredtiger
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_CREATEDATACURSOR, "_dmsWTCollection::createDataCursor" )
-   INT32 _dmsWTCollection::createDataCursor( unique_ptr<IDataCursor> &cursor,
-                                             const dmsRecordID &startRID,
-                                             BOOLEAN afterStartRID,
-                                             BOOLEAN isForward,
-                                             IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__CREATEDATACURSOR, "_dmsWTCollection::_createDataCursor" )
+   INT32 _dmsWTCollection::_createDataCursor( unique_ptr<IDataCursor> &cursor,
+                                              IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_CREATEDATACURSOR ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__CREATEDATACURSOR ) ;
 
-      UINT64 snapshotID = 0 ;
       IPersistUnit *persistUnit = nullptr ;
 
       rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
@@ -395,6 +391,33 @@ namespace wiredtiger
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
       }
 
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__CREATEDATACURSOR, rc ) ;
+      return rc ;
+
+   error:
+      cursor.release() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_CREATEDATACURSOR, "_dmsWTCollection::createDataCursor" )
+   INT32 _dmsWTCollection::createDataCursor( unique_ptr<IDataCursor> &cursor,
+                                             const dmsRecordID &startRID,
+                                             BOOLEAN afterStartRID,
+                                             BOOLEAN isForward,
+                                             IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_CREATEDATACURSOR ) ;
+
+      UINT64 snapshotID = 0 ;
+
+      rc = _createDataCursor( cursor, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
+      SDB_ASSERT( cursor, "cursor should be valid" ) ;
+      PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor" ) ;
+
       snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
       rc = cursor->open( shared_from_this(),
                          startRID,
@@ -410,6 +433,39 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_CREATEDATACURSOR, rc ) ;
+      return rc ;
+
+   error:
+      cursor.release() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_CREATEDATASAMPLECURSOR, "_dmsWTCollection::createDataSampleCursor" )
+   INT32 _dmsWTCollection::createDataSampleCursor( unique_ptr<IDataCursor> &cursor,
+                                                   UINT64 sampleNum,
+                                                   IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_CREATEDATASAMPLECURSOR ) ;
+
+      UINT64 snapshotID = 0 ;
+
+      rc = _createDataCursor( cursor, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
+      SDB_ASSERT( cursor, "cursor should be valid" ) ;
+      PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor" ) ;
+
+      snapshotID = _metadata.getMBStat()->_snapshotID.fetch() ;
+      rc = cursor->open( shared_from_this(), sampleNum, snapshotID, executor ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to open sample data cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_CREATEDATASAMPLECURSOR, rc ) ;
       return rc ;
 
    error:
@@ -464,7 +520,7 @@ namespace wiredtiger
       {
          rc = _dmsWTStoreHolder::getStoreTotalSize( totalSize, executor ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to store total size, rc: %d", rc ) ;
-         totalSize = ossRoundDownToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
+         totalSize = ossRoundUpToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
 
          rc = _dmsWTStoreHolder::getStoreFreeSize( freeSize, executor ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to store free size, rc: %d", rc ) ;
@@ -496,6 +552,7 @@ namespace wiredtiger
       }
       else
       {
+         UINT32 pageSize = _metadata.getSU()->getPageSize() ;
          std::shared_ptr<IIndex> idxPtr ;
          totalSize = 0 ;
          freeSize = 0 ;
@@ -511,17 +568,15 @@ namespace wiredtiger
             }
 
             totalSize += idxTotalSize ;
-            totalSize += _metadata.getSU()->getPageSize() ;
+            // one more page for metadata
+            totalSize += pageSize ;
             freeSize += idxFreeSize ;
          }
       }
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETINDEXSTATS, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_VALIDATEDATA, "_dmsWTCollection::validateData" )

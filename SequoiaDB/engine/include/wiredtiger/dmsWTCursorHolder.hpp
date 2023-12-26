@@ -82,6 +82,12 @@ namespace wiredtiger
                    BOOLEAN isForward,
                    UINT64 snapshotID,
                    IExecutor *executor ) ;
+      INT32 _open( dmsWTStorageEngine &engine,
+                   const ossPoolString &uri,
+                   const ossPoolString &config,
+                   UINT64 sampelNum,
+                   UINT64 snapshotID,
+                   IExecutor *executor ) ;
 
       INT32 _advance( IExecutor *executor ) ;
 
@@ -93,6 +99,7 @@ namespace wiredtiger
       BOOLEAN _isOpened = FALSE ;
       BOOLEAN _isClosed = FALSE ;
       BOOLEAN _isForward = TRUE ;
+      BOOLEAN _isSample = FALSE ;
       BOOLEAN _isEOF = FALSE ;
    } ;
 

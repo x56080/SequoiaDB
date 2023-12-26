@@ -115,6 +115,9 @@ namespace wiredtiger
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
                                       IExecutor *executor ) ;
+      virtual INT32 createDataSampleCursor( std::unique_ptr<IDataCursor> &cursor,
+                                            UINT64 sampleNum,
+                                            IExecutor *executor ) ;
 
       virtual INT32 getCount( UINT64 &count,
                               BOOLEAN isFast,
@@ -150,6 +153,9 @@ namespace wiredtiger
       INT32 _getMaxRecordID( dmsWTSession &session,
                              dmsRecordID &rid,
                              IExecutor *executor ) ;
+
+      INT32 _createDataCursor( unique_ptr<IDataCursor> &cursor,
+                               IExecutor *executor ) ;
 
    protected:
       dmsCLMetadata _metadata ;

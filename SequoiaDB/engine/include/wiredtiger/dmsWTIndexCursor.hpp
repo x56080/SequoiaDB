@@ -75,6 +75,11 @@ namespace wiredtiger
          return !_isForward ;
       }
 
+      virtual BOOLEAN isSample() const
+      {
+         return _isSample ;
+      }
+
       virtual BOOLEAN isEOF() const
       {
          return _isEOF ;
@@ -84,6 +89,10 @@ namespace wiredtiger
                           const keystring::keyString &startKey,
                           BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) ;
       virtual INT32 advance( IExecutor *executor ) ;
@@ -150,6 +159,10 @@ namespace wiredtiger
                           const keystring::keyString &startKey,
                           BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) ;
 

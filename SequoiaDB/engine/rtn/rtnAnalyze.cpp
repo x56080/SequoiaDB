@@ -214,6 +214,14 @@ namespace engine
                                     _SDB_RTNCB *rtnCB,
                                     _dpsLogWrapper *dpsCB ) ;
 
+   static INT32 _rtnFillCLStat( dmsStorageUnit *pSU,
+                                     dmsMBContext *mbContext,
+                                     const rtnAnalyzeParam &param,
+                                     dmsCollectionStat *pCollectionStat,
+                                     pmdEDUCB *cb,
+                                     _SDB_DMSCB *dmsCB,
+                                     _SDB_RTNCB *rtnCB ) ;
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNANALYZE, "rtnAnalyze" )
    INT32 rtnAnalyze ( const CHAR *pCSName,
                       const CHAR *pCLName,
@@ -241,6 +249,14 @@ namespace engine
       if ( NULL == dmsCB )
       {
          dmsCB = pmdGetKRCB()->getDMSCB() ;
+      }
+
+      // fsync before analyze
+      if ( dmsCB->getStorageService() &&
+           ( SDB_ANALYZE_MODE_SAMPLE == param._mode ||
+             SDB_ANALYZE_MODE_FULL == param._mode ) )
+      {
+         dmsCB->getStorageService()->fsync( TRUE, TRUE, cb ) ;
       }
 
       if ( NULL != pCSName )
@@ -1438,11 +1454,22 @@ namespace engine
                 "Failed to allocate memory for collection statistics [%s.%s]",
                 pCSName, pCLName ) ;
 
-      pCollectionStat->setTotalRecords( mbContext->mbStat()->_totalRecords.fetch() ) ;
-      pCollectionStat->setSampleRecords( param._sampleRecords ) ;
-      pCollectionStat->setTotalDataPages( mbContext->mbStat()->_totalDataPages ) ;
-      pCollectionStat->setTotalDataSize( mbContext->mbStat()->_totalOrgDataLen.fetch() ) ;
-      pCollectionStat->setAvgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS ) ;
+
+      if ( SDB_ANALYZE_MODE_SAMPLE == param._mode ||
+           SDB_ANALYZE_MODE_FULL == param._mode )
+      {
+         rc = _rtnFillCLStat( pSU, mbContext, param, pCollectionStat, cb, dmsCB, rtnCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to fill collection [%s.%s] statistics, "
+                      "rc: %d", pCSName, pCLName, rc ) ;
+      }
+      else
+      {
+         pCollectionStat->setTotalRecords( mbContext->mbStat()->_totalRecords.fetch() ) ;
+         pCollectionStat->setSampleRecords( param._sampleRecords ) ;
+         pCollectionStat->setTotalDataPages( mbContext->mbStat()->_totalDataPages ) ;
+         pCollectionStat->setTotalDataSize( mbContext->mbStat()->_totalOrgDataLen.fetch() ) ;
+         pCollectionStat->setAvgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS ) ;
+      }
 
       rc = pCollectionStat->postInit() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize collection statistics, "
@@ -1834,10 +1861,12 @@ namespace engine
       BSONObj boOrder = _rtnBuildAnalyzeOrder( indexCB->keyPattern() ) ;
       UINT32 sortCount = 0, prevCount = 0 ;
       BSONObj prevKey, dummy ;
-      UINT32 levels = 0, pages = 0 ;
       double fraction = 0.0 ;
 
       _rtnSortTuple *tuple = NULL ;
+      UINT64 totalIndexSize = 0, freeIndexSize = 0 ;
+      UINT32 totalPages = 0 ;
+      UINT32 pageSize = pSU->getPageSize() ;
 
       sortArea->_tupleDirectory.clear() ;
       sortArea->_tupleBuff.clear() ;
@@ -1845,10 +1874,111 @@ namespace engine
       _rtnInternalSorting sorter( boOrder, &(sortArea->_tupleDirectory),
                                   &(sortArea->_tupleBuff), -1 ) ;
 
-      rc = rtnGetIndexSamples( pSU, indexCB, cb, sampleRecords, totalRecords,
-                               fullScan, sorter, levels, pages ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get samples of index "
-                   "[%s.%s %s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
+      std::shared_ptr<IIndex> idxPtr ;
+      std::unique_ptr<IIndexCursor> cursorPtr ;
+
+      rc = pSU->index()->getIndex( mbContext, indexCB, cb, idxPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s.%s], index [%s], rc: %d",
+                   pCSName, pCLName, pIXName, rc ) ;
+
+      // get file size
+      rc = idxPtr->getIndexStats( totalIndexSize, freeIndexSize, FALSE, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s.%s] index [%s] stats, "
+                   "rc: %d", pCSName, pCLName, pIXName, rc ) ;
+
+      totalPages = totalIndexSize / pageSize ;
+      pIndexStat->setIndexPages( totalPages ) ;
+
+      // initialize index levels as 1, will calculate it later
+      pIndexStat->setIndexLevels( 1 ) ;
+
+      // get samples
+      if ( sampleRecords < totalRecords )
+      {
+         rc = idxPtr->createIndexSampleCursor( cursorPtr, sampleRecords, cb ) ;
+      }
+      else
+      {
+         // no enough records, use full scan
+         keystring::keyString emptyKey ;
+         rc = idxPtr->createIndexCursor( cursorPtr, emptyKey, FALSE, TRUE, cb ) ;
+      }
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_IXM_EOC != rc )
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to create sample cursor for "
+                         "collection [%s.%s] index [%s], rc: %d",
+                         pCSName, pCLName, pIXName, rc ) ;
+         }
+         rc = SDB_OK ;
+      }
+      else
+      {
+         ossPoolSet<dmsRecordID> ridSet ;
+         UINT64 totalSampleCounts = 0 ;
+         UINT64 totalKeySize = 0 ;
+         while ( TRUE )
+         {
+            keystring::keyString key ;
+            BSONObj keyObj ;
+            dmsRecordID rid ;
+
+            rc = cursorPtr->getCurrentKeyString( key ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get key string for collection [%s.%s] "
+                         "index [%s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
+            rc = cursorPtr->getCurrentKey( keyObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get key for collection [%s.%s] "
+                        "index [%s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
+            rc = cursorPtr->getCurrentRecordID( rid ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get record ID for collection [%s.%s] "
+                         "index [%s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
+
+            ++ totalSampleCounts ;
+            totalKeySize += key.getKeySize() ;
+
+            if ( ridSet.insert( rid ).second )
+            {
+               rc = sorter.push( keyObj, dummy.objdata(), dummy.objsize(), NULL ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to push key into sorter, rc: %d", rc ) ;
+            }
+
+            if ( sorter.getObjNum() >= sampleRecords ||
+                 totalSampleCounts >= totalRecords )
+            {
+               break ;
+            }
+
+            rc = cursorPtr->advance( cb ) ;
+            if ( SDB_IXM_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to advance cursor for collection [%s.%s] "
+                         "index [%s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
+         }
+
+         // simply calculate the index levels
+         FLOAT64 avgKeySize = (FLOAT64)( totalKeySize ) / (FLOAT64)totalSampleCounts ;
+         FLOAT64 avgKeyNum = (FLOAT64)( pageSize ) / avgKeySize ;
+         if ( totalPages <= 1 )
+         {
+            pIndexStat->setIndexLevels( 1 ) ;
+         }
+         else if ( totalPages <= 2 + avgKeyNum )
+         {
+            pIndexStat->setIndexLevels( 2 ) ;
+         }
+         else
+         {
+            UINT32 indexLevels =
+                  (UINT32)( ceil( log( (FLOAT64)totalPages ) /
+                                  log( avgKeyNum + 1 ) ) ) + 1 ;
+            indexLevels = OSS_MAX( 1, OSS_MIN( indexLevels, totalPages ) ) ;
+            pIndexStat->setIndexLevels( indexLevels ) ;
+         }
+      }
 
       sortCount = (UINT32)sorter.getObjNum() ;
 
@@ -1860,13 +1990,10 @@ namespace engine
       rc = pIndexStat->initMCVSet( sortCount ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize MCV set, rc: %d", rc ) ;
 
-      pIndexStat->setIndexLevels( levels ) ;
-      pIndexStat->setIndexPages( pages ) ;
       pIndexStat->setSampleRecords( sortCount ) ;
 
       rc = sorter.sort( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to sort index samples, rc: %d",
-                   rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to sort index samples, rc: %d", rc ) ;
 
       while ( sorter.more() )
       {
@@ -2035,6 +2162,109 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNFILLCLSTAT, "_rtnFillCLStat" )
+   INT32 _rtnFillCLStat( dmsStorageUnit *pSU,
+                         dmsMBContext *mbContext,
+                         const rtnAnalyzeParam &param,
+                         dmsCollectionStat *pCollectionStat,
+                         pmdEDUCB *cb,
+                         _SDB_DMSCB *dmsCB,
+                         _SDB_RTNCB *rtnCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNFILLCLSTAT ) ;
+
+      SDB_ASSERT( pSU, "pSU is invalid" ) ;
+      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
+
+      const CHAR *pCSName = pSU->CSName() ;
+      const CHAR *pCLName = mbContext->mb()->_collectionName ;
+
+      UINT32 totalFieldCounts = 0, totalSampleCounts = 0 ;
+      UINT64 totalDataSize = 0, freeDataSize = 0 ;
+      std::unique_ptr<IDataCursor> cursorPtr ;
+
+      pCollectionStat->setTotalRecords( mbContext->mbStat()->_totalRecords.fetch() ) ;
+      pCollectionStat->setSampleRecords( param._sampleRecords ) ;
+
+      rc = mbContext->getCollPtr()->getDataStats( totalDataSize, freeDataSize,
+                                                  FALSE, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s.%s] data stats, "
+                   "rc: %d", pCSName, pCLName, rc ) ;
+      pCollectionStat->setTotalDataPages( totalDataSize / pSU->getPageSize() ) ;
+      pCollectionStat->setTotalDataSize( mbContext->mbStat()->_totalOrgDataLen.fetch() ) ;
+
+      // sample records
+      rc = mbContext->getCollPtr()->createDataSampleCursor( cursorPtr,
+                                                            param._sampleRecords,
+                                                            cb ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to create sample cursor for "
+                         "collection [%s.%s], rc: %d", pCSName, pCLName, rc ) ;
+         }
+         rc = SDB_OK ;
+      }
+      else
+      {
+         while ( TRUE )
+         {
+            dmsRecordData recordData ;
+            rc = cursorPtr->getCurrentRecord( recordData ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get record data for collection [%s.%s], "
+                        "rc: %d", pCSName, pCLName, rc ) ;
+
+            try
+            {
+               BSONObj recordObj( recordData.data() ) ;
+               totalFieldCounts += recordObj.nFields() ;
+               totalSampleCounts ++ ;
+            }
+            catch ( exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Failed to get record data for collection [%s.%s], "
+                     "occurred exception: %s", pCSName, pCLName, e.what() ) ;
+               goto error ;
+            }
+
+            if ( totalSampleCounts >= param._sampleRecords )
+            {
+               break ;
+            }
+
+            rc = cursorPtr->advance( cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to advance cursor for collection [%s.%s], "
+                        "rc: %d", pCSName, pCLName, rc ) ;
+         }
+      }
+
+      if ( totalSampleCounts > 0 )
+      {
+         pCollectionStat->setAvgNumFields( ceil( (double)totalFieldCounts /
+                                                 (double)totalSampleCounts ) ) ;
+      }
+      else
+      {
+         pCollectionStat->setAvgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNFILLCLSTAT, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 

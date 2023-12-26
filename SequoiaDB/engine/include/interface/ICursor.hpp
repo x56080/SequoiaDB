@@ -66,6 +66,7 @@ namespace engine
       virtual BOOLEAN isClosed() const = 0 ;
       virtual BOOLEAN isForward() const = 0 ;
       virtual BOOLEAN isBackward() const = 0 ;
+      virtual BOOLEAN isSample() const = 0 ;
       virtual BOOLEAN isEOF() const = 0 ;
 
       virtual INT32 close() = 0 ;
@@ -94,6 +95,10 @@ namespace engine
                           BOOLEAN isForward,
                           UINT64 snapshotID,
                           IExecutor *executor ) = 0 ;
+      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
+                          UINT64 sampleNum,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) = 0 ;
 
       virtual INT32 locate( const dmsRecordID &rid,
                             BOOLEAN isAfterStartRID,
@@ -120,6 +125,10 @@ namespace engine
                           const keystring::keyString &startKey,
                           BOOLEAN isAfterStartKey,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) = 0 ;
+      virtual INT32 open( std::shared_ptr<IIndex> idxPtr,
+                          UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) = 0 ;
 

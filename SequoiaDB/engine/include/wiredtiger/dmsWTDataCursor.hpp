@@ -76,6 +76,11 @@ namespace wiredtiger
          return !_isForward ;
       }
 
+      virtual BOOLEAN isSample() const
+      {
+         return _isSample ;
+      }
+
       virtual BOOLEAN isEOF() const
       {
          return _isEOF ;
@@ -85,6 +90,10 @@ namespace wiredtiger
                           const dmsRecordID &startRID,
                           BOOLEAN isAfterStartRID,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
+                          UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) ;
 
@@ -146,6 +155,10 @@ namespace wiredtiger
                           const dmsRecordID &startRID,
                           BOOLEAN isAfterStartRID,
                           BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) ;
+      virtual INT32 open( std::shared_ptr<ICollection> collPtr,
+                          UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) ;
 

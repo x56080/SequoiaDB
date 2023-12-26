@@ -100,6 +100,9 @@ namespace engine
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
                                       IExecutor *executor ) = 0 ;
+      virtual INT32 createDataSampleCursor( std::unique_ptr<IDataCursor> &cursor,
+                                            UINT64 sampleNum,
+                                            IExecutor *executor ) = 0 ;
 
       virtual INT32 getCount( UINT64 &count,
                               BOOLEAN isFast,

@@ -78,7 +78,7 @@ namespace
       PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
                 "Failed to open cursor, collection is not WiredTiger collection" ) ;
 
-      resetSnapshotID( collPtr->fetchSnapshotID() ) ;
+      _collPtr = std::move( collPtr ) ;
       _resetCache() ;
       if ( startRID.isValid() )
       {
@@ -126,10 +126,43 @@ namespace
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
       }
 
-      _collPtr = std::move( collPtr ) ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_OPEN_SAMPLE, "_dmsWTDataCursor::open" )
+   INT32 _dmsWTDataCursor::open( shared_ptr<ICollection> collPtr,
+                                 UINT64 sampleNum,
+                                 UINT64 snapshotID,
+                                 IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_OPEN_SAMPLE ) ;
+
+      dmsWTCollection *wtCollection = dynamic_cast<dmsWTCollection *>( collPtr.get() ) ;
+
+      PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
+                "Failed to open cursor, collection is not WiredTiger collection" ) ;
+
+      _collPtr = std::move( collPtr ) ;
+      _resetCache() ;
+
+      rc = _open( wtCollection->getEngine(), wtCollection->getStore().getURI(),
+                  "", sampleNum, snapshotID, executor ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:
@@ -278,7 +311,7 @@ namespace
       {
          dmsWTCollection *wtCollection = dynamic_cast<dmsWTCollection *>( collPtr.get() ) ;
          PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
-                  "Failed to open cursor, collection is not WiredTiger collection" ) ;
+                   "Failed to open cursor, collection is not WiredTiger collection" ) ;
          rc = wtCollection->getEngine().openSession( _asyncSession,
                                                      dmsWTSessIsolation::SNAPSHOT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
@@ -289,6 +322,36 @@ namespace
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTDATAASYNCCURSOR_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATAASYNCCURSOR_OPEN_SAMPLE, "_dmsWTDataAsyncCursor::open" )
+   INT32 _dmsWTDataAsyncCursor::open( shared_ptr<ICollection> collPtr,
+                                      UINT64 sampleNum,
+                                      UINT64 snapshotID,
+                                      IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTDATAASYNCCURSOR_OPEN_SAMPLE ) ;
+
+      if ( !_asyncSession.isOpened() )
+      {
+         dmsWTCollection *wtCollection = dynamic_cast<dmsWTCollection *>( collPtr.get() ) ;
+         PD_CHECK( wtCollection, SDB_SYS, error, PDERROR,
+                   "Failed to open cursor, collection is not WiredTiger collection" ) ;
+         rc = wtCollection->getEngine().openSession( _asyncSession,
+                                                     dmsWTSessIsolation::SNAPSHOT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+      rc = _dmsWTDataCursor::open( collPtr, sampleNum, snapshotID, executor ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTDATAASYNCCURSOR_OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:

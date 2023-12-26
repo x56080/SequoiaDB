@@ -69,6 +69,10 @@ namespace wiredtiger
 
       BOOLEAN isFound = FALSE ;
 
+      _isForward = isForward ;
+      _isSample = FALSE ;
+      _snapshotID = snapshotID ;
+
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
@@ -93,8 +97,6 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isForward = isForward ;
-      _snapshotID = snapshotID ;
       _isOpened = TRUE ;
 
    done:
@@ -122,6 +124,10 @@ namespace wiredtiger
 
       BOOLEAN isFound = FALSE ;
 
+      _isForward = isForward ;
+      _isSample = FALSE ;
+      _snapshotID = snapshotID ;
+
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
@@ -146,8 +152,6 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isForward = isForward ;
-      _snapshotID = snapshotID ;
       _isOpened = TRUE ;
 
    done:
@@ -171,6 +175,10 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN ) ;
 
+      _isForward = isForward ;
+      _isSample = FALSE ;
+      _snapshotID = snapshotID ;
+
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
@@ -191,17 +199,80 @@ namespace wiredtiger
          else
          {
             PD_LOG( PDERROR, "Failed to move cursor [%s], rc: %d",
-                     isForward ? "forward" : "backward", rc ) ;
+                    isForward ? "forward" : "backward", rc ) ;
          }
          goto error ;
       }
 
-      _isForward = isForward ;
-      _snapshotID = snapshotID ;
       _isOpened = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN, rc ) ;
+      return rc ;
+
+   error:
+      _close() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSORHOLDER__OPEN_SAMPLE, "_dmsWTCursorHolder::_open" )
+   INT32 _dmsWTCursorHolder::_open( dmsWTStorageEngine &engine,
+                                    const ossPoolString &uri,
+                                    const ossPoolString &config,
+                                    UINT64 sampleNum,
+                                    UINT64 snapshotID,
+                                    IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSORHOLDER__OPEN_SAMPLE ) ;
+
+      ossPoolString sampleConfig ;
+
+      _isForward = TRUE ;
+      _isSample = TRUE ;
+      _snapshotID = snapshotID ;
+
+      try
+      {
+         ossPoolStringStream ss ;
+         // ss << "next_random=true,next_random_sample_size=" << sampleNum ;
+         ss << "next_random=true" ;
+         if ( !config.empty() )
+         {
+            ss << "," << config ;
+         }
+         sampleConfig = ss.str() ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build config string, occurred exception: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      rc = _cursor.open( uri, sampleConfig ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = _cursor.next() ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            _isEOF = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to move cursor forward, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+      _isOpened = TRUE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:
