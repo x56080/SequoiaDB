@@ -38,6 +38,7 @@
 *******************************************************************************/
 #include "utilZlibStream.hpp"
 #include "ossMem.hpp"
+#include "ossUtil.h"
 #include "pd.hpp"
 #include "zlib.h"
 
@@ -267,6 +268,7 @@ namespace engine
          goto error ;
       }
       _zbufSize = bufSize ;
+      ossMemset( _zbuf, 0 , _zbufSize ) ;
 
       switch( level )
       {
