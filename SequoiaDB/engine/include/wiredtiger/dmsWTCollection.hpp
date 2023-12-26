@@ -119,6 +119,15 @@ namespace wiredtiger
       virtual INT32 getCount( UINT64 &count,
                               BOOLEAN isFast,
                               IExecutor *executor ) ;
+      virtual INT32 getDataStats( UINT64 &totalSize,
+                                  UINT64 &freeSize,
+                                  BOOLEAN isFast,
+                                  IExecutor *executor ) ;
+      virtual INT32 getIndexStats( UINT64 &totalSize,
+                                   UINT64 &freeSize,
+                                   BOOLEAN isFast,
+                                   IExecutor *executor ) ;
+
       virtual INT32 validateData( IExecutor *executor ) ;
 
       static INT32 buildDataConfigString( const dmsWTEngineOptions &options,
@@ -135,6 +144,7 @@ namespace wiredtiger
                        std::shared_ptr<IIndex> &idxPtr ) ;
       void _removeIndex( const dmsIdxMetadataKey &metadataKey ) ;
       std::shared_ptr<IIndex> _getIndex( const dmsIdxMetadataKey &metadataKey ) ;
+      std::shared_ptr<IIndex> _getNextIndex( std::shared_ptr<IIndex> &idxPtr ) ;
 
       INT32 _getMaxRecordID( dmsRecordID &rid, IExecutor *executor ) ;
       INT32 _getMaxRecordID( dmsWTSession &session,

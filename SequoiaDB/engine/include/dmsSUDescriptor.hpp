@@ -191,6 +191,16 @@ namespace engine
          _storageInfo._csUniqueID = csUniqueID ;
       }
 
+      UINT32 getPageSize() const
+      {
+         return _storageInfo._pageSize ;
+      }
+
+      UINT32 getLobPageSize() const
+      {
+         return _storageInfo._lobdPageSize ;
+      }
+
    protected:
       dmsStorageInfo _storageInfo ;
    } ;

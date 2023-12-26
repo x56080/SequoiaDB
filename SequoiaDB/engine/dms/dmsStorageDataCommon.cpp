@@ -1163,6 +1163,14 @@ namespace engine
                          "Failed to initialize compressor entry for "
                          "collection: %s, rc = %d",
                          _dmsMME->_mbList[i]._collectionName, rc ) ;
+            if ( _service )
+            {
+               dmsCLMetadata metadata( _suDescriptor,
+                                       &( _dmsMME->_mbList[ i ] ),
+                                       &( _mbStatInfo[ i ] ) ) ;
+               std::shared_ptr<ICollection> collPtr ;
+               _service->loadCollection( metadata, pmdGetThreadEDUCB(), collPtr ) ;
+            }
          }
       }
 
@@ -5021,7 +5029,7 @@ namespace engine
                   (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
             context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
             context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
-            context->mbStat()->_totalDataLen.add(  newRecordData.len() ) ;
+            context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
             context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
 
             if ( NULL != newRecord )

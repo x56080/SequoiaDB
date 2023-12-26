@@ -252,6 +252,28 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_GETVALUE_INT, "_dmsWTCursor::getValue" )
+   INT32 _dmsWTCursor::getValue( INT64 &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_GETVALUE_INT ) ;
+
+      PD_CHECK( nullptr != _cursor, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to get value from cursor, cursor is not opened" ) ;
+
+      rc = WT_CALL( _cursor->get_value( _cursor, nullptr, nullptr, &value ),
+                    _session.getSession() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_GETVALUE_INT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_INSERT_INT, "_dmsWTCursor::insert" )
    INT32 _dmsWTCursor::insert( UINT64 key, const dmsWTItem &value )
    {

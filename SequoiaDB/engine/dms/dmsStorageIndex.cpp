@@ -219,6 +219,13 @@ namespace engine
             _pDataSu->_mbStatInfo[i]._idxLastLSN.init(
                _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ) ;
 
+            std::shared_ptr<ICollection> collPtr ;
+            if ( _service )
+            {
+               dmsCLMetadataKey metadataKey( &( _pDataSu->_dmsMME->_mbList[ i ] ) ) ;
+               _service->getCollection( metadataKey, pmdGetThreadEDUCB(), collPtr ) ;
+            }
+
             // analyze the unique index number
             UINT32 j = 0 ;
             while ( j < DMS_COLLECTION_MAX_INDEX )
@@ -275,6 +282,15 @@ namespace engine
                if ( indexCB.isGlobal() )
                {
                   _pDataSu->_mbStatInfo[ i ]._globIdxNum ++ ;
+               }
+               if ( collPtr )
+               {
+                  dmsIdxMetadata metadata( _suDescriptor,
+                                           &( _pDataSu->_dmsMME->_mbList[ i ] ),
+                                           &( _pDataSu->_mbStatInfo[ i ] ),
+                                           &indexCB ) ;
+                  std::shared_ptr<IIndex> idxPtr ;
+                  collPtr->loadIndex( metadata, pmdGetThreadEDUCB(), idxPtr ) ;
                }
                j++ ;
             }

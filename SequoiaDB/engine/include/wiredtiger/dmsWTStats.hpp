@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWTStore.hpp
+   Source File Name = dmsWTStats.hpp
 
    Descriptive Name =
 
@@ -33,68 +33,41 @@
 
 *******************************************************************************/
 
-#ifndef DMS_WT_STORE_HPP_
-#define DMS_WT_STORE_HPP_
+#ifndef DMS_WT_STATS_HPP_
+#define DMS_WT_STATS_HPP_
 
-#include "wiredtiger/dmsWTUtil.hpp"
+#include "dmsDef.hpp"
+
+#include <wiredtiger.h>
 
 namespace engine
 {
 namespace wiredtiger
 {
 
-   /*
-      _dmsWTStore define
-    */
-   class _dmsWTStore : public utilPooledObject
+   enum class dmsWTStatsCatalog
    {
-   public:
-      _dmsWTStore() = default ;
-      ~_dmsWTStore() = default ;
-
-      _dmsWTStore( const ossPoolString &uri )
-      : _uri( uri )
-      {
-      }
-
-      _dmsWTStore( const _dmsWTStore &&o )
-      : _uri( std::move( o._uri ) )
-      {
-      }
-
-      _dmsWTStore( const _dmsWTStore &o ) = default ;
-      _dmsWTStore &operator =( const _dmsWTStore & ) = default ;
-
-      const ossPoolString &getURI() const
-      {
-         return _uri ;
-      }
-
-      const ossPoolString &getStatsURI() const
-      {
-         return _statsURI ;
-      }
-
-      void setURI( const ossPoolString &uri )
-      {
-         _uri = uri ;
-         _statsURI = "statistics:" + _uri ;
-      }
-
-      void setURI( const CHAR *uri )
-      {
-         _uri.assign( uri ) ;
-         _statsURI = "statistics:" + _uri ;
-      }
-
-   protected:
-      ossPoolString _uri ;
-      ossPoolString _statsURI ;
+      STATS_ALL,
+      STATS_SIZE,
+      STATS_FAST
    } ;
 
-   typedef class _dmsWTStore dmsWTStore ;
+   OSS_INLINE const CHAR *dmsWTGetStatsConfig( dmsWTStatsCatalog catalog )
+   {
+      switch ( catalog )
+      {
+         case dmsWTStatsCatalog::STATS_ALL:
+            return "statistics=(all)" ;
+         case dmsWTStatsCatalog::STATS_SIZE:
+            return "statistics=(size)" ;
+         case dmsWTStatsCatalog::STATS_FAST:
+            return "statistics=(fast)" ;
+         default:
+            return "statistics=(all)" ;
+      }
+   }
 
 }
 }
 
-#endif // DMS_WT_STORE_HPP_
+#endif // DMS_WT_ITEM_HPP_

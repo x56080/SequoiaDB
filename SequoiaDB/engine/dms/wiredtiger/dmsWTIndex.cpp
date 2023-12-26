@@ -204,6 +204,31 @@ namespace
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETINDEXSTATS, "_dmsWTIndex::getIndexStats" )
+   INT32 _dmsWTIndex::getIndexStats( UINT64 &totalSize,
+                                     UINT64 &freeSize,
+                                     BOOLEAN isFast,
+                                     IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETINDEXSTATS ) ;
+
+      rc = _dmsWTStoreHolder::getStoreTotalSize( totalSize, executor ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to store total size, rc: %d", rc ) ;
+      totalSize = ossRoundDownToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
+
+      rc = _dmsWTStoreHolder::getStoreFreeSize( freeSize, executor ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to store free size, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETINDEXSTATS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_BLDIDXCONFSTR, "_dmsWTIndex::buildIdxConfigString" )
    INT32 _dmsWTIndex::buildIdxConfigString( const dmsWTEngineOptions &options,
                                             const dmsCreateIdxOptions &createIdxOptions,

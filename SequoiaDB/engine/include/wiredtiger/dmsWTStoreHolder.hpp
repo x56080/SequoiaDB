@@ -37,6 +37,7 @@
 #define DMS_WT_STORE_HOLDER_HPP_
 
 #include "wiredtiger/dmsWTStore.hpp"
+#include "wiredtiger/dmsWTStats.hpp"
 #include "wiredtiger/dmsWTUtil.hpp"
 #include "wiredtiger/dmsWTStorageEngine.hpp"
 
@@ -69,6 +70,28 @@ namespace wiredtiger
       {
          return _store ;
       }
+
+      INT32 getCount( UINT64 &count, IExecutor *executor ) ;
+      INT32 getStats( INT32 statsKey,
+                      dmsWTStatsCatalog statsCatalog,
+                      INT64 &statsValue,
+                      IExecutor *executor ) ;
+      INT32 getStoreTotalSize( UINT64 &totalSize, IExecutor *executor ) ;
+      INT32 getStoreFreeSize( UINT64 &freeSize, IExecutor *executor ) ;
+
+   protected:
+      class _dmsWTStoreValidator
+      {
+      public:
+         _dmsWTStoreValidator() = default ;
+         virtual ~_dmsWTStoreValidator() = default ;
+
+         virtual INT32 validate( const dmsWTItem &keyItem,
+                                 const dmsWTItem &valueItem ) = 0 ;
+      } ;
+
+      INT32 _validateStore( _dmsWTStoreValidator &validator,
+                            IExecutor *executor ) ;
 
    protected:
       dmsWTStorageEngine &_engine ;

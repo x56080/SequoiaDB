@@ -432,21 +432,92 @@ namespace wiredtiger
       }
       else
       {
-         dmsWTSessionHolder sessionHolder ;
-         rc = _engine.getPersistSession( executor, sessionHolder ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
-
-         dmsWTCursor cursor( sessionHolder.getSession() ) ;
-
-         rc = cursor.open( _store.getURI(), "" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
-
-         rc = cursor.getCount( count ) ;
+         rc = _dmsWTStoreHolder::getCount( count, executor ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
       }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETCOUNT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETDATASTATS, "_dmsWTCollection::getDataStats" )
+   INT32 _dmsWTCollection::getDataStats( UINT64 &totalSize,
+                                         UINT64 &freeSize,
+                                         BOOLEAN isFast,
+                                         IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETDATASTATS ) ;
+
+      if ( isFast )
+      {
+         totalSize = _metadata.getMBStat()->_totalDataPages *
+                     _metadata.getSU()->getPageSize() ;
+         freeSize = _metadata.getMBStat()->_totalDataFreeSpace ;
+      }
+      else
+      {
+         rc = _dmsWTStoreHolder::getStoreTotalSize( totalSize, executor ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to store total size, rc: %d", rc ) ;
+         totalSize = ossRoundDownToMultipleX( totalSize, _metadata.getSU()->getPageSize() ) ;
+
+         rc = _dmsWTStoreHolder::getStoreFreeSize( freeSize, executor ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to store free size, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETDATASTATS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETINDEXSTATS, "_dmsWTCollection::getIndexStats" )
+   INT32 _dmsWTCollection::getIndexStats( UINT64 &totalSize,
+                                          UINT64 &freeSize,
+                                          BOOLEAN isFast,
+                                          IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETINDEXSTATS ) ;
+
+      if ( isFast )
+      {
+         totalSize = _metadata.getMBStat()->_totalIndexPages *
+                     _metadata.getSU()->getPageSize() ;
+         freeSize = _metadata.getMBStat()->_totalIndexFreeSpace ;
+      }
+      else
+      {
+         std::shared_ptr<IIndex> idxPtr ;
+         totalSize = 0 ;
+         freeSize = 0 ;
+         while ( idxPtr = _getNextIndex( idxPtr ) )
+         {
+            UINT64 idxTotalSize = 0, idxFreeSize = 0 ;
+
+            rc = idxPtr->getIndexStats( idxTotalSize, idxFreeSize, FALSE, executor ) ;
+            if ( SDB_OK != rc )
+            {
+               rc = SDB_OK ;
+               continue ;
+            }
+
+            totalSize += idxTotalSize ;
+            totalSize += _metadata.getSU()->getPageSize() ;
+            freeSize += idxFreeSize ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETINDEXSTATS, rc ) ;
       return rc ;
 
    error:
@@ -460,16 +531,49 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_VALIDATEDATA ) ;
 
-      UINT64 recordCount = 0 ;
+      UINT64 recordCount = 0,
+             totalDataLen = 0,
+             totalDataSize = 0,
+             freeDataSize = 0,
+             totalIndexSize = 0,
+             freeIndexSize = 0 ;
+      UINT32 pageSize = _metadata.getSU()->getPageSize() ;
       dmsRecordID maxRID ;
 
-      // recover record count
-      rc = getCount( recordCount, FALSE, executor ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get record count, rc: %d", rc ) ;
+      class _dmsWTDataValidator : public _dmsWTStoreValidator
+      {
+      public:
+         _dmsWTDataValidator( UINT64 &recordCount, UINT64 &totalDataLen )
+         : _recordCount( recordCount ),
+           _totalDataLen( totalDataLen )
+         {
+         }
 
-      PD_LOG( PDEVENT, "Reset total record count [%llu]", recordCount ) ;
+         virtual ~_dmsWTDataValidator() = default ;
+
+         virtual INT32 validate( const dmsWTItem &keyItem, const dmsWTItem &valueItem )
+         {
+            ++ _recordCount ;
+            _totalDataLen += valueItem.getSize() ;
+            return SDB_OK ;
+         }
+
+      protected:
+         UINT64 &_recordCount ;
+         UINT64 &_totalDataLen ;
+      } ;
+      _dmsWTDataValidator validator( recordCount, totalDataLen ) ;
+
+      // validate store
+      rc = _validateStore( validator, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to validate store, rc: %d", rc ) ;
+
+      PD_LOG( PDEVENT, "Reset total record count [%llu], data length [%llu]",
+              recordCount, totalDataLen ) ;
       _metadata.getMBStat()->_totalRecords.poke( recordCount ) ;
       _metadata.getMBStat()->_rcTotalRecords.poke( recordCount ) ;
+      _metadata.getMBStat()->_totalDataLen.poke( totalDataLen ) ;
+      _metadata.getMBStat()->_totalOrgDataLen.poke( totalDataLen ) ;
 
       // recover record ID generator
       rc = _getMaxRecordID( maxRID, executor ) ;
@@ -486,6 +590,17 @@ namespace wiredtiger
          PD_LOG( PDEVENT, "Move record ID to [extent: 0, offset: 0]" ) ;
          _metadata.getMBStat()->_ridGen.poke( 0 ) ;
       }
+
+      // recover file size
+      rc = getDataStats( totalDataSize, freeDataSize, FALSE, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get data stats, rc: %d", rc ) ;
+      rc = getIndexStats( totalIndexSize, freeIndexSize, FALSE, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index stats, rc: %d", rc ) ;
+
+      _metadata.getMBStat()->_totalDataPages = totalDataSize / pageSize;
+      _metadata.getMBStat()->_totalDataFreeSpace = freeDataSize ;
+      _metadata.getMBStat()->_totalIndexPages = totalIndexSize / pageSize ;
+      _metadata.getMBStat()->_totalIndexFreeSpace = freeIndexSize ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_VALIDATEDATA, rc ) ;
@@ -649,16 +764,50 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETINDEX ) ;
 
+      ossScopedRWLock lock( &_idxMapMutex, SHARED ) ;
+      _dmsWTIdxMapIter iter = _idxMap.find( metadataKey ) ;
+      if ( iter != _idxMap.end() )
       {
-         ossScopedRWLock lock( &_idxMapMutex, SHARED ) ;
-         _dmsWTIdxMapIter iter = _idxMap.find( metadataKey ) ;
+         idxPtr = iter->second ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTCOLLECTION__GETINDEX ) ;
+
+      return idxPtr ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__GETNEXTINDEX, "_dmsWTCollection::_getNextIndex" )
+   shared_ptr<IIndex> _dmsWTCollection::_getNextIndex( shared_ptr<IIndex> &idxPtr )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETNEXTINDEX ) ;
+
+      ossScopedRWLock lock( &_idxMapMutex, SHARED ) ;
+      if ( idxPtr )
+      {
+         _dmsWTIdxMapIter iter = _idxMap.upper_bound( idxPtr->getMetadataKey() ) ;
          if ( iter != _idxMap.end() )
          {
             idxPtr = iter->second ;
          }
+         else
+         {
+            idxPtr.reset() ;
+         }
+      }
+      else
+      {
+         _dmsWTIdxMapIter iter = _idxMap.begin() ;
+         if ( iter != _idxMap.end() )
+         {
+            idxPtr = iter->second ;
+         }
+         else
+         {
+            idxPtr.reset() ;
+         }
       }
 
-      PD_TRACE_EXIT( SDB__DMSWTCOLLECTION__GETINDEX ) ;
+      PD_TRACE_EXIT( SDB__DMSWTCOLLECTION__GETNEXTINDEX ) ;
 
       return idxPtr ;
    }

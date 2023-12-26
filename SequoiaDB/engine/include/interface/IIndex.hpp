@@ -81,6 +81,15 @@ namespace engine
                                        BOOLEAN isAfterStartKey,
                                        BOOLEAN isForward,
                                        IExecutor *executor ) = 0 ;
+      virtual INT32 getIndexStats( UINT64 &totalSize,
+                                   UINT64 &freeSize,
+                                   BOOLEAN isFast,
+                                   IExecutor *executor ) = 0 ;
+
+      dmsIdxMetadataKey getMetadataKey() const
+      {
+         return getMetadata().getIdxKey() ;
+      }
    } ;
 
 }

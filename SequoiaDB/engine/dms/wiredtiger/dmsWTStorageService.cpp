@@ -39,6 +39,7 @@
 #include "wiredtiger/dmsWTSession.hpp"
 #include "wiredtiger/dmsWTPersistUnit.hpp"
 #include "interface/IOperationContext.hpp"
+#include "dmsStorageDataCommon.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "pmd.hpp"
@@ -373,6 +374,9 @@ namespace wiredtiger
       rc = _engine.checkPoint( executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to checkpoint, rc: %d", rc ) ;
 
+      rc = _syncStats( executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to sync stats, rc: %d", rc ) ;
+
       _lastPersistTick = pmdGetDBTick() ;
 
    done:
@@ -413,38 +417,6 @@ namespace wiredtiger
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__INITENGINEOPTIONS, rc ) ;
 
       return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__CHKDBPATH, "_dmsWTStorageService::_checkDBPath" )
-   INT32 _dmsWTStorageService::_checkDBPath( const boost::filesystem::path &dbPath )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__CHKDBPATH ) ;
-
-      boost::filesystem::path journalPath = dbPath / "journal" ;
-      if ( boost::filesystem::exists( journalPath ) )
-      {
-         goto done ;
-      }
-      try
-      {
-            boost::filesystem::create_directory( journalPath ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to create journal directory, "
-                 "occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__CHKDBPATH, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDCONFSTR, "_dmsWTStorageService::_buildConfigString" )
@@ -603,18 +575,115 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
 
+      ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
+      _dmsWTCollMapIter iter = _collMap.find( metadataKey ) ;
+      if ( iter != _collMap.end() )
       {
-         ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
-         _dmsWTCollMapIter iter = _collMap.find( metadataKey ) ;
+         collPtr = iter->second ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
+
+      return collPtr ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__GETNEXTCOLLECTION, "_dmsWTStorageService::_getNextCollection" )
+   shared_ptr<ICollection> _dmsWTStorageService::_getNextCollection( shared_ptr<ICollection> &collPtr )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
+
+      ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
+      if ( collPtr )
+      {
+         _dmsWTCollMapIter iter = _collMap.upper_bound( collPtr->getMetadataKey() ) ;
          if ( iter != _collMap.end() )
          {
             collPtr = iter->second ;
+         }
+         else
+         {
+            collPtr.reset() ;
+         }
+      }
+      else
+      {
+         _dmsWTCollMapIter iter = _collMap.begin() ;
+         if ( iter != _collMap.end() )
+         {
+            collPtr = iter->second ;
+         }
+         else
+         {
+            collPtr.reset() ;
          }
       }
 
       PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__GETCOLLECTION ) ;
 
       return collPtr ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__SYNCSTATS, "_dmsWTStorageService::_syncStats" )
+   INT32 _dmsWTStorageService::_syncStats( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__SYNCSTATS ) ;
+
+      shared_ptr<ICollection> curCollPtr ;
+
+      while ( ( curCollPtr = _getNextCollection( curCollPtr ) ) )
+      {
+         UINT64 totalDataSize = 0, freeDataSize = 0, totalIndexSize = 0, freeIndexSize = 0 ;
+         rc = curCollPtr->getDataStats( totalDataSize, freeDataSize, FALSE, executor ) ;
+         if ( SDB_OK != rc )
+         {
+            rc = SDB_OK ;
+            continue ;
+         }
+         rc = curCollPtr->getIndexStats( totalIndexSize, freeIndexSize, FALSE, executor ) ;
+         if ( SDB_OK != rc )
+         {
+            rc = SDB_OK ;
+            continue ;
+         }
+         _updateStats( curCollPtr,
+                       totalDataSize,
+                       freeDataSize,
+                       totalIndexSize,
+                       freeIndexSize ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__SYNCSTATS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__UPDATESTATS, "_dmsWTStorageService::_updateStats" )
+   void _dmsWTStorageService::_updateStats( shared_ptr<ICollection> &collPtr,
+                                            UINT64 totalDataSize,
+                                            UINT64 freeDataSize,
+                                            UINT64 totalIndexSize,
+                                            UINT64 freeIndexSize )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__UPDATESTATS ) ;
+
+      ossScopedRWLock lock( &_collMapMutex, SHARED ) ;
+      _dmsWTCollMapIter iter = _collMap.find( collPtr->getMetadataKey() ) ;
+      if ( iter != _collMap.end() && collPtr == iter->second )
+      {
+         dmsMBStatInfo *mbStat = collPtr->getMetadata().getMBStat() ;
+         UINT32 pageSize = collPtr->getMetadata().getSU()->getPageSize() ;
+         mbStat->_totalDataPages = totalDataSize / pageSize ;
+         mbStat->_totalDataFreeSpace = freeDataSize ;
+         mbStat->_totalIndexPages = totalIndexSize / pageSize ;
+         mbStat->_totalIndexFreeSpace = freeIndexSize ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSWTSTORAGESERVICE__UPDATESTATS ) ;
    }
 
 }

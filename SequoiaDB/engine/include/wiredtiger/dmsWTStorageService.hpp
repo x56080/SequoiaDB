@@ -136,7 +136,6 @@ namespace wiredtiger
 
    protected:
       INT32 _initEngineOptions( dmsWTEngineOptions &options ) ;
-      INT32 _checkDBPath( const boost::filesystem::path &dbPath ) ;
       INT32 _buildConfigString( const dmsWTEngineOptions &options,
                                 ossPoolString &configString ) ;
 
@@ -149,6 +148,14 @@ namespace wiredtiger
       void _removeCollection( const dmsCLMetadataKey &metadataKey ) ;
       void _removeCollections( utilCSUniqueID csUID ) ;
       std::shared_ptr<ICollection> _getCollection( const dmsCLMetadataKey &metadataKey ) ;
+      std::shared_ptr<ICollection> _getNextCollection( std::shared_ptr<ICollection> &collPtr ) ;
+
+      INT32 _syncStats( IExecutor *executor ) ;
+      void _updateStats( std::shared_ptr<ICollection> &collPtr,
+                         UINT64 totalDataSize,
+                         UINT64 freeDataSize,
+                         UINT64 totalIndexSize,
+                         UINT64 freeIndexSize ) ;
 
    protected:
       dmsWTEngineOptions _engineOptions ;

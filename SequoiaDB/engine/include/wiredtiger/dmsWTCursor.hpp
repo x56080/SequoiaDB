@@ -89,6 +89,7 @@ namespace wiredtiger
       INT32 getKey( const dmsWTItem &key ) ;
 
       INT32 getValue( dmsWTItem &value ) ;
+      INT32 getValue( INT64 &value ) ;
 
       INT32 insert( UINT64 key, const dmsWTItem &value ) ;
       INT32 update( UINT64 key, const dmsWTItem &value ) ;

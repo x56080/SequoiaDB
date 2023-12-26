@@ -62,6 +62,7 @@ namespace engine
 
       virtual const dmsCLMetadata &getMetadata() const = 0 ;
       virtual dmsCLMetadata &getMetadata() = 0 ;
+
       virtual UINT64 fetchSnapshotID() = 0 ;
 
       virtual INT32 createIndex( const dmsIdxMetadata &metadata,
@@ -99,8 +100,25 @@ namespace engine
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
                                       IExecutor *executor ) = 0 ;
-      virtual INT32 getCount( UINT64 &count, BOOLEAN isFast, IExecutor *executor ) = 0 ;
+
+      virtual INT32 getCount( UINT64 &count,
+                              BOOLEAN isFast,
+                              IExecutor *executor ) = 0 ;
+      virtual INT32 getDataStats( UINT64 &totalSize,
+                                  UINT64 &freeSize,
+                                  BOOLEAN isFast,
+                                  IExecutor *executor ) = 0 ;
+      virtual INT32 getIndexStats( UINT64 &totalSize,
+                                   UINT64 &freeSize,
+                                   BOOLEAN isFast,
+                                   IExecutor *executor ) = 0 ;
+
       virtual INT32 validateData( IExecutor *executor ) = 0 ;
+
+      dmsCLMetadataKey getMetadataKey() const
+      {
+         return getMetadata().getCLKey() ;
+      }
    } ;
 
 }

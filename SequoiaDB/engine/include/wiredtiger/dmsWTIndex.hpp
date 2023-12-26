@@ -96,6 +96,11 @@ namespace wiredtiger
                                        BOOLEAN isForward,
                                        IExecutor *executor ) ;
 
+      virtual INT32 getIndexStats( UINT64 &totalSize,
+                                   UINT64 &freeSize,
+                                   BOOLEAN isFast,
+                                   IExecutor *executor ) ;
+
       static INT32 buildIdxConfigString( const dmsWTEngineOptions &options,
                                          const dmsCreateIdxOptions &createIdxOptions,
                                          ossPoolString &configString ) ;
