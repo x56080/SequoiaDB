@@ -1046,7 +1046,7 @@ namespace wiredtiger
       rc = next() ;
       if ( SDB_DMS_EOC == rc )
       {
-         rc = SDB_OK ;
+         goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to move cursor, rc: %d", rc ) ;
 
@@ -1071,7 +1071,7 @@ namespace wiredtiger
       rc = WT_CALL( _cursor->largest_key( _cursor ), _session.getSession() ) ;
       if ( SDB_DMS_EOC == rc )
       {
-         rc = SDB_OK ;
+         goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to move cursor to end, rc: %d", rc ) ;
 
