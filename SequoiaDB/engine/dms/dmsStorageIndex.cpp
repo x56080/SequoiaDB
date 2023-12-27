@@ -2417,7 +2417,14 @@ namespace engine
             {
                if ( pResult )
                {
-                  pResult->setCurrentID( inputObj ) ;
+                  pResult->setIndexErrInfo( indexCB->getName(),
+                                            indexCB->keyPattern(),
+                                            keyObj,
+                                            inputObj ) ;
+                  if ( pResult->getCurRID().isNull() )
+                  {
+                     pResult->setCurRID( rid ) ;
+                  }
                }
                PD_LOG ( PDERROR, "Insert index key(%s) with rid(%d, %d) "
                         "failed, rc: %d", PD_SECURE_OBJ( *it ),
