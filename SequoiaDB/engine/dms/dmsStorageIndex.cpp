@@ -4070,6 +4070,16 @@ namespace engine
 
       shared_ptr<IIndex> idxPtr ;
 
+      // check key size
+      INT32 keySize = key.objsize() + 1 ;
+      if ( keySize > indexKeySizeMax() )
+      {
+         PD_LOG ( PDERROR, "key size [%d] must be less than or equal to [%d]",
+                  keySize, indexKeySizeMax() ) ;
+         rc = SDB_IXM_KEY_TOO_LARGE ;
+         goto error ;
+      }
+
       rc = getIndex( context, indexCB, cb, idxPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
 

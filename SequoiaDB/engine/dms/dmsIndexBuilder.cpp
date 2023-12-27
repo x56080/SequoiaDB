@@ -416,6 +416,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // check key size
+      INT32 keySize = key.objsize() + 1 ;
+      if ( keySize > _su->index()->indexKeySizeMax() )
+      {
+         PD_LOG ( PDERROR, "key size [%d] must be less than or equal to [%d]",
+                  keySize, _su->index()->indexKeySizeMax() ) ;
+         rc = SDB_IXM_KEY_TOO_LARGE ;
+         goto error ;
+      }
+
       // Callback to validate in memory tree
       if ( _pOprHandler && _indexCB->unique() )
       {
