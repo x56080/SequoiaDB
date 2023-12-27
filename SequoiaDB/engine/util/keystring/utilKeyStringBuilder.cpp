@@ -1084,7 +1084,7 @@ namespace keystring
       INT32 rc = SDB_OK ;
       const BOOLEAN isNegative = num < 0 ;
       const UINT64 magnitude = isNegative ? -num : num ;
-      if ( num == numeric_limits < INT64 > ::min() )
+      if ( num == numeric_limits<INT64>::min() )
       {
          FLOAT64 doubleVal = static_cast<FLOAT64>( num ) ;
          SDB_ASSERT( -doubleVal == _minLargeFloat64, "must be equal" ) ;
@@ -1430,7 +1430,7 @@ namespace keystring
       if ( dec.isMax() )
       {
          rc = _appendDoubleWithoutTypeBits(
-               numeric_limits < FLOAT64 > ::infinity(),
+               numeric_limits<FLOAT64>::infinity(),
                keyStringContinuousMarker::hasNoContinuation, invert ) ;
          if ( SDB_OK != rc )
          {
@@ -1442,7 +1442,7 @@ namespace keystring
       else if ( dec.isMin() )
       {
          rc = _appendDoubleWithoutTypeBits(
-               -numeric_limits < FLOAT64 > ::infinity(),
+               -numeric_limits<FLOAT64>::infinity(),
                keyStringContinuousMarker::hasNoContinuation, invert ) ;
          if ( SDB_OK != rc )
          {
@@ -1464,13 +1464,28 @@ namespace keystring
       }
       if ( decLong != 0 && dec.compareLong( decLong ) == 0 )
       {
-         UINT64 matitude = isNegative ? -decLong : decLong ;
-         rc = _appendPreshiftedInteger( matitude << 1, isNegative, invert ) ;
-         if ( SDB_OK != rc )
+         if ( decLong == numeric_limits<INT64>::min() )
          {
-            PD_LOG( PDERROR, "Failed to append preshift integer, rc: %d",
-                    rc ) ;
-            goto error ;
+            FLOAT64 doubleVal = static_cast<FLOAT64>( decLong ) ;
+            SDB_ASSERT( -doubleVal == _minLargeFloat64, "must be equal" ) ;
+            rc = _appendLargeDouble( doubleVal,
+                                     keyStringContinuousMarker::hasNoContinuation,
+                                     invert ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to append large double, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            UINT64 matitude = isNegative ? -decLong : decLong ;
+            rc = _appendPreshiftedInteger( matitude << 1, isNegative, invert ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to append preshift integer, rc: %d", rc ) ;
+               goto error ;
+            }
          }
       }
       else
