@@ -30,7 +30,7 @@ function test ()
    option = { ShardingKey: { a: 1 }, ShardingType: "range" };
    var subCl1 = commCreateCL( db, csName, subClName1, option, true, true );
    var subCl2 = commCreateCL( db, csName, subClName2, option, true, true );
-   var attachOption = { LowBound: { a: { $decimal: "MIN" } }, UpBound: { a: { $decimal: "0" } } };
+   var attachOption = { LowBound: { a: { $decimal: "NaN" } }, UpBound: { a: { $decimal: "0" } } };
    mainCl.attachCL( csName + "." + subClName1, attachOption );
    attachOption = { LowBound: { a: { $decimal: "0" } }, UpBound: { a: { $decimal: "MAX" } } };
    mainCl.attachCL( csName + "." + subClName2, attachOption );
