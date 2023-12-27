@@ -825,17 +825,7 @@ namespace engine
                                                   const dmsRecordID &curRID,
                                                   pmdEDUCB *cb )
    {
-      if ( _hasLockedRecord &&
-           curRID.isValid() )
-      {
-         _pTransCB->transLockRelease( cb,
-                                      su->logicalID(),
-                                      mbContext->mbID(),
-                                      &curRID,
-                                      &_callback ) ;
-         _hasLockedRecord = FALSE ;
-      }
-
+      _releaseTransLock( su, mbContext, curRID, cb ) ;
       _releaseCSCLLock( su, mbContext, cb ) ;
    }
 
@@ -1023,12 +1013,12 @@ namespace engine
       BOOLEAN result = TRUE ;
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
+      dmsRecordID lastRID ;
 
       while ( ( !isHitEnd() ) &&
               ( _onceRestNum -- > 0 ) &&
               ( 0 != _maxRecords ) )
       {
-         dmsRecordID lastRID = _curRID ;
          dmsRecordID nextRID ;
          dmsRecordRW recordRW ;
          rc = _advanceScanner( cb, nextRID ) ;
@@ -1047,14 +1037,17 @@ namespace engine
             _transContext.reset() ;
             rc = _checkTransLock( _pSu, _context, nextRID, cb, &_transContext,
                                   recordRW, lastRID, skipRecord ) ;
+            lastRID.reset() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, rc: %d", rc ) ;
 
             if ( skipRecord )
             {
+               lastRID = nextRID ;
                continue ;
             }
          }
          _curRID = nextRID ;
+         lastRID = nextRID ;
 
          if ( recordRW.isEmpty() && !_hasLockedRecord )
          {
@@ -1195,6 +1188,19 @@ namespace engine
          }
       }
 
+      if ( DPS_TRANSLOCK_MAX != _recordLock &&
+           _hasLockedRecord &&
+           lastRID.isValid() )
+      {
+         _pTransCB->transLockRelease( cb,
+                                      _pSu->logicalID(),
+                                      _context->mbID(),
+                                      &lastRID,
+                                      &_callback ) ;
+         lastRID.reset() ;
+         _hasLockedRecord = FALSE ;
+      }
+
       // pause scanner on section EOC
       rc = _scanner->pauseScan() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ; ;
@@ -1206,6 +1212,19 @@ namespace engine
       return rc ;
 
    error:
+      if ( DPS_TRANSLOCK_MAX != _recordLock &&
+           _hasLockedRecord &&
+           lastRID.isValid() )
+      {
+         _pTransCB->transLockRelease( cb,
+                                      _pSu->logicalID(),
+                                      _context->mbID(),
+                                      &lastRID,
+                                      &_callback ) ;
+         lastRID.reset() ;
+         _hasLockedRecord = FALSE ;
+      }
+
       _releaseAllLocks( _pSu, _context, _curRID, _cb ) ;
 
       recordID.reset() ;

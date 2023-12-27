@@ -128,7 +128,7 @@ namespace engine
 
          BOOLEAN  isReadOnly() const
          {
-            return SHARED == _mbLockType && DMS_IS_WRITE_OPR( _accessType ) ? TRUE : FALSE ;
+            return DMS_IS_WRITE_OPR( _accessType ) ? FALSE : TRUE ;
          }
 
          virtual dmsTransLockCallback*       callbackHandler() = 0 ;
