@@ -742,8 +742,7 @@ namespace engine
 
    // Description
    // Dependency: Caller must hold the mbLcok
-   INT32 dmsTransLockCallback::saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
-                                                     const dmsRecordID &rid,
+   INT32 dmsTransLockCallback::saveOldVersionRecord( const dmsRecordID &rid,
                                                      const BSONObj &obj,
                                                      UINT32 ownnerTID )
    {
@@ -759,24 +758,14 @@ namespace engine
          }
          else
          {
-            const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
-
-            // 1. get to overflow record if needed
-            if ( pRecord->isOvf() )
-            {
-               dmsRecordID ovfRID = pRecord->getOvfRID() ;
-               dmsRecordRW ovfRW = pRecordRW->derive( ovfRID );
-               ovfRW.setNothrow( pRecordRW->isNothrow() ) ;
-               pRecord = ovfRW.readPtr( 0 ) ;
-            }
-            // 2. save record
-            rc = _oldVer->saveRecord( pRecord, obj, ownnerTID ) ;
+            // save record
+            rc = _oldVer->saveRecord( obj, ownnerTID ) ;
             if ( rc )
             {
                goto error ;
             }
          }
-         // 3. hang the old version container to the linked list
+         // hang the old version container to the linked list
          if ( !_unitPtr.get() )
          {
             oldVersionCB *oldCB = _transCB->getOldVCB() ;
@@ -949,7 +938,7 @@ namespace engine
          }
       }
 
-      rc = saveOldVersionRecord( pRecordRW, rid, object, cb->getTID() ) ;
+      rc = saveOldVersionRecord( rid, object, cb->getTID() ) ;
       if ( SDB_OK == rc && markDeleting && _oldVer )
       {
          _oldVer->setDiskDeleting() ;
@@ -993,7 +982,7 @@ namespace engine
          }
       }
 
-      rc = saveOldVersionRecord( pRecordRW, rid, orignalObj, cb->getTID() ) ;
+      rc = saveOldVersionRecord( rid, orignalObj, cb->getTID() ) ;
 
    done:
       return rc ;

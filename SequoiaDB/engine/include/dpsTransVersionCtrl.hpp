@@ -800,8 +800,7 @@ namespace engine
       BSONObj              getRecordObj() const ;
       const dmsRecord*     getRecord() const ;
 
-      INT32                saveRecord( const dmsRecord *pRecord,
-                                       const BSONObj &obj,
+      INT32                saveRecord( const BSONObj &obj,
                                        UINT32 ownnerTID ) ;
       void                 releaseRecord( INT32 idxLID = -1,
                                           BOOLEAN hasLock = FALSE ) ;

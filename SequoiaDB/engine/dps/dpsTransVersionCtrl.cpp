@@ -1706,8 +1706,7 @@ namespace engine
       return BSONObj() ;
    }
 
-   INT32 oldVersionContainer::saveRecord( const dmsRecord *pRecord,
-                                          const BSONObj &obj,
+   INT32 oldVersionContainer::saveRecord( const BSONObj &obj,
                                           UINT32 ownnerTID )
    {
       INT32 rc = SDB_OK ;
@@ -1715,7 +1714,6 @@ namespace engine
       dmsRecord *pNewRecord = NULL ;
 
       SDB_ASSERT( !_recordPtr.get(), "Old record is not NULL" ) ;
-      SDB_ASSERT( pRecord, "Record is NULL" ) ;
 
       if ( _recordPtr.get() )
       {
@@ -1734,12 +1732,8 @@ namespace engine
       }
 
       pNewRecord = ( dmsRecord* )_recordPtr.get() ;
-      /// copy header
-      ossMemcpy( _recordPtr.get(), (const void*)pRecord,
-                 DMS_RECORD_METADATA_SZ ) ;
-
-      pNewRecord->unsetCompressed() ;
-      pNewRecord->unsetHasGlobTransID() ;
+      pNewRecord->setNormal() ;
+      pNewRecord->resetAttr() ;
       pNewRecord->setSize( recSize ) ;
 
       /// copy data
