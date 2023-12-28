@@ -743,23 +743,6 @@ namespace keystring
          toBSONValue( type, inverted, builder,
                       withFieldName ? ele.fieldName() : nullptr ) ;
       }
-      SDB_ASSERT( KEY_STRING_ONLY_END_SIZE == _bufSize - _offset ||
-                  KEY_STRING_DISCRIMINATOR_AND_END_SIZE == _bufSize - _offset,
-                  "Unexpected size" ) ;
-      if ( KEY_STRING_DISCRIMINATOR_AND_END_SIZE == _bufSize - _offset )
-      {
-         keyStringDiscriminatorValue dv = _read<keyStringDiscriminatorValue>( FALSE ) ;
-         SDB_ASSERT(
-               keyStringDiscriminatorValue::LESS == dv ||
-               keyStringDiscriminatorValue::GREATER == dv,
-               "Unexpected discriminator byte" ) ;
-      }
-      if ( KEY_STRING_ONLY_END_SIZE == _bufSize - _offset )
-      {
-         keyStringDiscriminatorValue dv = _read<keyStringDiscriminatorValue>( FALSE ) ;
-         SDB_ASSERT( keyStringDiscriminatorValue::END == dv,
-                     "Unexpected discriminator byte" ) ;
-      }
       return builder.done() ;
    }
 
@@ -1150,8 +1133,7 @@ namespace keystring
             }
             break ;
          }
-         keyStringContinuousMarker dcm = static_cast<keyStringContinuousMarker>( encoded
-               & 1ULL ) ;
+         keyStringContinuousMarker dcm = static_cast<keyStringContinuousMarker>( encoded & 1ULL ) ;
          encoded >>= 1 ;
          FLOAT64 abs ;
          ossMemcpy( &abs, &encoded, sizeof( abs ) ) ;
@@ -1166,14 +1148,21 @@ namespace keystring
             }
             else if ( originalType == keyStringTypeBitsType::DECIMAL )
             {
-               std::stringstream ss ;
-               ss << std::setprecision(
-                     std::numeric_limits < FLOAT64 > ::max_digits10 )
-               << ( isNegative ? -abs : abs ) ;
+               INT32 typemod = _typeReader.read<INT32>() ;
+               INT16 ndigit = _typeReader.read<INT16>() ;
+               INT16 dscale = _typeReader.read<INT16>() ;
+               ossPoolStringStream ss ;
+               ss << std::fixed ;
+               if ( dscale >= 0 )
+               {
+                  ss << std::fixed << std::setprecision( dscale ) << ( isNegative ? -abs : abs ) ;
+               }
+               else
+               {
+                  ss << std::fixed << std::setprecision( _doublePrecision10 ) << ( isNegative ? -abs : abs ) ;
+               }
                bsonDecimal dec ;
                dec.fromString( ss.str().c_str() ) ;
-               INT32 typemod = _typeReader.read<INT32>() ;
-               INT16 ndigit = _typeReader.read<UINT16>() ;
                dec.updateTypemod( typemod ) ;
                SDB_ASSERT( dec.getNdigit() == ndigit,
                            "Expected to be equal" ) ;
@@ -1268,7 +1257,8 @@ namespace keystring
                   bsonDecimal dec ;
                   dec.fromLong( integerValue ) ;
                   INT32 typemod = _typeReader.read<INT32>() ;
-                  /* INT16 ndigit = _typeReader.read<UINT16>() */
+                  _typeReader.skip<INT16>() ;
+                  _typeReader.skip<INT16>() ;
                   dec.updateTypemod( typemod ) ;
                   fieldName ?
                         builder.append( fieldName, dec ) :
@@ -1306,17 +1296,24 @@ namespace keystring
             }
             else if ( originalType == keyStringTypeBitsType::DECIMAL )
             {
-               std::stringstream ss ;
-               ss << std::setprecision(
-                     std::numeric_limits < FLOAT64 > ::max_digits10 )
-               << ( isNegative ? -abs : abs ) ;
+               INT32 typemod = _typeReader.read<INT32>() ;
+               INT16 ndigit = _typeReader.read<INT16>() ;
+               INT64 dscale = _typeReader.read<INT16>() ;
+               ossPoolStringStream ss ;
+               ss << std::fixed ;
+               if ( dscale >= 0 )
+               {
+                  ss << std::setprecision( dscale ) << ( isNegative ? -abs : abs ) ;
+               }
+               else
+               {
+                  ss << std::setprecision( _doublePrecision10 ) << ( isNegative ? -abs : abs ) ;
+               }
                bsonDecimal decFromDouble ;
                decFromDouble.fromString( ss.str().c_str() ) ;
-               INT32 typemod = _typeReader.read<INT32>() ;
-               INT16 ndigit = _typeReader.read<UINT16>() ;
                decFromDouble.updateTypemod( typemod ) ;
-               SDB_ASSERT( decFromDouble.getNdigit() == ndigit,
-                           "Expected to be equal" ) ;
+               SDB_ASSERT( decFromDouble.getNdigit() == ndigit, "Expected to be equal" ) ;
+               SDB_ASSERT( decFromDouble.getDScale() == dscale, "Expected to be equal" ) ;
                fieldName ?
                      builder.append( fieldName, decFromDouble ) :
                      builder.append( "", decFromDouble ) ;
@@ -1328,8 +1325,7 @@ namespace keystring
          }
          else
          {
-            bsonDecimal dec = _decodeDecimal( inverted,
-                                                    isNegative ) ;
+            bsonDecimal dec = _decodeDecimal( inverted, isNegative ) ;
             fieldName ?
                   builder.append( fieldName, dec ) :
                   builder.append( "", dec ) ;
@@ -1363,35 +1359,33 @@ namespace keystring
             _read<UINT32>( inverted ) ) ;
       INT16 weight = 0 ;
       INT32 typemod = _typeReader.read<INT32>() ;
-      INT16 ndigit = _typeReader.read<UINT16>() ;
-      ossPoolString decStr ;
+      INT16 ndigit = _typeReader.read<INT16>() ;
+      INT16 dscale = _typeReader.read<INT16>() ;
+      ossPoolStringStream decSS ;
+      ossPoolStringStream digitSS ;
       if ( isNegative )
       {
-         decStr.append( "-" ) ;
+         decSS << "-" ;
       }
       if ( 0 == integerPartNdigit )
       {
-         decStr.append( "0." ) ;
+         decSS << "0" ;
          weight = -ossBigEndianToNative( _read<INT16>( !inverted ) ) ;
          SDB_ASSERT( weight < 0, "Unexpected weight" ) ;
          while ( weight ++ < -1 )
          {
-            decStr.append( "0000" ) ;
+            digitSS << "0000" ;
          }
          const UINT16 fractionPartNdigit = ndigit ;
          UINT16 digit = 0 ;
          for ( UINT16 i = fractionPartNdigit ; i ; i -- )
          {
-            digit = static_cast<UINT16>( ossBigEndianToNative(
-                  _read<UINT16>( inverted ) )
-                                         >> 1 ) ;
-            SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                        "Unexpected digit value" ) ;
-            CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] =
-            { } ;
-            ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d",
-                         digit ) ;
-            decStr.append( pBuffers ) ;
+            digit = static_cast<UINT16>(
+                  ossBigEndianToNative( _read<UINT16>( inverted ) ) >> 1 ) ;
+            SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE, "Unexpected digit value" ) ;
+            CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] = { } ;
+            ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit ) ;
+            digitSS << pBuffers ;
          }
       }
       else
@@ -1403,17 +1397,15 @@ namespace keystring
             for ( ; i < ndigit ; i ++ )
             {
                digit = ossBigEndianToNative( _read<UINT16>( inverted ) ) ;
-               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                           "Unexpected digit value" ) ;
-               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] =
-               { } ;
+               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE, "Unexpected digit value" ) ;
+               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] = { } ;
                ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d",
                             digit ) ;
-               decStr.append( pBuffers ) ;
+               decSS << pBuffers ;
             }
             for ( ; i < integerPartNdigit ; i ++ )
             {
-               decStr.append( "0000" ) ;
+               decSS << "0000" ;
             }
          }
          else
@@ -1421,31 +1413,48 @@ namespace keystring
             for ( UINT16 i = integerPartNdigit ; i ; i -- )
             {
                digit = ossBigEndianToNative( _read<UINT16>( inverted ) ) ;
-               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                           "Unexpected digit value" ) ;
-               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] =
-               { } ;
-               ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d",
-                            digit ) ;
-               decStr.append( pBuffers ) ;
+               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE, "Unexpected digit value" ) ;
+               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] = { } ;
+               ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit ) ;
+               decSS << pBuffers ;
             }
-            decStr.append( "." ) ;
             for ( UINT16 i = ndigit - integerPartNdigit ; i ; i -- )
             {
                digit = static_cast<UINT16>( ossBigEndianToNative(
-                     _read<UINT16>( inverted ) )
-                                            >> 1 ) ;
-               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                           "Unexpected digit value" ) ;
-               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] =
-               { } ;
-               ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d",
-                            digit ) ;
-               decStr.append( pBuffers ) ;
+                     _read<UINT16>( inverted ) ) >> 1 ) ;
+               SDB_ASSERT( digit >= 0 && digit < SDB_DECIMAL_NBASE, "Unexpected digit value" ) ;
+               CHAR pBuffers[ SDB_DECIMAL_DEC_DIGITS + 1 ] = { } ;
+               ossSnprintf( pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit ) ;
+               digitSS << pBuffers ;
             }
          }
       }
-      dec.fromString( decStr.c_str() ) ;
+      // fix dscale
+      UINT32 digitLength = digitSS.str().size() ;
+      if ( dscale > 0 && (UINT32)dscale != digitLength )
+      {
+         if ( digitLength > (UINT32)dscale )
+         {
+            decSS << "." << digitSS.str().substr( 0, dscale ) ;
+         }
+         else if ( (UINT32)dscale > digitLength )
+         {
+            decSS << "." ;
+            if ( digitLength > 0 )
+            {
+               decSS << digitSS.str() ;
+            }
+            for ( UINT32 i = 0 ; i < (UINT32)dscale - digitLength ; ++ i )
+            {
+               decSS << "0" ;
+            }
+         }
+      }
+      else if ( digitLength > 0 )
+      {
+         decSS << "." << digitSS.str() ;
+      }
+      dec.fromString( decSS.str().c_str() ) ;
       dec.updateTypemod( typemod ) ;
       return dec ;
    }

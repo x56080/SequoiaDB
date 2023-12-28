@@ -80,6 +80,18 @@ namespace bson {
       }
    }
 
+   bsonDecimal::bsonDecimal( const CHAR *value )
+   {
+      INT32 rc = SDB_OK ;
+      init() ;
+      rc = sdb_decimal_from_str( value, &_decimal ) ;
+      SDB_ASSERT( SDB_OK == rc, "Failed to init decimal" ) ;
+      if ( SDB_OK != rc )
+      {
+         throw bsonDecimalException( rc, "Construct bsonDecimal failed" ) ;
+      }
+   }
+
    bsonDecimal::~bsonDecimal()
    {
       sdb_decimal_free( &_decimal ) ;
@@ -109,6 +121,18 @@ namespace bson {
    {
       sdb_decimal_init( &_decimal ) ;
       return SDB_OK ;
+   }
+
+   INT32 bsonDecimal::init( const bsonDecimal &right )
+   {
+      sdb_decimal_free( &_decimal ) ;
+      return sdb_decimal_copy( &( right._decimal ), &_decimal ) ;
+   }
+
+   INT32 bsonDecimal::init( const CHAR *value )
+   {
+      sdb_decimal_free( &_decimal ) ;
+      return sdb_decimal_from_str( value, &_decimal ) ;
    }
 
    void bsonDecimal::setZero()
@@ -477,6 +501,20 @@ namespace bson {
       return compare( decimal ) ;
    }
 
+   INT32 bsonDecimal::compare( FLOAT64 right ) const
+   {
+      INT32 rc = SDB_OK ;
+      bsonDecimal decimal ;
+
+      rc = decimal.fromDouble( right ) ;
+      if ( SDB_OK != rc )
+      {
+         throw bsonDecimalException( rc, "Failed to parse int value" ) ;
+      }
+
+      return compare( decimal ) ;
+   }
+
    INT32 bsonDecimal::add( const bsonDecimal &right, bsonDecimal &result )
    {
       return sdb_decimal_add( &_decimal, &right._decimal, &result._decimal ) ;
@@ -537,7 +575,18 @@ namespace bson {
       return sdb_decimal_abs( &_decimal ) ;
    }
 
-   INT32 bsonDecimal::ceil( bsonDecimal &result )
+   INT32 bsonDecimal::abs( bsonDecimal &result ) const
+   {
+      INT32 rc = SDB_OK ;
+      rc = result.init( *this ) ;
+      if ( SDB_OK != rc )
+      {
+         return rc ;
+      }
+      return sdb_decimal_abs( &( result._decimal ) ) ;
+   }
+
+   INT32 bsonDecimal::ceil( bsonDecimal &result ) const
    {
       INT32 rc = SDB_OK ;
       rc = sdb_decimal_ceil( &_decimal, &(result._decimal) ) ;
@@ -549,7 +598,7 @@ namespace bson {
       return sdb_decimal_update_typemod( &(result._decimal), -1 ) ;
    }
 
-   INT32 bsonDecimal::floor( bsonDecimal &result )
+   INT32 bsonDecimal::floor( bsonDecimal &result ) const
    {
       INT32 rc = SDB_OK ;
       rc = sdb_decimal_floor( &_decimal, &(result._decimal) ) ;
@@ -628,6 +677,11 @@ namespace bson {
       }
 
       return scale ;
+   }
+
+   INT16 bsonDecimal::getDScale() const
+   {
+      return _decimal.dscale ;
    }
 
    INT16 bsonDecimal::getSign() const

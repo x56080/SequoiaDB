@@ -234,6 +234,8 @@ namespace keystring
       END = 4
    } ;
 
+   constexpr INT32 _doublePrecision10 = std::numeric_limits<FLOAT64>::max_digits10 ;
+
 }
 }
 

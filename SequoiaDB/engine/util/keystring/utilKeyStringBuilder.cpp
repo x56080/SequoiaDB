@@ -63,9 +63,10 @@ namespace keystring
    constexpr FLOAT64 _minLargeFloat64 = 1ULL << 63 ;
 
    // Integers larger than this may not be representable as float64.
-   constexpr FLOAT64 _maxIntegerForDouble = 1ULL << 53;
+   constexpr FLOAT64 _maxIntegerForDouble = 1ULL << 53 ;
 
-   constexpr INT32 _doublePrecision10 = numeric_limits<FLOAT64>::max_digits10 ;
+   static bsonDecimal _minLargeFloat64AsDecimal( "9223372036854775808" ) ;
+   static bsonDecimal _maxIntegerForDoubleAsDecimal( "9007199254740992" ) ;
 
    INT32 _countLeadingZeros64( UINT64 num )
    {
@@ -463,24 +464,19 @@ namespace keystring
    INT32 _typeBitsBuilder::appendDecimalMeta( const bsonDecimal &dec )
    {
       INT32 rc = SDB_OK ;
+
       INT32 typemod = dec.getTypemod() ;
       INT16 ndigit = dec.getNdigit() ;
-      rc = appendBits( reinterpret_cast<const UINT8 *>( &typemod ),
-                       sizeof( typemod ) ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR,
-                 "Failed to append decimal typemod to type bits, rc: %d", rc ) ;
-         goto error ;
-      }
-      rc = appendBits( reinterpret_cast<const UINT8 *>( &ndigit ),
-                       sizeof( ndigit ) ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR,
-                 "Failed to append decimal ndigit to typebits, rc: %d", rc ) ;
-         goto error ;
-      }
+      INT16 dscale = dec.getDScale() ;
+
+      rc = appendBits( reinterpret_cast<const UINT8 *>( &typemod ), sizeof( typemod ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append decimal typemod to type bits, rc: %d", rc ) ;
+
+      rc = appendBits( reinterpret_cast<const UINT8 *>( &ndigit ), sizeof( ndigit ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append decimal ndigit to type bits, rc: %d", rc ) ;
+
+      rc = appendBits( reinterpret_cast<const UINT8 *>( &dscale ), sizeof( dscale ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append decimal dscale to type bits, rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -1134,15 +1130,14 @@ namespace keystring
 
       // Append the low bytes of value in big endian order.
       value = ossNativeToBigEndian( value ) ;
-      const void *firstUsedByte = reinterpret_cast<const char*>( ( &value )
-            + 1 )
-                                  - bytesNeeded ;
+      const void *firstUsedByte =
+                  reinterpret_cast<const char*>( ( &value ) + 1 ) - bytesNeeded ;
 
       if ( isNegative )
       {
-         rc = _append(
-               static_cast<UINT8>( static_cast<UINT8>( keyStringEncodedType::numericNegative1ByteInt )
-                     - ( bytesNeeded - 1 ) ),
+         rc = _append( static_cast<UINT8>(
+                  static_cast<UINT8>( keyStringEncodedType::numericNegative1ByteInt ) -
+                  ( bytesNeeded - 1 ) ),
                invert ) ;
          if ( SDB_OK != rc )
          {
@@ -1158,9 +1153,9 @@ namespace keystring
       }
       else
       {
-         rc = _append(
-               static_cast<UINT8>( static_cast<UINT8>( keyStringEncodedType::numericPositive1ByteInt )
-                     + ( bytesNeeded - 1 ) ),
+         rc = _append( static_cast<UINT8>(
+                  static_cast<UINT8>( keyStringEncodedType::numericPositive1ByteInt ) +
+                  ( bytesNeeded - 1 ) ),
                invert ) ;
          if ( SDB_OK != rc )
          {
@@ -1412,7 +1407,8 @@ namespace keystring
                                                       BOOLEAN invert )
    {
       INT32 rc = SDB_OK ;
-      stringstream ss ;
+      INT64 decLong = 0 ;
+      bsonDecimal roundDec ;
       bsonDecimal decFromDouble ;
       BOOLEAN isNegative = dec.getSign() == SDB_DECIMAL_NEG ;
       rc = _typeBits.appendNumberDecimal() ;
@@ -1424,12 +1420,27 @@ namespace keystring
       }
       if ( dec.isZero() )
       {
-         _append( keyStringEncodedType::numericZero, invert ) ;
+         rc = _append( keyStringEncodedType::numericZero, invert ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to append zero, rc: %d", rc ) ;
+            goto error ;
+         }
          goto done ;
       }
-      if ( dec.isMax() )
+      else if ( dec.isNan() )
       {
-         rc = _appendDoubleWithoutTypeBits(
+         rc = _append( keyStringEncodedType::numericNaN, invert ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to append NaN, rc: %d", rc ) ;
+            goto error ;
+         }
+         goto done ;
+      }
+      else if ( dec.isMax() )
+      {
+         rc = _appendLargeDouble(
                numeric_limits<FLOAT64>::infinity(),
                keyStringContinuousMarker::hasNoContinuation, invert ) ;
          if ( SDB_OK != rc )
@@ -1441,7 +1452,7 @@ namespace keystring
       }
       else if ( dec.isMin() )
       {
-         rc = _appendDoubleWithoutTypeBits(
+         rc = _appendLargeDouble(
                -numeric_limits<FLOAT64>::infinity(),
                keyStringContinuousMarker::hasNoContinuation, invert ) ;
          if ( SDB_OK != rc )
@@ -1451,8 +1462,19 @@ namespace keystring
          }
          goto done ;
       }
-      INT64 decLong ;
-      dec.toLong( &decLong ) ;
+
+      if ( isNegative )
+      {
+         rc = dec.ceil( roundDec ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get ceil of decimal, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = dec.floor( roundDec ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get floor of decimal, rc: %d", rc ) ;
+      }
+      rc = roundDec.toLong( &decLong ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get long value of decimal, rc: %d", rc ) ;
 
       rc = _typeBits.appendDecimalMeta( dec ) ;
       if ( SDB_OK != rc )
@@ -1491,14 +1513,23 @@ namespace keystring
       else
       {
          FLOAT64 doubleTowardZero ;
+         ossPoolStringStream ss ;
+         ss << std::fixed ;
          dec.toDouble( &doubleTowardZero ) ;
-         ss << setprecision( _doublePrecision10 ) << doubleTowardZero ;
+         if ( dec.getDScale() >= 0 )
+         {
+            ss << setprecision( dec.getDScale() ) << doubleTowardZero ;
+         }
+         else
+         {
+            ss << setprecision( _doublePrecision10 ) << doubleTowardZero ;
+         }
          decFromDouble.fromString( ss.str().c_str() ) ;
          if ( decFromDouble.compare( dec ) == 0 )
          {
-            rc = _appendDoubleWithoutTypeBits(
-                  doubleTowardZero, keyStringContinuousMarker::hasNoContinuation,
-                  invert ) ;
+            rc = _appendDoubleWithoutTypeBits( doubleTowardZero,
+                                               keyStringContinuousMarker::hasNoContinuation,
+                                               invert ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to append double, rc: %d", rc ) ;
@@ -1507,25 +1538,52 @@ namespace keystring
          }
          else
          {
-            if ( ( decFromDouble.compare( dec ) > 0 && !isNegative ) ||
-                  ( decFromDouble.compare( dec ) < 0 && isNegative ) )
+            bsonDecimal absDec( dec ) ;
+            rc = absDec.abs() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get absolute value, rc: %d", rc ) ;
+
+            if ( absDec.compare( _maxIntegerForDoubleAsDecimal ) < 0 ||
+                 absDec.compare( _minLargeFloat64AsDecimal ) >= 0 )
             {
-               *(UINT64*)( &doubleTowardZero ) -= 1 ;
+               if ( ( decFromDouble.compare( dec ) > 0 && !isNegative ) ||
+                    ( decFromDouble.compare( dec ) < 0 && isNegative ) )
+               {
+                  *(UINT64*)( &doubleTowardZero ) -= 1 ;
+               }
+               rc = _appendDoubleWithoutTypeBits( doubleTowardZero,
+                                                  keyStringContinuousMarker::hasContinuation,
+                                                  invert ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append double, rc: %d", rc ) ;
+               rc = _appendDecimalEncoding( dec, invert ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append decimal encoding, rc: %d", rc ) ;
             }
-            rc = _appendDoubleWithoutTypeBits(
-                  doubleTowardZero, keyStringContinuousMarker::hasContinuation,
-                  invert ) ;
-            if ( SDB_OK != rc )
+            else
             {
-               PD_LOG( PDERROR, "Failed to append double, rc: %d", rc ) ;
-               goto error ;
-            }
-            rc = _appendDecimalEncoding( dec, invert ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to append decimal encoding, rc: %d",
-                       rc ) ;
-               goto error ;
+               // too large to convert to double
+               if ( decLong == numeric_limits<INT64>::min() )
+               {
+                  FLOAT64 doubleVal = static_cast<FLOAT64>( decLong ) ;
+                  SDB_ASSERT( -doubleVal == _minLargeFloat64, "must be equal" ) ;
+                  rc = _appendLargeDouble( doubleVal,
+                                           keyStringContinuousMarker::hasNoContinuation,
+                                           invert ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to append large double, rc: %d", rc ) ;
+               }
+               else
+               {
+                  UINT64 matitude = isNegative ? -decLong : decLong ;
+                  rc = _appendPreshiftedInteger(
+                           ( matitude << 1 |
+                             static_cast<UINT8>( keyStringContinuousMarker::hasContinuation ) ),
+                           isNegative, invert ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to append preshift integer, rc: %d", rc ) ;
+                     goto error ;
+                  }
+               }
+               rc = _appendDecimalEncoding( dec, invert ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append decimal encoding, rc: %d", rc ) ;
             }
          }
       }
@@ -2434,7 +2492,7 @@ namespace keystring
       ks._desc.keyHeadSize = _sizeAheadElements ;
       ks._desc.keyTailSize = _sizeAfterElements ;
       ks._desc.typeBitsSize = _typeBitsSize ;
-      return std::move( ks ) ;
+      return ks ;
    }
 
    keyString _keyStringBuilderImpl::reap()
@@ -2451,7 +2509,7 @@ namespace keystring
       ks._bufferSize = _capacity ;
       _buf = nullptr ;
       reset() ;
-      return std::move( ks ) ;
+      return ks ;
    }
 
    INT32 _keyStringBuilderImpl::done()
@@ -2696,7 +2754,6 @@ namespace keystring
    {
       INT32 rc = SDB_OK ;
       BSONObjIterator it( key ) ;
-      UINT32 elemCount = 0 ;
       INT32 mask = 1 ;
 
       reset() ;
@@ -2728,7 +2785,6 @@ namespace keystring
          rc = appendBSONElement( elem, invert ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
 
-         elemCount += 1 ;
          mask <<= 1 ;
       }
       if ( recordID.isValid() )

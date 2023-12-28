@@ -45,6 +45,7 @@ namespace bson {
    public:
       bsonDecimal() ;
       bsonDecimal( const bsonDecimal &right ) ;
+      bsonDecimal( const CHAR *value ) ;
       ~bsonDecimal() ;
 
       bsonDecimal& operator= ( const bsonDecimal &right ) ;
@@ -52,6 +53,8 @@ namespace bson {
    public:
       INT32          init() ;
       INT32          init( INT32 precision, INT32 scale ) ;
+      INT32          init( const bsonDecimal &right ) ;
+      INT32          init( const CHAR *value ) ;
 
       void           setZero() ;
       BOOLEAN        isZero() const ;
@@ -86,6 +89,7 @@ namespace bson {
 
       INT32          compare( const bsonDecimal &right ) const ;
       INT32          compare( int right ) const ;
+      INT32          compare( FLOAT64 right ) const ;
 
 #if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
       ossPoolString  toPoolString() const ;
@@ -102,8 +106,9 @@ namespace bson {
       INT32          div( const bsonDecimal &right, bsonDecimal &result ) ;
       INT32          div( INT64 right, bsonDecimal &result ) ;
       INT32          abs() ;
-      INT32          ceil( bsonDecimal &result ) ;
-      INT32          floor( bsonDecimal &result ) ;
+      INT32          abs( bsonDecimal &result ) const ;
+      INT32          ceil( bsonDecimal &result ) const ;
+      INT32          floor( bsonDecimal &result ) const ;
       INT32          mod( bsonDecimal &right, bsonDecimal &result ) ;
       INT32          updateTypemod( INT32 typemod ) ;
 
@@ -119,6 +124,7 @@ namespace bson {
       INT16          getStorageScale() const ;
 
       INT16          getScale() const ;
+      INT16          getDScale() const ;
       INT16          getSign() const ;
 
       INT32          getNdigit() const ;

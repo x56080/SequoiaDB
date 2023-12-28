@@ -245,6 +245,15 @@ namespace keystring
             return t ;
          }
 
+         template<typename T>
+         void skip()
+         {
+            for ( UINT32 i = 0 ; i < sizeof( T ) ; ++ i )
+            {
+               readByte() ;
+            }
+         }
+
       private:
          UINT8 _readBit() ;
 
