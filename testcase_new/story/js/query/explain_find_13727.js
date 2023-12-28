@@ -34,7 +34,7 @@ function test ( args )
 
    //find({ "a": 1 }).explain({Run:true})
    var explainObj = cl.find( { "a": 1 } ).explain( { Run: true } );
-   checkExplain( explainObj, indexName_a, scanType1, 3, 1 );
+   checkExplain( explainObj, indexName_a, scanType1, 2, 1 );
 
    //find().explain({Run:false})
    //default is explain({Run:false})
