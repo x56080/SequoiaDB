@@ -60,6 +60,7 @@
 #include "pdTrace.hpp"
 #include "monTrace.hpp"
 #include "pmdEnv.hpp"
+#include "rtnScannerFactory.hpp"
 #include "utilEnvCheck.hpp"
 #include "pmdStartupHistoryLogger.hpp"
 #include "utilMemListPool.hpp"
@@ -6240,14 +6241,17 @@ namespace engine
       _su            = NULL ;
       _suID          = DMS_INVALID_CS ;
       _mbContext     = NULL ;
-      _curExtentID   = DMS_INVALID_EXTENT ;
+      _scanner       = NULL ;
       _noMoreStat    = FALSE ;
    }
 
    _monIndexStatsFetch::~_monIndexStatsFetch()
    {
-      IDX_STAT_LIST::iterator iter ;
+      rtnScannerFactory f ;
+      f.releaseScanner( _scanner ) ;
+      _scanner = NULL ;
 
+      IDX_STAT_LIST::iterator iter ;
       for ( iter = _statCache.begin() ; iter != _statCache.end() ; ++iter )
       {
          SDB_POOL_FREE( *iter ) ;
@@ -6278,6 +6282,8 @@ namespace engine
       const CHAR *pCollectionShortName = NULL ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_ASSERT( dmsCB, "dmsCB's never NULL" ) ;
+
+      rtnScannerFactory f ;
 
       _isDetail      = isDetail ;
       _addInfoMask   = addInfoMask ;
@@ -6311,13 +6317,8 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      // Initialize _curExtentID
-      _curExtentID = _mbContext->mb()->_firstExtentID ;
-      if ( DMS_INVALID_EXTENT == _curExtentID )
-      {
-         _hitEnd = TRUE ;
-         goto done ;
-      }
+      rc = f.createTBScanner( _su, _mbContext, cb, _scanner ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create scanner, rc: %d", rc ) ;
 
    done:
       if ( _mbContext )
@@ -6353,9 +6354,7 @@ namespace engine
       // Scan a whole extent for once
       try
       {
-         dmsExtScanner scanner( _su->data(), _mbContext, NULL,
-                                _curExtentID, DMS_INVALID_EXTENT,
-                                DMS_ACCESS_TYPE_FETCH, -1L, 0 ) ;
+         dmsDataScanner scanner( _su->data(), _mbContext, _scanner, NULL ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
@@ -6384,9 +6383,7 @@ namespace engine
          if ( SDB_DMS_EOC == rc )
          {
             rc = SDB_OK ;
-            _curExtentID = scanner.nextExtentID() ;
-            if ( DMS_INVALID_EXTENT == _curExtentID ||
-                 SDB_DMS_EOC == scanner.stepToNextExtent() )
+            if ( _scanner->isEOF() )
             {
                _noMoreStat = TRUE ;
             }

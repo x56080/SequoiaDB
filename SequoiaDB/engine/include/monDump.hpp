@@ -838,7 +838,7 @@ namespace engine
          dmsStorageUnit         *_su ;
          dmsStorageUnitID        _suID ;
          dmsMBContext           *_mbContext ;
-         dmsExtentID             _curExtentID ;
+         _rtnTBScanner          *_scanner ;
          BOOLEAN                 _noMoreStat ;
          IDX_STAT_LIST::iterator _pos ;
          IDX_STAT_LIST           _statCache ;
