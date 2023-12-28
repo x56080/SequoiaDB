@@ -358,7 +358,7 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key ) ;
       _cursor->set_value( _cursor, value.get() ) ;
 
-      rc = WT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
+      rc = WT_CONFLICT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key by cursor, rc: %d", rc ) ;
 
    done:
@@ -429,7 +429,7 @@ namespace wiredtiger
       _cursor->set_key( _cursor, key.get() ) ;
       _cursor->set_value( _cursor, value.get() ) ;
 
-      rc = WT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
+      rc = WT_CONFLICT_CALL( _cursor->insert( _cursor ), _session.getSession() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert key by cursor, rc: %d", rc ) ;
 
    done:

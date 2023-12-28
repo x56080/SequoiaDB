@@ -45,8 +45,15 @@ namespace engine
 namespace wiredtiger
 {
 
+   OSS_THREAD_LOCAL int _lastErrorCode = 0 ;
+
+   int dmsWTGetLastErrorCode()
+   {
+       return _lastErrorCode ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTRC2DBRCSLOW, "dmsWTRCToDBRCSlow" )
-   INT32 dmsWTRCToDBRCSlow( int retCode, WT_SESSION *session )
+   INT32 dmsWTRCToDBRCSlow( int retCode, WT_SESSION *session, BOOLEAN checkConflict )
    {
       INT32 rc = SDB_OK ;
 
@@ -59,6 +66,7 @@ namespace wiredtiger
 
       PD_LOG( PDDEBUG, "Got WiredTiger engine error message %s",
               wiredtiger_strerror( retCode ) ) ;
+      _lastErrorCode = retCode ;
 
       switch ( retCode )
       {
@@ -73,6 +81,16 @@ namespace wiredtiger
          break ;
       case WT_DUPLICATE_KEY:
          rc = pdError( SDB_IXM_DUP_KEY ) ;
+         break ;
+      case WT_ROLLBACK:
+         if ( checkConflict )
+         {
+            rc = pdError( SDB_IXM_DUP_KEY ) ;
+         }
+         else
+         {
+            rc = SDB_SYS ;
+         }
          break ;
       default:
          rc = SDB_SYS ;

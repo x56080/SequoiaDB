@@ -618,7 +618,7 @@ namespace
       PD_TRACE_ENTRY( SDB__DMSWTINDEX__INSTSTRICTUNIQUE_ITEM ) ;
 
       rc = cursor.insert( keyItem, valueItem ) ;
-      if ( SDB_IXM_DUP_KEY == rc )
+      if ( SDB_IXM_DUP_KEY == rc && WT_DUPLICATE_KEY == dmsWTGetLastErrorCode() )
       {
          dmsWTItem conflictItem ;
          dmsRecordID conflictRID ;

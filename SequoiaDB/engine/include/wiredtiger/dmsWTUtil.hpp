@@ -47,21 +47,26 @@ namespace engine
 namespace wiredtiger
 {
 
+   int dmsWTGetLastErrorCode() ;
+
    // convert WiredTiger error code to SequoiaDB error code
-   INT32 dmsWTRCToDBRCSlow( int retCode, WT_SESSION *session ) ;
+   INT32 dmsWTRCToDBRCSlow( int retCode, WT_SESSION *session, BOOLEAN checkConflict ) ;
 
    // quick convert WiredTiger error code to SequoiaDB error code
-   OSS_INLINE INT32 dmsWTRCToDBRC( int retCode, WT_SESSION *session )
+   OSS_INLINE INT32 dmsWTRCToDBRC( int retCode,
+                                   WT_SESSION *session,
+                                   BOOLEAN checkConflict = FALSE )
    {
       if ( OSS_LIKELY( 0 == retCode ) )
       {
          return SDB_OK ;
       }
-      return dmsWTRCToDBRCSlow( retCode, session ) ;
+      return dmsWTRCToDBRCSlow( retCode, session, checkConflict ) ;
    }
 
    // WiredTiger call wrapper with error code convert
    #define WT_CALL( func, session ) ( dmsWTRCToDBRC( ( func ), session ) )
+   #define WT_CONFLICT_CALL( func, session ) ( dmsWTRCToDBRC( ( func ), session, TRUE ) )
 
    void dmsWTBuildDataIdent( utilCSUniqueID csUID,
                              utilCLInnerID clInnerID,
