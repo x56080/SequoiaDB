@@ -4044,9 +4044,6 @@ namespace engine
 
       dmsWriteGuard writeGuard( _service, this, context, cb ) ;
 
-      rc = writeGuard.begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
-
       if ( !isTransSupport( context ) )
       {
          transID = DPS_INVALID_TRANS_ID ;
@@ -4202,6 +4199,9 @@ namespace engine
             rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
             goto error ;
          }
+
+         rc = writeGuard.begin() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
          if ( context->mbStat()->_textIdxNum > 0 )
          {
@@ -4447,9 +4447,6 @@ namespace engine
          goto error ;
       }
 
-      rc = writeGuard.begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
-
 #ifdef _DEBUG
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_DELETE ) )
@@ -4470,6 +4467,9 @@ namespace engine
 
       try
       {
+         rc = writeGuard.begin() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
+
          // first time deletion of the record write the LR and delete indexes
          if ( deletedDataPtr )
          {
@@ -4767,9 +4767,6 @@ namespace engine
          goto error ;
       }
 
-      rc = writeGuard.begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
-
       if ( !isTransSupport( context ) )
       {
          transID = DPS_INVALID_TRANS_ID ;
@@ -4905,6 +4902,9 @@ namespace engine
 
             newRecordData.setData( newobj.objdata(), newobj.objsize(),
                                    UTIL_COMPRESSOR_INVALID, TRUE ) ;
+
+            rc = writeGuard.begin() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
             if ( context->mbStat()->_textIdxNum > 0 )
             {
