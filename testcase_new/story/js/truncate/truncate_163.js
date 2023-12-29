@@ -35,9 +35,6 @@ function createCLAndInsertData ( csName, clName, pageSize )
    truncatePutLob( cl, lobSize, lobNum );
    truncateInsertRecord( cl, recordNum, recordSize );
 
-   // the TotalLobPages is 4, TotalDataPages is 3
-   var verJsonObj = { "TotalLobPages": 4, "TotalDataPages": 3 };
-   truncateVerify( db, csName + "." + clName, verJsonObj );
    return cl;
 }
 

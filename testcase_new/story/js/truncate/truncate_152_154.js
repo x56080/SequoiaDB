@@ -34,6 +34,7 @@ function testTruncateNormalTblRecord ( db, cl, tableName )
 
    // insert 13 types
    truncateInsertRecord( cl );
+   db.sync();
    truncateVerify( db, tableName, verfify );
 
    // truncate

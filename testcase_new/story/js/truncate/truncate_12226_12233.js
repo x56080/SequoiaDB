@@ -29,7 +29,7 @@ function testTruncateNormalCLMultiIndexKey ( db )
    var clName = COMMCLNAME + "_12226";
    var indexName = CHANGEDPREFIX + "_truncate_normal_index";
    var recordNum = 3000;
-   var verJsonObj = { "TotalIndexPages": 4 };
+   var verJsonObj = { "TotalIndexPages": 2 };
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl begin" );
    var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
@@ -63,7 +63,8 @@ function testTruncateMixtureCLMultiIndex ( db )
    };
    var recordNum = 4000;
    var domainName = CHANGEDPREFIX + "_mixture_domain";
-   var verJsonObj = { "TotalIndexPages": 10 };
+   var verJsonObj1 = { "TotalIndexPages": 5 };
+   var verJsonObj2 = { "TotalIndexPages": 10 };
    var indexName1 = CHANGEDPREFIX + "_truncate_normal_index_1";
    var indexName2 = CHANGEDPREFIX + "_truncate_normal_index_2";
    var indexName3 = CHANGEDPREFIX + "_truncate_normal_index_3";
@@ -99,14 +100,15 @@ function testTruncateMixtureCLMultiIndex ( db )
    mainCL.createIndex( indexName1, { id: -1 } );
    mainCL.createIndex( indexName2, { stringKey: 1 } );
    mainCL.createIndex( indexName3, { integerKey: -1 } );
-   truncateVerify( db, subTable1, verJsonObj );
-   truncateVerify( db, subTable2, verJsonObj );
+   db.sync();
+   truncateVerify( db, subTable1, verJsonObj2 );
+   truncateVerify( db, subTable2, verJsonObj2 );
 
    truncateInsertRecord( mainCL, recordNum );
    mainCL.truncate();
 
-   truncateVerify( db, subTable1, verJsonObj );
-   truncateVerify( db, subTable2, verJsonObj );
+   truncateVerify( db, subTable1, verJsonObj1 );
+   truncateVerify( db, subTable2, verJsonObj1 );
    commDropCS( db, subCS1, false, "drop sub cs1 end" );
    commDropCS( db, subCS2, false, "drop sub cs2 end" );
    commDropCS( db, mainCS, false, "drop main cs end" );

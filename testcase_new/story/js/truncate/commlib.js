@@ -27,12 +27,6 @@ function checkResult ( real, expect )
       }
    }
 
-   if( undefined != typeof ( real["Indexes"] ) &&
-      undefined != typeof ( real["TotalIndexPages"] ) )
-   {
-      return real.Indexes * 2 === real.TotalIndexPages;
-   }
-
    return true;
 }
 

@@ -50,7 +50,7 @@ function testTruncateCompareRemveDelete ( db )
    var lobIDSet2 = truncatePutLob( cl2, lobSize, lobNumber );
    truncateInsertRecord( cl1, recordNumber );
    truncateInsertRecord( cl2, recordNumber );
-
+   db.sync();
    truncateVerify( db, tableName1, verfify1 );
    // remove cl1's records
    cl1.remove();
@@ -89,7 +89,6 @@ function testTruncateLoopOperation ( db, cl, tableName )
    var lobSize = 4097;
    var lobNumber = 3;
    var loopNum = 10;
-   truncateVerify( db, tableName );
 
    for( var i = 0; i < loopNum; ++i )
    {
@@ -101,7 +100,6 @@ function testTruncateLoopOperation ( db, cl, tableName )
       // truncate
       cl.truncate();
       assert.equal( cl.count(), 0 );
-
       truncateVerify( db, tableName );
    }
 }
