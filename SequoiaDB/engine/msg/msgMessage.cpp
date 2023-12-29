@@ -605,7 +605,7 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
                             "Invalid name length" ) ;
 
    hasHint = OSS_BIT_TEST( *pflag, FLG_INSERT_HASHINT ) ? TRUE : FALSE ;
-   if ( !hasHint )
+   if ( !hasHint && NULL != ppHint )
    {
       *ppHint = NULL ;
    }
@@ -651,7 +651,10 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
             }
             else
             {
-               *ppHint = &pBuffer[offset] ;
+               if ( NULL != ppHint )
+               {
+                  *ppHint = &pBuffer[offset] ;
+               }
                goto done ;
             }
          }
