@@ -114,6 +114,10 @@ namespace wiredtiger
                            const CHAR *uri,
                            const CHAR *config ) ;
 
+      INT32 compactStore( dmsWTSession &session,
+                          const CHAR *uri,
+                          const CHAR *config ) ;
+
       INT32 loadStore( const CHAR *uri,
                        dmsWTStore &store ) ;
       INT32 openStoreCursor( const CHAR *uri,

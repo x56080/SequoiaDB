@@ -85,6 +85,31 @@ namespace
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_COMPACT, "_dmsWTIndex::compact" )
+   INT32 _dmsWTIndex::compact( const dmsCompactIdxOptions &options,
+                               IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTINDEX_COMPACT ) ;
+
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
+      rc = _engine.compactStore( sessionHolder.getSession(),
+                                 _store.getURI().c_str(),
+                                 nullptr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTINDEX_COMPACT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTINDEX_INDEX, "_dmsWTIndex::index" )
    INT32 _dmsWTIndex::index( const BSONObj &key,
                              const dmsRecordID &rid,

@@ -3111,6 +3111,12 @@ namespace engine
          ossPanic() ;
       }
 
+      if ( SDB_OK == context->mbLock( EXCLUSIVE ) )
+      {
+         dmsCompactCLOptions options ;
+         context->getCollPtr()->compact( options, cb ) ;
+      }
+
    done:
       if ( isTransLocked )
       {

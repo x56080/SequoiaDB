@@ -66,6 +66,8 @@ namespace engine
 
       virtual INT32 truncate( const dmsTruncateIdxOptions &options,
                               IExecutor *executor ) = 0 ;
+      virtual INT32 compact( const dmsCompactIdxOptions &options,
+                             IExecutor *executor ) = 0 ;
 
       virtual INT32 index( const bson::BSONObj &key,
                            const dmsRecordID &rid,

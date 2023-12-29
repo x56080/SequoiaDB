@@ -73,6 +73,8 @@ namespace engine
                                IExecutor *executor ) = 0 ;
       virtual INT32 truncate( const dmsTruncCLOptions &options,
                               IExecutor *executor ) = 0 ;
+      virtual INT32 compact( const dmsCompactCLOptions &options,
+                             IExecutor *executor ) = 0 ;
 
       virtual INT32 getIndex( const dmsIdxMetadataKey &metadataKey,
                               IExecutor *executor,

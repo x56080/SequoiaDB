@@ -149,6 +149,39 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_COMPACT, "_dmsWTCollection::compact" )
+   INT32 _dmsWTCollection::compact( const dmsCompactCLOptions &options,
+                                    IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_COMPACT ) ;
+
+      std::shared_ptr<IIndex> idxPtr ;
+
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get persist session, rc: %d", rc ) ;
+
+      rc = _engine.compactStore( sessionHolder.getSession(),
+                                 _store.getURI().c_str(),
+                                 nullptr ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to compact data store, rc: %d", rc ) ;
+
+      while ( idxPtr = _getNextIndex( idxPtr ) )
+      {
+         rc = idxPtr->compact( options, executor ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to compact index, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_COMPACT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETIDX, "_dmsWTCollection::getIndex" )
    INT32 _dmsWTCollection::getIndex( const dmsIdxMetadataKey &metadataKey,
                                      IExecutor *executor,

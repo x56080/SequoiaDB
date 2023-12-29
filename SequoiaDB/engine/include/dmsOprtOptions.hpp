@@ -465,6 +465,22 @@ namespace engine
 
    typedef class _dmsTruncateIdxOptions dmsTruncateIdxOptions ;
 
+   /*
+      _dmsCompactOptions define
+    */
+   class _dmsCompactOptions : public SDBObject
+   {
+   public:
+      _dmsCompactOptions() = default ;
+      virtual ~_dmsCompactOptions() = default ;
+      _dmsCompactOptions( const _dmsCompactOptions &o ) = default ;
+      _dmsCompactOptions &operator =( const _dmsCompactOptions & ) = default ;
+   } ;
+
+   typedef class _dmsCompactOptions dmsCompactOptions ;
+   typedef class _dmsCompactOptions dmsCompactCLOptions ;
+   typedef class _dmsCompactOptions dmsCompactIdxOptions ;
+
 } // namespace engine
 
 

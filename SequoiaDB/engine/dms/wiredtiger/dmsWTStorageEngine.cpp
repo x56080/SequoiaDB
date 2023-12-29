@@ -297,6 +297,37 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_COMPACTSTORE_SESS, "_dmsWTStorageEngine::compactStore" )
+   INT32 _dmsWTStorageEngine::compactStore( dmsWTSession &session,
+                                            const CHAR *uri,
+                                            const CHAR *config )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_COMPACTSTORE_SESS ) ;
+
+      WT_SESSION *s = nullptr ;
+
+      SDB_ASSERT( nullptr != uri, "uri should be valid" ) ;
+      PD_CHECK( nullptr != uri, SDB_INVALIDARG, error, PDWARNING,
+                "Failed to truncate table, uri is null" ) ;
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDWARNING,
+                "Failed to truncate table, engine is not opened" ) ;
+
+      s = session.getSession() ;
+      SDB_ASSERT( nullptr != s, "session should not be null" ) ;
+
+      rc = WT_CALL( s->compact( s, uri, "timeout=0" ), s ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to compact store, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_COMPACTSTORE_SESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_LOADSTORE, "_dmsWTStorageEngine::loadStore" )
    INT32 _dmsWTStorageEngine::loadStore( const CHAR *uri,
                                          dmsWTStore &store )
