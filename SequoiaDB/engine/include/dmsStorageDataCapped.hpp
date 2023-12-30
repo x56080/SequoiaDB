@@ -248,15 +248,11 @@ namespace engine
                                         const dmsRecordData &recordData,
                                         INT64 &position ) ;
 
-      virtual INT32 _checkMarkInsert( dmsMBContext *context,
-                                      const DPS_TRANS_ID &transID,
-                                      const BSONObj &insertObj,
-                                      pmdEDUCB *cb,
-                                      INT64 &position,
-                                      BOOLEAN &markInsert,
-                                      dmsRecordID &foundRID,
-                                      dmsRecordData &recordData,
-                                      dmsRecordRW &recordRW ) ;
+      virtual INT32 _checkReusePosition( dmsMBContext *context,
+                                         const DPS_TRANS_ID &transID,
+                                         pmdEDUCB *cb,
+                                         INT64 &position,
+                                         dmsRecordID &foundRID ) ;
 
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;

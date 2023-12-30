@@ -441,25 +441,21 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, "_dmsStorageDataCapped::_checkMarkInsert" )
-   INT32 _dmsStorageDataCapped::_checkMarkInsert( dmsMBContext *context,
-                                                  const DPS_TRANS_ID &transID,
-                                                  const BSONObj &insertObj,
-                                                  pmdEDUCB *cb,
-                                                  INT64 &position,
-                                                  BOOLEAN &markInsert,
-                                                  dmsRecordID &foundRID,
-                                                  dmsRecordData &recordData,
-                                                  dmsRecordRW &recordRW )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS, "_dmsStorageDataCapped::_checkReusePosition" )
+   INT32 _dmsStorageDataCapped::_checkReusePosition( dmsMBContext *context,
+                                                     const DPS_TRANS_ID &transID,
+                                                     pmdEDUCB *cb,
+                                                     INT64 &position,
+                                                     dmsRecordID &foundRID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS ) ;
 
-      // don't support mark insert
-      markInsert = FALSE ;
+      position = -1 ;
+      foundRID.reset() ;
 
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS, rc ) ;
 
       return rc ;
    }

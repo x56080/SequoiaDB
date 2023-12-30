@@ -190,22 +190,18 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKMARKINST, "_dmsStorageData::_checkMarkInsert" )
-   INT32 _dmsStorageData::_checkMarkInsert( dmsMBContext *context,
-                                            const DPS_TRANS_ID &transID,
-                                            const BSONObj &insertObj,
-                                            pmdEDUCB *cb,
-                                            INT64 &position,
-                                            BOOLEAN &markInsert,
-                                            dmsRecordID &foundRID,
-                                            dmsRecordData &recordData,
-                                            dmsRecordRW &recordRW )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKREUSEPOS, "_dmsStorageData::_checkReusePosition" )
+   INT32 _dmsStorageData::_checkReusePosition( dmsMBContext *context,
+                                               const DPS_TRANS_ID &transID,
+                                               pmdEDUCB *cb,
+                                               INT64 &position,
+                                               dmsRecordID &foundRID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKMARKINST ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKREUSEPOS ) ;
 
-      markInsert = FALSE ;
+      BOOLEAN isFound = FALSE ;
 
       /// when is rollback, and the rid is found
       if ( -1 != position &&
@@ -213,65 +209,39 @@ namespace engine
            cb->isInTransRollback() &&
            !cb->isTakeOverTransRB() )
       {
+         dmsRecordData recordData ;
+         dmsRecordID tmpRID ;
+
          // use the given position instead
          ossUnpack32From64( (UINT64)position,
-                            (UINT32 &)( foundRID._extent ),
-                            (UINT32 &)( foundRID._offset ) ) ;
+                            (UINT32 &)( tmpRID._extent ),
+                            (UINT32 &)( tmpRID._offset ) ) ;
 
-         markInsert = TRUE ;
-         const dmsRecord *pRecord = NULL ;
+         rc = context->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock collection, rc: %d", rc ) ;
 
-         rc = context->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
-                      rc ) ;
-
-         recordRW = record2RW( foundRID, context->mbID() ) ;
-
-         /// 1. check status
-         pRecord = recordRW.readPtr<dmsRecord>() ;
-         if ( !pRecord->isDeleting() )
+         if ( SDB_DMS_RECORD_NOTEXIST == _dmsStorageDataCommon::extractData( context,
+                                                                             tmpRID,
+                                                                             cb,
+                                                                             recordData,
+                                                                             FALSE ) )
          {
-            SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                        "should be lock escalated" ) ;
-            markInsert = FALSE ;
-         }
-         /// 2. check the value is the same
-         else
-         {
-            if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
-            else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
+            foundRID = tmpRID ;
+            isFound = TRUE ;
          }
 
          context->mbUnlock() ;
-
-         if ( markInsert )
-         {
-            recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
       }
 
-      // can not use mark insert, the position should be cleared
-      if ( !markInsert && -1 != position )
+      // can not reuse position, the position should be cleared
+      if ( !isFound )
       {
          position = -1 ;
+         foundRID.reset() ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKMARKINST, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKREUSEPOS, rc ) ;
       return rc ;
 
    error:

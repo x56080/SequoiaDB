@@ -380,6 +380,11 @@ namespace wiredtiger
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
          rc = cursor.searchAndGetValue( key, value ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            goto error ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
 
          recordData.setData( (const CHAR *)( value.get()->data ),

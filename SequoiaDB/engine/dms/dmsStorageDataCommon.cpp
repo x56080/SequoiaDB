@@ -1332,6 +1332,10 @@ namespace engine
       }
 
       rc = mbContext->getCollPtr()->extractRecord( recordID, recordData, cb ) ;
+      if ( SDB_DMS_RECORD_NOTEXIST == rc )
+      {
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to extract record from "
                    "collection [%s.%s] with record ID "
                    "[ extent: %u, offset: %u ], rc: %d",
@@ -4057,6 +4061,9 @@ namespace engine
          relatedLsn = DPS_INVALID_LSN_OFFSET ;
       }
 
+      rc = _checkReusePosition( context, transID, cb, position, foundRID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check reuse position, rc: %d", rc ) ;
+
       try
       {
           // Step 1: Prepare the data, add OID and compress if necessary.
@@ -4223,8 +4230,11 @@ namespace engine
             }
          }
 
-         rc = context->getCollPtr()->allocRecordID( dmsRecordSize, foundRID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate space for record failed, rc: %d", rc ) ;
+         if ( !foundRID.isValid() )
+         {
+            rc = context->getCollPtr()->allocRecordID( dmsRecordSize, foundRID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Allocate space for record failed, rc: %d", rc ) ;
+         }
 
          // NOTE: we still need transaction locks during rollback
          // the insert record to rollback delete operation may insert
@@ -4438,10 +4448,12 @@ namespace engine
       dmsRecordData recordData ;
       IDmsExtDataHandler *handler   = NULL ;
       _sdbRemoteCountAssist countAssist ;
+      BOOLEAN inTrans               = FALSE ;
       BOOLEAN needSetTransRC        = FALSE ;
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+      INT64 delPosition = -1 ;
 
       dmsWriteGuard writeGuard( _service, this, context, cb ) ;
 
@@ -4476,6 +4488,14 @@ namespace engine
          rc = writeGuard.begin() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
+         // when in transaction(not rollback), we should not immediately
+         // delete the record, otherwise TB scan won't be able to find
+         // this record even if the current transaction has not committed.
+         if ( DPS_INVALID_TRANS_ID != transID && !cb->isInTransRollback() )
+         {
+            inTrans = TRUE ;
+         }
+
          // first time deletion of the record write the LR and delete indexes
          if ( deletedDataPtr )
          {
@@ -4488,6 +4508,10 @@ namespace engine
             rc = extractData( context, recordID, cb, recordData ) ;
             PD_RC_CHECK( rc, PDERROR, "Extract data failed, rc: %d", rc ) ;
          }
+
+         // get record position
+         rc = _getRecordPosition( recordID, recordData, delPosition ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get record position, rc: %d", rc ) ;
 
          // delete index keys
          try
@@ -4557,7 +4581,8 @@ namespace engine
                // NOTE: only append position if mark deleting during
                //       transaction ( not including rollback phase )
                rc = dpsDelete2Record( fullName, delObject, pUnqIdxHashArray,
-                                      NULL, transID, preLsn, relatedLSN,
+                                      inTrans ? &delPosition : NULL, transID,
+                                      preLsn, relatedLSN,
                                       record ) ;
 
                if ( SDB_OK != rc )
