@@ -879,8 +879,11 @@ namespace engine
                                     const _optAccessPlanHelper & planHelper,
                                     const dmsStatCache * statCache )
    {
-      if ( NULL == statCache ||
-           (INT32)_totalDataPages <= planHelper.getOptCostThreshold() )
+      UINT32 pageSize = getPageSize() ;
+      UINT32 estPages = ossRoundUpToMultipleX( _totalDataSize, pageSize ) / pageSize ;
+      if ( ( NULL == statCache ) ||
+           ( (INT32)_totalDataPages <= planHelper.getOptCostThreshold() &&
+             (INT32)estPages <= planHelper.getOptCostThreshold() ) )
       {
          // no cache or collection is too small to use statistics
          return ;
@@ -889,7 +892,7 @@ namespace engine
       _pCollectionStat = (const dmsCollectionStat *)
                            statCache->getCacheUnit( mbContext->mbID() ) ;
       if ( NULL != _pCollectionStat &&
-           optCheckStatExpired( _totalDataPages,
+           optCheckStatExpiredByPage( _totalDataPages,
                                 _pCollectionStat->getTotalDataPages(),
                                 planHelper.getOptCostThreshold(),
                                 _pageSizeLog2 ) )
@@ -1672,8 +1675,10 @@ namespace engine
    #define OPT_EXPIRED_QUICK_STEP   ( ( OPT_EXPIRED_SMALL_STEP ) / \
                                       ( DMS_PAGE_SIZE_MAX ) )
 
-   BOOLEAN optCheckStatExpired ( UINT32 currentPages, UINT32 statPages,
-                                 UINT32 costThreshold, UINT32 pageSizeLog2 )
+   BOOLEAN optCheckStatExpiredByPage( UINT32 currentPages,
+                                      UINT32 statPages,
+                                      UINT32 costThreshold,
+                                      UINT32 pageSizeLog2 )
    {
       // CASE 1:   current and history number of pages are the same, always not
       //           be expired
@@ -1717,6 +1722,30 @@ namespace engine
       // CASE 4.2
       return ( currentPages > statPages +
                               ( OPT_EXPIRED_LARGE_STEP >> pageSizeLog2 ) ) ;
+   }
+
+   BOOLEAN optCheckStatExpiredBySize( UINT32 currentDataSize,
+                                      UINT32 statDataSize,
+                                      UINT32 costThreshold,
+                                      UINT32 pageSizeLog2 )
+   {
+      // CASE 1:   current and history number of pages are the same, always not
+      //           be expired
+      // CASE 2:   both current and history number of pages are smaller than
+      //           cost threshold, means the collection is small, always not
+      //           be expired
+      // CASE 3:   one of current or history number of pages are larger than
+      //           cost threshold, will expire the history statistics
+      // CASE 4:   for case that both current and history number of pages are
+      //           bigger than the cost threshold,
+      // CASE 4.1: for <= 8 GB, increasing each 256 MB will be expired
+      // CASE 4.2: for > 8 GB, increasing each 1 GB will be expired
+      // CASE 4.3: quick check for CASE 4: if increasing number of pages is
+      //           smaller than 256 MB / 64 KB, must not be expired
+      UINT32 pageSize = 1 << pageSizeLog2 ;
+      UINT32 currentPages = ossRoundUpToMultipleX( currentDataSize, pageSize ) / pageSize ;
+      UINT32 statPages = ossRoundUpToMultipleX( statDataSize, pageSize ) / pageSize ;
+      return optCheckStatExpiredByPage( currentPages, statPages, costThreshold, pageSizeLog2 ) ;
    }
 
 }

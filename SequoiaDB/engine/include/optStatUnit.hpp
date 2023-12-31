@@ -565,8 +565,14 @@ namespace engine
    /*
       helper functions
     */
-   BOOLEAN optCheckStatExpired ( UINT32 currentPages, UINT32 statPages,
-                                 UINT32 costThreshold, UINT32 pageSizeLog2 ) ;
+   BOOLEAN optCheckStatExpiredByPage( UINT32 currentPages,
+                                      UINT32 statPages,
+                                      UINT32 costThreshold,
+                                      UINT32 pageSizeLog2 ) ;
+   BOOLEAN optCheckStatExpiredBySize( UINT32 currentDataSize,
+                                      UINT32 statDataSize,
+                                      UINT32 costThreshold,
+                                      UINT32 pageSizeLog2 ) ;
 
 }
 

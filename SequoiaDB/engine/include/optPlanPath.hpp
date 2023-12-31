@@ -252,6 +252,11 @@ namespace engine
             return ( NULL != _pScanNode ) ? _pScanNode->getInputPages() : 0 ;
          }
 
+         OSS_INLINE UINT32 getInputRecordSize() const
+         {
+            return ( NULL != _pScanNode ) ? _pScanNode->getInputRecordSize() : 0 ;
+         }
+
          OSS_INLINE UINT64 getInputRecords () const
          {
             return ( NULL != _pScanNode ) ? _pScanNode->getInputRecords() : 0 ;

@@ -419,8 +419,11 @@ namespace engine
 
          OSS_INLINE BOOLEAN needEvalIOCost () const
          {
+            UINT32 pageSize = getPageSize() ;
+            UINT32 estPages = ossRoundUpToMultipleX( _inputRecordSize, pageSize ) / pageSize ;
             return ( _estCacheSize >= 0 &&
-                     _inputPages > (UINT32)_estCacheSize ) ;
+                     ( ( _inputPages > (UINT32)_estCacheSize ) ||
+                       ( estPages > (UINT32)_estCacheSize ) ) ) ;
          }
 
          OSS_INLINE double getMthSelctivity () const

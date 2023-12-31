@@ -303,6 +303,13 @@ namespace engine
             return _scanPath.getInputPages() ;
          }
 
+         OSS_INLINE UINT32 getInputRecordSize() const
+         {
+            SDB_ASSERT ( _isInitialized, "optAccessPlan must be optimized "
+                         "before start using" ) ;
+            return _scanPath.getInputRecordSize() ;
+         }
+
          OSS_INLINE UINT64 getInputRecords () const
          {
             SDB_ASSERT ( _isInitialized, "optAccessPlan must be optimized "

@@ -1888,19 +1888,26 @@ namespace engine
                pTmpPlan->release() ;
             }
             else if ( pPlan->isEstimatedFromStat() &&
-                      optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
-                                           pPlan->getInputPages(),
-                                           planHelper.getOptCostThreshold(),
-                                           su->getPageSizeLog2() ) )
+                      optCheckStatExpiredByPage( mbContext->mbStat()->_totalDataPages,
+                                                 pPlan->getInputPages(),
+                                                 planHelper.getOptCostThreshold(),
+                                                 su->getPageSizeLog2() ) &&
+                      optCheckStatExpiredBySize( mbContext->mbStat()->_totalOrgDataLen.fetch(),
+                                                 pPlan->getInputRecordSize(),
+                                                 planHelper.getOptCostThreshold(),
+                                                 su->getPageSizeLog2() ) )
             {
                dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
 
                // plan is expired
                PD_LOG( PDDEBUG, "Plan [%s] is expired, current pages [%d], "
-                       "statistics pages [%d], cost threshold [%d]",
+                       "statistics pages [%d], current data size [%d], "
+                       "statistics data size [%d], cost threshold [%d]",
                        pPlan->toString().c_str(),
                        mbContext->mbStat()->_totalDataPages,
                        pPlan->getInputPages(),
+                       mbContext->mbStat()->_totalOrgDataLen.fetch(),
+                       pPlan->getInputRecordSize(),
                        planHelper.getOptCostThreshold() ) ;
 
                // clear expired plan and flags
@@ -2027,17 +2034,24 @@ namespace engine
                  pPlan->isMainCLValid() &&
                  pPlan->isEstimatedFromStat() &&
                  !pCachedPlanMgr->testParamInvalidBitmap( subCLMBID ) &&
-                 optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
-                                      pPlan->getInputPages(),
-                                      planHelper.getOptCostThreshold(),
-                                      su->getPageSizeLog2() ) )
+                 optCheckStatExpiredByPage( mbContext->mbStat()->_totalDataPages,
+                                            pPlan->getInputPages(),
+                                            planHelper.getOptCostThreshold(),
+                                            su->getPageSizeLog2() ) &&
+                 optCheckStatExpiredBySize( mbContext->mbStat()->_totalOrgDataLen.fetch(),
+                                            pPlan->getInputRecordSize(),
+                                            planHelper.getOptCostThreshold(),
+                                            su->getPageSizeLog2() ) )
             {
                // plan is expired
                PD_LOG( PDDEBUG, "Plan [%s] is expired, current pages [%d], "
-                       "statistics pages [%d], cost threshold [%d]",
+                       "statistics pages [%d], current data size [%d], "
+                       "statistics data size [%d], cost threshold [%d]",
                        pPlan->toString().c_str(),
                        mbContext->mbStat()->_totalDataPages,
                        pPlan->getInputPages(),
+                       mbContext->mbStat()->_totalOrgDataLen.fetch(),
+                       pPlan->getInputRecordSize(),
                        planHelper.getOptCostThreshold() ) ;
 
                // clear expired plan and flags

@@ -488,7 +488,7 @@ namespace engine
          isDefault = TRUE ;
          pCollectionStat = &dummyStat ;
       }
-      else if ( optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
+      else if ( optCheckStatExpiredByPage( mbContext->mbStat()->_totalDataPages,
                                      pCollectionStat->getTotalDataPages(),
                                      optCB->getOptCostThreshold(),
                                      pSU->getPageSizeLog2() ) )
