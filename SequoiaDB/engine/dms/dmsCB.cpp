@@ -2591,9 +2591,6 @@ namespace engine
       {
          if ( removeFile )
          {
-            // if remove file failed, we can do nothing
-            rc = pCSCB->_su->remove() ;
-
             if ( _storageService )
             {
                dmsCSMetadata metadata( pCSCB->_su ) ;
@@ -2606,9 +2603,9 @@ namespace engine
                if ( SDB_OK != tmpRC )
                {
                   PD_LOG( PDWARNING, "Failed to drop collection space [%s] on "
-                          "engine [%s], rc: %d", pName,
-                          dmsGetStorageEngineName( _storageService->getEngineType() ),
-                          tmpRC ) ;
+                        "engine [%s], rc: %d", pName,
+                        dmsGetStorageEngineName( _storageService->getEngineType() ),
+                        tmpRC ) ;
                }
                if ( options == &tmpOptions )
                {
@@ -2616,6 +2613,8 @@ namespace engine
                }
             }
 
+            // if remove file failed, we can do nothing
+            rc = pCSCB->_su->remove() ;
             pCSCB->_su->getEventHolder()->onDropCS( DMS_EVENT_MASK_ALL,
                                                     SDB_EVT_OCCUR_AFTER,
                                                     suItem,
