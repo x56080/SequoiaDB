@@ -208,8 +208,17 @@ namespace wiredtiger
       s = sess.getSession() ;
       SDB_ASSERT( nullptr != s, "session should not be null" ) ;
 
-      rc = WT_CALL( s->drop( s, uri, config ), s ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger store, rc: %d", rc ) ;
+      while ( TRUE )
+      {
+         rc = WT_CALL( s->drop( s, uri, config ), s ) ;
+         if ( SDB_OK != rc && EBUSY == dmsWTGetLastErrorCode() )
+         {
+            ossSleep( 100 ) ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger store, rc: %d", rc ) ;
+         break ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_DROPSTORE, rc ) ;
