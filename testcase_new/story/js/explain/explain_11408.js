@@ -5,6 +5,7 @@
 *@testlinkCase: seqDB-11408
 **************************************/
 testConf.clName = COMMCLNAME + "_11408";
+testConf.clOpt = {Compressed: false};
 
 main( test )
 
@@ -47,6 +48,8 @@ function test ( testPara )
    {
       docs.push( { d: i } )
    }
+   dbcl.insert( docs );
+   dbcl.insert( docs );
    dbcl.insert( docs );
 
    db.analyze( { Collection: fullclName } );

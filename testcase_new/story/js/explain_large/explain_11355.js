@@ -5,6 +5,7 @@
 *@testlinkCase: seqDB-11355
 **************************************/
 testConf.clName = COMMCLNAME + "_11355";
+testConf.clOpt = {Compressed: false};
 
 main( test )
 

@@ -4,6 +4,7 @@
 *@Date        : 2020.5.12
 ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_18433";
+testConf.clOpt = {Compressed: false};
 
 main( test );
 
@@ -46,11 +47,13 @@ function test ( args )
    checkExplain( cl, cond, expIndexName, expScanType );
 
    var docs = [];
-   for( var i = 0; i < 11000; i++ )
+   for( var i = 0; i < 20000; i++ )
    {
       docs.push( { a: i, b: i, c: i } );
    }
    cl.insert( docs );
+
+   db.sync();
 
    // 计算io代价
    var expNeedEvalIO = true;

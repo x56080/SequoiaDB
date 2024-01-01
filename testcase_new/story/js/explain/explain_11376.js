@@ -4,6 +4,7 @@
 *@Date        : 2020.5.7
 ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_11376";
+testConf.clOpt = {Compressed: false};
 
 main( test );
 
@@ -22,7 +23,7 @@ function test ( args )
 
    // 生成随机数
    var rd = new commDataGenerator();
-   var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
+   var value = rd.getRecords( 20000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
    db.analyze( { Collection: fullclName } );

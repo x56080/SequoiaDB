@@ -6,6 +6,7 @@
 *@Date        : 2020.5.11
 ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_11380_11382";
+testConf.clOpt = {Compressed: false};
 
 main( test );
 
@@ -59,7 +60,7 @@ function test ( args )
    var hintCond = { "": notIdx };
    checkExplain( cl, cond, expIndexName, expScanType, sortCond, hintCond );
 
-   var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
+   var value = rd.getRecords( 20000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
    db.analyze( { Collection: fullclName } );

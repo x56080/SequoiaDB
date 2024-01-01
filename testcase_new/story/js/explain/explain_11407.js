@@ -4,6 +4,7 @@
 *@Date        : 2020.5.12
 ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_11407";
+testConf.clOpt = {Compressed: false};
 
 main( test );
 
@@ -37,8 +38,10 @@ function test ( args )
    var expScanType = "tbscan";
    testExplain( cl, cond, expIndexName, expScanType );
 
-   var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
+   var value = rd.getRecords( 20000, "int", ["a", "b", "c"] );
    cl.insert( value );
+
+   db.sync()
 
    // 计算io代价
    var expNeedEvalIO = true;
