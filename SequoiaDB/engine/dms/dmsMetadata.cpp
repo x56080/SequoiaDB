@@ -70,7 +70,7 @@ namespace engine
    _dmsIdxMetadataKey::_dmsIdxMetadataKey( const _dmsMetadataBlock *mb,
                                            const _ixmIndexCB *idxCB )
    : _dmsCLMetadataKey( mb ),
-     _idxInnerID( utilGetIdxInnerID( idxCB->getUniqueID() ) )
+     _idxInnerID( utilGetIdxInnerIDWithFlag( idxCB->getUniqueID() ) )
    {
    }
 
@@ -78,7 +78,7 @@ namespace engine
                                   const _ixmIndexCB *idxCB )
    {
       _dmsCLMetadataKey::init( mb ) ;
-      _idxInnerID = utilGetIdxInnerID( idxCB->getUniqueID() ) ;
+      _idxInnerID = utilGetIdxInnerIDWithFlag( idxCB->getUniqueID() ) ;
    }
 
    /*
@@ -119,7 +119,7 @@ namespace engine
                                      dmsMBStatInfo *mbStat,
                                      _ixmIndexCB *indexCB )
    : _dmsCLMetadata( su, mb, mbStat ),
-     _idxInnerID( utilGetIdxInnerID( indexCB->getUniqueID() ) ),
+     _idxInnerID( utilGetIdxInnerIDWithFlag( indexCB->getUniqueID() ) ),
      _idxLID( indexCB->getLogicalID() ),
      _keyPattern( indexCB->keyPattern() ),
      _ordering( Ordering::make( indexCB->keyPattern() ) ),

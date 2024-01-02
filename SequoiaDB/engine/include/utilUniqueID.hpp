@@ -139,6 +139,12 @@ namespace engine
       return inId ;
    }
 
+   OSS_INLINE utilIdxInnerID utilGetIdxInnerIDWithFlag( utilIdxUniqueID idxUniqueID )
+   {
+      utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
+      return inId ;
+   }
+
    OSS_INLINE BOOLEAN utilIsStandaloneIdx( utilIdxUniqueID idxUniqueID )
    {
       utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
