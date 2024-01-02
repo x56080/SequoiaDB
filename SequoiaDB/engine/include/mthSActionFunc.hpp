@@ -315,6 +315,16 @@ namespace engine
    INT32 mthTypeGet( const CHAR *fieldName, const bson::BSONElement &in,
                      _mthSAction *action, bson::BSONElement &out ) ;
 
+   INT32 mthKeyStringBuild( const CHAR *,
+                            const bson::BSONElement &,
+                            _mthSAction *,
+                            bson::BSONObjBuilder & ) ;
+
+   INT32 mthKeyStringGet( const CHAR *,
+                          const bson::BSONElement &,
+                          _mthSAction *,
+                          bson::BSONElement & ) ;
+
 }
 
 #endif

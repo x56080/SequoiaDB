@@ -1612,6 +1612,77 @@ namespace engine
       goto done ;
    }
 
+   //************************_mthMatchFuncKEYSTRING********************************
+   _mthMatchFuncKEYSTRING::_mthMatchFuncKEYSTRING( _mthNodeAllocator *allocator )
+   : _mthMatchFunc( allocator ),
+     _direction( 1 )
+   {
+   }
+
+   _mthMatchFuncKEYSTRING::~_mthMatchFuncKEYSTRING()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncKEYSTRING::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjBuilder builder ;
+
+      rc = mthKeyString( _fieldName.getFieldName(), _direction, in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to call key string, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      out = builder.obj() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _mthMatchFuncKEYSTRING::getType()
+   {
+      return EN_MATCH_FUNC_KEYSTRING ;
+   }
+
+   const CHAR* _mthMatchFuncKEYSTRING::getName()
+   {
+      return MTH_FUNCTION_STR_KEYSTRING ;
+   }
+
+   void _mthMatchFuncKEYSTRING::clear()
+   {
+      _mthMatchFunc::clear() ;
+      _direction = 1 ;
+   }
+
+   INT32 _mthMatchFuncKEYSTRING::_init( const CHAR *fieldName,
+                                        const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "direction must be number 1, ele: %s",
+                 ele.toString().c_str() ) ;
+         goto error ;
+      }
+
+      _direction = ele.numberInt() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //************************_mthMatchOpNode********************************
    _mthMatchOpNode::_mthMatchOpNode( _mthNodeAllocator *allocator,
                                      const mthNodeConfig *config )

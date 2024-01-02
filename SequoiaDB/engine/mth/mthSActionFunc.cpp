@@ -1712,6 +1712,81 @@ namespace engine
    error:
       goto done ;
    }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHKEYSTRINGBUILD, "mthKeyStringBuild" )
+   INT32 mthKeyStringBuild( const CHAR *fieldName,
+                            const bson::BSONElement &e,
+                            _mthSAction *action,
+                            bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHKEYSTRINGBUILD ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "direction must be number, ele: %s",
+                 arg.toString().c_str() ) ;
+         goto error ;
+      }
+
+      rc = mthKeyString( fieldName, arg.numberInt(), e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to call key string, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHKEYSTRINGBUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHKEYSTRINGGET, "mthKeyStringGet" )
+   INT32 mthKeyStringGet( const CHAR *fieldName,
+                          const bson::BSONElement &e,
+                          _mthSAction *action,
+                          bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHKEYSTRINGGET ) ;
+      SDB_ASSERT( NULL != action, "can not be null" ) ;
+      BSONObjBuilder builder ;
+      BSONObj obj ;
+      BSONElement arg = action->getArg().getField( "arg1" ) ;
+
+      if ( !arg.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "direction must be number, ele: %s",
+                 arg.toString().c_str() ) ;
+         goto error ;
+      }
+
+      rc = mthKeyString( fieldName, arg.numberInt(), e, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to call key string, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      obj = builder.obj() ;
+      if ( !obj.isEmpty() )
+      {
+         action->setObj( obj ) ;
+         out = action->getObj().getField( fieldName ) ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__MTHKEYSTRINGGET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }
 
 

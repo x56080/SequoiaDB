@@ -2941,6 +2941,27 @@ namespace keystring
       goto done ;
    }
 
+   INT32 _keyStringBuilderImpl::buildForKeyStringFunc( const BSONElement &ele,
+                                                       INT32 direction )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = appendBSONElement( ele, direction > 0 ? FALSE : TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append bson elements, rc: %d", rc ) ;
+
+      rc = _appendDiscriminator( keyStringDiscriminator::INCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append discriminator, rc: %d", rc ) ;
+
+      rc = done() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append done, rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _keyStringBuilderImpl::buildBoundaryKey( const dmsIdxMetadataKey &indexID,
                                                   BOOLEAN asUpBound,
                                                   UINT32 bufSize,

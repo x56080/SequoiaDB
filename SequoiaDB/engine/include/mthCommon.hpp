@@ -139,6 +139,11 @@ namespace engine
    INT32 mthSize( const CHAR *name, const BSONElement &in,
                   BSONObjBuilder &outBuilder ) ;
 
+   INT32 mthKeyString( const CHAR *name,
+                       INT32 direction,
+                       const BSONElement &in,
+                       BSONObjBuilder &outBuilder ) ;
+
    class _mthCastTranslator
    {
    public:

@@ -108,6 +108,7 @@ namespace engine
       EN_MATCH_FUNC_TYPE               = 119,
       EN_MATCH_FUNC_STRLENBYTES        = 120,
       EN_MATCH_FUNC_STRLENCP           = 121,
+      EN_MATCH_FUNC_KEYSTRING          = 122,
 
       EN_MATCH_FUNC_END                = 200,
 
@@ -163,6 +164,7 @@ namespace engine
    #define MTH_FUNCTION_STR_TYPE                "$type"
    #define MTH_FUNCTION_STR_STRLENBYTES         "$strlenBytes"
    #define MTH_FUNCTION_STR_STRLENCP            "$strlenCP"
+   #define MTH_FUNCTION_STR_KEYSTRING           "$keyString"
 
    #define MTH_ALLOCATOR_SIZE                   2048
    #define MTH_MATCH_FIELD_STATIC_NAME_LEN      32

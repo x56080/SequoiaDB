@@ -186,6 +186,9 @@ namespace keystring
                                 const UINT64 *lsn = nullptr,
                                 BOOLEAN *isAllUndefined = nullptr ) ;
 
+      INT32 buildForKeyStringFunc( const bson::BSONElement &ele,
+                                   INT32 direction ) ;
+
       INT32 rebuildEntryKey( const keyString &ks,
                              const dmsRecordID &rid,
                              utilSlice keyHeader = utilSlice() ) ;

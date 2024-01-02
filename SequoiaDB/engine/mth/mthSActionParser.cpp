@@ -263,6 +263,10 @@ namespace engine
 
       /// $size
       MTH_ADD_PARSER( _mthSizeParser ) ;
+
+      /// $keyString
+      MTH_ADD_PARSER( _mthKeyStringParser ) ;
+
    done:
       PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__REGISTERPARSERS, rc ) ;
       return rc ;

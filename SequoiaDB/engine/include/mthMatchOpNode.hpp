@@ -487,6 +487,26 @@ namespace engine
       private:
    } ;
 
+   class _mthMatchFuncKEYSTRING : public _mthMatchFunc
+   {
+   public:
+      _mthMatchFuncKEYSTRING( _mthNodeAllocator *allocator ) ;
+      virtual ~_mthMatchFuncKEYSTRING() ;
+
+   public:
+      virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
+      virtual INT32 getType() ;
+      virtual const CHAR* getName() ;
+      virtual void clear() ;
+
+   protected:
+      virtual INT32 _init( const CHAR *fieldName,
+                           const BSONElement &ele ) ;
+
+   private:
+      INT32 _direction ;
+   } ;
+
    typedef ossPoolList< _mthMatchFunc* > MTH_FUNC_LIST ;
 
    class _mthMatchOpNode : public _mthMatchNode

@@ -108,6 +108,7 @@ namespace engine
       { MTH_FUNCTION_STR_SLICE,       EN_MATCH_FUNC_SLICE },
       { MTH_FUNCTION_STR_SIZE,        EN_MATCH_FUNC_SIZE },
       { MTH_FUNCTION_STR_TYPE,        EN_MATCH_FUNC_TYPE },
+      { MTH_FUNCTION_STR_KEYSTRING,   EN_MATCH_FUNC_KEYSTRING },
 
       { MTH_ATTR_STR_EXPAND,          EN_MATCH_ATTR_EXPAND },
       { MTH_ATTR_STR_RETURNMATCH,     EN_MATCH_ATTR_RETURNMATCH },
@@ -341,6 +342,9 @@ namespace engine
             as a function.
          */
          func = new ( allocator ) _mthMatchFuncEXPAND( allocator ) ;
+         break ;
+      case EN_MATCH_FUNC_KEYSTRING:
+         func = new ( allocator ) _mthMatchFuncKEYSTRING( allocator ) ;
          break ;
       default :
          break ;

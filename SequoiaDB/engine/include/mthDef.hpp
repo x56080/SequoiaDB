@@ -64,6 +64,7 @@ namespace engine
    #define MTH_S_SIZE           MTH_S_PREFIX"size"
    #define MTH_S_STRLENBYTES    MTH_S_PREFIX"strlenBytes"
    #define MTH_S_STRLENCP       MTH_S_PREFIX"strlenCP"
+   #define MTH_S_KEYSTRING      MTH_S_PREFIX"keyString"
 
    typedef UINT32 MTH_S_ATTRIBUTE ;
 

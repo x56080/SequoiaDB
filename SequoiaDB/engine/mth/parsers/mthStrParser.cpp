@@ -385,5 +385,42 @@ namespace engine
    error:
       goto done ;
    }
+
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHKEYSTRINGPARSER_PARSE, "_mthKeyStringParser::parse" )
+   INT32 _mthKeyStringParser::parse( const bson::BSONElement &e,
+                                     _mthSAction &action ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHKEYSTRINGPARSER_PARSE ) ;
+      BSONObjBuilder builder ;
+
+      if ( e.eoo() )
+      {
+         PD_LOG( PDERROR, "invalid element" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !e.isNumber() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_RC_CHECK( rc, PDERROR, "direction must be number" ) ;
+      }
+
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthKeyStringBuild,
+                      &mthKeyStringGet ) ;
+      action.setName( _name.c_str() ) ;
+      builder.appendAs( e, "arg1" ) ;
+      action.setArg( builder.obj() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHKEYSTRINGPARSER_PARSE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }
 

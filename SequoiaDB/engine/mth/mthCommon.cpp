@@ -44,7 +44,7 @@
 #include "mthDef.hpp"
 #include "../util/fromjson.hpp"
 #include "utilMath.hpp"
-
+#include "keystring/utilKeyStringBuilder.hpp"
 
 using namespace bson ;
 
@@ -2831,6 +2831,31 @@ namespace engine
 
    done:
       return SDB_OK ;
+   }
+
+   INT32 mthKeyString( const CHAR *name,
+                       INT32 direction,
+                       const BSONElement &in,
+                       BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      keystring::keyStringBuilder builder ;
+      rc = builder.buildForKeyStringFunc( in, direction ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append bson element, rc: %d", rc ) ;
+      {
+         utilSlice keySlice( builder.getShallowKeyString().getKeySlice() ) ;
+         outBuilder.appendBinData( name,
+                                   keySlice.getSize(),
+                                   BinDataGeneral,
+                                   keySlice.getData() ) ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    _mthCastTranslator::_mthCastTranslator()

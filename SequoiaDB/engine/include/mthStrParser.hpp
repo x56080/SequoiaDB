@@ -164,6 +164,21 @@ namespace engine
       virtual INT32 parse( const bson::BSONElement &e,
                             _mthSAction &action ) const ;
    } ;
+
+   class _mthKeyStringParser : public _mthSActionParser::parser
+   {
+   public:
+      _mthKeyStringParser()
+      {
+         _name = MTH_S_KEYSTRING ;
+      }
+      virtual ~_mthKeyStringParser() {}
+
+   public:
+      virtual INT32 parse( const bson::BSONElement &e,
+                            _mthSAction &action ) const ;
+   } ;
+
 }
 
 #endif
