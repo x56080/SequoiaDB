@@ -32,27 +32,36 @@ function test ()
    maincl.attachCL( csName + "." + sub3clName, { "LowBound": { a: 20 }, "UpBound": { a: 30 } } );
 
    // alter Compressed:false
-   maincl.alter( { "Compressed": false } );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      maincl.alter( { "Compressed": false } );
+   });
 
    // 检查主备一致
    commCheckLSN( db, dataGroupName, 600 );
 
-   var cond = { Name: { $regex: csName + "." + CHANGEDPREFIX + testcaseID } };
-
-   checkCompressedFalse( db, cond, dataGroupName );
+   //var cond = { Name: { $regex: csName + "." + CHANGEDPREFIX + testcaseID } };
+   //checkCompressedFalse( db, cond, dataGroupName );
 
    // recovery attribute
-   sub1cl.alter( { "Compressed": false } );
-   sub2cl.alter( { "Compressed": true, "CompressionType": 'snappy' } );
-   sub3cl.alter( { "Compressed": true, "CompressionType": 'lzw' } );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      sub1cl.alter( { "Compressed": false } );
+   });
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      sub2cl.alter( { "Compressed": true, "CompressionType": 'snappy' } );
+   });
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      sub3cl.alter( { "Compressed": true, "CompressionType": 'lzw' } );
+   });
 
    // alter CompressionType:'lzw'
-   maincl.alter( { CompressionType: 'lzw' } );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      maincl.alter( { CompressionType: 'lzw' } );
+   });
 
    // 检查主备一致
    commCheckLSN( db, dataGroupName, 600 );
 
-   checkCompressedTrue( db, cond, dataGroupName );
+   //checkCompressedTrue( db, cond, dataGroupName );
 
    commDropCL( db, csName, mainclName );
    commDropCL( db, csName, sub1clName );

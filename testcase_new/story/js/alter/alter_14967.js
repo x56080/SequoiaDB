@@ -18,17 +18,23 @@ function test ()
    var options = { Compressed: false };
    var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
-   cl.setAttributes( { CompressionType: 'snappy' } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0 );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl.setAttributes( { CompressionType: 'snappy' } )
+   } );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0 );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy" );
 
-   cl.setAttributes( { Compressed: false } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Attribute", 0 );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AttributeDesc", "" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl.setAttributes( { Compressed: false } )
+   } );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Attribute", 0 );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AttributeDesc", "" );
 
-   cl.setAttributes( { Compressed: true } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 1 );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "lzw" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl.setAttributes( { Compressed: true } )
+   } );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 1 );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "lzw" );
 
    commDropCL( db, csName, clName, true, false, "clean cl" );
 }

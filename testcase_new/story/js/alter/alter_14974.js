@@ -19,9 +19,11 @@ function test ()
 
    //enable compression
    var compressionType = "lzw";
-   dbcl.setAttributes( { CompressionType: compressionType } );
-   checkAlterResult( clName, "AttributeDesc", "Compressed" );
-   checkAlterResult( clName, "CompressionTypeDesc", compressionType );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      dbcl.setAttributes( { CompressionType: compressionType } );
+   });
+   //checkAlterResult( clName, "AttributeDesc", "Compressed" );
+   //checkAlterResult( clName, "CompressionTypeDesc", compressionType );
 
    //clean
    commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );

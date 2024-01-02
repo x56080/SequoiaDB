@@ -26,15 +26,21 @@ function test ()
    }
 
    //lzw类型为1, snappy为0
-   cl1.setAttributes( { Compressed: true, CompressionType: 'lzw' } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AttributeDesc", "Compressed" );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "CompressionType", 1 );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl1.setAttributes( { Compressed: true, CompressionType: 'lzw' } );
+   });
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AttributeDesc", "Compressed" );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "CompressionType", 1 );
 
-   cl2.setAttributes( { Compressed: true } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AttributeDesc", "Compressed" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl2.setAttributes( { Compressed: true } );
+   });
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AttributeDesc", "Compressed" );
 
-   cl2.setAttributes( { CompressionType: 'lzw' } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "CompressionType", 1 );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl2.setAttributes( { CompressionType: 'lzw' } );
+   });
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "CompressionType", 1 );
 
    commDropCL( db, csName, clName1, true, false, "clean cl1" );
    commDropCL( db, csName, clName2, true, false, "clean cl2" );

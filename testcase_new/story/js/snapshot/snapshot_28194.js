@@ -32,7 +32,9 @@ function test ()
    }
 
    // 3.更新CL属性信息 
-   db.getCS( csName ).getCL( clName ).disableCompression();
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      db.getCS( csName ).getCL( clName ).disableCompression();
+   } );
    var cursor3 = db.exec( "select * from $LIST_CS where Name = 'csName_28194' " );
    var createTime3 = cursor3.current().toObj()["CreateTime"];
    var updateTime3 = cursor3.current().toObj()["UpdateTime"];

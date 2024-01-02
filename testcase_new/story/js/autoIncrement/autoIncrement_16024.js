@@ -46,7 +46,7 @@ function test ()
    var acquireSize = 11;
    var generated = "strict";
    var currentValue = 999 * increment + 1;
-   dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, CompressionType: 'lzw' } );
+   dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, ReplSize: -1 } );
    var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName, Generated: generated }];
@@ -90,8 +90,7 @@ function checkSnapshot8onCL ( csName, clName )
 {
    var obj = db.snapshot( 8, { Name: csName + "." + clName } ).next().toObj();
    var shardingType = obj.ShardingType;
-   var compressionType = obj.CompressionTypeDesc;
-   if( shardingType !== "hash" || compressionType !== "lzw" )
+   if( shardingType !== "hash" )
    {
       throw new Error( "ALTER_CL_ERR" );
    }

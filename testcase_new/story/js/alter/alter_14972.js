@@ -24,9 +24,11 @@ function test ()
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, Compressed: true, CompressionType: 'lzw' };
    var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
-   cl.setAttributes( { CompressionType: 'snappy' } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0 );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl.setAttributes( { CompressionType: 'snappy' } );
+   } );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0 );
+   //checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy" );
 
    commDropCL( db, csName, clName, true, false, "clean cl" );
 }

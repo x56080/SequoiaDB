@@ -46,33 +46,35 @@ function test ()
    var updateTime4_1 = cursor4_1.current().toObj()["UpdateTime"];
 
    // 2.更新CL属性信息 
-   db.getCS( csName ).getCL( clName ).disableCompression();
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      db.getCS( csName ).getCL( clName ).disableCompression();
+   } );
    // 查看集合空间快照信息
    var cursor1_2 = db.snapshot( SDB_SNAP_COLLECTIONSPACES, { Name: csName, NodeName: nodeName } );
    var createTime1_2 = cursor1_2.current().toObj()["CreateTime"];
    var updateTime1_2 = cursor1_2.current().toObj()["UpdateTime"];
    assert.equal( createTime1_2, createTime1_1, "expected createTime equal" );
-   if( updateTime1_2 <= updateTime1_1 )
+   if( updateTime1_2 != updateTime1_1 )
    {
-      throw new Error( "expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "expected post-updateTime to be equal to pre-updateTime" );
    }
    // 查看集合快照信息
    var cursor2_2 = db.snapshot( SDB_SNAP_COLLECTIONS, cond );
    var createTime2_2 = cursor2_2.current().toObj()["Details"][0]["Group"][0]["CreateTime"];
    var updateTime2_2 = cursor2_2.current().toObj()["Details"][0]["Group"][0]["UpdateTime"];
    assert.equal( createTime2_2, createTime2_1, "expected createTime equal" );
-   if( updateTime2_2 <= updateTime2_1 )
+   if( updateTime2_2 != updateTime2_1 )
    {
-      throw new Error( "expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "expected post-updateTime to be equal to pre-updateTime" );
    }
    // 查看编目快照信息
    var cursor3_2 = db.snapshot( SDB_SNAP_CATALOG, { Name: csName + "." + clName } );
    var createTime3_2 = cursor3_2.current().toObj()["CreateTime"];
    var updateTime3_2 = cursor3_2.current().toObj()["UpdateTime"];
    assert.equal( createTime3_2, createTime3_1, "expected createTime equal" );
-   if( updateTime3_2 <= updateTime3_1 )
+   if( updateTime3_2 != updateTime3_1 )
    {
-      throw new Error( "expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "expected post-updateTime to be equal to pre-updateTime" );
    }
 
    // 3.修改CL名

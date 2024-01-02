@@ -24,15 +24,21 @@ function test ()
    var cl3 = commCreateCL( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range", Compressed: false } );
    var cl4 = commCreateCL( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true, Compressed: false } );
 
-   cl1.alter( { "Compressed": true } );
-   cl2.alter( { "Compressed": true } );
-   cl3.alter( { "Compressed": true } );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl1.alter( { "Compressed": true } );
+   });
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl2.alter( { "Compressed": true } );
+   });
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      cl3.alter( { "Compressed": true } );
+   });
    cl4.alter( { "Compressed": true } );
 
    //check cl snapshot
-   checkcompressionType( clName1 );
-   checkcompressionType( clName2 );
-   checkcompressionType( clName3 );
+   //checkcompressionType( clName1 );
+   //checkcompressionType( clName2 );
+   //checkcompressionType( clName3 );
    checkcompressionType( clName4 );
 
    commDropCL( db, COMMCSNAME, clName1 );
@@ -45,8 +51,8 @@ function checkcompressionType ( clName )
 {
    var snap = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    var compressionType = snap.current().toObj()['CompressionType'];
-   if( compressionType !== 1 )
+   if( compressionType !== 0 )
    {
-      throw new Error( "check compressionType, \nexpect: 1, \nbut found: " + compressionType );
+      throw new Error( "check compressionType, \nexpect: 0, \nbut found: " + compressionType );
    }
 }

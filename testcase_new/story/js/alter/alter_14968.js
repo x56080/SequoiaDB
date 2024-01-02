@@ -18,9 +18,11 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { Compressed: false } );
 
    //enable compression
-   dbcl.enableCompression();
-   checkAlterResult( clName, "AttributeDesc", "Compressed" );
-   checkAlterResult( clName, "CompressionTypeDesc", "lzw" );
+   assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
+      dbcl.enableCompression();
+   } );
+   //checkAlterResult( clName, "AttributeDesc", "Compressed" );
+   //checkAlterResult( clName, "CompressionTypeDesc", "lzw" );
 
    //insert data and query data
    insertAndQueryRecs( dbcl );
