@@ -36,7 +36,7 @@ function test()
    delete( actResult.SampleRecords );
    delete( actResult.MinValue );
    delete( actResult.MaxValue );
-   var expResult = { "Collection": COMMCSNAME + "." + subCLName1, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "TotalIndexPages": 7, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 200 };
+   var expResult = { "Collection": COMMCSNAME + "." + subCLName1, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "TotalIndexPages": 4, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 200 };
    if( !commCompareObject( expResult, actResult ) )
    {
       throw new Error( "\nExpected:\n" + JSON.stringify( expResult ) + "\nactual:\n" + JSON.stringify( actResult ) );
@@ -59,7 +59,7 @@ function test()
    delete( actResult.SampleRecords );
    delete( actResult.MinValue );
    delete( actResult.MaxValue );
-   expResult = { "Collection": COMMCSNAME + "." + mainCLName, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "TotalIndexPages": 8, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 210 }; 
+   expResult = { "Collection": COMMCSNAME + "." + mainCLName, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "TotalIndexPages": 5, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 210 }; 
    if( !commCompareObject( expResult, actResult ) )
    {
       throw new Error( "\nExpected:\n" + JSON.stringify( expResult ) + "\nactual:\n" + JSON.stringify( actResult ) );

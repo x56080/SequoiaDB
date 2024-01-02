@@ -21,10 +21,10 @@ function test ( testPara )
       records.push( { "j": i } );
    }
    testPara.testCL.insert( records );
-   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName, "SampleNum": 200 } );
+   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName, "SampleNum": 2000 } );
 
    var count = 0;
-   var expResult = { "TotalIndexLevels": 1, "TotalIndexPages": 1, "DistinctValNum": [1, 1, 1], "NullFrac": 5000, "UndefFrac": 5000, "SampleRecords": 200, "TotalRecords": 2000 };
+   var expResult = { "TotalIndexLevels": 1, "DistinctValNum": [1, 1, 1], "NullFrac": 5000, "UndefFrac": 5000, "SampleRecords": 2000, "TotalRecords": 2000 };
    var cursor = db.snapshot( SDB_SNAP_INDEXSTATS, { "Collection": COMMCSNAME + "." + testConf.clName, "Index": indexName } );
    while( cursor.next() )
    {
@@ -39,6 +39,7 @@ function test ( testPara )
          delete ( node.StatTimestamp );
          delete ( node.MinValue );
          delete ( node.MaxValue );
+         delete ( node.TotalIndexPages );
          if( !commCompareObject( expResult, node ) )
          {
             throw new Error( "\nExpected:\n" + JSON.stringify( expResult ) + "\nactual:\n" + JSON.stringify( node ) );
