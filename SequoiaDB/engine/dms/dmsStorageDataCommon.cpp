@@ -4778,6 +4778,9 @@ namespace engine
       dmsRecordData recordData, newRecordData ;
       IDmsExtDataHandler *handler = NULL ;
 
+      // create a new object for updated record
+      BSONObj newobj ;
+
       dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
       dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL ;
       dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ;
@@ -4834,8 +4837,6 @@ namespace engine
          try
          {
             BSONObj obj ( recordData.data() ) ;
-            // create a new object for updated record
-            BSONObj newobj ;
 
             if ( dpscb )
             {
