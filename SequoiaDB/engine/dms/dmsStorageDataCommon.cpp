@@ -1347,6 +1347,8 @@ namespace engine
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
       }
 
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
+
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMM_EXTRACTDATA, rc ) ;
       return rc ;
@@ -4292,6 +4294,8 @@ namespace engine
          writeGuard.getPersistGuard().incDataLen( recordData.len() ) ;
 
          hasInsert = TRUE ;
+         //increase data write counter
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          // update totalInsert monitor counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
          _incWriteRecord() ;
@@ -5076,6 +5080,8 @@ namespace engine
             goto error ;
          }
 
+         //increase data write counter
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          // increase update counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
          _incWriteRecord() ;

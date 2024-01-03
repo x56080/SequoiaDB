@@ -243,6 +243,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
 
       DMS_MON_OP_COUNT_INC( _cb->getMonAppCB(), MON_DATA_READ, 1 ) ;
+      DMS_MON_OP_COUNT_INC( _cb->getMonAppCB(), MON_READ, 1 ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNTBSCAN_GETCURREC, rc ) ;

@@ -2793,7 +2793,6 @@ namespace engine
       BSONObjSet keySetNew ;
       BOOLEAN unique       = FALSE ;
       BOOLEAN found        = FALSE ;
-      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
       BOOLEAN allowDuplicated = FALSE ;
 
@@ -2912,7 +2911,6 @@ namespace engine
                   oldHashSaved = TRUE ;
                }
 
-               DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
                // during rollback, since the previous change may half-way
                // completed, there could be some keys that has not been
                // inserted. So if we found any rid+key that does not in the
@@ -2974,7 +2972,6 @@ namespace engine
                   newHashSaved = TRUE ;
                }
 
-               DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
                itnew++ ;
                continue ;
             }
@@ -3009,7 +3006,6 @@ namespace engine
                oldHashSaved = TRUE ;
             }
 
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
             // during rollback, since the previous change may half-way
             // completed, there could be some keys that has not been
             // inserted. So if we found any rid+key that does not in the
@@ -3073,7 +3069,6 @@ namespace engine
                newHashSaved = TRUE ;
             }
 
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
             itnew++ ;
          }
       }
@@ -3357,7 +3352,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__INDEXDELETE ) ;
       INT32       rc          = SDB_OK ;
       BSONObjSet  keySet ;
-      monAppCB   *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN     allUndefined = FALSE ;
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
@@ -3416,8 +3410,6 @@ namespace engine
                pUnqIdxHashArray->saveKey( ko.toHash() ) ;
                hashSaved = TRUE ;
             }
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
          }
       }
 
