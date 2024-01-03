@@ -59,8 +59,6 @@ using namespace bson ;
 namespace engine
 {
    class _pmdEDUCB ;
-   class _dmsExtScanner ;
-   class _dmsIXSecScanner ;
    class oldVersionCB ;
    class dpsTransLockManager ;
    class _dpsITransLockCallback ;
@@ -238,9 +236,6 @@ namespace engine
    */
    class dpsTransCB : public _IControlBlock, public _IEventHander
    {
-      friend class _dmsExtScannerBase ;
-      friend class _dmsExtScanner ;
-      friend class _dmsIXSecScanner ;
    public:
       dpsTransCB() ;
       virtual ~dpsTransCB() ;

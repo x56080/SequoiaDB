@@ -295,7 +295,6 @@ rtnFiles = [
       "rtn/rtnLobMetaCache.cpp",
       "rtn/rtnLobMetricsSubmitor.cpp",
       "rtn/rtnIxmKeySorter.cpp",
-      "rtn/rtnDictCreatorJob.cpp",
       "rtn/rtnAnalyze.cpp",
       "rtn/rtnOperator.cpp",
       "rtn/rtnExtDataHandler.cpp",

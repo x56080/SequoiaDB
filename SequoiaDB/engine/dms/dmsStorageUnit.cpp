@@ -2499,17 +2499,6 @@ namespace engine
          getContext = TRUE ;
       }
 
-      /*{
-         dmsExtentItr itr( _pDataSu, context ) ;
-         while ( SDB_OK == ( rc = itr.next( &pExtent, cb ) ) )
-         {
-            recordNum += pExtent->_recCount ;
-         }
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-      }*/
       if ( !context->isMBLock() )
       {
          rc = context->mbLock( SHARED ) ;

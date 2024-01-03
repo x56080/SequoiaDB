@@ -38,7 +38,6 @@
 #include "pmdController.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
-#include "rtnDictCreatorJob.hpp"
 #include "../bson/lib/md5.hpp"
 #include "ossDynamicLoad.hpp"
 #include "pmdModuleLoader.hpp"
@@ -240,16 +239,6 @@ namespace engine
       {
          // start load job
          rtnStartLoadJob() ;
-      }
-
-      // For data nodes(both primary and slavery nodes), we need to start
-      // dictionary creating threads.
-      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
-           SDB_ROLE_STANDALONE == pmdGetDBRole() )
-      {
-         rc = startDictCreatorJob( NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Start dictionary creating job "
-                      "thread failed, rc: %d", rc ) ;
       }
 
    done:
