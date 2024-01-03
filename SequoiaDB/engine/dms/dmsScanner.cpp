@@ -1049,7 +1049,7 @@ namespace engine
          _curRID = nextRID ;
          lastRID = nextRID ;
 
-         if ( recordRW.isEmpty() && !_hasLockedRecord )
+         if ( !recordRW.isDirectMem() && !_hasLockedRecord )
          {
             BOOLEAN isSnapshotSame = FALSE ;
             rc = _checkSnapshotID( isSnapshotSame ) ;
@@ -1090,7 +1090,7 @@ namespace engine
          {
             recordID = _curRID ;
 
-            if ( recordRW.isEmpty() )
+            if ( !recordRW.isDirectMem() )
             {
                rc = _getCurrentRecord( recordData ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get record data, rc: %d", rc ) ;
