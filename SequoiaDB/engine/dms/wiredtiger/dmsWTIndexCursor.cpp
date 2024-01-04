@@ -107,7 +107,6 @@ namespace wiredtiger
       {
          rc = SDB_IXM_EOC ;
       }
-      close() ;
       goto done ;
    }
 
@@ -146,7 +145,6 @@ namespace wiredtiger
       {
          rc = SDB_IXM_EOC ;
       }
-      close() ;
       goto done ;
    }
 
@@ -177,7 +175,6 @@ namespace wiredtiger
       return rc ;
 
    error:
-      close() ;
       goto done ;
    }
 
@@ -220,7 +217,6 @@ namespace wiredtiger
       return rc ;
 
    error:
-      close() ;
       goto done ;
    }
 
@@ -234,8 +230,6 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTIDXCURSOR_LOCATE ) ;
 
-      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
-                "Failed to get current key string, cursor is hit end" ) ;
       PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to get current key string, cursor is not opened" ) ;
 
@@ -266,6 +260,7 @@ namespace wiredtiger
          }
          goto error ;
       }
+      _isEOF = FALSE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTIDXCURSOR_LOCATE, rc ) ;
@@ -276,7 +271,6 @@ namespace wiredtiger
       {
          rc = SDB_IXM_EOC ;
       }
-      close() ;
       goto done ;
    }
 

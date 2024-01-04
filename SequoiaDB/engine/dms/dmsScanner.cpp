@@ -990,6 +990,8 @@ namespace engine
       rc = _onFirstInit( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to call first init, rc: %d", rc ) ;
 
+      _callback.setScanner( _scanner ) ;
+
       _onceRestNum = _getOnceRestNum() ;
 
    done:
@@ -1234,6 +1236,52 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN__ONRECSKIPPED, "_dmsSecScanner::_onRecordSkipped" )
+   void _dmsSecScanner::_onRecordSkipped( const dmsRecordID &curRID,
+                                          dmsScanTransContext *transContext )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSECSCAN__ONRECSKIPPED ) ;
+
+      _scanner->removeDuplicatRID( curRID ) ;
+
+      PD_TRACE_EXIT( SDB__DMSSECSCAN__ONRECSKIPPED ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSECSCAN__ONRECLOCKED, "_dmsSecScanner::_onRecordLocked" )
+   void _dmsSecScanner::_onRecordLocked( const dmsRecordID &curRID,
+                                         dmsScanTransContext *transContext,
+                                         BOOLEAN &skipRecord )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSECSCAN__ONRECLOCKED ) ;
+
+      if ( !transContext->isCursorSame() || _callback.isSkipRecord() )
+      {
+         /// remove the duplicate key
+         _scanner->removeDuplicatRID( curRID ) ;
+
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
+                 "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
+                 "isSkipRecord(%d)",
+                 curRID._extent, curRID._offset,
+                 transContext->isCursorSame(), _onceRestNum,
+                 _callback.isSkipRecord()) ;
+#endif
+         // When cursor changed, we may need to go back to previous
+         // key to retry, don't count as a step. Also avoid potential
+         // pause here if step becomes 0, in which case we may unexpectly
+         // lose previously savedObj and savedRID and cause skip record.
+         if ( !transContext->isCursorSame() )
+         {
+            ++ _onceRestNum ;
+         }
+
+         skipRecord = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSECSCAN__ONRECLOCKED ) ;
+   }
+
    /*
       _dmsDataScanner implement
     */
@@ -1427,8 +1475,6 @@ namespace engine
       rc = _scanner->resumeScan( isCursorSame ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resum index scanner, rc: %d", rc ) ;
 
-      _callback.setIXScanner( _scanner ) ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSIDXSCAN__ONFIRSTINIT, rc ) ;
       return rc ;
@@ -1549,42 +1595,6 @@ namespace engine
 
    error:
       goto done ;
-   }
-
-   void _dmsIndexScanner::_onRecordSkipped( const dmsRecordID &curRID,
-                                            dmsScanTransContext *transContext )
-   {
-      _scanner->removeDuplicatRID( curRID ) ;
-   }
-
-   void _dmsIndexScanner::_onRecordLocked( const dmsRecordID &curRID,
-                                           dmsScanTransContext *transContext,
-                                           BOOLEAN &skipRecord )
-   {
-      if ( !transContext->isCursorSame() || _callback.isSkipRecord() )
-      {
-         /// remove the duplicate key
-         _scanner->removeDuplicatRID( curRID ) ;
-
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
-                 "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
-                 "isSkipRecord(%d)",
-                 curRID._extent, curRID._offset,
-                 transContext->isCursorSame(), _onceRestNum,
-                 _callback.isSkipRecord()) ;
-#endif
-         // When cursor changed, we may need to go back to previous
-         // key to retry, don't count as a step. Also avoid potential
-         // pause here if step becomes 0, in which case we may unexpectly
-         // lose previously savedObj and savedRID and cause skip record.
-         if ( !transContext->isCursorSame() )
-         {
-            ++ _onceRestNum ;
-         }
-
-         skipRecord = TRUE ;
-      }
    }
 
    UINT64 _dmsIndexScanner::_getOnceRestNum() const

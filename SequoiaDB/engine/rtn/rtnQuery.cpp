@@ -1061,7 +1061,7 @@ retry:
 
       // start building scanner
       {
-         IXScannerType scannerType = ( DPS_INVALID_TRANS_ID !=
+         rtnScannerType scannerType = ( DPS_INVALID_TRANS_ID !=
                                        cb->getTransID() ) ?
                                        SCANNER_TYPE_MERGE :
                                        SCANNER_TYPE_DISK ;
@@ -1093,8 +1093,7 @@ retry:
          // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         rc = f.createIXScanner( scannerType, &indexCB, predList,
-                               su, mbContext, cb, scanner ) ;
+         rc = f.createIXScanner( scannerType, &indexCB, predList, su, mbContext, cb, scanner ) ;
          if ( rc )
          {
             goto error ;

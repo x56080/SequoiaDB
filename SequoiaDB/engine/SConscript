@@ -319,7 +319,9 @@ rtnFiles = [
       "rtn/rtnHintModifier.cpp",
       "rtn/rtnInsertModifier.cpp",
       "rtn/rtnUserCache.cpp",
-      "rtn/rtnTBScanner.cpp"
+      "rtn/rtnDiskTBScanner.cpp",
+      "rtn/rtnMemTBScanner.cpp",
+      "rtn/rtnMergeTBScanner.cpp"
       ]
 
 msgFiles = [

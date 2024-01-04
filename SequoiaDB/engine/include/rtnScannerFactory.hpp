@@ -44,6 +44,9 @@
 #include "rtnMemIXTreeScanner.hpp"
 #include "rtnMergeIXScanner.hpp"
 #include "rtnTBScanner.hpp"
+#include "rtnDiskTBScanner.hpp"
+#include "rtnMemTBScanner.hpp"
+#include "rtnMergeTBScanner.hpp"
 
 namespace engine
 {
@@ -51,15 +54,36 @@ namespace engine
    class _rtnScannerFactory
    {
    public:
-      INT32 createTBScanner( _dmsStorageUnit *su,
+      INT32 createTBScanner( rtnScannerType type,
+                             _dmsStorageUnit *su,
                              _dmsMBContext *mbContext,
                              _pmdEDUCB *cb,
                              _rtnTBScanner *&pScanner )
       {
          INT32 rc = SDB_OK ;
 
-         pScanner = SDB_OSS_NEW rtnTBScanner( su, mbContext, dmsRecordID(),
-                                              FALSE, 1, cb ) ;
+         pScanner = NULL ;
+
+         switch ( type )
+         {
+         case SCANNER_TYPE_DISK:
+            pScanner = SDB_OSS_NEW rtnDiskTBScanner(
+                              su, mbContext, dmsRecordID(), FALSE, 1, cb ) ;
+            break ;
+         case SCANNER_TYPE_MEM_TREE:
+            pScanner = SDB_OSS_NEW rtnMemTBScanner(
+                              su, mbContext, dmsRecordID(), FALSE, 1, cb ) ;
+            break ;
+         case SCANNER_TYPE_MERGE:
+            pScanner = SDB_OSS_NEW rtnMergeTBScanner(
+                              su, mbContext, dmsRecordID(), FALSE, 1, cb ) ;
+            break;
+         default:
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid type[%d]", type ) ;
+            goto error ;
+         }
+
          if ( !pScanner )
          {
             rc = SDB_OOM ;
@@ -74,7 +98,7 @@ namespace engine
          goto done ;
       }
 
-      INT32 createIXScanner( IXScannerType type,
+      INT32 createIXScanner( rtnScannerType type,
                              ixmIndexCB *indexCB,
                              rtnPredicateList *predList,
                              _dmsStorageUnit *su,

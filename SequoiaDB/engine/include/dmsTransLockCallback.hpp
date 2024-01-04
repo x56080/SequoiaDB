@@ -55,7 +55,7 @@ namespace engine
    class _dmsRecordRW ;
    class oldVersionContainer ;
    class oldVersionCB ;
-   class _rtnIXScanner ;
+   class _rtnScanner ;
    struct _dmsMBStatInfo ;
 
    // Class to implment lock call back funtions for DMS scanner
@@ -78,7 +78,7 @@ namespace engine
       void     setIDInfo( INT32 csID, UINT16 clID,
                           UINT32 csLID, UINT32 clLID ) ;
 
-      void     setIXScanner( _rtnIXScanner *pScanner ) ;
+      void     setScanner( _rtnScanner *pScanner ) ;
 
       void     attachRecordRW( _dmsRecordRW * recordRW ) ;
       void     detachRecordRW() ;
@@ -221,7 +221,8 @@ namespace engine
 
       INT32    saveOldVersionRecord( const dmsRecordID &rid,
                                      const BSONObj &obj,
-                                     UINT32 ownnerTID ) ;
+                                     UINT32 ownnerTID,
+                                     BOOLEAN isDeleting ) ;
 
       INT32    _getLatchedIdxMode() ;
 
@@ -247,7 +248,7 @@ namespace engine
       INT32                _csID ;
       UINT16               _clID ;
       dmsExtentID          _latchedIdxLid ; // which we are holding a latch on
-      _rtnIXScanner       *_pScanner ;
+      _rtnScanner          *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 
       dmsTransRecordInfo   _recordInfo ;

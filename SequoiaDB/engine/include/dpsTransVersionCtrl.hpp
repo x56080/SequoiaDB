@@ -590,8 +590,11 @@ namespace engine
 
       public:
 
-         void           addToChain( oldVersionContainer *pOldVer,
+         INT32          addToChain( oldVersionContainer *pOldVer,
+                                    BOOLEAN isDeleting,
                                     BOOLEAN hasLock = FALSE ) ;
+         INT32          addToDeleting( const dmsRecordID &rid,
+                                       BOOLEAN hasLock = FALSE ) ;
          void           removeFromChain( oldVersionContainer *pOldVer,
                                          BOOLEAN hasLock = FALSE ) ;
          void           clearChain( BOOLEAN hasLock = FALSE ) ;
@@ -599,10 +602,15 @@ namespace engine
          iterator       itr( INT64 stepCnt = OLD_VERUNIT_ITR_STEP_DFT,
                              INT32 interval = OLD_VERUNIT_ITR_INTERVAL_DFT ) ;
 
+         BOOLEAN isDeletingRID( const dmsRecordID &rid ) ;
+         dmsRecordID getNextDeletingRID( const dmsRecordID &curRID ) ;
+
       private:
          oldVersionContainer        *_pChain ;
          ossSpinSLatch              _latch ;
          ossEvent                   _event ;
+         typedef ossPoolSet<dmsRecordID> SET_RECORDID ;
+         SET_RECORDID               _deletingRID ;
    } ;
 
    typedef utilSharePtr<oldVersionUnit>               oldVersionUnitPtr ;

@@ -75,6 +75,7 @@ namespace wiredtiger
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      _isOpened = TRUE ;
 
       if ( isForward )
       {
@@ -97,14 +98,11 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_INT, rc ) ;
       return rc ;
 
    error:
-      _close() ;
       goto done ;
    }
 
@@ -130,6 +128,7 @@ namespace wiredtiger
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      _isOpened = TRUE ;
 
       if ( isForward )
       {
@@ -152,14 +151,11 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_ITEM, rc ) ;
       return rc ;
 
    error:
-      _close() ;
       goto done ;
    }
 
@@ -181,6 +177,7 @@ namespace wiredtiger
 
       rc = _cursor.open( uri, config ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      _isOpened = TRUE ;
 
       if ( isForward )
       {
@@ -204,14 +201,11 @@ namespace wiredtiger
          goto error ;
       }
 
-      _isOpened = TRUE ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN, rc ) ;
       return rc ;
 
    error:
-      _close() ;
       goto done ;
    }
 
@@ -254,6 +248,7 @@ namespace wiredtiger
 
       rc = _cursor.open( uri, sampleConfig ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+      _isOpened = TRUE ;
 
       rc = _cursor.next() ;
       if ( SDB_OK != rc )
@@ -269,14 +264,11 @@ namespace wiredtiger
          }
       }
 
-      _isOpened = TRUE ;
-
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCURSORHOLDER__OPEN_SAMPLE, rc ) ;
       return rc ;
 
    error:
-      _close() ;
       goto done ;
    }
 
@@ -346,7 +338,6 @@ namespace wiredtiger
       return rc ;
 
    error:
-      _close() ;
       goto done ;
    }
 

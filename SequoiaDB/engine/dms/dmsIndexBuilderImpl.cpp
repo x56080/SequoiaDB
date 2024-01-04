@@ -34,6 +34,7 @@
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
 #include "dmsScanner.hpp"
+#include "rtnDiskTBScanner.hpp"
 #include "ixmKey.hpp"
 #include "ixm.hpp"
 #include "dmsCB.hpp"
@@ -64,7 +65,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
-      rtnTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
+      rtnDiskTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
 
       if ( _pIdxStatus )
       {
@@ -333,7 +334,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
-      rtnTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
+      rtnDiskTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
 
       rc = _init() ;
       if ( SDB_OK != rc )

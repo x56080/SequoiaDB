@@ -55,8 +55,35 @@ namespace engine
                      const dmsRecordID &startRID,
                      BOOLEAN           isAfterStartRID,
                      INT32             direction,
-                     _pmdEDUCB        *cb ) ;
-      virtual ~_rtnTBScanner() ;
+                     _pmdEDUCB        *cb )
+      : _rtnScanner( su, mbContext, direction, cb ),
+        _init( FALSE ),
+        _startRID( startRID ),
+        _isAfterStartRID( isAfterStartRID )
+      {
+      }
+
+      virtual ~_rtnTBScanner() = default ;
+
+      virtual rtnScannerStorageType getStorageType() const
+      {
+         return SCANNER_TYPE_DATA ;
+      }
+
+      virtual INT32 getIdxLockModeByType( rtnScannerType type ) const
+      {
+         return -1 ;
+      }
+
+      virtual BOOLEAN removeDuplicatRID( const dmsRecordID &rid )
+      {
+         return TRUE ;
+      }
+
+      virtual dmsExtentID getIdxLID() const
+      {
+         return DMS_INVALID_EXTENT ;
+      }
 
    public:
       BOOLEAN isEOF() const
@@ -64,24 +91,29 @@ namespace engine
          return _isEOF ;
       }
 
-      virtual INT32 advance( dmsRecordID &rid ) ;
-      virtual INT32 resumeScan( BOOLEAN &isCursorSame ) ;
-      virtual INT32 pauseScan() ;
-      virtual INT32 checkSnapshotID( BOOLEAN &isCursorSame ) ;
+      virtual INT32 getCurrentRID( dmsRecordID &nextRID ) = 0 ;
+      virtual INT32 getCurrentRecord( dmsRecordData &recordData ) = 0 ;
 
-      INT32 getCurrentRID( dmsRecordID &nextRID ) ;
-      INT32 getCurrentRecord( dmsRecordData &recordData ) ;
+      virtual INT32 relocateRID( const dmsRecordID &rid ) = 0 ;
+      virtual INT32 relocateRID( const dmsRecordID &rid, BOOLEAN &isFound ) = 0 ;
 
-   protected:
-      INT32 _firstInit() ;
-      INT32 _relocateRID( dmsRecordID &rid, BOOLEAN &isFound ) ;
+      const dmsRecordID &getSavedRID() const
+      {
+         return _savedRID ;
+      }
+
+      void resetSavedRID()
+      {
+         _savedRID.reset() ;
+         _relocatedRID.reset() ;
+      }
 
    protected:
       BOOLEAN _init ;
       dmsRecordID _startRID ;
       BOOLEAN _isAfterStartRID ;
       dmsRecordID _savedRID ;
-      std::unique_ptr<IDataCursor> _cursorPtr ;
+      dmsRecordID _relocatedRID ;
    } ;
 
    typedef class _rtnTBScanner rtnTBScanner ;

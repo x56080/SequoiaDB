@@ -55,17 +55,6 @@ namespace engine
    class _dmsMBContext ;
    class _pmdEDUCB ;
 
-   // define type of index scanners
-   enum IXScannerType
-   {
-      SCANNER_TYPE_DISK      = 0,
-      SCANNER_TYPE_MEM_TREE,
-      SCANNER_TYPE_MERGE,
-      SCANNER_TYPE_MAX
-   } ;
-
-   typedef ossPoolSet<dmsRecordID>           SET_RECORDID ;
-
    /*
       _rtnScannerSharedInfo define
    */
@@ -118,13 +107,19 @@ namespace engine
 
       virtual ~_rtnIXScanner() ;
 
+      virtual rtnScannerStorageType getStorageType() const
+      {
+         return SCANNER_TYPE_INDEX ;
+      }
+
       BOOLEAN     isReadonly() const ;
 
       void        setShareInfo( rtnScannerSharedInfo *pInfo ) ;
       BOOLEAN     isShareInfoFromSelf() const ;
-      BOOLEAN     removeDuplicatRID( const dmsRecordID &rid ) ;
 
-      dmsExtentID getIdxLID() const ;
+      virtual BOOLEAN removeDuplicatRID( const dmsRecordID &rid ) ;
+      virtual dmsExtentID getIdxLID() const ;
+
       const OID&  getIdxOID() const ;
       INT32       getDirection () const ;
 
@@ -153,15 +148,6 @@ namespace engine
                                  const dmsRecordID &rid ) = 0 ;
 
       virtual BOOLEAN         isAvailable() const = 0 ;
-      virtual IXScannerType   getType() const = 0 ;
-      virtual IXScannerType   getCurScanType() const = 0 ;
-      virtual void            disableByType( IXScannerType type ) = 0 ;
-      virtual BOOLEAN         isTypeEnabled( IXScannerType type ) const = 0 ;
-      /*
-         return : -1, SHARED or EXCLUSIVE
-      */
-      virtual INT32           getLockModeByType( IXScannerType type ) const = 0 ;
-
       virtual const BSONObj*  getCurKeyObj() const = 0 ;
       virtual const dmsRecordID& getSavedRID () const = 0 ;
       virtual const BSONObj*  getSavedObj () const = 0 ;

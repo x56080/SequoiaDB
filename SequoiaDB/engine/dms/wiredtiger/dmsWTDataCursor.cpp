@@ -131,7 +131,6 @@ namespace
       return rc ;
 
    error:
-      close() ;
       goto done ;
    }
 
@@ -166,7 +165,6 @@ namespace
       return rc ;
 
    error:
-      close() ;
       goto done ;
    }
 
@@ -182,8 +180,6 @@ namespace
 
       UINT64 key = rid.toUINT64() ;
 
-      PD_CHECK( !isEOF(), SDB_DMS_EOC, error, PDERROR,
-                "Failed to get current key string, cursor is hit end" ) ;
       PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to get current key string, cursor is not opened" ) ;
 
@@ -209,6 +205,7 @@ namespace
          }
          goto error ;
       }
+      _isEOF = FALSE ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_LOCATE, rc ) ;

@@ -2543,8 +2543,7 @@ namespace keystring
       goto done ;
    }
 
-   INT32 _keyStringBuilderImpl::appendRID( const dmsRecordID &rid,
-                                                 BOOLEAN force )
+   INT32 _keyStringBuilderImpl::appendRID( const dmsRecordID &rid, BOOLEAN force )
    {
       INT32 rc = SDB_OK ;
 

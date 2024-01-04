@@ -87,27 +87,27 @@ namespace engine
       }
    }
 
-   IXScannerType _rtnMemIXTreeScanner::getType() const
+   rtnScannerType _rtnMemIXTreeScanner::getType() const
    {
       return SCANNER_TYPE_MEM_TREE ;
    }
 
-   IXScannerType _rtnMemIXTreeScanner::getCurScanType() const
+   rtnScannerType _rtnMemIXTreeScanner::getCurScanType() const
    {
       return SCANNER_TYPE_MEM_TREE ;
    }
 
-   void _rtnMemIXTreeScanner::disableByType( IXScannerType type )
+   void _rtnMemIXTreeScanner::disableByType( rtnScannerType type )
    {
       /// do nothing
    }
 
-   BOOLEAN _rtnMemIXTreeScanner::isTypeEnabled( IXScannerType type ) const
+   BOOLEAN _rtnMemIXTreeScanner::isTypeEnabled( rtnScannerType type ) const
    {
       return type == SCANNER_TYPE_MEM_TREE ? TRUE : FALSE ;
    }
 
-   INT32 _rtnMemIXTreeScanner::getLockModeByType( IXScannerType type ) const
+   INT32 _rtnMemIXTreeScanner::getIdxLockModeByType( rtnScannerType type ) const
    {
       if ( type == SCANNER_TYPE_MEM_TREE && _treeLatchHeld )
       {

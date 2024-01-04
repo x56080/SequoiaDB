@@ -248,7 +248,6 @@ namespace
       return rc ;
 
    error:
-      cursor.release() ;
       goto done ;
    }
 
@@ -281,7 +280,6 @@ namespace
       return rc ;
 
    error:
-      cursor.release() ;
       goto done ;
    }
 

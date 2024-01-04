@@ -998,9 +998,12 @@ namespace engine
       clearChain() ;
    }
 
-   void oldVersionUnit::addToChain( oldVersionContainer *pOldVer,
-                                    BOOLEAN hasLock )
+   INT32 oldVersionUnit::addToChain( oldVersionContainer *pOldVer,
+                                     BOOLEAN isDeleting,
+                                     BOOLEAN hasLock )
    {
+      INT32 rc = SDB_OK ;
+
       BOOLEAN locked = FALSE ;
 
       if ( !hasLock )
@@ -1018,11 +1021,59 @@ namespace engine
       _pChain = pOldVer ;
       _pChain->setOnChain() ;
 
+      if ( isDeleting )
+      {
+         rc = addToDeleting( pOldVer->getRecordID(), TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add record ID to deleting, rc: %d", rc ) ;
+      }
+
+   done:
       if ( locked )
       {
          unlockX() ;
          locked = FALSE ;
       }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 oldVersionUnit::addToDeleting( const dmsRecordID &rid,
+                                        BOOLEAN hasLock )
+   {
+      INT32 rc = SDB_OK ;
+
+      BOOLEAN locked = FALSE ;
+
+      if ( !hasLock )
+      {
+         lockX() ;
+         locked = TRUE ;
+      }
+
+      try
+      {
+         _deletingRID.insert( rid ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save deleting record ID, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      if ( locked )
+      {
+         unlockX() ;
+         locked = FALSE ;
+      }
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void oldVersionUnit::removeFromChain( oldVersionContainer *pOldVer,
@@ -1076,6 +1127,8 @@ namespace engine
          pOldVer->setPrev( NULL ) ;
          pOldVer->setNext( NULL ) ;
          pOldVer->unsetOnChain() ;
+
+         _deletingRID.erase( pOldVer->getRecordID() ) ;
       }
 
       if ( locked )
@@ -1107,6 +1160,8 @@ namespace engine
          oldVer = _pChain ;
       }
 
+      _deletingRID.clear() ;
+
       if ( locked )
       {
          unlockX() ;
@@ -1118,6 +1173,43 @@ namespace engine
    {
       iterator it( this, stepCnt, interval ) ;
       return it ;
+   }
+
+   BOOLEAN oldVersionUnit::isDeletingRID( const dmsRecordID &rid )
+   {
+      BOOLEAN isDeleting = FALSE ;
+
+      lockS() ;
+      isDeleting = _deletingRID.count( rid ) > 0 ;
+      unlockS() ;
+
+      return isDeleting ;
+   }
+
+   dmsRecordID oldVersionUnit::getNextDeletingRID( const dmsRecordID &curRID )
+   {
+      dmsRecordID nextRID ;
+
+      lockS() ;
+      if ( curRID.isValid() )
+      {
+         SET_RECORDID::iterator it = _deletingRID.upper_bound( curRID ) ;
+         if ( it != _deletingRID.end() )
+         {
+            nextRID = *it ;
+         }
+      }
+      else
+      {
+         SET_RECORDID::iterator it = _deletingRID.begin() ;
+         if ( it != _deletingRID.end() )
+         {
+            nextRID = *it ;
+         }
+      }
+      unlockS() ;
+
+      return nextRID ;
    }
 
    /*

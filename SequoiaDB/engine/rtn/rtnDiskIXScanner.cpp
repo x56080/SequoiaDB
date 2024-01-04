@@ -70,27 +70,27 @@ namespace engine
    {
    }
 
-   IXScannerType _rtnDiskIXScanner::getType() const
+   rtnScannerType _rtnDiskIXScanner::getType() const
    {
       return SCANNER_TYPE_DISK ;
    }
 
-   IXScannerType _rtnDiskIXScanner::getCurScanType() const
+   rtnScannerType _rtnDiskIXScanner::getCurScanType() const
    {
       return SCANNER_TYPE_DISK ;
    }
 
-   void _rtnDiskIXScanner::disableByType( IXScannerType type )
+   void _rtnDiskIXScanner::disableByType( rtnScannerType type )
    {
       /// do nothing
    }
 
-   BOOLEAN _rtnDiskIXScanner::isTypeEnabled( IXScannerType type ) const
+   BOOLEAN _rtnDiskIXScanner::isTypeEnabled( rtnScannerType type ) const
    {
       return type == SCANNER_TYPE_DISK ? TRUE : FALSE ;
    }
 
-   INT32 _rtnDiskIXScanner::getLockModeByType( IXScannerType type ) const
+   INT32 _rtnDiskIXScanner::getIdxLockModeByType( rtnScannerType type ) const
    {
       return -1 ;
    }
@@ -160,7 +160,7 @@ namespace engine
       }
 
       PD_CHECK( _cursorPtr, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
-               "Failed to relocate record, cursor is clsoed" ) ;
+                "Failed to relocate record, cursor is clsoed" ) ;
 
       rc = _cursorPtr->locate( keyObj, rid, FALSE, _cb, isFound ) ;
       if ( SDB_IXM_EOC == rc )

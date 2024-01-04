@@ -465,7 +465,7 @@ namespace wiredtiger
                          executor ) ;
       if ( SDB_DMS_EOC == rc )
       {
-         goto done ;
+         goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to open data cursor, rc: %d", rc ) ;
 
@@ -474,7 +474,6 @@ namespace wiredtiger
       return rc ;
 
    error:
-      cursor.release() ;
       goto done ;
    }
 
@@ -498,7 +497,7 @@ namespace wiredtiger
       rc = cursor->open( shared_from_this(), sampleNum, snapshotID, executor ) ;
       if ( SDB_DMS_EOC == rc )
       {
-         goto done ;
+         goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to open sample data cursor, rc: %d", rc ) ;
 
@@ -507,7 +506,6 @@ namespace wiredtiger
       return rc ;
 
    error:
-      cursor.release() ;
       goto done ;
    }
 

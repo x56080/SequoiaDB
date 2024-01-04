@@ -45,6 +45,7 @@
 #include "dmsOprHandler.hpp"
 #include "dpsTransVersionCtrl.hpp"
 #include "rtnIXScanner.hpp"
+#include "rtnTBScanner.hpp"
 #include "utilLightJobBase.hpp"
 #include "dmsCB.hpp"
 #include "dmsStorageUnit.hpp"
@@ -382,7 +383,7 @@ namespace engine
       _clLID = clLID ;
    }
 
-   void dmsTransLockCallback::setIXScanner( _rtnIXScanner *pScanner )
+   void dmsTransLockCallback::setScanner( _rtnScanner *pScanner )
    {
       _latchedIdxLid = pScanner->getIdxLID() ;
       _pScanner = pScanner ;
@@ -510,7 +511,8 @@ namespace engine
             // and ended up using the old version from memory. But
             // the old version record contain the index 1. We must verify
             // and skip this record.
-            if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+            if ( _pScanner &&
+                 SCANNER_TYPE_INDEX == _pScanner->getStorageType() &&
                  SCANNER_TYPE_DISK == _pScanner->getCurScanType() &&
                  _oldVer->idxLidExist( _latchedIdxLid ) )
             {
@@ -552,7 +554,7 @@ namespace engine
          }
 
          /// from memory tree
-         if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+         if ( _pScanner &&
               SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
          {
             _skipRecord = TRUE ;
@@ -695,8 +697,7 @@ namespace engine
 
       _recordInfo._transLockEscalated = TRUE ;
 
-      if ( _pScanner &&
-           _latchedIdxLid != DMS_INVALID_EXTENT )
+      if ( _pScanner )
       {
          // we are lock escalated now, we should see the disk records
          // if current RID is from memory tree, we should skip it
@@ -744,7 +745,8 @@ namespace engine
    // Dependency: Caller must hold the mbLcok
    INT32 dmsTransLockCallback::saveOldVersionRecord( const dmsRecordID &rid,
                                                      const BSONObj &obj,
-                                                     UINT32 ownnerTID )
+                                                     UINT32 ownnerTID,
+                                                     BOOLEAN isDeleting )
    {
       INT32  rc      = SDB_OK ;
 
@@ -775,7 +777,21 @@ namespace engine
                goto error ;
             }
          }
-         _unitPtr->addToChain( _oldVer ) ;
+         rc = _unitPtr->addToChain( _oldVer, isDeleting ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else if ( _oldVer &&
+                _oldVer->isOnChain() &&
+                isDeleting )
+      {
+         rc = _unitPtr->addToDeleting( rid ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
    done:
@@ -788,7 +804,7 @@ namespace engine
    {
       if ( NULL != _pScanner )
       {
-         return _pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
+         return _pScanner->getIdxLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
       }
 
       return -1 ;
@@ -938,7 +954,7 @@ namespace engine
          }
       }
 
-      rc = saveOldVersionRecord( rid, object, cb->getTID() ) ;
+      rc = saveOldVersionRecord( rid, object, cb->getTID(), TRUE ) ;
       if ( SDB_OK == rc && markDeleting && _oldVer )
       {
          _oldVer->setDiskDeleting() ;
@@ -982,7 +998,7 @@ namespace engine
          }
       }
 
-      rc = saveOldVersionRecord( rid, orignalObj, cb->getTID() ) ;
+      rc = saveOldVersionRecord( rid, orignalObj, cb->getTID(), FALSE ) ;
 
    done:
       return rc ;

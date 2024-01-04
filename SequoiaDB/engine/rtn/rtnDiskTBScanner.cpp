@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rtnTBScanner.cpp
+   Source File Name = rtnDiskTBScanner.cpp
 
    Descriptive Name = RunTime Table Scanner Header
 
@@ -35,7 +35,7 @@
 
 *******************************************************************************/
 
-#include "rtnTBScanner.hpp"
+#include "rtnDiskTBScanner.hpp"
 #include "dmsStorageUnit.hpp"
 #include "interface/IOperationContext.hpp"
 #include "pdTrace.hpp"
@@ -48,31 +48,28 @@ namespace engine
 {
 
    /*
-      _rtnTBScanner define
+      _rtnDiskTBScanner define
     */
-   _rtnTBScanner::_rtnTBScanner( dmsStorageUnit *su,
-                                 dmsMBContext *mbContext,
-                                 const dmsRecordID &startRID,
-                                 BOOLEAN isAfterStartRID,
-                                 INT32 direction,
-                                 pmdEDUCB *cb )
-   : _rtnScanner( su, mbContext, direction, cb ),
-     _init( FALSE ),
-     _startRID( startRID ),
-     _isAfterStartRID( isAfterStartRID )
+   _rtnDiskTBScanner::_rtnDiskTBScanner( dmsStorageUnit *su,
+                                         dmsMBContext *mbContext,
+                                         const dmsRecordID &startRID,
+                                         BOOLEAN isAfterStartRID,
+                                         INT32 direction,
+                                         pmdEDUCB *cb )
+   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, cb )
    {
    }
 
-   _rtnTBScanner::~_rtnTBScanner()
+   _rtnDiskTBScanner::~_rtnDiskTBScanner()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_ADVANCE, "_rtnTBScanner::advance" )
-   INT32 _rtnTBScanner::advance( dmsRecordID &rid )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_ADVANCE, "_rtnDiskTBScanner::advance" )
+   INT32 _rtnDiskTBScanner::advance( dmsRecordID &rid )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_ADVANCE ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_ADVANCE ) ;
 
       if ( _isEOF )
       {
@@ -113,19 +110,19 @@ namespace engine
       {
          _isEOF = TRUE ;
       }
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_ADVANCE, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_ADVANCE, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_RESUMESCAN, "_rtnTBScanner::resumeScan" )
-   INT32 _rtnTBScanner::resumeScan( BOOLEAN &isCursorSame )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_RESUMESCAN, "_rtnDiskTBScanner::resumeScan" )
+   INT32 _rtnDiskTBScanner::resumeScan( BOOLEAN &isCursorSame )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_RESUMESCAN ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_RESUMESCAN ) ;
 
       if ( !_init || !_savedRID.isValid() )
       {
@@ -150,19 +147,19 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_RESUMESCAN, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_RESUMESCAN, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_PAUSESCAN, "_rtnTBScanner::pauseScan" )
-   INT32 _rtnTBScanner::pauseScan()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_PAUSESCAN, "_rtnDiskTBScanner::pauseScan" )
+   INT32 _rtnDiskTBScanner::pauseScan()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_PAUSESCAN ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_PAUSESCAN ) ;
 
       if ( !_init || _isEOF )
       {
@@ -176,34 +173,34 @@ namespace engine
               _savedRID._extent, _savedRID._offset ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_PAUSESCAN, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_PAUSESCAN, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_CHECKSNAPSHOTID, "_rtnTBScanner::checkSnapshotID" )
-   INT32 _rtnTBScanner::checkSnapshotID( BOOLEAN &isCursorSame )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_CHECKSNAPSHOTID, "_rtnDiskTBScanner::checkSnapshotID" )
+   INT32 _rtnDiskTBScanner::checkSnapshotID( BOOLEAN &isCursorSame )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_CHECKSNAPSHOTID ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_CHECKSNAPSHOTID ) ;
 
       isCursorSame = _mbContext->mbStat()->_snapshotID.compare(
                                                 _cursorPtr->getSnapshotID() ) ;
 
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_CHECKSNAPSHOTID, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_CHECKSNAPSHOTID, rc ) ;
 
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_GETCURRID, "_rtnTBScanner::getCurrentRID" )
-   INT32 _rtnTBScanner::getCurrentRID( dmsRecordID &nextRID )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_GETCURRID, "_rtnDiskTBScanner::getCurrentRID" )
+   INT32 _rtnDiskTBScanner::getCurrentRID( dmsRecordID &nextRID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_GETCURRID ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_GETCURRID ) ;
 
       if ( _isEOF )
       {
@@ -217,19 +214,19 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get record ID, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_GETCURRID, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_GETCURRID, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN_GETCURREC, "_rtnTBScanner::getCurrentRecord" )
-   INT32 _rtnTBScanner::getCurrentRecord( dmsRecordData &recordData )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_GETCURREC, "_rtnDiskTBScanner::getCurrentRecord" )
+   INT32 _rtnDiskTBScanner::getCurrentRecord( dmsRecordData &recordData )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN_GETCURREC ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_GETCURREC ) ;
 
       if ( _isEOF )
       {
@@ -246,19 +243,19 @@ namespace engine
       DMS_MON_OP_COUNT_INC( _cb->getMonAppCB(), MON_READ, 1 ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN_GETCURREC, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_GETCURREC, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN__FIRSTINIT, "_rtnTBScanner::_firstInit" )
-   INT32 _rtnTBScanner::_firstInit()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN__FIRSTINIT, "_rtnDiskTBScanner::_firstInit" )
+   INT32 _rtnDiskTBScanner::_firstInit()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN__FIRSTINIT ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN__FIRSTINIT ) ;
 
       rc = _mbContext->getCollPtr()->createDataCursor( _cursorPtr,
                                                        _startRID,
@@ -275,25 +272,48 @@ namespace engine
                    _mbContext->clName(), rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN__FIRSTINIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN__FIRSTINIT, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTBSCAN__RELOCATERID, "_rtnTBScanner::_relocateRID" )
-   INT32 _rtnTBScanner::_relocateRID( dmsRecordID &rid, BOOLEAN &isFound )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN_RELOCATERID, "_rtnDiskTBScanner::relocateRID" )
+   INT32 _rtnDiskTBScanner::relocateRID( const dmsRecordID &rid )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNTBSCAN__RELOCATERID ) ;
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN_RELOCATERID ) ;
 
-      if ( _isEOF )
+      BOOLEAN isFound = FALSE ;
+      rc = _relocateRID( rid, isFound ) ;
+      if ( SDB_DMS_EOC == rc )
       {
-         rc = SDB_DMS_EOC ;
+         _isEOF = TRUE ;
+         rc = SDB_OK ;
          goto error ;
       }
+
+      rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get current record ID, rc: %d", rc ) ;
+
+      _relocatedRID = _savedRID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_RELOCATERID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKTBSCAN__RELOCATERID, "_rtnDiskTBScanner::_relocateRID" )
+   INT32 _rtnDiskTBScanner::_relocateRID( const dmsRecordID &rid, BOOLEAN &isFound )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNDISKTBSCAN__RELOCATERID ) ;
 
       if ( !_init )
       {
@@ -322,7 +342,7 @@ namespace engine
       _isEOF = FALSE ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNTBSCAN__RELOCATERID, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN__RELOCATERID, rc ) ;
       return rc ;
 
    error:

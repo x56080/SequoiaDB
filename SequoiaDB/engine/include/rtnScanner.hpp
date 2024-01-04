@@ -51,6 +51,32 @@ namespace engine
    class _dmsMBContext ;
    class _pmdEDUCB ;
 
+   // define type of scanners
+   enum rtnScannerType
+   {
+      SCANNER_TYPE_DISK      = 0,
+      SCANNER_TYPE_MEM_TREE,
+      SCANNER_TYPE_MERGE
+   } ;
+
+   enum rtnScannerStorageType
+   {
+      SCANNER_TYPE_DATA = 0,
+      SCANNER_TYPE_INDEX,
+   } ;
+
+   /*
+      RTN_SUB_SCAN_TYPE define
+   */
+   enum RTN_SUB_SCAN_TYPE
+   {
+      SCAN_NONE,
+      SCAN_LEFT,
+      SCAN_RIGHT
+   } ;
+
+   typedef ossPoolSet<dmsRecordID> SET_RECORDID ;
+
    /*
       _rtnScanner define
     */
@@ -84,6 +110,18 @@ namespace engine
       virtual INT32 pauseScan() = 0 ;
 
       virtual INT32 checkSnapshotID( BOOLEAN &isCursorSame ) = 0 ;
+      virtual BOOLEAN removeDuplicatRID( const dmsRecordID &rid ) = 0 ;
+      virtual dmsExtentID getIdxLID() const = 0 ;
+      /*
+         return : -1, SHARED or EXCLUSIVE
+      */
+      virtual INT32 getIdxLockModeByType( rtnScannerType type ) const = 0 ;
+
+      virtual rtnScannerStorageType getStorageType() const = 0 ;
+      virtual rtnScannerType  getType() const = 0 ;
+      virtual rtnScannerType  getCurScanType() const = 0 ;
+      virtual void            disableByType( rtnScannerType type ) = 0 ;
+      virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const = 0 ;
 
    protected:
       _dmsStorageUnit *_su ;

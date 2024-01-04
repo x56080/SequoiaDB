@@ -68,8 +68,8 @@ namespace engine
 
       virtual ~_rtnMergeIXScanner() ;
 
-      void     setSubScannerType( IXScannerType leftType,
-                                  IXScannerType rightType ) ;
+      void     setSubScannerType( rtnScannerType leftType,
+                                  rtnScannerType rightType ) ;
 
    /// Interface
    public:
@@ -85,11 +85,11 @@ namespace engine
                                  const dmsRecordID &rid ) ;
 
       virtual BOOLEAN         isAvailable() const ;
-      virtual IXScannerType   getType() const ;
-      virtual IXScannerType   getCurScanType() const ;
-      virtual void            disableByType( IXScannerType type ) ;
-      virtual BOOLEAN         isTypeEnabled( IXScannerType type ) const ;
-      virtual INT32           getLockModeByType( IXScannerType type ) const ;
+      virtual rtnScannerType  getType() const ;
+      virtual rtnScannerType  getCurScanType() const ;
+      virtual void            disableByType( rtnScannerType type ) ;
+      virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const ;
+      virtual INT32           getIdxLockModeByType( rtnScannerType type ) const ;
 
       virtual const BSONObj*  getCurKeyObj() const ;
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
@@ -103,7 +103,7 @@ namespace engine
       const BSONObj*       getSavedObjFromChild() const ;
       const dmsRecordID&   getSavedRIDFromChild() const ;
 
-      INT32                _createScanner( IXScannerType type,
+      INT32                _createScanner( rtnScannerType type,
                                            _rtnIXScanner *&pScanner ) ;
 
    private:
@@ -132,8 +132,8 @@ namespace engine
       rtnIXScanner            *_leftIXScanner ;
       rtnIXScanner            *_rightIXScanner ;
 
-      IXScannerType           _leftType ;
-      IXScannerType           _rightType ;
+      rtnScannerType          _leftType ;
+      rtnScannerType          _rightType ;
 
       BOOLEAN                 _leftEnabled ;
       BOOLEAN                 _rightEnabled ;

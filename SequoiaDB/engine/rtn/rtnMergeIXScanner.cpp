@@ -49,16 +49,6 @@ using namespace bson ;
 namespace engine
 {
 
-   /*
-      RTN_SUB_SCAN_TYPE define
-   */
-   enum RTN_SUB_SCAN_TYPE
-   {
-      SCAN_NONE,
-      SCAN_LEFT,
-      SCAN_RIGHT
-   } ;
-
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
                                            rtnPredicateList *predList,
                                            _dmsStorageUnit  *su,
@@ -93,8 +83,8 @@ namespace engine
       }
    }
 
-   void _rtnMergeIXScanner::setSubScannerType( IXScannerType leftType,
-                                               IXScannerType rightType )
+   void _rtnMergeIXScanner::setSubScannerType( rtnScannerType leftType,
+                                               rtnScannerType rightType )
    {
       _leftType = leftType ;
       _rightType = rightType ;
@@ -131,7 +121,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnMergeIXScanner::_createScanner( IXScannerType type,
+   INT32 _rtnMergeIXScanner::_createScanner( rtnScannerType type,
                                              _rtnIXScanner *&pScanner )
    {
       INT32 rc = SDB_OK ;
@@ -670,19 +660,19 @@ namespace engine
       return ( _leftIXScanner && _rightIXScanner ) ? TRUE : FALSE ;
    }
 
-   IXScannerType _rtnMergeIXScanner::getType() const
+   rtnScannerType _rtnMergeIXScanner::getType() const
    {
       return SCANNER_TYPE_MERGE ;
    }
 
-   IXScannerType _rtnMergeIXScanner::getCurScanType() const
+   rtnScannerType _rtnMergeIXScanner::getCurScanType() const
    {
       SDB_ASSERT( SCAN_NONE != _fromDir, "Invalid scann from" ) ;
 
       return ( SCAN_LEFT == _fromDir ) ? _leftType : _rightType ;
    }
 
-   void _rtnMergeIXScanner::disableByType( IXScannerType type )
+   void _rtnMergeIXScanner::disableByType( rtnScannerType type )
    {
       if ( _leftType == type )
       {
@@ -694,7 +684,7 @@ namespace engine
       }
    }
 
-   BOOLEAN _rtnMergeIXScanner::isTypeEnabled( IXScannerType type ) const
+   BOOLEAN _rtnMergeIXScanner::isTypeEnabled( rtnScannerType type ) const
    {
       BOOLEAN isEnabled = FALSE ;
       if ( _leftType == type )
@@ -708,15 +698,15 @@ namespace engine
       return isEnabled ;
    }
 
-   INT32 _rtnMergeIXScanner::getLockModeByType( IXScannerType type ) const
+   INT32 _rtnMergeIXScanner::getIdxLockModeByType( rtnScannerType type ) const
    {
       if ( _leftType == type && _leftIXScanner )
       {
-         return _leftIXScanner->getLockModeByType( type ) ;
+         return _leftIXScanner->getIdxLockModeByType( type ) ;
       }
       else if ( _rightType == type && _rightIXScanner )
       {
-         return _rightIXScanner->getLockModeByType( type ) ;
+         return _rightIXScanner->getIdxLockModeByType( type ) ;
       }
       return -1 ;
    }

@@ -1181,7 +1181,7 @@ namespace engine
 
       rtnScannerFactory f ;
       rtnIXScanner *tmp = NULL ;
-      IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
+      rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
       rtnPredicateList *predList = NULL ;
 
@@ -1245,6 +1245,8 @@ namespace engine
 
       rtnScannerFactory f ;
       rtnTBScanner *tmp = NULL ;
+      rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
+                               SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
 
       if ( blockObj )
       {
@@ -1259,7 +1261,7 @@ namespace engine
          f.releaseScanner( _scanner ) ;
          _scanner = NULL ;
       }
-      rc = f.createTBScanner( su, mbContext, cb, tmp ) ;
+      rc = f.createTBScanner( scanType, su, mbContext, cb, tmp ) ;
       if ( rc )
       {
          goto error ;

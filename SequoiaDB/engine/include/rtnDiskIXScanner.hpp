@@ -76,11 +76,11 @@ namespace engine
                                  const dmsRecordID &rid ) ;
 
       virtual BOOLEAN         isAvailable() const ;
-      virtual IXScannerType   getType() const ;
-      virtual IXScannerType   getCurScanType() const ;
-      virtual void            disableByType( IXScannerType type ) ;
-      virtual BOOLEAN         isTypeEnabled( IXScannerType type ) const ;
-      virtual INT32           getLockModeByType( IXScannerType type ) const ;
+      virtual rtnScannerType  getType() const ;
+      virtual rtnScannerType  getCurScanType() const ;
+      virtual void            disableByType( rtnScannerType type ) ;
+      virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const ;
+      virtual INT32           getIdxLockModeByType( rtnScannerType type ) const ;
 
       virtual const BSONObj*  getCurKeyObj() const { return &_curKeyObj ; }
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }

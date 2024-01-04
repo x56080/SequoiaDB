@@ -344,6 +344,13 @@ namespace engine
 
       virtual UINT64 _getOnceRestNum() const = 0 ;
 
+      // for _dmsScannerLockHandler
+      virtual void _onRecordSkipped( const dmsRecordID &curRID,
+                                     dmsScanTransContext *transContext ) ;
+      virtual void _onRecordLocked( const dmsRecordID &curRID,
+                                    dmsScanTransContext *transContext,
+                                    BOOLEAN &skipRecord ) ;
+
    protected:
       _rtnScanner          *_scanner ;
       dmsScanTransContext  _transContext ;
@@ -408,11 +415,6 @@ namespace engine
    protected:
       virtual INT32 _onFirstInit( _pmdEDUCB *cb ) ;
 
-      virtual void _onRecordSkipped( const dmsRecordID &curRID,
-                                     dmsScanTransContext *transContext ) ;
-      virtual void _onRecordLocked( const dmsRecordID &curRID,
-                                    dmsScanTransContext *transContext,
-                                    BOOLEAN &skipRecord ) ;
       virtual INT32 _advanceScanner( _pmdEDUCB *cb, dmsRecordID &rid ) ;
       virtual INT32 _checkSnapshotID( BOOLEAN &isSnapshotSame ) ;
       virtual INT32 _getCurrentRID( dmsRecordID &nextRID ) ;

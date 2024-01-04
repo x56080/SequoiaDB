@@ -1815,7 +1815,7 @@ namespace engine
       mthMatchRuntime *matchRuntime = NULL ;
 
       rtnScannerFactory    f ;
-      IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
+      rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                  SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
       // delete and update should also use scanner properly
       _rtnIXScanner * scanner     = NULL ;
@@ -1896,13 +1896,16 @@ namespace engine
       rtnScannerFactory f ;
       rtnTBScanner *scanner = NULL ;
 
+      rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
+                                 SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+
       SDB_ASSERT ( pCollectionShortName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( su, "su can't be NULL" ) ;
       SDB_ASSERT ( mbContext, "mb context can't be NULL" ) ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "scanner can't be NULL" ) ;
 
-      rc = f.createTBScanner( su, mbContext, cb, scanner ) ;
+      rc = f.createTBScanner( scanType, su, mbContext, cb, scanner ) ;
       if ( rc )
       {
          goto error ;
