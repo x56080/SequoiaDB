@@ -100,6 +100,7 @@ namespace engine
       else
       {
          _savedRID.reset() ;
+         _relocatedRID.reset() ;
       }
 
       rc = getCurrentRID( rid ) ;
@@ -133,6 +134,7 @@ namespace engine
       rc = _relocateRID( _savedRID, isCursorSame ) ;
       if ( SDB_DMS_EOC == rc )
       {
+         _isEOF = TRUE ;
          rc = SDB_OK ;
          goto done ;
       }
@@ -141,10 +143,11 @@ namespace engine
       PD_LOG( PDDEBUG, "Relocate with rid(%u,%u), found(%d)",
               _savedRID._extent, _savedRID._offset, isCursorSame ) ;
 
-      if ( isCursorSame )
+      if ( isCursorSame && _relocatedRID != _savedRID )
       {
          _savedRID.reset() ;
       }
+      _relocatedRID.reset() ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_RESUMESCAN, rc ) ;
@@ -171,6 +174,7 @@ namespace engine
 
       PD_LOG( PDDEBUG, "Pause in recordID [extent: %u, offset: %u]",
               _savedRID._extent, _savedRID._offset ) ;
+      _relocatedRID.reset() ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNDISKTBSCAN_PAUSESCAN, rc ) ;
