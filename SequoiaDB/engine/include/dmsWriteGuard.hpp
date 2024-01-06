@@ -42,6 +42,7 @@
 #include "ixm.hpp"
 #include "ossRWMutex.hpp"
 #include "dmsMetadata.hpp"
+#include "dmsPersistUnit.hpp"
 #include "pmdDummySession.hpp"
 
 namespace engine
@@ -68,10 +69,6 @@ namespace engine
       void beforeWrite() ;
       void afterWrite() ;
 
-      INT32 begin( _dmsStorageDataCommon *su,
-                   _dmsMBContext *mbContext,
-                   _pmdEDUCB *cb,
-                   BOOLEAN isEnabled = TRUE ) ;
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
@@ -115,7 +112,6 @@ namespace engine
                   BOOLEAN &needProcess ) ;
       void releaseAll() ;
 
-      INT32 begin( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
@@ -162,44 +158,16 @@ namespace engine
       INT32 init() ;
       INT32 fini() ;
 
-      INT32 begin( IStorageService *service,
-                   _dmsStorageDataCommon *su,
-                   _dmsMBContext *mbContext,
-                   _pmdEDUCB *cb,
-                   BOOLEAN isEnabled = TRUE ) ;
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
 
-      void incRecordCount()
-      {
-         ++ _recordCountIncDelta ;
-      }
-
-      void decRecordCount()
-      {
-         ++ _recordCountDecDelta ;
-      }
-
-      void incDataLen( UINT64 dataLen )
-      {
-         _dataLenIncDelta += dataLen ;
-      }
-
-      void decDataLen( UINT64 dataLen )
-      {
-         _dataLenDecDelta += dataLen ;
-      }
-
-      void incOrgDataLen( UINT64 orgDataLen )
-      {
-         _orgDataLenIncDelta += orgDataLen ;
-      }
-
-      void decOrgDataLen( UINT64 orgDataLen )
-      {
-         _orgDataLenDecDelta += orgDataLen ;
-      }
+      void incRecordCount( UINT64 count = 1 ) ;
+      void decRecordCount( UINT64 count = 1 ) ;
+      void incDataLen( UINT64 dataLen ) ;
+      void decDataLen( UINT64 dataLen ) ;
+      void incOrgDataLen( UINT64 orgDataLen ) ;
+      void decOrgDataLen( UINT64 orgDataLen ) ;
 
    protected:
       IStorageService *_service = nullptr ;
@@ -208,12 +176,7 @@ namespace engine
       _dmsMBStatInfo *_mbStat = nullptr ;
       pmdDummySession _dummySession ;
       utilCLUniqueID _clUniqueID = UTIL_UNIQUEID_NULL ;
-      UINT64 _recordCountIncDelta = 0 ;
-      UINT64 _recordCountDecDelta = 0 ;
-      UINT64 _dataLenIncDelta = 0 ;
-      UINT64 _dataLenDecDelta = 0 ;
-      UINT64 _orgDataLenIncDelta = 0 ;
-      UINT64 _orgDataLenDecDelta = 0 ;
+      utilThreadLocalPtr<dmsStatPersistUnit> _statUnitPtr ;
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
       BOOLEAN _hasBegin ;
@@ -238,13 +201,6 @@ namespace engine
 
       ~_dmsWriteGuard() = default ;
 
-      INT32 begin( IStorageService *service,
-                   _dmsStorageDataCommon *su,
-                   _dmsMBContext *mbContext,
-                   _pmdEDUCB *cb,
-                   BOOLEAN isDataWriteGuardEnabled = TRUE,
-                   BOOLEAN isIndexWriteGuardEnabled = TRUE,
-                   BOOLEAN isPersistGuardEnabled = TRUE ) ;
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;

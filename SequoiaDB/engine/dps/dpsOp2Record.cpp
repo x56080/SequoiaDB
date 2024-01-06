@@ -808,9 +808,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_POP2RECORD, "dpsPop2Record" )
-   INT32 dpsPop2Record( const CHAR *fullName, const dmsRecordID &firstRID,
-                        const INT64 &logicalID, const INT8 &direction,
-                        dpsLogRecord &record )
+   INT32 dpsPop2Record( const CHAR *fullName, const INT64 &logicalID,
+                        const INT8 &direction, dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPS_POP2RECORD ) ;

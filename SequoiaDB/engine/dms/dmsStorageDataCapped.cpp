@@ -236,24 +236,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__PREPAREADDCOLLECTION, "_dmsStorageDataCapped::_prepareAddCollection" )
    INT32 _dmsStorageDataCapped::_prepareAddCollection( const BSONObj *extOption,
-                                                       dmsExtentID &extOptExtent,
-                                                       UINT16 &extentPageNum )
+                                                       dmsCreateCLOptions &options )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__PREPAREADDCOLLECTION ) ;
-      UINT16 pageNum = 1 ;
-      dmsCappedCLOptions options ;
-      dmsExtentID extentID = DMS_INVALID_EXTENT ;
 
-      rc = _parseExtendOptions( extOption, options ) ;
+      rc = _parseExtendOptions( extOption, options._cappedOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse options, rc: %d", rc ) ;
-
-      // Allocate one page to store possible options of the collection.
-      rc = _findFreeSpace( pageNum, extentID, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Allocate metablock expand option extent "
-                   "failed, pageNum: %d, rc: %d", pageNum, rc ) ;
-      extOptExtent = extentID ;
-      extentPageNum = pageNum ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__PREPAREADDCOLLECTION, rc ) ;
@@ -325,16 +314,16 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACAPPED__ONALLOCEXTENT ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERTDATA, "_dmsStorageDataCapped::_prepareInsertData" )
-   INT32 _dmsStorageDataCapped::_prepareInsertData( const BSONObj &record,
-                                                    BOOLEAN mustOID,
-                                                    pmdEDUCB *cb,
-                                                    dmsRecordData &recordData,
-                                                    BOOLEAN &memReallocate,
-                                                    INT64 position )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKINSERTDATA, "_dmsStorageDataCapped::_checkInsertData" )
+   INT32 _dmsStorageDataCapped::_checkInsertData( const BSONObj &record,
+                                                  BOOLEAN mustOID,
+                                                  pmdEDUCB *cb,
+                                                  dmsRecordData &recordData,
+                                                  BOOLEAN &memReallocate,
+                                                  INT64 position )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERTDATA ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKINSERTDATA ) ;
       LogicalIDToInsert logicalID ;
       LogicalIDToInsertEle logicalIDEle( (CHAR *)(&logicalID) ) ;
       CHAR *mergedData = NULL ;
@@ -419,26 +408,69 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERTDATA, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKINSERTDATA, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERT, "_dmsStorageDataCapped::_prepareInsert" )
+   INT32 _dmsStorageDataCapped::_prepareInsert( const dmsRecordID &recordID,
+                                                const dmsRecordData &recordData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERT ) ;
+
+      // Force set the logical id in the record. Logical id is always at the
+      // beginning of the record.
+      LogicalIDToInsertEle ele( (CHAR *)( recordData.data() + sizeof(UINT32) ) ) ;
+      UINT64 *lidPtr = (UINT64 *)ele.value() ;
+      *lidPtr = recordID.toUINT64() ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERT, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, "_dmsStorageDataCapped::_getRecordPosition" )
-   INT32 _dmsStorageDataCapped::_getRecordPosition( const dmsRecordID &rid,
+   INT32 _dmsStorageDataCapped::_getRecordPosition( dmsMBContext *context,
+                                                    const dmsRecordID &rid,
                                                     const dmsRecordData &recordData,
+                                                    pmdEDUCB *cb,
                                                     INT64 &position )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__GETRECPOS ) ;
 
-      _extLidAndOffset2RecLid( rid._extent, rid._offset, position ) ;
+      dmsRecordID lastRID ;
 
+      rc = context->getCollPtr()->getMaxRecordID( lastRID, cb ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get max record id, rc: %d", rc ) ;
+
+      if ( lastRID.isValid() && rid == lastRID )
+      {
+         position = rid.toUINT64() ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Only allowed to delete the last record in "
+                 "capped collection, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, rc ) ;
-
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS, "_dmsStorageDataCapped::_checkReusePosition" )
@@ -451,9 +483,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS ) ;
-
-      position = -1 ;
-      foundRID.reset() ;
 
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKREUSEPOS, rc ) ;
 
@@ -495,14 +524,14 @@ namespace engine
                                                    pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ALLOCRECORDSPACE ) ;
-      dmsExtentID extID = DMS_INVALID_EXTENT ;
-      dmsExtentInfo *workExtInfo = NULL ;
+
+      UINT64 tmpID = 0 ;
 
       SDB_ASSERT( context, "Context should not be NULL" ) ;
       SDB_ASSERT( cb, "edu cb should not be NULL" ) ;
 
-      workExtInfo = getWorkExtInfo( context->mbID() ) ;
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
          rc = SDB_SYS ;
@@ -511,68 +540,16 @@ namespace engine
          goto error ;
       }
 
-      // If the working extent is invalid, no data extent has been allocated for
-      // the collection yet.
-      if ( DMS_INVALID_EXTENT == workExtInfo->getID() )
-      {
-         SDB_ASSERT( DMS_INVALID_EXTENT == context->mb()->_firstExtentID
-                     && DMS_INVALID_EXTENT == context->mb()->_lastExtentID,
-                     "The first and last extents should be invalid" ) ;
-         rc = _allocateExtent( context, DMS_CAP_EXTENT_PAGE_NUM,
-                               TRUE, FALSE, &extID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to allocate extent, rc: %d", rc ) ;
+      rc = _limitProcess( context, size, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process limit, rc: %d", rc ) ;
 
-         // As the collection lock may have been released in the invoking of
-         // _allocateExtent(in _findFreeSpace, to be precise), some one else
-         // (in parrallel scenario) may have also reached _allocateExtent, and
-         // allocated one extent. That is most likely to happen when doing
-         // parrallel insertions. The working extent may have already switched.
-         // So we need to check again, and only to switch to the new allocated
-         // extent here if the current working extent's free space is not enough.
-
-         // The 2 conditions below:
-         // (1) If the working extent is STILL invalid, no body else has done
-         //     the attach yet. So we'll do it, attaching to the first extent
-         //     of the collection.
-         // (3) If the working extent is valid, it means some other thread has
-         //     done the attach. So we check if the free space is enough. If not
-         //     attach to the next extent(There should be one).
-         if ( DMS_INVALID_EXTENT == workExtInfo->getID() ||
-              workExtInfo->_freeSpace < size )
-         {
-            // There should be a next extent. Let switch to it.
-            rc = _attachNextExt( context, workExtInfo ) ;
-            PD_RC_CHECK( rc, PDERROR, "Switch working extent failed, "
-                         "rc: %d", rc ) ;
-         }
-      }
-      else
-      {
-         rc = _limitProcess( context, size, workExtInfo ) ;
-         PD_RC_CHECK( rc, PDERROR, "Collection limit error, rc: %d", rc ) ;
-
-         if ( workExtInfo->_freeSpace < size )
-         {
-            rc = _allocateExtent( context, DMS_CAP_EXTENT_PAGE_NUM, TRUE,
-                                  FALSE, &extID ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to allocate extent, rc: %d", rc ) ;
-            if ( workExtInfo->_freeSpace < size )
-            {
-               // There should be a next extent. Let switch to it.
-               rc = _attachNextExt( context, workExtInfo ) ;
-               PD_RC_CHECK( rc, PDERROR, "Switch working extent failed, "
-                            "rc: %d", rc ) ;
-            }
-         }
-      }
-
-      foundRID._extent = workExtInfo->getID() ;
-      foundRID._offset = workExtInfo->getNextRecOffset() ;
+      tmpID = context->mbStat()->_ridGen.add( size ) ;
+      foundRID.fromUINT64( tmpID ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__ALLOCRECORDSPACE, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }
@@ -582,23 +559,15 @@ namespace engine
    // after the last record. That's the same with normal insertion.
    // If the target extent is empty( or has not been allocated yet), it can be
    // inserted into any place in the data area of the extent.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__ALLOCRECORDSPACEBYPOS, "_dmsStorageDataCapped::_allocRecordSpaceByPos" )
-   INT32 _dmsStorageDataCapped::_allocRecordSpaceByPos( dmsMBContext *context,
-                                                        UINT32 size,
-                                                        INT64 position,
-                                                        dmsRecordID &foundRID,
-                                                        pmdEDUCB *cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKRECSPACE, "_dmsStorageDataCapped::_checkRecordSpace" )
+   INT32 _dmsStorageDataCapped::_checkRecordSpace( dmsMBContext *context,
+                                                   UINT32 size,
+                                                   dmsRecordID &foundRID,
+                                                   pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ALLOCRECORDSPACEBYPOS ) ;
-      dmsExtentID extLogicalID = DMS_INVALID_EXTENT ;
-      dmsExtentID extID = DMS_INVALID_EXTENT ;
-      dmsOffset offset = DMS_INVALID_OFFSET ;
-      dmsExtentInfo *workExtInfo = NULL ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKRECSPACE ) ;
 
-      _recLid2ExtLidAndOffset( position, extLogicalID, offset ) ;
-
-      workExtInfo = getWorkExtInfo( context->mbID() ) ;
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
          rc = SDB_SYS ;
@@ -607,120 +576,11 @@ namespace engine
          goto error ;
       }
 
-      // Check if the target extent has been allocated yet.
-      if ( DMS_INVALID_EXTENT == workExtInfo->getID() )
-      {
-         SDB_ASSERT( DMS_INVALID_EXTENT == context->mb()->_firstExtentID
-                     && DMS_INVALID_EXTENT == context->mb()->_lastExtentID,
-                     "The first and last extents should be invalid" ) ;
-         rc = _allocateExtent( context, DMS_CAP_EXTENT_PAGE_NUM,
-                               TRUE, FALSE, &extID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to allocate extent, rc: %d", rc ) ;
-
-         if ( DMS_INVALID_EXTENT == workExtInfo->getID() )
-         {
-            // First extent of the collection. If position is specified( for
-            // example, full sync is in progress), need to update the logical
-            // extent id accorrding to the position.
-            rc = _updateExtentLID( context->mbID(), extID, extLogicalID ) ;
-            PD_RC_CHECK( rc, PDERROR, "Update extent logical id to %d "
-                         "failed[ %d ]", extLogicalID, rc ) ;
-            _mbStatInfo[context->mbID()]._totalDataFreeSpace -=
-               offset - DMS_EXTENT_METADATA_SZ ;
-         }
-
-         if ( DMS_INVALID_EXTENT == workExtInfo->getID() ||
-              workExtInfo->_freeSpace < size )
-         {
-            // There should be a next extent. Let switch to it.
-            rc = _attachNextExt( context, workExtInfo ) ;
-            PD_RC_CHECK( rc, PDERROR, "Switch working extent failed, "
-                         "rc: %d", rc ) ;
-            // Adjust the write position to the target place.
-            workExtInfo->seek( offset ) ;
-         }
-      }
-      else
-      {
-         // If the working extent is not invalid, there are two scenarios:
-         // 1. The target extent is just the working extent. In this case,
-         //    offset should be the same with workExtInfo->getNextRecOffset().
-         // 2. The target is not the working extent. Then it can only be the
-         //    extent after the working extent, and need to be allocate.
-         if ( extLogicalID == workExtInfo->_extLogicID )
-         {
-            if ( offset != workExtInfo->getNextRecOffset() )
-            {
-#ifdef _DEBUG
-               if ( EDU_TYPE_REPLAGENT == cb->getType() )
-               {
-                  SDB_ASSERT( FALSE, "Offset is out of range" ) ;
-               }
-#endif /* _DEBUG */
-               PD_LOG( PDERROR, "Record offset[%d] from position %lld dose not "
-                                "match next offset[%d] in extent[%d]",
-                       offset, position, workExtInfo->getNextRecOffset(),
-                       extLogicalID ) ;
-               rc = SDB_INVALIDARG ;
-               goto done ;
-            }
-         }
-         else if ( extLogicalID == ( workExtInfo->_extLogicID + 1 ) )
-         {
-            INT64 logicalID = DMS_INVALID_REC_LOGICALID ;
-            // Get the first record logical id in the next extent, and check.
-            _extLidAndOffset2RecLid( extLogicalID, DMS_EXTENT_METADATA_SZ,
-                                     logicalID ) ;
-            if ( position != logicalID )
-            {
-#ifdef _DEBUG
-               if ( EDU_TYPE_REPLAGENT == cb->getType() )
-               {
-                  SDB_ASSERT( FALSE, "Invalid position to insert" ) ;
-               }
-#endif /* _DEBUG */
-               PD_LOG( PDERROR, "Invalid position to insert[ %lld ]",
-                       position ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            rc = _limitProcess( context, size, workExtInfo ) ;
-            PD_RC_CHECK( rc, PDERROR, "Collection limit error, rc: %d", rc ) ;
-
-            if ( workExtInfo->_freeSpace < size )
-            {
-               rc = _allocateExtent( context, DMS_CAP_EXTENT_PAGE_NUM, TRUE,
-                                     FALSE, &extID ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to allocate extent, rc: %d", rc ) ;
-               if ( workExtInfo->_freeSpace < size )
-               {
-                  // There should be a next extent. Let switch to it.
-                  rc = _attachNextExt( context, workExtInfo ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Switch working extent failed, "
-                               "rc: %d", rc ) ;
-               }
-            }
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Extent logical id[ %d ] from position[ %lld ] "
-                    "is invalid", extLogicalID, position ) ;
-            rc = SDB_INVALIDARG ;
-            goto done ;
-         }
-      }
-
-      foundRID._extent = workExtInfo->getID() ;
-      foundRID._offset = workExtInfo->getNextRecOffset() ;
-      SDB_ASSERT( workExtInfo->_extLogicID == extLogicalID, "Extent logical "
-                  "id is not as expected" ) ;
-      SDB_ASSERT( foundRID._offset == offset, "Offset for record is not as "
-                  "expected" ) ;
+      rc = _limitProcess( context, size, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to process limit, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__ALLOCRECORDSPACEBYPOS, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKRECSPACE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1824,14 +1684,14 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORD, "_dmsStorageDataCapped::_popRecord" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORD_OLD, "_dmsStorageDataCapped::_popRecord" )
    INT32 _dmsStorageDataCapped::_popRecord( dmsMBContext *context,
                                             dmsExtentID extID,
                                             dmsOffset offset,
                                             INT8 direction )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORD ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORD_OLD ) ;
       dmsExtentInfo *workExtInfo = getWorkExtInfo( context->mbID() ) ;
 
       SDB_ASSERT( workExtInfo, "Work extent info pointer should not be NULL" ) ;
@@ -1856,7 +1716,7 @@ namespace engine
                    "offset[%d], rc: %d", extID, offset, rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORD, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORD_OLD, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2207,7 +2067,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__LIMITPROCESS, "_dmsStorageDataCapped::_limitProcess" )
    INT32 _dmsStorageDataCapped::_limitProcess( dmsMBContext *context,
                                                UINT32 sizeReq,
-                                               dmsExtentInfo *workExtInfo )
+                                               pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__LIMITPROCESS ) ;
@@ -2218,9 +2078,9 @@ namespace engine
       {
          if ( _overwriteOnExceed( context ) )
          {
-            rc = _recycleOneExtent( context ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Recycle the eldest extent failed[ %d ]", rc ) ;
+            // rc = _recycleOneExtent( context ) ;
+            // PD_RC_CHECK( rc, PDERROR,
+            //              "Recycle the eldest extent failed[ %d ]", rc ) ;
          }
          else
          {
@@ -2230,25 +2090,28 @@ namespace engine
          }
       }
 
-      // If free space in current working extent is not enough, get another.
-      if ( workExtInfo->_freeSpace < sizeReq )
+      if ( _spaceExceedLimit( context, sizeReq ) )
       {
-         // Before allocationg another extent, check size limitation.
-         if ( !spaceEnough( context, DMS_CAP_EXTENT_SZ ) )
+         if ( _overwriteOnExceed( context ) )
          {
-            if ( _overwriteOnExceed( context ) )
-            {
-               rc = _recycleOneExtent( context ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Recycle the eldest extent failed[ %d ]", rc ) ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Size exceed the limit" ) ;
-               rc = SDB_OSS_UP_TO_LIMIT ;
-               goto error ;
-            }
+            // rc = _recycleOneExtent( context ) ;
+            // PD_RC_CHECK( rc, PDERROR,
+            //                "Recycle the eldest extent failed[ %d ]", rc ) ;
          }
+         else
+         {
+            PD_LOG( PDERROR, "Size exceed the limit" ) ;
+            rc = SDB_OSS_UP_TO_LIMIT ;
+            goto error ;
+         }
+      }
+
+      while ( ( !cb->isInterrupted() ) &&
+              ( _numExceedLimit( context, 1 ) ||
+                _overwriteOnExceed( context ) ) )
+      {
+         rc = _popRecord( context, 1, cb, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pop record, rc: %d", rc ) ;
       }
 
    done:
@@ -2279,24 +2142,183 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID ) ;
-      dmsRecordID firstRID ;
-      dmsExtRW extRW ;
-      const dmsExtent *startExtent = NULL ;
+
       UINT32 logRecSize = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       dpsMergeInfo info ;
-      dmsExtentID extentID = DMS_INVALID_EXTENT ;
-      dmsOffset offset = 0 ;
       dpsLogRecord &dpsRecord = info.getMergeBlock().record() ;
-      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = { 0 } ;
+      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+      dmsRecordID rid ;
+      UINT64 popCount = 0, popSize = 0 ;
+
+      dmsWriteGuard writeGuard( _service, this, context, cb, TRUE, FALSE, TRUE ) ;
 
       SDB_ASSERT( context, "context should not be NULL" ) ;
       SDB_ASSERT( cb, "edu cb should not be NULL" ) ;
 
-      // Calculate the target extent id and offset.
-      rc = _extractRecLID( context, logicalID, cb, extentID, offset ) ;
-      PD_RC_CHECK( rc, PDERROR, "Invalid LogicalID[%lld], rc: %d",
-                   logicalID, rc ) ;
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+#ifdef _DEBUG
+      // Here we use delete access type.
+      if ( !dmsAccessAndFlagCompatiblity( context->mb()->_flag,
+                                          DMS_ACCESS_TYPE_DELETE ) )
+      {
+         PD_LOG( PDERROR, "Imcompatible collection mode: %d",
+                 context->mb()->_flag ) ;
+         rc = SDB_DMS_INCOMPATIBLE_MODE ;
+         goto error ;
+      }
+#endif /* _DEBUG */
+
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
+
+      if ( dpscb )
+      {
+         _clFullName( context->mb()->_collectionName, fullName,
+                      sizeof(fullName) ) ;
+         rc = dpsPop2Record( fullName, logicalID, direction, dpsRecord ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
+
+         rc = dpscb->checkSyncControl( dpsRecord.alignedLen(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Check sync control failed, rc: %d", rc ) ;
+
+         logRecSize = dpsRecord.alignedLen() ;
+         rc = pTransCB->reservedLogSpace( logRecSize, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserve log space"
+                    "(length=%u), rc: %d", logRecSize, rc ) ;
+            logRecSize = 0 ;
+            goto error ;
+         }
+      }
+
+      rid.fromUINT64( logicalID ) ;
+      rc = context->getCollPtr()->popRecords( rid, direction, cb, popCount, popSize ) ;
+      if ( SDB_DMS_RECORD_NOTEXIST == rc )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Failed to pop records from collection, "
+                     "record with logical ID [%llu] is not found", logicalID ) ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to pop records from collection, rc: %d", rc ) ;
+
+      writeGuard.getPersistGuard().decRecordCount( popCount ) ;
+      writeGuard.getPersistGuard().decDataLen( popSize ) ;
+      writeGuard.getPersistGuard().decOrgDataLen( popSize ) ;
+
+      if ( dpscb )
+      {
+         rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
+                       DMS_INVALID_OFFSET, FALSE, DMS_FILE_DATA ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d", rc ) ;
+      }
+      else if ( cb->getLsnCount() > 0 )
+      {
+         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_DATA ) ;
+         cb->setDataExInfo( fullName, this->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
+      }
+
+      if ( direction < 0 )
+      {
+         context->mbStat()->_ridGen.poke( rid.toUINT64() ) ;
+      }
+
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
+      }
+
+   done:
+      if ( 0 != logRecSize)
+      {
+         pTransCB->releaseLogSpace( logRecSize, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID, rc ) ;
+      return rc ;
+   error:
+      {
+         INT32 rc1 = writeGuard.abort() ;
+         if ( SDB_OK != rc1 )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", rc1 ) ;
+            ossPanic() ;
+         }
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, "_dmsStorageDataCapped::_popRecordByNumber" )
+   INT32 _dmsStorageDataCapped::_popRecordByNumber( dmsMBContext *context,
+                                                    INT64 number,
+                                                    pmdEDUCB *cb,
+                                                    SDB_DPSCB *dpscb,
+                                                    INT8 direction )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER ) ;
+
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      while ( number-- > 0 )
+      {
+         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords.fetch() )
+         {
+            // No more records
+            goto done ;
+         }
+
+         rc = _popRecord( context, direction, cb, dpscb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pop record, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORD, "_dmsStorageDataCapped::_popRecord" )
+   INT32 _dmsStorageDataCapped::_popRecord( dmsMBContext *context,
+                                            INT8 direction,
+                                            pmdEDUCB *cb,
+                                            SDB_DPSCB *dpscb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORD ) ;
+
+      dmsRecordID popRID ;
+      UINT32 logRecSize = 0 ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      dpsMergeInfo info ;
+      dpsLogRecord &dpsRecord = info.getMergeBlock().record() ;
+      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = { 0 } ;
+      UINT64 popCount = 0, popSize = 0 ;
+
+      dmsWriteGuard writeGuard( _service, this, context, cb, TRUE, FALSE, TRUE ) ;
+
+      SDB_ASSERT( context, "context should not be NULL" ) ;
+      SDB_ASSERT( cb, "edu cb should not be NULL" ) ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -2324,17 +2346,31 @@ namespace engine
          goto done ;
       }
 
+      rc = writeGuard.begin() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
+
+      if ( direction > 0 )
+      {
+         rc = context->getCollPtr()->getMinRecordID( popRID, cb ) ;
+      }
+      else
+      {
+         rc = context->getCollPtr()->getMaxRecordID( popRID, cb ) ;
+      }
+      if ( SDB_DMS_EOC == rc )
+      {
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
+
       if ( dpscb )
       {
-         _clFullName( context->mb()->_collectionName, fullName,
-                      sizeof(fullName) ) ;
-         rc = dpsPop2Record( fullName, firstRID, logicalID,
-                             direction, dpsRecord ) ;
+         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
+         rc = dpsPop2Record( fullName, (INT64)( popRID.toUINT64() ), direction, dpsRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( dpsRecord.alignedLen(), cb ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Check sync control failed, rc: %d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d", rc ) ;
 
          logRecSize = dpsRecord.alignedLen() ;
          rc = pTransCB->reservedLogSpace( logRecSize, cb ) ;
@@ -2346,19 +2382,41 @@ namespace engine
             goto error ;
          }
       }
+      else if ( cb->getLsnCount() > 0 )
+      {
+         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_DATA ) ;
+         cb->setDataExInfo( fullName, this->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
+      }
 
-      rc = _popRecord( context, extentID, offset, direction ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to pop records, logical id: %lld, "
-                   "rc: %d", logicalID, rc ) ;
+      rc = context->getCollPtr()->popRecords( popRID, direction, cb, popCount, popSize ) ;
+      if ( SDB_DMS_RECORD_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to pop record, rc: %d", rc ) ;
 
-      extRW = extent2RW( context->mb()->_firstExtentID, context->mbID() ) ;
-      startExtent = extRW.readPtr<dmsExtent>() ;
+      writeGuard.getPersistGuard().decRecordCount( popCount ) ;
+      writeGuard.getPersistGuard().decDataLen( popSize ) ;
+      writeGuard.getPersistGuard().decOrgDataLen( popSize ) ;
+
       if ( dpscb )
       {
-         rc = _logDPS( dpscb, info, cb, context, startExtent->_logicID,
-                       DMS_INVALID_OFFSET, FALSE, DMS_FILE_DATA ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to insert record into log, rc: %d", rc ) ;
+         rc = _logDPS( dpscb, info, cb, context, popRID._extent, popRID._offset,
+                       FALSE, DMS_FILE_DATA ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d", rc ) ;
+      }
+
+      if ( direction < 0 )
+      {
+         context->mbStat()->_ridGen.poke( popRID.toUINT64() ) ;
+      }
+
+      rc = writeGuard.commit() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+         ossPanic() ;
       }
 
    done:
@@ -2366,71 +2424,18 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORD, rc ) ;
       return rc ;
+
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, "_dmsStorageDataCapped::_popRecordByNumber" )
-   INT32 _dmsStorageDataCapped::_popRecordByNumber( dmsMBContext *context,
-                                                    INT64 number,
-                                                    pmdEDUCB *cb,
-                                                    SDB_DPSCB *dpscb,
-                                                    INT8 direction )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER ) ;
-      dmsExtentInfo *extInfo = NULL ;
-
-      if ( !context->isMBLock( EXCLUSIVE ) )
       {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         INT32 rc1 = writeGuard.abort() ;
+         if ( SDB_OK != rc1 )
+         {
+            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", rc1 ) ;
+            ossPanic() ;
+         }
       }
-
-      while ( number-- > 0 )
-      {
-         INT64 recordLID = DMS_INVALID_REC_LOGICALID ;
-         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords.fetch() )
-         {
-            // No more records
-            goto done ;
-         }
-
-         if ( 1 == direction )
-         {
-            // Pop the first record in the first extent.
-            const dmsExtent *extent = NULL ;
-            dmsExtRW extRW = extent2RW( context->mb()->_firstExtentID,
-                                        context->mbID() ) ;
-            extRW.setNothrow( TRUE ) ;
-            extent = extRW.readPtr<dmsExtent>() ;
-            PD_CHECK( extent, SDB_SYS, error, PDERROR, "Read extent[%d] "
-                                                       "failed: %d",
-                      context->mb()->_firstExtentID, rc ) ;
-            _extLidAndOffset2RecLid( extent->_logicID,
-                                     extent->_firstRecordOffset, recordLID ) ;
-         }
-         else
-         {
-            // Pop the last record in the last extent(working extent).
-            extInfo = getWorkExtInfo( context->mbID() ) ;
-            _extLidAndOffset2RecLid( extInfo->_extLogicID,
-                                     extInfo->_lastRecordOffset, recordLID ) ;
-         }
-
-         rc = _popRecordByLID( context, recordLID, cb, dpscb, direction ) ;
-         PD_RC_CHECK( rc, PDERROR, "Pop record of logical id[%lld] failed: %d",
-                      recordLID, rc ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, rc ) ;
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -2440,10 +2445,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_DUMPEXTOPTIONS ) ;
-      dmsExtRW extentRW ;
-      const dmsOptExtent *optExtent = NULL ;
-      dmsCappedCLOptions *options = NULL ;
-      UINT32 optSize = 0 ;
+
       BSONObjBuilder builder ;
 
       if ( !context->isMBLock() )
@@ -2454,37 +2456,11 @@ namespace engine
          goto error ;
       }
 
-      if ( DMS_INVALID_EXTENT == context->mb()->_mbOptExtentID )
-      {
-         PD_LOG( PDERROR, "Extend option extent id is invalid for "
-                 "collection[%s]", context->mb()->_collectionName ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      extentRW = extent2RW( context->mb()->_mbOptExtentID, context->mbID() ) ;
-      extentRW.setNothrow( TRUE ) ;
-      optExtent = extentRW.readPtr<dmsOptExtent>( 0, pageSize() ) ;
-      if ( !optExtent )
-      {
-         PD_LOG( PDERROR, "Extend option extent is invalid for collection[%s]",
-                 context->mb()->_collectionName ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = optExtent->getOption( (CHAR **)&options, &optSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get extend options from extent failed for "
-                   "collection[%s], rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-      SDB_ASSERT( sizeof( dmsCappedCLOptions ) == optSize,
-                  "Option size is not as expected" ) ;
-
       try
       {
-         builder.append( FIELD_NAME_SIZE, options->_maxSize ) ;
-         builder.append( FIELD_NAME_MAX, options->_maxRecNum ) ;
-         builder.appendBool( FIELD_NAME_OVERWRITE, options->_overwrite ) ;
+         builder.append( FIELD_NAME_SIZE, context->mb()->_maxSize ) ;
+         builder.append( FIELD_NAME_MAX, context->mb()->_maxRecNum ) ;
+         builder.appendBool( FIELD_NAME_OVERWRITE, context->mb()->_overwrite ) ;
 
          extOptions = builder.obj() ;
       }
@@ -2512,52 +2488,24 @@ namespace engine
 
       SDB_ASSERT( NULL != context, "context is invalid" ) ;
 
-      const CHAR * collection = NULL ;
-      UINT16 mbID = DMS_INVALID_MBID ;
-      dmsExtentID optExtentID = DMS_INVALID_EXTENT ;
-      dmsExtRW optExtRW ;
       dmsCappedCLOptions options ;
-      dmsOptExtent * optExtent = NULL ;
 
       PD_CHECK( context->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
                 "Caller should hold mb exclusive lock [%s]",
                 context->toString().c_str() ) ;
 
-      collection = context->mb()->_collectionName ;
-      mbID = context->mbID() ;
-      optExtentID = context->mb()->_mbOptExtentID ;
-
-      PD_CHECK( DMS_INVALID_EXTENT != optExtentID, SDB_SYS, error, PDERROR,
-                "Extend option extent id is invalid for "
-                "collection [%s]", collection ) ;
-
       rc = _parseExtendOptions( &extOptions, options ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse options, rc: %d", rc ) ;
 
-      // Init the option page.
-      optExtRW = extent2RW( context->mb()->_mbOptExtentID, context->mbID() ) ;
-      optExtRW.setNothrow( TRUE ) ;
-      optExtent = optExtRW.writePtr<dmsOptExtent>( 0, pageSize() ) ;
-      PD_CHECK( NULL != optExtent && optExtent->_mbID == context->mbID(),
-                SDB_SYS, error, PDERROR,
-                "Invalid option extent[%d]", optExtent ) ;
-
-      optExtent->setOption( (const CHAR *)&options,
-                            sizeof( dmsCappedCLOptions )) ;
-
-      // Flush immediately to avoid corruption of this page in crash.
-      flushPages( context->mb()->_mbOptExtentID, pageSize(), isSyncDeep() ) ;
+      context->mb()->_maxSize = options._maxSize ;
+      context->mb()->_maxRecNum = options._maxRecNum ;
+      context->mb()->_overwrite = options._overwrite ;
 
       // on metadata updated
       _onMBUpdated( context->mbID() ) ;
 
       // Flush MME
       flushMME( isSyncDeep() ) ;
-
-      rc = optExtent->getOption( (CHAR **)&_options[ mbID ], NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get collection extend option from extent "
-                   "failed, rc: %d", rc ) ;
-      SDB_ASSERT( NULL != _options[ mbID ], "Option pointer should not be NULL" ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED_SETEXTOPTIONS, rc ) ;

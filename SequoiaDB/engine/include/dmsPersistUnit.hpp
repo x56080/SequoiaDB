@@ -38,9 +38,14 @@
 
 #include "dmsDef.hpp"
 #include "interface/IPersistUnit.hpp"
+#include "utilUniqueID.hpp"
 
 namespace engine
 {
+
+   // forward declaration
+   class _dmsStorageDataCommon ;
+   class _dmsMBStatInfo ;
 
    /*
       dmsPersistUnitState define
@@ -53,6 +58,77 @@ namespace engine
       PREPARED,
    } ;
    typedef enum _dmsPersistUnitState dmsPersistUnitState ;
+
+   /*
+      _dmsStatPersistUnit define
+    */
+   class _dmsStatPersistUnit : public IStatPersistUnit
+   {
+   public:
+      _dmsStatPersistUnit( utilCLUniqueID clUID,
+                           _dmsStorageDataCommon *su,
+                           _dmsMBStatInfo *mbStat ) ;
+      virtual ~_dmsStatPersistUnit() ;
+      _dmsStatPersistUnit( const _dmsStatPersistUnit &o ) = delete ;
+      _dmsStatPersistUnit &operator =( const _dmsStatPersistUnit & ) = delete ;
+
+   public:
+      virtual INT32 commitUnit( IExecutor *executor ) ;
+      virtual INT32 abortUnit( IExecutor *executor ) ;
+
+      utilCLUniqueID getCLUniqueID() const
+      {
+         return _clUID ;
+      }
+
+      void incRecordCount( UINT64 recordCount )
+      {
+         _recordCountIncDelta += recordCount ;
+      }
+
+      void decRecordCount( UINT64 recordCount )
+      {
+         _recordCountDecDelta += recordCount ;
+      }
+
+      void incDataLen( UINT64 dataLen )
+      {
+         _dataLenIncDelta += dataLen ;
+      }
+
+      void decDataLen( UINT64 dataLen )
+      {
+         _dataLenDecDelta += dataLen ;
+      }
+
+      void incOrgDataLen( UINT64 orgDataLen )
+      {
+         _orgDataLenIncDelta += orgDataLen ;
+      }
+
+      void decOrgDataLen( UINT64 orgDataLen )
+      {
+         _orgDataLenDecDelta += orgDataLen ;
+      }
+
+      static utilThreadLocalPtr<_dmsStatPersistUnit> makeThreadLocalPtr(
+                                                      utilCLUniqueID clUID,
+                                                      _dmsStorageDataCommon *su,
+                                                      _dmsMBStatInfo *mbStat ) ;
+
+   protected:
+      utilCLUniqueID _clUID ;
+      _dmsStorageDataCommon *_su = nullptr ;
+      _dmsMBStatInfo *_mbStat = nullptr ;
+      UINT64 _recordCountIncDelta = 0 ;
+      UINT64 _recordCountDecDelta = 0 ;
+      UINT64 _dataLenIncDelta = 0 ;
+      UINT64 _dataLenDecDelta = 0 ;
+      UINT64 _orgDataLenIncDelta = 0 ;
+      UINT64 _orgDataLenDecDelta = 0 ;
+   } ;
+
+   typedef class _dmsStatPersistUnit dmsStatPersistUnit ;
 
    /*
       _dmsPersistUnit define
@@ -76,6 +152,8 @@ namespace engine
                                BOOLEAN isTrans,
                                BOOLEAN isForced ) ;
 
+      virtual INT32 registerStatUnit( utilThreadLocalPtr<IStatPersistUnit> &statUnitPtr ) ;
+
       virtual BOOLEAN useAtomicAbort() const
       {
          return dmsPersistUnitState::INACTIVE != _state &&
@@ -94,6 +172,9 @@ namespace engine
    protected:
       dmsPersistUnitState _state = dmsPersistUnitState::INACTIVE ;
       UINT32 _activeLevel = 0 ;
+
+      typedef ossPoolMap<utilCLUniqueID, utilThreadLocalPtr<IStatPersistUnit>> _dmsStatPersistUnitMap ;
+      _dmsStatPersistUnitMap _statMap ;
    } ;
 
    typedef class _dmsPersistUnit dmsPersistUnit ;

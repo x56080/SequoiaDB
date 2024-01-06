@@ -196,9 +196,15 @@ namespace engine
       UINT64         _createTime ;
       UINT64         _updateTime ;
 
+      // record ID generator
       UINT64         _ridGen ;
 
-      CHAR           _pad [ 236 ] ;
+      // capped options
+      INT64          _maxSize ;
+      INT64          _maxRecNum ;
+      BOOLEAN        _overwrite ;
+
+      CHAR           _pad [ 216 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -289,6 +295,10 @@ namespace engine
          _updateTime             = 0 ;
 
          _ridGen                 = 0 ;
+
+         _maxSize                = DMS_DFT_CAPPEDCL_SIZE ;
+         _maxRecNum              = DMS_DFT_CAPPEDCL_RECNUM ;
+         _overwrite              = FALSE ;
 
          // pad
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
@@ -1347,6 +1357,8 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
+         virtual OSS_LATCH_MODE getWriteLockType() const = 0 ;
+
          void increaseMBStat ( utilCLUniqueID clUniqueID,
                                dmsMBStatInfo * mbStat,
                                UINT64 delta,
@@ -1358,8 +1370,7 @@ namespace engine
 
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
-                                              dmsExtentID &extOptExtent,
-                                              UINT16 &extentPageNum ) = 0 ;
+                                              dmsCreateCLOptions &options ) = 0 ;
 
          virtual INT32 _onAddCollection( const BSONObj *extOption,
                                          dmsExtentID extOptExtent,
@@ -1375,15 +1386,20 @@ namespace engine
                                       dmsExtent *extAddr,
                                       SINT32 extentID ) = 0 ;
 
-         virtual INT32 _prepareInsertData( const BSONObj &record,
-                                           BOOLEAN mustOID,
-                                           pmdEDUCB *cb,
-                                           dmsRecordData &recordData,
-                                           BOOLEAN &memReallocate,
-                                           INT64 position ) = 0 ;
+         virtual INT32 _checkInsertData( const BSONObj &record,
+                                         BOOLEAN mustOID,
+                                         pmdEDUCB *cb,
+                                         dmsRecordData &recordData,
+                                         BOOLEAN &memReallocate,
+                                         INT64 position ) = 0 ;
 
-         virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+         virtual INT32 _prepareInsert( const dmsRecordID &recordID,
+                                       const dmsRecordData &recordData ) = 0 ;
+
+         virtual INT32 _getRecordPosition( dmsMBContext *context,
+                                           const dmsRecordID &rid,
                                            const dmsRecordData &recordData,
+                                           pmdEDUCB *cb,
                                            INT64 &position ) = 0 ;
 
          virtual INT32 _checkReusePosition( dmsMBContext *context,
@@ -1397,11 +1413,10 @@ namespace engine
                                           dmsRecordID &foundRID,
                                           _pmdEDUCB *cb ) = 0 ;
 
-         virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
-                                               UINT32 size,
-                                               INT64 position,
-                                               dmsRecordID &foundRID,
-                                               _pmdEDUCB *cb ) = 0 ;
+         virtual INT32 _checkRecordSpace( dmsMBContext *context,
+                                          UINT32 size,
+                                          dmsRecordID &foundRID,
+                                          _pmdEDUCB *cb ) = 0 ;
 
          virtual INT32 _extentInsertRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,

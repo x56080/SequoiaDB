@@ -157,6 +157,11 @@ namespace engine
 // Default size of Rollback Segment collection is 128MB each.
 #define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
 
+// Default size threshold of capped collection is 30GB.
+// Default record number threshold is set to 0, which means no limit on that.
+#define DMS_DFT_CAPPEDCL_SIZE       (30 * 1024 * 1024 * 1024LL)
+#define DMS_DFT_CAPPEDCL_RECNUM     0
+
    /*
       MB FLAG(_flag) values :
    */

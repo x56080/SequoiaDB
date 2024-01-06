@@ -2274,12 +2274,8 @@ namespace engine
       SDB_DPSCB *dropDps      = NULL ;
       dmsMBContext *context   = NULL ;
 
-      UINT32 segNum           = DMS_MAX_PG >> segmentPagesSquareRoot() ;
-      UINT32 mbExSize         = (( segNum << 3 ) >> pageSizeSquareRoot()) + 1 ;
-      UINT16 optExtSize       = 0 ;
-      dmsExtentID mbExExtent  = DMS_INVALID_EXTENT ;
-      dmsExtentID mbOptExtent = DMS_INVALID_EXTENT ;
       INT32 testTransLockRC   = SDB_OK ;
+      dmsCreateCLOptions options ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2301,8 +2297,7 @@ namespace engine
          ossLatch( &_metadataLatch, EXCLUSIVE ) ;
          metalocked = TRUE ;
 
-         if ( (utilCLInnerID)( ossAtomicFetch32( &_dmsHeader->_clInnderHWM ) ) >=
-                                                      UTIL_CLINNERID_MAX )
+         if ( (utilCLInnerID)( ossAtomicFetch32( &_dmsHeader->_clInnderHWM ) ) >= UTIL_CLINNERID_MAX )
          {
             PD_LOG( PDWARNING, "Failed to allocate collection unique ID" ) ;
             rc = SDB_CAT_CL_UNIQUEID_EXCEEDED ;
@@ -2349,7 +2344,7 @@ namespace engine
          }
       }
 
-      rc = _prepareAddCollection( extOptions, mbOptExtent, optExtSize ) ;
+      rc = _prepareAddCollection( extOptions, options ) ;
       PD_RC_CHECK( rc, PDERROR, "onAddCollection operation failed: %d", rc ) ;
 
       // first exclusive latch metadata, this shouldn't be replaced by SHARED to
@@ -2454,6 +2449,14 @@ namespace engine
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
+
+      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_CAPPED ) )
+      {
+         mb->_maxSize = options._cappedOptions._maxSize ;
+         mb->_maxRecNum = options._cappedOptions._maxRecNum ;
+         mb->_overwrite = options._cappedOptions._overwrite ;
+      }
+
       mb->_createTime = ossGetCurrentMilliseconds() ;
       mb->_updateTime = mb->_createTime ;
       mbStat = &( _mbStatInfo[ newCollectionID ] ) ;
@@ -2470,7 +2473,6 @@ namespace engine
       if ( _service )
       {
          dmsCLMetadata metadata( _suDescriptor, mb, mbStat ) ;
-         dmsCreateCLOptions options ;
          options._compressorType = compressionType ;
          rc = _service->createCL( metadata, options, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s] on "
@@ -2582,14 +2584,6 @@ namespace engine
       if ( metalocked )
       {
          ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
-      }
-      if ( DMS_INVALID_EXTENT != mbExExtent )
-      {
-         _releaseSpace( mbExExtent, mbExSize ) ;
-      }
-      if ( DMS_INVALID_EXTENT != mbOptExtent )
-      {
-         _releaseSpace( mbOptExtent, optExtSize ) ;
       }
       if ( DMS_INVALID_MBID != newCollectionID )
       {
@@ -2895,7 +2889,6 @@ namespace engine
       BOOLEAN isTransLocked   = FALSE ;
 
       dmsEventCLItem clItem ;
-      dmsWriteGuard writeGuard ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2963,158 +2956,165 @@ namespace engine
          goto error ;
       }
 
-      rc = writeGuard.begin( _service, this, context, cb, TRUE, FALSE, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
-
-      // trans lock
-      if ( cb && cb->getTransExecutor()->useTransLock() )
       {
-         dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
-                                       NULL, &lockConflict ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
-                      "Conflict( representative ):" OSS_NEWLINE
-                      "   EDUID:  %llu" OSS_NEWLINE
-                      "   TID:    %u" OSS_NEWLINE
-                      "   LockId: %s" OSS_NEWLINE
-                      "   Mode:   %s" OSS_NEWLINE,
-                      rc,
-                      lockConflict._eduID,
-                      lockConflict._tid,
-                      lockConflict._lockID.toString().c_str(),
-                      lockModeToString( lockConflict._lockType ) ) ;
+         dmsWriteGuard writeGuard( _service, this, context, cb, TRUE, FALSE, TRUE ) ;
 
-         isTransLocked = TRUE ;
-      }
+         rc = writeGuard.begin() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
-      if ( _pEventHolder )
-      {
-         rc = _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL,
-                                           SDB_EVT_OCCUR_BEFORE, clItem,
-                                           options, cb, dpscb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to call before truncate "
-                      "collection events, rc: %d", rc ) ;
-      }
+         // trans lock
+         if ( cb && cb->getTransExecutor()->useTransLock() )
+         {
+            dpsTransRetInfo lockConflict ;
+            rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
+                                          NULL, &lockConflict ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                         "Conflict( representative ):" OSS_NEWLINE
+                         "   EDUID:  %llu" OSS_NEWLINE
+                         "   TID:    %u" OSS_NEWLINE
+                         "   LockId: %s" OSS_NEWLINE
+                         "   Mode:   %s" OSS_NEWLINE,
+                         rc,
+                         lockConflict._eduID,
+                         lockConflict._tid,
+                         lockConflict._lockID.toString().c_str(),
+                         lockModeToString( lockConflict._lockType ) ) ;
 
-      if ( context->mbStat()->_textIdxNum > 0 )
-      {
-         handler = getExtDataHandler() ;
+            isTransLocked = TRUE ;
+         }
+
+         if ( _pEventHolder )
+         {
+            rc = _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL,
+                                              SDB_EVT_OCCUR_BEFORE, clItem,
+                                              options, cb, dpscb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to call before truncate "
+                         "collection events, rc: %d", rc ) ;
+         }
+
+         if ( context->mbStat()->_textIdxNum > 0 )
+         {
+            handler = getExtDataHandler() ;
+            if ( handler )
+            {
+               rc = handler->onTruncateCL( getSuName(),
+                                           context->mb()->_collectionName,
+                                           cb, needChangeCLID ) ;
+               PD_RC_CHECK( rc, PDERROR, "External operation on truncate "
+                            "collection failed, rc: %d", rc ) ;
+            }
+            else
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "External data handler is NULL" ) ;
+               goto error ;
+            }
+         }
+
+         if ( ( NULL == options ) ||
+              ( !( options->isTakenOver() ) ) )
+         {
+            if ( needChangeCLID )
+            {
+               // use atomic increment to avoid lock on meta data
+               newCLID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
+            }
+
+            oldRecords = context->mbStat()->_totalRecords.fetch() ;
+            oldLobs = context->mbStat()->_totalLobs ;
+
+            rc = _pIdxSU->truncateIndexes( context, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
+                         "rc: %d", pName, rc ) ;
+
+            if ( context->getCollPtr() )
+            {
+               dmsTruncCLOptions tmpOptions ;
+               if ( NULL == options )
+               {
+                  options = &tmpOptions ;
+               }
+               rc = context->getCollPtr()->truncate( *options, cb ) ;
+               if ( options == &tmpOptions )
+               {
+                  options = NULL ;
+               }
+               PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s] data, "
+                            "rc: %d", pName, rc ) ;
+            }
+
+            /*
+            * For LZW, the compressor and dictionary should be removed during
+            * truncate. In case of snappy, the compressor should be reserved.
+            */
+            if ( UTIL_COMPRESSOR_LZW ==
+                 (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
+                 needChangeCLID )
+            {
+               _rmCompressor( context ) ;
+            }
+            rc = _truncateCollection( context, needChangeCLID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
+                         pName, rc ) ;
+
+            if ( truncateLob && _pLobSU->isOpened() )
+            {
+               rc = _pLobSU->truncate( context, cb, NULL ) ;
+               PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] lob failed, rc: %d",
+                            pName, rc ) ;
+            }
+
+            // change mb metadata
+            if ( needChangeCLID )
+            {
+               oldCLID = context->_clLID ;
+               context->mb()->_logicalID = newCLID ;
+               context->_clLID           = newCLID ;
+            }
+            DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
+         }
+
          if ( handler )
          {
-            rc = handler->onTruncateCL( getSuName(),
-                                        context->mb()->_collectionName,
-                                        cb, needChangeCLID ) ;
-            PD_RC_CHECK( rc, PDERROR, "External operation on truncate "
-                         "collection failed, rc: %d", rc ) ;
+            rc = handler->done( DMS_EXTOPR_TYPE_TRUNCATE, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "External done operation failed, rc: %d",
+                         rc ) ;
          }
-         else
+
+         if ( _pEventHolder )
          {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "External data handler is NULL" ) ;
-            goto error ;
+            _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
+                                         clItem, options, cb, dpscb ) ;
          }
-      }
 
-      if ( ( NULL == options ) ||
-           ( !( options->isTakenOver() ) ) )
-      {
-         if ( needChangeCLID )
+         // write dps log
+         if ( dpscb )
          {
-            // use atomic increment to avoid lock on meta data
-            newCLID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
+            PD_AUDIT_OP_WITHNAME( AUDIT_DML, "TRUNCATE", AUDIT_OBJ_CL,
+                                  fullName, rc, "RecordNum:%llu, LobNum:%llu",
+                                  oldRecords, oldLobs ) ;
+            rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
+                          DMS_INVALID_OFFSET, FALSE, DMS_FILE_ALL, &oldCLID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
+                         "rc: %d", rc ) ;
          }
-
-         oldRecords = context->mbStat()->_totalRecords.fetch() ;
-         oldLobs = context->mbStat()->_totalLobs ;
-
-         rc = _pIdxSU->truncateIndexes( context, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
-                      "rc: %d", pName, rc ) ;
-
-         /*
-          * For LZW, the compressor and dictionary should be removed during
-          * truncate. In case of snappy, the compressor should be reserved.
-          */
-         if ( UTIL_COMPRESSOR_LZW ==
-              (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
-              needChangeCLID )
+         else if ( cb->getLsnCount() > 0 )
          {
-            _rmCompressor( context ) ;
+            context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
+            cb->setDataExInfo( fullName, logicalID(), oldCLID,
+                               DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
          }
-         rc = _truncateCollection( context, needChangeCLID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
-                      pName, rc ) ;
 
-         if ( context->getCollPtr() )
+         context->mb()->_ridGen = 0 ;
+         context->mbStat()->_ridGen.poke( 0 ) ;
+
+         rc = writeGuard.commit() ;
+         if ( SDB_OK != rc )
          {
-            dmsTruncCLOptions tmpOptions ;
-            if ( NULL == options )
-            {
-               options = &tmpOptions ;
-            }
-            rc = context->getCollPtr()->truncate( *options, cb ) ;
-            if ( options == &tmpOptions )
-            {
-               options = NULL ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s] data, "
-                         "rc: %d", pName, rc ) ;
+            PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
+            ossPanic() ;
          }
-
-         if ( truncateLob && _pLobSU->isOpened() )
-         {
-            rc = _pLobSU->truncate( context, cb, NULL ) ;
-            PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] lob failed, rc: %d",
-                         pName, rc ) ;
-         }
-
-         // change mb metadata
-         if ( needChangeCLID )
-         {
-            oldCLID = context->_clLID ;
-            context->mb()->_logicalID = newCLID ;
-            context->_clLID           = newCLID ;
-         }
-         DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
-      }
-
-      if ( handler )
-      {
-         rc = handler->done( DMS_EXTOPR_TYPE_TRUNCATE, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "External done operation failed, rc: %d",
-                      rc ) ;
-      }
-
-      if ( _pEventHolder )
-      {
-         _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
-                                      clItem, options, cb, dpscb ) ;
-      }
-
-      // write dps log
-      if ( dpscb )
-      {
-         PD_AUDIT_OP_WITHNAME( AUDIT_DML, "TRUNCATE", AUDIT_OBJ_CL,
-                               fullName, rc, "RecordNum:%llu, LobNum:%llu",
-                               oldRecords, oldLobs ) ;
-         rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                       DMS_INVALID_OFFSET, TRUE, DMS_FILE_ALL, &oldCLID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
-                      "rc: %d", rc ) ;
-      }
-      else if ( cb->getLsnCount() > 0 )
-      {
-         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
-         cb->setDataExInfo( fullName, logicalID(), oldCLID,
-                            DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
-      }
-
-      rc = writeGuard.commit() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDSEVERE, "Failed to commit write guard, rc: %d", rc ) ;
-         ossPanic() ;
       }
 
       if ( SDB_OK == context->mbLock( EXCLUSIVE ) )
@@ -3145,14 +3145,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTION, rc ) ;
       return rc ;
    error:
-      {
-         INT32 tmpRC = writeGuard.abort() ;
-         if ( tmpRC )
-         {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
-            ossPanic() ;
-         }
-      }
       goto done ;
    }
 
@@ -4046,6 +4038,7 @@ namespace engine
       dmsRecordID foundRID ;
       dmsRecordData recordData ;
       IDmsExtDataHandler * handler  = NULL ;
+      BOOLEAN newMem = FALSE ;
       CHAR *pMergedData = NULL ;
       dmsTransLockCallback callback( pTransCB, cb ) ;
 
@@ -4066,60 +4059,20 @@ namespace engine
       rc = _checkReusePosition( context, transID, cb, position, foundRID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check reuse position, rc: %d", rc ) ;
 
+      rc = _checkInsertData( record, mustOID, cb, recordData, newMem, position ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check insert data, rc: %d", rc ) ;
+      if ( newMem )
+      {
+         pMergedData = (CHAR *)( recordData.data() ) ;
+      }
+
       try
       {
-          // Step 1: Prepare the data, add OID and compress if necessary.
-         recordData.setData( record.objdata(), record.objsize(),
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
-         // check ID index for normal update
-         // NOTE: for sequoiadb upgrade, if the old data before upgrade
-         //       contains invalid _id field, we could not report error,
-         //       we need to allow update if _id field is not changed
-         if( !cb->isDoReplay() &&
-             !cb->isInTransRollback() &&
-             !cb->isDoRollback() )
-         {
-            const CHAR *pCheckErr = "" ;
-            if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
-            {
-               PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-         // judge must oid
-         if ( mustOID && ele.eoo() )
-         {
-            IDToInsert oid ;
-            idToInsertEle oidEle((CHAR*)(&oid)) ;
-
-            oid._oid.init() ;
-            rc = cb->allocBuff( oidEle.size() + record.objsize(), &pMergedData ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Alloc memory[size:%u] failed, rc: %d",
-                       oidEle.size() + record.objsize(), rc ) ;
-               goto error ;
-            }
-            /// copy to new data
-            *(UINT32*)pMergedData = oidEle.size() + record.objsize() ;
-            ossMemcpy( pMergedData + sizeof(UINT32), oidEle.rawdata(),
-                       oidEle.size() ) ;
-            ossMemcpy( pMergedData + sizeof(UINT32) + oidEle.size(),
-                       record.objdata() + sizeof(UINT32),
-                       record.objsize() - sizeof(UINT32) ) ;
-            recordData.setData( pMergedData,
-                                oidEle.size() + record.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
-
          insertObj = BSONObj( recordData.data() ) ;
          dmsRecordSize = recordData.len() ;
 
          // check
-         if ( recordData.len() + DMS_RECORD_METADATA_SZ >
-               DMS_RECORD_USER_MAX_SZ )
+         if ( recordData.len() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
          {
             rc = SDB_DMS_RECORD_TOO_BIG ;
             goto error ;
@@ -4131,8 +4084,7 @@ namespace engine
          // reserved space, alignment, etc.
          _finalRecordSize( dmsRecordSize, recordData ) ;
 
-         _clFullName( context->mb()->_collectionName, fullName,
-                         sizeof(fullName) ) ;
+         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
 
          // calc log reserve
          if ( dpsCB )
@@ -4190,7 +4142,7 @@ namespace engine
          }
 
          // lock mb
-         rc = context->mbLock( SHARED ) ;
+         rc = context->mbLock( getWriteLockType() ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // then make sure the collection compatiblity
@@ -4234,8 +4186,13 @@ namespace engine
 
          if ( !foundRID.isValid() )
          {
-            rc = context->getCollPtr()->allocRecordID( dmsRecordSize, foundRID ) ;
-            PD_RC_CHECK( rc, PDERROR, "Allocate space for record failed, rc: %d", rc ) ;
+            rc = _allocRecordSpace( context, dmsRecordSize, foundRID, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to allocate space for record, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = _checkRecordSpace( context, dmsRecordSize, foundRID, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to chec space for record, rc: %d", rc ) ;
          }
 
          // NOTE: we still need transaction locks during rollback
@@ -4282,6 +4239,9 @@ namespace engine
                goto error ;
             }
          }
+
+         rc = _prepareInsert( foundRID, recordData ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare insert, rc: %d", rc ) ;
 
          // insert to extent
          rc = context->getCollPtr()->insertRecord( foundRID, recordData, cb ) ;
@@ -4514,7 +4474,7 @@ namespace engine
          }
 
          // get record position
-         rc = _getRecordPosition( recordID, recordData, delPosition ) ;
+         rc = _getRecordPosition( context, recordID, recordData, cb, delPosition ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get record position, rc: %d", rc ) ;
 
          // delete index keys

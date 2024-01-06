@@ -46,11 +46,6 @@ namespace engine
 {
 #define DMS_INVALID_REC_LOGICALID         -1
 
-// Default size threshold of capped collection is 30GB.
-// Default record number threshold is set to 0, which means no limit on that.
-#define DMS_DFT_CAPPEDCL_SIZE             (30 * 1024 * 1024 * 1024LL)
-#define DMS_DFT_CAPPEDCL_RECNUM           0
-
 #define DMS_INVALID_LOGICALID             (-1)
 
 #pragma pack(1)
@@ -87,21 +82,6 @@ namespace engine
 
    class _pmdEDUCB ;
    class _mthModifier ;
-
-   struct _dmsCappedCLOptions
-   {
-      INT64 _maxSize ;
-      INT64 _maxRecNum ;
-      BOOLEAN _overwrite ;
-
-      _dmsCappedCLOptions()
-      {
-         _maxSize = DMS_DFT_CAPPEDCL_SIZE ;
-         _maxRecNum = DMS_DFT_CAPPEDCL_RECNUM ;
-         _overwrite = FALSE ;
-      }
-   } ;
-   typedef _dmsCappedCLOptions dmsCappedCLOptions ;
 
    // Information of the working extent. Working extent is the one which is
    // used for insertion currently.
@@ -211,7 +191,11 @@ namespace engine
 
       virtual INT32 postDataRestored( dmsMBContext * context ) ;
 
-      OSS_INLINE BOOLEAN spaceEnough( dmsMBContext *context, UINT32 newSize ) ;
+      virtual OSS_LATCH_MODE getWriteLockType() const
+      {
+         return EXCLUSIVE ;
+      }
+
    protected:
       OSS_INLINE void _extLidAndOffset2RecLid( dmsExtentID extID,
                                                dmsOffset offset,
@@ -225,8 +209,7 @@ namespace engine
 
       virtual INT32 _onCollectionTruncated( dmsMBContext *context ) ;
       virtual INT32 _prepareAddCollection( const BSONObj *extOption,
-                                           dmsExtentID &extOptExtent,
-                                           UINT16 &extentPageNum ) ;
+                                           dmsCreateCLOptions &options ) ;
 
       virtual INT32 _onAddCollection( const BSONObj *extOption,
                                       dmsExtentID extOptExtent,
@@ -237,15 +220,20 @@ namespace engine
                                    dmsExtent * extAddr,
                                    SINT32 extentID ) ;
 
-      virtual INT32 _prepareInsertData( const BSONObj &record,
-                                        BOOLEAN mustOID,
-                                        pmdEDUCB *cb,
-                                        dmsRecordData &recordData,
-                                        BOOLEAN &memReallocate,
-                                        INT64 position ) ;
+      virtual INT32 _checkInsertData( const BSONObj &record,
+                                      BOOLEAN mustOID,
+                                      pmdEDUCB *cb,
+                                      dmsRecordData &recordData,
+                                      BOOLEAN &memReallocate,
+                                      INT64 position ) ;
 
-      virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+      virtual INT32 _prepareInsert( const dmsRecordID &recordID,
+                                    const dmsRecordData &recordData ) ;
+
+      virtual INT32 _getRecordPosition( dmsMBContext *context,
+                                        const dmsRecordID &rid,
                                         const dmsRecordData &recordData,
+                                        pmdEDUCB *cb,
                                         INT64 &position ) ;
 
       virtual INT32 _checkReusePosition( dmsMBContext *context,
@@ -262,11 +250,10 @@ namespace engine
                                        dmsRecordID &foundRID,
                                        _pmdEDUCB *cb ) ;
 
-      virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
-                                            UINT32 size,
-                                            INT64 position,
-                                            dmsRecordID &foundRID,
-                                            _pmdEDUCB *cb ) ;
+      virtual INT32 _checkRecordSpace( dmsMBContext *context,
+                                       UINT32 size,
+                                       dmsRecordID &foundRID,
+                                       _pmdEDUCB *cb ) ;
       virtual INT32 _extentInsertRecord( dmsMBContext *context,
                                          dmsExtRW &extRW,
                                          dmsRecordRW &recordRW,
@@ -360,6 +347,7 @@ namespace engine
                                        const dmsRecordData &recordData ) ;
 
       OSS_INLINE BOOLEAN _numExceedLimit( dmsMBContext *context, UINT32 size ) ;
+      OSS_INLINE BOOLEAN _spaceExceedLimit( dmsMBContext *context, UINT32 newSize ) ;
       OSS_INLINE BOOLEAN _overwriteOnExceed( dmsMBContext *context ) ;
       OSS_INLINE void _recLid2ExtLidAndOffset( INT64 logicalID,
                                                dmsExtentID &extID,
@@ -394,8 +382,7 @@ namespace engine
                               dmsExtentID extID,
                               dmsExtentID extLogicID ) ;
 
-      INT32 _limitProcess( dmsMBContext *context, UINT32 sizeReq,
-                           dmsExtentInfo *workExtInfo ) ;
+      INT32 _limitProcess( dmsMBContext *context, UINT32 sizeReq, pmdEDUCB *cb ) ;
 
       INT32 _popRecordByLID( dmsMBContext *context, INT64 logicalID,
                              pmdEDUCB *cb, SDB_DPSCB *dpscb,
@@ -404,6 +391,11 @@ namespace engine
       INT32 _popRecordByNumber( dmsMBContext *context, INT64 number,
                                 pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                 INT8 direction = 1 ) ;
+
+      INT32 _popRecord( dmsMBContext *context,
+                        INT8 direction,
+                        pmdEDUCB *cb,
+                        SDB_DPSCB *dpscb ) ;
 
    private:
       dmsCappedCLOptions *_options[ DMS_MME_SLOTS ] ;
@@ -482,30 +474,25 @@ namespace engine
       _updateCLStat( _mbStatInfo[ context->mbID() ], recordSize, recordData ) ;
    }
 
-   OSS_INLINE BOOLEAN _dmsStorageDataCapped::spaceEnough( dmsMBContext *context,
-                                                          UINT32 newSize )
+   OSS_INLINE BOOLEAN _dmsStorageDataCapped::_spaceExceedLimit( dmsMBContext *context,
+                                                                UINT32 newSize )
    {
-      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
-      SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
-
-      return (((UINT64)mbStatInfo->_totalDataPages << pageSizeSquareRoot()) + newSize)
-             <= (UINT64)_options[context->mbID()]->_maxSize ;
+      return ( context->mb()->_maxSize > 0 ) &&
+             ( ( context->mbStat()->_totalOrgDataLen.fetch() + newSize ) >
+               (UINT64)( context->mb()->_maxSize ) ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,
                                                               UINT32 newNum )
    {
-      dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
-      SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
-
-      return ( _options[context->mbID()]->_maxRecNum > 0 &&
-               ( ( mbStatInfo->_totalRecords.fetch() + newNum ) >
-                 (UINT64)_options[context->mbID()]->_maxRecNum ) ) ;
+      return ( context->mb()->_maxRecNum > 0 ) &&
+             ( ( context->mbStat()->_totalRecords.fetch() + newNum ) >
+               (UINT64)( context->mb()->_maxRecNum ) ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_overwriteOnExceed( dmsMBContext *context )
    {
-      return _options[context->mbID()]->_overwrite ;
+      return context->mb()->_overwrite ;
    }
 
    OSS_INLINE void _dmsStorageDataCapped::_recLid2ExtLidAndOffset( INT64 logicalID,

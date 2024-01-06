@@ -91,6 +91,25 @@ namespace engine
    typedef class _dmsCreateCSOptions dmsCreateCSOptions ;
 
    /*
+      _dmsCappedCLOptions
+    */
+   class _dmsCappedCLOptions
+   {
+   public:
+      INT64 _maxSize ;
+      INT64 _maxRecNum ;
+      BOOLEAN _overwrite ;
+
+      _dmsCappedCLOptions()
+      {
+         _maxSize = DMS_DFT_CAPPEDCL_SIZE ;
+         _maxRecNum = DMS_DFT_CAPPEDCL_RECNUM ;
+         _overwrite = FALSE ;
+      }
+   } ;
+   typedef class _dmsCappedCLOptions dmsCappedCLOptions ;
+
+   /*
       _dmsCreateCLOptions define
     */
    class _dmsCreateCLOptions
@@ -103,6 +122,9 @@ namespace engine
 
    public:
       UINT8 _compressorType = UTIL_COMPRESSOR_TYPE::UTIL_COMPRESSOR_SNAPPY ;
+
+      // capped collection options
+      dmsCappedCLOptions _cappedOptions ;
    } ;
 
    typedef class _dmsCreateCLOptions dmsCreateCLOptions ;

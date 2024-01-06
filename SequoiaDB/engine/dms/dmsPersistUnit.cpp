@@ -38,11 +38,119 @@
 #include "ossErr.h"
 #include "ossMem.hpp"
 #include "wiredtiger/dmsWTStorageService.hpp"
+#include "dmsStorageDataCommon.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 
 namespace engine
 {
+
+   /*
+      _dmsStatPersistUnit implement
+    */
+   _dmsStatPersistUnit::_dmsStatPersistUnit( utilCLUniqueID clUID,
+                                             dmsStorageDataCommon *su,
+                                             dmsMBStatInfo *mbStat )
+   : _clUID( clUID ),
+     _su( su ),
+     _mbStat( mbStat )
+   {
+   }
+
+   _dmsStatPersistUnit::~_dmsStatPersistUnit()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTATPERSISTUNIT_COMMITUNIT, "_dmsStatPersistUnit::commitUnit" )
+   INT32 _dmsStatPersistUnit::commitUnit( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTATPERSISTUNIT_COMMITUNIT ) ;
+
+      if ( _mbStat )
+      {
+         if ( _su )
+         {
+            pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>( executor ) ;
+            SDB_ASSERT( NULL != cb, "executor should be pmdEDUCB" ) ;
+            if ( _recordCountIncDelta > 0 )
+            {
+               _su->increaseMBStat( _clUID, _mbStat, _recordCountIncDelta, cb ) ;
+            }
+            if ( _recordCountDecDelta > 0 )
+            {
+               _su->decreaseMBStat( _clUID, _mbStat, _recordCountDecDelta, cb ) ;
+            }
+         }
+         else
+         {
+            if ( _recordCountIncDelta > 0 )
+            {
+               _mbStat->_totalRecords.add( _recordCountIncDelta ) ;
+               _mbStat->_rcTotalRecords.add( _recordCountIncDelta ) ;
+            }
+            if ( _recordCountDecDelta > 0 )
+            {
+               _mbStat->_totalRecords.sub( _recordCountDecDelta ) ;
+               _mbStat->_rcTotalRecords.sub( _recordCountDecDelta ) ;
+            }
+         }
+         if ( _dataLenIncDelta > 0 )
+         {
+            _mbStat->_totalDataLen.add( _dataLenIncDelta ) ;
+         }
+         if ( _dataLenDecDelta > 0 )
+         {
+            _mbStat->_totalDataLen.sub( _dataLenDecDelta ) ;
+         }
+         if ( _orgDataLenIncDelta > 0 )
+         {
+            _mbStat->_totalOrgDataLen.add( _orgDataLenIncDelta ) ;
+         }
+         if ( _orgDataLenDecDelta > 0 )
+         {
+            _mbStat->_totalOrgDataLen.sub( _orgDataLenDecDelta ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTATPERSISTUNIT_COMMITUNIT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTATPERSISTUNIT_ABORTUNIT, "_dmsStatPersistUnit::abortUnit" )
+   INT32 _dmsStatPersistUnit::abortUnit( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTATPERSISTUNIT_ABORTUNIT ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTATPERSISTUNIT_ABORTUNIT, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTATPERSISTUNIT_MAKETHREADLOCALPTR, "_dmsStatPersistUnit::makeThreadLocalPtr" )
+   utilThreadLocalPtr<_dmsStatPersistUnit> _dmsStatPersistUnit::makeThreadLocalPtr(
+                                                      utilCLUniqueID clUID,
+                                                      _dmsStorageDataCommon *su,
+                                                      _dmsMBStatInfo *mbStat )
+   {
+      utilThreadLocalPtr<_dmsStatPersistUnit> statUnitPtr ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTATPERSISTUNIT_MAKETHREADLOCALPTR ) ;
+
+      statUnitPtr = utilThreadLocalPtr<dmsStatPersistUnit>::allocRaw() ;
+      if ( statUnitPtr )
+      {
+         new( statUnitPtr.get() )dmsStatPersistUnit( clUID, su, mbStat ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTATPERSISTUNIT_MAKETHREADLOCALPTR ) ;
+
+      return statUnitPtr ;
+   }
 
    /*
        _dmsPersistUnit implement
@@ -147,6 +255,15 @@ namespace engine
          goto done ;
       }
 
+      for ( _dmsStatPersistUnitMap::iterator iter = _statMap.begin() ;
+            iter != _statMap.end() ;
+            ++ iter )
+      {
+         rc = iter->second->commitUnit( executor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to commit statistics unit, rc: %d", rc ) ;
+      }
+      _statMap.clear() ;
+
       rc = _commitUnit( executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to commit persist unit, rc: %d", rc ) ;
 
@@ -180,6 +297,18 @@ namespace engine
          goto done ;
       }
 
+      for ( _dmsStatPersistUnitMap::iterator iter = _statMap.begin() ;
+            iter != _statMap.end() ;
+            ++ iter )
+      {
+         INT32 tmpRC = iter->second->abortUnit( executor ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to abort statistics unit, rc: %d", tmpRC ) ;
+         }
+      }
+      _statMap.clear() ;
+
       rc = _abortUnit( executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to abort persist unit, rc: %d", rc ) ;
 
@@ -188,6 +317,41 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DMSPERSISTUNIT_ABORTUNIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTUNIT_REGISTERSTATUNIT, "_dmsPersistUnit::registerStatUnit" )
+   INT32 _dmsPersistUnit::registerStatUnit( utilThreadLocalPtr<IStatPersistUnit> &statUnitPtr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSPERSISTUNIT_REGISTERSTATUNIT ) ;
+
+      dmsStatPersistUnit *statUnit = dynamic_cast<dmsStatPersistUnit *>( statUnitPtr.get() ) ;
+      PD_CHECK( NULL != statUnit, SDB_SYS, error, PDERROR,
+                "Failed to register statistics unit, it is not valid" ) ;
+
+      try
+      {
+         auto res = _statMap.insert( make_pair( statUnit->getCLUniqueID(), statUnitPtr ) ) ;
+         if ( !res.second )
+         {
+            statUnitPtr = res.first->second ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register statistics unit, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSPERSISTUNIT_REGISTERSTATUNIT, rc ) ;
       return rc ;
 
    error:

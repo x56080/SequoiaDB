@@ -62,8 +62,7 @@ namespace engine
    }
 
    INT32 _dmsStorageData::_prepareAddCollection( const BSONObj *extOption,
-                                                 dmsExtentID &extOptExtent,
-                                                 UINT16 &extentPageNum )
+                                                 dmsCreateCLOptions &options )
    {
       return SDB_OK ;
    }
@@ -90,26 +89,29 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__ONALLOCEXTENT ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, "_dmsStorageData::_prepareInsertData" )
-   INT32 _dmsStorageData::_prepareInsertData( const BSONObj &record,
-                                              BOOLEAN mustOID,
-                                              pmdEDUCB *cb,
-                                              dmsRecordData &recordData,
-                                              BOOLEAN &memReallocate,
-                                              INT64 position )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKINSERTDATA, "_dmsStorageData::_checkInsertData" )
+   INT32 _dmsStorageData::_checkInsertData( const BSONObj &record,
+                                            BOOLEAN mustOID,
+                                            pmdEDUCB *cb,
+                                            dmsRecordData &recordData,
+                                            BOOLEAN &memReallocate,
+                                            INT64 position )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA ) ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKINSERTDATA ) ;
+
       IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
       CHAR *pMergedData = NULL ;
 
+      memReallocate = FALSE ;
+
       try
       {
-         // Step 1: Prepare the data, add OID and compress if necessary.
+          // Step 1: Prepare the data, add OID and compress if necessary.
          recordData.setData( record.objdata(), record.objsize(),
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
          // check ID index for normal update
          // NOTE: for sequoiadb upgrade, if the old data before upgrade
@@ -130,9 +132,11 @@ namespace engine
          // judge must oid
          if ( mustOID && ele.eoo() )
          {
+            IDToInsert oid ;
+            idToInsertEle oidEle((CHAR*)(&oid)) ;
+
             oid._oid.init() ;
-            rc = cb->allocBuff( oidEle.size() + record.objsize(),
-                                &pMergedData ) ;
+            rc = cb->allocBuff( oidEle.size() + record.objsize(), &pMergedData ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Alloc memory[size:%u] failed, rc: %d",
@@ -152,23 +156,39 @@ namespace engine
             memReallocate = TRUE ;
          }
       }
-      catch ( std::exception &e )
+      catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to prepare insert data, occur exception: %s", e.what() ) ;
+         rc = pdGetLastError() ? pdGetLastError() : ossException2RC( &e ) ;
          goto error ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKINSERTDATA, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__PREPAREINSERT, "_dmsStorageData::_prepareInsert" )
+   INT32 _dmsStorageData::_prepareInsert( const dmsRecordID &recordID,
+                                          const dmsRecordData &recordData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__PREPAREINSERT ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERT, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__GETRECPOS, "_dmsStorageData::_getRecordPosition" )
-   INT32 _dmsStorageData::_getRecordPosition( const dmsRecordID &rid,
+   INT32 _dmsStorageData::_getRecordPosition( dmsMBContext *context,
+                                              const dmsRecordID &rid,
                                               const dmsRecordData &recordData,
+                                              pmdEDUCB *cb,
                                               INT64 &position )
    {
       INT32 rc = SDB_OK ;
@@ -255,26 +275,23 @@ namespace engine
                                              pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ALLOCRECORDSPACE ) ;
 
-      rc = _reserveFromDeleteList( context, size, foundRID, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Reserve delete record failed, "
-                   "rc: %d", rc ) ;
+      UINT64 tmpRID = context->mbStat()->_ridGen.inc() ;
+      foundRID.fromUINT64( tmpRID ) ;
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__ALLOCRECORDSPACE, rc ) ;
+
       return rc ;
-   error:
-      goto done;
    }
 
-   INT32 _dmsStorageData::_allocRecordSpaceByPos( dmsMBContext *context,
-                                                  UINT32 size,
-                                                  INT64 position,
-                                                  dmsRecordID &foundRID,
-                                                  pmdEDUCB *cb )
+   INT32 _dmsStorageData::_checkRecordSpace( dmsMBContext *context,
+                                             UINT32 size,
+                                             dmsRecordID &foundRID,
+                                             pmdEDUCB *cb )
    {
-      return SDB_OPERATION_INCOMPATIBLE ;
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__POSTINSERTRECORD, "_dmsStorageData::_postInsertRecord" )

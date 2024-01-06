@@ -233,7 +233,7 @@ namespace engine
       _dmsCLMetadata() = delete ;
       virtual ~_dmsCLMetadata() = default ;
       _dmsCLMetadata( const _dmsCLMetadata &o ) = default ;
-      _dmsCLMetadata &operator =( const _dmsCLMetadata & ) = default ;
+      _dmsCLMetadata &operator =( const _dmsCLMetadata & ) = delete ;
 
       _dmsCLMetadata( _dmsSUDescriptor *su,
                       _dmsMetadataBlock *mb,
@@ -306,7 +306,7 @@ namespace engine
       _dmsIdxMetadata() = delete ;
       virtual ~_dmsIdxMetadata() = default ;
       _dmsIdxMetadata( const _dmsIdxMetadata &o ) = default ;
-      _dmsIdxMetadata &operator =( const _dmsIdxMetadata & ) = default ;
+      _dmsIdxMetadata &operator =( const _dmsIdxMetadata & ) = delete ;
 
       _dmsIdxMetadata( _dmsSUDescriptor *su,
                        _dmsMetadataBlock *mb,

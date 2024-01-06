@@ -68,12 +68,16 @@ namespace engine
       virtual INT32 setExtOptions ( dmsMBContext * context,
                                     const BSONObj & extOptions ) ;
 
+      virtual OSS_LATCH_MODE getWriteLockType() const
+      {
+         return SHARED ;
+      }
+
    private:
       virtual const CHAR* _getEyeCatcher() const ;
 
       virtual INT32 _prepareAddCollection( const BSONObj *extOption,
-                                           dmsExtentID &extOptExtent,
-                                           UINT16 &extentPageNum ) ;
+                                           dmsCreateCLOptions &options ) ;
 
       virtual INT32 _onAddCollection( const BSONObj *extOption,
                                       dmsExtentID extOptExtent,
@@ -84,15 +88,20 @@ namespace engine
                                    dmsExtent *extAddr,
                                    SINT32 extentID ) ;
 
-      virtual INT32 _prepareInsertData( const BSONObj &record,
-                                        BOOLEAN mustOID,
-                                        pmdEDUCB *cb,
-                                        dmsRecordData &recordData,
-                                        BOOLEAN &memReallocate,
-                                        INT64 position ) ;
+      virtual INT32 _checkInsertData( const BSONObj &record,
+                                      BOOLEAN mustOID,
+                                      pmdEDUCB *cb,
+                                      dmsRecordData &recordData,
+                                      BOOLEAN &memReallocate,
+                                      INT64 position ) ;
 
-      virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+      virtual INT32 _prepareInsert( const dmsRecordID &recordID,
+                                    const dmsRecordData &recordData ) ;
+
+      virtual INT32 _getRecordPosition( dmsMBContext *context,
+                                        const dmsRecordID &rid,
                                         const dmsRecordData &recordData,
+                                        pmdEDUCB *cb,
                                         INT64 &position ) ;
 
       virtual INT32 _checkReusePosition( dmsMBContext *context,
@@ -113,11 +122,10 @@ namespace engine
                                       UINT32 recordSize,
                                       _pmdEDUCB *cb ) ;
 
-      virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
-                                            UINT32 size,
-                                            INT64 position,
-                                            dmsRecordID &foundRID,
-                                            _pmdEDUCB *cb ) ;
+      virtual INT32 _checkRecordSpace( dmsMBContext *context,
+                                       UINT32 size,
+                                       dmsRecordID &foundRID,
+                                       _pmdEDUCB *cb ) ;
 
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;

@@ -98,8 +98,6 @@ namespace wiredtiger
                                IExecutor *executor,
                                std::shared_ptr<IIndex> &idxPtr ) ;
 
-      virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) ;
-
       virtual INT32 insertRecord( const dmsRecordID &rid,
                                   const dmsRecordData &recordData,
                                   IExecutor *executor ) ;
@@ -111,6 +109,12 @@ namespace wiredtiger
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
                                    IExecutor *executor ) ;
+
+      virtual INT32 popRecords( const dmsRecordID &rid,
+                                INT32 direction,
+                                IExecutor *executor,
+                                UINT64 &popCount,
+                                UINT64 &popSize ) ;
 
       virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
@@ -133,6 +137,9 @@ namespace wiredtiger
                                    BOOLEAN isFast,
                                    IExecutor *executor ) ;
 
+      virtual INT32 getMinRecordID( dmsRecordID &rid, IExecutor *executor ) ;
+      virtual INT32 getMaxRecordID( dmsRecordID &rid, IExecutor *executor ) ;
+
       virtual INT32 validateData( IExecutor *executor ) ;
 
       static INT32 buildDataConfigString( const dmsWTEngineOptions &options,
@@ -151,7 +158,9 @@ namespace wiredtiger
       std::shared_ptr<IIndex> _getIndex( const dmsIdxMetadataKey &metadataKey ) ;
       std::shared_ptr<IIndex> _getNextIndex( std::shared_ptr<IIndex> &idxPtr ) ;
 
-      INT32 _getMaxRecordID( dmsRecordID &rid, IExecutor *executor ) ;
+      INT32 _getMinRecordID( dmsWTSession &session,
+                             dmsRecordID &rid,
+                             IExecutor *executor ) ;
       INT32 _getMaxRecordID( dmsWTSession &session,
                              dmsRecordID &rid,
                              IExecutor *executor ) ;

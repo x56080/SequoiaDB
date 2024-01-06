@@ -168,7 +168,7 @@ namespace wiredtiger
                                  nullptr ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to compact data store, rc: %d", rc ) ;
 
-      while ( idxPtr = _getNextIndex( idxPtr ) )
+      while ( ( idxPtr = _getNextIndex( idxPtr ) ) )
       {
          rc = idxPtr->compact( options, executor ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to compact index, rc: %d", rc ) ;
@@ -239,22 +239,6 @@ namespace wiredtiger
 
    error:
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_ALLOCRECID, "_dmsWTCollection::allocRecordID" )
-   INT32 _dmsWTCollection::allocRecordID( UINT32 length, dmsRecordID &rid )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_ALLOCRECID ) ;
-
-      UINT64 tmpRID = _metadata.getMBStat()->_ridGen.inc() ;
-      rid._extent = (dmsExtentID)( tmpRID >> 32 ) ;
-      rid._offset = (dmsOffset)( tmpRID & 0xFFFFFFFF ) ;
-
-      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_ALLOCRECID, rc ) ;
-
-      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_INSERTREC, "_dmsWTCollection::insertRecord" )
@@ -395,6 +379,112 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_EXTRACTREC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_POPREC, "_dmsWTCollection::popRecords" )
+   INT32 _dmsWTCollection::popRecords( const dmsRecordID &rid,
+                                       INT32 direction,
+                                       IExecutor *executor,
+                                       UINT64 &popCount,
+                                       UINT64 &popSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_POPREC ) ;
+
+      dmsWTSessionHolder sessionHolder ;
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
+      {
+         BOOLEAN isFound = FALSE, hasChecked = FALSE ;
+
+         dmsWTSession &session = sessionHolder.getSession() ;
+         dmsWTCursor cursor( session ) ;
+         dmsWTCursor deleteCursor( session ) ;
+
+         rc = cursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+         rc = deleteCursor.open( _store.getURI(), "" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open delete cursor, rc: %d", rc ) ;
+
+         while ( TRUE )
+         {
+            dmsWTItem valueItem ;
+            UINT64 tmpKey = 0 ;
+            UINT64 tmpSize = 0 ;
+            dmsRecordID deleteRID ;
+
+            if ( executor->isInterrupted() )
+            {
+               PD_LOG( PDERROR, "Failed to pop record, executor is interrupted" ) ;
+               rc = SDB_APP_INTERRUPT ;
+               goto error ;
+            }
+
+            if ( direction > 0 )
+            {
+               rc = cursor.searchPrev( rid.toUINT64(), FALSE, isFound ) ;
+            }
+            else
+            {
+               rc = cursor.searchNext( rid.toUINT64(), FALSE, isFound ) ;
+            }
+            if ( SDB_DMS_EOC == rc )
+            {
+               if ( !hasChecked )
+               {
+                  isFound = FALSE ;
+                  hasChecked = TRUE ;
+                  rc = SDB_DMS_RECORD_NOTEXIST ;
+                  goto error ;
+               }
+               rc = SDB_OK ;
+               break ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               if ( !hasChecked )
+               {
+                  hasChecked = TRUE ;
+                  if ( !isFound )
+                  {
+                     rc = SDB_DMS_RECORD_NOTEXIST ;
+                     goto error ;
+                  }
+               }
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
+
+            rc = cursor.getKey( tmpKey ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+            rc = cursor.getValue( valueItem ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+            tmpSize = valueItem.getSize() ;
+
+            deleteRID.fromUINT64( tmpKey ) ;
+            rc = deleteCursor.remove( deleteRID.toUINT64() ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               ++ popCount ;
+               popSize += tmpSize ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_POPREC, rc ) ;
       return rc ;
 
    error:
@@ -592,7 +682,7 @@ namespace wiredtiger
          std::shared_ptr<IIndex> idxPtr ;
          totalSize = 0 ;
          freeSize = 0 ;
-         while ( idxPtr = _getNextIndex( idxPtr ) )
+         while ( ( idxPtr = _getNextIndex( idxPtr ) ) )
          {
             UINT64 idxTotalSize = 0, idxFreeSize = 0 ;
 
@@ -667,7 +757,7 @@ namespace wiredtiger
       _metadata.getMBStat()->_totalOrgDataLen.poke( totalDataLen ) ;
 
       // recover record ID generator
-      rc = _getMaxRecordID( maxRID, executor ) ;
+      rc = getMaxRecordID( maxRID, executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
 
       if ( maxRID.isValid() )
@@ -903,12 +993,72 @@ namespace wiredtiger
       return idxPtr ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__GETMAXRECORDID, "_dmsWTCollection::_getMaxRecordID" )
-   INT32 _dmsWTCollection::_getMaxRecordID( dmsRecordID &rid, IExecutor *executor )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETMINRECORDID, "_dmsWTCollection::getMinRecordID" )
+   INT32 _dmsWTCollection::getMinRecordID( dmsRecordID &rid, IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETMAXRECORDID ) ;
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETMINRECORDID ) ;
+
+      dmsWTSessionHolder sessionHolder ;
+
+      rc = _engine.getPersistSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+
+      rc = _getMinRecordID( sessionHolder.getSession(), rid, executor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get min record ID, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETMINRECORDID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__GETMINRECORDID_SESS, "_dmsWTCollection::_getMinRecordID" )
+   INT32 _dmsWTCollection::_getMinRecordID( dmsWTSession &session,
+                                            dmsRecordID &rid,
+                                            IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION__GETMINRECORDID_SESS ) ;
+
+      dmsWTCursor cursor( session ) ;
+      UINT64 key = 0 ;
+
+      rc = cursor.open( _store.getURI(), "" ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
+
+      rc = cursor.moveToHead() ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rid.reset() ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to move head of store, rc: %d", rc ) ;
+
+      rc = cursor.getKey( key ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
+
+      rid.fromUINT64( key ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__GETMINRECORDID_SESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETMAXRECORDID, "_dmsWTCollection::getMaxRecordID" )
+   INT32 _dmsWTCollection::getMaxRecordID( dmsRecordID &rid, IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETMAXRECORDID ) ;
 
       dmsWTSessionHolder sessionHolder ;
 
@@ -919,7 +1069,7 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to get max record ID, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION__GETMAXRECORDID, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETMAXRECORDID, rc ) ;
       return rc ;
 
    error:
@@ -948,7 +1098,7 @@ namespace wiredtiger
          rc = SDB_OK ;
          goto done ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to count from store, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to move tail of store, rc: %d", rc ) ;
 
       rc = cursor.getKey( key ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;

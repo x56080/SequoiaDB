@@ -83,8 +83,6 @@ namespace engine
                                IExecutor *executor,
                                std::shared_ptr<IIndex> &idxPtr ) = 0 ;
 
-      virtual INT32 allocRecordID( UINT32 length, dmsRecordID &rid ) = 0 ;
-
       virtual INT32 insertRecord( const dmsRecordID &rid,
                                   const dmsRecordData &recordData,
                                   IExecutor *executor ) = 0 ;
@@ -96,6 +94,12 @@ namespace engine
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
                                    IExecutor *executor ) = 0 ;
+
+      virtual INT32 popRecords( const dmsRecordID &rid,
+                                INT32 direction,
+                                IExecutor *executor,
+                                UINT64 &popCount,
+                                UINT64 &popSize ) = 0 ;
 
       virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
@@ -117,6 +121,9 @@ namespace engine
                                    UINT64 &freeSize,
                                    BOOLEAN isFast,
                                    IExecutor *executor ) = 0 ;
+
+      virtual INT32 getMinRecordID( dmsRecordID &rid, IExecutor *executor ) = 0 ;
+      virtual INT32 getMaxRecordID( dmsRecordID &rid, IExecutor *executor ) = 0 ;
 
       virtual INT32 validateData( IExecutor *executor ) = 0 ;
 

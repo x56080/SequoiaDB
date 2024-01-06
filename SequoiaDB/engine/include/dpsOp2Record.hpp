@@ -178,7 +178,6 @@ namespace engine
                            INT64 *position = NULL ) ;
 
    INT32 dpsPop2Record( const CHAR *fullName,
-                        const dmsRecordID &firstRID,
                         const INT64 &logicalID,
                         const INT8 &direction,
                         dpsLogRecord &record ) ;

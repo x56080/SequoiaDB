@@ -38,10 +38,27 @@
 
 #include "sdbInterface.hpp"
 #include "interface/IStorageSession.hpp"
+#include "utilPooledAutoPtr.hpp"
 #include "utilPooledObject.hpp"
 
 namespace engine
 {
+
+   /*
+      IStatPersistUnit define
+    */
+   class IStatPersistUnit : public _utilPooledObject
+   {
+   public:
+      IStatPersistUnit() = default ;
+      virtual ~IStatPersistUnit() = default ;
+      IStatPersistUnit( const IStatPersistUnit &o ) = delete ;
+      IStatPersistUnit &operator =( const IStatPersistUnit& ) = delete ;
+
+   public:
+      virtual INT32 commitUnit( IExecutor *executor ) = 0 ;
+      virtual INT32 abortUnit( IExecutor *executor ) = 0 ;
+   } ;
 
    /*
       IPersistUnit define
@@ -64,6 +81,8 @@ namespace engine
       virtual INT32 abortUnit( IExecutor *executor,
                                BOOLEAN isTrans,
                                BOOLEAN isForced ) = 0 ;
+
+      virtual INT32 registerStatUnit( utilThreadLocalPtr<IStatPersistUnit> &statUnitPtr ) = 0 ;
 
       virtual BOOLEAN useAtomicAbort() const = 0 ;
    } ;

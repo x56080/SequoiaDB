@@ -106,36 +106,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSDATAWRITEGUARD_AFTERWRITE ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEGIN_INIT, "_dmsDataWriteGuard::begin" )
-   INT32 _dmsDataWriteGuard::begin( dmsStorageDataCommon *su,
-                                    dmsMBContext *mbContext,
-                                    pmdEDUCB *cb,
-                                    BOOLEAN isEnabled )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSDATAWRITEGUARD_BEGIN_INIT ) ;
-
-      PD_CHECK( !_isInWrite, SDB_SYS, error, PDERROR,
-                "Failed to begin data write guard, already in guard" ) ;
-
-      _su = su ;
-      _mbStat = mbContext->mbStat() ;
-      _mbID = mbContext->mbID() ;
-      _eduCB = cb ;
-      _isEnabled = isEnabled ;
-
-      rc = begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin data write guard, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSDATAWRITEGUARD_BEGIN_INIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSDATAWRITEGUARD_BEGIN, "_dmsDataWriteGuard::begin" )
    INT32 _dmsDataWriteGuard::begin()
    {
@@ -287,30 +257,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSINDEXWRITEGUARD_RELEASEALL ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT, "_dmsIndexWriteGuard::begin" )
-   INT32 _dmsIndexWriteGuard::begin( pmdEDUCB *cb, BOOLEAN isEnabled )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT ) ;
-
-      PD_CHECK( _locks.empty(), SDB_SYS, error, PDERROR,
-                "Failed to begin index write guard, already in guard" ) ;
-
-      _eduCB = cb ;
-      _isEnabled = isEnabled ;
-
-      rc = begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSINDEXWRITEGUARD_BEGIN_INIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXWRITEGUARD_BEGIN, "_dmsIndexWriteGuard::begin" )
    INT32 _dmsIndexWriteGuard::begin()
    {
@@ -440,38 +386,6 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN_INIT, "_dmsPersistGuard::begin" )
-   INT32 _dmsPersistGuard::begin( IStorageService *service,
-                                  dmsStorageDataCommon *su,
-                                  dmsMBContext *mbContext,
-                                  pmdEDUCB *cb,
-                                  BOOLEAN isEnabled )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSPERSISTGUARD_BEGIN_INIT ) ;
-
-      PD_CHECK( !_persistUnit, SDB_SYS, error, PDERROR,
-                "Failed to begin persist guard, already in guard" ) ;
-
-      _service = service ;
-      _su = su ;
-      _mbStat = mbContext->mbStat() ;
-      _clUniqueID = mbContext->getCLUniqueID() ;
-      _eduCB = cb ;
-      _isEnabled = isEnabled ;
-
-      rc = begin() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSPERSISTGUARD_BEGIN_INIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSPERSISTGUARD_BEGIN, "_dmsPersistGuard::begin" )
    INT32 _dmsPersistGuard::begin()
    {
@@ -499,6 +413,19 @@ namespace engine
          rc = _persistUnit->beginUnit( _eduCB, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to begin persist unit, rc: %d", rc ) ;
 
+         if ( NULL != _su && NULL != _mbStat )
+         {
+            utilThreadLocalPtr<IStatPersistUnit> statUnitPtr ;
+            _statUnitPtr = dmsStatPersistUnit::makeThreadLocalPtr( _clUniqueID, _su, _mbStat ) ;
+            PD_CHECK( _statUnitPtr, SDB_OOM, error, PDERROR,
+                      "Failed to make statistics persist unit" ) ;
+            statUnitPtr = _statUnitPtr ;
+            PD_CHECK( _statUnitPtr, SDB_SYS, error, PDERROR,
+                      "Failed to convert statistics persist unit" ) ;
+            rc = _persistUnit->registerStatUnit( statUnitPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to register stat persist unit, rc: %d", rc ) ;
+         }
+
          _hasBegin = TRUE ;
       }
 
@@ -519,49 +446,6 @@ namespace engine
 
       if ( _isEnabled && _persistUnit && _hasBegin )
       {
-         if ( _mbStat )
-         {
-            if ( _su && UTIL_UNIQUEID_NULL != _clUniqueID )
-            {
-               if ( _recordCountIncDelta > 0 )
-               {
-                  _su->increaseMBStat( _clUniqueID, _mbStat, _recordCountIncDelta, _eduCB ) ;
-               }
-               if ( _recordCountDecDelta > 0 )
-               {
-                  _su->decreaseMBStat( _clUniqueID, _mbStat, _recordCountDecDelta, _eduCB ) ;
-               }
-            }
-            else
-            {
-               if ( _recordCountIncDelta > 0 )
-               {
-                  _mbStat->_totalRecords.add( _recordCountIncDelta ) ;
-                  _mbStat->_rcTotalRecords.add( _recordCountIncDelta ) ;
-               }
-               if ( _recordCountDecDelta > 0 )
-               {
-                  _mbStat->_totalRecords.sub( _recordCountDecDelta ) ;
-                  _mbStat->_rcTotalRecords.sub( _recordCountDecDelta ) ;
-               }
-            }
-            if ( _dataLenIncDelta > 0 )
-            {
-               _mbStat->_totalDataLen.add( _dataLenIncDelta ) ;
-            }
-            if ( _dataLenDecDelta > 0 )
-            {
-               _mbStat->_totalDataLen.sub( _dataLenDecDelta ) ;
-            }
-            if ( _orgDataLenIncDelta > 0 )
-            {
-               _mbStat->_totalOrgDataLen.add( _orgDataLenIncDelta ) ;
-            }
-            if ( _orgDataLenDecDelta > 0 )
-            {
-               _mbStat->_totalOrgDataLen.sub( _orgDataLenDecDelta ) ;
-            }
-         }
          rc = _persistUnit->commitUnit( _eduCB, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to commit persist unit, rc: %d", rc ) ;
 
@@ -601,6 +485,88 @@ namespace engine
       goto done ;
    }
 
+   void _dmsPersistGuard::incRecordCount( UINT64 count )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->incRecordCount( count ) ;
+      }
+      else if ( UTIL_UNIQUEID_NULL != _clUniqueID && _su && _mbStat )
+      {
+         _su->increaseMBStat( _clUniqueID, _mbStat, count, _eduCB ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalRecords.add( count ) ;
+         _mbStat->_rcTotalRecords.add( count ) ;
+      }
+   }
+
+   void _dmsPersistGuard::decRecordCount( UINT64 count )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->decRecordCount( count ) ;
+      }
+      else if ( UTIL_UNIQUEID_NULL != _clUniqueID && _su && _mbStat )
+      {
+         _su->decreaseMBStat( _clUniqueID, _mbStat, count, _eduCB ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalRecords.sub( count ) ;
+         _mbStat->_rcTotalRecords.sub( count ) ;
+      }
+   }
+
+   void _dmsPersistGuard::incDataLen( UINT64 dataLen )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->incDataLen( dataLen ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalDataLen.add( dataLen ) ;
+      }
+   }
+
+   void _dmsPersistGuard::decDataLen( UINT64 dataLen )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->incDataLen( dataLen ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalDataLen.sub( dataLen ) ;
+      }
+   }
+
+   void _dmsPersistGuard::incOrgDataLen( UINT64 orgDataLen )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->incOrgDataLen( orgDataLen ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalOrgDataLen.add( orgDataLen ) ;
+      }
+   }
+
+   void _dmsPersistGuard::decOrgDataLen( UINT64 orgDataLen )
+   {
+      if ( _statUnitPtr )
+      {
+         _statUnitPtr->incOrgDataLen( orgDataLen ) ;
+      }
+      else if ( _mbStat )
+      {
+         _mbStat->_totalOrgDataLen.sub( orgDataLen ) ;
+      }
+   }
+
    /*
       _dmsWriteGuard implement
     */
@@ -615,36 +581,6 @@ namespace engine
      _indexGuard( cb, isIndexWriteGuardEnabled ),
      _persistGuard( service, su, mbContext, cb, isPersistGuardEnabled)
    {
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_BEGIN_INIT, "_dmsWriteGuard::begin" )
-   INT32 _dmsWriteGuard::begin( IStorageService *service,
-                                dmsStorageDataCommon *su,
-                                dmsMBContext *mbContext,
-                                pmdEDUCB *cb,
-                                BOOLEAN isDataWriteGuardEnabled,
-                                BOOLEAN isIndexWriteGuardEnabled,
-                                BOOLEAN isPersistGuardEnabled )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSWRITEGUARD_BEGIN_INIT ) ;
-
-      rc = _dataGuard.begin( su, mbContext, cb, isDataWriteGuardEnabled ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin data write guard, rc: %d", rc ) ;
-
-      rc = _indexGuard.begin( cb, isIndexWriteGuardEnabled ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin index write guard, rc: %d", rc ) ;
-
-      rc = _persistGuard.begin( service, su, mbContext, cb, isPersistGuardEnabled ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin persist guard, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSWRITEGUARD_BEGIN_INIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWRITEGUARD_BEGIN, "_dmsWriteGuard::begin" )

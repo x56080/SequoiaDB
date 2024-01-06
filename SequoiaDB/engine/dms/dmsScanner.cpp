@@ -355,6 +355,11 @@ namespace engine
       _accessType = accessType ;
       _mbLockType = SHARED ;
 
+      if ( DMS_IS_WRITE_OPR( _accessType ) )
+      {
+         _mbLockType = su->getWriteLockType() ;
+      }
+
       _maxRecords = maxRecords ;
       _skipNum = skipNum ;
       _flags = flags ;
