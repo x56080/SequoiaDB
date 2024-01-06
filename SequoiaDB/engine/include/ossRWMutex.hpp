@@ -86,12 +86,15 @@ namespace engine
    class _ossScopedRWLock
    {
       public:
-         _ossScopedRWLock ( ossRWMutexBase *pMutex, OSS_LATCH_MODE mode ) ;
+         _ossScopedRWLock ( ossRWMutexBase *pMutex, INT32 mode ) ;
          ~_ossScopedRWLock () ;
+
+         void lock( INT32 mode ) ;
+         void unlock() ;
 
       private:
          ossRWMutexBase *_pMutex ;
-         OSS_LATCH_MODE _mode ;
+         INT32 _mode ;
    };
 
    typedef _ossScopedRWLock ossScopedRWLock ;

@@ -108,7 +108,7 @@ namespace engine
       _pDataSu->_detach() ;
       _pDataSu = NULL ;
 
-      SDB_ASSERT( _buildLocks.empty(), "Index build lock should be empty" ) ;
+      SDB_ASSERT( _buildGuards.empty(), "Index build guards should be empty" ) ;
    }
 
    void _dmsStorageIndex::syncMemToMmap ()
@@ -1572,7 +1572,7 @@ namespace engine
       BSONObj option, newIndex ;
       BSONObjBuilder builder ;
       dmsIdxMetadataKey metadataKey ;
-      dmsIndexBuildLockPtr lockPtr ;
+      dmsIndexBuildGuardPtr guardPtr ;
 
       SDB_ASSERT( context->isMBLock(), "Caller should hold mb lock" ) ;
       SDB_ASSERT( DMS_INVALID_EXTENT != metaExtentID,
@@ -1724,8 +1724,8 @@ namespace engine
          }
 
          metadataKey.init( context->mb(), &indexCB ) ;
-         rc = _registerBuildLock( metadataKey, lockPtr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to register build lock, rc: %d", rc ) ;
+         rc = _registerBuildGuard( metadataKey, dmsRecordID(), guardPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register build guard, rc: %d", rc ) ;
       }
 
       // change mb metadata
@@ -1786,7 +1786,7 @@ namespace engine
       // As the mb lock has been released, the rebuild implementation should use
       // the context and indexLID to check if it's processing the right index.
       rc = _rebuildIndex( context, metaExtentID, indexLID,
-                          cb, sortBufferSize, indexType, lockPtr,
+                          cb, sortBufferSize, indexType, guardPtr,
                           pOprHandler, pResult, NULL, pIdxStatus ) ;
       if ( rc )
       {
@@ -1845,7 +1845,7 @@ namespace engine
       }
       if ( metadataKey.isValid() )
       {
-         _unregisterBuildLock( metadataKey ) ;
+         _unregisterBuildGuard( metadataKey ) ;
       }
       return rc ;
    error :
@@ -2143,7 +2143,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           INT32 sortBufferSize,
                                           UINT16 indexType,
-                                          dmsIndexBuildLockPtr &lockPtr,
+                                          dmsIndexBuildGuardPtr &guardPtr,
                                           IDmsOprHandler *pOprHandle,
                                           utilWriteResult *pResult,
                                           dmsDupKeyProcessor *dkProcessor,
@@ -2204,7 +2204,7 @@ namespace engine
       builder = dmsIndexBuilder::createInstance( _suDescriptor, context, cb,
                                                  indexExtentID, indexLID,
                                                  sortBufferSize, indexType,
-                                                 lockPtr, pOprHandle, pResult,
+                                                 guardPtr, pOprHandle, pResult,
                                                  dkProcessor, pIdxStatus ) ;
       if ( NULL == builder )
       {
@@ -2278,15 +2278,15 @@ namespace engine
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[indexID] ) ;
          dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
-         dmsIndexBuildLockPtr lockPtr ;
-         rc = _registerBuildLock( metadataKey, lockPtr ) ;
+         dmsIndexBuildGuardPtr guardPtr ;
+         rc = _registerBuildGuard( metadataKey, dmsRecordID(), guardPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register build lock, rc: %d", rc ) ;
 
          rc = _rebuildIndex( context, context->mb()->_indexExtent[ indexID ],
                              indexCB.getLogicalID(), cb, sortBufferSize,
-                             indexCB.getIndexType(), lockPtr, NULL, NULL,
+                             indexCB.getIndexType(), guardPtr, NULL, NULL,
                              dkProcessor ) ;
-         _unregisterBuildLock( metadataKey ) ;
+         _unregisterBuildGuard( metadataKey ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexID,
@@ -3540,10 +3540,10 @@ namespace engine
          if ( writeGuard.isEnabled() )
          {
             dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
-            dmsIndexBuildLockPtr lockPtr = _getBuildLock( metadataKey ) ;
-            if ( lockPtr )
+            dmsIndexBuildGuardPtr guardPtr = _getBuildGuard( metadataKey ) ;
+            if ( guardPtr )
             {
-               rc = writeGuard.lock( metadataKey, indexCB, rid, lockPtr, needProcess ) ;
+               rc = writeGuard.lock( metadataKey, indexCB, rid, guardPtr, needProcess ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
                isChecked = TRUE ;
             }
@@ -4127,80 +4127,86 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__REGBUILDLOCK, "_dmsStorageIndex::_registerBuildLock" )
-   INT32 _dmsStorageIndex::_registerBuildLock( const dmsIdxMetadataKey &key,
-                                               dmsIndexBuildLockPtr &lockPtr )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__REGBUILDGUARD, "_dmsStorageIndex::_registerBuildGuard" )
+   INT32 _dmsStorageIndex::_registerBuildGuard( const dmsIdxMetadataKey &key,
+                                                const dmsRecordID rid,
+                                                dmsIndexBuildGuardPtr &guardPtr )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__REGBUILDLOCK ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__REGBUILDGUARD ) ;
 
       PD_CHECK( key.isValid(), SDB_SYS, error, PDERROR,
-                  "Failed to register index build lock, collection [UID: %llx, LID: %x] "
-                  "is not valid", key.getCLOrigUID(), key.getCLOrigLID() ) ;
+                "Failed to register index build lock, collection [UID: %llx, LID: %x] "
+                "is not valid", key.getCLOrigUID(), key.getCLOrigLID() ) ;
 
-      lockPtr = _getBuildLock( key ) ;
-      if ( lockPtr )
+      guardPtr = _getBuildGuard( key ) ;
+      if ( !guardPtr )
       {
-         goto done ;
-      }
-
-      try
-      {
-         lockPtr = std::make_shared<ossRWMutex>() ;
-         PD_CHECK( lockPtr, SDB_OOM, error, PDERROR, "Failed to allocate buld lock" ) ;
-
-         ossScopedRWLock lock( &_buildLocksMutex, EXCLUSIVE ) ;
-         auto res = _buildLocks.insert( make_pair( key, lockPtr ) ) ;
-         if ( !res.second )
+         try
          {
-            lockPtr = res.first->second ;
+            guardPtr = std::make_shared<dmsIndexBuildGuard>() ;
+            PD_CHECK( guardPtr, SDB_OOM, error, PDERROR, "Failed to allocate buld guard" ) ;
+
+            rc = guardPtr->init( rid ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to init build guard, rc: %d", rc ) ;
+
+            ossScopedRWLock lock( &_buildGuardsMutex, EXCLUSIVE ) ;
+            auto res = _buildGuards.insert( make_pair( key, guardPtr ) ) ;
+            if ( !res.second )
+            {
+               guardPtr = res.first->second ;
+            }
          }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to register build lock, occur exception: %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to register build lock, occur exception: %s",
+                  e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__REGBUILDLOCK, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__REGBUILDGUARD, rc ) ;
       return rc ;
 
    error:
+      if ( key.isValid() )
+      {
+         _unregisterBuildGuard( key ) ;
+      }
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK, "_dmsStorageIndex::_unregisterBuildLock" )
-   void _dmsStorageIndex::_unregisterBuildLock( const dmsIdxMetadataKey &key )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__UNREGBUILDGUARD, "_dmsStorageIndex::_unregisterBuildGuard" )
+   void _dmsStorageIndex::_unregisterBuildGuard( const dmsIdxMetadataKey &key )
    {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__UNREGBUILDGUARD ) ;
 
-      ossScopedRWLock lock( &_buildLocksMutex, EXCLUSIVE ) ;
-      _buildLocks.erase( key ) ;
+      ossScopedRWLock lock( &_buildGuardsMutex, EXCLUSIVE ) ;
+      _buildGuards.erase( key ) ;
 
-      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__UNREGBUILDLOCK ) ;
+      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__UNREGBUILDGUARD ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__GETBUILDLOCK, "_dmsStorageIndex::_getBuildLock" )
-   dmsIndexBuildLockPtr _dmsStorageIndex::_getBuildLock( const dmsIdxMetadataKey &key )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__GETBUILDGUARD, "_dmsStorageIndex::_getBuildGuard" )
+   dmsIndexBuildGuardPtr _dmsStorageIndex::_getBuildGuard( const dmsIdxMetadataKey &key )
    {
-      shared_ptr<ossRWMutex> lockPtr ;
+      dmsIndexBuildGuardPtr guardPtr ;
 
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__GETBUILDLOCK ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__GETBUILDGUARD ) ;
 
-      ossScopedRWLock lock( &_buildLocksMutex, SHARED ) ;
-      dmsIdxBuildLockMapIter iter = _buildLocks.find( key ) ;
-      if ( iter != _buildLocks.end() )
+      ossScopedRWLock lock( &_buildGuardsMutex, SHARED ) ;
+      dmsIdxBuildGuardMapIter iter = _buildGuards.find( key ) ;
+      if ( iter != _buildGuards.end() )
       {
-         lockPtr = iter->second ;
+         guardPtr = iter->second ;
       }
 
-      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__GETBUILDLOCK ) ;
+      PD_TRACE_EXIT( SDB__DMSSTORAGEINDEX__GETBUILDGUARD ) ;
 
-      return std::move( lockPtr ) ;
+      return guardPtr ;
    }
 
 }

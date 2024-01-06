@@ -34,13 +34,9 @@
 #define SDB_DMS_WRITE_GUARD_HPP_
 
 #include "ossUtil.hpp"
-#include "interface/IStorageService.hpp"
-#include "dms.hpp"
-#include "ixm.hpp"
-#include "ossRWMutex.hpp"
-#include "dmsMetadata.hpp"
-#include "dmsPersistUnit.hpp"
-#include "pmdDummySession.hpp"
+#include "dmsDataWriteGuard.hpp"
+#include "dmsIndexWriteGuard.hpp"
+#include "dmsPersistGuard.hpp"
 
 namespace engine
 {
@@ -49,137 +45,6 @@ namespace engine
    class _pmdEDUCB ;
    class _dmsStorageDataCommon ;
    class _dmsMBContext ;
-
-   /*
-      _dmsDataWriteGuard define
-    */
-   class _dmsDataWriteGuard : public SDBObject
-   {
-   public:
-      _dmsDataWriteGuard() ;
-      _dmsDataWriteGuard( _dmsStorageDataCommon *su,
-                          _dmsMBContext *mbContext,
-                          _pmdEDUCB *cb,
-                          BOOLEAN isEnabled = TRUE ) ;
-      ~_dmsDataWriteGuard() ;
-
-      void beforeWrite() ;
-      void afterWrite() ;
-
-      INT32 begin() ;
-      INT32 commit() ;
-      INT32 abort( BOOLEAN isForced = FALSE ) ;
-
-      BOOLEAN isEnabled() const
-      {
-         return _isEnabled ;
-      }
-
-   protected:
-      _dmsStorageDataCommon *_su = nullptr ;
-      _dmsMBStatInfo *_mbStat = nullptr ;
-      UINT16 _mbID ;
-      _pmdEDUCB *_eduCB ;
-      BOOLEAN _isEnabled ;
-      BOOLEAN _isInWrite ;
-   } ;
-
-   typedef class _dmsDataWriteGuard dmsDataWriteGuard ;
-
-   /*
-      dmsIndexBuildLockPtr define
-    */
-   typedef std::shared_ptr<ossRWMutex> dmsIndexBuildLockPtr ;
-   typedef ossPoolMap<dmsIdxMetadataKey, dmsIndexBuildLockPtr> dmsIdxBuildLockMap ;
-   typedef dmsIdxBuildLockMap::iterator dmsIdxBuildLockMapIter ;
-   /*
-      _dmsIndexWriteGuard define
-    */
-   class _dmsIndexWriteGuard : public SDBObject
-   {
-   public:
-      _dmsIndexWriteGuard() ;
-      _dmsIndexWriteGuard( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
-      ~_dmsIndexWriteGuard() ;
-
-      INT32 lock( const dmsIdxMetadataKey &metadataKey,
-                  const ixmIndexCB &indexCB,
-                  const dmsRecordID &rid,
-                  dmsIndexBuildLockPtr &lockPtr,
-                  BOOLEAN &needProcess ) ;
-      void releaseAll() ;
-
-      INT32 begin() ;
-      INT32 commit() ;
-      INT32 abort( BOOLEAN isForced = FALSE ) ;
-
-      BOOLEAN isEnabled() const
-      {
-         return _isEnabled ;
-      }
-
-   protected:
-      _pmdEDUCB *_eduCB ;
-      BOOLEAN _isEnabled ;
-      dmsIdxBuildLockMap _locks ;
-   } ;
-
-   typedef class _dmsIndexWriteGuard dmsIndexWriteGuard ;
-
-   /*
-      _dmsPersistGuard define
-    */
-   class _dmsPersistGuard : public SDBObject
-   {
-   public:
-      _dmsPersistGuard() ;
-      _dmsPersistGuard( IStorageService *service,
-                        _dmsStorageDataCommon *su,
-                        _dmsMBContext *mbContext,
-                        _pmdEDUCB *cb,
-                        BOOLEAN isEnabled = TRUE ) ;
-      ~_dmsPersistGuard() ;
-
-      BOOLEAN isEnabled() const
-      {
-         return _isEnabled ;
-      }
-
-      BOOLEAN useAtomicAbort() const
-      {
-         return _isEnabled &&
-                _persistUnit != nullptr &&
-                _persistUnit->useAtomicAbort() ;
-      }
-
-      INT32 init() ;
-      INT32 fini() ;
-
-      INT32 begin() ;
-      INT32 commit() ;
-      INT32 abort( BOOLEAN isForced = FALSE ) ;
-
-      void incRecordCount( UINT64 count = 1 ) ;
-      void decRecordCount( UINT64 count = 1 ) ;
-      void incDataLen( UINT64 dataLen ) ;
-      void decDataLen( UINT64 dataLen ) ;
-      void incOrgDataLen( UINT64 orgDataLen ) ;
-      void decOrgDataLen( UINT64 orgDataLen ) ;
-
-   protected:
-      IStorageService *_service = nullptr ;
-      IPersistUnit *_persistUnit = nullptr ;
-      _dmsStorageDataCommon *_su = nullptr ;
-      _dmsMBStatInfo *_mbStat = nullptr ;
-      pmdDummySession _dummySession ;
-      utilCLUniqueID _clUniqueID = UTIL_UNIQUEID_NULL ;
-      utilThreadLocalPtr<dmsStatPersistUnit> _statUnitPtr ;
-      _pmdEDUCB *_eduCB ;
-      BOOLEAN _isEnabled ;
-      BOOLEAN _hasBegin ;
-   } ;
-
-   typedef class _dmsPersistGuard dmsPersistGuard ;
 
    /*
       _dmsWriteGuard define

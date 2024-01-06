@@ -32,7 +32,9 @@
 #include "dmsStorageUnit.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
-#include "dmsIndexBuilderImpl.hpp"
+#include "dmsIndexOnlineBuilder.hpp"
+#include "dmsIndexSortingBuilder.hpp"
+#include "dmsIndexExtBuilder.hpp"
 #include "dmsScanner.hpp"
 #include "dmsCB.hpp"
 #include "ixm.hpp"
@@ -51,7 +53,7 @@ namespace engine
                                        _pmdEDUCB* eduCB,
                                        dmsExtentID indexExtentID,
                                        dmsExtentID indexLogicID,
-                                       dmsIndexBuildLockPtr &lockPtr,
+                                       dmsIndexBuildGuardPtr &guardPtr,
                                        dmsDupKeyProcessor *dkProcessor,
                                        dmsIdxTaskStatus* pIdxStatus )
    : _su( su ),
@@ -59,7 +61,7 @@ namespace engine
      _suData ( su->data() ),
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
-     _buildLockPtr( lockPtr ),
+     _buildGuardPtr( guardPtr ),
      _indexExtentID ( indexExtentID ),
      _indexLID( indexLogicID ),
      _dkProcessor( dkProcessor ),
@@ -77,9 +79,9 @@ namespace engine
 
    _dmsIndexBuilder::~_dmsIndexBuilder()
    {
-      if ( _buildLockPtr )
+      if ( _buildGuardPtr )
       {
-         _buildLockPtr->release_w() ;
+         _buildGuardPtr->buildExit() ;
       }
       _suIndex = NULL ;
       _suData = NULL ;
@@ -241,10 +243,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( SDB_OK == ( rc = _checkIndexAfterLock( SHARED ) ) )
+      if ( SDB_OK == ( rc = _checkIndexAfterLock( EXCLUSIVE ) ) )
       {
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
+         _indexCB->setScanExtOffset( DMS_INVALID_OFFSET ) ;
          _mbContext->mbUnlock() ;
       }
 
@@ -347,6 +350,7 @@ namespace engine
          // done scan, set scanned extent to maximum value
          // so coming write operators will update this index
          _indexCB->setScanRID( dmsRecordID::maxRID() ) ;
+         _buildGuardPtr->buildEnd() ;
       }
       else
       {
@@ -691,7 +695,7 @@ namespace engine
                                                        dmsExtentID indexLogicID,
                                                        INT32 sortBufferSize,
                                                        UINT16 indexType,
-                                                       dmsIndexBuildLockPtr &lockPtr,
+                                                       dmsIndexBuildGuardPtr &guardPtr,
                                                        IDmsOprHandler *pOprHandler,
                                                        utilWriteResult *pResult,
                                                        dmsDupKeyProcessor *dkProcessor,
@@ -712,7 +716,7 @@ namespace engine
                                                     eduCB,
                                                     indexExtentID,
                                                     indexLogicID,
-                                                    lockPtr,
+                                                    guardPtr,
                                                     dkProcessor ) ;
          if ( NULL == builder)
          {
@@ -734,7 +738,7 @@ namespace engine
                                                           eduCB,
                                                           indexExtentID,
                                                           indexLogicID,
-                                                          lockPtr,
+                                                          guardPtr,
                                                           dkProcessor,
                                                           pIdxStatus ) ;
             if ( NULL == builder)
@@ -750,7 +754,7 @@ namespace engine
                                                            indexExtentID,
                                                            indexLogicID,
                                                            sortBufferSize,
-                                                           lockPtr,
+                                                           guardPtr,
                                                            dkProcessor,
                                                            pIdxStatus ) ;
             if ( NULL == builder)

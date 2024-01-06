@@ -14,7 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = dmsIndexBuilderImpl.hpp
+   Source File Name = dmsIndexExtBuilder.hpp
 
    Dependencies: N/A
 
@@ -28,8 +28,8 @@
    Last Changed =
 
 *******************************************************************************/
-#ifndef DMS_INDEX_BUILDER_IMPL_HPP_
-#define DMS_INDEX_BUILDER_IMPL_HPP_
+#ifndef DMS_INDEX_EXT_BUILDER_HPP_
+#define DMS_INDEX_EXT_BUILDER_HPP_
 
 #include "dmsIndexBuilder.hpp"
 #include "dmsExtDataHandler.hpp"
@@ -41,53 +41,6 @@ using namespace bson ;
 
 namespace engine
 {
-   class _dmsIndexOnlineBuilder: public _dmsIndexBuilder
-   {
-   public:
-      _dmsIndexOnlineBuilder( _dmsStorageUnit* su,
-                              _dmsMBContext* mbContext,
-                              _pmdEDUCB* eduCB,
-                              dmsExtentID indexExtentID,
-                              dmsExtentID indexLogicID,
-                              dmsIndexBuildLockPtr &lockPtr,
-                              dmsDupKeyProcessor *dkProcessor,
-                              dmsIdxTaskStatus* pIdxStatus = NULL ) ;
-      ~_dmsIndexOnlineBuilder() ;
-
-   private:
-      INT32 _build() ;
-   } ;
-   typedef class _dmsIndexOnlineBuilder dmsIndexOnlineBuilder ;
-
-   class _dmsIxmKeySorter ;
-
-   class _dmsIndexSortingBuilder: public _dmsIndexBuilder
-   {
-   public:
-      _dmsIndexSortingBuilder( _dmsStorageUnit* su,
-                               _dmsMBContext* mbContext,
-                               _pmdEDUCB* eduCB,
-                               dmsExtentID indexExtentID,
-                               dmsExtentID indexLogicID,
-                               INT32 sortBufferSize,
-                               dmsIndexBuildLockPtr &lockPtr,
-                               dmsDupKeyProcessor *dkProcessor,
-                               dmsIdxTaskStatus* pIdxStatus = NULL ) ;
-      ~_dmsIndexSortingBuilder() ;
-
-   private:
-      INT32 _init() ;
-      INT32 _fillSorter( rtnTBScanner &scanner ) ;
-      INT32 _insertKeys( const Ordering& ordering ) ;
-      INT32 _build() ;
-
-   private:
-      _dmsIxmKeySorter* _sorter ;
-      INT64             _bufSize ;
-      INT64             _bufExtSize ;
-      BOOLEAN           _eoc ;
-   } ;
-   typedef class _dmsIndexSortingBuilder dmsIndexSortingBuilder ;
 
    // Extended index builder, currently for text indices.
    // The rebuild of text index is very different from normal indices.
@@ -103,7 +56,7 @@ namespace engine
                            _pmdEDUCB* eduCB,
                            dmsExtentID indexExtentID,
                            dmsExtentID indexLogicID,
-                           dmsIndexBuildLockPtr &lockPtr,
+                           dmsIndexBuildGuardPtr &guardPtr,
                            dmsDupKeyProcessor *dkProcessor ) ;
       ~_dmsIndexExtBuilder() ;
 
@@ -119,7 +72,8 @@ namespace engine
       BSONObj              _keyDef ;
    } ;
    typedef _dmsIndexExtBuilder dmsIndexExtBuilder ;
+
 }
 
-#endif /* DMS_INDEX_BUILDER_IMPL_HPP_ */
+#endif /* DMS_INDEX_EXT_BUILDER_HPP_ */
 

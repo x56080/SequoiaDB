@@ -229,10 +229,13 @@ namespace engine
    void _ixmIndexCB::setScanRID( const dmsRecordID &rid )
    {
       SDB_ASSERT( _isInitialized, "index details must be initialized first" ) ;
-      dmsExtRW extRW = _pIndexSu->extent2RW( _extentID, _pContext->mbID() ) ;
-      ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
-      pExtent->_scanExtLID = rid._extent ;
-      pExtent->_scanExtOffset = rid._offset ;
+      if ( rid.isValid() )
+      {
+         dmsExtRW extRW = _pIndexSu->extent2RW( _extentID, _pContext->mbID() ) ;
+         ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
+         pExtent->_scanExtLID = rid._extent ;
+         pExtent->_scanExtOffset = rid._offset ;
+      }
    }
 
    void _ixmIndexCB::scanExtLID ( UINT32 extLID )

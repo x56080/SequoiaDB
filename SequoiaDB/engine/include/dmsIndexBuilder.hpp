@@ -88,7 +88,7 @@ namespace engine
                         _pmdEDUCB* eduCB,
                         dmsExtentID indexExtentID,
                         dmsExtentID indexLogicID,
-                        dmsIndexBuildLockPtr &lockPtr,
+                        dmsIndexBuildGuardPtr &guardPtr,
                         dmsDupKeyProcessor *dkProcessor,
                         dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       virtual ~_dmsIndexBuilder() ;
@@ -128,7 +128,7 @@ namespace engine
       _dmsStorageDataCommon* _suData ;
       _dmsMBContext*     _mbContext ;
       _pmdEDUCB*         _eduCB ;
-      dmsIndexBuildLockPtr _buildLockPtr ;
+      dmsIndexBuildGuardPtr _buildGuardPtr ;
       std::shared_ptr<IIndex> _idxPtr ;
       dmsExtentID        _indexExtentID ;
       dmsExtentID        _indexLID ;
@@ -160,7 +160,7 @@ namespace engine
                                                dmsExtentID indexLogicID,
                                                INT32 sortBufferSize,
                                                UINT16 indexType,
-                                               dmsIndexBuildLockPtr &lockPtr,
+                                               dmsIndexBuildGuardPtr &guardPtr,
                                                IDmsOprHandler *pOprHandler,
                                                utilWriteResult *pResult,
                                                dmsDupKeyProcessor *dkProcessor,

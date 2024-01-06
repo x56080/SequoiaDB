@@ -251,7 +251,7 @@ namespace engine
    }
 
    _ossScopedRWLock::_ossScopedRWLock ( ossRWMutexBase * pMutex,
-                                        OSS_LATCH_MODE mode )
+                                        INT32 mode )
    {
       _pMutex = pMutex ;
       _mode = mode ;
@@ -262,7 +262,7 @@ namespace engine
          {
             _pMutex->lock_r () ;
          }
-         else
+         else if ( EXCLUSIVE == _mode )
          {
             _pMutex->lock_w () ;
          }
@@ -271,17 +271,43 @@ namespace engine
 
    _ossScopedRWLock::~_ossScopedRWLock ()
    {
+      unlock() ;
+   }
+
+   void _ossScopedRWLock::lock( INT32 mode )
+   {
+      if ( _pMutex )
+      {
+         if ( _mode != mode )
+         {
+            unlock() ;
+            if ( SHARED == _mode )
+            {
+               _pMutex->lock_r () ;
+            }
+            else if ( EXCLUSIVE == _mode )
+            {
+               _pMutex->lock_w () ;
+            }
+            _mode = mode ;
+         }
+      }
+   }
+
+   void _ossScopedRWLock::unlock()
+   {
       if ( _pMutex )
       {
          if ( SHARED == _mode )
          {
             _pMutex->release_r () ;
          }
-         else
+         else if ( EXCLUSIVE == _mode )
          {
             _pMutex->release_w () ;
          }
          _pMutex = NULL ;
+         _mode = -1 ;
       }
    }
 

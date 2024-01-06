@@ -288,7 +288,7 @@ namespace engine
                                  dmsExtentID indexLID, _pmdEDUCB *cb,
                                  INT32 sortBufferSize,
                                  UINT16 indexType,
-                                 dmsIndexBuildLockPtr &lockPtr,
+                                 dmsIndexBuildGuardPtr &guardPtr,
                                  IDmsOprHandler *pOprHandle = NULL,
                                  utilWriteResult *pResult = NULL,
                                  _dmsDupKeyProcessor *dkProcessor = NULL,
@@ -421,10 +421,11 @@ namespace engine
                                const BSONObj &index,
                                INT32 &indexID ) ;
 
-         INT32 _registerBuildLock( const dmsIdxMetadataKey &key,
-                                   dmsIndexBuildLockPtr &lockPtr ) ;
-         void _unregisterBuildLock( const dmsIdxMetadataKey &key ) ;
-         dmsIndexBuildLockPtr _getBuildLock( const dmsIdxMetadataKey &key ) ;
+         INT32 _registerBuildGuard( const dmsIdxMetadataKey &key,
+                                    const dmsRecordID rid,
+                                    dmsIndexBuildGuardPtr &guardPtr ) ;
+         void _unregisterBuildGuard( const dmsIdxMetadataKey &key ) ;
+         dmsIndexBuildGuardPtr _getBuildGuard( const dmsIdxMetadataKey &key ) ;
 
       private:
          _dmsStorageData         *_pDataSu ;
@@ -432,8 +433,8 @@ namespace engine
          INT32                   _idxKeySizeMax ; // max size of index key value
 
          // locks to protect index build
-         ossRWMutex _buildLocksMutex ;
-         dmsIdxBuildLockMap _buildLocks ;
+         ossRWMutex _buildGuardsMutex ;
+         dmsIdxBuildGuardMap _buildGuards ;
 
       friend class _dmsIndexBuilder ;
    };
