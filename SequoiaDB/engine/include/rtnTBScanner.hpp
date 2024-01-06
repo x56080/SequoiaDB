@@ -108,6 +108,11 @@ namespace engine
          _relocatedRID.reset() ;
       }
 
+      BOOLEAN isInit() const
+      {
+         return _init ;
+      }
+
    protected:
       BOOLEAN _init ;
       dmsRecordID _startRID ;

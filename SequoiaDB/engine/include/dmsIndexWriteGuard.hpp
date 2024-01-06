@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWriteGuard.hpp
+   Source File Name = dmsIndexWriteGuard.hpp
 
    Descriptive Name =
 
@@ -33,13 +33,11 @@
 
 *******************************************************************************/
 
-#ifndef SDB_DMS_WRITE_GUARD_HPP_
-#define SDB_DMS_WRITE_GUARD_HPP_
+#ifndef SDB_DMS_INDEX_WRITE_GUARD_HPP_
+#define SDB_DMS_INDEX_WRITE_GUARD_HPP_
 
 #include "ossUtil.hpp"
-#include "dmsDataWriteGuard.hpp"
-#include "dmsIndexWriteGuard.hpp"
-#include "dmsPersistGuard.hpp"
+#include "dmsIndexBuildGuard.hpp"
 
 namespace engine
 {
@@ -50,49 +48,42 @@ namespace engine
    class _dmsMBContext ;
 
    /*
-      _dmsWriteGuard define
+      _dmsIndexWriteGuard define
     */
-   class _dmsWriteGuard : public SDBObject
+   class _dmsIndexWriteGuard : public SDBObject
    {
    public:
-      _dmsWriteGuard() = default ;
-      _dmsWriteGuard( IStorageService *service,
-                      _dmsStorageDataCommon *su,
-                      _dmsMBContext *mbContext,
-                      _pmdEDUCB *cb,
-                      BOOLEAN isDataWriteGuardEnabled = TRUE,
-                      BOOLEAN isIndexWriteGuardEnabled = TRUE,
-                      BOOLEAN isPersistGuardEnabled = TRUE ) ;
+      _dmsIndexWriteGuard() ;
+      _dmsIndexWriteGuard( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
+      ~_dmsIndexWriteGuard() ;
 
-      ~_dmsWriteGuard() = default ;
+      INT32 lock( const dmsIdxMetadataKey &metadataKey,
+                  const ixmIndexCB &indexCB,
+                  const dmsRecordID &rid,
+                  dmsIndexBuildGuardPtr &guardPtr,
+                  BOOLEAN &needProcess ) ;
 
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
 
-      dmsDataWriteGuard &getDataWriteGuard()
+      BOOLEAN isEnabled() const
       {
-         return _dataGuard ;
-      }
-
-      dmsIndexWriteGuard &getIndexWriteGuard()
-      {
-         return _indexGuard ;
-      }
-
-      dmsPersistGuard &getPersistGuard()
-      {
-         return _persistGuard ;
+         return _isEnabled ;
       }
 
    protected:
-      dmsDataWriteGuard _dataGuard ;
-      dmsIndexWriteGuard _indexGuard ;
-      dmsPersistGuard _persistGuard ;
+      _pmdEDUCB *_eduCB ;
+      BOOLEAN _isEnabled ;
+      typedef ossPoolMap<dmsIdxMetadataKey,
+                         std::pair<dmsIndexBuildGuardPtr,
+                                   ossPoolSet<dmsRecordID>>> dmsIdxBuildGuardRIDMap ;
+      typedef dmsIdxBuildGuardRIDMap::iterator dmsRIDIdxBuildGuardMapIter ;
+      dmsIdxBuildGuardRIDMap _guards ;
    } ;
 
-   typedef class _dmsWriteGuard dmsWriteGuard ;
+   typedef class _dmsIndexWriteGuard dmsIndexWriteGuard ;
 
 }
 
-#endif // SDB_DMS_WRITE_GUARD_HPP_
+#endif // SDB_DMS_INDEX_WRITE_GUARD_HPP_

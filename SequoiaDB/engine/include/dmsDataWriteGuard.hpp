@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsWriteGuard.hpp
+   Source File Name = dmsDataWriteGuard.hpp
 
    Descriptive Name =
 
@@ -33,13 +33,11 @@
 
 *******************************************************************************/
 
-#ifndef SDB_DMS_WRITE_GUARD_HPP_
-#define SDB_DMS_WRITE_GUARD_HPP_
+#ifndef SDB_DMS_DATA_WRITE_GUARD_HPP_
+#define SDB_DMS_DATA_WRITE_GUARD_HPP_
 
 #include "ossUtil.hpp"
-#include "dmsDataWriteGuard.hpp"
-#include "dmsIndexWriteGuard.hpp"
-#include "dmsPersistGuard.hpp"
+#include "dms.hpp"
 
 namespace engine
 {
@@ -48,51 +46,44 @@ namespace engine
    class _pmdEDUCB ;
    class _dmsStorageDataCommon ;
    class _dmsMBContext ;
+   class _dmsMBStatInfo ;
 
    /*
-      _dmsWriteGuard define
+      _dmsDataWriteGuard define
     */
-   class _dmsWriteGuard : public SDBObject
+   class _dmsDataWriteGuard : public SDBObject
    {
    public:
-      _dmsWriteGuard() = default ;
-      _dmsWriteGuard( IStorageService *service,
-                      _dmsStorageDataCommon *su,
-                      _dmsMBContext *mbContext,
-                      _pmdEDUCB *cb,
-                      BOOLEAN isDataWriteGuardEnabled = TRUE,
-                      BOOLEAN isIndexWriteGuardEnabled = TRUE,
-                      BOOLEAN isPersistGuardEnabled = TRUE ) ;
+      _dmsDataWriteGuard() ;
+      _dmsDataWriteGuard( _dmsStorageDataCommon *su,
+                          _dmsMBContext *mbContext,
+                          _pmdEDUCB *cb,
+                          BOOLEAN isEnabled = TRUE ) ;
+      ~_dmsDataWriteGuard() ;
 
-      ~_dmsWriteGuard() = default ;
+      void beforeWrite() ;
+      void afterWrite() ;
 
       INT32 begin() ;
       INT32 commit() ;
       INT32 abort( BOOLEAN isForced = FALSE ) ;
 
-      dmsDataWriteGuard &getDataWriteGuard()
+      BOOLEAN isEnabled() const
       {
-         return _dataGuard ;
-      }
-
-      dmsIndexWriteGuard &getIndexWriteGuard()
-      {
-         return _indexGuard ;
-      }
-
-      dmsPersistGuard &getPersistGuard()
-      {
-         return _persistGuard ;
+         return _isEnabled ;
       }
 
    protected:
-      dmsDataWriteGuard _dataGuard ;
-      dmsIndexWriteGuard _indexGuard ;
-      dmsPersistGuard _persistGuard ;
+      _dmsStorageDataCommon *_su = nullptr ;
+      _dmsMBStatInfo *_mbStat = nullptr ;
+      UINT16 _mbID ;
+      _pmdEDUCB *_eduCB ;
+      BOOLEAN _isEnabled ;
+      BOOLEAN _isInWrite ;
    } ;
 
-   typedef class _dmsWriteGuard dmsWriteGuard ;
+   typedef class _dmsDataWriteGuard dmsDataWriteGuard ;
 
 }
 
-#endif // SDB_DMS_WRITE_GUARD_HPP_
+#endif // SDB_DMS_DATA_WRITE_GUARD_HPP_
