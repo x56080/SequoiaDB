@@ -203,11 +203,6 @@ function getExpectLogicalIDs ( stringLength, recordNums )
       var nextLogicalID = currentLastLogicalID + recordLength;
 
       currentLastLogicalID = nextLogicalID;
-      if( currentLastLogicalID >= ( blockCounts * 33554396 - recordLength ) )
-      { //if the next record length is up to current block size,it will be put to the next block
-         currentLastLogicalID = blockCounts * 33554396;
-         ++blockCounts;
-      }
    }
 
    return expLogicalIDs;

@@ -85,13 +85,6 @@ function getOneLogicalID ( stringLength, skipNum )
    for( var i = 0; i < skipNum; ++i )
    {
       logicalID = logicalID + recordLength;
-
-      var nextLogicalID = logicalID + recordLength;
-      if( nextLogicalID > ( blockCounts * block_max_32 ) ) 
-      {
-         logicalID = blockCounts * block_max_32;
-         ++blockCounts;
-      }
    }
    return logicalID;
 }
