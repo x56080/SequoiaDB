@@ -75,11 +75,6 @@ namespace wiredtiger
          return FALSE ;
       }
 
-      virtual BOOLEAN _isAtomicSupported() const
-      {
-         return TRUE ;
-      }
-
    protected:
       dmsWTStorageEngine &_engine ;
       dmsWTSession _session ;

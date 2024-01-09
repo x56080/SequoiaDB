@@ -70,13 +70,6 @@ namespace engine
          return _isEnabled ;
       }
 
-      BOOLEAN useAtomicAbort() const
-      {
-         return _isEnabled &&
-                _persistUnit != nullptr &&
-                _persistUnit->useAtomicAbort() ;
-      }
-
       INT32 init() ;
       INT32 fini() ;
 
