@@ -206,13 +206,14 @@ namespace wiredtiger
 
       ossPoolList<ossPoolString> uriList ;
 
+      // make sure the collections pointers are released
+      _removeCollections( metadata.getCSUID() ) ;
+
       rc = _dumpURIListByCS( metadata.getCSUID(), uriList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to dump WiredTiger URI list, rc: %d", rc ) ;
 
       rc = _engine.dropStores( uriList, "force,checkpoint_wait=false" ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger stores, rc: %d", rc ) ;
-
-      _removeCollections( metadata.getCSUID() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_DROPCS, rc ) ;

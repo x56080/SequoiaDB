@@ -250,8 +250,17 @@ namespace wiredtiger
 
       for ( auto &uri : uriList )
       {
-         rc = WT_CALL( s->drop( s, uri.c_str(), config ), s ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger store, rc: %d", rc ) ;
+         while ( TRUE )
+         {
+            rc = WT_CALL( s->drop( s, uri.c_str(), config ), s ) ;
+            if ( SDB_OK != rc && EBUSY == dmsWTGetLastErrorCode() )
+            {
+               ossSleep( 100 ) ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger store, rc: %d", rc ) ;
+            break ;
+         }
       }
 
    done:
