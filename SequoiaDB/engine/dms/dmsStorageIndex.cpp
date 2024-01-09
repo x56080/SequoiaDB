@@ -3262,7 +3262,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
 
-      if ( isUndo && writeGuard.getPersistGuard().useAtomicAbort() )
+      if ( isUndo )
       {
          goto done ;
       }
@@ -3661,7 +3661,7 @@ namespace engine
          // but we still return the return code.
       }
 
-      if ( isUndo && writeGuard.getPersistGuard().useAtomicAbort() )
+      if ( isUndo )
       {
          goto done ;
       }

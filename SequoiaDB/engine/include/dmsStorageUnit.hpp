@@ -500,11 +500,6 @@ namespace engine
          OSS_INLINE void    mapExtent2DelList( dmsMB * mb, dmsExtent * extAddr,
                                                SINT32 extentID ) ;
 
-         OSS_INLINE INT32   extentRemoveRecord( dmsMBContext *context,
-                                                dmsExtRW &extRW,
-                                                dmsRecordRW &recordRW,
-                                                _pmdEDUCB *cb ) ;
-
          OSS_INLINE void    addExtentRecordCount( dmsMB *mb, UINT32 count ) ;
 
       // for dmsCB
@@ -696,13 +691,6 @@ namespace engine
          dmsCacheHolder                       _cacheHolder ;
    } ;
 
-   OSS_INLINE INT32 _dmsStorageUnit::extentRemoveRecord( dmsMBContext *context,
-                                                         dmsExtRW &extRW,
-                                                         dmsRecordRW &recordRW,
-                                                         _pmdEDUCB *cb )
-   {
-      return _pDataSu->_extentRemoveRecord( context, extRW, recordRW, cb ) ;
-   }
    OSS_INLINE void _dmsStorageUnit::addExtentRecordCount( dmsMB * mb, UINT32 count )
    {
       _pDataSu->_mbStatInfo[ mb->_blockID ]._totalRecords.add( count ) ;

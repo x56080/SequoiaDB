@@ -98,6 +98,13 @@ namespace engine
                                 UINT64 &popCount,
                                 UINT64 &popSize ) = 0 ;
 
+      virtual INT32 prepareLoads( const dmsRecordData &recordData,
+                                  BOOLEAN isLast,
+                                  BOOLEAN isAsynchr,
+                                  IExecutor *executor ) = 0 ;
+      virtual INT32 truncateLoads( IExecutor *executor ) = 0 ;
+      virtual INT32 buildLoads( BOOLEAN isAsynchr, IExecutor *executor ) = 0 ;
+
       virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,

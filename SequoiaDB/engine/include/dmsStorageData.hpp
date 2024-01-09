@@ -128,14 +128,6 @@ namespace engine
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 
-      virtual INT32 _onInsertFail( dmsMBContext *context,
-                                   BOOLEAN hasInsert,
-                                   dmsRecordID rid,
-                                   SDB_DPSCB *dpscb,
-                                   ossValuePtr dataPtr,
-                                   _pmdEDUCB *cb,
-                                   const dmsTransRecordInfo *pInfo ) ;
-
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
@@ -184,27 +176,6 @@ namespace engine
                                   UINT32 needRecordSize,
                                   _pmdEDUCB *cb,
                                   BOOLEAN isInsert = TRUE ) ;
-
-      // must hold mb exclusive lock
-      INT32 _extentRemoveRecord ( dmsMBContext *context,
-                                  dmsExtRW &extRW,
-                                  dmsRecordRW &recordRW,
-                                  _pmdEDUCB *cb,
-                                  BOOLEAN decCount = TRUE ) ;
-
-      // must hold mb exclusive lock
-      INT32 _extentUpdatedRecord ( dmsMBContext *context,
-                                   dmsExtRW &extRW,
-                                   dmsRecordRW &recordRW,
-                                   const dmsRecordData &recordData,
-                                   const BSONObj &newObj,
-                                   _pmdEDUCB *cb,
-                                   IDmsOprHandler *pHandler,
-                                   utilUpdateResult *pResult,
-                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                   const ixmIdxHashBitmap &idxHashBitmap ) ;
-
    } ;
    typedef _dmsStorageData dmsStorageData ;
 }

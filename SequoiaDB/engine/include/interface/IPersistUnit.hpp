@@ -80,8 +80,6 @@ namespace engine
                                BOOLEAN isForced ) = 0 ;
 
       virtual INT32 registerStatUnit( utilThreadLocalPtr<IStatPersistUnit> &statUnitPtr ) = 0 ;
-
-      virtual BOOLEAN useAtomicAbort() const = 0 ;
    } ;
 
 }

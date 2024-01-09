@@ -113,6 +113,24 @@ namespace wiredtiger
                                 UINT64 &popCount,
                                 UINT64 &popSize ) ;
 
+      virtual INT32 prepareLoads( const dmsRecordData &recordData,
+                                  BOOLEAN isLast,
+                                  BOOLEAN isAsynchr,
+                                  IExecutor *executor )
+      {
+         return SDB_ENGINE_NOT_SUPPORT ;
+      }
+
+      virtual INT32 truncateLoads( IExecutor *executor )
+      {
+         return SDB_ENGINE_NOT_SUPPORT ;
+      }
+
+      virtual INT32 buildLoads( BOOLEAN isAsynchr, IExecutor *executor )
+      {
+         return SDB_ENGINE_NOT_SUPPORT ;
+      }
+
       virtual INT32 createDataCursor( std::unique_ptr<IDataCursor> &cursor,
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,

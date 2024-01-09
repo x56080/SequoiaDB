@@ -151,12 +151,6 @@ namespace engine
 
       virtual INT32 registerStatUnit( utilThreadLocalPtr<IStatPersistUnit> &statUnitPtr ) ;
 
-      virtual BOOLEAN useAtomicAbort() const
-      {
-         return dmsPersistUnitState::INACTIVE != _state &&
-                _isAtomicSupported() ;
-      }
-
    protected:
       virtual INT32 _beginUnit( IExecutor *executor ) = 0 ;
       virtual INT32 _prepareUnit( IExecutor *executor ) = 0 ;
@@ -164,7 +158,6 @@ namespace engine
       virtual INT32 _abortUnit( IExecutor *executor ) = 0 ;
 
       virtual BOOLEAN _isTransSupported() const = 0 ;
-      virtual BOOLEAN _isAtomicSupported() const = 0 ;
 
    protected:
       dmsPersistUnitState _state = dmsPersistUnitState::INACTIVE ;

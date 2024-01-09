@@ -87,8 +87,7 @@ namespace engine
                                     IExecutor *executor,
                                     std::shared_ptr< ICollection > &collPtr ) = 0 ;
 
-      virtual BOOLEAN isDurable() const = 0 ;
-      virtual BOOLEAN isCompressorAlterable() const = 0 ;
+      virtual BOOLEAN isAlterCompressorSupported() const = 0 ;
    } ;
 
 }

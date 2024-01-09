@@ -144,7 +144,7 @@ namespace engine
                              UINT32 *success = NULL,
                              UINT32 *failure = NULL ) ;
 
-      INT32 loadRollbackPhase ( dmsMBContext *mbContext ) ;
+      INT32 loadRollbackPhase ( dmsMBContext *mbContext, pmdEDUCB *cb ) ;
 
    } ;
 

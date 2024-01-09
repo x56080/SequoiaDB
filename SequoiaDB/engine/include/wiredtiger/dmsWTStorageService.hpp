@@ -101,12 +101,7 @@ namespace wiredtiger
                                     IExecutor *executor,
                                     std::shared_ptr<ICollection> &collPtr ) ;
 
-      virtual BOOLEAN isDurable() const
-      {
-         return TRUE ;
-      }
-
-      virtual BOOLEAN isCompressorAlterable() const
+      virtual BOOLEAN isAlterCompressorSupported() const
       {
          return FALSE ;
       }

@@ -270,32 +270,6 @@ namespace engine
          // do nothing
       }
 
-      virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
-                                          dmsExtRW &extRW,
-                                          dmsRecordRW &recordRW,
-                                          const dmsRecordData &recordData,
-                                          const BSONObj &newObj,
-                                          _pmdEDUCB *cb,
-                                          IDmsOprHandler *pHandler,
-                                          utilUpdateResult *pResult,
-                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                          const ixmIdxHashBitmap &idxHashBitmap ) ;
-
-      virtual INT32 _extentRemoveRecord( dmsMBContext *context,
-                                         dmsExtRW &extRW,
-                                         dmsRecordRW &recordRW,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN decCount = TRUE ) ;
-
-      virtual INT32 _onInsertFail( dmsMBContext *context,
-                                   BOOLEAN hasInsert,
-                                   dmsRecordID rid,
-                                   SDB_DPSCB *dpscb,
-                                   ossValuePtr dataPtr,
-                                   _pmdEDUCB *cb,
-                                   const dmsTransRecordInfo *pInfo ) ;
-
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,

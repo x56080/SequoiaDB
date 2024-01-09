@@ -1887,53 +1887,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__TRUNCATECOLLECITONLOADS, "_dmsStorageDataCommon::_truncateCollectionLoads" )
-   INT32 _dmsStorageDataCommon::_truncateCollectionLoads( dmsMBContext * context )
-   {
-      INT32 rc                     = SDB_OK ;
-      dmsExtRW extRW ;
-      dmsExtentID lastExt          = DMS_INVALID_EXTENT ;
-      dmsExtentID prevExt          = DMS_INVALID_EXTENT ;
-
-      SDB_ASSERT( context, "dms mb context can't be NULL" ) ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__TRUNCATECOLLECITONLOADS ) ;
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-
-      // free all load extent
-      lastExt = context->mb()->_loadLastExtentID ;
-      while ( DMS_INVALID_EXTENT != lastExt )
-      {
-         rc = context->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-
-         extRW = extent2RW( lastExt, context->mbID() ) ;
-         const dmsExtent *pLastExt = extRW.readPtr<dmsExtent>() ;
-         prevExt = pLastExt->_prevExtent ;
-         rc = _freeExtent( lastExt, context->mbID() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to free load extent[%u], rc: %d",
-                    lastExt, rc ) ;
-            SDB_ASSERT( SDB_OK == rc, "Free extent can't be failure" ) ;
-         }
-         lastExt = prevExt ;
-         context->mb()->_loadLastExtentID = lastExt ;
-
-         if ( DMS_INVALID_EXTENT != lastExt )
-         {
-            context->mbUnlock() ;
-         }
-      }
-      context->mb()->_loadFirstExtentID = DMS_INVALID_EXTENT ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON__TRUNCATECOLLECITONLOADS, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_ADDEXTENT2META, "_dmsStorageDataCommon::addExtent2Meta" )
    INT32 _dmsStorageDataCommon::addExtent2Meta( dmsExtentID extID,
                                                 dmsExtent *extent,
@@ -3154,33 +3107,43 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTIONLOADS, "_dmsStorageDataCommon::truncateCollectionLoads" )
-   INT32 _dmsStorageDataCommon::truncateCollectionLoads( const CHAR *pName,
-                                                         dmsMBContext * context )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_PREPARECOLLECTIONLOADS, "_dmsStorageDataCommon::prepareCollectionLoads" )
+   INT32 _dmsStorageDataCommon::prepareCollectionLoads( dmsMBContext *context,
+                                                        const BSONObj &record,
+                                                        BOOLEAN isLast,
+                                                        BOOLEAN isAsynchr,
+                                                        pmdEDUCB *cb )
    {
-      INT32 rc           = SDB_OK ;
-      BOOLEAN getContext = FALSE ;
+      INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTIONLOADS ) ;
-      if ( NULL == context )
-      {
-         SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_PREPARECOLLECTIONLOADS ) ;
 
-         rc = getMBContext( &context, pName, -1 ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to get mb[%s] context, rc: %d",
-                      pName, rc ) ;
-         getContext = TRUE ;
-      }
-
-      rc = _truncateCollectionLoads( context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] loads failed, rc: %d",
-                   pName, rc ) ;
+      dmsRecordData recordData( record.objdata(), record.objsize() ) ;
+      rc = context->getCollPtr()->prepareLoads( recordData, isLast, isAsynchr, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare collection [%s.%s] loads, "
+                   "rc: %d", getSuName(), context->clName(), rc ) ;
 
    done:
-      if ( context && getContext )
-      {
-         releaseMBContext( context ) ;
-      }
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_PREPARECOLLECTIONLOADS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTIONLOADS, "_dmsStorageDataCommon::truncateCollectionLoads" )
+   INT32 _dmsStorageDataCommon::truncateCollectionLoads( dmsMBContext * context,
+                                                         pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTIONLOADS ) ;
+
+      rc = context->getCollPtr()->truncateLoads( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s.%s] loads, rc: %d",
+                   getSuName(), context->clName(), rc ) ;
+
+   done:
       if ( SDB_OK == rc )
       {
          /// flush mme
@@ -3188,6 +3151,33 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_TRUNCATECOLLECTIONLOADS, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_BUILDCOLLECTIONLOADS, "_dmsStorageDataCommon::buildCollectionLoads" )
+   INT32 _dmsStorageDataCommon::buildCollectionLoads( dmsMBContext * context,
+                                                      BOOLEAN isAsynchr,
+                                                      pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_BUILDCOLLECTIONLOADS ) ;
+
+      rc = context->getCollPtr()->buildLoads( isAsynchr, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build collection [%s.%s] loads, rc: %d",
+                   getSuName(), context->clName(), rc ) ;
+
+   done:
+      if ( SDB_OK == rc )
+      {
+         /// flush mme
+         flushMME( isSyncDeep() ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_BUILDCOLLECTIONLOADS, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -4028,13 +4018,11 @@ namespace engine
       UINT32 dmsRecordSize          = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       BSONObj insertObj             = record ;
-      BOOLEAN hasInsert             = FALSE ;
       dpsTransCB *pTransCB          = pmdGetKRCB()->getTransCB() ;
       UINT32 logRecSize             = 0 ;
       monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord       = info.getMergeBlock().record() ;
-      SDB_DPSCB *dropDps            = NULL ;
       // trans related
       DPS_TRANS_ID transID          = cb->getTransID() ;
       DPS_LSN_OFFSET preTransLsn    = cb->getCurTransLsn() ;
@@ -4259,7 +4247,6 @@ namespace engine
          writeGuard.getPersistGuard().incOrgDataLen( recordData.orgLen() ) ;
          writeGuard.getPersistGuard().incDataLen( recordData.len() ) ;
 
-         hasInsert = TRUE ;
          //increase data write counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          // update totalInsert monitor counter
@@ -4294,7 +4281,6 @@ namespace engine
                        DMS_FILE_DATA ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, "
                        "rc: %d", rc ) ;
-         dropDps = dpsCB ;
       }
       else if ( cb->getLsnCount() > 0 )
       {
@@ -4342,7 +4328,6 @@ namespace engine
       return rc ;
    error:
       ctrlAssist.switchToUndo() ;
-      if ( writeGuard.getPersistGuard().useAtomicAbort() )
       {
          INT32 tmpRC = _pIdxSU->indexesDelete( context, foundRID._extent,
                                                insertObj, foundRID, cb,
@@ -4352,12 +4337,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Failed to undo indexes, rc: %d", tmpRC ) ;
          }
-      }
-      else
-      {
-         ( void )_onInsertFail( context, hasInsert, foundRID, dropDps,
-                                (ossValuePtr)insertObj.objdata(),
-                                cb, callback.getTransRecordInfo() ) ;
       }
       if ( !ctrlAssist.isUndoFinished() )
       {

@@ -1234,8 +1234,16 @@ namespace engine
                                     BOOLEAN truncateLob = TRUE,
                                     dmsTruncCLOptions *options = NULL ) ;
 
-         INT32 truncateCollectionLoads( const CHAR *pName,
-                                        dmsMBContext *context = NULL ) ;
+         INT32 prepareCollectionLoads( dmsMBContext *context,
+                                       const bson::BSONObj &record,
+                                       BOOLEAN isLast,
+                                       BOOLEAN isAsynchr,
+                                       pmdEDUCB *cb ) ;
+         INT32 truncateCollectionLoads( dmsMBContext *context,
+                                        pmdEDUCB *cb ) ;
+         INT32 buildCollectionLoads( dmsMBContext *context,
+                                     BOOLEAN isAsynchr,
+                                     pmdEDUCB *cb ) ;
 
          INT32 changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
                                  BOOLEAN changeOtherCL,
@@ -1434,37 +1442,11 @@ namespace engine
 
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
-         virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
-                                             dmsExtRW &extRW,
-                                             dmsRecordRW &recordRW,
-                                             const dmsRecordData &recordData,
-                                             const BSONObj &newObj,
-                                             _pmdEDUCB *cb,
-                                             IDmsOprHandler *pHandler,
-                                             utilUpdateResult *pResult,
-                                             dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                             const ixmIdxHashBitmap &idxHashBitmap ) = 0 ;
-
-         virtual INT32 _extentRemoveRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            _pmdEDUCB *cb,
-                                            BOOLEAN decCount = TRUE ) = 0 ;
-
          // Calculate the final size needed by the record. Records of different
          // type may have different strategy, such as reservation for update,
          // space for meta data, etc.
          virtual void _finalRecordSize( UINT32 &size,
                                         const dmsRecordData &recordData ) = 0 ;
-
-         virtual INT32 _onInsertFail( dmsMBContext *context,
-                                      BOOLEAN hasInsert,
-                                      dmsRecordID rid,
-                                      SDB_DPSCB *dpscb,
-                                      ossValuePtr dataPtr,
-                                      _pmdEDUCB *cb,
-                                      const dmsTransRecordInfo *pInfo ) = 0 ;
 
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
@@ -1567,8 +1549,6 @@ namespace engine
 
          INT32          _truncateCollection ( dmsMBContext *context,
                                               BOOLEAN needChangeCLID = TRUE ) ;
-
-         INT32          _truncateCollectionLoads( dmsMBContext *context ) ;
 
          /*
             Caller must hold the mbContext

@@ -1194,7 +1194,7 @@ namespace engine
             if ( DMS_IS_MB_FLAG_LOAD_LOAD ( collectionFlag ) )
             {
                PD_LOG ( PDEVENT, "Start Rollback" ) ;
-               rc = dmsLoadExtent.loadRollbackPhase ( mbContext ) ;
+               rc = dmsLoadExtent.loadRollbackPhase ( mbContext, eduCB ) ;
                if ( rc )
                {
                   su->data()->releaseMBContext( mbContext ) ;

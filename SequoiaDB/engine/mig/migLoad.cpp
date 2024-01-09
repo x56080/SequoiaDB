@@ -352,7 +352,7 @@ namespace engine
                        "Failed to call _stopAndWaitWorker, rc=%d", rc ) ;
 
          //roll back
-         rc = loadOp->loadRollbackPhase ( mbContext ) ;
+         rc = loadOp->loadRollbackPhase ( mbContext, eduCB ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rollback, rc=%d", rc ) ;
@@ -591,7 +591,7 @@ namespace engine
       sendMsgToClient ( "Error: rollback all data" ) ;
       failure += success ;
       success = 0 ;
-      rc = dmsLoadExtent.loadRollbackPhase ( mbContext ) ;
+      rc = dmsLoadExtent.loadRollbackPhase ( mbContext, cb ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to rollback, rc=%d", rc ) ;
