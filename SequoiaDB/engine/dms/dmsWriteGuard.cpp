@@ -319,7 +319,8 @@ namespace engine
      _mbStat( mbContext ? mbContext->mbStat() : nullptr ),
      _clUniqueID( mbContext ? mbContext->getCLUniqueID() : UTIL_UNIQUEID_NULL ),
      _eduCB( cb ),
-     _isEnabled( isEnabled )
+     _isEnabled( isEnabled ),
+     _hasBegin( FALSE )
    {
    }
 
