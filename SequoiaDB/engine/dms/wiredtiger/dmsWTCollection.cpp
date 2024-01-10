@@ -401,24 +401,38 @@ namespace wiredtiger
       PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
 
       {
-         BOOLEAN isFound = FALSE, hasChecked = FALSE ;
+         BOOLEAN isFound = FALSE ;
 
          dmsWTSession &session = sessionHolder.getSession() ;
          dmsWTCursor cursor( session ) ;
-         dmsWTCursor deleteCursor( session ) ;
 
          rc = cursor.open( _store.getURI(), "" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open cursor, rc: %d", rc ) ;
 
-         rc = deleteCursor.open( _store.getURI(), "" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open delete cursor, rc: %d", rc ) ;
+         if ( direction > 0 )
+         {
+            rc = cursor.searchPrev( rid.toUINT64(), FALSE, isFound ) ;
+         }
+         else
+         {
+            rc = cursor.searchNext( rid.toUINT64(), FALSE, isFound ) ;
+         }
+         if ( SDB_DMS_EOC == rc )
+         {
+            isFound = FALSE ;
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            goto error ;
+         }
+         else if ( SDB_OK == rc && !isFound )
+         {
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            goto error ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
 
          while ( TRUE )
          {
             dmsWTItem valueItem ;
-            UINT64 tmpKey = 0 ;
-            UINT64 tmpSize = 0 ;
-            dmsRecordID deleteRID ;
 
             if ( executor->isInterrupted() )
             {
@@ -427,60 +441,62 @@ namespace wiredtiger
                goto error ;
             }
 
+            rc = cursor.getValue( valueItem ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
+
+            ++ popCount ;
+            popSize += valueItem.getSize() ;
+
             if ( direction > 0 )
             {
-               rc = cursor.searchPrev( rid.toUINT64(), FALSE, isFound ) ;
+               rc = cursor.prev() ;
             }
             else
             {
-               rc = cursor.searchNext( rid.toUINT64(), FALSE, isFound ) ;
+               rc = cursor.next() ;
             }
             if ( SDB_DMS_EOC == rc )
             {
-               if ( !hasChecked )
-               {
-                  isFound = FALSE ;
-                  hasChecked = TRUE ;
-                  rc = SDB_DMS_RECORD_NOTEXIST ;
-                  goto error ;
-               }
                rc = SDB_OK ;
                break ;
             }
-            else if ( SDB_OK == rc )
-            {
-               if ( !hasChecked )
-               {
-                  hasChecked = TRUE ;
-                  if ( !isFound )
-                  {
-                     rc = SDB_DMS_RECORD_NOTEXIST ;
-                     goto error ;
-                  }
-               }
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
-
-            rc = cursor.getKey( tmpKey ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get key from cursor, rc: %d", rc ) ;
-
-            rc = cursor.getValue( valueItem ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get value from cursor, rc: %d", rc ) ;
-            tmpSize = valueItem.getSize() ;
-
-            deleteRID.fromUINT64( tmpKey ) ;
-            rc = deleteCursor.remove( deleteRID.toUINT64() ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( SDB_OK == rc )
-            {
-               ++ popCount ;
-               popSize += tmpSize ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to remove key from store, rc: %d", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to move cursor, rc: %d", rc ) ;
          }
+
+         // do truncate
+         if ( direction > 0 )
+         {
+            rc = cursor.searchPrev( rid.toUINT64(), FALSE, isFound ) ;
+         }
+         else
+         {
+            rc = cursor.searchNext( rid.toUINT64(), FALSE, isFound ) ;
+         }
+         if ( SDB_DMS_EOC == rc )
+         {
+            isFound = FALSE ;
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            goto error ;
+         }
+         else if ( SDB_OK == rc && !isFound )
+         {
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            goto error ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
+
+         WT_SESSION *s = session.getSession() ;
+         WT_CURSOR *c = cursor.getCursor() ;
+         if ( direction > 0 )
+         {
+            rc = WT_CALL( s->truncate( s, nullptr, nullptr, c, nullptr ), s ) ;
+         }
+         else
+         {
+            rc = WT_CALL( s->truncate( s, nullptr, c, nullptr, nullptr ), s ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate store, rc: %d", rc ) ;
+         PD_LOG( PDDEBUG, "Pop count [%llu], size [%llu]", popCount, popSize ) ;
       }
 
    done:
