@@ -1199,6 +1199,7 @@ namespace engine
          INT32          flushMME( BOOLEAN sync = FALSE ) ;
 
          BOOLEAN        isTransSupport( dmsMBContext *context ) const ;
+         BOOLEAN        isTransLockRequired( dmsMBContext *context ) const ;
 
       public:
 

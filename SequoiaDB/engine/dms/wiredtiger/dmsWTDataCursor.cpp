@@ -212,6 +212,28 @@ namespace
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_PAUSE, "_dmsWTDataCursor::pause" )
+   INT32 _dmsWTDataCursor::pause( IExecutor *executor )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTDATACURSOR_PAUSE ) ;
+
+      PD_CHECK( isOpened() && !isClosed(), SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
+                "Failed to pause cursor, cursor is not opened" ) ;
+
+      _resetCache() ;
+      rc = _cursor.pause() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to pause cursor, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTDATACURSOR_PAUSE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTDATACURSOR_GETCURRECID, "_dmsWTDataCursor::getCurrentRecordID" )
    INT32 _dmsWTDataCursor::getCurrentRecordID( dmsRecordID &recordID )
    {

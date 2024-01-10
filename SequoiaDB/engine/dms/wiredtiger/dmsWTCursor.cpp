@@ -1114,5 +1114,26 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCURSOR_PAUSE, "_dmsWTCursor::pause" )
+   INT32 _dmsWTCursor::pause()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCURSOR_PAUSE ) ;
+
+      if ( nullptr != _cursor )
+      {
+         rc = WT_CALL( _cursor->reset( _cursor ), _session.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to reset cursor, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCURSOR_PAUSE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 }

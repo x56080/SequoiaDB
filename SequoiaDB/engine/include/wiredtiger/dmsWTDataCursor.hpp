@@ -111,6 +111,8 @@ namespace wiredtiger
                             IExecutor *executor,
                             BOOLEAN &isFound ) ;
 
+      virtual INT32 pause( IExecutor *executor ) ;
+
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) ;
 

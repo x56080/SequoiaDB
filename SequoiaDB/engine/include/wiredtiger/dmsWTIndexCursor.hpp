@@ -109,6 +109,8 @@ namespace wiredtiger
          return _close() ;
       }
 
+      virtual INT32 pause( IExecutor *executor ) ;
+
       virtual INT32 getCurrentKeyString( keystring::keyString &key ) ;
       virtual INT32 getCurrentKey( bson::BSONObj &key ) ;
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) ;

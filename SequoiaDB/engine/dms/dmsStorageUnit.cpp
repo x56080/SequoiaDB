@@ -2870,7 +2870,7 @@ namespace engine
       SDB_ASSERT( NULL != context, "context should be valid" ) ;
 
       // NOTE: if the context is no-trans now, it can ignore transaction lock
-      if ( data()->isTransSupport( context ) &&
+      if ( data()->isTransLockRequired( context ) &&
            NULL != cb &&
            cb->getTransExecutor()->useTransLock() )
       {

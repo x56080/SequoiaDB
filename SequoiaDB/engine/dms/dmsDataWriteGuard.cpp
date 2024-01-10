@@ -84,7 +84,6 @@ namespace engine
       {
          _su->markDirty( _mbID, DMS_CHG_BEFORE ) ;
          _su->incWritePtrCount( _mbID ) ;
-         _mbStat->_snapshotID.inc() ;
          _isInWrite = TRUE ;
       }
 
@@ -98,6 +97,7 @@ namespace engine
 
       if ( _isEnabled && _isInWrite )
       {
+         _mbStat->_snapshotID.inc() ;
          _su->markDirty( _mbID, DMS_CHG_AFTER ) ;
          _su->decWritePtrCount( _mbID ) ;
          _isInWrite = FALSE ;

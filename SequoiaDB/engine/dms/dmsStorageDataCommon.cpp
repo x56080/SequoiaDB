@@ -772,6 +772,15 @@ namespace engine
       return TRUE ;
    }
 
+   BOOLEAN _dmsStorageDataCommon::isTransLockRequired( dmsMBContext *context ) const
+   {
+      if ( DMS_STORAGE_CAPPED == getStorageType() )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
+   }
+
    INT32 _dmsStorageDataCommon::flushMME( BOOLEAN sync )
    {
       syncMemToMmap() ;
@@ -4195,7 +4204,7 @@ namespace engine
          // NOTE: we still need transaction locks during rollback
          // the insert record to rollback delete operation may insert
          // to a new place
-         if ( isTransSupport( context ) &&
+         if ( isTransLockRequired( context ) &&
                NULL != cb &&
                cb->getTransExecutor()->useTransLock() )
          {

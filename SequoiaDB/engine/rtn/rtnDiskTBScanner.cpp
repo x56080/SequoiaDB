@@ -169,6 +169,9 @@ namespace engine
       rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get current record ID, rc: %d", rc ) ;
 
+      rc = _cursorPtr->pause( _cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to pause cursor, rc: %d", rc ) ;
+
       PD_LOG( PDDEBUG, "Pause in recordID [extent: %u, offset: %u]",
               _savedRID._extent, _savedRID._offset ) ;
       _relocatedRID.reset() ;

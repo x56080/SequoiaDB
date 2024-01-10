@@ -537,12 +537,13 @@ namespace engine
          _lockOpMode = DPS_TRANSLOCK_OP_MODE_ACQUIRE ;
 
          /// When not support trans
-         if ( !su->isTransSupport( mbContext ) )
+         if ( !su->isTransLockRequired( mbContext ) )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
          }
          /// When not in transaction
-         else if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
+         else if ( ( DPS_INVALID_TRANS_ID == cb->getTransID() ) ||
+                   ( !su->isTransSupport( mbContext ) ) )
          {
             /// When not use trans lock
             if ( !pExe->useTransLock() )
@@ -1053,7 +1054,7 @@ namespace engine
          _curRID = nextRID ;
          lastRID = nextRID ;
 
-         if ( !recordRW.isDirectMem() && !_hasLockedRecord )
+         if ( !recordRW.isDirectMem() && _hasLockedRecord )
          {
             BOOLEAN isSnapshotSame = FALSE ;
             rc = _checkSnapshotID( isSnapshotSame ) ;

@@ -1115,7 +1115,7 @@ namespace engine
                goto error ;
             }
 
-            if ( _pDataSu->isTransSupport( context ) && NULL != cb
+            if ( _pDataSu->isTransLockRequired( context ) && NULL != cb
                  && ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName )
                       || indexCB.isGlobal() ) )
             {
