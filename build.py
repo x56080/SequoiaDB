@@ -19,7 +19,7 @@ from build_base_module import CompileBaseModuleMgr
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 # remote CI machine, for build doc
-REMOTE_HOST = '192.168.30.202'
+REMOTE_HOST = '192.168.29.81'
 REMOTE_USER = 'sequoiadb'
 REMOTE_PASSWD = 'jenkins'
 REMOTE_PORT = 22
