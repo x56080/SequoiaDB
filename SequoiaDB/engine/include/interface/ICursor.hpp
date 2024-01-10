@@ -105,6 +105,8 @@ namespace engine
                             IExecutor *executor,
                             BOOLEAN &isFound ) = 0 ;
 
+      virtual INT32 pause( IExecutor *executor ) = 0 ;
+
       virtual INT32 getCurrentRecordID( dmsRecordID &recordID ) = 0 ;
       virtual INT32 getCurrentRecord( dmsRecordData &data ) = 0 ;
    } ;
@@ -142,6 +144,8 @@ namespace engine
                             BOOLEAN isAfterStartKey,
                             IExecutor *executor,
                             BOOLEAN &isFound ) = 0 ;
+
+      virtual INT32 pause( IExecutor *executor ) = 0 ;
 
       virtual INT32 getCurrentKeyString( keystring::keyString &key ) = 0 ;
       virtual INT32 getCurrentKey( bson::BSONObj &key ) = 0 ;

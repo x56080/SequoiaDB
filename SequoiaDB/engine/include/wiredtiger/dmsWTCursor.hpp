@@ -129,6 +129,8 @@ namespace wiredtiger
 
       INT32 getCount( UINT64 &count ) ;
 
+      INT32 pause() ;
+
    protected:
       _dmsWTSession &_session ;
       ossPoolString _configString ;
