@@ -65,9 +65,6 @@ namespace keystring
    // Integers larger than this may not be representable as float64.
    constexpr FLOAT64 _maxIntegerForDouble = 1ULL << 53 ;
 
-   static bsonDecimal _minLargeFloat64AsDecimal( "9223372036854775808" ) ;
-   static bsonDecimal _maxIntegerForDoubleAsDecimal( "9007199254740992" ) ;
-
    INT32 _countLeadingZeros64( UINT64 num )
    {
       int highbit = 0 ;
@@ -1538,6 +1535,8 @@ namespace keystring
          }
          else
          {
+            static bsonDecimal _minLargeFloat64AsDecimal( "9223372036854775808" ) ;
+            static bsonDecimal _maxIntegerForDoubleAsDecimal( "9007199254740992" ) ;
             bsonDecimal absDec( dec ) ;
             rc = absDec.abs() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get absolute value, rc: %d", rc ) ;
