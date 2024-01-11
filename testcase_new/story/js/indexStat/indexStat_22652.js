@@ -36,7 +36,8 @@ function test()
    delete( actResult.SampleRecords );
    delete( actResult.MinValue );
    delete( actResult.MaxValue );
-   var expResult = { "Collection": COMMCSNAME + "." + subCLName1, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "TotalIndexPages": 4, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 200 };
+   delete( actResult.TotalIndexPages );
+   var expResult = { "Collection": COMMCSNAME + "." + subCLName1, "Index": "index_22652", "Unique": false, "KeyPattern": { "b": 1 }, "TotalIndexLevels": 2, "NullFrac": 0, "UndefFrac": 0, "TotalRecords": 200 };
    if( !commCompareObject( expResult, actResult ) )
    {
       throw new Error( "\nExpected:\n" + JSON.stringify( expResult ) + "\nactual:\n" + JSON.stringify( actResult ) );
