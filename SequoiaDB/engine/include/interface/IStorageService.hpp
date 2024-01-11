@@ -36,6 +36,7 @@
 #include "interface/IPersistUnit.hpp"
 #include "sdbInterface.hpp"
 #include "interface/IStorageEngine.hpp"
+#include "interface/IStorageBackupLogger.hpp"
 #include "interface/ICollection.hpp"
 #include "dmsMetadata.hpp"
 #include "dmsOprtOptions.hpp"
@@ -64,6 +65,7 @@ namespace engine
       virtual IStorageEngine *getEngine() = 0 ;
 
       virtual INT32 fsync( BOOLEAN isForce, BOOLEAN isSync, IExecutor *executor ) = 0 ;
+      virtual INT32 backup( IStorageBackupLogger &backupLogger ) = 0 ;
       virtual INT32 getPersistUnit( IExecutor *executor, IPersistUnit *&persistUnit ) = 0 ;
 
       virtual INT32 createCS( const dmsCSMetadata &metadata,

@@ -645,15 +645,6 @@ namespace engine
                                      UINT32 &clLID,
                                      utilCLUniqueID &clUniqueID ) ;
 
-         //loadExtentA is not init extent records
-         INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
-                                UINT16 numPages, const BOOLEAN toLoad = FALSE,
-                                SINT32 *allocatedExtent = NULL ) ;
-
-         //loadExtent will init extent records
-         INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
-                               UINT16 numPages ) ;
-
       public :
          _IDmsEventHolder * getEventHolder () ;
 

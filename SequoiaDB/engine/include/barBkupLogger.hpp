@@ -36,6 +36,7 @@
 #ifndef BARBKUPLOGGER_HPP_
 #define BARBKUPLOGGER_HPP_
 
+#include "interface/IStorageBackupLogger.hpp"
 #include "ossIO.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
@@ -434,7 +435,7 @@ namespace engine
    /*
       _barBkupBaseLogger define
    */
-   class _barBkupBaseLogger : public _barBaseLogger
+   class _barBkupBaseLogger : public _barBaseLogger, public IStorageBackupLogger
    {
       public:
          _barBkupBaseLogger () ;
@@ -457,6 +458,8 @@ namespace engine
                                   UTIL_COMPRESSOR_TYPE compType ) ;
 
          INT32    backup ( _pmdEDUCB *cb ) ;
+
+         virtual INT32 writeData( const CHAR *data, UINT32 len ) ;
 
       protected:
          virtual UINT32    _getBackupType () const = 0 ;

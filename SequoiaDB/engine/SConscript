@@ -351,7 +351,6 @@ dmsFiles = [
       "dms/dms.cpp",
       "dms/dmsPageMap.cpp",
       "dms/dmsStorageLoadExtent.cpp",
-      "dms/dmsStorageJob.cpp",
       "dms/dmsTmpBlkUnit.cpp",
       "dms/dmsCompress.cpp",
       "dms/dmsStorageLob.cpp",
@@ -824,9 +823,6 @@ sdbrestoreFiles = [
 #signalTestFiles = [
 #      "test/signalTest.cpp"
 #      ]
-#dmsTestFiles = [
-#      "test/dmsMmapTest.cpp"
-#      ]
 #mthTestMatcher = [
 #      "test/mthMatchTest.cpp"
 #      ]
@@ -836,9 +832,6 @@ sdbrestoreFiles = [
 clientTestFiles = [
       "test/clientTest.cpp"
       ]
-#ixmTestFiles = [
-#      "test/ixmTest.cpp"
-#      ]
 #pdTestFiles = [
 #      "test/pdTest.cpp"
 #      ]
@@ -1072,9 +1065,6 @@ if hasTestcase:
 #   signaltest = env.Program("signaltest", signalTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","pd","pmd","mig","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-#   dmstest = env.Program("dmstest", dmsTestFiles,
-#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-#          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   matchertest = env.Program("matchertest", mthTestMatcher,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1092,9 +1082,6 @@ if hasTestcase:
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   tableScanTest1 = env.Program("tableScanTest1", tableScanTest1Files,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc","clientcpp"],
-#          _LIBDEPS='$_LIBDEPS_OBJS' )
-#   ixmtest = env.Program("ixmtest", ixmTestFiles,
-#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   pdtest = env.Program("pdtest", pdTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],

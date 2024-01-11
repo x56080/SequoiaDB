@@ -882,6 +882,12 @@ namespace engine
       goto done ;
    }
 
+
+   INT32 _barBkupBaseLogger::writeData( const CHAR *data, UINT32 len )
+   {
+      return _flush( _curFile, data, len ) ;
+   }
+
    INT32 _barBkupBaseLogger::_initCheckAndPrepare ()
    {
       INT32 rc = SDB_OK ;
@@ -1611,6 +1617,9 @@ namespace engine
             _metaHeader._csNum++ ;
             ++itr ;
          }
+
+         rc = _pDMSCB->getStorageService()->backup( *this ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to backup storage service, rc: %d", rc ) ;
       }
 
       // back up repl-log

@@ -41,7 +41,6 @@
 #include "bps.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
-#include "ixmExtent.hpp"
 #include "ixm.hpp"
 #include "dmsStorageUnit.hpp"
 

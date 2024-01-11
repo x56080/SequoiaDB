@@ -220,14 +220,6 @@ namespace engine
                       "statistics manager to DMS, rc: %d", rc ) ;
       }
 
-      rc = _pageMapDispatcher.active() ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Active page map dispatcher failed, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
-
    done:
       return rc ;
    error:

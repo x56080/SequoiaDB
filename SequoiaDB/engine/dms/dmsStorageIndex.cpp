@@ -41,7 +41,6 @@
 #include "pmd.hpp"
 #include "dpsOp2Record.hpp"
 #include "dpsTransCB.hpp"
-#include "ixmExtent.hpp"
 #include "bpsPrefetch.hpp"
 #include "dmsCompress.hpp"
 #include "pdTrace.hpp"
@@ -309,26 +308,6 @@ namespace engine
 
    void _dmsStorageIndex::_onClosed()
    {
-      /// Flush all pageMap to disk
-      UINT16 pos = 0 ;
-      dmsPageMap *pPageMap = NULL ;
-      dmsPageMap::MAP_PAGES_IT it ;
-
-      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
-      while( pPageMap )
-      {
-         it = pPageMap->begin() ;
-         while( it != pPageMap->end() )
-         {
-            ixmExtent extent( it->first, this ) ;
-            extent.setParent( it->second, FALSE ) ;
-            ++it ;
-         }
-         pPageMap->clear() ;
-
-         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
-      }
-
       {
          dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), NULL ) ;
          callback.onCSClosed( _pDataSu->CSID() ) ;
@@ -340,51 +319,6 @@ namespace engine
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          _pDataSu->_mbStatInfo[i]._idxCommitFlag.init( 1 ) ;
-      }
-
-      UINT16 pos = 0 ;
-      BOOLEAN locked = FALSE ;
-      dmsPageMap *pPageMap = NULL ;
-      dmsPageMap::MAP_PAGES_IT it ;
-
-      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
-      while( pPageMap )
-      {
-         while( !pPageMap->isEmpty() )
-         {
-            /// lock
-            _pDataSu->_mblock[ pos ].get() ;
-            locked = TRUE ;
-
-            it = pPageMap->begin() ;
-            if( it != pPageMap->end() )
-            {
-               ixmExtent extent( it->first, this ) ;
-               extent.setParent( it->second, FALSE ) ;
-               pPageMap->erase( it ) ;
-            }
-            else
-            {
-               break ;
-            }
-
-            if ( _pDataSu->_mbStatInfo[pos]._idxCommitFlag.compare( 0 ) )
-            {
-               break ;
-            }
-            /// unlock
-            _pDataSu->_mblock[ pos ].release() ;
-            locked = FALSE ;
-         }
-
-         if ( locked )
-         {
-            /// unlock
-            _pDataSu->_mblock[ pos ].release() ;
-            locked = FALSE ;
-         }
-
-         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
       }
 
       return SDB_OK ;
@@ -663,12 +597,6 @@ namespace engine
       if ( DMS_EXTENT_FLAG_FREED == extAddr->_flag )
       {
          // May be releady released, DON'T release again
-         goto done ;
-      }
-      if ( IXM_EXTENT_EYECATCHER0 == extAddr->_eyeCatcher[0] &&
-           IXM_EXTENT_EYECATCHER1 == extAddr->_eyeCatcher[1] )
-      {
-         // It is not my extent, DON'T release it
          goto done ;
       }
 
@@ -1684,14 +1612,6 @@ namespace engine
             }
          }
 
-         // initialize the root extent
-         if ( DMS_INVALID_EXTENT != rootExtentID )
-         {
-            // once the control block is allocated, let's do root extent
-            ixmExtent idx( rootExtentID, context->mbID(), this ) ;
-         }
-         indexCB.setRoot ( rootExtentID ) ;
-
          dmsIdxMetadata metadata( _suDescriptor,
                                   context->mb(),
                                   context->mbStat(),
@@ -1769,10 +1689,6 @@ namespace engine
 
       /// flush some page
       flushPages( metaExtentID, 1, isSyncDeep() ) ;
-      if ( DMS_INVALID_EXTENT != rootExtentID )
-      {
-         flushPages( rootExtentID, 1, isSyncDeep() ) ;
-      }
 
       // now we finished allocation part, let's get into build part
       // As the mb lock has been released, the rebuild implementation should use
@@ -1996,13 +1912,6 @@ namespace engine
             }
          }
 
-         // For text index, the root extent is not used. But to be unified,
-         // initialize it too.
-         if ( DMS_INVALID_EXTENT != rootExtentID )
-         {
-            ixmExtent idx( rootExtentID, context->mbID(), this ) ;
-         }
-         indexCB.setRoot( rootExtentID ) ;
          context->mb()->_indexExtent[ indexID ] = metaExtentID ;
          context->mb()->_numIndexes++ ;
          context->mb()->_indexHWCount++ ;
@@ -2340,61 +2249,6 @@ namespace engine
    done :
       return rc ;
    error :
-      goto done ;
-   }
-
-   INT32 _dmsStorageIndex::_indexInsert( _ixmIndexCB *indexCB,
-                                         const ixmKey &key,
-                                         const dmsRecordID &rid,
-                                         const Ordering& order,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN dupAllowed,
-                                         BOOLEAN dropDups,
-                                         utilWriteResult *pResult )
-   {
-      INT32 rc = SDB_OK ;
-      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-
-      // get root in each loop, since root page may change after each
-      // insert (root split)
-      ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-
-      // adjust allow duplicated flag
-      // - doing DPS log rollback: allow duplicated
-      // - doing transaction rollback on non-id index: allow duplicated
-      dupAllowed = ( NULL != cb &&
-                     ( cb->isDoRollback() ||
-                     ( cb->isInTransRollback() &&
-                           !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
-
-      rc = rootidx.insert ( key, rid, order, dupAllowed, indexCB, pResult ) ;
-      if ( rc )
-      {
-         if ( pResult )
-         {
-            if ( pResult->getCurRID().isNull() )
-            {
-               pResult->setCurRID( rid ) ;
-            }
-            INT32 rcTmp = pResult->setIndexErrInfo( indexCB->getName(),
-                                                    indexCB->keyPattern(),
-                                                    key.toBson() ) ;
-            if ( rcTmp )
-            {
-               rc = rcTmp ;
-            }
-         }
-
-         PD_LOG ( PDERROR, "Failed to insert index, key[%s], rid[%d:%d], rc: %d",
-                  PD_SECURE_STR(key.toString(FALSE, TRUE)), rid._extent,
-                  rid._offset, rc ) ;
-         goto error ;
-      }
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
-
-   done:
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -3841,8 +3695,7 @@ namespace engine
       }
 
       context->mbStat()->_totalIndexPages = indexID << 1 ;
-      context->mbStat()->_totalIndexFreeSpace =
-      indexID * ( pageSize()-1-sizeof(ixmExtentHead) ) ;
+      context->mbStat()->_totalIndexFreeSpace = 0 ;
 
    done :
       return rc ;

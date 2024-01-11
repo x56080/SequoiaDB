@@ -36,7 +36,6 @@
 *******************************************************************************/
 #include "rtn.hpp"
 #include "dmsStorageUnit.hpp"
-#include "dmsStorageJob.hpp"
 #include "ossTypes.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"

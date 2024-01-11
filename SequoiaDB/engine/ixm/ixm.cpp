@@ -37,7 +37,6 @@
 #include "ixm.hpp"
 #include "dmsStorageIndex.hpp"
 #include "ixmIndexKey.hpp"
-#include "ixmExtent.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
 #include "pdSecure.hpp"
@@ -607,42 +606,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMINXCB_TRUNC );
       PD_TRACE1 ( SDB__IXMINXCB_TRUNC, PD_PACK_INT(removeRoot) ) ;
 
-      setFlag ( IXM_INDEX_FLAG_TRUNCATING ) ;
-      dmsExtentID root = getRoot() ;
-      if ( DMS_INVALID_EXTENT != root )
-      {
-         BOOLEAN valid = TRUE ;
-         ixmExtent rootExtent ( root, _pIndexSu ) ;
-         UINT16 keyCnt = rootExtent.getNumKeyNode() ;
-         rootExtent.truncate ( this, DMS_INVALID_EXTENT, valid, pDelKeyCnt ) ;
-         if ( valid && removeRoot )
-         {
-            UINT16 mbID = rootExtent.getMBID() ;
-            UINT16 freeSize = rootExtent.getFreeSize() ;
-            // we need to set _totalIndexFreeSpace before freeExtent()
-            _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
-            rc = freeExtent ( root ) ;
-            if ( rc )
-            {
-               _pIndexSu->addStatFreeSpace( mbID, freeSize ) ;
-               PD_LOG ( PDERROR, "Failed to free extent %d", root ) ;
-               goto error ;
-            }
-            if ( pDelKeyCnt )
-            {
-               pDelKeyCnt->add( keyCnt ) ;
-            }
-         }
-      }
       setFlag ( indexFlag ) ;
-
-   done :
       scanExtLID ( DMS_INVALID_EXTENT ) ;
       PD_TRACE_EXITRC ( SDB__IXMINXCB_TRUNC, rc );
       return rc ;
-   error :
-      setFlag ( IXM_INDEX_FLAG_INVALID ) ;
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_ISSAMEDEF, "_ixmIndexCB::isSameDef" )

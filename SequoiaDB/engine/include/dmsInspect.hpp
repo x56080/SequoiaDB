@@ -108,72 +108,12 @@ namespace engine
                                    vector<UINT16> &collections,
                                    SINT32 &err ) ;
 
-         static UINT32 inspectDataExtent ( _pmdEDUCB *cb,
-                                           CHAR * inBuf,
-                                           UINT32 inSize,
-                                           CHAR * outBuf,
-                                           UINT32 outSize,
-                                           INT32 maxPages,
-                                           UINT16 collectionID,
-                                           dmsExtentID &nextExtent,
-                                           set<dmsRecordID> *ridList,
-                                           SINT32 &err,
-                                           dmsCompressorEntry *compressorEntry,
-                                           UINT64 &recordNum,
-                                           UINT64 &compressedNum,
-                                           UINT64 &deletingNum,
-                                           BOOLEAN capped = FALSE ) ;
-
-         static UINT32 inspectDataRecord ( _pmdEDUCB *cb,
-                                           void * inBuf,
-                                           UINT32 inSize,
-                                           CHAR * outBuf,
-                                           UINT32 outSize,
-                                           INT32 currentRecordID,
-                                           dmsOffset &nextRecord,
-                                           set<dmsRecordID> *ridList,
-                                           SINT32 &err,
-                                           dmsCompressorEntry *compressorEntry,
-                                           BOOLEAN &isCompressed,
-                                           BOOLEAN *pIsDeleting = NULL,
-                                           BOOLEAN *pIsOvf = NULL ) ;
-
-         static UINT32 inspectCappedDataRecord( pmdEDUCB *cb,
-                                                dmsCappedRecord *record,
-                                                CHAR *outBuf,
-                                                UINT32 outSize,
-                                                dmsOffset currentOffset,
-                                                SINT32 &err,
-                                                dmsCompressorEntry *compressorEntry ) ;
-
          static UINT32 inspectExtentHeader ( void * inBuf,
                                              UINT32 inSize,
                                              CHAR * outBuf,
                                              UINT32 outSize,
                                              UINT16 collectionID,
                                              SINT32 &err ) ;
-
-         static UINT32 inspectDataExtentHeader ( void * inBuf,
-                                                 UINT32 inSize,
-                                                 CHAR * outBuf,
-                                                 UINT32 outSize,
-                                                 UINT16 collectionID,
-                                                 SINT32 &err ) ;
-
-         static UINT32 inspectIndexRecord ( void * inBuf,
-                                            UINT32 inSize,
-                                            CHAR * outBuf,
-                                            UINT32 outSize,
-                                            UINT32 keyOffset,
-                                            SINT32 &err ) ;
-
-         static UINT32 inspectIndexExtentHeader ( void * inBuf,
-                                                  UINT32 inSize,
-                                                  CHAR * outBuf,
-                                                  UINT32 outSize,
-                                                  UINT16 collectionID,
-                                                  dmsExtentID &parentExtent,
-                                                  SINT32 &err ) ;
 
          static UINT32 inspectIndexCBExtentHeader ( void * inBuf,
                                                     UINT32 inSize,
@@ -189,66 +129,6 @@ namespace engine
                                                UINT16 collectionID,
                                                dmsExtentID &root,
                                                SINT32 &err ) ;
-
-         static UINT32 inspectIndexExtent ( _pmdEDUCB *cb,
-                                            void * inBuf,
-                                            UINT32 inSize,
-                                            CHAR * outBuf,
-                                            UINT32 outSize,
-                                            UINT16 collectionID,
-                                            dmsExtentID extentID,
-                                            deque<dmsExtentID> &childExtents,
-                                            SINT32 &err ) ;
-
-         static INT32 inspectNormalExtent( CHAR *inBuf, UINT32 inSize,
-                                           CHAR *outBuf, UINT32 outSize,
-                                           UINT16 collectionID,
-                                           dmsCompressorEntry *compressorEntry,
-                                           UINT64 &recordNum,
-                                           UINT64 &compressedNum,
-                                           UINT64 &deletingNum,
-                                           INT32 &localErr,
-                                           set< dmsRecordID > *ridList,
-                                           pmdEDUCB *cb ) ;
-
-         static INT32 inspectCappedExtent( CHAR *inBuf, UINT32 inSize,
-                                           CHAR *outBuf, UINT32 outSize,
-                                           UINT16 collectionID,
-                                           dmsCompressorEntry *compressorEntry,
-                                           UINT64 &recordNum,
-                                           UINT64 &compressedNum,
-                                           INT32 &localErr,
-                                           pmdEDUCB *cb ) ;
-
-         static UINT32 inspectLobmHeader( void *inBuf, UINT32 inSize,
-                                          CHAR *outBuf, 
-                                          UINT32 outSize, 
-                                          UINT32 sequence,
-                                          UINT32 &pageNum,
-                                          UINT32 &lobmPageSize,
-                                          UINT64 secretValue,
-                                          INT64 fileSize, 
-                                          INT32 &totalErr);
-
-         static UINT32 inspectLobdHeader( void *inBuf, UINT32 inSize,
-                                          CHAR *outBuf,
-                                          UINT32 outSize, 
-                                          UINT32 sequence,
-                                          UINT64 secretValue,
-                                          INT64 fileSize, 
-                                          INT32 &totalErr);
-
-         static UINT32 inspectDmsLobMeta( dmsLobMeta *lobMeta,
-                                          CHAR * outBuf, 
-                                          UINT32 outSize, 
-                                          SINT32 &err);
-
-         static UINT32 inspectDmsLobDataMapBlk( dmsLobDataMapBlk *blk, 
-                                                CHAR * outBuf, 
-                                                UINT32 outSize, 
-                                                UINT16 clId, 
-                                                SINT32 &err ) ;
-                
    } ;
    typedef _dmsInspect dmsInspect ;
 

@@ -78,6 +78,12 @@ namespace wiredtiger
       }
 
       virtual INT32 fsync( BOOLEAN isForce, BOOLEAN isSync, IExecutor *executor ) ;
+
+      virtual INT32 backup( IStorageBackupLogger &backupLogger )
+      {
+         return SDB_ENGINE_NOT_SUPPORT ;
+      }
+
       virtual INT32 getPersistUnit( IExecutor *executor, IPersistUnit *&persistUnit ) ;
 
       virtual INT32 createCS( const dmsCSMetadata &metadata,

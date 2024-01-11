@@ -117,107 +117,15 @@ namespace engine
                                std::vector<UINT16> &collections,
                                BOOLEAN force ) ;
 
-         static UINT32 dumpMBEx( void * inBuf,
-                                 UINT32 inSize,
-                                 CHAR * outBuf,
-                                 UINT32 outSize,
-                                 CHAR * addrPrefix,
-                                 UINT32 options,
-                                 dmsExtentID extID ) ;
-
-         static UINT32 dumpDictExtent( void * inBuf,
-                                       UINT32 inSize,
-                                       CHAR * outBuf,
-                                       UINT32 outSize,
-                                       CHAR * addrPrefix,
-                                       UINT32 options,
-                                       dmsExtentID extID ) ;
-
-         static UINT32 dumpExtOptExtent( CHAR * inBuf,
-                                         UINT32 inSize,
-                                         CHAR * outBuf,
-                                         UINT32 outSize,
-                                         CHAR * addrPrefix,
-                                         UINT32 options,
-                                         dmsExtentID extID,
-                                         DMS_STORAGE_TYPE type ) ;
-
          static UINT32 dumpRawPage ( void * inBuf,
                                      UINT32 inSize,
                                      CHAR * outBuf,
                                      UINT32 outSize ) ;
 
-         static UINT32 dumpDataExtent ( _pmdEDUCB *cb,
-                                        CHAR * inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options,
-                                        dmsExtentID &nextExtent,
-                                        dmsCompressorEntry *compressorEntry,
-                                        set<dmsRecordID> *ridList = NULL,
-                                        BOOLEAN dumpRecord = FALSE,
-                                        BOOLEAN capped = FALSE ) ;
-
          static UINT32 dumpExtentHeader ( void * inBuf,
                                           UINT32 inSize,
                                           CHAR * outBuf,
                                           UINT32 outSize ) ;
-
-         static UINT32 dumpDataExtentHeader ( void * inBuf,
-                                              UINT32 inSize,
-                                              CHAR * outBuf,
-                                              UINT32 outSize ) ;
-
-         static UINT32 dumpMetaExtentHeader( void * inBuf,
-                                             UINT32 inSize,
-                                             CHAR * outBuf,
-                                             UINT32 outSize ) ;
-         static UINT32 dumpDictExtentHeader( void *inBuf,
-                                             UINT32 inSize,
-                                             CHAR * outBuf,
-                                             UINT32 outSize ) ;
-
-         static UINT32 dumpExtOptExtentHeader( void *inBuf,
-                                               UINT32 inSize,
-                                               CHAR * outBuf,
-                                               UINT32 outSize ) ;
-
-         static UINT32 dumpDataRecord ( pmdEDUCB *cb,
-                                        CHAR * inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        dmsOffset &nextRecord,
-                                        dmsCompressorEntry *compressorEntry,
-                                        set<dmsRecordID> *ridList = NULL ) ;
-
-         static UINT32 dumpCappedDataRecord( pmdEDUCB *cb,
-                                             dmsCappedRecord *record,
-                                             CHAR *outBuf,
-                                             UINT32 outSize,
-                                             dmsCompressorEntry *compressorEntry ) ;
-
-         static UINT32 dumpIndexExtent ( void * inBuf,
-                                         UINT32 inSize,
-                                         CHAR * outBuf,
-                                         UINT32 outSize,
-                                         CHAR * addrPrefix,
-                                         UINT32 options,
-                                         deque<dmsExtentID> &childExtents,
-                                         BOOLEAN dumpIndexKey = FALSE ) ;
-
-         static UINT32 dumpIndexExtentHeader ( void * inBuf,
-                                               UINT32 inSize,
-                                               CHAR * outBuf,
-                                               UINT32 outSize ) ;
-
-         static UINT32 dumpIndexRecord ( void * inBuf,
-                                         UINT32 inSize,
-                                         CHAR * outBuf,
-                                         UINT32 outSize,
-                                         UINT32 keyOffset ) ;
 
          static UINT32 dumpIndexCBExtentHeader ( void * inBuf,
                                                  UINT32 inSize,
@@ -232,47 +140,9 @@ namespace engine
                                             UINT32 options,
                                             dmsExtentID &root ) ;
 
-         static UINT32 dumpDmsLobMeta( CHAR *inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options);
-
-         static UINT32 dumpDmsLobData( CHAR *inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options);
-
-         static UINT32 dumpDmsLobDataMapBlk( dmsLobDataMapBlk *blk,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options,
-                                        UINT32 pageSize);
       private:
          static UINT32 _dumpExtentHeaderComm( const dmsExtent *extent,
                                               CHAR *outBuf, UINT32 outSize ) ;
-
-         static UINT32 _dumpDictDetail( void *inBuf, UINT32 inSize,
-                                        CHAR *outBuf, UINT32 outSize ) ;
-
-         static UINT32 _dumpExtOptionDetail( CHAR *inBuf, UINT32 inSize,
-                                             CHAR *outBuf, UINT32 outSize,
-                                             DMS_STORAGE_TYPE type ) ;
-
-         static UINT32 _dumpNormalExtent( CHAR *inBuf, UINT32 inSize,
-                                          CHAR *outBuf, UINT32 outSize,
-                                          dmsCompressorEntry *compressorEntry,
-                                          set< dmsRecordID > *ridList,
-                                          pmdEDUCB *cb ) ;
-
-         static UINT32 _dumpCappedExtent( CHAR *inBuf, UINT32 inSize,
-                                          CHAR *outBuf, UINT32 outSize,
-                                          dmsCompressorEntry *compressorEntry,
-                                          pmdEDUCB *cb ) ;
    } ;
    typedef _dmsDump dmsDump ;
 

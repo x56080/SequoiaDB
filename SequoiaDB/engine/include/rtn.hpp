@@ -104,25 +104,7 @@ namespace engine
                            DMS_ACCESS_TYPE accessType,
                            IRtnOprHandler *opHandler = NULL ) ;
 
-   INT32 rtnGetIndexSeps( optAccessPlanRuntime *planRuntime,
-                          _dmsStorageUnit *su,
-                          _dmsMBContext *mbContext,
-                          _pmdEDUCB *cb,
-                          std::vector< BSONObj > &idxBlocks,
-                          std::vector< dmsRecordID > &idxRIDs ) ;
-
    BSONObj rtnUpdator2Obj( const BSONObj &source, const BSONObj &updator ) ;
-
-   class _rtnInternalSorting ;
-
-   INT32 rtnGetIndexSamples ( _dmsStorageUnit *su,
-                              ixmIndexCB *indexCB,
-                              _pmdEDUCB * cb,
-                              UINT32 sampleRecords,
-                              UINT64 totalRecords,
-                              BOOLEAN fullScan,
-                              _rtnInternalSorting &sorter,
-                              UINT32 &levels, UINT32 &pages ) ;
 
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,

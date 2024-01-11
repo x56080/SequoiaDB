@@ -104,6 +104,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      BOOLEAN needTruncate = FALSE ;
+
       SDB_ASSERT( _suIndex != NULL, "_suIndex can't be NULL" ) ;
       SDB_ASSERT( _suData != NULL, "_suData can't be NULL" ) ;
       SDB_ASSERT( _mbContext != NULL, "_mbContext can't be NULL" ) ;
@@ -159,6 +161,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
             goto error ;
          }
+         needTruncate = TRUE ;
       }
       else
       {
@@ -185,6 +188,13 @@ namespace engine
 
       rc = _suIndex->getIndex( _mbContext, _indexCB, _eduCB, _idxPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+      if ( needTruncate )
+      {
+         dmsTruncateIdxOptions options ;
+         rc = _idxPtr->truncate( options, _eduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate index store, rc: %d", rc ) ;
+      }
 
       // set key pattern to key generator
       rc = _keyGen.setKeyPattern( _indexCB->keyPattern() ) ;

@@ -301,13 +301,6 @@ namespace engine
                                  _dmsDupKeyProcessor *dkProcessor = NULL,
                                  dmsIdxTaskStatus* pIdxStatus = NULL ) ;
 
-         INT32    _indexInsert( _ixmIndexCB *indexCB,
-                                 const _ixmKey &key, const dmsRecordID &rid,
-                                 const Ordering& order,
-                                 _pmdEDUCB *cb, BOOLEAN dupAllowed,
-                                 BOOLEAN dropDups,
-                                 utilWriteResult *pResult = NULL ) ;
-
          INT32    _indexInsert ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,

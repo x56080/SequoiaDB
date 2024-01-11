@@ -40,7 +40,6 @@
 #include "optTrace.hpp"
 #include "pmd.hpp"
 #include "ixm.hpp"
-#include "ixmExtent.hpp"
 #include "optCommon.hpp"
 #include "optAccessPlanHelper.hpp"
 
