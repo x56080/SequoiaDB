@@ -344,6 +344,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_EXTRACTREC, "_dmsWTCollection::extractRecord" )
    INT32 _dmsWTCollection::extractRecord( const dmsRecordID &rid,
                                           dmsRecordData &recordData,
+                                          BOOLEAN needGetOwned,
                                           IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -371,10 +372,12 @@ namespace wiredtiger
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to search key from store, rc: %d", rc ) ;
 
-         recordData.setData( (const CHAR *)( value.get()->data ),
-                             value.get()->size,
-                             UTIL_COMPRESSOR_INVALID,
-                             TRUE ) ;
+         recordData.setData( (const CHAR *)( value.getData() ), value.getSize() ) ;
+         if ( needGetOwned )
+         {
+            rc = recordData.getOwned() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get owned record data, rc: %d", rc ) ;
+         }
       }
 
    done:
