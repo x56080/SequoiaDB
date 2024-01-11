@@ -38,6 +38,7 @@
 #define DPSDEF_HPP_
 
 #include "ossTypes.h"
+#include "../bson/oid.h"
 
 #if defined (_WINDOWS)
 #define DPS_INVALID_LSN_OFFSET   0xFFFFFFFFFFFFFFFFLL
@@ -209,6 +210,7 @@ namespace engine
 
          virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
                                      UINT32 extID, UINT32 extOffset,
+                                     const bson::OID &lobOid, UINT32 lobSequence,
                                      DPS_LSN_OFFSET offset ) = 0 ;
 
          virtual void  onWriteLog( DPS_LSN_OFFSET offset ) = 0 ;

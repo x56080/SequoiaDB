@@ -259,7 +259,7 @@ namespace engine
                 "Failed to check collection for sharding: "
                 "should not be capped" ) ;
 
-      PD_CHECK( 0LL == mbContext->mbStat()->_totalLobs ||
+      PD_CHECK( 0LL == mbContext->mbStat()->_totalLobs.fetch() ||
                 argument.isHashSharding(),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Failed to check collection for sharding: "

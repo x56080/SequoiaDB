@@ -444,12 +444,14 @@ namespace engine
 
          void notify2Session( UINT32 suLID, UINT32 clLID,
                               dmsExtentID extID, dmsOffset extOffset,
+                              const OID &lobOid, UINT32 lobSequence,
                               const DPS_LSN_OFFSET &offset ) ;
 
          virtual void onWriteLog( DPS_LSN_OFFSET offset ) ;
 
          virtual void onPrepareLog( UINT32 csLID, UINT32 clLID,
                                     UINT32 extID, UINT32 extOffset,
+                                    const OID &lobOid, UINT32 lobSequence,
                                     DPS_LSN_OFFSET offset ) ;
 
          virtual void onMoveLog( DPS_LSN_OFFSET moveToOffset,
@@ -461,6 +463,7 @@ namespace engine
 
          virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
                                    UINT32 extID, UINT32 extOffset,
+                                   const OID &lobOid, UINT32 lobSequence,
                                    DPS_LSN_OFFSET offset ) ;
 
          virtual INT32 canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb ) ;
@@ -667,6 +670,7 @@ namespace engine
 
          void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
                                   UINT32 extID, UINT32 extOffset,
+                                  OID lobOid, UINT32 lobSequence,
                                   DPS_LSN_OFFSET offset ) ;
 
          void _forceSrcSessions() ;

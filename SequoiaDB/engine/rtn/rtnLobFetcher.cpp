@@ -40,7 +40,6 @@ namespace engine
    :_suID( DMS_INVALID_CS ),
     _su( NULL ),
     _mbContext( NULL ),
-    _pos( DMS_LOB_INVALID_PAGEID ),
     _onlyMetaPage( FALSE ),
     _lastErr( SDB_OK )
    {
@@ -87,7 +86,6 @@ namespace engine
 
       ossStrncpy( _fullName, fullName, DMS_COLLECTION_FULL_NAME_SZ ) ;
       _lastErr = SDB_OK ;
-      _pos = 0 ;
       _onlyMetaPage = onlyMetaPage ;
    done:
       PD_TRACE_EXITRC( SDB__RTNLOBFETCHER_INIT, rc ) ;
@@ -104,6 +102,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNLOBFETCHER_FETCH ) ;
+
+      const CHAR *data = nullptr ;
+      BOOLEAN needAdvance = TRUE ;
 
       if ( SDB_OK != _lastErr )
       {
@@ -131,22 +132,43 @@ namespace engine
          goto error ;
       }
 
-      rc = _su->lob()->readPage( _pos, _onlyMetaPage,
-                                 cb, _mbContext, page ) ;
-      if ( SDB_OK != rc )
+      if ( !_cursor )
       {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "failed to read lob pages:%d", rc ) ;
-         }
-         goto error ;
+         std::shared_ptr< ILob > lobPtr ;
+         rc = _mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage, rc: %d", rc ) ;
+
+         rc = lobPtr->list( cb, _cursor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open cursor to list lob, rc: %d", rc ) ;
+         needAdvance = FALSE ;
       }
+
+      do
+      {
+         if ( needAdvance )
+         {
+            rc = _cursor->advance( cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               goto error ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to advance cursor, rc: %d", rc ) ;
+         }
+
+         rc = _cursor->getCurrentLobRecord( page, &data ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "failed to read lob pages:%d", rc ) ;
+            }
+            goto error ;
+         }
+         needAdvance = TRUE ;
+      } while ( _onlyMetaPage && page._sequence != 0 ) ;
 
       if ( NULL != mb )
       {
-         _dmsLobRecord record ;
-         UINT32 read = 0 ;
-
          if ( mb->idleSize() < page._len )
          {
             rc = mb->extend( page._len - mb->idleSize() ) ;
@@ -157,25 +179,8 @@ namespace engine
             }
          }
 
-         record.set( &( page._oid ), page._sequence, 0,
-                     page._len, NULL ) ;
-         rc = _su->lob()->read( record, _mbContext,
-                                cb, mb->writePtr(), read ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to read lob:%d", rc ) ;
-            goto error ;
-         }
-
-         if ( page._len != read )
-         {
-            PD_LOG( PDERROR, "length in page is:%d, but we read:%d",
-                    page._len, read ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         mb->writePtr( mb->length() + read ) ;
+         ossMemcpy( mb->writePtr(), data, page._len ) ;
+         mb->writePtr( mb->length() + page._len ) ;
       }
    done:
       if ( NULL != _mbContext && _mbContext->isMBLock() )
@@ -195,6 +200,11 @@ namespace engine
    {
       SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
 
+      if ( _cursor )
+      {
+         _cursor->close() ;
+      }
+      _cursor.reset() ;
       if ( NULL != _mbContext && NULL != _su )
       {
          if ( _mbContext->isMBLock() )

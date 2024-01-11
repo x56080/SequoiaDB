@@ -300,6 +300,25 @@ namespace engine
             }
          }
 
+         void setDataExInfo( const CHAR *fullName,
+                             UINT32 csLID,
+                             UINT32 clLID,
+                             const OID &lobOid,
+                             UINT32 lobSequence )
+         {
+            if ( ( 0 == _curProcessName[ 0 ] && ( NULL == fullName || 0 == fullName[ 0 ] ) ) ||
+                 ( NULL != fullName && 0 == ossStrcmp( fullName, _curProcessName ) ) )
+            {
+               _dataExInfo._csLID = csLID ;
+               _dataExInfo._clLID = clLID ;
+               _dataExInfo._extID = DMS_INVALID_EXTENT ;
+               _dataExInfo._extOffset = DMS_INVALID_OFFSET ;
+               _dataExInfo._lobOid = lobOid ;
+               _dataExInfo._lobSequence = lobSequence ;
+               _dataExInfo._isValid = TRUE ;
+            }
+         }
+
          const pmdDataExInfo &getDataExInfo() const
          {
             return _dataExInfo ;

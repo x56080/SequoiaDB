@@ -76,6 +76,11 @@ namespace wiredtiger
                               utilIdxInnerID idxInnerID,
                               ossPoolStringStream &ss ) ;
 
+   void dmsWTBuildLobIdent( utilCSUniqueID csUID,
+                            utilCLInnerID clInnerID,
+                            UINT32 clLID,
+                            ossPoolStringStream &ss ) ;
+
    void dmsWTBuildIdentPrefix( utilCSUniqueID csUID,
                                ossPoolStringStream &ss ) ;
 

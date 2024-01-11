@@ -284,9 +284,9 @@ namespace engine
             {
                continue ;
             }
-            if ( _dmsData->_mbStatInfo[i]._totalLobs > 0 &&
-                 ( _dmsData->_mbStatInfo[i]._totalLobSize <= 0 ||
-                   _dmsData->_mbStatInfo[i]._totalValidLobSize <= 0 ) )
+            if ( _dmsData->_mbStatInfo[i]._totalLobs.fetch() > 0 &&
+                 ( _dmsData->_mbStatInfo[i]._totalLobSize.fetch() <= 0 ||
+                   _dmsData->_mbStatInfo[i]._totalValidLobSize.fetch() <= 0 ) )
             {
                needCalcCount = TRUE ;
                break ;
@@ -584,43 +584,32 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_WRITEWITHPAGE, "_dmsStorageLob::_writeWithPage" )
-   INT32 _dmsStorageLob::_writeWithPage( const dmsLobRecord &record,
-                                         DMS_LOB_PAGEID &pageID,
-                                         const CHAR *pFullName,
-                                         dmsMBContext *mbContext,
-                                         BOOLEAN canUnLock,
-                                         _pmdEDUCB *cb,
-                                         dpsMergeInfo &info,
-                                         SDB_DPSCB *dpscb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_WRITEWITHDPSLOG, "_dmsStorageLob::_writeWithDpslog" )
+   INT32 _dmsStorageLob::_writeWithDpslog( const dmsLobRecord &record,
+                                           const CHAR *pFullName,
+                                           dmsMBContext *mbContext,
+                                           BOOLEAN canUnLock,
+                                           BOOLEAN updateWhenExist,
+                                           _pmdEDUCB *cb,
+                                           dpsMergeInfo &info,
+                                           SDB_DPSCB *dpscb,
+                                           BOOLEAN *hasUpdated )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_WRITEWITHPAGE ) ;
-      SDB_ASSERT( DMS_LOB_INVALID_PAGEID != pageID, "Page can't be invalid" ) ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_WRITEWITHDPSLOG ) ;
       SDB_ASSERT( pFullName, "FullName can't be NULL" ) ;
 
-      BOOLEAN pageFilled = FALSE ;
-      utilCacheContext cContext ;
+      dmsWriteGuard guard( _service, _dmsData, mbContext, cb, TRUE, FALSE, TRUE );
 
-      if ( DMS_LOB_INVALID_PAGEID == pageID )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Invalid pageID" ) ;
-         goto error ;
-      }
       if ( !mbContext->isMBLock( EXCLUSIVE ) )
       {
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "Caller must hold lock with EXCLUSIVE" ) ;
          goto error ;
       }
-      if ( !isOpened() )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "File[%s] is not open in write", getSuName() ) ;
-         goto error ;
-      }
-      else if ( record._offset + record._dataLen > getLobdPageSize() )
+
+      if ( record._offset + record._dataLen > getLobdPageSize() )
       {
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "Write record[%s] length more than page size[%u]",
@@ -636,33 +625,71 @@ namespace engine
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
-
-      _pCacheUnit->prepareWrite( pageID, record._offset,
-                                 record._dataLen, cb,
-                                 cContext ) ;
-      rc = cContext.write( record._data, record._offset,
-                           record._dataLen, cb,
-                           UTIL_WRITE_NEWEST_BOTH ) ;
-      if ( rc )
+      
       {
-         PD_LOG( PDERROR, "Failed to write data to collection:%s, rc:%d",
-                 pFullName, rc ) ;
-         goto error ;
-      }
+         guard.begin();
+         std::shared_ptr< ILob > lobPtr ;
+         rc = mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc ) ;
+         if ( updateWhenExist )
+         {
+            ILob::updatedInfo info ;
+            rc = lobPtr->writeOrUpdate( record, cb, &info ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write or update on lob, rc: %d", rc ) ;
+            // written
+            if ( !info.hasUpdated )
+            {
+               mbContext->mbStat()->_totalLobPages.inc() ;
+               if ( DMS_IS_LOBMETA_RECORD( record ) )
+               {
+                  mbContext->mbStat()->_totalLobs.inc() ;
+                  INT64 lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( record._dataLen ) ;
+                  mbContext->mbStat()->addTotalLobSize( lobPieceLen ) ;
+                  _statVaildLobSize( mbContext, (_dmsLobMeta *)record._data, NULL ) ;
+               }
+               else
+               {
+                  mbContext->mbStat()->addTotalLobSize( record._dataLen ) ;
+               }
 
-      rc = _fillPage( record, pageID, cb, mbContext ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to fill page, rc:%d", rc ) ;
-         goto error ;
+               _incWriteRecord() ;
+            }
+            // updated
+            else
+            {
+               mbContext->mbStat()->addTotalLobSize( info.increasedSize ) ;
+            }
+
+            if ( hasUpdated )
+            {
+               *hasUpdated = info.hasUpdated ;
+            }
+         }
+         else
+         {
+            rc = lobPtr->write( record, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write or update on lob, rc: %d", rc ) ;
+            mbContext->mbStat()->_totalLobPages.inc();
+            if ( DMS_IS_LOBMETA_RECORD( record ) )
+            {
+               mbContext->mbStat()->_totalLobs.inc() ;
+               INT64 lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( record._dataLen ) ;
+               mbContext->mbStat()->addTotalLobSize( lobPieceLen ) ;
+               _statVaildLobSize( mbContext, (_dmsLobMeta *)record._data, NULL ) ;
+            }
+            else
+            {
+               mbContext->mbStat()->addTotalLobSize( record._dataLen ) ;
+            }
+         }
+         guard.commit();
       }
-      pageFilled = TRUE ;
 
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, DMS_INVALID_OFFSET, cb ) ;
+                         *record._oid, record._sequence, cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -678,7 +705,7 @@ namespace engine
       else
       {
          cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID, DMS_INVALID_OFFSET ) ;
+                            mbContext->clLID(), *record._oid, record._sequence ) ;
       }
 
       /// update last lsn
@@ -694,25 +721,11 @@ namespace engine
       {
          mbContext->mbUnlock() ;
       }
-      /// submit the data
-      cContext.submit( cb ) ;
-      /// when write, set the page is newest( is the first write )
-      cContext.makeNewest() ;
 
-      pageID = DMS_LOB_INVALID_PAGEID ;
-
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_WRITEWITHPAGE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_WRITEWITHDPSLOG, rc ) ;
       return rc ;
    error:
-      /// rollback the data
-      cContext.release() ;
-      /// rollback the page
-      if ( DMS_LOB_INVALID_PAGEID != pageID )
-      {
-         PD_LOG( PDEVENT, "Rollback lob piece[%s]",
-                 record.toString().c_str(), pageID ) ;
-         _rollback( record, pageID, cb, mbContext, pageFilled ) ;
-      }
+      guard.abort();
       goto done ;
    }
 
@@ -724,9 +737,8 @@ namespace engine
       return _writeInner( record, mbContext, cb, dpscb, FALSE, NULL ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_UPDATEWITHPAGE, "_dmsStorageLob::_updateWithPage" )
-   INT32 _dmsStorageLob::_updateWithPage( const dmsLobRecord &record,
-                                          DMS_LOB_PAGEID pageID,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_UPDATEWITHDPSLOG, "_dmsStorageLob::_updateWithDpslog" )
+   INT32 _dmsStorageLob::_updateWithDpslog( const dmsLobRecord &record,
                                           const CHAR *pFullName,
                                           dmsMBContext *mbContext,
                                           BOOLEAN canUnLock,
@@ -734,12 +746,11 @@ namespace engine
                                           SDB_DPSCB *dpscb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_UPDATEWITHPAGE ) ;
-      SDB_ASSERT( DMS_LOB_INVALID_PAGEID != pageID, "Page can't be invalid" ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_UPDATEWITHDPSLOG ) ;
       SDB_ASSERT( pFullName, "FullName can't be NULL" ) ;
 
-      dmsExtRW extRW ;
-      _dmsLobDataMapBlk *blk = NULL ;
+      dmsWriteGuard guard( _service, _dmsData, mbContext, cb, TRUE, FALSE, TRUE );
+
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
@@ -748,18 +759,9 @@ namespace engine
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       CHAR *oldData = NULL ;
       UINT32 oldLen = 0 ;
-      utilCacheContext cContext ;
-      UINT32 newestMask = 0 ;
-      UINT32 orgBlkLen = 0 ;
-      UINT32 pageIncSize = 0 ;
       UINT32 pageSize = _data.pageSize() ;
+      std::shared_ptr< ILob > lobPtr ;
 
-      if ( DMS_LOB_INVALID_PAGEID == pageID )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "PageID is invalid" ) ;
-         goto error ;
-      }
       if ( !mbContext->isMBLock( EXCLUSIVE ) )
       {
          rc = SDB_SYS ;
@@ -790,86 +792,32 @@ namespace engine
          goto error ;
       }
 
-      /// prepare write
-      {
-         UINT32 newDataLen = 0 ;
-         extRW = extent2RW( pageID, mbContext->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         blk = extRW.writePtr<_dmsLobDataMapBlk>() ;
-         if ( !blk )
-         {
-            PD_LOG( PDERROR, "Get extent[%d] address failed", pageID ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         orgBlkLen = blk->_dataLen ;
-         newDataLen = record._dataLen + record._offset ;
-         if ( newDataLen > 0 && orgBlkLen > newDataLen )
-         {
-            newDataLen = orgBlkLen ;
-         }
-         if ( newDataLen > 0 )
-         {
-            if ( DMS_LOB_META_SEQUENCE == record._sequence &&
-                 orgBlkLen < DMS_LOB_META_LENGTH )
-            {
-               if ( newDataLen > DMS_LOB_META_LENGTH )
-               {
-                  pageIncSize = newDataLen - DMS_LOB_META_LENGTH ;
-               }
-            }
-            else
-            {
-               pageIncSize = newDataLen - orgBlkLen ;
-            }
-         }
-         _pCacheUnit->prepareWrite( pageID, 0, newDataLen, cb, cContext ) ;
-      }
+      guard.begin();
+
+      rc = mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc ) ;
 
       /// read old data when we need dps or update dmsLobMeta
       if ( NULL != dpscb || DMS_IS_LOBMETA_RECORD( record ) )
       {
-         UINT32 readOffset = 0 ;
-         UINT32 readLen = 0 ;
-
-         if ( record._offset >= orgBlkLen )
-         {
-            /// do nothing
-         }
-         else if ( record._offset + record._dataLen > orgBlkLen )
-         {
-            readOffset = record._offset ;
-            readLen = orgBlkLen - record._offset ;
-         }
-         else
-         {
-            readOffset = record._offset ;
-            readLen = record._dataLen ;
-         }
-
          /// alloc memory
-         rc = cb->allocBuff( readLen > 0 ? readLen : 1, &oldData, NULL ) ;
+         rc = cb->allocBuff( record._dataLen, &oldData ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Alloc read buffer[%u] failed, rc: %d",
-                    readLen, rc ) ;
+                    record._dataLen, rc ) ;
             goto error ;
          }
-         rc = cContext.readAndCache( oldData, readOffset, readLen, cb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
-            goto error ;
-         }
+
+         rc = lobPtr->read( record, cb, oldData, oldLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to read old lob data, rc: %d", rc ) ;
+
          /// need to unlock the mbContext, so the sync control is not hold
          /// the mbContext
          if ( canUnLock )
          {
             mbContext->mbUnlock() ;
          }
-
-         oldLen = cContext.submit( cb ) ;
-         SDB_ASSERT( oldLen == readLen, "impossible" ) ;
 
          if ( NULL != dpscb )
          {
@@ -883,7 +831,7 @@ namespace engine
                                  oldLen,
                                  oldData,
                                  pageSize,
-                                 pageID,
+                                 DMS_LOB_INVALID_PAGEID,
                                  transID,
                                  preTransLsn,
                                  relatedLsn,
@@ -912,36 +860,12 @@ namespace engine
          }
       }
 
-      if ( record._dataLen + record._offset > orgBlkLen )
-      {
-         newestMask |= UTIL_WRITE_NEWEST_TAIL ;
+      rc = lobPtr->update( record, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update lob, rc: %d", rc ) ;
 
-         if ( 0 == record._offset )
-         {
-            newestMask |= UTIL_WRITE_NEWEST_HEADER ;
-         }
-      }
+      guard.commit();
 
-      rc = cContext.write( record._data, record._offset,
-                           record._dataLen, cb, newestMask ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to write data to collection:%s, rc:%d",
-                 pFullName, rc ) ;
-         goto error ;
-      }
-
-      if ( record._dataLen + record._offset > orgBlkLen )
-      {
-         blk->_dataLen = record._dataLen + record._offset ;
-      }
-
-      if ( blk->isNew() )
-      {
-         blk->setOld() ;
-      }
-
-      mbContext->mbStat()->addTotalLobSize( pageIncSize ) ;
+      mbContext->mbStat()->addTotalLobSize( static_cast< INT32 >( record._dataLen - oldLen ) ) ;
 
       _incWriteRecord() ;
 
@@ -949,7 +873,7 @@ namespace engine
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(),
-                         pageID, DMS_INVALID_OFFSET, cb ) ;
+                         *record._oid, record._sequence, cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -961,7 +885,7 @@ namespace engine
       else
       {
          cb->setDataExInfo( pFullName, _dmsData->logicalID(),
-                            mbContext->clLID(), pageID, DMS_INVALID_OFFSET ) ;
+                            mbContext->clLID(), *record._oid, record._sequence ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -983,10 +907,6 @@ namespace engine
       {
          mbContext->mbUnlock() ;
       }
-      /// submit the data
-      cContext.submit( cb ) ;
-      /// make the page newest
-      cContext.makeNewest( newestMask ) ;
 
       if ( 0 != logRecord.head()._length )
       {
@@ -996,11 +916,10 @@ namespace engine
       {
          cb->releaseBuff( oldData ) ;
       }
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_UPDATEWITHPAGE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_UPDATEWITHDPSLOG, rc ) ;
       return rc ;
    error:
-      /// rollback the data
-      cContext.release() ;
+      guard.abort();
       goto done ;
    }
 
@@ -1014,7 +933,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_UPDATE ) ;
       SDB_ASSERT( NULL != mbContext && NULL != cb, "can not be null" ) ;
 
-      DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       BOOLEAN locked = FALSE ;
 
@@ -1035,31 +953,8 @@ namespace engine
          locked = TRUE ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
-                 record.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID == page )
-      {
-         PD_LOG( PDERROR, "Can not find piece[%s]",
-                 record.toString().c_str() ) ;
-         rc = SDB_LOB_SEQUENCE_NOT_EXIST ;
-         goto error ;
-      }
-
-      rc = _updateWithPage( record, page, fullName, mbContext,
-                            locked, cb, dpscb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Update record[%s] to page[%d] in collection[%s] "
-                 "failed, rc: %d", record.toString().c_str(), page,
-                 fullName, rc ) ;
-         goto error ;
-      }
+      rc = _updateWithDpslog( record, fullName, mbContext, locked, cb, dpscb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update on lob, rc: %d", rc ) ;
 
    done:
       if ( locked )
@@ -1085,8 +980,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_WRITEINNER ) ;
       SDB_ASSERT( NULL != mbContext && NULL != cb, "can not be null" ) ;
 
-      DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
-      DMS_LOB_PAGEID foundPage = DMS_LOB_INVALID_PAGEID ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
@@ -1119,7 +1012,7 @@ namespace engine
                               record._dataLen,
                               record._data,
                               pageSize,
-                              page,
+                              DMS_LOB_INVALID_PAGEID,
                               transID,
                               preTransLsn,
                               relatedLsn,
@@ -1154,71 +1047,9 @@ namespace engine
          locked = TRUE ;
       }
 
-      rc = _allocatePage( record, mbContext, page ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to allocate page in collection:%s, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-#if defined (_DEBUG)
-      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
-#endif
-
-      /// When using update
-      if ( updateWhenExist )
-      {
-         rc = _find( record, mbContext->clLID(), cb, foundPage ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
-                    record.toString().c_str(), rc ) ;
-            goto error ;
-         }
-      }
-
-      /// write
-      if ( DMS_LOB_INVALID_PAGEID == foundPage )
-      {
-         rc = _writeWithPage( record, page, fullName, mbContext,
-                              locked, cb, info, dpscb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Write record[%s] to collection[%s] failed, "
-                    "rc: %d", record.toString().c_str(), fullName, rc ) ;
-            goto error ;
-         }
-         if ( pHasUpdated )
-         {
-            *pHasUpdated = FALSE ;
-         }
-      }
-      /// update
-      else
-      {
-         /// release page
-         _releasePage( page, mbContext ) ;
-         page = DMS_LOB_INVALID_PAGEID ;
-         /// relase log space
-         transCB->releaseLogSpace( logRecord.head()._length, cb ) ;
-         info.clear() ;
-
-         rc = _updateWithPage( record, foundPage, fullName, mbContext,
-                               locked, cb, dpscb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Update record[%s] to page[%d] in "
-                    "collection[%s] failed, rc: %d",
-                    record.toString().c_str(), foundPage,
-                    fullName, rc ) ;
-            goto error ;
-         }
-         if ( pHasUpdated )
-         {
-            *pHasUpdated = TRUE ;
-         }
-      }
+      rc = _writeWithDpslog( record, fullName, mbContext, locked, updateWhenExist, cb, info, dpscb,
+                             pHasUpdated );
+      PD_RC_CHECK( rc, PDERROR, "Failed to write lob with dps log, rc: %d", rc ) ;
 
    done:
       if ( locked )
@@ -1233,10 +1064,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_WRITEINNER, rc ) ;
       return rc ;
    error:
-      if ( DMS_LOB_INVALID_PAGEID != page )
-      {
-         _releasePage( page, mbContext ) ;
-      }
       goto done ;
    }
 
@@ -1258,9 +1085,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_READ ) ;
-      DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
       BOOLEAN locked = FALSE ;
-      utilCacheContext cContext ;
 
       if ( _needDelayOpen )
       {
@@ -1289,30 +1114,20 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page ) ;
-      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to find page of record[%s], rc:%d",
-                 record.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID == page )
-      {
-         rc = SDB_LOB_SEQUENCE_NOT_EXIST ;
-         goto error ;
-      }
-
-#if defined (_DEBUG)
-      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
-#endif
-      _pCacheUnit->prepareRead( page, record._offset, record._dataLen,
-                                cb, cContext ) ;
-      rc = cContext.read( buf, record._offset, record._dataLen, cb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
-         goto error ;
+         std::shared_ptr< ILob > lobPtr ;
+         rc = mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc ) ;
+         rc = lobPtr->read( record, cb, buf, readLen ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_LOB_SEQUENCE_NOT_EXIST ;
+            goto error ;
+         }
+         else
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to read lob record, rc: %d", rc ) ;
+         }
       }
 
    done:
@@ -1321,120 +1136,7 @@ namespace engine
          mbContext->mbUnlock() ;
          locked = FALSE ;
       }
-      /// submit the read data
-      readLen = cContext.submit( cb ) ;
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_READ, rc ) ;
-      return rc ;
-   error:
-      /// rollback the read data
-      cContext.release() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__ALLOCATEPAGE, "_dmsStorageLob::_allocatePage" )
-   INT32 _dmsStorageLob::_allocatePage( const dmsLobRecord &record,
-                                        dmsMBContext *context,
-                                        DMS_LOB_PAGEID &page )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ALLOCATEPAGE ) ;
-      SDB_ASSERT( NULL != record._oid && 0 <= record._sequence &&
-                  record._dataLen + record._offset <= getLobdPageSize(),
-                  "invalid lob record" ) ;
-
-      rc = _findFreeSpace( 1, (dmsExtentID &)page, context ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to find free space, rc:%d", rc ) ;
-         goto error ;
-      }
-
-      /// add lob page
-      context->mbStat()->_totalLobPages += 1 ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ALLOCATEPAGE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__FILLPAGE, "_dmsStorageLob::_fillPage" )
-   INT32 _dmsStorageLob::_fillPage( const dmsLobRecord &record,
-                                    DMS_LOB_PAGEID page,
-                                    pmdEDUCB *cb,
-                                    dmsMBContext *context )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FILLPAGE ) ;
-      _dmsLobDataMapBlk *blk = NULL ;
-      INT64 lobPieceLen      = 0 ;
-      dmsExtRW extRW ;
-
-      extRW = extent2RW( page, context->mbID() ) ;
-      extRW.setNothrow( TRUE ) ;
-      blk = extRW.writePtr<_dmsLobDataMapBlk>() ;
-      if ( !blk )
-      {
-         PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), pageid:%d",
-                 page ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      /// must first set clLogiclID
-      blk->_clLogicalID = context->clLID() ;
-      blk->_mbID = context->mbID() ;
-      blk->_newFlag = DMS_LOB_PAGE_FLAG_NEW ;
-
-      ossMemset( blk->_pad1, 0, sizeof( blk->_pad1 ) ) ;
-      ossMemset( blk->_pad2, 0, sizeof( blk->_pad2 ) ) ;
-      ossMemcpy( blk->_oid, record._oid, DMS_LOB_OID_LEN ) ;
-      blk->_sequence = record._sequence ;
-      blk->_dataLen = record._dataLen + record._offset ;
-      blk->_prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
-      blk->_nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
-      blk->setRemoved() ;
-
-#if defined (_DEBUG)
-      {
-         UINT32 __hash = 0 ;
-         DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
-         if ( __hash != record._hash )
-         {
-            dmsLobDataMapBlk memBlk ;
-            ossMemcpy( &memBlk, blk, sizeof( memBlk ) ) ;
-            SDB_ASSERT( __hash == record._hash, "must be same" ) ;
-         }
-      }
-#endif
-
-      rc = _push2Bucket( _getBucket( record._hash ),
-                         page, cb, *blk, &record ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to push page[%d] to bucket[%d], rc: %d",
-                 page, _getBucket( record._hash ), rc ) ;
-         goto error ;
-      }
-
-      /// add stat
-      if ( DMS_IS_LOBMETA_RECORD( record ) )
-      {
-         context->mbStat()->_totalLobs++ ;
-         lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         context->mbStat()->addTotalLobSize( lobPieceLen ) ;
-         _statVaildLobSize( context, ( _dmsLobMeta* )record._data, NULL ) ;
-      }
-      else
-      {
-         context->mbStat()->addTotalLobSize( blk->_dataLen ) ;
-      }
-
-      _incWriteRecord() ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__FILLPAGE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1450,10 +1152,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_REMOVE ) ;
-      UINT32 bucketNumber = 0 ;
-      dmsExtRW extRW ;
-      _dmsLobDataMapBlk *blk = NULL ;
-      DMS_LOB_PAGEID page = DMS_LOB_INVALID_PAGEID ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       UINT32 resevedLength = 0 ;
@@ -1461,21 +1159,19 @@ namespace engine
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
-      CHAR *oldData = NULL ;
+      CHAR *readData = NULL ;
       UINT32 oldLen = 0 ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       BOOLEAN locked = FALSE ;
       BOOLEAN hasRemoved = FALSE ;
-      utilCacheContext cContext ;
-      UINT32 dirtyStart = 0 ;
-      UINT32 dirtyLen = 0 ;
-      UINT64 beginLSN = 0 ;
-      UINT64 endLSN = 0 ;
       UINT32 pageSize = 0 ;
       ossSpinSLatch *pLatch = NULL ;
       dmsLobRecord oldRecord ;
       UINT32 readLen = 0 ;
-      BOOLEAN needSubmit = FALSE, isMetaPage = FALSE ;
+      BOOLEAN isMetaPage = FALSE ;
+      std::shared_ptr< ILob > lobPtr ;
+
+      dmsWriteGuard guard( _service, _dmsData, mbContext, cb, TRUE, FALSE, TRUE );
 
       if ( _needDelayOpen )
       {
@@ -1501,9 +1197,9 @@ namespace engine
                                record._offset,
                                record._hash,
                                oldLen,
-                               oldData,
+                               readData,
                                pageSize,
-                               page,
+                               DMS_LOB_INVALID_PAGEID,
                                transID,
                                preTransLsn,
                                relatedLsn,
@@ -1557,114 +1253,77 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), cb, page, &bucketNumber ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to find record[%s], rc:%d",
-                 record.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID == page )
-      {
-         goto done ;
-      }
-
-      extRW = extent2RW( page, mbContext->mbID() ) ;
-      extRW.setNothrow( TRUE ) ;
-      blk = extRW.writePtr<_dmsLobDataMapBlk>() ;
-      if ( !blk )
-      {
-         PD_LOG( PDERROR, "Get extent[%d] address failed", page ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      if ( onlyRemoveNewPage )
-      {
-         if ( !blk->isNew() )
-         {
-            goto done ;
-         }
-      }
+      rc = mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc ) ;
 
       /// When dpscb is NULL or not page 0, not to alloc the page when page is
       /// not in cache( use len = 0 )
-      isMetaPage = DMS_LOB_META_SEQUENCE == blk->_sequence ;
-      oldLen = blk->_dataLen ;
-      if ( dpscb )
-      {
-         // for DPS, we need whole page to write DPS log
-         readLen = oldLen ;
-      }
-      else if ( isMetaPage )
+      isMetaPage = DMS_LOB_META_SEQUENCE == record._sequence ;
+
+      if ( isMetaPage && NULL == pOldData )
       {
          // for meta page, we need meta data to calculate valid size
          // if old data is passed, we can use the old data to calculate
          // otherwise, read from file
-         if ( NULL == pOldData )
-         {
-            readLen = DMS_LOB_META_LENGTH ;
-         }
+         readLen = DMS_LOB_META_LENGTH ;
+      }
+      else
+      {
+         readLen = getLobdPageSize() ;
       }
 
-      _pCacheUnit->prepareWrite( page, 0, readLen, cb, cContext ) ;
-      if ( readLen > 0 )
-      {
-         rc = cb->allocBuff( readLen, &oldData, NULL ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Alloc read buffer[%u] failed, rc: %d",
-                    readLen, rc ) ;
-            goto error ;
-         }
-         rc = cContext.read( oldData, 0, readLen, cb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
-            goto error ;
-         }
+      rc = cb->allocBuff( readLen, &readData ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to allocate read buffer[%u], rc: %d", readLen, rc ) ;
 
-         needSubmit = TRUE ;
-      }
-      else if ( isMetaPage && NULL != pOldData )
       {
-         // use the passed old data
-         oldRecord._data = pOldData ;
+         guard.begin();
+         ossScopedLock lock( _getBucketLatch( _getBucket( record._hash ) ), SHARED ) ;
+         rc = lobPtr->read( record, cb, readData, readLen ) ;
+         if ( rc == SDB_DMS_EOC )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to read lob to remove, rc: %d", rc ) ;
+         oldLen = readLen ;
+         if ( isMetaPage && NULL != pOldData )
+         {
+            // use the passed old data
+            oldRecord._data = pOldData ;
+         }
+         else
+         {
+            oldRecord._data = readData ;
+         }
       }
 
       /// lock bucket
       if ( dpscb )
       {
-         pLatch = _getBucketLatch( bucketNumber ) ;
+         pLatch = _getBucketLatch( _getBucket( record._hash ) ) ;
          pLatch->get() ;
       }
 
-      /// remove and release the page
-      rc = _removePage( page, blk, &bucketNumber, cb, mbContext,
-                        pLatch ? TRUE : FALSE, TRUE ) ;
-      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to remove page:%d, rc:%d", page, rc ) ;
-         goto error ;
+         rc = lobPtr->remove( record, cb ) ;
+         hasRemoved = TRUE ;
+         if ( DMS_LOB_META_SEQUENCE == record._sequence )
+         {
+            mbContext->mbStat()->_totalLobs.dec() ;
+            INT64 lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( oldLen ) ;
+            mbContext->mbStat()->subTotalLobSize( lobPieceLen ) ;
+         }
+         else
+         {
+            mbContext->mbStat()->subTotalLobSize( oldLen ) ;
+         }
       }
-      hasRemoved = TRUE ;
 
       /// release the mbContext
       if ( locked )
       {
          mbContext->mbUnlock() ;
          locked = FALSE ;
-      }
-
-      /// submit the read data
-      if ( needSubmit )
-      {
-         /// submit the read data
-         UINT32 submitLen = cContext.submit( cb ) ;
-         SDB_ASSERT( submitLen == readLen, "impossible" ) ;
-         oldRecord._data = oldData ;
-         needSubmit = FALSE ;
       }
 
       if ( dpscb )
@@ -1675,9 +1334,9 @@ namespace engine
                                record._offset,
                                record._hash,
                                oldLen,
-                               oldData,
+                               readData,
                                pageSize,
-                               page,
+                               DMS_LOB_INVALID_PAGEID,
                                transID,
                                preTransLsn,
                                relatedLsn,
@@ -1689,8 +1348,8 @@ namespace engine
          }
 
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
-         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(), page,
-                         DMS_INVALID_OFFSET, cb ) ;
+         info.setInfoEx( _dmsData->logicalID(), mbContext->clLID(), *record._oid, record._sequence,
+                         cb ) ;
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
          {
@@ -1707,8 +1366,10 @@ namespace engine
       else
       {
          cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), page, DMS_INVALID_OFFSET ) ;
+                            mbContext->clLID(), *record._oid, record._sequence ) ;
       }
+
+      guard.commit();
 
       if ( cb->getLsnCount() > 0 )
       {
@@ -1726,11 +1387,6 @@ namespace engine
                             (const dmsLobMeta *)( oldRecord._data ) ) ;
       }
 
-      /// discard the page
-      cContext.discardPage( dirtyStart, dirtyLen, beginLSN, endLSN ) ;
-      /// release the context and then lock mbContext again
-      cContext.release() ;
-
    done:
       if ( pLatch )
       {
@@ -1746,9 +1402,9 @@ namespace engine
       {
          transCB->releaseLogSpace( resevedLength, cb ) ;
       }
-      if ( oldData )
+      if ( readData )
       {
-         cb->releaseBuff( oldData ) ;
+         cb->releaseBuff( readData ) ;
       }
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_REMOVE, rc ) ;
       return rc ;
@@ -1757,84 +1413,7 @@ namespace engine
       {
          ossPanic() ;
       }
-      goto done ;
-   }
-
-   INT32 _dmsStorageLob::_releasePage( DMS_LOB_PAGEID page,
-                                       dmsMBContext *context )
-   {
-      context->mbStat()->_totalLobPages -= 1 ;
-      return _releaseSpace( page, 1 ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__FIND, "_dmsStorageLob::_find" )
-   INT32 _dmsStorageLob::_find( const _dmsLobRecord &record,
-                                UINT32 clID,
-                                pmdEDUCB *cb,
-                                DMS_LOB_PAGEID &page,
-                                UINT32 *bucket )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FIND ) ;
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-
-      UINT32 bucketNumber = _getBucket( record._hash ) ;
-      DMS_LOB_PAGEID pageInBucket = DMS_LOB_INVALID_PAGEID ;
-      dmsExtRW extRW ;
-      const _dmsLobDataMapBlk *blk = NULL ;
-
-      ossScopedLock lock( _getBucketLatch( bucketNumber ), SHARED ) ;
-
-      pageInBucket = _dmsBME->_buckets[bucketNumber] ;
-      while ( DMS_LOB_INVALID_PAGEID != pageInBucket )
-      {
-         DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_ADDRESSING, 1 ) ;
-         extRW = extent2RW( pageInBucket, -1 ) ;
-         extRW.setNothrow( TRUE ) ;
-         blk = extRW.readPtr<_dmsLobDataMapBlk>() ;
-         if ( !blk )
-         {
-            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), "
-                    "pageid:%d", pageInBucket ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-#if defined (_DEBUG)
-         {
-            UINT32 __hash = 0 ;
-            DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
-            UINT32 testBucketNo = _getBucket( __hash ) ;
-            if ( testBucketNo != bucketNumber )
-            {
-               dmsLobDataMapBlk memBlk ;
-               ossMemcpy( &memBlk, blk, sizeof( memBlk ) ) ;
-               SDB_ASSERT( testBucketNo == bucketNumber, "must be same" ) ;
-            }
-         }
-#endif
-         if ( clID == blk->_clLogicalID &&
-              blk->equals( record._oid->getData(), record._sequence ) )
-         {
-            page = pageInBucket ;
-            break ;
-         }
-         else
-         {
-            pageInBucket = blk->_nextPageInBucket ;
-            continue ;
-         }
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID != pageInBucket && NULL != bucket )
-      {
-         *bucket = bucketNumber ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__FIND, rc ) ;
-      return rc ;
-   error:
+      guard.abort();
       goto done ;
    }
 
@@ -2441,9 +2020,9 @@ namespace engine
       /// clear all lob count
       for( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _dmsData->_mbStatInfo[i]._totalLobs = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobSize = 0 ;
-         _dmsData->_mbStatInfo[i]._totalValidLobSize = 0 ;
+         _dmsData->_mbStatInfo[i]._totalLobs.poke(0) ;
+         _dmsData->_mbStatInfo[i]._totalLobSize.poke(0) ;
+         _dmsData->_mbStatInfo[i]._totalValidLobSize.poke(0) ;
       }
 
       /// re-count
@@ -2483,16 +2062,16 @@ namespace engine
             /// as _totalValidLobSize.
             if ( DMS_LOB_META_SEQUENCE != blk->_sequence )
             {
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += blk->_dataLen ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += blk->_dataLen ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize.add(blk->_dataLen) ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize.add(blk->_dataLen) ;
             }
             else
             {
                /// dmsLobMate size take the value: 1k.
                lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobs += 1 ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += lobPieceLen ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += lobPieceLen ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalLobs.add(1) ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize.add(lobPieceLen) ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize.add(lobPieceLen) ;
             }
          }
          ++current ;
@@ -2531,10 +2110,10 @@ namespace engine
       /// clear all lob count
       for( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _dmsData->_mbStatInfo[i]._totalLobs = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobPages = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobSize = 0 ;
-         _dmsData->_mbStatInfo[i]._totalValidLobSize = 0 ;
+         _dmsData->_mbStatInfo[i]._totalLobs.poke(0) ;
+         _dmsData->_mbStatInfo[i]._totalLobPages.poke(0) ;
+         _dmsData->_mbStatInfo[i]._totalLobSize.poke(0) ;
+         _dmsData->_mbStatInfo[i]._totalValidLobSize.poke(0) ;
       }
 
       /// rebuild
@@ -2591,7 +2170,7 @@ namespace engine
                /// Traversing the lobd file to count _totalValidLobSize, the io
                /// overhead is very large. So, directly accumulate blk->_dataLen
                /// as _totalValidLobSize.
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobPages += 1 ;
+               _dmsData->_mbStatInfo[blk->_mbID]._totalLobPages.add(1) ;
                if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
                {
                   ++totalLobs ;
@@ -2599,17 +2178,17 @@ namespace engine
                   lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
                   totalLobSize += lobPieceLen ;
                   totalValidLobSize += lobPieceLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobs += 1 ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += lobPieceLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += lobPieceLen ;
+                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobs.add(1) ;
+                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize.add(lobPieceLen) ;
+                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize.add(lobPieceLen) ;
                }
                else
                {
                   /// dmsLobMate size take the value: 1k.
                   totalLobSize += blk->_dataLen ;
                   totalValidLobSize += blk->_dataLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += blk->_dataLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += blk->_dataLen ;
+                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize.add(blk->_dataLen) ;
+                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize.add(blk->_dataLen) ;
                }
             }
          }
@@ -2740,132 +2319,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__REMOVEPAGE, "_dmsStorageLob::_removePage" )
-   INT32 _dmsStorageLob::_removePage( DMS_LOB_PAGEID page,
-                                      _dmsLobDataMapBlk *blk,
-                                      const UINT32 *bucket,
-                                      pmdEDUCB *cb,
-                                      dmsMBContext *mbContext,
-                                      BOOLEAN hasLockBucket,
-                                      BOOLEAN needRelease,
-                                      const dmsLobRecord *pRecord )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__REMOVEPAGE ) ;
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-      UINT32 bucketNumber = 0 ;
-      INT64 lobPieceLen   = 0 ;
-
-      if ( NULL != bucket )
-      {
-         bucketNumber = *bucket ;
-      }
-      else
-      {
-         UINT32 __hash1 = 0 ;
-         DMS_LOB_GET_HASH_FROM_BLK( blk, __hash1 ) ;
-         bucketNumber = _getBucket( __hash1 ) ;
-      }
-
-      /// lock
-      if ( !hasLockBucket )
-      {
-         _getBucketLatch( bucketNumber )->get() ;
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID == blk->_prevPageInBucket )
-      {
-         SDB_ASSERT( _dmsBME->_buckets[bucketNumber] == page,
-                     "must be this page" ) ;
-         _dmsBME->_buckets[bucketNumber] = blk->_nextPageInBucket ;
-         if ( DMS_LOB_INVALID_PAGEID != blk->_nextPageInBucket )
-         {
-            dmsExtRW nextRW ;
-            _dmsLobDataMapBlk *nextBlk = NULL ;
-            nextRW = extent2RW( blk->_nextPageInBucket, -1 ) ;
-            nextRW.setNothrow( TRUE ) ;
-            nextBlk = nextRW.writePtr<_dmsLobDataMapBlk>() ;
-            if ( !nextBlk )
-            {
-               PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), "
-                       "pageid:%d", blk->_nextPageInBucket ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            nextBlk->_prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
-         }
-      }
-      else
-      {
-         dmsExtRW prevRW ;
-         _dmsLobDataMapBlk *prevBlk = NULL ;
-         prevRW = extent2RW( blk->_prevPageInBucket, -1 ) ;
-         prevRW.setNothrow( TRUE ) ;
-         prevBlk = prevRW.writePtr<_dmsLobDataMapBlk>() ;
-         if ( !prevBlk )
-         {
-            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), pageid:%d",
-                    blk->_prevPageInBucket ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         prevBlk->_nextPageInBucket = blk->_nextPageInBucket ;
-
-         if ( DMS_LOB_INVALID_PAGEID != blk->_nextPageInBucket )
-         {
-            dmsExtRW nextRW ;
-            _dmsLobDataMapBlk *nextBlk = NULL ;
-            nextRW = extent2RW( blk->_nextPageInBucket, -1 ) ;
-            nextRW.setNothrow( TRUE ) ;
-            nextBlk = nextRW.writePtr<_dmsLobDataMapBlk>() ;
-            if ( !nextBlk )
-            {
-               PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), pageid:%d",
-                       blk->_nextPageInBucket ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            nextBlk->_prevPageInBucket = blk->_prevPageInBucket ;
-         }
-      }
-
-      if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
-      {
-         mbContext->mbStat()->_totalLobs -= 1 ;
-         lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         mbContext->mbStat()->subTotalLobSize( lobPieceLen ) ;
-         if ( NULL != pRecord )
-         {
-            _statVaildLobSize( mbContext, NULL, (_dmsLobMeta *)pRecord->_data ) ;
-         }
-      }
-      else
-      {
-         mbContext->mbStat()->subTotalLobSize( blk->_dataLen ) ;
-      }
-      /// monitor lob page which is removed
-      DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_TRUNCATE, 1 ) ;
-
-      _incWriteRecord() ;
-      blk->reset() ;
-      blk->setRemoved() ;
-
-      /// release the page
-      if ( needRelease )
-      {
-         _releasePage( page, mbContext ) ;
-      }
-   done:
-      if ( !hasLockBucket )
-      {
-         _getBucketLatch( bucketNumber )->release() ;
-      }
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__REMOVEPAGE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_TRUNCATE, "_dmsStorageLob::truncate" )
    INT32 _dmsStorageLob::truncate( dmsMBContext *mbContext,
                                    _pmdEDUCB *cb,
@@ -2874,18 +2327,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_TRUNCATE ) ;
 
-      DMS_LOB_PAGEID current = -1 ;
       BOOLEAN locked = FALSE ;
       BOOLEAN needPanic = FALSE ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
-      utilCacheContext cContext ;
-      UINT32 dirtyStart = 0 ;
-      UINT32 dirtyLen = 0 ;
-      UINT64 beginLSN = 0 ;
-      UINT64 endLSN = 0 ;
 
       if ( !isOpened() )
       {
@@ -2941,63 +2388,17 @@ namespace engine
       }
 
       needPanic = TRUE ;
-      while ( ( UINT32 )++current < pageNum() )
       {
-         if ( !DMS_LOB_PAGE_IN_USED( current ) )
-         {
-            continue ;
-         }
-
-         dmsExtRW extRW ;
-         const _dmsLobDataMapBlk *readBlk = NULL ;
-         _dmsLobDataMapBlk *blk = NULL ;
-         extRW = extent2RW( current, mbContext->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         readBlk = extRW.readPtr<_dmsLobDataMapBlk>() ;
-         if ( !readBlk )
-         {
-            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), pageid:%d",
-                    current ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         /// need first check undefined
-         if ( readBlk->isUndefined() )
-         {
-            continue ;
-         }
-         /// then check clLID
-         else if ( mbContext->clLID() != readBlk->_clLogicalID )
-         {
-            continue ;
-         }
-
-         /// change to write mode
-         blk = extRW.writePtr<_dmsLobDataMapBlk>() ;
-         if ( !blk )
-         {
-            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), pageid:%d",
-                    current ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         rc = _removePage( current, blk, NULL, cb, mbContext, FALSE ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", rc ) ;
-            goto error ;
-         }
-         /// when the page is dirty, dicard the page, size is 0, will not
-         /// alloc the page when page is not in memory
-         _pCacheUnit->prepareWrite( current, 0, 0, cb, cContext ) ;
-         cContext.discardPage( dirtyStart, dirtyLen, beginLSN, endLSN ) ;
-         cContext.release() ;
+        std::shared_ptr<ILob> lobPtr;
+        rc = mbContext->getCollPtr()->getLobPtr(lobPtr);
+        PD_RC_CHECK(rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc);
+        rc = lobPtr->truncate(cb);
+        PD_RC_CHECK(rc, PDERROR, "Failed to truncate all lob pieces, rc: %d", rc);
       }
 
       // clear the stat info
-      mbContext->mbStat()->_totalLobPages = 0 ;
-      mbContext->mbStat()->_totalLobs = 0 ;
+      mbContext->mbStat()->_totalLobPages.poke(0) ;
+      mbContext->mbStat()->_totalLobs.poke(0) ;
       mbContext->mbStat()->resetTotalLobSize() ;
       mbContext->mbStat()->resetTotalValidLobSize() ;
 
@@ -3006,7 +2407,7 @@ namespace engine
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
          info.setInfoEx( _dmsData->logicalID(),
                          mbContext->clLID(),
-                         DMS_INVALID_EXTENT, DMS_INVALID_OFFSET, cb ) ;
+                         OID(), DMS_LOB_META_SEQUENCE, cb ) ;
 
          rc = dpscb->prepare( info ) ;
          if ( SDB_OK != rc )
@@ -3029,7 +2430,7 @@ namespace engine
       {
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_LOB ) ;
          cb->setDataExInfo( fullName, _dmsData->logicalID(),
-                            mbContext->clLID(), DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
+                            mbContext->clLID(), OID(), DMS_LOB_META_SEQUENCE ) ;
       }
 
    done:
@@ -3051,72 +2452,6 @@ namespace engine
                  "error" ) ;
          ossPanic() ;
       }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__ROLLBACK, "_dmsStorageLob::_rollback" )
-   INT32 _dmsStorageLob::_rollback( const dmsLobRecord &record,
-                                    DMS_LOB_PAGEID page,
-                                    pmdEDUCB *cb,
-                                    dmsMBContext *mbContext,
-                                    BOOLEAN pageFilled )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ROLLBACK ) ;
-      BOOLEAN locked = FALSE ;
-      if ( DMS_LOB_INVALID_PAGEID == page )
-      {
-         goto done ;
-      }
-
-      if ( !mbContext->isMBLock() )
-      {
-         rc = mbContext->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-         locked = TRUE ;
-      }
-
-      if ( !isOpened() )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "File[%s] is not open in write", getSuName() ) ;
-         goto error ;
-      }
-
-      if ( pageFilled )
-      {
-         dmsExtRW extRW ;
-         _dmsLobDataMapBlk *blk = NULL ;
-         extRW = extent2RW( page, mbContext->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         blk = extRW.writePtr<_dmsLobDataMapBlk>() ;
-         if ( !blk )
-         {
-            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), "
-                    "pageid:%d", page ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         rc = _removePage( page, blk, NULL, cb, mbContext, FALSE, TRUE, &record ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", page, rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         _releasePage( page, mbContext ) ;
-      }
-   done:
-      if ( locked )
-      {
-         mbContext->mbUnlock() ;
-         locked = FALSE ;
-      }
-      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ROLLBACK, rc ) ;
-      return rc ;
-   error:
       goto done ;
    }
 

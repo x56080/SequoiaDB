@@ -943,6 +943,8 @@ namespace engine
       UINT32               _clLID ;
       dmsExtentID          _extID ;
       dmsOffset            _extOffset ;
+      OID                  _lobOid ;
+      UINT32               _lobSequence ;
       DPS_LSN_OFFSET       _offset ;
 
       _clsLSNNtyInfo ()
@@ -951,16 +953,20 @@ namespace engine
          _clLID = ~0 ;
          _extID = DMS_INVALID_EXTENT ;
          _extOffset = DMS_INVALID_OFFSET ;
+         _lobOid = OID() ;
+         _lobSequence = ~0 ;
          _offset = 0 ;
       }
       _clsLSNNtyInfo( UINT32 csLID, UINT32 clLID, dmsExtentID extID,
-                      dmsOffset extOffset, DPS_LSN_OFFSET offset )
+                      dmsOffset extOffset, OID lobOid, UINT32 lobSequence, DPS_LSN_OFFSET offset )
       {
          _csLID      = csLID ;
          _clLID      = clLID ;
          _extID      = extID ;
          _extOffset  = extOffset ;
          _offset     = offset ;
+         _lobOid     = lobOid ;
+         _lobSequence = lobSequence ;
       }
    } ;
    typedef _clsLSNNtyInfo clsLSNNtyInfo ;
@@ -976,6 +982,7 @@ namespace engine
 
          virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
                                    UINT32 extID, UINT32 extOffset,
+                                   const OID &lobOid, UINT32 lobSequence,
                                    DPS_LSN_OFFSET offset ) = 0 ;
    } ;
 

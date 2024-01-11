@@ -1436,6 +1436,8 @@ namespace engine
                                                  info._dataExInfo._clLID,
                                                  info._dataExInfo._extID,
                                                  info._dataExInfo._extOffset,
+                                                 info._dataExInfo._lobOid,
+                                                 info._dataExInfo._lobSequence,
                                                  offset ) ;
             }
          }
@@ -1462,6 +1464,8 @@ namespace engine
                                                     tmpInfo._dataExInfo._clLID,
                                                     tmpInfo._dataExInfo._extID,
                                                     tmpInfo._dataExInfo._extOffset,
+                                                    tmpInfo._dataExInfo._lobOid,
+                                                    tmpInfo._dataExInfo._lobSequence,
                                                     it->first ) ;
                }
                _memPool.release( tmpInfo._pData, tmpInfo._len ) ;

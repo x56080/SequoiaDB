@@ -36,6 +36,7 @@
 #include "sdbInterface.hpp"
 #include "interface/IIndex.hpp"
 #include "interface/ICursor.hpp"
+#include "interface/ILob.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
 #include "dmsMetadata.hpp"
@@ -59,7 +60,7 @@ namespace engine
 
       virtual const dmsCLMetadata &getMetadata() const = 0 ;
       virtual dmsCLMetadata &getMetadata() = 0 ;
-
+      virtual INT32 getLobPtr( std::shared_ptr< ILob > &lob ) = 0 ;
       virtual UINT64 fetchSnapshotID() = 0 ;
 
       virtual INT32 createIndex( const dmsIdxMetadata &metadata,

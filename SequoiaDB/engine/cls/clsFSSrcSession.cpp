@@ -2019,6 +2019,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSSS_NTFLSN, "_clsFSSrcSession::notifyLSN" )
    INT32 _clsFSSrcSession::notifyLSN ( UINT32 suLID, UINT32 clLID,
                                        dmsExtentID extID, dmsOffset extOffset,
+                                       const OID &lobOid, UINT32 lobSequence,
                                        const DPS_LSN_OFFSET &offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSFSSS_NTFLSN );
@@ -2027,6 +2028,7 @@ namespace engine
       BOOLEAN needRelease = FALSE ;
       BOOLEAN needSetBeginLSN = FALSE ;
       UINT32 lsnLen = 0 ;
+      std::pair< OID, UINT32 > curLobKey ;
 
       _LSNlatch.get() ;
       needRelease = TRUE ;
@@ -2037,12 +2039,13 @@ namespace engine
       }
 
       needSetBeginLSN = TRUE ;
-
-      PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
-               "extID:%u, extOffset:%u, offset:%lld], "
-               "curScan recordID[extID:%u, extOffset:%u], curLob page[%u]",
-               sessionName(), suLID, clLID, extID, extOffset, offset,
-               _curRID._extent, _curRID._offset, _lobFetcher.toBeFetched() ) ;
+      curLobKey = _lobFetcher.toBeFetched() ;
+      PD_LOG( PDINFO,
+              "Session[%s]: dps notify[suLID:%d, clLID:%d, "
+              "extID:%u, extOffset:%u, offset:%lld], "
+              "curScan recordID[extID:%u, extOffset:%u], curLob [oid:%s, sequence:%u]",
+              sessionName(), suLID, clLID, extID, extOffset, offset, _curRID._extent,
+              _curRID._offset, curLobKey.first.toString().data(), curLobKey.second ) ;
 
       // already complete collection
       it = _mapOveredCLs.find ( fullCLLID ) ;
@@ -2079,7 +2082,7 @@ namespace engine
             {
                _deqLSN.push_back ( offset ) ;
             }
-            else if ( extID < (UINT32)( _lobFetcher.toBeFetched() ) )
+            else if ( std::pair< OID, UINT32 >( lobOid, lobSequence ) < curLobKey )
             {
                _deqLSN.push_back ( offset ) ;
             }
@@ -2760,6 +2763,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLSS_NTFLSN, "_clsSplitSrcSession::notifyLSN" )
    INT32 _clsSplitSrcSession::notifyLSN( UINT32 suLID, UINT32 clLID,
                                          dmsExtentID extID, dmsOffset extOffset,
+                                         const OID &lobOid, UINT32 lobSequence,
                                          const DPS_LSN_OFFSET & offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_NTFLSN );
@@ -2772,6 +2776,7 @@ namespace engine
       UINT32 lsnLen = 0 ;
       BSONObj recordObj ;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      std::pair< OID, UINT32 > curLobKey ;
 
       if ( !_init || _quit || PMD_INVALID_EDUID != _cleanupJobID ||
            0 == _needData || offset < _beginLSNOffset )
@@ -2779,11 +2784,13 @@ namespace engine
          goto done ;
       }
 
-      PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
-               "extID:%u, extOffset:%u, offset:%lld], "
-               "curScan recordID[extID:%u, extOffset:%u], curLob page[%u]",
-               sessionName(), suLID, clLID, extID, extOffset, offset,
-               _curRID._extent, _curRID._offset, _lobFetcher.toBeFetched() ) ;
+      curLobKey = _lobFetcher.toBeFetched() ;
+      PD_LOG( PDINFO,
+              "Session[%s]: dps notify[suLID:%d, clLID:%d, "
+              "extID:%u, extOffset:%u, offset:%lld], "
+              "curScan recordID[extID:%u, extOffset:%u], curLob [oid:%s, sequence:%u]",
+              sessionName(), suLID, clLID, extID, extOffset, offset, _curRID._extent,
+              _curRID._offset, curLobKey.first.toString().data(), curLobKey.second ) ;
 
       _LSNlatch.get() ;
       locked = TRUE ;
@@ -2854,7 +2861,7 @@ namespace engine
       {
          if ( inEndMap ||
               _lobFetcher.hitEnd() ||
-              extID < (UINT32)( _lobFetcher.toBeFetched() ) )
+              std::pair< OID, UINT32 >( lobOid, lobSequence ) < curLobKey )
          {
             BOOLEAN need2Notify = FALSE ;
             const bson::OID *oid = NULL ;

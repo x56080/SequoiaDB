@@ -53,6 +53,57 @@ namespace wiredtiger
    /*
       _dmsWTCollection implement
     */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_GETLOBPTR, "_dmsWTCollection::getLobPtr" )
+   INT32 _dmsWTCollection::getLobPtr( std::shared_ptr< ILob > &lob )
+   {
+      INT32 rc = SDB_OK;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_GETLOBPTR );
+
+      {
+         ossScopedRWLock lock( &_lobMutex, SHARED );
+         if ( _lob )
+         {
+            lob = _lob;
+            goto done;
+         }
+      }
+
+      {
+         dmsWTStore store;
+         ossPoolString uri, config;
+         INT32 rc = dmsWTLob::buildLobURI( _metadata.getCSUID(), _metadata.getCLOrigInnerID(),
+                                           _metadata.getCLOrigLID(), uri );
+
+         rc = dmsWTCollection::buildLobConfigString( _engine.getService().getEngineOptions(),
+                                                     config );
+         PD_RC_CHECK( rc, PDERROR, "Failed to build lob config string, rc: %d", rc );
+
+         pdLogShield shield;
+         shield.addRC( SDB_DMS_EOC );
+         rc = _engine.loadStore( uri.c_str(), store );
+         if ( rc == SDB_DMS_EOC )
+         {
+            rc = _engine.createStore( uri.c_str(), config.c_str(), store );
+            PD_RC_CHECK( rc, PDERROR, "Failed to create lob store, rc: %d", rc );
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to load lob store, rc: %d", rc );
+
+         lob = make_shared< dmsWTLob >( _engine, store, this );
+         PD_CHECK( lob, SDB_OOM, error, PDERROR, "Failed to create collection object" );
+
+         ossScopedRWLock lock( &_lobMutex, EXCLUSIVE );
+         _lob = lob;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_GETLOBPTR, rc );
+      return rc;
+
+   error:
+      goto done;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_CREATEIDX, "_dmsWTCollection::createIndex" )
    INT32 _dmsWTCollection::createIndex( const dmsIdxMetadata &metadata,
                                         const dmsCreateIdxOptions &options,
@@ -156,6 +207,7 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_COMPACT ) ;
 
       std::shared_ptr<IIndex> idxPtr ;
+      std::shared_ptr<ILob> lobPtr ;
 
       dmsWTSessionHolder sessionHolder ;
       rc = _engine.getPersistSession( executor, sessionHolder ) ;
@@ -170,6 +222,16 @@ namespace wiredtiger
       {
          rc = idxPtr->compact( options, executor ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to compact index, rc: %d", rc ) ;
+      }
+
+      {
+         ossScopedRWLock lock( &_lobMutex, SHARED );
+         lobPtr = _lob;
+      }
+      if ( lobPtr )
+      {
+         rc = lobPtr->compact( executor );
+         PD_RC_CHECK( rc, PDWARNING, "Failed to compact lob, rc: %d", rc );
       }
 
    done:
@@ -741,6 +803,8 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_VALIDATEDATA ) ;
 
+      std::shared_ptr<ILob> lobPtr ;
+
       UINT64 recordCount = 0,
              totalDataLen = 0,
              totalDataSize = 0,
@@ -811,6 +875,16 @@ namespace wiredtiger
       _metadata.getMBStat()->_totalDataFreeSpace = freeDataSize ;
       _metadata.getMBStat()->_totalIndexPages = totalIndexSize / pageSize ;
       _metadata.getMBStat()->_totalIndexFreeSpace = freeIndexSize ;
+
+      {
+         ossScopedRWLock lock( &_lobMutex, SHARED );
+         lobPtr = _lob;
+      }
+      if ( lobPtr )
+      {
+         rc = lobPtr->validate( executor );
+         PD_RC_CHECK( rc, PDWARNING, "Failed to validate lob, rc: %d", rc );
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_VALIDATEDATA, rc ) ;
@@ -905,6 +979,46 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_BLDDATAURI, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_BLDLOBCONFSTR, "_dmsWTCollection::buildLobConfigString" )
+   INT32 _dmsWTCollection::buildLobConfigString( const dmsWTEngineOptions &options,
+                                                 ossPoolString &configString )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTCOLLECTION_BLDLOBCONFSTR ) ;
+
+      try
+      {
+         ossPoolStringStream ss ;
+
+         ss << "type=file," ;
+         ss << "memory_page_max=10m," ;
+         ss << "split_pct=90," ;
+         ss << "leaf_value_max=64MB," ;
+         ss << "checksum=on," ;
+         ss << "key_format=u," ;
+         ss << "value_format=u," ;
+         ss << "app_metadata=(formatVersion=" << DMS_WT_FORMART_VER_CUR << ")," ;
+         ss << "log=(enabled=true)," ;
+
+         configString = ss.str();
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build data config string, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTCOLLECTION_BLDLOBCONFSTR, rc ) ;
       return rc ;
 
    error:

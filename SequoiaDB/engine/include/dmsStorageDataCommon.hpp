@@ -425,10 +425,10 @@ namespace engine
       ossAtomic32 _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
-      UINT32      _totalLobPages ;
+      ossAtomic32 _totalLobPages ;
       UINT64      _totalDataFreeSpace ;
       UINT64      _totalIndexFreeSpace ;
-      UINT64      _totalLobs ;
+      ossAtomic64 _totalLobs ;
       UINT8       _uniqueIdxNum ;
       UINT8       _textIdxNum ;
       UINT8       _globIdxNum ;
@@ -437,8 +437,8 @@ namespace engine
       ossAtomic64 _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
-      UINT64      _totalLobSize ;
-      UINT64      _totalValidLobSize ;
+      ossAtomic64 _totalLobSize ;
+      ossAtomic64 _totalValidLobSize ;
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
@@ -493,8 +493,8 @@ namespace engine
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
          _totalIndexFreeSpace    = 0 ;
-         _totalLobPages          = 0 ;
-         _totalLobs              = 0 ;
+         _totalLobPages.init(0) ;
+         _totalLobs.init(0) ;
          _uniqueIdxNum           = 0 ;
          _textIdxNum             = 0 ;
          _globIdxNum             = 0 ;
@@ -503,8 +503,8 @@ namespace engine
          _totalDataLen.init( 0 ) ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
-         _totalLobSize           = 0 ;
-         _totalValidLobSize      = 0 ;
+         _totalLobSize.init(0) ;
+         _totalValidLobSize.init(0) ;
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;
@@ -731,8 +731,12 @@ namespace engine
       _dmsMBStatInfo ()
       : _totalRecords( 0 ),
         _writePtrCount( 0 ),
-        _totalOrgDataLen( 0 ),
+        _totalLobPages(0),
+        _totalLobs(0),
+        _totalOrgDataLen( 0 ),  
         _totalDataLen( 0 ),
+        _totalLobSize(0),
+        _totalValidLobSize(0),
         _commitFlag( 0 ),
         _lastLSN( 0 ),
         _maxGlobTransID( 0 ),

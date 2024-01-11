@@ -47,6 +47,9 @@ namespace engine
    // forward declaration
    class ICollection ;
    class IIndex ;
+   class ILob ;
+   typedef struct _dmsLobRecord dmsLobRecord ;
+   typedef struct _dmsLobInfoOnPage dmsLobInfoOnPage ;
 
    /*
       ICursor define
@@ -154,6 +157,37 @@ namespace engine
       virtual INT32 getCurrentRecord( dmsRecordData &data ) = 0 ;
    } ;
 
+   /*
+      ILobCursor define
+    */
+   class ILobCursor : public ICursor
+   {
+   public:
+      ILobCursor() = default ;
+      virtual ~ILobCursor() = default ;
+      ILobCursor( const ILobCursor & ) = delete ;
+      ILobCursor &operator=( const ILobCursor & ) = delete ;
+
+   public:
+      virtual INT32 open( std::shared_ptr< ILob > lobPtr,
+                          const dmsLobRecord &startKey,
+                          BOOLEAN isAfterStartKey,
+                          BOOLEAN isForward,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) = 0 ;
+
+      virtual INT32 open( std::shared_ptr< ILob > lobPtr,
+                          UINT64 sampleNum,
+                          UINT64 snapshotID,
+                          IExecutor *executor ) = 0 ;
+
+      virtual INT32 locate( const dmsLobRecord &rid,
+                            BOOLEAN isAfterStartKey,
+                            IExecutor *executor,
+                            BOOLEAN &isFound ) = 0 ;
+
+      virtual INT32 getCurrentLobRecord( dmsLobInfoOnPage &info, const CHAR **data ) = 0 ;
+   } ;
 }
 
 

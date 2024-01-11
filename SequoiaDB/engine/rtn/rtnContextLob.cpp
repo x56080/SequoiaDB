@@ -523,9 +523,12 @@ namespace engine
    {
       if ( _pFetcher )
       {
+         auto position = _pFetcher->toBeFetched();
          ss << ",CollectionName:" << _pFetcher->collectionName()
             << ",HitEnd:" << _pFetcher->hitEnd()
-            << ",Position:" << _pFetcher->toBeFetched() ;
+            << ",Position:"
+            << "oid:" << position.first
+            << "sequence:" << position.second ;
       }
    }
 

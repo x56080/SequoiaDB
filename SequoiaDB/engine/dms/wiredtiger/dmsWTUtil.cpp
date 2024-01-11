@@ -127,6 +127,19 @@ namespace wiredtiger
       PD_TRACE_EXIT( SDB__DMSWTBLDINDEXIDENT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTBLDLOBIDENT, "dmsWTBuildLobIdent" )
+   void dmsWTBuildLobIdent( utilCSUniqueID csUID,
+                            utilCLInnerID clInnerID,
+                            UINT32 clLID,
+                            ossPoolStringStream &ss )
+   {
+      PD_TRACE_ENTRY( SDB__DMSWTBLDLOBIDENT ) ;
+
+      ss << hex << csUID << "_" << clInnerID << "_" << clLID << "_lob" ;
+
+      PD_TRACE_EXIT( SDB__DMSWTBLDLOBIDENT ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTBLDIDENTPREFIX, "dmsWTBuildIdentPrefix" )
    void dmsWTBuildIdentPrefix( utilCSUniqueID csUID,
                                ossPoolStringStream &ss )

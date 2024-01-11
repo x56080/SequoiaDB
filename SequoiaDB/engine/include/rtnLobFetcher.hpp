@@ -60,9 +60,16 @@ namespace engine
                 SDB_DMS_NOTEXIST == _lastErr ;
       }
 
-      DMS_LOB_PAGEID toBeFetched() const
+      std::pair< OID, UINT32 > toBeFetched() const
       {
-         return _pos ;
+         if ( _cursor )
+         {
+            dmsLobInfoOnPage info ;
+            const CHAR *data = nullptr ;
+            _cursor->getCurrentLobRecord( info, &data ) ;
+            return { info._oid, info._sequence } ;
+         }
+         return { OID(), 0 } ;
       }
 
       _dmsStorageUnit *getSu()
@@ -86,11 +93,10 @@ namespace engine
       dmsStorageUnitID     _suID ;
       _dmsStorageUnit      *_su ;
       _dmsMBContext        *_mbContext ;
-      DMS_LOB_PAGEID       _pos ;
       BOOLEAN              _onlyMetaPage ;
       INT32                _lastErr ;
       CHAR                 _fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-
+      std::unique_ptr<ILobCursor> _cursor ;
    } ;
    typedef class _rtnLobFetcher rtnLobFetcher ;
 }

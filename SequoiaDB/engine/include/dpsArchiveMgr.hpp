@@ -71,6 +71,7 @@ namespace engine
       virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) ;
       virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
                                   UINT32 extID, UINT32 extOffset,
+                                  const OID &lobOid, UINT32 lobSequence,
                                   DPS_LSN_OFFSET offset )
       {
          return ;

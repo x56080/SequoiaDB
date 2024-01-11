@@ -159,16 +159,18 @@ namespace engine
 
    void _clsReplicateSet::onPrepareLog( UINT32 csLID, UINT32 clLID,
                                         UINT32 extID, UINT32 extOffset,
+                                        const OID &lobOid, UINT32 lobSequence,
                                         DPS_LSN_OFFSET offset )
    {
-      _notifySrcSessions( csLID, clLID, extID, extOffset, offset ) ;
+      _notifySrcSessions( csLID, clLID, extID, extOffset, lobOid, lobSequence, offset ) ;
    }
 
    void _clsReplicateSet::onReplayLog( UINT32 csLID, UINT32 clLID,
                                        UINT32 extID, UINT32 extOffset,
+                                       const OID &lobOid, UINT32 lobSequence,
                                        DPS_LSN_OFFSET offset )
    {
-      _notifySrcSessions( csLID, clLID, extID, extOffset, offset ) ;
+      _notifySrcSessions( csLID, clLID, extID, extOffset, lobOid, lobSequence, offset ) ;
    }
 
    void _clsReplicateSet::onMoveLog( DPS_LSN_OFFSET moveToOffset,
@@ -191,6 +193,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS, "_clsReplicateSet::_notifySrcSessions" )
    void _clsReplicateSet::_notifySrcSessions( UINT32 csLID, UINT32 clLID,
                                               UINT32 extID, UINT32 extOffset,
+                                              OID lobOid, UINT32 lobSequence,
                                               DPS_LSN_OFFSET offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS ) ;
@@ -200,7 +203,7 @@ namespace engine
       {
          try
          {
-            _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extID, extOffset, offset ) ) ;
+            _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extID, extOffset, lobOid, lobSequence, offset ) ) ;
          }
          catch ( exception &e )
          {
@@ -287,6 +290,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFY2SESSION, "_clsReplicateSet::notify2Session" )
    void _clsReplicateSet::notify2Session( UINT32 suLID, UINT32 clLID,
                                           dmsExtentID extID, dmsOffset extOffset,
+                                          const OID &lobOid, UINT32 lobSequence,
                                           const DPS_LSN_OFFSET & offset )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPPSET_NOTIFY2SESSION );
@@ -297,7 +301,7 @@ namespace engine
          ossScopedRWLock lock( &_vecLatch, SHARED ) ;
          while ( index < _srcSessionNum )
          {
-            _vecSrcSessions[index]->notifyLSN ( suLID, clLID, extID, extOffset, offset ) ;
+            _vecSrcSessions[index]->notifyLSN ( suLID, clLID, extID, extOffset, lobOid, lobSequence, offset ) ;
             ++index ;
          }
       }

@@ -499,6 +499,7 @@ namespace engine
    typedef class _dmsCompactOptions dmsCompactOptions ;
    typedef class _dmsCompactOptions dmsCompactCLOptions ;
    typedef class _dmsCompactOptions dmsCompactIdxOptions ;
+   typedef class _dmsCompactOptions dmsCompactLobOptions ;
 
 } // namespace engine
 

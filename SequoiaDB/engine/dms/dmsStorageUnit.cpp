@@ -3822,7 +3822,7 @@ namespace engine
                                               _pDataSu->pageSizeSquareRoot() ) ;
                statInfo._recycleIndexSize += ( mbStat->_totalIndexPages <<
                                               _pDataSu->pageSizeSquareRoot() ) ;
-               statInfo._recycleLobSize += ( mbStat->_totalLobPages *
+               statInfo._recycleLobSize += ( mbStat->_totalLobPages.fetch() *
                                               _pDataSu->getLobdPageSize() ) ;
             }
             else
@@ -3833,11 +3833,11 @@ namespace engine
                statInfo._totalCount += mbStat->_totalRecords.fetch() ;
                statInfo._totalDataPages += mbStat->_totalDataPages ;
                statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-               statInfo._totalLobPages += mbStat->_totalLobPages ;
+               statInfo._totalLobPages += mbStat->_totalLobPages.fetch() ;
 
-               statInfo._totalLobs += mbStat->_totalLobs ;
-               statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
-               statInfo._totalLobSize += mbStat->_totalLobSize ;
+               statInfo._totalLobs += mbStat->_totalLobs.fetch() ;
+               statInfo._totalValidLobSize += mbStat->_totalValidLobSize.fetch() ;
+               statInfo._totalLobSize += mbStat->_totalLobSize.fetch() ;
 
                statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
                statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
@@ -3891,7 +3891,7 @@ namespace engine
                                                      mbStat->_totalRecords.fetch(),
                                                      mbStat->_totalDataPages,
                                                      mbStat->_totalIndexPages,
-                                                     mbStat->_totalLobPages,
+                                                     mbStat->_totalLobPages.fetch(),
                                                      mbStat->_totalDataFreeSpace,
                                                      mbStat->_totalIndexFreeSpace ) ;
 
@@ -3900,11 +3900,11 @@ namespace engine
          info._compressType = mb->_compressorType ;
          info._dictVersion = mb->_dictVersion ;
 
-         info._totalLobs = mbStat->_totalLobs ;
-         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
+         info._totalLobs = mbStat->_totalLobs.fetch() ;
+         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages.fetch() * getLobPageSize() ;
          info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
-         info._totalLobSize = mbStat->_totalLobSize ;
-         info._totalValidLobSize = mbStat->_totalValidLobSize ;
+         info._totalLobSize = mbStat->_totalLobSize.fetch() ;
+         info._totalValidLobSize = mbStat->_totalValidLobSize.fetch() ;
          /// Because lob page 0 is unevenly distributed on data nodes, the
          /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
          /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
@@ -4163,13 +4163,13 @@ namespace engine
       item._lobPageSize = getLobPageSize() ;
 
       item._totalRecords = mbStat->_totalRecords.fetch() ;
-      item._totalLobs = mbStat->_totalLobs ;
+      item._totalLobs = mbStat->_totalLobs.fetch() ;
 
       item._totalDataSize = mbStat->_totalDataPages <<
                                         _pDataSu->pageSizeSquareRoot() ;
       item._totalIndexSize = mbStat->_totalIndexPages <<
                                         _pIndexSu->pageSizeSquareRoot() ;
-      item._totalLobSize = mbStat->_totalLobPages *
+      item._totalLobSize = mbStat->_totalLobPages.fetch() *
                                         _pLobSu->getLobdPageSize() ;
 
    done:

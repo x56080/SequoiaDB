@@ -681,16 +681,16 @@ namespace engine
                   _mbStatInfo[i]._totalIndexFreeSpace ;
             }
             if ( _dmsMME->_mbList[i]._totalLobPages !=
-                 _mbStatInfo[i]._totalLobPages )
+                 _mbStatInfo[i]._totalLobPages.fetch() )
             {
                _dmsMME->_mbList[i]._totalLobPages =
-                  _mbStatInfo[i]._totalLobPages ;
+                  _mbStatInfo[i]._totalLobPages.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalLobs !=
-                 _mbStatInfo[i]._totalLobs )
+                 _mbStatInfo[i]._totalLobs.fetch() )
             {
                _dmsMME->_mbList[i]._totalLobs =
-                  _mbStatInfo[i]._totalLobs ;
+                  _mbStatInfo[i]._totalLobs.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._lastCompressRatio !=
                  _mbStatInfo[i]._lastCompressRatio )
@@ -705,16 +705,16 @@ namespace engine
                   _mbStatInfo[i]._totalDataLen.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalLobSize !=
-                 _mbStatInfo[i]._totalLobSize )
+                 _mbStatInfo[i]._totalLobSize.fetch() )
             {
                _dmsMME->_mbList[i]._totalLobSize =
-                 _mbStatInfo[i]._totalLobSize ;
+                 _mbStatInfo[i]._totalLobSize.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalValidLobSize !=
-                 _mbStatInfo[i]._totalValidLobSize )
+                 _mbStatInfo[i]._totalValidLobSize.fetch() )
             {
                _dmsMME->_mbList[i]._totalValidLobSize =
-                 _mbStatInfo[i]._totalValidLobSize ;
+                 _mbStatInfo[i]._totalValidLobSize.fetch() ;
             }
             if ( _dmsMME->_mbList[i]._totalOrgDataLen !=
                  _mbStatInfo[i]._totalOrgDataLen.fetch() )
@@ -920,17 +920,13 @@ namespace engine
                _dmsMME->_mbList[i]._totalDataFreeSpace ;
             _mbStatInfo[i]._totalIndexFreeSpace =
                _dmsMME->_mbList[i]._totalIndexFreeSpace ;
-            _mbStatInfo[i]._totalLobPages =
-               _dmsMME->_mbList[i]._totalLobPages ;
-            _mbStatInfo[i]._totalLobs =
-               _dmsMME->_mbList[i]._totalLobs ;
+            _mbStatInfo[ i ]._totalLobPages.init( _dmsMME->_mbList[ i ]._totalLobPages ) ;
+            _mbStatInfo[ i ]._totalLobs.init( _dmsMME->_mbList[ i ]._totalLobs ) ;
             _mbStatInfo[i]._lastCompressRatio =
                _dmsMME->_mbList[i]._lastCompressRatio ;
             _mbStatInfo[i]._totalDataLen.init( _dmsMME->_mbList[i]._totalDataLen ) ;
-            _mbStatInfo[i]._totalLobSize =
-               _dmsMME->_mbList[i]._totalLobSize ;
-            _mbStatInfo[i]._totalValidLobSize =
-               _dmsMME->_mbList[i]._totalValidLobSize;
+            _mbStatInfo[ i ]._totalLobSize.init( _dmsMME->_mbList[ i ]._totalLobSize ) ;
+            _mbStatInfo[ i ]._totalValidLobSize.init( _dmsMME->_mbList[ i ]._totalValidLobSize ) ;
             _mbStatInfo[i]._totalOrgDataLen.init( _dmsMME->_mbList[i]._totalOrgDataLen ) ;
             _mbStatInfo[i]._startLID =
                _dmsMME->_mbList[i]._logicalID ;
@@ -2700,7 +2696,7 @@ namespace engine
             }
 
             oldRecords = context->mbStat()->_totalRecords.fetch() ;
-            oldLobs = context->mbStat()->_totalLobs ;
+            oldLobs = context->mbStat()->_totalLobs.fetch() ;
 
             rc = _pIdxSU->truncateIndexes( context, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "

@@ -1750,6 +1750,7 @@ namespace engine
          {
             _replayEventHandler->onReplayLog( info._csLID, info._clLID,
                                               info._extID, info._extOffset,
+                                              info._lobOid, info._lobSequence,
                                               recordHeader->_lsn ) ;
          }
          // pass info for notification when replay parallelly

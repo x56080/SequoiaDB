@@ -122,6 +122,20 @@ namespace engine
             _clLID   = clLID ;
             _extID  = extID ;
             _extOffset = extOffset ;
+            _lobOid = OID() ;
+            _lobSequence = ~0 ;
+            _needNty = TRUE ;
+            _pCB     = cb ;
+         }
+         void setInfoEx( UINT32 csLID, UINT32 clLID, const OID &lobOid,
+                         UINT32 lobSequence, IExecutor *cb )
+         {
+            _csLID   = csLID ;
+            _clLID   = clLID ;
+            _extID = DMS_INVALID_EXTENT;
+            _extOffset = DMS_INVALID_OFFSET;
+            _lobOid = lobOid ;
+            _lobSequence = lobSequence ;
             _needNty = TRUE ;
             _pCB     = cb ;
          }
@@ -141,6 +155,8 @@ namespace engine
          UINT32  getCLLID() const { return _clLID ; }
          dmsExtentID getExtentID() const { return _extID ; }
          dmsOffset getExtentOffset() const { return _extOffset ; }
+         const OID &getLobOid() const { return _lobOid ; }
+         UINT32 getLobSequence() const { return _lobSequence ; }
          IExecutor* getEDUCB() const { return _pCB ; }
 
       private:
@@ -153,6 +169,8 @@ namespace engine
          UINT32               _clLID ;
          dmsExtentID          _extID ;
          dmsOffset            _extOffset ;
+         OID                  _lobOid ;
+         UINT32               _lobSequence ;
          BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
          IExecutor            *_pCB ;

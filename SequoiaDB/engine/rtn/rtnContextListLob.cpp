@@ -153,16 +153,26 @@ namespace engine
       BSONObj obj ;
       INT32 returnObjNum = 0 ;
 
+      dmsMBContext *mbContext = _fetcher.getMBContext() ;
+      std::unique_ptr< ILobCursor > cursor ;
+      std::shared_ptr< ILob > lobPtr ;
+      rc = mbContext->getCollPtr()->getLobPtr( lobPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get lob storage ptr, rc: %d", rc ) ;
+
+      rc = lobPtr->list( cb, cursor ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open cursor to list lob, rc: %d", rc ) ;
+
+      SDB_ASSERT( cursor->isOpened(), "Cursor must be opened" ) ;
+
       while ( returnObjNum < 1000 && 0 != _returnNum )
       {
          BOOLEAN isMatch = FALSE ;
-         rc = _fetchLobHead ?_getMetaInfo( cb, obj ) :
-                             _getSequenceInfo( cb, obj ) ;
+         rc = _fetchLobHead ? _getMetaInfo( cb, obj ) : _getSequenceInfo( cb, obj ) ;
          if ( SDB_OK == rc )
          {
             rc = _matchTree.matches( obj, isMatch ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to matches obj[%s]:rc=%d",
-                         obj.toString().c_str(), rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to matches obj[%s]:rc=%d", obj.toString().c_str(),
+                         rc ) ;
             if ( isMatch )
             {
                BSONObj selObj ;
@@ -189,8 +199,7 @@ namespace engine
                }
 
                rc = append( selObj ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append data to context:%d",
-                            rc ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append data to context:%d", rc ) ;
                returnObjNum++ ;
             }
          }

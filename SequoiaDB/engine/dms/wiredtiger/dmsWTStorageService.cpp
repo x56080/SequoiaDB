@@ -267,15 +267,23 @@ namespace wiredtiger
       PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_DROPCL ) ;
 
       ossPoolString dataURI ;
+      ossPoolString lobURI ;
+      ossPoolList<ossPoolString> uris ;
 
       rc = dmsWTCollection::buildDataURI( metadata.getCSUID(),
                                           metadata.getCLOrigInnerID(),
                                           metadata.getCLOrigLID(),
                                           dataURI ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
+      uris.push_back( std::move( dataURI ) );
 
-      rc = _engine.dropStore( dataURI.c_str(), "force,checkpoint_wait=false", context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop data store, rc: %d", rc ) ;
+      rc = dmsWTLob::buildLobURI( metadata.getCSUID(), metadata.getCLOrigInnerID(),
+                                  metadata.getCLOrigLID(), lobURI );
+      PD_RC_CHECK( rc, PDERROR, "Failed to build lob URI, rc: %d", rc );
+      uris.push_back( std::move( lobURI ) );
+
+      rc = _engine.dropStores( uris, "force,checkpoint_wait=false" );
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop data and lob stores, rc: %d", rc );
 
       _removeCollection( metadata.getCLKey() ) ;
 
