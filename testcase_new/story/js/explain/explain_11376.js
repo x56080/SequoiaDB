@@ -23,7 +23,7 @@ function test ( args )
 
    // 生成随机数
    var rd = new commDataGenerator();
-   var value = rd.getRecords( 20000, "int", ["a", "b", "c"] );
+   var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
    db.analyze( { Collection: fullclName } );
@@ -50,7 +50,7 @@ function test ( args )
    var sortCond = { "b": 1, "c": -1 };
    checkExplain( cl, cond, expIndexName, expScanType, sortCond );
 
-   var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
+   var value = rd.getRecords( 20000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
    db.analyze( { Collection: fullclName } );
