@@ -523,24 +523,6 @@ namespace engine
       builder1.append( CLS_FS_PAGE_SIZE, su->getPageSize() ) ;
       builder1.append( CLS_FS_ATTRIBUTES, attributes ) ;
       builder1.append( CLS_FS_COMP_TYPE, (INT32)compType ) ;
-      // If compression type is LZW, get the dictionary, if any.
-      if ( UTIL_COMPRESSOR_LZW == compType )
-      {
-         dmsMBContext *context = NULL ;
-         dmsStorageDataCommon* data = su->data() ;
-         if ( SDB_OK == data->getMBContext( &context, collection, SHARED ) )
-         {
-            const CHAR *dictionary = NULL ;
-            UINT32 dictLen = 0 ;
-            if ( data->getDictionary( context, dictionary, dictLen ) )
-            {
-               // If the dictionary is not ready, nothing will be added.
-               builder1.appendBinData( CLS_FS_COMP_DICT, dictLen,
-                                       BinDataGeneral, dictionary ) ;
-            }
-            data->releaseMBContext( context ) ;
-         }
-      }
 
       if ( !extOptions.isEmpty() )
       {

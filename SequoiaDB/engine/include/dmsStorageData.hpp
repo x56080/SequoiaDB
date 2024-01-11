@@ -113,13 +113,6 @@ namespace engine
                                        dmsRecordID &foundRID,
                                        _pmdEDUCB *cb ) ;
 
-      virtual void _postInsertRecord( dmsMBContext *context,
-                                      dmsExtRW &extRW,
-                                      dmsRecordRW &recordRW,
-                                      const dmsRecordData &recordData,
-                                      UINT32 recordSize,
-                                      _pmdEDUCB *cb ) ;
-
       virtual INT32 _checkRecordSpace( dmsMBContext *context,
                                        UINT32 size,
                                        dmsRecordID &foundRID,
@@ -127,12 +120,6 @@ namespace engine
 
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
-
-      virtual INT32 extractData( const dmsMBContext *mbContext,
-                                 const dmsRecordRW &recordRW,
-                                 _pmdEDUCB *cb,
-                                 dmsRecordData &recordData,
-                                 BOOLEAN needIncDataRead = TRUE ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
@@ -168,14 +155,6 @@ namespace engine
                                   BOOLEAN needChangeCLID = TRUE ) ;
 
       INT32 _truncateCollectionLoads( dmsMBContext *context ) ;
-
-      INT32 _extentInsertRecord ( dmsMBContext *context,
-                                  dmsExtRW &extRW,
-                                  dmsRecordRW &recordRW,
-                                  const dmsRecordData &recordData,
-                                  UINT32 needRecordSize,
-                                  _pmdEDUCB *cb,
-                                  BOOLEAN isInsert = TRUE ) ;
    } ;
    typedef _dmsStorageData dmsStorageData ;
 }

@@ -588,516 +588,6 @@ namespace engine
       goto done ;
    }
 
-   void _rtnCLRebuilder::_cleanRegSU()
-   {
-      string orgFileName ;
-
-      /// build path
-      CHAR  tmpName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
-                         _clFullName.c_str(), OSS_MAX_PATHSIZE,
-                         tmpName ) ;
-      orgFileName = tmpName ;
-      orgFileName += RTN_REORG_FILE_SUBFIX ;
-
-      if ( SDB_OK == ossAccess( orgFileName.c_str(), 0 ) )
-      {
-         INT32 rc = ossDelete( orgFileName.c_str() ) ;
-         if ( SDB_OK == rc )
-         {
-            PD_LOG( PDEVENT, "Remove the reorg file[%s] succeed",
-                    orgFileName.c_str() ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Remove the reorg file[%s] failed, rc: %d",
-                    orgFileName.c_str(), rc ) ;
-         }
-      }
-   }
-
-   INT32 _rtnCLRebuilder::_openRegSU( dmsReorgUnit *pSU,
-                                      BOOLEAN createNew )
-   {
-      INT32 rc = SDB_OK ;
-      string orgFileName ;
-
-      /// build path
-      CHAR  tmpName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
-                         _clFullName.c_str(), OSS_MAX_PATHSIZE,
-                         tmpName ) ;
-      orgFileName = tmpName ;
-      orgFileName += RTN_REORG_FILE_SUBFIX ;
-
-      if ( createNew )
-      {
-         /// first to delete the file
-         if ( SDB_OK == ossAccess( orgFileName.c_str(), 0 ) )
-         {
-            rc = ossDelete( orgFileName.c_str() ) ;
-            if ( SDB_OK == rc )
-            {
-               PD_LOG( PDEVENT, "Remove the old reorg file[%s] succeed",
-                       orgFileName.c_str() ) ;
-            }
-         }
-      }
-      rc = pSU->open( orgFileName.c_str(),
-                      _pSU->getPageSize(),
-                      _pSU->data()->getSegmentSize(),
-                      createNew ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "File to create org file[%s], rc: %d",
-                 orgFileName.c_str(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_exportOneExtent( pmdEDUCB *cb,
-                                            dmsMBContext *mbContext,
-                                            dmsReorgUnit *pSU,
-                                            dmsExtentID extID,
-                                            BOOLEAN forward,
-                                            UINT32 &remainPages,
-                                            dmsExtentID &nextExtID,
-                                            BOOLEAN &valid )
-   {
-      INT32 rc = SDB_OK ;
-      dmsExtRW extRW ;
-      const dmsExtent *extent = NULL ;
-
-      if ( extID < 0 ||
-           (UINT32)extID >= _pSU->data()->getHeader()->_pageNum )
-      {
-         PD_LOG( PDERROR, "Extent id[%d] is invalid", extID) ;
-         valid = FALSE ;
-         goto error ;
-      }
-
-      extRW = _pSU->data()->extent2RW( extID, -1 ) ;
-      extRW.setNothrow( TRUE ) ;
-      extent = extRW.readPtr<dmsExtent>() ;
-      if ( !extent )
-      {
-         PD_LOG( PDERROR, "Get extent[%d]'s address failed", extID ) ;
-         valid = FALSE ;
-         goto error ;
-      }
-
-      if ( forward )
-      {
-         nextExtID = extent->_nextExtent ;
-      }
-      else
-      {
-         nextExtID = extent->_prevExtent ;
-      }
-
-      if ( !extent->validate( mbContext->mbID() ) ||
-           extent->_blockSize == 0 ||
-           extent->_blockSize > _pSU->data()->segmentPages() ||
-           extent->_blockSize > remainPages ||
-           nextExtID == extID )
-      {
-         PD_LOG( PDERROR, "Extent[%d] is invalid", extID ) ;
-         valid = FALSE ;
-         goto error ;
-      }
-
-      remainPages -= extent->_blockSize ;
-
-      rc = _exportByAExtent( cb, mbContext, pSU, extID ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_exportByExtents( pmdEDUCB *cb,
-                                            dmsMBContext *mbContext,
-                                            dmsReorgUnit *pSU )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 extentNum = 0 ;
-      dmsExtentID extentID = DMS_INVALID_EXTENT ;
-      dmsExtentID nextExtID = DMS_INVALID_EXTENT ;
-      dmsExtentID forwardStopExt = DMS_INVALID_EXTENT ;
-      dmsExtentID backwardStopExt = DMS_INVALID_EXTENT ;
-      BOOLEAN valid = TRUE ;
-      BOOLEAN damaged = FALSE ;
-      BOOLEAN needBackward = TRUE ;
-      UINT32 maxRemainPages = _pSU->data()->pageNum() ;
-      dmsExtentID firstExtInMB = mbContext->mb()->_firstExtentID ;
-      dmsExtentID lastExtInMB = mbContext->mb()->_lastExtentID ;
-
-      nextExtID = firstExtInMB ;
-      while( DMS_INVALID_EXTENT != nextExtID )
-      {
-         if ( cb->isInterrupted() )
-         {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
-         }
-
-         extentID = nextExtID ;
-         rc = _exportOneExtent( cb, mbContext, pSU, extentID, TRUE,
-                                maxRemainPages, nextExtID, valid ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-
-         // If the last extent is hit during the forward scanning, then no
-         // backward scanning is needed.
-         if ( needBackward && ( extentID == lastExtInMB ) )
-         {
-            needBackward = FALSE ;
-         }
-
-         // Once an invalid extent is found, we stop the traverse.
-         if ( !valid )
-         {
-            damaged = TRUE ;
-            break ;
-         }
-
-         ++extentNum ;
-      }
-
-      forwardStopExt = extentID ;
-
-      // If we haven't reached the last extent, it means some extents at the
-      // middle of the extent list are corrupted. In that case, continue to scan
-      // the extents backwards in order to save as much data as possible.
-      if ( needBackward )
-      {
-         if ( !damaged )
-         {
-            damaged = TRUE ;
-         }
-
-         valid = TRUE ;
-
-         nextExtID = lastExtInMB ;
-         while ( DMS_INVALID_EXTENT != nextExtID )
-         {
-            if ( cb->isInterrupted() )
-            {
-               rc = SDB_APP_INTERRUPT ;
-               goto error ;
-            }
-
-            extentID = nextExtID ;
-            rc = _exportOneExtent( cb, mbContext, pSU, extentID, FALSE,
-                                   maxRemainPages, nextExtID, valid ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            if ( !valid )
-            {
-               break ;
-            }
-
-            ++extentNum ;
-
-            if ( nextExtID == forwardStopExt )
-            {
-               break ;
-            }
-         }
-         backwardStopExt = extentID ;
-      }
-
-      if ( damaged )
-      {
-         PD_LOG( PDWARNING, "Collection[%s]'s extent list is damaged. First "
-                 "extent in mb:%d, last extent in mb:%d, forward processed "
-                 "last extent:%d, backward processed last extent:%d. "
-                 "Processed extent count:%u",
-                 _clFullName.c_str(), firstExtInMB, lastExtInMB,
-                 forwardStopExt, backwardStopExt, extentNum ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_exportByAExtent( pmdEDUCB *cb,
-                                            dmsMBContext *mbContext,
-                                            dmsReorgUnit *pSU,
-                                            dmsExtentID extentID )
-   {
-      INT32 rc = SDB_OK ;
-
-      UINT32 recordNum = 0 ;
-      const dmsRecord *pRecord = NULL ;
-      const dmsExtent *pExtent = NULL ;
-      dmsOffset nextOffset = DMS_INVALID_OFFSET ;
-      UINT32 extentSize = 0 ;
-      dmsExtRW extRW ;
-      dmsRecordID rid( extentID, DMS_INVALID_OFFSET ) ;
-      dmsRecordRW recordRW ;
-      dmsRecordData recordData ;
-      dmsCompressorEntry *pEntry = NULL ;
-      std::set<dmsOffset> offsetSet ;
-      std::pair<std::set<dmsOffset>::iterator, bool> result ;
-
-      pEntry = _pSU->data()->getCompressorEntry( mbContext->mbID() ) ;
-      extRW = _pSU->data()->extent2RW( extentID, -1 ) ;
-      extRW.setNothrow( TRUE ) ;
-      pExtent = extRW.readPtr<dmsExtent>() ;
-      if ( !pExtent )
-      {
-         PD_LOG( PDERROR, "Get extent[%d] address failed", extentID ) ;
-         /// not report this error
-         goto done ;
-      }
-      extentSize = pExtent->_blockSize * _pSU->getPageSize() ;
-
-      /// scan backward
-      nextOffset = pExtent->_firstRecordOffset ;
-      while( DMS_INVALID_OFFSET != nextOffset )
-      {
-         if ( nextOffset < sizeof(dmsExtent) ||
-              nextOffset > extentSize - sizeof(dmsRecord) )
-         {
-            /// offset error
-            PD_LOG( PDERROR, "Reocrd[%d.%d]'s next offset[%d] is error",
-                    extentID, rid._offset, nextOffset ) ;
-            break ;
-         }
-         rid._offset = nextOffset ;
-         // We use a set to find the possible record link list circle in case
-         // of data corruption. If found, ignore the remainning ones in the
-         // list.
-         try
-         {
-            result = offsetSet.insert( rid._offset ) ;
-            if ( !result.second )
-            {
-               PD_LOG( PDERROR, "Record list circle found at record[%d.%d]. "
-                       "Stop scanning the current extent", rid._extent,
-                       rid._offset ) ;
-               break ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         recordRW = _pSU->data()->record2RW( rid, mbContext->mbID() ) ;
-         recordRW.setNothrow( TRUE ) ;
-         pRecord = recordRW.readPtr() ;
-         if ( !pRecord )
-         {
-            PD_LOG( PDERROR, "Get record[%d.%d] address failed",
-                    rid._extent, rid._offset ) ;
-            break ;
-         }
-         /// set next
-         nextOffset = pRecord->getNextOffset() ;
-         /// record is delete
-         if ( pRecord->isDeleted() || pRecord->isDeleting() )
-         {
-            continue ;
-         }
-         /// State is wrong
-         if ( !pRecord->isNormal() && !pRecord->isOvf() )
-         {
-            PD_LOG( PDERROR, "Record[%d.%d]'s state is wrong [%d]",
-                    rid._extent, rid._offset, pRecord->getAttr() );
-            continue ;
-         }
-         /// Wrong compressed flag
-         if ( pRecord->isCompressed() &&
-              !OSS_BIT_TEST( mbContext->mb()->_attributes,
-                             DMS_MB_ATTR_COMPRESSED ) )
-         {
-            // Skip the corrupted record in below cases:
-            // 1. old version compression which is not alterable
-            // 2. wrong compression type
-            if ( !OSS_BIT_TEST( mbContext->mb()->_compressFlags,
-                                UTIL_COMPRESS_ALTERABLE_FLAG ) )
-            {
-               PD_LOG( PDERROR, "Record[%d.%d] should not be compressed" ) ;
-               continue ;
-            }
-            else if ( NULL == getCompressorByType(
-                           (UTIL_COMPRESSOR_TYPE)pRecord->getCompressType() ) )
-            {
-               PD_LOG( PDERROR, "Record[%d.%d] with wrong compression type" ) ;
-               continue ;
-            }
-         }
-         /// extract data
-         rc = _pSU->data()->extractData( mbContext, recordRW,
-                                         cb, recordData ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Extract record[%d.%d] data failed, rc: %d",
-                    rid._extent, rid._offset, rc ) ;
-            rc = SDB_OK ;
-            continue ;
-         }
-
-         /// write data to reorg file
-         try
-         {
-            BSONObj obj( recordData.data() ) ;
-            // In case of power failure, any kind of corruption may happen.
-            // There was one time that one record was damaged. The BSONObj EOO
-            // flag was not right. Then later in traversing of the object, when
-            // reaching the expected end, it was treated as an element. Later
-            // crash happened when try to get the size of the element.
-            // So in the rebuilding phase, we scan all the record objects, to
-            // make sure that they are valid BSON object( About 11% performance
-            // lose in the test). If they are not, exception is expected to
-            // happen and the current record will be ignored.
-            BSONObjIterator itr( obj );
-            while ( itr.moreWithEOO() )
-            {
-               BSONElement e = itr.next( true ) ;
-               if ( true == e.eoo() )
-               {
-                  break ;
-               }
-            }
-
-            rc = pSU->insertRecord( obj, cb, pEntry ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Insert rid[%d.%d] record data[%s] to "
-                       "reorg file failed, rc: %d", rid._extent, rid._offset,
-                       obj.toString().c_str(), rc ) ;
-               goto error ;
-            }
-            ++recordNum ;
-            ++_totalRecord ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Insert rid[%d.%d] record data to reorg file "
-                    "occur exception: %s", rid._extent, rid._offset,
-                    e.what() ) ;
-            /// not goto error
-         }
-      }
-
-      if ( rid._offset != pExtent->_lastRecordOffset ||
-           recordNum != pExtent->_recCount )
-      {
-         PD_LOG( PDWARNING, "Extent[%d] is damaged, Last record offset:%d, "
-                 "Record count:%u, Processed last offset:%d, Processed "
-                 "record count:%u", extentID, pExtent->_lastRecordOffset,
-                 pExtent->_recCount, rid._offset, recordNum ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_copyBack( pmdEDUCB *cb,
-                                     dmsMBContext *mbContext,
-                                     dmsReorgUnit *pRU )
-   {
-      INT32 rc             = SDB_OK ;
-
-      CHAR *blockBuffer    = NULL ;
-      UINT32 blockBuffSize = 0 ;
-      INT32 blockSize      = 0 ;
-
-      pRU->beginExport() ;
-
-      // loop for each block
-      while ( TRUE )
-      {
-         if ( cb->isInterrupted() )
-         {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
-         }
-
-         // get the next block
-         rc = pRU->getNextExtentSize( blockSize ) ;
-         if ( rc )
-         {
-            // if we get end of file, that means we don't have "
-            // any other blocks to copy, then we break the loop
-            if ( SDB_EOF == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-            PD_LOG ( PDERROR, "Failed to get next extent size, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         if ( blockBuffSize < (UINT32)blockSize )
-         {
-            if ( blockBuffer )
-            {
-               cb->releaseBuff( blockBuffer ) ;
-               blockBuffer = NULL ;
-               blockBuffSize = 0 ;
-            }
-            rc = cb->allocBuff( (UINT32)blockSize, &blockBuffer,
-                                &blockBuffSize ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to allocate memory[%u], rc: %d",
-                        blockSize, rc ) ;
-               goto error ;
-            }
-         }
-
-         // get the extent
-         rc = pRU->exportExtent( blockBuffer ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to export extent, rc: %d", rc ) ;
-            goto error ;
-         }
-         // load the extent into dms
-         rc = _pSU->loadExtent ( mbContext, blockBuffer,
-                                 (UINT16)( blockSize/_pSU->getPageSize() ) ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed load extent into DMS, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done :
-      if ( blockBuffer )
-      {
-         cb->releaseBuff( blockBuffer ) ;
-      }
-      return rc ;
-   error :
-      goto done ;
-   }
-
    INT32 _rtnCLRebuilder::_rebuildData( pmdEDUCB *cb,
                                         dmsMBContext *mbContext )
    {
@@ -1106,6 +596,9 @@ namespace engine
       rc = mbContext->getCollPtr()->validateData( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to validate data of colleciton [%s], "
                    "rc: %d", _clFullName.c_str(), rc ) ;
+
+      PD_LOG( PDEVENT, "Validated data on collection [%s]",
+              _clFullName.c_str() ) ;
 
       /// data file is restored
       mbContext->mbStat()->_commitFlag.init( 1 ) ;
@@ -1135,23 +628,71 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      UINT16 flag = mbContext->mb()->_flag ;
+      // need to lock mb
+      rc = mbContext->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      /// Change status
-      DMS_SET_MB_NORMAL( flag ) ;
-      mbContext->mb()->_flag = flag ;
+      for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++ indexID )
+      {
+         // rebuild for unique indexes
+         // kick records with duplicated keys caused by transaction rollback before crash
+         rtnRBDupKeyProcessor dkProcessor( _clFullName.c_str(),
+                                           mbContext->mb()->_clUniqueID ) ;
+         dmsExtentID idxExtent = mbContext->mb()->_indexExtent[ indexID ] ;
+         if ( DMS_INVALID_EXTENT == idxExtent )
+         {
+            break ;
+         }
+         ixmIndexCB indexCB ( idxExtent, _pSU->index(), mbContext ) ;
+         if ( !indexCB.isInitialized() )
+         {
+            PD_LOG ( PDERROR, "Failed to initialize index" ) ;
+            rc = SDB_DMS_INIT_INDEX;
+            goto error ;
+         }
 
-      mbContext->mb()->_idxCommitFlag = 1 ;
-      mbContext->mb()->_idxCommitLSN = (UINT64)~0 ;
-      mbContext->mbStat()->_idxCommitFlag.init( 1 ) ;
-      mbContext->mbStat()->_idxLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
-      mbContext->mbStat()->_idxIsCrash = FALSE ;
+         if ( !indexCB.unique() || indexCB.isIDIndex() )
+         {
+            continue ;
+         }
 
-      _indexNum = mbContext->mb()->_numIndexes ;
+         ossPoolString indexName( indexCB.getName() ) ;
+         BSONObj indexDef( indexCB.getDef().copy() ) ;
+
+         rc = _pSU->index()->rebuildIndex( mbContext, idxExtent, indexCB, cb,
+                                           SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                           &dkProcessor ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rebuild index [%s] on "
+                      "collection [%s], rc: %d", indexName.c_str(),
+                      _clFullName.c_str(), rc ) ;
+
+         PD_LOG( PDEVENT, "Rebuilded index [%s] define [%s] on collection [%s]",
+                 indexName.c_str(), indexDef.toPoolString().c_str(),
+                 _clFullName.c_str() ) ;
+      }
+
+      {
+         /// Change status
+         UINT16 flag = mbContext->mb()->_flag ;
+         DMS_SET_MB_NORMAL( flag ) ;
+         mbContext->mb()->_flag = flag ;
+
+         mbContext->mb()->_idxCommitFlag = 1 ;
+         mbContext->mb()->_idxCommitLSN = (UINT64)~0 ;
+         mbContext->mbStat()->_idxCommitFlag.init( 1 ) ;
+         mbContext->mbStat()->_idxLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
+         mbContext->mbStat()->_idxIsCrash = FALSE ;
+
+         _indexNum = mbContext->mb()->_numIndexes ;
+      }
 
       _pSU->data()->flushMeta( TRUE ) ;
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _rtnCLRebuilder::_rebuildLob( pmdEDUCB *cb,
@@ -1252,161 +793,21 @@ namespace engine
                                       const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
-      pmdKRCB *krcb = pmdGetKRCB() ;
-      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
-      SDB_RTNCB *rtnCB = krcb->getRTNCB() ;
-      UINT16 flag = 0 ;
-      UINT16 phase = DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY ;
 
-      BSONObj dummyObj ;
-      SINT64 contextID = -1 ;
-      rtnContextData::sharePtr context ;
-      dmsReorgUnit regSU ;
+      dmsCompactOptions options ;
 
       /// In query will create mbcontext, so in here, we need to unlock
-      mbContext->mbUnlock() ;
+      rc = mbContext->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s], "
+                   "rc: %d", _clFullName.c_str(), rc ) ;
 
-      /// begin to query data
-      rc = rtnQuery( _clFullName.c_str(), dummyObj, dummyObj, dummyObj,
-                     hint, 0, cb, 0, -1, dmsCB, rtnCB, contextID,
-                     &context ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC == rc )
-         {
-            // if the collection is completely empty
-            PD_LOG ( PDEVENT, "Empty collection is detected, "
-                     "reorg is skipped" ) ;
-            rc = SDB_OK ;
-            contextID = -1 ;
-         }
-         PD_LOG ( PDERROR, "Failed to query, rc = %d", rc ) ;
-         goto error ;
-      }
-
-      // let's lock the collection using exclusive mode
-      rc = context->getMBContext()->mbLock( EXCLUSIVE ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to lock collection %s, rc = %d",
-                  _clFullName.c_str(), rc ) ;
-         goto error ;
-      }
-      if ( context->getMBContext()->mbID() != mbContext->mbID() ||
-           context->getMBContext()->clLID() != mbContext->clLID() )
-      {
-         /// collection has re-create or truncated, so not rebuild
-         goto done ;
-      }
-
-      /// open reorg su
-      rc = _openRegSU( &regSU, TRUE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Open reorg file failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      PD_LOG( PDEVENT, "Start offline reorg, use reorg file:%s",
-              regSU.getFileName() ) ;
-
-      flag = mbContext->mb()->_flag ;
-      /// shadow copy
-      DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ;
-      mbContext->mb()->_flag = flag ;
-      PD_LOG( PDEVENT, "Begin shadow copy phase" ) ;
-
-      if ( -1 != contextID )
-      {
-         /// export data
-         rtnContextBuf buffObj ;
-         dmsCompressorEntry *compEntry = NULL ;
-         compEntry = _pSU->data()->getCompressorEntry( mbContext->mbID() ) ;
-
-         while( TRUE )
-         {
-            rc = context->getMore( 1, buffObj, cb ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-            else if ( SDB_APP_INTERRUPT == rc )
-            {
-               goto error ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Query data from collection[%s] failed, "
-                       "rc: %d", _clFullName.c_str(), rc ) ;
-               goto error ;
-            }
-
-            try
-            {
-               BSONObj obj( buffObj.data() ) ;
-               rc = regSU.insertRecord( obj, cb, compEntry ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to insert obj[%s] to reorg file, "
-                          "rc: %d", obj.toString().c_str(), rc ) ;
-                  goto error ;
-               }
-               ++_totalRecord ;
-            }
-            catch( std::exception &e )
-            {
-               PD_LOG( PDERROR, "Failed to build bson obj: %s", e.what() ) ;
-               /// the bson is crashed, not goto error
-            }
-         }
-
-         rc = regSU.flush() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to flush data to reorg file, rc: %d",
-                    rc ) ;
-            goto error ;
-         }
-      }
-
-      // let's lock the collection using exclusive mode
-      rc = context->getMBContext()->mbLock( EXCLUSIVE ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to lock collection %s, rc = %d",
-                  _clFullName.c_str(), rc ) ;
-         goto error ;
-      }
-
-      /// set to truncate
-      /// shadow copy
-      DMS_SET_MB_OFFLINE_REORG_TRUNCATE( flag ) ;
-      mbContext->mb()->_flag = flag ;
-      phase = DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ;
-
-      regSU.close() ;
-      rc = _recover( cb, context->getMBContext() ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Recover collection[%s] failed, rc: %d",
-                 _clFullName.c_str(), rc ) ;
-         goto error ;
-      }
+      rc = mbContext->getCollPtr()->compact( options, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reorganize data of collection [%s], "
+                   "rc: %d", _clFullName.c_str(), rc ) ;
 
    done:
-      if ( -1 != contextID )
-      {
-         rtnCB->contextDelete( contextID, cb ) ;
-      }
       return rc ;
    error:
-      if ( DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY == phase )
-      {
-         regSU.cleanup() ;
-         DMS_SET_MB_NORMAL( flag ) ;
-         mbContext->mb()->_flag = flag ;
-      }
       goto done ;
    }
 
@@ -1453,7 +854,6 @@ namespace engine
 
    INT32 _rtnCLRebuilder::_onRebuildDone()
    {
-      _cleanRegSU() ;
       return SDB_OK ;
    }
 
@@ -1472,7 +872,6 @@ namespace engine
 
    INT32 _rtnCLRebuilder::_onRecoverDone()
    {
-      _cleanRegSU() ;
       return SDB_OK ;
    }
 
@@ -1509,7 +908,6 @@ namespace engine
 
    INT32 _rtnCLRebuilder::_onReorgDone()
    {
-      _cleanRegSU() ;
       return SDB_OK ;
    }
 
@@ -1534,12 +932,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // For capped collection, the main target of restore is to restore the last
-   // extent information, bacause we use a working extent buffer to store the
-   // information when inserting, so the extent header is not always update
-   // immediately. In this case, if problems like crash or power off happened,
-   // the header of the last extent is expired. That's what needs to be
-   // restored.
    INT32 _rtnCappedCLRebuilder::_doRecover( dmsMBContext *context,
                                             pmdEDUCB *cb )
    {
@@ -1576,65 +968,32 @@ namespace engine
    INT32 _rtnCappedCLRebuilder::_rebuildData( dmsMBContext *context,
                                               pmdEDUCB *cb )
    {
-      dmsExtentID currentExt = DMS_INVALID_EXTENT ;
-      dmsExtentID lastExtent = DMS_INVALID_EXTENT ;
-      dmsExtentID lastValidExt = DMS_INVALID_EXTENT ;
-      UINT32 totalExtNum = 0 ;
-      UINT32 remainSpace = 0 ;
+      INT32 rc = SDB_OK ;
 
-      currentExt = context->mb()->_firstExtentID ;
-      lastExtent = context->mb()->_lastExtentID ;
+      rc = context->getCollPtr()->validateData( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to validate data of colleciton [%s], "
+                   "rc: %d", _clFullName.c_str(), rc ) ;
 
-      // Traverse the extent list to find out the last valid extent.
-      while ( DMS_INVALID_EXTENT != currentExt )
-      {
-         dmsExtRW extRW = _pSU->data()->extent2RW( currentExt,
-                                                   context->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         const dmsExtent *extent = extRW.readPtr<dmsExtent>() ;
-         if ( !extent || !extent->validate(context->mbID()) )
-         {
-            break ;
-         }
-         else
-         {
-            // recover the extent
-            _recoverOneExtent( currentExt, extent, context, remainSpace ) ;
-            _totalRecord += extent->_recCount ;
-         }
-         totalExtNum++ ;
-         lastValidExt = currentExt ;
-         if ( lastValidExt == lastExtent )
-         {
-            break ;
-         }
-         currentExt = extent->_nextExtent ;
-      }
-      if ( lastValidExt != lastExtent )
-      {
-         context->mb()->_lastExtentID = lastValidExt ;
-      }
-
-      _pSU->data()->postDataRestored( context ) ;
-      _pSU->data()->flushAll( TRUE ) ;
-
+      /// data file is restored
       context->mbStat()->_commitFlag.init( 1 ) ;
       context->mbStat()->_isCrash = FALSE ;
       context->mbStat()->_lastLSN.init( RTN_REBUILD_RESET_LSN ) ;
       context->mb()->_commitFlag = 1 ;
       context->mb()->_commitLSN = (UINT64)~0 ;
-      context->mb()->_totalRecords = _totalRecord ;
-      context->mb()->_totalDataPages =
-         totalExtNum << _pSU->data()->pageSizeSquareRoot() ;
-      // In capped collection, the free space is only the remainning free space
-      // in the last extent.
-      context->mb()->_totalDataFreeSpace = remainSpace ;
-      context->mbStat()->_totalRecords.swap( _totalRecord ) ;
-      context->mbStat()->_rcTotalRecords.init( _totalRecord ) ;
+
+      context->mbStat()->_idxCommitFlag.init( 0 ) ;
+      context->mbStat()->_idxIsCrash = TRUE ;
+      context->mb()->_idxCommitFlag = 0 ;
+
+      /// flush meta
+      _pSU->data()->flushMeta( TRUE ) ;
 
       _pSU->data()->flushMeta( TRUE ) ;
 
-      return SDB_OK ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _rtnCappedCLRebuilder::_rebuildLob( dmsMBContext *context,
@@ -1652,87 +1011,6 @@ namespace engine
       _pSU->data()->flushMeta( TRUE ) ;
 
       return SDB_OK ;
-   }
-
-   // Traverse all the records in one extent, validate each record, and update
-   // the extent header if neccessary.
-   void _rtnCappedCLRebuilder::_recoverOneExtent( dmsExtentID extentID,
-                                                  const dmsExtent *extent,
-                                                  dmsMBContext *mbContext,
-                                                  UINT32 &remainSpace )
-   {
-      UINT32 recCount = 0 ;
-      dmsOffset recordOffset = DMS_INVALID_OFFSET ;
-      dmsOffset firstRecOffset = DMS_INVALID_OFFSET ;
-      dmsOffset lastValidOffset = DMS_INVALID_OFFSET ;
-      INT64 logicalID = -1 ;
-      _extLidAndOffset2RecLid( extent->_logicID, DMS_EXTENT_METADATA_SZ,
-                               logicalID ) ;
-
-      remainSpace = DMS_CAP_EXTENT_SZ ;
-      recordOffset = extent->_firstRecordOffset ;
-
-      while ( DMS_INVALID_OFFSET != recordOffset &&
-              recordOffset < DMS_CAP_EXTENT_SZ )
-      {
-         dmsRecordID recordID( extentID, recordOffset ) ;
-         dmsRecordRW recRW = _pSU->data()->record2RW( recordID,
-                                                      mbContext->mbID() ) ;
-         recRW.setNothrow( TRUE ) ;
-         const dmsCappedRecord *record = recRW.readPtr<dmsCappedRecord>() ;
-         // Only when the record is normal, and the logical id in the record
-         // header is as expected that the record is valid.
-         // If invalid, stop, and treate it as the last record in this extent.
-         if ( !record || !record->isNormal() ||
-              ( logicalID != record->getLogicalID() ) )
-         {
-            break ;
-         }
-         // If the first record is valid, remember it for checking below.
-         if ( recordOffset == extent->_firstRecordOffset )
-         {
-            firstRecOffset = recordOffset ;
-         }
-         recCount++ ;
-         lastValidOffset = recordOffset ;
-         recordOffset += record->getSize() ;
-         remainSpace = DMS_CAP_EXTENT_SZ - recordOffset ;
-         logicalID += record->getSize() ;
-      }
-
-      // If the diagnose information is not the same with the extent header,
-      // update the extent header.
-      if ( recCount != extent->_recCount ||
-           firstRecOffset != extent->_firstRecordOffset ||
-           lastValidOffset != extent->_lastRecordOffset )
-      {
-         dmsExtRW extRWTmp = _pSU->data()->extent2RW( extentID,
-                                                      mbContext->mbID() ) ;
-         extRWTmp.setNothrow( TRUE ) ;
-         dmsExtent *extentTmp = extRWTmp.writePtr<dmsExtent>() ;
-         SDB_ASSERT( extentTmp, "Extent pointer is not possible to be NULL" ) ;
-         extentTmp->_recCount = recCount ;
-         extentTmp->_firstRecordOffset = firstRecOffset ;
-         extentTmp->_lastRecordOffset = lastValidOffset ;
-         extentTmp->_freeSpace = remainSpace ;
-         _pSU->data()->flushPages( extentID, extentTmp->_blockSize ) ;
-      }
-   }
-
-   void _rtnCappedCLRebuilder::_extLidAndOffset2RecLid( dmsExtentID extLID,
-                                                        dmsOffset offset,
-                                                        INT64 &logicalID )
-   {
-      if ( DMS_INVALID_EXTENT == extLID ||
-           offset < (INT32)DMS_EXTENT_METADATA_SZ )
-      {
-         logicalID = DMS_INVALID_REC_LOGICALID ;
-      }
-      else
-      {
-         logicalID = (INT64)extLID * DMS_CAP_EXTENT_BODY_SZ + offset
-                     - DMS_EXTENT_METADATA_SZ ;
-      }
    }
 
    _rtnCLRebuilderFactory::_rtnCLRebuilderFactory()

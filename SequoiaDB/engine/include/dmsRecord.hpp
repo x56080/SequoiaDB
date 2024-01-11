@@ -63,31 +63,21 @@ namespace engine
    {
       public:
          _dmsRecordData()
+         : _data( NULL ), _len( 0 ), _ownedBuffer( NULL ), _ownedBufferLen( 0 )
          {
-            reset() ;
          }
-         _dmsRecordData( const CHAR *data, UINT32 len,
-                         UINT8 compressType = UTIL_COMPRESSOR_INVALID,
-                         BOOLEAN isOrgData = TRUE )
+         _dmsRecordData( const CHAR *data, UINT32 len )
+         : _data( data ), _len( len ), _ownedBuffer( NULL ), _ownedBufferLen( 0 )
          {
-            _data = data ;
-            _len = len ;
-
-            _compressType = compressType ;
-
-            if ( isOrgData )
-            {
-               _orgData = data ;
-               _orgLen = len ;
-            }
-            else
-            {
-               _orgData = NULL ;
-               _orgLen = 0 ;
-            }
          }
          ~_dmsRecordData()
          {
+            if ( _ownedBuffer )
+            {
+               SDB_THREAD_FREE( _ownedBuffer ) ;
+               _ownedBuffer = NULL ;
+               _ownedBufferLen = 0 ;
+            }
          }
 
          BOOLEAN isEmpty() const { return !_data || 0 == _len ; }
@@ -95,64 +85,40 @@ namespace engine
          const CHAR* data() const { return _data ; }
          UINT32 len() const { return _len ; }
 
-         const CHAR* orgData() const { return _orgData ; }
-         UINT32 orgLen() const { return _orgLen ; }
-
-         BOOLEAN isCompressed() const { return UTIL_COMPRESSOR_INVALID != _compressType ; }
-         UINT8 getCompressType () const { return _compressType ; }
-         FLOAT32 getCompressRatio() const
-         {
-            if ( isCompressed() && _len > 0 && _orgLen > 0 )
-            {
-               return ( (FLOAT32)_len ) / (FLOAT32)_orgLen ;
-            }
-            return 1.0 ;
-         }
-
-         void setData( const CHAR *data, UINT32 len,
-                       UINT8 compressType = UTIL_COMPRESSOR_INVALID,
-                       BOOLEAN isOrgData = TRUE )
+         void setData( const CHAR *data, UINT32 len )
          {
             _data = data ;
             _len = len ;
-
-            _compressType = compressType ;
-
-            if ( isOrgData )
-            {
-               _orgData = data ;
-               _orgLen = len ;
-            }
-         }
-         void setOrgData( const CHAR *orgData, UINT32 orgLen )
-         {
-            _orgData = orgData ;
-            _orgLen = orgLen ;
          }
 
          void reset()
          {
             _data = NULL ;
             _len = 0 ;
-            _compressType = UTIL_COMPRESSOR_INVALID ;
-            _orgData = NULL ;
-            _orgLen = 0 ;
          }
-         void resetOrgData()
+
+         INT32 getOwned()
          {
-            _orgData = NULL ;
-            _orgLen = 0 ;
+            if ( _ownedBufferLen < _len )
+            {
+               CHAR *tmpBuf = (CHAR *)SDB_THREAD_REALLOC( _ownedBuffer, _len ) ;
+               if ( NULL == tmpBuf )
+               {
+                  return SDB_OOM ;
+               }
+               _ownedBuffer = tmpBuf ;
+               _ownedBufferLen = _len ;
+            }
+            ossMemcpy( _ownedBuffer, _data, _len ) ;
+            _data = _ownedBuffer ;
+            return SDB_OK ;
          }
 
       private:
          const CHAR     *_data ;
          UINT32         _len ;
-
-         UINT8          _compressType ;
-
-         const CHAR     *_orgData ;
-         UINT32         _orgLen ;
-
+         CHAR           *_ownedBuffer ;
+         UINT32         _ownedBufferLen ;
    } ;
    typedef _dmsRecordData dmsRecordData ;
 
@@ -452,24 +418,9 @@ namespace engine
       {
          return ;
       }
-      if ( data.isCompressed() )
-      {
-         setCompressed() ;
-         UINT32 * temp = (UINT32 *)( (CHAR *)this + 
-                                       DMS_RECORD_VERSIONED_METADATA_SZ ) ;
-         (*temp) = data.len() ;
-         (*temp) |= ( ( (UINT32)data.getCompressType() << 24 ) &
-                        0xFF000000 ) ;
-         ossMemcpy( (CHAR*)this + 
-                       DMS_RECORD_VERSIONED_METADATA_SZ + sizeof(UINT32),
-                    data.data(), data.len() ) ;
-      }
-      else
-      {
-         unsetCompressed() ;
-         ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
-                    data.data(), data.len() ) ;
-      }
+      unsetCompressed() ;
+      ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
+                 data.data(), data.len() ) ;
    }
 
    // Extract Data

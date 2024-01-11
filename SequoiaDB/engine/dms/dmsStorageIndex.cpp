@@ -1403,22 +1403,18 @@ namespace engine
             goto error ;
          }
 
-         if ( context->getCollPtr() )
+         dmsIdxMetadata metadata( _suDescriptor,
+                                  context->mb(),
+                                  context->mbStat(),
+                                  &indexCB ) ;
+         dmsDropIdxOptions options ;
+         rc = context->getCollPtr()->dropIndex( metadata, options, cb ) ;
+         if ( rc )
          {
-            dmsIdxMetadata metadata( _suDescriptor,
-                                     context->mb(),
-                                     context->mbStat(),
-                                     &indexCB ) ;
-            dmsDropIdxOptions options ;
-            rc = context->getCollPtr()->dropIndex( metadata, options, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to drop index [%s] on collection [%s] on "
-                       "engine [%s], rc: %d", indexCB.getName(), fullName,
-                       dmsGetStorageEngineName( _service->getEngineType() ),
-                       rc ) ;
-               goto error ;
-            }
+            PD_LOG( PDERROR, "Failed to drop index [%s] on collection [%s] on "
+                    "engine [%s], rc: %d", indexCB.getName(), fullName,
+                    dmsGetStorageEngineName( _service->getEngineType() ), rc ) ;
+            goto error ;
          }
 
          // set to dropping
@@ -1696,22 +1692,18 @@ namespace engine
          }
          indexCB.setRoot ( rootExtentID ) ;
 
-         if ( context->getCollPtr() )
+         dmsIdxMetadata metadata( _suDescriptor,
+                                  context->mb(),
+                                  context->mbStat(),
+                                  &indexCB ) ;
+         dmsCreateIdxOptions options ;
+         rc = context->getCollPtr()->createIndex( metadata, options, cb ) ;
+         if ( rc )
          {
-            dmsIdxMetadata metadata( _suDescriptor,
-                                     context->mb(),
-                                     context->mbStat(),
-                                     &indexCB ) ;
-            dmsCreateIdxOptions options ;
-            rc = context->getCollPtr()->createIndex( metadata, options, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to create index [%s] on collection [%s] on "
-                       "engine [%s], rc: %d", indexName, fullName,
-                       dmsGetStorageEngineName( _service->getEngineType() ),
-                       rc ) ;
-               goto error ;
-            }
+            PD_LOG( PDERROR, "Failed to create index [%s] on collection [%s] on "
+                    "engine [%s], rc: %d", indexName, fullName,
+                    dmsGetStorageEngineName( _service->getEngineType() ), rc ) ;
+            goto error ;
          }
 
          if ( indexCB.unique() )
@@ -2241,7 +2233,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsStorageIndex::rebuildIndexes( dmsMBContext *context, pmdEDUCB *cb,
+   INT32 _dmsStorageIndex::rebuildIndexes( dmsMBContext *context,
+                                           pmdEDUCB *cb,
                                            INT32 sortBufferSize,
                                            _dmsDupKeyProcessor *dkProcessor )
    {
@@ -2290,6 +2283,55 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexID,
+                     rc ) ;
+            goto error ;
+         }
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _dmsStorageIndex::rebuildIndex( dmsMBContext *context,
+                                         dmsExtentID indexExtID,
+                                         ixmIndexCB &indexCB,
+                                         pmdEDUCB *cb,
+                                         INT32 sortBufferSize,
+                                         _dmsDupKeyProcessor *dkProcessor )
+   {
+      INT32 rc = SDB_OK ;
+
+      shared_ptr<IIndex> idxPtr ;
+      dmsTruncateIdxOptions options ;
+
+      // need to lock mb
+      rc = context->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      rc = getIndex( context, &indexCB, cb, idxPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+      rc = idxPtr->truncate( options, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed truncate index [%s] on "
+                   "collection [%s.%s], rc: %d", indexCB.getName(),
+                   getSuName(), context->mb()->_collectionName, rc ) ;
+
+      {
+         dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
+         dmsIndexBuildGuardPtr guardPtr ;
+         rc = _registerBuildGuard( metadataKey, dmsRecordID(), guardPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register build lock, rc: %d", rc ) ;
+
+         rc = _rebuildIndex( context, indexExtID,
+                             indexCB.getLogicalID(), cb, sortBufferSize,
+                             indexCB.getIndexType(), guardPtr, NULL, NULL,
+                             dkProcessor ) ;
+         _unregisterBuildGuard( metadataKey ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexExtID,
                      rc ) ;
             goto error ;
          }
@@ -3781,24 +3823,20 @@ namespace engine
             goto error ;
          }
 
-         if ( context->getCollPtr() )
+         shared_ptr<IIndex> idxPtr ;
+         dmsTruncateIdxOptions options ;
+
+         rc = getIndex( context, &indexCB, cb, idxPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
+
+         rc = idxPtr->truncate( options, cb ) ;
+         if ( rc )
          {
-            shared_ptr<IIndex> idxPtr ;
-            dmsTruncateIdxOptions options ;
-
-            rc = getIndex( context, &indexCB, cb, idxPtr ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
-
-            rc = idxPtr->truncate( options, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to truncate index [%s] on collection [%s.%s] on "
-                       "engine [%s], rc: %d", indexCB.getName(),
-                       _pDataSu->getSuName(), context->mb()->_collectionName,
-                       dmsGetStorageEngineName( _service->getEngineType() ),
-                       rc ) ;
-               goto error ;
-            }
+            PD_LOG( PDERROR, "Failed to truncate index [%s] on collection [%s.%s] on "
+                    "engine [%s], rc: %d", indexCB.getName(),
+                    _pDataSu->getSuName(), context->mb()->_collectionName,
+                    dmsGetStorageEngineName( _service->getEngineType() ), rc ) ;
+            goto error ;
          }
       }
 
@@ -4024,22 +4062,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_GETINDEX ) ;
 
-      if ( context->getCollPtr() )
+      dmsIdxMetadataKey metadataKey( context->mb(), indexCB ) ;
+      rc = context->getCollPtr()->getIndex( metadataKey, cb, idxPtr ) ;
+      if ( SDB_IXM_NOTEXIST == rc )
       {
-         dmsIdxMetadataKey metadataKey( context->mb(), indexCB ) ;
-         rc = context->getCollPtr()->getIndex( metadataKey, cb, idxPtr ) ;
-         if ( SDB_IXM_NOTEXIST == rc )
-         {
-            dmsIdxMetadata metadata( _suDescriptor,
-                                     context->mb(),
-                                     context->mbStat(),
-                                     indexCB ) ;
-            rc = context->getCollPtr()->loadIndex( metadata, cb, idxPtr ) ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] of "
-                      "collection [%s.%s], rc: %d", indexCB->getName(),
-                      getSuName(), context->clName(), rc ) ;
+         dmsIdxMetadata metadata( _suDescriptor,
+                                  context->mb(),
+                                  context->mbStat(),
+                                  indexCB ) ;
+         rc = context->getCollPtr()->loadIndex( metadata, cb, idxPtr ) ;
       }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] of "
+                   "collection [%s.%s], rc: %d", indexCB->getName(),
+                   getSuName(), context->clName(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_GETINDEX, rc ) ;

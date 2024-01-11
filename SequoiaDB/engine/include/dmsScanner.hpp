@@ -358,6 +358,7 @@ namespace engine
       BOOLEAN              _firstRun ;
       UINT64               _onceRestNum ;
       _pmdEDUCB            *_cb ;
+      dmsRecordData        _recordData ;
    } ;
    typedef class _dmsSecScanner dmsSecScanner ;
 

@@ -90,6 +90,7 @@ namespace engine
                                   IExecutor *executor ) = 0 ;
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
+                                   BOOLEAN needGetOwned,
                                    IExecutor *executor ) = 0 ;
 
       virtual INT32 popRecords( const dmsRecordID &rid,

@@ -275,7 +275,6 @@ namespace engine
    protected:
       virtual void      _onAttach () ;
       virtual void      _onDetach () ;
-      virtual INT32     _onMetaDone( const _clMetaData &meta ) ;
 
    protected:
       void              _pullTransLog ( DPS_LSN &begin ) ;

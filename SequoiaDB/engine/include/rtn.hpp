@@ -741,16 +741,6 @@ namespace engine
 
    INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef ) ;
 
-   // Load compression dictionary for one collection.
-   INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
-                                const CHAR *dictionary,
-                                UINT32 dictSize ) ;
-
-   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
-                                dmsMBContext *context,
-                                const CHAR *dictionary,
-                                UINT32 dictSize ) ;
-
    INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
                             dmsExtentID expectedExtentID,
                             const CHAR* expectedIndexName,

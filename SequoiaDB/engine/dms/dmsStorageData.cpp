@@ -107,8 +107,7 @@ namespace engine
       try
       {
           // Step 1: Prepare the data, add OID and compress if necessary.
-         recordData.setData( record.objdata(), record.objsize(),
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
+         recordData.setData( record.objdata(), record.objsize() ) ;
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
          // check ID index for normal update
          // NOTE: for sequoiadb upgrade, if the old data before upgrade
@@ -148,8 +147,7 @@ namespace engine
                        record.objdata() + sizeof(UINT32),
                        record.objsize() - sizeof(UINT32) ) ;
             recordData.setData( pMergedData,
-                                oidEle.size() + record.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
+                                oidEle.size() + record.objsize() ) ;
             memReallocate = TRUE ;
          }
       }
@@ -237,11 +235,9 @@ namespace engine
          rc = context->mbLock( SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock collection, rc: %d", rc ) ;
 
-         if ( SDB_DMS_RECORD_NOTEXIST == _dmsStorageDataCommon::extractData( context,
-                                                                             tmpRID,
-                                                                             cb,
-                                                                             recordData,
-                                                                             FALSE ) )
+         if ( SDB_DMS_RECORD_NOTEXIST ==
+                     _dmsStorageDataCommon::extractData( context, tmpRID, cb,
+                                                         recordData, FALSE, FALSE ) )
          {
             foundRID = tmpRID ;
             isFound = TRUE ;
@@ -289,60 +285,6 @@ namespace engine
                                              pmdEDUCB *cb )
    {
       return SDB_OK ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__POSTINSERTRECORD, "_dmsStorageData::_postInsertRecord" )
-   void _dmsStorageData::_postInsertRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            const dmsRecordData &recordData,
-                                            UINT32 recordSize,
-                                            _pmdEDUCB *cb )
-   {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
-
-      // and then need to check if we need to split deleted record
-      dmsRecord* pRecord = recordRW.writePtr( recordSize ) ;
-      dmsOffset  myOffset = pRecord->getMyOffset() ;
-      SDB_ASSERT( pRecord->getSize() >= recordSize, "invalid record size" ) ;
-      UINT32 remainSize = pRecord->getSize() - recordSize ;
-
-      if ( remainSize > DMS_MIN_RECORD_SZ )
-      {
-         // to avoid small deleted record which can not be reused by average
-         // size of records in the same collection, we only split the record if
-         // the remain size can at least save the record with average size,
-         // or current record ( scale down to 0.8x )
-         UINT32 avgDataSize = context->mbStat()->getAvgDataSize() ;
-         UINT32 minRemainSize = ( 0 == avgDataSize ) ?
-                              ( recordSize ) :
-                              ( OSS_MIN( recordSize, avgDataSize ) ) ;
-         // scale down to 0.8
-         minRemainSize = (UINT32)( (FLOAT64)( minRemainSize ) *
-                                 DMS_REMAIN_SIZE_RATIO ) ;
-         if ( remainSize > minRemainSize )
-         {
-            // original offset+new size = new delete offset
-            dmsOffset remainOffset = myOffset + recordSize ;
-            // original size - new size = new delete size
-            dmsRecordID remainRID = recordRW.getRecordID() ;
-            remainRID._offset = remainOffset ;
-            INT32 rc = _saveDeletedRecord( context->mb(), remainRID, remainSize ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to save deleted record, rc: %d", rc ) ;
-            }
-            else
-            {
-               // set the original place with new dmsrecordSize
-               pRecord->setSize( recordSize ) ;
-            }
-         }
-      }
-      // if the leftover space is not good enough for a min_record, then we
-      // don't change the record size
-
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__RESERVEFROMDELETELIST, "_dmsStorageData::_reserveFromDeleteList" )
@@ -781,97 +723,6 @@ namespace engine
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, "_dmsStorageData::_extentInsertRecord" )
-   INT32 _dmsStorageData::_extentInsertRecord( dmsMBContext *context,
-                                               dmsExtRW &extRW,
-                                               dmsRecordRW &recordRW,
-                                               const dmsRecordData &recordData,
-                                               UINT32 needRecordSize,
-                                               _pmdEDUCB *cb,
-                                               BOOLEAN isInsert )
-   {
-      INT32 rc                         = SDB_OK ;
-      monAppCB * pMonAppCB             = cb ? cb->getMonAppCB() : NULL ;
-      dmsRecord* pRecord               = NULL ;
-      dmsOffset  myOffset              = DMS_INVALID_OFFSET ;
-
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD ) ;
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-
-      pRecord = recordRW.writePtr( needRecordSize ) ;
-      myOffset = pRecord->getMyOffset() ;
-      // first we need to check if the delete record is large enough
-      if ( pRecord->getSize() < needRecordSize )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( !recordData.isCompressed()
-               && recordData.len() < DMS_MIN_RECORD_DATA_SZ )
-      {
-         PD_LOG( PDERROR, "Bson obj size[%d] is invalid",
-               recordData.len() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      // set to normal status
-      pRecord->setNormal() ;
-      pRecord->resetAttr() ;
-
-      // then for the original location we set new record header and copy data
-      pRecord->setData( recordData ) ;
-
-      pRecord->setNextOffset( DMS_INVALID_OFFSET ) ;
-      pRecord->setPrevOffset( DMS_INVALID_OFFSET ) ;
-
-      // increase write counter
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-
-      // no need to change offset
-      if ( isInsert )
-      {
-         dmsExtent *extent       = extRW.writePtr<dmsExtent>() ;
-         dmsOffset   offset      = extent->_lastRecordOffset ;
-         // finally add the record into list
-         extent->_recCount++ ;
-         increaseMBStat( context->mb()->_clUniqueID,
-                        &( _mbStatInfo[ context->mbID() ] ), 1, cb ) ;
-         // if there is last record in the extent
-         if ( DMS_INVALID_OFFSET != offset )
-         {
-            // if there is already record in the extent
-            dmsRecordRW preRW = record2RW( dmsRecordID( extRW.getExtentID(),
-                                                      offset ),
-                                          context->mbID() ) ;
-            dmsRecord *preRecord = preRW.writePtr() ;
-            // set the next of previous point to the new record
-            preRecord->setNextOffset( myOffset ) ;
-            // set the previous of current points to the original last
-            pRecord->setPrevOffset( offset ) ;
-         }
-         extent->_lastRecordOffset = myOffset ;
-         // then check for first record in extent
-         if ( DMS_INVALID_OFFSET == extent->_firstRecordOffset )
-         {
-            // we only change it when it points to nothing
-            extent->_firstRecordOffset = myOffset ;
-         }
-      }
-
-      _mbStatInfo[context->mbID()]._lastCompressRatio =
-         (UINT8)( recordData.getCompressRatio() * 100 ) ;
-      _mbStatInfo[context->mbID()]._totalOrgDataLen.add( recordData.orgLen() ) ;
-      _mbStatInfo[context->mbID()]._totalDataLen.add( recordData.len() ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__FINALRECORDSIZE, "_dmsStorageData::_finalRecordSize" )
    void _dmsStorageData::_finalRecordSize( UINT32 &size,
                                            const dmsRecordData &recordData )
@@ -887,89 +738,6 @@ namespace engine
                   PD_PACK_STRING ( "size after align" ),
                   PD_PACK_UINT ( size ) ) ;
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__FINALRECORDSIZE ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_EXTRACTDATA, "_dmsStorageData::extractData" )
-   INT32 _dmsStorageData::extractData( const dmsMBContext *mbContext,
-                                       const dmsRecordRW &recordRW,
-                                       _pmdEDUCB *cb,
-                                       dmsRecordData &recordData,
-                                       BOOLEAN needIncDataRead )
-   {
-      INT32 rc                = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_EXTRACTDATA ) ;
-      monAppCB * pMonAppCB    = cb ? cb->getMonAppCB() : NULL ;
-      const dmsRecord *pRecord= recordRW.readPtr( 0 ) ;
-
-      recordData.reset() ;
-
-      if ( !mbContext->isMBLock() )
-      {
-         PD_LOG( PDERROR, "MB Context must be locked" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      /// if ovf, need to get the ovt's data
-      if ( pRecord->isOvf() )
-      {
-         dmsRecordID ovfRID = pRecord->getOvfRID() ;
-         dmsRecordRW ovfRW = record2RW( ovfRID, mbContext->mbID() ) ;
-         // Inherit no-throw property
-         ovfRW.setNothrow( recordRW.isNothrow() ) ;
-         pRecord = ovfRW.readPtr( 0 ) ;
-         if ( NULL == pRecord )
-         {
-            rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
-            PD_LOG( PDERROR, "Failed to get record from address[%d.%d]",
-                    ovfRID._extent, ovfRID._offset ) ;
-            goto error ;
-         }
-         SDB_ASSERT( pRecord->isOvt(), "Record must be ovt" ) ;
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-      }
-
-      recordData.setData( pRecord->getData(), pRecord->getDataLength(),
-                          UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
-      if ( pRecord->isCompressed() )
-      {
-         const CHAR *pUncompressData = NULL ;
-         INT32 unCompressDataLen = 0 ;
-         rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
-                             pRecord->getCompressType(), pRecord->getData(),
-                             pRecord->getDataLength(),
-                             &pUncompressData, &unCompressDataLen ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to uncompress data, rc: %d", rc ) ;
-            goto error ;
-         }
-         /// check the length
-         if ( unCompressDataLen != *(INT32*)pUncompressData )
-         {
-            PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
-                    "real length[%d]", unCompressDataLen,
-                    *(INT32*)pUncompressData ) ;
-            rc = SDB_CORRUPTED_RECORD ;
-            goto error ;
-         }
-         recordData.setData( pUncompressData, unCompressDataLen,
-                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
-      }
-      if( needIncDataRead )
-      {
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-      }
-
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA_EXTRACTDATA, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-
    }
 
    INT32 _dmsStorageData::_operationPermChk( DMS_ACCESS_TYPE accessType )

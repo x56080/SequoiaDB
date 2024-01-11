@@ -3042,10 +3042,6 @@ namespace engine
       // Flush MME
       _pDataSu->flushMME( _pDataSu->isSyncDeep() ) ;
 
-      // Set compressor entry cache
-      rc = _pDataSu->_setCompressorEntry( context->mbID() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to set compressor entry, rc: %d", rc ) ;
-
    done :
       if ( getContext )
       {

@@ -48,7 +48,6 @@
 #include "monDMS.hpp"
 #include "dmsTempSUMgr.hpp"
 #include "dmsStatSUMgr.hpp"
-#include "dmsRBSSUMgr.hpp"
 #include "dmsLocalSUMgr.hpp"
 #include "ossAtomic.hpp"
 #include "ossRWMutex.hpp"

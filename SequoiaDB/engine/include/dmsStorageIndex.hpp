@@ -192,6 +192,12 @@ namespace engine
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb,
                                    INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
                                    _dmsDupKeyProcessor *dkProcessor = NULL ) ;
+         INT32    rebuildIndex( _dmsMBContext *context,
+                                dmsExtentID indexExtID,
+                                ixmIndexCB &indexCB,
+                                _pmdEDUCB *cb,
+                                INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                _dmsDupKeyProcessor *dkProcessor = NULL ) ;
 
          // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
@@ -224,7 +230,8 @@ namespace engine
                                   BOOLEAN isUndo = FALSE,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
-         INT32    truncateIndexes ( _dmsMBContext *context, _pmdEDUCB *cb ) ;
+         INT32    truncateIndexes ( _dmsMBContext *context,
+                                    _pmdEDUCB *cb ) ;
 
          INT32    getIndexCBExtent ( _dmsMBContext *context,
                                      const CHAR *indexName,

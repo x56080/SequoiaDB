@@ -2535,24 +2535,6 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSFSDS__ONDETACH );
    }
 
-   INT32 _clsFSDstSession::_onMetaDone( const _clMetaData &meta )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( meta.dictionary && meta.dictSize > 0 )
-      {
-         rc = rtnLoadCollectionDict( (meta.csName + "." + meta.clName).c_str(),
-                                     meta.dictionary, meta.dictSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] "
-                      "failed: %d", meta.clName.c_str(), rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    BOOLEAN _clsFSDstSession::_onNotify( MsgClsFSNotifyRes *pMsg )
    {
       if ( CLS_FS_NOTIFY_TYPE_LOB == pMsg->type &&

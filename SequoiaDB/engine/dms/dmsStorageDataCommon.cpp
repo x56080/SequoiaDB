@@ -877,130 +877,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INITCOMPRESSORENTRY, "_dmsStorageDataCommon::_initCompressorEntry" )
-   INT32 _dmsStorageDataCommon::_initCompressorEntry( UINT16 mbID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__INITCOMPRESSORENTRY ) ;
-      const dmsDictExtent *dictExtent = NULL ;
-      dmsExtentID dictExtID = _dmsMME->_mbList[mbID]._dictExtentID ;
-      UTIL_COMPRESSOR_TYPE type =
-            ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
-      utilCompressor *compressor = NULL ;
-
-      dmsCompressorGuard compGuard( &_compressorEntry[mbID], EXCLUSIVE ) ;
-
-      // Set the compress flags whether the collection is compressed or not
-      _compressorEntry[mbID].setFlags( _dmsMME->_mbList[mbID]._compressFlags ) ;
-
-
-      /*
-       * If the compression type is lzw and the dictionary has not been created,
-       * return directly.
-       */
-      if ( UTIL_COMPRESSOR_LZW == type && DMS_INVALID_EXTENT == dictExtID )
-      {
-         goto done ;
-      }
-
-      // check compressor is valid
-      if ( OSS_BIT_TEST( _dmsMME->_mbList[ mbID ]._attributes,
-                         DMS_MB_ATTR_COMPRESSED ) )
-      {
-         compressor = getCompressorByType( type ) ;
-         SDB_ASSERT( compressor, "compressor pointer should not be NULL" ) ;
-         if ( !compressor )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Failed to get compressor for collection[%s], "
-                    "type: %d, rc: %d", _dmsMME->_mbList[mbID]._collectionName,
-                    type, rc ) ;
-            goto error ;
-         }
-         _compressorEntry[mbID].setCompressor( compressor ) ;
-      }
-
-      // set dictionary if needed
-      if ( DMS_INVALID_EXTENT != dictExtID )
-      {
-         dmsExtRW rw = extent2RW( dictExtID, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         dictExtent = rw.readPtr<dmsDictExtent>() ;
-         if ( !dictExtent || !dictExtent->validate( mbID ) )
-         {
-            PD_LOG( PDERROR, "Dictionary extent is invalid. Extent id: %d",
-                    dictExtID ) ;
-            rc = SDB_DMS_CORRUPTED_EXTENT ;
-            goto error ;
-         }
-
-         _compressorEntry[mbID].setDictionary(
-            (const utilDictHandle)( beginFixedAddr( dictExtID,
-                                                    dictExtent->_blockSize ) +
-                                    DMS_DICTEXTENT_HEADER_SZ ) ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__INITCOMPRESSORENTRY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__SETCOMPRESSORENTRY, "_dmsStorageDataCommon::_setCompressorEntry" )
-   INT32 _dmsStorageDataCommon::_setCompressorEntry ( UINT16 mbID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__SETCOMPRESSORENTRY ) ;
-
-      const dmsDictExtent * dictExtent = NULL ;
-      dmsExtentID dictExtID = _dmsMME->_mbList[mbID]._dictExtentID ;
-      UTIL_COMPRESSOR_TYPE type =
-            ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
-
-      dmsCompressorGuard compGuard( &_compressorEntry[mbID], EXCLUSIVE ) ;
-
-      _compressorEntry[ mbID ].setFlags( _dmsMME->_mbList[mbID]._compressFlags ) ;
-
-      if ( UTIL_COMPRESSOR_LZW == type && DMS_INVALID_EXTENT == dictExtID )
-      {
-         // Push the dictionary job later, set NULL for temporary
-         _compressorEntry[ mbID ].setCompressor( NULL ) ;
-         goto done ;
-      }
-      else
-      {
-         utilCompressor * compressor = getCompressorByType( type ) ;
-         _compressorEntry[ mbID ].setCompressor( compressor ) ;
-      }
-
-      if ( DMS_INVALID_EXTENT != dictExtID )
-      {
-         dmsExtRW rw = extent2RW( dictExtID, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         dictExtent = rw.readPtr<dmsDictExtent>() ;
-         PD_CHECK( NULL != dictExtent && dictExtent->validate( mbID ),
-                   SDB_DMS_CORRUPTED_EXTENT, error, PDERROR,
-                   "Dictionary extent is invalid. Extent id: %d",
-                   dictExtID ) ;
-
-         _compressorEntry[mbID].setDictionary(
-            (const utilDictHandle)( beginFixedAddr( dictExtID,
-                                                    dictExtent->_blockSize ) +
-                                    DMS_DICTEXTENT_HEADER_SZ ) ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__SETCOMPRESSORENTRY, rc ) ;
-      return rc ;
-
-   error :
-      // On error, set to NULL for safety
-      _compressorEntry[ mbID ].setCompressor( NULL ) ;
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMAPMETA, "_dmsStorageDataCommon::_onMapMeta" )
    INT32 _dmsStorageDataCommon::_onMapMeta( UINT64 curOffSet )
    {
@@ -1164,11 +1040,6 @@ namespace engine
       {
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
-            rc = _initCompressorEntry( i ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to initialize compressor entry for "
-                         "collection: %s, rc = %d",
-                         _dmsMME->_mbList[i]._collectionName, rc ) ;
             if ( _service )
             {
                dmsCLMetadata metadata( _suDescriptor,
@@ -1180,11 +1051,9 @@ namespace engine
          }
       }
 
-   done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__ONOPENED, rc ) ;
+
       return rc ;
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONCLOSED, "_dmsStorageDataCommon::_onClosed" )
@@ -1320,7 +1189,8 @@ namespace engine
                                              const dmsRecordID &recordID,
                                              _pmdEDUCB *cb,
                                              dmsRecordData &recordData,
-                                             BOOLEAN needIncDataRead )
+                                             BOOLEAN needIncDataRead,
+                                             BOOLEAN needGetOwned )
    {
       INT32 rc = SDB_OK ;
 
@@ -1337,7 +1207,7 @@ namespace engine
          goto error ;
       }
 
-      rc = mbContext->getCollPtr()->extractRecord( recordID, recordData, cb ) ;
+      rc = mbContext->getCollPtr()->extractRecord( recordID, recordData, needGetOwned, cb ) ;
       if ( SDB_DMS_RECORD_NOTEXIST == rc )
       {
          goto error ;
@@ -1703,16 +1573,6 @@ namespace engine
                                                      BOOLEAN needChangeCLID )
    {
       INT32 rc                     = SDB_OK ;
-      dmsExtRW lastRW ;
-      dmsExtRW metaRW ;
-      dmsExtRW dictRW ;
-      dmsExtentID currentExt       = DMS_INVALID_EXTENT ;
-      dmsExtentID prevExt          = DMS_INVALID_EXTENT ;
-      dmsMetaExtent *metaExt       = NULL ;
-      dmsDictExtent *dictExt       = NULL ;
-      BOOLEAN reachLast            = FALSE ;
-      dmsExtentID nextExt          = DMS_INVALID_EXTENT ;
-      const dmsExtent *pCurrExt    = NULL ;
 
       SDB_ASSERT( context, "dms mb context can't be NULL" ) ;
 
@@ -1720,148 +1580,17 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      currentExt = context->mb()->_lastExtentID ;
-      // If there is only one extent, set reachLast as TRUE.
-      reachLast = ( currentExt == context->mb()->_firstExtentID ) ?
-                  TRUE : FALSE ;
-
       // reset delete list
       for ( UINT32 i = 0 ; i < dmsMB::_max ; i++ )
       {
          context->mb()->_deleteList[i].reset() ;
       }
 
-      // We should set _totalDataFreeSpace before _freeExtent() which free
-      // pages in SME. If not, FreeDataSize calculated by snapshot cs will be
-      // larger than the actual one.
-      // FreeDataSize = freePages in sme * pageSize + each cl totalDataFreeSpace
-      context->mbStat()->_totalDataFreeSpace = 0 ;
-
-      // Free all extent from the end. If the system went down becuase of power
-      // cut, the file may be damanged. During the recovery, if we find any
-      // damaged extent, try to truncate from the beginning also.
-      while ( DMS_INVALID_EXTENT != currentExt )
-      {
-         try
-         {
-            lastRW = extent2RW( currentExt, context->mbID() ) ;
-            pCurrExt = lastRW.readPtr<dmsExtent>() ;
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception:%s", e.what() ) ;
-            break ;
-         }
-
-         // get the previous extent
-         prevExt = pCurrExt->_prevExtent ;
-         // free the extent
-         rc = _freeExtent ( currentExt, context->mbID() ) ;
-         if ( rc )
-         {
-            SDB_ASSERT( SDB_OK == rc ||
-                        SDB_DB_NORMAL != PMD_DB_STATUS(),
-                        "Free extent can't be failure" ) ;
-            PD_LOG ( PDERROR, "Failed to free extent[%u], rc: %d", currentExt,
-                     rc ) ;
-            rc = SDB_DMS_CORRUPTED_EXTENT ;
-            break ;
-         }
-
-         // set last to previous
-         currentExt = prevExt ;
-         // update MB
-         context->mb()->_lastExtentID = currentExt ;
-         if ( currentExt == context->mb()->_firstExtentID )
-         {
-            // Now ready to release the first(also the last for now) extent.
-            reachLast = TRUE ;
-         }
-      }
-
-      if ( !reachLast )
-      {
-         // Extent error found, now try to free from the beginning.
-         currentExt = context->mb()->_firstExtentID ;
-         while ( DMS_INVALID_EXTENT != currentExt )
-         {
-            try
-            {
-               lastRW = extent2RW( currentExt, context->mbID() ) ;
-               pCurrExt = lastRW.readPtr<dmsExtent>() ;
-            }
-            catch ( std::exception &e )
-            {
-               PD_LOG( PDERROR, "Occur exception:%s", e.what() ) ;
-               break ;
-            }
-
-            nextExt = pCurrExt->_nextExtent ;
-            rc = _freeExtent( currentExt, context->mbID() ) ;
-            if ( rc )
-            {
-               SDB_ASSERT( SDB_OK == rc, "Free extent can't be failure" ) ;
-               PD_LOG ( PDERROR, "Failed to free extent[%u], rc: %d", currentExt,
-                        rc ) ;
-               rc = SDB_DMS_CORRUPTED_EXTENT ;
-               break ;
-            }
-
-            currentExt = nextExt ;
-            context->mb()->_firstExtentID = currentExt ;
-            if ( currentExt == context->mb()->_lastExtentID )
-            {
-               break ;
-            }
-         }
-      }
-
       context->mb()->_firstExtentID = DMS_INVALID_EXTENT ;
       context->mb()->_lastExtentID = DMS_INVALID_EXTENT ;
 
-      // free all load extent
-      currentExt = context->mb()->_loadLastExtentID ;
-      while ( DMS_INVALID_EXTENT != currentExt )
-      {
-         lastRW = extent2RW( currentExt, context->mbID() ) ;
-         pCurrExt = lastRW.readPtr<dmsExtent>() ;
-         prevExt = pCurrExt->_prevExtent ;
-         rc = _freeExtent( currentExt, context->mbID() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to free load extent[%u], rc: %d",
-                    currentExt, rc ) ;
-            SDB_ASSERT( SDB_OK == rc, "Free extent can't be failure" ) ;
-         }
-         currentExt = prevExt ;
-         context->mb()->_loadLastExtentID = currentExt ;
-      }
-      context->mb()->_loadFirstExtentID = DMS_INVALID_EXTENT ;
-
-      if ( DMS_INVALID_EXTENT != context->mb()->_mbExExtentID )
-      {
-         metaRW = extent2RW( context->mb()->_mbExExtentID, context->mbID() ) ;
-         metaExt = metaRW.writePtr<dmsMetaExtent>() ;
-         metaExt = metaRW.writePtr<dmsMetaExtent>( 0,
-                                                  (UINT32)metaExt->_blockSize <<
-                                                   pageSizeSquareRoot() ) ;
-         metaExt->reset() ;
-      }
-
-      /*
-       * Incase of drop/truncate collection, destroy the compressor and release
-       * the dictionary both in memory and on disk.
-       */
-      if ( DMS_INVALID_EXTENT != context->mb()->_dictExtentID
-           && needChangeCLID )
-      {
-         dictRW = extent2RW( context->mb()->_dictExtentID,
-                             context->mbID() ) ;
-         dictExt = dictRW.writePtr<dmsDictExtent>() ;
-         _releaseSpace( context->mb()->_dictExtentID, dictExt->_blockSize ) ;
-         context->mb()->_dictExtentID = DMS_INVALID_EXTENT ;
-         context->mb()->_dictVersion = 0 ;
-      }
+      context->mb()->_ridGen = 0 ;
+      context->mbStat()->_ridGen.poke( 0 ) ;
 
       context->mbStat()->_totalDataFreeSpace = 0 ;
       context->mbStat()->_totalDataPages = 0 ;
@@ -2424,7 +2153,6 @@ namespace engine
       mbStat->_createTime = mb->_createTime ;
       mbStat->_updateTime = mb->_updateTime ;
       mbStat->_ridGen.init( mb->_ridGen ) ;
-      _compressorEntry[ newCollectionID ].reset() ;
 
       _dmsHeader->_numMB++ ;
       _onHeaderUpdated() ;
@@ -2480,17 +2208,6 @@ namespace engine
          *collectionID = newCollectionID ;
       }
       dropDps = dpscb ;
-
-      /// set compressor when snappy
-      _setCompressor( context ) ;
-
-      // allocate new extent
-      if ( 0 != initPages )
-      {
-         rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
-                      "failed, rc: %d", initPages, pName, rc ) ;
-      }
 
       // create $id index[s_idKeyObj]
       if ( !OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
@@ -2684,9 +2401,6 @@ namespace engine
          rc = _pIdxSU->dropAllIndexes( context, cb, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to drop index for collection[%s], "
                       "rc: %d", pName, rc ) ;
-
-         // truncate the collection
-         _rmCompressor( context ) ;
 
          rc = _truncateCollection( context ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s], rc: %d",
@@ -2987,32 +2701,19 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
                          "rc: %d", pName, rc ) ;
 
-            if ( context->getCollPtr() )
+            dmsTruncCLOptions tmpOptions ;
+            if ( NULL == options )
             {
-               dmsTruncCLOptions tmpOptions ;
-               if ( NULL == options )
-               {
-                  options = &tmpOptions ;
-               }
-               rc = context->getCollPtr()->truncate( *options, cb ) ;
-               if ( options == &tmpOptions )
-               {
-                  options = NULL ;
-               }
-               PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s] data, "
-                            "rc: %d", pName, rc ) ;
+               options = &tmpOptions ;
             }
+            rc = context->getCollPtr()->truncate( *options, cb ) ;
+            if ( options == &tmpOptions )
+            {
+               options = NULL ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to truncate collection [%s] data, "
+                         "rc: %d", pName, rc ) ;
 
-            /*
-            * For LZW, the compressor and dictionary should be removed during
-            * truncate. In case of snappy, the compressor should be reserved.
-            */
-            if ( UTIL_COMPRESSOR_LZW ==
-                 (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
-                 needChangeCLID )
-            {
-               _rmCompressor( context ) ;
-            }
             rc = _truncateCollection( context, needChangeCLID ) ;
             PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
                          pName, rc ) ;
@@ -3064,9 +2765,6 @@ namespace engine
             cb->setDataExInfo( fullName, logicalID(), oldCLID,
                                DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
          }
-
-         context->mb()->_ridGen = 0 ;
-         context->mbStat()->_ridGen.poke( 0 ) ;
 
          rc = writeGuard.commit() ;
          if ( SDB_OK != rc )
@@ -4241,10 +3939,8 @@ namespace engine
          rc = context->getCollPtr()->insertRecord( foundRID, recordData, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record, rc: %d", rc ) ;
 
-         _mbStatInfo[context->mbID()]._lastCompressRatio =
-            (UINT8)( recordData.getCompressRatio() * 100 ) ;
          writeGuard.getPersistGuard().incRecordCount() ;
-         writeGuard.getPersistGuard().incOrgDataLen( recordData.orgLen() ) ;
+         writeGuard.getPersistGuard().incOrgDataLen( recordData.len() ) ;
          writeGuard.getPersistGuard().incDataLen( recordData.len() ) ;
 
          //increase data write counter
@@ -4449,8 +4145,7 @@ namespace engine
          if ( deletedDataPtr )
          {
             recordData.setData( (const CHAR*)deletedDataPtr,
-                                 *(UINT32*)deletedDataPtr,
-                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
+                                 *(UINT32*)deletedDataPtr ) ;
          }
          else
          {
@@ -4607,7 +4302,7 @@ namespace engine
          //in DB,len mean the uncompress size. So when we substract the
          //size,we should swap them.
          writeGuard.getPersistGuard().decRecordCount() ;
-         writeGuard.getPersistGuard().decDataLen( recordData.orgLen() ) ;
+         writeGuard.getPersistGuard().decDataLen( recordData.len() ) ;
          writeGuard.getPersistGuard().decOrgDataLen( recordData.len() ) ;
 
          //increase data write counter
@@ -4774,8 +4469,7 @@ namespace engine
          if ( updatedDataPtr )
          {
             recordData.setData( (const CHAR*)updatedDataPtr,
-                                *(UINT32*)updatedDataPtr,
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
+                                *(UINT32*)updatedDataPtr ) ;
          }
          else
          {
@@ -4881,8 +4575,7 @@ namespace engine
                }
             }
 
-            newRecordData.setData( newobj.objdata(), newobj.objsize(),
-                                   UTIL_COMPRESSOR_INVALID, TRUE ) ;
+            newRecordData.setData( newobj.objdata(), newobj.objsize() ) ;
 
             rc = writeGuard.begin() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
@@ -5006,12 +4699,10 @@ namespace engine
                goto error ;
             }
 
-            _mbStatInfo[context->mbID()]._lastCompressRatio =
-                  (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
-            context->mbStat()->_totalDataLen.sub( recordData.orgLen() ) ;
+            context->mbStat()->_totalDataLen.sub( recordData.len() ) ;
             context->mbStat()->_totalOrgDataLen.sub( recordData.len() ) ;
             context->mbStat()->_totalDataLen.add( newRecordData.len() ) ;
-            context->mbStat()->_totalOrgDataLen.add( newRecordData.orgLen() ) ;
+            context->mbStat()->_totalOrgDataLen.add( newRecordData.len() ) ;
 
             if ( NULL != newRecord )
             {
@@ -5114,7 +4805,7 @@ namespace engine
       {
          ctrlAssist.switchToUndo() ;
          BSONObj oriObj( recordData.data() ) ;
-         BSONObj newObj( newRecordData.orgData() ) ;
+         BSONObj newObj( newRecordData.data() ) ;
          // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, recordID._extent,
                                              newObj, oriObj, recordID, cb,
@@ -5222,222 +4913,6 @@ namespace engine
       return rc ;
    error :
       goto done ;
-   }
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_SETCOMPRESSOR, "_dmsStorageDataCommon::_setCompressor" )
-   void _dmsStorageDataCommon::_setCompressor( dmsMBContext *context  )
-   {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_SETCOMPRESSOR ) ;
-
-      UINT16 mbID = context->mbID() ;
-
-      if ( OSS_BIT_TEST( context->mb()->_attributes,
-                         DMS_MB_ATTR_COMPRESSED ) )
-      {
-         UTIL_COMPRESSOR_TYPE type =
-            (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
-
-         /// only set when snappy
-         if ( UTIL_COMPRESSOR_SNAPPY == type )
-         {
-            dmsCompressorGuard guard( &_compressorEntry[ mbID ], EXCLUSIVE ) ;
-            _compressorEntry[mbID].setCompressor( getCompressorByType( type ) ) ;
-         }
-      }
-
-      _compressorEntry[mbID].setFlags( context->mb()->_compressFlags ) ;
-
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_SETCOMPRESSOR ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RMCOMPRESSOR, "_dmsStorageDataCommon::_rmCompressor" )
-   void _dmsStorageDataCommon::_rmCompressor( _dmsMBContext *context )
-   {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_RMCOMPRESSOR ) ;
-      dmsCompressorGuard compGuard( &_compressorEntry[context->mbID()],
-                                    EXCLUSIVE ) ;
-      utilDictHandle dictAddr =
-         _compressorEntry[ context->mbID() ].getDictionary() ;
-
-      if ( UTIL_INVALID_DICT != dictAddr )
-      {
-         endFixedAddr( (const ossValuePtr)dictAddr -
-                       DMS_DICTEXTENT_HEADER_SZ ) ;
-      }
-      _compressorEntry[context->mbID()].reset() ;
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_RMCOMPRESSOR ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY, "_dmsStorageDataCommon::loadDictionary" )
-   INT32 _dmsStorageDataCommon::loadDictionary( dmsMBContext *context,
-                                                const CHAR *dictionary,
-                                                UINT32 dictLen )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY ) ;
-
-      dmsExtRW extRW ;
-      dmsMB *mb = context->mb() ;
-      dmsExtentID dictExtID = DMS_INVALID_EXTENT ;
-      dmsDictExtent *dictExtent = NULL ;
-      dmsCompressorEntry *compressorEntry =
-         &_compressorEntry[ context->mbID() ] ;
-
-      SDB_ASSERT( context, "MB context is NULL" ) ;
-      SDB_ASSERT( dictionary && dictLen > 0, "Dictionary is NULL" ) ;
-
-      // Calculate number of pages to store the dictionary, including the extent
-      // header.
-      UINT32 pageNum = ( sizeof( dmsDictExtent ) + dictLen +
-                         ( pageSize() - 1 ) ) / pageSize() ;
-
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         PD_LOG( PDERROR, "MB context must be locked in EXCLUSIVE mode" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      if ( !dmsAccessAndFlagCompatiblity( mb->_flag,
-                                          DMS_ACCESS_TYPE_CRT_DICT ) )
-      {
-         PD_LOG( PDERROR, "Incompatible collection mode: %d", mb->_flag ) ;
-         rc = SDB_DMS_INCOMPATIBLE_MODE ;
-         goto error ;
-      }
-
-      if ( !OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) )
-      {
-         PD_LOG( PDERROR, "Compression is not enabled for collection[%s]",
-                 mb->_collectionName ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      if ( UTIL_COMPRESSOR_LZW != mb->_compressorType )
-      {
-         PD_LOG( PDERROR, "Compression type of collection[%s] is not lzw",
-                 mb->_collectionName ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
-      {
-         PD_LOG( PDERROR, "Collection[%s] has valid compression dictionary and "
-                 "force load is false", mb->_collectionName ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      rc = _findFreeSpace( pageNum, dictExtID, context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to allocate space for dictionary "
-                   "extent" ) ;
-
-      extRW = extent2RW( dictExtID, context->mbID() ) ;
-      extRW.setNothrow( TRUE ) ;
-      dictExtent = extRW.writePtr<dmsDictExtent>( 0,
-                                                  pageNum <<
-                                                  pageSizeSquareRoot() ) ;
-      if( !dictExtent )
-      {
-         PD_LOG( PDERROR, "Get the dict extent[%d] address failed",
-                 dictExtent ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      // Copy dictionary into extent, and flush to disk.
-      dictExtent->init( pageNum, context->mbID() ) ;
-      dictExtent->setDict( dictionary, dictLen ) ;
-      for ( INT32 i = 0; i < 3; i++ )
-      {
-         rc = flushPages( dictExtID, pageNum, TRUE ) ;
-         if ( SDB_OK == rc )
-         {
-            break ;
-         }
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to flush dictionary. It will be "
-                   "created and flushed again next time" ) ;
-
-      // Set the dictionary extent id in mb only after the dictionary has been
-      // successfully flushed to disk.
-      mb->_dictExtentID = dictExtID ;
-      mb->_dictVersion = UTIL_LZW_DICT_VERSION ;
-
-      // on metadata updated
-      _onMBUpdated( context->mbID() ) ;
-
-      /// Make sure the dict persist
-      flushMME( isSyncDeep() ) ;
-
-      {
-         UTIL_COMPRESSOR_TYPE type  =
-               (UTIL_COMPRESSOR_TYPE)mb->_compressorType ;
-         dmsCompressorGuard guard( compressorEntry, EXCLUSIVE ) ;
-         compressorEntry->setCompressor( getCompressorByType( type ) ) ;
-         compressorEntry->setDictionary(
-            (const utilDictHandle)( beginFixedAddr( dictExtID, pageNum ) +
-                                    DMS_DICTEXTENT_HEADER_SZ ) ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY, rc ) ;
-      return rc ;
-   error:
-      if ( DMS_INVALID_EXTENT != dictExtID )
-      {
-         _freeExtent( dictExtID, context->mbID() ) ;
-      }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_GETDICTIONARY, "_dmsStorageDataCommon::getDictionary" )
-   BOOLEAN _dmsStorageDataCommon::getDictionary( dmsMBContext *context,
-                                                 const CHAR *&dictionary,
-                                                 UINT32 &dictLen )
-   {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_GETDICTIONARY ) ;
-      BOOLEAN found = FALSE ;
-      dmsMB *mb = NULL ;
-
-      if ( !context->isMBLock( SHARED ) )
-      {
-         PD_LOG( PDERROR, "MB context must be locked in SHARED mode" ) ;
-         goto error ;
-      }
-
-      mb = context->mb() ;
-      dictionary = NULL ;
-      dictLen = 0 ;
-
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
-      {
-         dmsExtRW dictRW = extent2RW( mb->_dictExtentID, context->mbID() ) ;
-         const dmsDictExtent *dictExt = dictRW.readPtr<dmsDictExtent>() ;
-         dictionary = (CHAR *)dictExt + DMS_DICTEXTENT_HEADER_SZ ;
-         dictLen = ( dictExt->_blockSize << pageSizeSquareRoot() ) -
-                   DMS_DICTEXTENT_HEADER_SZ ;
-         found = TRUE ;
-      }
-
-   done:
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_GETDICTIONARY ) ;
-      return found ;
-   error:
-      goto done ;
-   }
-
-   UINT32 _dmsStorageDataCommon::_getRecordDataLen( const dmsRecord *pRecord )
-   {
-      /// if ovf, need to get the ovt's data
-      if ( pRecord->isOvf() )
-      {
-         dmsRecordID ovfRID = pRecord->getOvfRID() ;
-         dmsRecordRW ovfRW = record2RW( ovfRID, -1 ) ;
-         pRecord = ovfRW.readPtr() ;
-      }
-      return pRecord->getDataLength() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INCMBSTAT, "_dmsStorageDataCommon::increaseMBStat" )

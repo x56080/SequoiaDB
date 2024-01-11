@@ -1321,14 +1321,6 @@ namespace engine
                        _pmdEDUCB *cb,
                        BOOLEAN dataOwned = FALSE ) ;
 
-         INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
-                               UINT32 dictLen ) ;
-
-         BOOLEAN getDictionary( dmsMBContext *context, const CHAR *&dictionary,
-                                UINT32 &dictLen ) ;
-
-         OSS_INLINE _dmsCompressorEntry *getCompressorEntry( UINT16 mbID ) ;
-
          virtual void incWritePtrCount( INT32 collectionID ) ;
 
          virtual void decWritePtrCount( INT32 collectionID ) ;
@@ -1340,12 +1332,8 @@ namespace engine
                                     const dmsRecordID &recordID,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData,
-                                    BOOLEAN needIncDataRead = TRUE ) ;
-         virtual INT32 extractData( const dmsMBContext *mbContext,
-                                    const dmsRecordRW &recordRW,
-                                    _pmdEDUCB *cb,
-                                    dmsRecordData &recordData,
-                                    BOOLEAN needIncDataRead = TRUE ) = 0 ;
+                                    BOOLEAN needIncDataRead = TRUE,
+                                    BOOLEAN needGetOwned = TRUE ) ;
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,
@@ -1425,21 +1413,6 @@ namespace engine
                                           dmsRecordID &foundRID,
                                           _pmdEDUCB *cb ) = 0 ;
 
-         virtual INT32 _extentInsertRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            const dmsRecordData &recordData,
-                                            UINT32 recordSize,
-                                            _pmdEDUCB *cb,
-                                            BOOLEAN isInsert = TRUE ) = 0 ;
-
-         virtual void _postInsertRecord( dmsMBContext *context,
-                                         dmsExtRW &extRW,
-                                         dmsRecordRW &recordRW,
-                                         const dmsRecordData &recordData,
-                                         UINT32 recordSize,
-                                         _pmdEDUCB *cb ) = 0 ;
-
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
          // Calculate the final size needed by the record. Records of different
@@ -1500,9 +1473,6 @@ namespace engine
          void _attachLob( _dmsStorageLob *pLobSu ) ;
          void _detachLob() ;
 
-         void _setCompressor( dmsMBContext *context ) ;
-         void _rmCompressor( _dmsMBContext *context ) ;
-
          // This function allocates a new extent. When the extent is allocated,
          // different storage types( sub classes of this base class ) may have
          // different further in-extent initialize operations. The parameter
@@ -1543,17 +1513,8 @@ namespace engine
                                  UINT32 clLID, dmsExtentID extID,
                                  dmsOffset extOffset ) ;
 
-         INT32          _initCompressorEntry( UINT16 mbID ) ;
-
-         INT32          _setCompressorEntry ( UINT16 mbID ) ;
-
          INT32          _truncateCollection ( dmsMBContext *context,
                                               BOOLEAN needChangeCLID = TRUE ) ;
-
-         /*
-            Caller must hold the mbContext
-         */
-         UINT32         _getRecordDataLen( const dmsRecord *pRecord ) ;
 
          OSS_INLINE UINT32  _getFactor () const ;
 
@@ -1591,8 +1552,6 @@ namespace engine
 
          _dmsStorageIndex                    *_pIdxSU ;
          _dmsStorageLob                      *_pLobSU ;
-
-         _dmsCompressorEntry                 _compressorEntry[ DMS_MME_SLOTS ] ;
 
          _IDmsEventHolder                    *_pEventHolder ;
          _IDmsExtDataHandler                 *_pExtDataHandler ;
@@ -1917,12 +1876,6 @@ namespace engine
       }
       _latchContext.release() ;
       pContext = NULL ;
-   }
-
-   OSS_INLINE _dmsCompressorEntry *_dmsStorageDataCommon::getCompressorEntry( UINT16 mbID )
-   {
-      SDB_ASSERT( DMS_INVALID_MBID != mbID, "mb ID is invalid" ) ;
-      return &_compressorEntry[ mbID ] ;
    }
 
    OSS_INLINE dmsMBStatInfo* _dmsStorageDataCommon::getMBStatInfo( UINT16 mbID )

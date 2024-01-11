@@ -44,7 +44,6 @@
 #include "ossUtil.hpp"
 #include "monDMS.hpp"
 #include "dmsTempSUMgr.hpp"
-#include "dmsRBSSUMgr.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"

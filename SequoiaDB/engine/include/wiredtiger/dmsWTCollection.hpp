@@ -105,6 +105,7 @@ namespace wiredtiger
                                   IExecutor *executor ) ;
       virtual INT32 extractRecord( const dmsRecordID &rid,
                                    dmsRecordData &recordData,
+                                   BOOLEAN needGetOwned,
                                    IExecutor *executor ) ;
 
       virtual INT32 popRecords( const dmsRecordID &rid,

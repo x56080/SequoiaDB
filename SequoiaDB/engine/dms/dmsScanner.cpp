@@ -1017,7 +1017,6 @@ namespace engine
 
       BOOLEAN result = TRUE ;
       ossValuePtr recordDataPtr ;
-      dmsRecordData recordData ;
       dmsRecordID lastRID ;
 
       while ( ( !isHitEnd() ) &&
@@ -1097,16 +1096,16 @@ namespace engine
 
             if ( !recordRW.isDirectMem() )
             {
-               rc = _getCurrentRecord( recordData ) ;
+               rc = _getCurrentRecord( _recordData ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get record data, rc: %d", rc ) ;
             }
             else
             {
                const dmsRecord *record = recordRW.readPtr( 0 ) ;
-               recordData.setData( record->getData(), record->getDataLength() ) ;
+               _recordData.setData( record->getData(), record->getDataLength() ) ;
             }
 
-            recordDataPtr = ( ossValuePtr )recordData.data() ;
+            recordDataPtr = ( ossValuePtr )_recordData.data() ;
             generator.setDataPtr( recordDataPtr ) ;
 
             // math
@@ -1117,7 +1116,7 @@ namespace engine
                {
                   _mthMatchTree *matcher = _matchRuntime->getMatchTree() ;
                   rtnParamList *parameters = _matchRuntime->getParametersPointer() ;
-                  BSONObj obj( recordData.data() ) ;
+                  BSONObj obj( _recordData.data() ) ;
                   //do not clear dollarlist flag
                   mthContextClearRecordInfoSafe( mthContext ) ;
                   rc = matcher->matches( obj, result, mthContext, parameters ) ;
@@ -1165,7 +1164,7 @@ namespace engine
             {
                try
                {
-                  BSONObj obj( recordData.data() ) ;
+                  BSONObj obj( _recordData.data() ) ;
                   rc = generator.resetValue( obj, mthContext ) ;
                   PD_RC_CHECK( rc, PDERROR, "resetValue failed:rc=%d", rc ) ;
                }

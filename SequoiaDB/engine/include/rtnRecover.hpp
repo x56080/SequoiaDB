@@ -39,7 +39,6 @@
 
 #include "dmsStorageUnit.hpp"
 #include "pmdEDU.hpp"
-#include "dmsReorgUnit.hpp"
 #include <string>
 
 #include "../bson/bson.h"
@@ -217,42 +216,7 @@ namespace engine
          */
          INT32    _rebuildLob( pmdEDUCB *cb,
                                dmsMBContext *mbContext ) ;
-         /*
-            Open reg su
-         */
-         INT32    _openRegSU( dmsReorgUnit *pSU,
-                              BOOLEAN createNew ) ;
 
-         void     _cleanRegSU() ;
-
-         INT32 _exportOneExtent( pmdEDUCB *cb,
-                                 dmsMBContext *mbContext,
-                                 dmsReorgUnit *pSU,
-                                 dmsExtentID extID,
-                                 BOOLEAN forward,
-                                 UINT32 &remainPages,
-                                 dmsExtentID &nextExtID,
-                                 BOOLEAN &valid ) ;
-
-         /*
-            Export data by extent scan
-         */
-         INT32    _exportByExtents( pmdEDUCB *cb,
-                                   dmsMBContext *mbContext,
-                                   dmsReorgUnit *pSU ) ;
-         /*
-            Rebuild data by extent
-         */
-         INT32    _exportByAExtent( pmdEDUCB *cb,
-                                    dmsMBContext *mbContext,
-                                    dmsReorgUnit *pSU,
-                                    dmsExtentID extentID ) ;
-         /*
-            Copy back
-         */
-         INT32    _copyBack( pmdEDUCB *cb,
-                             dmsMBContext *mbContext,
-                             dmsReorgUnit *pRU ) ;
          /*
             Reorg data records
          */
@@ -290,13 +254,6 @@ namespace engine
 
          INT32 _rebuildData( dmsMBContext *context, pmdEDUCB *cb ) ;
          INT32 _rebuildLob( dmsMBContext *context, pmdEDUCB *cb ) ;
-         void _recoverOneExtent( dmsExtentID extentID,
-                                 const dmsExtent *extent,
-                                 dmsMBContext *mbContext,
-                                 UINT32 &remainSpace ) ;
-         void _extLidAndOffset2RecLid( dmsExtentID extLID,
-                                       dmsOffset offset,
-                                       INT64 &logicalID ) ;
    } ;
    typedef _rtnCappedCLRebuilder rtnCappedCLRebuilder ;
 
