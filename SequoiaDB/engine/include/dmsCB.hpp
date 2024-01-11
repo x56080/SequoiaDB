@@ -57,7 +57,6 @@
 #include "ossEvent.hpp"
 #include "sdbInterface.hpp"
 #include "dmsIxmKeySorter.hpp"
-#include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 #include "dmsScanner.hpp"
 
@@ -243,7 +242,6 @@ namespace engine
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
       IDmsScannerCheckerCreator *_scannerCheckerCreator ;
-      dmsPageMappingDispatcher   _pageMapDispatcher ;
 
       DMS_HANDLER_LIST           _handlers ;
 

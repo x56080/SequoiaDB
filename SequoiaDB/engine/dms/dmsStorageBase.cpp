@@ -38,7 +38,6 @@
 *******************************************************************************/
 
 #include "dmsStorageBase.hpp"
-#include "dmsStorageJob.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "utilStr.hpp"

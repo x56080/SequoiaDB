@@ -40,7 +40,7 @@
 #define RTNDISKIXSCANNER_HPP__
 
 #include "rtnIXScanner.hpp"
-#include "ixmExtent.hpp"
+#include "interface/ICursor.hpp"
 
 using namespace bson ;
 

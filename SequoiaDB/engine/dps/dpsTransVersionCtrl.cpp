@@ -720,11 +720,11 @@ namespace engine
       data = getNodeKey( pos ).getKeyObj() ;
       while ( TRUE )
       {
-         result = _ixmExtent::_keyCmp( data, prevKey, keepFieldsNum,
-                                       skipToNext, matchEle,
-                                       matchInclusive,
-                                       *(this->getOrdering()),
-                                       direction ) ;
+         result = _ixmExtent::keyCmp( data, prevKey, keepFieldsNum,
+                                      skipToNext, matchEle,
+                                      matchInclusive,
+                                      *(this->getOrdering()),
+                                      direction ) ;
          if ( result * direction >= 0 )
          {
             break ;
