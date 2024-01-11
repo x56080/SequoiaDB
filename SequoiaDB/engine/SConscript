@@ -389,7 +389,9 @@ dmsFiles = [
       "dms/wiredtiger/dmsWTIndex.cpp",
       "dms/wiredtiger/dmsWTIndexCursor.cpp",
       "dms/wiredtiger/dmsWTPersistUnit.cpp",
-      "dms/wiredtiger/dmsWTStoreHolder.cpp"
+      "dms/wiredtiger/dmsWTStoreHolder.cpp",
+      "dms/wiredtiger/dmsWTLob.cpp",
+      "dms/wiredtiger/dmsWTLobCursor.cpp",
       ]
 
 ixmFiles = [

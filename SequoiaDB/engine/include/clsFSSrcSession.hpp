@@ -93,6 +93,7 @@ namespace engine
       public:
          virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
                                    dmsExtentID extID, dmsOffset extOffset,
+                                   const OID &lobOid, UINT32 lobSequence,
                                    const DPS_LSN_OFFSET &offset ) = 0 ;
 
       protected:
@@ -224,6 +225,7 @@ namespace engine
    public:
       virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
                                 dmsExtentID extID, dmsOffset extOffset,
+                                const OID &lobOid, UINT32 lobSequence,
                                 const DPS_LSN_OFFSET &offset ) ;
 
    //message function
@@ -286,6 +288,7 @@ namespace engine
 
          INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
                            dmsExtentID extID, dmsOffset extOffset,
+                           const OID &lobOid, UINT32 lobSequence,
                            const DPS_LSN_OFFSET &offset ) ;
 
       public:

@@ -473,6 +473,8 @@ namespace engine
                                                      info.getCLLID(),
                                                      info.getExtentID(),
                                                      info.getExtentOffset(),
+                                                     info.getLobOid(),
+                                                     info.getLobSequence(),
                                                      dummyhead._lsn ) ;
                }
             }
@@ -525,6 +527,8 @@ namespace engine
                                                info.getCLLID(),
                                                info.getExtentID(),
                                                info.getExtentOffset(),
+                                               info.getLobOid(),
+                                               info.getLobSequence(),
                                                head._lsn ) ;
          }
       }

@@ -41,6 +41,7 @@
 #include "ossRWMutex.hpp"
 #include "wiredtiger/dmsWTStoreHolder.hpp"
 #include "wiredtiger/dmsWTIndex.hpp"
+#include "wiredtiger/dmsWTLob.hpp"
 #include <memory>
 
 namespace engine
@@ -74,6 +75,8 @@ namespace wiredtiger
       {
          return _metadata ;
       }
+
+      virtual INT32 getLobPtr( std::shared_ptr<ILob> &lob );
 
       virtual UINT64 fetchSnapshotID()
       {
@@ -172,6 +175,9 @@ namespace wiredtiger
                                  UINT32 clLID,
                                  ossPoolString &dataURI ) ;
 
+      static INT32 buildLobConfigString( const dmsWTEngineOptions &options,
+                                         ossPoolString &configString ) ;
+
    protected:
       INT32 _addIndex( const dmsIdxMetadata &metadata,
                        const dmsWTStore &store,
@@ -199,6 +205,9 @@ namespace wiredtiger
       typedef _dmsWTIdxMap::iterator _dmsWTIdxMapIter ;
       _dmsWTIdxMap _idxMap ;
       ossRWMutex _idxMapMutex ;
+
+      std::shared_ptr<ILob> _lob;
+      ossRWMutex _lobMutex;
    } ;
 
    typedef class _dmsWTCollection dmsWTCollection ;

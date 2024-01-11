@@ -711,7 +711,7 @@ namespace engine
       mbContext->mbStat()->_lobLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
       mbContext->mbStat()->_lobIsCrash = FALSE ;
 
-      _totalLob = mbContext->mbStat()->_totalLobs ;
+      _totalLob = mbContext->mbStat()->_totalLobs.fetch() ;
 
       _pSU->data()->flushMeta( TRUE ) ;
 
@@ -1012,7 +1012,7 @@ namespace engine
       context->mbStat()->_lobLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
       context->mbStat()->_lobIsCrash = FALSE ;
 
-      _totalLob = context->mbStat()->_totalLobs ;
+      _totalLob = context->mbStat()->_totalLobs.fetch() ;
 
       _pSU->data()->flushMeta( TRUE ) ;
 

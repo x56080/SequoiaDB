@@ -43,6 +43,7 @@
 #include "oss.hpp"
 #include "utilCircularQueue.hpp"
 #include "ossQueue.hpp"
+#include "../bson/oid.h"
 
 namespace engine
 {
@@ -184,6 +185,8 @@ namespace engine
          _clLID   = ~0 ;
          _extID  = ~0 ;
          _extOffset = ~0 ;
+         _lobOid = bson::OID() ;
+         _lobSequence = ~0 ;
          _isValid = FALSE ;
       }
 
@@ -193,6 +196,8 @@ namespace engine
          _clLID   = info._clLID ;
          _extID  = info._extID ;
          _extOffset = info._extOffset ;
+         _lobOid = info._lobOid ;
+         _lobSequence = info._lobSequence ;
          _isValid = info._isValid ;
          return *this ;
       }
@@ -203,6 +208,8 @@ namespace engine
          _clLID  = ~0 ;
          _extID = ~0 ;
          _extOffset = ~0 ;
+         _lobOid = bson::OID() ;
+         _lobSequence = ~0 ;
          _isValid = FALSE ;
       }
 
@@ -210,6 +217,8 @@ namespace engine
       UINT32  _clLID ;
       UINT32  _extID ;
       UINT32  _extOffset ;
+      bson::OID _lobOid ;
+      UINT32 _lobSequence ;
       BOOLEAN _isValid ;
    } ;
 
