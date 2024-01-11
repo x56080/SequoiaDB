@@ -1019,6 +1019,7 @@ Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
 Export("wiredtiger_dir")
+Export("wtVariantDir")
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
