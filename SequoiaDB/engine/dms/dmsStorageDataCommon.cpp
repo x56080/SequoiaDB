@@ -2449,6 +2449,13 @@ namespace engine
             context->mb()->_mbOptExtentID = DMS_INVALID_EXTENT ;
          }
 
+         // get unique id from mb. Because if the cl is in _collectionIDMap, and
+         // we don't erase it, it may cause core dump.
+         clUniqueID = context->mb()->_clUniqueID ;
+
+         // release mb lock
+         context->mbUnlock() ;
+
          if ( _service )
          {
             dmsCLMetadata metadata( _suDescriptor,
@@ -2472,13 +2479,6 @@ namespace engine
                options = NULL ;
             }
          }
-
-         // release mb lock
-         context->mbUnlock() ;
-
-         // get unique id from mb. Because if the cl is in _collectionIDMap, and
-         // we don't erase it, it may cause core dump.
-         clUniqueID = context->mb()->_clUniqueID ;
 
          // change metadata
          ossLatch( &_metadataLatch, EXCLUSIVE ) ;
