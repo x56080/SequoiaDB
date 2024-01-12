@@ -1850,7 +1850,7 @@ namespace engine
          // get the matcher from plan instead of manually loading it
          matchRuntime = planRuntime->getMatchRuntime( TRUE ) ;
 
-         rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, cb, scanner ) ;
+         rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, FALSE, cb, scanner ) ;
          if ( rc )
          {
             goto error ;
@@ -1905,7 +1905,7 @@ namespace engine
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "scanner can't be NULL" ) ;
 
-      rc = f.createTBScanner( scanType, su, mbContext, cb, scanner ) ;
+      rc = f.createTBScanner( scanType, su, mbContext, FALSE, cb, scanner ) ;
       if ( rc )
       {
          goto error ;

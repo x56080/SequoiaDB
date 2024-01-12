@@ -2201,6 +2201,7 @@ namespace engine
       // sample records
       rc = mbContext->getCollPtr()->createDataSampleCursor( cursorPtr,
                                                             param._sampleRecords,
+                                                            FALSE,
                                                             cb ) ;
       if ( SDB_OK != rc )
       {

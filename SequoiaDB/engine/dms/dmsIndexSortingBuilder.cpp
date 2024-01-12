@@ -334,7 +334,7 @@ namespace engine
 
       dmsRecordID moveRID ;
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
-      rtnDiskTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, _eduCB ) ;
+      rtnDiskTBScanner scanner( _su, _mbContext, _scanRID, TRUE, 1, FALSE, _eduCB ) ;
 
       rc = _init() ;
       if ( SDB_OK != rc )

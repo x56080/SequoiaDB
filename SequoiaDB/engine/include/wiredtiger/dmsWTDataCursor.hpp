@@ -129,6 +129,11 @@ namespace wiredtiger
          _snapshotID = snapshotID ;
       }
 
+      virtual BOOLEAN isAsync() const
+      {
+         return FALSE ;
+      }
+
    protected:
       void _resetCache()
       {
@@ -163,6 +168,11 @@ namespace wiredtiger
                           UINT64 sampleNum,
                           UINT64 snapshotID,
                           IExecutor *executor ) ;
+
+      virtual BOOLEAN isAsync() const
+      {
+         return TRUE ;
+      }
 
    protected:
       dmsWTSession _asyncSession ;

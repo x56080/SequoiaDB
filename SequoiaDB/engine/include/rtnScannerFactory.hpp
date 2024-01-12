@@ -57,6 +57,7 @@ namespace engine
       INT32 createTBScanner( rtnScannerType type,
                              _dmsStorageUnit *su,
                              _dmsMBContext *mbContext,
+                             BOOLEAN isAsync,
                              _pmdEDUCB *cb,
                              _rtnTBScanner *&pScanner )
       {
@@ -68,7 +69,7 @@ namespace engine
          {
          case SCANNER_TYPE_DISK:
             pScanner = SDB_OSS_NEW rtnDiskTBScanner(
-                              su, mbContext, dmsRecordID(), FALSE, 1, cb ) ;
+                              su, mbContext, dmsRecordID(), FALSE, 1, isAsync, cb ) ;
             break ;
          case SCANNER_TYPE_MEM_TREE:
             pScanner = SDB_OSS_NEW rtnMemTBScanner(
@@ -103,6 +104,7 @@ namespace engine
                              rtnPredicateList *predList,
                              _dmsStorageUnit *su,
                              _dmsMBContext *mbContext,
+                             BOOLEAN isAsync,
                              _pmdEDUCB *cb,
                              _rtnIXScanner *&pScanner )
       {
@@ -114,7 +116,8 @@ namespace engine
          {
             case SCANNER_TYPE_DISK:
                pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList,
-                                                        su, mbContext, cb ) ;
+                                                        su, mbContext, isAsync,
+                                                        cb ) ;
                break ;
             case SCANNER_TYPE_MEM_TREE:
                pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
