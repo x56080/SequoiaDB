@@ -2059,6 +2059,17 @@ done:
       ossMemset( _storageEngineName, 0, sizeof( _storageEngineName ) ) ;
       _storageEngineType = DMS_STORAGE_ENGINE_UNKNOWN ;
 
+      _wtCacheSize = DMS_DFT_WT_CACHE_SIZE ;
+      _wtEvictTarget = DMS_DFT_WT_EVICT_TARGET ;
+      _wtEvictTrigger = DMS_DFT_WT_EVICT_TRIGGER ;
+      _wtEvictDirtyTarget = DMS_DFT_WT_EVICT_DIRTY_TARGET ;
+      _wtEvictDirtyTrigger = DMS_DFT_WT_EVICT_DIRTY_TRIGGER ;
+      _wtEvictUpdatesTarget = DMS_DFT_WT_EVICT_UPDATES_TARGET ;
+      _wtEvictUpdatesTrigger = DMS_DFT_WT_EVICT_UPDATES_TRIGGER ;
+      _wtEvictThreadsMin = DMS_DFT_WT_EVICT_THREADS_MIN ;
+      _wtEvictThreadsMax = DMS_DFT_WT_EVICT_THREADS_MAX ;
+      _wtCheckPointInterval = DMS_DFT_WT_CHECK_POINT_INTERVAL ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2752,12 +2763,6 @@ done:
                PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CHECK_POINT_INTERVAL ) ;
       rdvMinMax( pEX, _wtCheckPointInterval, DMS_MIN_WT_CHECK_POINT_INTERVAL,
                  DMS_MAX_WT_CHECK_POINT_INTERVAL, TRUE ) ;
-
-      // --wtcheckpointlogsize
-      rdxUInt( pEX, PMD_OPTION_WT_CHECK_POINT_LOG_SIZE, _wtCheckPointLogSize, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CHECK_POINT_LOG_SIZE ) ;
-      rdvMinMax( pEX, _wtCheckPointLogSize, DMS_MIN_WT_CHECK_POINT_LOG_SIZE,
-                 DMS_MAX_WT_CHECK_POINT_LOG_SIZE, TRUE ) ;
 
       // end map
 

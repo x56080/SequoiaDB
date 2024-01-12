@@ -407,7 +407,6 @@ namespace wiredtiger
       options.setEvictThreadsMin( optionCB->getWTEvictThreadsMin() ) ;
       options.setEvictThreadsMax( optionCB->getWTEvictThreadsMax() ) ;
       options.setCheckPointInterval( optionCB->getWTCheckPointInterval() ) ;
-      options.setCheckPointLogSize( optionCB->getWTCheckPointLogSize() ) ;
 
       options.fixOptions() ;
 

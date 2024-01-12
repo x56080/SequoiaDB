@@ -165,16 +165,6 @@ namespace wiredtiger
          _checkPointInterval = checkPointInterval ;
       }
 
-      UINT32 getCheckPointLogSize() const
-      {
-         return _checkPointLogSize ;
-      }
-
-      void setCheckPointLogSize( UINT32 checkPointLogSize )
-      {
-         _checkPointLogSize = checkPointLogSize ;
-      }
-
       void fixOptions()
       {
          if ( _evictTarget > _evictTrigger )
@@ -219,7 +209,6 @@ namespace wiredtiger
       UINT32 _evictThreadsMin = DMS_DFT_WT_EVICT_THREADS_MIN ;
       UINT32 _evictThreadsMax = DMS_DFT_WT_EVICT_THREADS_MAX ;
       UINT32 _checkPointInterval = DMS_DFT_WT_CHECK_POINT_INTERVAL ;
-      UINT32 _checkPointLogSize = DMS_DFT_WT_CHECK_POINT_LOG_SIZE ;
    } ;
 
    typedef class _dmsWTEngineOptions dmsWTEngineOptions ;

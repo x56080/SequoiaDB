@@ -3406,24 +3406,4 @@
       <typeofweb>num</typeofweb>
    </opt>
 
-   <opt>
-      <name>PMD_OPTION_WT_CHECK_POINT_LOG_SIZE</name>
-      <long>wtcheckpointlogsize</long>
-      <description>
-         <en>Journal size to trigger check point in WiredTiger engine(Unit: MB)</en>
-         <cn>WiredTiger引擎的触发检查点的日志大小（单位：MB）</cn>
-      </description>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
-      <detail>
-         <en>Journal size to trigger check point in WiredTiger engine(Unit: MB)</en>
-         <cn>WiredTiger引擎的触发检查点的日志大小（单位：MB）</cn>
-      </detail>
-      <type>int</type>
-      <default>60</default>
-      <typeofweb>num</typeofweb>
-   </opt>
-
 </optlist>
