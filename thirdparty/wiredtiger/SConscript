@@ -21,10 +21,11 @@ wtEnv.Append(CPPPATH=[ join(wiredtiger_dir, "src", "include") ])
 wtEnv.Append(CPPPATH=[ "." ])
 
 g_silent = False
-g_compiledb = False
 if GetOption("silent"):
     g_silent = True
-if GetOption("compiledb"):
+g_compiledb = False
+f_compiledb = GetOption("compiledb")
+if f_compiledb is not None and False != f_compiledb and "" != f_compiledb:
     g_compiledb = True
 
 def get_path_mtime(path):
