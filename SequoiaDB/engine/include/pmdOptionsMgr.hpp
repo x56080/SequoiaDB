@@ -792,11 +792,6 @@ namespace engine
             return _wtCheckPointInterval ;
          }
 
-         OSS_INLINE UINT32 getWTCheckPointLogSize() const
-         {
-            return _wtCheckPointLogSize ;
-         }
-
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -972,7 +967,6 @@ namespace engine
          UINT32      _wtEvictThreadsMin ;
          UINT32      _wtEvictThreadsMax ;
          UINT32      _wtCheckPointInterval ;
-         UINT32      _wtCheckPointLogSize ;
 
 #ifdef SDB_ENTERPRISE
 
