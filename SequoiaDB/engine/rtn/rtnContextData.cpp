@@ -35,6 +35,7 @@
 
 *******************************************************************************/
 #include "rtnContextData.hpp"
+#include "bps.hpp"
 #include "ossUtil.hpp"
 #include "rtn.hpp"
 #include "pmd.hpp"
@@ -1181,6 +1182,9 @@ namespace engine
       rtnIXScanner *tmp = NULL ;
       rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+      BOOLEAN isAsync = ( DPS_INVALID_TRANS_ID == cb->getTransID() ) &&
+                        ( !_queryModifier ) &&
+                        ( pmdGetKRCB()->getBPSCB()->isPrefetchEnabled() ) ;
       rtnPredicateList *predList = NULL ;
 
       // for index scan, we maintain context by runtime instead of by DMS
@@ -1217,7 +1221,7 @@ namespace engine
          _scanner = NULL ;
       }
 
-      rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, cb, tmp ) ;
+      rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, isAsync, cb, tmp ) ;
       if ( rc )
       {
          goto error ;
@@ -1245,6 +1249,9 @@ namespace engine
       rtnTBScanner *tmp = NULL ;
       rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+      BOOLEAN isAsync = ( DPS_INVALID_TRANS_ID == cb->getTransID() ) &&
+                        ( !_queryModifier ) &&
+                        ( pmdGetKRCB()->getBPSCB()->isPrefetchEnabled() ) ;
 
       if ( blockObj )
       {
@@ -1259,7 +1266,7 @@ namespace engine
          f.releaseScanner( _scanner ) ;
          _scanner = NULL ;
       }
-      rc = f.createTBScanner( scanType, su, mbContext, cb, tmp ) ;
+      rc = f.createTBScanner( scanType, su, mbContext, isAsync, cb, tmp ) ;
       if ( rc )
       {
          goto error ;

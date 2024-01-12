@@ -52,6 +52,7 @@ namespace engine
                          const dmsRecordID &startRID,
                          BOOLEAN           isAfterStartRID,
                          INT32             direction,
+                         BOOLEAN           isAsync,
                          _pmdEDUCB        *cb ) ;
       virtual ~_rtnDiskTBScanner() ;
 
@@ -90,6 +91,11 @@ namespace engine
       virtual INT32 relocateRID( const dmsRecordID &rid, BOOLEAN &isFound )
       {
          return _relocateRID( rid, isFound ) ;
+      }
+
+      virtual BOOLEAN canPrefetch() const
+      {
+         return _cursorPtr ? _cursorPtr->isAsync() : FALSE ;
       }
 
    protected:

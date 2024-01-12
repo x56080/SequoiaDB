@@ -53,7 +53,7 @@ namespace engine
                                            _dmsMBContext    *mbContext,
                                            _pmdEDUCB        *cb,
                                            BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, mbContext, cb, indexCBOwnned )
+   :_rtnIXScanner( pIndexCB, predList, su, mbContext, FALSE, cb, indexCBOwnned )
    {
       _fromDir = SCAN_NONE ;
       _savedRID.reset() ;
@@ -131,6 +131,7 @@ namespace engine
                                                       getPredicateList(),
                                                       getSu(),
                                                       getMBContext(),
+                                                      FALSE,
                                                       getEDUCB(),
                                                       getIndexCBOwned() ) ;
             break ;

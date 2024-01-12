@@ -52,7 +52,7 @@ namespace engine
                                        BOOLEAN isAfterStartRID,
                                        INT32 direction,
                                        pmdEDUCB *cb )
-   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, cb ),
+   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, FALSE, cb ),
      _transCB( pmdGetKRCB()->getTransCB() )
    {
    }

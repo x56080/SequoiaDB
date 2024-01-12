@@ -88,6 +88,11 @@ namespace engine
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
+      virtual BOOLEAN canPrefetch() const
+      {
+         return FALSE ;
+      }
+
    protected:
       INT32 _checkCursorSame( const BSONObj &saveObj,
                               const dmsRecordID &saveRID,

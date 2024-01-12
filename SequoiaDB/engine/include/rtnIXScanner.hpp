@@ -100,6 +100,7 @@ namespace engine
                      rtnPredicateList *predList,
                      _dmsStorageUnit  *su,
                      _dmsMBContext    *mbContext,
+                     BOOLEAN           isAsync,
                      _pmdEDUCB        *cb,
                      BOOLEAN indexCBOwned = FALSE ) ;
 

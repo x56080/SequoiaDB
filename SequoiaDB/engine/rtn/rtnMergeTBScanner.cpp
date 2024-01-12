@@ -53,7 +53,7 @@ namespace engine
                                            BOOLEAN isAfterStartRID,
                                            INT32 direction,
                                            pmdEDUCB *cb )
-   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, cb ),
+   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, FALSE, cb ),
      _fromDir( SCAN_NONE ),
      _savedDir( SCAN_NONE ),
      _leftTBScanner( NULL ),
@@ -690,7 +690,7 @@ namespace engine
 
       rtnScannerFactory f ;
 
-      rc = f.createTBScanner( type, _su, _mbContext, _cb, scanner ) ;
+      rc = f.createTBScanner( type, _su, _mbContext, FALSE, _cb, scanner ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create scanner, rc: %d", rc ) ;
 
    done:

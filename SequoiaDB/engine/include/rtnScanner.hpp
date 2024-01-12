@@ -83,10 +83,12 @@ namespace engine
       _rtnScanner( _dmsStorageUnit  *su,
                    _dmsMBContext    *mbContext,
                    INT32             direction,
+                   BOOLEAN           isAsync,
                    _pmdEDUCB        *cb )
       : _su( su ),
         _mbContext( mbContext ),
         _direction( direction ),
+        _isAsync( isAsync ),
         _isEOF( FALSE ),
         _cb( cb )
       {
@@ -119,11 +121,18 @@ namespace engine
       virtual rtnScannerType  getCurScanType() const = 0 ;
       virtual void            disableByType( rtnScannerType type ) = 0 ;
       virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const = 0 ;
+      virtual BOOLEAN         canPrefetch() const = 0 ;
+
+      _pmdEDUCB *getEDUCB()
+      {
+         return _cb ;
+      }
 
    protected:
       _dmsStorageUnit *_su ;
       _dmsMBContext *_mbContext ;
       INT32 _direction ;
+      BOOLEAN _isAsync ;
       BOOLEAN _isEOF ;
       _pmdEDUCB *_cb ;
    } ;

@@ -336,8 +336,10 @@ namespace engine
    /*
       _dmsScanner implement
    */
-   _dmsScanner::_dmsScanner( dmsStorageDataCommon *su, dmsMBContext *context,
+   _dmsScanner::_dmsScanner( dmsStorageDataCommon *su,
+                             dmsMBContext *context,
                              mthMatchRuntime *matchRuntime,
+                             pmdEDUCB *cb,
                              DMS_ACCESS_TYPE accessType,
                              INT64 maxRecords,
                              INT64 skipNum,
@@ -354,7 +356,14 @@ namespace engine
 
       if ( DMS_IS_WRITE_OPR( _accessType ) )
       {
-         _mbLockType = su->getWriteLockType() ;
+         if ( cb->getTransExecutor()->useTransLock() )
+         {
+            _mbLockType = su->getWriteLockType() ;
+         }
+         else
+         {
+            _mbLockType = EXCLUSIVE ;
+         }
       }
 
       _maxRecords = maxRecords ;
@@ -844,7 +853,7 @@ namespace engine
                                    INT64 skipNum,
                                    INT32 flags,
                                    IDmsOprHandler *handler )
-   : _dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flags, handler ),
+   : _dmsScanner( su, context, matchRuntime, scanner->getEDUCB(), accessType, maxRecords, skipNum, flags, handler ),
      _dmsScannerLockHandler( handler, flags ),
      _scanner( scanner ),
      _transContext( context, scanner, accessType ),
@@ -1692,7 +1701,7 @@ namespace engine
                                          INT64 skipNum,
                                          INT32 flag,
                                          IDmsOprHandler *opHandler )
-   : _dmsScanner( su, context, matchRuntime, accessType, maxRecords, skipNum, flag, opHandler ),
+   : _dmsScanner( su, context, matchRuntime, scanner->getEDUCB(), accessType, maxRecords, skipNum, flag, opHandler ),
      _secScanner( secScanner ),
      _scanner( scanner ),
      _scannerContext( scannerContext )

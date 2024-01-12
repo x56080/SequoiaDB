@@ -54,9 +54,10 @@ namespace engine
                                           rtnPredicateList *predList,
                                           _dmsStorageUnit *su,
                                           _dmsMBContext *mbContext,
+                                          BOOLEAN isAsync,
                                           _pmdEDUCB *cb,
                                           BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( indexCB, predList, su, mbContext, cb, indexCBOwnned ),
+   :_rtnIXScanner( indexCB, predList, su, mbContext, isAsync, cb, indexCBOwnned ),
      _listIterator( *predList ),
      _pMonCtxCB(NULL)
    {
@@ -460,7 +461,7 @@ namespace engine
 
       rc = idxPtr->createIndexCursor( _cursorPtr,
                                       builder.getShallowKeyString(),
-                                      FALSE,
+                                      _isAsync,
                                       _direction > 0 ? TRUE : FALSE,
                                       _cb ) ;
       if ( SDB_IXM_EOC == rc )

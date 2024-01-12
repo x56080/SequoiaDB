@@ -3834,7 +3834,14 @@ namespace engine
          }
 
          // lock mb
-         rc = context->mbLock( getWriteLockType() ) ;
+         if ( cb->getTransExecutor()->useTransLock() )
+         {
+            rc = context->mbLock( getWriteLockType() ) ;
+         }
+         else
+         {
+            rc = context->mbLock( EXCLUSIVE ) ;
+         }
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // then make sure the collection compatiblity

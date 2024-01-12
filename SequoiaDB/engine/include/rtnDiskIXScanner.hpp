@@ -56,6 +56,7 @@ namespace engine
                           rtnPredicateList *predList,
                           _dmsStorageUnit  *su,
                           _dmsMBContext    *mbContext,
+                          BOOLEAN          isAsync,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;
 
@@ -83,6 +84,11 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const { return &_curKeyObj ; }
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
+
+      virtual BOOLEAN canPrefetch() const
+      {
+         return _cursorPtr ? _cursorPtr->isAsync() : FALSE ;
+      }
 
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;

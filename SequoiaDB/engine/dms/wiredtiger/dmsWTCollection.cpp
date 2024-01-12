@@ -509,6 +509,7 @@ namespace wiredtiger
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION__CREATEDATACURSOR, "_dmsWTCollection::_createDataCursor" )
    INT32 _dmsWTCollection::_createDataCursor( unique_ptr<IDataCursor> &cursor,
+                                              BOOLEAN isAsync,
                                               IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -517,22 +518,31 @@ namespace wiredtiger
 
       IPersistUnit *persistUnit = nullptr ;
 
-      rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+      if ( !isAsync )
+      {
+         rc = _engine.getService().getPersistUnit( executor, persistUnit ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get persist unit, rc: %d", rc ) ;
+      }
 
       if ( persistUnit )
       {
          dmsWTPersistUnit *wtUnit = dynamic_cast<dmsWTPersistUnit *>( persistUnit ) ;
          PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
-                  "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
+                   "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
 
          cursor = unique_ptr<dmsWTDataCursor>( new dmsWTDataCursor( wtUnit->getSession() ) ) ;
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
+         PD_LOG( PDDEBUG, "Opened data cursor on collection [%s.%s]",
+                 _metadata.getSU()->getSUName(),
+                 _metadata.getMB()->_collectionName ) ;
       }
       else
       {
          cursor = unique_ptr<dmsWTDataCursor>( new dmsWTDataAsyncCursor() ) ;
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
+         PD_LOG( PDDEBUG, "Opened async data cursor on collection [%s.%s]",
+                 _metadata.getSU()->getSUName(),
+                 _metadata.getMB()->_collectionName ) ;
       }
 
    done:
@@ -549,6 +559,7 @@ namespace wiredtiger
                                              const dmsRecordID &startRID,
                                              BOOLEAN afterStartRID,
                                              BOOLEAN isForward,
+                                             BOOLEAN isAsync,
                                              IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -557,7 +568,7 @@ namespace wiredtiger
 
       UINT64 snapshotID = 0 ;
 
-      rc = _createDataCursor( cursor, executor ) ;
+      rc = _createDataCursor( cursor, isAsync, executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
       SDB_ASSERT( cursor, "cursor should be valid" ) ;
       PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor" ) ;
@@ -586,6 +597,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_CREATEDATASAMPLECURSOR, "_dmsWTCollection::createDataSampleCursor" )
    INT32 _dmsWTCollection::createDataSampleCursor( unique_ptr<IDataCursor> &cursor,
                                                    UINT64 sampleNum,
+                                                   BOOLEAN isAsync,
                                                    IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -594,7 +606,7 @@ namespace wiredtiger
 
       UINT64 snapshotID = 0 ;
 
-      rc = _createDataCursor( cursor, executor ) ;
+      rc = _createDataCursor( cursor, isAsync, executor ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
       SDB_ASSERT( cursor, "cursor should be valid" ) ;
       PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor" ) ;

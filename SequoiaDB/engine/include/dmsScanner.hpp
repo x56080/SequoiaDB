@@ -115,8 +115,10 @@ namespace engine
    class _dmsScanner : public utilPooledObject
    {
       public:
-         _dmsScanner ( _dmsStorageDataCommon *su, _dmsMBContext *context,
+         _dmsScanner ( _dmsStorageDataCommon *su,
+                       _dmsMBContext *context,
                        mthMatchRuntime *matchRuntime,
+                       _pmdEDUCB *cb,
                        DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                        INT64 maxRecords = -1,
                        INT64 skipNum = 0,

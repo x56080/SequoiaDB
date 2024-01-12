@@ -92,6 +92,11 @@ namespace engine
          return _relocateRID( rid, isFound ) ;
       }
 
+      virtual BOOLEAN canPrefetch() const
+      {
+         return FALSE ;
+      }
+
    protected:
       INT32 _firstInit() ;
       INT32 _relocateRID( const dmsRecordID &rid, BOOLEAN &isFound ) ;

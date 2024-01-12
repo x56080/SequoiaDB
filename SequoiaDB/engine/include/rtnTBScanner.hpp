@@ -52,8 +52,9 @@ namespace engine
                      const dmsRecordID &startRID,
                      BOOLEAN           isAfterStartRID,
                      INT32             direction,
+                     BOOLEAN           isAsync,
                      _pmdEDUCB        *cb )
-      : _rtnScanner( su, mbContext, direction, cb ),
+      : _rtnScanner( su, mbContext, direction, isAsync, cb ),
         _init( FALSE ),
         _startRID( startRID ),
         _isAfterStartRID( isAfterStartRID )

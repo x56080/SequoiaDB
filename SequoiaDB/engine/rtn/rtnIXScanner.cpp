@@ -93,9 +93,10 @@ namespace engine
                                  rtnPredicateList *predList,
                                  _dmsStorageUnit *su,
                                  _dmsMBContext *mbContext,
+                                 BOOLEAN isAsync,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
-   :_rtnScanner( su, mbContext, predList->getDirection(), cb ),
+   :_rtnScanner( su, mbContext, predList->getDirection(), isAsync, cb ),
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) ),

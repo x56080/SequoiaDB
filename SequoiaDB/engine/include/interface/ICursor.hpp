@@ -72,6 +72,8 @@ namespace engine
 
       virtual UINT64 getSnapshotID() const = 0 ;
       virtual void resetSnapshotID( UINT64 snapshotID ) = 0 ;
+
+      virtual BOOLEAN isAsync() const = 0 ;
    } ;
 
    /*

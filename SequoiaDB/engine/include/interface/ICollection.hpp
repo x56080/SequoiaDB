@@ -110,9 +110,11 @@ namespace engine
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
+                                      BOOLEAN isAsync,
                                       IExecutor *executor ) = 0 ;
       virtual INT32 createDataSampleCursor( std::unique_ptr<IDataCursor> &cursor,
                                             UINT64 sampleNum,
+                                            BOOLEAN isAsync,
                                             IExecutor *executor ) = 0 ;
 
       virtual INT32 getCount( UINT64 &count,

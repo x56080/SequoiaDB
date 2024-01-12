@@ -52,8 +52,9 @@ namespace engine
                                          const dmsRecordID &startRID,
                                          BOOLEAN isAfterStartRID,
                                          INT32 direction,
+                                         BOOLEAN isAsync,
                                          pmdEDUCB *cb )
-   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, cb )
+   : _rtnTBScanner( su, mbContext, startRID, isAfterStartRID, direction, isAsync, cb )
    {
    }
 
@@ -265,6 +266,7 @@ namespace engine
                                                        _startRID,
                                                        _isAfterStartRID,
                                                        _direction > 0 ? TRUE : FALSE,
+                                                       _isAsync,
                                                        _cb ) ;
       if ( SDB_DMS_EOC == rc )
       {

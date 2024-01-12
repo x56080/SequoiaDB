@@ -6315,7 +6315,7 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      rc = f.createTBScanner( SCANNER_TYPE_DISK, _su, _mbContext, cb, _scanner ) ;
+      rc = f.createTBScanner( SCANNER_TYPE_DISK, _su, _mbContext, FALSE, cb, _scanner ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create scanner, rc: %d", rc ) ;
 
    done:

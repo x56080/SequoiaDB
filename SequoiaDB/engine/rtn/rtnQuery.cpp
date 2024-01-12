@@ -1091,7 +1091,7 @@ retry:
          // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         rc = f.createIXScanner( scannerType, &indexCB, predList, su, mbContext, cb, scanner ) ;
+         rc = f.createIXScanner( scannerType, &indexCB, predList, su, mbContext, FALSE, cb, scanner ) ;
          if ( rc )
          {
             goto error ;

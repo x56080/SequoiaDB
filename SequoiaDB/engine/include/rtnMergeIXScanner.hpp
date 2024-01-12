@@ -93,6 +93,11 @@ namespace engine
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
+      virtual BOOLEAN canPrefetch() const
+      {
+         return FALSE ;
+      }
+
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() ;

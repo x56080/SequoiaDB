@@ -136,9 +136,11 @@ namespace wiredtiger
                                       const dmsRecordID &startRID,
                                       BOOLEAN afterStartRID,
                                       BOOLEAN isForward,
+                                      BOOLEAN isAsync,
                                       IExecutor *executor ) ;
       virtual INT32 createDataSampleCursor( std::unique_ptr<IDataCursor> &cursor,
                                             UINT64 sampleNum,
+                                            BOOLEAN isAsync,
                                             IExecutor *executor ) ;
 
       virtual INT32 getCount( UINT64 &count,
@@ -182,6 +184,7 @@ namespace wiredtiger
                              IExecutor *executor ) ;
 
       INT32 _createDataCursor( unique_ptr<IDataCursor> &cursor,
+                               BOOLEAN isAsync,
                                IExecutor *executor ) ;
 
    protected:

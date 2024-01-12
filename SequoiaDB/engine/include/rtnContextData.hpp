@@ -256,7 +256,7 @@ namespace engine
          virtual BOOLEAN   _canPrefetch () const
          {
             // If contain modifier, do not use prefetch
-            return ( _queryModifier ? FALSE : TRUE ) ;
+            return ( _scanner && _scanner->canPrefetch() ) && ( _queryModifier ? FALSE : TRUE ) ;
          }
          virtual void      _toString( stringstream &ss ) ;
 
