@@ -260,6 +260,9 @@ namespace engine
                             _ixmIndexCB *indexCB,
                             pmdEDUCB *cb,
                             std::shared_ptr<IIndex> &idxPtr ) ;
+         INT32    checkProcess( _dmsMBContext *context,
+                                const dmsRecordID &rid,
+                                dmsIndexWriteGuard &writeGuard ) ;
 
       private:
          INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
@@ -308,6 +311,7 @@ namespace engine
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
                                  BOOLEAN dropDups,
                                  IDmsOprHandler *pOprHandle,
+                                 dmsWriteGuard &writeGuard,
                                  utilWriteResult *pResult = NULL,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -316,6 +320,7 @@ namespace engine
                                  const dmsRecordID &rid, _pmdEDUCB *cb,
                                  BOOLEAN isRollback,
                                  IDmsOprHandler *pOprHandle,
+                                 dmsWriteGuard &writeGuard,
                                  utilWriteResult *pResult = NULL,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL,
                                  dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
@@ -324,6 +329,7 @@ namespace engine
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb,
                                  IDmsOprHandler *pOprHandle,
+                                 dmsWriteGuard &writeGuard,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
          INT32    _indexInsert( dmsMBContext *context,
@@ -337,6 +343,7 @@ namespace engine
                                 _ixmIndexCB *indexCB,
                                 const bson::BSONObj &key,
                                 const dmsRecordID &rid,
+                                dmsWriteGuard &writeGuard,
                                 _pmdEDUCB *cb ) ;
 
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
@@ -344,6 +351,7 @@ namespace engine
 
          INT32    _needProcessIndex( dmsMBContext *context,
                                      ixmIndexCB &indexCB,
+                                     UINT32 indexID,
                                      const dmsRecordID &rid,
                                      dmsIndexWriteGuard &writeGuard,
                                      BOOLEAN &needProcess ) ;

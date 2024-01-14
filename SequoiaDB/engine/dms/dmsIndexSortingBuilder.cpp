@@ -198,17 +198,25 @@ namespace engine
             goto error ;
          }
          if ( ( !moveRID.isValid() ) &&
-              ( SDB_DMS_EOC == rc || scanner.isEOF() ) )
+              ( scanner.isEOF() ) )
          {
             lock.lock( EXCLUSIVE ) ;
             dmsRecordID nextRID ;
-            if ( processedRID.isValid() )
+            if ( maxRID.isValid() )
             {
-               nextRID.fromUINT64( processedRID.toUINT64() + 1 ) ;
+               nextRID.fromUINT64( maxRID.toUINT64() + 1 ) ;
             }
             else
             {
-               nextRID.resetMin() ;
+               dmsRecordID lastScanRID = _indexCB->getScanRID() ;
+               if ( lastScanRID.isValid() )
+               {
+                  nextRID.fromUINT64( lastScanRID.toUINT64() + 1 ) ;
+               }
+               else
+               {
+                  nextRID.resetMin() ;
+               }
             }
 
             rc = scanner.relocateRID( nextRID ) ;
@@ -228,6 +236,9 @@ namespace engine
          {
             goto error ;
          }
+
+         rc = scanner.pauseScan() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pause scanner, rc: %d", rc ) ;
 
          if ( moveRID.isValid() )
          {

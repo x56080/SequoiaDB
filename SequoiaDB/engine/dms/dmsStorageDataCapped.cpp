@@ -729,8 +729,7 @@ namespace engine
          INT32 rc1 = writeGuard.abort() ;
          if ( SDB_OK != rc1 )
          {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", rc1 ) ;
-            ossPanic() ;
+            PD_LOG( PDWARNING, "Failed to abort write guard, rc: %d", rc1 ) ;
          }
       }
       goto done ;
@@ -908,8 +907,7 @@ namespace engine
          INT32 rc1 = writeGuard.abort() ;
          if ( SDB_OK != rc1 )
          {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", rc1 ) ;
-            ossPanic() ;
+            PD_LOG( PDWARNING, "Failed to abort write guard, rc: %d", rc1 ) ;
          }
       }
       goto done ;

@@ -188,7 +188,6 @@ namespace engine
 
       if ( hasRisk )
       {
-         SDB_ASSERT( !_isEnded, "should not be ended" ) ;
          ossScopedLock lock( &_ridLatch ) ;
          if ( _maxRID < rid )
          {
@@ -220,7 +219,6 @@ namespace engine
 
       if ( hasRisk )
       {
-         SDB_ASSERT( !_isEnded, "should not be ended" ) ;
          ossScopedLock lock( &_ridLatch ) ;
          if ( _maxRID < rid )
          {
@@ -339,9 +337,8 @@ namespace engine
                   _buildingMaxRID = rid ;
                }
             }
-            else
+            else if ( !_isEnded )
             {
-               SDB_ASSERT( !_isEnded, "should not be ended" ) ;
                needWait = TRUE ;
             }
          }
@@ -557,6 +554,25 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSINDEXBUILDGUARD_BUILDCHECKMOVE, rc ) ;
 
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINDEXBUILDGUARD_ISSETBYWRITE, "_dmsIndexBuildGuard::isSetByWrite" )
+   BOOLEAN _dmsIndexBuildGuard::isSetByWrite( const dmsRecordID &rid )
+   {
+      BOOLEAN isSet = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__DMSINDEXBUILDGUARD_ISSETBYWRITE ) ;
+
+      ossScopedLock lock( &_ridLatch ) ;
+      auto iter = _recordMap.find( rid ) ;
+      if ( iter != _recordMap.end() )
+      {
+         isSet = !iter->second ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSINDEXBUILDGUARD_ISSETBYWRITE ) ;
+
+      return isSet ;
    }
 
 }

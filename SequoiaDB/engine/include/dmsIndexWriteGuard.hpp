@@ -54,14 +54,15 @@ namespace engine
    {
    public:
       _dmsIndexWriteGuard() ;
-      _dmsIndexWriteGuard( _pmdEDUCB *cb, BOOLEAN isEnabled = TRUE ) ;
+      _dmsIndexWriteGuard( _pmdEDUCB *cb,
+                           BOOLEAN isEnabled = TRUE ) ;
       ~_dmsIndexWriteGuard() ;
 
       INT32 lock( const dmsIdxMetadataKey &metadataKey,
+                  UINT32 indexID,
                   const ixmIndexCB &indexCB,
                   const dmsRecordID &rid,
-                  dmsIndexBuildGuardPtr &guardPtr,
-                  BOOLEAN &needProcess ) ;
+                  dmsIndexBuildGuardPtr &guardPtr ) ;
 
       INT32 begin() ;
       INT32 commit() ;
@@ -72,14 +73,28 @@ namespace engine
          return _isEnabled ;
       }
 
+      BOOLEAN checkNeedProcess( UINT32 indexID )
+      {
+         return _processMap.testBit( indexID ) ;
+      }
+
+      void setNeedProcess( UINT32 indexID )
+      {
+         _processMap.setBit( indexID ) ;
+      }
+
+      BOOLEAN isSet( const dmsIdxMetadataKey &metadataKey,
+                     const dmsRecordID &rid ) ;
+
    protected:
       _pmdEDUCB *_eduCB ;
       BOOLEAN _isEnabled ;
+      dmsRecordID _rid ;
       typedef ossPoolMap<dmsIdxMetadataKey,
-                         std::pair<dmsIndexBuildGuardPtr,
-                                   ossPoolSet<dmsRecordID>>> dmsIdxBuildGuardRIDMap ;
-      typedef dmsIdxBuildGuardRIDMap::iterator dmsRIDIdxBuildGuardMapIter ;
-      dmsIdxBuildGuardRIDMap _guards ;
+                         dmsIndexBuildGuardPtr> _dmsIdxBuildGuardRIDMap ;
+      typedef _dmsIdxBuildGuardRIDMap::iterator _dmsRIDIdxBuildGuardMapIter ;
+      _dmsIdxBuildGuardRIDMap _guards ;
+      _utilStackBitmap<DMS_COLLECTION_MAX_INDEX> _processMap ;
    } ;
 
    typedef class _dmsIndexWriteGuard dmsIndexWriteGuard ;

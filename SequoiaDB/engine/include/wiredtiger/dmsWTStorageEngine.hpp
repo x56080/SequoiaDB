@@ -131,6 +131,9 @@ namespace wiredtiger
       INT32 getPersistSession( IExecutor *executor,
                                dmsWTSessionHolder &sessionHolder ) ;
 
+      INT32 getReadSession( IExecutor *executor,
+                            dmsWTSessionHolder &sessionHolder ) ;
+
       INT32 checkPoint( IExecutor *executor ) ;
 
    protected:
