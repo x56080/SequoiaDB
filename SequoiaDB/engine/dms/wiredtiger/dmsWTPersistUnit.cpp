@@ -59,7 +59,8 @@ namespace wiredtiger
          INT32 tmpRC = _abortUnit( sdbGetThreadExecutor() ) ;
          PD_LOG( PDWARNING, "Failed to abort persist unit, rc: %d", tmpRC ) ;
       }
-      _session.close() ;
+      _writeSession.close() ;
+      _readSession.close() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTPERSISTUNIT_INITUNIT, "_dmsWTPersistUnit::initUnit" )
@@ -69,10 +70,16 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT_INITUNIT ) ;
 
-      if ( !_session.isOpened() )
+      if ( !_writeSession.isOpened() )
       {
          // only snapshot session can support write operations
-         rc = _engine.openSession( _session, dmsWTSessIsolation::SNAPSHOT ) ;
+         rc = _engine.openSession( _writeSession, dmsWTSessIsolation::SNAPSHOT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+      if ( !_readSession.isOpened() )
+      {
+         rc = _engine.openSession( _readSession, dmsWTSessIsolation::SNAPSHOT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
       }
 
@@ -91,7 +98,7 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__BEGINUNIT ) ;
 
-      rc = _session.beginTrans() ;
+      rc = _writeSession.beginTrans() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc ) ;
 
    done:
@@ -109,10 +116,10 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__PREPAREUNIT ) ;
 
-      PD_CHECK( _session.isOpened(), SDB_SYS, error, PDERROR,
+      PD_CHECK( _writeSession.isOpened(), SDB_SYS, error, PDERROR,
                 "Failed to prepare transaction, session is not opened" ) ;
 
-      rc = _session.prepareTrans() ;
+      rc = _writeSession.prepareTrans() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare transaction, rc: %d", rc ) ;
 
    done:
@@ -130,10 +137,10 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__COMMITUNIT ) ;
 
-      PD_CHECK( _session.isOpened(), SDB_SYS, error, PDERROR,
+      PD_CHECK( _writeSession.isOpened(), SDB_SYS, error, PDERROR,
                 "Failed to commit transaction, session is not opened" ) ;
 
-      rc = _session.commitTrans() ;
+      rc = _writeSession.commitTrans() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction, rc: %d", rc ) ;
 
    done:
@@ -151,10 +158,10 @@ namespace wiredtiger
 
       PD_TRACE_ENTRY( SDB__DMSWTPERSISTUNIT__ABORTUNIT ) ;
 
-      PD_CHECK( _session.isOpened(), SDB_SYS, error, PDERROR,
+      PD_CHECK( _writeSession.isOpened(), SDB_SYS, error, PDERROR,
                 "Failed to abort transaction, session is not opened" ) ;
 
-      rc = _session.abortTrans() ;
+      rc = _writeSession.abortTrans() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to abort transaction, rc: %d", rc ) ;
 
    done:

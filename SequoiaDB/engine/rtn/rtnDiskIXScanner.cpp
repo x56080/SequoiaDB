@@ -317,12 +317,15 @@ namespace engine
          goto done ;
       }
 
-      rc = _cursorPtr->getCurrentKey( _savedObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
-      _savedObj = _savedObj.getOwned() ;
+      if ( !_savedRID.isValid() )
+      {
+         rc = _cursorPtr->getCurrentKey( _savedObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
+         _savedObj = _savedObj.getOwned() ;
 
-      rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
+         rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
+      }
 
       rc = _cursorPtr->pause( _cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pause cursor, rc: %d", rc ) ;

@@ -151,14 +151,13 @@ namespace engine
                ++ scannedNum ;
             }
 
-
             if ( SDB_DMS_EOC != rc && SDB_OK != rc )
             {
                PD_LOG ( PDERROR, "Failed to get record: %d", rc ) ;
                goto error ;
             }
             if ( ( !moveRID.isValid() ) &&
-                 ( SDB_DMS_EOC == rc || scanner.isEOF() ) )
+                 ( scanner.isEOF() ) )
             {
                lock.lock( EXCLUSIVE ) ;
                dmsRecordID nextRID ;
@@ -168,7 +167,15 @@ namespace engine
                }
                else
                {
-                  nextRID.resetMin() ;
+                  dmsRecordID lastScanRID = _indexCB->getScanRID() ;
+                  if ( lastScanRID.isValid() )
+                  {
+                     nextRID.fromUINT64( lastScanRID.toUINT64() + 1 ) ;
+                  }
+                  else
+                  {
+                     nextRID.resetMin() ;
+                  }
                }
 
                rc = scanner.relocateRID( nextRID ) ;
@@ -188,6 +195,9 @@ namespace engine
             {
                goto error ;
             }
+
+            rc = scanner.pauseScan() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pause scanner, rc: %d", rc ) ;
          }
 
          _mbContext->mbUnlock() ;

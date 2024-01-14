@@ -351,8 +351,8 @@ namespace wiredtiger
       UINT64 key = rid.toUINT64() ;
 
       dmsWTSessionHolder sessionHolder ;
-      rc = _engine.getPersistSession( executor, sessionHolder ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get persist session, rc: %d", rc ) ;
+      rc = _engine.getReadSession( executor, sessionHolder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get read session, rc: %d", rc ) ;
 
       {
          dmsWTCursor cursor( sessionHolder.getSession() ) ;
@@ -530,7 +530,7 @@ namespace wiredtiger
          PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
                    "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
 
-         cursor = unique_ptr<dmsWTDataCursor>( new dmsWTDataCursor( wtUnit->getSession() ) ) ;
+         cursor = unique_ptr<dmsWTDataCursor>( new dmsWTDataCursor( wtUnit->getReadSession() ) ) ;
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create data cursor, rc: %d", rc ) ;
          PD_LOG( PDDEBUG, "Opened data cursor on collection [%s.%s]",
                  _metadata.getSU()->getSUName(),

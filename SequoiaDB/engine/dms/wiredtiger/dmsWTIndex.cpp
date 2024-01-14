@@ -191,7 +191,7 @@ namespace
          PD_CHECK( wtUnit, SDB_SYS, error, PDERROR,
                   "Failed to get persist unit, it is not a WiredTiger persist unit" ) ;
 
-         cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor( wtUnit->getSession() ) ) ;
+         cursor = unique_ptr<dmsWTIndexCursor>( new dmsWTIndexCursor( wtUnit->getReadSession() ) ) ;
          PD_CHECK( cursor, SDB_OOM, error, PDERROR, "Failed to create index cursor, rc: %d", rc ) ;
       }
       else

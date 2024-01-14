@@ -1210,6 +1210,11 @@ namespace engine
       rc = mbContext->getCollPtr()->extractRecord( recordID, recordData, needGetOwned, cb ) ;
       if ( SDB_DMS_RECORD_NOTEXIST == rc )
       {
+         PD_LOG( PDDEBUG, "Failed to extract record from "
+                 "collection [%s.%s] with record ID "
+                 "[ extent: %u, offset: %u ], rc: %d",
+                 _suDescriptor->getSUName(), mbContext->clName(),
+                 recordID._extent, recordID._offset, rc ) ;
          goto error ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to extract record from "
@@ -3866,8 +3871,6 @@ namespace engine
             goto error ;
          }
 
-         rc = writeGuard.begin() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
          if ( context->mbStat()->_textIdxNum > 0 )
          {
@@ -3938,6 +3941,12 @@ namespace engine
                goto error ;
             }
          }
+
+         rc = _pIdxSU->checkProcess( context, foundRID, writeGuard.getIndexWriteGuard() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+
+         rc = writeGuard.begin() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
          rc = _prepareInsert( foundRID, recordData ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare insert, rc: %d", rc ) ;
@@ -4059,8 +4068,7 @@ namespace engine
          INT32 tmpRC = writeGuard.abort() ;
          if ( tmpRC )
          {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
-            ossPanic() ;
+            PD_LOG( PDWARNING, "Failed to abort write guard, rc: %d", tmpRC ) ;
          }
       }
 
@@ -4137,6 +4145,9 @@ namespace engine
 
       try
       {
+         rc = _pIdxSU->checkProcess( context, recordID, writeGuard.getIndexWriteGuard() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
+
          rc = writeGuard.begin() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
 
@@ -4391,8 +4402,7 @@ namespace engine
          INT32 tmpRC = writeGuard.abort() ;
          if ( tmpRC )
          {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
-            ossPanic() ;
+            PD_LOG( PDWARNING, "Failed to abort write guard, rc: %d", tmpRC ) ;
          }
       }
       goto done ;
@@ -4583,6 +4593,9 @@ namespace engine
             }
 
             newRecordData.setData( newobj.objdata(), newobj.objsize() ) ;
+
+            rc = _pIdxSU->checkProcess( context, recordID, writeGuard.getIndexWriteGuard() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
 
             rc = writeGuard.begin() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to begin write guard, rc: %d", rc ) ;
@@ -4839,8 +4852,7 @@ namespace engine
          INT32 tmpRC = writeGuard.abort() ;
          if ( tmpRC )
          {
-            PD_LOG( PDSEVERE, "Failed to abort write guard, rc: %d", tmpRC ) ;
-            ossPanic() ;
+            PD_LOG( PDWARNING, "Failed to abort write guard, rc: %d", tmpRC ) ;
          }
       }
       goto done ;

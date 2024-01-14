@@ -84,6 +84,8 @@ namespace engine
          return _processMutex ;
       }
 
+      BOOLEAN isSetByWrite( const dmsRecordID &rid ) ;
+
    protected:
       ossRWMutex _processMutex ;
       ossSpinXLatch _ridLatch ;

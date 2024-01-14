@@ -167,8 +167,11 @@ namespace engine
          goto done ;
       }
 
-      rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get current record ID, rc: %d", rc ) ;
+      if ( !_savedRID.isValid() )
+      {
+         rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get current record ID, rc: %d", rc ) ;
+      }
 
       rc = _cursorPtr->pause( _cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pause cursor, rc: %d", rc ) ;

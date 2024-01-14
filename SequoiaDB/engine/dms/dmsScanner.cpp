@@ -1062,7 +1062,7 @@ namespace engine
          _curRID = nextRID ;
          lastRID = nextRID ;
 
-         if ( !recordRW.isDirectMem() && _hasLockedRecord )
+         if ( !recordRW.isDirectMem() )
          {
             BOOLEAN isSnapshotSame = FALSE ;
             rc = _checkSnapshotID( isSnapshotSame ) ;

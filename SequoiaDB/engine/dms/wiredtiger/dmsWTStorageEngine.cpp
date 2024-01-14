@@ -534,7 +534,7 @@ namespace wiredtiger
 
          if ( pu )
          {
-            sessionHolder.setSession( &( pu->getSession() ) ) ;
+            sessionHolder.setSession( &( pu->getWriteSession() ) ) ;
          }
       }
 
@@ -546,6 +546,43 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_GETPERSISTSESSION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_GETREADSESSION, "_dmsWTStorageEngine::getReadSession" )
+   INT32 _dmsWTStorageEngine::getReadSession( IExecutor *executor,
+                                              dmsWTSessionHolder &sessionHolder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_GETREADSESSION ) ;
+
+      dmsWTPersistUnit *pu = nullptr ;
+
+      if ( executor &&
+           executor->getOperationContext() &&
+           executor->getOperationContext()->getPersistUnit() )
+      {
+         pu = dynamic_cast<dmsWTPersistUnit *>(
+               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
+
+         if ( pu )
+         {
+            sessionHolder.setSession( &( pu->getReadSession() ) ) ;
+         }
+      }
+
+      if ( !sessionHolder.getSession().isOpened() )
+      {
+         rc = openSession( sessionHolder.getSession() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open session, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_GETREADSESSION, rc ) ;
       return rc ;
 
    error:

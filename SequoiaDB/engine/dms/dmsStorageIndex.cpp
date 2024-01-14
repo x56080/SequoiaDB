@@ -2260,6 +2260,7 @@ namespace engine
                                          BOOLEAN dupAllowed,
                                          BOOLEAN dropDups,
                                          IDmsOprHandler *pOprHandle,
+                                         dmsWriteGuard &writeGuard,
                                          utilWriteResult *pResult,
                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -2522,7 +2523,7 @@ namespace engine
          ++ procIdxNum ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
          {
@@ -2600,7 +2601,7 @@ namespace engine
                     PDERROR, "Failed to init index" ) ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid,
+         rc = _needProcessIndex( context, indexCB, indexID, rid,
                                  writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
@@ -2621,7 +2622,7 @@ namespace engine
          else
          {
             rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-                                dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
+                                dropDups, pOprHandle, writeGuard, pResult, pUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
                           "rc: %d", PD_SECURE_OBJ( inputObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
@@ -2677,6 +2678,7 @@ namespace engine
                                          pmdEDUCB *cb,
                                          BOOLEAN isRollback,
                                          IDmsOprHandler *pOprHandle,
+                                         dmsWriteGuard &writeGuard,
                                          utilWriteResult *pResult,
                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray )
@@ -2783,7 +2785,7 @@ namespace engine
             {
                const BSONObj &keyObj = *itori ;
                ixmKeyOwned ko( keyObj, FALSE ) ;
-               rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
+               rc = _indexDelete( context, indexCB, keyObj, rid, writeGuard, cb ) ;
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -2878,7 +2880,7 @@ namespace engine
 #endif
             const BSONObj &keyObj = *itori ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
-            rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
+            rc = _indexDelete( context, indexCB, keyObj, rid, writeGuard, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -3017,7 +3019,7 @@ namespace engine
          ++ procIdxNum ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess ||
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
@@ -3176,7 +3178,7 @@ namespace engine
                     error, PDERROR, "Failed to init index" ) ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid,
+         rc = _needProcessIndex( context, indexCB, indexID, rid,
                                  writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess ||
@@ -3194,7 +3196,7 @@ namespace engine
          else
          {
             rc = _indexUpdate ( context, &indexCB, originalObj, newObj,
-                                rid, cb, isUndo, pOprHandle, pResult,
+                                rid, cb, isUndo, pOprHandle, writeGuard, pResult,
                                 pNewUnqIdxHashArray, pOldUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
                           "rc: %d", PD_SECURE_OBJ( newObj ),
@@ -3240,6 +3242,7 @@ namespace engine
                                          const dmsRecordID &rid,
                                          pmdEDUCB * cb,
                                          IDmsOprHandler *pOprHandle,
+                                         dmsWriteGuard &writeGuard,
                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__INDEXDELETE ) ;
@@ -3283,7 +3286,7 @@ namespace engine
             const BSONObj &keyObj = *it ;
             ixmKeyOwned ko( keyObj, FALSE ) ;
 
-            rc = _indexDelete( context, indexCB, keyObj, rid, cb ) ;
+            rc = _indexDelete( context, indexCB, keyObj, rid, writeGuard, cb ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
@@ -3354,7 +3357,7 @@ namespace engine
          ++ procIdxNum ;
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid, writeGuard, needProcess ) ;
+         rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
          {
@@ -3421,6 +3424,7 @@ namespace engine
 
    INT32 _dmsStorageIndex::_needProcessIndex( dmsMBContext *context,
                                               ixmIndexCB &indexCB,
+                                              UINT32 indexID,
                                               const dmsRecordID &rid,
                                               dmsIndexWriteGuard &writeGuard,
                                               BOOLEAN &needProcess )
@@ -3432,22 +3436,16 @@ namespace engine
       // if index is 'IXM_INDEX_FLAG_CREATING', then judge record ID
       if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
       {
-         BOOLEAN isChecked = FALSE ;
          if ( writeGuard.isEnabled() )
          {
-            dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
-            dmsIndexBuildGuardPtr guardPtr = _getBuildGuard( metadataKey ) ;
-            if ( guardPtr )
-            {
-               rc = writeGuard.lock( metadataKey, indexCB, rid, guardPtr, needProcess ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
-               isChecked = TRUE ;
-            }
+            needProcess = writeGuard.checkNeedProcess( indexID ) ;
          }
-
-         if ( !isChecked && indexCB.getScanRID() < rid )
+         else
          {
-            needProcess = FALSE ;
+            if ( indexCB.getScanRID() < rid )
+            {
+               needProcess = FALSE ;
+            }
          }
       }
       // only attempt to process normal and creating indexes
@@ -3457,11 +3455,7 @@ namespace engine
          needProcess = FALSE ;
       }
 
-   done:
       return rc ;
-
-   error:
-      goto done ;
    }
 
    BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
@@ -3579,7 +3573,7 @@ namespace engine
          }
 
          BOOLEAN needProcess = FALSE ;
-         rc = _needProcessIndex( context, indexCB, rid,
+         rc = _needProcessIndex( context, indexCB, indexID, rid,
                                  writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
@@ -3596,7 +3590,8 @@ namespace engine
          else
          {
             rc = _indexDelete ( context, &indexCB, inputObj,
-                                rid, cb, pOprHandle, pUnqIdxHashArray ) ;
+                                rid, cb, pOprHandle, writeGuard,
+                                pUnqIdxHashArray ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to delete object(%s) index(%s), "
@@ -3937,6 +3932,58 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_CHECKPROCESS, "_dmsStorageIndex::checkProcess" )
+   INT32 _dmsStorageIndex::checkProcess( _dmsMBContext *context,
+                                         const dmsRecordID &rid,
+                                         dmsIndexWriteGuard &writeGuard )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_CHECKPROCESS ) ;
+
+      if ( !writeGuard.isEnabled() )
+      {
+         goto done ;
+      }
+
+      for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++ indexID )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+         {
+            break ;
+         }
+         ixmIndexCB indexCB ( context->mb()->_indexExtent[ indexID ], this,
+                              context ) ;
+         PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
+                    PDERROR, "Failed to init index" ) ;
+
+         if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
+         {
+            dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
+            dmsIndexBuildGuardPtr guardPtr = _getBuildGuard( metadataKey ) ;
+            if ( guardPtr )
+            {
+               rc = writeGuard.lock( metadataKey, indexID, indexCB, rid, guardPtr ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to lock index build, rc: %d", rc ) ;
+            }
+            else
+            {
+               if ( rid <= indexCB.getScanRID() )
+               {
+                  writeGuard.setNeedProcess( indexID ) ;
+               }
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_CHECKPROCESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__INDEXINSERT_BSON, "_dmsStorageIndex::_indexInsert" )
    INT32 _dmsStorageIndex::_indexInsert( dmsMBContext *context,
                                          ixmIndexCB *indexCB,
@@ -3987,6 +4034,7 @@ namespace engine
                                          ixmIndexCB *indexCB,
                                          const BSONObj &key,
                                          const dmsRecordID &rid,
+                                         dmsWriteGuard &writeGuard,
                                          pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -4001,6 +4049,17 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get index, rc: %d", rc ) ;
 
       rc = idxPtr->unindex( key, rid, cb ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         dmsIdxMetadataKey metadataKey( context->mb(), indexCB ) ;
+         if ( writeGuard.getIndexWriteGuard().isSet( metadataKey, rid ) )
+         {
+            PD_LOG( PDDEBUG,  "Failed to remove key to rebuilding index [%s] of "
+                    "collection [%s.%s], rc: %d, ignore",
+                    indexCB->getName(), getSuName(), context->clName(), rc ) ;
+            rc = SDB_OK ;
+         }
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to remove key to index [%s] of "
                    "collection [%s.%s], rc: %d", indexCB->getName(),
                    getSuName(), context->clName(), rc ) ;

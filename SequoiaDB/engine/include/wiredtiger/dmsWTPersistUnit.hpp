@@ -54,9 +54,14 @@ namespace wiredtiger
       _dmsWTPersistUnit( const _dmsWTPersistUnit &o ) = delete ;
       _dmsWTPersistUnit &operator =( const _dmsWTPersistUnit & ) = delete ;
 
-      dmsWTSession &getSession()
+      dmsWTSession &getWriteSession()
       {
-         return _session ;
+         return _writeSession ;
+      }
+
+      dmsWTSession &getReadSession()
+      {
+         return _readSession ;
       }
 
       INT32 initUnit( IExecutor *executor ) ;
@@ -74,7 +79,12 @@ namespace wiredtiger
 
    protected:
       dmsWTStorageEngine &_engine ;
-      dmsWTSession _session ;
+      // session for write operators
+      // NOTE: snapshot of read session will not affect write session
+      dmsWTSession _writeSession ;
+      // session for read operators
+      // NOTE: rollback of write session will not affect read session
+      dmsWTSession _readSession ;
    } ;
 
    typedef class _dmsWTPersistUnit dmsWTPersistUnit ;
