@@ -784,6 +784,14 @@ namespace engine
                 _oldVer->isOnChain() &&
                 isDeleting )
       {
+         if ( !_unitPtr.get() )
+         {
+            oldVersionCB *oldCB = _transCB->getOldVCB() ;
+            _unitPtr = oldCB->getOldVersionUnit( _csID, _clID ) ;
+            // old version is on chain, should be valid
+            SDB_ASSERT( _unitPtr, "should be valid" ) ;
+            PD_CHECK( _unitPtr, SDB_SYS, error, PDERROR, "Failed to get old verion unit " ) ;
+         }
          rc = _unitPtr->addToDeleting( rid ) ;
          if ( rc )
          {
