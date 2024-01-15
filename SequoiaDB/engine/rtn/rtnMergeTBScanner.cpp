@@ -80,6 +80,35 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGETBSCAN_INIT, "_rtnMergeTBScanner::init" )
+   INT32 _rtnMergeTBScanner::init()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNMERGETBSCAN_INIT ) ;
+
+      rc = _rtnTBScanner::init() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _createScanner( _leftType, _leftTBScanner ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create left scanner, rc: %d", rc ) ;
+      _leftEnabled = TRUE ;
+
+      rc = _createScanner( _rightType, _rightTBScanner ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create right scanner, rc: %d", rc ) ;
+      _rightEnabled = TRUE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNMERGETBSCAN_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGETBSCAN_ADVANCE, "_rtnMergeTBScanner::advance" )
    INT32 _rtnMergeTBScanner::advance( dmsRecordID &rid )
    {
@@ -437,15 +466,6 @@ namespace engine
       dmsRecordID leftRID, rightRID ;
 
       _fromDir = SCAN_NONE ;
-
-      rc = _createScanner( _leftType, _leftTBScanner ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create left scanner, rc: %d", rc ) ;
-      _leftEnabled = TRUE ;
-
-      rc = _createScanner( _rightType, _rightTBScanner ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create right scanner, rc: %d", rc ) ;
-      _rightEnabled = TRUE ;
-
 
       if ( _leftEnabled )
       {

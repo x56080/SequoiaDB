@@ -57,6 +57,7 @@ namespace engine
 
    public:
       // for _rtnScanner
+      virtual INT32 init() ;
       virtual INT32 advance( dmsRecordID &rid ) ;
       virtual INT32 resumeScan( BOOLEAN &isCursorSame ) ;
       virtual INT32 pauseScan() ;

@@ -90,6 +90,16 @@ namespace engine
             goto error ;
          }
 
+         rc = pScanner->init() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Init scanner[type:%d] failed, rc: %d",
+                    type, rc ) ;
+            SDB_OSS_DEL pScanner ;
+            pScanner = NULL ;
+            goto error ;
+         }
+
       done:
          return rc ;
 

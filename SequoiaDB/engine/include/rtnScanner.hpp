@@ -105,6 +105,7 @@ namespace engine
          return _isEOF ;
       }
 
+      virtual INT32 init() = 0 ;
       virtual INT32 advance( dmsRecordID &rid ) = 0 ;
       virtual INT32 resumeScan( BOOLEAN &isCursorSame ) = 0 ;
       virtual INT32 pauseScan() = 0 ;

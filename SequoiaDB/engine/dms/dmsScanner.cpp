@@ -1332,6 +1332,12 @@ namespace engine
       PD_CHECK( _scanner, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
                 "Failed to init scanner, scanner is invalid" ) ;
 
+      if ( DPS_TRANSLOCK_MAX == _recordLock ||
+           cb->getTransExecutor()->isLockEscalated( LOCKMGR_TRANS_LOCK ) )
+      {
+         _scanner->disableByType( SCANNER_TYPE_MEM_TREE ) ;
+      }
+
       rc = _scanner->resumeScan( isCursorSame ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resum scanner, rc: %d", rc ) ;
 
