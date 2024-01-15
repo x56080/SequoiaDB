@@ -811,7 +811,7 @@ namespace
                     "record ID [extent: %u, offset: %u]", rid._extent, rid._offset ) ;
             goto error ;
          }
-         else
+         else if ( result )
          {
             result->setCurRID( rid ) ;
             result->setPeerRID( conflictRID ) ;
