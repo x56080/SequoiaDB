@@ -98,6 +98,16 @@ namespace engine
          return FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         IStorageSession *lSess = _leftEnabled ? _leftIXScanner->getSession() : nullptr ;
+         if ( lSess )
+         {
+            return lSess ;
+         }
+         return _rightEnabled ? _rightIXScanner->getSession() : nullptr ;
+      }
+
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() ;

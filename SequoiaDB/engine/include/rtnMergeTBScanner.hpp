@@ -115,6 +115,16 @@ namespace engine
          return FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         IStorageSession *lSess = _leftEnabled ? _leftTBScanner->getSession() : nullptr ;
+         if ( lSess )
+         {
+            return lSess ;
+         }
+         return _rightEnabled ? _rightTBScanner->getSession() : nullptr ;
+      }
+
    protected:
       INT32 _firstInit() ;
       INT32 _advance() ;

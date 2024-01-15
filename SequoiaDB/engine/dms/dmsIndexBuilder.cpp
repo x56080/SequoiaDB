@@ -522,20 +522,22 @@ namespace engine
          if ( _pResult->getCurID().isEmpty() &&
               _pResult->getCurRID().isValid() )
          {
-            BSONObj curObj ;
+            dmsRecordData curData ;
             if ( SDB_OK == _suData->fetch( _mbContext, _pResult->getCurRID(),
-                                           curObj, _eduCB, FALSE ) )
+                                           curData, _eduCB ) )
             {
+               BSONObj curObj( curData.data() ) ;
                _pResult->setCurrentID( curObj ) ;
             }
          }
          if ( _pResult->getPeerID().isEmpty() &&
               _pResult->getPeerRID().isValid() )
          {
-            BSONObj peerObj ;
+            dmsRecordData peerData ;
             if ( SDB_OK == _suData->fetch( _mbContext, _pResult->getPeerRID(),
-                                           peerObj, _eduCB, FALSE ) )
+                                           peerData, _eduCB ) )
             {
+               BSONObj peerObj( peerData.data() ) ;
                _pResult->setPeerID( peerObj ) ;
             }
          }

@@ -34,6 +34,7 @@
 #define SDB_I_CURSOR_HPP_
 
 #include "sdbInterface.hpp"
+#include "interface/IStorageSession.hpp"
 #include "utilPooledObject.hpp"
 #include "dms.hpp"
 #include "dmsRecord.hpp"
@@ -74,6 +75,7 @@ namespace engine
       virtual void resetSnapshotID( UINT64 snapshotID ) = 0 ;
 
       virtual BOOLEAN isAsync() const = 0 ;
+      virtual IStorageSession *getSession() = 0 ;
    } ;
 
    /*

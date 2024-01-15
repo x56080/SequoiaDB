@@ -37,6 +37,7 @@
 #include "dmsScanner.hpp"
 #include "dms.hpp"
 #include "dmsOprHandler.hpp"
+#include "dmsReadUnit.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageDataCommon.hpp"
 #include "rtnTBScanner.hpp"
@@ -1597,8 +1598,11 @@ namespace engine
          }
       }
 
-      rc = _pSu->extractData( _context, _curRID, _cb, recordData, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
+      {
+         dmsReadUnitScope readUnit( _scanner->getSession(), _cb ) ;
+         rc = _pSu->extractData( _context, _curRID, _cb, recordData, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSIDXSCAN__GETCURREC, rc ) ;

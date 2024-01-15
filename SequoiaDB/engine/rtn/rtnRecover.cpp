@@ -151,17 +151,19 @@ namespace engine
 
       try
       {
+         dmsRecordData recordData ;
          BSONObj record ;
          ossPoolString recordStr ;
 
          // extract duplicated key record
          if ( 0 == recordDataPtr )
          {
-            rc = suData->fetch( mbContext, recordID, record, eduCB, FALSE ) ;
+            rc = suData->fetch( mbContext, recordID, recordData, eduCB ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to fetch duplicated key record "
                          "for collection [%s] at ( extent %d, offset %d ), "
                          "rc: %d", _clFullName, recordID._extent,
                          recordID._offset, rc ) ;
+            record = BSONObj( recordData.data() ) ;
          }
          else
          {

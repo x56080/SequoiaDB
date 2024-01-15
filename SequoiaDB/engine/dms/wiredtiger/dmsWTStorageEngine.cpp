@@ -38,6 +38,7 @@
 #include "dmsTrace.hpp"
 #include "pmd.hpp"
 #include "pmdOptionsMgr.hpp"
+#include "dmsReadUnit.hpp"
 
 #include <boost/filesystem/operations.hpp>
 
@@ -563,15 +564,34 @@ namespace wiredtiger
       dmsWTPersistUnit *pu = nullptr ;
 
       if ( executor &&
-           executor->getOperationContext() &&
-           executor->getOperationContext()->getPersistUnit() )
+           executor->getOperationContext() )
       {
-         pu = dynamic_cast<dmsWTPersistUnit *>(
-               executor->getSession()->getOperationContext()->getPersistUnit() ) ;
-
-         if ( pu )
+         BOOLEAN got = FALSE ;
+         if ( executor->getOperationContext()->getReadUnit() )
          {
-            sessionHolder.setSession( &( pu->getReadSession() ) ) ;
+            dmsReadUnit *ru = dynamic_cast<dmsReadUnit *>(
+                  executor->getOperationContext()->getReadUnit() ) ;
+            if ( ru )
+            {
+               IStorageSession *sess = ru->getSession() ;
+               dmsWTSession *wtSess = dynamic_cast<dmsWTSession *>( sess ) ;
+               if ( wtSess )
+               {
+                  sessionHolder.setSession( wtSess ) ;
+                  got = TRUE ;
+               }
+            }
+         }
+         if ( !got &&
+              executor->getOperationContext()->getPersistUnit() )
+         {
+            pu = dynamic_cast<dmsWTPersistUnit *>(
+                  executor->getSession()->getOperationContext()->getPersistUnit() ) ;
+
+            if ( pu )
+            {
+               sessionHolder.setSession( &( pu->getReadSession() ) ) ;
+            }
          }
       }
 

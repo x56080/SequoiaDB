@@ -35,6 +35,7 @@
 
 #include "sdbInterface.hpp"
 #include "interface/IPersistUnit.hpp"
+#include "interface/IReadUnit.hpp"
 #include "utilPooledObject.hpp"
 
 namespace engine
@@ -54,6 +55,8 @@ namespace engine
    public:
       virtual IPersistUnit *getPersistUnit() = 0 ;
       virtual void setPersistUnit( std::unique_ptr<IPersistUnit> persistUnit ) = 0 ;
+      virtual IReadUnit *getReadUnit() = 0 ;
+      virtual void setReadUnit( IReadUnit *readUnit ) = 0 ;
    } ;
 
 }

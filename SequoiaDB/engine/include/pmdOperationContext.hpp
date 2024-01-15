@@ -59,8 +59,19 @@ namespace engine
          _persistUnit = std::move( persistUnit ) ;
       }
 
+      virtual IReadUnit *getReadUnit()
+      {
+         return _readUnit ;
+      }
+
+      virtual void setReadUnit( IReadUnit *readUnit )
+      {
+         _readUnit = readUnit ;
+      }
+
    protected:
       std::unique_ptr<IPersistUnit> _persistUnit ;
+      IReadUnit *_readUnit = nullptr ;
    } ;
 
    typedef class _pmdOperationContext pmdOperationContext ;

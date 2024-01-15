@@ -97,6 +97,11 @@ namespace engine
          return FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         return nullptr ;
+      }
+
    protected:
       INT32 _firstInit() ;
       INT32 _relocateRID( const dmsRecordID &rid, BOOLEAN &isFound ) ;

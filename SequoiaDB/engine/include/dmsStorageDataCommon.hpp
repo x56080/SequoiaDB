@@ -1317,9 +1317,8 @@ namespace engine
          // Caller must hold mb exclusive/shared lock
          INT32 fetch ( dmsMBContext *context,
                        const dmsRecordID &recordID,
-                       BSONObj &dataRecord,
-                       _pmdEDUCB *cb,
-                       BOOLEAN dataOwned = FALSE ) ;
+                       dmsRecordData &recordData,
+                       _pmdEDUCB *cb ) ;
 
          virtual void incWritePtrCount( INT32 collectionID ) ;
 

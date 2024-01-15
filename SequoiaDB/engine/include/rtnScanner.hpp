@@ -39,6 +39,7 @@
 #include "dms.hpp"
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
+#include "interface/IStorageSession.hpp"
 
 namespace engine
 {
@@ -122,6 +123,7 @@ namespace engine
       virtual void            disableByType( rtnScannerType type ) = 0 ;
       virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const = 0 ;
       virtual BOOLEAN         canPrefetch() const = 0 ;
+      virtual IStorageSession *getSession() = 0 ;
 
       _pmdEDUCB *getEDUCB()
       {

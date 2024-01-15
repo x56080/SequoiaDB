@@ -98,6 +98,11 @@ namespace engine
          return _cursorPtr ? _cursorPtr->isAsync() : FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         return _cursorPtr ? _cursorPtr->getSession() : nullptr ;
+      }
+
    protected:
       INT32 _firstInit() ;
       INT32 _relocateRID( const dmsRecordID &rid, BOOLEAN &isFound ) ;

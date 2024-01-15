@@ -93,6 +93,11 @@ namespace engine
          return FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         return nullptr ;
+      }
+
    protected:
       INT32 _checkCursorSame( const BSONObj &saveObj,
                               const dmsRecordID &saveRID,

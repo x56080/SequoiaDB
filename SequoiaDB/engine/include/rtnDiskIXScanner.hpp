@@ -90,6 +90,11 @@ namespace engine
          return _cursorPtr ? _cursorPtr->isAsync() : FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         return _cursorPtr ? _cursorPtr->getSession() : nullptr ;
+      }
+
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() ;
