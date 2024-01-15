@@ -71,6 +71,11 @@ namespace wiredtiger
          return _cursor ;
       }
 
+      _dmsWTSession &getSession()
+      {
+         return _session ;
+      }
+
       BOOLEAN isOpened() const
       {
          return nullptr != _cursor ;

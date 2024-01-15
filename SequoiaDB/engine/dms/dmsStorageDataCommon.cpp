@@ -3688,10 +3688,11 @@ namespace engine
             if ( insertResult->getPeerID().isEmpty() &&
                  insertResult->getPeerRID().isValid() )
             {
-               BSONObj peerObj ;
+               dmsRecordData peerData ;
                if ( SDB_OK == fetch( context, insertResult->getPeerRID(),
-                                     peerObj, cb, FALSE ) )
+                                     peerData, cb ) )
                {
+                  BSONObj peerObj( peerData.data() ) ;
                   insertResult->setPeerID( peerObj ) ;
                }
             }
@@ -4707,10 +4708,11 @@ namespace engine
                   if ( pResult->getPeerID().isEmpty() &&
                        pResult->getPeerRID().isValid() )
                   {
-                     BSONObj peerObj ;
+                     dmsRecordData peerData ;
                      if ( SDB_OK == fetch( context, pResult->getPeerRID(),
-                                           peerObj, cb, FALSE ) )
+                                           peerData, cb ) )
                      {
+                        BSONObj peerObj( peerData.data() ) ;
                         pResult->setPeerID( peerObj ) ;
                      }
                   }
@@ -4882,12 +4884,10 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_FETCH, "_dmsStorageDataCommon::fetch" )
    INT32 _dmsStorageDataCommon::fetch( dmsMBContext *context,
                                        const dmsRecordID &recordID,
-                                       BSONObj &dataRecord,
-                                       pmdEDUCB * cb,
-                                       BOOLEAN dataOwned )
+                                       dmsRecordData &recordData,
+                                       pmdEDUCB * cb )
    {
-      INT32 rc                     = SDB_OK ;
-      dmsRecordData recordData ;
+      INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_FETCH ) ;
 
@@ -4913,15 +4913,6 @@ namespace engine
          // if this record is overflow from
          rc = extractData( context, recordID, cb, recordData ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract record data failed, rc: %d", rc ) ;
-
-         if ( dataOwned )
-         {
-            dataRecord = BSONObj( recordData.data() ).getOwned() ;
-         }
-         else
-         {
-            dataRecord = BSONObj( recordData.data() ) ;
-         }
       }
       catch( std::exception &e )
       {

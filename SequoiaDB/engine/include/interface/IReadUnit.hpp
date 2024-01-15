@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IOperationContext.hpp
+   Source File Name = IReadUnit.hpp
 
    Descriptive Name =
 
@@ -33,35 +33,29 @@
 
 *******************************************************************************/
 
-#ifndef SDB_I_OPERATION_CONTEXT_HPP_
-#define SDB_I_OPERATION_CONTEXT_HPP_
+#ifndef SDB_I_READ_UNIT_HPP_
+#define SDB_I_READ_UNIT_HPP_
 
 #include "sdbInterface.hpp"
-#include "interface/IPersistUnit.hpp"
-#include "interface/IReadUnit.hpp"
+#include "interface/IStorageSession.hpp"
+#include "utilPooledAutoPtr.hpp"
 #include "utilPooledObject.hpp"
 
 namespace engine
 {
 
    /*
-      IOperationContext define
+      IReadUnit define
     */
-   class IOperationContext : public _utilPooledObject
+   class IReadUnit : public _utilPooledObject
    {
    public:
-      IOperationContext() = default ;
-      virtual ~IOperationContext() = default ;
-      IOperationContext( const IOperationContext &o ) = delete ;
-      IOperationContext &operator =( const IOperationContext& ) = delete ;
-
-   public:
-      virtual IPersistUnit *getPersistUnit() = 0 ;
-      virtual void setPersistUnit( std::unique_ptr<IPersistUnit> persistUnit ) = 0 ;
-      virtual IReadUnit *getReadUnit() = 0 ;
-      virtual void setReadUnit( IReadUnit *readUnit ) = 0 ;
+      IReadUnit() = default ;
+      virtual ~IReadUnit() = default ;
+      IReadUnit( const IReadUnit &o ) = delete ;
+      IReadUnit &operator =( const IReadUnit& ) = delete ;
    } ;
 
 }
 
-#endif // SDB_I_OPERATION_CONTEXT_HPP_
+#endif // SDB_I_READ_UNIT_HPP_

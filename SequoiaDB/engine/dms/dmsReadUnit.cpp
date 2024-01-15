@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IOperationContext.hpp
+   Source File Name = dmsReadUnit.cpp
 
    Descriptive Name =
 
@@ -33,35 +33,42 @@
 
 *******************************************************************************/
 
-#ifndef SDB_I_OPERATION_CONTEXT_HPP_
-#define SDB_I_OPERATION_CONTEXT_HPP_
-
-#include "sdbInterface.hpp"
-#include "interface/IPersistUnit.hpp"
-#include "interface/IReadUnit.hpp"
-#include "utilPooledObject.hpp"
+#include "dmsReadUnit.hpp"
+#include "dmsDef.hpp"
+#include "ossErr.h"
+#include "ossMem.hpp"
+#include "pmdEDU.hpp"
+#include "pdTrace.hpp"
+#include "dmsTrace.hpp"
 
 namespace engine
 {
 
    /*
-      IOperationContext define
+      _dmsReadUnitScope implement
     */
-   class IOperationContext : public _utilPooledObject
+   _dmsReadUnitScope::_dmsReadUnitScope( IStorageSession *session, _pmdEDUCB *cb )
+   : _cb( cb ),
+     _currentReadUnit( session )
    {
-   public:
-      IOperationContext() = default ;
-      virtual ~IOperationContext() = default ;
-      IOperationContext( const IOperationContext &o ) = delete ;
-      IOperationContext &operator =( const IOperationContext& ) = delete ;
+      if ( NULL == _cb->getSession() )
+      {
+         _dummySession.attachCB( _cb ) ;
+         _attached = TRUE ;
+      }
+      SDB_ASSERT( _cb->getSession()->getOperationContext(),
+                  "operation context should be valid" ) ;
+      _lastReadUnit = _cb->getSession()->getOperationContext()->getReadUnit() ;
+      _cb->getSession()->getOperationContext()->setReadUnit( &_currentReadUnit ) ;
+   }
 
-   public:
-      virtual IPersistUnit *getPersistUnit() = 0 ;
-      virtual void setPersistUnit( std::unique_ptr<IPersistUnit> persistUnit ) = 0 ;
-      virtual IReadUnit *getReadUnit() = 0 ;
-      virtual void setReadUnit( IReadUnit *readUnit ) = 0 ;
-   } ;
+   _dmsReadUnitScope::~_dmsReadUnitScope()
+   {
+      _cb->getSession()->getOperationContext()->setReadUnit( _lastReadUnit ) ;
+      if ( _attached )
+      {
+         _dummySession.detachCB() ;
+      }
+   }
 
 }
-
-#endif // SDB_I_OPERATION_CONTEXT_HPP_

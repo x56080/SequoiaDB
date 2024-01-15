@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IOperationContext.hpp
+   Source File Name = dmsReadUnit.hpp
 
    Descriptive Name =
 
@@ -33,35 +33,61 @@
 
 *******************************************************************************/
 
-#ifndef SDB_I_OPERATION_CONTEXT_HPP_
-#define SDB_I_OPERATION_CONTEXT_HPP_
+#ifndef SDB_DMS_READ_UNIT_HPP_
+#define SDB_DMS_READ_UNIT_HPP_
 
-#include "sdbInterface.hpp"
-#include "interface/IPersistUnit.hpp"
+#include "dmsDef.hpp"
 #include "interface/IReadUnit.hpp"
-#include "utilPooledObject.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
 
+   // forward declaration
+   class _pmdEDUCB ;
+
    /*
-      IOperationContext define
+      _dmsReadUnit define
     */
-   class IOperationContext : public _utilPooledObject
+   class _dmsReadUnit : public IReadUnit
    {
    public:
-      IOperationContext() = default ;
-      virtual ~IOperationContext() = default ;
-      IOperationContext( const IOperationContext &o ) = delete ;
-      IOperationContext &operator =( const IOperationContext& ) = delete ;
+      _dmsReadUnit( IStorageSession *session )
+      : _session( session )
+      {
+      }
 
-   public:
-      virtual IPersistUnit *getPersistUnit() = 0 ;
-      virtual void setPersistUnit( std::unique_ptr<IPersistUnit> persistUnit ) = 0 ;
-      virtual IReadUnit *getReadUnit() = 0 ;
-      virtual void setReadUnit( IReadUnit *readUnit ) = 0 ;
+      virtual ~_dmsReadUnit() = default ;
+
+      IStorageSession *getSession()
+      {
+         return _session ;
+      }
+
+   protected:
+      IStorageSession *_session ;
    } ;
+
+   typedef class _dmsReadUnit dmsReadUnit ;
+
+   /*
+      _dmsReadUnitScope define
+    */
+   class _dmsReadUnitScope
+   {
+   public:
+      _dmsReadUnitScope( IStorageSession *session, _pmdEDUCB *cb ) ;
+      ~_dmsReadUnitScope() ;
+
+   protected:
+      _pmdEDUCB *_cb = nullptr ;
+      dmsReadUnit _currentReadUnit ;
+      IReadUnit *_lastReadUnit = nullptr ;
+      pmdDummySession _dummySession ;
+      BOOLEAN _attached = FALSE ;
+   } ;
+   typedef class _dmsReadUnitScope dmsReadUnitScope ;
 
 }
 
-#endif // SDB_I_OPERATION_CONTEXT_HPP_
+#endif // SDB_DMS_READ_UNIT_HPP_

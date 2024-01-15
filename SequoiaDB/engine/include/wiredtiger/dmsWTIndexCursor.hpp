@@ -134,6 +134,11 @@ namespace wiredtiger
          return FALSE ;
       }
 
+      virtual IStorageSession *getSession()
+      {
+         return &( _cursor.getSession() ) ;
+      }
+
    protected:
       void _resetCache()
       {

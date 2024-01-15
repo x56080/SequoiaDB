@@ -376,6 +376,7 @@ dmsFiles = [
       "dms/dmsIndexBuildGuard.cpp",
       "dms/dmsStorageServiceFactory.cpp",
       "dms/dmsPersistUnit.cpp",
+      "dms/dmsReadUnit.cpp",
       "dms/wiredtiger/dmsWTStorageService.cpp",
       "dms/wiredtiger/dmsWTStorageEngine.cpp",
       "dms/wiredtiger/dmsWTSession.cpp",
