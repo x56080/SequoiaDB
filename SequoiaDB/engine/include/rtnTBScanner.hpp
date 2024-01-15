@@ -86,6 +86,11 @@ namespace engine
          return DMS_INVALID_EXTENT ;
       }
 
+      virtual INT32 init()
+      {
+         return SDB_OK ;
+      }
+
    public:
       BOOLEAN isEOF() const
       {
