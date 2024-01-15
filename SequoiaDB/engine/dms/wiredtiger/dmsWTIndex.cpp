@@ -811,10 +811,13 @@ namespace
                     "record ID [extent: %u, offset: %u]", rid._extent, rid._offset ) ;
             goto error ;
          }
-         else if ( result )
+         else
          {
-            result->setCurRID( rid ) ;
-            result->setPeerRID( conflictRID ) ;
+            if ( result )
+            {
+               result->setCurRID( rid ) ;
+               result->setPeerRID( conflictRID ) ;
+            }
             rc = pdError( SDB_IXM_DUP_KEY ) ;
             PD_LOG( PDERROR, "Failed to insert index key [extent: %u, offset: %u] "
                     "to engine, conflict with [extent: %u, offset: %u]",
