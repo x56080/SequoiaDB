@@ -67,6 +67,7 @@ namespace engine
                                  IExecutor *executor ) = 0 ;
       virtual INT32 dropIndex( const dmsIdxMetadata &metadata,
                                const dmsDropIdxOptions &options,
+                               IContext *context,
                                IExecutor *executor ) = 0 ;
       virtual INT32 truncate( const dmsTruncCLOptions &options,
                               IExecutor *executor ) = 0 ;

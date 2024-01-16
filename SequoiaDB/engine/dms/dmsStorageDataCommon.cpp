@@ -2451,6 +2451,10 @@ namespace engine
             context->mb()->_mbOptExtentID = DMS_INVALID_EXTENT ;
          }
 
+         // get unique id from mb. Because if the cl is in _collectionIDMap, and
+         // we don't erase it, it may cause core dump.
+         clUniqueID = context->mb()->_clUniqueID ;
+
          if ( _service )
          {
             dmsCLMetadata metadata( _suDescriptor,
@@ -2461,7 +2465,7 @@ namespace engine
             {
                options = &tmpOptions ;
             }
-            INT32 tmpRC = _service->dropCL( metadata, *options, cb ) ;
+            INT32 tmpRC = _service->dropCL( metadata, *options, context, cb ) ;
             if ( SDB_OK != tmpRC )
             {
                PD_LOG( PDWARNING, "Failed to drop collection [%s] on engine [%s], "
@@ -2477,10 +2481,6 @@ namespace engine
 
          // release mb lock
          context->mbUnlock() ;
-
-         // get unique id from mb. Because if the cl is in _collectionIDMap, and
-         // we don't erase it, it may cause core dump.
-         clUniqueID = context->mb()->_clUniqueID ;
 
          // change metadata
          ossLatch( &_metadataLatch, EXCLUSIVE ) ;

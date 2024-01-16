@@ -470,6 +470,12 @@ namespace engine
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
 
+      // try to get IS-lock
+      INT32 transLockTryIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                            UINT16 collectionID = DMS_INVALID_MBID,
+                            dpsTransRetInfo * pdpsTxResInfo = NULL,
+                            _dpsITransLockCallback * callback = NULL ) ;
+
       // check if any writing transactions on the object, and then try acquire
       // S lock
       INT32 transLockTrySAgainstWrite( _pmdEDUCB *eduCB,

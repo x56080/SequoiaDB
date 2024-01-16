@@ -185,7 +185,8 @@ namespace wiredtiger
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_DROPSTORE, "_dmsWTStorageEngine::dropStore" )
    INT32 _dmsWTStorageEngine::dropStore( const CHAR *uri,
-                                         const CHAR *config )
+                                         const CHAR *config,
+                                         IContext *context )
    {
       INT32 rc = SDB_OK ;
 
@@ -211,7 +212,17 @@ namespace wiredtiger
          rc = WT_CALL( s->drop( s, uri, config ), s ) ;
          if ( SDB_OK != rc && EBUSY == dmsWTGetLastErrorCode() )
          {
+            if ( context )
+            {
+               rc = context->pause() ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to pause context, rc: %d", rc ) ;
+            }
             ossSleep( 100 ) ;
+            if ( context )
+            {
+               rc = context->resume() ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to resume context, rc: %d", rc ) ;
+            }
             continue ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to drop WiredTiger store, rc: %d", rc ) ;

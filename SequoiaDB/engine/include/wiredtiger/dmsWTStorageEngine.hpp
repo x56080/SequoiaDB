@@ -103,7 +103,8 @@ namespace wiredtiger
                          dmsWTStore &store ) ;
 
       INT32 dropStore( const CHAR *uri,
-                       const CHAR *config ) ;
+                       const CHAR *config,
+                       IContext *context = nullptr ) ;
       INT32 dropStores( const ossPoolList<ossPoolString> &uris,
                         const CHAR *config ) ;
 

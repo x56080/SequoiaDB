@@ -1043,12 +1043,13 @@ namespace engine
                goto error ;
             }
 
-            if ( _pDataSu->isTransLockRequired( context ) && NULL != cb
-                 && ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName )
-                      || indexCB.isGlobal() ) )
+            if ( _pDataSu->isTransLockRequired( context ) &&
+                 transCB->isTransOn() &&
+                 NULL != cb &&
+                 cb->getTransExecutor()->useTransLock() )
             {
-               if ( transCB->isTransOn() &&
-                    cb->getTransExecutor()->useTransLock() )
+               if ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName ) ||
+                    indexCB.isGlobal() )
                {
                   // if transaction is on, need to get S lock of collection to
                   // avoid transactions have inserted/updated/deleted records
@@ -1061,6 +1062,28 @@ namespace engine
                                                            context->mbID(),
                                                            NULL,
                                                            &lockConflict ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                               "Conflict( representative ):" OSS_NEWLINE
+                               "   EDUID:  %llu" OSS_NEWLINE
+                               "   TID:    %u" OSS_NEWLINE
+                               "   LockId: %s" OSS_NEWLINE
+                               "   Mode:   %s" OSS_NEWLINE,
+                               rc,
+                               lockConflict._eduID,
+                               lockConflict._tid,
+                               lockConflict._lockID.toString().c_str(),
+                               lockModeToString( lockConflict._lockType ) ) ;
+
+                  lockedCL = TRUE ;
+               }
+               else
+               {
+                  // lock IS to avoid truncate or drop collection
+                  dpsTransRetInfo lockConflict ;
+                  rc = transCB->transLockTryIS( cb, _pDataSu->_logicalCSID,
+                                                context->mbID(),
+                                                &lockConflict ) ;
                   PD_RC_CHECK( rc, PDERROR,
                                "Failed to lock the collection, rc: %d" OSS_NEWLINE
                                "Conflict( representative ):" OSS_NEWLINE
@@ -1336,7 +1359,7 @@ namespace engine
                                   context->mbStat(),
                                   &indexCB ) ;
          dmsDropIdxOptions options ;
-         rc = context->getCollPtr()->dropIndex( metadata, options, cb ) ;
+         rc = context->getCollPtr()->dropIndex( metadata, options, context, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to drop index [%s] on collection [%s] on "

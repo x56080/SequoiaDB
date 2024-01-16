@@ -259,6 +259,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_DROPCL, "_dmsWTStorageService::dropCL" )
    INT32 _dmsWTStorageService::dropCL( const dmsCLMetadata &metadata,
                                        const dmsDropCLOptions &options,
+                                       IContext *context,
                                        IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -273,7 +274,7 @@ namespace wiredtiger
                                           dataURI ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build data URI, rc: %d", rc ) ;
 
-      rc = _engine.dropStore( dataURI.c_str(), "force,checkpoint_wait=false" ) ;
+      rc = _engine.dropStore( dataURI.c_str(), "force,checkpoint_wait=false", context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop data store, rc: %d", rc ) ;
 
       _removeCollection( metadata.getCLKey() ) ;

@@ -98,6 +98,7 @@ namespace wiredtiger
                               IExecutor *executor ) ;
       virtual INT32 dropCL( const dmsCLMetadata &metadata,
                             const dmsDropCLOptions &options,
+                            IContext *context,
                             IExecutor *executor ) ;
 
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,

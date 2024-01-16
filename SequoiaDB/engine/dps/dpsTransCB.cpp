@@ -1464,6 +1464,22 @@ namespace engine
                                        callback ) ;
    }
 
+   INT32 dpsTransCB::transLockTryIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                     UINT16 collectionID,
+                                     dpsTransRetInfo * pdpsTxResInfo,
+                                     _dpsITransLockCallback * callback )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, NULL ) ;
+      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
+                                        lockId, DPS_TRANSLOCK_IS,
+                                        pdpsTxResInfo,
+                                        callback ) ;
+   }
+
    INT32 dpsTransCB::transLockTrySAgainstWrite( _pmdEDUCB *eduCB,
                                                 UINT32 logicCSID,
                                                 UINT16 collectionID,

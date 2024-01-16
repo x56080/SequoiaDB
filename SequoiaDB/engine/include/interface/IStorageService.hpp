@@ -80,6 +80,7 @@ namespace engine
                               IExecutor *executor ) = 0 ;
       virtual INT32 dropCL( const dmsCLMetadata &metadata,
                             const dmsDropCLOptions &options,
+                            IContext *context,
                             IExecutor *executor ) = 0 ;
 
       virtual INT32 getCollection( const dmsCLMetadataKey &metadataKey,

@@ -82,6 +82,7 @@ namespace wiredtiger
                                  IExecutor *executor ) ;
       virtual INT32 dropIndex( const dmsIdxMetadata &metadata,
                                const dmsDropIdxOptions &options,
+                               IContext *context,
                                IExecutor *executor ) ;
       virtual INT32 truncate( const dmsTruncCLOptions &options,
                               IExecutor *executor ) ;
