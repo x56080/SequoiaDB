@@ -27,7 +27,7 @@ SystemTest.prototype.testGetProcUlimitConfigs = function()
             info = infos[i]
          }
       }
-      var limit = info.slice( 37 );
+      var limit = info.split(") ")[1];
       if( limit === "unlimited" )
          limit = -1;
       else if( info.indexOf( "kbytes" ) !== -1 )
