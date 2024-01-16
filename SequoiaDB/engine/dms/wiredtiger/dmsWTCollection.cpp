@@ -96,6 +96,7 @@ namespace wiredtiger
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTCOLLECTION_DROPIDX, "_dmsWTCollection::dropIndex" )
    INT32 _dmsWTCollection::dropIndex( const dmsIdxMetadata &metadata,
                                       const dmsDropIdxOptions &options,
+                                      IContext *context,
                                       IExecutor *executor )
    {
       INT32 rc = SDB_OK ;
@@ -111,7 +112,7 @@ namespace wiredtiger
                                     idxURI ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build index URI, rc: %d", rc ) ;
 
-      rc = _engine.dropStore( idxURI.c_str(), "force,checkpoint_wait=false" ) ;
+      rc = _engine.dropStore( idxURI.c_str(), "force,checkpoint_wait=false", context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop index store, rc: %d", rc ) ;
 
       _removeIndex( metadata.getIdxKey() ) ;

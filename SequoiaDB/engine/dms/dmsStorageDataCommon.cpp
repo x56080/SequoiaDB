@@ -2458,9 +2458,6 @@ namespace engine
          // we don't erase it, it may cause core dump.
          clUniqueID = context->mb()->_clUniqueID ;
 
-         // release mb lock
-         context->mbUnlock() ;
-
          if ( _service )
          {
             dmsCLMetadata metadata( _suDescriptor,
@@ -2471,7 +2468,7 @@ namespace engine
             {
                options = &tmpOptions ;
             }
-            INT32 tmpRC = _service->dropCL( metadata, *options, cb ) ;
+            INT32 tmpRC = _service->dropCL( metadata, *options, context, cb ) ;
             if ( SDB_OK != tmpRC )
             {
                PD_LOG( PDWARNING, "Failed to drop collection [%s] on engine [%s], "
@@ -2484,6 +2481,9 @@ namespace engine
                options = NULL ;
             }
          }
+
+         // release mb lock
+         context->mbUnlock() ;
 
          // change metadata
          ossLatch( &_metadataLatch, EXCLUSIVE ) ;
