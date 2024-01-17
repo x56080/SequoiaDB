@@ -403,7 +403,7 @@ namespace engine
    error:
       goto done;
    }
-   
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_CHECK_PRIVS_EXACT, "_pmdLocalSession::checkPrivilegesForActionsOnExact" )
    INT32 _pmdLocalSession::checkPrivilegesForActionsOnExact( const CHAR *pCollectionName,
                                                              const authActionSet &actions )

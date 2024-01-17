@@ -740,6 +740,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+      ossMemset( pCommitPreMsg, 0, msgLen ) ;
       pCommitPreMsg->header.messageLength = msgLen ;
       pCommitPreMsg->header.opCode = MSG_BS_TRANS_COMMITPRE_REQ ;
       pCommitPreMsg->header.routeID.value = MSG_INVALID_ROUTEID ;

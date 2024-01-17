@@ -572,6 +572,7 @@ retry :
          rc = SDB_OOM ;
          goto error ;
       }
+      ossMemset( buff, 0, length ) ;
 
       pReq = (MsgCatRegisterReq*)buff ;
       pReq->header.messageLength = length ;

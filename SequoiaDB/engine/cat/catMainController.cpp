@@ -1076,6 +1076,7 @@ namespace engine
             msgLen = sizeof( reply ) ;
             buffObj.release() ;
          }
+         ossMemset( pReply, 0, msgLen ) ;
 
          pReply->header.messageLength = msgLen ;
          pReply->header.opCode        = MSG_BS_GETMORE_RES ;

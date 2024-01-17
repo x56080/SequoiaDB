@@ -1723,6 +1723,7 @@ namespace engine
       pErrReply->header.routeID.value = pReply->header.routeID.value ;
       pErrReply->header.TID = pReply->header.TID ;
       pErrReply->header.globalID = pReply->header.globalID ;
+      ossMemset( pErrReply->header.reserve, 0, sizeof(pErrReply->header.reserve) ) ;
 
       pErrReply->flags = rc ;
       pErrReply->contextID = -1 ;
