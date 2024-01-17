@@ -1681,7 +1681,9 @@ INT32 clientBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
    pAdvance->header.messageLength= packetLength ;
    pAdvance->header.routeID.value= 0 ;
    pAdvance->header.TID          = ossGetCurrentThreadID() ;
+   pAdvance->header.flags        = 0 ;
    ossMemset( &(pAdvance->header.globalID), 0, sizeof(pAdvance->header.globalID) ) ;
+   ossMemset( pAdvance->header.reserve, 0, sizeof(pAdvance->header.reserve) ) ;
 
    // get the offset of the bson obj
    offset = ossRoundUpToMultipleX( sizeof( MsgOpAdvance ), 4 ) ;
@@ -3595,6 +3597,7 @@ INT32 clientBuildAuthVer1Step1Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;
+   ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
    if ( !endianConvert )
    {
       ossMemcpy( *ppBuffer + sizeof(MsgAuthentication),

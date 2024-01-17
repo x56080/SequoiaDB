@@ -2973,6 +2973,7 @@ namespace engine
       }
       else
       {
+         ossMemset( reply, 0, replySize ) ;
          reply->header.messageLength = replySize ;
          reply->header.opCode = MSG_AUTH_VERIFY_RES ;
          reply->header.TID = msg->TID ;

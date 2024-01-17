@@ -1138,7 +1138,9 @@ INT32 msgBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
    pAdvance->header.messageLength= packetLength ;
    pAdvance->header.routeID.value= 0 ;
    pAdvance->header.TID          = ossGetCurrentThreadID() ;
+   pAdvance->header.flags        = 0 ;
    ossMemset( &(pAdvance->header.globalID), 0, sizeof(pAdvance->header.globalID) ) ;
+   ossMemset( pAdvance->header.reserve, 0, sizeof(pAdvance->header.reserve) ) ;
 
    // get the offset of the first bson obj
    offset = ossAlign4( sizeof( MsgOpAdvance ) ) ;

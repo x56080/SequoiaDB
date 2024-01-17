@@ -92,6 +92,7 @@ namespace engine
       else
       {
          MsgHeader *pMsgPacket = NULL ;
+         ossMemset( pBuff, 0, totalLen ) ;
          /// packet
          pMsgPacket = ( MsgHeader* )( pBuff + pos ) ;
          pos += sizeof( MsgHeader ) ;

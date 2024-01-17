@@ -772,6 +772,7 @@ namespace engine
                     msgLen, rc ) ;
             goto error ;
          }
+         ossMemset( pBuf, 0, msgLen ) ;
          msg = ( MsgCatGroupReq * )pBuf ;
          msg->id.value = 0 ;
          msg->header.messageLength = msgLen ;
