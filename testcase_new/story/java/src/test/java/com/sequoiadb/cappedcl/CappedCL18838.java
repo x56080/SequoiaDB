@@ -85,7 +85,7 @@ public class CappedCL18838 extends SdbTestBase {
         // 插入与pop并发不校验_id值，校验主备一致性
         if ( dropCLThread.getRetCode() != 0 ) {
             Assert.assertTrue(
-                    CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+                    CommLib.isLSNConsistency( sdb, groupName ) );
             Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb,
                     cappedCSName, cappedCLName ) );
         } else {

@@ -98,7 +98,7 @@ public class CappedCL18836 extends SdbTestBase {
 
                 // 校验主备一致性
                 Assert.assertTrue(
-                        CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+                        CommLib.isLSNConsistency( sdb, groupName ) );
                 Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb,
                         cappedCSName + "_" + i, cappedCLName + "_" + j ) );
             }

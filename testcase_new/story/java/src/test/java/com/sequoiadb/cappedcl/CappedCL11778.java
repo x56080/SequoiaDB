@@ -84,7 +84,7 @@ public class CappedCL11778 extends SdbTestBase {
         te.run();
 
         // 校验主备节点lsn
-        Assert.assertTrue( CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+        Assert.assertTrue( CommLib.isLSNConsistency( sdb, groupName ) );
 
         // 校验记录
         for ( int i = 0; i < csNum; i++ ) {
