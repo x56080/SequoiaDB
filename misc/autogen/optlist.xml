@@ -3214,8 +3214,8 @@
          <cn>WiredTigery引擎的缓存大小（单位：MB）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Cache size of WiredTiger engine(unit: MB)</en>
@@ -3234,8 +3234,8 @@
          <cn>WiredTiger引擎的缓存页淘汰目标（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection target of WiredTiger engine(unit: %)</en>
@@ -3254,8 +3254,8 @@
          <cn>WiredTiger引擎的缓存页淘汰触发阈值（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection trigger threshold of WiredTiger engine(unit: %)</en>
@@ -3274,8 +3274,8 @@
          <cn>WiredTiger引擎的脏页淘汰目标（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection dirty target of WiredTiger engine(unit: %)</en>
@@ -3294,8 +3294,8 @@
          <cn>WiredTiger引擎的脏页淘汰触发阈值（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection dirty trigger threshold of WiredTiger engine(unit: %)</en>
@@ -3314,8 +3314,8 @@
          <cn>WiredTiger引擎的更新页淘汰目标（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection update target of WiredTiger engine(unit: %)</en>
@@ -3334,8 +3334,8 @@
          <cn>WiredTiger引擎的更新页淘汰触发阈值（单位：%）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Evection update trigger threshold of WiredTiger engine(unit: %)</en>
@@ -3354,8 +3354,8 @@
          <cn>WiredTiger引擎的缓存页淘汰后台线程最小个数</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Minimum number of eviction threads in WiredTiger engine</en>
@@ -3374,8 +3374,8 @@
          <cn>WiredTiger引擎的缓存页淘汰后台线程最大个数</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Maximum number of eviction threads in WiredTiger engine</en>
@@ -3394,8 +3394,8 @@
          <cn>WiredTiger引擎的生成检查点的间隔（单位：秒）</cn>
       </description>
       <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
       <detail>
          <en>Interval of check point in WiredTiger engine(Unit: second)</en>

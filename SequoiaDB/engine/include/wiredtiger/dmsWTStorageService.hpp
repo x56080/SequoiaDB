@@ -69,6 +69,7 @@ namespace wiredtiger
 
       virtual INT32 openEngine( const dmsOpenEngineOptions &options ) ;
       virtual INT32 closeEngine( const dmsCloseEngineOptions &options ) ;
+      virtual INT32 changeConfig() ;
 
       virtual IStorageEngine *getEngine()
       {
@@ -140,6 +141,8 @@ namespace wiredtiger
       INT32 _initEngineOptions( dmsWTEngineOptions &options ) ;
       INT32 _buildConfigString( const dmsWTEngineOptions &options,
                                 ossPoolString &configString ) ;
+      INT32 _buildReconfigString( const dmsWTEngineOptions &options,
+                                  ossPoolString &configString ) ;
 
       INT32 _dumpURIListByCS( utilCSUniqueID csUID,
                               ossPoolList< ossPoolString > &uriList ) ;
