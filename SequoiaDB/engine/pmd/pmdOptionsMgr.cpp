@@ -2752,12 +2752,6 @@ done:
       rdvMinMax( pEX, _wtEvictThreadsMax, DMS_MIN_WT_EVICT_THREADS_MAX,
                  DMS_MAX_WT_EVICT_THREADS_MAX, TRUE ) ;
 
-      // --wtevictthreadsmin
-      rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MIN, _wtEvictThreadsMin, FALSE,
-               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
-      rdvMinMax( pEX, _wtEvictThreadsMin, DMS_MIN_WT_EVICT_THREADS_MIN,
-                 DMS_MAX_WT_EVICT_THREADS_MIN, TRUE ) ;
-
       // --wtcheckpointinterval
       rdxUInt( pEX, PMD_OPTION_WT_CHECK_POINT_INTERVAL, _wtCheckPointInterval, FALSE,
                PMD_CFG_CHANGE_RUN, DMS_DFT_WT_CHECK_POINT_INTERVAL ) ;
