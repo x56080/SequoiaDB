@@ -285,6 +285,11 @@ namespace engine
       UINT32       syncDirtyRatio = optCB->getSyncDirtyRatio() ;
       BOOLEAN      syncDeep = optCB->isSyncDeep() ;
 
+      if ( _storageService )
+      {
+         _storageService->changeConfig() ;
+      }
+
       ossScopedLock _lock( &_mutex, SHARED ) ;
 
       for ( vector<SDB_DMS_CSCB*>::iterator itr = _cscbVec.begin();

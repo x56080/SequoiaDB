@@ -116,6 +116,76 @@ namespace wiredtiger
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_CHANGECONFIG, "_dmsWTStorageService::changeConfig" )
+   INT32 _dmsWTStorageService::changeConfig()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE_CHANGECONFIG ) ;
+
+      dmsWTEngineOptions engineOptions ;
+      ossPoolString config ;
+
+      rc = _initEngineOptions( engineOptions ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init WiredTiger engine options, rc: %d", rc ) ;
+
+      rc = _buildReconfigString( engineOptions, config ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build WiredTiger reconfig string, rc: %d", rc ) ;
+      PD_LOG( PDEVENT, "WiredTiger reconfig string: %s", config.c_str() ) ;
+
+      rc = _engine.reconfig( config.c_str() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reconfig WiredTiger engine, rc: %d", rc ) ;
+
+      // runtime configs
+      if ( engineOptions.getCheckPointInterval() != _engineOptions.getCheckPointInterval() )
+      {
+         _engineOptions.setCheckPointInterval( engineOptions.getCheckPointInterval() ) ;
+      }
+      if ( engineOptions.getCacheSizeMB() != _engineOptions.getCacheSizeMB() )
+      {
+         _engineOptions.setCacheSizeMB( engineOptions.getCacheSizeMB() ) ;
+      }
+      if ( engineOptions.getEvictTarget() != _engineOptions.getEvictTarget() )
+      {
+         _engineOptions.setEvictTarget( engineOptions.getEvictTarget() ) ;
+      }
+      if ( engineOptions.getEvictTrigger() != _engineOptions.getEvictTrigger() )
+      {
+         _engineOptions.setEvictTrigger( engineOptions.getEvictTrigger() ) ;
+      }
+      if ( engineOptions.getEvictDirtyTarget() != _engineOptions.getEvictDirtyTarget() )
+      {
+         _engineOptions.setEvictDirtyTarget( engineOptions.getEvictDirtyTarget() ) ;
+      }
+      if ( engineOptions.getEvictDirtyTrigger() != _engineOptions.getEvictDirtyTrigger() )
+      {
+         _engineOptions.setEvictDirtyTrigger( engineOptions.getEvictDirtyTrigger() ) ;
+      }
+      if ( engineOptions.getEvictUpdatesTarget() != _engineOptions.getEvictUpdatesTarget() )
+      {
+         _engineOptions.setEvictUpdatesTarget( engineOptions.getEvictUpdatesTarget() ) ;
+      }
+      if ( engineOptions.getEvictUpdatesTrigger() != _engineOptions.getEvictUpdatesTrigger() )
+      {
+         _engineOptions.setEvictUpdatesTrigger( engineOptions.getEvictUpdatesTrigger() ) ;
+      }
+      if ( engineOptions.getEvictThreadsMin() != _engineOptions.getEvictThreadsMin() )
+      {
+         _engineOptions.setEvictThreadsMin( engineOptions.getEvictThreadsMin() ) ;
+      }
+      if ( engineOptions.getEvictThreadsMax() != _engineOptions.getEvictThreadsMax() )
+      {
+         _engineOptions.setEvictThreadsMax( engineOptions.getEvictThreadsMax() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE_CHANGECONFIG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE_FSYNC, "_dmsWTStorageService::fsync" )
    INT32 _dmsWTStorageService::fsync( BOOLEAN isForce, BOOLEAN isSync, IExecutor *executor )
    {
@@ -468,6 +538,73 @@ namespace wiredtiger
 
    done:
       PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDCONFSTR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGESERVICE__BLDCREONFSTR, "_dmsWTStorageService::_buildReconfigString" )
+   INT32 _dmsWTStorageService::_buildReconfigString( const dmsWTEngineOptions &options,
+                                                     ossPoolString &configString )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGESERVICE__BLDCREONFSTR ) ;
+
+      try
+      {
+         ossPoolStringStream ss ;
+
+         if ( _engineOptions.getCacheSizeMB() != options.getCacheSizeMB() )
+         {
+            ss << "cache_size=" << options.getCacheSizeMB() << "MB," ;
+         }
+         if ( _engineOptions.getEvictTarget() != options.getEvictTarget() )
+         {
+            ss << "eviction_target=" << options.getEvictTarget() << "," ;
+         }
+         if ( _engineOptions.getEvictTrigger() != options.getEvictTrigger() )
+         {
+            ss << "eviction_trigger=" << options.getEvictTrigger() << "," ;
+         }
+         if ( _engineOptions.getEvictDirtyTarget() != options.getEvictDirtyTarget() )
+         {
+            ss << "eviction_dirty_target=" << options.getEvictDirtyTarget() << "," ;
+         }
+         if ( _engineOptions.getEvictDirtyTrigger() != options.getEvictDirtyTrigger() )
+         {
+            ss << "eviction_dirty_trigger=" << options.getEvictDirtyTrigger() << "," ;
+         }
+         if ( _engineOptions.getEvictUpdatesTarget() != options.getEvictUpdatesTarget() )
+         {
+            ss << "eviction_updates_target=" << options.getEvictUpdatesTarget() << "," ;
+         }
+         if ( _engineOptions.getEvictUpdatesTrigger() != options.getEvictUpdatesTrigger() )
+         {
+            ss << "eviction_updates_trigger=" << options.getEvictUpdatesTrigger() << "," ;
+         }
+         if ( _engineOptions.getEvictThreadsMin() != options.getEvictThreadsMin() )
+         {
+            ss << "eviction=(threads_min=" << options.getEvictThreadsMin() << ")," ;
+         }
+         if ( _engineOptions.getEvictThreadsMax() != options.getEvictThreadsMax() )
+         {
+            ss << "eviction=(threads_max=" << options.getEvictThreadsMax() << ")," ;
+         }
+
+         configString = ss.str() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build WiredTiger connection string, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGESERVICE__BLDCREONFSTR, rc ) ;
       return rc ;
 
    error:

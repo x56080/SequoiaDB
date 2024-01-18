@@ -94,6 +94,7 @@ namespace wiredtiger
       INT32 open( const boost::filesystem::path &dbPath,
                   const CHAR *config ) ;
       INT32 close( const CHAR *config ) ;
+      INT32 reconfig( const CHAR *config ) ;
 
       INT32 openSession( dmsWTSession &session,
                          dmsWTSessIsolation isolation = dmsWTSessIsolation::SNAPSHOT ) ;

@@ -121,6 +121,29 @@ namespace wiredtiger
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_RECONFIG, "_dmsWTStorageEngine::reconfig" )
+   INT32 _dmsWTStorageEngine::reconfig( const CHAR *config )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSWTSTORAGEENGINE_RECONFIG ) ;
+
+      boost::filesystem::path enginePath ;
+
+      PD_CHECK( nullptr != _conn, SDB_SYS, error, PDERROR,
+                "Failed to open WiredTiger engine, it is not openned" ) ;
+
+      rc = WT_CALL( _conn->reconfigure( _conn, config ), nullptr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to reconfig WiredTiger engine, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSWTSTORAGEENGINE_RECONFIG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSWTSTORAGEENGINE_OPENSESSION, "_dmsWTStorageEngine::openSession" )
    INT32 _dmsWTStorageEngine::openSession( dmsWTSession &session,
                                            dmsWTSessIsolation isolation )

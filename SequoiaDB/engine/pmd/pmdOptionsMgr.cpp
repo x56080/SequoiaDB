@@ -2700,67 +2700,67 @@ done:
 
       // --wtcachesize
       rdxUInt( pEX, PMD_OPTION_WT_CACHE_SIZE, _wtCacheSize, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CACHE_SIZE ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_CACHE_SIZE ) ;
       rdvMinMax( pEX, _wtCacheSize, DMS_MIN_WT_CACHE_SIZE,
                  DMS_MAX_WT_CACHE_SIZE, TRUE ) ;
 
       // --wtevicttarget
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_TARGET, _wtEvictTarget, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_TARGET ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_TARGET ) ;
       rdvMinMax( pEX, _wtEvictTarget, DMS_MIN_WT_EVICT_TARGET,
                  DMS_MAX_WT_EVICT_TARGET, TRUE ) ;
 
       // --wtevicttrigger
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_TRIGGER, _wtEvictTrigger, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_TRIGGER ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_TRIGGER ) ;
       rdvMinMax( pEX, _wtEvictTrigger, DMS_MIN_WT_EVICT_TRIGGER,
                  DMS_MAX_WT_EVICT_TRIGGER, TRUE ) ;
 
       // --wtevictdirtytarget
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_DIRTY_TARGET, _wtEvictDirtyTarget, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_DIRTY_TARGET ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_DIRTY_TARGET ) ;
       rdvMinMax( pEX, _wtEvictDirtyTarget, DMS_MIN_WT_EVICT_DIRTY_TARGET,
                  DMS_MAX_WT_EVICT_DIRTY_TARGET, TRUE ) ;
 
       // --wtevictdirtytrigger
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_DIRTY_TRIGGER, _wtEvictDirtyTrigger, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_DIRTY_TRIGGER ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_DIRTY_TRIGGER ) ;
       rdvMinMax( pEX, _wtEvictDirtyTrigger, DMS_MIN_WT_EVICT_DIRTY_TRIGGER,
                  DMS_MAX_WT_EVICT_DIRTY_TRIGGER, TRUE ) ;
 
       // --wtevictupdatestarget
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_UPDATES_TARGET, _wtEvictUpdatesTarget, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_UPDATES_TARGET ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_UPDATES_TARGET ) ;
       rdvMinMax( pEX, _wtEvictUpdatesTarget, DMS_MIN_WT_EVICT_UPDATES_TARGET,
                  DMS_MAX_WT_EVICT_UPDATES_TARGET, TRUE ) ;
 
       // --wtevictupdatestrigger
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_UPDATES_TRIGGER, _wtEvictUpdatesTrigger, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_UPDATES_TRIGGER ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_UPDATES_TRIGGER ) ;
       rdvMinMax( pEX, _wtEvictUpdatesTrigger, DMS_MIN_WT_EVICT_UPDATES_TRIGGER,
                  DMS_MAX_WT_EVICT_UPDATES_TRIGGER, TRUE ) ;
 
       // --wtevictthreadsmin
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MIN, _wtEvictThreadsMin, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
       rdvMinMax( pEX, _wtEvictThreadsMin, DMS_MIN_WT_EVICT_THREADS_MIN,
                  DMS_MAX_WT_EVICT_THREADS_MIN, TRUE ) ;
 
       // --wtevictthreadsmax
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MAX, _wtEvictThreadsMax, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MAX ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_THREADS_MAX ) ;
       rdvMinMax( pEX, _wtEvictThreadsMax, DMS_MIN_WT_EVICT_THREADS_MAX,
                  DMS_MAX_WT_EVICT_THREADS_MAX, TRUE ) ;
 
       // --wtevictthreadsmin
       rdxUInt( pEX, PMD_OPTION_WT_EVICT_THREADS_MIN, _wtEvictThreadsMin, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_EVICT_THREADS_MIN ) ;
       rdvMinMax( pEX, _wtEvictThreadsMin, DMS_MIN_WT_EVICT_THREADS_MIN,
                  DMS_MAX_WT_EVICT_THREADS_MIN, TRUE ) ;
 
       // --wtcheckpointinterval
       rdxUInt( pEX, PMD_OPTION_WT_CHECK_POINT_INTERVAL, _wtCheckPointInterval, FALSE,
-               PMD_CFG_CHANGE_REBOOT, DMS_DFT_WT_CHECK_POINT_INTERVAL ) ;
+               PMD_CFG_CHANGE_RUN, DMS_DFT_WT_CHECK_POINT_INTERVAL ) ;
       rdvMinMax( pEX, _wtCheckPointInterval, DMS_MIN_WT_CHECK_POINT_INTERVAL,
                  DMS_MAX_WT_CHECK_POINT_INTERVAL, TRUE ) ;
 

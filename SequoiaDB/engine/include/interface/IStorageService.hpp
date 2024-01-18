@@ -61,6 +61,7 @@ namespace engine
 
       virtual INT32 openEngine( const dmsOpenEngineOptions &options ) = 0 ;
       virtual INT32 closeEngine( const dmsCloseEngineOptions &options ) = 0 ;
+      virtual INT32 changeConfig() = 0 ;
 
       virtual IStorageEngine *getEngine() = 0 ;
 
