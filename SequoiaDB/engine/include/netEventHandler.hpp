@@ -109,6 +109,8 @@ namespace engine
          // check if the net suit is stopped
          virtual BOOLEAN isSuitStopped() const ;
 
+         virtual BOOLEAN select( UINT32 timeout ) ;
+
       protected:
          void  _readCallback( const boost::system::error_code &error ) ;
          INT32 _allocateBuf( UINT32 len ) ;

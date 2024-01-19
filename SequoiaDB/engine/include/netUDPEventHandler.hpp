@@ -97,6 +97,8 @@ namespace engine
       // check if the net suit is stopped
       virtual BOOLEAN isSuitStopped() const ;
 
+      virtual BOOLEAN select( UINT32 timeout ) { return TRUE ; }
+
    protected:
       OSS_INLINE NET_UDP_EH _getShared()
       {

@@ -297,6 +297,8 @@ namespace engine
       _maxSockPerNode = 1 ;
       _maxSockPerThread = 0 ;
       _maxThreadNum = 0 ;
+
+      _netTimeout = 0 ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_DECONS, "_netFrame::~_netFrame" )
@@ -2027,6 +2029,38 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   BOOLEAN _netFrame::select( const NET_HANDLE &handle )
+   {
+      NET_EH eh ;
+      MAP_EVENT_IT itr ;
+      BOOLEAN isSocketValid = FALSE ;
+
+      if ( 0 == _netTimeout )
+      {
+         isSocketValid = TRUE ;
+         goto done ;
+      }
+
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
+      itr = _opposite.find( handle ) ;
+      if ( _opposite.end() == itr )
+      {
+         PD_LOG( PDERROR, "Invalid net handle, rc: %d", SDB_NET_INVALID_HANDLE ) ;
+         goto done ;
+      }
+      eh = itr->second ;
+      }
+
+      {
+         ossScopedLock lock( &( eh->mtx() ) ) ;
+         isSocketValid = eh->select( _netTimeout ) ;
+      }
+
+   done:
+      return isSocketValid ;
    }
 
    // close all connections to one id(i.e. node)

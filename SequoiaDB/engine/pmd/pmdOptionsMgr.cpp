@@ -128,6 +128,8 @@ namespace engine
    #define PMD_DFT_MEM_MMAP_MAX        (4194304)
    #define PMD_DFT_MEM_TOP_PAD         (-1)
 
+   #define PMD_NET_TIMEOUT_RETRY_TIMES (100)
+
    /*
       _pmdCfgExchange implement
    */
@@ -2056,6 +2058,9 @@ done:
       _memMmapMax = PMD_DFT_MEM_MMAP_MAX ;
       _memTopPad = PMD_DFT_MEM_TOP_PAD ;
 
+      _netTimeout = 0 ;
+      _netTimeoutRetryTimes = PMD_NET_TIMEOUT_RETRY_TIMES ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2678,6 +2683,14 @@ done:
       rdxInt( pEX, PMD_OPTION_MEM_TOP_PAD, _memTopPad, FALSE,
               PMD_CFG_CHANGE_RUN, PMD_DFT_MEM_TOP_PAD, TRUE ) ;
       rdvMinMax( pEX, _memTopPad, -1, 16777216, TRUE ) ;
+
+      // _nettimeout
+      rdxUInt( pEX, PMD_OPTION_NET_TIMEOUT, _netTimeout, FALSE,
+               PMD_CFG_CHANGE_RUN, 0 ) ;
+
+      // _nettimeoutretrytime
+      rdxUInt( pEX, PMD_OPTION_NET_TIMEOUT_RETRY_TIMES, _netTimeoutRetryTimes, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_NET_TIMEOUT_RETRY_TIMES, TRUE ) ;
 
       // end map
 

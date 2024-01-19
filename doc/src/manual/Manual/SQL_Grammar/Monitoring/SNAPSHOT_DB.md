@@ -92,6 +92,8 @@ $SNAPSHOT_DB
 | shardNetOut           | int64  | shard 平面端口发送的网络流量，单位为字节                                       |
 | replNetIn             | int64  | 数据同步平面端口收到的网络流量，单位为字节                                     |
 | replNetOut            | int64  | 数据同步平面端口发送的网络流量，单位为字节                                     |
+| cataNetMsgOutCount    | int64  | cata平面端口发送消息的总个数                                     |
+| cataNetMsgTimeoutCount| int64  | cata平面端口消息发送超时的总个数                                 |
 | SchdlrType            | int32  | 资源调度类型，取值如下：<br>0：没有开启资源调度<br>1：开启了 FIFO资 源调度 <br>2：开启了优先级资源调度<br>3：开启了基于容器的优先级资源调度                                     |
 | SchdlrTypeDesp        | string | 资源调度类型描述，取值：NONE、FIFO、PRIORITY、CONTAINER                  |
 | Run                   | int32  | 当前正在运行的任务数量                                                          |
@@ -209,6 +211,8 @@ $SNAPSHOT_DB
   "replNetIn": 0,
   "replNetOut": 0,
   "SchdlrType": 0,
+  "cataNetMsgOutCount": 623,
+  "cataNetMsgTimeoutCount": 0,
   "SchdlrTypeDesp": "NONE",
   "Run": 1,
   "Wait": 0,

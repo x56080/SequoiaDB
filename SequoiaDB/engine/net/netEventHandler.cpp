@@ -814,5 +814,40 @@ namespace engine
       return NULL != _evSuitPtr.get() ? _evSuitPtr->isStoppped() : FALSE ;
    }
 
+   BOOLEAN _netEventHandler::select( UINT32 timeout )
+   {
+      struct timeval selectTimeout ;
+      fd_set writeSet ;
+      INT32 result = 0 ;
+
+      // ms --> us
+      timeout = timeout * 1000 ;
+
+      selectTimeout.tv_sec = 0 ;
+      selectTimeout.tv_usec = timeout ;
+
+      FD_ZERO( &writeSet ) ;
+      FD_SET( _sock.native_handle(), &writeSet ) ;
+
+      result = ::select( _sock.native_handle() + 1, NULL, &writeSet, NULL, &selectTimeout ) ;
+
+      if ( result > 0 )
+      {
+         if ( !FD_ISSET( _sock.native_handle(), &writeSet ) )
+         {
+            PD_LOG( PDERROR, "connect timeout, error: %d( %s )",
+                    ETIMEDOUT, ossGetLastErrorMsg( ETIMEDOUT ) ) ;
+            return FALSE ;
+         }
+         return TRUE ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "select(2), error: %d( %s )",
+                 SOCKET_GETLASTERROR, ossGetLastErrorMsg( SOCKET_GETLASTERROR ) ) ;
+         return FALSE ;
+      }
+   }
+
 }
 

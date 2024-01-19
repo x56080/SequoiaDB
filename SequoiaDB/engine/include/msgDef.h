@@ -572,6 +572,8 @@
 #define FIELD_NAME_REPL_NETOUT               "replNetOut"
 #define FIELD_NAME_SHARD_NETIN               "shardNetIn"
 #define FIELD_NAME_SHARD_NETOUT              "shardNetOut"
+#define FIELD_NAME_CATA_NET_MSG_COUNT        "cataNetMsgOutCount"
+#define FIELD_NAME_CATA_NET_MSG_TIMEOUT_COUNT "cataNetMsgTimeoutCount"
 #define FIELD_NAME_DOMAIN_AUTO_SPLIT         "AutoSplit"
 #define FIELD_NAME_DOMAIN_AUTO_REBALANCE     "AutoRebalance"
 #define FIELD_NAME_LOB_OID                   "Oid"

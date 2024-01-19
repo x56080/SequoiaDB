@@ -4,7 +4,7 @@
     作者：何嘉文
     时间：20190307
     评审意见
-    
+
     王涛：
     许建辉：
     市场部：
@@ -109,6 +109,8 @@ SDB_SNAP_DATABASE
 | shardNetOut           | int64     | shard 平面端口发送的网络流量，单位为字节                        |
 | replNetIn             | int64     | 数据同步平面端口收到的网络流量，单位为字节                      |
 | replNetOut            | int64     | 数据同步平面端口发送的网络流量，单位为字节                      |
+| cataNetMsgOutCount    | int64     | cata平面端口发送消息的总个数                                     |
+| cataNetMsgTimeoutCount| int64     | cata平面端口消息发送超时的总个数                                 |
 | SchdlrType            | int32     | 资源调度类型，取值如下：<br>0：没有开启资源调度 <br>1：开启FIFO资源调度 <br> 2：开启优先级资源调度 <br>3：开启基于容器的优先级资源调度 |
 | SchdlrTypeDesp        | string    | 资源调度类型描述，如：NONE、FIFO、PRIORITY、CONTAINER           |
 | Run                   | int32     | 当前正在运行的任务数量                                          |
@@ -166,6 +168,8 @@ SDB_SNAP_DATABASE
 | shardNetOut       | int64     | shard 平面端口发送的网络流量，单位为字节      |
 | replNetIn         | int64     | 数据同步平面端口收到的网络流量，单位为字节    |
 | replNetOut        | int64     | 数据同步平面端口发送的网络流量，单位为字节    |
+| cataNetMsgOutCount    | int64  | cata平面端口发送消息的总个数                                     |
+| cataNetMsgTimeoutCount| int64  | cata平面端口消息发送超时的总个数                                 |
 | MemPoolSize       | int64     | Pool Memory 的大小，单位为字节                                  |
 | MemPoolUsed       | int64     | Pool Memory 中被使用的大小，单位为字节                          |
 | MemPoolFree       | int64     | Pool Memory 中空闲的大小，单位为字节                            |
@@ -290,6 +294,8 @@ SDB_SNAP_DATABASE
      "shardNetOut": 9454,
      "replNetIn": 0,
      "replNetOut": 0,
+     "cataNetMsgOutCount": 623,
+     "cataNetMsgTimeoutCount": 0,
      "SchdlrType": 0,
      "SchdlrTypeDesp": "NONE",
      "Run": 0,
@@ -353,6 +359,8 @@ SDB_SNAP_DATABASE
      "shardNetOut": 22375,
      "replNetIn": 0,
      "replNetOut": 0,
+     "cataNetMsgOutCount": 623,
+     "cataNetMsgTimeoutCount": 0,
      "MemPoolSize": 108975104,
      "MemPoolUsed": 68871074,
      "MemPoolFree": 40104030,
