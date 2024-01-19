@@ -2410,9 +2410,10 @@ namespace engine
          // truncate lob
          if ( _pLobSU->isOpened() )
          {
-            rc = _pLobSU->truncate( context, cb, NULL ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s] lob,"
-                         "rc: %d", pName, rc ) ;
+            context->mbStat()->_totalLobPages.poke(0) ;
+            context->mbStat()->_totalLobs.poke(0) ;
+            context->mbStat()->resetTotalLobSize() ;
+            context->mbStat()->resetTotalValidLobSize() ;
          }
 
          // change mb meta data

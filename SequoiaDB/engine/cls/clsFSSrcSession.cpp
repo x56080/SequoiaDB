@@ -789,6 +789,10 @@ namespace engine
 
       if ( 0 != _mb.length() )
       {
+         {
+            ossScopedLock _lock( &_LSNlatch ) ;
+            _curLobFetched = _lobFetcher.toBeFetched() ;
+         }
          msg.header.header.messageLength = sizeof( MsgClsFSNotifyRes ) +
                                            _mb.length() ;
          _agent->syncSend( handle, &(msg.header.header),
@@ -2039,7 +2043,7 @@ namespace engine
       }
 
       needSetBeginLSN = TRUE ;
-      curLobKey = _lobFetcher.toBeFetched() ;
+      curLobKey = _curLobFetched ;
       PD_LOG( PDINFO,
               "Session[%s]: dps notify[suLID:%d, clLID:%d, "
               "extID:%u, extOffset:%u, offset:%lld], "
@@ -2784,16 +2788,16 @@ namespace engine
          goto done ;
       }
 
-      curLobKey = _lobFetcher.toBeFetched() ;
+      _LSNlatch.get() ;
+      locked = TRUE ;
+
+      curLobKey = _curLobFetched ;
       PD_LOG( PDINFO,
               "Session[%s]: dps notify[suLID:%d, clLID:%d, "
               "extID:%u, extOffset:%u, offset:%lld], "
               "curScan recordID[extID:%u, extOffset:%u], curLob [oid:%s, sequence:%u]",
               sessionName(), suLID, clLID, extID, extOffset, offset, _curRID._extent,
               _curRID._offset, curLobKey.first.toString().data(), curLobKey.second ) ;
-
-      _LSNlatch.get() ;
-      locked = TRUE ;
 
       // Access to _curCollection should be protected by _LSNlatch
       ossUnpack32From64( _curCollection, curSULID, curCLLID ) ;

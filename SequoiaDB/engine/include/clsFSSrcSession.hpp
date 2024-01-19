@@ -197,6 +197,7 @@ namespace engine
          rtnLobFetcher                    _lobFetcher ;
          DPS_LSN_OFFSET                   _lastEndNtyOffset ;
          DPS_LSN_OFFSET                   _clLSNOffset ;
+         std::pair< OID, UINT32 >         _curLobFetched = { OID(), 0 } ;
 
          UINT64                           _syncBeginTick ;
          UINT64                           _totalDataSync ;
