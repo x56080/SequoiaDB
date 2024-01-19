@@ -2,16 +2,18 @@
  * @Description   : seqDB-33156 : 存在相同前缀的索引，索引的MCV不均匀时选择索引
  * @Author        : wuyan
  * @CreateTime    : 2022.09.01
- * @LastEditTime  : 2023.09.01
- * @LastEditors   : wu yan
+ * @LastEditTime  : 2024.01.19
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.clName = COMMCLNAME + "_index33156";
+testConf.useSrcGroup = true;
 
 main( test );
 function test ()
 {
    var cl = testPara.testCL;
+   var srcGroupName = testPara.srcGroupName;
    cl.createIndex( "ac", { "a": 1, "c": 1 } );
    cl.createIndex( "abc", { "a": 1, "b": 1, "c": 1 } );
 
@@ -31,6 +33,8 @@ function test ()
    }
    cl.insert( data );
    db.analyze( { Collection: COMMCSNAME + "." + testConf.clName, SampleNum: 100, Index: "ac" } );
+   // 等待主备节点数据同步后再执行analyze({Mode: 5})
+   commCheckLSN( db, srcGroupName, 120 );
    db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + testConf.clName } )
    var indexName = cl.find( { a: 80, d: 10 } ).sort( { c: -1 } ).explain().current().toObj()["IndexName"];
    assert.equal( indexName, "ac", "use index is " + indexName );
