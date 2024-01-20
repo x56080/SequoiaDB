@@ -16,7 +16,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -142,7 +141,7 @@ public class IndexStandalone24383 extends SdbTestBase {
                 clName );
         // 校验lsn是否一致
         Assert.assertTrue(
-                IndexUtils.isLSNConsistency( db, groupNames.get( 0 ) ) );
+                CommLib.isLSNConsistency( db, groupNames.get( 0 ) ) );
         List< BasicBSONObject > nodes = CommLib.getCLNodes( db, csName,
                 clName );
         for ( BasicBSONObject node : nodes ) {

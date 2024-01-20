@@ -2,12 +2,19 @@
 *@Description: seqDB-8014:匹配不到记录，upsert使用replace更新符更新任意类型对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_replace8014";
 testConf.clName = COMMCLNAME + "_replace8014";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert object
    var doc = { a: 1 };
    testPara.testCL.insert( doc );
@@ -27,6 +34,7 @@ function test ( testPara )
    var expRecs1 = [{ object1: 123, object2: [10, false, 55, 70] },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    var upsertCondition2 = { $replace: { object1: 56, object2: [null, 70] } };
@@ -42,6 +50,7 @@ function test ( testPara )
    { object1: 56, object2: [null, 70] },
    { a: 1 }];
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { a: 1 } );
 
    //delete all data
    testPara.testCL.remove();
@@ -58,5 +67,6 @@ function test ( testPara )
    //check result
    var expRecs3 = [{ object1: 56, object2: [null, 70] }];
    checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs3, { a: 1 } );
 }
 

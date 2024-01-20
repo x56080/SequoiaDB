@@ -13,7 +13,6 @@ import org.testng.Assert;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
@@ -155,93 +154,13 @@ public class IndexUtils {
         return nodes;
     }
 
-    /**
-     * 检查CL主备节点集合CompleteLSN一致 *
-     *
-     * @param db
-     *            new db连接
-     * @param groupName
-     *            组名
-     * @return boolean 如果主节点CompleteLSN小于等于备节点CompleteLSN返回true,否则返回false
-     * @throws Exception
-     * @author luweikang
-     */
-    public static boolean isLSNConsistency( Sequoiadb db, String groupName )
-            throws Exception {
-        boolean isConsistency = false;
-        List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
-        ReplicaGroup rg = db.getReplicaGroup( groupName );
-        Node masterNode = rg.getMaster();
-        try ( Sequoiadb masterSdb = new Sequoiadb(
-                masterNode.getHostName() + ":" + masterNode.getPort(), "",
-                "" )) {
-            long completeLSN = -2;
-            DBCursor cursor = masterSdb.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
-                    null, "{CompleteLSN: ''}", null );
-            if ( cursor.hasNext() ) {
-                BasicBSONObject snapshot = ( BasicBSONObject ) cursor.getNext();
-                if ( snapshot.containsField( "CompleteLSN" ) ) {
-                    completeLSN = ( long ) snapshot.get( "CompleteLSN" );
-                }
-            } else {
-                throw new Exception( masterSdb.getNodeName()
-                        + " can't not find system snapshot" );
-            }
-            cursor.close();
-
-            for ( String nodeName : nodeNames ) {
-                if ( masterNode.getNodeName().equals( nodeName ) ) {
-                    continue;
-                }
-                isConsistency = false;
-                try ( Sequoiadb nodeConn = new Sequoiadb( nodeName, "", "" )) {
-                    DBCursor cur = null;
-                    long checkCompleteLSN = -3;
-                    for ( int i = 0; i < 600; i++ ) {
-                        cur = nodeConn.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
-                                null, "{CompleteLSN: ''}", null );
-                        if ( cur.hasNext() ) {
-                            BasicBSONObject checkSnapshot = ( BasicBSONObject ) cur
-                                    .getNext();
-                            if ( checkSnapshot
-                                    .containsField( "CompleteLSN" ) ) {
-                                checkCompleteLSN = ( long ) checkSnapshot
-                                        .get( "CompleteLSN" );
-                            }
-                        }
-                        cur.close();
-
-                        if ( completeLSN <= checkCompleteLSN ) {
-                            isConsistency = true;
-                            break;
-                        }
-                        try {
-                            Thread.sleep( 1000 );
-                        } catch ( InterruptedException e ) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if ( !isConsistency ) {
-                        System.out.println( "Group [" + groupName
-                                + "] node system snapshot is not the same, masterNode "
-                                + masterNode.getNodeName() + " CompleteLSN: "
-                                + completeLSN + ", " + nodeName
-                                + " CompleteLSN: " + checkCompleteLSN );
-                    }
-                }
-            }
-        }
-
-        return isConsistency;
-    }
-
     // 检查索引主备节点一致性
     public static void checkIndexConsistent( Sequoiadb sdb, String csName,
             String clName, String idxName, boolean isexist ) throws Exception {
         List< String > groupNames = getCLGroupNames( sdb, csName, clName );
         // 校验lsn是否一致
         for ( String groupName : groupNames ) {
-            Assert.assertTrue( isLSNConsistency( sdb, groupName ) );
+            Assert.assertTrue( CommLib.isLSNConsistency( sdb, groupName ) );
         }
 
         int sleepTime = 1000;
@@ -892,7 +811,7 @@ public class IndexUtils {
         // 校验lsn是否一致
         List< String > groupNames = getCLGroupNames( db, csName, clName );
         for ( int i = 0; i < groupNames.size(); i++ ) {
-            Assert.assertTrue( isLSNConsistency( db, groupNames.get( i ) ) );
+            Assert.assertTrue( CommLib.isLSNConsistency( db, groupNames.get( i ) ) );
         }
 
         List< BasicBSONObject > nodes = CommLib.getCLNodes( db, csName,
@@ -933,7 +852,7 @@ public class IndexUtils {
         // 校验lsn是否一致
         List< String > groupNames = getCLGroupNames( db, csName, clName );
         for ( int i = 0; i < groupNames.size(); i++ ) {
-            Assert.assertTrue( isLSNConsistency( db, groupNames.get( i ) ) );
+            Assert.assertTrue( CommLib.isLSNConsistency( db, groupNames.get( i ) ) );
         }
 
         List< BasicBSONObject > nodes = CommLib.getCLNodes( db, csName,
@@ -977,7 +896,7 @@ public class IndexUtils {
         // 校验lsn是否一致
         List< String > groupNames = getCLGroupNames( db, csName, clName );
         for ( int i = 0; i < groupNames.size(); i++ ) {
-            Assert.assertTrue( isLSNConsistency( db, groupNames.get( i ) ) );
+            Assert.assertTrue( CommLib.isLSNConsistency( db, groupNames.get( i ) ) );
         }
 
         List< BasicBSONObject > nodes = CommLib.getCLNodes( db, csName,

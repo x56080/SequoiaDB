@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import com.sequoiadb.threadexecutor.ResultStore;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -63,16 +64,19 @@ public class IndexConsistent23941C extends SdbTestBase {
         ThreadExecutor es = new ThreadExecutor();
         es.addWorker( new CreateIndex( indexName ) );
         int dropCLNum = 2;
+        ArrayList< DropSubCL > dropSubCLTreads = new ArrayList<>();
         for ( int i = 0; i < dropCLNum; i++ ) {
             String clName = subclNames.get( i );
-            es.addWorker( new DropSubCL( clName ) );
+            DropSubCL dropSubCL = new DropSubCL( clName );
+            dropSubCLTreads.add( dropSubCL );
+            es.addWorker( dropSubCL );
         }
         es.run();
 
         int[] resultCodes = new int[] { 0, -243 };
         for ( int i = 0; i < subclNum; i++ ) {
             String clName = subclNames.get( i );
-            if ( i < dropCLNum ) {
+            if ( i < dropCLNum && dropSubCLTreads.get( i ).getRetCode() == 0 ) {
                 Assert.assertFalse( cs.isCollectionExist( clName ) );
                 IndexUtils.checkNoTask( sdb, "Create index", SdbTestBase.csName,
                         clName );
@@ -116,15 +120,15 @@ public class IndexConsistent23941C extends SdbTestBase {
                         .getCollection( mainclName );
                 cl.createIndex( indexName, "{no:1,testa:1}", false, false );
             } catch ( BaseException e ) {
-               if ( e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
+                if ( e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
                         .getErrorType() ) {
-                  throw e;
-               }
+                    throw e;
+                }
             }
         }
     }
 
-    private class DropSubCL {
+    private class DropSubCL extends ResultStore {
         private String clName;
 
         private DropSubCL( String clName ) {
@@ -149,6 +153,7 @@ public class IndexConsistent23941C extends SdbTestBase {
                         .getCollectionSpace( SdbTestBase.csName );
                 cs.dropCollection( clName );
             } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
                 if ( e.getErrorType() != SDBError.SDB_LOCK_FAILED
                         .getErrorType() ) {
                     throw e;

@@ -5,13 +5,19 @@
                seqDB-22162: 使用pull_by更新不存在的对象 
                seqDB-22167: 使用push更新不存在的对象 
 @Modify list : 2020-5-14  Zhao Xiaoni 
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 ******************************************************************************/
+testConf.csName = "cs_22145_22152_22157_22162_22167";
 testConf.clName = "cl_22145_22152_22157_22162_22167";
-
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //使用set更新不存在的对象
    var expResult = [{ "a": 1, "b": 1 }];
    testPara.testCL.insert( { "a": 1 } );
@@ -19,24 +25,28 @@ function test ( testPara )
 
    var cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 
    //使用pop更新不存在对象
    testPara.testCL.update( { "$pop": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 
    //使用pull更新不存在的对象
    testPara.testCL.update( { "$pull": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 
    //使用pull_by更新不存在的对象
    testPara.testCL.update( { "$pull_by": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 
    //使用push更新不存在的对象
    expResult = [{ "a": 1, "b": 1, "c": [1] }];
@@ -44,4 +54,5 @@ function test ( testPara )
 
    cursor = testPara.testCL.find();
    commCompareResults( cursor, expResult );
+   checkResultSync( csName, clName, null, null, expResult, null );
 }

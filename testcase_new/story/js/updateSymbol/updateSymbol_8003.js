@@ -2,15 +2,20 @@
 *@Description: update object does not exist,use operator pull_all
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_8003";
+testConf.clName = COMMCLNAME + "_8003";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
-function test ()
-{
-   //clear environment
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+function test ( testPara )
+{
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
+   var dbcl = testPara.testCL;
 
    //insert data
    var doc1 = [{ object6: [10, -30, 20] },
@@ -33,6 +38,7 @@ function test ()
    var expRecs1 = [{ object6: [10, -30, 20] },
    { object7: [200, [305, -299, 400], 400] }];
    checkResult( dbcl, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use pull_all object does not exist,with matches
    var updateCondition2 = {
@@ -51,5 +57,6 @@ function test ()
    var expRecs2 = [{ object6: [10, -30, 20] },
    { object7: [[305, -299, 400]] }];
    checkResult( dbcl, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

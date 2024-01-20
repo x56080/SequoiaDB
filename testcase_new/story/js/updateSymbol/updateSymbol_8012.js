@@ -2,12 +2,19 @@
 *@Description: seqDB-8012:update使用replace更新符更新不存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_replace8012";
 testConf.clName = COMMCLNAME + "_replace8012";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert data   
    var doc1 = [{ object: 123 },
    { "object5.0": { $oid: "573920accc332f037c000013" } }];
@@ -38,6 +45,7 @@ function test ( testPara )
       object4: { firstName: "han", lastName: "meimei" }
    }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //insert data
    var doc2 = [{ object: [10, -30, 20] }];
@@ -75,6 +83,7 @@ function test ( testPara )
       object4: { firstName: "han", lastName: "meimei" }
    }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 
    //update object's name can not include $ or .,the expect result is failed;
    var updateCondition3 = { $replace: { "object1.0": 10 } };

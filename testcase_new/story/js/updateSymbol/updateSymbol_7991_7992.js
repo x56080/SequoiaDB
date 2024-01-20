@@ -3,13 +3,19 @@
                 seqDB-7992:update使用unset更新符更新已存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.17
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_unset7991";
 testConf.clName = COMMCLNAME + "_unset7991";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert all kind of data   
    var doc1 = [{ b: -2147483640, c: -2147483640, d: 4096 },
    { a: { $numberLong: "-9223372036854775800" }, c: { $numberLong: "-9223372036854775800" }, d: [10, 100, 1000] },
@@ -47,6 +53,7 @@ function test ( testPara )
    {},
    {}];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //update use unset,with matches
    var updateCondition2 = { $unset: { d: "" } };
@@ -69,5 +76,6 @@ function test ( testPara )
    {},
    {}];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }
 

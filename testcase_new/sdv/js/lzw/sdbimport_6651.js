@@ -83,13 +83,13 @@ function importData ( csName, clName, imprtFile )
    var rcObj = rc.split( "\n" );
    if( imprtFile === "6651_1.csv" )
    {
-      var expParseRecords = "parsed records: 150";
-      var expImportedRecords = "imported records: 150";
+      var expParseRecords = "Parsed records: 150";
+      var expImportedRecords = "Imported records: 150";
    }
    else if( imprtFile === "6651_2.csv" )
    {
-      var expParseRecords = "parsed records: 10";
-      var expImportedRecords = "imported records: 10";
+      var expParseRecords = "Parsed records: 10";
+      var expImportedRecords = "Imported records: 10";
    }
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];

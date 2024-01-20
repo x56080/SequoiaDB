@@ -2,16 +2,21 @@
  * @Description   : seqDB-30308:update使用rename更新字段为shardingKey字段
  * @Author        : Cheng Jingjing
  * @CreateTime    : 2023.02.24
- * @LastEditTime  : 2023.02.24
- * @LastEditors   : Cheng Jingjing
+ * @LastEditTime  : 2023.10.24
+ * @LastEditors   : tangtao
  ******************************************************************************/
+testConf.csName = COMMCSNAME + "30308";
 testConf.clName = COMMCLNAME + "30308";
+testConf.clOpt = { ReplSize: 0 };
 testConf.skipStandAlone = true;
 main( test );
 
-function test ( args )
+function test ( testPara )
 {
-   var cl = args.testCL;
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
+   var cl = testPara.testCL;
    cl.enableSharding( { ShardingKey: { a: 1 } } );
 
    var docs = [];
@@ -31,4 +36,5 @@ function test ( args )
    // 检查字段是否被更新
    var actResult = cl.find().sort( { a: 1 } );
    commCompareResults( actResult, docs );
+   checkResultSync( csName, clName, null, null, docs, { a: 1 } );
 }

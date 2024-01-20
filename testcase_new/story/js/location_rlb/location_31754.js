@@ -2,7 +2,7 @@
  * @Description   : seqDB-31754:数据节点2副本异常，剩余节点设置 Critical 模式
  * @Author        : liuli
  * @CreateTime    : 2023.05.23
- * @LastEditTime  : 2023.05.26
+ * @LastEditTime  : 2024.01.16
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -18,6 +18,14 @@ function test ( args )
 
    // 获取group中的备节点
    var slaveNodes = getGroupSlaveNodeName( db, srcGroup );
+
+   // 获取sharingbreak
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, { GroupName: srcGroup }, { sharingbreak: 1 } );
+   var actSharingbreak = cursor.current().toObj().sharingbreak;
+   println( "actSharingbreak: " + actSharingbreak );
+
+   // 修改sharingbreak为默认值
+   db.deleteConf( { sharingbreak: 1 } );
 
    // 获取主节点
    var rg = db.getRG( srcGroup );
@@ -64,5 +72,7 @@ function test ( args )
       slaveNode1.start();
       slaveNode2.start();
       commCheckBusinessStatus( db );
+      // 恢复actSharingbreak配置
+      db.updateConf( { sharingbreak: actSharingbreak } );
    }
 }

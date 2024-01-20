@@ -5,12 +5,19 @@
                operate object is not exist or exist,              
 *@author:      zhaoyu
 *@createdate:  2016.5.17
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
+testConf.csName = COMMCSNAME + "_inc7987"
 testConf.clName = COMMCLNAME + "_inc7987";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert common object
    var commonDoc = { a: 1 };
    testPara.testCL.insert( commonDoc );
@@ -23,6 +30,7 @@ function test ( testPara )
    //check result
    var expRecs1 = [{ a: 1 }, { a: { $decimal: "5" }, b: [10, 20, 30], d: 1000, c: 1 }];
    checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { a: 1 } );
 
    //upsert common object when match nothing,use matches or
    var upsertCondition2 = { $inc: { a: { $numberLong: "6" }, b: 7, c: 8 } };
@@ -32,6 +40,7 @@ function test ( testPara )
    //check result
    var expRecs2 = [{ a: 1 }, { a: { $decimal: "5" }, b: [10, 20, 30], d: 1000, c: 1 }, { a: 6, b: 7, c: 8 }]
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { a: 1 } );
 
    //upsert common object when match nothing,use matches not
    var upsertCondition3 = { $inc: { a: { $decimal: "9", $precision: [10, 2] }, b: 10, c: 11 } };
@@ -41,6 +50,7 @@ function test ( testPara )
    //check result
    var expRecs3 = [{ a: 1 }, { a: { $decimal: "5" }, b: [10, 20, 30], d: 1000, c: 1 }, { a: 6, b: 7, c: 8 }, { a: { $decimal: "9.00", $precision: [10, 2] }, b: 10, c: 11 }]
    checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs3, { a: 1 } );
 
    //upsert nested object when match nothing,use matches and
    var upsertCondition4 = { $inc: { "b.0": 3, "d.0.0": 15, d: 20 } };
@@ -50,4 +60,5 @@ function test ( testPara )
    //check result
    var expRecs4 = [{ b: { 0: { $decimal: "5" } }, c: { 1: [10] }, d: { 0: { 0: 15 } }, d: 1020 }, { a: 1 }, { a: { $decimal: "5" }, b: [10, 20, 30], d: 1000, c: 1 }, { a: 6, b: 7, c: 8 }, { a: { $decimal: "9.00", $precision: [10, 2] }, b: 10, c: 11 }];
    checkResult( testPara.testCL, null, null, expRecs4, { a: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs4, { a: 1 } );
 }

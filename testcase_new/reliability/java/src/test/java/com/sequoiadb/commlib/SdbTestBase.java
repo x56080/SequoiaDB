@@ -1,5 +1,9 @@
 package com.sequoiadb.commlib;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -135,10 +139,13 @@ public class SdbTestBase {
         try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" )) {
             boolean ret = createCommonCS( db );
             Assert.assertTrue( ret );
+            localCreateWorkDir();
             createWorkDir();
             createReserveDir();
         } catch ( BaseException e ) {
             Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
         }
 
         if ( !"${DSHOSTNAME}".equals( DSHOSTNAME ) ) {
@@ -322,6 +329,16 @@ public class SdbTestBase {
         } catch ( ReliabilityException e ) {
             Assert.fail( e.getMessage() );
             e.printStackTrace();
+        }
+    }
+
+    private static void localCreateWorkDir() throws IOException {
+        // 创建 Path 对象
+        Path folder = Paths.get( SdbTestBase.workDir );
+
+        // 检查文件夹是否存在，如果不存在则创建
+        if ( !Files.exists( folder ) ) {
+            Files.createDirectories( folder );
         }
     }
 

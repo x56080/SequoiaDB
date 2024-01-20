@@ -1261,6 +1261,7 @@ public class CommLib {
                                 + masterNode.getNodeName() + " CompleteLSN: "
                                 + completeLSN + ", " + nodeName
                                 + " CompleteLSN: " + checkCompleteLSN );
+                        break;
                     }
                 }
             }

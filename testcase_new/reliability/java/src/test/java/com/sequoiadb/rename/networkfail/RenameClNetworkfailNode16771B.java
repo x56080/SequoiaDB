@@ -142,7 +142,8 @@ public class RenameClNetworkfailNode16771B extends SdbTestBase {
             } catch ( BaseException e ) {
                 int actErrCode = e.getErrorCode();
                 if ( actErrCode != -134 && actErrCode != -15
-                        && actErrCode != -116 && actErrCode != -36 ) {
+                        && actErrCode != -116 && actErrCode != -36
+                        && actErrCode != -252 ) {
                     throw e;
                 }
             }

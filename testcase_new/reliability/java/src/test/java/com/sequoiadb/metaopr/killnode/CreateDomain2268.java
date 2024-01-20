@@ -191,7 +191,12 @@ public class CreateDomain2268 extends SdbTestBase {
 
     private void checkListDomain( Sequoiadb db ) {
         // check domain NUM
-        DBCursor cursor = db.listDomains( null, null, null, null );
+        DBCursor cursor = db
+                .listDomains(
+                        new BasicBSONObject( "Name",
+                                new BasicBSONObject( "$regex",
+                                        domNameBase + "_*" ) ),
+                        null, null, null );
         int expDomainNum = 0;
         while ( cursor.hasNext() ) {
             cursor.getNext();

@@ -3,7 +3,6 @@ package com.sequoiadb.cappedcl;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
 import com.sequoiadb.base.DBCollection;
@@ -193,78 +192,4 @@ public class CappedCLUtils {
         return groupName;
     }
 
-    /**
-     * 检查CL主备节点集合CompleteLSN一致
-     * 
-     * @param cl
-     * @return boolean 如果主节点CompleteLSN小于等于备节点CompleteLSN返回true,否则返回false
-     * @throws Exception
-     * @author luweikang
-     */
-    public static boolean isLSNConsistency( Sequoiadb db, String groupName )
-            throws Exception {
-        boolean isConsistency = false;
-        List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
-        ReplicaGroup rg = db.getReplicaGroup( groupName );
-
-        try ( Sequoiadb masterNode = rg.getMaster().connect()) {
-            long completeLSN = -2;
-            DBCursor cursor = masterNode.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
-                    null, "{CompleteLSN: ''}", null );
-            if ( cursor.hasNext() ) {
-                BasicBSONObject snapshot = ( BasicBSONObject ) cursor.getNext();
-                if ( snapshot.containsField( "CompleteLSN" ) ) {
-                    completeLSN = ( long ) snapshot.get( "CompleteLSN" );
-                }
-            } else {
-                throw new Exception( masterNode.getNodeName()
-                        + " can't not find system snapshot" );
-            }
-            cursor.close();
-
-            for ( String nodeName : nodeNames ) {
-                if ( masterNode.getNodeName().equals( nodeName ) ) {
-                    continue;
-                }
-                isConsistency = false;
-                try ( Sequoiadb nodeConn = rg.getNode( nodeName ).connect()) {
-                    DBCursor cur = null;
-                    long checkCompleteLSN = -3;
-                    for ( int i = 0; i < 600; i++ ) {
-                        cur = nodeConn.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
-                                null, "{CompleteLSN: ''}", null );
-                        if ( cur.hasNext() ) {
-                            BasicBSONObject checkSnapshot = ( BasicBSONObject ) cur
-                                    .getNext();
-                            if ( checkSnapshot
-                                    .containsField( "CompleteLSN" ) ) {
-                                checkCompleteLSN = ( long ) checkSnapshot
-                                        .get( "CompleteLSN" );
-                            }
-                        }
-                        cur.close();
-
-                        if ( completeLSN <= checkCompleteLSN ) {
-                            isConsistency = true;
-                            break;
-                        }
-                        try {
-                            Thread.sleep( 1000 );
-                        } catch ( InterruptedException e ) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if ( !isConsistency ) {
-                        System.out.println( "Group [" + groupName
-                                + "] node system snapshot is not the same, masterNode "
-                                + masterNode.getNodeName() + " CompleteLSN: "
-                                + completeLSN + ", " + nodeName
-                                + " CompleteLSN: " + checkCompleteLSN );
-                    }
-                }
-            }
-        }
-
-        return isConsistency;
-    }
 }

@@ -1031,6 +1031,7 @@ public class LocationUtils {
                                 + masterNode.getNodeName() + " CompleteLSN: "
                                 + completeLSN + ", " + nodeName
                                 + " CompleteLSN: " + checkCompleteLSN );
+                        break;
                     }
                 }
             }

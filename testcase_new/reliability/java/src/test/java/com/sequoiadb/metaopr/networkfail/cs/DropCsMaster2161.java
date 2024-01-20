@@ -120,6 +120,8 @@ public class DropCsMaster2161 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_WAIT_SYNC_FAILED
                                 .getErrorCode() ) {
                     throw e;
                 }

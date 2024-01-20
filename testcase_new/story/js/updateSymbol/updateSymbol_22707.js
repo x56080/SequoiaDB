@@ -6,7 +6,7 @@
 *******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
-testConf.csName = COMMCSNAME
+testConf.csName = COMMCSNAME + "_22707";
 testConf.clName = COMMCLNAME + "_22707";
 testConf.clOpt = {};
 main( test );

@@ -4,13 +4,29 @@
 @date 2020-3-23
 ******************************************************************************/
 testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_21892";
 
 main( test );
 
-function test ()
+function test ( testPara )
 {
+   var dbcl = testPara.testCL;
+   var docs = [];
+   for( var i = 0; i < 1000; i++ )
+   {
+      docs.push( { a: i, b: i } )
+   }
+   dbcl.insert( docs );
+
+   dbcl.find().toArray();
+
+   for( var i = 0; i < 10; i++ )
+   {
+      dbcl.find( { a: i } ).toArray();
+   }
+
    // 使用内置SQL语句查询快照信息
-   var cur = db.exec( "select * from $SNAPSHOT_ACCESSPLANS" );
+   var cur = db.exec( "select * from $SNAPSHOT_ACCESSPLANS where Collection = '" + COMMCSNAME + "." + testConf.clName + "'" );
    while( cur.next() )
    {
       var tmpObj = cur.current().toObj();

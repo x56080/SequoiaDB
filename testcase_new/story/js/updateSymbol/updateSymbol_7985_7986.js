@@ -3,13 +3,19 @@
                seqDB-7986:update使用inc更新符更新存在的对象
 *@author:      zhaoyu
 *@createdate:  2016.5.16
+*@LastEditTime  : 2023.10.24
+*@LastEditors   : tangtao
 **************************************/
-
+testConf.csName = COMMCSNAME + "_inc7985";
 testConf.clName = COMMCLNAME + "_inc7985";
+testConf.clOpt = { ReplSize: -1 };
 main( test );
 
 function test ( testPara )
 {
+   var csName = testConf.csName;
+   var clName = testConf.clName;
+
    //insert numberic data,array with 3 layer and common object  
    var doc1 = [{ a: -2147483640, c: -2147483640, e: { name: { firstName: "han", lastName: "meimei" } }, f: { name: { firstNumber: { $decimal: "1" }, lastNumber: { $numberLong: "2" } } } },
    { b: 2147483640, c: 2147483640, d: [1, 2, 3], f: { name: { firstNumber: { $decimal: "1" }, lastNumber: { $numberLong: "2" } } } },
@@ -35,6 +41,7 @@ function test ( testPara )
    { a: 1, b: -1, c: 1.56789, d: { 0: { $decimal: "2" } }, e: { name: { firstName: 100 } }, f: { name: { firstNumber: 1000 } } },
    { a: 1, b: -1, c: 1.56789, d: { 0: { $decimal: "2" } }, e: { name: { firstName: 100 } }, f: { name: { firstNumber: 1000 } } }];
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs1, { _id: 1 } );
 
    //insert data for updating data with matches symbol
    var doc2 = { g: 1 }
@@ -56,6 +63,7 @@ function test ( testPara )
    { a: 1, b: -1, c: 1.56789, d: { 0: { $decimal: "2" } }, e: { name: { firstName: 100 } }, f: { name: { firstNumber: 1000 } } },
    { g: 2, h: 1 }];
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 
    //match nothing and update nothing
    var updateCondition3 = { $inc: { g: 1, h: 1 } };
@@ -64,4 +72,5 @@ function test ( testPara )
 
    //check result
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
+   checkResultSync( csName, clName, null, null, expRecs2, { _id: 1 } );
 }

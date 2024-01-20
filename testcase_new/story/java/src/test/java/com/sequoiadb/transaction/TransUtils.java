@@ -879,61 +879,6 @@ public class TransUtils extends SdbTestBase {
 
     }
 
-    public static boolean isLsnConsistency( Sequoiadb sdb, String groupName ) {
-        boolean isConsistency;
-        int eachSleepTime = 1000;
-        int maxSleetTime = 600000;
-        int alreadySleepTime = 0;
-        List< String > nodeUrls = CommLib.getNodeAddress( sdb, groupName );
-
-        do {
-            isConsistency = true;
-            long lsnOfPrevNode = -1;
-            int versionOfPrevNode = 0;
-            for ( String nodeUrl : nodeUrls ) {
-                try ( Sequoiadb dataDB = new Sequoiadb( nodeUrl, "", "" ) ;) {
-                    DBCursor cursor = dataDB.getSnapshot(
-                            Sequoiadb.SDB_SNAP_DATABASE, null,
-                            "{CurrentLSN:null, CompleteLSN:null}", null );
-                    while ( cursor.hasNext() ) {
-                        BasicBSONObject doc = ( BasicBSONObject ) cursor
-                                .getNext();
-                        long lsnOfCurNode = doc.getLong( "CompleteLSN" );
-                        int versionOfCurNode = ( ( BasicBSONObject ) doc
-                                .get( "CurrentLSN" ) ).getInt( "Version" );
-                        if ( lsnOfPrevNode == -1 ) {
-                            lsnOfPrevNode = lsnOfCurNode;
-                            versionOfPrevNode = versionOfCurNode;
-                            continue;
-                        } else if ( lsnOfPrevNode != lsnOfCurNode
-                                || versionOfPrevNode != versionOfCurNode ) {
-                            isConsistency = false;
-                            break;
-                        }
-                    }
-                    cursor.close();
-                }
-            }
-
-            if ( isConsistency ) {
-                break;
-            }
-
-            if ( alreadySleepTime >= maxSleetTime ) {
-                break;
-            }
-
-            try {
-                Thread.sleep( eachSleepTime );
-                alreadySleepTime += eachSleepTime;
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
-            }
-        } while ( true );
-
-        return isConsistency;
-    }
-
     // 获取事务ID
     public static String getTransactionID( Sequoiadb db ) {
         // 在已开启事务的会话上，执行一个无关的查询，以获取当前会话上的事务id

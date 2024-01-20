@@ -2,8 +2,8 @@
  * @Description   : seqDB-18654:增删改查(表扫描/索引扫描)/切分记录，集合快照信息验证
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.24
- * @LastEditTime  : 2022.09.05
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2024.01.10
+ * @LastEditors   : liuli
 ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
@@ -69,6 +69,8 @@ function test ( testPara )
    expStatistics = [{ NodeName: nodeNames[0], TotalDataRead: 4000, TotalDataWrite: 3000, TotalIndexWrite: 6000, TotalUpdate: 1000, TotalDelete: 1000, TotalInsert: 1000, TotalSelect: 2000, TotalRead: 4000, TotalWrite: 3000, TotalTbScan: 2, TotalIxScan: 2 }];
    checkStatistics( actStatistics, expStatistics );
 
+   // 等待主备节点数据同步后再执行resetSnapshot
+   commCheckLSN( db, groupName, 120 );
    db.resetSnapshot( { Type: "collections", Collection: fullName } );
 
    actStatistics = getStatistics( fullName, nodeNames );
