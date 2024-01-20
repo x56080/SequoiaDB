@@ -1003,6 +1003,7 @@ namespace engine
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
       pmdStartupHistoryLogger *startLogger = pmdGetStartupHstLogger() ;
       SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
+      sdbCatalogueCB *cataCB = krcb->getCATLOGUECB() ;
 
       switch ( type )
       {
@@ -1016,7 +1017,10 @@ namespace engine
             krcb->getSvcTaskMgr()->reset() ;
             sdbGetClsCB()->resetDumpSchedInfo() ;
             dmsCB->clearAllCRUDCB() ;
-            krcb->getCATLOGUECB()->resetMsgCount() ;
+            if ( cataCB )
+            {
+               cataCB->resetMsgCount() ;
+            }
             break ;
          }
          case CMD_SNAPSHOT_DATABASE :
@@ -1024,7 +1028,10 @@ namespace engine
             mondbcb->reset() ;
             mgr->resetIOService() ;
             sdbGetClsCB()->resetDumpSchedInfo() ;
-            krcb->getCATLOGUECB()->resetMsgCount() ;
+            if ( cataCB )
+            {
+               cataCB->resetMsgCount() ;
+            }
             break ;
          }
          case CMD_SNAPSHOT_SESSIONS :
