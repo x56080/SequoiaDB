@@ -836,9 +836,9 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get record, rc: %d", rc ) ;
 
+      _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
       if ( dpscb )
       {
-         _clFullName( context->mb()->_collectionName, fullName, sizeof(fullName) ) ;
          rc = dpsPop2Record( fullName, (INT64)( popRID.toUINT64() ), direction, dpsRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
@@ -878,6 +878,12 @@ namespace engine
          rc = _logDPS( dpscb, info, cb, context, popRID._extent, popRID._offset,
                        FALSE, DMS_FILE_DATA ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d", rc ) ;
+      }
+      else if ( cb->getLsnCount() > 0 )
+      {
+         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_DATA ) ;
+         cb->setDataExInfo( fullName, this->logicalID(), context->clLID(),
+                            popRID._extent, popRID._offset ) ;
       }
 
       if ( direction < 0 )
