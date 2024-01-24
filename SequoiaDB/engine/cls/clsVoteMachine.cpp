@@ -217,17 +217,11 @@ namespace engine
          // Remove group mode
          if ( _grpModeShadowTime <= 0 )
          {
-            ossScopedRWLock lock( &_groupInfo->mtx, EXCLUSIVE ) ;
+            ossScopedRWLock lock( &_groupInfo->mtx, SHARED ) ;
             if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->grpMode.mode )
             {
                // Remove reelect targetNode flag, if this flag is use for critical mode instead of reelectGroup
-               if ( 0 == _shadowTimeout )
-               {
-                  resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-               }
-
-               // Remove critical mode info
-               resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+               resetGrpModeElectionWeights() ;
                _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
                _groupInfo->grpMode.reset() ;
                _groupInfo->enforcedGrpMode = FALSE ;
@@ -285,140 +279,14 @@ namespace engine
       return FALSE ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTMH_SETGRPMODE, "_clsVoteMachine::setGrpMode" )
-   INT32 _clsVoteMachine::setGrpMode( const clsGroupMode &grpMode,
-                                      const INT32 &shadowTime,
-                                      const BOOLEAN &isLocalMode,
-                                      const BOOLEAN &enforced )
+   void _clsVoteMachine::resetGrpModeElectionWeights()
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSVTMH_SETGRPMODE ) ;
-
-      _grpModeShadowTime = shadowTime ;
-
+      resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+      /// when is not in reelect
+      if ( CLS_ELECTION_WEIGHT_USR_MIN == _shadowWeight )
       {
-         ossScopedRWLock lock( &_groupInfo->mtx, EXCLUSIVE ) ;
-
-         _groupInfo->enforcedGrpMode = enforced ;
-
-         // Remove local and global group mode
-         if ( CLS_GROUP_MODE_NONE == grpMode.mode )
-         {
-            if ( grpMode.mode != _groupInfo->grpMode.mode )
-            {
-               resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-               _groupInfo->grpMode.reset() ;
-               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
-            }
-         }
-         else
-         {
-            // Set local group mode to CLS_GROUP_MODE_CRITICAL/CLS_GROUP_MODE_MAINTENANCE
-            if ( isLocalMode )
-            {
-               if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
-               {
-                  // Set critical mode flag
-                  setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-                  _groupInfo->localGrpMode = CLS_GROUP_MODE_CRITICAL ;
-
-                  // shadowTime < 0 means keep this mode forever, we need to remove targetNode flag
-                  if ( shadowTime < 0 )
-                  {
-                     resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-                  }
-                  // shadowTime > 0 means keep this mode temporary, we need to add targetNode flag
-                  else
-                  {
-                     setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-                  }
-               }
-               else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
-               {
-                  _groupInfo->localGrpMode = CLS_GROUP_MODE_MAINTENANCE ;
-               }
-            }
-            // Reset local group mode to CLS_GROUP_MODE_NONE
-            else
-            {
-               if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
-               {
-                  // Reset critical mode flag
-                  resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-               }
-               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
-            }
-
-            // Set global group mode
-            clsGroupMode *pGrpMode = SDB_OSS_NEW clsGroupMode( grpMode ) ;
-            if ( NULL == pGrpMode )
-            {
-               PD_LOG( PDWARNING, "Failed to allocate memory for clsGroupMode" ) ;
-            }
-
-            pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-            rc = eduMgr->postEDUPost( eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ),
-                                      PMD_EDU_EVENT_UPDATE_GRPMODE,
-                                      PMD_EDU_MEM_NONE, pGrpMode ) ;
-            if ( SDB_OK != rc )
-            {
-               if ( NULL != pGrpMode )
-               {
-                  SDB_OSS_DEL pGrpMode ;
-                  pGrpMode = NULL ;
-               }
-               PD_LOG( PDERROR, "Failed to post update group mode event to edu" ) ;
-               goto error ;
-            }
-         }
-
-         // Save global group mode to _clsSharingStatus
-         VEC_GRPMODE_ITEM::const_iterator grpModeItr ;
-         CLS_NODE_STATUS_MAP::iterator nodeItr = _groupInfo->info.begin() ;
-         UINT8 remoteLocationNodeSize = 0 ;
-
-         while ( _groupInfo->info.end() != nodeItr )
-         {
-            _clsSharingStatus &status = nodeItr->second ;
-            grpModeItr = grpMode.grpModeInfo.begin() ;
-
-            while ( grpMode.grpModeInfo.end() != grpModeItr )
-            {
-               if ( ( INVALID_NODEID != grpModeItr->nodeID &&
-                      status.beat.identity.columns.nodeID == grpModeItr->nodeID ) ||
-                    ( MSG_INVALID_LOCATIONID != status.beat.locationID &&
-                      status.beat.locationID == grpModeItr->locationID ) )
-               {
-                  status.grpMode = grpMode.mode ;
-                  break ;
-               }
-               ++grpModeItr ;
-            }
-            if ( grpMode.grpModeInfo.end() == grpModeItr )
-            {
-               status.grpMode = CLS_GROUP_MODE_NONE ;
-            }
-
-            if ( !status.isAffinitiveLocation &&
-                 !status.isInMaintenanceMode() )
-            {
-               remoteLocationNodeSize ++ ;
-            }
-
-            ++nodeItr ;
-         }
-         if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->grpMode.mode )
-         {
-            _groupInfo->remoteLocationNodeSize = remoteLocationNodeSize ;
-         }
+         resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
       }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSVTMH_SETGRPMODE, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    INT32 _clsVoteMachine::startCriticalModeMonitor()

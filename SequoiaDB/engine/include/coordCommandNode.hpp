@@ -711,7 +711,7 @@ namespace engine
                                        pmdEDUCB *cb,
                                        UINT16 nodeID ) ;
 
-         virtual INT32 _reelectGroup( pmdEDUCB *cb ) ;
+         virtual INT32 _reelectGroup( pmdEDUCB *cb, UINT16 tarNodeID, UINT32 tarLocationID ) ;
 
       private:
          INT32 _checkCriticalMode( pmdEDUCB *cb,

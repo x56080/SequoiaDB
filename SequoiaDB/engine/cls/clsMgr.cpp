@@ -1272,10 +1272,17 @@ namespace engine
 
             clsVoteMachine *vote = getReplCB()->voteMachine() ;
             // Start critical mode monitor
-            if ( CLS_GROUP_MODE_CRITICAL == getReplCB()->getGrpMode() &&
-                 ! vote->isTmpGrpMode() )
+            if ( CLS_GROUP_MODE_CRITICAL == getReplCB()->getGrpMode() )
             {
-               vote->startCriticalModeMonitor() ;
+               if ( vote->isTmpGrpMode() )
+               {
+                  /// need to update grpMode
+                  getReplCB()->startGrpModeJob() ;
+               }
+               else if ( vote->isConstantGrpMode() )
+               {
+                  vote->startCriticalModeMonitor() ;
+               }
             }
             else if ( CLS_GROUP_MODE_MAINTENANCE == getReplCB()->getGrpMode() )
             {

@@ -128,6 +128,18 @@ namespace engine
          return 0 < _grpModeShadowTime ;
       }
 
+      OSS_INLINE BOOLEAN isConstantGrpMode() const
+      {
+         return _grpModeShadowTime < 0 ;
+      }
+
+      OSS_INLINE void setGrpModeShadowTime( INT32 grpModeShadowTime )
+      {
+         _grpModeShadowTime = grpModeShadowTime ;
+      }
+
+      void resetGrpModeElectionWeights() ;
+
       INT32 startCriticalModeMonitor() ;
 
       INT32 startMaintenanceModeMonitor() ;
@@ -146,11 +158,6 @@ namespace engine
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
       BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
-
-      INT32 setGrpMode( const clsGroupMode &grpMode,
-                        const INT32 &shadowTime,
-                        const BOOLEAN &isLocalMode,
-                        const BOOLEAN &enforced = FALSE ) ;
 
    private:
       vector<_clsVoteStatus *>   _status ;

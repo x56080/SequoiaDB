@@ -53,44 +53,7 @@ namespace engine
    class _dpsLogWrapper ;
    class _pmdEDUCB ;
 
-   struct clsWakePlanCompare
-   {
-      bool operator() ( const utilReplSizePlan &left,
-                        const utilReplSizePlan &right ) const
-      {
-         BOOLEAN result = FALSE ;
-         /* sort in the following order
-            1.LSN ( order : sort from small to large )
-            2.the location of the primary node ( reverse order )
-            3.the affinitive location of the primary node ( reverse order )
-            4.location ( reverse order )
-          */
-         if ( right.offset > left.offset )
-         {
-            result = TRUE ;
-         }
-         else if ( right.offset < left.offset )
-         {
-            /// do nothing
-         }
-         else if ( right.primaryLocationNodes < left.primaryLocationNodes )
-         {
-            result = TRUE ;
-         }
-         else if ( right.affinitiveLocations < left.affinitiveLocations )
-         {
-            result = TRUE ;
-         }
-         else if ( right.locations < left.locations )
-         {
-            result = TRUE ;
-         }
-
-         return result ;
-      }
-   } ;
-
-   typedef ossPoolMultiSet<utilReplSizePlan, clsWakePlanCompare>   CLS_WAKE_PLAN ;
+   typedef ossPoolMultiMap<DPS_LSN_OFFSET, utilReplSizePlan>      CLS_WAKE_PLAN ;
 
    /*
       _clsSyncManager define
@@ -123,11 +86,13 @@ namespace engine
 
       void notify( const DPS_LSN_OFFSET &offset ) ;
 
-      MsgRouteID getSyncSrc( const set<UINT64> &blacklist, BOOLEAN isLocationPreferred,
-                             CLS_GROUP_VERSION &version ) ;
+      MsgRouteID getSyncSrc( const set<UINT64> &blacklist,
+                             CLS_GROUP_VERSION &version,
+                             BOOLEAN useLocaction = TRUE ) ;
 
-      MsgRouteID getFullSrc( const set<UINT64> &blacklist, BOOLEAN isLocationPreferred,
-                             CLS_GROUP_VERSION &version ) ;
+      MsgRouteID getFullSrc( const set<UINT64> &blacklist,
+                             CLS_GROUP_VERSION &version,
+                             BOOLEAN useLocaction = TRUE ) ;
 
       OSS_INLINE BOOLEAN isReadyToReplay()
       {
@@ -161,8 +126,6 @@ namespace engine
       /// offset is current offset.
       BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset, UINT16 ensureNodeID = 0 ) ;
 
-      void prepareBlackList( set<UINT64> &blacklist, const CLS_SELECT_RANGE &range ) ;
-
       BOOLEAN isGroupInfoExpired( CLS_GROUP_VERSION version )
       {
          return version < _info->version ;
@@ -187,6 +150,12 @@ namespace engine
       void _clearSyncList( UINT32 removed, UINT32 removedAlives,
                            UINT32 preAlives, UINT32 preSyncNum,
                            _clsSyncStatus *left ) ;
+
+      MsgRouteID _getSyncSrc( const set<UINT64> &blacklist,
+                              CLS_SELECT_RANGE rangeType ) ;
+
+      MsgRouteID _getFullSrc( const set<UINT64> &blacklist,
+                              CLS_SELECT_RANGE rangeType ) ;
 
    private:
       /// sub between <0, CLS_REPLSET_MAX_NODE_SIZE - 2>.

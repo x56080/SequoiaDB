@@ -112,36 +112,6 @@ namespace engine
                   next = CLS_ELECTION_STATUS_ANNOUNCE ;
                   PD_LOG( PDEVENT, "%s Vote: change to announce by all accept", getScopeName() ) ;
                }
-               // Node in critical mode which is only effective in group election( not in location election )
-               else if ( ! isLocation() && CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode )
-               {
-                  if ( _info()->criticalSize() <= ( _criticalAccepted() + 1 ) )
-                  {
-                     // Node is in enforced mode, need to check if all critical nodes agree
-                     if ( _info()->enforcedGrpMode )
-                     {
-                        next = CLS_ELECTION_STATUS_ANNOUNCE ;
-                        PD_LOG( PDEVENT, "%s Vote: change to announce by all critical nodes accept "
-                                "in critical mode", getScopeName() ) ;
-                     }
-                     // Node is not in enforced mode, need to check if all alive nodes and
-                     // all critical nodes agree
-                     else if ( _info()->aliveSize() <= ( _accepted() + 1 ) )
-                     {
-                        next = CLS_ELECTION_STATUS_ANNOUNCE ;
-                        PD_LOG( PDEVENT, "%s Vote: change to announce by all alive nodes accept "
-                                "in critical mode", getScopeName() ) ;
-                     }
-                     else
-                     {
-                        next = id() ;
-                     }
-                  }
-                  else
-                  {
-                     next = id() ;
-                  }
-               }
                else
                {
                   next = id() ;

@@ -183,158 +183,12 @@ namespace engine
             return _info.grpMode.mode ;
          }
 
-         OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
-                                        UINT32 &falutCnt, UINT32 &ssCnt,
-                                        INT32 &indoubtErr,
-                                        UINT16 &indoubtNodeID,
-                                        utilLocationInfo *locationInfo = NULL,
-                                        const SDB_CONSISTENCY_STRATEGY strategy =
-                                        SDB_CONSISTENCY_NODE )
-         {
-            map<UINT64, _clsSharingStatus *>::iterator it ;
-            _clsSharingStatus *pStatus = NULL ;
-
-            nodeCnt = 0 ;
-            aliveCnt = 0 ;
-            falutCnt = 0 ;
-            ssCnt = 0 ;
-            indoubtErr = SDB_OK ;
-            UINT32 selfLocationID = pmdGetLocationID() ;
-            UINT32 locationID = MSG_INVALID_LOCATIONID ;
-            UINT8 primaryLocationNodes = 0 ;
-            UINT8 affinitiveLocations = 0 ;
-            UINT8 locations = 0 ;
-            _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
-            BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
-            UINT32 remoteAliveNodeCnt = 0 ;
-
-            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
-
-            if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
-            {
-               const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
-
-               // This is critical node mode, use alive node count
-               if ( INVALID_NODEID != grpModeItem.nodeID )
-               {
-                  nodeCnt = _info.aliveSize() ;
-                  aliveCnt = _info.aliveSize() ;
-               }
-               // This is critical location mode, use location node count
-               else if ( ! grpModeItem.location.empty() )
-               {
-                  nodeCnt = _info.criticalSize() ;
-                  aliveCnt = _info.criticalAliveSize() ;
-               }
-            }
-            else
-            {
-               nodeCnt = _info.groupSize() ;
-               aliveCnt = _info.aliveSize() ;
-            }
-
-            it = _info.alives.begin() ;
-            while( it != _info.alives.end() )
-            {
-               pStatus = it->second ;
-               ++it ;
-
-               if ( CLS_GROUP_MODE_MAINTENANCE == pStatus->grpMode )
-               {
-                  continue ;
-               }
-
-               // If the remoteLocationConsistency is false,
-               // don't care whether the remote node failed.
-               locationID = pStatus->beat.locationID ;
-               if ( MSG_INVALID_LOCATIONID != selfLocationID &&
-                    isActiveLocation() &&
-                    !pStatus->isAffinitiveLocation &&
-                    !_remoteLocationConsistency )
-               {
-                  ++remoteAliveNodeCnt ;
-                  continue ;
-               }
-
-               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
-               {
-                  --aliveCnt ;
-                  continue ;
-               }
-               else if ( 0 != pStatus->beat.ftConfirmStat )
-               {
-                  ++falutCnt ;
-                  if ( SDB_OK == indoubtErr )
-                  {
-                     indoubtErr = pStatus->beat.indoubtErr ;
-                     indoubtNodeID = pStatus->beat.identity.columns.nodeID ;
-                  }
-                  continue ;
-               }
-               else if ( CLS_NODE_RUNNING != pStatus->beat.nodeRunStat )
-               {
-                  ++ssCnt ;
-                  continue ;
-               }
-
-               if ( needLocInfo )
-               {
-                  if ( MSG_INVALID_LOCATIONID != selfLocationID &&
-                       MSG_INVALID_LOCATIONID != locationID )
-                  {
-                     if ( selfLocationID == locationID )
-                     {
-                        primaryLocationNodes++ ;
-                     }
-                     else if ( !isMarked.testBit( pStatus->locationIndex ) &&
-                               pStatus->isAffinitiveLocation )
-                     {
-                        locations++ ;
-                        affinitiveLocations++ ;
-                        isMarked.setBit( pStatus->locationIndex ) ;
-                     }
-                     // If the remoteLocationConsistency is false, we ignore the impact
-                     // of remote nodes on synchronization consistency.
-                     else if ( !isMarked.testBit( pStatus->locationIndex ) &&
-                               _remoteLocationConsistency )
-                     {
-                        locations++ ;
-                        isMarked.setBit( pStatus->locationIndex ) ;
-                     }
-                  }
-               }
-            }
-            if ( needLocInfo && NULL != locationInfo )
-            {
-               locationInfo->primaryLocationNodes = primaryLocationNodes ;
-               locationInfo->locations = locations ;
-               locationInfo->affinitiveLocations = affinitiveLocations ;
-            }
-
-            if ( !_remoteLocationConsistency && isActiveLocation() )
-            {
-               if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
-               {
-                  const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
-
-                  // This is critical node mode, use alive node count
-                  if ( INVALID_NODEID != grpModeItem.nodeID )
-                  {
-                     nodeCnt -= remoteAliveNodeCnt ;
-                     aliveCnt -= remoteAliveNodeCnt ;
-                  }
-               }
-               else
-               {
-                  nodeCnt -= _info.remoteLocationNodeSize ;
-                  aliveCnt -= remoteAliveNodeCnt ;
-               }
-               if ( NULL != locationInfo )
-               {
-                  locationInfo->affinitiveNodes = nodeCnt ;
-               }
-            }
-         }
+         void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
+                             UINT32 &falutCnt, UINT32 &ssCnt,
+                             INT32 &indoubtErr,
+                             UINT16 &indoubtNodeID,
+                             utilLocationInfo *locationInfo = NULL,
+                             const SDB_CONSISTENCY_STRATEGY strategy = SDB_CONSISTENCY_NODE ) ;
 
          OSS_INLINE BOOLEAN isAlive ( NodeID node )
          {
@@ -576,10 +430,18 @@ namespace engine
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
 
-         const CLS_LOC_INFO_MAP& getLocInfoMap() const
+         CLS_LOC_INFO_MAP getLocInfoMap()
          {
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
             return _info.locationInfoMap ;
          }
+
+         INT32          postGroupModeInfo( const clsGroupMode &grpMode,
+                                           INT32 shadowTime,
+                                           BOOLEAN isLocalMode,
+                                           BOOLEAN enforced = FALSE ) ;
+
+         INT32          startGrpModeJob() ;
 
          MsgRouteID     getPrimary () ;
          MsgRouteID     getLocationPrimary () ;
@@ -634,6 +496,9 @@ namespace engine
                                  CLS_LOC_INFO_MAP &locationInfoMap,
                                  const ossPoolString &activeLocation ) ;
 
+         /*
+            only call in CLUSTER Thread
+         */
          void _setElectionWeight( const ossPoolString &activeLocation ) ;
 
          BOOLEAN _isUDPHandle( NET_HANDLE handle ) ;
@@ -662,7 +527,10 @@ namespace engine
 
          INT32 _handleStepUp( UINT32 seconds ) ;
 
-         INT32 _handleGroupModeUpdate( const clsGroupMode *pGrpMode ) ;
+         INT32 _handleGroupModeUpdate( const clsGroupMode &grpMode,
+                                       INT32 shadowTime,
+                                       BOOLEAN isLocalMode,
+                                       BOOLEAN enforced ) ;
 
          void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;

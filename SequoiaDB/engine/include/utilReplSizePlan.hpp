@@ -44,6 +44,8 @@
 namespace engine
 {
 
+   #define UTIL_REPL_SIZE_TWO             ( 2 )
+
    /*
       _utilReplSizePlan define
    */
@@ -86,44 +88,41 @@ namespace engine
          affinitiveNodes = 0 ;
       }
 
-      void setNodeReplSizePlan( const UINT8 nodes,
+      void setNodeReplSizePlan( const UINT8 w,
                                 const UINT8 affinitiveNodes )
       {
          reset() ;
-         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
+         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
       }
 
-      void setLocMajorReplSizePlan( const UINT8 nodes,
+      void setLocMajorReplSizePlan( const UINT8 w,
                                     const UINT8 affinitiveLocations,
                                     const UINT8 primaryLocationNodes,
                                     const UINT8 locations,
                                     const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
-         this->locations = OSS_MIN( nodes, ( locations + 1 ) / 2 ) ;
-         this->affinitiveLocations
-                  = OSS_MIN( this->locations, affinitiveLocations ) ;
-         this->primaryLocationNodes
-                  = OSS_MIN( nodes - this->locations,
-                             ( primaryLocationNodes + 1 ) / 2 ) ;
-         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
+         this->locations = OSS_MIN( w, locations / 2 + 1 ) ;
+         this->affinitiveLocations = OSS_MIN( this->locations,
+                                              OSS_MIN( affinitiveLocations, UTIL_REPL_SIZE_TWO ) ) ;
+         this->primaryLocationNodes = OSS_MIN( w - this->locations + 1,
+                                               primaryLocationNodes / 2 + 1 ) ;
+         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
       }
 
-      void setPryLocMajorReplSizePlan( const UINT8 nodes,
+      void setPryLocMajorReplSizePlan( const UINT8 w,
                                        const UINT8 affinitiveLocations,
                                        const UINT8 primaryLocationNodes,
                                        const UINT8 locations,
                                        const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
-         this->primaryLocationNodes
-                  = OSS_MIN( nodes, ( primaryLocationNodes + 1 ) / 2 ) ;
-         this->locations
-                  = OSS_MIN( nodes - this->primaryLocationNodes,
-                             ( locations + 1 ) / 2 ) ;
-         this->affinitiveLocations
-                  = OSS_MIN( this->locations, affinitiveLocations ) ;
-         this->affinitiveNodes = OSS_MIN( nodes, affinitiveNodes ) ;
+         this->primaryLocationNodes = OSS_MIN( w, primaryLocationNodes / 2 + 1 ) ;
+         this->locations = OSS_MIN( w - this->primaryLocationNodes + 1,
+                                    locations / 2 + 1 ) ;
+         this->affinitiveLocations = OSS_MIN( this->locations,
+                                              OSS_MIN( affinitiveLocations, UTIL_REPL_SIZE_TWO ) ) ;
+         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
       }
 
       BOOLEAN isPassed( const _utilReplSizePlan &item ) const
@@ -148,26 +147,35 @@ namespace engine
          {
             result = TRUE ;
          }
+         else if ( right.primaryLocationNodes < primaryLocationNodes )
+         {
+            /// do nothting
+         }
          else if ( right.primaryLocationNodes > primaryLocationNodes )
          {
             result = TRUE ;
+         }
+         else if ( right.affinitiveLocations < affinitiveLocations )
+         {
+            /// do nothting
          }
          else if ( right.affinitiveLocations > affinitiveLocations )
          {
             result = TRUE ;
          }
+         else if ( right.locations < locations )
+         {
+            /// do nothting
+         }
          else if ( right.locations > locations )
          {
             result = TRUE ;
          }
-         else if ( right.affinitiveNodes > affinitiveNodes )
+         else if ( right.affinitiveNodes >= affinitiveNodes )
          {
             result = TRUE ;
          }
-         else
-         {
-            result = TRUE ;
-         }
+
          return result ;
       }
 
@@ -182,13 +190,25 @@ namespace engine
          {
             result = TRUE ;
          }
+         else if ( right.primaryLocationNodes < primaryLocationNodes )
+         {
+            /// do nothting
+         }
          else if ( right.primaryLocationNodes > primaryLocationNodes )
          {
             result = TRUE ;
          }
+         else if ( right.affinitiveLocations < affinitiveLocations )
+         {
+            /// do nothting
+         }
          else if ( right.affinitiveLocations > affinitiveLocations )
          {
             result = TRUE ;
+         }
+         else if ( right.locations < locations )
+         {
+            /// do nothting
          }
          else if ( right.locations > locations )
          {

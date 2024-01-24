@@ -535,6 +535,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    public:
       _MsgHeader header ;
       INT32      status ;  /// SDB_DB_STATUS
+      MsgRouteID nodeID ;
 
       _MsgClsNodeStatusNotify()
       {
@@ -544,6 +545,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.TID = 0 ;
          header.requestID = 0 ;
          status = 0 ;
+         nodeID.value = MSG_INVALID_ROUTEID ;
       }
    } ;
    typedef _MsgClsNodeStatusNotify MsgClsNodeStatusNotify ;

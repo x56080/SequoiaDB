@@ -476,43 +476,43 @@ TEST(clsTest, clsSyncManager_6)
    expectPlan[0].affinitiveLocations = 1 ;
    expectPlan[0].primaryLocationNodes = 2 ;
    expectPlan[0].locations = 2 ;
-   plan.insert( expectPlan[0] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[0].offset, expectPlan[0] ) ) ;
 
    expectPlan[1].offset = 120 ;
    expectPlan[1].affinitiveLocations = 1 ;
    expectPlan[1].primaryLocationNodes = 2 ;
    expectPlan[1].locations = 2 ;
-   plan.insert( expectPlan[1] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[1].offset, expectPlan[1] ) ) ;
 
    expectPlan[2].offset = 140 ;
    expectPlan[2].affinitiveLocations = 1 ;
    expectPlan[2].primaryLocationNodes = 2 ;
    expectPlan[2].locations = 1 ;
-   plan.insert( expectPlan[2] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[2].offset, expectPlan[2] ) ) ;
 
    expectPlan[3].offset = 180 ;
    expectPlan[3].affinitiveLocations = 1 ;
    expectPlan[3].primaryLocationNodes = 2 ;
    expectPlan[3].locations = 1 ;
-   plan.insert( expectPlan[3] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[3].offset, expectPlan[3] ) ) ;
 
    expectPlan[4].offset = 180 ;
    expectPlan[4].affinitiveLocations = 0 ;
    expectPlan[4].primaryLocationNodes = 2 ;
    expectPlan[4].locations = 0 ;
-   plan.insert( expectPlan[4] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[4].offset, expectPlan[4] ) ) ;
 
    expectPlan[5].offset = 200 ;
    expectPlan[5].affinitiveLocations = 0 ;
    expectPlan[5].primaryLocationNodes = 1 ;
    expectPlan[5].locations = 0 ;
-   plan.insert( expectPlan[5] ) ;
+   plan.insert( CLS_WAKE_PLAN::value_type( expectPlan[5].offset, expectPlan[5] ) ) ;
 
    UINT32 i = 0 ;
    CLS_WAKE_PLAN::iterator itr = plan.begin() ;
    while ( itr != plan.end() )
    {
-      ASSERT_TRUE( *itr == expectPlan[i] ) ;
+      ASSERT_TRUE( itr->second == expectPlan[i] ) ;
       i++ ;
       itr++ ;
    }
@@ -565,7 +565,7 @@ TEST(clsTest, clsSyncManager_7)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 2 ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 2, 3 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -647,7 +647,7 @@ TEST(clsTest, clsSyncManager_8)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 2 ;
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 2, 3 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -729,7 +729,7 @@ TEST(clsTest, clsSyncManager_9)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 3 ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 2, 3 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -809,7 +809,7 @@ TEST(clsTest, clsSyncManager_10)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       UINT32 w = 3 ;
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1, 0 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 2, 3 ) ;
       session.eduCB = eduCBs[i] ;
       session.waitPlan.offset = i ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
@@ -861,15 +861,18 @@ TEST(clsTest, clsSyncManager_11)
 
    ++id.columns.nodeID ;
    status.locationID = 1 ;
+   status.locationIndex = 0 ;
    status.isAffinitiveLocation = TRUE ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
    info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    status.locationID = 2 ;
+   status.locationIndex = 1 ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
    info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    status.locationID = 3 ;
+   status.locationIndex = 2 ;
    status.isAffinitiveLocation = FALSE ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
    info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
@@ -878,29 +881,31 @@ TEST(clsTest, clsSyncManager_11)
    utilReplSizePlan _locationMajority[2] ;
    utilReplSizePlan _primaryLocationMajority[2] ;
 
-   _locationMajority[0].primaryLocationNodes = 0 ;
-   _locationMajority[0].affinitiveLocations = 1 ;
-   _locationMajority[0].locations = 1 ;
+   _locationMajority[0].primaryLocationNodes = 1 ;
+   _locationMajority[0].affinitiveLocations = 2 ;
+   _locationMajority[0].locations = 2 ;
+   _locationMajority[0].affinitiveNodes = 2 ;
 
-   _locationMajority[1].primaryLocationNodes = 1 ;
-   _locationMajority[1].affinitiveLocations = 1 ;
-   _locationMajority[1].locations = 1 ;
+   _locationMajority[1].primaryLocationNodes = 2 ;
+   _locationMajority[1].affinitiveLocations = 2 ;
+   _locationMajority[1].locations = 2 ;
+   _locationMajority[1].affinitiveNodes = 2 ;
 
+   _primaryLocationMajority[0].primaryLocationNodes = 2 ;
+   _primaryLocationMajority[0].affinitiveLocations = 1 ;
+   _primaryLocationMajority[0].locations = 1 ;
+   _primaryLocationMajority[0].affinitiveNodes = 2 ;
 
-   _primaryLocationMajority[0].primaryLocationNodes = 1 ;
-   _primaryLocationMajority[0].affinitiveLocations = 0 ;
-   _primaryLocationMajority[0].locations = 0 ;
-
-   _primaryLocationMajority[1].primaryLocationNodes = 1 ;
-   _primaryLocationMajority[1].affinitiveLocations = 1 ;
-   _primaryLocationMajority[1].locations = 1 ;
-
+   _primaryLocationMajority[1].primaryLocationNodes = 2 ;
+   _primaryLocationMajority[1].affinitiveLocations = 2 ;
+   _primaryLocationMajority[1].locations = 2 ;
+   _primaryLocationMajority[1].affinitiveNodes = 2 ;
 
    // cout << "get consistency strategy( w from 2 to 4 )" << endl ;
    for ( UINT32 w = 2; w <= num; w++ )
    {
       _clsSyncSession session ;
-      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 2, 0 ) ;
+      session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
       if ( 2 == w )
       {
          ASSERT_TRUE( session.waitPlan == _locationMajority[0] ) ;
@@ -910,7 +915,7 @@ TEST(clsTest, clsSyncManager_11)
          ASSERT_TRUE( session.waitPlan == _locationMajority[1] ) ;
       }
 
-      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 2, 0 ) ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
       if ( 2 == w )
       {
          ASSERT_TRUE( session.waitPlan == _primaryLocationMajority[0] ) ;
@@ -976,7 +981,7 @@ TEST(clsTest, clsSyncManager_12)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.setNodeReplSizePlan( w, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num - 1; i++ )
@@ -1001,7 +1006,7 @@ TEST(clsTest, clsSyncManager_12)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.setNodeReplSizePlan( w, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1037,7 +1042,7 @@ TEST(clsTest, clsSyncManager_12)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setNodeReplSizePlan( w, 2 ) ;
+         session.waitPlan.setNodeReplSizePlan( w, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1139,7 +1144,7 @@ TEST(clsTest, clsSyncManager_13)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 5, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num; i++ )
@@ -1175,7 +1180,7 @@ TEST(clsTest, clsSyncManager_13)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 5, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1207,14 +1212,14 @@ TEST(clsTest, clsSyncManager_13)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 5, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
          {
             DPS_LSN lsn ;
             lsn.version = 1 ;
-            if ( i == 1 )
+            if ( i == 0 )
             {
                lsn.offset = 3 ;
             }
@@ -1245,7 +1250,7 @@ TEST(clsTest, clsSyncManager_13)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setLocMajorReplSizePlan( w, 2, 2, 5, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1282,7 +1287,7 @@ TEST(clsTest, clsSyncManager_13)
 // primary Location strategy
 TEST(clsTest, clsSyncManager_14)
 {
-   const UINT32 num = 5 ;
+   const UINT32 num = 4 ;
    myHandler handler ;
    _netRouteAgent agent( &handler ) ;
    _pmdEDUMgr mgr ;
@@ -1334,7 +1339,7 @@ TEST(clsTest, clsSyncManager_14)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num; i++ )
@@ -1370,7 +1375,7 @@ TEST(clsTest, clsSyncManager_14)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1402,7 +1407,7 @@ TEST(clsTest, clsSyncManager_14)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )
@@ -1429,7 +1434,7 @@ TEST(clsTest, clsSyncManager_14)
             t->interrupt() ;
             t->join() ;
          }
-         ASSERT_TRUE( 0 == complete.peek() ) ;
+         ASSERT_TRUE( 1 == complete.peek() ) ;
          delete t ;
          delete eduCBs ;
       }
@@ -1440,7 +1445,7 @@ TEST(clsTest, clsSyncManager_14)
          pmdEDUCB *eduCBs = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
          _clsSyncSession session ;
          session.eduCB = eduCBs ;
-         session.waitPlan.setPryLocMajorReplSizePlan( w, 1, 1, 1, 2 ) ;
+         session.waitPlan.setPryLocMajorReplSizePlan( w, 2, 2, 3, 3 ) ;
          session.waitPlan.offset = 1 ;
          id.columns.nodeID = 2 ;
          for ( UINT32 i = 0 ; i < num ; i++ )

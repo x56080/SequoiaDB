@@ -419,10 +419,11 @@ namespace engine
                   CLS_LOC_INFO_MAP::iterator itr = pLocationInfo->begin() ;
                   while ( pLocationInfo->end() != itr )
                   {
-                     if ( 0 == ossStrcmp( pTmpLocation, itr->second._location.c_str() ) )
+                     _clsLocationInfoItem &locItem = itr->second ;
+                     if ( 0 == ossStrcmp( pTmpLocation, locItem._location.c_str() ) )
                      {
                         route._locationID = itr->first ;
-                        itr->second._nodeCount++ ;
+                        locItem._nodeCount++ ;
                         break ;
                      }
                      ++itr ;

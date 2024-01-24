@@ -163,14 +163,12 @@ namespace engine
    */
    enum CLS_SELECT_RANGE
    {
-      CLS_SELECT_BEGIN = 0,
       // select the location set node
-      CLS_SELECT_LOCATION,
+      CLS_SELECT_LOCATION = 1,
       // select the affinity location set node
       CLS_SELECT_AFFINITY_LOCATION,
       // select the group node
-      CLS_SELECT_GROUP,
-      CLS_SELECT_END
+      CLS_SELECT_GROUP
    } ;
 
    // after 5 times without receiving message, mark the UDP unavailable
@@ -674,12 +672,13 @@ namespace engine
          map<UINT64, _clsSharingStatus *>::const_iterator itr = alives.begin() ;
          while ( alives.end() != itr )
          {
-            const _clsSharingStatus &status = *( itr++->second ) ;
+            const _clsSharingStatus &status = *( itr->second ) ;
 
             if ( status.isInCriticalMode() )
             {
                ++count ;
             }
+            ++itr ;
          }
 
          return count ;
@@ -692,12 +691,13 @@ namespace engine
          CLS_NODE_STATUS_PTR_MAP::const_iterator itr = alives.begin() ;
          while ( alives.end() != itr )
          {
-            const _clsSharingStatus &status = *( itr++->second ) ;
+            const _clsSharingStatus &status = *( itr->second ) ;
 
             if ( status.isInMaintenanceMode() )
             {
                ++count ;
             }
+            ++itr ;
          }
 
          return count ;
@@ -708,7 +708,7 @@ namespace engine
          map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
          while ( it != info.end() )
          {
-            _clsSharingStatus &status = it->second ;
+            const _clsSharingStatus &status = it->second ;
             if ( 0 == status.beat.beatID )
             {
                return FALSE ;
@@ -723,7 +723,7 @@ namespace engine
          map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
          while ( it != info.end() )
          {
-            _clsSharingStatus &status = it->second ;
+            const _clsSharingStatus &status = it->second ;
             if ( SERVICE_NORMAL == status.beat.serviceStatus )
             {
                return FALSE ;
@@ -744,7 +744,7 @@ namespace engine
          map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
          while ( it != info.end() )
          {
-            _clsSharingStatus &status = it->second ;
+            const _clsSharingStatus &status = it->second ;
             if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
                  ( 0 == timeout || status.breakTime > timeout ) &&
                  status.isInCriticalMode() )
@@ -764,7 +764,7 @@ namespace engine
          map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
          while ( it != info.end() )
          {
-            _clsSharingStatus &status = it->second ;
+            const _clsSharingStatus &status = it->second ;
             if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
                  ( 0 == timeout || status.breakTime > timeout ) )
             {
@@ -784,18 +784,20 @@ namespace engine
          map<UINT64, _clsSharingStatus *>::const_iterator itr = alives.begin() ;
          while ( alives.end() != itr )
          {
-            const _clsSharingStatus &status = *( itr++->second ) ;
+            const _clsSharingStatus &status = *( itr->second ) ;
 
             if ( 0 != status.beat.getFTConfirmStat() ||
-                 SERVICE_NORMAL!= status.beat.serviceStatus ||
+                 SERVICE_NORMAL != status.beat.serviceStatus ||
                  CLS_NODE_STOP == status.beat.nodeRunStat )
             {
-               continue ;
+               /// do nothing
             }
             else if ( status.beat.endLsn.offset >= minLsnOffset )
             {
                ++count ;
             }
+
+            ++itr ;
          }
 
          return count ;
@@ -832,7 +834,8 @@ namespace engine
                CLS_LOC_INFO_MAP::const_iterator itr = locationInfoMap.find( locationID ) ;
                if ( locationInfoMap.end() != itr )
                {
-                  num = itr->second._nodeCount ;
+                  const _clsLocationInfoItem &locItem = itr->second ;
+                  num = locItem._nodeCount ;
                }
             }
          }
@@ -881,9 +884,6 @@ namespace engine
       }
    } ;
 
-
-   #define CLS_SAME_SYNC_LSN_MAX_TIMES    (20)
-
    /*
       _clsSyncStatus define
    */
@@ -893,7 +893,6 @@ namespace engine
       DPS_LSN_OFFSET    offset ;
       _MsgRouteID       id ;
       BOOLEAN           valid ;
-      UINT32            sameReqTimes ;
       UINT32            locationID ;
       BOOLEAN           affinitive ;
       UINT8             locationIndex ;
@@ -902,7 +901,6 @@ namespace engine
       {
          id.value       = 0 ;
          valid          = TRUE ;
-         sameReqTimes   = 0 ;
          locationID     = MSG_INVALID_LOCATIONID ;
          affinitive     = FALSE ;
          locationIndex  = 0xFF ;
@@ -913,7 +911,6 @@ namespace engine
          offset         = right.offset ;
          id.value       = right.id.value ;
          valid          = right.valid ;
-         sameReqTimes   = right.sameReqTimes ;
          locationID     = right.locationID ;
          affinitive     = right.affinitive ;
          locationIndex  = right.locationIndex ;
@@ -925,10 +922,8 @@ namespace engine
       {
          // 1. already full sync
          // 2. sharing-break
-         // 3. same sync req more than 20 times
          if ( DPS_INVALID_LSN_OFFSET == offset ||
-              !valid ||
-              sameReqTimes > CLS_SAME_SYNC_LSN_MAX_TIMES )
+              !valid )
          {
             return FALSE ;
          }

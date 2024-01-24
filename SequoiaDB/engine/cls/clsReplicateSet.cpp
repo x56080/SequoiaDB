@@ -94,6 +94,13 @@ namespace engine
    #define CLS_FT_SW_TIMEOUT                    ( 10000 )
    #define CLS_MOVE_TIMES_MAX                   (6)
 
+   struct _clsGroupModePostInfo : public SDBObject
+   {
+      clsGroupMode      _grpMode ;
+      INT32             _shadowTime ;
+      BOOLEAN           _isLocalMode ;
+      BOOLEAN           _enforced ;
+   } ;
 
    /*
       _clsReplicateSet define
@@ -166,7 +173,7 @@ namespace engine
    }
 
    void _clsReplicateSet::onReplayLog( UINT32 csLID, UINT32 clLID,
-                                        INT32 extLID, DPS_LSN_OFFSET offset )
+                                       INT32 extLID, DPS_LSN_OFFSET offset )
    {
       _notifySrcSessions( csLID, clLID, extLID, offset ) ;
    }
@@ -396,7 +403,7 @@ namespace engine
          for ( UINT32 idx = 0 ; idx < CLS_SYNCCTRL_THRESHOLD_SIZE ; ++idx )
          {
             rate = 2 << idx ;
-            _sizethreshold[ idx ] = _totalLogSize * ( rate - 1 ) / rate ;
+            _sizethreshold[ idx ] = _totalLogSize * ( rate - 1 ) / ( rate + idx ) ;
             _timeThreshold[ idx ] = timeBase << idx ;
          }
       }
@@ -612,15 +619,15 @@ namespace engine
 
       if ( CLS_GROUP_MODE_NONE != grpMode )
       {
-         rc = clsStartGroupModeReqJob( &_info, &_vote ) ;
+         rc = startGrpModeJob() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update group mode info, rc: %d", rc ) ;
       }
       else
       {
-         rc = _vote.setGrpMode( clsGroupMode(), 0, TRUE ) ;
+         rc = _handleGroupModeUpdate( clsGroupMode(), 0, TRUE, FALSE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDWARNING, "Failed to set group mode, rc: %d", rc ) ;
+            PD_LOG( PDWARNING, "Failed to handle group mode, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -660,12 +667,13 @@ namespace engine
       itr = nodes.begin() ;
       for ( ; itr != nodes.end(); itr++ )
       {
+         _netRouteNode &node = itr->second ;
          if ( itr->first == _info.local.value )
          {
             hasLocal = TRUE ;
             continue ;
          }
-         else if ( !itr->second._isActive )
+         else if ( !node._isActive )
          {
             if ( g_startShiftTime < 0 )
             {
@@ -673,17 +681,17 @@ namespace engine
                /// the nodes there are not actived
                continue ;
             }
-            itr->second._isActive = TRUE ;
+            node._isActive = TRUE ;
             changeStatus = TRUE ;
          }
 
-         if ( SDB_OK == _agent->updateRoute( itr->second._id, itr->second ) )
+         if ( SDB_OK == _agent->updateRoute( node._id, node ) )
          {
             try
             {
                ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
                _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
-               beat.identity = itr->second._id ;
+               beat.identity = node._id ;
                beat.beatID = 0 ;
             }
             catch ( std::exception &e )
@@ -695,9 +703,8 @@ namespace engine
 
             /// we alive the changed node here. if it is unnormal,
             /// break it out later.
-            _alive( itr->second._id, FALSE ) ;
-            PD_LOG( PDEVENT, "add node [%s:%s]",
-                    itr->second._host, itr->second._service[0].c_str() ) ;
+            _alive( node._id, FALSE ) ;
+            PD_LOG( PDEVENT, "add node [%s:%s]", node._host, node._service[0].c_str() ) ;
          }
       } // for ( ; itr != nodes.end(); itr++ )
 
@@ -712,6 +719,8 @@ namespace engine
       itr2 = _info.info.begin() ;
       for ( ; itr2 != _info.info.end(); )
       {
+         _clsSharingStatus &statusItem = itr2->second ;
+
          itr = nodes.find( itr2->first ) ;
          if ( nodes.end() == itr || FALSE == itr->second._isActive )
          {
@@ -735,25 +744,28 @@ namespace engine
          }
          else
          {
+            _netRouteNode &node = itr->second ;
             // set node location information
-            UINT32 locationID = itr->second._locationID ;
+            UINT32 locationID = node._locationID ;
             if ( MSG_INVALID_LOCATIONID != locationID &&
-                 ( locItr = locationInfoMap.find( locationID ) ) !=
-                      locationInfoMap.end() )
+                 ( locItr = locationInfoMap.find( locationID ) ) != locationInfoMap.end() )
             {
-               itr2->second.isAffinitiveLocation = locItr->second._isAffinitiveLocation ;
-               itr2->second.locationID = locItr->second._locationID ;
-               itr2->second.locationIndex = locItr->second._locationIndex ;
-               if ( !itr2->second.isAffinitiveLocation )
+               const _clsLocationInfoItem &locItem = locItr->second ;
+
+               statusItem.isAffinitiveLocation = locItem._isAffinitiveLocation ;
+               statusItem.locationID = locItem._locationID ;
+               statusItem.locationIndex = locItem._locationIndex ;
+
+               if ( !statusItem.isAffinitiveLocation )
                {
                   remoteLocationNodeSize++ ;
                }
             }
             else
             {
-               itr2->second.isAffinitiveLocation = FALSE ;
-               itr2->second.locationID = MSG_INVALID_LOCATIONID ;
-               itr2->second.locationIndex = 0xFF ;
+               statusItem.isAffinitiveLocation = FALSE ;
+               statusItem.locationID = MSG_INVALID_LOCATIONID ;
+               statusItem.locationIndex = 0xFF ;
                remoteLocationNodeSize++ ;
             }
             ++itr2 ;
@@ -765,6 +777,19 @@ namespace engine
          _info.mtx.lock_w() ;
          _info.remoteLocationNodeSize = remoteLocationNodeSize ;
          _info.mtx.release_w() ;
+      }
+
+      // Update locationInfo map
+      try
+      {
+         ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
+         _info.locationInfoMap = locationInfoMap ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       _sync.updateNotifyList( TRUE ) ;
@@ -786,9 +811,11 @@ namespace engine
       nodeItr = nodes.begin() ;
       for ( ; nodeItr != nodes.end() ; ++nodeItr )
       {
+         const _netRouteNode &node = nodeItr->second ;
+
          // Check if the node is in local location, and add node to _locationInfo
-         if ( MSG_INVALID_LOCATIONID != nodeItr->second._locationID &&
-              nodeItr->second._locationID == _locationInfo.localLocationID &&
+         if ( MSG_INVALID_LOCATIONID != node._locationID &&
+              node._locationID == _locationInfo.localLocationID &&
               nodeItr->first != _locationInfo.local.value &&
               _locationInfo.info.end() == _locationInfo.info.find( nodeItr->first ) )
          {
@@ -796,7 +823,7 @@ namespace engine
             {
                ossScopedRWLock lock( &_locationInfo.mtx, EXCLUSIVE ) ;
                _clsGroupBeat &beat = ( _locationInfo.info[nodeItr->first] ).beat ;
-               beat.identity = nodeItr->second._id ;
+               beat.identity = node._id ;
                beat.beatID = 0 ;
             }
             catch ( std::exception &e )
@@ -814,6 +841,7 @@ namespace engine
       {
          MsgRouteID tmp ;
          tmp.value = infoItr->first ;
+         _clsSharingStatus &status = infoItr->second ;
 
          nodeItr = nodes.find( tmp.value ) ;
          if ( nodes.end() == nodeItr ||
@@ -832,7 +860,7 @@ namespace engine
          }
          else
          {
-            infoItr->second.isAffinitiveLocation = TRUE ;
+            status.isAffinitiveLocation = TRUE ;
             ++infoItr ;
          }
       }
@@ -860,14 +888,17 @@ namespace engine
       CLS_LOC_INFO_MAP::const_iterator locItr ;
       if ( nodes.end() != nodeItr )
       {
-         locationID = nodeItr->second._locationID ;
+         const _netRouteNode &node = nodeItr->second ;
+         locationID = node._locationID ;
       }
+
       if ( locationID != MSG_INVALID_LOCATIONID )
       {
          locItr = locationInfoMap.find( locationID ) ;
          if ( locationInfoMap.end() != locItr )
          {
-            location = locItr->second._location ;
+            const _clsLocationInfoItem &lcItem = locItr->second ;
+            location = lcItem._location ;
          }
          else
          {
@@ -876,10 +907,10 @@ namespace engine
          }
       }
 
-      if ( ! _locationActive )
+      if ( !_locationActive )
       {
          // Set local location from old("") to new(pLocation)
-         if ( ( MSG_INVALID_LOCATIONID != locationID ) && ( ! location.empty() ) )
+         if ( ( MSG_INVALID_LOCATIONID != locationID ) && ( !location.empty() ) )
          {
             {
                ossScopedRWLock lock( &_locationInfo.mtx, EXCLUSIVE ) ;
@@ -890,7 +921,7 @@ namespace engine
             rc = _setLocationSet( nodes ) ;
             PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
 
-            if ( ! _locationVote.isInit() )
+            if ( !_locationVote.isInit() )
             {
                _locationVote.init() ;
             }
@@ -955,12 +986,6 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
       }
 
-      // Update locationInfo map
-      {
-         ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
-         _info.locationInfoMap.swap( locationInfoMap ) ;
-      }
-
    done:
       PD_TRACE_EXITRC ( SDB__CLSREPSET__SETLOCINFO, rc );
       return rc ;
@@ -1023,14 +1048,17 @@ namespace engine
       nodeItr = nodes.find( _info.local.value ) ;
       if ( nodes.end() != nodeItr )
       {
-         localLocationID = nodeItr->second._locationID ;
+         const _netRouteNode &node = nodeItr->second ;
+         localLocationID = node._locationID ;
       }
+
       if ( localLocationID != MSG_INVALID_LOCATIONID )
       {
          locItr = locationInfoMap.find( localLocationID ) ;
          if ( locationInfoMap.end() != locItr )
          {
-            localLocation = locItr->second._location.c_str() ;
+            const _clsLocationInfoItem &locItem = locItr->second ;
+            localLocation = locItem._location.c_str() ;
          }
          else
          {
@@ -1046,8 +1074,9 @@ namespace engine
 
       for ( locItr = locationInfoMap.begin(); locItr != locationInfoMap.end(); ++locItr )
       {
-         locItr->second._isAffinitiveLocation = utilCalAffinity( locItr->second._location.c_str(),
-                                                                 localLocation ) ;
+         _clsLocationInfoItem &locItem = locItr->second ;
+         locItem._isAffinitiveLocation = utilCalAffinity( locItem._location.c_str(),
+                                                          localLocation ) ;
       }
 
    done:
@@ -1074,6 +1103,62 @@ namespace engine
       return &_syncEmptyEvent ;
    }
 
+   INT32 _clsReplicateSet::postGroupModeInfo( const clsGroupMode &grpMode,
+                                              INT32 shadowTime,
+                                              BOOLEAN isLocalMode,
+                                              BOOLEAN enforced )
+   {
+      INT32 rc = SDB_OK ;
+      _clsGroupModePostInfo *pPostInfo = NULL ;
+      pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+
+      pPostInfo = SDB_OSS_NEW _clsGroupModePostInfo() ;
+      if ( !pPostInfo )
+      {
+         PD_LOG( PDERROR, "Alloc group mode post info failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      try
+      {
+         pPostInfo->_grpMode = grpMode ;
+         pPostInfo->_shadowTime = shadowTime ;
+         pPostInfo->_isLocalMode = isLocalMode ;
+         pPostInfo->_enforced = enforced ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = eduMgr->postEDUPost( eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ),
+                                PMD_EDU_EVENT_UPDATE_GRPMODE,
+                                PMD_EDU_MEM_NONE, pPostInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( NULL != pPostInfo )
+         {
+            SDB_OSS_DEL pPostInfo ;
+            pPostInfo = NULL ;
+         }
+         PD_LOG( PDERROR, "Failed to post update group mode event to edu" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsReplicateSet::startGrpModeJob()
+   {
+      return clsStartGroupModeReqJob( &_info, this ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
    MsgRouteID _clsReplicateSet::getPrimary ()
    {
@@ -1098,6 +1183,161 @@ namespace engine
 
       PD_TRACE_EXIT ( SDB__CLSREPSET_GETLOCPRMY );
       return primary ;
+   }
+
+   void _clsReplicateSet::getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
+                                         UINT32 &falutCnt, UINT32 &ssCnt,
+                                         INT32 &indoubtErr,
+                                         UINT16 &indoubtNodeID,
+                                         utilLocationInfo *locationInfo,
+                                         const SDB_CONSISTENCY_STRATEGY strategy )
+   {
+      map<UINT64, _clsSharingStatus *>::iterator it ;
+      _clsSharingStatus *pStatus = NULL ;
+
+      nodeCnt = 0 ;
+      aliveCnt = 0 ;
+      falutCnt = 0 ;
+      ssCnt = 0 ;
+      indoubtErr = SDB_OK ;
+      UINT32 selfLocationID = pmdGetLocationID() ;
+      UINT32 locationID = MSG_INVALID_LOCATIONID ;
+      UINT8 primaryLocationNodes = 0 ;
+      UINT8 affinitiveLocations = 0 ;
+      UINT8 locations = 0 ;
+      UINT8 affinitiveNodes = 0 ;
+      _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
+      BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
+      UINT32 remoteAliveNodeCnt = 0 ;
+
+      ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+
+      if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
+      {
+         const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
+
+         // This is critical node mode, use alive node count
+         if ( INVALID_NODEID != grpModeItem.nodeID )
+         {
+            nodeCnt = _info.aliveSize() ;
+            aliveCnt = _info.aliveSize() ;
+         }
+         // This is critical location mode, use location node count
+         else if ( ! grpModeItem.location.empty() )
+         {
+            nodeCnt = _info.criticalSize() ;
+            aliveCnt = _info.criticalAliveSize() ;
+         }
+      }
+      else
+      {
+         nodeCnt = _info.groupSize() ;
+         aliveCnt = _info.aliveSize() ;
+      }
+
+      it = _info.alives.begin() ;
+      while( it != _info.alives.end() )
+      {
+         pStatus = it->second ;
+         ++it ;
+
+         if ( CLS_GROUP_MODE_MAINTENANCE == pStatus->grpMode )
+         {
+            continue ;
+         }
+
+         // If the remoteLocationConsistency is false,
+         // don't care whether the remote node failed.
+         locationID = pStatus->beat.locationID ;
+         if ( MSG_INVALID_LOCATIONID != selfLocationID &&
+              isActiveLocation() &&
+              !pStatus->isAffinitiveLocation &&
+              !_remoteLocationConsistency )
+         {
+            ++remoteAliveNodeCnt ;
+            continue ;
+         }
+
+         if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
+         {
+            --aliveCnt ;
+            continue ;
+         }
+         else if ( 0 != pStatus->beat.ftConfirmStat )
+         {
+            ++falutCnt ;
+            if ( SDB_OK == indoubtErr )
+            {
+               indoubtErr = pStatus->beat.indoubtErr ;
+               indoubtNodeID = pStatus->beat.identity.columns.nodeID ;
+            }
+            continue ;
+         }
+         else if ( CLS_NODE_RUNNING != pStatus->beat.nodeRunStat )
+         {
+            ++ssCnt ;
+            continue ;
+         }
+
+         if ( needLocInfo )
+         {
+            if ( MSG_INVALID_LOCATIONID != selfLocationID &&
+                 MSG_INVALID_LOCATIONID != locationID )
+            {
+               if ( selfLocationID == locationID )
+               {
+                  primaryLocationNodes++ ;
+                  affinitiveNodes++ ;
+               }
+               else if ( pStatus->isAffinitiveLocation )
+               {
+                  affinitiveNodes++ ;
+   
+                  if ( !isMarked.testBit( pStatus->locationIndex ) )
+                  {
+                     locations++ ;
+                     affinitiveLocations++ ;
+                     isMarked.setBit( pStatus->locationIndex ) ;
+                  }
+               }
+               else if ( !isMarked.testBit( pStatus->locationIndex ) )
+               {
+                  locations++ ;
+                  isMarked.setBit( pStatus->locationIndex ) ;
+               }
+            }
+         }
+      }
+
+      if ( needLocInfo && NULL != locationInfo )
+      {
+         UINT8 selfInc = MSG_INVALID_LOCATIONID != selfLocationID ? 1 : 0 ;
+         locationInfo->primaryLocationNodes = primaryLocationNodes + selfInc ;
+         locationInfo->locations = locations + selfInc ;
+         locationInfo->affinitiveLocations = affinitiveLocations + selfInc ;
+         locationInfo->affinitiveNodes = affinitiveNodes + selfInc ;
+      }
+
+      if ( isActiveLocation() && !_remoteLocationConsistency )
+      {
+         if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
+         {
+            const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
+   
+            // This is critical node mode, use alive node count,
+            // cirtical locaction mode, nodeCnt/aliveCnt already except remote
+            if ( INVALID_NODEID != grpModeItem.nodeID )
+            {
+               nodeCnt -= remoteAliveNodeCnt ;
+               aliveCnt -= remoteAliveNodeCnt ;
+            }
+         }
+         else
+         {
+            nodeCnt -= _info.remoteLocationNodeSize ;
+            aliveCnt -= remoteAliveNodeCnt ;
+         }
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_ISSENDNORMAL, "_clsReplicateSet::isSendNormal" )
@@ -1294,7 +1534,12 @@ namespace engine
       }
       else if ( PMD_EDU_EVENT_UPDATE_GRPMODE == event->_eventType )
       {
-         rc = _handleGroupModeUpdate( ( clsGroupMode* )event->_Data ) ;
+         _clsGroupModePostInfo *pInfo = (_clsGroupModePostInfo*)(event->_Data) ;
+         rc = _handleGroupModeUpdate( pInfo->_grpMode, pInfo->_shadowTime,
+                                      pInfo->_isLocalMode, pInfo->_enforced ) ;
+         SDB_OSS_DEL pInfo ;
+         pInfo = NULL ;
+
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to update group mode:%d", rc ) ;
@@ -1386,7 +1631,14 @@ namespace engine
             MsgClsNodeStatusNotify *pNty = ( MsgClsNodeStatusNotify* )msg ;
             if ( SDB_DB_FULLSYNC == pNty->status )
             {
-               _sync.notifyFullSync( msg->routeID ) ;
+               if ( MSG_INVALID_ROUTEID != pNty->nodeID.value )
+               {
+                  _sync.notifyFullSync( pNty->nodeID ) ;
+               }
+               else
+               {
+                  _sync.notifyFullSync( msg->routeID ) ;
+               }
             }
             break ;
          }
@@ -1444,6 +1696,7 @@ namespace engine
       if ( SDB_REPL_REMOTE_G_V_EXPIRED == rc )
       {
          rc = SDB_OK ;
+         goto done ;
       }
       else if ( SDB_OK != rc )
       {
@@ -1780,6 +2033,12 @@ namespace engine
                        pStatus->beat.identity.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
             }
+
+            pStatus->beat.beatID = CLS_BEATID_INVALID ;
+            pStatus->beat.serviceStatus = SERVICE_UNKNOWN ;
+            pStatus->beat.ftConfirmStat = 0 ;
+            pStatus->beat.indoubtErr = SDB_OK ;
+
             _locationInfo.alives.erase( itr++ ) ;
          }
          else
@@ -1787,7 +2046,7 @@ namespace engine
             ++itr ;
          }
       }
-      // Reset pStatus ?
+
       _locationInfo.mtx.release_w() ;
 
       /// cutting when down to secandary is in _clsVSPrimary.
@@ -1978,7 +2237,8 @@ namespace engine
 
          if ( isLocationBeat && locItr != _locationInfo.info.end() )
          {
-            locItr->second.beat = beat ;
+            _clsSharingStatus &statusItem = locItr->second ;
+            statusItem.beat = beat ;
 
             // Beat is sent by primary node
             if ( CLS_GROUP_ROLE_PRIMARY == beat.getLocationRole() )
@@ -2494,51 +2754,139 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLEGRPMODEUPDATE, "_clsReplicateSet::_handleGroupModeUpdate" )
-   INT32 _clsReplicateSet::_handleGroupModeUpdate( const clsGroupMode *pGrpMode )
+   INT32 _clsReplicateSet::_handleGroupModeUpdate( const clsGroupMode &grpMode,
+                                                   INT32 shadowTime,
+                                                   BOOLEAN isLocalMode,
+                                                   BOOLEAN enforced )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLEGRPMODEUPDATE ) ;
 
-      if ( NULL == pGrpMode )
+      _vote.setGrpModeShadowTime( shadowTime ) ;
+
       {
-         PD_LOG( PDEVENT, "Failed to udpate group mode, download from catalog again" ) ;
-         MsgCatGroupReq msg ;
-         msg.id = _info.local ;
-         _cata.call( (MsgHeader *)(&msg) ) ;
+         ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
+
+         _info.enforcedGrpMode = enforced ;
+
+         // Remove local and global group mode
+         if ( CLS_GROUP_MODE_NONE == grpMode.mode )
+         {
+            if ( grpMode.mode != _info.grpMode.mode )
+            {
+               _vote.resetGrpModeElectionWeights() ;
+               _info.grpMode.reset() ;
+               _info.localGrpMode = CLS_GROUP_MODE_NONE ;
+            }
+         }
+         else
+         {
+            // Set local group mode to CLS_GROUP_MODE_CRITICAL/CLS_GROUP_MODE_MAINTENANCE
+            if ( isLocalMode )
+            {
+               if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+               {
+                  // Set critical mode flag
+                  _vote.setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+                  _info.localGrpMode = CLS_GROUP_MODE_CRITICAL ;
+
+                  // shadowTime < 0 means keep this mode forever, we need to remove targetNode flag
+                  if ( shadowTime < 0 )
+                  {
+                     _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  }
+                  // shadowTime > 0 means keep this mode temporary, we need to add targetNode flag
+                  else
+                  {
+                     _vote.setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  }
+               }
+               else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+               {
+                  _vote.resetGrpModeElectionWeights() ;
+                  _info.localGrpMode = CLS_GROUP_MODE_MAINTENANCE ;
+               }
+            }
+            // Reset local group mode to CLS_GROUP_MODE_NONE
+            else
+            {
+               _vote.resetGrpModeElectionWeights() ;
+               _info.localGrpMode = CLS_GROUP_MODE_NONE ;
+            }
+
+            // Set global group mode
+            try
+            {
+               _info.grpMode = grpMode ;
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Failed to set group mode, occur exception %s", e.what() ) ;
+            }
+         }
+
+         // Save global group mode to _clsSharingStatus
+         VEC_GRPMODE_ITEM::const_iterator grpModeItr ;
+         CLS_NODE_STATUS_MAP::iterator nodeItr = _info.info.begin() ;
+         UINT8 remoteLocationNodeSize = 0 ;
+
+         while ( _info.info.end() != nodeItr )
+         {
+            _clsSharingStatus &status = nodeItr->second ;
+            grpModeItr = grpMode.grpModeInfo.begin() ;
+
+            while ( grpMode.grpModeInfo.end() != grpModeItr )
+            {
+               const clsGrpModeItem &grpItem = *grpModeItr ;
+               if ( ( INVALID_NODEID != grpItem.nodeID &&
+                      status.beat.identity.columns.nodeID == grpItem.nodeID ) ||
+                    ( MSG_INVALID_LOCATIONID != status.beat.locationID &&
+                      status.beat.locationID == grpItem.locationID ) )
+               {
+                  status.grpMode = grpMode.mode ;
+                  break ;
+               }
+               ++grpModeItr ;
+            }
+            if ( grpMode.grpModeInfo.end() == grpModeItr )
+            {
+               status.grpMode = CLS_GROUP_MODE_NONE ;
+            }
+
+            if ( !status.isAffinitiveLocation && !status.isInMaintenanceMode() )
+            {
+               remoteLocationNodeSize ++ ;
+            }
+
+            ++nodeItr ;
+         }
+
+         if ( CLS_GROUP_MODE_MAINTENANCE == _info.grpMode.mode )
+         {
+            _info.remoteLocationNodeSize = remoteLocationNodeSize ;
+         }
       }
-      else
+
+      // If this node is primary and not in tmporary mode, we need to start a monitor job
+      if ( primaryIsMe() )
       {
-         try
+         if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
          {
-            _info.grpMode = *pGrpMode ;
-
-            // If this node is primary and not in tmporary mode, we need to start a monitor job
-            if ( primaryIsMe() )
+            if ( _vote.isTmpGrpMode() )
             {
-               if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode && ! _vote.isTmpGrpMode() )
-               {
-                  rc = _vote.startCriticalModeMonitor() ;
-               }
-               else if ( CLS_GROUP_MODE_MAINTENANCE == _info.grpMode.mode )
-               {
-                  rc = _vote.startMaintenanceModeMonitor() ;
-               }
+               /// need to update grpMode
+               rc = startGrpModeJob() ;
             }
-
-            SDB_OSS_DEL pGrpMode ;
-            pGrpMode = NULL ;
+            else if ( _vote.isConstantGrpMode() )
+            {
+               rc = _vote.startCriticalModeMonitor() ;
+            }
          }
-         catch ( std::exception &e )
+         else if ( CLS_GROUP_MODE_MAINTENANCE == _info.grpMode.mode )
          {
-            if ( NULL != pGrpMode )
-            {
-               SDB_OSS_DEL pGrpMode ;
-               pGrpMode = NULL ;
-            }
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "Failed to set group mode, occur exception %s", e.what() ) ;
+            rc = _vote.startMaintenanceModeMonitor() ;
          }
-
       }
 
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLEGRPMODEUPDATE, rc ) ;
@@ -2653,7 +3001,7 @@ namespace engine
       if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
       {
          finalW = w ;
-         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode(), _remoteLocationConsistency ) ;
+         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
          goto done ;
       }
 
@@ -2796,7 +3144,7 @@ namespace engine
          timeout += OSS_ONE_SEC ;
          continue ;
       }
-      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode(), _remoteLocationConsistency ) ;
+      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
 
    done:
       if ( hasBlock )

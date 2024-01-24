@@ -1723,7 +1723,7 @@ namespace engine
       {
          PD_LOG( PDINFO, "Session[%s]: Sync's request id[%llu] is no "
                  "greater than processed request id[%llu], and message queue "
-                 "is not empty[%u], so dispath the request", sessionName(),
+                 "is not empty[%u], so discard the request", sessionName(),
                  req->header.requestID, _lastProcRequestID,
                  eduCB()->getQueSize() ) ;
          goto done ;

@@ -1123,7 +1123,7 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnReelectGroup )
    _rtnReelectGroup::_rtnReelectGroup()
    {
-
+      _locationID = CLS_INVALID_LOCATIONID ;
    }
 
    _rtnReelectGroup::~_rtnReelectGroup()
@@ -1153,8 +1153,16 @@ namespace engine
          }
          else
          {
+            BSONElement e ;
+
             rc = _parseReelectArgs( obj ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pasrse reelect info,rc: %d", rc ) ;
+
+            e = obj.getField( FIELD_NAME_NODE_LOCATIONID ) ;
+            if ( e.isNumber() )
+            {
+               _locationID = e.numberInt() ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -1203,6 +1211,16 @@ namespace engine
       }
       else
       {
+         /// check locationID
+         if ( CLS_INVALID_LOCATIONID != _locationID &&
+              pmdGetLocationID() == _locationID &&
+              repl->primaryIsMe() )
+         {
+            /// already primary
+            repl->reelectionDone() ;
+            goto done ;
+         }
+
          rc = repl->reelect( _level, _timeout, cb, _nodeID ) ;
          if ( SDB_OK != rc )
          {
@@ -1932,7 +1950,7 @@ namespace engine
          {
             BSONElement optionEle ;
             clsGrpModeItem tmpGrpModeItem ;
-            const CLS_LOC_INFO_MAP &locMap = sdbGetReplCB()->getLocInfoMap() ;
+            CLS_LOC_INFO_MAP locMap = sdbGetReplCB()->getLocInfoMap() ;
 
             // Init _grpMode member
             _grpMode.groupID = _groupID ;
@@ -1954,10 +1972,11 @@ namespace engine
                CLS_LOC_INFO_MAP::const_iterator locItr = locMap.begin() ;
                while ( locMap.end() != locItr )
                {
+                  const _clsLocationInfoItem &locItem = locItr->second ;
                   if ( 0 == ossStrcmp( optionEle.valuestrsafe(),
-                                       locItr->second._location.c_str() ) )
+                                       locItem._location.c_str() ) )
                   {
-                     tmpGrpModeItem.locationID = locItr->second._locationID ;
+                     tmpGrpModeItem.locationID = locItem._locationID ;
                      break ;
                   }
                   ++locItr ;
@@ -2060,9 +2079,9 @@ namespace engine
 
       if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
       {
-         _clsVoteMachine* vote = sdbGetReplCB()->voteMachine( FALSE ) ;
-
-         rc = vote->setGrpMode( _grpMode, CLS_REELECT_COMMAND_TIMEOUT_DFT * 1000, TRUE, _enforced ) ;
+         _clsReplicateSet *pRepl = sdbGetReplCB() ;
+         rc = pRepl->postGroupModeInfo( _grpMode, CLS_REELECT_COMMAND_TIMEOUT_DFT * 1000,
+                                        TRUE, _enforced ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to do actionName: [%s] rc: %d", _pActionName, rc ) ;
 

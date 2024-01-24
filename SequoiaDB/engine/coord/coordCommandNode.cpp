@@ -2658,6 +2658,10 @@ namespace engine
          {
             /// ignore
          }
+         else if ( 0 == ossStrcmp( FIELD_NAME_NODE_LOCATIONID, e.fieldName() ) )
+         {
+            /// only for system
+         }
          else
          {
             rc = _parseExtraArgs( e ) ;
@@ -3534,6 +3538,13 @@ namespace engine
 
          rc = executeOnNodes( pMsg, cb, sendNodes, faileds ) ;
          PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+
+         if ( faileds.size() > 0 )
+         {
+            rc = faileds.begin()->second._rc ;
+            PD_LOG( PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+            goto error ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -3570,6 +3581,13 @@ namespace engine
 
          rc = executeOnNodes( pMsg, cb, sendNodes, faileds ) ;
          PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+
+         if ( faileds.size() > 0 )
+         {
+            rc = faileds.begin()->second._rc ;
+            PD_LOG( PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
+            goto error ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -3586,7 +3604,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERRG_REELECT_GROUP, "_coordCMDAlterRG::_reelectGroup" )
-   INT32 _coordCMDAlterRG::_reelectGroup( pmdEDUCB *cb )
+   INT32 _coordCMDAlterRG::_reelectGroup( pmdEDUCB *cb, UINT16 tarNodeID, UINT32 tarLocationID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_ALTERRG_REELECT_GROUP ) ;
@@ -3600,7 +3618,18 @@ namespace engine
 
       try
       {
-         query = BSON( FIELD_NAME_GROUPNAME << _groupInfoPtr->groupName().c_str() ) ;
+         BSONObjBuilder builder( 200 ) ;
+         builder.append( FIELD_NAME_GROUPNAME, _groupInfoPtr->groupName().c_str() ) ;
+         if ( INVALID_NODEID != tarNodeID )
+         {
+            builder.append( FIELD_NAME_NODEID, (INT32)tarNodeID ) ;
+         }
+         else if ( MSG_INVALID_LOCATIONID != tarLocationID )
+         {
+            builder.append( FIELD_NAME_NODE_LOCATIONID, (INT32)tarLocationID ) ;
+         }
+
+         query = builder.obj() ;
       }
       catch ( std::exception &e )
       {
@@ -3810,7 +3839,7 @@ namespace engine
 
       // Execute a reelect command, and ignore the rc: SDB_CLS_NOT_PRIMARY,
       // because some data group may not have primary
-      rc = _reelectGroup( cb ) ;
+      rc = _reelectGroup( cb, tarNodeID, tarLocationID ) ;
       if ( SDB_CLS_NOT_PRIMARY == rc )
       {
          // If data group don't have primary, need to wait at most 30s

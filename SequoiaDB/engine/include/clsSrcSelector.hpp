@@ -85,7 +85,6 @@ namespace engine
       OSS_INLINE void clearBlackList()
       {
          _blacklist.clear() ;
-         _selectRange = CLS_SELECT_BEGIN ;
       }
 
       OSS_INLINE void clearSrc()
@@ -111,16 +110,12 @@ namespace engine
       }
 
    private:
-      void _moveToNextRange() ;
-
-   private:
       set<UINT64>       _blacklist ;
       _clsSyncManager   *_syncmgr ;
       MsgRouteID        _src ;
       UINT32            _noRes ;
       _clsNodeMgrAgent  *_nodeMgrAgent ;
       UINT32            _srcTimeout ;
-      CLS_SELECT_RANGE  _selectRange ;
       CLS_GROUP_VERSION _groupInfoVersion ;
 
    } ;

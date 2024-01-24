@@ -44,7 +44,7 @@ namespace engine
    #define CLS_GROUPMODE_CHECK_INTERVAL      OSS_ONE_SEC * 60
 
    class _clsGroupInfo ;
-   class _clsVoteMachine ;
+   class _clsReplicateSet ;
 
    /* 
       _clsGroupModeMonitorJob
@@ -138,7 +138,7 @@ namespace engine
    class _clsGroupModeReqJob : public _utilLightJob
    {
    public:
-      _clsGroupModeReqJob( _clsGroupInfo *info, _clsVoteMachine *vote ) ;
+      _clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl ) ;
 
       virtual ~_clsGroupModeReqJob() ;
 
@@ -157,11 +157,11 @@ namespace engine
    private:
       // This info stores group info, not location info
       _clsGroupInfo                    *_info ;
-      _clsVoteMachine                  *_vote ;
+      _clsReplicateSet                 *_repl ;
    } ;
    typedef _clsGroupModeReqJob clsGroupModeReqJob ;
 
-   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsVoteMachine *vote ) ;
+   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl ) ;
 
 }
 

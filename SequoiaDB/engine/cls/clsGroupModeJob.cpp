@@ -77,6 +77,7 @@ namespace engine
       result = UTIL_LJOB_DO_CONT ;
       sleepTime = ( UINT64 ) CLS_GROUPMODE_CHECK_INTERVAL ;
 
+      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
       const clsGroupMode &grpMode = _info->grpMode ;
 
       if ( _localVersion < version.fetch() )
@@ -174,8 +175,6 @@ namespace engine
       // MinKeepTime <= curTime < MaxKeepTime
       else if ( curTime.time < localItem.maxKeepTime.time )
       {
-         _info->mtx.lock_r() ;
-
          UINT32 aliveNum = _info->aliveSize() ;
          UINT32 nodeNum = _info->groupSize() ;
 
@@ -190,7 +189,6 @@ namespace engine
             const UINT64 diffOffset = CLS_CRITICAL_RESTORE_THRESHOLD * totalLogSize ;
             UINT64 minLsnOffset = expectLsn.offset > diffOffset ? expectLsn.offset - diffOffset : 0 ;
             UINT32 sucNum = _info->getAlivesByLsn( minLsnOffset ) ;
-            _info->mtx.release_r() ;
             // Check if majority nodes achieve a threshold lsn
             if ( ( nodeNum / 2 ) < sucNum )
             {
@@ -208,7 +206,6 @@ namespace engine
          }
          else
          {
-            _info->mtx.release_r() ;
             result = UTIL_LJOB_DO_CONT ;
          }
       }
@@ -332,7 +329,6 @@ namespace engine
       node.columns.groupID = _groupMode.groupID ;
       node.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
 
-      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
       CLS_NODE_STATUS_MAP::const_iterator nodeItr ;
 
       VEC_GRPMODE_ITEM::const_iterator itr = _groupMode.grpModeInfo.begin() ;
@@ -477,9 +473,9 @@ namespace engine
    /* 
       _clsGroupModeReqJob Implement
     */
-   _clsGroupModeReqJob::_clsGroupModeReqJob( _clsGroupInfo *info, clsVoteMachine *vote )
+   _clsGroupModeReqJob::_clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl )
    : _info( info ),
-     _vote( vote )
+     _repl( pRepl )
    {
    }
 
@@ -625,13 +621,13 @@ namespace engine
                 pmdGetLocationID() == grpModeItem.locationID ) )
          {
             // Set shadowTime = -1, which means this node is in critical mode
-            rc = _vote->setGrpMode( grpMode, -1, TRUE ) ;
+            rc = _repl->postGroupModeInfo( grpMode, -1, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
          else
          {
             // Set shadowTime = 0, which means this node is in normal mode
-            rc = _vote->setGrpMode( grpMode, 0, FALSE ) ;
+            rc = _repl->postGroupModeInfo( grpMode, 0, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
       }
@@ -651,7 +647,8 @@ namespace engine
             ++itr ;
          }
 
-         _vote->setGrpMode( grpMode, isLocalMode ? -1 : 0, isLocalMode ) ;
+         rc = _repl->postGroupModeInfo( grpMode, isLocalMode ? -1 : 0, isLocalMode ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set maintenance mode, rc: %d", rc ) ;
       }
 
    done :
@@ -662,14 +659,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLS_STARTGRPMODEREQ, "clsStartGroupModeReqJob" )
-   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsVoteMachine *vote )
+   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLS_STARTGRPMODEREQ ) ;
 
       _clsGroupModeReqJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW _clsGroupModeReqJob( info, vote ) ;
+      pJob = SDB_OSS_NEW _clsGroupModeReqJob( info, pRepl ) ;
       if ( NULL == pJob )
       {
          rc = SDB_OOM ;

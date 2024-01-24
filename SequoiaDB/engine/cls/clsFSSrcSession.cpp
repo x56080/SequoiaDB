@@ -1822,7 +1822,30 @@ namespace engine
          /// Notify fullsync, So will kick the node from sync control nodes.
          /// In _processValidCLs, need to get lock of collection, If has some
          /// operators hold the lock and in sync control, will occur dead wait
-         _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
+         if ( _pRepl->primaryIsMe() )
+         {
+            _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
+         }
+         /// notify to primary node
+         else
+         {
+            /* Notify the node status to the primary node */
+            MsgRouteID primaryID = _pRepl->getPrimary() ;
+            if ( MSG_INVALID_ROUTEID != primaryID.value )
+            {
+               MsgClsNodeStatusNotify ntyMsg ;
+               ntyMsg.status = SDB_DB_FULLSYNC ;
+               ntyMsg.nodeID.value = header->routeID.value ;
+               rc = _agent->syncSend( primaryID, (MsgHeader *)&ntyMsg ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Session[%s]: Notify fullsync message to primary "
+                          "node[%u] failed, rc: %d", primaryID.columns.nodeID, rc ) ;
+                  _disconnect() ;
+                  goto done ;
+               }
+            }
+         }
 
          /// process valid collections
          rc = _processValidCLs( _validCLs ) ;

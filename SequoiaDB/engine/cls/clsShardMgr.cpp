@@ -2988,8 +2988,7 @@ namespace engine
             INT16 finalReplSize = 0 ;
             INT16 replSize = pmdGetOptionCB()->transReplSize() ;
             replSize = ( 1 == replSize ) ? 2 : replSize ;
-            cb->getOperator()->setReplStrategy( pmdGetOptionCB()->
-                                                   transConsistencyStrategy() ) ;
+            cb->getOperator()->setReplStrategy( pmdGetOptionCB()->transConsistencyStrategy() ) ;
             checkRC = pReplCB->replSizeCheck( replSize, finalReplSize, cb ) ;
             if ( SDB_OK != checkRC )
             {
