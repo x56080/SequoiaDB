@@ -2771,6 +2771,7 @@ retry:
       PD_TRACE_EXITRC ( SDB_RTNTESTCSCOMMAND, rc ) ;
       return rc ;
    error :
+      pdSetLastError( rc ) ;
       goto done ;
    }
 
@@ -2932,6 +2933,7 @@ retry:
       PD_TRACE_EXITRC ( SDB_RTNTESTCLCOMMAND, rc ) ;
       return rc ;
    error :
+      pdSetLastError( rc ) ;
       goto done ;
    }
 

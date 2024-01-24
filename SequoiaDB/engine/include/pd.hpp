@@ -77,11 +77,18 @@
 
 #define PD_LOG(level, fmt, ...) \
    do { \
-      if ( getPDLevel() >= ( level ) && !pdIsShieldLog() ) \
-      { \
-         pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
-      } \
-   }while (0)
+         if ( pdIsShieldLog() ) \
+         { \
+            if ( getPDLevel() == PDDEBUG ) \
+            { \
+               pdLog(( PDDEBUG ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+            } \
+         } \
+         else if ( getPDLevel() >= ( level ) ) \
+         { \
+            pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+         } \
+      }while (0)
 
 #define PD_LOG_MSG(level, fmt, ...) \
    do { \
@@ -95,7 +102,14 @@
             pdLocalEnableDiaglogSecure() ; \
          } \
       } \
-      if ( getPDLevel() >= ( level ) && !pdIsShieldLog() ) \
+      if ( pdIsShieldLog() ) \
+      { \
+         if ( getPDLevel() == PDDEBUG ) \
+         { \
+            pdLog(( PDDEBUG ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
+         } \
+      } \
+      else if ( getPDLevel() >= ( level ) ) \
       { \
          pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -177,6 +191,8 @@ void pdcheck( const CHAR* string, const CHAR* func,
 
 #define LOG_MASK_IXM_DUP_KEY     ( 0x0000000000000001 )
 #define LOG_MASK_IXM_ADVANCE_EOC ( 0x0000000000000002 )
+#define LOG_MASK_DMS_CS_NOTEXIST ( 0x0000000000000004 )
+#define LOG_MASK_DMS_NOTEXIST    ( 0x0000000000000008 )
 #define LOG_MASK_RTN_INVALID_HINT ( 0x0000000000000010 )
 
 void pdEnableDiaglogSecure() ;
@@ -192,6 +208,8 @@ BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
+void pdSetShieldRC( INT32 rc ) ;
+void pdClearShieldRC() ;
 
 class pdLogShield
 {

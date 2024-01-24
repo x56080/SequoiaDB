@@ -6384,6 +6384,7 @@ namespace engine
                   rc = SDB_DMS_NOTEXIST ;
                   PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
                           clName.c_str(), rc ) ;
+                  pdSetLastError( rc ) ;
                   goto error ;
                }
                // It's a pure mapping cs, let's build a catalog record for the
@@ -6400,6 +6401,7 @@ namespace engine
                PD_LOG( PDWARNING,
                        "Collection[%s]'s space does not exist, rc: %d",
                        clName.c_str(), rc ) ;
+               pdSetLastError( rc ) ;
                goto error ;
             }
             else
@@ -6407,6 +6409,7 @@ namespace engine
                rc = SDB_DMS_NOTEXIST ;
                PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
                        clName.c_str(), rc ) ;
+               pdSetLastError( rc ) ;
                goto error ;
             }
          }
