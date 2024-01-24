@@ -347,7 +347,7 @@ namespace engine
          for ( UINT32 idx = 0 ; idx < CLS_SYNCCTRL_THRESHOLD_SIZE ; ++idx )
          {
             rate = 2 << idx ;
-            _sizethreshold[ idx ] = _totalLogSize * ( rate - 1 ) / rate ;
+            _sizethreshold[ idx ] = _totalLogSize * ( rate - 1 ) / ( rate + idx ) ;
             _timeThreshold[ idx ] = timeBase << idx ;
          }
       }

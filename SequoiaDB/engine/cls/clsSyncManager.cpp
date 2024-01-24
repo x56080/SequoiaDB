@@ -644,17 +644,7 @@ namespace engine
       {
          if ( _notifyList[i].id.value == id.value )
          {
-            INT32 result = lsn.compareOffset( _notifyList[i].offset ) ;
-            if ( 0 == result )
-            {
-               ++_notifyList[i].sameReqTimes ;
-            }
-            else
-            {
-               _notifyList[i].sameReqTimes = 0 ;
-            }
-
-            if ( result > 0 )
+            if ( lsn.compareOffset( _notifyList[i].offset ) > 0 )
             {
                _notifyList[i].offset = offset ;
             }

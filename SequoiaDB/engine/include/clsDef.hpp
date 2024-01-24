@@ -451,8 +451,6 @@ namespace engine
    } ;
 
 
-   #define CLS_SAME_SYNC_LSN_MAX_TIMES    (20)
-
    /*
       _clsSyncStatus define
    */
@@ -462,13 +460,11 @@ namespace engine
       DPS_LSN_OFFSET    offset ;
       _MsgRouteID       id ;
       BOOLEAN           valid ;
-      UINT32            sameReqTimes ;
 
       _clsSyncStatus():offset(0)
       {
          id.value       = 0 ;
          valid          = TRUE ;
-         sameReqTimes   = 0 ;
       }
 
       _clsSyncStatus& operator=( const _clsSyncStatus &right )
@@ -476,7 +472,6 @@ namespace engine
          offset         = right.offset ;
          id.value       = right.id.value ;
          valid          = right.valid ;
-         sameReqTimes   = right.sameReqTimes ;
 
          return *this ;
       }
@@ -487,8 +482,7 @@ namespace engine
          // 2. sharing-break
          // 3. same sync req more than 20 times
          if ( DPS_INVALID_LSN_OFFSET == offset ||
-              !valid ||
-              sameReqTimes > CLS_SAME_SYNC_LSN_MAX_TIMES )
+              !valid )
          {
             return FALSE ;
          }
