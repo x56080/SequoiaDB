@@ -83,19 +83,32 @@ namespace engine
       UINT64 res[ nodeSize ] ;
 
       // 0 - 2 location node
-      // 3 - 6 affinity node
-      // 6 - 9 group node
+      // 3 - 5 affinity node
+      // 6 - 8 group node
 
       // prepare node status environment
       for ( UINT64 i = 0; i < nodeSize; i++ )
       {
          if ( i < 3 )
          {
+            status.locationID = 1 ;
+            status.isAffinitiveLocation = TRUE ;
+            status.locationIndex = 0 ;
             status.beat.locationID = 1 ;
          }
          else if ( i < 6 )
          {
+            status.locationID = 2 ;
+            status.locationIndex = 1 ;
             status.isAffinitiveLocation = TRUE ;
+            status.beat.locationID = 2 ;
+         }
+         else
+         {
+            status.locationID = 3 ;
+            status.locationIndex = 2 ;
+            status.isAffinitiveLocation = FALSE ;
+            status.beat.locationID = 3 ;
          }
 
          if ( ( i + 1 ) % 3 == 0 )
@@ -136,68 +149,51 @@ namespace engine
       set<UINT64> blacklist ;
       CLS_GROUP_VERSION version = 1 ;
 
-      for ( UINT64 i = 3; i < nodeSize ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
-
       // location range
       MsgRouteID ret ;
       BOOLEAN isLoc = TRUE ;
       // 1. location primary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[0] ) ;
       //std ::cout << ret.value<< endl;
       info.alives.erase( ret.value ) ;
 
       // 2. location secondary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[1] ) ;
       info.alives.erase( ret.value ) ;
 
       // 3. location secondary rc
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[2] ) ;
       info.alives.erase( ret.value ) ;
 
-      blacklist.clear() ;
-      for ( UINT64 i = 6; i < nodeSize ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
-
       // affinity range
       // 1. affinity location primary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[3] ) ;
       info.alives.erase( ret.value ) ;
       // 2. affinity location secondary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[4] ) ;
       info.alives.erase( ret.value ) ;
       // 3. affinity location secondary rc
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[5] ) ;
       info.alives.erase( ret.value ) ;
-
-      blacklist.clear() ;
-      for ( UINT64 i = 0; i < 6 ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
 
       isLoc = FALSE ;
       // group range
       // 1. group primary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[6] ) ;
       info.alives.erase( ret.value ) ;
       // 2. secondary peer
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[7] ) ;
       info.alives.erase( ret.value ) ;
       // 3. secondary rc
-      ret.value = sync.getSyncSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getSyncSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[8] ) ;
       info.alives.erase( ret.value ) ;
 
@@ -231,20 +227,33 @@ namespace engine
       status.beat.serviceStatus = SERVICE_NORMAL ;
       status.beat.ftConfirmStat = 0 ;
 
-      // 0 - 2 location node
-      // 3 - 6 affinity node
-      // 6 - 9 group node
+      // 0 - 1 location node
+      // 2 - 3 affinity node
+      // 4 - 5 group node
 
       // prepare node status environment
       for ( UINT64 i = 0; i < nodeSize; i++ )
       {
          if ( i < 2 )
          {
+            status.locationID = 1 ;
+            status.locationIndex = 0 ;
+            status.isAffinitiveLocation = TRUE ;
             status.beat.locationID = 1 ;
          }
          else if ( i < 4 )
          {
+            status.locationID = 2 ;
+            status.locationIndex = 1 ;
             status.isAffinitiveLocation = TRUE ;
+            status.beat.locationID = 2 ;
+         }
+         else
+         {
+            status.locationID = 3 ;
+            status.locationIndex = 2 ;
+            status.isAffinitiveLocation = FALSE ;
+            status.beat.locationID = 3 ;
          }
 
          if ( ( i + 1 ) % 2 == 0 )
@@ -274,54 +283,37 @@ namespace engine
       set<UINT64> blacklist ;
       MsgRouteID ret ;
 
-      for ( UINT64 i = 2; i < nodeSize ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
-
       // location range
       // 1. location secondary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[0] ) ;
       info.alives.erase( res[0] ) ;
 
       // 2. location primary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[1] )  ;
       info.alives.erase( res[1] ) ;
 
-      blacklist.clear() ;
-      for ( UINT64 i = 4; i < nodeSize ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
-
       // affinity location range
       // 1. affinity location secondary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[2] ) ;
       info.alives.erase( res[2] ) ;
 
       // 2. affinity location primary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[3] ) ;
       info.alives.erase( res[3] ) ;
-
-      blacklist.clear() ;
-      for ( UINT64 i = 0; i < 4 ; i++ )
-      {
-         blacklist.insert( res[i] ) ;
-      }
 
       isLoc = FALSE ;
       // group range
       // 1. group secondary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[4] ) ;
       info.alives.erase( res[4] ) ;
 
       // 2. group primary
-      ret.value = sync.getFullSrc( blacklist, isLoc, version ).value ;
+      ret.value = sync.getFullSrc( blacklist, version, isLoc ).value ;
       EXPECT_TRUE( ret.value == res[5] ) ;
       info.alives.erase( res[5] ) ;
 
