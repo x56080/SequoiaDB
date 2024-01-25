@@ -136,8 +136,6 @@ namespace engine
       rtnReturnOptions returnOptions ;
       UINT32 upsertRetyTime = 0 ;
 
-      pdSetShieldRC( SDB_IXM_DUP_KEY ) ;
-
       // updator is modifier
       if ( updator.isEmpty() )
       {
@@ -210,7 +208,6 @@ namespace engine
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
 retry:
-         pdClearLastError() ;
          // plan is released when exiting the function
          rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "

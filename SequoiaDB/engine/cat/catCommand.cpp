@@ -1001,8 +1001,6 @@ namespace engine
       try
       {
          BSONObj collection ;
-         pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
-         pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
          rc = catGetAndLockCollection ( _name, collection, cb, NULL, SHARED ) ;
          // compatible with old version
          if( SDB_DMS_CS_NOTEXIST == rc )

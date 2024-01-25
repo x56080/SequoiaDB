@@ -281,8 +281,6 @@ namespace engine
       BOOLEAN needAppendID = FALSE ;
       BOOLEAN needNewIDField = TRUE ;
 
-      pdSetShieldRC( SDB_IXM_DUP_KEY ) ;
-
       rc = msgExtractInsert( (const CHAR*)pMsg, &flag,
                              &pCollectionName, &pInsertor, count, &_pHint ) ;
       if( rc )
@@ -381,7 +379,6 @@ namespace engine
       orgMsgLen = pMsg->messageLength ;
 
    retry:
-      pdClearLastError() ;
       rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
                 "check cat version failed, rc: %d", rc ) ;
@@ -495,7 +492,6 @@ namespace engine
       }
       else
       {
-         pdSetLastError( rc ) ;
          PD_LOG( PDERROR, "Insert failed on node[%s], rc: %d",
                  routeID2String( errNodeID ).c_str(), rc ) ;
          goto error ;

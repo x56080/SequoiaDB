@@ -149,8 +149,6 @@ namespace engine
 
       UINT32 upsertRetryTime           = 0 ;
 
-      pdSetShieldRC( SDB_IXM_DUP_KEY ) ;
-
       rc = msgExtractUpdate( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       if ( rc )
@@ -229,7 +227,6 @@ namespace engine
       pNewUpdate = pUpdate ;
 
    retry:
-      pdClearLastError() ;
       do
       {
          BSONObj tmpNewObj = boUpdator ;
@@ -360,7 +357,6 @@ namespace engine
       }
       else
       {
-         pdSetLastError( rc ) ;
          PD_LOG( PDERROR, "Update failed on node[%s], rc: %d",
                  routeID2String( errNodeID ).c_str(), rc ) ;
          goto error ;

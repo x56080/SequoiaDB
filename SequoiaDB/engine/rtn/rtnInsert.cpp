@@ -87,12 +87,19 @@ namespace engine
 
       pdLogShield shield ;
       BOOLEAN hasRetry = FALSE ;
-      pdSetShieldRC( SDB_IXM_DUP_KEY ) ;
 
 retry:
-      pdClearLastError() ;
+      if ( ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
+             OSS_BIT_TEST( FLG_INSERT_CONTONDUP, flags ) ||
+             OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flags ) ) && !hasRetry )
+      {
+         shield.addRC( SDB_IXM_DUP_KEY ) ;
+      }
+
       rc = su->insertRecord( clShortName, record, cb, dpsCB, mustOID,
                              canUnLock, context, position, insertResult ) ;
+
+      shield.clearRC() ;
 
       // check return code
       if ( SDB_IXM_DUP_KEY == rc && !hasRetry )

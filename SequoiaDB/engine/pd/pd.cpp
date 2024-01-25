@@ -560,8 +560,6 @@ static _pdRCMaskItem s_rcMaskMap[] =
 {
    { SDB_IXM_DUP_KEY, TRUE, LOG_MASK_IXM_DUP_KEY },
    { SDB_IXM_ADVANCE_EOC, FALSE, LOG_MASK_IXM_ADVANCE_EOC },
-   { SDB_DMS_CS_NOTEXIST, FALSE, LOG_MASK_DMS_CS_NOTEXIST },
-   { SDB_DMS_NOTEXIST, FALSE, LOG_MASK_DMS_NOTEXIST },
    { SDB_RTN_INVALID_HINT, FALSE, LOG_MASK_RTN_INVALID_HINT }
 } ;
 
@@ -697,20 +695,6 @@ INT32 pdError( INT32 rc )
 {
    pdSetLastError( rc ) ;
    return rc ;
-}
-
-void pdSetShieldRC( INT32 rc )
-{
-   UINT64 mask = _pdRC2Mask( rc ) ;
-   if ( 0 != mask && !pdTestShieldLogMask( mask ) )
-   {
-      pdEnableShieldLogMask( mask ) ;
-   }
-}
-
-void pdClearShieldRC()
-{
-   pdDisableShieldLogMask( 0xFFFFFFFFFFFFFFFF ) ;
 }
 
 pdLogShield::pdLogShield() : _addRCMask( 0 )
