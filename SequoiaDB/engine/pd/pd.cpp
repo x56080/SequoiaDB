@@ -565,7 +565,7 @@ static _pdRCMaskItem s_rcMaskMap[] =
 
 static UINT64 _pdRC2Mask( INT32 rc )
 {
-   INT32 mSize = sizeof( s_rcMaskMap ) ;
+   INT32 mSize = sizeof( s_rcMaskMap ) / sizeof( _pdRCMaskItem ) ;
    for ( INT32 i = 0 ; i < mSize ; i++ )
    {
       _pdRCMaskItem& item = s_rcMaskMap[i] ;
@@ -579,7 +579,7 @@ static UINT64 _pdRC2Mask( INT32 rc )
 
 static void _pdIncShieldLogCntByRC( INT32 rc )
 {
-   INT32 mSize = sizeof( s_rcMaskMap ) ;
+   INT32 mSize = sizeof( s_rcMaskMap ) / sizeof( _pdRCMaskItem ) ;
    for ( INT32 i = 0 ; i < mSize ; i++ )
    {
       _pdRCMaskItem& item = s_rcMaskMap[i] ;
@@ -679,7 +679,7 @@ BOOLEAN pdIsShieldLog()
 void pdPrintShieldInfo()
 {
    UINT32 i = 0 ;
-   while ( i < PD_MAX_SHIELD_RC_COUNT && i < sizeof( s_rcMaskMap ) )
+   while ( i < PD_MAX_SHIELD_RC_COUNT && i < ( sizeof( s_rcMaskMap ) / sizeof( _pdRCMaskItem ) ) )
    {
       if ( s_shieldLogCnt[i] > 0 )
       {
