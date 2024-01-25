@@ -2165,6 +2165,12 @@ namespace engine
                        beat.nodeRunStat,
                        clsNodeRunStat2String( beat.nodeRunStat ) ) ;
             }
+            /// Service status change
+            if ( statusItem.beat.serviceStatus != beat.serviceStatus &&
+                 SERVICE_ABNORMAL == beat.serviceStatus )
+            {
+               _sync.notifyFullSync( beat.identity ) ;
+            }
 
             statusItem.beat = beat ;
 
