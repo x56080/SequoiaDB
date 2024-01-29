@@ -42,6 +42,7 @@ public class Split10504B extends SdbTestBase {
     private Sequoiadb commSdb = null;
     private DBCollection commCL;
     private ArrayList< String > insertedLobId = new ArrayList< String >();// 记录所有已插入的LOBID字串
+    private int lobNum = 2000;// lob数量
 
     @BeforeClass
     public void setUp() {
@@ -80,7 +81,7 @@ public class Split10504B extends SdbTestBase {
     @Test
     public void split() {
         try {
-            insertData();// 200个LOB(将lob的oid字串作为lob保存的数据)
+            insertData();// 2000个LOB(将lob的oid字串作为lob保存的数据)
             commCL.split( srcGroupName, destGroupName, 50 );
 
             // 校验源和目标组LOB记录
@@ -131,10 +132,11 @@ public class Split10504B extends SdbTestBase {
                 lobCount++;
                 insertedLob.remove( lob.getID().toString() );
             }
-            // 数据量应在100条左右（总量200，切分范围50%）
+            // 数据量应在1000条左右（总量2000，切分范围50%）
+            int splitLobNum = lobNum / 2;
             Assert.assertEquals(
-                    lobCount > 100 - ( 100 * 0.3 )
-                            && lobCount < 100 + ( 100 * 0.3 ),
+                    lobCount > splitLobNum - ( splitLobNum * 0.3 )
+                            && lobCount < splitLobNum + ( splitLobNum * 0.3 ),
                     true, "srcGroup count:" + lobCount );
         } catch ( BaseException | UnsupportedEncodingException e ) {
             e.printStackTrace();
@@ -307,17 +309,12 @@ public class Split10504B extends SdbTestBase {
     }
 
     public void insertData() {
-        try {
-            for ( int i = 0; i < 200; i++ ) {
-                DBLob lob = commCL.createLob();
-                String id = lob.getID().toString();
-                lob.write( id.getBytes() );
-                lob.close();
-                insertedLobId.add( id );
-            }
-
-        } catch ( BaseException e ) {
-            throw e;
+        for ( int i = 0; i < lobNum; i++ ) {
+            DBLob lob = commCL.createLob();
+            String id = lob.getID().toString();
+            lob.write( id.getBytes() );
+            lob.close();
+            insertedLobId.add( id );
         }
     }
 }
