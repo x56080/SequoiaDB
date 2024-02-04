@@ -216,6 +216,12 @@
                                  "en": "SequoiaDB permissions configuration"
                               },
                               {
+                                 "id":1707028584,
+                                 "file": "sdb_monitoring_status",
+                                 "cn": "监控",
+                                 "en": "SequoiaDB monitoring status"
+                              },                              
+                              {
                                  "id": 1556198260,
                                  "file": "upgrade",
                                  "cn": "升级",
