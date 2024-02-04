@@ -116,6 +116,7 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
          pdClearLastError() ;
+         pdRestoreCurShieldLogMask() ;
 
          // recv msg
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;

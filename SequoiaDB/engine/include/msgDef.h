@@ -641,6 +641,7 @@
 #define FIELD_NAME_RETURN_OID                "ReturnOID"
 #define FIELD_NAME_AUDIT_MASK                "AuditMask"
 #define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
+#define FIELD_NAME_RC_SHIELD_MASK            "RCShieldMask"
 #define FIELD_NAME_ROLLBACK                  "Rollback"
 #define FIELD_NAME_TRANS_RC                  "TransRC"
 #define FIELD_NAME_TRANSISOLATION            "TransIsolation"

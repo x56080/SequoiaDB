@@ -2192,8 +2192,12 @@ namespace engine
                                     SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                     INT16 w , INT64 *pContextID )
    {
-      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
-      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
+      UINT64 mask = LOG_MASK_DMS_CS_NOTEXIST | LOG_MASK_DMS_NOTEXIST ;
+      if ( !pdTestAllShieldLogMask( mask ) )
+      {
+         pdSetShieldLogMask( mask ) ;
+      }
+
       return rtnTestCollectionCommand ( _objName, dmsCB ) ;
    }
 
@@ -2220,7 +2224,10 @@ namespace engine
                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                          INT16 w , INT64 *pContextID )
    {
-      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
+      if ( !pdTestShieldLogMask( LOG_MASK_DMS_CS_NOTEXIST ) )
+      {
+         pdSetShieldLogMask( LOG_MASK_DMS_CS_NOTEXIST ) ;
+      }
       return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
    }
 

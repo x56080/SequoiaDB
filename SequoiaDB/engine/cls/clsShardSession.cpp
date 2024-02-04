@@ -3356,6 +3356,12 @@ namespace engine
       getAuditConfig( auditMask, auditConfigMask ) ;
       pdUpdateCurAuditMask( AUDIT_LEVEL_USER, auditMask, auditConfigMask ) ;
 
+      if ( hasSetRCShieldLogMask() )
+      {
+         pdResetShieldLogMask() ;
+         pdSetShieldLogMask( getRCShieldLogMask() ) ;
+      }
+
       /// update trans conf
       if ( 0 != _transConf.getTransConfMask() )
       {
@@ -3413,6 +3419,7 @@ namespace engine
 
             BSONElement eMask = obj.getField( FIELD_NAME_AUDIT_MASK ) ;
             BSONElement eConfigMask = obj.getField( FIELD_NAME_AUDIT_CONFIG_MASK ) ;
+            BSONElement shieldLogMask = obj.getField( FIELD_NAME_RC_SHIELD_MASK ) ;
 
             /// set audit mask
             if ( eMask.isNumber() && eConfigMask.isNumber() )
@@ -3422,6 +3429,11 @@ namespace engine
             }
 
             _transConf.fromBson( obj ) ;
+
+            if ( shieldLogMask.isNumber() )
+            {
+               setRCShieldLogMask( (UINT64)shieldLogMask.numberLong() ) ;
+            }
 
             if ( isSetLogout() )
             {
@@ -3453,7 +3465,15 @@ namespace engine
                {
                   eduCB()->copyTransConf( _transConf ) ;
                }
+
+               if ( hasSetRCShieldLogMask() )
+               {
+                  pdResetShieldLogMask() ;
+                  pdSetShieldLogMask( getRCShieldLogMask() ) ;
+               }
+
             }
+
          }
          catch( std::exception &e )
          {

@@ -299,6 +299,17 @@ namespace engine
       auditConfigMask = _auditConfigMask ;
    }
 
+   void _pmdAsyncSession::setRCShieldLogMask( UINT64 mask )
+   {
+      _RCShieldLogMask = mask ;
+      _hasSetRCShieldLogMask = TRUE ;
+   }
+
+   UINT64 _pmdAsyncSession::getRCShieldLogMask() const
+   {
+      return _RCShieldLogMask ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_CLEAR, "_pmdAsyncSession::clear" )
    void _pmdAsyncSession::clear()
    {
@@ -332,6 +343,9 @@ namespace engine
 
       _auditMask = 0 ;
       _auditConfigMask = 0 ;
+
+      _RCShieldLogMask = 0 ;
+      _hasSetRCShieldLogMask = FALSE ;
 
       // release all buffer pointers
       for ( UINT32 index = 0 ; index < MAX_BUFFER_ARRAY_SIZE; ++index )

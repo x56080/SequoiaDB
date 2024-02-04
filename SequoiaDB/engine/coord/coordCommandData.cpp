@@ -1064,7 +1064,11 @@ namespace engine
       const CHAR *pCSName = NULL ;
 
       contextID = -1 ;
-      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
+
+      if ( !pdTestShieldLogMask( LOG_MASK_DMS_CS_NOTEXIST ) )
+      {
+         pdSetShieldLogMask( LOG_MASK_DMS_CS_NOTEXIST ) ;
+      }
 
       rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
@@ -1120,10 +1124,9 @@ namespace engine
          contextID = -1 ;
          if ( SDB_DMS_EOC == rc )
          {
-            rc = SDB_DMS_CS_NOTEXIST ;
+            rc = pdError( SDB_DMS_CS_NOTEXIST ) ;
             PD_LOG ( PDWARNING, "Collection space[%s] doesn't exist",
                      pCSName ) ;
-            pdSetLastError( rc ) ;
          }
          else
          {
@@ -1173,10 +1176,14 @@ namespace engine
 
       contextID  = -1 ;
 
+      if ( !pdTestShieldLogMask( LOG_MASK_DMS_NOTEXIST ) )
+      {
+         pdSetShieldLogMask(  LOG_MASK_DMS_NOTEXIST ) ;
+      }
+      
       // In early versions, test collection is done by a list command. Now we
       // first try with test command. If it failed with error of unknow nessage
       // (maybe the catalogue is old version), then try in the old way.
-      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
       rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, &pContext, NULL ) ;
       if ( rc )
       {

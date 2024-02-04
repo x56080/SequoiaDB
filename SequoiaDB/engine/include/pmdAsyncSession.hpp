@@ -201,6 +201,10 @@ namespace engine
          void  getAuditConfig( UINT32 &auditMask, UINT32 &auditConfigMask ) ;
          void  setAuditConfig( UINT32 auditMask, UINT32 auditConfigMask ) ;
 
+         void    setRCShieldLogMask( UINT64 mask ) ;
+         UINT64  getRCShieldLogMask() const ;
+         BOOLEAN hasSetRCShieldLogMask() const { return _hasSetRCShieldLogMask ; }
+
       public:
          UINT64      sessionID () const ;
          NET_HANDLE  netHandle () const ;
@@ -293,6 +297,8 @@ namespace engine
          ossAtomic32          _holdCount ;
          BOOLEAN              _isClosed ;
 
+         UINT64               _RCShieldLogMask ;
+         BOOLEAN              _hasSetRCShieldLogMask ;
    };
    typedef _pmdAsyncSession pmdAsyncSession ;
 

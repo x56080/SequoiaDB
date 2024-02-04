@@ -492,6 +492,7 @@ namespace engine
       }
       else
       {
+         pdSetLastError( rc ) ;
          PD_LOG( PDERROR, "Insert failed on node[%s], rc: %d",
                  routeID2String( errNodeID ).c_str(), rc ) ;
          goto error ;

@@ -459,6 +459,9 @@ namespace engine
       CHAR *pBuff = NULL ;
       INT32 buffSize = 0 ;
       SINT32 flag = 0 ;
+      pdLogShield shield ;
+
+      shield.addRC(SDB_IXM_DUP_KEY ) ;
 
       try
       {

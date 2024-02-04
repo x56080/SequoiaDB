@@ -171,6 +171,7 @@ namespace engine
       SDB_CONSISTENCY_STRATEGY _replStrategy ;
       utilReplSizePlan         _waitPlan ;
 #endif // SDB_ENGINE
+
    } ;
    typedef _pmdOperator pmdOperator ;
 

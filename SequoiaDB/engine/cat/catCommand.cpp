@@ -993,6 +993,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CATCMDTESTCOLLECTION_DOIT ) ;
 
+      UINT64 shieldMask = LOG_MASK_DMS_CS_NOTEXIST | LOG_MASK_DMS_NOTEXIST ;
+      if ( !pdTestAllShieldLogMask( shieldMask ) )
+      {
+         pdSetShieldLogMask( shieldMask ) ;
+      }
+
       if ( 0 == ossStrcmp( _name, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
       {
          goto done ;
@@ -1001,8 +1007,6 @@ namespace engine
       try
       {
          BSONObj collection ;
-         pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
-         pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
          rc = catGetAndLockCollection ( _name, collection, cb, NULL, SHARED ) ;
          // compatible with old version
          if( SDB_DMS_CS_NOTEXIST == rc )

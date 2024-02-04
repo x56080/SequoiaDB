@@ -93,6 +93,7 @@ namespace engine
             cb->resetLsn() ;
             cb->updateConf() ;
             pdClearLastError() ;
+            pdRestoreCurShieldLogMask() ;
 
             if ( PMD_EDU_EVENT_TERM == eventData._eventType )
             {

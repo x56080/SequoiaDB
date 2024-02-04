@@ -567,6 +567,9 @@ namespace engine
       /// trans info
       cb->getTransExecutor()->toBson( builder ) ;
 
+      // rc shield log mask
+      builder.append( FIELD_NAME_RC_SHIELD_MASK, (INT64)pdGetCurShieldLogMask() ) ;
+
       return builder.obj() ;
    }
 
@@ -817,7 +820,8 @@ namespace engine
       {
          UINT32 curAuditVersion = pdGetCurAuditVersion() ;
          UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
-         UINT32 curVersion = curAuditVersion + curTransVer ;
+         UINT32 curShieldLogVer = pdGetCurShieldLogVersion() ;
+         UINT32 curVersion = curAuditVersion + curTransVer + curShieldLogVer ;
 
          if ( 0 != curVersion && curVersion != nodeSiteVer )
          {

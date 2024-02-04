@@ -250,6 +250,7 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
          pdClearLastError() ;
+         pdRestoreCurShieldLogMask() ;
 
          rc = request.init() ;
          if ( rc )

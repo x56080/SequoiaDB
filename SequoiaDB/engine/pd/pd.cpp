@@ -548,6 +548,9 @@ static OSS_THREAD_LOCAL BOOLEAN s_localDiagSecureOn = TRUE ;
 static OSS_THREAD_LOCAL UINT64 s_shieldLogMask = 0 ;
 static OSS_THREAD_LOCAL UINT64 s_hasIncCntMask = 0 ;
 static UINT32 s_shieldLogCnt[PD_MAX_SHIELD_RC_COUNT] = { 0 } ;
+static OSS_THREAD_LOCAL UINT32 s_shieldLogVersion = 0 ;
+static OSS_THREAD_LOCAL UINT64 s_setShieldMaskTrace = 0 ;
+static OSS_THREAD_LOCAL UINT64 s_unsetShieldMaskTrace = 0 ;
 
 struct _pdRCMaskItem
 {
@@ -651,6 +654,15 @@ BOOLEAN pdTestShieldLogMask( UINT64 mask )
    return FALSE ;
 }
 
+BOOLEAN pdTestAllShieldLogMask( UINT64 mask )
+{
+   if ( mask == OSS_BIT_TEST( s_shieldLogMask, mask ) )
+   {
+      return TRUE ;
+   }
+   return FALSE ;
+}
+
 BOOLEAN pdHasShieldLogMask()
 {
    if ( s_shieldLogMask != 0 )
@@ -699,16 +711,75 @@ INT32 pdError( INT32 rc )
    return rc ;
 }
 
-void pdSetShieldRC( INT32 rc )
+UINT64 pdSetShieldLogMask( UINT64 mask )
 {
-   UINT64 mask = _pdRC2Mask( rc ) ;
-   if ( 0 != mask && !pdTestShieldLogMask( mask ) )
+   UINT64 retMask = ( s_shieldLogMask ^ mask ) & mask ;
+   if ( retMask != 0 )
    {
       pdEnableShieldLogMask( mask ) ;
+      OSS_BIT_SET( s_setShieldMaskTrace, retMask ) ;
+      ++s_shieldLogVersion ;
    }
+
+   return retMask;
 }
 
-void pdClearShieldRC()
+UINT64 pdRestoreShieldLogMask( UINT64 mask )
+{
+   UINT64 retMask = s_shieldLogMask & mask ;
+   if ( retMask != 0 )
+   {
+      pdDisableShieldLogMask( mask ) ;
+      OSS_BIT_SET( s_unsetShieldMaskTrace, retMask ) ;
+      --s_shieldLogVersion ;
+   }
+   return retMask ;
+}
+
+UINT64 pdClearShieldLogMask( UINT64 mask )
+{
+   UINT64 retMask = s_shieldLogMask & mask ;
+   if ( retMask != 0 )
+   {
+      pdDisableShieldLogMask( mask ) ;
+      OSS_BIT_SET( s_unsetShieldMaskTrace, retMask ) ;
+      ++s_shieldLogVersion ;
+   }
+   return retMask ;
+}
+
+void pdSetShieldLogRC(INT32 rc)
+{
+   UINT64 mask = _pdRC2Mask( rc ) ;
+   pdSetShieldLogMask( mask ) ;
+
+}
+
+void pdRestoreShieldLogRC(INT32 rc)
+{
+   UINT64 mask = _pdRC2Mask( rc ) ;
+   pdRestoreShieldLogMask( mask ) ;
+
+}
+
+void pdClearShieldLogRC(INT32 rc)
+{
+   UINT64 mask = _pdRC2Mask( rc ) ;
+   pdClearShieldLogMask( mask ) ;
+
+}
+
+UINT64 pdGetCurShieldLogMask()
+{
+   return s_shieldLogMask ;
+}
+
+UINT32 pdGetCurShieldLogVersion()
+{
+   return s_shieldLogVersion ;
+}
+
+void pdResetShieldLogMask()
 {
    pdDisableShieldLogMask( 0xFFFFFFFFFFFFFFFF ) ;
 }
@@ -724,7 +795,11 @@ pdLogShield::~pdLogShield()
 
 void pdLogShield::clearRC()
 {
-   pdDisableShieldLogMask( _addRCMask ) ;
+   if ( pdTestShieldLogMask( _addRCMask ) )
+   {
+      pdRestoreShieldLogMask( _addRCMask ) ;
+      _addRCMask = 0 ;
+   }
 }
 
 void pdLogShield::addRC( INT32 rc )
@@ -732,9 +807,17 @@ void pdLogShield::addRC( INT32 rc )
    UINT64 mask = _pdRC2Mask( rc ) ;
    if ( mask != 0 && !pdTestShieldLogMask( mask ) )
    {
-      pdEnableShieldLogMask( mask ) ;
+      pdSetShieldLogMask( mask ) ;
       OSS_BIT_SET( _addRCMask, mask ) ;
    }
+}
+
+void pdRestoreCurShieldLogMask()
+{
+   UINT64 valid = s_setShieldMaskTrace ^ s_unsetShieldMaskTrace ;
+   OSS_BIT_SET(s_shieldLogMask, s_unsetShieldMaskTrace & valid ) ;
+   OSS_BIT_CLEAR(s_shieldLogMask, s_setShieldMaskTrace & valid ) ;
+   --s_shieldLogVersion ;
 }
 
 #ifdef _DEBUG

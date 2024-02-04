@@ -191,11 +191,20 @@ BOOLEAN pdLocalIsDiaglogSecureEnabled() ;
 void pdEnableShieldLogMask( UINT64 mask ) ;
 void pdDisableShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
+BOOLEAN pdTestAllShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
-void pdSetShieldRC( INT32 rc ) ;
-void pdClearShieldRC() ;
+UINT64 pdSetShieldLogMask( UINT64 mask ) ;
+UINT64 pdRestoreShieldLogMask( UINT64 mask ) ;
+UINT64 pdClearShieldLogMask( UINT64 mask ) ;
+void pdSetShieldLogRC( INT32 rc ) ;
+void pdRestoreShieldLogRC( INT32 rc ) ;
+void pdClearShieldLogRC( INT32 rc ) ;
+UINT64 pdGetCurShieldLogMask() ;
+UINT32 pdGetCurShieldLogVersion() ;
+void pdRestoreCurShieldLogMask() ;
+void pdResetShieldLogMask() ;
 
 class pdLogShield
 {
