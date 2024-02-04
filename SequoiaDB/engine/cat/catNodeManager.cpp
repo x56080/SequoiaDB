@@ -2827,10 +2827,9 @@ namespace engine
       try
       {
          BSONObj groupModeObj ;
-         BOOLEAN incGrpVer = ! groupObj.hasField( CAT_GROUP_MODE_NAME ) ;
 
-         // Update grpMode in SYSCAT.SYSNODES
-         rc = catSetGrpMode( grpMode, incGrpVer, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+         // Update grpMode in SYSCAT.SYSNODES, always increase group version
+         rc = catSetGrpMode( grpMode, TRUE, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
 
          // Update grpMode in SYSCAT.SYSGROUPMODES
@@ -3013,6 +3012,11 @@ namespace engine
             // Update grpMode in SYSCAT.SYSNODES
             rc = catSetGrpMode( tmpGrpMode, needStop, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to stop group mode, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = catIncGrpVer( grpMode.groupID, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to increase group version, rc: %d", rc ) ;
          }
       }
       catch ( exception &e )

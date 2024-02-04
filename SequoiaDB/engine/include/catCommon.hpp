@@ -634,6 +634,9 @@ namespace engine
                          const BOOLEAN incGrpVer,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
                          SDB_DPSCB *pDpsCB, INT16 w ) ;
+   /* Increase group version */
+   INT32 catIncGrpVer( UINT32 groupID, _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
+                       SDB_DPSCB *pDpsCB, INT16 w ) ;
 
    /* Create Node */
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,

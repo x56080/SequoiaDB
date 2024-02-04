@@ -9227,6 +9227,54 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATINCGRPVER, "catIncGrpVer" )
+   INT32 catIncGrpVer( UINT32 groupID, _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
+                       SDB_DPSCB *pDpsCB, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATINCGRPVER ) ;
+
+      BSONObj updator, matcher ;
+
+      try
+      {
+         BSONObjBuilder updatorBuilder, matcherBuilder ;
+
+         // Append groupID to matcher
+         matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
+
+         // Build version increase updator
+         BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
+         incBuilder.append( CAT_VERSION_NAME, 1 ) ;
+         incBuilder.doneFast() ;
+
+         // Update group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator and matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                      0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
+                   "updator: %s, rc: %d", groupID, matcher.toPoolString().c_str(),
+                   updator.toPoolString().c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATINCGRPVER, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATENODESTEP, "catCreateNodeStep" )
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
                              const string &dbPath, UINT32 instanceID,

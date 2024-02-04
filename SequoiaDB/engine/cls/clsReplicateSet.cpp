@@ -1695,6 +1695,7 @@ namespace engine
       rc = _checkGroupInfo( item.version, item.groupInfo ) ;
       if ( SDB_REPL_REMOTE_G_V_EXPIRED == rc )
       {
+         _cata.remove( &(msg->header), MSG_GET_INNER_REPLY_RC(pHeader) ) ;
          rc = SDB_OK ;
          goto done ;
       }
