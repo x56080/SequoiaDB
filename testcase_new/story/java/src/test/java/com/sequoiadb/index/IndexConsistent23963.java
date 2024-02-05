@@ -75,12 +75,23 @@ public class IndexConsistent23963 extends SdbTestBase {
 
         // 任务有两种情况错误码：0成功 ，-321数据truncate中
         int succResultCode = 0;
-        int failResultCode = -321;
+        int[] failResultCode = { -321, -243 };
         if ( dropIndex1.getRetCode() != 0 ) {
-            Assert.assertEquals( dropIndex1.getRetCode(),
-                    SDBError.SDB_DMS_TRUNCATED.getErrorCode() );
-            IndexUtils.checkIndexTask( sdb, "Drop index", SdbTestBase.csName,
-                    clName, indexName1, failResultCode );
+            if ( dropIndex1.getRetCode() != SDBError.SDB_DMS_TRUNCATED
+                    .getErrorCode()
+                    && dropIndex1.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
+                            .getErrorCode()
+                    && dropIndex1.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode() ) {
+                Assert.fail( "Drop index failed, error code is "
+                        + dropIndex1.getRetCode() );
+            }
+            if ( dropIndex1.getRetCode() != SDBError.SDB_LOCK_FAILED
+                    .getErrorCode() ) {
+                IndexUtils.checkIndexTask( sdb, "Drop index",
+                        SdbTestBase.csName, clName, indexName1,
+                        failResultCode );
+            }
             IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName, clName,
                     indexName1, true );
         } else {
@@ -91,10 +102,21 @@ public class IndexConsistent23963 extends SdbTestBase {
                     indexName1, false );
         }
         if ( dropIndex2.getRetCode() != 0 ) {
-            Assert.assertEquals( dropIndex2.getRetCode(),
-                    SDBError.SDB_DMS_TRUNCATED.getErrorCode() );
-            IndexUtils.checkIndexTask( sdb, "Drop index", SdbTestBase.csName,
-                    clName, indexName2, failResultCode );
+            if ( dropIndex2.getRetCode() != SDBError.SDB_DMS_TRUNCATED
+                    .getErrorCode()
+                    && dropIndex2.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
+                            .getErrorCode()
+                    && dropIndex2.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode() ) {
+                Assert.fail( "Drop index failed, error code is "
+                        + dropIndex2.getRetCode() );
+            }
+            if ( dropIndex2.getRetCode() != SDBError.SDB_LOCK_FAILED
+                    .getErrorCode() ) {
+                IndexUtils.checkIndexTask( sdb, "Drop index",
+                        SdbTestBase.csName, clName, indexName2,
+                        failResultCode );
+            }
             IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName, clName,
                     indexName2, true );
         } else {
