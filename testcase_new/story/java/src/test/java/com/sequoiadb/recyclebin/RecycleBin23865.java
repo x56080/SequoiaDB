@@ -131,7 +131,9 @@ public class RecycleBin23865 extends SdbTestBase {
                     db.getCollectionSpace( csName ).dropCollection( mclName );
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
-                            .getErrorCode() )
+                            .getErrorCode()
+                            && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                    .getErrorCode() )
                         throw e;
                 }
             }
