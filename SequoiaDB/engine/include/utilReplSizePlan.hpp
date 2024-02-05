@@ -102,11 +102,12 @@ namespace engine
                                     const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
-         this->locations = OSS_MIN( w, locations / 2 + 1 ) ;
+         this->locations = OSS_MIN( w, 0 == locations ? 0 : locations / 2 + 1 ) ;
          this->affinitiveLocations = OSS_MIN( this->locations,
                                               OSS_MIN( affinitiveLocations, UTIL_REPL_SIZE_TWO ) ) ;
          this->primaryLocationNodes = OSS_MIN( w - this->locations + 1,
-                                               primaryLocationNodes / 2 + 1 ) ;
+                                               0 == primaryLocationNodes ?
+                                               0 : primaryLocationNodes / 2 + 1 ) ;
          this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
       }
 
@@ -117,9 +118,10 @@ namespace engine
                                        const UINT8 affinitiveNodes )
       {
          offset = DPS_INVALID_LSN_OFFSET ;
-         this->primaryLocationNodes = OSS_MIN( w, primaryLocationNodes / 2 + 1 ) ;
+         this->primaryLocationNodes = OSS_MIN( w, 0 == primaryLocationNodes ?
+                                                  0 : primaryLocationNodes / 2 + 1 ) ;
          this->locations = OSS_MIN( w - this->primaryLocationNodes + 1,
-                                    locations / 2 + 1 ) ;
+                                    0 == locations ? 0 : locations / 2 + 1 ) ;
          this->affinitiveLocations = OSS_MIN( this->locations,
                                               OSS_MIN( affinitiveLocations, UTIL_REPL_SIZE_TWO ) ) ;
          this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
