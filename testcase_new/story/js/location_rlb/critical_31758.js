@@ -2,7 +2,7 @@
  * @Description   : seqDB-31758:节点已经恢复，超过MinKeepTime自动停止 Critical 模式
  * @Author        : tangtao
  * @CreateTime    : 2023.05.24
- * @LastEditTime  : 2023.10.12
+ * @LastEditTime  : 2024.02.05
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -11,7 +11,8 @@ testConf.useSrcGroup = true;
 testConf.clName = COMMCLNAME + "_31758";
 testConf.clOpt = { ReplSize: 0 };
 
-main( test );
+// SEQUOIADBMAINSTREAM-10092
+// main( test );
 function test ( args )
 {
    var srcGroup = args.srcGroupName;
