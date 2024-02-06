@@ -2,8 +2,8 @@
  * @Description   : seqDB-28660:catalog节点设置Location后，分离节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.19
- * @LastEditors   : HuangHaimei
+ * @LastEditTime  : 2024.02.06
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -24,7 +24,15 @@ function test ()
       var catalogRG = db.getCatalogRG();
       var catalog1 = catalogRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
       var catalog2 = catalogRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
-      catalogRG.start();
+      // SEQUOIADBMAINSTREAM-10021 规避bug
+      try
+      {
+         catalogRG.start();
+      } catch( e )
+      {
+         sleep( 10000 );
+         catalogRG.start();
+      }
 
       var nodeName1 = catalog1.getHostName() + ":" + catalog1.getServiceName();
       var nodeName2 = catalog2.getHostName() + ":" + catalog2.getServiceName();
