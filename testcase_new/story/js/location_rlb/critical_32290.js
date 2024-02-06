@@ -2,7 +2,7 @@
  * @Description   : seqDB-32290:集群指定节点开启critical模式，组内重选举
  * @Author        : tangtao
  * @CreateTime    : 2023.07.04
- * @LastEditTime  : 2024.02.04
+ * @LastEditTime  : 2023.10.12
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -10,7 +10,7 @@ testConf.skipExistOneNodeGroup = true;
 testConf.useSrcGroup = true;
 testConf.clName = COMMCLNAME + "_32290";
 
-// main( test );
+main( test );
 function test ( args )
 {
    var srcGroup = args.srcGroupName;
