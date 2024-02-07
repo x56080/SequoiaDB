@@ -1152,7 +1152,7 @@ sequoiadb/bin/sdbseadapter
 sequoiadb/bin/sdbomtool
 sequoiadb/bin/sdbrestore
 sequoiadb/java
-sequoiadb/java/sequoiadb-driver-5.8.1.jar
+sequoiadb/java/sequoiadb-driver-${SYS_VERSION}.jar
 sequoiadb/java/jdk
 sequoiadb/java/jdk/openJDK-8u292
 sequoiadb/java/jdk/openJDK-8u292/lib
@@ -1998,8 +1998,8 @@ sequoiadb/java/jdk/openJDK-8u292/sample/lambda/DefaultMethods/Inheritance.java
 sequoiadb/java/jdk/openJDK-8u292/sample/lambda/DefaultMethods/MixIn.java
 sequoiadb/sdbcm.service
 sequoiadb/spark
-sequoiadb/spark/spark-sequoiadb_2.11-5.8.1.jar
-sequoiadb/spark/spark-sequoiadb_3.0-5.8.1.jar
+sequoiadb/spark/spark-sequoiadb_2.11-${SYS_VERSION}.jar
+sequoiadb/spark/spark-sequoiadb_3.0-${SYS_VERSION}.jar
 sequoiadb/samples
 sequoiadb/samples/JS
 sequoiadb/samples/JS/example.js
@@ -2191,7 +2191,7 @@ sequoiadb/plugins/SequoiaSQL/www/app/controller/Data/PostgreSQL/Database/Index.j
 sequoiadb/plugins/SequoiaSQL/bin
 sequoiadb/plugins/SequoiaSQL/bin/start.sh
 sequoiadb/plugins/SequoiaSQL/bin/stop.sh
-sequoiadb/plugins/SequoiaSQL/bin/sequoiasql-plugin-5.8.1.jar
+sequoiadb/plugins/SequoiaSQL/bin/sequoiasql-plugin-${SYS_VERSION}.jar
 sequoiadb/plugins/SequoiaSQL/bin/common.sh
 sequoiadb/plugins/SequoiaSQL/bin/status.sh
 sequoiadb/tools
@@ -3154,8 +3154,8 @@ sequoiadb/tools/sequoias3/config/application.properties
 sequoiadb/tools/sequoias3/java
 sequoiadb/tools/sequoias3/java/lib
 sequoiadb/tools/sequoias3/java/lib/slf4j-log4j12-1.7.21.jar
-sequoiadb/tools/sequoias3/java/sequoias3-client-5.8.1.jar
-sequoiadb/tools/sequoias3/sequoia-s3-5.8.1.jar
+sequoiadb/tools/sequoias3/java/sequoias3-client-${SYS_VERSION}.jar
+sequoiadb/tools/sequoias3/sequoia-s3-${SYS_VERSION}.jar
 sequoiadb/tools/sequoias3/sample
 sequoiadb/tools/sequoias3/sample/java-s3-client-sample
 sequoiadb/tools/sequoias3/sample/java-s3-client-sample/java-s3-client.iml
@@ -3604,10 +3604,10 @@ sequoiadb/conf/script/queryHostStatus.js
 sequoiadb/conf/limits.conf
 sequoiadb/install_om.sh
 sequoiadb/python
-sequoiadb/python/pysequoiadb-5.8.1-py2.tar.gz
-sequoiadb/python/pysequoiadb-5.8.1-py3.tar.gz
+sequoiadb/python/pysequoiadb-${SYS_VERSION}-py2.tar.gz
+sequoiadb/python/pysequoiadb-${SYS_VERSION}-py3.tar.gz
 sequoiadb/flink
-sequoiadb/flink/sdb-flink-connector-5.8.1.jar
+sequoiadb/flink/sdb-flink-connector-${SYS_VERSION}.jar
 sequoiadb/postgresql
 sequoiadb/postgresql/sdb_fdw.so
 sequoiadb/postgresql/sdb_fdw--1.0.sql
