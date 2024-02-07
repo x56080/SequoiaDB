@@ -1,6 +1,7 @@
 package com.sequoiadb.snapshot;
 
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -8,6 +9,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.DBLob;
@@ -85,10 +87,13 @@ public class Snapshot22489 extends SdbTestBase {
                     if( times == 20 ){
                         split.start();
                     }
+
+                    if( times >= totalTimes ){
+                        System.err.println( "Insert time out!");
+                        throw new RuntimeException( "Insert time out!");
+                    }
                 }
-                if( times >= totalTimes ){
-                    System.err.println( "Insert time out!");
-                }
+
                 Assert.assertTrue( split.isSuccess() );
             }
         }
