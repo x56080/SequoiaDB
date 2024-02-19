@@ -734,6 +734,9 @@ namespace engine
          OSS_INLINE UINT32 getNetTimeout() const { return _netTimeout ; }
          OSS_INLINE UINT32 getNetTimeoutRetryTimes() const { return _netTimeoutRetryTimes ; }
 
+         OSS_INLINE const CHAR * getFsCacheExpiredStr() const { return _fsCacheExpiredStr ; }
+         OSS_INLINE UINT64 getFsCacheExpiredMs() const { return _fsCacheExpiredMs ; }
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -898,6 +901,9 @@ namespace engine
 
          UINT32      _netTimeout ;
          UINT32      _netTimeoutRetryTimes ;
+
+         CHAR        _fsCacheExpiredStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
+         UINT64      _fsCacheExpiredMs ;
 
 #ifdef SDB_ENTERPRISE
 

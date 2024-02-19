@@ -169,7 +169,9 @@ namespace engine
 
    public:
       /// get the segment pages of lobd
-     OSS_INLINE UINT32 dataSegmentPages() const ;
+      OSS_INLINE UINT32 dataSegmentPages() const ;
+
+      INT32 freeCache( UINT32 segmentID ) ;
 
    protected:
       INT32  _openLob( const CHAR *path,

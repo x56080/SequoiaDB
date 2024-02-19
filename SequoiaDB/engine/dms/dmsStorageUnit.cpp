@@ -4517,6 +4517,22 @@ namespace engine
       }
    }
 
+   void _dmsStorageUnit::setFsCacheExpired( UINT64 milliSeconds )
+   {
+      if ( _pLobSu )
+      {
+         _pLobSu->setFsCacheExpired( milliSeconds ) ;
+      }
+      if ( _pIndexSu )
+      {
+         _pIndexSu->setFsCacheExpired( milliSeconds ) ;
+      }
+      if ( _pDataSu )
+      {
+         _pDataSu->setFsCacheExpired( milliSeconds ) ;
+      }
+   }
+
    void _dmsStorageUnit::enableSync( BOOLEAN enable )
    {
       if ( _pLobSu )
@@ -4683,6 +4699,35 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSU_CLEARMBCRUDCB ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_INVALIDATEFSCACHE, "_dmsStorageUnit::invalidateFsCache" )
+   INT32 _dmsStorageUnit::invalidateFsCache( const UINT64 *pExpiredMs )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      dmsStorageBase* const suArray[] = { _pDataSu, _pIndexSu, _pLobSu } ;
+      const UINT32 suArraySize = sizeof( suArray ) / sizeof( suArray[ 0 ] ) ;
+      PD_TRACE_ENTRY( SDB__DMSSU_INVALIDATEFSCACHE ) ;
+
+
+      for (UINT32 i = 0 ; i < suArraySize ; ++i )
+      {
+         dmsStorageBase *pSu = suArray[ i ] ;
+         if ( pSu )
+         {
+            rcTmp = pSu->invalidateFsCache( pExpiredMs ) ;
+            if ( rcTmp != SDB_OK )
+            {
+               PD_LOG( PDWARNING, "Failed to invalidate cache of file[%s], rc: %d",
+                       pSu->getSuFileName(), rcTmp ) ;
+               rc = rcTmp ;
+            }
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSU_INVALIDATEFSCACHE, rc ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__CREATESTORAGEOBJS, "_dmsStorageUnit::_createStorageObjs" )

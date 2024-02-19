@@ -396,6 +396,37 @@ error :
    goto done ;
 }
 
+INT32 _ossMmapFile::freeCache ( UINT32 segmentID )
+{
+   INT32 rc = SDB_OK ;
+
+   if( segmentID >= _size )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   rc = flush( segmentID ) ;
+   if ( rc != SDB_OK )
+   {
+      goto error ;
+   }
+
+#if defined (_LINUX)
+   madvise ( ( void * ) _pSegArray[ segmentID ]._ptr,
+             _pSegArray[ segmentID ]._length,
+             MADV_DONTNEED ) ;
+#elif defined (_WINDOWS)
+   /// Windows does not support, and just do nothing
+   rc = SDB_OK ;
+#endif
+
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_UNLINK, "_ossMmapFile::unlink" )
 INT32 _ossMmapFile::unlink ()
 {
@@ -481,3 +512,27 @@ error:
    goto done ;
 }
 
+void ossMmapFile::setSegmentAccessTick( UINT32 pos, UINT64 tick )
+{
+   if ( pos < _size )
+   {
+      _pSegArray[ pos ]._lastAccessTick = tick ;
+   }
+   else
+   {
+      SDB_ASSERT( FALSE, "array index is out of bound" ) ;
+   }
+}
+
+UINT64 ossMmapFile::getSegmentAccessTick( UINT32 pos ) const
+{
+   if ( pos < _size )
+   {
+      return _pSegArray[ pos ]._lastAccessTick ;
+   }
+   else
+   {
+      SDB_ASSERT( FALSE, "array index is out of bound" ) ;
+      return 0 ;
+   }
+}

@@ -258,6 +258,7 @@ namespace engine
       UINT32       syncRecordNum = optCB->getSyncRecordNum() ;
       UINT32       syncDirtyRatio = optCB->getSyncDirtyRatio() ;
       BOOLEAN      syncDeep = optCB->isSyncDeep() ;
+      UINT64       fsCacheExpiredMs = optCB->getFsCacheExpiredMs() ;
 
       ossScopedLock _lock( &_mutex, SHARED ) ;
 
@@ -269,6 +270,7 @@ namespace engine
             _dmsStorageUnit *su = (*itr)->_su ;
             su->setSyncConfig( syncInterval, syncRecordNum, syncDirtyRatio ) ;
             su->setSyncDeep( syncDeep ) ;
+            su->setFsCacheExpired( fsCacheExpiredMs ) ;
 
             /// update cache info
             dmsStorageInfo *pInfo = su->_getStorageInfo() ;

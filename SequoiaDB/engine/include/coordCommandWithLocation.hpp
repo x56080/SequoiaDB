@@ -299,6 +299,22 @@ namespace engine
    } ;
    typedef _coordCMDMemTrim coordCMDMemTrim ;
 
+   /*
+      _coordCMDInvalidateFsCache define
+   */
+   class _coordCMDInvalidateFsCache : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDInvalidateFsCache() ;
+         virtual ~_coordCMDInvalidateFsCache() ;
+      private:
+         virtual BOOLEAN _useContext() { return FALSE ; }
+         virtual INT32   _onLocalMode( INT32 flag ) { return SDB_OK ; }
+         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual UINT32  _getControlMask() const ;
+   } ;
+   typedef _coordCMDInvalidateFsCache coordCMDInvalidateFsCache ;
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

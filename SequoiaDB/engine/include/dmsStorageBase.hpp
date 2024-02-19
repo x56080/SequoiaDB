@@ -388,6 +388,9 @@ namespace engine
                                     BOOLEAN sync,
                                     IExecutor* cb ) ;
 
+         virtual BOOLEAN      canInvalidateFsCache() const ;
+         virtual INT32        invalidateFsCache( const UINT64 *pExpiredMs = NULL ) ;
+
          virtual void         lock() ;
          virtual void         unlock() ;
 
@@ -396,6 +399,7 @@ namespace engine
                                              UINT32 syncDirtyRatio ) ;
          void                 setSyncDeep( BOOLEAN syncDeep ) ;
          void                 setSyncNoWriteTime( UINT32 millsec ) ;
+         void                 setFsCacheExpired( UINT64 millsec ) ;
 
          BOOLEAN              isSyncDeep() const ;
          UINT32               getSyncInterval() const ;
@@ -627,6 +631,9 @@ namespace engine
          INT32    _validateHeader( dmsStorageUnitHeader *pHeader ) ;
          INT32    _preExtendSegment() ;
          INT32    _postOpen( INT32 cause ) ;
+         BOOLEAN  _isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const ;
+         BOOLEAN  _canInvalidateDataSegCache( UINT32 segmentID, UINT64 expiredMs ) const ;
+         BOOLEAN  _canInvalidateMetaSegCache( UINT64 expiredMs ) const ;
 
       protected:
          dmsStorageUnitHeader          *_dmsHeader ;     // 64KB
@@ -663,6 +670,8 @@ namespace engine
          UINT64                        _lastSyncTime ;
 
          BOOLEAN                       _syncEnable ;
+
+         UINT64                        _fsCacheExpiredMs ;
 
       private:
          sharedMutexPtr                _segmentLatch ;

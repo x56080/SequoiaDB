@@ -6308,6 +6308,9 @@ namespace sdbclient
 
       virtual INT32 invalidateUserCache( const CHAR *pUserName = NULL,
                                          const bson::BSONObj &options = _sdbStaticObject ) = 0;
+
+      virtual INT32 invalidateFsCache( const bson::BSONObj &options = _sdbStaticObject,
+                                       const CHAR *pExpiredTime = NULL ) = 0;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -9089,6 +9092,34 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->invalidateUserCache( pUserName, options ) ;
+      }
+
+      /** \fn INT invalidateFsCache( const bson::BSONObj &options = _sdbStaticObject,
+                                     const CHAR *pExpiredTime = NULL )
+          \brief Invalidate the expired file system cache
+          \param [in] options The control options:(Only take effect in coordinate nodes)
+
+              GroupID:INT32,
+              GroupName:String,
+              NodeID:INT32,
+              HostName:String,
+              svcname:String,
+              ...
+          \param [in] pExpiredTime The expire time for file system cache.
+
+              The format of string is a integer or a integer end with unit, and the time unit can be 'h', 'm' or 's'. If it is a integer without unit, it equals unit 'h'. Default: NULL, NULL for expire immediately.
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 invalidateFsCache( const bson::BSONObj &options = _sdbStaticObject,
+                               const CHAR *pExpiredTime = NULL )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->invalidateFsCache( options, pExpiredTime ) ;
       }
    } ;
 

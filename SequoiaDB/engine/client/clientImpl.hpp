@@ -2231,6 +2231,9 @@ namespace sdbclient
 
       INT32 invalidateUserCache( const CHAR *pUserName = NULL,
                                  const bson::BSONObj &options = _sdbStaticObject );
+
+      INT32 invalidateFsCache( const BSONObj &options = _sdbStaticObject,
+                               const CHAR *pExpiredTime = NULL );
    } ;
    typedef class _sdbImpl sdbImpl ;
 

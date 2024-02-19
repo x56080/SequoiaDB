@@ -130,6 +130,8 @@ namespace engine
 
    #define PMD_NET_TIMEOUT_RETRY_TIMES (100)
 
+   #define PMD_DFT_FS_CACHE_EXPIRED    ("72h")
+
    /*
       _pmdCfgExchange implement
    */
@@ -2061,6 +2063,9 @@ done:
       _netTimeout = 0 ;
       _netTimeoutRetryTimes = PMD_NET_TIMEOUT_RETRY_TIMES ;
 
+      ossMemset( _fsCacheExpiredStr, 0, sizeof(_fsCacheExpiredStr) ) ;
+      _fsCacheExpiredMs = 0 ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2692,6 +2697,11 @@ done:
       rdxUInt( pEX, PMD_OPTION_NET_TIMEOUT_RETRY_TIMES, _netTimeoutRetryTimes, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_NET_TIMEOUT_RETRY_TIMES, TRUE ) ;
 
+      // --fsCacheExpired
+      rdxString( pEX, PMD_OPTION_FS_CACHE_EXPIRED, _fsCacheExpiredStr,
+                 sizeof (_fsCacheExpiredStr), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_FS_CACHE_EXPIRED, TRUE ) ;
+
       // end map
 
       return getResult () ;
@@ -3202,6 +3212,20 @@ done:
       {
          // avoid the value is too small
          _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_MIN ;
+      }
+
+      if ( SDB_OK != utilStrToFsCacheExpiredMs( _fsCacheExpiredStr, _fsCacheExpiredMs ) )
+      {
+         std::cerr << PMD_OPTION_FS_CACHE_EXPIRED << " value error, use default"
+                   << std::endl ;
+         ossStrncpy( _fsCacheExpiredStr, PMD_DFT_FS_CACHE_EXPIRED,
+                     sizeof( _fsCacheExpiredStr ) ) ;
+         utilStrToFsCacheExpiredMs( _fsCacheExpiredStr, _fsCacheExpiredMs ) ;
+         _invalidConfNum++ ;
+      }
+      if ( 0 == _fsCacheExpiredMs )
+      {
+         _fsCacheExpiredMs = (UINT64)~0 ;
       }
 
    done:
@@ -3914,8 +3938,7 @@ done:
          case DPS_LOG_WRITE_MOD_FULL :
             ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len -1 ) ;
             break ;
-
-         default :
+default :
             str[0] = 0 ;
             rc = SDB_INVALIDARG ;
       }

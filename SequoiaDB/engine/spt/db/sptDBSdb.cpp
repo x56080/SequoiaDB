@@ -150,6 +150,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, revokeRolesFromUser )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getUser )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, invalidateUserCache )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, invalidateFsCache )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -233,6 +234,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "revokeRolesFromUser", revokeRolesFromUser )
       JS_ADD_MEMBER_FUNC( "getUser", getUser )
       JS_ADD_MEMBER_FUNC( "invalidateUserCache", invalidateUserCache )
+      JS_ADD_MEMBER_FUNC( "invalidateFsCache", invalidateFsCache )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -4362,6 +4364,61 @@ namespace engine
          if ( SDB_OK != rc )
          {
             detail = BSON( SPT_ERR << "Failed to invalidate user cache" );
+            goto error;
+         }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      INT32 _sptDBSdb::invalidateFsCache( const _sptArguments &arg,
+                                          _sptReturnVal &rval,
+                                          bson::BSONObj &detail )
+      {
+         INT32 rc = SDB_OK ;
+         string expiredTime ;
+         INT32 expiredTimeNum = 0 ;
+         const CHAR *pExpiredTime = NULL;
+         BSONObj options;
+
+         if ( arg.argc() >= 1 )
+         {
+            rc = arg.getBsonobj( 0, options ) ;
+            if( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Options must be obj" );
+               goto error ;
+            }
+         }
+
+         rc = arg.getString( 1, expiredTime ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            pExpiredTime = NULL;
+            rc = SDB_OK;
+         }
+         else if( SDB_OK != rc )
+         {
+            rc = arg.getNative( 1, &expiredTimeNum, SPT_NATIVE_INT32 ) ;
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "expiredTime must be string or int" ) ;
+               goto error ;
+            }
+            expiredTime = boost::lexical_cast< string >( expiredTimeNum ) ;
+            pExpiredTime = expiredTime.c_str() ;
+         }
+         else
+         {
+            pExpiredTime = expiredTime.c_str();
+         }
+
+         rc = _sptSdb.invalidateFsCache( options, pExpiredTime );
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to invalidate fs cache" );
             goto error;
          }
 

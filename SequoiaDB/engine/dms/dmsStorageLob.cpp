@@ -2632,6 +2632,36 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_FREECACHE, "_dmsStorageLob::freeCache" )
+   INT32 _dmsStorageLob::freeCache( UINT32 segmentID )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      DMS_LOB_PAGEID startPageID = 0 ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_FREECACHE ) ;
+
+      rcTmp = _ossMmapFile::freeCache( segmentID ) ;
+      if ( rcTmp != SDB_OK )
+      {
+         PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
+                 "rc: %d", segmentID, rcTmp ) ;
+         rc = rcTmp ;
+      }
+
+      startPageID = segment2Extent( segmentID, 0 ) ;
+      rcTmp = _data.freeCache( startPageID, _data.segmentPages() ) ;
+      if ( rcTmp != SDB_OK )
+      {
+         PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
+                 "rc: %d", segmentID, rcTmp ) ;
+         rc = rcTmp ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_FREECACHE, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_READPAGE, "_dmsStorageLob::readPage" )
    INT32 _dmsStorageLob::readPage( DMS_LOB_PAGEID &pos,
                                    BOOLEAN onlyMetaPage,

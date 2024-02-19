@@ -3078,4 +3078,34 @@ error:
    goto done ;
 }
 
+INT32 ossFadvise( OSSFILE *file,
+                  UINT64 offset,
+                  UINT64 length,
+                  INT32 advise )
+{
+   INT32 rc = SDB_OK ;
+
+#if defined( _LINUX )
+   if ( NULL == file ||
+        !file->isOpened() )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   rc = posix_fadvise( file->fd, offset, length, advise ) ;
+   if (rc < 0)
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+#else
+   /// Windows does not support, and just do nothing
+   rc = SDB_OK ;
+#endif //_LINUX
+done:
+   return rc ;
+error:
+   goto done ;
+}
 

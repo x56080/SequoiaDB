@@ -415,6 +415,7 @@ namespace engine
                                     UINT32 syncRecordNum,
                                     UINT32 syncDirtyRatio ) ;
          void        setSyncDeep( BOOLEAN syncDeep ) ;
+         void        setFsCacheExpired( UINT64 milliSeconds ) ;
 
          UINT64      getCurrentDataLSN() const ;
          UINT64      getCurrentIdxLSN() const ;
@@ -691,6 +692,10 @@ namespace engine
       public :
          // monitor CRUD helper functions
          void clearMBCRUDCB () ;
+
+      public:
+         // for data cache (mmap cache and os file system cache) management
+         INT32 invalidateFsCache( const UINT64 *pExpiredMs = NULL ) ;
 
       private:
          INT32 _createStorageObjs() ;

@@ -1225,5 +1225,37 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_FREECACHE, "_dmsStorageLobData::freeCache" )
+   INT32 _dmsStorageLobData::freeCache( DMS_LOB_PAGEID startPageID, UINT32 pageNum )
+   {
+      INT32 rc = SDB_OK ;
+      SINT64 offset = 0 ;
+      SINT64 length = 0 ;
+
+      PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_FREECACHE ) ;
+
+#if defined (_LINUX)
+      if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      {
+         goto done ;
+      }
+
+      offset = getSeek( startPageID, 0 ) ;
+      length = pageNum * _pageSz ;
+      rc = ossFadvise( &_file, offset, length, POSIX_FADV_DONTNEED ) ;
+      if ( rc != SDB_OK )
+      {
+         PD_LOG( PDWARNING, "Failed to advise that don't need file, rc:%d",
+                 rc ) ;
+         goto error ;
+      }
+#endif
+   done:
+      PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_FREECACHE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 

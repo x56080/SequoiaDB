@@ -1472,6 +1472,7 @@ retry:
                          optCB->getSyncRecordNum(),
                          optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
+      su->setFsCacheExpired( optCB->getFsCacheExpiredMs() ) ;
 
       /// add collctionspace
       rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;

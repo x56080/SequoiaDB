@@ -101,6 +101,10 @@ namespace engine
     */
    BOOLEAN     utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown ) ;
    /*
+      PMD_OPTION_FS_CACHE_EXPIRED
+   */
+   INT32 utilStrToFsCacheExpiredMs( const CHAR *time, UINT64 &millsec ) ;
+   /*
       util get error bson
    */
    BSONObj        utilGetErrorBson( INT32 flags, const CHAR *detail,

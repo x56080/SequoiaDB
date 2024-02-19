@@ -795,6 +795,8 @@
 #define FIELD_NAME_RESOURCE                  "Resource"
 #define FIELD_NAME_ACTIONS                   "Actions"
 
+#define FIELD_NAME_EXPIRED_TIME              "ExpiredTime"
+
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -964,6 +966,8 @@
 #define CMD_NAME_DROP_RECYCLEBIN_ALL         "drop recyclebin all"
 #define CMD_NAME_RETURN_RECYCLEBIN_ITEM      "return recyclebin item"
 #define CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME "return recyclebin item to name"
+
+#define CMD_NAME_INVALIDATE_FS_CACHE         "invalidate fs cache"
 
 #define CMD_VALUE_NAME_RECYCLEBIN_ENABLE     "enable"
 #define CMD_VALUE_NAME_RECYCLEBIN_DISABLE    "disable"

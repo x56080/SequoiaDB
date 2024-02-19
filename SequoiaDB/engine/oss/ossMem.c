@@ -222,7 +222,11 @@ void ossSetSysMemInfo( INT32 mxfast,
 
 INT32 ossMemTrim()
 {
+#if defined (_LINUX)
    return malloc_trim( 0 ) ;
+#else
+   return 0 ;
+#endif
 }
 
 BOOLEAN ossMemSanityCheck ( void *p )

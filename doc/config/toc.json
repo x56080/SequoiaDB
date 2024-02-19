@@ -2943,6 +2943,12 @@
                            "en": "invalidateCache()"
                         },
                         {
+                           "id": 1710310089,
+                           "file": "invalidateFsCache",
+                           "cn": "invalidateFsCache()",
+                           "en": "invalidateFsCache()"
+                        },
+                        {
                            "id": 1691490254,
                            "file": "invalidateUserCache",
                            "cn": "invalidateUserCache()",

@@ -2119,6 +2119,33 @@ namespace engine
          UINT32      _mask ;
    } ;
 
+   /*
+      _rtnInvalidateFsCache define
+   */
+   class _rtnInvalidateFsCache : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnInvalidateFsCache() ;
+         virtual ~_rtnInvalidateFsCache() ;
+
+      public:
+         virtual const CHAR * name () { return NAME_INVALIDATE_FS_CACHE ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_INVALIDATE_FS_CACHE ; }
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      private:
+         INT32 _invalidateCsCache ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                    const CHAR *name, UINT32 logicCSID ) ;
+      private:
+         UINT64 _expiredMs ;
+   } ;
 }
 
 const UINT32 pdGetTraceFunctionListNum();

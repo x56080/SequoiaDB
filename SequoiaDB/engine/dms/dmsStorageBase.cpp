@@ -443,6 +443,9 @@ namespace engine
       _writeReordNum      = 0 ;
       _lastSyncTime       = 0 ;
       _syncEnable         = TRUE ;
+
+      _fsCacheExpiredMs   = 0 ;
+      setGetTickFunc( pmdGetDBTick ) ;
    }
 
    _dmsStorageBase::~_dmsStorageBase()
@@ -481,6 +484,11 @@ namespace engine
    void _dmsStorageBase::setSyncNoWriteTime( UINT32 millsec )
    {
       _syncNoWriteTime = millsec ;
+   }
+
+   void _dmsStorageBase::setFsCacheExpired( UINT64 millsec )
+   {
+      _fsCacheExpiredMs = millsec ;
    }
 
    BOOLEAN _dmsStorageBase::isSyncDeep() const
@@ -716,6 +724,84 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _dmsStorageBase::canInvalidateFsCache() const
+   {
+      BOOLEAN rs = FALSE ;
+      UINT32 i = 0 ;
+
+      if ( (UINT64)~0 == _fsCacheExpiredMs )
+      {
+         goto done ;
+      }
+
+      if ( _canInvalidateMetaSegCache( _fsCacheExpiredMs ) )
+      {
+         rs = TRUE ;
+         goto done ;
+      }
+
+      for ( i = _dataSegID ; i < segmentSize() ; ++i )
+      {
+         if ( _canInvalidateDataSegCache( i, _fsCacheExpiredMs ) )
+         {
+            rs = TRUE ;
+            goto done ;
+         }
+      }
+   done:
+      return rs ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSMMAPFILE_INVALIDATECACHE, "_dmsMmapFile::invalidateCache" )
+   INT32 _dmsStorageBase::invalidateFsCache( const UINT64 *pExpiredMs )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      UINT32 i = 0 ;
+      UINT64 expiredMs = ( pExpiredMs ) ? *pExpiredMs : _fsCacheExpiredMs ;
+
+      PD_TRACE_ENTRY ( SDB__DMSMMAPFILE_INVALIDATECACHE ) ;
+
+      if ( (UINT64)~0 == expiredMs )
+      {
+         goto done ;
+      }
+
+      if ( _canInvalidateMetaSegCache( expiredMs ) )
+      {
+         setFileAccessTick( 0 ) ;
+         for ( i = 0 ; i < _dataSegID ; ++i )
+         {
+            rcTmp = freeCache( i ) ;
+            if ( rcTmp != SDB_OK )
+            {
+               PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
+                       "rc: %d", i, rcTmp ) ;
+               rc = rcTmp ;
+            }
+         }
+      }
+
+      for ( i = _dataSegID ; i < segmentSize() ; ++i )
+      {
+         if ( _canInvalidateDataSegCache( i, expiredMs ) )
+         {
+            setSegmentAccessTick( i, 0 ) ;
+            rcTmp = freeCache( i ) ;
+            if ( rcTmp != SDB_OK )
+            {
+               PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
+                       "rc: %d", i, rcTmp ) ;
+               rc = rcTmp ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSMMAPFILE_INVALIDATECACHE, rc ) ;
+      return rc ;
    }
 
    const CHAR* _dmsStorageBase::getSuFileName () const
@@ -2346,6 +2432,25 @@ namespace engine
       incPageNum  = _segmentPages * numSeg ;
    }
 
+   BOOLEAN _dmsStorageBase::_canInvalidateDataSegCache( UINT32 segmentID, UINT64 expiredMs ) const
+   {
+      return ( _isExpired( getSegmentAccessTick( segmentID ), expiredMs ) &&
+               !_dirtyList.isDirty( segmentID - _dataSegID ) ) ;
+   }
+
+   BOOLEAN _dmsStorageBase::_canInvalidateMetaSegCache( UINT64 expiredMs ) const
+   {
+      return ( _isExpired( getFileAccessTick(), expiredMs ) && 0 == _dirtyList.dirtyNumber() ) ;
+   }
+
+   BOOLEAN _dmsStorageBase::_isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const
+   {
+      // expiredMs == 0 means expired immediately
+      // lastAccessTick == 0 means no new access since last cache invalidation
+      return ( 0 == expiredMs ||
+               ( lastAccessTick != 0 &&
+                 pmdGetTickSpanTime( lastAccessTick ) > expiredMs ) ) ;
+   }
 }
 
 

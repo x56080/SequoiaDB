@@ -949,6 +949,7 @@ namespace engine
                                                     optCB->getSyncRecordNum(),
                                                     optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+                        storageUnit->setFsCacheExpired( optCB->getFsCacheExpiredMs() ) ;
                         /// add collectionspace
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                          storageUnit, NULL,
@@ -1155,6 +1156,7 @@ namespace engine
                                            optCB->getSyncRecordNum(),
                                            optCB->getSyncDirtyRatio() ) ;
                storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+               storageUnit->setFsCacheExpired( optCB->getFsCacheExpiredMs() ) ;
                /// add collectionspace
                rc = dmsCB->addCollectionSpace ( csName, sequence, storageUnit,
                                                 NULL, NULL, FALSE ) ;

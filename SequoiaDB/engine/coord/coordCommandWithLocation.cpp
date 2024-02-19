@@ -965,5 +965,32 @@ namespace engine
       return COORD_CTRL_MASK_ALL ;
    }
 
+   /*
+      _coordCMDInvalidateFsCache implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDInvalidateFsCache,
+                                      CMD_NAME_INVALIDATE_FS_CACHE,
+                                      TRUE ) ;
+   _coordCMDInvalidateFsCache::_coordCMDInvalidateFsCache()
+   {
+   }
+
+   _coordCMDInvalidateFsCache::~_coordCMDInvalidateFsCache()
+   {
+   }
+
+   void _coordCMDInvalidateFsCache::_preSet( pmdEDUCB * cb,
+                                             coordCtrlParam & ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+   }
+
+   UINT32 _coordCMDInvalidateFsCache::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
+
 }
 

@@ -165,6 +165,8 @@ namespace engine
 
       INT32 flush() ;
 
+      INT32 freeCache( DMS_LOB_PAGEID startPageID, UINT32 pageNum ) ;
+
    private:
       INT32 _initFileHeader( const dmsStorageInfo &info,
                              _pmdEDUCB *cb ) ;

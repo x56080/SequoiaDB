@@ -3232,4 +3232,22 @@
       <hidden>true</hidden>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_FS_CACHE_EXPIRED</name>
+      <long>fscacheexpired</long>
+      <description>
+         <en>The expire time for file system cache. Expired cache will be cleaned. The string is a integer or a integer end with unit, and the time unit can be 'h', 'm' or 's'. If it is a integer without unit, it equals unit 'h'. Default: '72h', 0 for never expire.</en>
+         <cn>文件系统缓存的过期时间。过期的缓存将被清理掉。取值格式为整数或整数后加上时间单位，时间单位可以是'h'（小时），'m'（分钟）或's'（秒）。如果整数没有带上单位，则视时间单位为'h'。默认值:'72h'，0表示不过期。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The expire time for file system cache. Expired cache will be cleaned. The string is a integer or a integer end with unit, and the time unit can be 'h', 'm' or 's'. If it is a integer without unit, it equals unit 'h'. Default: '72h', 0 for never expire.</en>
+         <cn>文件系统缓存的过期时间。过期的缓存将被清理掉。取值格式为整数或整数后加上时间单位，时间单位可以是'h'（小时），'m'（分钟）或's'（秒）。如果整数没有带上单位，则视时间单位为'h'。默认值:'72h'，0表示不过期。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+   </opt>
+
 </optlist>

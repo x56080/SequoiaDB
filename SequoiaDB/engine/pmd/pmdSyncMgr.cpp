@@ -198,7 +198,8 @@ namespace engine
       {
          pUnit = *it ;
 
-         if ( pUnit->canSync( force ) )
+         if ( pUnit->canSync( force ) ||
+              pUnit->canInvalidateFsCache() )
          {
             _unitList.erase( it ) ;
             /// lock the unit
@@ -251,7 +252,8 @@ namespace engine
       {
          IDataSyncBase *pUnit = *it ;
          ++it ;
-         if ( pUnit->canSync( force ) )
+         if ( pUnit->canSync( force ) ||
+              pUnit->canInvalidateFsCache() )
          {
             ++readyNum ;
          }
@@ -354,6 +356,7 @@ namespace engine
       IDataSyncBase *pUnit = NULL ;
       UINT32 timeout = 0 ;
       BOOLEAN force = FALSE ;
+      BOOLEAN hasEvent = FALSE ;
 
       pEDUMgr->activateEDU( eduCB() ) ;
 
@@ -363,14 +366,24 @@ namespace engine
          {
             _pMgr->checkLoad() ;
 
-            if ( _pMgr->getMainUnit() &&
-                 _pMgr->getMainUnit()->canSync( force ) )
+            hasEvent = FALSE ;
+            if ( _pMgr->getMainUnit() )
             {
-               _pMgr->getMainUnit()->sync( force, _pMgr->isSyncDeep(),
-                                           eduCB() ) ;
-               eduCB()->incEventCount( 1 ) ;
+               if ( _pMgr->getMainUnit()->canSync( force ) )
+               {
+                  _pMgr->getMainUnit()->sync( force, _pMgr->isSyncDeep(),
+                                             eduCB() ) ;
+                  eduCB()->incEventCount( 1 ) ;
+                  hasEvent = TRUE ;
+               }
+               if ( _pMgr->getMainUnit()->canInvalidateFsCache() )
+               {
+                  _pMgr->getMainUnit()->invalidateFsCache() ;
+                  eduCB()->incEventCount( 1 ) ;
+                  hasEvent = TRUE ;
+               }
             }
-            else
+            if ( !hasEvent )
             {
                _pMgr->getNtyEvent()->wait( PMD_SYNC_JOB_INTERVAL ) ;
             }
@@ -426,6 +439,12 @@ namespace engine
       if ( pUnit->canSync( force ) )
       {
          pUnit->sync( force, _pMgr->isSyncDeep(), eduCB() ) ;
+         eduCB()->incEventCount( 1 ) ;
+      }
+
+      if ( pUnit->canInvalidateFsCache() )
+      {
+         pUnit->invalidateFsCache() ;
          eduCB()->incEventCount( 1 ) ;
       }
 
