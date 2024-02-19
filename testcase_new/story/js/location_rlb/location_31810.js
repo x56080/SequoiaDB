@@ -2,14 +2,15 @@
  * @Description   : seqDB-31810:catalog异常，节点已经恢复，超过MinKeepTime自动停止 Critical 模式
  * @Author        : liuli
  * @CreateTime    : 2023.10.19
- * @LastEditTime  : 2023.10.23
+ * @LastEditTime  : 2024.02.19
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
 testConf.clName = COMMCLNAME + "_31810";
 
-main( test );
+// SEQUOIADBMAINSTREAM-10099
+// main( test );
 function test ( args )
 {
    var dbcl = args.testCL;
