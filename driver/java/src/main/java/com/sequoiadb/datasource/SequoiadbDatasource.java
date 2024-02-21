@@ -838,6 +838,7 @@ public class SequoiadbDatasource {
                 try {
                     sdb.disconnect();
                 } catch (Exception e) {
+                    log.debug("Failed to disconnect, address: " + sdb.getNodeName(), e);
                     // do nothing
                 }
                 return;
@@ -1368,12 +1369,14 @@ public class SequoiadbDatasource {
                     if (e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
                             e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() &&
                             e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
+                        log.debug("Failed to create connection, address: " + serAddr.getAddress(), e);
                         // let's stop for another error
                         break;
                     }
                     // remove this address from normal address list
                     _handleErrorAddr(serAddr.getAddress());
                 } catch (Exception e) {
+                    log.debug("Failed to create connection, address: " + serAddr.getAddress(), e);
                     // let's stop for another error
                     break;
                 }
@@ -1387,6 +1390,8 @@ public class SequoiadbDatasource {
                 try {
                     sdb.setSessionAttr(_sessionAttr);
                 } catch (Exception e) {
+                    log.debug("Failed to set current session attribute", e);
+
                     _connItemMgr.releaseItem(connItem);
                     connItem = null;
                     _destroyConnQueue.add(sdb);

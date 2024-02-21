@@ -684,6 +684,7 @@ public class Sequoiadb implements Closeable {
             options = new ConfigOptions();
         }
 
+        Throwable lastException = null;
         Random random = new Random();
         while (list.size() > 0) {
             int index = random.nextInt(list.size());
@@ -692,6 +693,7 @@ public class Sequoiadb implements Closeable {
                 init(str, username, password, options);
                 return;
             } catch (BaseException e) {
+                lastException = e;
                 if (e.getErrorCode() == SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode()) {
                     throw e;
                 }
@@ -699,7 +701,7 @@ public class Sequoiadb implements Closeable {
             }
         }
 
-        throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT, "No valid address");
+        throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT, "No valid address: " + addressList, lastException);
     }
 
     private void authenticate(String userName, String password, SdbAuthVersion authVersion) {
