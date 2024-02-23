@@ -102,7 +102,7 @@ function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
    }
    catch( e )
    {
-      throw buildException( "insertBulkData()", e, "insert", "insert data :" + JSON.stringify( doc ), "insert fail" );
+      throw buildException( "insert error: " + e + "\ninsert data :" + JSON.stringify( doc ) );
    }
    return doc;
 }
