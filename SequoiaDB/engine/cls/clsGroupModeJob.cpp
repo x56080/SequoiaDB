@@ -54,7 +54,8 @@ namespace engine
                                                         const UINT32 &localVersion )
    : _groupMode( info->grpMode ),
      _localVersion( localVersion ),
-     _info( info )
+     _info( info ),
+     _hasLock( FALSE )
    {
       SDB_ASSERT( NULL != _info, "Group info can not be null" ) ;
    }
@@ -77,35 +78,52 @@ namespace engine
       result = UTIL_LJOB_DO_CONT ;
       sleepTime = ( UINT64 ) CLS_GROUPMODE_CHECK_INTERVAL ;
 
-      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
-      const clsGroupMode &grpMode = _info->grpMode ;
+      /// lock
+      _info->mtx.lock_r() ;
+      _hasLock = TRUE ;
 
-      if ( _localVersion < version.fetch() )
+      try
       {
-         PD_LOG( PDDEBUG, "There is a new job executed by other thread, quit this job" ) ;
-         result = UTIL_LJOB_DO_FINISH ;
+         const clsGroupMode &grpMode = _info->grpMode ;
+
+         if ( _localVersion < version.fetch() )
+         {
+            PD_LOG( PDDEBUG, "There is a new job executed by other thread, quit this job" ) ;
+            result = UTIL_LJOB_DO_FINISH ;
+         }
+         else if ( PMD_IS_DB_DOWN() )
+         {
+            PD_LOG( PDDEBUG, "DB is down, stop group mode monitor" ) ;
+            result = UTIL_LJOB_DO_FINISH ;
+            rc = SDB_APP_INTERRUPT ;
+         }
+         // Only primary need to execute this job
+         else if ( ! pmdIsPrimary() )
+         {
+            PD_LOG( PDDEBUG, "Primary changed, stop group mode monitor" ) ;
+            result = UTIL_LJOB_DO_FINISH ;
+         }
+         // The grpMode info in _vote has been updated, quit this job
+         else if ( _groupMode.mode != grpMode.mode )
+         {
+            PD_LOG( PDDEBUG, "Group mode changed, stop group mode monitor" ) ;
+            result = UTIL_LJOB_DO_FINISH ;
+         }
+         else
+         {
+            rc = _checkGroupMode( cb, result, sleepTime ) ;
+         }
       }
-      else if ( PMD_IS_DB_DOWN() )
+      catch( std::exception &e )
       {
-         PD_LOG( PDDEBUG, "DB is down, stop group mode monitor" ) ;
-         result = UTIL_LJOB_DO_FINISH ;
-         rc = SDB_APP_INTERRUPT ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
       }
-      // Only primary need to execute this job
-      else if ( ! pmdIsPrimary() )
+
+      if ( _hasLock )
       {
-         PD_LOG( PDDEBUG, "Primary changed, stop group mode monitor" ) ;
-         result = UTIL_LJOB_DO_FINISH ;
-      }
-      // The grpMode info in _vote has been updated, quit this job
-      else if ( _groupMode.mode != grpMode.mode )
-      {
-         PD_LOG( PDDEBUG, "Group mode changed, stop group mode monitor" ) ;
-         result = UTIL_LJOB_DO_FINISH ;
-      }
-      else
-      {
-         rc = _checkGroupMode( cb, result, sleepTime ) ;
+         _info->mtx.release_r() ;
+         _hasLock = FALSE ;
       }
 
       PD_TRACE_EXITRC( SDB__CLS_GROUPMODE_MONITOR_DOIT, rc ) ;
@@ -135,7 +153,9 @@ namespace engine
       ossTimestamp curTime ;
       ossGetCurrentTime( curTime ) ;
 
-      const _clsGrpModeItem &grpItem = _info->grpMode.grpModeInfo[0] ;
+      /// need copy grpItem, because in function '_stopCriticalMode()->pause()' will release
+      /// lock, so, the _info->grpMode.grpModeInfo[0] will changed
+      _clsGrpModeItem grpItem = _info->grpMode.grpModeInfo[0] ;
       const _clsGrpModeItem &localItem = _groupMode.grpModeInfo[0] ;
 
       // Check if grpMode in clsReplicaSet is valid,
@@ -239,6 +259,7 @@ namespace engine
    INT32 _clsCriticalModeMonitorJob::_stopCriticalMode( pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLS_CRITICALMODE_MONITOR__STOPCRITICALMODE ) ;
 
       IRemoteOperator *pRemoteOpr = NULL ;
@@ -254,7 +275,13 @@ namespace engine
       rc = cb->getOrCreateRemoteOperator( &pRemoteOpr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d", rc ) ;
 
+      /// first pause to save some context and release lock
+      pause() ;
       rc = pRemoteOpr->stopCriticalMode( _info->local.columns.groupID ) ;
+      /// then resume lock from context
+      rcTmp = resume() ;
+
+      rc = rc ? rc : rcTmp ;
       PD_RC_CHECK( rc, PDERROR, "Failed to stop critical mode, rc: %d", rc ) ;
 
    done:
@@ -408,6 +435,7 @@ namespace engine
                                                               const CHAR *pNodeName )
    {
       INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLS_MAINTENANCEMODE_MONITOR_STOPMODE ) ;
 
       IRemoteOperator *pRemoteOpr = NULL ;
@@ -423,7 +451,13 @@ namespace engine
       rc = cb->getOrCreateRemoteOperator( &pRemoteOpr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d", rc ) ;
 
+      /// first pause to save some context and release lock
+      pause() ;
       rc = pRemoteOpr->stopMaintenanceMode( _info->local.columns.groupID, pNodeName ) ;
+      /// then resume lock from context
+      rcTmp = resume() ;
+
+      rc = rc ? rc : rcTmp ;
       PD_RC_CHECK( rc, PDERROR, "Failed to stop maintenance mode, rc: %d", rc ) ;
 
    done:

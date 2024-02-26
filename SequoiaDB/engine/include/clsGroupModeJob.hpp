@@ -75,10 +75,31 @@ namespace engine
          return SDB_OK ;
       }
 
+      void     pause()
+      {
+         if ( _hasLock )
+         {
+            _info->mtx.release_r() ;
+            _hasLock = FALSE ;
+         }
+      }
+
+      INT32    resume()
+      {
+         if ( !_hasLock )
+         {
+            _info->mtx.lock_r() ;
+            _hasLock = TRUE ;
+         }
+
+         return SDB_OK ;
+      }
+
    protected:
       const _clsGroupMode     _groupMode ;
       const UINT32            _localVersion ;
       _clsGroupInfo           *_info ;
+      BOOLEAN                 _hasLock ;
    } ;
 
    template< class T > ossAtomic32 _clsGroupModeMonitorJob< T >::version( 0 ) ;
