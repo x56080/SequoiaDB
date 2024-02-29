@@ -3539,7 +3539,7 @@ namespace engine
          rc = executeOnNodes( pMsg, cb, sendNodes, faileds ) ;
          PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
 
-         if ( faileds.size() > 0 )
+         if ( faileds.size() > 0 && faileds.size() >= ( sendNodes.size() + 1 ) / 2 )
          {
             rc = faileds.begin()->second._rc ;
             PD_LOG( PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
