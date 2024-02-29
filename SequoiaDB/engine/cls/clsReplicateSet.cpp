@@ -1215,21 +1215,9 @@ namespace engine
 
       if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
       {
-         const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
-
-         // This is critical node mode, use alive node count
-         if ( INVALID_NODEID != grpModeItem.nodeID )
-         {
-            nodeCnt = _info.aliveSize() ;
-            aliveCnt = _info.aliveSize() ;
-            isCriticalNodeMode = TRUE ;
-         }
-         // This is critical location mode, use location node count
-         else if ( ! grpModeItem.location.empty() )
-         {
-            nodeCnt = _info.criticalSize() ;
-            aliveCnt = _info.criticalAliveSize() ;
-         }
+         nodeCnt = _info.criticalSize() ;
+         aliveCnt = _info.criticalAliveSize() ;
+         isCriticalNodeMode = TRUE ;
       }
       else
       {
@@ -1244,6 +1232,10 @@ namespace engine
          ++it ;
 
          if ( CLS_GROUP_MODE_MAINTENANCE == pStatus->grpMode )
+         {
+            continue ;
+         }
+         else if ( isCriticalNodeMode && !pStatus->isInCriticalMode() )
          {
             continue ;
          }
@@ -1262,10 +1254,6 @@ namespace engine
 
          if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
          {
-            if ( isCriticalNodeMode )
-            {
-               --nodeCnt ;
-            }
             --aliveCnt ;
             continue ;
          }
@@ -1328,15 +1316,7 @@ namespace engine
       {
          if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
          {
-            const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
-
-            // This is critical node mode, use alive node count,
-            // cirtical locaction mode, nodeCnt/aliveCnt already except remote
-            if ( INVALID_NODEID != grpModeItem.nodeID )
-            {
-               nodeCnt -= remoteAliveNodeCnt ;
-               aliveCnt -= remoteAliveNodeCnt ;
-            }
+            // cirtical mode, nodeCnt/aliveCnt already except remote
          }
          else
          {

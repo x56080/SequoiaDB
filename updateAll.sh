@@ -244,7 +244,7 @@ function installSdb()
 
    # insure ok
    # change the recycle bin to auto drop
-   bin/sdb -s " var db ; for ( var i=0; i < 100; ++i) { try {db = new Sdb('localhost', '50000'); break ;} catch(e) {sleep(1000);} } ; db.getRecycleBin().alter({AutoDrop:true,MaxItemNum:30}); db.close();"
+   bin/sdb -s " var db ; for ( var i=0; i < 100; ++i) { try {db = new Sdb('localhost', '50000'); break ;} catch(e) {sleep(1000);} } ; sleep(5000) ; db.getRecycleBin().alter({AutoDrop:true,MaxItemNum:30}); db.close();"
    if [ $? -eq 0 ] ; then
       echo "Sequoiadb Start Suceed"
    else
