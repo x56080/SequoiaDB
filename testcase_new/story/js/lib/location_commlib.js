@@ -346,6 +346,7 @@ function killNode ( db, node )
       //忽略异常
    }
    waitNodeStart( db, nodeName, timeout )
+   sleep( 2000 );
    node.stop();
    println( "node stop -- " + node );
    remote.close();
