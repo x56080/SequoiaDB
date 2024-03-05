@@ -97,7 +97,9 @@ function test ( args )
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: COMMCSNAME + "." + testConf.clName, RawData: true } );
    while( cursor.next() )
    {
-      var attributeDesc = cursor.current().toObj()["Details"][0]["Attribute"];
+      var obj = cursor.current().toObj();
+      println( JSON.stringify( obj, 0, 1 ) );
+      var attributeDesc = obj["Details"][0]["Attribute"];
       assert.equal( attributeDesc, expAttribute );
    }
    cursor.close();
