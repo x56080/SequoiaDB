@@ -2,8 +2,8 @@
  * @Description   : seqDB-34017:多副本集群，停止一个副本，createCL指定ReplSize:-1
  * @Author        : huangxiaoni
  * @CreateTime    : 2023.02.28
- * @LastEditTime  : 2023.02.28
- * @LastEditors   : huangxiaoni
+ * @LastEditTime  : 2024.03.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -17,10 +17,11 @@ function test ( args )
 
    var cs = db.getCS( csName );
 
+   var slaveNode = db.getRG( groupName ).getSlave();
    try
    {
       // 停止一个备节点
-      db.getRG( groupName ).getSlave().stop();
+      slaveNode.stop();
 
       // 建表
       commDropCL( db, csName, clName, true );
@@ -32,7 +33,7 @@ function test ( args )
    }
    finally
    {
-      db.getRG( groupName ).getSlave().start();
+      slaveNode.start();
    }
    commDropCL( db, csName, clName, false );
 }

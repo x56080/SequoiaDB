@@ -2,7 +2,7 @@
  * @Description   : seqDB-26414:事务中修改无事务属性
  * @Author        : liuli
  * @CreateTime    : 2022.04.24
- * @LastEditTime  : 2022.09.20
+ * @LastEditTime  : 2024.03.07
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26414";
@@ -98,7 +98,6 @@ function test ( args )
    while( cursor.next() )
    {
       var obj = cursor.current().toObj();
-      println( JSON.stringify( obj, 0, 1 ) );
       var attributeDesc = obj["Details"][0]["Attribute"];
       assert.equal( attributeDesc, expAttribute );
    }
