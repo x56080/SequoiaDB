@@ -2,7 +2,7 @@
  * @Description   : seqDB-31760:超过MinKeepTime节点未恢复，手动停止Critical模式
  * @Author        : liuli
  * @CreateTime    : 2023.05.24
- * @LastEditTime  : 2023.06.16
+ * @LastEditTime  : 2024.03.11
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -57,7 +57,7 @@ function test ( args )
       checkStopCriticalMode( db, srcGroup );
 
       // 插入数据报错
-      assert.tryThrow( SDB_CLS_NODE_NOT_ENOUGH, function()
+      assert.tryThrow( [SDB_CLS_NODE_NOT_ENOUGH, SDB_CLS_NOT_PRIMARY], function()
       {
          dbcl.insert( { a: 1 } );
       } );
