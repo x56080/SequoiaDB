@@ -65,8 +65,8 @@ class lob20118 extends PHPUnit_Framework_TestCase
          array_push($records, $record);
       }
       $this -> assertEquals( 2, count($records));
-      $this -> assertEquals( new SequoiaINT64( '15' ), $records[0]['Size']);
-      $this -> assertEquals( new SequoiaINT64( '20' ), $records[1]['Size']);
+      $this -> assertEquals( 15, $records[0]['Size']);
+      $this -> assertEquals( 20, $records[1]['Size']);
    }
    
    public function tearDown()
