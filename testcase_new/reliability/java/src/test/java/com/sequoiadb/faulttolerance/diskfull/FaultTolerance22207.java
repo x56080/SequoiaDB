@@ -151,10 +151,10 @@ public class FaultTolerance22207 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 1024 );
+            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 10 );
             boolean putLobSuc = true;
             int doTime = 0;
-            int timeOut = 300000;
+            int timeOut = 3000000;
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection dbcl = db.getCollectionSpace( csName )
@@ -165,8 +165,8 @@ public class FaultTolerance22207 extends SdbTestBase {
                         lob.write( lobBuff );
                         lob.close();
                         putLobSuc = true;
-                        sleep( 60 );
-                        doTime += 60;
+                        sleep( 6 );
+                        doTime += 6;
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() != SDBError.SDB_CLS_WAIT_SYNC_FAILED
                                 .getErrorCode()

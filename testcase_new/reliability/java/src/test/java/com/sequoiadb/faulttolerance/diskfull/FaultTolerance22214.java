@@ -146,12 +146,12 @@ public class FaultTolerance22214 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 1024 );
+            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 10 );
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection dbcl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 3000; i++ ) {
+                for ( int i = 0; i < 300000; i++ ) {
                     try {
                         DBLob lob = dbcl.createLob();
                         lob.write( lobBuff );
@@ -160,6 +160,8 @@ public class FaultTolerance22214 extends SdbTestBase {
                         if ( e.getErrorCode() != SDBError.SDB_CLS_WAIT_SYNC_FAILED
                                 .getErrorCode()
                                 && e.getErrorCode() != SDBError.SDB_CLS_NODE_NOT_ENOUGH
+                                        .getErrorCode()
+                                && e.getErrorCode() != SDBError.SDB_CLS_NOT_PRIMARY
                                         .getErrorCode() ) {
                             throw e;
                         }

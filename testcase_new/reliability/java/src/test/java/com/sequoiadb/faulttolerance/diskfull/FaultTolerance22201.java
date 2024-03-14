@@ -143,12 +143,12 @@ public class FaultTolerance22201 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 1024 );
+            byte[] lobBuff = LobUtil.getRandomBytes( 1024 * 10 );
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection dbcl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 3000; i++ ) {
+                for ( int i = 0; i < 300000; i++ ) {
                     try {
                         DBLob lob = dbcl.createLob();
                         lob.write( lobBuff );
