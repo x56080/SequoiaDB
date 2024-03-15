@@ -731,6 +731,8 @@
 #define FIELD_NAME_TRANS_PROPAGATE_MODE      "TransPropagateMode"
 #define FIELD_NAME_INHERIT_SESSION_ATTR      "InheritSessionAttr"
 
+#define FIELD_NAME_EXPIRED_TIME              "ExpiredTime"
+
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -879,6 +881,8 @@
 #define CMD_NAME_CREATE_DATASOURCE           "create datasource"
 #define CMD_NAME_DROP_DATASOURCE             "drop datasource"
 #define CMD_NAME_ALTER_DATASOURCE            "alter datasource"
+
+#define CMD_NAME_INVALIDATE_FS_CACHE         "invalidate fs cache"
 
 /**
  * NOTE:

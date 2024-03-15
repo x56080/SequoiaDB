@@ -673,5 +673,10 @@ INT32 ossFallocate( OSSFILE *file,
                     UINT64 offset,
                     UINT64 size ) ;
 
+INT32 ossFadvise( OSSFILE *file,
+                  UINT64 offset,
+                  UINT64 length,
+                  INT32 advise ) ;
+
 #endif // OSSIO_HPP_
 

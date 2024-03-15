@@ -2020,6 +2020,9 @@ namespace sdbclient
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
+
+      INT32 invalidateFsCache( const BSONObj &options = _sdbStaticObject,
+                               const CHAR *pExpiredTime = NULL );
    } ;
    typedef class _sdbImpl sdbImpl ;
 

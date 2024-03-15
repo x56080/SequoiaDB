@@ -125,6 +125,7 @@ namespace engine
 #define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
 #define NAME_MEM_TRIM                        CMD_NAME_MEM_TRIM
+#define NAME_INVALIDATE_FS_CACHE             CMD_NAME_INVALIDATE_FS_CACHE
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -290,6 +291,7 @@ namespace engine
       CMD_UPDATE_CONFIG                      = 202,
       CMD_DELETE_CONFIG                      = 203,
       CMD_MEM_TRIM                           = 204,
+      CMD_INVALIDATE_FS_CACHE                = 205,
 
       CMD_REMOVE_BACKUP                      = 210,
       CMD_INVALIDATE_CACHE                   = 220,

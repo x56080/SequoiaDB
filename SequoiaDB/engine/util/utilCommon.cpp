@@ -532,6 +532,100 @@ namespace engine
       return FALSE ;
    }
 
+   INT32 utilStrToFsCacheExpiredMs( const CHAR *time, UINT64 &millsec )
+   {
+      static const INT32 TIME_BUFFER_SIZE = 32 ;
+      static const CHAR DEFAULT_TIME_UNIT = 'h' ;
+
+      INT32 rc = SDB_OK ;
+      CHAR numBuffer[ TIME_BUFFER_SIZE ] = { 0 } ;
+      const CHAR *pNum = NULL ;
+      CHAR unit = 0 ;
+      INT32 len = 0 ;
+      INT32 num = 0 ;
+      UINT64 result = 0 ;
+
+      len = ossStrlen( time ) ;
+      if ( len < 1 || len > TIME_BUFFER_SIZE - 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossStrcpy( numBuffer, time ) ;
+      rc = utilStrTrim( numBuffer, pNum ) ;
+      if ( rc != SDB_OK )
+      {
+         goto error ;
+      }
+
+      len = ossStrlen( pNum ) ;
+      if ( len < 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      // Extract the time unit out of string.
+      unit = pNum[ len - 1 ] ;
+      if ( '0' <= unit && unit <= '9' ) // Use default unit if none
+      {
+         unit = DEFAULT_TIME_UNIT ;
+      }
+      else
+      {
+         const_cast<CHAR *>(pNum)[ len - 1 ] = 0 ;
+      }
+
+      if ( ossStrchr( pNum, '.' ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = ossStrToInt( pNum, &num ) ;
+      if ( rc != SDB_OK )
+      {
+         goto error ;
+      }
+
+      if ( num < 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      result = num ;
+      switch (unit)
+      {
+         case 'h':
+         {
+            result *= 60 ;
+            // don't break
+         }
+         case 'm':
+         {
+            result *= 60 ;
+            // don't break
+         }
+         case 's':
+         {
+            result *= 1000 ;
+            break ;
+         }
+         default:
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      millsec = result ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void utilBuildErrorBson( BSONObjBuilder &builder,
                             INT32 flags, const CHAR *detail,
                             BOOLEAN *pRollback,

@@ -2571,6 +2571,12 @@
                            "en": "invalidateCache()"
                         },
                         {
+                           "id": 1710310089,
+                           "file": "invalidateFsCache",
+                           "cn": "invalidateFsCache()",
+                           "en": "invalidateFsCache()"
+                        },
+                        {
                            "id": 1432190793,
                            "file": "list",
                            "cn": "list()",

@@ -12457,6 +12457,48 @@ do                                                            \
                       condition, selector, orderBy, hint ) ;
    }
 
+   INT32 _sdbImpl::invalidateFsCache( const BSONObj &options, const CHAR *pExpiredTime )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder ;
+         if ( pExpiredTime )
+         {
+            queryBuilder.append( FIELD_NAME_EXPIRED_TIME, pExpiredTime );
+         }
+         BSONObjIterator itr( options ) ;
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            if ( 0 == ossStrcmp( FIELD_NAME_EXPIRED_TIME, ele.fieldName() ) )
+            {
+               continue ;
+            }
+            queryBuilder.append( ele ) ;
+         }
+         query = queryBuilder.obj() ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_FS_CACHE, &query ) ;
+      if( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    _sdb *_sdb::getObj ( BOOLEAN useSSL )
    {
       return (_sdb*)(new(std::nothrow) sdbImpl ( useSSL )) ;

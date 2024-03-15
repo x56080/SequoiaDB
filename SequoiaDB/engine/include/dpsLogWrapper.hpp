@@ -185,6 +185,9 @@ namespace engine
                                     BOOLEAN sync,
                                     IExecutor* cb ) ;
 
+         virtual BOOLEAN      canInvalidateFsCache() const { return FALSE ; }
+         virtual INT32        invalidateFsCache( const UINT64 *pExpiredMs = NULL ) { return SDB_OK ; }
+
          virtual void         lock() ;
          virtual void         unlock() ;
 

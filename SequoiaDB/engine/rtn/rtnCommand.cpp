@@ -5200,6 +5200,7 @@ error:
    INT32 _rtnMemTrim::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB,
                             _dpsLogWrapper *dpsCB, INT16 w, INT64 *pContextID )
    {
+#if defined (_LINUX)
       BOOLEAN needSleep = FALSE ;
 
       if ( _mask & OSS_MEMDEBUG_MASK_THREADALLOC )
@@ -5241,8 +5242,126 @@ error:
             PD_LOG( PDEVENT, "Has trimmed none memory" ) ;
          }
       }
-
+#endif
       return SDB_OK ;
    }
-}
 
+   /*
+      _rtnInvalidateFsCache implement
+   */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnInvalidateFsCache )
+   _rtnInvalidateFsCache::_rtnInvalidateFsCache()
+   {
+      _expiredMs = 0 ;
+   }
+
+   _rtnInvalidateFsCache::~_rtnInvalidateFsCache()
+   {
+   }
+
+   INT32 _rtnInvalidateFsCache::init( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                                      const CHAR *pMatcherBuff, const CHAR *pSelectBuff,
+                                      const CHAR *pOrderByBuff, const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pExpiredTime = NULL ;
+      try
+      {
+         BSONObj obj( pMatcherBuff ) ;
+         rc = rtnGetStringElement( obj, FIELD_NAME_EXPIRED_TIME, &pExpiredTime ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_CHECK( SDB_OK == rc, rc, error,
+                   PDERROR, "Failed to get field[%s], rc: %d", FIELD_NAME_EXPIRED_TIME,
+                   rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( pExpiredTime && *pExpiredTime != '\0' )
+      {
+         rc = utilStrToFsCacheExpiredMs( pExpiredTime, _expiredMs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse expired time string[%s], rc: %d",
+                      pExpiredTime, rc ) ;
+         _expiredMs = ( 0 == _expiredMs ) ? (UINT64) ~0 : _expiredMs ;
+      }
+      else
+      {
+         _expiredMs = 0 ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEFSCACHE_DOIT, "_rtnCMDInvalidateFsCache::doit" )
+   INT32 _rtnInvalidateFsCache::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB,
+                                      _dpsLogWrapper *dpsCB, INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      MON_CS_SIM_LIST csList ;
+      MON_CS_SIM_LIST::iterator it ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDINVALIDATEFSCACHE_DOIT ) ;
+
+      rc = dmsCB->dumpInfo( csList, TRUE, FALSE, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to dump collection space list, rc: %d", rc );
+
+      for ( it = csList.begin() ; it != csList.end(); ++it )
+      {
+         rcTmp = _invalidateCsCache( cb, dmsCB, it->_name, it->_logicalID ) ;
+         PD_LOG( PDWARNING, "Failed to invalidate cache of collection space [%s], "
+                 "rc: %d", it->_name, rc );
+         rc = rcTmp ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEFSCACHE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEFSCACHE__INVALIDATECSCACHE, "_rtnCMDInvalidateFsCache::_invalidateCsCache" )
+   INT32 _rtnInvalidateFsCache::_invalidateCsCache( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                                    const CHAR *name, UINT32 logicCSID )
+   {
+      INT32 rc = SDB_OK ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+
+      PD_TRACE_ENTRY( SDB__RTNCMDINVALIDATEFSCACHE__INVALIDATECSCACHE ) ;
+
+      rc = dmsCB->nameToSUAndLock( name, suID, &su ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock collection space, rc: %d", rc ) ;
+
+      SDB_ASSERT( su, "Storage unit should always exist" ) ;
+
+      rc = su->invalidateFsCache( &_expiredMs ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to invalidate expired cache, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEFSCACHE__INVALIDATECSCACHE, rc ) ;
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+}

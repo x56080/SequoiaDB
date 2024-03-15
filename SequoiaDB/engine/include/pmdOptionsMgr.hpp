@@ -692,6 +692,8 @@ namespace engine
          }
          OSS_INLINE INT32  getMemMmapMax() const { return _memMmapMax ; }
          OSS_INLINE INT32  getMemTopPad() const { return _memTopPad ; }
+         OSS_INLINE const CHAR * getFsCacheExpiredStr() const { return _fsCacheExpiredStr ; }
+         OSS_INLINE UINT64 getFsCacheExpiredMs() const { return _fsCacheExpiredMs ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -841,6 +843,9 @@ namespace engine
          INT32       _memMmapThreshold ;
          INT32       _memMmapMax ;
          INT32       _memTopPad ;
+
+         CHAR        _fsCacheExpiredStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
+         UINT64      _fsCacheExpiredMs ;
 
 #ifdef SDB_ENTERPRISE
 

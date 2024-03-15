@@ -59,6 +59,7 @@ public:
       ossValuePtr _ptr ;
       UINT32      _length ;
       UINT64      _offset ;
+      INT64       _lastAccessTick ;
 #if defined (_WINDOWS)
       HANDLE _maphandle ;
 #endif
@@ -67,6 +68,7 @@ public:
          _ptr = ptr ;
          _length = length ;
          _offset = offset ;
+         _lastAccessTick = 0 ;
 #if defined (_WINDOWS)
          _maphandle = INVALID_HANDLE_VALUE ;
 #endif
@@ -77,6 +79,7 @@ public:
          _ptr = 0 ;
          _length = 0 ;
          _offset = 0 ;
+         _lastAccessTick = 0 ;
 #if defined (_WINDOWS)
          _maphandle = INVALID_HANDLE_VALUE ;
 #endif
@@ -98,8 +101,11 @@ private:
    UINT32                     _size ;
    ossMmapSegment*            _pTmpArray ;
 
+   mutable volatile UINT64    _lastAccessTick ;
+
    void  _clearSeg() ;
    INT32 _ensureSpace( UINT32 size ) ;
+   UINT64 (*_pGetTickFunc)() ;
 
 public:
 
@@ -118,7 +124,7 @@ public:
       return &_pSegArray[ pos - 1 ] ;
    }
 
-   OSS_INLINE UINT32 segmentSize()
+   OSS_INLINE UINT32 segmentSize() const
    {
       return _size ;
    }
@@ -142,8 +148,32 @@ public:
       {
          *pOffset = _pSegArray[ pos ]._offset ;
       }
+      if ( _pGetTickFunc )
+      {
+         _lastAccessTick = (*_pGetTickFunc)() ;
+         _pSegArray[ pos ]._lastAccessTick = _lastAccessTick ;
+      }
       return tmpPtr ;
    }
+
+   OSS_INLINE void setGetTickFunc( UINT64 (*pGetTickFunc)() )
+   {
+      _pGetTickFunc = pGetTickFunc ;
+   }
+
+   OSS_INLINE void setFileAccessTick( UINT64 tick )
+   {
+      _lastAccessTick = tick ;
+   }
+
+   OSS_INLINE UINT64 getFileAccessTick() const
+   {
+      return _lastAccessTick ;
+   }
+
+   void setSegmentAccessTick( UINT32 pos, UINT64 tick ) ;
+
+   UINT64 getSegmentAccessTick( UINT32 pos ) const ;
 
 public:
    _ossMmapFile ()
@@ -156,6 +186,8 @@ public:
       _capacity = 0 ;
       _size = 0 ;
       _pTmpArray = NULL ;
+      _lastAccessTick = 0 ;
+      _pGetTickFunc = NULL ;
    }
    ~_ossMmapFile ()
    {
@@ -178,6 +210,7 @@ public:
    */
    INT32 flushBlock ( UINT32 segmentID, UINT32 offset,
                       INT32 length, BOOLEAN sync = FALSE ) ;
+   virtual INT32 freeCache ( UINT32 segmentID ) ;
    INT32 unlink () ;
    INT32 size ( UINT64 &fileSize ) ;
 
