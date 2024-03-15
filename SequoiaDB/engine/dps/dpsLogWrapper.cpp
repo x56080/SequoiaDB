@@ -86,6 +86,7 @@ namespace engine
 
       rc = _buf.init( optCB->getReplLogPath(),
                       optCB->getReplLogBuffSize(),
+                      optCB->sparseFile(),
                       sdbGetTransCB() ) ;
       if ( SDB_OK != rc )
       {

@@ -76,7 +76,9 @@ namespace engine
       _dpsLogFileMgr( class _dpsReplicaLogMgr *replMgr );
       ~_dpsLogFileMgr();
 
-      INT32 init( const CHAR *path, dpsMetaFileContent &content );
+      INT32 init( const CHAR *path,
+                  BOOLEAN enableSparse,
+                  dpsMetaFileContent &content );
       void  fini() ;
 
       INT32 flush( _dpsMessageBlock *mb,
