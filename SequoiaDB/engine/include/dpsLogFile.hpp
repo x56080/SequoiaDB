@@ -147,6 +147,7 @@ namespace engine
       INT32 init ( const CHAR *path,
                    UINT32 fileSize,
                    UINT32 fileNum,
+                   BOOLEAN enableSparse = TRUE,
                    BOOLEAN *pCreated = NULL ) ;
 
       INT32 restore( INT32 length = -1,

@@ -110,7 +110,7 @@ namespace engine
    // initialize log manager
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_INIT, "_dpsReplicaLogMgr::init" )
    INT32 _dpsReplicaLogMgr::init ( const CHAR *path, UINT32 pageNum,
-                                   dpsTransCB *pTransCB )
+                                   BOOLEAN enableSparse, dpsTransCB *pTransCB )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_INIT );
@@ -166,7 +166,7 @@ namespace engine
       }
 
       // initialize log files
-      rc = _logger.init( path, metaContent );
+      rc = _logger.init( path, enableSparse, metaContent );
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to initial log files, rc: %d", rc ) ;

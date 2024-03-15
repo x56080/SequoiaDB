@@ -95,6 +95,7 @@ namespace engine
    // initialize log file manager
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_INIT, "_dpsLogFileMgr::init" )
    INT32 _dpsLogFileMgr::init( const CHAR *path,
+                               BOOLEAN enableSparse,
                                dpsMetaFileContent &content )
    {
       INT32 rc = SDB_OK ;
@@ -146,7 +147,7 @@ namespace engine
          // initialize log file for each newly created one
          // we set readonly to FALSE, so that each log file is opened with
          // WRITEONLY option
-         rc = file->init( fileFullPath, _logFileSz, _logFileNum ) ;
+         rc = file->init( fileFullPath, _logFileSz, _logFileNum, enableSparse ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to init log file for %d, rc: %d",

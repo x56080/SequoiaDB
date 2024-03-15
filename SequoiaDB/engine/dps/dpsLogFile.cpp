@@ -49,6 +49,7 @@ namespace engine
 {
    #define DPS_LOGFILE_READ_TIMEOUT          ( 30000 )
    #define DPS_LOG_BLOCK_SZ                  ( 4 * 1024 * 1024 )
+   #define DPS_LOG_FILE_SPARSE_THRESHOLD     ( 64 * 1024 * 1024 )
 
    _dpsLogFile::_dpsLogFile()
    {
@@ -98,6 +99,7 @@ namespace engine
    INT32 _dpsLogFile::init( const CHAR *path,
                             UINT32 size,
                             UINT32 fileNum,
+                            BOOLEAN enableSparse,
                             BOOLEAN *pCreated )
    {
       INT32 rc = SDB_OK ;
@@ -115,6 +117,11 @@ namespace engine
       if ( pCreated )
       {
          *pCreated = FALSE ;
+      }
+
+      if ( enableSparse && _fileSize < DPS_LOG_FILE_SPARSE_THRESHOLD )
+      {
+         enableSparse = FALSE ;
       }
 
       // allocate OSS_FILE, free in destructor
@@ -181,7 +188,7 @@ namespace engine
       created = TRUE ;
 
       // increase the file size to the given size plus log file header
-      rc = ossExtendFile( _file, (SINT64)_fileSize + DPS_LOG_HEAD_LEN );
+      rc = ossExtend( _file, 0, (SINT64)_fileSize + DPS_LOG_HEAD_LEN, enableSparse );
       if ( rc )
       {
          close() ;
