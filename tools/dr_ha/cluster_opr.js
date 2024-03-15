@@ -6,6 +6,7 @@
 @   2017-11-15 Jiaming Wu     将串行的集群重启操作优化为并发操作。
 @   2020-12-18 QinCheng Yang  去除对系统用户名、密码的依赖
 ****************************************************************************** */
+import("./config.js")
 
 /* SequoiaDB 安装目录定义，必须以 '/' 结尾 */
 if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
@@ -615,17 +616,29 @@ function restoreGroupsInCatalog( cataAddr, groupsArray ) {
 ***************************************************************************** */
 function getConfigObjNew( address ) {
    var addrArray = splitHostAndSvcFromAddr( address ) ;
-   var conffile = CONFLOCAL + "/" + addrArray[1] + "/sdb.conf" ;
+   var conffile ;
    var obj ;
    /* New version */
    var oma ;
+   var sdbcmSvc ;
+   var remoteSeqPath ;
    try {
-      var sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
+      sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
       oma = new Oma( addrArray[0], sdbcmSvc ) ;
    } catch ( e ) {
       println( "Failed to connect sdbcm in " + addrArray[0] + ", error info: " + e + "(" + getLastErrMsg() + ")" ) ;
       throw e ;
    }
+
+   try {
+      var remoteObj = new Remote( addrArray[0], sdbcmSvc ) ;
+      remoteSeqPath = remoteObj.getSystem().getEWD() ;
+   } catch ( e ) {
+      println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+
+   conffile = remoteSeqPath + "/../conf/local/" + addrArray[1] + "/sdb.conf" ;
    try {
       var tmpString = oma.getOmaConfigs( conffile ).toObj() ;
       obj = eval( tmpString ) ;
@@ -720,8 +733,7 @@ function saveConfigObj( address, obj ) {
       var conffile = CONFLOCAL + "/" + addrArray[1] + "/sdb.conf" ;
       var objstring = JSON.stringify( obj ) ;
       objstring = objstring.replace( /\"/g, "\\\"" ) ;
-      ssh.exec( SDBSHELL + ' -s " var obj = ' +  objstring + ' " ; ' ) ;
-      ssh.exec( SDBSHELL + ' -s "Oma.setOmaConfigs( obj, ' + "'" + conffile + "'" + ' ) ; " ' ) ;
+      ssh.exec( SDBSHELL + ' -s " var obj = ' +  objstring + ' ; Oma.setOmaConfigs( obj, ' + "'" + conffile + "'" + ' ) ;"' ) ;
       ssh.exec( SDBSHELL + ' -s quit ' ) ;
       ssh.close() ;
    } catch ( e ) {
@@ -979,6 +991,7 @@ function restartNodeWithOma( hostname, svcnames ){
 function restartNodeWithCmd( nodeAddr, options ) {
    var addrArray = splitHostAndSvcFromAddr( nodeAddr ) ;
    var remoteObj ;
+   var remoteSeqPath ;
    try {
       var sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
       remoteObj = new Remote( addrArray[0], sdbcmSvc ) ;
@@ -986,16 +999,24 @@ function restartNodeWithCmd( nodeAddr, options ) {
       println( "Remote " + addrArray[0] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
    }
+
+   try {
+      remoteSeqPath = remoteObj.getSystem().getEWD() ;
+   } catch ( e ) {
+      println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+
    var msg = "ReStart " + addrArray[1] ;
    try {
       var cmd = remoteObj.getCmd() ;
-      cmd.run( SDBSTOP + " -p " + addrArray[1] ) ;
+      cmd.run( remoteSeqPath + "/sdbstop -p " + addrArray[1] ) ;
       println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
       if ( typeof options == "string" && options != "" ) {
-         cmd.run( SDBSTART + " -p " + addrArray[1] + ' -o \"' + options + "\"" ) ;
+         cmd.run( remoteSeqPath + "/sdbstart -p " + addrArray[1] + ' -o \"' + options + "\"" ) ;
          msg += " with " + options ;
       }else {
-         cmd.run( SDBSTART + " -p " + addrArray[1] ) ;
+         cmd.run( remoteSeqPath + "/sdbstart -p " + addrArray[1] ) ;
       }
       println( msg + " succeed in " + addrArray[0] ) ;
    } catch ( e ) {
@@ -1037,7 +1058,6 @@ function change2StandaloneOld( cataAddr ) {
    }
 
    try {
-
       ssh.exec( SDBSTOP + " -p " + addrArray[1] ) ;
       println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
       var cmdline = SDBSTART + " -p " + addrArray[1] + ' -o "--role standalone" ' ;
@@ -1103,9 +1123,17 @@ function restartAllHostNode( hostnameArr ) {
       /* New version */
       if ( NEW_VERSION ) {
          var remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
+         var remoteSeqPath ;
+         try {
+            remoteSeqPath = remoteObj.getSystem().getEWD() ;
+         } catch ( e ) {
+            println( "Get remote " + hostnameArr[j] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+
          try {
             var cmd = remoteObj.getCmd() ;
-            var cmdStr = SDBSTOP + " -t all && " + SDBSTART  + " -t all" ;
+            var cmdStr = remoteSeqPath + "/sdbstop -t all && " + remoteSeqPath  + "/sdbstart -t all" ;
             var retStr = cmd.start( cmdStr, "", 1, 0 ).toString() ;
             var pid = retStr.split( "\n" )[ 0 ] ;
             restartJob[ j ] = { "pid" : "" + pid } ;
@@ -1590,8 +1618,7 @@ function restartNode( nodeNameArray ) {
       if( 0 != tmpArray.length ) {
          var portStr = tmpArray[0] ;
          for( var i = 1; i < tmpArray.length; i++ ) {
-            portStr += 
-"," + tmpArray[i] ;
+            portStr += "," + tmpArray[i] ;
          }
 
          /* New version */
