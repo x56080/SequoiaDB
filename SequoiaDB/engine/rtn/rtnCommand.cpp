@@ -6005,19 +6005,19 @@ error:
    }
 
    /*
-      _rtnInvalidateFsCache implement
+      _rtnCMDInvalidateFsCache implement
    */
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnInvalidateFsCache )
-   _rtnInvalidateFsCache::_rtnInvalidateFsCache()
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDInvalidateFsCache )
+   _rtnCMDInvalidateFsCache::_rtnCMDInvalidateFsCache()
    {
       _expiredMs = 0 ;
    }
 
-   _rtnInvalidateFsCache::~_rtnInvalidateFsCache()
+   _rtnCMDInvalidateFsCache::~_rtnCMDInvalidateFsCache()
    {
    }
 
-   INT32 _rtnInvalidateFsCache::init( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+   INT32 _rtnCMDInvalidateFsCache::init( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                                       const CHAR *pMatcherBuff, const CHAR *pSelectBuff,
                                       const CHAR *pOrderByBuff, const CHAR *pHintBuff )
    {
@@ -6060,7 +6060,7 @@ error:
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEFSCACHE_DOIT, "_rtnCMDInvalidateFsCache::doit" )
-   INT32 _rtnInvalidateFsCache::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB,
+   INT32 _rtnCMDInvalidateFsCache::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB,
                                       _dpsLogWrapper *dpsCB, INT16 w, INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
@@ -6089,7 +6089,7 @@ error:
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__RTNCMDINVALIDATEFSCACHE__INVALIDATECSCACHE, "_rtnCMDInvalidateFsCache::_invalidateCsCache" )
-   INT32 _rtnInvalidateFsCache::_invalidateCsCache( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+   INT32 _rtnCMDInvalidateFsCache::_invalidateCsCache( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                                                     const CHAR *name, UINT32 logicCSID )
    {
       INT32 rc = SDB_OK ;

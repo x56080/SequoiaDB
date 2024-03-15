@@ -2120,14 +2120,14 @@ namespace engine
    } ;
 
    /*
-      _rtnInvalidateFsCache define
+      _rtnCMDInvalidateFsCache define
    */
-   class _rtnInvalidateFsCache : public _rtnCommand
+   class _rtnCMDInvalidateFsCache : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
       public:
-         _rtnInvalidateFsCache() ;
-         virtual ~_rtnInvalidateFsCache() ;
+         _rtnCMDInvalidateFsCache() ;
+         virtual ~_rtnCMDInvalidateFsCache() ;
 
       public:
          virtual const CHAR * name () { return NAME_INVALIDATE_FS_CACHE ; }
