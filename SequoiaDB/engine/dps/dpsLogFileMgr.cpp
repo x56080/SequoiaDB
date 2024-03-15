@@ -102,11 +102,16 @@ namespace engine
       SDB_ASSERT( path, "path can not be NULL!") ;
 
       BOOLEAN needRetry = FALSE ;
-      INT32 length = -1 ;
+      INT32   length = -1 ;
       CHAR fileFullPath[ OSS_MAX_PATHSIZE+1 ] = {0} ;
+      _dpsLogFile *pFile = NULL ;
       // temp buffer stores log file sequence up to 0xFFFFFFFF, which is
       // 4294967295 ( 10 bytes )
       CHAR tmp[11] = { 0 } ;
+
+      UINT32 count = 0 ;
+      UINT32 tmpIndex = 0 ;
+      DPS_LSN_OFFSET checkLsn = DPS_INVALID_LSN_OFFSET ;
 
       // make sure path + OSS_FILE_SEP + DPS_LOG_FILE_PREFIX + xxx + 0
       // is less or equal to OSS_MAX_PATHSIZE
@@ -119,6 +124,7 @@ namespace engine
       }
 
    retry:
+
       for ( UINT32 i = 0; i < _logFileNum ; i++ )
       {
          // memory is free in destructor, or by end of error in this function
@@ -137,61 +143,15 @@ namespace engine
          ossSnprintf ( tmp, sizeof(tmp), "%d", i ) ;
          ossStrncat( fileFullPath, tmp, ossStrlen( tmp ) ) ;
 
-         /// calc file's valid length
-         if ( content.isStatusValid() )
-         {
-            /// work file
-            if ( i == content._workFile )
-            {
-               length = ( content._curLsnOffset + content._curLsnLength ) %
-                        _logFileSz ;
-            }
-            else if ( content._workFile >= content._beginFile )
-            {
-               /// [ begin, work ) is full
-               if ( i >= content._beginFile && i < content._workFile )
-               {
-                  length = _logFileSz ;
-               }
-               /// other is empty
-               else
-               {
-                  length = 0 ;
-               }
-            }
-            else
-            {
-               /// ( work, begin ) is empty
-               if ( i > content._workFile && i < content._beginFile )
-               {
-                  length = 0 ;
-               }
-               /// other is full
-               else
-               {
-                  length = _logFileSz ;
-               }
-            }
-         }
-         else
-         {
-            length = -1 ;
-         }
-
          // initialize log file for each newly created one
          // we set readonly to FALSE, so that each log file is opened with
          // WRITEONLY option
-         rc = file->init( fileFullPath, _logFileSz, _logFileNum,
-                          length, &needRetry ) ;
+         rc = file->init( fileFullPath, _logFileSz, _logFileNum ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to init log file for %d, rc: %d",
                      i, rc ) ;
             goto error;
-         }
-         else if ( needRetry )
-         {
-            goto check_retry ;
          }
       }
 
@@ -199,6 +159,116 @@ namespace engine
       if ( needRetry )
       {
          goto check_retry ;
+      }
+
+      /// restore
+      count = 0 ;
+      checkLsn = DPS_INVALID_LSN_OFFSET ;
+      tmpIndex = _work ;
+      while ( count++ < _logFileNum )
+      {
+         pFile = _files[tmpIndex] ;
+         /// calc file's valid length
+         /// work file
+         if ( tmpIndex == _work )
+         {
+            if ( content.isStatusValid() )
+            {
+               length = ( content._curLsnOffset + content._curLsnLength ) %
+                        _logFileSz ;
+               checkLsn = content._curLsnOffset ;
+            }
+            else
+            {
+               length = -1 ;
+               checkLsn = DPS_INVALID_LSN_OFFSET ;
+            }
+         }
+         else if ( _work >= _begin )
+         {
+            /// [ begin, work ) is full
+            if ( tmpIndex >= _begin && tmpIndex < _work )
+            {
+               length = _logFileSz ;
+            }
+            /// other is empty
+            else
+            {
+               length = 0 ;
+            }
+         }
+         else
+         {
+            /// ( work, begin ) is empty
+            if ( tmpIndex > _work && tmpIndex < _begin )
+            {
+               length = 0 ;
+            }
+            /// other is full
+            else
+            {
+               length = _logFileSz ;
+            }
+         }
+
+         rc = pFile->restore( length, &needRetry ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to restore log file for %d, rc: %d",
+                    tmpIndex, rc ) ;
+            goto error ;
+         }
+         else if ( needRetry )
+         {
+            goto check_retry ;
+         }
+
+         if ( tmpIndex == _work )
+         {
+            /// check the work file is empty
+            if ( _begin != _work && 0 == _files[_work]->getLength() )
+            {
+               PD_LOG( PDEVENT, "The work[%d] file is empty, reset it, and then reload", _work ) ;
+               _files[_work]->reset( DPS_INVALID_LOG_FILE_ID,
+                                     DPS_INVALID_LSN_OFFSET,
+                                     DPS_INVALID_LSN_VERSION ) ;
+               goto check_retry ;
+            }
+         }
+
+         if ( tmpIndex == _begin )
+         {
+            break ;
+         }
+
+         /// check lsn
+         if ( DPS_INVALID_LSN_OFFSET != checkLsn )
+         {
+            BOOLEAN isValid = FALSE ;
+            fileFullPath[0] = 0 ;
+            rc = pFile->validateLsn( checkLsn, isValid,
+                                     fileFullPath, sizeof(fileFullPath)-1 ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Validate last lsn[%lld] in file[%d] failed, rc: %d",
+                       checkLsn, tmpIndex, rc ) ;
+               goto error ;
+            }
+            else if ( !isValid )
+            {
+               PD_LOG( PDWARNING, "The file[%d] validate last lsn[%lld] failed[%s], reset it, "
+                       "and then reload", tmpIndex, checkLsn, fileFullPath ) ;
+               pFile->reset( DPS_INVALID_LOG_FILE_ID,
+                             DPS_INVALID_LSN_OFFSET,
+                             DPS_INVALID_LSN_VERSION ) ;
+               goto check_retry ;
+            }
+         }
+
+         /// read check lsn
+         checkLsn = pFile->getFilePrevLsn() ;
+
+         tmpIndex = _decFileID( tmpIndex ) ;
       }
 
    done:
@@ -221,12 +291,13 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR__ANLYS );
       _dpsLogFile *file = NULL ;
       UINT32 i = 0 ;
-      UINT32 beginLogID = DPS_INVALID_LOG_FILE_ID ;
-      UINT32 tmpWork = 0 ;
+      UINT32 workLogID = DPS_INVALID_LOG_FILE_ID ;
+      UINT32 tmpBegin = 0 ;
+      UINT32 lastLogID = DPS_INVALID_LOG_FILE_ID ;
 
       needRetry = FALSE ;
 
-      //find begin
+      //find work
       while ( i < _files.size() )
       {
          file = _files[i] ;
@@ -236,48 +307,13 @@ namespace engine
             continue ;
          }
 
-         if ( beginLogID == DPS_INVALID_LOG_FILE_ID ||
-              DPS_FILEID_COMPARE( file->header()._logID, beginLogID ) < 0 )
+         if ( workLogID == DPS_INVALID_LOG_FILE_ID ||
+              DPS_FILEID_COMPARE( file->header()._logID, workLogID ) > 0 )
          {
-            beginLogID = file->header()._logID ;
-            _begin = i ;
+            workLogID = file->header()._logID ;
+            _work = i ;
          }
 
-         ++i ;
-      }
-
-      /// check _begin is the same with content
-      if ( content.isStatusValid() && _begin != content._beginFile )
-      {
-         PD_LOG( PDWARNING, "Calc begin file(%d) is not the same with "
-                            "meta file(%d), will retry restore without "
-                            "meta file",
-                 _begin, content._beginFile ) ;
-         needRetry = TRUE ;
-         goto done ;
-      }
-
-      //find work
-      tmpWork = _begin ;
-      i = 0 ;
-
-      // Skip full log files
-      while ( _files[tmpWork]->getIdleSize() == 0 && i < _files.size() )
-      {
-         _work = tmpWork ;
-         tmpWork = _incFileID ( tmpWork ) ;
-         ++i ;
-      }
-
-      // Find the last non-full log file
-      // If i == _files.size() means all log file are full, keep the working log
-      // file as the last full log file, and let the next flush to move working
-      // log file to the next log file
-      if ( i < _files.size() &&
-           _files[tmpWork]->header()._logID != DPS_INVALID_LOG_FILE_ID )
-      {
-         _work = tmpWork ;
-         tmpWork = _incFileID ( tmpWork ) ;
          ++i ;
       }
 
@@ -289,19 +325,54 @@ namespace engine
                             "meta file",
                  _work, content._workFile ) ;
          needRetry = TRUE ;
+      }
+
+      //find begin
+      tmpBegin = _work ;
+      i = 0 ;
+
+      // Skip valid files
+      while ( DPS_INVALID_LOG_FILE_ID != _files[tmpBegin]->header()._logID &&
+              ( DPS_INVALID_LOG_FILE_ID == lastLogID ||
+                lastLogID == _files[tmpBegin]->header()._logID + 1 ) &&
+              i < _files.size() )
+      {
+         _begin = tmpBegin ;
+         lastLogID = _files[tmpBegin]->header()._logID ;
+         tmpBegin = _decFileID ( tmpBegin ) ;
+         ++i ;
+
+         if ( _files[_begin]->header()._firstLSN.offset % _logFileSz != 0 )
+         {
+            break ;
+         }
+      }
+
+      /// check _begin is the same with content
+      if ( content.isStatusValid() && _begin != content._beginFile )
+      {
+         PD_LOG( PDWARNING, "Calc begin file(%d) is not the same with "
+                            "meta file(%d), will retry restore without "
+                            "meta file",
+                 _begin, content._beginFile ) ;
+         needRetry = TRUE ;
+      }
+
+      if ( needRetry )
+      {
          goto done ;
       }
 
       //reset other
       while ( i < _files.size () )
       {
-         if ( _files[tmpWork]->header()._logID != DPS_INVALID_LOG_FILE_ID )
+         if ( _files[tmpBegin]->header()._logID != DPS_INVALID_LOG_FILE_ID )
          {
-            _files[tmpWork]->reset( DPS_INVALID_LOG_FILE_ID,
-                                    DPS_INVALID_LSN_OFFSET,
-                                    DPS_INVALID_LSN_VERSION ) ;
+            _files[tmpBegin]->reset( DPS_INVALID_LOG_FILE_ID,
+                                     DPS_INVALID_LSN_OFFSET,
+                                     DPS_INVALID_LSN_VERSION ) ;
          }
-         tmpWork = _incFileID( tmpWork ) ;
+         tmpBegin = _decFileID( tmpBegin ) ;
          ++i ;
       }
 

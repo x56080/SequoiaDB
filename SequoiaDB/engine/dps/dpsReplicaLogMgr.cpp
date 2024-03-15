@@ -158,10 +158,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Init meta file failed, rc: %d", rc ) ;
       /// read meta content
       metaContent = _metaFile.getContent() ;
-      /// invalid meta status
-      rc = _metaFile.invalidateStatus() ;
-      PD_RC_CHECK( rc, PDERROR, "Invalidate dps meta status failed, rc: %d",
-                   rc ) ;
 
       /// when start from crash
       if ( metaContent.isStatusValid() && !pmdGetStartup().isOK() )

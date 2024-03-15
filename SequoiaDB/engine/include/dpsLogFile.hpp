@@ -147,8 +147,18 @@ namespace engine
       INT32 init ( const CHAR *path,
                    UINT32 fileSize,
                    UINT32 fileNum,
-                   INT32 length = -1,
-                   BOOLEAN *pNeedRetry = NULL ) ;
+                   BOOLEAN *pCreated = NULL ) ;
+
+      INT32 restore( INT32 length = -1,
+                     BOOLEAN *pNeedRetry = NULL ) ;
+
+      DPS_LSN_OFFSET getFilePrevLsn() ;
+
+      INT32 validateLsn( DPS_LSN_OFFSET lsnOffset,
+                         BOOLEAN &isValid,
+                         CHAR *pErrMsgBuf,
+                         UINT32 buffSize ) ;
+
       // write into file
       INT32 write ( const CHAR *content, UINT32 len ) ;
       // read from file
@@ -184,6 +194,7 @@ namespace engine
       }
 
       INT32 sync() ;
+
    private:
       void _initHead( UINT32 logID )
       {
@@ -196,10 +207,12 @@ namespace engine
       }
       // flush log file header
       INT32 _flushHeader() ;
-      // restore header
+      // read header
       INT32 _readHeader () ;
+      // restore header
+      INT32 _restoreHeader( BOOLEAN crashStart ) ;
       // restore from file
-      INT32 _restore( BOOLEAN crashStart, INT32 length ) ;
+      INT32 _restore() ;
    };
    typedef class _dpsLogFile dpsLogFile;
 }
