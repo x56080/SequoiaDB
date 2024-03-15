@@ -2597,6 +2597,13 @@ namespace engine
          else
          {
             expectLSN.offset += ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
+            UINT64 logFileSZ = krcb->getOptionCB()->getReplLogFileSz() ;
+            /// check the rest of space able to put a log header in log file
+            if ( expectLSN.offset / logFileSZ !=
+                 expectLSN.offset + (UINT32)sizeof( dpsLogRecordHeader ) / logFileSZ )
+            {
+               expectLSN.offset += ( logFileSZ - expectLSN.offset % logFileSZ ) ;
+            }
          }
 
          if ( DPS_INVALID_LSN_VERSION == expectLSN.version )

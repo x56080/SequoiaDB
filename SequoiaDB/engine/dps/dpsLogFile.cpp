@@ -48,6 +48,7 @@
 namespace engine
 {
    #define DPS_LOGFILE_READ_TIMEOUT          ( 30000 )
+   #define DPS_LOG_BLOCK_SZ                  ( 4 * 1024 * 1024 )
 
    _dpsLogFile::_dpsLogFile()
    {
@@ -97,8 +98,7 @@ namespace engine
    INT32 _dpsLogFile::init( const CHAR *path,
                             UINT32 size,
                             UINT32 fileNum,
-                            INT32 length,
-                            BOOLEAN *pNeedRetry )
+                            BOOLEAN *pCreated )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_INIT ) ;
@@ -111,6 +111,11 @@ namespace engine
       _fileNum  = fileNum ;
       _idleSize = _fileSize ;
       _path = string( path ) ;
+
+      if ( pCreated )
+      {
+         *pCreated = FALSE ;
+      }
 
       // allocate OSS_FILE, free in destructor
       _file = SDB_OSS_NEW _OSS_FILE();
@@ -130,30 +135,9 @@ namespace engine
          if ( rc == SDB_OK )
          {
             BOOLEAN crashStart = !pmdGetStartup().isOK() ;
-            rc = _restore( crashStart, length ) ;
+            rc = _restoreHeader( crashStart ) ;
             if ( rc == SDB_OK )
             {
-               UINT32 startOffset = 0 ;
-               if ( DPS_INVALID_LSN_OFFSET != _logHeader._firstLSN.offset )
-               {
-                  startOffset = (UINT32)( _logHeader._firstLSN.offset %
-                                          _fileSize ) ;
-               }
-               PD_LOG ( PDEVENT, "Restore dps log file[%s] succeed, "
-                        "firstLsn[%lld], idle space: %u, start offset: %d",
-                        path, getFirstLSN().offset, getIdleSize(),
-                        startOffset ) ;
-
-               /// check length
-               if ( pNeedRetry && -1 != length &&
-                    length != (INT32)getLength() )
-               {
-                  PD_LOG( PDWARNING, "File[%s] length[%d] is not the same with "
-                                     "calc value[%d] by meta file, will "
-                                     "retry init without meta file",
-                          path, getLength(), length ) ;
-                  *pNeedRetry = TRUE ;
-               }
                goto done ;
             }
             else
@@ -224,12 +208,9 @@ namespace engine
          goto error ;
       }
 
-      if ( pNeedRetry && -1 != length )
+      if ( pCreated )
       {
-         PD_LOG( PDWARNING, "File[%s] status is not the same with "
-                            "meta file, will retry init without meta file",
-                 path ) ;
-         *pNeedRetry = TRUE ;
+         *pCreated = TRUE ;
       }
 
    done:
@@ -254,19 +235,197 @@ namespace engine
       goto done;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE__RESTRORE, "_dpsLogFile::_restore" )
-   INT32 _dpsLogFile::_restore( BOOLEAN crashStart, INT32 length )
+   INT32 _dpsLogFile::restore( INT32 length, BOOLEAN *pNeedRetry )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DPSLOGFILE__RESTRORE );
-      INT64 fileSize = 0 ;
-      UINT64 offSet = 0 ;
-      UINT64 baseOffset = 0 ;
-      dpsLogRecordHeader lsnHeader ;
-      CHAR *lastRecord = NULL ;
-      UINT32 lastLen = 0 ;
+      UINT32 startOffset = 0 ;
 
-      _inRestore = TRUE ;
+      /// when logical id is invalid
+      if ( DPS_INVALID_LOG_FILE_ID == _logHeader._logID ||
+           _logHeader._firstLSN.invalid() )
+      {
+         _idleSize = _fileSize ;
+      }
+      else if ( length >= 0 && length <= (INT32)_fileSize )
+      {
+         _idleSize = _fileSize - length ;
+      }
+      else
+      {
+         rc = _restore() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      /// print log info
+      if ( DPS_INVALID_LSN_OFFSET != _logHeader._firstLSN.offset )
+      {
+         startOffset = (UINT32)( _logHeader._firstLSN.offset % _fileSize ) ;
+      }
+
+      PD_LOG ( PDEVENT, "Restore dps log file[%s] succeed, "
+               "firstLsn[%lld], idle space: %u, start offset: %d",
+               path().c_str(), getFirstLSN().offset, getIdleSize(),
+               startOffset ) ;
+
+      /// check length
+      if ( pNeedRetry && -1 != length && length != (INT32)getLength() )
+      {
+         PD_LOG( PDWARNING, "File[%s] length[%d] is not the same with "
+                            "calc value[%d] by meta file, will "
+                            "retry init without meta file",
+                 path().c_str(), getLength(), length ) ;
+         *pNeedRetry = TRUE ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   DPS_LSN_OFFSET _dpsLogFile::getFilePrevLsn()
+   {
+      INT32 rc = SDB_OK ;
+      DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET ;
+
+      if ( DPS_INVALID_LSN_OFFSET != _logHeader._firstLSN.offset &&
+           _logHeader._firstLSN.offset % _fileSize == 0 &&
+           getLength() > sizeof( dpsLogRecordHeader ) )
+      {
+         dpsLogRecordHeader logHeader ;
+         /// read header
+         rc = read( _logHeader._firstLSN.offset, sizeof(dpsLogRecordHeader),
+                   (CHAR *)&logHeader ) ;
+         if ( SDB_OK == rc )
+         {
+            lsnOffset = logHeader._preLsn ;
+         }
+      }
+
+      return lsnOffset ;
+   }
+
+   INT32 _dpsLogFile::validateLsn( DPS_LSN_OFFSET lsnOffset,
+                                   BOOLEAN &isValid,
+                                   CHAR *pErrMsgBuf,
+                                   UINT32 buffSize )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasSetRestore = FALSE ;
+      CHAR *pBuff = NULL ;
+      dpsLogRecordHeader logHeader ;
+      _dpsLogRecord lr ;
+
+      if ( !_inRestore )
+      {
+         _inRestore = TRUE ;
+         hasSetRestore = TRUE ;
+      }
+
+      if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      /// read log header
+      rc = read( lsnOffset, sizeof(dpsLogRecordHeader), (CHAR *)&logHeader ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to read data[offset:%lld, len:%d], rc: %d",
+                  lsnOffset, sizeof(dpsLogRecordHeader), rc ) ;
+         goto error ;
+      }
+
+      isValid = FALSE ;
+
+      /// check log header
+      if ( logHeader._lsn != lsnOffset )
+      {
+         ossSnprintf ( pErrMsgBuf, buffSize, "LSN is not the same[%lld!=%lld]",
+                       logHeader._lsn, lsnOffset ) ;
+         goto done ;
+      }
+      else if ( ( lsnOffset % _fileSize ) + logHeader._length > _fileSize )
+      {
+         ossSnprintf ( pErrMsgBuf, buffSize, "LSN length[%d] is over the file "
+                       "size[offSet:%lld]", logHeader._length,
+                       lsnOffset % _fileSize ) ;
+         goto done ;
+      }
+      else if ( logHeader._length < sizeof (dpsLogRecordHeader) )
+      {
+         ossSnprintf ( pErrMsgBuf, buffSize,  "LSN length[%d] less than min[%d], invalid LSN",
+                       logHeader._length, sizeof(dpsLogRecordHeader) ) ;
+         goto done ;
+      }
+      else if ( logHeader._length > DPS_RECORD_MAX_LEN )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "LSN length[%d] more than max[%d], invalid LSN",
+                      logHeader._length, DPS_RECORD_MAX_LEN ) ;
+         goto done ;
+      }
+      else if ( logHeader._length % sizeof( UINT32 ) != 0 )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "LSN length[%d] is not 4 bytes aligned, "
+                      "invalid LSN", logHeader._length ) ;
+         goto done ;
+      }
+
+      /// allocate memory and read total log
+      pBuff = (CHAR*)SDB_OSS_MALLOC( logHeader._length ) ;
+      if ( !pBuff )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate memory failed" ) ;
+         goto error ;
+      }
+
+      rc = read( lsnOffset, logHeader._length, pBuff ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to read dps record[offset:%lld, len:%d], rc: %d",
+                 lsnOffset, logHeader._length, rc ) ;
+         goto error ;
+      }
+
+      rc = lr.load( pBuff, TRUE ) ;
+      if ( SDB_DPS_CORRUPTED_LOG == rc )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "Log record(lsn:%lld) is corrupted", lsnOffset ) ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to load record log, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      isValid = TRUE ;
+
+   done:
+      if ( hasSetRestore )
+      {
+         _inRestore = FALSE ;
+      }
+      if ( pBuff )
+      {
+         SDB_OSS_FREE( pBuff ) ;
+         pBuff = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dpsLogFile::_restoreHeader( BOOLEAN crashStart )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 fileSize = 0 ;
 
       //Judge the length is right
       rc = ossGetFileSize( _file, &fileSize ) ;
@@ -353,9 +512,9 @@ namespace engine
          }
       }
 
-      PD_LOG ( PDEVENT, "Header info[first lsn:%d.%lld, logID:%d]",
-               _logHeader._firstLSN.version, _logHeader._firstLSN.offset,
-               _logHeader._logID ) ;
+      PD_LOG ( PDEVENT, "DPS log file[%s]'s header info[first lsn:%d.%lld, logID:%d]",
+               path().c_str(), _logHeader._firstLSN.version,
+               _logHeader._firstLSN.offset, _logHeader._logID ) ;
 
       // upgrade the header
       if ( _logHeader._version != DPS_LOG_FILE_VERSION1 )
@@ -368,6 +527,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to flush header, rc: %d", rc ) ;
       }
 
+      /// check logical ID
       if ( _logHeader._logID == DPS_INVALID_LOG_FILE_ID ||
            _logHeader._firstLSN.invalid() ||
            DPS_LSN_2_FILEID( _logHeader._firstLSN.offset, _fileSize ) !=
@@ -379,72 +539,131 @@ namespace engine
          goto done ;
       }
 
-      if ( length >= 0 && length <= (INT32)_fileSize )
-      {
-         _idleSize = _fileSize - length ;
-         goto done ;
-      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE__RESTRORE, "_dpsLogFile::_restore" )
+   INT32 _dpsLogFile::_restore()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DPSLOGFILE__RESTRORE );
+      UINT64 offSet = 0 ;
+      UINT64 baseOffset = 0 ;
+      CHAR *lastRecord = NULL ;
+      UINT32 lastLen = 0 ;
+      CHAR *pBlockBuf = NULL ;
+
+      _inRestore = TRUE ;
 
       offSet = _logHeader._firstLSN.offset % _fileSize ;
       baseOffset = _logHeader._firstLSN.offset - offSet ;
 
+      /// prepare buff
+      pBlockBuf = (CHAR*)SDB_OSS_MALLOC( DPS_LOG_BLOCK_SZ ) ;
+      if ( !pBlockBuf )
+      {
+         PD_LOG( PDERROR, "Allocate memory(%d) failed", DPS_LOG_BLOCK_SZ ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
       //analysis the file
       while ( offSet < _fileSize )
       {
-         rc = read ( offSet + baseOffset , sizeof (dpsLogRecordHeader),
-                     (CHAR*)&lsnHeader ) ;
+         /// read a block
+         dpsLogRecordHeader *pLsnHeader = NULL ;
+         UINT32 offsetInBuf = 0 ;
+         BOOLEAN isValidLsn = FALSE ;
+         UINT32 readLen = _fileSize - offSet > DPS_LOG_BLOCK_SZ ?
+                          DPS_LOG_BLOCK_SZ : _fileSize - offSet ;
+         rc = read ( offSet + baseOffset , readLen, pBlockBuf ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG ( PDERROR, "Failed to read lsn header[offset:%lld,rc:%d]",
-                     offSet, rc ) ;
+            PD_LOG ( PDERROR, "Failed to read data[offset:%lld, len:%d], rc: %d",
+                     offSet, readLen, rc ) ;
             goto error ;
          }
 
-         if ( lsnHeader._lsn != offSet + baseOffset )
+         /// check lsn valid
+         pLsnHeader = ( dpsLogRecordHeader* )pBlockBuf ;
+         while ( pLsnHeader )
          {
-            PD_LOG ( PDEVENT, "LSN is not the same[%lld!=%lld]",
-                     lsnHeader._lsn, offSet + baseOffset ) ;
-            break ;
-         }
-         else if ( offSet + lsnHeader._length > _fileSize )
-         {
-            PD_LOG ( PDEVENT, "LSN length[%d] is over the file "
-                     "size[offSet:%lld]", lsnHeader._length, offSet ) ;
-            break ;
-         }
-         else if ( lsnHeader._length < sizeof (dpsLogRecordHeader) )
-         {
-            PD_LOG ( PDEVENT, "LSN length[%d] less than min[%d], invalid LSN",
-                     lsnHeader._length, sizeof (dpsLogRecordHeader) ) ;
-            break ;
-         }
-         else if ( lsnHeader._length > DPS_RECORD_MAX_LEN )
-         {
-            PD_LOG( PDEVENT, "LSN length[%d] more than max[%d], invalid LSN",
-                    lsnHeader._length, DPS_RECORD_MAX_LEN ) ;
-            break ;
-         }
-         else if ( lsnHeader._length % sizeof( UINT32 ) != 0 )
-         {
-            PD_LOG( PDEVENT, "LSN length[%d] is not 4 bytes aligned, "
-                    "invalid LSN", lsnHeader._length ) ;
-            break ;
+            isValidLsn = FALSE ;
+
+            if ( pLsnHeader->_lsn != offSet + baseOffset )
+            {
+               PD_LOG ( PDEVENT, "LSN is not the same[%lld!=%lld]",
+                        pLsnHeader->_lsn, offSet + baseOffset ) ;
+               break ;
+            }
+            else if ( offSet + pLsnHeader->_length > _fileSize )
+            {
+               PD_LOG ( PDEVENT, "LSN length[%d] is over the file "
+                        "size[offSet:%lld]", pLsnHeader->_length, offSet ) ;
+               break ;
+            }
+            else if ( pLsnHeader->_length < sizeof (dpsLogRecordHeader) )
+            {
+               PD_LOG ( PDEVENT, "LSN length[%d] less than min[%d], invalid LSN",
+                        pLsnHeader->_length, sizeof (dpsLogRecordHeader) ) ;
+               break ;
+            }
+            else if ( pLsnHeader->_length > DPS_RECORD_MAX_LEN )
+            {
+               PD_LOG( PDEVENT, "LSN length[%d] more than max[%d], invalid LSN",
+                       pLsnHeader->_length, DPS_RECORD_MAX_LEN ) ;
+               break ;
+            }
+            else if ( pLsnHeader->_length % sizeof( UINT32 ) != 0 )
+            {
+               PD_LOG( PDEVENT, "LSN length[%d] is not 4 bytes aligned, "
+                       "invalid LSN", pLsnHeader->_length ) ;
+               break ;
+            }
+
+            isValidLsn = TRUE ;
+            /// calc next lsn
+            offsetInBuf += pLsnHeader->_length ;
+            offSet += pLsnHeader->_length ;
+            lastLen = pLsnHeader->_length ;
+
+            if ( offsetInBuf + sizeof( dpsLogRecordHeader ) > readLen )
+            {
+               pLsnHeader = NULL ;
+            }
+            else
+            {
+               pLsnHeader = ( dpsLogRecordHeader* )( pBlockBuf + offsetInBuf ) ;
+            }
          }
 
-         offSet += lsnHeader._length ;
-         lastLen = lsnHeader._length ;
+         if ( !isValidLsn )
+         {
+            break ;
+         }
       }
 
       /// ensure that the last record is valid.
       if ( 0 < lastLen && 0 < offSet )
       {
          _dpsLogRecord lr ;
-         lastRecord = ( CHAR * )SDB_OSS_MALLOC( lastLen ) ;
-         if ( NULL == lastRecord )
+
+         if ( lastLen <= DPS_LOG_BLOCK_SZ )
          {
-            PD_LOG( PDERROR, "failed to allocate mem.") ;
-            rc = SDB_OOM ;
-            goto error ;
+            lastRecord = pBlockBuf ;
+         }
+         else
+         {
+            lastRecord = ( CHAR * )SDB_OSS_MALLOC( lastLen ) ;
+            if ( NULL == lastRecord )
+            {
+               PD_LOG( PDERROR, "Allocate memory(%d) failed", lastLen ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
          }
 
          rc = read( offSet + baseOffset - lastLen,
@@ -452,8 +671,8 @@ namespace engine
                     lastRecord ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to read dps record[%lld, rc:%d]",
-                    offSet, rc ) ;
+            PD_LOG( PDERROR, "Failed to read dps record[offset:%lld, len:%d], rc: %d",
+                    offSet, lastLen, rc ) ;
             goto error ;
          }
 
@@ -467,19 +686,10 @@ namespace engine
                            ( const dpsLogRecordHeader * )lastRecord ;
             PD_LOG( PDEVENT, "last log record(lsn:%lld) is corrupted.",
                     corruptedHeader->_lsn ) ;
-
-            /// only one corrupted log in this file. Should use the previous
-            /// file as the working log file.
-            if ( 0 == offSet )
-            {
-               _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
-               _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
-               _logHeader._logID = DPS_INVALID_LOG_FILE_ID ;
-            }
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to load record log:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to load record log, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -488,7 +698,12 @@ namespace engine
 
    done:
       _inRestore = FALSE ;
-      SAFE_OSS_FREE( lastRecord ) ;
+      if ( lastRecord && lastRecord != pBlockBuf )
+      {
+         SDB_OSS_FREE( lastRecord ) ;
+      }
+      lastRecord = NULL ;
+      SAFE_OSS_FREE( pBlockBuf ) ;
       PD_TRACE_EXITRC ( SDB__DPSLOGFILE__RESTRORE, rc );
       return rc ;
    error:
