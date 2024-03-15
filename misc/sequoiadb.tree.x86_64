@@ -492,6 +492,8 @@ sequoiadb
 │       │   ├── getSpareRG_en.troff
 │       │   ├── invalidateCache_cn.troff
 │       │   ├── invalidateCache_en.troff
+│       │   ├── invalidateFsCache_cn.troff
+│       │   ├── invalidateFsCache_en.troff
 │       │   ├── listBackup_cn.troff
 │       │   ├── listBackup_en.troff
 │       │   ├── list_cn.troff

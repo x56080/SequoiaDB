@@ -189,7 +189,7 @@ public:
       _lastAccessTick = 0 ;
       _pGetTickFunc = NULL ;
    }
-   ~_ossMmapFile ()
+   virtual ~_ossMmapFile ()
    {
       if ( _opened )
       {
