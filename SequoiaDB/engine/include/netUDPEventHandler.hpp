@@ -76,6 +76,8 @@ namespace engine
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) ;
       virtual INT32 asyncRead() ;
+      virtual INT32 asyncWrite( const CHAR *pBuff, UINT32 len,
+                                INT64 millisec = NET_ASYNC_SEND_TIMEOUT ) ;
       virtual INT32 syncSendRaw( const void *buf, UINT32 len ) ;
       virtual void close() ;
       virtual void setOpt() ;
@@ -96,8 +98,6 @@ namespace engine
 
       // check if the net suit is stopped
       virtual BOOLEAN isSuitStopped() const ;
-
-      virtual BOOLEAN select( UINT32 timeout ) { return TRUE ; }
 
    protected:
       OSS_INLINE NET_UDP_EH _getShared()

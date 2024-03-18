@@ -1003,7 +1003,6 @@ namespace engine
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
       pmdStartupHistoryLogger *startLogger = pmdGetStartupHstLogger() ;
       SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
-      sdbCatalogueCB *cataCB = krcb->getCATLOGUECB() ;
 
       switch ( type )
       {
@@ -1017,10 +1016,6 @@ namespace engine
             krcb->getSvcTaskMgr()->reset() ;
             sdbGetClsCB()->resetDumpSchedInfo() ;
             dmsCB->clearAllCRUDCB() ;
-            if ( cataCB )
-            {
-               cataCB->resetMsgCount() ;
-            }
             break ;
          }
          case CMD_SNAPSHOT_DATABASE :
@@ -1028,10 +1023,6 @@ namespace engine
             mondbcb->reset() ;
             mgr->resetIOService() ;
             sdbGetClsCB()->resetDumpSchedInfo() ;
-            if ( cataCB )
-            {
-               cataCB->resetMsgCount() ;
-            }
             break ;
          }
          case CMD_SNAPSHOT_SESSIONS :
@@ -1438,18 +1429,6 @@ namespace engine
 
             ob.append( FIELD_NAME_REPL_NETIN, 0 ) ;
             ob.append( FIELD_NAME_REPL_NETOUT, 0 ) ;
-         }
-
-         if ( SDB_ROLE_CATALOG == role )
-         {
-            sdbCatalogueCB *pCatCB = pKrcb->getCATLOGUECB() ;
-            ob.append( FIELD_NAME_CATA_NET_MSG_COUNT, pCatCB->getOutMsgCount() ) ;
-            ob.append( FIELD_NAME_CATA_NET_MSG_TIMEOUT_COUNT, pCatCB->getOutTimeoutMsgCount() ) ;
-         }
-         else
-         {
-            ob.append( FIELD_NAME_CATA_NET_MSG_COUNT, 0 ) ;
-            ob.append( FIELD_NAME_CATA_NET_MSG_TIMEOUT_COUNT, 0 ) ;
          }
       }
       catch ( std::exception &e )

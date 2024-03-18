@@ -408,6 +408,14 @@ namespace engine
                           MsgHeader *header,
                           const netIOVec &iov ) ;
 
+         INT32 asyncSend( const NET_HANDLE &handle,
+                          MsgHeader *header ) ;
+
+         INT32 asyncSend( const NET_HANDLE &handle,
+                          MsgHeader *header,
+                          const void *body,
+                          UINT32 bodyLen ) ;
+
          INT32 syncSendUDP( const MsgRouteID &id,
                             void *header ) ;
 
@@ -458,10 +466,6 @@ namespace engine
             return (NET_HANDLE)( _handle.inc() ) ;
          }
 
-         BOOLEAN select( const NET_HANDLE &handle ) ;
-
-         void setNetTimeout( UINT32 timeout ) { _netTimeout = timeout ; }
-
       protected:
          netEvSuitPtr      _getEvSuit( BOOLEAN needLock ) ;
          void              _stopAllEvSuit() ;
@@ -498,8 +502,10 @@ namespace engine
          void     _closeHandle( NET_HANDLE handle ) ;
 
          INT32    _syncSendCompatible( NET_EH eh, MsgHeader *message ) ;
+         INT32    _asyncSendCompatible( NET_EH eh, MsgHeader *message ) ;
 
          INT32    _msgConvertAndSend( IMsgConvertor *convertor, NET_EH eh ) ;
+         INT32    _msgConvertAndASend( IMsgConvertor *convertor, NET_EH eh ) ;
 
       private:
          UINT32                           _protocolMask ;
@@ -544,8 +550,6 @@ namespace engine
          BOOLEAN                          _suiteStopFlag ;
 
          NET_UDP_EV_SUIT                  _udpMainSuit ;
-
-         UINT32                           _netTimeout ;
    } ;
 
 }

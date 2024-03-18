@@ -244,22 +244,6 @@ namespace engine
             _needForceSecondary = needForce ;
          }
 
-         INT64 getOutMsgCount()
-         {
-            return _outMsgCount ;
-         }
-
-         INT64 getOutTimeoutMsgCount()
-         {
-            return _outTimeoutMsgCount ;
-         }
-
-         void resetMsgCount()
-         {
-            _outMsgCount = 0 ;
-            _outTimeoutMsgCount = 0 ;
-         }
-
       protected:
          INT32 _onUpgrade( UINT32 beginVersion ) ;
          INT32 _onDowngrade( UINT32 beginVersion ) ;
@@ -298,9 +282,6 @@ namespace engine
          VEC_EVENT_HANDLER    _vecEventHandler ;
 
          UINT32               _inPacketLevel ;
-
-         INT64                _outMsgCount ;
-         INT64                _outTimeoutMsgCount ;
    } ;
 
    /*

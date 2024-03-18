@@ -69,8 +69,11 @@ namespace engine
       // Wait synchronization of transaction ending LSN
       // between Catalog replicas
       CAT_DELAY_REPLY_SYNC,
+
+      CAT_DELAY_REPLY,
    } ;
 
+   #define CAT_MAX_DELAY_RETRY_TIMES         ( 100 )
    #define CAT_DEALY_TIME_INTERVAL           ( 100 ) // ms
 
    /*
@@ -102,15 +105,14 @@ namespace engine
       ossEvent* getAttachEvent() { return &_attachEvent ; }
       ossEvent* getChangeEvent() { return &_changeEvent ; }
 
-      BOOLEAN   delayCurOperation ( UINT32 maxRetryTimes = 0 ) ;
+      BOOLEAN   delayCurOperation ( UINT32 maxRetryTimes =
+                                           CAT_MAX_DELAY_RETRY_TIMES ) ;
       BOOLEAN   isDelayed() const { return _isDelayed ; }
 
-      BOOLEAN   canDelayed( UINT32 maxRetryTimes = 0 ) ;
+      BOOLEAN   canDelayed( UINT32 maxRetryTimes = CAT_MAX_DELAY_RETRY_TIMES ) ;
 
       void addContext( const UINT32 &handle, UINT32 tid, INT64 contextID ) ;
       void delContextByID( INT64 contextID, BOOLEAN rtnDel ) ;
-
-      void setNetTimeoutRetryTimes( UINT32 times ){ _netTimeoutRetryTimes = times ; }
 
    public:
       INT32 handleMsg( const NET_HANDLE &handle,
@@ -193,6 +195,10 @@ namespace engine
       virtual INT32 waitSync( const NET_HANDLE &handle, MsgOpReply *pReply,
                               void *pReplyData, UINT32 replyDataLen ) ;
 
+      INT32 delayReplyEvent ( const NET_HANDLE &handle,
+                              MsgOpReply *pReply, void *pReplyData,
+                              UINT32 replyDataLen ) ;
+
    protected :
       INT32 _waitSyncInternal ( const NET_HANDLE &handle, BOOLEAN firstTry,
                                 UINT64 syncLsn, INT16 w, MsgOpReply *pReply,
@@ -242,8 +248,6 @@ namespace engine
       BOOLEAN           _delayWithoutSync ;
       UINT64            _lastCheckDelayTick ;
       BSONObj           _clMetaRecord ;
-
-      UINT32            _netTimeoutRetryTimes ;
    } ;
 
 }

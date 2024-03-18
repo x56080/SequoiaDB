@@ -169,6 +169,14 @@ namespace engine
                           MsgHeader *header,
                           const netIOVec &iov ) ;
 
+         INT32 asyncSend( const NET_HANDLE &handle,
+                          MsgHeader *header ) ;
+
+         INT32 asyncSend( const NET_HANDLE &handle,
+                          MsgHeader *header,
+                          void *body,
+                          UINT32 bodyLen ) ;
+
          INT32 updateRoute( const _MsgRouteID &id,
                             const CHAR *host,
                             const CHAR *service ) ;

@@ -84,8 +84,6 @@ namespace engine
       _lastCheckDelayTick  = 0 ;
 
       _changeEvent.signal() ;
-
-      _netTimeoutRetryTimes = 0 ;
    }
 
    catMainController::~catMainController()
@@ -155,7 +153,6 @@ namespace engine
       pmdEDUEvent *last    = getLastEvent() ;
       UINT32 handle        = 0 ;
       UINT32 tryTime       = 0 ;
-      UINT32 maxRetryTimesTmp = ( maxRetryTimes == 0 ? _netTimeoutRetryTimes : maxRetryTimes ) ;
 
       if ( NULL == _lastDelayEvent._Data &&
            ( PMD_EDU_EVENT_MSG != last->_eventType ||
@@ -170,7 +167,7 @@ namespace engine
          {
             ossUnpack32From64( _lastDelayEvent._userData, tryTime, handle ) ;
 
-            if ( tryTime > maxRetryTimesTmp )
+            if ( tryTime > maxRetryTimes )
             {
                result = FALSE ;
             }
@@ -185,7 +182,6 @@ namespace engine
       pmdEDUEvent *last    = getLastEvent() ;
       UINT32 handle        = 0 ;
       UINT32 tryTime       = 0 ;
-      UINT32 maxRetryTimesTmp = ( maxRetryTimes == 0 ? _netTimeoutRetryTimes : maxRetryTimes ) ;
 
       if ( NULL == _lastDelayEvent._Data &&
            ( PMD_EDU_EVENT_MSG != last->_eventType ||
@@ -203,7 +199,7 @@ namespace engine
          {
             ossUnpack32From64( _lastDelayEvent._userData, tryTime, handle ) ;
 
-            if ( tryTime > maxRetryTimesTmp )
+            if ( tryTime > maxRetryTimes )
             {
                result = FALSE ;
                goto done ;
@@ -529,8 +525,6 @@ namespace engine
 
       // Set timer
       _checkEventTimerID = _pCatCB->setTimer( CAT_DEALY_TIME_INTERVAL ) ;
-
-      _netTimeoutRetryTimes = pKrcb->getOptionCB()->getNetTimeoutRetryTimes() ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT_INIT, rc ) ;
@@ -2311,6 +2305,11 @@ namespace engine
                          "sync failed, rc: %d", rc ) ;
             break ;
          }
+         case CAT_DELAY_REPLY :
+         {
+            // we just need to send the reply msg
+            break ;
+         }
          default :
             PD_LOG( PDERROR,
                     "Failed to extract delayed reply message, unknown type: %d",
@@ -2438,6 +2437,51 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   INT32 catMainController::delayReplyEvent ( const NET_HANDLE &handle,
+                                              MsgOpReply *pReply, void *pReplyData,
+                                              UINT32 replyDataLen )
+   {
+      INT32 rc = SDB_OK ;
+
+      pmdEDUEvent event ;
+      CHAR *pBuffer = NULL ;
+      INT32 bufferSize = 0 ;
+      BSONObj boInfo ;
+
+      if ( _lastDelayEvent._Data )
+      {
+         if ( delayCurOperation() )
+         {
+            goto done ;
+         }
+         else
+         {
+            rc = SDB_TIMEOUT ;
+            PD_RC_CHECK( rc, PDERROR, "Delay reply failed, rc: %d", rc ) ;
+         }
+      }
+
+      rc = _buildDelayReplyEvent( &pBuffer, &bufferSize, CAT_DELAY_REPLY,
+                                  pReply, pReplyData, replyDataLen, boInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build catalog delay reply event failed, rc: %d", rc ) ;
+
+      event._eventType = PMD_EDU_EVENT_MSG ;
+      event._Data = pBuffer ;
+      event._dataMemType = PMD_EDU_MEM_SELF ;
+      event._eventType = PMD_EDU_EVENT_MSG ;
+      event._userData = ossPack32To64( 1, handle ) ;
+
+      _delayEvent( event ) ;
+
+      PD_LOG ( PDDEBUG, "Delay event handle: [%u] type: [%d]",
+               handle, event._eventType ) ;
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

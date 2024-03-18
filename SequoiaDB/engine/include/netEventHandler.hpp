@@ -42,6 +42,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "netEventHandlerBase.hpp"
+#include "ossEvent.hpp"
 
 namespace engine
 {
@@ -88,6 +89,9 @@ namespace engine
       public:
          virtual INT32 asyncRead() ;
 
+         virtual INT32 asyncWrite( const CHAR *pBuff, UINT32 len,
+                                   INT64 millisec = NET_ASYNC_SEND_TIMEOUT ) ;
+
          virtual INT32 syncConnect( const CHAR *hostName,
                                     const CHAR *serviceName ) ;
 
@@ -109,10 +113,10 @@ namespace engine
          // check if the net suit is stopped
          virtual BOOLEAN isSuitStopped() const ;
 
-         virtual BOOLEAN select( UINT32 timeout ) ;
-
       protected:
          void  _readCallback( const boost::system::error_code &error ) ;
+         void  _writeCallback( const boost::system::error_code &error,
+                               std::size_t bytes_transferred ) ;
          INT32 _allocateBuf( UINT32 len ) ;
          INT32 _syncCheckSysInfo( ossSocket &socket ) ;
 
@@ -120,6 +124,9 @@ namespace engine
          {
             return NET_TCP_EH::makeRaw( this, ALLOC_POOL ) ;
          }
+
+      private:
+         INT32 _getBuff( UINT32 desLen, CHAR** ppBuff, UINT32 &realLen ) ;
 
       protected:
          netEvSuitPtr                     _evSuitPtr ;
@@ -130,6 +137,13 @@ namespace engine
          UINT32                           _bufLen ;
          NET_EVENT_HANDLER_STATE          _state ;
          BOOLEAN                          _hasRecvMsg ;
+
+      private:
+         ossAtomic32                      _hasAsyncSendMsg ;
+         ossAutoEvent                     _asyncSendEvent ;
+         CHAR*                            _pAsyncSendMsgBuff ;
+         UINT32                           _pAsyncSendMsgBuffLen ;
+         UINT32                           _asyncSendMsgSize ;
    } ;
 
 }
