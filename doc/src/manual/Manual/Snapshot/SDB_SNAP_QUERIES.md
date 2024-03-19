@@ -18,15 +18,20 @@ SDB_SNAP_QUERIES
 | NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]          |
 | StartTimestamp         | string   | 查询开始时间                                        |
 | EndTimestamp           | string   | 查询结束时间                                        |
-| TID                    | int32    | 内部线程 ID                                         |
+| TID                    | int32    | 查询所属线程 ID                                     |
 | OpType                 | string   | 操作类型                                            |
 | Name                   | string   | 操作对象名                                          |
-| QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                        |
-| ReturnNum              | int32    | 返回值                                              |
-| TotalMsgSent           | int32    | 发送到远程节点的消息总数                            |
+| NetTimeSpent           | double   | 查询应答的网络耗时，单位为毫秒                      |
+| QueryTimeSpent         | double   | 查询总共花费时间，单位为毫秒                        |
+| ReturnNum              | int32    | 操作返回记录数                                      |
+| QueryID                | string   | 查询ID, 用于关联协调节点和数据节点的慢查询信息      |
+| RelatedNID             | int32    | 查询接入节点ID，可用于查询和会话关联                |
+| RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联          |
+| SessionID              | int32    | 查询所属会话ID                                      |
+| TotalMsgSent           | int32    | 发送到远程节点的消息总次数                          |
+| MsgSentTime            | double   | 消息发送花费时间，单位为毫秒                        |
+| RemoteNodeWaitTime     | double   | 等待远程节点应答所花费时间，单位为毫秒              |
 | LastOpInfo             | string   | 查询语句内容                                        |
-| MsgSentTime            | int32    | 消息发送花费时间，单位为毫秒                        |
-| RemoteNodeWaitTime     | int32    | 等待远程节点花费时间，单位为毫秒                    |
 | ClientInfo             | bson     | 连接到 SequoiaDB 引擎执行该查询的客户端信息         |
 | RelatedNode            | bson array | 处理该查询时，经该协调节点发送到的远程节点集      |
 
@@ -41,31 +46,34 @@ SDB_SNAP_QUERIES
 
 ## 数据节点字段信息
 
-| 字段名                 | 类型     | 描述                                                                                     |
-| ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>                                               |
-| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]                                               |
-| StartTimestamp         | string   | 查询开始时间                                                                             |
-| EndTimestamp           | string   | 查询结束时间                                                                             |
-| TID                    | int32    | 内部线程 ID                                                                              |
-| OpType                 | string   | 操作类型                                                                                 |
-| Name                   | string   | 操作对象名                                                                               |
-| QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                                                             |
-| ReturnNum              | int32    | 返回值                                                                                   |
-| RelatedNID             | int32    | 将该查询请求发送到该数据节点的的相关协调节点 ID                                          |
-| RelatedTID             | int32    | 发送查询的相关协调节点的线程 ID，结合 RelatedNID 可以将协调节点和数据节点的快照输出进行关联 |
-| SessionID              | int32    | 内部会话 ID                                                                              |
-| AccessPlanID           | int32    | 访问计划 ID                                                                              |
-| DataRead               | int32    | 数据记录读                                                                               |
-| DataWrite              | int32    | 数据记录写                                                                               |
-| IndexRead              | int32    | 索引读                                                                                   |
-| IndexWrite             | int32    | 索引写                                                                                   |
-| LobRead                | int32    | 服务端中 LOB 分片的读次数 |
-| LobWrite               | int32    | 服务端中 LOB 分片的写次数  |
-| LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
-| LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
-| TransLockWaitTime      | int32    | 锁等待时间，单位为毫秒                                                                   |
-| LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
+| 字段名                 | 类型     | 描述                                                               |
+| ---------------------- | -------- | ------------------------------------------------------------------ |
+| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>                         |
+| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]                         |
+| StartTimestamp         | string   | 查询开始时间                                                       |
+| EndTimestamp           | string   | 查询结束时间                                                       |
+| TID                    | int32    | 查询所属线程 ID                                                    |
+| OpType                 | string   | 操作类型                                                           |
+| Name                   | string   | 操作对象名                                                         |
+| NetTimeSpent           | double   | 查询应答的网络耗时，单位为毫秒                                     |
+| QueryTimeSpent         | double   | 查询总共花费时间，单位为毫秒                                       |
+| ReturnNum              | int32    | 操作返回记录数                                                     |
+| QueryID                | string   | 查询ID, 用于关联协调节点和数据节点的慢查询信息                     |
+| RelatedNID             | int32    | 查询接入节点ID，可用于查询和会话关联                               |
+| RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联                         |
+| SessionID              | int32    | 查询所属会话ID                                                     |
+| AccessPlanID           | int32    | 查询对应的访问计划 ID                                              |
+| DataRead               | int32    | 数据记录读                                                         |
+| DataWrite              | int32    | 数据记录写                                                         |
+| IndexRead              | int32    | 索引读                                                             |
+| IndexWrite             | int32    | 索引写                                                             |
+| LobRead                | int32    | 服务端中 LOB 分片的读次数                                          |
+| LobWrite               | int32    | 服务端中 LOB 分片的写次数                                          |
+| LobTruncate            | int64    | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效）          |
+| LobAddressing          | int64    | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效）        |
+| TransLockWaitTime      | double   | 锁等待时间，单位为毫秒                                             |
+| LatchWaitTime          | double   | 闩锁等待时间，单位为毫秒                                           |
+| SyncWaitTime           | double   | 等待备节点数据同步所花费时间，单位为毫秒                           |
 
 ## 示例
 
@@ -78,31 +86,36 @@ SDB_SNAP_QUERIES
     输出结果如下：
 
     ```lang-json
-    {
-      "NodeName": "sdbserver:50000",
-      "NodeID": [
-        2,
-        4
-      ],
-      "StartTimestamp": "2020-06-12-11.33.14.019931",
-      "EndTimestamp": "2020-06-12-11.33.14.359351",
-      "TID": 10832,
-      "OpType": "QUERY",
-      "Name": "sbtest1.sbtest2",
-      "QueryTimeSpent": 0,
-      "ReturnNum": 0,
-      "TotalMsgSent": 1,
-      "LastOpInfo": "Collection:sbtest1.sbtest2, Matcher:{ \"id\": { \"$et\": 5015 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
-      "MsgSentTime": 0.034,
-      "RemoteNodeWaitTime": 0,
-      "ClientInfo": {
-        "ClientTID": 24343,
-        "ClientHost": "192.168.56.101"
-      },
-      "RelatedNode": [
-        1002
-      ]
-    }
+   {
+     "NodeName": "sdbserver:11810",
+     "NodeID": [
+       2,
+       4
+     ],
+     "StartTimestamp": "2024-03-19-20.53.23.574220",
+     "EndTimestamp": "--",
+     "TID": 52917,
+     "OpType": "QUERY",
+     "Name": "foo.bar",
+     "NetTimeSpent": 0.157,
+     "QueryTimeSpent": 2.839,
+     "ReturnNum": 1600,
+     "QueryID": "0x0000ceb500049feb00000008",
+     "RelatedNID": 4,
+     "RelatedTID": 52917,
+     "SessionID": 7352,
+     "TotalMsgSent": 5,
+     "MsgSentTime": 0.167,
+     "RemoteNodeWaitTime": 2.197,
+     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)",
+     "ClientInfo": {
+       "ClientTID": 52911,
+       "ClientHost": "192.168.30.64"
+     },
+     "RelatedNode": [
+       1003
+     ]
+   }
     ```
 
 
@@ -116,34 +129,37 @@ SDB_SNAP_QUERIES
     输出结果下：
 
     ```lang-json
-    {
-      "NodeName": "sdbserver:11820",
-      "NodeID": [
-        1000,
-        1000
-      ],
-      "StartTimestamp": "2022-10-06-18.48.10.028437",
-      "EndTimestamp": "--",
-      "TID": 5980,
-      "OpType": "QUERY",
-      "Name": "$snapshot queries",
-      "QueryTimeSpent": 0,
-      "ReturnNum": 0,
-      "RelatedNID": 0,
-      "RelatedTID": 0,
-      "SessionID": 35,
-      "AccessPlanID": -1,
-      "DataRead": 0,
-      "DataWrite": 0,
-      "IndexRead": 0,
-      "IndexWrite": 0,
-      "LobRead": 0,
-      "LobWrite": 0,
-      "LobTruncate": 0,
-      "LobAddressing": 0,
-      "TransLockWaitTime": 0,
-      "LatchWaitTime": 0
-    }
+   {
+     "NodeName": "sdbserver:11820",
+     "NodeID": [
+       1002,
+       1003
+     ],
+     "StartTimestamp": "2024-03-19-20.57.51.001284",
+     "EndTimestamp": "--",
+     "TID": 57980,
+     "OpType": "QUERY",
+     "Name": "foo.bar",
+     "NetTimeSpent": 0.077,
+     "QueryTimeSpent": 4.027,
+     "ReturnNum": 100,
+     "QueryID": "0x00010176000452c700000071",
+     "RelatedNID": 4,
+     "RelatedTID": 65910,
+     "SessionID": 1444,
+     "AccessPlanID": 2491,
+     "DataRead": 100,
+     "DataWrite": 0,
+     "IndexRead": 0,
+     "IndexWrite": 0,
+     "LobRead": 0,
+     "LobWrite": 0,
+     "LobTruncate": 0,
+     "LobAddressing": 0,
+     "TransLockWaitTime": 0,
+     "LatchWaitTime": 0,
+     "SyncWaitTime": 0
+   }
     ```
 
 - 查看历史查询记录
@@ -155,31 +171,39 @@ SDB_SNAP_QUERIES
     输出结果如下：
 
     ```lang-json
-    {
-      "NodeName": "sdbserver:50000",
-      "NodeID": [
-        2,
-        4
-      ],
-      "StartTimestamp": "2020-06-12-11.02.27.429347",
-      "EndTimestamp": "2020-06-12-11.02.27.904392",
-      "TID": 10107,
-      "OpType": "QUERY",
-      "Name": "sbtest1.sbtest6",
-      "QueryTimeSpent": 0,
-      "ReturnNum": 0,
-      "TotalMsgSent": 1,
-      "LastOpInfo": "Collection:sbtest1.sbtest6, Matcher:{ \"id\": { \"$et\": 5014 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
-      "MsgSentTime": 0.046,
-      "RemoteNodeWaitTime": 0,
-      "ClientInfo": {
-        "ClientTID": 13971,
-        "ClientHost": "192.168.56.101"
-      },
-      "RelatedNode": [
-        1002
-      ]
-    }
+   {
+     "NodeName": "sdbserver:11810",
+     "NodeID": [
+       2,
+       4
+     ],
+     "StartTimestamp": "2024-03-19-21.05.04.882779",
+     "EndTimestamp": "2024-03-19-21.05.05.981709",
+     "TID": 70878,
+     "OpType": "QUERY",
+     "Name": "foo.bar",
+     "NetTimeSpent": 0.393,
+     "QueryTimeSpent": 1061.201,
+     "ReturnNum": 21,
+     "QueryID": "0x000114de000486fd00000005",
+     "RelatedNID": 4,
+     "RelatedTID": 70878,
+     "SessionID": 9448,
+     "TotalMsgSent": 22,
+     "MsgSentTime": 0.981,
+     "RemoteNodeWaitTime": 1058.26,
+     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": 10000 }, Selector:{}, OrderBy:{}, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)",
+     "ClientInfo": {
+       "ClientTID": 70777,
+       "ClientHost": "192.168.30.64"
+     },
+     "RelatedNode": [
+       3,
+       1003,
+       1005,
+       1008
+     ]
+   }
     ```
 
 
