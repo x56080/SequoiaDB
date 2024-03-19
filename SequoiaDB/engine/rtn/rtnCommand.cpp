@@ -5313,14 +5313,17 @@ error:
       PD_TRACE_ENTRY( SDB__RTNCMDINVALIDATEFSCACHE_DOIT ) ;
 
       rc = dmsCB->dumpInfo( csList, TRUE, FALSE, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to dump collection space list, rc: %d", rc );
+      PD_RC_CHECK( rc, PDERROR, "Failed to dump collection space list, rc: %d", rc ) ;
 
       for ( it = csList.begin() ; it != csList.end(); ++it )
       {
          rcTmp = _invalidateCsCache( cb, dmsCB, it->_name, it->_logicalID ) ;
-         PD_LOG( PDWARNING, "Failed to invalidate cache of collection space [%s], "
-                 "rc: %d", it->_name, rc );
-         rc = rcTmp ;
+         if ( rcTmp != SDB_OK )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate cache of collection space [%s], "
+                    "rc: %d", it->_name, rcTmp ) ;
+            rc = rcTmp ;
+         }
       }
 
    done:
