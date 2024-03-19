@@ -150,8 +150,9 @@ namespace engine
 
                ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
 
+               pSession->startDispatch() ; /// to generate the begin time
                pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
-               pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
+               pSession->dispatchMsg ( netHandle, pMsg, pSession->getLastBeginTime(), &timeDiff ) ;
                pSession->onDispatchMsgEnd( timeDiff ) ;
 
                // if msg processed time over 20 seconds

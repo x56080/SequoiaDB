@@ -57,6 +57,8 @@ using namespace bson;
 
 namespace engine
 {
+   #define PMD_MAIN_TIMER_INTERVAL           ( 100 )
+
    /*
     * This function resolve all input arguments from command line
     * It first construct options_description to register all
@@ -354,9 +356,9 @@ namespace engine
       // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP() )
       {
-         ossSleepsecs ( 1 ) ;
-         sdbGetPMDController()->onTimer( OSS_ONE_SEC ) ;
-         krcb->onTimer( OSS_ONE_SEC ) ;
+         ossSleepmillis( PMD_MAIN_TIMER_INTERVAL ) ;
+         sdbGetPMDController()->onTimer( PMD_MAIN_TIMER_INTERVAL ) ;
+         krcb->onTimer( PMD_MAIN_TIMER_INTERVAL ) ;
       }
       rc = krcb->getShutdownCode() ;
 

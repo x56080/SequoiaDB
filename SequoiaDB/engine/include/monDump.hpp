@@ -730,10 +730,8 @@ namespace engine
          UINT32                  _addInfoMask ;
          BOOLEAN                 _viewArchive ;
          BOOLEAN                 _isDetail ;
-         ossPoolVector<monClassQuery>
-                                 _cachedMonClassList ;
-         ossPoolVector<monClassQuery>::iterator
-                                 _itr ;
+         ossPoolVector<monClassQuery> _cachedMonClassList ;
+         ossPoolVector<monClassQuery>::iterator _itr ;
    } ;
    typedef _monQueriesFetch monQueriesFetch ;
 

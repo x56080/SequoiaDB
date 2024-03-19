@@ -567,6 +567,77 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdRestSession::_onMsgBegin( MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+
+      _startOp() ;
+
+      _pEDUCB->clearProcessInfo() ;
+
+      _saveOrSetMsgGlobalID( msg ) ;
+
+      getClient()->registerInMsg( msg ) ;
+
+      // start operator
+      MON_START_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastBeginTime() ) ;
+      _pEDUCB->getMonAppCB()->setLastOpType( msg->opCode ) ;
+
+      // When this is a GETMORE operation following another operation,
+      // the context of the original operation already had the monQuery.
+      // The cb will set the monQuery with the monQuery from the original
+      // context when we find the original context later on.
+      if ( eduCB()->getMonQueryCB() == NULL &&
+           !isNoReplyMsg( msg->opCode ) &&
+           isGeneralQueryOp( msg->opCode ) )
+      {
+         monClassQuery *monQuery = NULL ;
+         monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+         if ( monQuery )
+         {
+            monQuery->init( msg->opCode, eduCB(), msg ) ;
+            eduCB()->setMonQueryCB( monQuery ) ;
+         }
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
+      }
+
+      return rc ;
+   }
+
+   void _pmdRestSession::_onMsgEnd( INT32 result, MsgHeader *msg )
+   {
+      _endOp() ;
+
+      if ( result != SDB_OK )
+      {
+         pmdIncErrNum( result ) ;
+      }
+
+      /// end for query
+      if ( eduCB()->getMonQueryCB() )
+      {
+         monClassQuery *monQuery = eduCB()->getMonQueryCB() ;
+         ossTickDelta delta ;
+         delta.fromUINT64( _getLastTimeSpan() ) ;
+         monQuery->responseTime += delta ;
+
+         if ( !monQuery->anchorToContext )
+         {
+            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
+         }
+         eduCB()->setMonQueryCB( NULL ) ;
+      }
+
+      // end operator
+      MON_END_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastEndTime() ) ;
+
+      getClient()->unregisterInMsg() ;
+
+      _pEDUCB->clearProcessInfo() ;
+
+      ((pmdOperator*)getOperator())->clearMsg() ;
+   }
+
    INT32 _pmdRestSession::_processBusinessMsg( restAdaptor *pAdaptor,
                                                restRequest &request,
                                                restResponse &response )
@@ -578,7 +649,11 @@ namespace engine
       BOOLEAN needReplay = FALSE ;
       BOOLEAN needRollback = FALSE ;
       MsgHeader *msg = NULL ;
+      BOOLEAN hasBegin = FALSE ;
       BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
+
+      monClassQueryTmpData tmpData ;
+      tmpData = *(_pEDUCB->getMonAppCB()) ;
 
       rc = _translateMSG( pAdaptor, request, &msg ) ;
       if ( SDB_OK != rc )
@@ -601,9 +676,14 @@ namespace engine
          goto error ;
       }
 
-      rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
-                                            needReplay, needRollback,
-                                            retBuilder ) ;
+      hasBegin = TRUE ;
+      rtnCode = _onMsgBegin( msg ) ;
+      if ( SDB_OK == rtnCode )
+      {
+         rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
+                                               needReplay, needRollback,
+                                               retBuilder ) ;
+      }
       if ( rtnCode )
       {
          BSONObj tmp ;
@@ -673,11 +753,6 @@ namespace engine
       if ( -1 != contextID )
       {
          rtnContextPtr pContext ;
-         monClassQueryTmpData tmpData ;
-         tmpData = *(_pEDUCB->getMonAppCB()) ;
-         ossTick startTime ;
-         startTime.sample() ;
-
          _pRTNCB->contextFind( contextID, pContext ) ;
          while ( pContext )
          {
@@ -686,19 +761,17 @@ namespace engine
             {
                _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
                contextID = -1 ;
+
                if ( _pEDUCB->getMonQueryCB() )
                {
                   monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
-                  ossTick endTime ;
-                  endTime.sample() ;
-                  monQuery->responseTime += endTime - startTime ;
+                  ossTickDelta delta ;
+                  delta.fromUINT64( _getLastTimeSpan() ) ;
+                  monQuery->processTime += delta ;
                   monQuery->rowsReturned += contextBuff.recordNum() ;
 
                   tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
                   monQuery->incMetrics(tmpData) ;
-                  pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
-
-                  _pEDUCB->setMonQueryCB( NULL ) ;
                }
 
                if ( SDB_DMS_EOC != rc )
@@ -733,6 +806,10 @@ namespace engine
       }
 
    done:
+      if ( hasBegin )
+      {
+         _onMsgEnd( rc, msg ) ;
+      }
       if ( -1 != contextID )
       {
          _pRTNCB->contextDelete( contextID, _pEDUCB ) ;

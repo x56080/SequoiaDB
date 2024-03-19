@@ -564,6 +564,10 @@ namespace engine
                                           restRequest &request,
                                           MsgHeader **msg ) ;
          INT32             _checkAuth( restRequest *request ) ;
+
+         INT32             _onMsgBegin( MsgHeader *msg ) ;
+         void              _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+
       protected:
          CHAR*             _pFixBuff ;
 

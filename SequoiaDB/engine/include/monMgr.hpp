@@ -200,8 +200,9 @@ public:
     * @param classType the specific monClass to read
     * @param listType the type of list to read
     */
-   template <class T> void dumpList ( ossPoolVector<T> & cachedMonClassList, MON_CLASS_TYPE classType,
-                                                    MON_CLASS_LIST_TYPE listType)
+   template <class T> void dumpList ( ossPoolVector<T> & cachedMonClassList,
+                                      MON_CLASS_TYPE classType,
+                                      MON_CLASS_LIST_TYPE listType)
    {
       _monClass[classType]->dumpList(cachedMonClassList, listType) ;
    }

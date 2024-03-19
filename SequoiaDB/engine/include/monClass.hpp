@@ -52,6 +52,7 @@
 #include <boost/intrusive/list.hpp>
 #include <iterator>
 #include "monLatch.hpp"
+#include "sdbInterface.hpp"
 
 using namespace bson ;
 
@@ -63,7 +64,14 @@ class _monAppCB ;
 #define MONQUERY_SET_NAME(edu, n)\
   if (edu->getMonQueryCB()) \
   { \
-     edu->getMonQueryCB()->name.assign(n); \
+     try \
+     { \
+        edu->getMonQueryCB()->name.assign(n); \
+     } \
+     catch ( std::exception &e ) \
+     { \
+        PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ; \
+     } \
   }\
 
 #define MONQUERY_SET_QUERY_TEXT(edu, n)\
@@ -71,7 +79,14 @@ class _monAppCB ;
       edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL && \
       edu->getMonQueryCB()->queryText.empty() )\
   {\
-     edu->getMonQueryCB()->queryText.assign(n); \
+     try \
+     { \
+        edu->getMonQueryCB()->queryText.assign(n); \
+     } \
+     catch( std::exception &e ) \
+     { \
+        PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ; \
+     } \
   }\
 
 typedef enum
@@ -137,7 +152,7 @@ protected:
    ossTick  _createTSTick ;      /**! create tick for this object */
    UINT16         _status ;      /**! object status */
 
-   MON_CLASS_TYPE _type ;      /**! object type */
+   MON_CLASS_TYPE _type ;        /**! object type */
 
 public:
    //TODO retrieve this directly from container
@@ -208,6 +223,11 @@ public:
     * Reset metrics
     */
    virtual void reset() = 0 ;
+
+   /**
+    * Done for tmp
+    */
+   virtual void done() = 0 ;
 } ;
 
 typedef _monClass monClass ;
@@ -298,6 +318,7 @@ public:
    SINT64        accessPlanID ;  /**! Access plan ID used by the query */
    UINT32              opCode ;  /**! Message opCode */
    UINT32           sessionID ;  /**! EDU Session ID */
+   ossTickDelta   processTime ;  /**! Process time, not include the network cost*/
    ossTickDelta  responseTime ;  /**! Response time of the query */
    ossTickDelta latchWaitTime ;  /**! Time spent on latch wait */
    ossTickDelta  lockWaitTime ;  /**! Time spent on lock wait */
@@ -317,8 +338,9 @@ public:
    BOOLEAN    anchorToContext ;  /**! Whether this obj anchored to a context */
    ossPoolString    queryText ;  /**! Full query text */
    ossTickDelta remoteNodesResponseTime ; /*! Time spent waiting remote nodes */
-   ossTickDelta msgSentTime ;    /**! Time spent sending msgs to remote nodes */
-   MsgQueryID   queryID ;        /**! The id of a query statement */
+   ossTickDelta   msgSentTime ;  /**! Time spent sending msgs to remote nodes */
+   ossTickDelta  syncWaitTime ;  /**! Time spent waiting repl-node sync*/
+   MsgQueryID         queryID ;  /**! The id of a query statement */
 
    _monClassQuery ()
      :  clientTID( 0 ),
@@ -348,6 +370,7 @@ public:
        accessPlanID( monClassQuery.accessPlanID),
        opCode( monClassQuery.opCode ),
        sessionID( monClassQuery.sessionID ),
+       processTime( monClassQuery.processTime ),
        responseTime( monClassQuery.responseTime ),
        latchWaitTime( monClassQuery.latchWaitTime ),
        lockWaitTime( monClassQuery.lockWaitTime ),
@@ -365,7 +388,8 @@ public:
        relatedTID( monClassQuery.relatedTID ),
        anchorToContext( monClassQuery.anchorToContext ),
        remoteNodesResponseTime( monClassQuery.remoteNodesResponseTime ),
-       msgSentTime( monClassQuery.msgSentTime )
+       msgSentTime( monClassQuery.msgSentTime ),
+       syncWaitTime( monClassQuery.syncWaitTime )
    {
       _endTS =  monClassQuery.getEndTSConst() ;
       _createTSTick = monClassQuery.getCreateTSTick() ;
@@ -387,6 +411,20 @@ public:
    //TODO: to be implemented
    virtual void reset() {}
 
+   virtual void done()
+   {
+      if ( MON_CLASS_STATUS_NORMAL == _status && 0 == responseTime.toUINT64() )
+      {
+         ossTick endTick ;
+         endTick.sample() ;
+         responseTime = endTick - _createTSTick ;
+         if ( 0 == processTime.toUINT64() )
+         {
+            processTime = responseTime ;
+         }
+      }
+   }
+
    void startLatchTimer() { _latchWaitTimer.sample() ; }
 
    void stopLatchTimer()
@@ -394,6 +432,15 @@ public:
       ossTick tick ;
       tick.sample() ;
       latchWaitTime += (tick - _latchWaitTimer) ;
+   }
+
+   void startSyncTimer() { _syncWaitTimer.sample() ; }
+
+   void stopSyncTimer()
+   {
+      ossTick tick ;
+      tick.sample() ;
+      syncWaitTime += (tick - _syncWaitTimer) ;
    }
 
    void incMetrics( monClassQueryTmpData &tmpData )
@@ -408,8 +455,46 @@ public:
       lobAddressing += tmpData.lobAddressing ;
    }
 
+   void init( INT32 opCode, IExecutor *pExe, MsgHeader *pMsg )
+   {
+      this->opCode = opCode ;
+
+      if ( pExe )
+      {
+         sessionID = pExe->getID() ;
+         tid = pExe->getTID() ;
+
+         ISession *pSession = pExe->getSession() ;
+         if ( pSession )
+         {
+            relatedTID = pSession->identifyTID() ;
+            relatedNID = pSession->identifyNID() ;
+
+            IClient *pClient = pSession->getClient() ;
+            if ( pClient )
+            {
+               try
+               {
+                  clientHost.assign( pClient->getFromIPAddr() ) ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               }
+            }
+         }
+      }
+
+      if ( pMsg )
+      {
+         clientTID = pMsg->TID ;
+         queryID = pMsg->globalID.getQueryID() ;
+      }
+   }
+
 private:
    ossTick _latchWaitTimer ;
+   ossTick _syncWaitTimer ;
 } ;
 
 typedef _monClassQuery monClassQuery ;
@@ -462,6 +547,16 @@ public:
 
    virtual void reset() {}
 
+   virtual void done()
+   {
+      if ( MON_CLASS_STATUS_NORMAL == _status && 0 == waitTime.toUINT64() )
+      {
+         ossTick endTick ;
+         endTick.sample() ;
+         waitTime = endTick - _createTSTick ;
+      }
+   }
+
    ossTickDelta waitTime ;
    UINT32 xOwnerTID ;
    UINT32 waiterTID ;
@@ -504,6 +599,16 @@ public:
    virtual void dump( BSONObj &obj ) {}
 
    virtual void reset() {}
+
+   virtual void done()
+   {
+      if ( MON_CLASS_STATUS_NORMAL == _status && 0 == waitTime.toUINT64() )
+      {
+         ossTick endTick ;
+         endTick.sample() ;
+         waitTime = endTick - _createTSTick ;
+      }
+   }
 
    ossTickDelta waitTime ;
    UINT32 xOwnerTID ;
@@ -678,12 +783,10 @@ public:
 
    INT32 cleanup()
    {
-
       setMaxArchivedListLen( 0 ) ;
       setMonitorLvl( MON_DATA_LVL_NONE ) ;
 
       MON_PARTITION_LIST::iterator it = _activeList.begin() ;
-
       while ( it != _activeList.end() )
       {
          monClass &obj = *it ;
@@ -692,7 +795,6 @@ public:
       }
 
       MONCLASS_LIST::iterator it2 = _archivedList.begin() ;
-
       while ( it2 != _archivedList.end() )
       {
          monClass &obj = *it2 ;
@@ -799,15 +901,27 @@ public:
       T* obj = NULL ;
       if ( isOperational() )
       {
-         obj = SDB_OSS_NEW T() ;
-         if ( obj )
+         try
          {
-            obj->dataLvl = getCollectionLvl() ;
-            _activeList.add( obj ) ;
+            obj = SDB_OSS_NEW T() ;
+            if ( obj )
+            {
+               obj->dataLvl = getCollectionLvl() ;
+               _activeList.add( obj ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to allocate new monitor cb" ) ;
+            }
          }
-         else
+         catch( std::exception &e )
          {
-            PD_LOG( PDERROR, "failed to allocate new monitor cb" ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            if ( obj )
+            {
+               SDB_OSS_DEL obj ;
+               obj = NULL ;
+            }
          }
       }
       return obj ;
@@ -823,15 +937,27 @@ public:
       T* obj = NULL ;
       if ( isOperational() )
       {
-         obj = SDB_OSS_NEW T(data) ;
-         if ( obj )
+         try
          {
-            obj->dataLvl = getCollectionLvl() ;
-            _activeList.add( obj ) ;
+            obj = SDB_OSS_NEW T(data) ;
+            if ( obj )
+            {
+               obj->dataLvl = getCollectionLvl() ;
+               _activeList.add( obj ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to allocate new monitor cb" ) ;
+            }
          }
-         else
+         catch( std::exception &e )
          {
-            PD_LOG( PDERROR, "failed to allocate new monitor cb" ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            if ( obj )
+            {
+               SDB_OSS_DEL obj ;
+               obj = NULL ;
+            }
          }
       }
       return obj ;
@@ -886,17 +1012,16 @@ public:
     * @param cachedMonClassList target list we are going to populate
     * @param listType the type of list to read
     */
-   template<class T> void dumpList(ossPoolVector<T> &cachedMonClassList, MON_CLASS_LIST_TYPE listType)
+   template<class T>
+   void dumpList( ossPoolVector<T> &cachedMonClassList, MON_CLASS_LIST_TYPE listType)
    {
       BOOLEAN _hasArchiveLatch = FALSE ;
       iterator itr ;
 
       if ( ! this->isEmpty( listType ) )
       {
-
          try
          {
-
             if ( listType == MON_CLASS_ARCHIVED_LIST )
             {
                this->getArchiveLatch( SHARED ) ;
@@ -918,15 +1043,16 @@ public:
                   monClass * monClassElement = &(*itr) ;
                   T* monClassT = (T *) monClassElement ;
                   cachedMonClassList.push_back(*monClassT) ;
+                  cachedMonClassList.back().done() ;
                }
                ++itr ;
             }
          }
-
          catch ( std::exception &e )
          {
             PD_LOG( PDERROR, "Failed to add monClass into vector:%s", e.what() ) ;
          }
+
          if ( _hasArchiveLatch )
          {
             this->releaseArchiveLatch( SHARED ) ;

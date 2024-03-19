@@ -90,39 +90,12 @@ namespace engine
    {
       INT32 rc     = SDB_OK ;
       INT32 opCode = msg->opCode ;
-      monClassQuery *monQuery = NULL ;
-      ossTick startTime ;
-      monClassQueryTmpData tmpData ;
-      tmpData = *(eduCB()->getMonAppCB()) ;
 
       PD_TRACE_ENTRY ( SDB_PMDDATAPROC_PROMSG );
 
       SDB_ASSERT( getSession(), "Must attach session at first" ) ;
 
       needRollback = FALSE ;
-
-      // When this is a GETMORE operation following another operation,
-      // the context of the original operation already had the monQuery.
-      // The cb will set the monQuery with the monQuery from the original
-      // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
-      {
-         monQuery = pmdGetKRCB()->getMonMgr()->
-                    registerMonitorObject<monClassQuery>() ;
-
-         if ( monQuery )
-         {
-            monQuery->sessionID = eduCB()->getID() ;
-            monQuery->opCode = opCode ;
-            monQuery->tid = eduCB()->getTID() ;
-            monQuery->queryID = msg->globalID.getQueryID() ;
-            eduCB()->setMonQueryCB( monQuery ) ;
-         }
-
-         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
-      }
-
-      startTime.sample() ;
 
       if ( MSG_AUTH_VERIFY_REQ == opCode )
       {
@@ -285,23 +258,6 @@ namespace engine
          }
       }
 
-      if ( eduCB()->getMonQueryCB() )
-      {
-         monQuery = eduCB()->getMonQueryCB() ;
-         ossTick endTime ;
-         endTime.sample() ;
-         monQuery->responseTime += endTime - startTime ;
-         monQuery->rowsReturned += contextBuff.recordNum() ;
-
-         tmpData.diff(*(eduCB()->getMonAppCB())) ;
-         monQuery->incMetrics(tmpData) ;
-
-         if ( !monQuery->anchorToContext )
-         {
-            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
-         }
-         eduCB()->setMonQueryCB( NULL ) ;
-      }
    done:
       PD_TRACE_EXITRC ( SDB_PMDDATAPROC_PROMSG, rc ) ;
       return rc ;
@@ -897,9 +853,7 @@ namespace engine
 
             if ( monQuery && pContext->getPlanRuntime() )
             {
-               monQuery->accessPlanID = pContext->
-                                         getPlanRuntime()->
-                                         getAccessPlanID() ;
+               monQuery->accessPlanID = pContext->getPlanRuntime()->getAccessPlanID() ;
             }
          }
          catch ( std::exception &e )
@@ -2410,40 +2364,9 @@ namespace engine
                                          BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
-      monClassQuery *monQueryCB = NULL ;
-      ossTick startTime ;
-
-      monClassQueryTmpData tmpData ;
-      tmpData = *(eduCB()->getMonAppCB()) ;
 
       BSONObjBuilder clientInfoBuilder ;
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROMSG );
-
-      // When this is a GETMORE operation following another operation,
-      // the context of the original operation already had the monQuery.
-      // The cb will set the monQuery with the monQuery from the original
-      // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( msg->opCode ) )
-      {
-         monQueryCB = pmdGetKRCB()->getMonMgr()->
-                      registerMonitorObject<monClassQuery>() ;
-
-         if ( monQueryCB )
-         {
-            monQueryCB->sessionID = eduCB()->getID() ;
-            monQueryCB->opCode = msg->opCode ;
-            monQueryCB->tid = eduCB()->getTID() ;
-            monQueryCB->clientTID = msg->TID ;
-            monQueryCB->clientHost.assign(getClient()->getFromIPAddr()) ;
-            monQueryCB->queryID = msg->globalID.getQueryID() ;
-
-            eduCB()->setMonQueryCB( monQueryCB ) ;
-         }
-
-         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
-      }
-
-      startTime.sample() ;
 
       rc = _processCoordMsg( msg, contextID, contextBuff,
                              needReply, needRollback ) ;
@@ -2454,26 +2377,6 @@ namespace engine
          rc = _pmdDataProcessor::processMsg( msg, contextBuff, contextID,
                                              needReply, needRollback,
                                              builder ) ;
-      }
-      else
-      {
-         if ( eduCB()->getMonQueryCB() )
-         {
-            MONQUERY_SET_QUERY_TEXT( eduCB(),
-                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
-            monQueryCB = eduCB()->getMonQueryCB() ;
-            ossTick endTime ;
-            endTime.sample() ;
-            monQueryCB->responseTime += endTime - startTime ;
-            monQueryCB->rowsReturned += contextBuff.recordNum() ;
-            tmpData.diff(*(eduCB()->getMonAppCB())) ;
-            monQueryCB->incMetrics(tmpData) ;
-            if ( !monQueryCB->anchorToContext )
-            {
-               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
-            }
-            eduCB()->setMonQueryCB( NULL ) ;
-         }
       }
 
       if ( rc )

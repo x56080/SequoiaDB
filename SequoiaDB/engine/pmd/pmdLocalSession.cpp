@@ -733,28 +733,11 @@ namespace engine
       goto done ;
    }
 
-   void _pmdLocalSession::_saveOrSetMsgGlobalID( MsgHeader *pMsg )
-   {
-      SDB_ASSERT( pMsg, "msg can't be NULL" ) ;
-      IOperator *pOperator = getOperator() ;
-      MsgGlobalID globalID = pOperator->getGlobalID() ;
-
-      if ( pMsg->globalID.getQueryID().getIdentifyID() != globalID.getQueryID().getIdentifyID() )
-      {
-         // The msg may be sent by the old version client
-         // The msg's globalID of old version client is not initialized, so it's a random value
-         globalID.incQueryID() ;
-         pMsg->globalID = globalID ;
-      }
-
-      ((pmdOperator*)pOperator)->setMsg( pMsg ) ;
-
-      return ;
-   }
-
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
+
+      _startOp() ;
 
       _pEDUCB->clearProcessInfo() ;
 
@@ -787,14 +770,33 @@ namespace engine
       }
 
       // start operator
-      MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+      MON_START_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastBeginTime() ) ;
       _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
+
+      // When this is a GETMORE operation following another operation,
+      // the context of the original operation already had the monQuery.
+      // The cb will set the monQuery with the monQuery from the original
+      // context when we find the original context later on.
+      if ( eduCB()->getMonQueryCB() == NULL && _needReply && isGeneralQueryOp( pMsg->opCode ) )
+      {
+         monClassQuery *monQuery = NULL ;
+         monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+         if ( monQuery )
+         {
+            monQuery->init( pMsg->opCode, eduCB(), pMsg ) ;
+            eduCB()->setMonQueryCB( monQuery ) ;
+         }
+
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
+      }
 
       return rc ;
    }
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )
    {
+      _endOp() ;
+
       if ( result && SDB_DMS_EOC != result )
       {
          PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "
@@ -808,8 +810,33 @@ namespace engine
          pmdIncErrNum( result ) ;
       }
 
+      /// end for query
+      if ( eduCB()->getMonQueryCB() )
+      {
+         monClassQuery *monQuery = eduCB()->getMonQueryCB() ;
+         ossTickDelta delta ;
+         delta.fromUINT64( _getLastTimeSpan() ) ;
+         monQuery->responseTime += delta ;
+
+         if ( !monQuery->anchorToContext )
+         {
+            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
+         }
+         eduCB()->setMonQueryCB( NULL ) ;
+      }
+
+      /// end for task info
+      monSvcTaskInfo *pInfo = NULL ;
+      pInfo = eduCB()->getMonAppCB()->getSvcTaskInfo() ;
+      if ( pInfo )
+      {
+         /// it doesn't matter wether type is MON_TOTAL_WRITE_TIME
+         /// or MON_TOTAL_READ_TIME
+         pInfo->monOperationTimeInc( MON_TOTAL_WRITE_TIME, _getLastTimeSpan() ) ;
+      }
+
       // end operator
-      MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+      MON_END_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastEndTime() ) ;
 
       getClient()->unregisterInMsg() ;
 
@@ -837,11 +864,12 @@ namespace engine
       BOOLEAN isAutoCommit = FALSE ;
       BOOLEAN isDoCommit   = FALSE ;
 
+      monClassQueryTmpData tmpData ;
+      tmpData = *(eduCB()->getMonAppCB()) ;
+
       BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
 
       PD_TRACE_ENTRY( SDB_PMDLOCALSN_PROMSG ) ;
-
-      UINT64 bTime = ossGetCurrentMicroseconds() ;
 
       // prepare
       rc = _onMsgBegin( msg ) ;
@@ -910,6 +938,21 @@ namespace engine
 
       if ( _needReply )
       {
+         if ( eduCB()->getMonQueryCB() )
+         {
+            monClassQuery *monQuery = eduCB()->getMonQueryCB() ;
+            ossTickDelta delta ;
+            delta.fromUINT64( _getLastTimeSpan() ) ;
+            monQuery->processTime += delta ;
+            monQuery->rowsReturned += contextBuff.recordNum() ;
+
+            tmpData.diff(*(eduCB()->getMonAppCB())) ;
+            monQuery->incMetrics(tmpData) ;
+
+            MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+         }
+
          if ( rc )
          {
             if ( SDB_APP_INTERRUPT == rc &&
@@ -973,20 +1016,6 @@ namespace engine
 
       // end
       _onMsgEnd( rc, msg ) ;
-
-      UINT64 eTime = ossGetCurrentMicroseconds() ;
-      if ( eTime > bTime )
-      {
-         monSvcTaskInfo *pInfo = NULL ;
-         pInfo = eduCB()->getMonAppCB()->getSvcTaskInfo() ;
-         if ( pInfo )
-         {
-            /// it doesn't matter wether type is MON_TOTAL_WRITE_TIME
-            /// or MON_TOTAL_READ_TIME
-            pInfo->monOperationTimeInc( MON_TOTAL_WRITE_TIME,
-                                        eTime - bTime ) ;
-         }
-      }
 
       rc = SDB_OK ;
       PD_TRACE_EXITRC ( SDB_PMDLOCALSN_PROMSG, rc ) ;

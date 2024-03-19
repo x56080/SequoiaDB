@@ -211,6 +211,22 @@ namespace engine
                                         costUsecs ) ;
          }
       }
+
+      MON_END_OP_WITH_TIME( _pEDUCB->getMonAppCB(), getLastEndTime() ) ;
+
+      /// calc responseTime
+      if ( _pEDUCB->getMonQueryCB() )
+      {
+         monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
+         ossTickDelta delta ;
+         delta.fromUINT64( costUsecs ) ;
+         monQuery->responseTime += delta ;
+         if ( !monQuery->anchorToContext )
+         {
+            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
+         }
+         _pEDUCB->setMonQueryCB( NULL ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_TMOUT, "_clsShdSession::timeout" )
@@ -673,8 +689,8 @@ namespace engine
       _hasUpdateCataInfo = FALSE ;
       BOOLEAN isNeedRollback = FALSE ;
       BOOLEAN isAutoCommit = FALSE ;
+
       monClassQuery *monQuery = NULL ;
-      ossTick startTime ;
       monClassQueryTmpData tmpData ;
       tmpData = *(eduCB()->getMonAppCB()) ;
 
@@ -714,35 +730,21 @@ namespace engine
             break ;
          }
 
-         MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+         MON_START_OP_WITH_TIME( _pEDUCB->getMonAppCB(), getLastBeginTime() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( opCode ) ;
 
          if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
          {
-            monQuery = pmdGetKRCB()->getMonMgr()->
-                       registerMonitorObject<monClassQuery>() ;
+            monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
 
             if ( monQuery )
             {
-               monQuery->sessionID = _pEDUCB->getID() ;
-               monQuery->opCode = opCode ;
-               monQuery->tid = _pEDUCB->getTID() ;
-               monQuery->queryID = _pEDUCB->getOperator()->getGlobalID().getQueryID() ;
-
-               ISession *pSession = _pEDUCB->getSession() ;
-               if ( pSession )
-               {
-                  monQuery->relatedTID = pSession->identifyTID() ;
-                  monQuery->relatedNID = pSession->identifyNID() ;
-               }
-
+               monQuery->init( opCode, _pEDUCB, msg ) ;
                _pEDUCB->setMonQueryCB( monQuery ) ;
             }
 
-            DMS_MON_OP_COUNT_INC( _pEDUCB->getMonAppCB(),
-                                  MON_GENERAL_QUERY, 1 ) ;
+            DMS_MON_OP_COUNT_INC( _pEDUCB->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
          }
-         startTime.sample() ;
 
          switch ( opCode )
          {
@@ -1005,20 +1007,16 @@ namespace engine
             rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
          }
 
+         /// calc processTime and read/write metrics
          if ( _pEDUCB->getMonQueryCB() )
          {
             monQuery = _pEDUCB->getMonQueryCB() ;
-            ossTick endTime ;
-            endTime.sample() ;
-            monQuery->responseTime += endTime - startTime ;
+            ossTickDelta delta ;
+            delta.fromUINT64( getLastTimeSpan() ) ;
+            monQuery->processTime += delta ;
             monQuery->rowsReturned += buffObj.recordNum() ;
             tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
             monQuery->incMetrics(tmpData) ;
-            if ( !monQuery->anchorToContext )
-            {
-               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
-            }
-            _pEDUCB->setMonQueryCB( NULL ) ;
          }
 
          loop = FALSE ;
@@ -1200,8 +1198,6 @@ namespace engine
 
       eduCB()->writingDB( FALSE ) ;
       _clearProcessInfo() ;
-
-      MON_END_OP( _pEDUCB->getMonAppCB() ) ;
 
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__ONOPMSG, rc ) ;
       return rc ;
@@ -2075,6 +2071,8 @@ namespace engine
          rtnQueryOptions options ;
          options.setCLFullName( pCollectionName ) ;
          options.setInsertor( insertor ) ;
+         options.setInsertNum( recordNum ) ;
+         options.resetFlag( flags ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
@@ -2359,9 +2357,7 @@ namespace engine
 
             if ( monQuery && pContext->getPlanRuntime() )
             {
-               monQuery->accessPlanID = pContext->
-                                         getPlanRuntime()->
-                                         getAccessPlanID() ;
+               monQuery->accessPlanID = pContext->getPlanRuntime()->getAccessPlanID() ;
             }
 
             // query with return data

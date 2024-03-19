@@ -44,10 +44,10 @@ namespace engine
 {
 
 // microsecond
-#define MON_LATCH_ARCHIVE_THRESHOLD 1000
+#define MON_LATCH_ARCHIVE_THRESHOLD    ( 1000 )
 
 // microsecond
-#define MON_LOCK_ARCHIVE_THRESHOLD 1000
+#define MON_LOCK_ARCHIVE_THRESHOLD     ( 8000 )
 
 archiveFunc monClassArchiveFP[MON_CLASS_MAX] = {
    monArchiveQuery,  // MON_CLASS_QUERY
@@ -131,17 +131,20 @@ _monClassContainer::_monClassContainer ( MON_CLASS_TYPE type )
  */
 void _monClassContainer::remove ( monClass *obj )
 {
-   ossGetCurrentTime( obj->getEndTS() ) ;
+   if ( MON_CLASS_STATUS_NORMAL == obj->getStatus() )
+   {
+      ossGetCurrentTime( obj->getEndTS() ) ;
 
-   if ( (*_doArchive)( obj ) )
-   {
-      obj->setPendingArchive() ;
-      _numPendingArchive.inc() ;
-   }
-   else
-   {
-      obj->setPendingDelete() ;
-      _numPendingDelete.inc() ;
+      if ( (*_doArchive)( obj ) )
+      {
+         obj->setPendingArchive() ;
+         _numPendingArchive.inc() ;
+      }
+      else
+      {
+         obj->setPendingDelete() ;
+         _numPendingDelete.inc() ;
+      }
    }
 }
 
@@ -170,7 +173,7 @@ void _monClassContainer::_removeArchivedObj()
       getArchiveLatch( EXCLUSIVE ) ;
       MONCLASS_LIST::iterator it = _archivedList.begin() ;
 
-      while ( numToDelete > 0 )
+      while ( numToDelete > 0 && it != _archivedList.end() )
       {
          monClass &monClass = *it ;
 
@@ -189,7 +192,6 @@ void _monClassContainer::_removeArchivedObj()
  */
 void _monClassContainer::_processPendingObj()
 {
-
    getArchiveLatch( EXCLUSIVE ) ;
    MON_PARTITION_LIST::iterator it = _activeList.begin() ;
 

@@ -49,7 +49,7 @@ namespace engine
 {
 
    #define PMD_MEM_SHRINK_TIMER_INTERVAL        ( 60000 )      // ms
-   #define PMD_MONITOR_CLEANUP_INTERVAL         ( 2000 )       // ms
+   #define PMD_MONITOR_CLEANUP_INTERVAL         ( 500 )        // ms
    #define PMD_PRINT_SHIELDINFO_INTERVAL        ( 3600 * OSS_ONE_SEC )
 
    /*

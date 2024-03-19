@@ -125,13 +125,13 @@ namespace engine
    void _clsReplDstSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
                                                 const MsgHeader *pHeader )
    {
-      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_START_OP_WITH_TIME( eduCB()->getMonAppCB(), getLastBeginTime() ) ;
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
    }
 
    void _clsReplDstSession::onDispatchMsgEnd( INT64 costUsecs )
    {
-      MON_END_OP( eduCB()->getMonAppCB() ) ;
+      MON_END_OP_WITH_TIME( eduCB()->getMonAppCB(), getLastEndTime() ) ;
    }
 
    void _clsReplDstSession::_updateName ()
@@ -1412,13 +1412,13 @@ namespace engine
    void _clsReplSrcSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
                                                 const MsgHeader *pHeader )
    {
-      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_START_OP_WITH_TIME( eduCB()->getMonAppCB(), getLastBeginTime() ) ;
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
    }
 
    void _clsReplSrcSession::onDispatchMsgEnd( INT64 costUsecs )
    {
-      MON_END_OP( eduCB()->getMonAppCB() ) ;
+      MON_END_OP_WITH_TIME( eduCB()->getMonAppCB(), getLastEndTime() ) ;
    }
 
    void _clsReplSrcSession::_makeName ()

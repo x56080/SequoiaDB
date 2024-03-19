@@ -56,6 +56,8 @@ namespace engine
       _pBuff   = NULL ;
       _buffLen = 0 ;
       _awaitingHandshake = TRUE ;
+      _lastBegin = 0 ;
+      _lastEnd = 0 ;
 
       _socket.disableNagle() ;
       _socket.setKeepAlive() ;
@@ -330,6 +332,25 @@ namespace engine
 
       return _socket.recv( buff, sizeof( buff ), recvLen,
                            timeout, MSG_PEEK, TRUE, TRUE ) ;
+   }
+
+   void _pmdSession::_saveOrSetMsgGlobalID( MsgHeader *pMsg )
+   {
+      SDB_ASSERT( pMsg, "msg can't be NULL" ) ;
+      IOperator *pOperator = getOperator() ;
+      MsgGlobalID globalID = pOperator->getGlobalID() ;
+
+      if ( pMsg->globalID.getQueryID().getIdentifyID() != globalID.getQueryID().getIdentifyID() )
+      {
+         // The msg may be sent by the old version client
+         // The msg's globalID of old version client is not initialized, so it's a random value
+         globalID.incQueryID() ;
+         pMsg->globalID = globalID ;
+      }
+
+      ((pmdOperator*)pOperator)->setMsg( pMsg ) ;
+
+      return ;
    }
 
 }

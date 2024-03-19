@@ -474,9 +474,17 @@ namespace engine
       _lastOpMsgSaved = FALSE ;
    }
 
-   void _monAppCB::startOperator()
+   void _monAppCB::startOperator( UINT64 *pTime )
    {
-      _lastOpBeginTime = pmdGetKRCB()->getCurTime() ;
+      if ( pTime && 0 != *pTime )
+      {
+         ossTickConversionFactor cFactor ;
+         _lastOpBeginTime.initFromTimeValue( cFactor, *pTime ) ;
+      }
+      else
+      {
+         _lastOpBeginTime = pmdGetKRCB()->getCurTime() ;
+      }
       _lastOpEndTime.clear() ;
       _lastOpType = MSG_NULL ;
       _cmdType = CMD_UNKNOW ;
@@ -486,11 +494,19 @@ namespace engine
       _lastOpMsgSaved = FALSE ;
    }
 
-   void _monAppCB::endOperator()
+   void _monAppCB::endOperator( UINT64 *pTime )
    {
       if ( (BOOLEAN)_lastOpBeginTime )
       {
-         _lastOpEndTime = pmdGetKRCB()->getCurTime() ;
+         if ( pTime && 0 != *pTime )
+         {
+            ossTickConversionFactor cFactor ;
+            _lastOpEndTime.initFromTimeValue( cFactor, *pTime ) ;
+         }
+         else
+         {
+            _lastOpEndTime = pmdGetKRCB()->getCurTime() ;
+         }
          ossTickDelta delta = _lastOpEndTime - _lastOpBeginTime ;
          opTimeSpentInc( delta ) ;
       }

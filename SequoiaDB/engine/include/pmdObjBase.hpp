@@ -102,10 +102,27 @@ namespace engine
    class _pmdObjBase : public SDBObject
    {
       public:
-         _pmdObjBase() { _bProcess = FALSE ; }
+         _pmdObjBase()
+         {
+            _bProcess = FALSE ;
+            _lastBegin = 0 ;
+            _lastEnd = 0 ;
+         }
          virtual ~_pmdObjBase() {}
 
          pmdEDUEvent*   getLastEvent() { return &_lastEvent ; }
+
+         UINT64         getLastBeginTime() const { return _lastBegin ; }
+         UINT64         getLastEndTime() const { return _lastEnd ; }
+         UINT64         getLastTimeSpan() const
+         {
+            UINT64 tmpEnd = ( _bProcess ? ossGetCurrentMicroseconds() : _lastEnd ) ;
+            if ( tmpEnd > _lastBegin )
+            {
+               return tmpEnd - _lastBegin ;
+            }
+            return 0 ;
+         }
 
          virtual void   attachCB( _pmdEDUCB *cb ) {}
          virtual void   detachCB( _pmdEDUCB *cb ) {}
@@ -116,12 +133,23 @@ namespace engine
 
       public:
          OSS_INLINE BOOLEAN isProcess () const { return _bProcess ; }
+         OSS_INLINE void    startDispatch() { _lastBegin = ossGetCurrentMicroseconds() ; }
+
          OSS_INLINE INT32   dispatch ( pmdEDUEvent *event,
-                                       INT64 *pTime = NULL ) ;
+                                       UINT64 initBeginTime = 0,
+                                       INT64 *pTimeDiff = NULL,
+                                       UINT64 *pBeginTime = NULL,
+                                       UINT64 *pEndTime = NULL ) ;
          OSS_INLINE INT32   dispatchEvent ( pmdEDUEvent *event,
-                                            INT64 *pTime = NULL ) ;
+                                            UINT64 initBeginTime = 0,
+                                            INT64 *pTimeDiff = NULL,
+                                            UINT64 *pBeginTime = NULL,
+                                            UINT64 *pEndTime = NULL ) ;
          OSS_INLINE INT32   dispatchMsg( NET_HANDLE handle, MsgHeader* msg,
-                                         INT64 *pTime = NULL ) ;
+                                         UINT64 initBeginTime = 0,
+                                         INT64 *pTimeDiff = NULL,
+                                         UINT64 *pBeginTime = NULL,
+                                         UINT64 *pEndTime = NULL ) ;
          virtual void   onTimer ( UINT64 timerID, UINT32 interval ) { }
 
       protected:
@@ -164,6 +192,8 @@ namespace engine
       private:
          BOOLEAN           _bProcess ;
          pmdEDUEvent       _lastEvent ;
+         UINT64            _lastBegin ;
+         UINT64            _lastEnd ;
 
    };
 
@@ -181,25 +211,28 @@ namespace engine
       EVENT_FUNC              pEventFn ;
    };
 
-   OSS_INLINE INT32 _pmdObjBase::dispatch ( pmdEDUEvent * event, INT64 *pTime )
+   OSS_INLINE INT32 _pmdObjBase::dispatch ( pmdEDUEvent * event, UINT64 initBeginTime,
+                                            INT64 *pTimeDiff, UINT64 *pBeginTime,
+                                            UINT64 *pEndTime )
    {
       if ( event->_eventType == PMD_EDU_EVENT_MSG )
       {
-         return dispatchMsg ( 0, (MsgHeader*)(event->_Data), pTime ) ;
+         return dispatchMsg ( 0, (MsgHeader*)(event->_Data), initBeginTime,
+                              pTimeDiff, pBeginTime, pEndTime ) ;
       }
       else
       {
-         return dispatchEvent( event, pTime ) ;
+         return dispatchEvent( event, initBeginTime, pTimeDiff, pBeginTime, pEndTime ) ;
       }
    }
 
    OSS_INLINE INT32 _pmdObjBase::dispatchMsg( NET_HANDLE handle, MsgHeader* msg,
-                                              INT64 *pTime )
+                                              UINT64 initBeginTime, INT64 *pTimeDiff,
+                                              UINT64 *pBeginTime, UINT64 *pEndTime )
    {
       _bProcess = TRUE ;
       INT32 rc = SDB_OK ;
 
-      UINT64 bTime = 0 ;
       INT64  diffTime = 0 ;
 
       _lastEvent._Data = msg ;
@@ -218,9 +251,12 @@ namespace engine
                && msgMap->entries[index].msgType <= (UINT32)(msg->opCode)
                && msgMap->entries[index].msgEndType >= (UINT32)(msg->opCode) )
             {
-               bTime = ossGetCurrentMicroseconds() ;
+               _lastBegin = ( 0 == initBeginTime ? ossGetCurrentMicroseconds() : initBeginTime ) ;
                rc =  (this->*(msgMap->entries[index].pMsgFn))( handle, msg ) ;
-               diffTime = (INT64)( ossGetCurrentMicroseconds() - bTime) ;
+               _lastEnd = ossGetCurrentMicroseconds() ;
+               /// calc deff
+               diffTime = (INT64)( _lastEnd - _lastBegin ) ;
+
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDDEBUG, "[%s]Process func[%s] failed[rc = %d]",
@@ -232,16 +268,27 @@ namespace engine
          }
       }
 
-      bTime = ossGetCurrentMicroseconds() ;
+      _lastBegin = ( 0 == initBeginTime ? ossGetCurrentMicroseconds() : initBeginTime ) ;
       rc = _defaultMsgFunc( handle, msg ) ;
-      diffTime = (INT64)( ossGetCurrentMicroseconds() - bTime) ;
+      _lastEnd = ossGetCurrentMicroseconds() ;
+      /// calc deff
+      diffTime = (INT64)( _lastEnd - _lastBegin ) ;
 
    done:
       _bProcess = FALSE ;
       _lastEvent.reset() ;
-      if ( pTime )
+      if ( pBeginTime )
       {
-         *pTime = diffTime ;
+         *pBeginTime = _lastBegin ;
+      }
+      if ( pEndTime )
+      {
+         *pEndTime = _lastEnd ;
+      }
+
+      if ( pTimeDiff )
+      {
+         *pTimeDiff = diffTime ;
       }
       else if ( diffTime > 10000000 )
       {
@@ -253,12 +300,12 @@ namespace engine
       return rc;
    }
 
-   OSS_INLINE INT32 _pmdObjBase::dispatchEvent( pmdEDUEvent * event,
-                                                INT64 *pTime )
+   OSS_INLINE INT32 _pmdObjBase::dispatchEvent( pmdEDUEvent * event, UINT64 initBeginTime,
+                                                INT64 *pTimeDiff, UINT64 *pBeginTime,
+                                                UINT64 *pEndTime )
    {
       _bProcess = TRUE ;
       INT32 rc = SDB_OK;
-      UINT64 bTime = 0 ;
       INT64  diffTime = 0 ;
 
       _lastEvent = *event ;
@@ -275,9 +322,12 @@ namespace engine
                && msgMap->entries[index].msgEndType >=
                   (UINT32)(event->_eventType) )
             {
-               bTime = ossGetCurrentMicroseconds() ;
+               _lastBegin = ( 0 == initBeginTime ? ossGetCurrentMicroseconds() : initBeginTime ) ;
                rc =  (this->*(msgMap->entries[index].pEventFn))( event );
-               diffTime = (INT64)( ossGetCurrentMicroseconds() - bTime) ;
+               _lastEnd = ossGetCurrentMicroseconds() ;
+               /// calc deff
+               diffTime = (INT64)( _lastEnd - _lastBegin ) ;
+
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDDEBUG, "[%s]Process func[%s] failed[rc = %d]",
@@ -294,24 +344,38 @@ namespace engine
       {
          PMD_EVENT_MESSAGES *timeMsg = (PMD_EVENT_MESSAGES*)( event->_Data );
 
-         bTime = ossGetCurrentMicroseconds() ;
+         _lastBegin = ( 0 == initBeginTime ? ossGetCurrentMicroseconds() : initBeginTime ) ;
          _onTimer( timeMsg->timeoutMsg.timerID, timeMsg->timeoutMsg.interval,
                    timeMsg->timeoutMsg.occurTime ) ;
-         diffTime = (INT64)( ossGetCurrentMicroseconds() - bTime) ;
+         _lastEnd = ossGetCurrentMicroseconds() ;
+         /// calc deff
+         diffTime = (INT64)( _lastEnd - _lastBegin ) ;
       }
       else //Default Func
       {
-         bTime = ossGetCurrentMicroseconds() ;
+         _lastBegin = ( 0 == initBeginTime ? ossGetCurrentMicroseconds() : initBeginTime ) ;
          rc = _defaultEventFunc( event );
-         diffTime = (INT64)( ossGetCurrentMicroseconds() - bTime) ;
+         _lastEnd = ossGetCurrentMicroseconds() ;
+         /// calc deff
+         diffTime = (INT64)( _lastEnd - _lastBegin ) ;
       }
 
    done:
       _bProcess = FALSE ;
       _lastEvent.reset() ;
-      if ( pTime )
+
+      if ( pBeginTime )
       {
-         *pTime = diffTime ;
+         *pBeginTime = _lastBegin ;
+      }
+      if ( pEndTime )
+      {
+         *pEndTime = _lastEnd ;
+      }
+
+      if ( pTimeDiff )
+      {
+         *pTimeDiff = diffTime ;
       }
       else if ( diffTime > 5000000 )
       {

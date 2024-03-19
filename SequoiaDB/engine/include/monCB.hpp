@@ -64,6 +64,24 @@ namespace engine
       }                                                     \
    }
 
+   #define MON_START_OP_WITH_TIME( _pMonAppCB_, time )      \
+   {                                                        \
+      UINT64 tmpTime = ( UINT64 )time ;                     \
+      if ( NULL != _pMonAppCB_ )                            \
+      {                                                     \
+         _pMonAppCB_->startOperator( &tmpTime ) ;           \
+      }                                                     \
+   }
+
+   #define MON_END_OP_WITH_TIME( _pMonAppCB_, time )        \
+   {                                                        \
+      UINT64 tmpTime = ( UINT64 )time ;                     \
+      if ( NULL != _pMonAppCB_ )                            \
+      {                                                     \
+         _pMonAppCB_->endOperator( &tmpTime ) ;             \
+      }                                                     \
+   }
+
    #define MON_SET_OP_TYPE( _pMonAppCB_, opType )           \
    {                                                        \
       if ( NULL != _pMonAppCB_ )                            \
@@ -1230,8 +1248,8 @@ namespace engine
          ossGetCurrentTime( _connectTimestamp ) ;
       }
 
-      void startOperator() ;
-      void endOperator() ;
+      void startOperator( UINT64 *pTime = NULL ) ;
+      void endOperator( UINT64 *pTime = NULL ) ;
       void setLastOpType( INT32 opType ) ;
       void setLastCmdType( INT32 cmdType ) ;
       void setUnknownCmdType() ;

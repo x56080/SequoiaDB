@@ -1557,6 +1557,9 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    BOOLEAN needRollback = FALSE ;
    bson::BSONObjBuilder retBuilder ;
 
+   monClassQueryTmpData tmpData ;
+   tmpData = *(eduCB()->getMonAppCB()) ;
+
    rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
 
    _contextBuff.release() ;
@@ -1569,6 +1572,21 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 
       _replyHeader.numReturned = _contextBuff.recordNum() ;
       _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
+
+      if ( eduCB()->getMonQueryCB() )
+      {
+         monClassQuery *monQuery = eduCB()->getMonQueryCB() ;
+         ossTickDelta delta ;
+         delta.fromUINT64( _getLastTimeSpan() ) ;
+         monQuery->processTime += delta ;
+         monQuery->rowsReturned += _contextBuff.recordNum() ;
+
+         tmpData.diff(*(eduCB()->getMonAppCB())) ;
+         monQuery->incMetrics(tmpData) ;
+
+         MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                  eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+      }
    }
    _replyHeader.flags       = rc ;
 
@@ -1647,17 +1665,51 @@ error:
 INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
 {
    INT32 rc = SDB_OK ;
+
+   _startOp() ;
+
+   _pEDUCB->clearProcessInfo() ;
+   
+   _saveOrSetMsgGlobalID( pMsg ) ;
+
+   getClient()->registerInMsg( pMsg ) ;
+
    // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
    _replyHeader.startFrom          = 0 ;
+   _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
    _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
    _replyHeader.header.requestID   = pMsg->requestID ;
    _replyHeader.header.TID         = pMsg->TID ;
    _replyHeader.header.routeID     = engine::pmdGetNodeID() ;
+   _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
+   _replyHeader.header.flags       = 0 ;
+   _replyHeader.header.globalID    = pMsg->globalID ;
+   ossMemset( _replyHeader.header.reserve, 0,
+              sizeof(_replyHeader.header.reserve) ) ;
+   _replyHeader.returnMask         = 0 ;
 
    // start operator
-   MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+   MON_START_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastBeginTime() ) ;
+   _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
+
+   // When this is a GETMORE operation following another operation,
+   // the context of the original operation already had the monQuery.
+   // The cb will set the monQuery with the monQuery from the original
+   // context when we find the original context later on.
+   if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( pMsg->opCode ) )
+   {
+      monClassQuery *monQuery = NULL ;
+      monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+      if ( monQuery )
+      {
+         monQuery->init( pMsg->opCode, eduCB(), pMsg ) ;
+         eduCB()->setMonQueryCB( monQuery ) ;
+      }
+
+      DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
+   }
 
 done:
    return rc ;
@@ -1678,8 +1730,34 @@ void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )
               pMsg->requestID, result ) ;
    }
 
+   _endOp() ;
+
+   if ( result != SDB_OK )
+   {
+      pmdIncErrNum( result ) ;
+   }
+
+   /// end for query
+   if ( eduCB()->getMonQueryCB() )
+   {
+      monClassQuery *monQuery = eduCB()->getMonQueryCB() ;
+      ossTickDelta delta ;
+      delta.fromUINT64( _getLastTimeSpan() ) ;
+      monQuery->responseTime += delta ;
+
+      if ( !monQuery->anchorToContext )
+      {
+         pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
+      }
+      eduCB()->setMonQueryCB( NULL ) ;
+   }
+
    // end operator
-   MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+   MON_END_OP_WITH_TIME( _pEDUCB->getMonAppCB(), _getLastEndTime() ) ;
+
+   getClient()->unregisterInMsg() ;
+   _pEDUCB->clearProcessInfo() ;
+   ((pmdOperator*)getOperator())->clearMsg() ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDRESPONSE, "_mongoSession::_buildResponse" )

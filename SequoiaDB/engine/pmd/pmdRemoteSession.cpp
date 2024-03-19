@@ -1194,7 +1194,14 @@ namespace engine
          ossTick endTimer ;
          endTimer.sample() ;
 
-         monQuery->nodes.insert( pSub->getNodeID().columns.nodeID ) ;
+         try
+         {
+            monQuery->nodes.insert( pSub->getNodeID().columns.nodeID ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
          monQuery->numMsgSent++ ;
          monQuery->msgSentTime += endTimer - startTimer ;
       }

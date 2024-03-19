@@ -187,10 +187,18 @@ namespace engine
 
       created = TRUE ;
 
+   retry:
       // increase the file size to the given size plus log file header
       rc = ossExtend( _file, 0, (SINT64)_fileSize + DPS_LOG_HEAD_LEN, enableSparse );
       if ( rc )
       {
+         if ( enableSparse && SDB_INVALIDARG == rc )
+         {
+            /// fs not support fallocate
+            enableSparse = FALSE ;
+            goto retry ;
+         }
+
          close() ;
          PD_LOG ( PDERROR, "Failed to extend log file size to %d, rc = %d",
                  size + DPS_LOG_HEAD_LEN, rc ) ;
