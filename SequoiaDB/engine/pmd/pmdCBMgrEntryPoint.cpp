@@ -109,7 +109,7 @@ namespace engine
                //restore handle
                pObj->dispatchMsg( (NET_HANDLE)eventData._userData,
                                   (MsgHeader*)(eventData._Data),
-                                  pMsgTimeSpan ) ;
+                                  0, pMsgTimeSpan ) ;
                if ( pMsgTimeSpan && timeSpan > maxMsgTime )
                {
                   MsgHeader *pMsg = (MsgHeader*)(eventData._Data) ;
@@ -124,7 +124,7 @@ namespace engine
             }
             else
             {
-               pObj->dispatchEvent ( &eventData, pEventTimeSpan ) ;
+               pObj->dispatchEvent ( &eventData, 0, pEventTimeSpan ) ;
                if ( pEventTimeSpan && timeSpan > maxEventTime )
                {
                   PD_LOG( PDWARNING, "[%s] Process event[type:%d] over %d "

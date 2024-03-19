@@ -317,6 +317,8 @@ namespace engine
 
       options.setCLFullName( pCollectionName ) ;
       options.setInsertor( BSONObj( pInsertor ) ) ;
+      options.setInsertNum( count ) ;
+      options.resetFlag( flag ) ;
 
       if ( _pHint )
       {

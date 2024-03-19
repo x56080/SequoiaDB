@@ -120,6 +120,31 @@ namespace engine
             _awaitingHandshake = FALSE ;
          }
 
+         inline void _startOp()
+         {
+            _lastBegin = ossGetCurrentMicroseconds() ;
+            _lastEnd = 0 ;
+         }
+
+         inline void _endOp()
+         {
+            _lastEnd = ossGetCurrentMicroseconds() ;
+         }
+
+         inline UINT64 _getLastBeginTime() const { return _lastBegin ; }
+         inline UINT64 _getLastEndTime() const { return _lastEnd ; }
+         inline UINT64 _getLastTimeSpan() const
+         {
+            UINT64 tmpEnd = ( 0 == _lastEnd ? ossGetCurrentMicroseconds() : _lastEnd ) ;
+            if ( tmpEnd > _lastBegin )
+            {
+               return tmpEnd - _lastBegin ;
+            }
+            return 0 ;
+         }
+
+         void _saveOrSetMsgGlobalID( MsgHeader *pMsg ) ;
+
       protected:
 
          _pmdEDUCB                        *_pEDUCB ;
@@ -131,6 +156,8 @@ namespace engine
          BOOLEAN                          _awaitingHandshake ;
 
          schedItem                        _infoItem ;
+         UINT64                           _lastBegin ;
+         UINT64                           _lastEnd ;
 
       protected:
          CHAR                             *_pBuff ;

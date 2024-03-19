@@ -229,10 +229,9 @@ namespace seadapter
       goto done ;
    }
 
-   INT32
-   _seAdptIndexSession::_defaultMsgFunc( NET_HANDLE handle, MsgHeader *msg )
+   INT32 _seAdptIndexSession::_defaultMsgFunc( NET_HANDLE handle, MsgHeader *msg )
    {
-      INT32 rc = _stateInstance->dispatchMsg( handle, msg, NULL ) ;
+      INT32 rc = _stateInstance->dispatchMsg( handle, msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Dispatch message failed[%d]", rc ) ;
 
    done:

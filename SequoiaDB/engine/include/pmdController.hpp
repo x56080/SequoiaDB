@@ -132,6 +132,7 @@ namespace engine
          ossSpinSLatch                          _ctrlLatch ;
          UINT32                                 _sequence ;
          UINT32                                 _timeCounter ;
+         UINT32                                 _netTimeCounter ;
 
          vector< CHAR* >                        _vecFixBuf ;
          INT32                                  _fixBufSize ;

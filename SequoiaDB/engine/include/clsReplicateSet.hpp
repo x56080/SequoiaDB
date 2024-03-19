@@ -266,6 +266,12 @@ namespace engine
             UINT32 timeout = 0 ;
             UINT32 onceTimeout = 0 ;
             BOOLEAN replCheckRC = SDB_OK ;
+            monClassQuery *monQuery = w > 1 ? cb->getMonQueryCB() : NULL ;
+
+            if ( monQuery )
+            {
+               monQuery->startSyncTimer() ;
+            }
 
             while ( TRUE )
             {
@@ -313,6 +319,11 @@ namespace engine
                }
 
                break ;
+            }
+
+            if ( monQuery )
+            {
+               monQuery->stopSyncTimer() ;
             }
 
             /// clean saved org repl size

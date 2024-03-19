@@ -68,6 +68,7 @@ namespace engine
       _pMongoListener      = NULL ;
       _sequence            = 1 ;
       _timeCounter         = 0 ;
+      _netTimeCounter      = 0 ;
       _fixBufSize          = SDB_PAGE_SIZE ;
       _maxRestBodySize     = PMD_REST_MAX_BODY_SIZE ;
       _restTimeout         = REST_TIMEOUT ;
@@ -647,19 +648,24 @@ namespace engine
    void _pmdController::onTimer( UINT32 interval )
    {
       _timeCounter += interval ;
+      _netTimeCounter += interval ;
 
       if ( _timeCounter > 10 * OSS_ONE_SEC )
       {
-         _checkSession( interval ) ;
+         _checkSession( _timeCounter ) ;
          _timeCounter = 0 ;
       }
 
-      map< _netFrame*, netFrameMon >::iterator it = _mapMonNets.begin() ;
-      while( it != _mapMonNets.end() )
+      if ( _netTimeCounter >= OSS_ONE_SEC )
       {
-         it->first->heartbeat( OSS_ONE_SEC, it->second ) ;
-         //it->first->makeStat( OSS_ONE_SEC ) ;
-         ++it ;
+         map< _netFrame*, netFrameMon >::iterator it = _mapMonNets.begin() ;
+         while( it != _mapMonNets.end() )
+         {
+            it->first->heartbeat( _netTimeCounter, it->second ) ;
+            //it->first->makeStat( OSS_ONE_SEC ) ;
+            ++it ;
+         }
+         _netTimeCounter = 0 ;
       }
    }
 

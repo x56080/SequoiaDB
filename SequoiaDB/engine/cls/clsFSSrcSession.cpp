@@ -126,7 +126,6 @@ namespace engine
                                             MsgHeader * msg )
    {
       _disconnectMsg.routeID = msg->routeID ;
-
       _timeCounter = 0 ;
    }
 

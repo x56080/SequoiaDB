@@ -5528,10 +5528,13 @@ namespace engine
       ossTimestamp createTS = _itr->getCreateTS() ;
       ossTimestamp endTS = _itr->getEndTS() ;
       CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
-      UINT32 seconds, microseconds ;
-      FLOAT64 responseTime ;
-      FLOAT64 latchWaitTime ;
-      FLOAT64 lockWaitTime ;
+      UINT32 seconds = 0, microseconds = 0 ;
+      FLOAT64 netTime = 0.0 ;
+      FLOAT64 processTime = 0.0 ;
+      FLOAT64 responseTime = 0.0 ;
+      FLOAT64 latchWaitTime = 0.0 ;
+      FLOAT64 lockWaitTime = 0.0 ;
+      FLOAT64 syncWaitTime = 0.0 ;
       ossTickConversionFactor factor ;
       SDB_ROLE role = pmdGetKRCB()->getDBRole() ;
       CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
@@ -5542,8 +5545,19 @@ namespace engine
          BSONObjBuilder builder( _builder ) ;
 
          ossTimestampToString ( createTS, timestamp ) ;
+
+         _itr->processTime.convertToTime ( factor, seconds, microseconds ) ;
+         processTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
          _itr->responseTime.convertToTime ( factor, seconds, microseconds ) ;
          responseTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+         if ( responseTime > processTime && processTime > 0 )
+         {
+            ossTickDelta netDelta = _itr->responseTime - _itr->processTime ;
+            netDelta.convertToTime ( factor, seconds, microseconds ) ;
+            netTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+         }
 
          /// add system info
          rc = monAppendSystemInfo( builder, _addInfoMask ) ;
@@ -5566,15 +5580,20 @@ namespace engine
                          msgType2String( (MSG_TYPE)_itr->opCode, FALSE ) ) ;
 
          builder.append( FIELD_NAME_NAME, _itr->name.c_str() ) ;
+         builder.append( FIELD_NAME_NETTIMESPENT, netTime ) ;
          builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
          builder.append( FIELD_NAME_RETURN_NUM, _itr->rowsReturned ) ;
          _itr->queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
          builder.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
 
+         builder.append( FIELD_NAME_RELATED_NID, _itr->relatedNID.columns.nodeID ) ;
+         builder.append( FIELD_NAME_RELATED_TID, _itr->relatedTID ) ;
+         builder.append( FIELD_NAME_SESSIONID, _itr->sessionID ) ;
+
          if ( SDB_ROLE_COORD == role )
          {
-            FLOAT64 nodeWaitTime ;
-            FLOAT64 msgSentTime ;
+            FLOAT64 nodeWaitTime = 0.0 ;
+            FLOAT64 msgSentTime = 0.0 ;
             BSONObjBuilder clientInfoBuilder ;
             _itr->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
             nodeWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
@@ -5582,9 +5601,9 @@ namespace engine
             _itr->msgSentTime.convertToTime ( factor, seconds, microseconds ) ;
             msgSentTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
             builder.append( FIELD_NAME_NUM_MSG_SENT, _itr->numMsgSent ) ;
-            builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
             builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
             builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
+            builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
             clientInfoBuilder.appendElements( _itr->clientInfo ) ;
             clientInfoBuilder.append( FIELD_NAME_CLIENTTID, _itr->clientTID ) ;
             clientInfoBuilder.append( FIELD_NAME_CLIENTHOST, _itr->clientHost.c_str() ) ;
@@ -5602,7 +5621,6 @@ namespace engine
                   ba.append( *nodeItr ) ;
                }
                ba.done() ;
-
             }
          }
          else
@@ -5613,9 +5631,9 @@ namespace engine
             _itr->lockWaitTime.convertToTime ( factor, seconds, microseconds ) ;
             lockWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
-            builder.append( FIELD_NAME_RELATED_NID, _itr->relatedNID.columns.nodeID ) ;
-            builder.append( FIELD_NAME_RELATED_TID, _itr->relatedTID ) ;
-            builder.append( FIELD_NAME_SESSIONID, _itr->sessionID ) ;
+            _itr->syncWaitTime.convertToTime ( factor, seconds, microseconds ) ;
+            syncWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
             builder.append( FIELD_NAME_ACCESSPLAN_ID, _itr->accessPlanID ) ;
             builder.append( FIELD_NAME_DATAREAD, _itr->dataRead ) ;
             builder.append( FIELD_NAME_DATAWRITE, _itr->dataWrite ) ;
@@ -5627,6 +5645,7 @@ namespace engine
             builder.append( FIELD_NAME_LOBADDRESSING, _itr->lobAddressing ) ;
             builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, lockWaitTime ) ;
             builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
+            builder.append( FIELD_NAME_SYNC_WAIT_TIME, syncWaitTime ) ;
          }
 
          ++_itr ;
