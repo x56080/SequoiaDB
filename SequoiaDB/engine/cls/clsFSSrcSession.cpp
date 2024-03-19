@@ -1840,7 +1840,8 @@ namespace engine
                if ( rc )
                {
                   PD_LOG( PDWARNING, "Session[%s]: Notify fullsync message to primary "
-                          "node[%u] failed, rc: %d", primaryID.columns.nodeID, rc ) ;
+                          "node[%u] failed, rc: %d", 
+                          sessionName(), primaryID.columns.nodeID, rc ) ;
                   _disconnect() ;
                   goto done ;
                }
