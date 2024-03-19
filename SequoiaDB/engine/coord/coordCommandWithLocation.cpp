@@ -985,6 +985,8 @@ namespace engine
       ctrlParam._isGlobal = TRUE ;
       ctrlParam._filterID = FILTER_ID_MATCHER ;
       ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
    UINT32 _coordCMDInvalidateFsCache::_getControlMask() const
