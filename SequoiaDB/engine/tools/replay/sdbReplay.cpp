@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 {
    Options options;
    INT32 rc = SDB_OK;
+   CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
    sdbEnablePD(REPLAY_LOG_PATH);
    setPDLevel(PDINFO);
@@ -80,6 +81,9 @@ int main(int argc, char* argv[])
    {
       setPDLevel(PDDEBUG);
    }
+
+   ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
+   PD_LOG( PDEVENT, "Start sdbreplay[%s]...", verText) ;
 
    if (options.daemon())
    {
@@ -154,6 +158,7 @@ int main(int argc, char* argv[])
    }
 
 done:
+   PD_LOG ( PDEVENT, "Stop programme, exit code: %d", rc ) ;
    return engine::utilRC2ShellRC(rc);
 error:
    goto done;

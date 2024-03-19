@@ -147,7 +147,7 @@ namespace engine
          // initialize log file for each newly created one
          // we set readonly to FALSE, so that each log file is opened with
          // WRITEONLY option
-         rc = file->init( fileFullPath, _logFileSz, _logFileNum, enableSparse ) ;
+         rc = file->init( fileFullPath, _logFileSz, _logFileNum, enableSparse, TRUE ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to init log file for %d, rc: %d",

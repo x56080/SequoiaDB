@@ -76,6 +76,7 @@ int main( int argc, char* argv[] )
    vector<pthread_t> threadList ;
    vector<logProcessor*> threadArgList ;
    logProcessor* processor = NULL ;
+   CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
 #if defined( _LINUX )
    signal( SIGINT, signalHandler ) ;
@@ -103,6 +104,9 @@ int main( int argc, char* argv[] )
    // 2. enable log
    sdbEnablePD( SDB_REVERT_LOG ) ;
    setPDLevel( PDINFO ) ;
+
+   ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
+   PD_LOG( PDEVENT, "Start sdbrevert[%s]...", verText) ;
 
    // 3. get all log file
    rc = listAllLogFile( options.logPathList(), logfileMgr ) ;
@@ -183,6 +187,8 @@ done:
    {
       SAFE_OSS_DELETE( threadArgList[i] ) ;
    }
+
+   PD_LOG ( PDEVENT, "Stop programme, exit code: %d", rc ) ;
 
    return engine::utilRC2ShellRC (rc ) ;
 error:

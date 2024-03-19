@@ -100,6 +100,7 @@ namespace engine
                             UINT32 size,
                             UINT32 fileNum,
                             BOOLEAN enableSparse,
+                            BOOLEAN ignoreRestore,
                             BOOLEAN *pCreated )
    {
       INT32 rc = SDB_OK ;
@@ -145,6 +146,14 @@ namespace engine
             rc = _restoreHeader( crashStart ) ;
             if ( rc == SDB_OK )
             {
+               if ( !ignoreRestore )
+               {
+                  rc = restore() ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+               }
                goto done ;
             }
             else
