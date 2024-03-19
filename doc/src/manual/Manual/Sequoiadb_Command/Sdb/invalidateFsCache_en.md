@@ -18,7 +18,7 @@ This function is used to clear the file system cache of the catalog or data node
 
 | Name    | Type   | Description    | Required or Not |
 |---------|--------|----------------|-----------------|
-| options | json   | Specify [command positional parameter][location]. When null, clear the cache of the catalog, data or coord nodes. | Not |
+| options | json   | Specify [command positional parameter][location]. When null, clear the cache of all the data nodes. | Not |
 | expiredTime | String | The expired time of cache. The cache that out of this time would be cleared. String format is a integer or a integer end with time unit. Time unit: hour(h), minute(m) or second(s). If it is a integer without unit, it equals unit 'h'. e.g.: "72h". And "" is expired immediately. Default: "". | Not |
 
 ##RETURN VALUE##
