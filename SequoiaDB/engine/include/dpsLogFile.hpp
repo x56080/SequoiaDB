@@ -148,6 +148,7 @@ namespace engine
                    UINT32 fileSize,
                    UINT32 fileNum,
                    BOOLEAN enableSparse = TRUE,
+                   BOOLEAN ignoreRestore = FALSE,
                    BOOLEAN *pCreated = NULL ) ;
 
       INT32 restore( INT32 length = -1,
