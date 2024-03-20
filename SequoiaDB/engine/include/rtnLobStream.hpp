@@ -119,6 +119,11 @@ namespace engine
          return _offset ;
       }
 
+      OSS_INLINE const _dmsLobMeta &getLobMeta() const
+      {
+         return _meta ;
+      }
+
       virtual _dmsStorageUnit *getSU() = 0 ;
 
       OSS_INLINE void setDPSCB( _dpsLogWrapper *dpsCB )
@@ -281,6 +286,8 @@ namespace engine
       INT32 _writeLobMeta( _pmdEDUCB *cb, BOOLEAN withData = TRUE ) ;
 
       INT32 _meta2Obj( bson::BSONObj& obj ) const ;
+
+      INT32 _meta2Obj( bson::BSONObjBuilder& builder ) const ;
 
       INT32 _writeOrUpdate( const _rtnLobTuple &tuple,
                             _pmdEDUCB *cb ) ;

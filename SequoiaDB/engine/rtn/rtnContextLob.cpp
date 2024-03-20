@@ -53,7 +53,8 @@ namespace engine
     _stream( NULL ),
     _suLogicalID( DMS_INVALID_LOGICCSID ),
     _offset( -1 ),
-    _readLen( 0 )
+    _readLen( 0 ),
+    _flags( 0 )
    {
    }
 
@@ -138,7 +139,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_OPEN ) ;
       BSONElement mode ;
-      bson::OID oid ;
       BSONElement oidEle ;
       BSONElement fullName ;
 
@@ -149,6 +149,7 @@ namespace engine
          goto error ;
       }
       _stream = pStream ;
+      _flags = flags ;
 
       fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
       if ( String != fullName.type() )
@@ -171,12 +172,12 @@ namespace engine
       oidEle = lob.getField( FIELD_NAME_LOB_OID ) ;
       if ( EOO == oidEle.type() && SDB_LOB_MODE_CREATEONLY == mode.numberInt() )
       {
-         rc = _createLobID( oid ) ;
+         rc = _createLobID( _oid ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
       }
       else if ( jstOID == oidEle.type() )
       {
-         oid = oidEle.OID() ;
+         _oid = oidEle.OID() ;
       }
       else
       {
@@ -190,9 +191,9 @@ namespace engine
       _stream->setDPSCB( dpsCB ) ;
 
       rc = _stream->open( fullName.valuestr(),
-                          oid,
+                          _oid,
                           mode.Int(),
-                          flags,
+                          _flags,
                           this,
                           cb ) ;
       if ( SDB_OK != rc )
@@ -326,6 +327,25 @@ namespace engine
       {
          return 0 ;
       }
+   }
+
+   INT32 _rtnContextLob::flags() const
+   {
+      return _flags ;
+   }
+
+   INT64 _rtnContextLob::getLobLength() const
+   {
+      if ( _stream )
+      {
+         return _stream->getLobMeta()._lobLen ;
+      }
+      return 0 ;
+   }
+
+   const bson::OID& _rtnContextLob::getOID() const
+   {
+      return _oid ;
    }
 
    void _rtnContextLob::getErrorInfo( INT32 rc,

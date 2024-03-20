@@ -78,7 +78,8 @@ UINT32 monGetTID()
 _monClass::_monClass()
    : _status(MON_CLASS_STATUS_NORMAL),
      _type(MON_CLASS_MAX),
-     dataLvl( MON_DATA_LVL_NONE )
+     dataLvl( MON_DATA_LVL_NONE ),
+     _pPendingDelete( NULL )
 {
    _createTSTick.sample() ;
 }
@@ -134,6 +135,7 @@ void _monClassContainer::remove ( monClass *obj )
    if ( MON_CLASS_STATUS_NORMAL == obj->getStatus() )
    {
       ossGetCurrentTime( obj->getEndTS() ) ;
+      obj->_pPendingDelete = NULL ;
 
       if ( (*_doArchive)( obj ) )
       {

@@ -1451,9 +1451,10 @@ namespace engine
 
       try
       {
+         /* Ignore it, because save in rtnOpenLob
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                             "Option:%s", lob.toPoolString().c_str() ) ;
+                             "Option:%s", lob.toPoolString().c_str() ) ; */
 
          /// pStream will delete in context
          pStream = SDB_OSS_NEW _rtnLocalLobStream() ;
@@ -1501,10 +1502,11 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnWriteLob
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
-                          header->contextID, len, offset ) ;
+                          header->contextID, len, offset ) ; */
 
       rc = rtnWriteLob( header->contextID, eduCB(), len, data, offset ) ;
       if ( SDB_OK != rc )
@@ -1537,10 +1539,11 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnReadLob
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
-                          header->contextID, readLen, offset ) ;
+                          header->contextID, readLen, offset ) ; */
 
       rc = rtnReadLob( header->contextID, eduCB(),
                        readLen, offset, &data, length ) ;
@@ -1571,9 +1574,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnLockLob
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
+                          "ContextID:%lld", header->contextID ) ; */
 
       rc = rtnLockLob( header->contextID, eduCB(), offset, length ) ;
       if ( SDB_OK != rc )
@@ -1600,9 +1604,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnCloseLob
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
+                          "ContextID:%lld", header->contextID ) ; */
 
       rc = rtnCloseLob( header->contextID, eduCB(), &buffObj ) ;
       if ( SDB_OK != rc )
@@ -1622,6 +1627,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj meta ;
       const MsgOpLob *header = NULL ;
+      const CHAR *fullName = NULL ;
+      BSONElement ele ;
       rc = msgExtractRemoveLobRequest( ( const CHAR * )msg, &header,
                                         meta ) ;
       if ( SDB_OK != rc )
@@ -1632,9 +1639,23 @@ namespace engine
 
       try
       {
+         ele = meta.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "invalid type of field \"collection\":%s",
+                    meta.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         fullName = ele.valuestr() ;
+
+         eduCB()->setCurProcessName( fullName ) ;
+         MONQUERY_SET_NAME( eduCB(), fullName ) ;
+
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toPoolString().c_str() ) ;
+         MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
          rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB ) ;
          if ( SDB_OK != rc )
@@ -1661,6 +1682,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj meta ;
       const MsgOpLob *header = NULL ;
+      BSONElement ele ;
+      const CHAR *fullName = NULL ;
 
       rc = msgExtractTruncateLobRequest( ( const CHAR * )msg, &header,
                                          meta ) ;
@@ -1672,9 +1695,23 @@ namespace engine
 
       try
       {
+         ele = meta.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "invalid type of field \"Collection\":%s",
+                    meta.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         fullName = ele.valuestr() ;
+
+         eduCB()->setCurProcessName( fullName ) ;
+         MONQUERY_SET_NAME( eduCB(), fullName ) ;
+
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
+         MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
          rc = rtnTruncateLob( meta, header->flags, header->w, eduCB(), dpsCB ) ;
          if ( SDB_OK != rc )
@@ -1731,6 +1768,7 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld", header->contextID ) ;
+      MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = rtnCreateLobID( obj, oid ) ;
       if ( SDB_OK != rc )

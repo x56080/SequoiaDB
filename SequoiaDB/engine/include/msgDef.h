@@ -294,6 +294,7 @@
 #define FIELD_NAME_STATUS                    "Status"
 #define FIELD_NAME_ISBLOCKED                 "IsBlocked"
 #define FIELD_NAME_NUM_MSG_SENT              "TotalMsgSent"
+#define FIELD_NAME_NUM_REPLY_COUNT           "TotalReplyCount"
 #define FIELD_NAME_STATUSDESC                "StatusDesc"
 #define VALUE_NAME_READY                     "Ready"
 #define VALUE_NAME_RUNNING                   "Running"

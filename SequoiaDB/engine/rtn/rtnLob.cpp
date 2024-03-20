@@ -237,6 +237,7 @@ namespace engine
          goto error ;
       }
       cb->setCurProcessName( pCollectionName ) ;
+      MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_LOB,
                               lobContext,
@@ -257,6 +258,16 @@ namespace engine
          lobContext->getErrorInfo( rc, cb, buffObj ) ;
          goto error ;
       }
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_OPEN_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:OPEN",
+                          pCollectionName, lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID ) ;
+      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// get data
       rc = lobContext->getMore( -1, buffObj, cb ) ;
@@ -313,7 +324,18 @@ namespace engine
          goto error ;
       }
 
+      cb->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       cb->setCurProcessName( lobContext->getProcessName() ) ;
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_READ_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:READ, Offset:%lld, Len:%u",
+                          lobContext->getProcessName(), lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID, offset, len ) ;
+      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = lobContext->read( len, offset, cb ) ;
       if ( SDB_OK != rc )
@@ -385,7 +407,18 @@ namespace engine
          goto error ;
       }
 
+      cb->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       cb->setCurProcessName( lobContext->getProcessName() ) ;
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_WRITE_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:WRITE, Offset:%lld, Len:%u",
+                          lobContext->getProcessName(), lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID, lobOffset, len ) ;
+      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       if ( lobOffset < -1 )
       {
@@ -438,7 +471,18 @@ namespace engine
          goto error ;
       }
 
+      cb->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       cb->setCurProcessName( lobContext->getProcessName() ) ;
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_LOCK_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:LOCK, Offset:%lld, Len:%lld",
+                          lobContext->getProcessName(), lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID, offset, length ) ;
+      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       if ( offset < 0 || length < -1 )
       {
@@ -486,7 +530,18 @@ namespace engine
          goto error ;
       }
 
+      cb->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       cb->setCurProcessName( lobContext->getProcessName() ) ;
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_GETRTDETAIL_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:GETDETAIL",
+                          lobContext->getProcessName(), lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID ) ;
+      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = lobContext->getRTDetail( cb, detail ) ;
       if ( SDB_OK != rc )
@@ -534,7 +589,18 @@ namespace engine
          goto done ;
       }
 
+      cb->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       cb->setCurProcessName( lobContext->getProcessName() ) ;
+
+      // add last op info
+      MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_LOB_CLOSE_REQ,
+                          "Collection:%s, OID:%s, Mode:0x%08x(%u), Flag:0x%08x(%u), "
+                          "ContextID:%lld, OP:CLOSE, Len:%lld",
+                          lobContext->getProcessName(), lobContext->getOID().str().c_str(),
+                          lobContext->mode(), lobContext->mode(),
+                          lobContext->flags(), lobContext->flags(),
+                          contextID, lobContext->getLobLength() ) ;
+      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = lobContext->close( cb ) ;
       if ( SDB_OK != rc )

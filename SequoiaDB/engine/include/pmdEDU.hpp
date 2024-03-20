@@ -619,8 +619,12 @@ namespace engine
       void           resetMon() { _monApplCB.reset () ; }
       monConfigCB*   getMonConfigCB() { return & _monCfgCB ; }
       monAppCB*      getMonAppCB() { return & _monApplCB ; }
-      void           setMonQueryCB ( monClassQuery *monQueryCB )
+      void           setMonQueryCB ( monClassQuery *monQueryCB, BOOLEAN discardExist = TRUE )
       {
+         if ( discardExist && _monQueryCB && monQueryCB && _monQueryCB != monQueryCB )
+         {
+            _monQueryCB->discard() ;
+         }
          _monQueryCB = monQueryCB ;
       }
       monClassQuery* getMonQueryCB () { return _monQueryCB ; }

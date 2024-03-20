@@ -29,11 +29,12 @@ SDB_SNAP_QUERIES
 | RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联          |
 | SessionID              | int32    | 查询所属会话ID                                      |
 | TotalMsgSent           | int32    | 发送到远程节点的消息总次数                          |
+| TotalReplyCount        | int32    | 发送到源节点的消息应答总次数                        |
 | MsgSentTime            | double   | 消息发送花费时间，单位为毫秒                        |
 | RemoteNodeWaitTime     | double   | 等待远程节点应答所花费时间，单位为毫秒              |
-| LastOpInfo             | string   | 查询语句内容                                        |
 | ClientInfo             | bson     | 连接到 SequoiaDB 引擎执行该查询的客户端信息         |
 | RelatedNode            | bson array | 处理该查询时，经该协调节点发送到的远程节点集      |
+| LastOpInfo             | string   | 查询语句内容                                        |
 
 **ClientInfo 字段中信息**
 
@@ -58,6 +59,7 @@ SDB_SNAP_QUERIES
 | NetTimeSpent           | double   | 查询应答的网络耗时，单位为毫秒                                     |
 | QueryTimeSpent         | double   | 查询总共花费时间，单位为毫秒                                       |
 | ReturnNum              | int32    | 操作返回记录数                                                     |
+| TotalReplyCount        | int32    | 发送到源节点的消息应答总次数                                       |
 | QueryID                | string   | 查询ID, 用于关联协调节点和数据节点的慢查询信息                     |
 | RelatedNID             | int32    | 查询接入节点ID，可用于查询和会话关联                               |
 | RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联                         |
@@ -74,6 +76,7 @@ SDB_SNAP_QUERIES
 | TransLockWaitTime      | double   | 锁等待时间，单位为毫秒                                             |
 | LatchWaitTime          | double   | 闩锁等待时间，单位为毫秒                                           |
 | SyncWaitTime           | double   | 等待备节点数据同步所花费时间，单位为毫秒                           |
+| LastOpInfo             | string   | 查询语句内容                                                       |
 
 ## 示例
 
@@ -100,6 +103,7 @@ SDB_SNAP_QUERIES
      "NetTimeSpent": 0.157,
      "QueryTimeSpent": 2.839,
      "ReturnNum": 1600,
+     "TotalReplyCount": 1,
      "QueryID": "0x0000ceb500049feb00000008",
      "RelatedNID": 4,
      "RelatedTID": 52917,
@@ -107,14 +111,14 @@ SDB_SNAP_QUERIES
      "TotalMsgSent": 5,
      "MsgSentTime": 0.167,
      "RemoteNodeWaitTime": 2.197,
-     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)",
      "ClientInfo": {
        "ClientTID": 52911,
        "ClientHost": "192.168.30.64"
      },
      "RelatedNode": [
        1003
-     ]
+     ],
+     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)"
    }
     ```
 
@@ -143,6 +147,7 @@ SDB_SNAP_QUERIES
      "NetTimeSpent": 0.077,
      "QueryTimeSpent": 4.027,
      "ReturnNum": 100,
+     "TotalReplyCount": 1,
      "QueryID": "0x00010176000452c700000071",
      "RelatedNID": 4,
      "RelatedTID": 65910,
@@ -158,7 +163,8 @@ SDB_SNAP_QUERIES
      "LobAddressing": 0,
      "TransLockWaitTime": 0,
      "LatchWaitTime": 0,
-     "SyncWaitTime": 0
+     "SyncWaitTime": 0,
+     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)"
    }
     ```
 
@@ -185,6 +191,7 @@ SDB_SNAP_QUERIES
      "NetTimeSpent": 0.393,
      "QueryTimeSpent": 1061.201,
      "ReturnNum": 21,
+     "TotalReplyCount": 2,
      "QueryID": "0x000114de000486fd00000005",
      "RelatedNID": 4,
      "RelatedTID": 70878,
@@ -192,7 +199,6 @@ SDB_SNAP_QUERIES
      "TotalMsgSent": 22,
      "MsgSentTime": 0.981,
      "RemoteNodeWaitTime": 1058.26,
-     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": 10000 }, Selector:{}, OrderBy:{}, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)",
      "ClientInfo": {
        "ClientTID": 70777,
        "ClientHost": "192.168.30.64"
@@ -202,7 +208,8 @@ SDB_SNAP_QUERIES
        1003,
        1005,
        1008
-     ]
+     ],
+     "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": 10000 }, Selector:{}, OrderBy:{}, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)"
    }
     ```
 

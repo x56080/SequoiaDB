@@ -331,13 +331,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnLobStream::_meta2Obj( bson::BSONObj& obj ) const
+   INT32 _rtnLobStream::_meta2Obj( bson::BSONObjBuilder& builder ) const
    {
       INT32 rc = SDB_OK ;
 
       try
       {
-         BSONObjBuilder builder ;
          /// we can get nothing when mode is create.
          builder.appendOID( FIELD_NAME_LOB_OID, (OID *)&_oid ) ;
          builder.append( FIELD_NAME_LOB_SIZE, _meta._lobLen ) ;
@@ -360,7 +359,32 @@ namespace engine
 
             builder.append( FIELD_NAME_LOB_PIECESINFO, array ) ;
          }
+      }
+      catch ( std::exception& e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "unexpected exception happened: %s", e.what() ) ;
+         goto error ;
+      }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnLobStream::_meta2Obj( bson::BSONObj& obj ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder( 200 ) ;
+         rc = _meta2Obj( builder ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
          obj = builder.obj() ;
       }
       catch ( std::exception& e )
@@ -851,6 +875,42 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get lob detail:%d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         /// and lob meta info
+         BSONObjBuilder builder( detail.objsize() + 200 ) ;
+         UINT64 modificationTime = 0 ;
+
+         builder.appendElements( detail ) ;
+
+         modificationTime = _meta._modificationTime ;
+         if ( 0 == modificationTime )
+         {
+            modificationTime = _meta._createTime ;
+         }
+
+         builder.append( FIELD_NAME_LOB_SIZE, _meta._lobLen ) ;
+         builder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
+                                  _meta._createTime,
+                                 (_meta._createTime % 1000 ) * 1000) ;
+         builder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
+                                  modificationTime,
+                                  (modificationTime % 1000 ) * 1000) ;
+         builder.append( FIELD_NAME_VERSION, (INT32)_meta._version ) ;
+         builder.appendBool( FIELD_NAME_LOB_AVAILABLE, _meta.isDone() ) ;
+         builder.append( FIELD_NAME_LOB_FLAG, (INT32)_meta._flag ) ;
+         builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, _meta.hasPiecesInfo() ) ;
+         builder.append( FIELD_NAME_LOB_PIECESINFONUM, _meta._piecesInfoNum ) ;
+
+         detail = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

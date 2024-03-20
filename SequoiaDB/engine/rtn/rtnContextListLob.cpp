@@ -281,10 +281,10 @@ namespace engine
       builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
       builder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
                                meta->_createTime,
-                               (meta->_createTime - ( meta->_createTime / 1000 * 1000 ) ) * 1000) ;
+                               ( meta->_createTime % 1000 ) * 1000) ;
       builder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
                                modificationTime,
-                               (modificationTime - ( modificationTime / 1000 * 1000 ) ) * 1000) ;
+                               (modificationTime % 1000 ) * 1000) ;
       builder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
 #ifdef _DEBUG
       builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;

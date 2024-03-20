@@ -340,6 +340,20 @@ namespace engine
       IOperator *pOperator = getOperator() ;
       MsgGlobalID globalID = pOperator->getGlobalID() ;
 
+      /// some session connect before node register, so the globalID is not init
+      if ( globalID.isInvalid() && 0 != pmdGetNodeID().columns.nodeID )
+      {
+         MsgQueryID queryID ;
+         UINT16 nodeID = pmdGetNodeID().columns.nodeID ;
+         queryID.init( eduCB()->getTID(), nodeID, (UINT16)ossRand() ) ;
+         globalID.set( queryID, 0 ) ;
+
+         if ( eduCB()->getMonQueryCB() )
+         {
+            eduCB()->getMonQueryCB()->queryID = globalID.getQueryID() ;
+         }
+      }
+
       if ( pMsg->globalID.getQueryID().getIdentifyID() != globalID.getQueryID().getIdentifyID() )
       {
          // The msg may be sent by the old version client

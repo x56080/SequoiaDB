@@ -89,6 +89,21 @@ class _monAppCB ;
      } \
   }\
 
+#define MONQUERY_REPLACE_QUERY_TEXT(edu, n)\
+    if (edu->getMonQueryCB() && \
+        edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL )\
+    {\
+       try \
+       { \
+          edu->getMonQueryCB()->queryText.assign(n); \
+       } \
+       catch( std::exception &e ) \
+       { \
+          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ; \
+       } \
+    }\
+
+
 typedef enum
 {
    MON_CLASS_QUERY = 0,  // _monClassQuery
@@ -146,6 +161,7 @@ typedef boost::intrusive::list_base_hook< > BaseHook ;
  */
 class _monClass : public BaseHook, public utilPooledObject
 {
+   friend class _monClassContainer ;
 
 protected:
    ossTimestamp    _endTS ;      /**! end timestamp for this object */
@@ -182,6 +198,15 @@ public:
    BOOLEAN isPendingArchive() const
    {
       return ( _status & MON_CLASS_STATUS_PEND_ARC ) ? TRUE : FALSE ;
+   }
+
+   void discard()
+   {
+      if ( MON_CLASS_STATUS_NORMAL == _status && _pPendingDelete )
+      {
+         setPendingDelete() ;
+         _pPendingDelete->inc() ;
+      }
    }
 
    /**
@@ -228,6 +253,9 @@ public:
     * Done for tmp
     */
    virtual void done() = 0 ;
+
+private:
+   ossAtomic32       *_pPendingDelete ;
 } ;
 
 typedef _monClass monClass ;
@@ -332,6 +360,7 @@ public:
    UINT32       lobAddressing ;  /**! Total LOB addressing (number of times) */
    UINT32        rowsReturned ;  /**! Total number of rows returned */
    UINT32          numMsgSent ;  /**! Total # of msgs sent to remote nodes */
+   UINT32         numMsgReply ;  /**! Total # of msgs reply to source node */
    ossPoolSet<UINT32>   nodes ;  /**! Node ID where messages were sent to */
    MsgRouteID      relatedNID ;  /**! coordinator node node ID */
    UINT32          relatedTID ;  /**! coordinator node edu TID */
@@ -357,6 +386,7 @@ public:
         lobAddressing( 0 ),
         rowsReturned( 0 ),
         numMsgSent( 0 ),
+        numMsgReply( 0 ),
         relatedTID( 0 ),
         anchorToContext( FALSE )
    {
@@ -384,6 +414,7 @@ public:
        lobAddressing( monClassQuery.lobAddressing ),
        rowsReturned( monClassQuery.rowsReturned ),
        numMsgSent( monClassQuery.numMsgSent ),
+       numMsgReply( monClassQuery.numMsgReply ),
        relatedNID( monClassQuery.relatedNID ),
        relatedTID( monClassQuery.relatedTID ),
        anchorToContext( monClassQuery.anchorToContext ),
@@ -907,6 +938,7 @@ public:
             if ( obj )
             {
                obj->dataLvl = getCollectionLvl() ;
+               obj->_pPendingDelete = &_numPendingDelete ;
                _activeList.add( obj ) ;
             }
             else
@@ -943,6 +975,7 @@ public:
             if ( obj )
             {
                obj->dataLvl = getCollectionLvl() ;
+               obj->_pPendingDelete = &_numPendingDelete ;
                _activeList.add( obj ) ;
             }
             else
