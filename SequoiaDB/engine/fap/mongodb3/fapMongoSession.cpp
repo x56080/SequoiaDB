@@ -1583,6 +1583,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 
          tmpData.diff(*(eduCB()->getMonAppCB())) ;
          monQuery->incMetrics(tmpData) ;
+         monQuery->numMsgReply++ ;
 
          MONQUERY_SET_QUERY_TEXT( eduCB(),
                                   eduCB()->getMonAppCB()->getLastOpDetail() ) ;

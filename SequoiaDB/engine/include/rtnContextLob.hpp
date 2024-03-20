@@ -94,6 +94,12 @@ namespace engine
 
       INT32 mode() const ;
 
+      INT32 flags() const ;
+
+      INT64 getLobLength() const ;
+
+      const bson::OID& getOID() const ;
+
       virtual void     getErrorInfo( INT32 rc,
                                      _pmdEDUCB *cb,
                                      rtnContextBuf &buffObj ) ;
@@ -112,6 +118,8 @@ namespace engine
       _rtnLobStream     *_stream ;
       SINT64            _offset ;
       UINT32            _readLen ;
+      bson::OID         _oid ;
+      INT32             _flags ;
    } ;
    typedef class _rtnContextLob rtnContextLob ;
 

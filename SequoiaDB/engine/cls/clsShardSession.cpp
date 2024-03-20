@@ -733,7 +733,8 @@ namespace engine
          MON_START_OP_WITH_TIME( _pEDUCB->getMonAppCB(), getLastBeginTime() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( opCode ) ;
 
-         if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
+         if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralShardQueryOp( opCode ) &&
+              !isNoReplyMsg( opCode ) )
          {
             monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
 
@@ -1007,18 +1008,6 @@ namespace engine
             rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
          }
 
-         /// calc processTime and read/write metrics
-         if ( _pEDUCB->getMonQueryCB() )
-         {
-            monQuery = _pEDUCB->getMonQueryCB() ;
-            ossTickDelta delta ;
-            delta.fromUINT64( getLastTimeSpan() ) ;
-            monQuery->processTime += delta ;
-            monQuery->rowsReturned += buffObj.recordNum() ;
-            tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
-            monQuery->incMetrics(tmpData) ;
-         }
-
          loop = FALSE ;
       }
 
@@ -1026,6 +1015,22 @@ namespace engine
       {
          //not to reply
          goto done ;
+      }
+
+      /// calc processTime and read/write metrics
+      if ( _pEDUCB->getMonQueryCB() )
+      {
+         monQuery = _pEDUCB->getMonQueryCB() ;
+         ossTickDelta delta ;
+         delta.fromUINT64( getLastTimeSpan() ) ;
+         monQuery->processTime += delta ;
+         monQuery->rowsReturned += buffObj.recordNum() ;
+         tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
+         monQuery->incMetrics(tmpData) ;
+         monQuery->numMsgReply++ ;
+
+         MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                  eduCB()->getMonAppCB()->getLastOpDetail() ) ;
       }
 
       if ( rc < -SDB_MAX_ERROR || rc > SDB_MAX_WARNING )
@@ -4795,6 +4800,7 @@ namespace engine
          }
          fullName = ele.valuestr() ;
          _setCollectionName( fullName ) ;
+         MONQUERY_SET_NAME( eduCB(), fullName ) ;
 
          ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
          if ( EOO != ele.type() )
@@ -4834,6 +4840,7 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "Option:%s", lob.toPoolString().c_str() ) ;
+      MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       if ( !SDB_IS_LOBREADONLY_MODE( mode ) )
       {
@@ -4977,13 +4984,34 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, CollectionName:%s, TupleSize:%u",
-                          header->contextID, _pCollectionName, tSize ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:WRITE, TupleSize:%u",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tSize ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:WRITE, TupleSize:%u",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tSize ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -5148,12 +5176,33 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s",
-                          header->contextID, _pCollectionName ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:LOCK, Offset:%lld, Len:%lld",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             offset, length ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:LOCK, Offset:%lld, Len:%lld",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             offset, length ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -5244,7 +5293,7 @@ namespace engine
       /// do not check version coz we will not
       ///  change any thing except close the context.
       lobContext = ( rtnContextShdOfLob * )context ;
-
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       eduCB()->setCurProcessName( lobContext->getFullName() ) ;
       if ( NULL != lobContext->getSubCLName() )
       {
@@ -5252,10 +5301,27 @@ namespace engine
       }
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s",
-                          header->contextID,
-                          lobContext->getFullName() ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:CLOSE",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false" ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:CLOSE",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false" ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = lobContext->close( _pEDUCB ) ;
       if ( SDB_OK != rc )
@@ -5315,13 +5381,33 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, lobContext->getFullName(),
-                          tuplesSize ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:READ, TupleSize:%u",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tuplesSize ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:READ, TupleSize:%u",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tuplesSize ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkPrimaryWhenRead(FLG_LOBREAD_PRIMARY,  header->flags ) ;
       if ( SDB_OK != rc )
@@ -5435,14 +5521,34 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, lobContext->getFullName(),
-                          tuplesSize ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:REMOVE, TupleSize:%u",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tuplesSize ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:REMOVE, TupleSize:%u",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tuplesSize ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -5575,13 +5681,34 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
       wWhenOpen = lobContext->getW() ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s, TupleSize:%u",
-                          header->contextID, lobContext->getFullName(), tSize ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:UPDATE, TupleSize:%u",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tSize ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:UPDATE, TupleSize:%u",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false",
+                             tSize ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkWriteStatus() ;
       if ( SDB_OK != rc )
@@ -5710,12 +5837,31 @@ namespace engine
       }
 
       lobContext = ( rtnContextShdOfLob * )context ;
+      eduCB()->setMonQueryCB( lobContext->getMonQueryCB() ) ;
       _setCollectionName( lobContext->getFullName() ) ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld, Collection:%s",
-                          header->contextID, lobContext->getFullName() ) ;
+      if ( lobContext->getSubCLName() )
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, SubCollection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:GETDETAIL",
+                             lobContext->getFullName(), lobContext->getSubCLName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false" ) ;
+      }
+      else
+      {
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "Collection:%s, OID:%s, "
+                             "ContextID:%lld, IsMainShard:%s, OP:GETDETAIL",
+                             lobContext->getFullName(),
+                             lobContext->getOID().str().c_str(),
+                             header->contextID,
+                             lobContext->isMainShard() ? "true" : "false" ) ;
+      }
+      MONQUERY_REPLACE_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = _checkPrimaryWhenRead(FLG_LOBREAD_PRIMARY,  header->flags ) ;
       if ( SDB_OK != rc )

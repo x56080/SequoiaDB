@@ -83,9 +83,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnOpenLob
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
-                          "Option:%s", obj.toString().c_str() ) ;
+                          "Option:%s", obj.toString().c_str() ) ; */
 
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Got open LOB, meta: %s", obj.toString().c_str() ) ;
@@ -152,10 +153,11 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnWriteLob
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
-                          header->contextID, len, offset ) ;
+                          header->contextID, len, offset ) ; */
 
 #if defined (_DEBUG)
       {
@@ -219,10 +221,11 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnReadLob
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
-                          header->contextID, readLen, offset ) ;
+                          header->contextID, readLen, offset ) ; */
 
       rc = rtnReadLob( header->contextID, cb, len,
                        offset, &data, readLen, buf ) ;
@@ -274,9 +277,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnLockLob
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
+                          "ContextID:%lld", header->contextID ) ; */
 
       rc = rtnLockLob( header->contextID, cb, offset, length, buf ) ;
       if ( SDB_OK != rc )
@@ -323,9 +327,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnCloseLob
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
+                          "ContextID:%lld", header->contextID ) ; */
 
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Got close LOB, context: %lld", header->contextID ) ;
@@ -400,9 +405,13 @@ namespace engine
          goto error ;
       }
 
+      cb->setCurProcessName( fullName ) ;
+      MONQUERY_SET_NAME( cb, fullName ) ;
+
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
+      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
@@ -474,7 +483,7 @@ namespace engine
       const MsgOpLob *header = NULL ;
       BSONObj obj ;
       BSONElement ele ;
-      string fullName ;
+      const CHAR *fullName = NULL ;
       bson::OID oid ;
       INT64 length = 0 ;
       coordLobStream stream( _pResource, getTimeout() ) ;
@@ -496,7 +505,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      fullName = ele.String() ;
+      fullName = ele.valuestr() ;
 
       ele = obj.getField( FIELD_NAME_LOB_OID ) ;
       if ( jstOID != ele.type() )
@@ -518,14 +527,18 @@ namespace engine
       }
       length = ele.numberLong() ;
 
+      cb->setCurProcessName( fullName ) ;
+      MONQUERY_SET_NAME( cb, fullName ) ;
+
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
+      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
       /// then open stream, will init it's groupSession
-      rc = stream.open( fullName.c_str(),
+      rc = stream.open( fullName,
                         oid, SDB_LOB_MODE_TRUNCATE,
                         header->flags,
                         NULL,
@@ -598,9 +611,10 @@ namespace engine
          goto error ;
       }
 
+      /* Ignore it, because save in rtnGetLobRTDetail
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
+                          "ContextID:%lld", header->contextID ) ; */
 
       rc = rtnGetLobRTDetail( header->contextID, cb, buf ) ;
       if ( SDB_OK != rc )
@@ -650,6 +664,7 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
+      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = rtnCreateLobID( obj, oid ) ;
       if ( SDB_OK != rc )

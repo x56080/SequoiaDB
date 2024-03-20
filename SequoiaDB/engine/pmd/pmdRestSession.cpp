@@ -648,6 +648,7 @@ namespace engine
 
       monClassQueryTmpData tmpData ;
       tmpData = *(_pEDUCB->getMonAppCB()) ;
+      UINT64 bTime = 0 ;
 
       rc = _translateMSG( pAdaptor, request, &msg ) ;
       if ( SDB_OK != rc )
@@ -680,6 +681,7 @@ namespace engine
 
       hasBegin = TRUE ;
       rtnCode = _onMsgBegin( msg ) ;
+      bTime = _getLastBeginTime() ;
       if ( SDB_OK == rtnCode )
       {
          rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
@@ -741,6 +743,29 @@ namespace engine
 
       if ( contextBuff.recordNum() > 0 )
       {
+         if ( _pEDUCB->getMonQueryCB() )
+         {
+            monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
+            UINT64 eTime = ossGetCurrentMicroseconds() ;
+            ossTickDelta delta ;
+            if ( eTime > bTime )
+            {
+               delta.fromUINT64( eTime - bTime ) ;
+               monQuery->processTime += delta ;
+            }
+            bTime = eTime ;
+            monQuery->rowsReturned += contextBuff.recordNum() ;
+
+            tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
+            monQuery->incMetrics(tmpData) ;
+            monQuery->numMsgReply++ ;
+            tmpData = *(_pEDUCB->getMonAppCB()) ;
+
+            MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+
+         }
+
          rc = pAdaptor->setResBody( socket(), &response,
                                     contextBuff.data(),
                                     contextBuff.size(),
@@ -763,18 +788,6 @@ namespace engine
                _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
                contextID = -1 ;
 
-               if ( _pEDUCB->getMonQueryCB() )
-               {
-                  monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
-                  ossTickDelta delta ;
-                  delta.fromUINT64( _getLastTimeSpan() ) ;
-                  monQuery->processTime += delta ;
-                  monQuery->rowsReturned += contextBuff.recordNum() ;
-
-                  tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
-                  monQuery->incMetrics(tmpData) ;
-               }
-
                if ( SDB_DMS_EOC != rc )
                {
                   PD_LOG_MSG( PDERROR, "getmore failed:rc=%d", rc ) ;
@@ -787,6 +800,28 @@ namespace engine
                break ;
             }
 
+            if ( _pEDUCB->getMonQueryCB() )
+            {
+               monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
+               UINT64 eTime = ossGetCurrentMicroseconds() ;
+               ossTickDelta delta ;
+               if ( eTime > bTime )
+               {
+                  delta.fromUINT64( eTime - bTime ) ;
+                  monQuery->processTime += delta ;
+               }
+               bTime = eTime ;
+               monQuery->rowsReturned += contextBuff.recordNum() ;
+            
+               tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
+               monQuery->incMetrics(tmpData) ;
+               monQuery->numMsgReply++ ;
+               tmpData = *(_pEDUCB->getMonAppCB()) ;
+
+               MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                        eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+            }
+
             rc = pAdaptor->setResBody( socket(), &response,
                                        contextBuff.data(),
                                        contextBuff.size(),
@@ -797,6 +832,27 @@ namespace engine
                goto error ;
             }
          }
+      }
+
+      if ( _pEDUCB->getMonQueryCB() )
+      {
+         monClassQuery *monQuery = _pEDUCB->getMonQueryCB() ;
+         UINT64 eTime = ossGetCurrentMicroseconds() ;
+         ossTickDelta delta ;
+         if ( eTime > bTime )
+         {
+            delta.fromUINT64( eTime - bTime ) ;
+            monQuery->processTime += delta ;
+         }
+         bTime = eTime ;
+
+         tmpData.diff(*(_pEDUCB->getMonAppCB())) ;
+         monQuery->incMetrics(tmpData) ;
+         monQuery->numMsgReply++ ;
+         tmpData = *(_pEDUCB->getMonAppCB()) ;
+
+         MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                  eduCB()->getMonAppCB()->getLastOpDetail() ) ;
       }
 
       rc = pAdaptor->setResBodyEnd( socket(), &response ) ;

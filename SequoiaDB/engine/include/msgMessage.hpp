@@ -155,7 +155,12 @@ OSS_INLINE BOOLEAN isGeneralQueryOp( INT32 opCode )
       case MSG_BS_INTERRUPTE_SELF:
       case MSG_BS_DISCONNECT:
       case MSG_BS_KILL_CONTEXT_REQ:
+      case MSG_BS_LOB_WRITE_REQ:
+      case MSG_BS_LOB_READ_REQ:
+      case MSG_BS_LOB_UPDATE_REQ:
       case MSG_BS_LOB_CLOSE_REQ:
+      case MSG_BS_LOB_LOCK_REQ:
+      case MSG_BS_LOB_GETRTDETAIL_REQ:
       case MSG_BS_ADVANCE_REQ:
       case MSG_BS_GETMORE_REQ:
          result = FALSE ;
@@ -165,6 +170,15 @@ OSS_INLINE BOOLEAN isGeneralQueryOp( INT32 opCode )
    }
 
    return result ;
+}
+
+OSS_INLINE BOOLEAN isGeneralShardQueryOp( INT32 opCode )
+{
+   if ( MSG_BS_LOB_REMOVE_REQ == opCode )
+   {
+      return FALSE ;
+   }
+   return isGeneralQueryOp( opCode ) ;
 }
 
 OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )

@@ -5575,14 +5575,22 @@ namespace engine
             builder.append( FIELD_NAME_ENDTIMESTAMP, VALUE_NAME_EMPTYENDTIMESTAMP ) ;
          }
          builder.append( FIELD_NAME_TID, _itr->tid ) ;
-         //FIXME: PASSING IN FALSE AS DEFAULT
+
+         BOOLEAN isCommand = FALSE ;
+         if ( MSG_BS_QUERY_REQ == _itr->opCode &&
+              !_itr->name.empty() &&
+              _itr->name.at(0) == '$' )
+         {
+            isCommand = TRUE ;
+         }
          builder.append( FIELD_NAME_OPTYPE,
-                         msgType2String( (MSG_TYPE)_itr->opCode, FALSE ) ) ;
+                         msgType2String( (MSG_TYPE)_itr->opCode, isCommand ) ) ;
 
          builder.append( FIELD_NAME_NAME, _itr->name.c_str() ) ;
          builder.append( FIELD_NAME_NETTIMESPENT, netTime ) ;
          builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
          builder.append( FIELD_NAME_RETURN_NUM, _itr->rowsReturned ) ;
+         builder.append( FIELD_NAME_NUM_REPLY_COUNT, _itr->numMsgReply ) ;
          _itr->queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
          builder.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
 
@@ -5603,7 +5611,6 @@ namespace engine
             builder.append( FIELD_NAME_NUM_MSG_SENT, _itr->numMsgSent ) ;
             builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
             builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
-            builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
             clientInfoBuilder.appendElements( _itr->clientInfo ) ;
             clientInfoBuilder.append( FIELD_NAME_CLIENTTID, _itr->clientTID ) ;
             clientInfoBuilder.append( FIELD_NAME_CLIENTHOST, _itr->clientHost.c_str() ) ;
@@ -5647,6 +5654,8 @@ namespace engine
             builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
             builder.append( FIELD_NAME_SYNC_WAIT_TIME, syncWaitTime ) ;
          }
+
+         builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
 
          ++_itr ;
          if ( _itr == _cachedMonClassList.end() )
