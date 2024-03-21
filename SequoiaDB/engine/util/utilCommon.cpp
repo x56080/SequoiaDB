@@ -582,11 +582,7 @@ namespace engine
          goto error ;
       }
 
-      rc = ossStrToInt( pNum, &num ) ;
-      if ( rc != SDB_OK )
-      {
-         goto error ;
-      }
+      num = ossAtoi( pNum ) ;
 
       if ( num < 0 )
       {
