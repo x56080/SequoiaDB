@@ -1956,6 +1956,16 @@ namespace engine
       {
          INT32 rc = SDB_OK ;
 
+#ifdef SDB_ENGINE
+         pmdEDUCB *pEduCB = dynamic_cast< pmdEDUCB* >( cb ) ;
+         monClassQuery *monQuery = NULL ;
+
+         if ( pEduCB && pEduCB->getMonQueryCB() )
+         {
+            monQuery = pEduCB->getMonQueryCB() ;
+            monQuery->startQueryTick( MON_TICK_FILE ) ;
+         }
+#endif
          if ( _isWrite )
          {
             if ( _usePage )
@@ -2028,6 +2038,13 @@ namespace engine
          _isWrite = FALSE ;
          _newestMask = 0 ;
          _writeBack = FALSE ;
+
+#ifdef SDB_ENGINE
+         if ( monQuery )
+         {
+            monQuery->stopQueryTick() ;
+         }
+#endif
       }
       _hasDiscard = FALSE ;
 

@@ -174,7 +174,8 @@ OSS_INLINE BOOLEAN isGeneralQueryOp( INT32 opCode )
 
 OSS_INLINE BOOLEAN isGeneralShardQueryOp( INT32 opCode )
 {
-   if ( MSG_BS_LOB_REMOVE_REQ == opCode )
+   if ( MSG_BS_LOB_REMOVE_REQ == opCode ||
+        MSG_BS_TRANS_BEGIN_REQ == opCode )
    {
       return FALSE ;
    }

@@ -156,6 +156,7 @@ public:
    UINT32 lastSOwnerTID ;
    UINT32 xOwnerTID ;
    INT32 numXOwner ;
+   BOOLEAN hasStartQueryFile ;
 } ;
 
 class monSpinSLatch : public ossSLatch
@@ -195,6 +196,7 @@ public:
    UINT32 xOwnerTID ;
    ossAtomic32 numSOwner ;
    INT32 numXOwner ;
+   BOOLEAN hasStartQueryFile ;
 } ;
 
 class monRWMutex : public ossRWMutexBase

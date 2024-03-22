@@ -1114,9 +1114,8 @@ namespace engine
 
          if ( eduCB->getMonQueryCB() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
-                                                     getTransExecutor()->
-                                                     getLockWaitTime() ;
+            eduCB->getMonQueryCB()->directSubmitQueryTick( MON_TICK_LOCK,
+                              eduCB->getTransExecutor()->getLockWaitTime() ) ;
          }
       }
 
@@ -1148,9 +1147,8 @@ namespace engine
 
          if ( eduCB->getMonQueryCB() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
-                                                     getTransExecutor()->
-                                                     getLockWaitTime() ;
+            eduCB->getMonQueryCB()->directSubmitQueryTick( MON_TICK_LOCK,
+                              eduCB->getTransExecutor()->getLockWaitTime() ) ;
          }
       }
       return rc ;
@@ -1181,9 +1179,8 @@ namespace engine
 
          if ( eduCB->getMonQueryCB() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
-                                                     getTransExecutor()->
-                                                     getLockWaitTime() ;
+            eduCB->getMonQueryCB()->directSubmitQueryTick( MON_TICK_LOCK,
+                              eduCB->getTransExecutor()->getLockWaitTime() ) ;
          }
       }
       return rc ;
@@ -1211,9 +1208,8 @@ namespace engine
 
          if ( eduCB->getMonQueryCB() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
-                                                     getTransExecutor()->
-                                                     getLockWaitTime() ;
+            eduCB->getMonQueryCB()->directSubmitQueryTick( MON_TICK_LOCK,
+                              eduCB->getTransExecutor()->getLockWaitTime() ) ;
          }
       }
       return rc ;
@@ -1241,9 +1237,8 @@ namespace engine
 
          if ( eduCB->getMonQueryCB() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
-                                                     getTransExecutor()->
-                                                     getLockWaitTime() ;
+            eduCB->getMonQueryCB()->directSubmitQueryTick( MON_TICK_LOCK,
+                              eduCB->getTransExecutor()->getLockWaitTime() ) ;
          }
       }
       return rc ;
