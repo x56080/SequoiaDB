@@ -39,6 +39,7 @@
 #include "monClass.hpp"
 #include "monCB.hpp"
 #include "pmd.hpp"
+#include "pmdEnv.hpp"
 
 namespace engine
 {
@@ -48,6 +49,9 @@ namespace engine
 
 // microsecond
 #define MON_LOCK_ARCHIVE_THRESHOLD     ( 8000 )
+
+// ms
+#define MON_ARCHIVE_KEEPTIME_WHEN_OFF  ( 300000 )
 
 archiveFunc monClassArchiveFP[MON_CLASS_MAX] = {
    monArchiveQuery,  // MON_CLASS_QUERY
@@ -121,6 +125,7 @@ _monClassContainer::_monClassContainer ( MON_CLASS_TYPE type )
 {
    _doArchive = monClassArchiveFP[(INT32)type] ;
    _minOperationalLvl = monClassCreateCB[(INT32)type] ;
+   _lastNonOperationTick = 0 ;
 }
 
 /**
@@ -163,10 +168,23 @@ void _monClassContainer::_removeArchivedObj()
 
    if ( !isOperational() )
    {
-      numToDelete = archivedListSize ;
+      if ( 0 == _lastNonOperationTick )
+      {
+         _lastNonOperationTick = pmdGetDBTick() ;
+      }
+
+      if ( pmdGetTickSpanTime( _lastNonOperationTick ) >= MON_ARCHIVE_KEEPTIME_WHEN_OFF )
+      {
+         numToDelete = archivedListSize ;
+      }
+      else
+      {
+         numToDelete = archivedListSize - _archivedListMaxLen ;
+      }
    }
    else
    {
+      _lastNonOperationTick = 0 ;
       numToDelete = archivedListSize - _archivedListMaxLen ;
    }
 

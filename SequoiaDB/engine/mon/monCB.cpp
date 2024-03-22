@@ -532,6 +532,7 @@ namespace engine
       switch ( _lastOpType )
       {
          case MSG_BS_QUERY_REQ :
+         case MSG_BS_TRANS_QUERY_REQ :
             {
                if ( _cmdType != CMD_UNKNOW )
                {
@@ -548,8 +549,11 @@ namespace engine
                break ;
             }
          case MSG_BS_INSERT_REQ :
+         case MSG_BS_TRANS_INSERT_REQ :
          case MSG_BS_UPDATE_REQ :
+         case MSG_BS_TRANS_UPDATE_REQ :
          case MSG_BS_DELETE_REQ :
+         case MSG_BS_TRANS_DELETE_REQ :
          /// LOB
          case MSG_BS_LOB_WRITE_REQ :
          case MSG_BS_LOB_REMOVE_REQ :
@@ -648,6 +652,7 @@ namespace engine
          switch ( _lastOpType )
          {
             case MSG_BS_QUERY_REQ :
+            case MSG_BS_TRANS_QUERY_REQ :
             {
                saveLastOpDetail( "Collection:%s, Matcher:%s, Selector:%s, "
                                  "OrderBy:%s, Hint:%s, Skip:%lld, Limit:%lld, "
@@ -664,6 +669,7 @@ namespace engine
                break ;
             }
             case MSG_BS_INSERT_REQ :
+            case MSG_BS_TRANS_INSERT_REQ :
             {
                saveLastOpDetail( "Collection:%s, Insertors:%s, ObjNum:%d, "
                                  "Flag:0x%08x(%u)",
@@ -675,6 +681,7 @@ namespace engine
                break ;
             }
             case MSG_BS_UPDATE_REQ :
+            case MSG_BS_TRANS_UPDATE_REQ :
             {
                saveLastOpDetail( "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                                  "Flag:0x%08x(%u)",
@@ -687,6 +694,7 @@ namespace engine
                break ;
             }
             case MSG_BS_DELETE_REQ :
+            case MSG_BS_TRANS_DELETE_REQ :
             {
                saveLastOpDetail( "Collection:%s, Deletor:%s, Hint:%s, "
                                  "Flag:0x%08x(%u)",
@@ -731,6 +739,7 @@ namespace engine
          switch ( expectingOpType )
          {
             case MSG_BS_QUERY_REQ :
+            case MSG_BS_TRANS_QUERY_REQ :
             {
                if ( SDB_OK == options.fromQueryMsg( temp ) )
                {
@@ -739,6 +748,7 @@ namespace engine
                break ;
             }
             case MSG_BS_INSERT_REQ :
+            case MSG_BS_TRANS_INSERT_REQ :
             {
                if ( SDB_OK == options.fromInsertMsg( temp ) )
                {
@@ -747,6 +757,7 @@ namespace engine
                break ;
             }
             case MSG_BS_DELETE_REQ :
+            case MSG_BS_TRANS_DELETE_REQ :
             {
                if ( SDB_OK == options.fromDeleteMsg( temp ) )
                {
@@ -755,6 +766,7 @@ namespace engine
                break ;
             }
             case MSG_BS_UPDATE_REQ :
+            case MSG_BS_TRANS_UPDATE_REQ :
             {
                if ( SDB_OK == options.fromUpdateMsg( temp ) )
                {

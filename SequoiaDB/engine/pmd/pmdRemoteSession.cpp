@@ -1193,17 +1193,19 @@ namespace engine
       {
          ossTick endTimer ;
          endTimer.sample() ;
+         ossTickDelta delta = endTimer - startTimer ;
 
-         try
+         monQuery->insertNode( pSub->getNodeID().columns.nodeID ) ;
+
+         if ( CATALOG_GROUPID == pSub->getNodeID().columns.groupID )
          {
-            monQuery->nodes.insert( pSub->getNodeID().columns.nodeID ) ;
+            monQuery->queryCataTime += delta ;
          }
-         catch( std::exception &e )
+         else
          {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            monQuery->numMsgSent++ ;
+            monQuery->msgSentTime += delta ;
          }
-         monQuery->numMsgSent++ ;
-         monQuery->msgSentTime += endTimer - startTimer ;
       }
 
       if ( pSub->isNeedToDel() )
@@ -1383,7 +1385,10 @@ namespace engine
 
             /// get the first unreply sub-session
             {
-               _pEDUCB->setBlock( EDU_BLOCK_WAITREPLY, "" ) ;
+               if ( !hasBlock )
+               {
+                  _pEDUCB->setBlock( EDU_BLOCK_WAITREPLY, "" ) ;
+               }
                _pEDUCB->printInfo( EDU_INFO_DOING,
                                    "Waiting for node(Num:%u) reply:",
                                    totalUnReplyNum ) ;
@@ -1487,7 +1492,18 @@ namespace engine
       {
          ossTick endTimer;
          endTimer.sample();
-         monQuery->remoteNodesResponseTime += endTimer - startTimer ;
+         ossTickDelta delta = endTimer - startTimer ;
+
+         if ( 1 == _mapSubSession.size() &&
+              CATALOG_GROUPID == _mapSubSession.begin()->second.getNodeID().columns.groupID )
+         {
+            monQuery->queryCataTime += delta ;
+            monQuery->numQueryCata++ ;
+         }
+         else
+         {
+            monQuery->remoteNodesResponseTime += delta ;
+         }
       }
       _totalWaitTime += ( _milliTimeoutHard - _milliTimeout ) ;
       PD_TRACE_EXITRC( SDB__PMDRMTSESSION_WAITREPLY1, rc ) ;

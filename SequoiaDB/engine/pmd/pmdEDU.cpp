@@ -778,6 +778,11 @@ namespace engine
       {
          printInfo( EDU_INFO_DOING, "%s", pBlockDesp ) ;
       }
+
+      if ( _monQueryCB )
+      {
+         _monQueryCB->startBlockTimer( _blockType ) ;
+      }
    }
 
    void _pmdEDUCB::unsetBlock()
@@ -785,6 +790,11 @@ namespace engine
       _blockType = EDU_BLOCK_NONE ;
 
       resetInfo( EDU_INFO_DOING ) ;
+
+      if ( _monQueryCB )
+      {
+         _monQueryCB->stopBlockTimer() ;
+      }
    }
 
    EDU_BLOCK_TYPE _pmdEDUCB::getBlockType() const

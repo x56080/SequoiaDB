@@ -97,6 +97,11 @@ namespace engine
    INT32 utilStrToServiceMask( const CHAR *pStr, UINT32 &svcMask ) ;
 
    /*
+      EDU_BLOCK_TYPE
+   */
+   const CHAR* utilEduBlockTypeToStr( INT32 blockType ) ;
+
+   /*
       instance ID
     */
    BOOLEAN     utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown ) ;

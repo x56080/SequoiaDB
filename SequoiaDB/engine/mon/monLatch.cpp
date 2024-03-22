@@ -185,16 +185,31 @@ template <class T>
 void _monGetLatch(T* latchObj)
 {
 #if defined (SDB_ENGINE)
+
    if ( MON_GET_LATCH_LVL != MON_DATA_LVL_NONE )
    {
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+      
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+      }
 
       if ( FALSE == latchObj->latch.try_get() )
       {
          monClassLatch *monLatchCB = NULL ;
 
          ossTick begin, end ;
-         begin.sample() ;
+
+         if ( monQuery || MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
+         {
+            begin.sample() ;
+            if ( monQuery )
+            {
+               monQuery->startQueryTick( MON_TICK_LATCH, TRUE, &begin ) ;
+            }
+         }
 
          if ( MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
          {
@@ -221,7 +236,10 @@ void _monGetLatch(T* latchObj)
             latchObj->xOwnerTID = cb->getTID() ;
          }
 
-         end.sample() ;
+         if ( ( BOOLEAN )begin )
+         {
+            end.sample() ;
+         }
 
          if ( monLatchCB )
          {
@@ -229,9 +247,15 @@ void _monGetLatch(T* latchObj)
             g_monMgrPtr->removeMonitorObject( monLatchCB ) ;
          }
 
-         if (cb && cb->getMonQueryCB() )
+         if ( monQuery )
          {
-           cb->getMonQueryCB()->latchWaitTime += end - begin ;
+            monQuery->stopQueryTick( &end ) ;
+
+            if ( MON_LATCH_MBLOCK == latchObj->latchID )
+            {
+               monQuery->startQueryTick( MON_TICK_FILE, TRUE, &end ) ;
+               latchObj->hasStartQueryFile = TRUE ;
+            }
          }
       }
       else
@@ -239,6 +263,11 @@ void _monGetLatch(T* latchObj)
          if ( cb )
          {
             latchObj->xOwnerTID = cb->getTID() ;
+         }
+         if ( monQuery && MON_LATCH_MBLOCK == latchObj->latchID )
+         {
+            monQuery->startQueryTick( MON_TICK_FILE ) ;
+            latchObj->hasStartQueryFile = TRUE ;
          }
       }
    }
@@ -262,13 +291,27 @@ void _monGetSLatch(T* latchObj)
    if ( MON_GET_LATCH_LVL != MON_DATA_LVL_NONE )
    {
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+      }
 
       if ( FALSE == latchObj->latch.try_get_shared() )
       {
          monClassLatch *monLatchCB = NULL ;
 
          ossTick begin, end ;
-         begin.sample() ;
+
+         if ( monQuery || MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
+         {
+            begin.sample() ;
+            if ( monQuery )
+            {
+               monQuery->startQueryTick( MON_TICK_LATCH, TRUE, &begin ) ;
+            }
+         }
 
          if ( MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
          {
@@ -294,7 +337,10 @@ void _monGetSLatch(T* latchObj)
             latchObj->lastSOwnerTID = cb->getTID() ;
          }
 
-         end.sample() ;
+         if ( ( BOOLEAN )begin )
+         {
+            end.sample() ;
+         }
 
          if ( monLatchCB )
          {
@@ -302,9 +348,14 @@ void _monGetSLatch(T* latchObj)
             g_monMgrPtr->removeMonitorObject( monLatchCB ) ;
          }
 
-         if (cb && cb->getMonQueryCB() )
+         if ( monQuery )
          {
-           cb->getMonQueryCB()->latchWaitTime += end - begin ;
+            monQuery->stopQueryTick( &end ) ;
+
+            if ( MON_LATCH_MBLOCK == latchObj->latchID )
+            {
+               monQuery->startQueryTick( MON_TICK_FILE, TRUE, &end ) ;
+            }
          }
       }
       else
@@ -312,6 +363,10 @@ void _monGetSLatch(T* latchObj)
          if ( cb )
          {
             latchObj->lastSOwnerTID = cb->getTID() ;
+         }
+         if ( monQuery && MON_LATCH_MBLOCK == latchObj->latchID )
+         {
+            monQuery->startQueryTick( MON_TICK_FILE ) ;
          }
       }
    }
@@ -329,7 +384,8 @@ void _monGetSLatch(T* latchObj)
 monSpinXLatch::monSpinXLatch( MON_LATCH_IDENTIFIER latchID )
    : lastSOwnerTID( 0 ),
      xOwnerTID( 0 ),
-     numXOwner( 0 )
+     numXOwner( 0 ),
+     hasStartQueryFile( FALSE )
 {
    this->latchID = latchID ;
 }
@@ -345,9 +401,21 @@ void monSpinXLatch::get()
 
 void monSpinXLatch::release()
 {
+#if defined (SDB_ENGINE)
+   if ( hasStartQueryFile )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      if ( cb && cb->getMonQueryCB() )
+      {
+         cb->getMonQueryCB()->stopQueryTick() ;
+      }
+   }
+#endif
+
    latch.release() ;
    numXOwner = 0 ;
    xOwnerTID = 0 ;
+   hasStartQueryFile = FALSE ;
 }
 
 BOOLEAN monSpinXLatch::try_get()
@@ -362,6 +430,11 @@ BOOLEAN monSpinXLatch::try_get()
       if ( cb )
       {
          xOwnerTID = cb->getTID() ;
+         if ( cb->getMonQueryCB() && MON_LATCH_MBLOCK == latchID )
+         {
+            cb->getMonQueryCB()->startQueryTick( MON_TICK_FILE ) ;
+            hasStartQueryFile = TRUE ;
+         }
       }
    }
 #endif
@@ -381,7 +454,8 @@ monSpinSLatch::monSpinSLatch( MON_LATCH_IDENTIFIER latchID )
    : lastSOwnerTID ( 0 ),
      xOwnerTID ( 0 ),
      numSOwner( 0 ),
-     numXOwner( 0 )
+     numXOwner( 0 ),
+     hasStartQueryFile( FALSE )
 {
    this->latchID = latchID ;
 }
@@ -390,7 +464,8 @@ monSpinSLatch::monSpinSLatch()
    : lastSOwnerTID ( 0 ),
      xOwnerTID ( 0 ),
      numSOwner( 0 ),
-     numXOwner( 0 )
+     numXOwner( 0 ),
+     hasStartQueryFile( FALSE )
 {
 }
 
@@ -405,9 +480,21 @@ void monSpinSLatch::get()
 
 void monSpinSLatch::release()
 {
+#if defined (SDB_ENGINE)
+   if ( hasStartQueryFile )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      if ( cb && cb->getMonQueryCB() )
+      {
+         cb->getMonQueryCB()->stopQueryTick() ;
+      }
+   }
+#endif
+
    latch.release() ;
    xOwnerTID = 0 ;
    numXOwner = 0 ;
+   hasStartQueryFile = FALSE ;
 }
 
 void monSpinSLatch::get_shared ()
@@ -417,8 +504,20 @@ void monSpinSLatch::get_shared ()
 
 void monSpinSLatch::release_shared ()
 {
+#if defined (SDB_ENGINE)
+   if ( MON_LATCH_MBLOCK == latchID )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      if ( cb && cb->getMonQueryCB() )
+      {
+         cb->getMonQueryCB()->stopQueryTick() ;
+      }
+   }
+#endif
+
    latch.release_shared() ;
    numSOwner.dec() ;
+   hasStartQueryFile = FALSE ;
 }
 
 BOOLEAN monSpinSLatch::try_get_shared()
@@ -433,6 +532,10 @@ BOOLEAN monSpinSLatch::try_get_shared()
       if ( cb )
       {
          lastSOwnerTID = cb->getTID() ;
+         if ( cb->getMonQueryCB() && MON_LATCH_MBLOCK == latchID )
+         {
+            cb->getMonQueryCB()->startQueryTick( MON_TICK_FILE ) ;
+         }
       }
    }
 #endif
@@ -451,6 +554,11 @@ BOOLEAN monSpinSLatch::try_get()
       if ( cb )
       {
          xOwnerTID = cb->getTID() ;
+         if ( cb->getMonQueryCB() && MON_LATCH_MBLOCK == latchID )
+         {
+            cb->getMonQueryCB()->startQueryTick( MON_TICK_FILE ) ;
+            hasStartQueryFile = TRUE ;
+         }
       }
    }
 #endif
@@ -491,9 +599,22 @@ INT32 monRWMutex::lock_r( INT32 millisec )
       if ( FALSE == this->mutex.try_lock_r() )
       {
          monClassLatch *monLatchCB = NULL ;
-
          ossTick begin, end ;
-         begin.sample() ;
+         monClassQuery *monQuery = NULL ;
+
+         if ( cb && cb->getMonQueryCB() )
+         {
+            monQuery = cb->getMonQueryCB() ;
+         }
+
+         if ( monQuery || MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
+         {
+            begin.sample() ;
+            if ( monQuery )
+            {
+               monQuery->startQueryTick( MON_TICK_LATCH, TRUE, &begin ) ;
+            }
+         }
 
          if ( MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
          {
@@ -519,7 +640,10 @@ INT32 monRWMutex::lock_r( INT32 millisec )
             this->lastSOwnerTID = cb->getTID() ;
          }
 
-         end.sample() ;
+         if ( ( BOOLEAN )begin )
+         {
+            end.sample() ;
+         }
 
          if ( monLatchCB )
          {
@@ -527,9 +651,9 @@ INT32 monRWMutex::lock_r( INT32 millisec )
             g_monMgrPtr->removeMonitorObject( monLatchCB ) ;
          }
 
-         if (cb && cb->getMonQueryCB() )
+         if ( monQuery )
          {
-            cb->getMonQueryCB()->latchWaitTime += end - begin ;
+            monQuery->stopQueryTick( &end ) ;
          }
       }
       else
@@ -573,9 +697,22 @@ INT32 monRWMutex::lock_w( INT32 millisec )
       if ( FALSE == this->mutex.try_lock_w() )
       {
          monClassLatch *monLatchCB = NULL ;
-
          ossTick begin, end ;
-         begin.sample() ;
+         monClassQuery *monQuery = NULL ;
+
+         if ( cb && cb->getMonQueryCB() )
+         {
+            monQuery = cb->getMonQueryCB() ;
+         }
+
+         if ( monQuery || MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
+         {
+            begin.sample() ;
+            if ( monQuery )
+            {
+               monQuery->startQueryTick( MON_TICK_LATCH, TRUE, &begin ) ;
+            }
+         }
 
          if ( MON_GET_LATCH_LVL == MON_DATA_LVL_DETAIL )
          {
@@ -601,7 +738,10 @@ INT32 monRWMutex::lock_w( INT32 millisec )
             this->xOwnerTID = cb->getTID() ;
          }
 
-         end.sample() ;
+         if ( ( BOOLEAN )begin )
+         {
+            end.sample() ;
+         }
 
          if ( monLatchCB )
          {
@@ -609,9 +749,9 @@ INT32 monRWMutex::lock_w( INT32 millisec )
             g_monMgrPtr->removeMonitorObject( monLatchCB ) ;
          }
 
-         if (cb && cb->getMonQueryCB() )
+         if ( monQuery )
          {
-            cb->getMonQueryCB()->latchWaitTime += end - begin ;
+            monQuery->stopQueryTick( &end ) ;
          }
       }
       else

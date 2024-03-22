@@ -62,7 +62,6 @@ namespace engine
 
 #define SHD_SESSION_TIMEOUT         (300)
 #define SHD_INTERRUPT_CHECKPOINT    (10)
-#define SHD_NOTPRIMARY_WAITTIME     (20000)     //ms
 #define SHD_TRANSROLLBACK_WAITTIME  (60000)     //ms
 #define SHD_WAITTIME_INTERVAL       (200)       //ms
 
@@ -432,7 +431,7 @@ namespace engine
                  offset, w, finalReplSize ) ;
 
          // just wait for one replica node in this special case
-         rc = replCB->sync( offset, _pEDUCB, w, waitTime ) ;
+         rc = replCB->sync( offset, _pEDUCB, finalReplSize, waitTime ) ;
          if ( SDB_OK == rc )
          {
             break ;
@@ -6823,7 +6822,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKPRIMARYSTATUS, "_clsShdSession::_checkPrimary" )
-   INT32 _clsShdSession::_checkPrimaryStatus()
+   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYSTATUS ) ;
@@ -6860,8 +6859,7 @@ namespace engine
             rc = SDB_CLS_NOT_PRIMARY ;
             goto error ;
          }
-         else if ( waitTime < SHD_NOTPRIMARY_WAITTIME &&
-                   !_pEDUCB->isInterrupted() )
+         else if ( waitTime < timeout && !_pEDUCB->isInterrupted() )
          {
             INT32 result = SDB_OK ;
 
@@ -7024,7 +7022,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKSECONDARYWHENREAD ) ;
 
-      rc = _checkPrimaryStatus() ;
+      /// no wait
+      rc = _checkPrimaryStatus( 0 ) ;
       // check return code
       if ( SDB_OK == rc )
       {

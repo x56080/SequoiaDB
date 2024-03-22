@@ -53,6 +53,7 @@
 #include <iterator>
 #include "monLatch.hpp"
 #include "sdbInterface.hpp"
+#include "pmdDef.hpp"
 
 using namespace bson ;
 
@@ -306,14 +307,14 @@ typedef enum
  */
 struct _monClassQueryTmpData
 {
-   UINT32           dataRead ;
-   UINT32           indexRead ;
-   UINT32           dataWrite ;
-   UINT32           indexWrite ;
-   UINT32           lobRead ;
-   UINT32           lobWrite ;
-   UINT32           lobTruncate ;
-   UINT32           lobAddressing ;
+   UINT64           dataRead ;
+   UINT64           indexRead ;
+   UINT64           dataWrite ;
+   UINT64           indexWrite ;
+   UINT64           lobRead ;
+   UINT64           lobWrite ;
+   UINT64           lobTruncate ;
+   UINT64           lobAddressing ;
 
    _monClassQueryTmpData()
       : dataRead(0),
@@ -331,6 +332,19 @@ struct _monClassQueryTmpData
    void diff(_monAppCB &cb) ;
 } ;
 typedef _monClassQueryTmpData monClassQueryTmpData ;
+
+enum MON_QUERY_TICK_TYPE
+{
+   MON_TICK_NONE  = 0,
+   MON_TICK_LATCH,
+   MON_TICK_LOCK,
+   MON_TICK_FILE,
+   MON_TICK_CATA,
+
+   MON_TICK_MAX
+} ;
+
+#define MON_QUERY_TICK_SZ              ( 6 )
 
 /**
  * Capture metrics about a query
@@ -350,6 +364,9 @@ public:
    ossTickDelta  responseTime ;  /**! Response time of the query */
    ossTickDelta latchWaitTime ;  /**! Time spent on latch wait */
    ossTickDelta  lockWaitTime ;  /**! Time spent on lock wait */
+   ossTickDelta queryCataTime ;  /**! Time spent on query with catalog */
+   ossTickDelta     blockTime ;  /**! Time spent on some blocking */
+   ossTickDelta      fileTime ;  /**! Time spent on file operation */
    UINT32            dataRead ;  /**! Total data read (record)*/
    UINT32           indexRead ;  /**! Total index read (record)*/
    UINT32           dataWrite ;  /**! Total data write (record) */
@@ -361,7 +378,9 @@ public:
    UINT32        rowsReturned ;  /**! Total number of rows returned */
    UINT32          numMsgSent ;  /**! Total # of msgs sent to remote nodes */
    UINT32         numMsgReply ;  /**! Total # of msgs reply to source node */
+   UINT32        numQueryCata ;  /**! Total # of query catalog */
    ossPoolSet<UINT32>   nodes ;  /**! Node ID where messages were sent to */
+   ossPoolSet<UINT32>  blocks ;  /**! Block types */
    MsgRouteID      relatedNID ;  /**! coordinator node node ID */
    UINT32          relatedTID ;  /**! coordinator node edu TID */
    BOOLEAN    anchorToContext ;  /**! Whether this obj anchored to a context */
@@ -387,11 +406,26 @@ public:
         rowsReturned( 0 ),
         numMsgSent( 0 ),
         numMsgReply( 0 ),
+        numQueryCata( 0 ),
         relatedTID( 0 ),
         anchorToContext( FALSE )
    {
       _type = MON_CLASS_QUERY ;
       relatedNID.value = 0 ;
+      _blockType = EDU_BLOCK_NONE ;
+      _blockRef = 0 ;
+
+      for ( UINT32 i = 0 ; i < MON_QUERY_TICK_SZ ; ++i )
+      {
+         _queryTickType[i] = MON_TICK_NONE ;
+      }
+      _queryTickPos = MON_QUERY_TICK_SZ - 1 ;
+      _queryTickLen = 0 ;
+   }
+
+   ~_monClassQuery()
+   {
+      SDB_ASSERT( 0 == _blockRef, "Block reference must be zero" ) ;
    }
 
    _monClassQuery ( const _monClassQuery &monClassQuery)
@@ -404,6 +438,9 @@ public:
        responseTime( monClassQuery.responseTime ),
        latchWaitTime( monClassQuery.latchWaitTime ),
        lockWaitTime( monClassQuery.lockWaitTime ),
+       queryCataTime( monClassQuery.queryCataTime ),
+       blockTime( monClassQuery.blockTime ),
+       fileTime( monClassQuery.fileTime ),
        dataRead( monClassQuery.dataRead ),
        indexRead( monClassQuery.indexRead ),
        dataWrite( monClassQuery.dataWrite ),
@@ -415,6 +452,7 @@ public:
        rowsReturned( monClassQuery.rowsReturned ),
        numMsgSent( monClassQuery.numMsgSent ),
        numMsgReply( monClassQuery.numMsgReply ),
+       numQueryCata( monClassQuery.numQueryCata ),
        relatedNID( monClassQuery.relatedNID ),
        relatedTID( monClassQuery.relatedTID ),
        anchorToContext( monClassQuery.anchorToContext ),
@@ -429,9 +467,19 @@ public:
       clientHost.assign( monClassQuery.clientHost ) ;
       name.assign( monClassQuery.name ) ;
       nodes = monClassQuery.nodes ;
+      blocks = monClassQuery.blocks ;
       queryText.assign( monClassQuery.queryText ) ;
       _type = MON_CLASS_QUERY ;
       queryID = monClassQuery.queryID ;
+      _blockType = EDU_BLOCK_NONE ;
+      _blockRef = 0 ;
+
+      for ( UINT32 i = 0 ; i < MON_QUERY_TICK_SZ ; ++i )
+      {
+         _queryTickType[i] = MON_TICK_NONE ;
+      }
+      _queryTickPos = MON_QUERY_TICK_SZ - 1 ;
+      _queryTickLen = 0 ;
    }
 
    static MON_CLASS_TYPE getType () { return MON_CLASS_QUERY ; }
@@ -456,22 +504,147 @@ public:
       }
    }
 
-   void startLatchTimer() { _latchWaitTimer.sample() ; }
-
-   void stopLatchTimer()
+   void insertNode( UINT32 nodeID )
    {
-      ossTick tick ;
-      tick.sample() ;
-      latchWaitTime += (tick - _latchWaitTimer) ;
+      try
+      {
+         nodes.insert( nodeID ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
    }
 
-   void startSyncTimer() { _syncWaitTimer.sample() ; }
+   void startBlockTimer( UINT32 blockType )
+   {
+      if ( 0 == _blockRef )
+      {
+         _blockType = blockType ;
+         if ( EDU_BLOCK_WAITREPLY != _blockType )
+         {
+            _blockWaitTimer.sample() ;
+         }
+      }
+      ++_blockRef ;
+   }
 
-   void stopSyncTimer()
+   void stopBlockTimer()
+   {
+      --_blockRef ;
+
+      if ( 0 == _blockRef )
+      {
+         if ( EDU_BLOCK_WAITREPLY != _blockType )
+         {
+            ossTick tick ;
+            tick.sample() ;
+            if ( EDU_BLOCK_SYNCWAIT == _blockType )
+            {
+               syncWaitTime += ( tick - _blockWaitTimer ) ;
+            }
+            else
+            {
+               blockTime += (tick - _blockWaitTimer) ;
+
+               try
+               {
+                  blocks.insert( _blockType ) ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               }
+            }
+         }
+         _blockWaitTimer.clear() ;
+         _blockType = EDU_BLOCK_NONE ;
+      }
+   }
+
+   void startCataQueryTimer()
+   {
+      startQueryTick( MON_TICK_CATA ) ;
+   }
+
+   void stopCataQueryTimer( BOOLEAN incTime )
+   {
+      stopQueryTick() ;
+
+      if ( incTime )
+      {
+         numQueryCata++ ;
+      }
+   }
+
+   void startQueryTick( INT8 tickType,
+                        BOOLEAN submitLast = TRUE,
+                        const ossTick *pStartTick = NULL )
    {
       ossTick tick ;
-      tick.sample() ;
-      syncWaitTime += (tick - _syncWaitTimer) ;
+
+      if ( pStartTick )
+      {
+         tick = *pStartTick ;
+      }
+      else
+      {
+         tick.sample() ;
+      }
+
+      if ( _hasTickType() )
+      {
+         INT8 curTickType = _getCurTickType() ;
+         /// submit
+         if ( submitLast )
+         {
+            ossTickDelta delta = tick - _queryTick ;
+            _submitQueryTick( curTickType, delta ) ;
+         }
+      }
+
+      /// push tick type
+      if ( _pushTickType( tickType ) )
+      {
+         _queryTick = tick ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "Tick type que is full" ) ;
+      }
+   }
+
+   void stopQueryTick( const ossTick *pStartTick = NULL )
+   {
+      INT8 lastTick = MON_TICK_NONE ;
+
+      if ( _popTickType( lastTick ) )
+      {
+         ossTick tick ;
+
+         if ( pStartTick )
+         {
+            tick = *pStartTick ;
+         }
+         else
+         {
+            tick.sample() ;
+         }
+
+         _submitQueryTick( lastTick, tick - _queryTick ) ;
+
+         /// set query tick
+         _queryTick = tick ;
+      }
+   }
+
+   void directSubmitQueryTick( INT8 tickType, const ossTickDelta &delta )
+   {
+      _submitQueryTick( tickType, delta ) ;
+      if ( _hasTickType() )
+      {
+         _queryTick = _queryTick + delta ;
+      }
    }
 
    void incMetrics( monClassQueryTmpData &tmpData )
@@ -524,8 +697,79 @@ public:
    }
 
 private:
-   ossTick _latchWaitTimer ;
-   ossTick _syncWaitTimer ;
+
+   BOOLEAN _submitQueryTick( INT8 tickType, const ossTickDelta &delta )
+   {
+      switch( tickType )
+      {
+         case MON_TICK_CATA :
+            queryCataTime += delta ;
+            break ;
+         case MON_TICK_LATCH :
+            latchWaitTime += delta ;
+            break ;
+         case MON_TICK_LOCK :
+            lockWaitTime += delta ;
+            break ;
+         case MON_TICK_FILE :
+            fileTime += delta ;
+            break ;
+         default :
+            return FALSE ;
+      }
+      return TRUE ;
+   }
+
+   BOOLEAN _pushTickType( INT8 tickType )
+   {
+      if ( _queryTickLen < MON_QUERY_TICK_SZ )
+      {
+         _queryTickPos = ( _queryTickPos + 1 ) % MON_QUERY_TICK_SZ ;
+         _queryTickType[ _queryTickPos ] = tickType ;
+         ++_queryTickLen ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN _popTickType( INT8 &tickType )
+   {
+      if ( _queryTickLen > 0 )
+      {
+         tickType = _queryTickType[ _queryTickPos ] ;
+         if ( 0 == _queryTickPos )
+         {
+            _queryTickPos = MON_QUERY_TICK_SZ - 1 ;
+         }
+         else
+         {
+            --_queryTickPos ;
+         }
+         --_queryTickLen ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   INT8 _getCurTickType() const
+   {
+      if ( _queryTickLen > 0 )
+      {
+         return _queryTickType[ _queryTickPos ] ;
+      }
+      return MON_TICK_NONE ;
+   }
+
+   BOOLEAN _hasTickType() const { return _queryTickLen > 0 ? TRUE : FALSE ; }
+
+private:
+   ossTick _blockWaitTimer ;
+   ossTick _queryTick ;
+   UINT32  _blockType ;
+   INT32   _blockRef ;
+   INT8    _queryTickType[ MON_QUERY_TICK_SZ ] ;
+   INT8    _queryTickPos ;
+   INT8    _queryTickLen ;
 } ;
 
 typedef _monClassQuery monClassQuery ;
@@ -817,6 +1061,9 @@ public:
       setMaxArchivedListLen( 0 ) ;
       setMonitorLvl( MON_DATA_LVL_NONE ) ;
 
+      SDB_ASSERT( _activeList.size() == _numPendingArchive.fetch() + _numPendingDelete.fetch(),
+                  "Has memory leak" ) ;
+
       MON_PARTITION_LIST::iterator it = _activeList.begin() ;
       while ( it != _activeList.end() )
       {
@@ -875,6 +1122,8 @@ private:
    MON_CLASS_TYPE _classType ;
 
    archiveFunc _doArchive ;
+
+   UINT64      _lastNonOperationTick ;
 
    /*
     * Process pending archive/delete objects from the active list

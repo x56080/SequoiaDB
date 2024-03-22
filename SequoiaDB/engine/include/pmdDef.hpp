@@ -324,7 +324,20 @@ namespace engine
    #define EDU_BLOCK_WAITREPLY      ( 0x00000080 )
    #define EDU_BLOCK_FT             ( 0x00000100 )
    #define EDU_BLOCK_RENAMECHK      ( 0x00000200 )
+   #define EDU_BLOCK_NODEFAULT      ( 0x00000400 )
    #define EDU_BLOCK_ALL            ( 0xFFFFFFFF )
+
+   #define EDU_BLOCK_FREEZING_WND_STR        "FreezingWindow"
+   #define EDU_BLOCK_DMS_STR                 "DMSBlock"
+   #define EDU_BLOCK_PRIMARY_STR             "WaitPrimary"
+   #define EDU_BLOCK_TRANSROLLBACK_STR       "WaitTransRollback"
+   #define EDU_BLOCK_REELECT_STR             "WaitRelect"
+   #define EDU_BLOCK_SYNCWAIT_STR            "WaitSync"
+   #define EDU_BLOCK_SYNCCONTROL_STR         "SyncControl"
+   #define EDU_BLOCK_WAITREPLY_STR           "WaitReply"
+   #define EDU_BLOCK_FT_STR                  "WaitFusing"
+   #define EDU_BLOCK_RENAMECHK_STR           "RenameCheck"
+   #define EDU_BLOCK_NODEFAULT_STR           "NodeFault"
 
    /*
       SDB_TYPE_STR DEFINE

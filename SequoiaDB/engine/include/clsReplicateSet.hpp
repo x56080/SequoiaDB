@@ -328,7 +328,7 @@ namespace engine
 
             if ( monQuery )
             {
-               monQuery->startSyncTimer() ;
+               monQuery->startBlockTimer( EDU_BLOCK_SYNCWAIT ) ;
             }
 
             while ( TRUE )
@@ -381,7 +381,7 @@ namespace engine
 
             if ( monQuery )
             {
-               monQuery->stopSyncTimer() ;
+               monQuery->stopBlockTimer() ;
             }
 
             /// clean saved org repl size

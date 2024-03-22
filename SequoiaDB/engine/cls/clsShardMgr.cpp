@@ -428,6 +428,16 @@ namespace engine
       UINT16 reserveSize = 0 ;
       msgConvertorImpl *msgConvertor = NULL ;
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+      ossTick bTick ;
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         bTick.sample() ;
+      }
+
    retry:
       // if we are sending to catalog group
       if ( CATALOG_GROUPID == groupID )
@@ -487,6 +497,11 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Init socket %s:%d failed, rc:%d",
                          tmpInfo._host.c_str(), port, rc ) ;
 
+            if ( monQuery )
+            {
+               monQuery->insertNode( tmpInfo._nodeID.columns.nodeID ) ;
+            }
+
             rc = tmpSocket.connect() ;
             // if we are not able to connect to a node, let's skip and retry
             // next one
@@ -515,6 +530,16 @@ namespace engine
                        tmpInfo._host.c_str(), port, rc ) ;
                tmpInfo._result = rc ;
                continue ;
+            }
+
+            if ( monQuery && CATALOG_GROUPID != groupID )
+            {
+               ossTick eTick ;
+               eTick.sample() ;
+               monQuery->msgSentTime += ( eTick - bTick ) ;
+               monQuery->numMsgSent++ ;
+               /// reset bTick
+               bTick.sample() ;
             }
 
             // recieve msg, do not loop and retry
@@ -553,6 +578,16 @@ namespace engine
             rc = tmpSocket.recv( &buff[sizeof(INT32)], msgLength-sizeof(INT32),
                                  receivedLen,
                                  millisec ) ;
+            /// calc response time
+            if ( monQuery && CATALOG_GROUPID != groupID )
+            {
+               ossTick eTick ;
+               eTick.sample() ;
+               monQuery->remoteNodesResponseTime += ( eTick - bTick ) ;
+               /// reset bTick
+               bTick.sample() ;
+            }
+
             if ( rc )
             {
                PD_LOG ( PDERROR, "Recieve response message failed, rc: %d", rc ) ;
@@ -653,6 +688,14 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         ossTick eTick ;
+         eTick.sample() ;
+         monQuery->queryCataTime += ( eTick - bTick ) ;
+         monQuery->numQueryCata++ ;
+      }
+
       /// update node status
       if ( CATALOG_GROUPID == groupID )
       {
@@ -685,6 +728,14 @@ namespace engine
       if ( !hasUpdateGroup )
       {
          hasUpdateGroup = TRUE ;
+
+         if ( monQuery && CATALOG_GROUPID == groupID )
+         {
+            ossTick eTick ;
+            eTick.sample() ;
+            monQuery->queryCataTime += ( eTick - bTick ) ;
+         }
+
          // need to update
          if ( CATALOG_GROUPID == groupID )
          {
@@ -693,6 +744,12 @@ namespace engine
          else
          {
             rc = syncUpdateGroupInfo( groupID, millisec ) ;
+         }
+
+         /// reset bTime
+         if ( monQuery )
+         {
+            bTick.sample() ;
          }
 
          if ( SDB_OK == rc )
@@ -720,6 +777,15 @@ namespace engine
       BOOLEAN hasLock = FALSE ;
       BOOLEAN hasUpdateGrp = FALSE ;
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         monQuery->startCataQueryTimer() ;
+      }
+
    retry:
       _shardLatch.get_shared() ;
       hasLock = TRUE ;
@@ -740,6 +806,10 @@ namespace engine
            SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
            NET_NODE_STAT_NORMAL == status )
       {
+         if ( monQuery )
+         {
+            monQuery->insertNode( nodeID.columns.nodeID ) ;
+         }
          rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
          if ( rc != SDB_OK )
          {
@@ -771,6 +841,10 @@ namespace engine
                  SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
                  NET_NODE_STAT_NORMAL == status )
             {
+               if ( monQuery )
+               {
+                  monQuery->insertNode( nodeID.columns.nodeID ) ;
+               }
                rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
                if ( SDB_OK == rc )
                {
@@ -809,6 +883,10 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopCataQueryTimer( TRUE ) ;
+      }
       if ( hasLock )
       {
          _shardLatch.release_shared() ;
@@ -838,6 +916,15 @@ namespace engine
       req.header.opCode = MSG_CAT_CATGRP_REQ ;
       req.id.value = 0 ;
       req.id.columns.groupID = CATALOG_GROUPID ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         monQuery->startCataQueryTimer() ;
+      }
 
       if ( millsec > 0 )
       {
@@ -879,6 +966,10 @@ namespace engine
       }
 
    done :
+      if ( monQuery )
+      {
+         monQuery->stopCataQueryTimer( FALSE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_UPDCATGRP, rc );
       return rc ;
    error :
@@ -942,11 +1033,20 @@ namespace engine
       BOOLEAN hasUpCataGrp = FALSE ;
       ossScopedLock catScopedLock( &_catLatch, FALSE ) ;
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
       if ( !pCollectionName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "collection name can't be NULL, rc = %d", rc ) ;
          goto error ;
+      }
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         monQuery->startCataQueryTimer() ;
       }
 
    retry:
@@ -1070,6 +1170,10 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopCataQueryTimer( FALSE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_SYNCUPDCAT, rc );
       return rc ;
    error:
@@ -1088,6 +1192,15 @@ namespace engine
       BOOLEAN needRetry = FALSE ;
       BOOLEAN hasUpCataGrp = FALSE ;
       ossScopedLock catScopedLock( &_catLatch, FALSE ) ;
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         monQuery->startCataQueryTimer() ;
+      }
 
    retry:
       ++retryTimes ;
@@ -1204,6 +1317,10 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopCataQueryTimer( FALSE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_SYNCUPDGPINFO,  rc );
       return rc ;
    error:
@@ -2279,6 +2396,9 @@ namespace engine
       BOOLEAN needRetry = FALSE ;
       BOOLEAN hasUpCataGrp = FALSE ;
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      monClassQuery *monQuery = NULL ;
+
       SDB_ASSERT ( csName, "collection space name can't be NULL" ) ;
       if ( !csName )
       {
@@ -2307,6 +2427,12 @@ namespace engine
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Occurr exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
+      }
+
+      if ( cb && cb->getMonQueryCB() )
+      {
+         monQuery = cb->getMonQueryCB() ;
+         monQuery->startCataQueryTimer() ;
       }
 
    retry:
@@ -2385,6 +2511,11 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopCataQueryTimer( FALSE ) ;
+      }
+
       _catLatch.get() ;
       _mapSyncCSEvent.erase( requestID ) ;
       _catLatch.release() ;

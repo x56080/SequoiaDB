@@ -21,19 +21,23 @@ SDB_SNAP_QUERIES
 | TID                    | int32    | 查询所属线程 ID                                     |
 | OpType                 | string   | 操作类型                                            |
 | Name                   | string   | 操作对象名                                          |
-| NetTimeSpent           | double   | 查询应答的网络耗时，单位为毫秒                      |
 | QueryTimeSpent         | double   | 查询总共花费时间，单位为毫秒                        |
+| MsgSentTime            | double   | 消息发送花费时间，单位为毫秒                        |
+| ReplyTimeSpent         | double   | 查询应答的网络耗时，单位为毫秒                      |
+| QueryCataTime          | double   | 查询编目耗时，单位为毫秒                            |
+| RemoteNodeWaitTime     | double   | 等待远程节点应答所花费时间，单位为毫秒              |
+| BlockTime              | double   | 操作被阻塞的时间，如 SyncControl 等，详细阻塞事件在 BlockType 中 |
+| TotalMsgSent           | int32    | 发送到远程节点(不包含编目节点)的消息总次数          |
+| TotalReplyCount        | int32    | 发送到源节点的消息应答总次数                        |
+| QueryCataCount         | int32    | 查询编目的次数                                      |
 | ReturnNum              | int32    | 操作返回记录数                                      |
 | QueryID                | string   | 查询ID, 用于关联协调节点和数据节点的慢查询信息      |
 | RelatedNID             | int32    | 查询接入节点ID，可用于查询和会话关联                |
 | RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联          |
 | SessionID              | int32    | 查询所属会话ID                                      |
-| TotalMsgSent           | int32    | 发送到远程节点的消息总次数                          |
-| TotalReplyCount        | int32    | 发送到源节点的消息应答总次数                        |
-| MsgSentTime            | double   | 消息发送花费时间，单位为毫秒                        |
-| RemoteNodeWaitTime     | double   | 等待远程节点应答所花费时间，单位为毫秒              |
 | ClientInfo             | bson     | 连接到 SequoiaDB 引擎执行该查询的客户端信息         |
-| RelatedNode            | bson array | 处理该查询时，经该协调节点发送到的远程节点集      |
+| RelatedNode            | bson array | 处理该查询时，经该协调节点发送到的远程节点集(如果为空则不显示该字段)   |
+| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing   |
 | LastOpInfo             | string   | 查询语句内容                                        |
 
 **ClientInfo 字段中信息**
@@ -56,10 +60,16 @@ SDB_SNAP_QUERIES
 | TID                    | int32    | 查询所属线程 ID                                                    |
 | OpType                 | string   | 操作类型                                                           |
 | Name                   | string   | 操作对象名                                                         |
-| NetTimeSpent           | double   | 查询应答的网络耗时，单位为毫秒                                     |
 | QueryTimeSpent         | double   | 查询总共花费时间，单位为毫秒                                       |
-| ReturnNum              | int32    | 操作返回记录数                                                     |
+| MsgSentTime            | double   | 消息发送花费时间，单位为毫秒                                       |
+| ReplyTimeSpent         | double   | 查询应答的网络耗时，单位为毫秒                                     |
+| QueryCataTime          | double   | 查询编目耗时，单位为毫秒                                           |
+| RemoteNodeWaitTime     | double   | 等待远程节点应答所花费时间，单位为毫秒                             |
+| BlockTime              | double   | 操作被阻塞的时间，如 SyncControl 等，详细阻塞事件在 BlockType 中   |
+| TotalMsgSent           | int32    | 发送到远程节点(不包含编目节点)的消息总次数                         |
 | TotalReplyCount        | int32    | 发送到源节点的消息应答总次数                                       |
+| QueryCataCount         | int32    | 查询编目的次数                                                     |
+| ReturnNum              | int32    | 操作返回记录数                                                     |
 | QueryID                | string   | 查询ID, 用于关联协调节点和数据节点的慢查询信息                     |
 | RelatedNID             | int32    | 查询接入节点ID，可用于查询和会话关联                               |
 | RelatedTID             | int32    | 查询接入节点的线程ID，可用于查询和会话关联                         |
@@ -76,6 +86,9 @@ SDB_SNAP_QUERIES
 | TransLockWaitTime      | double   | 锁等待时间，单位为毫秒                                             |
 | LatchWaitTime          | double   | 闩锁等待时间，单位为毫秒                                           |
 | SyncWaitTime           | double   | 等待备节点数据同步所花费时间，单位为毫秒                           |
+| FileOPTime             | double   | 节点在文件层操作的耗时，单位为毫秒                                 |
+| RelatedNode            | bson array | 本节点操作执行过程中发送消息到的远程节点(如果为空则不显示该字段) |
+| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing   |
 | LastOpInfo             | string   | 查询语句内容                                                       |
 
 ## 示例
@@ -100,17 +113,20 @@ SDB_SNAP_QUERIES
      "TID": 52917,
      "OpType": "QUERY",
      "Name": "foo.bar",
-     "NetTimeSpent": 0.157,
      "QueryTimeSpent": 2.839,
-     "ReturnNum": 1600,
+     "MsgSentTime": 0.167,
+     "ReplyTimeSpent": 0.157,
+     "QueryCataTime": 0,
+     "RemoteNodeWaitTime": 2.197,
+     "BlockTime": 0,
+     "TotalMsgSent": 5,
      "TotalReplyCount": 1,
+     "QueryCataCount": 0,
+     "ReturnNum": 1600,
      "QueryID": "0x0000ceb500049feb00000008",
      "RelatedNID": 4,
      "RelatedTID": 52917,
      "SessionID": 7352,
-     "TotalMsgSent": 5,
-     "MsgSentTime": 0.167,
-     "RemoteNodeWaitTime": 2.197,
      "ClientInfo": {
        "ClientTID": 52911,
        "ClientHost": "192.168.30.64"
@@ -144,10 +160,15 @@ SDB_SNAP_QUERIES
      "TID": 57980,
      "OpType": "QUERY",
      "Name": "foo.bar",
-     "NetTimeSpent": 0.077,
      "QueryTimeSpent": 4.027,
-     "ReturnNum": 100,
+     "MsgSentTime": 0,
+     "ReplyTimeSpent": 0.077,
+     "QueryCataTime": 0,
+     "RemoteNodeWaitTime": 0,
+     "BlockTime": 0,
+     "TotalMsgSent": 0,
      "TotalReplyCount": 1,
+     "ReturnNum": 100,
      "QueryID": "0x00010176000452c700000071",
      "RelatedNID": 4,
      "RelatedTID": 65910,
@@ -164,6 +185,7 @@ SDB_SNAP_QUERIES
      "TransLockWaitTime": 0,
      "LatchWaitTime": 0,
      "SyncWaitTime": 0,
+     "FileOPTime": 3.01,
      "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)"
    }
     ```
@@ -188,17 +210,20 @@ SDB_SNAP_QUERIES
      "TID": 70878,
      "OpType": "QUERY",
      "Name": "foo.bar",
-     "NetTimeSpent": 0.393,
      "QueryTimeSpent": 1061.201,
-     "ReturnNum": 21,
+     "MsgSentTime": 0.981,
+     "ReplyTimeSpent": 0.393,
+     "QueryCataTime": 0,
+     "RemoteNodeWaitTime": 1058.26,
+     "BlockTime": 0,
+     "TotalMsgSent": 22,
      "TotalReplyCount": 2,
+     "QueryCataCount": 0,
+     "ReturnNum": 21,
      "QueryID": "0x000114de000486fd00000005",
      "RelatedNID": 4,
      "RelatedTID": 70878,
      "SessionID": 9448,
-     "TotalMsgSent": 22,
-     "MsgSentTime": 0.981,
-     "RemoteNodeWaitTime": 1058.26,
      "ClientInfo": {
        "ClientTID": 70777,
        "ClientHost": "192.168.30.64"

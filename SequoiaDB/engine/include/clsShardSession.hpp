@@ -43,6 +43,8 @@ using namespace bson ;
 namespace engine
 {
 
+   #define SHD_NOTPRIMARY_WAITTIME     (20000)     //ms
+
    class _clsReplicateSet ;
    class _clsShardMgr ;
    class _SDB_DMSCB ;
@@ -392,7 +394,7 @@ namespace engine
          INT32 _analyzeMainCL( _rtnCommand *command ) ;
          INT32 _resetSnapshotMainCL ( _rtnCommand * command ) ;
 
-         INT32 _checkPrimaryStatus() ;
+         INT32 _checkPrimaryStatus( UINT32 timeout = SHD_NOTPRIMARY_WAITTIME ) ;
 
          INT32 _checkRollbackStatus() ;
 

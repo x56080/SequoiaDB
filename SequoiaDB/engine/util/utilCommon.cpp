@@ -520,6 +520,37 @@ namespace engine
       }
    }
 
+   const CHAR* utilEduBlockTypeToStr( INT32 blockType )
+   {
+      switch ( blockType )
+      {
+         case EDU_BLOCK_FREEZING_WND :
+            return EDU_BLOCK_FREEZING_WND_STR ;
+         case EDU_BLOCK_DMS :
+            return EDU_BLOCK_DMS_STR ;
+         case EDU_BLOCK_PRIMARY :
+            return EDU_BLOCK_PRIMARY_STR ;
+         case EDU_BLOCK_TRANSROLLBACK :
+            return EDU_BLOCK_TRANSROLLBACK_STR ;
+         case EDU_BLOCK_REELECT :
+            return EDU_BLOCK_REELECT_STR ;
+         case EDU_BLOCK_SYNCWAIT :
+            return EDU_BLOCK_SYNCWAIT_STR ;
+         case EDU_BLOCK_SYNCCONTROL :
+            return EDU_BLOCK_SYNCCONTROL_STR ;
+         case EDU_BLOCK_WAITREPLY :
+            return EDU_BLOCK_WAITREPLY_STR ;
+         case EDU_BLOCK_FT :
+            return EDU_BLOCK_FT_STR ;
+         case EDU_BLOCK_RENAMECHK :
+            return EDU_BLOCK_RENAMECHK_STR ;
+         case EDU_BLOCK_NODEFAULT :
+            return EDU_BLOCK_NODEFAULT_STR ;
+         default :
+            return "" ;
+      }
+   }
+
    BOOLEAN utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown )
    {
       if ( ( includeUnknown &&
