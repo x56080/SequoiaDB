@@ -228,37 +228,6 @@ namespace engine
       return _frame.syncSend( handle, header ) ;
    }
 
-   INT32 _netRouteAgent::asyncSend( const NET_HANDLE &handle,
-                                    MsgHeader *header )
-   {
-     SDB_ASSERT( NULL != header,
-                  "should not be NULL" ) ;
-
-      return _frame.asyncSend( handle, header ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_SYNCASND, "_netRouteAgent::asyncSend" )
-   INT32 _netRouteAgent::asyncSend( const NET_HANDLE &handle,
-                                    MsgHeader *header, void *body,
-                                    UINT32 bodyLen )
-   {
-      SDB_ASSERT( NULL != header, "should not be NULL" ) ;
-
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCASND );
-
-      rc = _frame.asyncSend( handle, header, body, bodyLen ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__NETRTAG_SYNCASND, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _netRouteAgent::syncSendRaw( const NET_HANDLE & handle,
                                       const CHAR * pBuff,
                                       UINT32 buffSize )

@@ -89,9 +89,6 @@ namespace engine
       public:
          virtual INT32 asyncRead() ;
 
-         virtual INT32 asyncWrite( const CHAR *pBuff, UINT32 len,
-                                   INT64 millisec = NET_ASYNC_SEND_TIMEOUT ) ;
-
          virtual INT32 syncConnect( const CHAR *hostName,
                                     const CHAR *serviceName ) ;
 
@@ -126,7 +123,11 @@ namespace engine
          }
 
       private:
-         INT32 _getBuff( UINT32 desLen, CHAR** ppBuff, UINT32 &realLen ) ;
+         void  _clearAsyncMsgDeque() ;
+         INT32 _asyncWrite( const CHAR *pBuff, UINT32 len ) ;
+
+         INT32 _syncSendRaw( const void *pBuff, UINT32 len ) ;
+         INT32 _asyncSendRaw( const void *pBuff, UINT32 len ) ;
 
       protected:
          netEvSuitPtr                     _evSuitPtr ;
@@ -139,11 +140,9 @@ namespace engine
          BOOLEAN                          _hasRecvMsg ;
 
       private:
-         ossAtomic32                      _hasAsyncSendMsg ;
-         ossAutoEvent                     _asyncSendEvent ;
-         CHAR*                            _pAsyncSendMsgBuff ;
-         UINT32                           _pAsyncSendMsgBuffLen ;
-         UINT32                           _asyncSendMsgSize ;
+         ossSpinXLatch                    _asyncMsgDequeMtx ;
+         ossPoolDeque<const CHAR*>        _asyncMsgDeque ;
+         BOOLEAN                          _isAsyncSend ;
    } ;
 
 }

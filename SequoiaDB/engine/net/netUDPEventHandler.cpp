@@ -121,22 +121,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _netUDPEventHandler::asyncWrite( const CHAR *pBuff, UINT32 len, INT64 millisec )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = syncSendRaw( pBuff, len ) ;
-      if( rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVNHND_SYNCSENDRAW, "_netUDPEventHandler::syncSendRaw" )
    INT32 _netUDPEventHandler::syncSendRaw( const void *buf, UINT32 len )
    {

@@ -55,6 +55,8 @@
 using namespace boost::asio::ip ;
 using namespace std ;
 
+typedef UINT32 AsyncMsgBuffLenType ;
+
 namespace engine
 {
    #define NET_SOCKET_SNDTIMEO         ( 2 )
@@ -70,13 +72,10 @@ namespace engine
      _headerSz( sizeof(MsgHeader ) ),
      _buf( NULL ),
      _bufLen( 0 ),
-     _state(NET_EVENT_HANDLER_STATE_HEADER),
-     _hasAsyncSendMsg( 0 )
+     _state(NET_EVENT_HANDLER_STATE_HEADER)
    {
       _hasRecvMsg    = FALSE ;
-      _pAsyncSendMsgBuff = NULL ;
-      _pAsyncSendMsgBuffLen = 0 ;
-      _asyncSendMsgSize = 0 ;
+      _isAsyncSend   = evSuitPtr->getFrame()->getAsyncSend() ;
    }
 
    _netEventHandler::~_netEventHandler()
@@ -91,12 +90,7 @@ namespace engine
          _bufLen = 0 ;
       }
 
-      if ( NULL != _pAsyncSendMsgBuff )
-      {
-         SDB_THREAD_FREE( _pAsyncSendMsgBuff ) ;
-         _pAsyncSendMsgBuff = NULL ;
-         _pAsyncSendMsgBuffLen = 0 ;
-      }
+      _clearAsyncMsgDeque() ;
 
       /// detach
       _evSuitPtr->delHandle( _handle ) ;
@@ -503,27 +497,43 @@ namespace engine
       goto done ;
    }
 
-   INT32 _netEventHandler::_getBuff( UINT32 desLen, CHAR** ppBuff, UINT32 &realLen )
+   void _netEventHandler::_clearAsyncMsgDeque()
+   {
+      ossScopedLock lock( &_asyncMsgDequeMtx ) ;
+      ossPoolDeque<const CHAR*>::iterator itr = _asyncMsgDeque.begin() ;
+      for ( ; itr != _asyncMsgDeque.end() ; itr++ )
+      {
+         const CHAR* msg = *itr ;
+         if ( msg )
+         {
+            SDB_POOL_FREE( msg ) ;
+            msg = NULL ;
+         }
+      }
+      _asyncMsgDeque.clear() ;
+   }
+
+   INT32 _netEventHandler::_asyncWrite( const CHAR *pBuff, UINT32 len )
    {
       INT32 rc = SDB_OK ;
 
-      if ( realLen < desLen )
+      try
       {
-         if ( *ppBuff )
-         {
-            SDB_THREAD_FREE( *ppBuff ) ;
-            *ppBuff = NULL ;
-            realLen = 0 ;
-         }
-
-         *ppBuff = (CHAR*)SDB_THREAD_ALLOC( desLen ) ;
-         if ( !(*ppBuff) )
-         {
-            PD_LOG( PDERROR, "Faield to malloc memory[size: %d]", desLen ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-         realLen = desLen ;
+         async_write( _sock, buffer(pBuff,len),
+                      boost::bind(&_netEventHandler::_writeCallback,
+                                  _getShared(),
+                                  boost::asio::placeholders::error,
+                                  boost::asio::placeholders::bytes_transferred )) ;
+      }
+      catch ( exception &e )
+      {
+         CHAR routeIDBuffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
+         PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message failed: %s",
+                  _handle,
+                  routeID2String( _id, routeIDBuffer, MSG_ROUTEID_STRING_MAX_SIZE ),
+                  e.what() ) ;
+         rc = SDB_NET_SEND_ERR ;
+         goto error ;
       }
 
    done:
@@ -537,6 +547,11 @@ namespace engine
                                           std::size_t bytes_transferred )
    {
       PD_TRACE_ENTRY ( SDB__NETEVNHND__WRITECALLBK ) ;
+      INT32 rc = SDB_OK ;
+      ossScopedLock lock( &_asyncMsgDequeMtx ) ;
+      const CHAR* pBuff = _asyncMsgDeque.front() ;
+      const CHAR* pMsg = pBuff + sizeof(AsyncMsgBuffLenType) ;
+      UINT64 msgLen = *((AsyncMsgBuffLenType*)pBuff) ;
 
       if ( error )
       {
@@ -548,32 +563,18 @@ namespace engine
                     error.message().c_str(), error.value() ) ;
             if ( 0 == bytes_transferred )
             {
-               try
+               rc = _asyncWrite( pMsg, msgLen ) ;
+               if ( rc )
                {
-                  async_write( _sock, buffer(_pAsyncSendMsgBuff,_asyncSendMsgSize),
-                              boost::bind(&_netEventHandler::_writeCallback,
-                                          _getShared(),
-                                          boost::asio::placeholders::error,
-                                          boost::asio::placeholders::bytes_transferred )) ;
-               }
-               catch ( exception &e )
-               {
-                  CHAR routeIDBuffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
-                  PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message failed: %s",
-                          _handle,
-                          routeID2String( _id, routeIDBuffer, MSG_ROUTEID_STRING_MAX_SIZE ),
-                          e.what() ) ;
                   goto error ;
                }
-
-               goto done ;
             }
             else
             {
                PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] async send message "
                        "failed[msg size: %d, bytes transferred: %d], errno: %d",
                        _handle, routeID2String( _id ).c_str(),
-                       _asyncSendMsgSize, bytes_transferred, error.value() ) ;
+                       msgLen, bytes_transferred, error.value() ) ;
                goto error ;
             }
          }
@@ -596,17 +597,35 @@ namespace engine
       }
       else
       {
-         if ( _asyncSendMsgSize != bytes_transferred )
+         if ( msgLen != bytes_transferred )
          {
             PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] async send message "
                     "failed[msg size: %d, bytes transferred: %d], rc: %d",
                     _handle, routeID2String( _id ).c_str(),
-                    _asyncSendMsgSize, bytes_transferred, SDB_NET_SEND_ERR ) ;
+                    msgLen, bytes_transferred, SDB_NET_SEND_ERR ) ;
             goto error ;
          }
-         _asyncSendMsgSize = 0 ;
-         _hasAsyncSendMsg.swap( 0 ) ;
-         _asyncSendEvent.signal() ;
+
+         _asyncMsgDeque.pop_front() ;
+
+         if ( pBuff )
+         {
+            SDB_POOL_FREE( pBuff ) ;
+            pBuff = NULL ;
+         }
+
+         if ( !_asyncMsgDeque.empty() )
+         {
+            pBuff = _asyncMsgDeque.front() ;
+            pMsg = pBuff + sizeof(AsyncMsgBuffLenType) ;
+            msgLen = *((AsyncMsgBuffLenType*)pBuff) ;
+
+            rc = _asyncWrite( pMsg, msgLen ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
       }
 
    done:
@@ -622,78 +641,66 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_ASYNCWRITE, "_netEventHandler::asyncWrite" )
-   INT32 _netEventHandler::asyncWrite( const CHAR *pBuff, UINT32 len, INT64 millisec )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND__ASYNCSENDRAW, "_netEventHandler::_asyncSendRaw" )
+   INT32 _netEventHandler::_asyncSendRaw( const void *pBuff, UINT32 len )
    {
       SDB_ASSERT( pBuff, "msg buff can't be null" ) ;
       SDB_ASSERT( len, "msg length can't be 0" ) ;
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__NETEVNHND_ASYNCWRITE ) ;
+      CHAR* pAsyncSendMsgBuff = NULL ;
+      PD_TRACE_ENTRY ( SDB__NETEVNHND__ASYNCSENDRAW ) ;
 
-      rc = _getBuff( len, &_pAsyncSendMsgBuff, _pAsyncSendMsgBuffLen ) ;
-      if ( rc )
+      pAsyncSendMsgBuff = (CHAR*)SDB_POOL_ALLOC( len + sizeof(AsyncMsgBuffLenType) ) ;
+      if ( !pAsyncSendMsgBuff )
       {
-         goto error ;
+         rc = SDB_OOM ;
+         PD_RC_CHECK( rc, PDERROR, "Faield to malloc memory[size: %d]", rc ) ;
       }
-      ossMemcpy( _pAsyncSendMsgBuff, pBuff, len ) ;
+      *((AsyncMsgBuffLenType*)pAsyncSendMsgBuff) = (AsyncMsgBuffLenType)len ;
+      ossMemcpy( pAsyncSendMsgBuff + sizeof(AsyncMsgBuffLenType), pBuff, len ) ;
 
-      /// Then wait nobody send message
-      while ( _hasAsyncSendMsg.compare(1) )
       {
-         rc = _asyncSendEvent.wait( millisec ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Connection[Handle:%d, Node:%s] wait event failed, rc: %d",
-                      _handle, routeID2String( _id ).c_str(), rc ) ;
-      }
+         ossScopedLock lock( &_asyncMsgDequeMtx ) ;
+         BOOLEAN needToSendRightNow = _asyncMsgDeque.empty() ;
 
-      /// set send information
-      _asyncSendMsgSize = len ;
-      _hasAsyncSendMsg.swap( 1 ) ;
+         try
+         {
+            _asyncMsgDeque.push_back( pAsyncSendMsgBuff ) ;
+         }
+         catch ( exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_RC_CHECK( rc, PDERROR, "Faield to push back the msg, rc: %d", rc ) ;
+         }
 
-      try
-      {
-         async_write( _sock, buffer(_pAsyncSendMsgBuff,_asyncSendMsgSize),
-                      boost::bind(&_netEventHandler::_writeCallback,
-                                  _getShared(),
-                                  boost::asio::placeholders::error,
-                                  boost::asio::placeholders::bytes_transferred )) ;
-      }
-      catch ( exception &e )
-      {
-         CHAR routeIDBuffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
-         PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message failed: %s",
-                 _handle,
-                 routeID2String( _id, routeIDBuffer, MSG_ROUTEID_STRING_MAX_SIZE ),
-                 e.what() ) ;
-         rc = SDB_NET_SEND_ERR ;
-
-         // clear send information
-         _hasAsyncSendMsg.swap( 0 ) ;
-         _asyncSendMsgSize = 0 ;
-
-         goto error ;
+         if ( needToSendRightNow )
+         {
+            rc = _asyncWrite( pAsyncSendMsgBuff + sizeof(AsyncMsgBuffLenType), len ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
       }
 
    done:
-      PD_TRACE_EXIT ( SDB__NETEVNHND_ASYNCWRITE ) ;
+      PD_TRACE_EXIT ( SDB__NETEVNHND__ASYNCSENDRAW ) ;
       return rc ;
    error:
-      if ( rc != SDB_TIMEOUT )
+      if ( _isConnected )
       {
-         if ( _isConnected )
-         {
-            close() ;
-         }
-         _evSuitPtr->getFrame()->handleClose( _getSharedBase(), _id ) ;
-         _evSuitPtr->getFrame()->_erase( handle() ) ;
+         close() ;
       }
+      _evSuitPtr->getFrame()->handleClose( _getSharedBase(), _id ) ;
+      _evSuitPtr->getFrame()->_erase( handle() ) ;
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCSNDRAW, "_netEventHandler::syncSendRaw" )
-   INT32 _netEventHandler::syncSendRaw( const void *buf, UINT32 len )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND__SYNCSNDRAW, "_netEventHandler::_syncSendRaw" )
+   INT32 _netEventHandler::_syncSendRaw( const void *pBuff, UINT32 len )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__NETEVNHND_SYNCSNDRAW );
+      PD_TRACE_ENTRY ( SDB__NETEVNHND__SYNCSNDRAW );
       UINT32 send = 0 ;
 
       /// not care send suc or failed
@@ -704,7 +711,7 @@ namespace engine
       {
          try
          {
-            send +=  _sock.send( buffer( (const void*)((ossValuePtr)buf + send),
+            send +=  _sock.send( buffer( (const void*)((ossValuePtr)pBuff + send),
                                          len - send) ) ;
          }
          catch ( boost::system::system_error &e )
@@ -755,10 +762,22 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCSNDRAW, rc );
+      PD_TRACE_EXITRC ( SDB__NETEVNHND__SYNCSNDRAW, rc );
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _netEventHandler::syncSendRaw( const void *pBuff, UINT32 len )
+   {
+      if ( _isAsyncSend )
+      {
+         return _asyncSendRaw( pBuff, len ) ;
+      }
+      else
+      {
+         return _syncSendRaw( pBuff, len ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND__ALLOBUF, "_netEventHandler::_allocateBuf" )

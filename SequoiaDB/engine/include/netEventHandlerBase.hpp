@@ -64,8 +64,6 @@ namespace engine
       NET_EVENT_HANDLER_UDP      = 2
    } ;
 
-   #define NET_ASYNC_SEND_TIMEOUT   500 // ms
-
    /*
       _netEventHandlerBase define
       Handler to deal with network events. The main task is to establish the
@@ -148,9 +146,6 @@ namespace engine
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) = 0 ;
       virtual INT32 asyncRead() = 0 ;
-
-      virtual INT32 asyncWrite( const CHAR *pBuff, UINT32 len,
-                                INT64 millisec = NET_ASYNC_SEND_TIMEOUT ) = 0 ;
 
       /**
        * @brief Send data in its raw format. It will NOT be treated as in any
