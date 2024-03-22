@@ -55,6 +55,7 @@ var VERSION_DIVIDE = "3.2" ;
 var NEW_VERSION = false ;
 var NODE_CONF_CATALOGADDR = "catalogaddr" ;
 var NODE_CONF_ROLE = "role" ;
+var LOCAL_HOST_IP = {};  // only store localHostName:localIpArray -> {host1:["192.168.10.106",...]}
 
 /* *****************************************************************************
 @discription: 从地址中分解出Hostname和SvcName
@@ -256,9 +257,12 @@ function checkArgs() {
 
    /* Check current host is wether in CURHOSTS */
    var curHost = System.getHostName() ;
+   LOCAL_HOST_IP[curHost] = [];
    if ( -1 == CURHOSTS.indexOf( curHost ) ) {
       // check ip is in the CURHOSTS
       var ipArray = getHostIPs( true ) ;
+      // store the relationship between local hostname and ip;
+      LOCAL_HOST_IP[curHost] = ipArray;
       var ipIn = false ;
       for ( var i = 0 ; i < ipArray.length ; ++i ) {
          if ( -1 != CURHOSTS.indexOf( ipArray[i] ) ) {
@@ -268,8 +272,8 @@ function checkArgs() {
       }
       if ( false == ipIn ) {
          println( "Current host[" + curHost + "] is not in CURHOSTS: " + CURHOSTS + ". Make sure CURSUB value is right?" ) ;
+         return false ;
       }
-      return false ;
    }
    return true ;
 }
@@ -1456,7 +1460,9 @@ function initCluster( coordAddrs, filename, active ) {
       println( "Begin to copy init file to cluster hosts" ) ;
       var hostAddrs = getClusterHostAddrs( coordAddrs ) ;
       for( var i = 0; i < hostAddrs.length; ++i ) {
-         if( hostAddrs[i] == System.getHostName() ) {
+         // skip local machine，check hostname and ip;
+         var localHostName = System.getHostName();
+         if( hostAddrs[i] == localHostName || -1 != LOCAL_HOST_IP[localHostName].indexOf(hostAddrs[i]) ) {
             continue ;
          }
          var dst_dir ;
