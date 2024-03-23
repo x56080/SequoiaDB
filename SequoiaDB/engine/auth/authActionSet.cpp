@@ -82,7 +82,7 @@ namespace engine
       for ( INT32 action = 0; action < ACTION_SET_SIZE; ++action )
       {
          INT32 n = action / sizeof( UINT64 ) / 8;
-         _data.set( action, numbers.numbers[ n ] >> action & 1 );
+         _data.set( action, numbers.numbers[ n ] >> ( action - n * sizeof( UINT64 ) * 8 ) & 1 );
       }
    }
 
