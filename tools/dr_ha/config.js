@@ -4,7 +4,7 @@ var USERNAME = "sdbadmin";
 /* 机器登入密码定义，3.2 及以上版本无须填写 */
 var PASSWD = "xxxxxx";
 /* 数据库登入用户名定义 */
-var SDBUSER = "sdbadmin";
+var SDBUSERNAME = "sdbadmin";
 /* 数据库登入密码定义 */
 var SDBPASSWD = "xxxxxx";
 /* 子网1机器定义，必须为字符串数组 */
@@ -12,7 +12,9 @@ var SUB1HOSTS = ["sdbserver1", "sdbserver2"];
 /* 子网2机器定义，必须为字符串数组 */
 var SUB2HOSTS = ["sdbserver3"];
 /* 协调节点定义，如果协调节点已经在 Catalog的编目组信息中，则此处填写一个可用Coord即可 */
-var COORDADDR = ["sdbserver1:11810"]
+var COORDADDR = ["sdbserver1:11810"];
+/* 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作 */
+var MINREPLICANUM = 2;
 /* 执行init时是否重新选举 */
 var NEEDREELECT = false;
 /* 是否将init阶段生成的集群信息文件分发到集群的所有主机上 */
