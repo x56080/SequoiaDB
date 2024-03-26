@@ -8,7 +8,7 @@
 getUser \- Get User Information
 .SH SYNOPSIS
 .PP
-\f[B]db.getUser(, [options])\f[]
+\f[B]db.getUser(<username>, [options])\f[]
 .SH CATEGORY
 .PP
 Sdb

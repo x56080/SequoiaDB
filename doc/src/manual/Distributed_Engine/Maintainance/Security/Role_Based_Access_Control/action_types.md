@@ -534,11 +534,23 @@
 
 用户可执行[invalidateCache](manual/Manual/Sequoiadb_Command/Sdb/invalidateCache.md)命令。
 
+## invalidateFsCache
+
+将该操作应用在集群资源上。
+
+用户可执行[invalidateFsCache](manual/Manual/Sequoiadb_Command/Sdb/invalidateFsCache.md)命令。
+
 ## invalidateUserCache
 
 将该操作应用在集群资源上。
 
 用户可执行[invalidateUserCache](manual/Manual/Sequoiadb_Command/Sdb/invalidateUserCache.md)命令。
+
+## memTrim
+
+将该操作应用在集群资源上。
+
+用户可执行[memTrim](manual/Manual/Sequoiadb_Command/Sdb/memTrim.md)命令。
 
 ## removeBackup
 

@@ -95,9 +95,11 @@ namespace engine
       ACTION_TYPE_getSequence,
       ACTION_TYPE_getTask,
       ACTION_TYPE_invalidateCache,
+      ACTION_TYPE_invalidateFsCache,
       ACTION_TYPE_invalidateUserCache,
       ACTION_TYPE_list,
       ACTION_TYPE_listCollectionSpaces,
+      ACTION_TYPE_memTrim,
       ACTION_TYPE_removeBackup,
       ACTION_TYPE_removeRG,
       ACTION_TYPE_removeProcedure,
@@ -136,8 +138,8 @@ namespace engine
       ACTION_TYPE_alterDC,
    };
 
-   const int ACTION_TYPE_NUM_GEN = 106;
-   const int ACTION_TYPE_VALID_NUM_GEN = 105;
+   const int ACTION_TYPE_NUM_GEN = 108;
+   const int ACTION_TYPE_VALID_NUM_GEN = 107;
 
 
    ACTION_TYPE_ENUM authActionTypeParse( const char *actionName );
@@ -174,10 +176,10 @@ namespace engine
       0ULL
    );
 
-   // CLUSTER: ['listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'invalidateCache', 'invalidateUserCache', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup', 'alterNode', 'alterRG']
+   // CLUSTER: ['listCollectionSpaces', 'updateConf', 'backup', 'createCS', 'createSequence', 'dropSequence', 'alterSequence', 'getSequenceCurrentValue', 'cancelTask', 'dropCS', 'loadCS', 'unloadCS', 'getDCInfo', 'list', 'snapshot', 'listBin', 'renameCS', 'removeBackup', 'createRG', 'removeRG', 'startRG', 'stopRG', 'createNode', 'removeNode', 'startNode', 'stopNode', 'setPDLevel', 'waitTasks', 'trace', 'traceStatus', 'createDomain', 'dropDomain', 'createProcedure', 'forceStepUp', 'removeProcedure', 'listProcedures', 'eval', 'invalidateCache', 'invalidateFsCache', 'invalidateUserCache', 'memTrim', 'forceSession', 'alterDC', 'alterUser', 'reelect', 'sync', 'reloadConf', 'deleteConf', 'createDataSource', 'dropDataSource', 'alterDataSource', 'alterBin', 'countBin', 'dropAllBin', 'dropItemBin', 'getDetailBin', 'listBin', 'returnItemBin', 'snapshotBin', 'alterDomain', 'createRole', 'dropRole', 'getRole', 'listRoles', 'updateRole', 'grantPrivilegesToRole', 'revokePrivilegesFromRole', 'grantRolesToRole', 'revokeRolesFromRole', 'createUsr', 'dropUsr', 'getUser', 'grantRolesToUser', 'revokeRolesFromUser', 'fetchSequence', 'flushConfigure', 'forceSession', 'getDataSource', 'getDomain', 'getRG', 'getSequence', 'trans', 'getTask', 'getNode', 'resetSnapshot', 'listBackup', 'alterNode', 'alterRG']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_CLUSTER_BITSET_NUMBERS(
       18446744073574809600ULL,
-      2199022731263ULL
+      8796090925055ULL
    );
 
    // COLLECTION_NAME: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze']
@@ -189,7 +191,7 @@ namespace engine
    // COLLECTION_SPACE: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_COLLECTION_SPACE_BITSET_NUMBERS(
       134742015ULL,
-      524288ULL
+      2097152ULL
    );
 
    // EXACT_COLLECTION: ['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze']
@@ -201,7 +203,7 @@ namespace engine
    // NON_SYSTEM: [['find', 'insert', 'update', 'remove', 'getDetail', 'createIndex', 'dropIndex', 'copyIndex', 'split', 'attachCL', 'detachCL', 'truncate', 'alterCL', 'testCL', 'analyze'], 'alterCS', 'createCL', 'dropCL', 'renameCL', 'listCollections', 'testCS']
    const ACTION_SET_NUMBER_ARRAY RESOURCE_TYPE_NON_SYSTEM_BITSET_NUMBERS(
       134742015ULL,
-      524288ULL
+      2097152ULL
    );
 
    // ANY: __all__
@@ -436,6 +438,8 @@ namespace engine
       AUTH_CMD_NAME_GRANT_ROLES_TO_USER_default,
       AUTH_CMD_NAME_REVOKE_ROLES_FROM_USER_default,
       AUTH_CMD_NAME_INVALIDATE_USER_CACHE_default,
+      AUTH_CMD_NAME_INVALIDATE_FS_CACHE_default,
+      AUTH_CMD_NAME_MEM_TRIM_default,
    };
 
    typedef class _authActionSet authActionSet;

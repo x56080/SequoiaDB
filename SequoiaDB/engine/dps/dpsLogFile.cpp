@@ -44,6 +44,10 @@
 #include "dpsTrace.hpp"
 #include "dpsLogRecord.hpp"
 #include "pmdStartup.hpp"
+#include "pmdEnv.hpp"
+#if defined (_LINUX)
+#include <fcntl.h> // For POSIX_FADV_DONTNEED
+#endif
 
 namespace engine
 {
@@ -59,6 +63,7 @@ namespace engine
       _idleSize = 0 ;
       _inRestore= FALSE ;
       _dirty = FALSE ;
+      _lastAccessTick = 0 ;
    }
 
    _dpsLogFile::~_dpsLogFile()
@@ -836,6 +841,7 @@ namespace engine
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_WRITE );
       _dirty = TRUE ;
+      _lastAccessTick = pmdGetDBTick() ;
 
       if ( len <= _idleSize && _idleSize <= _fileSize )
       {
@@ -899,6 +905,7 @@ namespace engine
       // make sure we don't read out of range
       SDB_ASSERT ( offset + len <= _fileSize,
                    "Read out of range" ) ;
+      _lastAccessTick = pmdGetDBTick() ;
       // make sure the LSN is within the range
       if ( lOffset < _logHeader._firstLSN.offset ||
            lOffset > _logHeader._firstLSN.offset + _fileSize )
@@ -1020,6 +1027,35 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DPSLOGFILE_SYNC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_INVALIDATEFSCACHE, "_dpsLogFile::invalidateFsCache" )
+   INT32 _dpsLogFile::invalidateFsCache()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLOGFILE_INVALIDATEFSCACHE ) ;
+
+#if defined (_LINUX)
+      if ( NULL == _file )
+      {
+         PD_LOG( PDERROR, "file has not been initialized yet" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      rc = ossFadvise( _file, 0, (SINT64)_fileSize + DPS_LOG_HEAD_LEN, POSIX_FADV_DONTNEED ) ;
+      if ( rc != SDB_OK )
+      {
+         PD_LOG( PDWARNING, "Failed to advise that don't need file, rc:%d",
+                 rc ) ;
+         goto error ;
+      }
+#endif
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLOGFILE_INVALIDATEFSCACHE, rc ) ;
       return rc ;
    error:
       goto done ;

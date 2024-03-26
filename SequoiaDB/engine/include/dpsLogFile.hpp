@@ -113,6 +113,7 @@ namespace engine
       BOOLEAN        _inRestore ;
       BOOLEAN        _dirty ;
       string         _path ;
+      UINT64         _lastAccessTick ;
 
    public:
       _dpsLogFile();
@@ -196,6 +197,18 @@ namespace engine
       }
 
       INT32 sync() ;
+
+      BOOLEAN getLastAccessTick() const
+      {
+         return _lastAccessTick ;
+      }
+
+      void setLastAccessTick( const UINT64 tick )
+      {
+         _lastAccessTick = tick ;
+      }
+
+      INT32 invalidateFsCache() ;
 
    private:
       void _initHead( UINT32 logID )

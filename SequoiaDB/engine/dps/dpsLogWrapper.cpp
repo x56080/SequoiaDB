@@ -83,6 +83,7 @@ namespace engine
       _dpslocal = optCB->isDpsLocal() ;
       _buf.setLogFileSz( optCB->getReplLogFileSz() ) ;
       _buf.setLogFileNum( optCB->getReplLogFileNum() ) ;
+      _buf.setFsCacheExpiredMs( optCB->getFsCacheExpiredMs() ) ;
 
       rc = _buf.init( optCB->getReplLogPath(),
                       optCB->getReplLogBuffSize(),
@@ -244,6 +245,7 @@ namespace engine
       _syncRecordNum = optCB->getSyncRecordNum() ;
       dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
                                           optCB->logWriteMod() ) ;
+      _buf.setFsCacheExpiredMs( optCB->getFsCacheExpiredMs() ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_SEARCH, "_dpsLogWrapper::search" )

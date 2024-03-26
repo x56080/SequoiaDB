@@ -46,6 +46,7 @@
 #include "utilStr.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
+#include "pmdEnv.hpp"
 
 namespace engine
 {
@@ -67,6 +68,7 @@ namespace engine
 
       _begin = 0 ;
       _rollFlag = FALSE ;
+      _fsCacheExpiredMs = (UINT64) ~0 ;
    }
 
    // destructor
@@ -706,5 +708,76 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _dpsLogFileMgr::canInvalidateFsCache() const
+   {
+      BOOLEAN rs = FALSE ;
+      UINT32 i = 0 ;
+
+      if ( (UINT64)~0 == _fsCacheExpiredMs )
+      {
+         goto done ;
+      }
+
+      for ( i = 0; i < _files.size() ; i++ )
+      {
+         dpsLogFile *f = _files[ i ] ;
+         if ( _isExpired( f->getLastAccessTick(), _fsCacheExpiredMs ) &&
+              !f->isDirty() )
+         {
+            rs = TRUE ;
+            break ;
+         }
+      }
+   done:
+      return rs ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_INVALIDATEFSCACHE, "_dpsLogFileMgr::invalidateFsCache" )
+   INT32 _dpsLogFileMgr::invalidateFsCache( const UINT64 *pExpiredMs )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      UINT64 expiredMs = ( pExpiredMs ) ? *pExpiredMs : _fsCacheExpiredMs ;
+
+      PD_TRACE_ENTRY( SDB__DPSLGFILEMGR_INVALIDATEFSCACHE ) ;
+
+      if ( (UINT64)~0 == expiredMs )
+      {
+         goto done ;
+      }
+
+      for ( UINT32 i = 0 ; i < _files.size() ; ++i )
+      {
+         dpsLogFile *f = _files[ i ] ;
+         if ( _isExpired( f->getLastAccessTick(), expiredMs ) &&
+              !f->isDirty() )
+         {
+            rcTmp = f->invalidateFsCache() ;
+            if ( SDB_OK == rcTmp )
+            {
+               // set it to unknown to reduce duplicate invalidation
+               f->setLastAccessTick( 0 ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to invalidate cache of log file[%d], "
+                       "rc: %d", i, rcTmp ) ;
+               rc = rcTmp ;
+            }
+         }
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGFILEMGR_INVALIDATEFSCACHE, rc ) ;
+      return rc ;
+   }
+
+   BOOLEAN _dpsLogFileMgr::_isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const
+   {
+      // expiredMs == 0 means expired immediately
+      // lastAccessTick == 0 means no new access since last cache invalidation
+      return ( 0 == expiredMs ||
+               ( lastAccessTick != 0 &&
+                 pmdGetTickSpanTime( lastAccessTick ) > expiredMs ) ) ;
+   }
 }
 

@@ -71,6 +71,7 @@ namespace engine
       UINT32                  _logFileSz ;
       UINT32                  _logFileNum ;
       _dpsReplicaLogMgr       *_replMgr ;
+      UINT64                  _fsCacheExpiredMs ;
 
    public:
       _dpsLogFileMgr( class _dpsReplicaLogMgr *replMgr );
@@ -110,6 +111,10 @@ namespace engine
       {
          return _logFileNum ;
       }
+      void setFsCacheExpiredMs( UINT64 fsCacheExpiredMs )
+      {
+         _fsCacheExpiredMs = fsCacheExpiredMs ;
+      }
       _dpsLogFile * getWorkLogFile()
       {
          return _files[_work] ;
@@ -142,6 +147,10 @@ namespace engine
 
       INT32 sync() ;
 
+      BOOLEAN canInvalidateFsCache() const ;
+
+      INT32 invalidateFsCache( const UINT64 *pExpiredMs = NULL ) ;
+
    protected:
       void     _analysis ( const dpsMetaFileContent &content,
                            BOOLEAN &needRetry ) ;
@@ -150,6 +159,8 @@ namespace engine
       UINT32   _incFileID ( UINT32 fileID ) ;
       UINT32   _decFileID ( UINT32 fileID ) ;
       void     _incLogicalFileID () ;
+
+      BOOLEAN  _isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const ;
 
    };
    typedef class _dpsLogFileMgr dpsLogFileMgr ;

@@ -76,9 +76,11 @@ enums:
       getSequence: "getSequence"
       getTask: "getTask"
       invalidateCache: "invalidateCache"
+      invalidateFsCache: "invalidateFsCache"
       invalidateUserCache: "invalidateUserCache"
       list: "list"
       listCollectionSpaces: "listCollectionSpaces"
+      memTrim: "memTrim"
       removeBackup: "removeBackup"
       removeRG: "removeRG"
       removeProcedure: "removeProcedure"
@@ -178,7 +180,9 @@ enums:
           - listProcedures
           - eval
           - invalidateCache
+          - invalidateFsCache
           - invalidateUserCache
+          - memTrim
           - forceSession
           - alterDC
           - alterUser
@@ -1471,3 +1475,13 @@ CMD_PRIVILEGE_MAP:
       - resource: CLUSTER
         actionSets:
           - [invalidateUserCache]
+
+    CMD_NAME_INVALIDATE_FS_CACHE:
+      - resource: CLUSTER
+        actionSets:
+          - [invalidateFsCache]
+
+    CMD_NAME_MEM_TRIM:
+      - resource: CLUSTER
+        actionSets:
+          - [memTrim]

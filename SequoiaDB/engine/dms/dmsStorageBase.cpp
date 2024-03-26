@@ -771,7 +771,6 @@ namespace engine
 
       if ( _canInvalidateMetaSegCache( expiredMs ) )
       {
-         setFileAccessTick( 0 ) ;
          for ( i = 0 ; i < _dataSegID ; ++i )
          {
             rcTmp = freeCache( i ) ;
@@ -782,15 +781,25 @@ namespace engine
                rc = rcTmp ;
             }
          }
+
+         if ( SDB_OK == rc )
+         {
+            // set it to unknown to reduce duplicate invalidation
+            setFileAccessTick( 0 ) ;
+         }
       }
 
       for ( i = _dataSegID ; i < segmentSize() ; ++i )
       {
          if ( _canInvalidateDataSegCache( i, expiredMs ) )
          {
-            setSegmentAccessTick( i, 0 ) ;
             rcTmp = freeCache( i ) ;
-            if ( rcTmp != SDB_OK )
+            if ( SDB_OK == rcTmp )
+            {
+               // set it to unknown to reduce duplicate invalidation
+               setSegmentAccessTick( i, 0 ) ;
+            }
+            else
             {
                PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
                        "rc: %d", i, rcTmp ) ;

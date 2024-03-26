@@ -6084,6 +6084,16 @@ error:
          }
       }
 
+      if ( dpsCB )
+      {
+         rcTmp = dpsCB->invalidateFsCache( &_expiredMs ) ;
+         if ( rcTmp != SDB_OK )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate cache of log, rc: %d", rcTmp ) ;
+            rc = rcTmp ;
+         }
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEFSCACHE_DOIT, rc ) ;
       return rc ;
