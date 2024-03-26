@@ -235,6 +235,10 @@ namespace engine
       {
          return _logger.getLogFileNum () ;
       }
+      void setFsCacheExpiredMs( UINT64 fsCacheExpiredMs )
+      {
+         _logger.setFsCacheExpiredMs( fsCacheExpiredMs ) ;
+      }
 
       BOOLEAN isInRestore ()
       {
@@ -283,6 +287,16 @@ namespace engine
       UINT32 getLoggerLogicalWork ()
       {
          return _logger.getLogicalWorkPos() ;
+      }
+
+      BOOLEAN canInvalidateFsCache() const
+      {
+         return _logger.canInvalidateFsCache() ;
+      }
+
+      INT32 invalidateFsCache( const UINT64 *pExpiredMs = NULL )
+      {
+         return _logger.invalidateFsCache( pExpiredMs ) ;
       }
 
    private:

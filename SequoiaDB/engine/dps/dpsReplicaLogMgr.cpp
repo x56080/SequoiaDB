@@ -1659,14 +1659,13 @@ namespace engine
          }
       }
 
-      if ( deeply )
+      scopedWriteMtx.release() ;
+
+      rc = _logger.sync() ;
+      if ( SDB_OK != rc )
       {
-         rc = _logger.sync() ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to sync log file: %d", rc ) ;
-            goto error ;
-         }
+         PD_LOG( PDERROR, "Failed to sync log file: %d", rc ) ;
+         goto error ;
       }
 
       scopedMtx.lock() ;

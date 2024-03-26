@@ -185,11 +185,17 @@ namespace engine
                                     BOOLEAN sync,
                                     IExecutor* cb ) ;
 
-         virtual BOOLEAN      canInvalidateFsCache() const { return FALSE ; }
-         virtual INT32        invalidateFsCache( const UINT64 *pExpiredMs = NULL ) { return SDB_OK ; }
-
          virtual void         lock() ;
          virtual void         unlock() ;
+
+         virtual BOOLEAN      canInvalidateFsCache() const
+         {
+            return _buf.canInvalidateFsCache() ;
+         }
+         virtual INT32        invalidateFsCache( const UINT64 *pExpiredMs = NULL )
+         {
+            return _buf.invalidateFsCache( pExpiredMs ) ;
+         }
 
    public:
       void regEventHandler( dpsEventHandler *pHandler ) ;
