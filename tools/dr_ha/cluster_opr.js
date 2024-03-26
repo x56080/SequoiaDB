@@ -312,24 +312,35 @@ function checkSdbVersion()
 @author: QinCheng Yang
 @return: true/false
 ***************************************************************************** */
-function checkHostsEvnNew ( hosts ) {
-   var checkFiles = [ SDBSTART, SDBSTOP, SDBLIST, SDBSHELL, CONFLOCAL ] ;
+function checkHostsEnvNew ( hosts ) {
+   var checkFiles = [ "/sdbstart", "/sdbstop", "/sdblist", "/sdb", "/../conf/local" ] ;
    for ( i in hosts ) {
       var remoteObj ;
+      var remoteSeqPath ;
+
       try {
          var sdbcmSvc = Oma.getAOmaSvcName( hosts[i] ) ;
          remoteObj = new Remote( hosts[i], sdbcmSvc ) ;
       } catch ( e ) {
-         println( "Remote " + hostname + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+         println( "Remote " + hosts[i] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
          return false ;
       }
+
+      try {
+         remoteSeqPath = remoteObj.getSystem().getEWD() ;
+      } catch ( e ) {
+         println( "Get remote " + hosts[i] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+         remoteObj.close() ;
+         return false ;
+      }
+
       try {
          var cmd = remoteObj.getCmd() ;
          for ( j in checkFiles ) {
-            cmd.run( 'ls', checkFiles[j] ) ;
+            cmd.run( 'ls', remoteSeqPath + checkFiles[j] ) ;
          }
       } catch ( e ) {
-         println( "Check file[" + checkFiles[j] + "] in " + hosts[i] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         println( "Check file[" + remoteSeqPath + checkFiles[j] + "] in " + hosts[i] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
          return false ;
       } finally {
         remoteObj.close() ;
@@ -344,7 +355,7 @@ function checkHostsEvnNew ( hosts ) {
 @author: Jianhui Xu
 @return: true/false
 ***************************************************************************** */
-function checkHostsEvnOld( hosts ) {
+function checkHostsEnvOld( hosts ) {
    var checkFiles = [ SDBSTART, SDBSTOP, SDBLIST, SDBSHELL, CONFLOCAL ] ;
 
    for ( i in hosts ) {
@@ -379,11 +390,11 @@ function checkHostsEvnOld( hosts ) {
 @author: QinCheng Yang
 @return: true/false
 ***************************************************************************** */
-function checkHostsEvn( hosts ) {
+function checkHostsEnv( hosts ) {
    if ( NEW_VERSION ) {
-      return checkHostsEvnNew( hosts ) ;
+      return checkHostsEnvNew( hosts ) ;
    } else {
-      return checkHostsEvnOld( hosts ) ;
+      return checkHostsEnvOld( hosts ) ;
    }
 }
 
@@ -625,7 +636,9 @@ function getConfigObjNew( address ) {
    /* New version */
    var oma ;
    var sdbcmSvc ;
+   var remoteObj ;
    var remoteSeqPath ;
+
    try {
       sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
       oma = new Oma( addrArray[0], sdbcmSvc ) ;
@@ -635,20 +648,31 @@ function getConfigObjNew( address ) {
    }
 
    try {
-      var remoteObj = new Remote( addrArray[0], sdbcmSvc ) ;
-      remoteSeqPath = remoteObj.getSystem().getEWD() ;
+      remoteObj = new Remote( addrArray[0], sdbcmSvc ) ;
    } catch ( e ) {
-      println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
-      return false ;
+      println( "Remote " + addrArray[0] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      oma.close() ;
+      throw e ;
    }
 
-   conffile = remoteSeqPath + "/../conf/local/" + addrArray[1] + "/sdb.conf" ;
+   try {
+      remoteSeqPath = remoteObj.getSystem().getEWD() ;
+      conffile = remoteSeqPath + "/../conf/local/" + addrArray[1] + "/sdb.conf" ;
+   } catch ( e ) {
+      println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      remoteObj.close() ;
+      oma.close() ;
+      throw e ;
+   }
+
    try {
       var tmpString = oma.getOmaConfigs( conffile ).toObj() ;
       obj = eval( tmpString ) ;
+      remoteObj.close();
       oma.close() ;
    } catch ( e ) {
       println( "Get config object from " + address + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      remoteObj.close();
       oma.close() ;
       throw e ;
    }
@@ -700,17 +724,46 @@ function getConfigObj( address ) {
 function saveConfigObjNew( address, obj ) {
    var addrArray = splitHostAndSvcFromAddr( address ) ;
    var oma ;
+   var omaSvc ;
+   var remoteObj ;
+   var remoteSeqPath ;
+   var conffile ;
+
    try {
-      var conffile = CONFLOCAL + "/" + addrArray[1] + "/sdb.conf" ;
-      var omaSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
+      omaSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
       oma = new Oma( addrArray[0], omaSvc ) ;
+   } catch ( e ) {
+      println( "Failed to connect sdbcm in " + addrArray[0] + ", error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+
+   try {
+      remoteObj = new Remote( addrArray[0], omaSvc ) ;
+   } catch ( e ) {
+      println( "Remote " + addrArray[0] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      oma.close() ;
+      return false ;
+   }
+
+   try {
+      remoteSeqPath = remoteObj.getSystem().getEWD() ;
+      conffile = remoteSeqPath + "/../conf/local/" + addrArray[1] + "/sdb.conf" ;
+   } catch ( e ) {
+      println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      oma.close() ;
+      return false ;
+   } finally {
+      remoteObj.close()
+   }
+   
+   try {
       oma.setOmaConfigs( obj, conffile ) ;
       oma.reloadConfigs() ;
    } catch ( e ) {
       println( "Save config object to " + address + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
    } finally {
-       oma.close() ;
+      oma.close() ;
    }
    return true ;
 }
@@ -1008,6 +1061,7 @@ function restartNodeWithCmd( nodeAddr, options ) {
       remoteSeqPath = remoteObj.getSystem().getEWD() ;
    } catch ( e ) {
       println( "Get remote " + addrArray[0] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      remoteObj.close() ;
       return false ;
    }
 
@@ -1126,12 +1180,20 @@ function restartAllHostNode( hostnameArr ) {
 
       /* New version */
       if ( NEW_VERSION ) {
-         var remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
+         var remoteObj ;
          var remoteSeqPath ;
+         try {
+            remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
+         } catch ( e ) {
+            println( "Remote " + hostnameArr[j] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+
          try {
             remoteSeqPath = remoteObj.getSystem().getEWD() ;
          } catch ( e ) {
             println( "Get remote " + hostnameArr[j] + " sequoiadb path failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+            remoteObj.close() ;
             return false ;
          }
 
@@ -2320,7 +2382,7 @@ function main() {
    if ( checkSdbVersion() ) {
       NEW_VERSION = true ;
    }
-   if ( checkHostsEvn( CURHOSTS ) ) {
+   if ( checkHostsEnv( CURHOSTS ) ) {
       println( "Done" ) ;
    } else {
       println( "Failed" ) ;
