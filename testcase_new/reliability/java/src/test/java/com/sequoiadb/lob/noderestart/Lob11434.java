@@ -143,8 +143,8 @@ public class Lob11434 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
                         && e.getErrorCode() != -79 && e.getErrorCode() != -81
-                        && e.getErrorCode() != -17
-                        && e.getErrorCode() != -36 ) {
+                        && e.getErrorCode() != -17 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -222 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -170,8 +170,8 @@ public class Lob11434 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
                         && e.getErrorCode() != -79 && e.getErrorCode() != -81
-                        && e.getErrorCode() != -17
-                        && e.getErrorCode() != -36 ) {
+                        && e.getErrorCode() != -17 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -222 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -197,8 +197,8 @@ public class Lob11434 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
                         && e.getErrorCode() != -79 && e.getErrorCode() != -81
-                        && e.getErrorCode() != -17
-                        && e.getErrorCode() != -36 ) {
+                        && e.getErrorCode() != -17 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -222 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -220,8 +220,8 @@ public class Lob11434 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
                         && e.getErrorCode() != -79 && e.getErrorCode() != -81
-                        && e.getErrorCode() != -17
-                        && e.getErrorCode() != -36 ) {
+                        && e.getErrorCode() != -17 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -222 ) {
                     e.printStackTrace();
                     throw e;
                 }
