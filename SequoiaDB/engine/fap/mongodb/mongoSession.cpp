@@ -127,6 +127,10 @@ INT32 _mongoSession::run()
          _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
 
+         pdClearLastError() ;
+         engine::monUpdateCurGroupMask( engine::monGetGroupMask() ) ;
+         pdRestoreCurShieldLogMask() ;
+
          // recv msg
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
          if ( rc )

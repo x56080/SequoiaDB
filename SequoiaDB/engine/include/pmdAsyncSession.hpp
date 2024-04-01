@@ -235,7 +235,7 @@ namespace engine
 
          pmdBuffInfo*   frontBuffer () ;
          void           popBuffer () ;
-         INT32          pushBuffer ( CHAR *pBuffer, UINT32 size ) ;
+         INT32          pushBuffer ( CHAR *pBuffer, UINT32 size, UINT64 recvTimeUs ) ;
          void*          copyMsg ( const CHAR *msg, UINT32 length ) ;
 
          UINT32         _incBuffPos ( UINT32 pos ) ;
@@ -335,6 +335,7 @@ namespace engine
          INT32                dispatchMsg( const NET_HANDLE &handle,
                                            const MsgHeader *pMsg,
                                            pmdEDUMemTypes memType,
+                                           UINT64 recvTimeUs,
                                            BOOLEAN decPending,
                                            BOOLEAN *hasDispatched = NULL ) ;
 
@@ -433,6 +434,7 @@ namespace engine
          INT32          _pushMessage ( pmdAsyncSession *pSession,
                                        const MsgHeader *header,
                                        pmdEDUMemTypes memType,
+                                       UINT64 recvTimeUs,
                                        const NET_HANDLE &handle ) ;
 
       protected:

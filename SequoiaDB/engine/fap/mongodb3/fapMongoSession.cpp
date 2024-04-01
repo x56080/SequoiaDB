@@ -1702,7 +1702,8 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
    if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( pMsg->opCode ) )
    {
       monClassQuery *monQuery = NULL ;
-      monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+      monClassQueryTimeInfo timeInfo( getFirstMsgTime(), _getLastBeginTime() ) ;
+      monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>( &timeInfo ) ;
       if ( monQuery )
       {
          monQuery->init( pMsg->opCode, eduCB(), pMsg ) ;
@@ -1712,10 +1713,7 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
       DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
    }
 
-done:
    return rc ;
-error:
-   goto done ;
 }
 
 void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )

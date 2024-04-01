@@ -125,19 +125,19 @@ namespace engine
       }
    }
 
-   void _schedTaskContanier::push( const pmdEDUEvent &event, INT64 userData )
+   void _schedTaskContanier::push( const pmdEDUEvent &event, INT64 userData, UINT64 time )
    {
       if ( _pTaskQue )
       {
-         _pTaskQue->push( event, userData ) ;
+         _pTaskQue->push( event, userData, time ) ;
       }
    }
 
-   BOOLEAN _schedTaskContanier::pop( pmdEDUEvent &event, INT64 millisec )
+   BOOLEAN _schedTaskContanier::pop( pmdEDUEvent &event, UINT64 &time, INT64 millisec )
    {
       if ( _pTaskQue )
       {
-         return _pTaskQue->pop( event, millisec ) ;
+         return _pTaskQue->pop( event, time, millisec ) ;
       }
       return FALSE ;
    }
@@ -390,15 +390,16 @@ namespace engine
       if ( bFound )
       {
          pmdEDUEvent event ;
+         UINT64 time = 0 ;
 
          while( ptr->hasHold() )
          {
             ossSleep( 100 ) ;
          }
 
-         while( ptr->pop( event, 0 ) )
+         while( ptr->pop( event, time, 0 ) )
          {
-            _defaultPtr->push( event, (INT64)pmdGetDBTick() ) ;
+            _defaultPtr->push( event, (INT64)pmdGetDBTick(), time ) ;
          }
       }
 

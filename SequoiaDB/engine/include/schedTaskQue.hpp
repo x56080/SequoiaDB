@@ -62,8 +62,8 @@ namespace engine
       public:
          virtual UINT32    size() = 0 ;
          virtual BOOLEAN   isEmpty() = 0 ;
-         virtual void      push( const pmdEDUEvent &event, INT64 userData ) = 0 ;
-         virtual BOOLEAN   pop( pmdEDUEvent &event,INT64 millisec ) = 0 ;
+         virtual void      push( const pmdEDUEvent &event, INT64 userData, UINT64 recvTimeUs ) = 0 ;
+         virtual BOOLEAN   pop( pmdEDUEvent &event, UINT64 &recvTimeUs, INT64 millisec ) = 0 ;
 
    } ;
    typedef _schedTaskQueBase schedTaskQueBase ;
@@ -73,6 +73,23 @@ namespace engine
    */
    class _schedFIFOTaskQue : public _schedTaskQueBase
    {
+      struct _queData
+      {
+         pmdEDUEvent    _event ;
+         UINT64         _recvTimeMs ;
+
+         _queData()
+         {
+            _recvTimeMs = 0 ;
+         }
+
+         _queData( const pmdEDUEvent &event, UINT64 recvTimeUs )
+         {
+            _event = event ;
+            _recvTimeMs = recvTimeUs ;
+         }
+      } ;
+
       public:
          _schedFIFOTaskQue() ;
          virtual ~_schedFIFOTaskQue() ;
@@ -80,11 +97,11 @@ namespace engine
       public:
          virtual UINT32    size() ;
          virtual BOOLEAN   isEmpty() ;
-         virtual void      push( const pmdEDUEvent &event, INT64 userData ) ;
-         virtual BOOLEAN   pop( pmdEDUEvent &event, INT64 millisec ) ;
+         virtual void      push( const pmdEDUEvent &event, INT64 userData, UINT64 recvTimeUs ) ;
+         virtual BOOLEAN   pop( pmdEDUEvent &event, UINT64 &recvTimeUs, INT64 millisec ) ;
 
       private:
-         ossQueue<pmdEDUEvent>      _queue ;
+         ossQueue<_queData>         _queue ;
    } ;
    typedef _schedFIFOTaskQue schedFIFOTaskQue ;
 
@@ -97,20 +114,24 @@ namespace engine
       {
          public:
             pmdEDUEvent    _event ;
+            UINT64         _recvTimeUs ;
 
          private:
             INT64          _priority ;
 
          public:
             _priorityEvent( const pmdEDUEvent &event,
+                            UINT64 recvTimeUs,
                             INT64 priority = 0 )
             {
                _event = event ;
+               _recvTimeUs = recvTimeUs ;
                _priority = 0 - priority ;
             }
             _priorityEvent()
             {
                _priority = 0 ;
+               _recvTimeUs = 0 ;
             }
 
             bool operator< ( const _priorityEvent &right ) const
@@ -131,8 +152,8 @@ namespace engine
       public:
          virtual UINT32    size() ;
          virtual BOOLEAN   isEmpty() ;
-         virtual void      push( const pmdEDUEvent &event, INT64 userData ) ;
-         virtual BOOLEAN   pop( pmdEDUEvent &event, INT64 millisec ) ;
+         virtual void      push( const pmdEDUEvent &event, INT64 userData, UINT64 recvTimeUs ) ;
+         virtual BOOLEAN   pop( pmdEDUEvent &event, UINT64 &recvTimeUs, INT64 millisec ) ;
 
       private:
          ossPriorityQueue<priorityEvent>        _queue ;

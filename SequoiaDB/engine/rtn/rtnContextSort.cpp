@@ -203,10 +203,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       rtnContextBuf bufObj ;
       BSONObj obj ;
+      monClassQuery *monQuery = cb->getMonQueryCB() ;
 
       if ( cb->getMonConfigCB()->timestampON )
       {
          _getSubContext()->getMonCB()->recordStartTimestamp() ;
+      }
+
+      if ( monQuery )
+      {
+         monQuery->startQueryTick( MON_TICK_SORT ) ;
       }
 
       for ( ; ; )
@@ -259,6 +265,10 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopQueryTick() ;
+      }
       return rc ;
    error:
       goto done ;

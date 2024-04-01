@@ -120,6 +120,14 @@ namespace engine
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
 
+   #define PMD_DFT_SLOWQUERY_THRESHOLD ( 300 )
+   #define PMD_DFT_SLOWCMD_THRESHOLD   ( 5000 )
+   #define PMD_DFT_SLOWLATCH_THRESHOLD ( 50 )
+   #define PMD_DFT_SLOWLOCK_THRESHOLD  ( 100 )
+   #define PMD_DFT_MONHISTEVENT        ( 1000 )
+   #define PMD_DFT_MON_OPTI_LEVEL      ( 1 )
+   #define PMD_DFT_MONHIST_EXPIREDTIME ( 2880 )
+
    #define PMD_DFT_USER_CACHE_INTERVAL  (300000)  // milliseconds, 5 miniutes
 
    #define PMD_DFT_MEM_MXFAST          (-1)
@@ -2040,6 +2048,15 @@ done:
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
       _transConsistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
 
+      _slowQueryThreshold = PMD_DFT_SLOWQUERY_THRESHOLD ;
+      _slowCmdThreshold = PMD_DFT_SLOWCMD_THRESHOLD ;
+      _slowLatchThreshold = PMD_DFT_SLOWLATCH_THRESHOLD ;
+      _slowLockThreshold = PMD_DFT_SLOWLOCK_THRESHOLD ;
+      _monGroupMask = 0 ;
+      _monOptiLevel = PMD_DFT_MON_OPTI_LEVEL ;
+      _monHistEvent = PMD_DFT_MONHISTEVENT ;
+      _monHistExpiredTime = PMD_DFT_MONHIST_EXPIREDTIME ;
+
       _detectDisk = TRUE ;
       _diagSecureOn = TRUE ;
       _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
@@ -2587,7 +2604,24 @@ done:
 
       // --monslowquerythreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWQUERY_THRESHOLD, _slowQueryThreshold, FALSE,
-               PMD_CFG_CHANGE_RUN, 300, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWQUERY_THRESHOLD, FALSE ) ;
+
+      // --monslowcommandthreshold
+      rdxUInt( pEX, PMD_OPTION_MON_SLOWCOMMAND_THRESHOLD, _slowCmdThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWCMD_THRESHOLD, FALSE ) ;
+
+      // --monslowlockthreshold
+      rdxUInt( pEX, PMD_OPTION_MON_SLOWLOCK_THRESHOLD, _slowLockThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWLOCK_THRESHOLD, FALSE ) ;
+
+      // --monslowlatchthreshold
+      rdxUInt( pEX, PMD_OPTION_MON_SLOWLATCH_THRESHOLD, _slowLatchThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWLATCH_THRESHOLD, FALSE ) ;
+
+      // --monoptilevel
+      rdxUInt( pEX, PMD_OPTION_MON_OPTI_LEVEL, _monOptiLevel, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MON_OPTI_LEVEL, FALSE ) ;
+      rdvMinMax( pEX, _monOptiLevel, 0, 1, TRUE ) ;
 
       // --mongroupmask
       rdxString( pEX, PMD_OPTION_MON_GROUP_MASK, _monGroupMaskStr,
@@ -2596,7 +2630,11 @@ done:
 
       // --monhistevent
       rdxUInt( pEX, PMD_OPTION_MON_HIST_EVENT, _monHistEvent, FALSE,
-               PMD_CFG_CHANGE_RUN, 1000, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MONHISTEVENT, TRUE ) ;
+
+      // --monhistexpiredtime
+      rdxUInt( pEX, PMD_OPTION_MON_HIST_EXPIREDTIME, _monHistExpiredTime, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MONHIST_EXPIREDTIME, TRUE ) ;
 
       // --serviceumask
       rdxString( pEX, PMD_OPTION_SERVICE_MASK, _serviceMaskStr,

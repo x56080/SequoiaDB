@@ -60,6 +60,7 @@ namespace engine
          virtual UINT32       _onPrepared( UINT32 expectNum ) ;
 
          virtual INT32        _onPush( const pmdEDUEvent &event,
+                                       UINT64 recvTimeUs,
                                        INT64 priority,
                                        const schedInfo *pInfo ) ;
 
@@ -89,6 +90,7 @@ namespace engine
          virtual UINT32       _onPrepared( UINT32 expectNum ) ;
 
          virtual INT32        _onPush( const pmdEDUEvent &event,
+                                       UINT64 recvTimeUs,
                                        INT64 priority,
                                        const schedInfo *pInfo ) ;
 

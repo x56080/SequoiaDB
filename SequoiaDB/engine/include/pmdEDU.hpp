@@ -145,6 +145,11 @@ namespace engine
          virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) ;
          virtual void         resetInfo ( EDU_INFO_TYPE type ) ;
 
+         virtual void         setBlock( EDU_BLOCK_TYPE type, const CHAR *pBlockDesp ) ;
+         virtual void         unsetBlock() ;
+         virtual EDU_BLOCK_TYPE getBlockType() const ;
+         virtual BOOLEAN      isBlocked() const ;
+
          /*
             Buffer Manager
          */
@@ -193,6 +198,12 @@ namespace engine
          virtual INT64     contextPeek() ;
          virtual BOOLEAN   contextFind( INT64 contextID ) ;
          virtual UINT32    contextNum() ;
+
+         /*
+            Log config
+          */
+         virtual BOOLEAN   isLogTimeOn() const ;
+         virtual UINT32    getLogWriteMod() const ;
 
          INT64 getCurrentContextID() const
          {
@@ -310,23 +321,11 @@ namespace engine
             _dataExInfo.clear() ;
          }
 
-         /*
-            Log config
-          */
-         virtual BOOLEAN   isLogTimeOn() const ;
-         virtual UINT32    getLogWriteMod() const ;
-
          INT64             getCurAutoTransCtxID() const ;
          void              setCurAutoTransCtxID( INT64 contextID ) ;
          BOOLEAN           isTransRBPending() const ;
          void              setTransRBPending() ;
          void              clearTransRBPending() ;
-
-         void              setBlock( EDU_BLOCK_TYPE type,
-                                     const CHAR *pBlockDesp ) ;
-         void              unsetBlock() ;
-         EDU_BLOCK_TYPE    getBlockType() const ;
-         BOOLEAN           isBlocked() const ;
 
          BOOLEAN           isAffectGIndex() const ;
          void              setIsAffectGIndex( BOOLEAN isAffect ) ;

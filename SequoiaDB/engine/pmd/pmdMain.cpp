@@ -238,6 +238,11 @@ namespace engine
 
       krcb->getMonMgr()->setMonitorStatus( pmdGetOptionCB()->monGroupMask() ) ;
       krcb->getMonMgr()->setHistEventSize( pmdGetOptionCB()->monHistEvent() ) ;
+      monUpdateConf( pmdGetOptionCB()->slowQueryThreshold(),
+                     pmdGetOptionCB()->slowLatchThreshold(),
+                     pmdGetOptionCB()->slowLockThreshold(),
+                     pmdGetOptionCB()->monOptiLevel(),
+                     pmdGetOptionCB()->monHistExpiredTime() ) ;
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
 

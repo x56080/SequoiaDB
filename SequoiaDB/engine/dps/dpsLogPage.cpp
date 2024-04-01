@@ -42,7 +42,7 @@
 namespace engine
 {
    _dpsLogPage::_dpsLogPage()
-   :_mtx( MON_LATCH_DPSLOGPAGE_MTX )
+   :_mtx( MON_LATCH_DPSLOGPAGE_MTX, RW_SHARDWRITE )
    {
    //   _dpsLogPage( DPS_DEFAULT_PAGE_SIZE );
       // delete in destructor

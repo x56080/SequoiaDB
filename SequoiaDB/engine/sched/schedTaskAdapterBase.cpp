@@ -71,12 +71,13 @@ namespace engine
    BOOLEAN _schedTaskAdapterBase::pop( INT64 millisec,
                                        MsgHeader **pHeader,
                                        NET_HANDLE &handle,
-                                       pmdEDUMemTypes &memType )
+                                       pmdEDUMemTypes &memType,
+                                       UINT64 &recvTimeUs )
    {
       BOOLEAN bPop = FALSE ;
       pmdEDUEvent event ;
 
-      bPop = _queue.pop( event, millisec ) ;
+      bPop = _queue.pop( event, recvTimeUs, millisec ) ;
       if ( bPop )
       {
          _eventNum.dec() ;
@@ -99,7 +100,8 @@ namespace engine
 
    INT32 _schedTaskAdapterBase::push( const NET_HANDLE &handle,
                                       const _MsgHeader *header,
-                                      const schedInfo *pInfo )
+                                      const schedInfo *pInfo,
+                                      UINT64 recvTimeUs )
    {
       INT32 rc = SDB_OK ;
       CHAR *pBuff = NULL ;
@@ -127,7 +129,7 @@ namespace engine
 
       priority = (INT64)pmdGetDBTick() + pInfo->getNice() * 1000 ;
 
-      rc = _onPush( event, priority, pInfo ) ;
+      rc = _onPush( event, recvTimeUs, priority, pInfo ) ;
       if ( rc )
       {
          goto error ;
@@ -196,9 +198,9 @@ namespace engine
       _hardNum.swap( 0 ) ;
    }
 
-   void _schedTaskAdapterBase::_push2Que( const pmdEDUEvent &event )
+   void _schedTaskAdapterBase::_push2Que( const pmdEDUEvent &event, UINT64 recvTimeUs )
    {
-      _queue.push( event, 0 ) ;
+      _queue.push( event, 0, recvTimeUs ) ;
       _cacheNum.dec() ;
    }
 

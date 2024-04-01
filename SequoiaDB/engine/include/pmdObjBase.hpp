@@ -105,6 +105,7 @@ namespace engine
          _pmdObjBase()
          {
             _bProcess = FALSE ;
+            _lastMsgRecvTime = 0 ;
             _lastBegin = 0 ;
             _lastEnd = 0 ;
          }
@@ -112,6 +113,7 @@ namespace engine
 
          pmdEDUEvent*   getLastEvent() { return &_lastEvent ; }
 
+         UINT64         getLastMsgRecvTime() const { return _lastMsgRecvTime ; }
          UINT64         getLastBeginTime() const { return _lastBegin ; }
          UINT64         getLastEndTime() const { return _lastEnd ; }
          UINT64         getLastTimeSpan() const
@@ -133,7 +135,27 @@ namespace engine
 
       public:
          OSS_INLINE BOOLEAN isProcess () const { return _bProcess ; }
-         OSS_INLINE void    startDispatch() { _lastBegin = ossGetCurrentMicroseconds() ; }
+         OSS_INLINE void    startDispatch( UINT64 lastMsgRecvTime = 0,
+                                           UINT64 curTime = 0 )
+         {
+            if ( 0 != curTime )
+            {
+               _lastBegin = curTime ;
+            }
+            else
+            {
+               _lastBegin = ossGetCurrentMicroseconds() ;
+            }
+
+            if ( 0 != lastMsgRecvTime )
+            {
+               _lastMsgRecvTime = lastMsgRecvTime ;
+            }
+            else
+            {
+               _lastMsgRecvTime = _lastBegin ;
+            }
+         }
 
          OSS_INLINE INT32   dispatch ( pmdEDUEvent *event,
                                        UINT64 initBeginTime = 0,
@@ -192,6 +214,7 @@ namespace engine
       private:
          BOOLEAN           _bProcess ;
          pmdEDUEvent       _lastEvent ;
+         UINT64            _lastMsgRecvTime ;
          UINT64            _lastBegin ;
          UINT64            _lastEnd ;
 

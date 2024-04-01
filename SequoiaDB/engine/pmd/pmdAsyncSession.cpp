@@ -595,7 +595,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_PSHBUF, "_pmdAsyncSession::pushBuffer" )
-   INT32 _pmdAsyncSession::pushBuffer ( CHAR * pBuffer, UINT32 size )
+   INT32 _pmdAsyncSession::pushBuffer ( CHAR * pBuffer, UINT32 size, UINT64 recvTimeUs )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDSN_PSHBUF );
@@ -613,7 +613,7 @@ namespace engine
       _buffArray[_buffEnd].pBuffer = pBuffer ;
       _buffArray[_buffEnd].size    = size ;
       _buffArray[_buffEnd].useFlag = PMD_BUFF_ALLOC ;
-      _buffArray[_buffEnd].addTime = ossGetCurrentMicroseconds() ;
+      _buffArray[_buffEnd].addTime = recvTimeUs ;
 
       _buffEnd = _incBuffPos( _buffEnd ) ;
 
@@ -887,6 +887,7 @@ namespace engine
    INT32 _pmdAsycSessionMgr::dispatchMsg( const NET_HANDLE &handle,
                                           const MsgHeader *pMsg,
                                           pmdEDUMemTypes memType,
+                                          UINT64 recvTimeUs,
                                           BOOLEAN decPending,
                                           BOOLEAN *hasDispatched )
    {
@@ -1018,7 +1019,7 @@ namespace engine
       pSession->onRecieve ( handle, (_MsgHeader*)pMsg ) ;
 
       // push the mssage into session manager
-      rc = _pushMessage( pSession, pMsg, memType, handle ) ;
+      rc = _pushMessage( pSession, pMsg, memType, recvTimeUs, handle ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to push message[Len:%u, opCode:%d, "
@@ -1052,13 +1053,13 @@ namespace engine
    INT32 _pmdAsycSessionMgr::_pushMessage( pmdAsyncSession *pSession,
                                            const MsgHeader *header,
                                            pmdEDUMemTypes memType,
+                                           UINT64 recvTimeUs,
                                            const NET_HANDLE &handle )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( PMD_SESSMGR_PUSHMSG ) ;
       CHAR *pNewBuff          = NULL ;
-      UINT64 userData         = PMD_MAKE_SESSION_USERDATA( handle,
-                                           PMD_SESSION_MSG_INPOOL ) ;
+      UINT64 userData         = PMD_MAKE_SESSION_USERDATA( handle, PMD_SESSION_MSG_INPOOL ) ;
 
       if ( pSession->isClosed() )
       {
@@ -1104,7 +1105,7 @@ namespace engine
          // if memory is got from existing pool, let's assign to the session
          if ( pNewBuff )
          {
-            rc = pSession->pushBuffer ( pNewBuff, buffSize ) ;
+            rc = pSession->pushBuffer ( pNewBuff, buffSize, recvTimeUs ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG ( PDERROR, "push buffer failed in session[%s, rc:%d]",

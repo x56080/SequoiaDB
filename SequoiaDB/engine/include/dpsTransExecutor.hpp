@@ -510,6 +510,8 @@ namespace engine
 
          monMonitorManager      *_monMgr ;
          monClassLock           *_monLock ;
+         monClassLock            _localMonLock ;
+         BOOLEAN                 _delayRegObj ;
          BOOLEAN                 _lockWaitStarted ;
          ossTick                 _lockWaitStartTimer ;
          ossTickDelta            _lockWaitTime ;

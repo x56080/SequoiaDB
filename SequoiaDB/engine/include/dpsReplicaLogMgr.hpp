@@ -42,7 +42,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "dpsLogPage.hpp"
-#include "ossLatch.hpp"
+#include "monLatch.hpp"
 #include "dpsMergeBlock.hpp"
 #include "dpsTransCB.hpp"
 #include "ossAtomic.hpp"
@@ -88,8 +88,8 @@ namespace engine
       DPS_QUEUE_BUFFER           _queueBuffer ;
       _dpsLogFileMgr             _logger;
       _dpsLogPage                *_pages;
-      _ossSpinXLatch             _mtx ;
-      _ossSpinXLatch             _writeMutex ;
+      monSpinSLatch              _mtx ;
+      monSpinXLatch              _writeMutex ;
       _ossAtomic32               _idleSize;
       DPS_LSN                    _lsn;
       DPS_LSN                    _currentLsn;
@@ -126,9 +126,9 @@ namespace engine
       OSS_INLINE DPS_LSN expectLsn()
       {
          DPS_LSN lsn ;
-         _mtx.get();
+         _mtx.get_shared();
          lsn = _lsn;
-         _mtx.release();
+         _mtx.release_shared();
          return lsn;
       }
 
@@ -136,10 +136,10 @@ namespace engine
       {
          DPS_LSN lsn ;
 
-         if ( _mtx.try_get() )
+         if ( _mtx.try_get_shared() )
          {
             lsn = _lsn ;
-            _mtx.release();
+            _mtx.release_shared();
          }
 
          return lsn;
@@ -148,18 +148,18 @@ namespace engine
       OSS_INLINE DPS_LSN currentLsn()
       {
          DPS_LSN lsn ;
-         _mtx.get();
+         _mtx.get_shared();
          lsn = _currentLsn;
-         _mtx.release();
+         _mtx.release_shared();
          return lsn;
       }
 
       OSS_INLINE DPS_LSN commitLsn()
       {
          DPS_LSN lsn ;
-         _mtx.get() ;
+         _mtx.get_shared() ;
          lsn = _lastCommitted ;
-         _mtx.release() ;
+         _mtx.release_shared() ;
          return lsn ;
       }
 

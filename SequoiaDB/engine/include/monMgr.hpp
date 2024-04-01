@@ -45,14 +45,6 @@
 namespace engine
 {
 
-#define MON_GROUP_MASK_DEFAULT 0
-#define MON_GROUP_QUERY_BASIC  0x0000001
-#define MON_GROUP_QUERY_DETAIL 0x00000002
-#define MON_GROUP_LATCH_BASIC  0x00000004
-#define MON_GROUP_LATCH_DETAIL 0x00000008
-#define MON_GROUP_LOCK_BASIC   0x00000010
-#define MON_GROUP_LOCK_DETAIL  0x00000020
-
 /**
  * A monitor manager responsible for memory management and metric management
  * of the monitor classes
@@ -98,6 +90,23 @@ public:
 
       return ptr ;
    }
+
+   /**
+    * Register a new monitor object
+    *
+    * @param classType the type of monitor object getting registered
+    * @return T a pointer to the new monitor object
+    */
+   template<class T>
+   T* registerMonitorObject( const T& data )
+   {
+      //TODO need to verify T is a subclass of monClass
+      MON_CLASS_TYPE classType = T::getType() ;
+      T* ptr = _monClass[classType]->add<T>(data);
+
+      return ptr ;
+   }
+
    /**
     * Remove a monitor object.
     *
@@ -118,46 +127,13 @@ public:
     *
     * @param mask the monitor mask
     */
-   void setMonitorStatus( UINT64 mask )
+   void setMonitorStatus( UINT32 mask )
    {
-      if ( mask & MON_GROUP_QUERY_DETAIL )
-      {
-         setMonitorLvl( MON_CLASS_QUERY, MON_DATA_LVL_DETAIL ) ;
-      }
-      else if ( mask & MON_GROUP_QUERY_BASIC )
-      {
-         setMonitorLvl( MON_CLASS_QUERY, MON_DATA_LVL_BASIC ) ;
-      }
-      else
-      {
-         setMonitorLvl( MON_CLASS_QUERY, MON_DATA_LVL_NONE ) ;
-      }
+      monUpdateGroupMask( mask ) ;
 
-      if ( mask & MON_GROUP_LATCH_DETAIL )
-      {
-         setMonitorLvl( MON_CLASS_LATCH, MON_DATA_LVL_DETAIL ) ;
-      }
-      else if ( mask & MON_GROUP_LATCH_BASIC )
-      {
-         setMonitorLvl( MON_CLASS_LATCH, MON_DATA_LVL_BASIC ) ;
-      }
-      else
-      {
-         setMonitorLvl( MON_CLASS_LATCH, MON_DATA_LVL_NONE ) ;
-      }
-
-      if ( mask & MON_GROUP_LOCK_DETAIL )
-      {
-         setMonitorLvl( MON_CLASS_LOCK, MON_DATA_LVL_DETAIL ) ;
-      }
-      else if ( mask & MON_GROUP_LOCK_BASIC )
-      {
-         setMonitorLvl( MON_CLASS_LOCK, MON_DATA_LVL_BASIC ) ;
-      }
-      else
-      {
-         setMonitorLvl( MON_CLASS_LOCK, MON_DATA_LVL_NONE ) ;
-      }
+      setMonitorLvl( MON_CLASS_QUERY, monGroupMaskToLevle( mask, MON_CLASS_QUERY ) ) ;
+      setMonitorLvl( MON_CLASS_LATCH, monGroupMaskToLevle( mask, MON_CLASS_LATCH ) ) ;
+      setMonitorLvl( MON_CLASS_LOCK, monGroupMaskToLevle( mask, MON_CLASS_LOCK ) ) ;
    }
 
    /**
@@ -176,9 +152,14 @@ public:
       return _monClass[classType]->getCollectionLvl() ;
    }
 
-   BOOLEAN isOperational( MON_CLASS_TYPE classType )
+   BOOLEAN isOperational( MON_CLASS_TYPE classType ) const
    {
       return _monClass[classType]->isOperational() ;
+   }
+
+   BOOLEAN isCurOperational( MON_CLASS_TYPE classType ) const
+   {
+      return _monClass[classType]->isCurOperational() ;
    }
 
    /**

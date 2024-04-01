@@ -854,6 +854,7 @@ namespace engine
             if ( monQuery && pContext->getPlanRuntime() )
             {
                monQuery->accessPlanID = pContext->getPlanRuntime()->getAccessPlanID() ;
+               monQuery->hashCode = pContext->getPlanRuntime()->getHashCode() ;
             }
          }
          catch ( std::exception &e )

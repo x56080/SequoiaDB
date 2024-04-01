@@ -93,17 +93,18 @@ namespace engine
    {
       UINT32 count = 0 ;
       pmdEDUEvent event ;
+      UINT64 recvTimeUs = 0 ;
 
       while( count < expectNum )
       {
-         if ( _pTaskQue->pop( event, SCHED_PREPARE_POP_TIMEWAIT ) )
+         if ( _pTaskQue->pop( event, recvTimeUs, SCHED_PREPARE_POP_TIMEWAIT ) )
          {
             /// control msg not calc count
             if ( !_isControlMsg( event ) )
             {
                ++count ;
             }
-            _push2Que( event ) ;
+            _push2Que( event, recvTimeUs ) ;
          }
          else
          {
@@ -115,10 +116,11 @@ namespace engine
    }
 
    INT32 _schedFIFOAdapter::_onPush( const pmdEDUEvent &event,
+                                     UINT64 recvTimeUs,
                                      INT64 priority,
                                      const schedInfo *pInfo )
    {
-      _pTaskQue->push( event, priority ) ;
+      _pTaskQue->push( event, priority, recvTimeUs ) ;
       return SDB_OK ;
    }
 
@@ -154,6 +156,7 @@ namespace engine
       schedTaskContanierPtr ptr ;
       schedTaskContanierPtr savePtr ;
       pmdEDUEvent event ;
+      UINT64 recvTimeUs = 0 ;
 
       _pMgr->resumeIterator() ;
 
@@ -166,7 +169,7 @@ namespace engine
 
          do
          {
-            if ( ptr->pop( event, SCHED_PREPARE_POP_TIMEWAIT ) )
+            if ( ptr->pop( event, recvTimeUs, SCHED_PREPARE_POP_TIMEWAIT ) )
             {
                /// control msg not cal count
                if ( !_isControlMsg( event ) )
@@ -174,7 +177,7 @@ namespace engine
                   ++popCount ;
                   ++count ;
                }
-               _push2Que( event ) ;
+               _push2Que( event, recvTimeUs ) ;
             }
             else
             {
@@ -195,6 +198,7 @@ namespace engine
    }
 
    INT32 _schedContainerAdapter::_onPush( const pmdEDUEvent &event,
+                                          UINT64 recvTimeUs,
                                           INT64 priority,
                                           const schedInfo *pInfo )
    {
@@ -204,7 +208,7 @@ namespace engine
       /// get container
       ptr = _pMgr->getContanier( containerName, TRUE ) ;
 
-      ptr->push( event, priority ) ;
+      ptr->push( event, priority, recvTimeUs ) ;
 
       ptr->holdOut() ;
 

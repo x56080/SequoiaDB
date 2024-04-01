@@ -68,7 +68,10 @@ namespace engine
    static UINT32 DPS_SUB_BIT = 0 ;
 
    _dpsReplicaLogMgr::_dpsReplicaLogMgr()
-   :_logger(this), _pages(NULL), _idleSize(0), _totalSize(0),
+   :_logger(this), _pages(NULL),
+    _mtx( MON_LATCH_DPSREPLICALOGMGR_MTX ),
+    _writeMutex( MON_LATCH_DPSREPLICALOGMGR_WRITEMUTEX ),
+    _idleSize(0), _totalSize(0),
     _work(0), _pageNum(0), _queSize(0)
    {
       _begin = 0 ;
@@ -367,6 +370,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_PREPAGES );
+      BOOLEAN hasBlock = FALSE ;
       info.getDummyBlock().clear() ;
       dpsMergeBlock &block = info.getMergeBlock () ;
       block.pageMeta().clear() ;
@@ -394,10 +398,22 @@ namespace engine
          checkDummySize = _generateDummySize( block, head, logFileSz ) ;
          while ( _idleSize.peek() < head._length + checkDummySize )
          {
+            if ( !hasBlock && info.getEDUCB() )
+            {
+               info.getEDUCB()->setBlock( EDU_BLOCK_NO_LOGSPACE, "No log space" ) ;
+               hasBlock = TRUE ;
+            }
+
             PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
                      "%d bytes dummmy, currently left %d bytes", head._length,
                      checkDummySize, _idleSize.peek() ) ;
             _allocateEvent.wait ( OSS_ONE_SEC ) ;
+         }
+
+         if ( hasBlock )
+         {
+            info.getEDUCB()->unsetBlock() ;
+            hasBlock = FALSE ;
          }
          scopedMtx.lock() ;
       }
@@ -586,7 +602,7 @@ namespace engine
    DPS_LSN _dpsReplicaLogMgr::getStartLsn ( BOOLEAN logBufOnly )
    {
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_GETSTARTLSN ) ;
-      ossScopedLock lock( &_mtx ) ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
 
       DPS_LSN lsn ;
       DPS_LSN memBeginLsn = _getStartLsn() ;
@@ -620,7 +636,7 @@ namespace engine
                                          DPS_LSN *committed )
    {
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_GETLSNWIN );
-      ossScopedLock lock( &_mtx ) ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       memBeginLsn = _getStartLsn() ;
       fileBeginLsn = _logger.getStartLSN () ;
       if ( fileBeginLsn.invalid() || fileBeginLsn.offset > memBeginLsn.offset )
@@ -894,7 +910,7 @@ namespace engine
       offset  = lsn.offset % DPS_DEFAULT_PAGE_SIZE ;
 
       // lock metadata
-      ossScopedLock scopedMtx( &_mtx ) ;
+      ossScopedLock scopedMtx( &_mtx, SHARED ) ;
 
       beginLSN = _getStartLsn() ;
       // if there's no LSN we can find at all, let's return

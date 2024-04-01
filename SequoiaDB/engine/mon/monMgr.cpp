@@ -66,6 +66,8 @@ _monMonitorManager::~_monMonitorManager()
 
 void _monMonitorManager::relocate()
 {
+   UINT64 curTime = ossGetCurrentMilliseconds() ;
+
    for ( INT32 i = 0; i < MON_CLASS_MAX; i++ )
    {
       monClassContainer *curContainer = _monClass[i] ;
@@ -76,10 +78,16 @@ void _monMonitorManager::relocate()
          curContainer->_processPendingObj() ;
       }
 
-      if ( !curContainer->isOperational() ||
-           curContainer->getArchivedListLen() > curContainer->getMaxArchivedListLen() )
+      if ( curContainer->isOperational() )
       {
-         curContainer->_removeArchivedObj() ;
+         curContainer->_resetLastNonOperationTick() ;
+      }
+
+      if ( !curContainer->isOperational() ||
+           curContainer->getArchivedListLen() > curContainer->getMaxArchivedListLen() ||
+           curContainer->_hasExpired( curTime ) )
+      {
+         curContainer->_removeArchivedObj( curTime ) ;
       }
    }
 }

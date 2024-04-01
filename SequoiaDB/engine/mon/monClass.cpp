@@ -44,12 +44,6 @@
 namespace engine
 {
 
-// microsecond
-#define MON_LATCH_ARCHIVE_THRESHOLD    ( 1000 )
-
-// microsecond
-#define MON_LOCK_ARCHIVE_THRESHOLD     ( 8000 )
-
 // ms
 #define MON_ARCHIVE_KEEPTIME_WHEN_OFF  ( 300000 )
 
@@ -79,13 +73,20 @@ UINT32 monGetTID()
 /**
  * _monClass constructor
  */
-_monClass::_monClass()
+_monClass::_monClass( const ossTick *pStartTick )
    : _status(MON_CLASS_STATUS_NORMAL),
      _type(MON_CLASS_MAX),
      dataLvl( MON_DATA_LVL_NONE ),
      _pPendingDelete( NULL )
 {
-   _createTSTick.sample() ;
+   if ( pStartTick && (BOOLEAN)( *pStartTick ) )
+   {
+      _createTSTick = *pStartTick ;
+   }
+   else
+   {
+      _createTSTick.sample() ;
+   }
 }
 
 _monClass::~_monClass() {}
@@ -126,6 +127,21 @@ _monClassContainer::_monClassContainer ( MON_CLASS_TYPE type )
    _doArchive = monClassArchiveFP[(INT32)type] ;
    _minOperationalLvl = monClassCreateCB[(INT32)type] ;
    _lastNonOperationTick = 0 ;
+   _earliestTime = ossGetCurrentMilliseconds() ;
+}
+
+BOOLEAN _monClassContainer::_hasExpired( UINT64 curTime )
+{
+   if ( curTime < _earliestTime )
+   {
+      _earliestTime = curTime ;
+   }
+
+   if ( ( curTime - _earliestTime ) / 60000 >= monGetHistExpiredTime() )
+   {
+      return TRUE ;
+   }
+   return FALSE ;
 }
 
 /**
@@ -160,14 +176,17 @@ void _monClassContainer::remove ( monClass *obj )
  * The archived list is structured as a MRU list with the tail being most
  * recent used. So elements are removed from the head which are the oldest
  */
-void _monClassContainer::_removeArchivedObj()
+void _monClassContainer::_removeArchivedObj( UINT64 curTime )
 {
+   BOOLEAN checkExpired = _hasExpired( curTime ) ;
    SINT32 numToDelete = 0 ;
 
    UINT32 archivedListSize = _archivedList.size() ;
 
    if ( !isOperational() )
    {
+      checkExpired = FALSE ;
+
       if ( 0 == _lastNonOperationTick )
       {
          _lastNonOperationTick = pmdGetDBTick() ;
@@ -188,18 +207,48 @@ void _monClassContainer::_removeArchivedObj()
       numToDelete = archivedListSize - _archivedListMaxLen ;
    }
 
-   if ( numToDelete > 0 )
+   if ( numToDelete > 0 || checkExpired )
    {
+      UINT64 tmpEaliestTime = _earliestTime ;
+      UINT64 endTime = 0 ;
+
       getArchiveLatch( EXCLUSIVE ) ;
       MONCLASS_LIST::iterator it = _archivedList.begin() ;
 
-      while ( numToDelete > 0 && it != _archivedList.end() )
+      while ( ( numToDelete > 0 || checkExpired ) && it != _archivedList.end() )
       {
-         monClass &monClass = *it ;
+         monClass &obj = *it ;
+
+         endTime = obj.getEndTime() ;
+         if ( endTime < tmpEaliestTime )
+         {
+            endTime = tmpEaliestTime ;
+         }
+         _earliestTime = endTime ;
+
+         if ( numToDelete <= 0 && checkExpired )
+         {
+            UINT32 timeSpan = 0 ; /// min
+
+            if ( curTime > endTime )
+            {
+               timeSpan = ( curTime - endTime ) / 60000 ;
+            }
+            else if ( endTime >= curTime + MON_ARCHIVE_KEEPTIME_WHEN_OFF )
+            {
+               timeSpan = ( endTime - curTime ) / 60000 ;
+            }
+
+            if ( timeSpan < monGetHistExpiredTime() )
+            {
+               checkExpired = FALSE ;
+               break ;
+            }
+         }
 
          it = _archivedList.erase(it) ;
 
-         SDB_OSS_DEL &monClass ;
+         SDB_OSS_DEL &obj ;
 
          numToDelete-- ;
       }
@@ -250,6 +299,115 @@ BOOLEAN _monClassContainer::isEmpty(MON_CLASS_LIST_TYPE listType)
           !this->getActiveListLen() : !this->getArchivedListLen() ;
 }
 
+MON_DATA_LEVEL monGroupMaskToLevle( UINT32 groupMask, MON_CLASS_TYPE classType )
+{
+   MON_DATA_LEVEL monLevel = MON_DATA_LVL_NONE ;
+
+   switch ( classType )
+   {
+      case MON_CLASS_QUERY :
+         if ( groupMask & MON_GROUP_QUERY_DETAIL )
+         {
+            monLevel = MON_DATA_LVL_DETAIL ;
+         }
+         else if ( groupMask & MON_GROUP_QUERY_BASIC )
+         {
+            monLevel = MON_DATA_LVL_BASIC ;
+         }
+         break ;
+      case MON_CLASS_LATCH :
+         if ( groupMask & MON_GROUP_LATCH_DETAIL )
+         {
+            monLevel = MON_DATA_LVL_DETAIL ;
+         }
+         else if ( groupMask & MON_GROUP_LATCH_BASIC )
+         {
+            monLevel = MON_DATA_LVL_BASIC ;
+         }
+         break ;
+      case MON_CLASS_LOCK :
+         if ( groupMask & MON_GROUP_LOCK_DETAIL )
+         {
+            monLevel = MON_DATA_LVL_DETAIL ;
+         }
+         else if ( groupMask & MON_GROUP_LOCK_BASIC )
+         {
+            monLevel = MON_DATA_LVL_BASIC ;
+         }
+         break ;
+      default :
+         break ;
+   }
+
+   return monLevel ;
+}
+
+static UINT32& _monGetCurGroupMask()
+{
+   static OSS_THREAD_LOCAL UINT32 _curGroupMask = 0 ;
+   return _curGroupMask ;
+}
+
+static UINT32& _monGetGroupMask()
+{
+   static UINT32 s_groupMask = 0 ;
+   return s_groupMask ;
+}
+
+static UINT32& _monGetSlowQueryThreshold()
+{
+   static UINT32 s_lowQuery = 0 ;
+   return s_lowQuery ;
+}
+
+static UINT32& _monGetSlowLatchThreshold()
+{
+   static UINT32 s_lowLatch = 0 ;
+   return s_lowLatch ;
+}
+
+static UINT32& _monGetSlowLockThreshold()
+{
+   static UINT32 s_lowLock = 0 ;
+   return s_lowLock ;
+}
+
+static UINT32& _monGetOptiLevel()
+{
+   static UINT32 s_optiLevel = 0 ;
+   return s_optiLevel ;
+}
+
+static UINT32& _monGetHistExpiredTime()
+{
+   static UINT32 s_histExpiredTime = 0 ;
+   return s_histExpiredTime ;
+}
+
+UINT32 monGetGroupMask() { return _monGetGroupMask() ; }
+void   monUpdateGroupMask( UINT32 groupMask ) { _monGetGroupMask() = groupMask ; }
+
+UINT32 monGetCurGroupMask() { return _monGetCurGroupMask() ; }
+void   monUpdateCurGroupMask( UINT32 groupMask ) { _monGetCurGroupMask() = groupMask ; }
+
+UINT32 monGetOptiLevel() { return _monGetOptiLevel() ; }
+UINT32 monGetSlowLatchThreshold() { return _monGetSlowLatchThreshold() ; }
+UINT32 monGetSlowLockThreshold() { return _monGetSlowLockThreshold() ; }
+UINT32 monGetSlowQueryThreshold() { return _monGetSlowQueryThreshold() ; }
+UINT32 monGetHistExpiredTime() { return _monGetHistExpiredTime() ; }
+
+void   monUpdateConf( UINT32 queryThreshold,
+                      UINT32 latchThreshold,
+                      UINT32 lockThreshold,
+                      UINT32 optiLevel,
+                      UINT32 histExpiredTime )
+{
+   _monGetSlowQueryThreshold() = queryThreshold ;
+   _monGetSlowLatchThreshold() = latchThreshold ;
+   _monGetSlowLockThreshold()  = lockThreshold ;
+   _monGetOptiLevel()          = optiLevel ;
+   _monGetHistExpiredTime()    = histExpiredTime ;
+}
 
 /**
  * archive query based on response time
@@ -257,10 +415,13 @@ BOOLEAN _monClassContainer::isEmpty(MON_CLASS_LIST_TYPE listType)
 BOOLEAN monArchiveQuery ( monClass *obj )
 {
    monClassQuery *monQuery = (monClassQuery*)obj ;
-   // in microsecond
-   UINT64 responseTime = monQuery->responseTime.toUINT64() ;
+   // in ms
+   UINT64 responseTime = monQuery->responseTime.toUINT64() / 1000 ;
 
-   if ((responseTime/1000) >= pmdGetKRCB()->getOptionCB()->slowQueryThreshold())
+   if ( ( monQuery->isCommand() &&
+          responseTime >= pmdGetKRCB()->getOptionCB()->slowCmdThreshold() ) ||
+        ( !monQuery->isCommand() &&
+          responseTime >= monGetSlowQueryThreshold() ) )
    {
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       if ( cb )
@@ -282,10 +443,10 @@ BOOLEAN monArchiveQuery ( monClass *obj )
 BOOLEAN monArchiveLatch ( monClass *obj )
 {
    monClassLatch *monLatch = (monClassLatch*)obj ;
-   // in microsecond
-   UINT64 waitTime = monLatch->waitTime.toUINT64() ;;
+   // in ms
+   UINT64 waitTime = monLatch->waitTime.toUINT64() / 1000 ;
 
-   if ( waitTime > MON_LATCH_ARCHIVE_THRESHOLD )
+   if ( waitTime >= monGetSlowLatchThreshold() )
    {
       return TRUE ;
    }
@@ -301,10 +462,10 @@ BOOLEAN monArchiveLatch ( monClass *obj )
 BOOLEAN monArchiveLock ( monClass *obj )
 {
    monClassLock *monLock = (monClassLock*)obj ;
-   // in microsecond
-   UINT64 waitTime = monLock->waitTime.toUINT64() ;
+   // in ms
+   UINT64 waitTime = monLock->waitTime.toUINT64() / 1000 ;
 
-   if ( waitTime > MON_LOCK_ARCHIVE_THRESHOLD )
+   if ( waitTime >= monGetSlowLockThreshold() )
    {
       return TRUE ;
    }

@@ -56,6 +56,9 @@ namespace engine
       _pmdSessionBase() ;
       virtual ~_pmdSessionBase() ;
 
+      void     setFirstMsgTime( UINT64 time ) { _firstMsgTime = time ; }
+      UINT64   getFirstMsgTime() const { return _firstMsgTime ; }
+
    public:
       virtual _pmdEDUCB*      eduCB () const = 0 ;
       virtual EDUID           eduID () const = 0 ;
@@ -87,6 +90,7 @@ namespace engine
 
    protected:
       _pmdProcessorBase *_processor ;
+      UINT64            _firstMsgTime ;
    } ;
 
    typedef _pmdSessionBase pmdSessionBase ;

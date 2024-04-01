@@ -372,7 +372,7 @@ namespace engine
    class _dmsStorageBase : public _ossMmapFile, public IDataSyncBase
    {
       friend class _dmsExtendSegmentJob ;
-      typedef boost::shared_ptr<ossSpinSLatch>     sharedMutexPtr ;
+      typedef boost::shared_ptr<ossRWMutex>        sharedMutexPtr ;
 
       public:
          _dmsStorageBase( const CHAR *pSuFileName,

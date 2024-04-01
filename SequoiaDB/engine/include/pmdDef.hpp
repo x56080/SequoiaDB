@@ -145,6 +145,20 @@ namespace engine
    typedef class _pmdEDUEvent pmdEDUEvent ;
 
    /*
+      _pmdAgentParam define
+   */
+   class _pmdAgentParam : public SDBObject
+   {
+   public:
+      _pmdAgentParam() : pSocket( NULL ), startTime( 0 )
+      {}
+
+      void                *pSocket ;
+      UINT64               startTime ;
+   };
+   typedef _pmdAgentParam pmdAgentParam ;
+
+   /*
       _pmdEDUEventQueue
     */
    #define PMD_EDU_QUEUE_CAPACITY ( 5 )
@@ -311,7 +325,6 @@ namespace engine
    /*
       EDU_BLOCK_TYPE define
    */
-   typedef UINT32 EDU_BLOCK_TYPE ;
 
    #define EDU_BLOCK_NONE           ( 0x00000000 )
    #define EDU_BLOCK_FREEZING_WND   ( 0x00000001 )
@@ -325,6 +338,7 @@ namespace engine
    #define EDU_BLOCK_FT             ( 0x00000100 )
    #define EDU_BLOCK_RENAMECHK      ( 0x00000200 )
    #define EDU_BLOCK_NODEFAULT      ( 0x00000400 )
+   #define EDU_BLOCK_NO_LOGSPACE    ( 0x00000800 )
    #define EDU_BLOCK_ALL            ( 0xFFFFFFFF )
 
    #define EDU_BLOCK_FREEZING_WND_STR        "FreezingWindow"
@@ -338,6 +352,7 @@ namespace engine
    #define EDU_BLOCK_FT_STR                  "WaitFusing"
    #define EDU_BLOCK_RENAMECHK_STR           "RenameCheck"
    #define EDU_BLOCK_NODEFAULT_STR           "NodeFault"
+   #define EDU_BLOCK_NO_LOGSPACE_STR         "NoLogSpace"
 
    /*
       SDB_TYPE_STR DEFINE

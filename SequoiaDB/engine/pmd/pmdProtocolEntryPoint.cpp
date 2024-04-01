@@ -59,6 +59,7 @@ namespace engine
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr * eduMgr = cb->getEDUMgr() ;
       EDUID agentEDU = PMD_INVALID_EDUID ;
+      pmdEDUParam *pAgentParam = NULL ;
 
       pmdEDUParam *param = ( pmdEDUParam * )pData ;
       ossSocket *pListerner = (ossSocket *)(param->pSocket) ;
@@ -78,6 +79,13 @@ namespace engine
       while ( ! cb->isDisconnected() )
       {
          SOCKET s ;
+
+         if ( pAgentParam )
+         {
+            SDB_OSS_DEL pAgentParam ;
+            pAgentParam = NULL ;
+         }
+
          // timeout in 10ms, so we won't hold global bind latch for too long
          // and it's only held at first time into the loop
          rc = pListerner->accept ( &s, NULL, NULL ) ;
@@ -110,18 +118,24 @@ namespace engine
 
          cb->incEventCount() ;
 
-         pmdEDUParam *pParam = SDB_OSS_NEW pmdEDUParam() ;
+         pAgentParam = SDB_OSS_NEW pmdEDUParam() ;
+         if ( !pAgentParam )
+         {
+            PD_LOG( PDERROR, "Allocate memory failed" ) ;
+            ossSocket newsock ( &s ) ;
+            newsock.close () ;
+            continue ;
+         }
+
          // assign the socket to the pProtocolData
-         *(( SOCKET *)&pParam->pSocket) = s ;
-         pParam->protocol = protocol ;
+         *(( SOCKET *)&pAgentParam->pSocket) = s ;
+         pAgentParam->protocol = protocol ;
+         pAgentParam->startTime = ossGetCurrentMicroseconds() ;
 
          if ( !krcb->isActive() )
          {
             ossSocket newsock ( &s ) ;
             newsock.close () ;
-
-            SDB_OSS_DEL pParam ;
-            pParam = NULL ;
             continue ;
          }
 
@@ -136,7 +150,7 @@ namespace engine
 
          // now we have a tcp socket for a new connection, let's get an 
          // agent, Note the new new socket sent passing to startEDU
-         rc = eduMgr->startEDU ( EDU_TYPE_FAPAGENT, (void *)pParam,
+         rc = eduMgr->startEDU ( EDU_TYPE_FAPAGENT, (void *)pAgentParam,
                                  &agentEDU ) ;
          if ( rc )
          {
@@ -147,10 +161,9 @@ namespace engine
             ossSocket newsock ( &s ) ;
             newsock.close () ;
             mondbcb->connDec();
-            SDB_OSS_DEL pParam ;
-            pParam = NULL ;
             continue ;
          }
+         pAgentParam = NULL ;
          // Now EDU is started and posted with the new socket, let's
          // get back to wait for another request
       } //while ( ! cb->isDisconnected() )
@@ -161,9 +174,13 @@ namespace engine
       }
 
    done :
+      if ( pAgentParam )
+      {
+         SDB_OSS_DEL pAgentParam ;
+         pAgentParam = NULL ;
+      }
       PD_TRACE_EXITRC ( SDB_PMDTCPLSTNENTPNT, rc );
       return rc;
-
    error :
       switch ( rc )
       {
@@ -190,6 +207,7 @@ namespace engine
       pmdEDUParam *pParam = ( pmdEDUParam * )arg ;
       SOCKET s = *((SOCKET *)&pParam->pSocket) ;
       IPmdAccessProtocol* protocol = pParam->protocol ;
+      UINT64 startTime = pParam->startTime ;
       // delete pmdEDUParam object
       SDB_OSS_DEL pParam ;
       pParam = NULL ;
@@ -202,6 +220,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+      session->setFirstMsgTime( startTime ) ;
       session->attach( cb ) ;
 
       // Add try-catch to ensure the processor can be detached successfully 

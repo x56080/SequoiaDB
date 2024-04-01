@@ -45,7 +45,7 @@
 namespace engine
 {
 
-#define RW_EXCLUSIVEWRITE        0X0000
+#define RW_EXCLUSIVEWRITE        0x0000
 #define RW_SHARDWRITE            0x0001
 
    class _ossRWMutexBase : public SDBObject

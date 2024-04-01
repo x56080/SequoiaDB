@@ -546,6 +546,8 @@ namespace engine
             return EDU_BLOCK_RENAMECHK_STR ;
          case EDU_BLOCK_NODEFAULT :
             return EDU_BLOCK_NODEFAULT_STR ;
+         case EDU_BLOCK_NO_LOGSPACE :
+            return EDU_BLOCK_NO_LOGSPACE_STR ;
          default :
             return "" ;
       }

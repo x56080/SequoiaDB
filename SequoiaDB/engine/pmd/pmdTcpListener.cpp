@@ -59,6 +59,7 @@ namespace engine
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr * eduMgr = cb->getEDUMgr() ;
       EDUID agentEDU = PMD_INVALID_EDUID ;
+      pmdAgentParam *pAgentParam = NULL ;
       ossSocket *pListerner = ( ossSocket* )pData ;
 
       // let's set the state of EDU to RUNNING
@@ -71,6 +72,13 @@ namespace engine
       while ( !cb->isDisconnected() && !pListerner->isClosed() )
       {
          SOCKET s ;
+
+         if ( pAgentParam )
+         {
+            SDB_OSS_DEL pAgentParam ;
+            pAgentParam = NULL ;
+         }
+
          // timeout in 10ms, so we won't hold global bind latch for too long
          // and it's only held at first time into the loop
          rc = pListerner->accept ( &s, NULL, NULL ) ;
@@ -130,9 +138,18 @@ namespace engine
 
          cb->incEventCount() ;
 
+         pAgentParam = SDB_OSS_NEW pmdAgentParam() ;
+         if ( !pAgentParam )
+         {
+            PD_LOG( PDERROR, "Allocate memory failed" ) ;
+            ossSocket newsock ( &s ) ;
+            newsock.close () ;
+            continue ;
+         }
+
          // assign the socket to the arg
-         void *pData = NULL ;
-         *((SOCKET *) &pData) = s ;
+         *(( SOCKET *)&pAgentParam->pSocket) = s ;
+         pAgentParam->startTime = ossGetCurrentMicroseconds() ;
 
          if ( !krcb->isActive() )
          {
@@ -152,7 +169,7 @@ namespace engine
 
          // now we have a tcp socket for a new connection, let's get an 
          // agent, Note the new new socket sent passing to startEDU
-         rc = eduMgr->startEDU ( EDU_TYPE_AGENT, pData, &agentEDU ) ;
+         rc = eduMgr->startEDU ( EDU_TYPE_AGENT, pAgentParam, &agentEDU ) ;
          if ( rc )
          {
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),
@@ -164,6 +181,7 @@ namespace engine
             mondbcb->connDec();
             continue ;
          }
+         pAgentParam = NULL ;
          // Now EDU is started and posted with the new socket, let's
          // get back to wait for another request
       } //while ( ! cb->isDisconnected() )
@@ -174,9 +192,13 @@ namespace engine
       }
 
    done :
+      if ( pAgentParam )
+      {
+         SDB_OSS_DEL pAgentParam ;
+         pAgentParam = NULL ;
+      }
       PD_TRACE_EXITRC ( SDB_PMDTCPLSTNENTPNT, rc );
       return rc;
-
    error :
       switch ( rc )
       {

@@ -43,7 +43,7 @@ namespace engine
    /*
       _pmdSessionBase implement
    */
-   _pmdSessionBase::_pmdSessionBase() : _processor( NULL )
+   _pmdSessionBase::_pmdSessionBase() : _processor( NULL ), _firstMsgTime( 0 )
    {
    }
 

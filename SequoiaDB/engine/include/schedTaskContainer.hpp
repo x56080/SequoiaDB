@@ -62,8 +62,8 @@ namespace engine
 
       public:
 
-         void     push( const pmdEDUEvent &event, INT64 userData ) ;
-         BOOLEAN  pop( pmdEDUEvent &event,INT64 millisec ) ;
+         void     push( const pmdEDUEvent &event, INT64 userData, UINT64 time ) ;
+         BOOLEAN  pop( pmdEDUEvent &event, UINT64 &time, INT64 millisec ) ;
 
          void     setNice( INT32 nice ) ;
 

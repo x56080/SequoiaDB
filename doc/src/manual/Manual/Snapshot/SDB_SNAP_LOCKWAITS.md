@@ -14,7 +14,9 @@ SDB_SNAP_LOCKWAITS
 | 字段名                 | 类型     | 描述                                                           |
 | ---------------------- | -------- | -------------------------------------------------------------- |
 | NodeName               | string   | 锁等待发生的所在节点名                                         |
+| QueryID                | string   | 查询 ID， 用于关联查询操作                                     |
 | WaiterTID              | int32    | 等待锁的线程 ID                                                |
+| WaiterEDU              | string   | 等待锁的线程类型                                               |
 | RequiredMode           | string   | 上述线程要求获得的锁模式，分为 S 共享模式和 X 排他模式两种     |
 | CSID                   | int32    | 被等待锁对象所在集合空间的 ID                                  |
 | CLID                   | int32    | 被等待锁对象所在集合的 ID                                      |
@@ -23,6 +25,7 @@ SDB_SNAP_LOCKWAITS
 | StartTimestamp         | string   | 本次等待开始时间                                               |
 | TransLockWaitTime      | int32    | 锁等待耗费时间，单位为毫秒                                     |
 | LatestOwner            | int32    | 最近获得该锁的线程 ID                                          |
+| LatestOwnerEDU         | string   | 最近获得该锁的线程类型                                         |
 | LatestOwnerMode        | string   | 最近获得该锁的线程所获得的模式，分为 S 共享模式和 X 排他模式两种 |
 | NumOwner               | int32    | 该等待事件发生时被等待闩锁总共的持有者数量                     |
 
@@ -40,6 +43,7 @@ SDB_SNAP_LOCKWAITS
    {
      "NodeName": "sdbserver:11870",
      "WaiterTID": 23853,
+     "WaiterEDU": "ShardAgent",
      "RequiredMode": "X",
      "CSID": 4,
      "CLID": 7,
@@ -48,6 +52,7 @@ SDB_SNAP_LOCKWAITS
      "StartTimestamp": "2020-06-13-02.52.38.470191",
      "TransLockWaitTime": 18.815,
      "LatestOwner": 23532,
+     "LatestOwnerEDU": "ShardAgent",
      "LatestOwnerMode": "X",
      "NumOwner": 1
    }
@@ -65,6 +70,7 @@ SDB_SNAP_LOCKWAITS
    {
      "NodeName": "sdbserver:11870",
      "WaiterTID": 13602,
+     "WaiterEDU": "ShardAgent",
      "RequiredMode": "X",
      "CSID": 3,
      "CLID": 7,
@@ -73,6 +79,7 @@ SDB_SNAP_LOCKWAITS
      "StartTimestamp": "2020-06-12-04.04.01.300151",
      "TransLockWaitTime": 14.05,
      "LatestOwner": 10307,
+     "LatestOwnerEDU": "ShardAgent",
      "LatestOwnerMode": "X",
      "NumOwner": 1
    }

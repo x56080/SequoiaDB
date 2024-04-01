@@ -828,7 +828,7 @@ namespace engine
       UINT64 currentOffset   = 0 ;
       UINT32 mode = OSS_READWRITE|OSS_EXCLUSIVE ;
       UINT64 rightSize = 0 ;
-      ossSpinSLatch *pExtendLatch = NULL ;
+      ossRWMutex *pExtendLatch = NULL ;
 
       SDB_ASSERT( pPath, "path can't be NULL" ) ;
 
@@ -841,7 +841,7 @@ namespace engine
       _pStatMgr = pStatMgr ;
 
       /// init lock
-      pExtendLatch = SDB_OSS_NEW ossSpinSLatch() ;
+      pExtendLatch = SDB_OSS_NEW ossRWMutex() ;
       if ( !pExtendLatch )
       {
          rc = SDB_OOM ;
@@ -1158,8 +1158,8 @@ namespace engine
       // be sure the extend job has quit
       if ( _segmentLatch.get() )
       {
-         ossLatch( _segmentLatch.get(), SHARED ) ;
-         ossUnlatch( _segmentLatch.get(), SHARED );
+         _segmentLatch->lock_r() ;
+         _segmentLatch->release_r() ;
       }
 
       // unregister
@@ -1712,7 +1712,7 @@ namespace engine
       INT32 rc = _extendSegments( 1 ) ;
       // release lock
       sharedMutexPtr tmpPtr( _segmentLatch ) ;
-      ossUnlatch( tmpPtr.get(), EXCLUSIVE ) ;
+      tmpPtr->release_w() ;
 
       if ( rc )
       {
@@ -2034,13 +2034,13 @@ namespace engine
 
          // if not able to find any, that means all pages are occupied
          // then we should call extendSegments
-         if ( ossTestAndLatch( _segmentLatch.get(), EXCLUSIVE ) )
+         if ( _segmentLatch->try_lock_w() )
          {
             // double check to avoid extending segment multiple times,
             // _pageNum will be updated if extending segment has happened
             if ( totalDataPageNum != _pageNum  )
             {
-               ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
+               _segmentLatch->release_w() ;
                continue ;
             }
 
@@ -2048,7 +2048,7 @@ namespace engine
             rc = context ? context->pause() : SDB_OK ;
             if ( rc )
             {
-               ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
+               _segmentLatch->release_w() ;
                PD_LOG( PDERROR, "Failed to pause context[%s], rc: %d",
                        context->toString().c_str(), rc ) ;
                goto error ;
@@ -2059,7 +2059,7 @@ namespace engine
             // end to resume
             rc1 = context ? context->resume() : SDB_OK ;
 
-            ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
+            _segmentLatch->release_w() ;
 
             if ( rc )
             {
@@ -2085,8 +2085,8 @@ namespace engine
             rc = context ? context->pause() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pause context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
-            ossLatch( _segmentLatch.get(), SHARED ) ;
-            ossUnlatch( _segmentLatch.get(), SHARED );
+            _segmentLatch->lock_r() ;
+            _segmentLatch->release_r() ;
             // end to resume
             rc = context ? context->resume() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to resum context[%s], rc: %d",
@@ -2102,12 +2102,12 @@ namespace engine
       // start extend segment job
       if ( _extendThreshold() > 0 &&
            _smeMgr.totalFree() < _extendThreshold() &&
-           ossTestAndLatch( _segmentLatch.get(), EXCLUSIVE ) )
+           _segmentLatch->try_lock_w() )
       {
          if ( _smeMgr.totalFree() >= _extendThreshold() ||
               SDB_OK != startExtendSegmentJob( NULL, this ) )
          {
-            ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
+            _segmentLatch->release_w() ;
          }
       }
 

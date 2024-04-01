@@ -2545,6 +2545,94 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_MON_SLOWCOMMAND_THRESHOLD</name>
+      <long>monslowcommandthreshold</long>
+      <description>
+        <en>The threshold for a slow command (ms). Default is 5000.</en>
+        <cn>慢命令监控(如DDL操作)的阈值，单位：毫秒，默认为5000。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold for a slow command (ms). Default is 5000.</en>
+        <cn>慢命令监控(如DDL操作)的阈值，单位：毫秒，默认为5000。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>5000</default>
+      <hidden>false</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MON_SLOWLOCK_THRESHOLD</name>
+      <long>monslowlockthreshold</long>
+      <description>
+        <en>The threshold for a slow lock (ms). Default is 100.</en>
+        <cn>慢事务锁监控的阈值，单位：毫秒，默认为 100。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold for a slow lock (ms). Default is 100.</en>
+        <cn>慢事务锁监控的阈值，单位：毫秒，默认为 100。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>100</default>
+      <hidden>false</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MON_SLOWLATCH_THRESHOLD</name>
+      <long>monslowlatchthreshold</long>
+      <description>
+        <en>The threshold for a slow latch (ms). Default is 30.</en>
+        <cn>慢闩锁监控的阈值，单位：毫秒，默认为 50。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold for a slow latch (ms). Default is 30.</en>
+        <cn>慢闩锁监控的阈值，单位：毫秒，默认为 50。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>50</default>
+      <hidden>false</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MON_OPTI_LEVEL</name>
+      <long>monoptilevel</long>
+      <description>
+        <en>The optimization level of monitoring, the higher the level, the higher the performance. 0 indicates no optimization. Currently, only Level 1 is supported. Default is 1.</en>
+        <cn>监控的优化级别，级别越高性能越高，0表示不启用优化，当前只支持1级。默认为1。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The optimization level of monitoring, the higher the level, the higher the performance. 0 indicates no optimization. Currently, only Level 1 is supported. Default is 1.<fig></fig>
+            Level 1 optimization will close the current latch(lock) snapshot and only retain the latch(lock)'s historical snapshot.
+		</en>
+        <cn>监控的优化级别，级别越高性能越高，0表示不启用优化，当前只支持1级。默认为1。<fig></fig>
+            1级优化会关闭闩和锁的当前快照，只保留历史快照。
+		</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>1</default>
+      <hidden>false</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_MON_GROUP_MASK</name>
       <long>mongroupmask</long>
       <description>
@@ -2578,21 +2666,42 @@
       <name>PMD_OPTION_MON_HIST_EVENT</name>
       <long>monhistevent</long>
       <description>
-        <en>The number of history events to keep in monitor archive. Default is 1000</en>
-        <cn>默认为1000</cn>
+        <en>The number of history events to keep in monitor archive. Default is 1000.</en>
+        <cn>历史监控队列大小，队列满时会清除老的监控项，默认为1000。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-        <en>Specifies the number of history events to keep for a monitor component. Default is 1000</en>
-        <cn>默认为1000。</cn>
+        <en>Specifies the number of history events to keep for a monitor component. Default is 1000.</en>
+        <cn>历史监控队列大小，队列满时会清除老的监控项，默认为1000。</cn>
       </detail>
       <type>int</type>
       <default>1000</default>
       <hidden>true</hidden>
    </opt>
+
+   <opt>
+      <name>PMD_OPTION_MON_HIST_EXPIREDTIME</name>
+      <long>monhistexpiredtime</long>
+      <description>
+        <en>The expiration time(min) of history events. Default is 2880.</en>
+        <cn>历史监控过期时间，超过该时间的监控项会被清理，单位：分钟，默认为2880。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The expiration time(min) of history events. Default is 2880.</en>
+        <cn>历史监控过期时间，超过该时间的监控项会被清理，单位：分钟，默认为2880。</cn>
+      </detail>
+      <type>int</type>
+      <default>2880</default>
+      <hidden>true</hidden>
+   </opt>
+
    <opt>
       <name>PMD_OPTION_FT_MASK</name>
       <long>ftmask</long>
