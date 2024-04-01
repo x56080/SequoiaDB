@@ -367,6 +367,11 @@ namespace engine
          pmdGetOptionCB()->monGroupMask() ) ;
       pmdGetKRCB()->getMonMgr()->setHistEventSize(
          pmdGetOptionCB()->monHistEvent() ) ;
+      monUpdateConf( pmdGetOptionCB()->slowQueryThreshold(),
+                     pmdGetOptionCB()->slowLatchThreshold(),
+                     pmdGetOptionCB()->slowLockThreshold(),
+                     pmdGetOptionCB()->monOptiLevel(),
+                     pmdGetOptionCB()->monHistExpiredTime() ) ;
    }
 
    void _pmdController::registerCB( SDB_ROLE dbrole )

@@ -644,6 +644,9 @@ INT32 _mongoSession::run()
          _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
 
+         pdClearLastError() ;
+         engine::monUpdateCurGroupMask( engine::monGetGroupMask() ) ;
+
          _resetBuffers() ;
          sessCtx.resetError() ;
          sessCtx.sessionName = sessionName() ;
@@ -1702,7 +1705,8 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
    if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( pMsg->opCode ) )
    {
       monClassQuery *monQuery = NULL ;
-      monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+      monClassQueryTimeInfo timeInfo( getFirstMsgTime(), _getLastBeginTime() ) ;
+      monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>( &timeInfo ) ;
       if ( monQuery )
       {
          monQuery->init( pMsg->opCode, eduCB(), pMsg ) ;

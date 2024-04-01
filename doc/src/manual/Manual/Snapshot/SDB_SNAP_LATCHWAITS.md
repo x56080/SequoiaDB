@@ -16,13 +16,16 @@ SDB_SNAP_LATCHWAITS
 | 字段名                 | 类型     | 描述                                                         |
 | ---------------------- | -------- | ------------------------------------------------------------ |
 | NodeName               | string   | 闩锁等待发生的所在节点名                                     |
+| QueryID                | string   | 查询ID，用于关联一次查询操作                                 |
 | WaiterTID              | int32    | 等待闩锁的线程 ID                                            |
+| WaiterEDU              | string   | 等待闩锁的线程类型                                           |
 | RequiredMode           | string   | 上述线程要求获得的闩锁模式，分为 S 共享模式和 X 排他模式两种 |
 | LatchName              | string   | 被等待闩锁对象的名称                                         |
 | Address                | string   | 被等待闩锁对象的地址                                         |
 | StartTimestamp         | string   | 本次等待开始时间                                             |
 | LatchWaitTime          | int32    | 本次等待耗费时间，单位为毫秒                                 |
 | LatestOwner            | int32    | 最近获得该闩锁的线程 ID                                      |
+| LatestOwnerEDU         | string   | 最近获得该闩锁的线程类型                                     |
 | LatestOwnerMode        | string   | 最近获得该闩锁线程所获得的模式，分为 S 共享模式和 X 排他模式两种 |
 | NumOwner               | int32    | 该等待事件发生时，被等待闩锁总共的持有者数量                   |
 
@@ -40,13 +43,16 @@ SDB_SNAP_LATCHWAITS
    ```lang-json
    {
      "NodeName": "sdbserver:11870",
+     "QueryID": "0x00010176000452c700000071",
      "WaiterTID": 24118,
+     "WaiterEDU": "ShardAgent",
      "RequiredMode": "S",
      "LatchName": "dmsStorageDataCommon mblock",
      "Address": "0x7fd3740ae410",
      "StartTimestamp": "2020-06-13-02.52.50.336383",
      "LatchWaitTime": 34.806,
      "LatestOwner": 24109,
+     "LatestOwnerEDU": "ShardAgent",
      "LatestOwnerMode": "X",
      "NumOwner": 1
    }
@@ -65,13 +71,16 @@ SDB_SNAP_LATCHWAITS
    ```lang-json
    {
      "NodeName": "sdbserver:11870",
+     "QueryID": "0x00010176000452c700000071",
      "WaiterTID": 9726,
+     "WaiterEDU": "ShardAgent",
      "RequiredMode": "X",
      "LatchName": "dpsTransLockManager rwMutex",
      "Address": "0x7f8dca267d40",
      "StartTimestamp": "2020-06-12-04.02.22.096686",
      "LatchWaitTime": 1.172,
      "LatestOwner": 13608,
+     "LatestOwnerEDU": "ReplAgent",
      "LatestOwnerMode": "S",
      "NumOwner": 1
    }

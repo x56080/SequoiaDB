@@ -62,17 +62,19 @@ namespace engine
    class _pmdEDUParam : public SDBObject
    {
    public:
-      _pmdEDUParam() : pSocket( NULL ), protocol( NULL )
+      _pmdEDUParam() : pSocket( NULL ), protocol( NULL ), startTime( 0 )
       {}
 
       virtual ~_pmdEDUParam()
       {
          pSocket = NULL ;
          protocol = NULL ;
+         startTime = 0 ;
       }
 
       void               *pSocket ;
       IPmdAccessProtocol *protocol ;
+      UINT64              startTime ;
    };
    typedef _pmdEDUParam pmdEDUParam ;
 

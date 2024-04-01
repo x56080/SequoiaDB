@@ -5532,6 +5532,7 @@ namespace engine
       FLOAT64 replyTime = 0.0 ;
       FLOAT64 processTime = 0.0 ;
       FLOAT64 responseTime = 0.0 ;
+      FLOAT64 dispatchTime = 0.0 ;
       FLOAT64 latchWaitTime = 0.0 ;
       FLOAT64 lockWaitTime = 0.0 ;
       FLOAT64 syncWaitTime = 0.0 ;
@@ -5540,6 +5541,8 @@ namespace engine
       FLOAT64 msgSentTime = 0.0 ;
       FLOAT64 blockTime = 0.0 ;
       FLOAT64 fileTime = 0.0 ;
+      FLOAT64 logTime = 0.0 ;
+      FLOAT64 sortTime = 0.0 ;
       ossTickConversionFactor factor ;
       SDB_ROLE role = pmdGetKRCB()->getDBRole() ;
       CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
@@ -5556,6 +5559,9 @@ namespace engine
 
          _itr->responseTime.convertToTime ( factor, seconds, microseconds ) ;
          responseTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+         _itr->dispatchTime.convertToTime ( factor, seconds, microseconds ) ;
+         dispatchTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
          _itr->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
          nodeWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
@@ -5576,6 +5582,9 @@ namespace engine
          _itr->blockTime.convertToTime ( factor, seconds, microseconds ) ;
          blockTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
+         _itr->sortTime.convertToTime ( factor, seconds, microseconds ) ;
+         sortTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
          /// add system info
          rc = monAppendSystemInfo( builder, _addInfoMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
@@ -5593,23 +5602,18 @@ namespace engine
          }
          builder.append( FIELD_NAME_TID, _itr->tid ) ;
 
-         BOOLEAN isCommand = FALSE ;
-         if ( MSG_BS_QUERY_REQ == _itr->opCode &&
-              !_itr->name.empty() &&
-              _itr->name.at(0) == '$' )
-         {
-            isCommand = TRUE ;
-         }
          builder.append( FIELD_NAME_OPTYPE,
-                         msgType2String( (MSG_TYPE)_itr->opCode, isCommand ) ) ;
+                         msgType2String( (MSG_TYPE)_itr->opCode, _itr->isCommand() ) ) ;
 
          builder.append( FIELD_NAME_NAME, _itr->name.c_str() ) ;
          builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
+         builder.append( FIELD_NAME_DISPATCHTIMESPENT, dispatchTime ) ;
          builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
          builder.append( FIELD_NAME_REPLYTIMESPENT, replyTime ) ;
          builder.append( FIELD_NAME_QUERY_CATA_TIME, queryCataTime ) ;
          builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
          builder.append( FIELD_NAME_BLOCK_TIME, blockTime ) ;
+         builder.append( FIELD_NAME_SORT_TIME, sortTime ) ;
          builder.append( FIELD_NAME_NUM_MSG_SENT, _itr->numMsgSent ) ;
          builder.append( FIELD_NAME_NUM_REPLY_COUNT, _itr->numMsgReply ) ;
          builder.append( FIELD_NAME_NUM_QUERYCATA_COUNT, _itr->numQueryCata ) ;
@@ -5644,7 +5648,11 @@ namespace engine
             _itr->fileTime.convertToTime ( factor, seconds, microseconds ) ;
             fileTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
+            _itr->logTime.convertToTime ( factor, seconds, microseconds ) ;
+            logTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
             builder.append( FIELD_NAME_ACCESSPLAN_ID, _itr->accessPlanID ) ;
+            builder.append( FIELD_NAME_HASHCODE, _itr->hashCode ) ;
             builder.append( FIELD_NAME_DATAREAD, _itr->dataRead ) ;
             builder.append( FIELD_NAME_DATAWRITE, _itr->dataWrite ) ;
             builder.append( FIELD_NAME_INDEXREAD, _itr->indexRead ) ;
@@ -5657,6 +5665,9 @@ namespace engine
             builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
             builder.append( FIELD_NAME_SYNC_WAIT_TIME, syncWaitTime ) ;
             builder.append( FIELD_NAME_FILE_OP_TIME, fileTime ) ;
+            builder.append( FIELD_NAME_LOG_OP_TIME, logTime ) ;
+            builder.append( FIELD_NAME_TRANS_WAITLOCKCOUNT, _itr->numLockWait ) ;
+            builder.append( FIELD_NAME_LATCH_WAIT_COUNT, _itr->numLatchWait ) ;
          }
 
          /// add nodes
@@ -5772,9 +5783,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
       CHAR addr[16] = { 0 } ;
-      UINT32 seconds, microseconds ;
-      FLOAT64 waitTime ;
+      UINT32 seconds = 0, microseconds = 0 ;
+      FLOAT64 waitTime = 0.0 ;
       ossTickConversionFactor factor ;
+      CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
 
       try
       {
@@ -5784,18 +5796,7 @@ namespace engine
          ossTimestamp createTS = _itr->getCreateTS() ;
          ossTimestampToString ( createTS, timestamp ) ;
 
-         if ( !_viewArchive )
-         {
-            ossTick now ;
-            now.sample() ;
-            ossTickDelta delta = now - _itr->getCreateTSTick() ;
-            delta.convertToTime ( factor, seconds, microseconds ) ;
-         }
-         else
-         {
-            _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
-         }
-
+         _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
          waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
          /// add system info
@@ -5803,7 +5804,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                       rc ) ;
 
+         /// query id
+         _itr->queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
+         builder.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
+
          builder.append( FIELD_NAME_WAITER_TID, _itr->waiterTID ) ;
+         builder.append( FIELD_NAME_WAITER_EDU, getEDUName( _itr->waiterType ) ) ;
          if ( EXCLUSIVE == _itr->latchMode )
          {
             builder.append( FIELD_NAME_REQUIRED_MODE, "X" ) ;
@@ -5819,15 +5825,19 @@ namespace engine
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
          builder.append( FIELD_NAME_LATCH_WAIT_TIME, waitTime ) ;
 
-         if ( _itr->xOwnerTID )
+         builder.append( FIELD_NAME_LATEST_OWNER, _itr->ownerTID ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER_EDU, getEDUName( _itr->ownerType ) ) ;
+         if ( EXCLUSIVE == _itr->ownerMode )
          {
-            builder.append( FIELD_NAME_LATEST_OWNER, _itr->xOwnerTID ) ;
             builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
+         }
+         else if ( SHARED == _itr->ownerMode )
+         {
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "S" ) ;
          }
          else
          {
-            builder.append( FIELD_NAME_LATEST_OWNER, _itr->lastSOwner ) ;
-            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "S" ) ;
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "-" ) ;
          }
          builder.append( FIELD_NAME_NUM_OWNER, _itr->numOwner ) ;
 
@@ -5913,10 +5923,11 @@ namespace engine
    INT32 _monLockWaitsFetch::fetch( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      UINT32 seconds, microseconds ;
-      FLOAT64 waitTime ;
+      UINT32 seconds = 0, microseconds = 0 ;
+      FLOAT64 waitTime = 0.0 ;
       ossTickConversionFactor factor ;
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
+      CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
 
       try
       {
@@ -5925,31 +5936,40 @@ namespace engine
          ossTimestamp createTS = _itr->getCreateTS() ;
          ossTimestampToString ( createTS, timestamp ) ;
 
-         if ( !_viewArchive )
-         {
-            ossTick now ;
-            now.sample() ;
-            ossTickDelta delta = now - _itr->getCreateTSTick() ;
-            delta.convertToTime ( factor, seconds, microseconds ) ;
-         }
-         else
-         {
-            _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
-         }
-
+         _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
          waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
          rc = monAppendSystemInfo( builder, _addInfoMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                       rc ) ;
 
+         /// query id
+         _itr->queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
+         builder.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
+
          builder.append( FIELD_NAME_WAITER_TID, _itr->waiterTID ) ;
-         builder.append( FIELD_NAME_REQUIRED_MODE, lockModeToString( _itr->lockMode ) );
+         builder.append( FIELD_NAME_WAITER_EDU, getEDUName( _itr->waiterType ) ) ;
+         if ( _itr->lockMode < DPS_TRANSLOCK_MAX )
+         {
+            builder.append( FIELD_NAME_REQUIRED_MODE, lockModeToString( _itr->lockMode ) );
+         }
+         else
+         {
+            builder.append( FIELD_NAME_REQUIRED_MODE, "-" );
+         }
          _itr->lockID.toBson(builder) ;
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
          builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, waitTime ) ;
-         builder.append( FIELD_NAME_LATEST_OWNER, _itr->xOwnerTID ) ;
-         builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER, _itr->ownerTID ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER_EDU, getEDUName( _itr->ownerType ) ) ;
+         if ( _itr->ownerMode < DPS_TRANSLOCK_MAX )
+         {
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, lockModeToString( _itr->ownerMode ) ) ;
+         }
+         else
+         {
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "-" ) ;
+         }
          builder.append( FIELD_NAME_NUM_OWNER, _itr->numOwner ) ;
 
          _itr++ ;

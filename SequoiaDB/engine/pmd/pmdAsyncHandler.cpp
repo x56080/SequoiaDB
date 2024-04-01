@@ -317,6 +317,7 @@ namespace engine
       pmdAsyncSession *pSession = NULL ;
       BOOLEAN bCreate = TRUE ;
       UINT64 sessionID = 0 ;
+      UINT64 recvTimeMs = ossGetCurrentMicroseconds() ;
 
       pmdSessionScopedHold scopedHold ;
 
@@ -347,7 +348,7 @@ namespace engine
 
       /// First inc
       pSession->incPendingMsgNum() ;
-      rc = _pTaskAdapter->push( handle, header, pSession->getSchedInfo() ) ;
+      rc = _pTaskAdapter->push( handle, header, pSession->getSchedInfo(), recvTimeMs ) ;
       if ( rc )
       {
          pSession->decPendingmsgNum() ;
@@ -364,8 +365,10 @@ namespace engine
                                                   const _MsgHeader *header,
                                                   const CHAR *msg )
    {
+      UINT64 recvTimeUs = ossGetCurrentMicroseconds() ;
       return _pSessionMgr->dispatchMsg( handle, header,
                                         PMD_EDU_MEM_NONE,
+                                        recvTimeUs,
                                         FALSE ) ;
    }
 

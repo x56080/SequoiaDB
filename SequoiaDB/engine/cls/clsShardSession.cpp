@@ -735,8 +735,8 @@ namespace engine
          if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralShardQueryOp( opCode ) &&
               !isNoReplyMsg( opCode ) )
          {
-            monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
-
+            monClassQueryTimeInfo timeInfo( getLastMsgRecvTime(), getLastBeginTime() ) ;
+            monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>( &timeInfo ) ;
             if ( monQuery )
             {
                monQuery->init( opCode, _pEDUCB, msg ) ;
@@ -2215,6 +2215,7 @@ namespace engine
             if ( monQuery && pContext->getPlanRuntime() )
             {
                monQuery->accessPlanID = pContext->getPlanRuntime()->getAccessPlanID() ;
+               monQuery->hashCode = pContext->getPlanRuntime()->getHashCode() ;
             }
 
             // query with return data

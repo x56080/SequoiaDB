@@ -371,6 +371,7 @@ namespace engine
       _reservedLogSpace = 0 ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
+      _delayRegObj      = FALSE ;
    }
 
    _dpsTransExecutor::~_dpsTransExecutor()
@@ -426,11 +427,27 @@ namespace engine
          _lockWaitStarted = TRUE ;
 
          if ( _monMgr->isOperational( MON_CLASS_LOCK ) &&
+              _monMgr->isCurOperational( MON_CLASS_LOCK ) &&
               _monLock == NULL )
          {
-            _monLock = _monMgr->registerMonitorObject<monClassLock>() ;
-            if ( _monLock )
+            monClassLock *pMonLock = NULL ;
+
+            if ( monGetOptiLevel() > 0 )
             {
+               _delayRegObj = TRUE ;
+               pMonLock = &_localMonLock ;
+            }
+            else
+            {
+               _delayRegObj = FALSE ;
+               _monLock = _monMgr->registerMonitorObject<monClassLock>() ;
+               pMonLock = _monLock ;
+            }
+
+            if ( pMonLock )
+            {
+               pMonLock->init( getExecutor(), &_lockWaitStartTimer ) ;
+
                dpsTransLRB *ownerLRB = waiter->lrbHdr->ownerLRB ;
                // NOTE:
                //    The owner list could be empty this time. For example,
@@ -439,23 +456,21 @@ namespace engine
                // get the bkt latch before the one be woken up. The new
                // requester will add itself into the upgrade or waiter list,
                // if the list is not empty to avoid starving the waiters.
-               if ( NULL != ownerLRB )
+               while ( NULL != ownerLRB )
                {
-                  if ( ownerLRB->lockMode == DPS_TRANSLOCK_X )
+                  if ( DPS_TRANSLOCK_MAX == pMonLock->ownerMode ||
+                       pMonLock->ownerMode < ownerLRB->lockMode )
                   {
-                     _monLock->xOwnerTID = ownerLRB->dpsTxExectr->getTID() ;
+                     pMonLock->ownerMode = ownerLRB->lockMode ;
+                     pMonLock->ownerTID = ownerLRB->dpsTxExectr->getTID() ;
+                     pMonLock->ownerType = ownerLRB->dpsTxExectr->getExecutor()->getType() ;
                   }
 
-                  _monLock->numOwner = 1 ;
-                  while ( ownerLRB->nextLRB != NULL )
-                  {
-                     _monLock->numOwner++ ;
-                     ownerLRB = ownerLRB->nextLRB ;
-                  }
+                  pMonLock->numOwner++ ;
+                  ownerLRB = ownerLRB->nextLRB ;
                }
-               _monLock->waiterTID = getTID() ;
-               _monLock->lockID = waiter->lrbHdr->lockId ;
-               _monLock->lockMode = waiter->lockMode ;
+               pMonLock->lockID = waiter->lrbHdr->lockId ;
+               pMonLock->lockMode = waiter->lockMode ;
             }
          }
       }
@@ -797,6 +812,12 @@ namespace engine
       end.sample() ;
       _lockWaitTime = end - _lockWaitStartTimer ;
 
+      if ( _delayRegObj && !_monLock &&
+           _lockWaitTime.toUINT64() / 1000 >= monGetSlowLatchThreshold() )
+      {
+         _monLock = _monMgr->registerMonitorObject<monClassLock>( _localMonLock ) ;
+      }
+
       if ( _monLock )
       {
          _monLock->waitTime = _lockWaitTime ;
@@ -804,6 +825,7 @@ namespace engine
          _monLock = NULL ;
       }
       _lockWaitStarted = FALSE ;
+      _delayRegObj = FALSE ;
    }
 
    // protect waiter and edu's lrb

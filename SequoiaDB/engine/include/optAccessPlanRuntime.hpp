@@ -298,6 +298,12 @@ namespace engine
             return _plan ? _plan->getAccessPlanID() : -1 ;
          }
 
+         OSS_INLINE UINT32 getHashCode() const
+         {
+            SDB_ASSERT( _plan, "_plan is invalid" ) ;
+            return _plan ? _plan->getKeyCode() : 0 ;
+         }
+
          OSS_INLINE const CHAR *getIndexName () const
          {
             SDB_ASSERT( _plan, "_plan is invalid" ) ;

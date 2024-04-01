@@ -51,9 +51,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDLOCALAGENTENTPNT );
 
-      SOCKET s = *(( SOCKET *) &arg ) ;
+      pmdAgentParam *pParam = ( pmdAgentParam* )arg ;
+      SOCKET s = *(( SOCKET *) &pParam->pSocket) ;
       pmdLocalSession localSession( s ) ;
+      localSession.setFirstMsgTime( pParam->startTime ) ;
       localSession.attach( cb ) ;
+
+      SDB_OSS_DEL pParam ;
+      pParam = NULL ;
 
       // Add try-catch to ensure the processor can be detached successfully
       if ( pmdGetDBRole() == SDB_ROLE_COORD )

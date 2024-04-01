@@ -667,8 +667,13 @@ namespace engine
          OSS_INLINE INT32  transReplSize() const { return _transReplSize ; }
          OSS_INLINE BOOLEAN transRCCount() const { return _transRCCount ; }
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
+         OSS_INLINE UINT32 slowCmdThreshold() const { return _slowCmdThreshold ; }
+         OSS_INLINE UINT32 slowLatchThreshold() const { return _slowLatchThreshold ; }
+         OSS_INLINE UINT32 slowLockThreshold() const { return _slowLockThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
+         OSS_INLINE UINT32 monOptiLevel() const { return _monOptiLevel ; }
+         OSS_INLINE UINT32 monHistExpiredTime() const { return _monHistExpiredTime ; }
          OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
          OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
          OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
@@ -823,8 +828,13 @@ namespace engine
          INT32       _transReplSize ;
          BOOLEAN     _transRCCount ;
          UINT32      _slowQueryThreshold ;
+         UINT32      _slowCmdThreshold ;
+         UINT32      _slowLatchThreshold ;
+         UINT32      _slowLockThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
+         UINT32      _monOptiLevel ;
+         UINT32      _monHistExpiredTime ;
          UINT32      _serviceMask ;
 
          INT32       _maxContextNum ;

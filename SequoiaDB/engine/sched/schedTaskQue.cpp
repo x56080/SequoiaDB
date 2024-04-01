@@ -57,26 +57,36 @@ namespace engine
       return _queue.empty() ;
    }
 
-   void _schedFIFOTaskQue::push( const pmdEDUEvent &event, INT64 userData )
+   void _schedFIFOTaskQue::push( const pmdEDUEvent &event, INT64 userData, UINT64 recvTimeUs )
    {
-      _queue.push( event ) ;
+      _queue.push( _queData( event, recvTimeUs ) ) ;
    }
 
-   BOOLEAN _schedFIFOTaskQue::pop( pmdEDUEvent &event, INT64 millisec )
+   BOOLEAN _schedFIFOTaskQue::pop( pmdEDUEvent &event, UINT64 &recvTimeUs, INT64 millisec )
    {
+      BOOLEAN ret = FALSE ;
+      _queData data ;
+
       if ( millisec < 0 )
       {
-         _queue.wait_and_pop( event ) ;
-         return TRUE ;
+         _queue.wait_and_pop( data ) ;
+         ret = TRUE ;
       }
       else if ( 0 == millisec )
       {
-         return _queue.try_pop( event ) ;
+         ret = _queue.try_pop( data ) ;
       }
       else
       {
-         return _queue.timed_wait_and_pop( event, millisec ) ;
+         ret = _queue.timed_wait_and_pop( data, millisec ) ;
       }
+
+      if ( ret )
+      {
+         event = data._event ;
+         recvTimeUs = data._recvTimeMs ;
+      }
+      return ret ;
    }
 
    /*
@@ -100,12 +110,12 @@ namespace engine
       return _queue.empty() ;
    }
 
-   void _schedPriorityTaskQue::push( const pmdEDUEvent &event, INT64 userData )
+   void _schedPriorityTaskQue::push( const pmdEDUEvent &event, INT64 userData, UINT64 recvTimeUs )
    {
-      _queue.push( priorityEvent( event, userData ) ) ;
+      _queue.push( priorityEvent( event, recvTimeUs, userData ) ) ;
    }
 
-   BOOLEAN _schedPriorityTaskQue::pop( pmdEDUEvent &event, INT64 millisec )
+   BOOLEAN _schedPriorityTaskQue::pop( pmdEDUEvent &event, UINT64 &recvTimeUs, INT64 millisec )
    {
       BOOLEAN ret = FALSE ;
       priorityEvent tmpEvent ;
@@ -127,6 +137,7 @@ namespace engine
       if ( ret )
       {
          event = tmpEvent._event ;
+         recvTimeUs = tmpEvent._recvTimeUs ;
       }
       return ret ;
    }

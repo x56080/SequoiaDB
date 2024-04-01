@@ -82,6 +82,8 @@ namespace engine
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       NET_HANDLE netHandle = 0 ;
       UINT32 poolType = 0 ;
+      UINT64 msgRecvTime = 0 ;
+      UINT64 curTime = 0 ;
       pmdAsyncSessionScope assitScope( pSession, cb ) ;
       IOperator *pSdbOp = pSession->getOperator() ;
 
@@ -98,6 +100,10 @@ namespace engine
          cb->resetInfo( EDU_INFO_ERROR ) ;
          cb->resetLsn() ;
          pdClearLastError() ;
+         monUpdateCurGroupMask( monGetGroupMask() ) ;
+
+         msgRecvTime = 0 ;
+         curTime = 0 ;
 
          if ( cb->waitEvent( event, OSS_ONE_SEC, TRUE ) )
          {
@@ -127,8 +133,9 @@ namespace engine
                   pBuffInfo = ( pmdBuffInfo* )( event._Data ) ;
                   pMsg = ( MsgHeader* )( pBuffInfo->pBuffer ) ;
 
-                  timeDiff = (INT64)( ossGetCurrentMicroseconds() -
-                                      pBuffInfo->addTime ) ;
+                  curTime = ossGetCurrentMicroseconds() ;
+                  msgRecvTime = pBuffInfo->addTime ;
+                  timeDiff = (INT64)( curTime - msgRecvTime ) ;
                }
                else
                {
@@ -149,7 +156,7 @@ namespace engine
 
                ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
 
-               pSession->startDispatch() ; /// to generate the begin time
+               pSession->startDispatch( msgRecvTime, curTime ) ; /// to generate the begin time
                pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
                pSession->dispatchMsg ( netHandle, pMsg, pSession->getLastBeginTime(), &timeDiff ) ;
                pSession->onDispatchMsgEnd( timeDiff ) ;

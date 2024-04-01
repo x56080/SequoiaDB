@@ -402,17 +402,26 @@ namespace engine
    void _dpsLogWrapper::writeData ( dpsMergeInfo & info )
    {
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_WRITEDATA ) ;
+      pmdEDUCB *cb = NULL ;
+      monClassQuery *monQuery = NULL ;
 
       _lastWriteTick = pmdGetDBTick() ;
       ++_writeReordNum ;
 
       _buf.writeData( info ) ;
 
-      IExecutor *cb = info.getEDUCB() ;
+      cb = dynamic_cast<pmdEDUCB*>( info.getEDUCB() ) ;
 
       /// insert lsn
       if ( cb )
       {
+         monQuery = cb->getMonQueryCB() ;
+
+         if ( monQuery )
+         {
+            monQuery->startQueryTick( MON_TICK_LOG ) ;
+         }
+
          if ( info.hasDummy() )
          {
             cb->insertLsn( info.getDummyBlock().record().head()._lsn ) ;
@@ -457,6 +466,11 @@ namespace engine
       // reset
       info.resetInfoEx() ;
 
+      if ( monQuery )
+      {
+         monQuery->stopQueryTick() ;
+      }
+
       PD_TRACE_EXIT( SDB__DPSLGWRAPP_WRITEDATA ) ;
    }
 
@@ -490,6 +504,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_RECDROW );
+
       if ( !_initialized )
       {
          goto done;
@@ -513,7 +528,24 @@ namespace engine
          _lastWriteTick = pmdGetDBTick() ;
          ++_writeReordNum ;
 
-         rc = _buf.merge( block );
+         pmdEDUCB *cb = NULL ;
+         monClassQuery *monQuery = NULL ;
+
+         /// start tick
+         cb = dynamic_cast<pmdEDUCB*>( pmdGetThreadEDUCB() ) ;
+         if ( cb && cb->getMonQueryCB() )
+         {
+            monQuery = cb->getMonQueryCB() ;
+            monQuery->startQueryTick( MON_TICK_LOG ) ;
+         }
+
+         rc = _buf.merge( block ) ;
+
+         /// end tick
+         if ( monQuery )
+         {
+            monQuery->stopQueryTick() ;
+         }
       }
 
    done :
@@ -544,14 +576,23 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DPSLGWRAPP_PREPARE ) ;
       INT32 rc = SDB_OK ;
+      pmdEDUCB *cb = NULL ;
+      monClassQuery *monQuery = NULL ;
       if ( !_initialized )
       {
          goto done;
       }
 
-      if( NULL != sdbGetThreadExecutor() )
+      cb = pmdGetThreadEDUCB() ;
+      if( NULL != cb )
       {
-         ISession* session = sdbGetThreadExecutor()->getSession() ;
+         ISession* session = cb->getSession() ;
+         monQuery = cb->getMonQueryCB() ;
+
+         if ( monQuery )
+         {
+            monQuery->startQueryTick( MON_TICK_LOG ) ;
+         }
 
          if( NULL == session || !session->isBusinessSession() )
          {
@@ -568,6 +609,10 @@ namespace engine
       }
 
    done:
+      if ( monQuery )
+      {
+         monQuery->stopQueryTick() ;
+      }
       PD_TRACE_EXITRC( SDB__DPSLGWRAPP_PREPARE, rc ) ;
       return rc ;
    error:

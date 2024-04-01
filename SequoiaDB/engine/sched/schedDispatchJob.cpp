@@ -74,16 +74,17 @@ namespace engine
       MsgHeader *pHeader = NULL ;
       NET_HANDLE handle = NET_INVALID_HANDLE ;
       pmdEDUMemTypes memType = PMD_EDU_MEM_NONE ;
+      UINT64 recvTimeUs = 0 ;
       BOOLEAN hasDispatched = FALSE ;
 
       while( !eduCB()->isForced() )
       {
          bPop = _pTaskAdapter->pop( OSS_ONE_SEC, &pHeader,
-                                    handle, memType ) ;
+                                    handle, memType, recvTimeUs ) ;
 
          if ( bPop )
          {
-            _pSessionMgr->dispatchMsg( handle, pHeader,memType,
+            _pSessionMgr->dispatchMsg( handle, pHeader, memType, recvTimeUs,
                                        TRUE,&hasDispatched ) ;
             if ( !hasDispatched )
             {

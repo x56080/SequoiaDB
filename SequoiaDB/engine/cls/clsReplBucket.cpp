@@ -1914,6 +1914,9 @@ namespace engine
          number = 0 ;
          while ( _pBucket->popData( unitID, info ) )
          {
+            pdClearLastError() ;
+            monUpdateCurGroupMask( monGetGroupMask() ) ;
+
             ++number ;
             eduCB()->incEventCount() ;
 

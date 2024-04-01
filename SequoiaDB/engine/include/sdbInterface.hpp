@@ -396,6 +396,7 @@ namespace engine
    } ;
    typedef _IRemoteSite IRemoteSite ;
 
+   typedef UINT32 EDU_BLOCK_TYPE ;
    /*
       _IExecutor define
    */
@@ -412,6 +413,7 @@ namespace engine
          */
          virtual EDUID     getID() const = 0 ;
          virtual UINT32    getTID() const = 0 ;
+         virtual INT32     getType () const = 0 ;
 
          /*
             Session Related
@@ -443,6 +445,11 @@ namespace engine
          virtual INT32        printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) = 0 ;
          virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) = 0 ;
          virtual void         resetInfo ( EDU_INFO_TYPE type ) = 0 ;
+
+         virtual void         setBlock( EDU_BLOCK_TYPE type, const CHAR *pBlockDesp ) = 0 ;
+         virtual void         unsetBlock() = 0 ;
+         virtual EDU_BLOCK_TYPE getBlockType() const = 0 ;
+         virtual BOOLEAN      isBlocked() const = 0 ;
 
          /*
             Buffer Manager

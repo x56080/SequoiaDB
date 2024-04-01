@@ -285,6 +285,9 @@ namespace engine
       if ( pContext )
       {
          INT32 reference = pContext->getReference() ;
+         BOOLEAN hasSetCBMon = FALSE ;
+
+         // wait for pre-fetching
          pContext->waitForPrefetch() ;
 
          /// wait for sync
@@ -310,17 +313,30 @@ namespace engine
             // Which also means the original query this context
             // belongs to ends unexpectedly.
             // We need to clean the monQuery.
-            if ( ( NULL == cb ) ||
-                 ( cb->getMonQueryCB() != monQueryCB ) )
+            if ( cb && NULL == cb->getMonQueryCB() )
+            {
+               cb->setMonQueryCB( monQueryCB ) ;
+               hasSetCBMon = TRUE ;
+               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
+            }
+            else if ( ( NULL == cb ) ||
+                      ( cb->getMonQueryCB() != monQueryCB ) )
             {
                pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
             }
+
             pContext->setMonQueryCB( NULL ) ;
          }
 
          sdbGetRTNContextBuilder()->release( pContext ) ;
          PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %d)",
                  contextID, reference ) ;
+
+         if ( hasSetCBMon )
+         {
+            cb->setMonQueryCB( NULL ) ;
+            hasSetCBMon = FALSE ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB__SDB_RTNCB_CONTEXTDEL ) ;

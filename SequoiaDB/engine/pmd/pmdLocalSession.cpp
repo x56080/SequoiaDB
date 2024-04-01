@@ -116,6 +116,7 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
          pdClearLastError() ;
+         monUpdateCurGroupMask( monGetGroupMask() ) ;
 
          // recv msg
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
@@ -464,7 +465,8 @@ namespace engine
       if ( eduCB()->getMonQueryCB() == NULL && _needReply && isGeneralQueryOp( pMsg->opCode ) )
       {
          monClassQuery *monQuery = NULL ;
-         monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>() ;
+         monClassQueryTimeInfo timeInfo( getFirstMsgTime(), _getLastBeginTime() ) ;
+         monQuery = pmdGetKRCB()->getMonMgr()->registerMonitorObject<monClassQuery>( &timeInfo ) ;
          if ( monQuery )
          {
             monQuery->init( pMsg->opCode, eduCB(), pMsg ) ;

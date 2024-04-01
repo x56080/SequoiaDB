@@ -731,7 +731,7 @@ public:
       return SDB_OK == _lock.acquire( 0 ) ? TRUE : FALSE ;
    }
 #endif //USE_SRW
-
+/*
 #elif defined (SDB_ENGINE)
 private :
    boost::shared_mutex _lock ;
@@ -810,7 +810,7 @@ public :
       }
       return FALSE ;
    }
-
+*/
 #else
 private :
    pthread_rwlock_t  _lock ;

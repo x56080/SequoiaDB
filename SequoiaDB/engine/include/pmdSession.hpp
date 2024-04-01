@@ -129,6 +129,9 @@ namespace engine
          inline void _endOp()
          {
             _lastEnd = ossGetCurrentMicroseconds() ;
+
+            /// clear first msg time
+            setFirstMsgTime( 0 ) ;
          }
 
          inline UINT64 _getLastBeginTime() const { return _lastBegin ; }

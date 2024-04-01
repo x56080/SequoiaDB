@@ -62,6 +62,7 @@ namespace engine
       pmdEDUMgr *eduMgr       = cb->getEDUMgr() ;
       ossSocket *pListerner   = ( ossSocket* )pData ;
       EDUID agentEDU          = PMD_INVALID_EDUID ;
+      pmdAgentParam *pAgentParam = NULL ;
 
       if ( SDB_OK != ( rc = eduMgr->activateEDU ( cb )) )
       {
@@ -71,6 +72,13 @@ namespace engine
       while ( !cb->isDisconnected() && !pListerner->isClosed() )
       {
          SOCKET s ;
+
+         if ( pAgentParam )
+         {
+            SDB_OSS_DEL pAgentParam ;
+            pAgentParam = NULL ;
+         }
+
          rc = pListerner->accept ( &s, NULL, NULL ) ;
          // if we don't get anything for a period of time, let's loop
          if ( SDB_TIMEOUT == rc )
@@ -127,9 +135,18 @@ namespace engine
 
          cb->incEventCount() ;
 
+         pAgentParam = SDB_OSS_NEW pmdAgentParam() ;
+         if ( !pAgentParam )
+         {
+            PD_LOG( PDERROR, "Allocate memory failed" ) ;
+            ossSocket newsock ( &s ) ;
+            newsock.close () ;
+            continue ;
+         }
+
          // assign the socket to the arg
-         void *pData = NULL ;
-         *((SOCKET *) &pData) = s ;
+         *(( SOCKET *)&pAgentParam->pSocket) = s ;
+         pAgentParam->startTime = ossGetCurrentMicroseconds() ;
 
          if ( !krcb->isActive() )
          {
@@ -149,7 +166,7 @@ namespace engine
 
          // now we have a tcp socket for a new connection, let's get an agent
          // Note the new new socket sent passing to startEDU
-         rc = eduMgr->startEDU ( EDU_TYPE_RESTAGENT, pData, &agentEDU ) ;
+         rc = eduMgr->startEDU ( EDU_TYPE_RESTAGENT, pAgentParam, &agentEDU ) ;
 
          if ( rc )
          {
@@ -162,9 +179,15 @@ namespace engine
             mondbcb->connDec();
             continue ;
          }
+         pAgentParam = NULL ;
       } //while ( ! cb->isDisconnected() )
 
    done :
+      if ( pAgentParam )
+      {
+         SDB_OSS_DEL pAgentParam ;
+         pAgentParam = NULL ;
+      }
       return rc ;
    error :
       goto done ;
@@ -182,12 +205,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      SOCKET s = *(( SOCKET *) &pData ) ;
+      pmdAgentParam *pParam = ( pmdAgentParam* )pData ;
+      SOCKET s = *(( SOCKET *) &pParam->pSocket ) ;
+      UINT64 startTime = pParam->startTime ;
+
+      SDB_OSS_DEL pParam ;
+      pParam = NULL ;
 
       // Add try-catch to ensure the processor can be detached successfully 
       if ( SDB_ROLE_OM == pmdGetDBRole() )
       {
          _omRestSession omRS( s ) ;
+         omRS.setFirstMsgTime( startTime ) ;
          omRS.attach( cb ) ;
 
          _pmdDataProcessor processor ;
@@ -208,6 +237,7 @@ namespace engine
       else if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
          pmdRestSession restSession( s ) ;
+         restSession.setFirstMsgTime( startTime ) ;
          restSession.attach( cb ) ;
 
          _pmdCoordProcessor processor ;
@@ -228,6 +258,7 @@ namespace engine
       else
       {
          pmdRestSession restSession( s ) ;
+         restSession.setFirstMsgTime( startTime ) ;
          restSession.attach( cb ) ;
 
          _pmdDataProcessor processor ;

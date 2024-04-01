@@ -60,11 +60,13 @@ namespace engine
          BOOLEAN              pop( INT64 millisec,
                                    MsgHeader **pHeader,
                                    NET_HANDLE &handle,
-                                   pmdEDUMemTypes &memType ) ;
+                                   pmdEDUMemTypes &memType,
+                                   UINT64 &recvTimeUs ) ;
 
          INT32                push( const NET_HANDLE &handle,
                                     const _MsgHeader *header,
-                                    const schedInfo *pInfo ) ;
+                                    const schedInfo *pInfo,
+                                    UINT64 recvTimeUs ) ;
 
          UINT32               prepare( INT64 millisec ) ;
 
@@ -79,6 +81,7 @@ namespace engine
          virtual UINT32       _onPrepared( UINT32 expectNum ) = 0 ;
 
          virtual INT32        _onPush( const pmdEDUEvent &event,
+                                       UINT64 recvTimeUs,
                                        INT64 priority,
                                        const schedInfo *pInfo ) = 0 ;
 
@@ -86,7 +89,7 @@ namespace engine
 
       protected:
 
-         void                 _push2Que( const pmdEDUEvent &event ) ;
+         void                 _push2Que( const pmdEDUEvent &event, UINT64 recvTimeUs ) ;
          BOOLEAN              _isControlMsg( const pmdEDUEvent &event ) ;
 
       protected:
