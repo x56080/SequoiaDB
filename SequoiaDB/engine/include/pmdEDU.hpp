@@ -203,7 +203,7 @@ namespace engine
             Log config
           */
          virtual BOOLEAN   isLogTimeOn() const ;
-         virtual UINT32    getLogWriteMod() const ;
+         virtual UINT32    getLogWriteMode() const ;
 
          INT64 getCurrentContextID() const
          {
