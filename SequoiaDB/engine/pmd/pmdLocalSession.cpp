@@ -116,7 +116,6 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
          pdClearLastError() ;
-         monUpdateCurGroupMask( monGetGroupMask() ) ;
          pdRestoreCurShieldLogMask() ;
 
          // recv msg
@@ -132,6 +131,7 @@ namespace engine
          }
          /// update conf should here
          _pEDUCB->updateConf() ;
+         monUpdateCurGroupMask( monGetGroupMask() ) ;
 
          // if system info msg
          if ( msgSize == (UINT32)MSG_SYSTEM_INFO_LEN )

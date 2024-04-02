@@ -128,7 +128,6 @@ INT32 _mongoSession::run()
          _pEDUCB->resetLsn() ;
 
          pdClearLastError() ;
-         engine::monUpdateCurGroupMask( engine::monGetGroupMask() ) ;
          pdRestoreCurShieldLogMask() ;
 
          // recv msg
@@ -197,6 +196,7 @@ INT32 _mongoSession::run()
                   goto error ;
                }
 
+               engine::monUpdateCurGroupMask( engine::monGetGroupMask() ) ;
                _pEDUCB->incEventCount() ;
                mondbcb->addReceiveNum() ;
                // activate edu
