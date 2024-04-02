@@ -246,7 +246,6 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
          pdClearLastError() ;
-         monUpdateCurGroupMask( monGetGroupMask() ) ;
 
          rc = request.init() ;
          if ( rc )
@@ -326,6 +325,8 @@ namespace engine
 
          /// update trans conf should here
          _pEDUCB->updateConf() ;
+         monUpdateCurGroupMask( monGetGroupMask() ) ;
+
          // recv rest header
          rc = pAdptor->recvHeader( socket(), &request ) ;
          if ( rc )

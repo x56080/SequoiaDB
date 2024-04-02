@@ -100,7 +100,6 @@ namespace engine
          cb->resetInfo( EDU_INFO_ERROR ) ;
          cb->resetLsn() ;
          pdClearLastError() ;
-         monUpdateCurGroupMask( monGetGroupMask() ) ;
 
          msgRecvTime = 0 ;
          curTime = 0 ;
@@ -109,6 +108,8 @@ namespace engine
          {
             /// update trans should here
             cb->updateConf() ;
+            monUpdateCurGroupMask( monGetGroupMask() ) ;
+
             /// reset again to avoid set interrupt self
             if ( !cb->isDisconnected() )
             {
