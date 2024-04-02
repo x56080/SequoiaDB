@@ -1475,7 +1475,6 @@ namespace engine
       if ( 0 != WORK_PAGE->getLength() )
       {
          page = WORK_PAGE;
-         _work = _incPageID ( _work ) ;
          // fill the rest to '0'
          ossMemset( page->mb()->writePtr(), 0, page->getLastSize() ) ;
          _queSize.inc() ;

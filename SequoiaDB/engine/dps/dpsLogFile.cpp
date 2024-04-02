@@ -259,7 +259,7 @@ namespace engine
       goto done;
    }
 
-   INT32 _dpsLogFile::restore( INT32 length, BOOLEAN *pNeedRetry )
+   INT32 _dpsLogFile::restore( UINT32 length, BOOLEAN *pNeedRetry )
    {
       INT32 rc = SDB_OK ;
       UINT32 startOffset = 0 ;
@@ -270,7 +270,7 @@ namespace engine
       {
          _idleSize = _fileSize ;
       }
-      else if ( length >= 0 && length <= (INT32)_fileSize )
+      else if ( length != ~0 && length <= _fileSize )
       {
          _idleSize = _fileSize - length ;
       }
@@ -295,10 +295,10 @@ namespace engine
                startOffset ) ;
 
       /// check length
-      if ( pNeedRetry && -1 != length && length != (INT32)getLength() )
+      if ( pNeedRetry && ~0 != length && length != getLength() )
       {
-         PD_LOG( PDWARNING, "File[%s] length[%d] is not the same with "
-                            "calc value[%d] by meta file, will "
+         PD_LOG( PDWARNING, "File[%s] length[%u] is not the same with "
+                            "calc value[%u] by meta file, will "
                             "retry init without meta file",
                  path().c_str(), getLength(), length ) ;
          *pNeedRetry = TRUE ;

@@ -103,7 +103,7 @@ namespace engine
       SDB_ASSERT( path, "path can not be NULL!") ;
 
       BOOLEAN needRetry = FALSE ;
-      INT32   length = -1 ;
+      UINT32  length = ~0 ;
       CHAR fileFullPath[ OSS_MAX_PATHSIZE+1 ] = {0} ;
       _dpsLogFile *pFile = NULL ;
       // temp buffer stores log file sequence up to 0xFFFFFFFF, which is
@@ -181,7 +181,7 @@ namespace engine
             }
             else
             {
-               length = -1 ;
+               length = ~0 ;
                checkLsn = DPS_INVALID_LSN_OFFSET ;
             }
          }
