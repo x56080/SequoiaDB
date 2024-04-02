@@ -270,7 +270,7 @@ namespace engine
       {
          _idleSize = _fileSize ;
       }
-      else if ( length != ~0 && length <= _fileSize )
+      else if ( length != (UINT32)~0 && length <= _fileSize )
       {
          _idleSize = _fileSize - length ;
       }
@@ -295,7 +295,7 @@ namespace engine
                startOffset ) ;
 
       /// check length
-      if ( pNeedRetry && ~0 != length && length != getLength() )
+      if ( pNeedRetry && (UINT32)~0 != length && length != getLength() )
       {
          PD_LOG( PDWARNING, "File[%s] length[%u] is not the same with "
                             "calc value[%u] by meta file, will "
