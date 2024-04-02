@@ -151,7 +151,7 @@ namespace engine
                    BOOLEAN ignoreRestore = FALSE,
                    BOOLEAN *pCreated = NULL ) ;
 
-      INT32 restore( INT32 length = -1,
+      INT32 restore( UINT32 length = ~0,
                      BOOLEAN *pNeedRetry = NULL ) ;
 
       DPS_LSN_OFFSET getFilePrevLsn() ;
