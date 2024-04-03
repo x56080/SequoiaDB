@@ -1389,6 +1389,7 @@ namespace engine
                {
                   _pEDUCB->setBlock( EDU_BLOCK_WAITREPLY, "" ) ;
                }
+               _pEDUCB->resetInfo( EDU_INFO_DOING ) ;
                _pEDUCB->printInfo( EDU_INFO_DOING,
                                    "Waiting for node(Num:%u) reply:",
                                    totalUnReplyNum ) ;
