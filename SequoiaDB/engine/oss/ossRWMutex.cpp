@@ -79,9 +79,22 @@ namespace engine
 
       while ( _w.fetch() )
       {
+         boost::chrono::milliseconds timeoutObj = boost::chrono::milliseconds(timeout) ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+
+         /// double check
+         if ( !_w.fetch() )
+         {
+            break ;
+         }
+
          _r.dec () ;
 
-         if ( _event.wait ( timeout ) == SDB_TIMEOUT )
+         /// notify all
+         _cond.notify_all () ;
+
+         /// wait
+         if ( boost::cv_status::timeout == _cond.wait_for( lock, timeoutObj ) )
          {
             millisec -= timeout ;
             if ( millisec < 0 )
@@ -109,7 +122,19 @@ namespace engine
 
       if ( _w.fetch() )
       {
-         _r.dec () ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+
+         /// double check
+         if ( !_w.fetch() )
+         {
+            ret = TRUE ;
+         }
+         else
+         {
+            _r.dec () ;
+            /// notify all
+            _cond.notify_all () ;
+         }
       }
       else
       {
@@ -136,7 +161,11 @@ namespace engine
             break ;
          }
 
-         if ( _event.wait ( timeout ) == SDB_TIMEOUT )
+         boost::chrono::milliseconds timeoutObj = boost::chrono::milliseconds(timeout) ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+
+         /// wait
+         if ( boost::cv_status::timeout == _cond.wait_for( lock, timeoutObj ) )
          {
             millisec -= timeout ;
             if ( millisec < 0 )
@@ -147,28 +176,28 @@ namespace engine
          }
       }
 
-      /*while ( !(_type&RW_SHARDWRITE) && _w.fetch() > 1 )
-      {
-         _w.dec () ;
-
-         if ( _event.wait ( millisec ) == SDB_TIMEOUT )
-         {
-            rc = SDB_TIMEOUT ;
-            goto done ;
-         }
-
-         _w.inc () ;
-      }*/
-
       while ( _r.fetch () )
       {
-         if ( _event.wait ( timeout ) == SDB_TIMEOUT )
+         boost::chrono::milliseconds timeoutObj = boost::chrono::milliseconds(timeout) ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+
+         /// double check
+         if ( !_r.fetch() )
+         {
+            break ;
+         }
+
+         /// wait
+         if ( boost::cv_status::timeout == _cond.wait_for( lock, timeoutObj ) )
          {
             millisec -= timeout ;
             if ( millisec < 0 )
             {
                _w.dec () ;
-               _event.signalAll () ;
+
+               /// notify all
+               _cond.notify_all () ;
+
                rc = SDB_TIMEOUT ;
                goto done ;
             }
@@ -200,9 +229,18 @@ namespace engine
 
       if ( _r.fetch () )
       {
-         _w.dec () ;
-         _event.signalAll () ;
-         goto done ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+
+         /// double check
+         if ( _r.fetch() )
+         {
+            _w.dec () ;
+
+            /// notify all
+            _cond.notify_all () ;
+
+            goto done ;
+         }
       }
 
       ret = TRUE ;
@@ -228,7 +266,9 @@ namespace engine
 
       if ( _w.fetch () )
       {
-         _event.signalAll () ;
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+         /// notify all
+         _cond.notify_all () ;
       }
    done :
       PD_TRACE_EXITRC ( SDB__OSSRWM_RLS_R, rc );
@@ -247,7 +287,13 @@ namespace engine
       }
 
       _w.dec () ;
-      _event.signalAll () ;
+
+      {
+         boost::mutex::scoped_lock lock ( _mutex ) ;
+         /// notify all
+         _cond.notify_all () ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__OSSRWM_RLS_W, rc );
       return rc ;

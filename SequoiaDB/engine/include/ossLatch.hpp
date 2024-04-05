@@ -1132,9 +1132,12 @@ class _ossTicket : public SDBObject
 private :
    UINT64 _QHead ;
    UINT64 _QTail ;
+   UINT64 _lastWrite ;
    UINT16 _QTailWrapped ;
    UINT16 _QHeadWrapped ;
+   UINT16 _lastWriteWrapped ;
    UINT32 _XCount ;
+
 #if OSS_RWLATCHNS_USE_POSIX_NATIVE_MUTEX
    pthread_cond_t  _cond ;
    pthread_mutex_t _mutex ;
@@ -1175,9 +1178,11 @@ public :
 #endif
       _QHead   = 0 ;
       _QTail   = 0 ;
+      _lastWrite = 0 ;
       _XCount  = 0 ;
       _QTailWrapped  = 0 ;
       _QHeadWrapped  = 0 ;
+      _lastWriteWrapped = 0 ;
    }
 
    ~_ossTicket()
@@ -1188,11 +1193,11 @@ public :
 #endif
    }
 
-   OSS_INLINE void wait( const OSS_LATCH_MODE latchMode )
+   OSS_INLINE BOOLEAN wait( const OSS_LATCH_MODE latchMode, BOOLEAN isTry )
    {
-      UINT64  myTicket ;
-      UINT16  tailWrap ;
-      BOOLEAN ticketWrapped = FALSE ;
+      BOOLEAN result = FALSE ;
+      UINT64  myTicket = 0 ;
+      UINT16  tailWrap = 0 ;
 
 #if OSS_RWLATCHNS_USE_POSIX_NATIVE_MUTEX
       pthread_mutex_lock( & _mutex ) ;
@@ -1202,42 +1207,73 @@ public :
 
       if ( EXCLUSIVE == latchMode )
       {
-         _XCount++ ;
+         myTicket = _QTail ;
+         tailWrap = _QTailWrapped ;
+      }
+      else
+      {
+         myTicket = _lastWrite ;
+         tailWrap = _lastWriteWrapped ;
       }
 
-      myTicket = _QTail ++ ;
-      if ( 0 == _QTail )
+      if ( !isTry )
       {
-         _QTailWrapped ++ ;
-      }
-
-      tailWrap = _QTailWrapped ;
-
-      if ( _QTailWrapped != _QHeadWrapped )
-      {
-         if ( _QTail >= 1 ) 
+         ++_QTail ;
+         if ( 0 == _QTail )
          {
-            ticketWrapped = TRUE ;
+            ++_QTailWrapped ;
          }
-         if ( FALSE == ticketWrapped )
-         {
-            tailWrap = _QTailWrapped - 1 ;
-         }
-      }
 
-      while (    ( 0 != _XCount )
-              && _isGreater( tailWrap, myTicket, _QHeadWrapped, _QHead  ) )
-      {
+         if ( EXCLUSIVE == latchMode )
+         {
+            ++_XCount ;
+            _lastWrite = _QTail ;
+            _lastWriteWrapped = _QTailWrapped ;
+         }
+
+         while ( ( 0 != _XCount ) &&
+                 _isGreater( tailWrap, myTicket, _QHeadWrapped, _QHead  ) )
+         {
 #if OSS_RWLATCHNS_USE_POSIX_NATIVE_MUTEX
-         pthread_cond_wait( & _cond, & _mutex ) ;
+            pthread_cond_wait( & _cond, & _mutex ) ;
 #elif OSS_RWLATCHNS_USE_BOOST_MUTEX_WRAPPER 
-         _cond.wait( lock ) ;
+            _cond.wait( lock ) ;
 #endif
+         }
+
+         result = TRUE ;
+      }
+      else
+      {
+         if ( ( SHARED == latchMode && 0 == _XCount ) ||
+              !_isGreater( tailWrap, myTicket, _QHeadWrapped, _QHead ) )
+         {
+            result = TRUE ;
+
+            ++_QTail ;
+            if ( 0 == _QTail )
+            {
+               ++_QTailWrapped ;
+            }
+
+            if ( EXCLUSIVE == latchMode )
+            {
+               ++_XCount ;
+               _lastWrite = _QTail ;
+               _lastWriteWrapped = _QTailWrapped ;
+            }
+         }
+         else
+         {
+            result = FALSE ;
+         }
       }
 
 #if OSS_RWLATCHNS_USE_POSIX_NATIVE_MUTEX
       pthread_mutex_unlock( & _mutex ) ;
 #endif
+
+      return result ;
    }
 
    OSS_INLINE void post( const OSS_LATCH_MODE latchMode )
@@ -1249,15 +1285,15 @@ public :
          boost::mutex::scoped_lock lock ( _mutex ) ;
 #endif
 
-         _QHead ++ ;
+         ++_QHead ;
          if ( 0 == _QHead )
          {
-            _QHeadWrapped ++ ;
+            ++_QHeadWrapped ;
          }
 
          if ( EXCLUSIVE == latchMode ) 
          {
-         _XCount -- ;
+            --_XCount ;
          }
 
 #if OSS_RWLATCHNS_USE_BOOST_MUTEX_WRAPPER 
@@ -1271,71 +1307,50 @@ public :
    }
 } ;
 
-
-class _ossRWLatchNS: public SDBObject
+/*
+   _ossRWLatchNS : Fair lock
+*/
+class _ossRWLatchNS : public ossSLatch
 {
 private :
-   _ossSpinSLatchPOSIX _latch ;
    _ossTicket          _ticket ;
 
 public :
    _ossRWLatchNS() {}
+   virtual ~_ossRWLatchNS() {}
 
-   ~_ossRWLatchNS() {}
-
-   OSS_INLINE void get()
+   virtual void get()
    {
-      _ticket.wait( EXCLUSIVE ) ;
-      _latch.get() ;
+      _ticket.wait( EXCLUSIVE, FALSE ) ;
    }
 
-   OSS_INLINE void get_shared()
+   virtual void get_shared()
    {
-      _ticket.wait( SHARED ) ;
-      _latch.get_shared() ;
+      _ticket.wait( SHARED, FALSE ) ;
    }
 
-   OSS_INLINE BOOLEAN try_get()
+   virtual BOOLEAN try_get()
    {
-      _ticket.wait( EXCLUSIVE ) ;
-      if ( _latch.try_get() )
-      {
-         return TRUE ;
-      }
-      else
-      {
-         _ticket.post( EXCLUSIVE ) ;
-         return FALSE ;
-      }
+      return _ticket.wait( EXCLUSIVE, TRUE ) ;
    }
 
-   OSS_INLINE BOOLEAN try_get_shared()
+   virtual BOOLEAN try_get_shared()
    {
-      _ticket.wait( SHARED ) ;
-      if ( _latch.try_get_shared() )
-      {
-         return TRUE ;
-      }
-      else
-      {
-         _ticket.post( SHARED ) ;
-         return FALSE ;
-      }
+      return _ticket.wait( SHARED, TRUE ) ;
    }
 
-   OSS_INLINE void release()
+   virtual void release()
    {
-      _latch.release() ;
       _ticket.post( EXCLUSIVE ) ;
    }
 
-   OSS_INLINE void release_shared()
+   virtual void release_shared()
    {
-      _latch.release_shared() ;
       _ticket.post( SHARED ) ;
    }
 
 } ;
 typedef class _ossRWLatchNS ossRWLatchNS ;
+
 
 #endif //OSS_SPINLOCK_HPP_
