@@ -79,8 +79,9 @@ namespace engine
       private:
          ossAtomic32        _r ;
          ossAtomic32        _w ;
-         ossAutoEvent       _event ;
          UINT32             _type ;
+         mutable boost::mutex       _mutex ;
+         boost::condition_variable  _cond ;
 
    };
 
