@@ -94,15 +94,18 @@ namespace engine
          _cond.notify_all () ;
 
          /// wait
-         if ( boost::cv_status::timeout == _cond.wait_for( lock, timeoutObj ) )
+         do
          {
-            millisec -= timeout ;
-            if ( millisec < 0 )
+            if ( boost::cv_status::timeout == _cond.wait_for( lock, timeoutObj ) )
             {
-               rc = SDB_TIMEOUT ;
-               goto done ;
+               millisec -= timeout ;
+               if ( millisec < 0 )
+               {
+                  rc = SDB_TIMEOUT ;
+                  goto done ;
+               }
             }
-         }
+         } while( _w.fetch() ) ;
 
          _r.inc () ;
       }
