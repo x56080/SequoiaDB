@@ -199,12 +199,6 @@ SdbDC.prototype.help = function( func ) {
    {
       println("DC methods:") ;
       println("   dc.help(<method>)           help on specified method of data center, e.g. dc.help(\'activate\')");
-	  println("   createImage( <imageCatAddr> )  --eg: dc.createImage( \'192.168.20.106:30003\' )") ;
-	  println("   removeImage()") ;
-	  println("   attachGroups( [groupsMapObj] ) --eg: dc.attachGroups( {Groups:[[\'a\', \'a\'], [\'b\', \'b\']]} }" ) ;
-	  println("   detachGroups( [groupsMapObj] ) --eg: dc.detachGroups( {Groups:[[\'a\',\'a\'], [\'b\', \'b\']]} )" ) ;
-	  println("   enableImage()") ;
-      println("   disableImage()");
 	  println("   activate()") ;
 	  println("   deactivate()") ;
       println("   enableReadonly()") ;

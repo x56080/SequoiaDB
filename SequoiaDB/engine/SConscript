@@ -561,7 +561,6 @@ catFiles = [
       "cat/catDCManager.cpp",
       "cat/catLevelLock.cpp",
       "cat/catSplit.cpp",
-      "cat/catDCLogMgr.cpp",
       "cat/catContext.cpp",
       "cat/catContextData.cpp",
       "cat/catContextNode.cpp",

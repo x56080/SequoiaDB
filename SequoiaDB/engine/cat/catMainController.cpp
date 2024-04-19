@@ -79,6 +79,7 @@ namespace engine
       _pEDUCB              = NULL ;
       _pDpsCB              = NULL ;
       _checkEventTimerID   = NET_INVALID_TIMER_ID ;
+      _checkSysLogTimerID  = NET_INVALID_TIMER_ID ;
       _isDelayed           = FALSE ;
       _delayWithoutSync    = FALSE ;
       _lastCheckDelayTick  = 0 ;
@@ -136,7 +137,13 @@ namespace engine
             _setCheckDelayTick() ;
          }
       }
-
+      else if ( _checkSysLogTimerID == timerID )
+      {
+         _pCatCB->killTimer( _checkSysLogTimerID ) ;
+         _checkSysLogTimerID = NET_INVALID_TIMER_ID ;
+         /// clear syslog collections
+         _clearSysLogs() ;
+      }
       _pmdObjBase::onTimer( timerID, interval ) ;
    }
 
@@ -489,6 +496,7 @@ namespace engine
 
       // Set timer
       _checkEventTimerID = _pCatCB->setTimer( CAT_DEALY_TIME_INTERVAL ) ;
+      _checkSysLogTimerID = _pCatCB->setTimer( OSS_ONE_SEC ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT_INIT, rc ) ;
@@ -507,6 +515,12 @@ namespace engine
          {
             _pCatCB->killTimer( _checkEventTimerID ) ;
             _checkEventTimerID = NET_INVALID_TIMER_ID ;
+         }
+
+         if ( NET_INVALID_TIMER_ID != _checkSysLogTimerID )
+         {
+            _pCatCB->killTimer( _checkSysLogTimerID ) ;
+            _checkSysLogTimerID = NET_INVALID_TIMER_ID ;
          }
 
          _pCatCB->unregEventHandler( this ) ;
@@ -743,34 +757,25 @@ namespace engine
          goto error ;
       }
 
+   done :
+      PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   void catMainController::_clearSysLogs()
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       /// SYSLOG
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {
          CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
          ossSnprintf( clName, sizeof( clName ), "%s%d",
                       CAT_SYSLOG_COLLECTION_NAME, i ) ;
-         rc = _createSysCollection( clName, cb ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         rc = _createSysIndex( clName, CAT_SYSLOG_TYPE_LSNVER, cb ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         rc = _createSysIndex( clName, CAT_SYSLOG_TYPE_LSNOFF, cb ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
+         /// remove the SYSINFO.SYSLOG(N) collection in old version(3.2.x,3.4.x,5.0.x,5.8.2 before)
+         rtnTestAndDropCL( clName, cb, _pDmsCB, NULL, FALSE ) ;
       }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
-      return rc ;
-   error :
-      goto done ;
    }
 
    // when we activate the main controller, we should always assume there's

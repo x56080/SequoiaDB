@@ -53,30 +53,6 @@ namespace engine
 
       INT32 destruct() ;
 
-      INT32 createImage( const _sptArguments &arg,
-                         _sptReturnVal &rval,
-                         bson::BSONObj &detail ) ;
-
-      INT32 removeImage( const _sptArguments &arg,
-                         _sptReturnVal &rval,
-                         bson::BSONObj &detail ) ;
-
-      INT32 attachGroups( const _sptArguments &arg,
-                          _sptReturnVal &rval,
-                          bson::BSONObj &detail ) ;
-
-      INT32 detachGroups( const _sptArguments &arg,
-                          _sptReturnVal &rval,
-                          bson::BSONObj &detail ) ;
-
-      INT32 enableImage( const _sptArguments &arg,
-                         _sptReturnVal &rval,
-                         bson::BSONObj &detail ) ;
-
-      INT32 disableImage( const _sptArguments &arg,
-                          _sptReturnVal &rval,
-                          bson::BSONObj &detail ) ;
-
       INT32 activate( const _sptArguments &arg,
                       _sptReturnVal &rval,
                       bson::BSONObj &detail ) ;
