@@ -2350,6 +2350,47 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTDROPCL, "rtnTestAndDropCL" )
+   INT32 rtnTestAndDropCL( const CHAR *pCLFullName, pmdEDUCB *cb,
+                           _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
+                           BOOLEAN dropEmptyCS )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNTESTDROPCL ) ;
+
+      rc = rtnTestCollectionCommand( pCLFullName, dmsCB ) ;
+      if ( SDB_OK == rc )
+      {
+         rc =  rtnDropCollectionCommand( pCLFullName, cb, dmsCB, dpsCB,
+                                         UTIL_UNIQUEID_NULL, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collection[%s], rc: %d",
+                      pCLFullName, rc ) ;
+
+         if ( dropEmptyCS )
+         {
+            dmsCB->dropEmptyCollectionSpace( dmsGetCSNameFromFullName( pCLFullName ).c_str(),
+                                             cb, dpsCB ) ;
+         }
+      }
+      else if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Test collection[%s] failed, rc: %d", pCLFullName,
+                 rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_RTNTESTDROPCL, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCRTIDX, "rtnTestAndCreateIndex" )
    INT32 rtnTestAndCreateIndex ( const CHAR *pCLFullName,
                                  const BSONObj &indexDef,

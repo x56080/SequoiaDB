@@ -4479,12 +4479,6 @@ namespace sdbclient
       virtual INT32 activateDC() = 0 ;
       virtual INT32 deactivateDC() = 0 ;
       virtual INT32 enableReadOnly( BOOLEAN isReadOnly ) = 0 ;
-      virtual INT32 createImage( const CHAR *pCataAddrList ) = 0 ;
-      virtual INT32 removeImage() = 0 ;
-      virtual INT32 enableImage() = 0 ;
-      virtual INT32 disableImage() = 0 ;
-      virtual INT32 attachGroups( const bson::BSONObj &info ) = 0 ;
-      virtual INT32 detachGroups( const bson::BSONObj &info ) = 0 ;
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
       virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation ) = 0 ;
       virtual INT32 startMaintenanceMode( const bson::BSONObj &options ) = 0 ;
@@ -4597,94 +4591,6 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pDC->enableReadOnly( isReadOnly ) ;
-      }
-
-      /** \fn INT32 createImage( const CHAR *pCataAddrList )
-          \brief Create image in data center
-          \param [in] pCataAddrList Catalog address list of remote data center, e.g. "192.168.20.165:30003",
-                      "192.168.20.165:30003,192.168.20.166:30003"
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 createImage( const CHAR *pCataAddrList )
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->createImage( pCataAddrList ) ;
-      }
-
-      /** \fn INT32 removeImage()
-          \brief Remove image in data center
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 removeImage()
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->removeImage() ;
-      }
-
-      /** \fn INT32 enableImage()
-          \brief Enable image in data center
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 enableImage()
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->enableImage() ;
-      }
-
-      /** \fn INT32 disableImage()
-          \brief Disable image in data center
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 disableImage()
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->disableImage() ;
-      }
-
-      /** \fn INT32 attachGroups( const bson::BSONObj &info )
-          \brief Attach specified groups to data center
-          \param [in] info The information of groups to attach, e.g. {Groups:[["a", "a"], ["b", "b"]]}
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 attachGroups( const bson::BSONObj &info )
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->attachGroups( info ) ;
-      }
-
-      /** \fn INT32 detachGroups( const bson::BSONObj &info )
-          \brief Detach specified groups from data center
-          \param [in] info The information of groups to detach, e.g. {Groups:[["a", "a"], ["b", "b"]]}
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 detachGroups( const bson::BSONObj &info )
-      {
-         if ( NULL == pDC )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pDC->detachGroups( info ) ;
       }
 
       /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation )

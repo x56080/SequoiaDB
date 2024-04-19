@@ -39,11 +39,9 @@
 
 #include "pmd.hpp"
 #include "netDef.hpp"
-#include "catDCLogMgr.hpp"
 #include "catEventHandler.hpp"
 #include "rtnContextBuff.hpp"
 #include "dpsLogDef.hpp"
-#include "dpsMessageBlock.hpp"
 
 using namespace bson ;
 
@@ -65,8 +63,6 @@ namespace engine
       _catDCManager() ;
       ~_catDCManager() ;
 
-      catDCLogMgr* getLogMgr() { return _pLogMgr ; }
-
       INT32 init() ;
       INT32 fini() ;
 
@@ -84,9 +80,6 @@ namespace engine
 
       BOOLEAN isDCActivated() const ;
       BOOLEAN isDCReadonly() const ;
-      BOOLEAN isImageEnabled() const ;
-      BOOLEAN groupInImage( UINT32 groupID ) ;
-      BOOLEAN groupInImage( const string &groupName ) ;
 
       void    setWritedCommand( BOOLEAN writed ) { _isWritedCmd = writed ; }
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
@@ -103,7 +96,6 @@ namespace engine
       // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
-      virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
 
    // message process functions
    protected:
@@ -115,30 +107,6 @@ namespace engine
 
    // inner process
    protected:
-      INT32 processCmdCreateImage( const NET_HANDLE &handle,
-                                   _clsDCMgr *pDCMgr,
-                                   const BSONObj &objQuery,
-                                   BSONObjBuilder &retObjBuilder ) ;
-      INT32 processCmdRemoveImage( const NET_HANDLE &handle,
-                                   _clsDCMgr *pDCMgr,
-                                   const BSONObj &objQuery,
-                                   BSONObjBuilder &retObjBuilder ) ;
-      INT32 processCmdAttachImage( const NET_HANDLE &handle,
-                                   _clsDCMgr *pDCMgr,
-                                   const BSONObj &objQuery,
-                                   BSONObjBuilder &retObjBuilder ) ;
-      INT32 processCmdEnableImage( const NET_HANDLE &handle,
-                                   _clsDCMgr *pDCMgr,
-                                   const BSONObj &objQuery,
-                                   BSONObjBuilder &retObjBuilder ) ;
-      INT32 processCmdDetachImage( const NET_HANDLE &handle,
-                                   _clsDCMgr *pDCMgr,
-                                   const BSONObj &objQuery,
-                                   BSONObjBuilder &retObjBuilder ) ;
-      INT32 processCmdDisableImage( const NET_HANDLE &handle,
-                                    _clsDCMgr *pDCMgr,
-                                    const BSONObj &objQuery,
-                                    BSONObjBuilder &retObjBuilder) ;
       INT32 processCmdActivate( const NET_HANDLE &handle,
                                 _clsDCMgr *pDCMgr,
                                 const BSONObj &objQuery,
@@ -174,21 +142,10 @@ namespace engine
 
       INT32 _mapData2DCMgr( _clsDCMgr *pDCMgr ) ;
 
-      void  _dcBaseInfoGroups2Obj( _clsDCBaseInfo *pInfo,
-                                   BSONObjBuilder &builder,
-                                   const CHAR *pFieldName ) ;
-
-      BOOLEAN _isAddrConflict( const string &addr,
-                               const vector< pmdAddrPair > &dstAddr ) ;
-
-      INT32   _checkGroupsValid( map< string, string > &mapGroups,
-                                 nodeMgrAgent *pNodeAgent ) ;
-
    // tool fuctions
    private:
       INT16 _majoritySize() ;
       INT32 _updateGlobalInfo() ;
-      INT32 _updateImageInfo() ;
 
       INT32 _checkMaintenanceMode( const BSONObj &option,
                                    const BSONObj &groupObj,
@@ -210,12 +167,9 @@ namespace engine
 
       _clsDCMgr                  *_pDCMgr ;
       _clsDCBaseInfo             *_pDCBaseInfo ;
-      _catDCLogMgr               *_pLogMgr ;
 
       // for commands
       BOOLEAN                    _isWritedCmd ;
-      DPS_LSN                    _lsn ;
-      _dpsMessageBlock           _mb ;
       BOOLEAN                    _isActived ;
 
    } ;

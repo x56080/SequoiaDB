@@ -4628,8 +4628,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, BOOLEAN self,
-                                pmdEDUCB *cb, INT16 w )
+   INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
       BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -4638,63 +4637,15 @@ namespace engine
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
       SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
 
-      if ( self )
-      {
-         updator = BSON( "$set" << BSON( FIELD_NAME_DATACENTER"."
-                                         FIELD_NAME_ADDRESS << pAddr )
-                       ) ;
-      }
-      else
-      {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."
-                                         FIELD_NAME_ADDRESS << pAddr )
-                        ) ;
-      }
+      updator = BSON( "$set" << BSON( FIELD_NAME_DATACENTER"."
+                                      FIELD_NAME_ADDRESS << pAddr )
+                    ) ;
 
       rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
                       BSONObj(), 0, cb, dmsCB, dpsCB, w, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Update collection[%s] obj[%s] failed, rc: %d",
                    CAT_SYSDCBASE_COLLECTION_NAME, updator.toString().c_str(),
                    rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
-                         _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj updator ;
-      BSONObj matcher = BSON( FIELD_NAME_TYPE <<
-                              CAT_BASE_TYPE_GLOBAL_STR ) ;
-      BSONObj hint ;
-      utilUpdateResult result ;
-
-      if ( enable )
-      {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
-                                         << true ) ) ;
-      }
-      else
-      {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
-                                         << false ) ) ;
-      }
-      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
-                      hint, 0, cb, dmsCB, dpsCB, w, &result ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update obj[%s] to collection[%s] failed, "
-                   "rc: %d", updator.toString().c_str(),
-                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
-      if ( 0 == result.updateNum() )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "No found obj[%s] in collection[%s]",
-                 matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME ) ;
-         goto error ;
-      }
 
    done:
       return rc ;
@@ -7057,17 +7008,6 @@ namespace engine
                          "The group [%s] is not active, rc: %d",
                          pCatCB->groupID2Name( grpID ), rc ) ;
          }
-         if ( pCatCB->isImageEnabled() &&
-              !pCatCB->getCatDCMgr()->groupInImage( grpID ) )
-         {
-            // the group that has no image can't be as the collection location
-            PD_LOG( PDWARNING,
-                    "The group [%s] that has no image can't "
-                    "be as the collection's location when image is enabled",
-                    pCatCB->groupID2Name( grpID ) ) ;
-            rc = SDB_CAT_GROUP_HASNOT_IMAGE ;
-            goto error ;
-         }
       }
 
    done :
@@ -7109,17 +7049,6 @@ namespace engine
             PD_RC_CHECK( rc, PDWARNING,
                          "The group [%s] is not active, rc: %d",
                          groupName.c_str(), rc ) ;
-         }
-         if ( pCatCB->isImageEnabled() &&
-              !pCatCB->getCatDCMgr()->groupInImage( groupName ) )
-         {
-            // the group that has no image can't be as the collection location
-            PD_LOG( PDWARNING,
-                    "The group [%s] that has no image can't "
-                    "be as the collection's location when image is enabled",
-                    groupName.c_str() ) ;
-            rc = SDB_CAT_GROUP_HASNOT_IMAGE ;
-            goto error ;
          }
       }
 

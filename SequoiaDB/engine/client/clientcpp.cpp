@@ -7491,63 +7491,6 @@ do                                                            \
       return rc ;
    }
 
-   INT32 _sdbDataCenterImpl::createImage( const CHAR *pCataAddrList )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj newObj ;
-
-      // check
-      if ( NULL == pCataAddrList )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      // build obj
-      newObj = BSON( FIELD_NAME_ADDRESS << pCataAddrList ) ;
-
-      // run command
-      rc = _innerAlter( CMD_VALUE_NAME_CREATE, &newObj ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sdbDataCenterImpl::removeImage()
-   {
-      INT32 rc = _innerAlter( CMD_VALUE_NAME_REMOVE, NULL ) ;
-      return rc ;
-   }
-
-   INT32 _sdbDataCenterImpl::enableImage()
-   {
-      INT32 rc = _innerAlter( CMD_VALUE_NAME_ENABLE, NULL ) ;
-      return rc ;
-   }
-
-   INT32 _sdbDataCenterImpl::disableImage()
-   {
-      INT32 rc = _innerAlter( CMD_VALUE_NAME_DISABLE, NULL ) ;
-      return rc ;
-   }
-
-   INT32 _sdbDataCenterImpl::attachGroups( const bson::BSONObj &info )
-   {
-      INT32 rc = _innerAlter( CMD_VALUE_NAME_ATTACH, &info ) ;
-      return rc ;
-   }
-
-   INT32 _sdbDataCenterImpl::detachGroups( const bson::BSONObj &info )
-   {
-      INT32 rc = _innerAlter( CMD_VALUE_NAME_DETACH, &info ) ;
-      return rc ;
-   }
-
    INT32 _sdbDataCenterImpl::setActiveLocation( const CHAR *pLocation )
    {
       INT32 rc = SDB_OK ;

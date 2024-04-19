@@ -3958,14 +3958,6 @@ namespace engine
                          groupName, rc ) ;
          }
 
-         // the group that has no image can't be as the collection location
-         PD_CHECK( !catCB->isImageEnabled() ||
-                   catCB->getCatDCMgr()->groupInImage( groupName ),
-                   SDB_CAT_GROUP_HASNOT_IMAGE, error, PDWARNING,
-                   "Failed to check group [%s]: the group that has no image can"
-                   " not be as the collection's location when image is enabled",
-                   groupName ) ;
-
          _groupMap.insert( CAT_DOMAIN_GROUP_MAP::value_type( groupName,
                                                              groupID ) ) ;
       }

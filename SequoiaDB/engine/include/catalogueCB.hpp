@@ -172,7 +172,6 @@ namespace engine
          UINT16   getPrimaryNode() const { return _primaryID.columns.nodeID ; }
 
          BOOLEAN  isDCActivated() const { return _catDCMgr.isDCActivated() ; }
-         BOOLEAN  isImageEnabled() const { return _catDCMgr.isImageEnabled() ; }
          BOOLEAN  isDCReadonly() const { return _catDCMgr.isDCReadonly() ; }
          BOOLEAN  isActived() const { return _isActived ; }
 

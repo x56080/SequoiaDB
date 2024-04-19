@@ -445,12 +445,6 @@ namespace engine
                    "Failed to get group [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      PD_CHECK( !_pCatCB->isImageEnabled() ||
-                !_pCatCB->getCatDCMgr()->groupInImage( _targetName ),
-                SDB_CAT_GROUP_HAS_IMAGE, error, PDERROR,
-                "Can't remove group [%s] when group has image and image is enable",
-                _targetName.c_str() ) ;
-
       rc = rtnGetIntElement( _boTarget, CAT_GROUPID_NAME, (INT32 &)_groupID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s], rc: %d",

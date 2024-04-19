@@ -172,6 +172,7 @@ namespace engine
                                 const MsgHeader *pMsg,
                                 pmdEDUEvent &event ) ;
       INT32 _ensureMetadata() ;
+      void  _clearSysLogs() ;
       INT32 _createSysIndex ( const CHAR *pCollection,
                               const CHAR *pIndex,
                               pmdEDUCB *cb ) ;
@@ -243,6 +244,7 @@ namespace engine
       // for cata delayed event
       VEC_EVENT         _vecEvent ;
       UINT32            _checkEventTimerID ;
+      UINT32            _checkSysLogTimerID ;
       pmdEDUEvent       _lastDelayEvent ;
       BOOLEAN           _isDelayed ;
       BOOLEAN           _delayWithoutSync ;

@@ -38,12 +38,6 @@ namespace engine
    #define SPT_DC_NAME  "SdbDC"
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBDC, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBDC, destruct )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, createImage )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, removeImage )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, attachGroups )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, detachGroups )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, enableImage )
-   JS_MEMBER_FUNC_DEFINE( _sptDBDC, disableImage )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, activate )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, deactivate )
    JS_MEMBER_FUNC_DEFINE( _sptDBDC, enableReadOnly )
@@ -57,12 +51,6 @@ namespace engine
    JS_BEGIN_MAPPING( _sptDBDC, SPT_DC_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
       JS_ADD_DESTRUCT_FUNC( destruct )
-      JS_ADD_MEMBER_FUNC( "createImage", createImage )
-      JS_ADD_MEMBER_FUNC( "removeImage", removeImage )
-      JS_ADD_MEMBER_FUNC( "attachGroups", attachGroups )
-      JS_ADD_MEMBER_FUNC( "detachGroups", detachGroups )
-      JS_ADD_MEMBER_FUNC( "enableImage", enableImage )
-      JS_ADD_MEMBER_FUNC( "disableImage", disableImage )
       JS_ADD_MEMBER_FUNC( "activate", activate )
       JS_ADD_MEMBER_FUNC( "deactivate", deactivate )
       JS_ADD_MEMBER_FUNC( "enableReadonly", enableReadOnly )
@@ -98,149 +86,6 @@ namespace engine
    INT32 _sptDBDC::destruct()
    {
       return SDB_OK ;
-   }
-
-   INT32 _sptDBDC::createImage( const _sptArguments &arg,
-                                _sptReturnVal &rval,
-                                bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      string cataAddrList ;
-      rc = arg.getString( 0, cataAddrList ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "CataAddrList must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "CataAddrList must be string" ) ;
-         goto error ;
-      }
-
-      rc = _dc.createImage( cataAddrList.c_str() ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to create image" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBDC::removeImage( const _sptArguments &arg,
-                                _sptReturnVal &rval,
-                                bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _dc.removeImage() ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to remove image" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBDC::attachGroups( const _sptArguments &arg,
-                                 _sptReturnVal &rval,
-                                 bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj options ;
-
-      rc = arg.getBsonobj( 0, options ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "Options must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Options must be obj" ) ;
-         goto error ;
-      }
-      rc = _dc.attachGroups( options ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to attach groups" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBDC::detachGroups( const _sptArguments &arg,
-                                 _sptReturnVal &rval,
-                                 bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj options ;
-
-      rc = arg.getBsonobj( 0, options ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "Options must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Options must be obj" ) ;
-         goto error ;
-      }
-      rc = _dc.detachGroups( options ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to detach groups" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBDC::enableImage( const _sptArguments &arg,
-                                _sptReturnVal &rval,
-                                bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _dc.enableImage() ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to enable image" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptDBDC::disableImage( const _sptArguments &arg,
-                                 _sptReturnVal &rval,
-                                 bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _dc.disableImage() ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to disable image" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _sptDBDC::activate( const _sptArguments &arg,

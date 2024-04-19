@@ -1215,12 +1215,6 @@ namespace sdbclient
       INT32 activateDC() ;
       INT32 deactivateDC() ;
       INT32 enableReadOnly( BOOLEAN isReadOnly ) ;
-      INT32 createImage( const CHAR *pCataAddrList ) ;
-      INT32 removeImage() ;
-      INT32 enableImage() ;
-      INT32 disableImage() ;
-      INT32 attachGroups( const bson::BSONObj &info ) ;
-      INT32 detachGroups( const bson::BSONObj &info ) ;
       INT32 setActiveLocation ( const CHAR *pLocation ) ;
       INT32 setLocation ( const CHAR *pHostName, const CHAR *pLocation ) ;
       INT32 startMaintenanceMode( const BSONObj & options ) ;

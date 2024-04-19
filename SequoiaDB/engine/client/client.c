@@ -12715,67 +12715,6 @@ SDB_EXPORT INT32 sdbEnableReadOnly( sdbDCHandle cHandle, BOOLEAN isReadOnly )
    }
 }
 
-SDB_EXPORT INT32 sdbCreateImage( sdbDCHandle cHandle, const CHAR *pCataAddrList )
-{
-   INT32 rc = SDB_OK ;
-   bson options ;
-   bson_init( &options ) ;
-
-   if ( NULL == pCataAddrList )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   BSON_APPEND( options, FIELD_NAME_ADDRESS, pCataAddrList, string ) ;
-   BSON_FINISH( options ) ;
-
-   rc = _sdbDCCommon( cHandle, &options, CMD_VALUE_NAME_CREATE ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-done:
-   bson_destroy( &options ) ;
-   return rc ;
-error:
-   goto done ;
-}
-
-SDB_EXPORT INT32 sdbRemoveImage( sdbDCHandle cHandle )
-{
-   return _sdbDCCommon( cHandle, NULL, CMD_VALUE_NAME_REMOVE ) ;
-}
-
-SDB_EXPORT INT32 sdbEnableImage( sdbDCHandle cHandle )
-{
-   return _sdbDCCommon( cHandle, NULL, CMD_VALUE_NAME_ENABLE ) ;
-}
-
-SDB_EXPORT INT32 sdbDisableImage( sdbDCHandle cHandle )
-{
-   return _sdbDCCommon( cHandle, NULL, CMD_VALUE_NAME_DISABLE ) ;
-}
-
-SDB_EXPORT INT32 sdbAttachGroups( sdbDCHandle cHandle, bson *info )
-{
-   if ( NULL == info  )
-   {
-      return SDB_INVALIDARG ;
-   }
-   return _sdbDCCommon( cHandle, info, CMD_VALUE_NAME_ATTACH ) ;
-}
-
-SDB_EXPORT INT32 sdbDetachGroups( sdbDCHandle cHandle, bson *info )
-{
-   if ( NULL == info  )
-   {
-      return SDB_INVALIDARG ;
-   }
-   return _sdbDCCommon( cHandle, info, CMD_VALUE_NAME_DETACH ) ;
-}
-
 SDB_EXPORT INT32 sdbSyncDB( sdbConnectionHandle cHandle,
                             bson *options )
 {

@@ -1023,7 +1023,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_GETAGROUPRAND, "sdbCatalogueCB::getAGroupRand" )
    INT32 sdbCatalogueCB::getAGroupRand( UINT32 &groupID )
    {
-      INT32 rc = SDB_CAT_NO_NODEGROUP_INFO ;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATALOGCB_GETAGROUPRAND ) ;
       UINT32 mapSize = _grpIdMap.size();
       PD_TRACE1 ( SDB_CATALOGCB_GETAGROUPRAND,
@@ -1038,31 +1038,17 @@ namespace engine
             ++iterMap;
          }
 
-         i = 0 ;
-         while ( i++ < mapSize )
+         if ( iterMap == _grpIdMap.end() )
          {
-            if ( iterMap == _grpIdMap.end() )
-            {
-               iterMap = _grpIdMap.begin() ;
-            }
-
-            if ( _catDCMgr.isImageEnabled() &&
-                 !_catDCMgr.groupInImage( iterMap->second ) )
-            {
-               ++iterMap ;
-               continue ;
-            }
-            else
-            {
-               groupID = iterMap->first ;
-               rc = SDB_OK ;
-               goto done ;
-            }
+            iterMap = _grpIdMap.begin() ;
          }
-         rc = SDB_CAT_GROUP_HASNOT_IMAGE ;
+         groupID = iterMap->first ;
+      }
+      else
+      {
+         rc = SDB_CAT_NO_NODEGROUP_INFO ;
       }
 
-   done:
       PD_TRACE_EXITRC ( SDB_CATALOGCB_GETAGROUPRAND, rc ) ;
       return rc;
    }

@@ -697,6 +697,10 @@ namespace engine
                               _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
                               BOOLEAN sys = TRUE ) ;
 
+   INT32 rtnTestAndDropCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
+                            _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
+                            BOOLEAN dropEmptyCS = TRUE ) ;
+
    INT32 rtnTestAndCreateIndex ( const CHAR *pCLFullName,
                                  const BSONObj &indexDef,
                                  pmdEDUCB *cb, _SDB_DMSCB *dmsCB,

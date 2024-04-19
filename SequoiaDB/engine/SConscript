@@ -573,7 +573,6 @@ catFiles = [
       "cat/catCatalogManager.cpp",
       "cat/catDCManager.cpp",
       "cat/catLevelLock.cpp",
-      "cat/catDCLogMgr.cpp",
       "cat/catContext.cpp",
       "cat/catContextData.cpp",
       "cat/catContextNode.cpp",

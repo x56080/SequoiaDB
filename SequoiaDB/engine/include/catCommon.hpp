@@ -350,11 +350,8 @@ namespace engine
                                 BSONObj &obj,
                                 pmdEDUCB *cb ) ;
    INT32 catUpdateBaseInfoAddr( const CHAR *pAddr,
-                                BOOLEAN self,
                                 pmdEDUCB *cb,
                                 INT16 w ) ;
-   INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
-                         _SDB_DMSCB *dmsCB, _dpsLogWrapper * dpsCB ) ;
 
    INT32 catUpdateDCStatus( const CHAR *pField, BOOLEAN status,
                             pmdEDUCB *cb, INT16 w,
