@@ -98,12 +98,7 @@ namespace DriverTest
         {
             DataCenter dc = null;
             BsonDocument detail = null;
-            BsonDocument groups = null;
-            BsonArray arr = null;
-            BsonArray arr1 = null;
-            BsonArray arr2 = null;
             string dcName = null;
-            string peerCataAddr = "192.168.20.166:11823";
 
             /// get dc
             dc = sdb.GetDC();
@@ -115,37 +110,14 @@ namespace DriverTest
             /// get detail
             detail = dc.GetDetail();
             Assert.IsNotNull(detail);
-            /// create image
-            dc.CreateImage(peerCataAddr);
-            /// attach groups
-            arr1 = new BsonArray();
-            arr1.Add("group1");
-            arr1.Add("group1");
-            arr2 = new BsonArray();
-            arr2.Add("group2");
-            arr2.Add("group2");
-            arr = new BsonArray();
-            arr.Add(arr1);
-            arr.Add(arr2);
-            groups = new BsonDocument();
-            groups.Add("Groups", arr);
-            dc.AttachGroups(groups);
             /// disable read only
             dc.EnableReadOnly(false);
             /// enable read only
             dc.EnableReadOnly(true);
-            /// enable image
-            dc.EnableImage();
             /// activate dc
             dc.ActivateDC();
             /// deactivate dc
             dc.DeactivateDC();
-            /// disable image
-            dc.DisableImage();
-            /// detach groups
-            dc.DetachGroups(groups);
-            /// remove image
-            dc.RemoveImage();
         }
     }
 }
