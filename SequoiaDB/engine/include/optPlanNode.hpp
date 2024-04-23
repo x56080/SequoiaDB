@@ -929,6 +929,9 @@ namespace engine
          // Number of matched fields in index
          UINT32            _matchedFields ;
 
+         // Number of matched index fields
+         UINT32            _matchedIndexFields ;
+
          // Information of index
          dmsExtentID       _indexExtID ;
          dmsExtentID       _indexLID ;

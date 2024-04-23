@@ -1451,6 +1451,7 @@ namespace engine
      _notArray( FALSE ),
      _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
+     _matchedIndexFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1475,6 +1476,7 @@ namespace engine
      _notArray( FALSE ),
      _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
+     _matchedIndexFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1593,7 +1595,7 @@ namespace engine
          case OPT_PLAN_SORTED_IDX_REQUIRED :
          {
             // Must be sorted index
-            if ( _sorted )
+            if ( _sorted && _matchedIndexFields > 0 )
             {
                _isCandidate = TRUE ;
             }
@@ -1602,7 +1604,7 @@ namespace engine
          case OPT_PLAN_IDX_PREFERRED :
          {
             // Either be sorted or matched predicates
-            if ( _sorted || _matchedFields > 0 )
+            if ( ( _sorted && _matchedIndexFields > 0 )  || _matchedFields > 0 )
             {
                _isCandidate = TRUE ;
             }
@@ -1614,7 +1616,7 @@ namespace engine
             // smaller than threshold
             if ( ( _readIndexOnly && _matchedFields > 0 ) ||
                  ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
-                 ( _sorted ) )
+                 ( _sorted && ( _matchedFields > 0 || _matchedIndexFields > 0 ) ) )
             {
                _isCandidate = TRUE ;
             }
@@ -1835,6 +1837,7 @@ namespace engine
       UINT32 iterIdx = 0,
              matchedFields = 0,
              matchedOrders = 0 ;
+      INT32  matchOrderPredicatesBeginPos = -1 ;
       const BSONObj &keyPattern = indexStat->getKeyPattern() ;
       UINT32 keyNum = (UINT32)keyPattern.nFields() ;
 
@@ -1915,6 +1918,11 @@ namespace engine
             else if ( !predicates.empty() &&
                       _checkEqualOrder( beOrder, predicates ) )
             {
+               if ( -1 == matchOrderPredicatesBeginPos )
+               {
+                  matchOrderPredicatesBeginPos = (INT32)matchedOrders ;
+               }
+
                // corresponding predicate is equal, it can be considered as
                // order matched
                ++ matchedOrders ;
@@ -2023,6 +2031,10 @@ namespace engine
             {
                if ( isOrderField )
                {
+                  if ( -1 == matchOrderPredicatesBeginPos )
+                  {
+                     matchOrderPredicatesBeginPos = (INT32)matchedOrders ;
+                  }
                   ++ matchedOrders ;
                   ++ iterOrder ;
                }
@@ -2152,6 +2164,8 @@ namespace engine
 
       _matchedFields = matchedFields ;
       _matchedOrders = matchedOrders ;
+      _matchedIndexFields = ( matchOrderPredicatesBeginPos >= 0 ) ?
+                            matchOrderPredicatesBeginPos : matchedOrders ;
 
       _predSelectivity = OPT_ROUND_SELECTIVITY( predSelectivity ) ;
       _scanSelectivity = OPT_ROUND_SELECTIVITY( scanSelectivity ) ;
