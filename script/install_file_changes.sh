@@ -26,9 +26,11 @@ function changeOMTool()
    fi
 
    chown root:root $toolPath
-   test $? -ne 0 && exit $?
+   ret=$?
+   test $ret -ne 0 && exit $ret
    chmod 6755 $toolPath
-   test $? -ne 0 && exit $?
+   ret=$?
+   test $ret -ne 0 && exit $ret
 }
 
 function main()

@@ -23,10 +23,12 @@ function stopService()
    fi
    chmod 0755 $EXEC_PATH/sdbcmtop
    chmod 0755 $EXEC_PATH/sdbstop
-   $EXEC_PATH/sdbcmtop > /dev/null 2>&1
-   test $? -ne 0 && exit $?
-   $EXEC_PATH/sdbstop -t all > /dev/null 2>&1
-   test $? -ne 0 && exit $?
+   $EXEC_PATH/sdbcmtop 
+   ret=$?
+   test $ret -ne 0 && exit $ret
+   $EXEC_PATH/sdbstop -t all 
+   ret=$?
+   test $ret -ne 0 && exit $ret
 }
 
 function forceStopService()
@@ -34,7 +36,6 @@ function forceStopService()
    if [ "$EXEC_PATH" == "" ]; then
       exit 1
    fi
-   service sdbcm stop
    $EXEC_PATH/sdblist -t all | grep -v "Total" | awk '{print $2}' | awk -F '(' '{print $2}' | awk -F ')' '{print "kill -9 " $1}' | bash
    nodeNum=`$EXEC_PATH/sdblist -t all | grep -v "Total" | wc -l`
    test $nodeNum -ne 0 && exit 1 
@@ -45,9 +46,8 @@ function startService()
    if [ "$EXEC_PATH" == "" ]; then
       exit 1
    fi
-   service sdbcm start
    # return 127 when didnot have node, so, donot check return code
-   $EXEC_PATH/sdbstart -t all > /dev/null 2>&1
+   $EXEC_PATH/sdbstart -t all 
 }
 
 function createDir()
@@ -63,9 +63,11 @@ function createDir()
    fi
 
    chown $USER_NAME:$GROUP_NAME /var/sequoiadb
-   test $? -ne 0 && exit $?
+   ret=$?
+   test $ret -ne 0 && exit $ret
    chmod 777 /var/sequoiadb
-   test $? -ne 0 && exit $?
+   ret=$?
+   test $ret -ne 0 && exit $ret
 }
 
 main()

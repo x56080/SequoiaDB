@@ -2,9 +2,28 @@
 # Decription:
 #   Used for package framework, define all the action in install
 ####################################################################
+# Built-in variables:
+#   SYS_PRODUCT_VERSION: Product version number.
+#   SYS_PRODUCT_TYPE: Product type.Community Edition(C),Enterprise Edition(E)
+#   SYS_PLATFORM: At runtime, the platform in which the installer is running
+#   SYS_ENTERPRISE: Enterprise version identity.
+#   SYS_HYBRID: Hybrid version identity.
+#   SYS_PLATFORM_EXEC_SUFFIX: The platform specific binary suffix 
+#   SYS_INSTALL_DIR: The installation directory.
+#   SYS_ORIGIN_DIR：Original directory path before packaging.
+#   SYS_TMP_DIR：At runtime, the temporary directory. 
+#   SYS_USERNAME：Corresponds to the following user.name.
+#   SYS_GROUPNAME：Corresponds to the following user.groupname.
+#   SYS_PERV_PRODUCT_VERSION：The previous product version number, for upgrade and cover installation only.
+#   SYS_PERV_PRODUCT_TYPE：The previous product type, for upgrade and cover installation only.
+#   
 # Action scope:
-#   all: takes effect on all installaction
-#   upgrade: only takes effect in upgrade
+#   all: takes effect on all installaction stages.
+#   install: only takes effect in install installation stage.
+#   upgrade: only takes effect in upgrade installation stage.
+#   cover:   only takes effect in cover installation stage.
+#   reinstall: only affects the upgrade and cover installation stages.
+#   
 
 installInformation:
   productname: sequoiadb
@@ -52,6 +71,16 @@ preInstallAction:
       cmd: '${SYS_TMP_DIR}/generate_version_file.sh'
       scope: upgrade 
       enable: true
+    - name: createDir
+      cmd: '${SYS_TMP_DIR}/service_control.sh'
+      parameters:
+        - name: createDir
+        - name: userName
+          value: '${SYS_USERNAME}'
+        - name: groupName
+          value: '${SYS_GROUPNAME}'
+      scope: all
+      enable: true
 installCheck:
   enable: true
   actions:
@@ -73,16 +102,6 @@ runtimeCheck:
         - '${SYS_PERV_PRODUCT_VERSION} ${SYS_PERV_PRODUCT_TYPE} ${SYS_PRODUCT_VERSION} ${SYS_PRODUCT_TYPE} --db'
       enable: true
       scope: upgrade
-    - name: createDir
-      cmd: '${SYS_TMP_DIR}/service_control.sh'
-      parameters:
-        - name: createDir
-        - name: userName
-          value: '${SYS_USERNAME}'
-        - name: groupName
-          value: '${SYS_GROUPNAME}'
-      scope: all
-      enable: true
     - name: stopService
       cmd: '${SYS_TMP_DIR}/service_control.sh'
       parameters:
@@ -91,11 +110,11 @@ runtimeCheck:
         - name: path
           value: ${SYS_TMP_DIR}
       enable: true
-      scope: upgrade
+      scope: reinstall
 
 postInstallAction:
   actions:
-    - name: force
+    - name: forceStopService 
       cmd: '${SYS_TMP_DIR}/service_control.sh'
       parameters:
         - name: forceStopService
@@ -103,6 +122,7 @@ postInstallAction:
             # the from field will become a user interaction option name, like --force
             from: force
             type: BOOL
+            hide: true
             default: false
             description:
               - cn: 是否强制安装。
@@ -159,11 +179,6 @@ preUninstallAction:
   actions:
     - name: preUninstall
       cmd: '${SYS_INSTALL_DIR}/preUninstall.sh'
-      enable: true
-      scope: all
-
-    - name: stopCMService
-      cmd: '${SYS_INSTALL_DIR}/bin/sdbcmtop'
       enable: true
       scope: all
 
