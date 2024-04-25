@@ -625,7 +625,7 @@ namespace engine
          {
             try
             {
-               txWaiterLRBSet.insert( waitInfo );      
+               txWaiterLRBSet.insert( waitInfo );
             }
             catch ( std::exception & e )
             {
@@ -1754,7 +1754,7 @@ namespace engine
 
    dpsTransLockManager * dpsTransCB::getLockMgrHandle()
    {
-      return ( _transLockMgr->isInitialized() ? ( _transLockMgr ) : NULL ) ;
+      return ( ( _transLockMgr && _transLockMgr->isInitialized() ) ? ( _transLockMgr ) : NULL ) ;
    }
 
    ixmIndexLockManager * dpsTransCB::getIndexLockMgrHandle()
