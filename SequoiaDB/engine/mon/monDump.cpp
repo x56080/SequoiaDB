@@ -2887,7 +2887,10 @@ namespace engine
 
       if ( _dumpCurrent )
       {
-         _eduList.push( cb->getID() ) ;
+         if ( DPS_INVALID_TRANS_ID != cb->getTransID() )
+         {
+            _eduList.push( cb->getID() ) ;
+         }
       }
       else
       {
