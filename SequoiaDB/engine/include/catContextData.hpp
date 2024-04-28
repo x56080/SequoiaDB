@@ -293,26 +293,30 @@ namespace engine
                                const BSONObj &csObj,
                                const catCollectionInfo &clInfo,
                                _pmdEDUCB *cb,
-                               std::vector<UINT32> &groupIDList,
-                               std::map<std::string, UINT32> &splitRange ) ;
-
-      INT32 _getBoundFromClObj ( const BSONObj &clObj, UINT32 &totalBound ) ;
+                               CAT_GROUP_LIST &groupIDList ) ;
 
    private :
-      INT32 _chooseCLGroupBySpec ( const CHAR * groupName,
+      INT32 _checkAndMergeRef() ;
+      INT32 _checkRefCatalog() ;
+
+      INT32 _chooseCLGroupByRef ( const CAT_GROUP_LIST &vecGroups,
+                                  const BSONObj & domainObj,
+                                  _pmdEDUCB * cb,
+                                  CAT_GROUP_LIST & groupIDList ) ;
+
+      INT32 _chooseCLGroupBySpec ( const VEC_POOLCHARSTR &vecGroups,
                                    const BSONObj & domainObj,
                                    _pmdEDUCB * cb,
-                                   std::vector<UINT32> & groupIDList ) ;
+                                   CAT_GROUP_LIST & groupIDList ) ;
 
       INT32 _chooseCLGroupAutoSplit ( const BSONObj & domainObj,
-                                      std::vector<UINT32> & groupIDList,
-                                      std::map<std::string, UINT32> & splitRange ) ;
+                                      CAT_GROUP_LIST & groupIDList ) ;
 
       INT32 _chooseCLGroupDefault ( const BSONObj & domainObj,
                                     const BSONObj & csObj,
                                     INT32 assignType,
                                     _pmdEDUCB * cb,
-                                    std::vector<UINT32> & groupIDList ) ;
+                                    CAT_GROUP_LIST & groupIDList ) ;
 
       INT32 _createSysIndex( const catCollectionInfo& clInfo,
                              ossPoolVector<BSONObj>& indexList,
@@ -321,10 +325,16 @@ namespace engine
    private :
       utilCLUniqueID                _clUniqueID ;
       catCollectionInfo             _clInfo ;
-      std::map<std::string, UINT32> _splitList ;
+      CAT_GROUP_LIST                _groupList ;
       UINT32                        _fieldMask ;
       vector<BSONObj>               _autoIncOptArr ;
       ossPoolVector<BSONObj>        _indexList ;
+
+      /// ref info
+      BSONObj                       _refObj ;
+      catCollectionInfo             _refCLInfo ;
+      UINT32                        _refFieldMask ;
+
    } ;
 
    typedef class _catCtxCreateCL catCtxCreateCL ;

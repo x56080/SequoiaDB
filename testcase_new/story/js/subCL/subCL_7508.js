@@ -19,7 +19,7 @@ function test_range_attach_hash_update_2 ()// NOT Error, test mainCL'ShardingTyp
    commDropCL( db, COMMCSNAME, subCl_Name + "2", true, true );
    commDropCL( db, COMMCSNAME, MainCL_Name, true, true );
    var cs = commCreateCS( db, COMMCSNAME, true, "create cs in the beginning" );
-   var mainCL = cs.createCL( MainCL_Name, { ShardingKey: { a: 1 }, ShardingType: "range", Partition: 4096, ReplSize: 0, Compressed: true, IsMainCL: true } );
+   var mainCL = cs.createCL( MainCL_Name, { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, IsMainCL: true } );
    var subCL1 = cs.createCL( subCl_Name + "1", { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0, Compressed: true, IsMainCL: false } );
    var subCL2 = cs.createCL( subCl_Name + "2", { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0, Compressed: true, IsMainCL: false } );
    mainCL.attachCL( COMMCSNAME + "." + subCl_Name + "1", { LowBound: { a: 0 }, UpBound: { a: 1 } } );

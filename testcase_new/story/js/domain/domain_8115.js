@@ -25,7 +25,7 @@ function test ()
    // Create CS in domain and create collection
 
    commCreateCS( db, csName, false, "create CS specify domain", { "Domain": domName } );
-   commCreateCL( db, csName, rangeCL, { ShardingKey: { "No": -1 }, ShardingType: "range", Partition: 1024 }, false, false, "create collection in domain" );
+   commCreateCL( db, csName, rangeCL, { ShardingKey: { "No": -1 }, ShardingType: "range" }, false, false, "create collection in domain" );
    // Comman CL
    commCreateCL( db, csName, commonCL, { ShardingKey: { "No": -1 } }, false, false, "create collection in domain" );
 

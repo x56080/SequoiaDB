@@ -45,6 +45,7 @@
 #include "utilCompressor.hpp"
 #include "utilArguments.hpp"
 #include "utilUniqueID.hpp"
+#include "ossMemPool.hpp"
 
 using namespace bson ;
 
@@ -61,6 +62,14 @@ namespace engine
    {
       ASSIGN_FOLLOW     = 1,
       ASSIGN_RANDOM     = 2
+   } ;
+
+   enum CAT_REF_MODE
+   {
+      REF_MODE_RESHARD  = 0,
+      REF_MODE_REGROUP,
+      REF_MODE_STRICT,
+      REF_MODE_MAX = REF_MODE_STRICT
    } ;
 
    struct _catCollectionInfo
@@ -82,9 +91,10 @@ namespace engine
       BOOLEAN     _autoRebalance ;
       BOOLEAN     _strictDataMode ;
       BOOLEAN     _noTrans ;
-      const CHAR * _gpSpecified ;
+      VEC_POOLCHARSTR   _vecGpSpecified ;
       INT32       _version ;
       INT32       _assignType ;
+      INT32       _splitGroupStart ;
       BOOLEAN     _autoIndexId ;
       UTIL_COMPRESSOR_TYPE _compressorType ;
       BOOLEAN     _capped ;
@@ -95,6 +105,11 @@ namespace engine
       clsAutoIncSet _autoIncSet ;
       UTIL_DS_UID _dsUID ;
       CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+
+      /// ref info
+      ossPoolVector<BSONObj>  _vecCataInfo ;
+      CAT_GROUP_LIST          _vecCataInfoGrpID ;
+      UINT32                  _refMode ;
 
       _catCollectionInfo()
       {
@@ -118,9 +133,10 @@ namespace engine
          _autoRebalance       = FALSE ;
          _strictDataMode      = FALSE ;
          _noTrans             = FALSE ;
-         _gpSpecified         = NULL ;
+         _vecGpSpecified.clear() ;
          _version             = 0 ;
          _assignType          = ASSIGN_RANDOM ;
+         _splitGroupStart     = -1 ;
          _autoIndexId         = TRUE ;
          _compressorType      = UTIL_COMPRESSOR_INVALID ;
          _capped              = FALSE ;
@@ -131,6 +147,9 @@ namespace engine
          _dsUID               = UTIL_INVALID_DS_UID ;
          _autoIncSet.clear() ;
          ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
+         _vecCataInfo.clear() ;
+         _vecCataInfoGrpID.clear() ;
+         _refMode             = REF_MODE_RESHARD ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;

@@ -2329,6 +2329,10 @@ namespace engine
          // AutoSplit is given explicitly
          autoSplit = argument.isAutoSplit() ;
       }
+      else if ( !argument.isHashSharding() && argument.testArgumentMask( UTIL_CL_SHDTYPE_FIELD ) )
+      {
+         /// When is range, do nothing
+      }
       else if ( cataSet.isAutoSplit() )
       {
          // AutoSplit is specified already by collection itself

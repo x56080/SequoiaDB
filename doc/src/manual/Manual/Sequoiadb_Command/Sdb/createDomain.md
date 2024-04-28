@@ -26,7 +26,7 @@ Sdb
 
 | 属性名 | 描述 | 格式 |
 | ------ | ------ | ------ |
-| AutoSplit | 是否自动切分散列分区集合 | AutoSplit: true |
+| AutoSplit | 是否自动切分散列分区集合, 缺省为 true | AutoSplit: true |
 
 > **Note:**
 >

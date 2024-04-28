@@ -615,13 +615,13 @@ namespace engine
       return "" ;
    }
 
-   UINT32 sdbCatalogueCB::groupName2ID( const string &groupName )
+   UINT32 sdbCatalogueCB::groupName2ID( const CHAR *groupName )
    {
-      if ( 0 == ossStrcmp( groupName.c_str(), CATALOG_GROUPNAME ) )
+      if ( 0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) )
       {
          return CATALOG_GROUPID ;
       }
-      else if ( 0 == ossStrcmp( groupName.c_str(), COORD_GROUPNAME ) )
+      else if ( 0 == ossStrcmp( groupName, COORD_GROUPNAME ) )
       {
          return COORD_GROUPID ;
       }
@@ -629,7 +629,7 @@ namespace engine
       GRP_ID_MAP::iterator it = _grpIdMap.begin() ;
       while ( it != _grpIdMap.end() )
       {
-         if ( groupName == it->second )
+         if ( 0 == ossStrcmp( groupName, it->second.c_str() ) )
          {
             return it->first ;
          }
@@ -638,13 +638,18 @@ namespace engine
       it = _deactiveGrpIdMap.begin() ;
       while ( it != _deactiveGrpIdMap.end() )
       {
-         if ( groupName == it->second )
+         if ( 0 == ossStrcmp( groupName, it->second.c_str() ) )
          {
             return it->first ;
          }
          ++it ;
       }
       return CAT_INVALID_GROUPID ;
+   }
+
+   UINT32 sdbCatalogueCB::groupName2ID( const string &groupName )
+   {
+      return groupName2ID( groupName.c_str() ) ;
    }
 
    INT32 sdbCatalogueCB::getGroupsName( vector< string > &vecNames )

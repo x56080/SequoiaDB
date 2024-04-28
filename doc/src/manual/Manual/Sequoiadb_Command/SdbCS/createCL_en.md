@@ -97,12 +97,17 @@ This function is used to create a collection in the specified collection space. 
         >
         > User can specify the parameter AutoSplit when creating domains and collections. If user explicitly specify AutoSplit for a collection, the system will give priority to determining whether to enable automatic splitting according to the value specified by the collection.
 
-    - Group ( *string* ): Collection replication group.
+    - Group ( *string* or *string array* ): Collection replication group.
 
         - The value specified by this parameter must be the replication group contained in the domain to which the collection belongs.
         - If the value of this parameter is not specified, the collection will be created in any replication group of the domain to which the collection belongs.
 
-        Format: `Group: "group1"`
+        Format: `Group: "group1"` or `Group:['group1', 'group2']`
+
+    - SplitGroupStart ( *number* ): The position of the starting partition group
+
+        - -1 indicates random computation
+        - >=0 indicates computation from a specified position; if this value exceeds the number of data groups, it will automatically wrap around
 
     - AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", automatically created.
  
@@ -151,6 +156,23 @@ This function is used to create a collection in the specified collection space. 
         >**Note:**
         >
         > For the specific usage scenarios of the parameters "DataSource" and "Mapping", refer to [Data Source][datasource].
+
+    - RefObj ( *object* ): The referenced catalog object
+
+        The format is consistent with the catalog objects in the catalog snapshot.
+
+    - RefFrom ( *string* ): The referenced collection name
+
+        Automatically obtain the properties and partition information of the referenced collection.
+
+    - RefMode ( *number* ): The referenced mode
+
+        - 0: Recompute partitions (only effective for hash sharding; equivalent to effect 1 for range sharding).
+        - 1: Rearrange the order of data groups.
+        - 2: Completely copy the partition information from `RefObj` or `RefFrom`.
+
+        When the value is 0 or 1, use the SplitGroupStart parameter to recalculate the order of data groups.
+
 
 ##RETURN VALUE##
  

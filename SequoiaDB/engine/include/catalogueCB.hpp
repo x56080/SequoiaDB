@@ -143,6 +143,7 @@ namespace engine
          void        clearInfo() ;
          GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
          const CHAR* groupID2Name( UINT32 groupID ) ;
+         UINT32      groupName2ID( const CHAR *groupName ) ;
          UINT32      groupName2ID( const string &groupName ) ;
          INT32       getGroupsName( vector< string > &vecNames ) ;
          INT32       getGroupsID( vector< UINT32 > &vecIDs, BOOLEAN isActiveOnly ) ;

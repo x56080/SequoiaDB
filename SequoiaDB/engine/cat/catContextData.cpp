@@ -1257,11 +1257,11 @@ namespace engine
       _needRollback = TRUE ;
       _clUniqueID = UTIL_UNIQUEID_NULL ;
       _fieldMask = UTIL_ARG_FIELD_EMPTY ;
+      _refFieldMask = UTIL_ARG_FIELD_EMPTY ;
    }
 
    _catCtxCreateCL::~_catCtxCreateCL ()
    {
-      _splitList.clear() ;
       _onCtxDelete () ;
    }
 
@@ -1297,11 +1297,78 @@ namespace engine
 
       try
       {
+         BSONElement eRefObj = _boQuery.getField( FIELD_NAME_REFOBJ ) ;
+         BSONElement eRefFrom = _boQuery.getField( FIELD_NAME_REFFROM ) ;
+         BSONElement eRefMode = _boQuery.getField( FIELD_NAME_REFMODE ) ;
+
          rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_NAME,
                                       _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
                       CAT_COLLECTION_NAME, rc ) ;
+
+         if ( !eRefObj.eoo() && !eRefFrom.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] and field[%s] can't configured in the same",
+                        FIELD_NAME_REFOBJ, FIELD_NAME_REFFROM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( !eRefObj.eoo() )
+         {
+            PD_LOG_MSG_CHECK( Object == eRefObj.type(), SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] type invalid, should be object",
+                              FIELD_NAME_REFOBJ ) ;
+            /// init
+            rc = catCatalogRecordToInfo( cb, eRefObj.embeddedObject(), _refCLInfo,
+                                         _refFieldMask, TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else if ( !eRefFrom.eoo() )
+         {
+            PD_LOG_MSG_CHECK( String == eRefFrom.type(), SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] type invalid, should be string",
+                              FIELD_NAME_REFFROM ) ;
+
+            rc = catGetCollection( eRefFrom.str(), _refObj, cb ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Get %s's collection[%s] failed, rc: %d",
+                           FIELD_NAME_REFFROM, eRefFrom.valuestr(), rc ) ;
+               goto error ;
+            }
+            /// init
+            rc = catCatalogRecordToInfo( cb, _refObj, _refCLInfo, _refFieldMask, TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else if ( !eRefMode.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] should be used with Field[%s] or Field[%s]",
+                        FIELD_NAME_REFMODE, FIELD_NAME_REFOBJ, FIELD_NAME_REFFROM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( !eRefMode.eoo() )
+         {
+            PD_LOG_MSG_CHECK( eRefMode.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] type invalid, should be number",
+                              FIELD_NAME_REFMODE ) ;
+
+            _refCLInfo._refMode = eRefMode.numberInt() ;
+
+            PD_LOG_MSG_CHECK( ( _refCLInfo._refMode >= REF_MODE_RESHARD &&
+                                _refCLInfo._refMode <= REF_MODE_MAX ),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] value error, value range:[%d,%d]",
+                              FIELD_NAME_REFMODE, REF_MODE_RESHARD, REF_MODE_MAX ) ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -1317,6 +1384,283 @@ namespace engine
       goto done ;
    }
 
+   INT32 _catCtxCreateCL::_checkAndMergeRef()
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 shardMask = UTIL_CL_SHDKEY_FIELD | UTIL_CL_SHDTYPE_FIELD |
+                         UTIL_CL_PARTITION_FIELD | UTIL_CL_ISMAINCL_FIELD |
+                         UTIL_CL_AUTOSPLIT_FIELD | UTIL_CL_AUTOREBALANCE_FIELD |
+                         UTIL_CL_LOBKEYFORMAT_FIELD | UTIL_CL_ENSURESHDIDX_FIELD ;
+
+      if ( 0 == _refFieldMask )
+      {
+         goto done ;
+      }
+
+      /// can't create collection in datasource through RefObj/RefFrom
+      if ( UTIL_INVALID_DS_UID != _clInfo._dsUID || UTIL_INVALID_DS_UID != _refCLInfo._dsUID )
+      {
+         PD_LOG_MSG( PDERROR, "Can't create collection in datasource with %s or %s",
+                     FIELD_NAME_REFOBJ, FIELD_NAME_REFMODE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( ( _refFieldMask & shardMask ) || !_refCLInfo._vecCataInfo.empty() )
+      {
+         if ( _fieldMask & shardMask )
+         {
+            /// Shard configurations is not allowed when using RefObj
+            PD_LOG_MSG( PDERROR, "Shard parameters are not allowed when using %s or %s",
+                        FIELD_NAME_REFOBJ, FIELD_NAME_REFFROM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( !_clInfo._vecGpSpecified.empty() )
+         {
+            PD_LOG_MSG( PDERROR, "Special groups are not allowed when using %s or %s",
+                        FIELD_NAME_REFOBJ, FIELD_NAME_REFFROM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         _clInfo._isSharding = _refCLInfo._isSharding ;
+         _clInfo._isHash = _refCLInfo._isHash ;
+         _clInfo._shardingKey = _refCLInfo._shardingKey ;
+         _clInfo._pShardingType = _refCLInfo._pShardingType ;
+         _clInfo._shardPartition = _refCLInfo._shardPartition ;
+         _clInfo._isMainCL = _refCLInfo._isMainCL ;
+         _clInfo._autoSplit = _refCLInfo._autoSplit ;
+         _clInfo._autoRebalance = _refCLInfo._autoRebalance ;
+         _clInfo._lobShardingKeyFormat = _refCLInfo._lobShardingKeyFormat ;
+         _clInfo._enSureShardIndex = _refCLInfo._enSureShardIndex ;
+
+         if ( _refFieldMask & UTIL_CL_SHDKEY_FIELD )
+         {
+            _fieldMask |= UTIL_CL_SHDKEY_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_SHDTYPE_FIELD )
+         {
+            _fieldMask |= UTIL_CL_SHDTYPE_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_PARTITION_FIELD )
+         {
+            _fieldMask |= UTIL_CL_PARTITION_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_ISMAINCL_FIELD )
+         {
+            _fieldMask |= UTIL_CL_ISMAINCL_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_AUTOSPLIT_FIELD )
+         {
+            _fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_AUTOREBALANCE_FIELD )
+         {
+            _fieldMask |= UTIL_CL_AUTOREBALANCE_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_LOBKEYFORMAT_FIELD )
+         {
+            _fieldMask |= UTIL_CL_LOBKEYFORMAT_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_ENSURESHDIDX_FIELD )
+         {
+            _fieldMask |= UTIL_CL_ENSURESHDIDX_FIELD ;
+         }
+      }
+
+      /// ignore catalog info when main collection
+      if ( _refCLInfo._isMainCL )
+      {
+         _refCLInfo._vecCataInfo.clear() ;
+         _refCLInfo._vecCataInfoGrpID.clear() ;
+      }
+
+      /// check and merge
+      if ( !(_fieldMask & UTIL_CL_REPLSIZE_FIELD) && (_refFieldMask & UTIL_CL_REPLSIZE_FIELD) )
+      {
+         _clInfo._replSize = _refCLInfo._replSize ;
+         _fieldMask |= UTIL_CL_REPLSIZE_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_COMPRESSED_FIELD) && (_refFieldMask & UTIL_CL_COMPRESSED_FIELD) )
+      {
+         _clInfo._isCompressed = _refCLInfo._isCompressed ;
+         _fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+
+         _clInfo._compressorType = _refCLInfo._compressorType ;
+         if ( _refFieldMask & UTIL_CL_COMPRESSTYPE_FIELD )
+         {
+            _fieldMask |= UTIL_CL_COMPRESSTYPE_FIELD ;
+         }
+      }
+
+      if ( !(_fieldMask & UTIL_CL_AUTOIDXID_FIELD) && (_refFieldMask & UTIL_CL_AUTOIDXID_FIELD) )
+      {
+         _clInfo._autoIndexId = _refCLInfo._autoIndexId ;
+         _fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_CAPPED_FIELD) && (_refFieldMask & UTIL_CL_CAPPED_FIELD) )
+      {
+         _clInfo._capped = _refCLInfo._capped ;
+         _fieldMask |= UTIL_CL_CAPPED_FIELD ;
+
+         _clInfo._maxRecNum = _refCLInfo._maxRecNum ;
+         _clInfo._maxSize = _refCLInfo._maxSize ;
+         _clInfo._overwrite = _refCLInfo._overwrite ;
+
+         if ( _refFieldMask & UTIL_CL_MAXREC_FIELD )
+         {
+            _fieldMask |= UTIL_CL_MAXREC_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_MAXSIZE_FIELD )
+         {
+            _fieldMask |= UTIL_CL_MAXSIZE_FIELD ;
+         }
+         if ( _refFieldMask & UTIL_CL_OVERWRITE_FIELD )
+         {
+            _fieldMask |= UTIL_CL_OVERWRITE_FIELD ;
+         }
+      }
+
+      if ( !(_fieldMask & UTIL_CL_STRICTDATAMODE_FIELD) &&
+            (_refFieldMask & UTIL_CL_STRICTDATAMODE_FIELD) )
+      {
+         _clInfo._strictDataMode = _refCLInfo._strictDataMode ;
+         _fieldMask |= UTIL_CL_STRICTDATAMODE_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_AUTOINC_FIELD) && (_refFieldMask & UTIL_CL_AUTOINC_FIELD) )
+      {
+         _clInfo._autoIncFields = _refCLInfo._autoIncFields ;
+         _fieldMask |= UTIL_CL_AUTOINC_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_NOTRANS_FIELD) && (_refFieldMask & UTIL_CL_NOTRANS_FIELD) )
+      {
+         _clInfo._noTrans = _refCLInfo._noTrans ;
+         _fieldMask |= UTIL_CL_NOTRANS_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_CONSISTENCYSTRATEGY_FIELD) &&
+            (_refFieldMask & UTIL_CL_CONSISTENCYSTRATEGY_FIELD) )
+      {
+         _clInfo._consistencyStrategy = _refCLInfo._consistencyStrategy ;
+         _fieldMask |= UTIL_CL_CONSISTENCYSTRATEGY_FIELD ;
+      }
+
+      _clInfo._vecCataInfo = _refCLInfo._vecCataInfo ;
+      _clInfo._vecCataInfoGrpID = _refCLInfo._vecCataInfoGrpID ;
+      _clInfo._refMode = _refCLInfo._refMode ;
+
+      /// when merged, need check again
+      rc = catCheckCollectionInfo( _clInfo, _fieldMask ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catCtxCreateCL::_checkRefCatalog()
+   {
+      INT32 rc = SDB_OK ;
+      ossPoolMap<UINT32,UINT32>  mapGroups ;
+      ossPoolMap<UINT32,UINT32>::iterator it ;
+
+      if ( _clInfo._vecCataInfo.empty() )
+      {
+         goto done ;
+      }
+
+      if ( _clInfo._isSharding && _clInfo._isHash )
+      {
+         if ( REF_MODE_RESHARD == _clInfo._refMode )
+         {
+            /// clear
+            _clInfo._vecCataInfo.clear() ;
+         }
+      }
+      else if ( _clInfo._isSharding )
+      {
+         if ( REF_MODE_RESHARD == _clInfo._refMode )
+         {
+            _clInfo._refMode = REF_MODE_REGROUP ;
+         }
+      }
+      else
+      {
+         /// clear
+         _clInfo._vecCataInfo.clear() ;
+      }
+
+      if ( _clInfo._vecCataInfo.empty() )
+      {
+         goto done ;
+      }
+
+      if ( REF_MODE_REGROUP == _clInfo._refMode &&
+           _groupList.size() == _clInfo._vecCataInfoGrpID.size() )
+      {
+         for ( UINT32 i = 0 ; i < _clInfo._vecCataInfoGrpID.size() ; ++i )
+         {
+            mapGroups[ _clInfo._vecCataInfoGrpID[i] ] = _groupList[i] ;
+         }
+      }
+      else
+      {
+         for ( UINT32 i = 0 ; i < _groupList.size() ; ++i )
+         {
+            mapGroups[ _groupList[i] ] = _groupList[i] ;
+         }
+      }
+
+      /// instead of groupid and groupname in catalog info
+      for ( UINT32 i = 0 ; i < _clInfo._vecCataInfo.size() ; ++i )
+      {
+         BSONObjBuilder builder( _clInfo._vecCataInfo[i].objsize() ) ;
+         BSONObjIterator itr( _clInfo._vecCataInfo[i] ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), CAT_GROUPNAME_NAME ) )
+            {
+               continue ;
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), CAT_CATALOGGROUPID_NAME ) )
+            {
+               it = mapGroups.find( e.numberInt() ) ;
+               if ( it == mapGroups.end() ||
+                    0 == ( sdbGetCatalogueCB()->groupID2Name( it->second ) )[0] )
+               {
+                  PD_LOG( PDWARNING, "Group not found in catalog item[%s]",
+                          e.toString().c_str() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+               builder.append( CAT_CATALOGGROUPID_NAME, (INT32)it->second ) ;
+               builder.append( CAT_GROUPNAME_NAME,
+                               sdbGetCatalogueCB()->groupID2Name( it->second ) ) ;
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
+         _clInfo._vecCataInfo[i] = builder.obj() ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL_CHECK_INT, "_catCtxCreateCL::_checkInternal" )
    INT32 _catCtxCreateCL::_checkInternal ( _pmdEDUCB *cb )
    {
@@ -1329,7 +1673,6 @@ namespace engine
       BSONObj boSpace, boDomain, boDummy ;
       utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
       UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
-      CAT_GROUP_LIST groupList ;
 
       // Just check the existence of collection, no lock is needed
       rc = catGetCollection( _targetName, boDummy, cb ) ;
@@ -1410,6 +1753,13 @@ namespace engine
                    "Failed to check create collection obj [%s], rc: %d",
                    _boQuery.toString().c_str(), rc ) ;
 
+      // merge with RefObj/RefCL
+      rc = _checkAndMergeRef() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       {
          // Capped collection check.
          BSONElement eleType = boSpace.getField( CAT_TYPE_NAME ) ;
@@ -1469,14 +1819,20 @@ namespace engine
       }
 
       /// choose a group to create cl
-      rc = _chooseGroupOfCl( boDomain, boSpace, _clInfo, cb,
-                             groupList, _splitList ) ;
+      rc = _chooseGroupOfCl( boDomain, boSpace, _clInfo, cb, _groupList ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to choose groups for new collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      rc = _groupHandler.addGroups( groupList ) ;
+      rc = _groupHandler.addGroups( _groupList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add group list, rc: %d", rc ) ;
+
+      /// check ref catalog
+      rc = _checkRefCatalog() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_CHECK_INT, rc ) ;
@@ -1494,9 +1850,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_EXECUTE_INT ) ;
 
       // build new collection record for meta data.
-      rc = catBuildCatalogRecord ( cb, _clInfo, _fieldMask, 0,
-                                   _groupHandler.getGroupIDSet(),
-                                   _splitList, boNewObj, w ) ;
+      rc = catBuildCatalogRecord ( cb, _clInfo, _fieldMask, 0, _groupList, boNewObj, w ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Build new collection catalog record failed, rc: %d",
                    rc ) ;
@@ -1670,7 +2024,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_COMBINE_OPTS ) ;
 
       /// it is a sysdomain.
-      if ( boDomain.isEmpty() )
+      if ( boDomain.isEmpty() || !clInfo._vecGpSpecified.empty() )
       {
          goto done ;
       }
@@ -1686,8 +2040,11 @@ namespace engine
             if ( Bool == split.type() )
             {
                clInfo._autoSplit = split.Bool() ;
-               // NOTE: no need to store the AutoSplit filed
-               // fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
+
+               if ( split.Bool() )
+               {
+                  fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
+               }
             }
          }
       }
@@ -1700,7 +2057,11 @@ namespace engine
             if ( Bool == rebalance.type() )
             {
                clInfo._autoRebalance = rebalance.Bool() ;
-               fieldMask |= UTIL_CL_AUTOREBALANCE_FIELD ;
+
+               if ( rebalance.Bool() )
+               {
+                  fieldMask |= UTIL_CL_AUTOREBALANCE_FIELD ;
+               }
             }
          }
       }
@@ -1715,32 +2076,31 @@ namespace engine
                                             const BSONObj &csObj,
                                             const catCollectionInfo &clInfo,
                                             _pmdEDUCB *cb,
-                                            std::vector<UINT32> &groupIDList,
-                                            std::map<std::string, UINT32> &splitRange )
+                                            CAT_GROUP_LIST &groupIDList )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_CHOOSE_GRP ) ;
 
-      if ( NULL != clInfo._gpSpecified )
+      if ( ! clInfo._vecCataInfoGrpID.empty() )
       {
-         rc = _chooseCLGroupBySpec( clInfo._gpSpecified, domainObj, cb,
-                                    groupIDList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get group for collection by "
-                      "specified, rc: %d", rc ) ;
+         rc = _chooseCLGroupByRef( clInfo._vecCataInfoGrpID, domainObj, cb, groupIDList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group for collection by ref, rc: %d", rc ) ;
+      }
+      else if ( ! clInfo._vecGpSpecified.empty() )
+      {
+         rc = _chooseCLGroupBySpec( clInfo._vecGpSpecified, domainObj, cb, groupIDList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group for collection by specified, rc: %d", rc ) ;
       }
       else if ( clInfo._autoSplit )
       {
-         rc = _chooseCLGroupAutoSplit( domainObj, groupIDList, splitRange ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for auto-split "
-                      "collection, rc: %d", rc ) ;
+         rc = _chooseCLGroupAutoSplit( domainObj, groupIDList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for auto-split collection, rc: %d", rc ) ;
       }
       else if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
       {
-         rc = _chooseCLGroupDefault( domainObj, csObj, clInfo._assignType,
-                                     cb, groupIDList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection, "
-                      "rc: %d", rc ) ;
+         rc = _chooseCLGroupDefault( domainObj, csObj, clInfo._assignType, cb, groupIDList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection, rc: %d", rc ) ;
       }
 
       if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
@@ -1755,60 +2115,196 @@ namespace engine
       {
          /// For main CL only test for available group
          groupIDList.clear() ;
-         splitRange.clear() ;
+      }
+
+      /// choose the start group
+      if ( groupIDList.size() > 1 && 0 != clInfo._splitGroupStart )
+      {
+         UINT32 startPos = clInfo._splitGroupStart < 0 ? ossRand() : clInfo._splitGroupStart ;
+         UINT32 groupSize = groupIDList.size() ;
+
+         if ( 0 != startPos % groupSize )
+         {
+            CAT_GROUP_LIST tmpGroupLst = groupIDList ;
+            groupIDList.clear() ;
+
+            UINT32 grpCnt = 0 ;
+            while( grpCnt < groupSize )
+            {
+               groupIDList.push_back( tmpGroupLst[startPos % groupSize] ) ;
+               ++grpCnt ;
+               ++startPos ;
+            }
+         }
       }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_CHOOSE_GRP, rc ) ;
       return rc ;
-
    error :
       groupIDList.clear() ;
-      splitRange.clear() ;
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC, "_catCtxCreateCL::_chooseCLGroupBySpec" )
-   INT32 _catCtxCreateCL::_chooseCLGroupBySpec ( const CHAR * groupName,
-                                                 const BSONObj & domainObj,
-                                                 _pmdEDUCB * cb,
-                                                 std::vector<UINT32> & groupIDList )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPSREF, "_catCtxCreateCL::_chooseCLGroupByRef" )
+   INT32 _catCtxCreateCL::_chooseCLGroupByRef ( const CAT_GROUP_LIST &vecGroups,
+                                                const BSONObj & domainObj,
+                                                _pmdEDUCB * cb,
+                                                CAT_GROUP_LIST & groupIDList )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPSREF ) ;
+
+      SET_UINT32 groupsOfDomain ;
 
       BOOLEAN isSysDomain = domainObj.isEmpty() ;
-      INT32 tmpGrpID = CAT_INVALID_GROUPID ;
+      UINT32  tmpGrpID = CAT_INVALID_GROUPID ;
+
+      SET_UINT32  setGroupID ;
 
       /// if the group is specified.
       /// 1) whether the group exists.
       /// 2) whether the group is one of the groups of domain.
 
-      // test group first
-      rc = catGroupName2ID( groupName, (UINT32 &)tmpGrpID, TRUE, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to convert group name [%s] to id, "
-                   "rc: %d", groupName, rc ) ;
-
-      if ( isSysDomain )
+      if ( !isSysDomain )
       {
-         groupIDList.push_back( (UINT32)tmpGrpID ) ;
-      }
-      else
-      {
-         std::map<string, UINT32> groupsOfDomain ;
-         std::map<string, UINT32>::iterator itr ;
+         CAT_GROUP_LIST tmpGroups ;
 
-         rc = catGetDomainGroups( domainObj, groupsOfDomain ) ;
+         rc = catGetDomainGroups( domainObj, tmpGroups ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain "
                       "info [%s], rc: %d", domainObj.toString().c_str(), rc ) ;
 
-         itr = groupsOfDomain.find( groupName ) ;
-         PD_CHECK( groupsOfDomain.end() != itr, SDB_CAT_GROUP_NOT_IN_DOMAIN,
-                   error, PDERROR, "[%s] is not a group of given domain",
-                   groupName ) ;
+         for ( UINT32 i = 0 ; i < tmpGroups.size() ; ++i )
+         {
+            groupsOfDomain.insert( tmpGroups[i] ) ;
+         }
+      }
 
-         groupIDList.push_back( itr->second ) ;
+      for ( UINT32 i = 0 ; i < vecGroups.size() ; ++i )
+      {
+         UINT32 tmpGrpID = vecGroups[i] ;
+
+         if ( tmpGrpID < DATA_GROUP_ID_BEGIN || tmpGrpID > DATA_GROUP_ID_END )
+         {
+            rc = SDB_CAT_IS_NOT_DATAGROUP ;
+            PD_LOG( PDERROR, "Group[%u] is not data group", tmpGrpID ) ;
+            goto error ;
+         }
+
+         if ( setGroupID.count( tmpGrpID ) > 0 )
+         {
+            /// already exist
+            continue ;
+         }
+
+         if ( !isSysDomain )
+         {
+            if ( 0 == groupsOfDomain.count( tmpGrpID ) )
+            {
+               PD_LOG( PDERROR, "Group[%u] is not in given domain", tmpGrpID ) ;
+               rc = SDB_CAT_GROUP_NOT_IN_DOMAIN ;
+               goto error ;
+            }
+         }
+
+         /// save groupid
+         groupIDList.push_back( tmpGrpID ) ;
+         setGroupID.insert( tmpGrpID ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXCREATECL__CHOOSECLGRPSREF, rc ) ;
+      return rc ;
+   error :
+      groupIDList.clear() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC, "_catCtxCreateCL::_chooseCLGroupBySpec" )
+   INT32 _catCtxCreateCL::_chooseCLGroupBySpec ( const VEC_POOLCHARSTR &vecGroups,
+                                                 const BSONObj & domainObj,
+                                                 _pmdEDUCB * cb,
+                                                 CAT_GROUP_LIST & groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC ) ;
+
+      std::map<string, UINT32> groupsOfDomain ;
+      std::map<string, UINT32>::iterator itr ;
+
+      BOOLEAN isSysDomain = domainObj.isEmpty() ;
+      UINT32  tmpGrpID = CAT_INVALID_GROUPID ;
+
+      SET_UINT32  setGroupID ;
+
+      /// if the group is specified.
+      /// 1) whether the group exists.
+      /// 2) whether the group is one of the groups of domain.
+
+      if ( !isSysDomain )
+      {
+         rc = catGetDomainGroups( domainObj, groupsOfDomain ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain "
+                      "info [%s], rc: %d", domainObj.toString().c_str(), rc ) ;
+      }
+
+      for ( UINT32 i = 0 ; i < vecGroups.size() ; ++i )
+      {
+         const CHAR *groupName = vecGroups[i] ;
+
+         /// get group id
+         tmpGrpID = sdbGetCatalogueCB()->groupName2ID( groupName ) ;
+         if ( CAT_INVALID_GROUPID == tmpGrpID )
+         {
+            rc = SDB_CLS_GRP_NOT_EXIST ;
+            PD_LOG( PDERROR, "Group[%s] is not exist", groupName ) ;
+            goto error ;
+         }
+
+         if ( tmpGrpID < DATA_GROUP_ID_BEGIN || tmpGrpID > DATA_GROUP_ID_END )
+         {
+            rc = SDB_CAT_IS_NOT_DATAGROUP ;
+            PD_LOG( PDERROR, "Group[%s, %u] is not data group", groupName, tmpGrpID ) ;
+            goto error ;
+         }
+
+         /* Use sdbGetCatalogueCB()->groupName2ID() .. instead of
+         rc = catGroupName2ID( groupName, tmpGrpID, TRUE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to convert group name [%s] to id, "
+                      "rc: %d", groupName, rc ) ;
+         */
+
+         if ( setGroupID.count( tmpGrpID ) > 0 )
+         {
+            /// already exist
+            continue ;
+         }
+
+         if ( !isSysDomain )
+         {
+            /// check group in the domain
+            itr = groupsOfDomain.find( groupName ) ;
+            if ( itr == groupsOfDomain.end() )
+            {
+               PD_LOG( PDERROR, "Group[%s, %u] is not in given domain", groupName, tmpGrpID ) ;
+               rc = SDB_CAT_GROUP_NOT_IN_DOMAIN ;
+               goto error ;
+            }
+            /// check group id
+            if ( tmpGrpID != itr->second )
+            {
+               PD_LOG( PDERROR, "Group[%s, %u] is not the same with domain's group[%s, %u]",
+                       groupName, tmpGrpID, itr->first.c_str(), itr->second ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+
+         /// save groupid
+         groupIDList.push_back( tmpGrpID ) ;
+         setGroupID.insert( tmpGrpID ) ;
       }
 
    done :
@@ -1822,8 +2318,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPAUTOSPLIT, "_catCtxCreateCL::_chooseCLGroupAutoSplit" )
    INT32 _catCtxCreateCL::_chooseCLGroupAutoSplit ( const BSONObj & domainObj,
-                                                    std::vector<UINT32> & groupIDList,
-                                                    std::map<std::string, UINT32> & splitRange )
+                                                    CAT_GROUP_LIST & groupIDList )
    {
       INT32 rc = SDB_OK ;
 
@@ -1835,7 +2330,6 @@ namespace engine
       {
          // Split to all SYS domain groups
          sdbGetCatalogueCB()->getGroupsID( groupIDList, TRUE ) ;
-         sdbGetCatalogueCB()->getGroupNameMap( splitRange, TRUE ) ;
       }
       else
       {
@@ -1843,17 +2337,12 @@ namespace engine
          rc = catGetDomainGroups( domainObj, groupIDList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain info "
                       "[%s], rc: %d", domainObj.toString().c_str(), rc ) ;
-         rc = catGetDomainGroups( domainObj, splitRange ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain info "
-                      "[%s], rc: %d", domainObj.toString().c_str(), rc ) ;
       }
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXCREATECL__CHOOSECLGRPAUTOSPLIT, rc ) ;
       return rc ;
-
    error :
-      splitRange.clear() ;
       groupIDList.clear() ;
       goto done ;
    }
@@ -1863,7 +2352,7 @@ namespace engine
                                                   const BSONObj & csObj,
                                                   INT32 assignType,
                                                   _pmdEDUCB * cb,
-                                                  std::vector<UINT32> & groupIDList )
+                                                  CAT_GROUP_LIST & groupIDList )
    {
       INT32 rc = SDB_OK ;
 
@@ -1926,41 +2415,6 @@ namespace engine
 
    error :
       groupIDList.clear() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL_GETBOUND, "_catCtxCreateCL::_getBoundFromClObj" )
-   INT32 _catCtxCreateCL::_getBoundFromClObj( const BSONObj &clObj,
-                                              UINT32 &totalBound )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_GETBOUND ) ;
-
-      BSONElement upBound =
-            clObj.getFieldDotted( CAT_CATALOGINFO_NAME".0."CAT_UPBOUND_NAME ) ;
-
-      if ( Object != upBound.type() )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      {
-         BSONElement first = upBound.embeddedObject().firstElement() ;
-         if ( NumberInt != first.type() )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         totalBound = first.Int() ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_GETBOUND, rc ) ;
-      return rc ;
-   error :
       goto done ;
    }
 

@@ -339,7 +339,7 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG ( PDERROR, "UpdateItem exception: %s", e.what() ) ;
          goto error ;
       }
@@ -360,18 +360,35 @@ namespace engine
          {
             if ( !_saveName )
             {
-               return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
-                             CAT_CATALOGGROUPID_NAME << _groupID <<
-                             CAT_LOWBOUND_NAME << _lowBound <<
-                             CAT_UPBOUND_NAME << _upBound ) ;
+               if ( !_lowBound.isEmpty() && !_upBound.isEmpty() )
+               {
+                  return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
+                                CAT_CATALOGGROUPID_NAME << _groupID <<
+                                CAT_LOWBOUND_NAME << _lowBound <<
+                                CAT_UPBOUND_NAME << _upBound ) ;
+               }
+               else
+               {
+                  return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
+                                CAT_CATALOGGROUPID_NAME << _groupID ) ;
+               }
             }
             else
             {
-               return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
-                             CAT_CATALOGGROUPID_NAME << _groupID <<
-                             CAT_GROUPNAME_NAME << _groupName <<
-                             CAT_LOWBOUND_NAME << _lowBound <<
-                             CAT_UPBOUND_NAME << _upBound ) ;
+               if ( !_lowBound.isEmpty() && !_upBound.isEmpty() )
+               {
+                  return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
+                                CAT_CATALOGGROUPID_NAME << _groupID <<
+                                CAT_GROUPNAME_NAME << _groupName <<
+                                CAT_LOWBOUND_NAME << _lowBound <<
+                                CAT_UPBOUND_NAME << _upBound ) ;
+               }
+               else
+               {
+                  return BSON ( FIELD_NAME_ID << ( INT32 )_ID <<
+                                CAT_CATALOGGROUPID_NAME << _groupID <<
+                                CAT_GROUPNAME_NAME << _groupName ) ;
+               }
             }
          }
          else

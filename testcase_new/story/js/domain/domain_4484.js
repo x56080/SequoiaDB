@@ -51,7 +51,7 @@ function test ()
    var domainDataRg3 = [dataRGArr[0]];
    var domain3 = domainNames[2];
    db.createDomain( domain3, domainDataRg3 );
-   checkDomain( domain3, domainDataRg3 );
+   checkDomain( domain3, domainDataRg3, true );
    checkByCreateCS( domain3, csNames[2] );
 
    //域名覆盖不为string类型

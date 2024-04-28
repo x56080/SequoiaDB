@@ -28,8 +28,8 @@ function test ()
    commDropCS( db, subcsName2 );
    var groupName = commGetGroups( db )[0][0].GroupName;
    var maincl = db.createCS( maincsName ).createCL( mainclName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", Group: groupName, ReplSize: replSize } );
-   var subcl1 = db.createCS( subcsName1 ).createCL( subclName1, { ShardingKey: { a: 1 }, ShardingType: "range", Partition: 1024, Group: groupName, ReplSize: replSize } );
-   var subcl2 = db.createCS( subcsName2 ).createCL( subclName2, { ShardingKey: { a: 1 }, ShardingType: "range", Partition: 1024, Group: groupName, ReplSize: replSize } );
+   var subcl1 = db.createCS( subcsName1 ).createCL( subclName1, { ShardingKey: { a: 1 }, ShardingType: "range", Group: groupName, ReplSize: replSize } );
+   var subcl2 = db.createCS( subcsName2 ).createCL( subclName2, { ShardingKey: { a: 1 }, ShardingType: "range", Group: groupName, ReplSize: replSize } );
    for( var i = 0; i < subFullName.length; i++ )
    {
       maincl.attachCL( subFullName[i], { LowBound: { a: i * 50 }, UpBound: { a: ( i + 1 ) * 50 } } );

@@ -3362,7 +3362,7 @@ namespace engine
          const CHAR * collection = _arguments._targetName.c_str() ;
          const rtnAlterTask * taskRunner = _arguments.getTaskRunner() ;
          if ( NULL != taskRunner &&
-              taskRunner->testArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ) )
+              taskRunner->testArgumentMask( UTIL_CL_AUTOINC_FIELD ) )
          {
             INT32 tmpRC = _invalidateSequences( collection, taskRunner, cb ) ;
             if ( SDB_OK != tmpRC )
@@ -3638,7 +3638,7 @@ namespace engine
       PD_TRACE_ENTRY( COORD_ALTERCL__INVALIDATESEQ_TASK ) ;
 
       SDB_ASSERT( NULL != task &&
-                  task->testArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ),
+                  task->testArgumentMask( UTIL_CL_AUTOINC_FIELD ),
                   "task runner is invalid" ) ;
 
       switch ( task->getActionType() )

@@ -97,12 +97,17 @@ SdbCS
         >
         > 创建域和集合时均可指定参数 AutoSplit。如果显式指定集合的 AutoSplit，系统将优先按集合指定的值决定是否开启自动切分。
 
-    - Group（ *string* ）：所属复制组
+    - Group（ *string* or *sting array* ）：所属复制组
 
         - 该参数指定的值必须是集合所属域中包含的复制组。
         - 如果未指定该参数的值，集合将创建在集合所属域的任意一个复制组中。
 
-        格式：`Group: "group1"`
+        格式：`Group: "group1"` 或 `Group:['group1', 'group2']`
+
+    - SplitGroupStart（ *number* ）：起始分区组的位置
+
+        - -1表示随机计算
+        - >=0 表示从指定位置计算，该值超出数据组的个数将会自动取余计算
 
     - AutoIndexId（ *boolean* ）：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
 
@@ -151,6 +156,23 @@ SdbCS
         >**Note:**
         >
         > 参数 DataSource 和 Mapping 的具体使用场景可参考[数据源][datasource]。
+
+    - RefObj（ *object* ）：引用的编目对象，可以从编目快照获取
+
+        格式和编目快照中的编目对象一致。
+
+    - RefFrom（ *string* ）：引用的集合名
+
+        自动获取引用集合名的属性和分区信息。
+
+    - RefMode（ *number* ）：引用模式
+
+        - 0：重新计算分区（仅对 hash 分区生效，对 range 分区则等同效果 1）
+        - 1：重新调整数据组的顺序
+        - 2：完全拷贝 `RefObj` 或 `RefFrom` 的分区信息
+
+        当取值为0或1时，使用 `SplitGroupStart` 参数重新计算数据组的顺序。
+
 
 ##返回值##
 

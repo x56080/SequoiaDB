@@ -27,16 +27,16 @@ function test ()
    var domain = commCreateDomain( db, domainName, [group1] );
 
    domain.addGroups( { Groups: [group2, group3] } );
-   checkDomain( db, domainName, [group1, group2, group3], undefined, undefined );
+   checkDomain( db, domainName, [group1, group2, group3], true, undefined );
 
    domain.removeGroups( { Groups: [group1] } );
-   checkDomain( db, domainName, [group2, group3], undefined, undefined );
+   checkDomain( db, domainName, [group2, group3], true, undefined );
 
    domain.setGroups( { Groups: [group1] } );
-   checkDomain( db, domainName, [group1], undefined, undefined );
+   checkDomain( db, domainName, [group1], true, undefined );
 
    domain.setGroups( { Groups: [group2] } );
-   checkDomain( db, domainName, [group2], undefined, undefined );
+   checkDomain( db, domainName, [group2], true, undefined );
 
    commDropDomain( db, domainName );
 }

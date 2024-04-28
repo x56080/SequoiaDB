@@ -578,6 +578,8 @@ namespace engine
                            _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
                            INT16 w ) ;
 
+   INT32 catCheckCollectionInfo( catCollectionInfo &clInfo, UINT32 &fieldMask ) ;
+
    /* Check and build Collection record */
    INT32 catCheckAndBuildCataRecord ( const BSONObj &boCollection,
                                       UINT32 &fieldMask,
@@ -606,10 +608,15 @@ namespace engine
                                  catCollectionInfo &clInfo,
                                  UINT32 mask,
                                  UINT32 attribute,
-                                 const CAT_GROUP_SET &grpIDSet,
-                                 const std::map<std::string, UINT32> &splitLst,
+                                 const CAT_GROUP_LIST &grpIDList,
                                  BSONObj &catRecord,
                                  INT16 w ) ;
+
+   INT32 catCatalogRecordToInfo( _pmdEDUCB *cb,
+                                 const BSONObj &catalogRecord,
+                                 catCollectionInfo &clInfo,
+                                 UINT32 &mask,
+                                 BOOLEAN checkValid = TRUE ) ;
 
    /* Set Location */
    INT32 catSetLocation ( UINT32 locID, const ossPoolString &location,
