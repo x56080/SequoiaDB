@@ -93,6 +93,8 @@ public class Rbac32871 extends SdbTestBase {
             es.run();
 
             try {
+                userSdb.close();
+                userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
                 DBCollection userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
