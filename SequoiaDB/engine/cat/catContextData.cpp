@@ -1534,6 +1534,7 @@ namespace engine
       if ( !(_fieldMask & UTIL_CL_AUTOINC_FIELD) && (_refFieldMask & UTIL_CL_AUTOINC_FIELD) )
       {
          _clInfo._autoIncFields = _refCLInfo._autoIncFields ;
+         _clInfo._autoFromRef = _refCLInfo._autoFromRef ;
          _fieldMask |= UTIL_CL_AUTOINC_FIELD ;
       }
 

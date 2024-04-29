@@ -102,6 +102,7 @@ namespace engine
       INT64       _maxSize ;
       BOOLEAN     _overwrite ;
       BSONObj     _autoIncFields ;
+      BOOLEAN     _autoFromRef ;
       clsAutoIncSet _autoIncSet ;
       UTIL_DS_UID _dsUID ;
       CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
@@ -146,6 +147,7 @@ namespace engine
          _lobShardingKeyFormat = NULL ;
          _dsUID               = UTIL_INVALID_DS_UID ;
          _autoIncSet.clear() ;
+         _autoFromRef         = FALSE ;
          ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
          _vecCataInfo.clear() ;
          _vecCataInfoGrpID.clear() ;

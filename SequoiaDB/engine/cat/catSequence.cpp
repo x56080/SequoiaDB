@@ -521,9 +521,7 @@ namespace engine
          CAT_SEQUENCE_CYCLED_COUNT,
          CAT_SEQUENCE_INTERNAL,
          CAT_SEQUENCE_INITIAL,
-         CAT_SEQUENCE_NEXT_VALUE,
-         FIELD_NAME_AUTOINC_SEQ,
-         FIELD_NAME_AUTOINC_SEQ_ID
+         CAT_SEQUENCE_NEXT_VALUE
       } ;
       static std::set<std::string> fieldNames( fieldNameArray,
          fieldNameArray + sizeof( fieldNameArray ) / sizeof( *fieldNameArray ) ) ;

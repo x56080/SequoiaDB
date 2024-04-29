@@ -9293,6 +9293,7 @@ namespace engine
             if ( e.isABSONObj() )
             {
                clInfo._autoIncFields = BSON( CAT_AUTOINCREMENT << e ) ;
+               clInfo._autoFromRef = TRUE ;
                mask |= UTIL_CL_AUTOINC_FIELD ;
             }
             else if ( checkValid )
@@ -10152,8 +10153,17 @@ namespace engine
                 CAT_AUTOINCREMENT, ele.type() ) ;
       if ( Object == ele.type() )
       {
-         rc = catCreateAutoIncSequence( ele.Obj(), autoIncSet, clUniqueID, cb,
-                                        w ) ;
+         BSONObj objSeq = ele.embeddedObject() ;
+         if ( clInfo._autoFromRef )
+         {
+            rc = catFillSequenceOptions( objSeq, cb, objSeq ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+
+         rc = catCreateAutoIncSequence( objSeq, autoIncSet, clUniqueID, cb, w ) ;
          if( SDB_OK != rc )
          {
             goto error ;
@@ -10164,8 +10174,17 @@ namespace engine
          BSONObjIterator it( ele.embeddedObject() ) ;
          while ( it.more() )
          {
-            rc = catCreateAutoIncSequence( it.next().Obj(), autoIncSet,
-                                           clUniqueID, cb, w ) ;
+            BSONObj objSeq = it.next().embeddedObject() ;
+            if ( clInfo._autoFromRef )
+            {
+               rc = catFillSequenceOptions( objSeq, cb, objSeq ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+
+            rc = catCreateAutoIncSequence( objSeq, autoIncSet, clUniqueID, cb, w ) ;
             if( SDB_OK != rc )
             {
                goto error ;
@@ -10248,6 +10267,71 @@ namespace engine
       goto done ;
    }
 
+   INT32 catFillSequenceOptions( const BSONObj &autoIncOpt, _pmdEDUCB *cb, BSONObj &objDest )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj objSequence ;
+      catSequenceManager   *pSeqMgr = NULL ;
+      pSeqMgr = sdbGetCatalogueCB()->getCatGTSMgr()->getSequenceMgr() ;
+
+      try
+      {
+         BSONElement eleName = autoIncOpt.getField( CAT_AUTOINC_SEQ ) ;
+         if ( String != eleName.type() )
+         {
+            PD_LOG( PDERROR, "Get %s from auto-inc sequence object[%s] failed",
+                    CAT_AUTOINC_SEQ, autoIncOpt.toPoolString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = pSeqMgr->getSequence( eleName.str(), objSequence, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         /// builder new auto-inc sequence obj
+         {
+            BSONObjBuilder builder( autoIncOpt.objsize() + objSequence.objsize() ) ;
+            builder.appendElements( autoIncOpt ) ;
+
+            BSONObjIterator itr( objSequence ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( 0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_CURRENT_VALUE ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_NEXT_VALUE ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_INTERNAL ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_CYCLED_COUNT ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_NAME ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_OID ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_ID ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_VERSION ) ||
+                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_INITIAL ) )
+               {
+                  /// skip
+                  continue ;
+               }
+               builder.append( e ) ;
+            }
+
+            objDest = builder.obj() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    BSONObj catBuildSequenceOptions( const BSONObj &autoIncOpt,
                                     utilSequenceID ID,
                                     UINT32 fieldMask )
@@ -10259,9 +10343,10 @@ namespace engine
       {
          BSONElement ele = iter.next() ;
          const CHAR *fieldName = ele.fieldName() ;
-         if ( ossStrcmp( fieldName, CAT_AUTOINC_FIELD ) == 0 ||
-              ossStrcmp( fieldName, CAT_AUTOINC_GENERATED ) == 0 ||
-              ossStrcmp( fieldName, CAT_AUTOINC_SEQ ) == 0 )
+         if ( 0 == ossStrcmp( fieldName, CAT_AUTOINC_FIELD ) ||
+              0 == ossStrcmp( fieldName, CAT_AUTOINC_GENERATED ) ||
+              0 == ossStrcmp( fieldName, CAT_AUTOINC_SEQ ) ||
+              0 == ossStrcmp( fieldName, CAT_AUTOINC_SEQ_ID ) )
          {
             // ignored system fields
             continue ;

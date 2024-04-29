@@ -685,6 +685,9 @@ namespace engine
    INT32 catDropAutoIncSequences( const BSONObj &boCollection,
                                   _pmdEDUCB *cb,
                                   INT16 w ) ;
+
+   INT32 catFillSequenceOptions( const BSONObj &autoIncOpt, _pmdEDUCB *cb, BSONObj &objDest ) ;
+
    BSONObj catBuildSequenceOptions( const BSONObj &autoIncOpt,
                                     utilSequenceID ID = UTIL_SEQUENCEID_NULL,
                                     UINT32 fieldMask = UTIL_ARG_FIELD_ALL ) ;
