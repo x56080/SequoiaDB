@@ -26,7 +26,7 @@ The attributes that can be set through options are as follows:
 
 | Name | Description | Format |
 | ------ | ------ | ------ |
-| AutoSplit | Whether to automatically split the Hash Partitioning collection. | AutoSplit: true |
+| AutoSplit | Whether to automatically split the Hash Partitioning collection. Default: true | AutoSplit: true |
 
 > **Note:**
 >

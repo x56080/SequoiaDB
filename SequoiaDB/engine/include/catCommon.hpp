@@ -513,6 +513,8 @@ namespace engine
                                  BOOLEAN *isAltered = NULL ) ;
 #endif
 
+   INT32 catCheckCollectionInfo( catCollectionInfo &clInfo, UINT32 &fieldMask ) ;
+
    /* Check and build Collection record */
    INT32 catCheckAndBuildCataRecord ( const BSONObj &boCollection,
                                       UINT32 &fieldMask,
@@ -541,10 +543,15 @@ namespace engine
                                  catCollectionInfo &clInfo,
                                  UINT32 mask,
                                  UINT32 attribute,
-                                 const std::vector<UINT32> &grpIDLst,
-                                 const std::map<std::string, UINT32> &splitLst,
+                                 const CAT_GROUP_LIST &grpIDList,
                                  BSONObj &catRecord,
                                  INT16 w ) ;
+
+   INT32 catCatalogRecordToInfo( _pmdEDUCB *cb,
+                                 const BSONObj &catalogRecord,
+                                 catCollectionInfo &clInfo,
+                                 UINT32 &mask,
+                                 BOOLEAN checkValid = TRUE ) ;
 
    /* Create Node */
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
@@ -590,6 +597,9 @@ namespace engine
 
    /* Data Source */
    INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
+                                  BSONObj &obj, pmdEDUCB *cb ) ;
+
+   INT32 catCheckDataSourceExist( UTIL_DS_UID dsUID, BOOLEAN &exist,
                                   BSONObj &obj, pmdEDUCB *cb ) ;
 
    INT32 catCheckPureMappingCS( const CHAR *csName,

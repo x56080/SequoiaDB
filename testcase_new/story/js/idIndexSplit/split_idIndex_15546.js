@@ -9,7 +9,7 @@ testConf.DomainUseGroupNum = 2;
 testConf.csName = CHANGEDPREFIX + "_split15546";
 testConf.csOpt = { "Domain": CHANGEDPREFIX + "_split15546" };
 testConf.clName = "cl";
-testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "AutoIndexId": false };
+testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "AutoIndexId": false, AutoSplit:false };
 
 main( test );
 function test ( arg )

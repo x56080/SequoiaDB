@@ -1004,7 +1004,7 @@ namespace engine
          parsedArgumentMask( UTIL_CL_AUTOINC_GENERATED_FIELD ) ;
       }
 
-      parsedArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ) ;
+      parsedArgumentMask( UTIL_CL_AUTOINC_FIELD ) ;
 
       PD_CHECK( getArgumentCount() == (UINT32)_argument.nFields(),
                 SDB_INVALIDARG, error, PDERROR,
@@ -1102,7 +1102,7 @@ namespace engine
                     _argument.toString(false,false).c_str(), rc ) ;
          }
 
-         parsedArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ) ;
+         parsedArgumentMask( UTIL_CL_AUTOINC_FIELD ) ;
       }
       catch( std::exception& e )
       {
@@ -1211,7 +1211,7 @@ namespace engine
                     _argument.toString(false,false).c_str(), rc ) ;
          }
 
-         parsedArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ) ;
+         parsedArgumentMask( UTIL_CL_AUTOINC_FIELD ) ;
       }
       catch( std::exception& e )
       {
@@ -1516,7 +1516,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Invalid field argument[%s], rc: %d",
                         _argument.toString( false, false ).c_str(), rc ) ;
          }
-         parsedArgumentMask( UTIL_CL_AUTOINCREMENT_FIELD ) ;
+         parsedArgumentMask( UTIL_CL_AUTOINC_FIELD ) ;
          setFlags( RTN_ALTER_TASK_FLAG_CONTEXTLOCK |
                    RTN_ALTER_TASK_FLAG_SEQUENCE |
                    RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;

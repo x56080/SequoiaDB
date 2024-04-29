@@ -202,7 +202,14 @@ namespace engine
       /// check option auto split
       {
       BSONElement autoSplit = options.getField( CAT_DOMAIN_AUTO_SPLIT ) ;
-      if ( !autoSplit.eoo() && autoSplit.isBoolean() )
+      if ( autoSplit.eoo() )
+      {
+         if ( NULL != builder )
+         {
+            builder->appendBool( CAT_DOMAIN_AUTO_SPLIT, TRUE ) ;
+         }
+      }
+      else if ( autoSplit.isBoolean() )
       {
          if ( NULL != builder )
          {
@@ -5349,6 +5356,233 @@ namespace engine
    }
 #endif
 
+   INT32 catCheckCollectionInfo( catCollectionInfo &clInfo, UINT32 &fieldMask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( clInfo._isMainCL )
+      {
+         PD_LOG_MSG_CHECK ( clInfo._isSharding,
+                            SDB_NO_SHARDINGKEY, error, PDERROR,
+                            "main-collection must have ShardingKey!" );
+         PD_LOG_MSG_CHECK ( !clInfo._isHash,
+                            SDB_INVALID_MAIN_CL_TYPE, error, PDERROR,
+                            "the sharding-type of main-collection must be range!" );
+
+         PD_LOG_MSG_CHECK( !( UTIL_CL_AUTOIDXID_FIELD & fieldMask ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "can not set auto-index-id on main collection" ) ;
+         PD_LOG_MSG_CHECK( !( ( UTIL_CL_CAPPED_FIELD & fieldMask ) ||
+                              ( UTIL_CL_MAXREC_FIELD & fieldMask ) ||
+                              ( UTIL_CL_MAXSIZE_FIELD & fieldMask ) ||
+                              ( UTIL_CL_OVERWRITE_FIELD & fieldMask ) ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "can not set Capped|Max|Size on main collection" ) ;
+      }
+
+      if ( fieldMask & UTIL_CL_SHDKEY_FIELD )
+      {
+         PD_LOG_MSG_CHECK( _ixmIndexKeyGen::validateKeyDef( clInfo._shardingKey ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Sharding key [%s] definition is invalid",
+                           clInfo._shardingKey.toString().c_str() ) ;
+      }
+
+      if ( fieldMask & UTIL_CL_AUTOINC_FIELD )
+      {
+         BSONElement eleTmp = clInfo._autoIncFields.getField( CAT_AUTOINCREMENT ) ;
+         if ( Object == eleTmp.type() )
+         {
+            BSONObj options ;
+            options = eleTmp.Obj() ;
+            rc = clsAutoIncItem::validAutoIncOption( options ) ;
+            PD_RC_CHECK( rc, PDERROR, "Invalid autoIncrement options" ) ;
+            rc = catValidSequenceOption( options ) ;
+            PD_RC_CHECK( rc, PDERROR, "Invalid autoIncrement options" ) ;
+         }
+         else if( Array == eleTmp.type() )
+         {
+            BSONObjIterator it( eleTmp.embeddedObject() ) ;
+            while ( it.more() )
+            {
+               BSONElement ele ;
+               BSONObj options ;
+               ele = it.next() ;
+               PD_LOG_MSG_CHECK( Object == ele.type(), SDB_INVALIDARG, error,
+                                 PDERROR, "AutoIncrement[%s] definition is invalid",
+                                 eleTmp.String().c_str() ) ;
+               options = ele.Obj() ;
+               rc = clsAutoIncItem::validAutoIncOption( options ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+               rc = catValidSequenceOption( options ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+            }
+         }
+         else
+         {
+            PD_LOG_MSG( PDERROR, "AutoIncrement field type invalid" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      if ( clInfo._autoSplit || clInfo._autoRebalance )
+      {
+         PD_LOG_MSG_CHECK ( clInfo._isSharding,
+                            SDB_NO_SHARDINGKEY, error, PDERROR,
+                            "Can not do split or rebalance without ShardingKey!" );
+
+         PD_LOG_MSG_CHECK ( clInfo._vecGpSpecified.empty(),
+                            SDB_INVALIDARG, error, PDERROR,
+                            "AutoSplit or AutoRebalance cannot be used for specific groups" );
+
+         PD_LOG_MSG_CHECK( clInfo._isHash,
+                           SDB_INVALIDARG, error, PDERROR,
+                           "AutoSplit or AutoRebalance only can be set when shard type is hash" ) ;
+      }
+
+      if ( clInfo._vecGpSpecified.size() > 1 )
+      {
+         PD_LOG_MSG_CHECK ( clInfo._isSharding && clInfo._isHash,
+                            SDB_NO_SHARDINGKEY, error, PDERROR,
+                            "Multi-groups only can be set when hash sharding" );
+      }
+
+      if ( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ||
+           fieldMask & UTIL_CL_SHDTYPE_FIELD ||
+           fieldMask & UTIL_CL_PARTITION_FIELD )
+      {
+         PD_LOG_MSG_CHECK( fieldMask & UTIL_CL_SHDKEY_FIELD,
+                           SDB_INVALIDARG, error, PDERROR,
+                           "these arguments are legal only when sharding key is specified." ) ;
+      }
+
+      if ( fieldMask & UTIL_CL_PARTITION_FIELD )
+      {
+         PD_LOG_MSG_CHECK( clInfo._isSharding && clInfo._isHash, SDB_INVALIDARG,
+                           error, PDERROR,
+                           "Partition param can be set with hash sharding" ) ;
+      }
+
+      if ( clInfo._isCompressed && !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+
+      if ( !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) && ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._isCompressed = TRUE ;
+         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+      }
+
+      if ( !clInfo._isCompressed && ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "CompressionType can't be set when "
+                     "Compressed is false" ) ;
+         goto error ;
+      }
+
+      if ( clInfo._capped && !( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ) )
+      {
+         clInfo._enSureShardIndex = FALSE ;
+      }
+
+      if ( clInfo._capped && !( fieldMask & UTIL_CL_AUTOIDXID_FIELD ) )
+      {
+         clInfo._autoIndexId = FALSE ;
+         fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
+      }
+
+      if ( !clInfo._capped &&
+           !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
+           !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._isCompressed = TRUE ;
+         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+
+      if ( clInfo._capped )
+      {
+         if ( clInfo._isCompressed )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Compression is not allowed on capped collection." ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( ( clInfo._isSharding && clInfo._enSureShardIndex ) ||
+              clInfo._autoIndexId )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Index is not allowed to be created on capped collection, "
+                        "including $id index and $shard index.") ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( 0 == clInfo._maxSize )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Field[%s] must always be used when Capped is true",
+                        CAT_CL_MAX_SIZE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      if ( clInfo._lobShardingKeyFormat != NULL )
+      {
+         PD_LOG_MSG_CHECK( clsCheckAndParseLobKeyFormat( clInfo._lobShardingKeyFormat ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Lob sharding key format [%s] definition is invalid",
+                           clInfo._lobShardingKeyFormat ) ;
+
+         if ( !clInfo._isMainCL )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Field[%s] can't be set when collection is not MainCL",
+                        CAT_LOBSHARDINGKEYFORMAT_NAME ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( clInfo._shardingKey.nFields() != 1 )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Field[%s] can't be more than one key when support lob in MainCL",
+                        CAT_SHARDINGKEY_NAME ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      if ( 0 != clInfo._fullMapping[0] )
+      {
+         PD_LOG_MSG_CHECK( UTIL_INVALID_DS_UID != clInfo._dsUID,
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Field[%s] can't be set when collection is not DataSource",
+                           FIELD_NAME_MAPPING ) ;
+
+         PD_LOG_MSG_CHECK( NULL != ossStrchr( clInfo._fullMapping, '.' ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Field[%s] is not full collection name[%s]",
+                           FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
+      }
+      else
+      {
+         PD_LOG_MSG_CHECK( UTIL_INVALID_DS_UID == clInfo._dsUID, SDB_INVALIDARG, error, PDERROR,
+                           "The mapping must be configured when use datasource" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKANDBUILDCATARECORD, "catCheckAndBuildCataRecord" )
    INT32 catCheckAndBuildCataRecord( const BSONObj &boCollection,
                                      UINT32 &fieldMask,
@@ -5371,51 +5605,40 @@ namespace engine
          // collection name
          if ( ossStrcmp( eleTmp.fieldName(), CAT_COLLECTION_NAME ) == 0 )
          {
-            PD_CHECK( String == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error", CAT_COLLECTION_NAME,
-                      eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( String == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error", CAT_COLLECTION_NAME,
+                              eleTmp.type() ) ;
             clInfo._pCLName = eleTmp.valuestr() ;
             fieldMask |= UTIL_CL_NAME_FIELD ;
          }
          // sharding key
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_SHARDINGKEY_NAME ) == 0 )
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_SHARDINGKEY_NAME ) == 0 )
          {
-            PD_CHECK( Object == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error", CAT_SHARDINGKEY_NAME,
-                      eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Object == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error", CAT_SHARDINGKEY_NAME,
+                              eleTmp.type() ) ;
             clInfo._shardingKey = eleTmp.embeddedObject() ;
-            PD_CHECK( _ixmIndexKeyGen::validateKeyDef( clInfo._shardingKey ),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Sharding key [%s] definition is invalid",
-                      clInfo._shardingKey.toString().c_str() ) ;
             fieldMask |= UTIL_CL_SHDKEY_FIELD ;
             clInfo._isSharding = TRUE ;
          }
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_LOBSHARDINGKEYFORMAT_NAME ) == 0 )
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_LOBSHARDINGKEYFORMAT_NAME ) == 0 )
          {
-            PD_CHECK( String == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_LOBSHARDINGKEYFORMAT_NAME, eleTmp.type() ) ;
-            PD_CHECK( clsCheckAndParseLobKeyFormat( eleTmp.valuestr() ),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Lob sharding key format [%s] definition is invalid",
-                      eleTmp.valuestr() ) ;
-
+            PD_LOG_MSG_CHECK( String == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_LOBSHARDINGKEYFORMAT_NAME, eleTmp.type() ) ;
             clInfo._lobShardingKeyFormat = eleTmp.valuestr() ;
             fieldMask |= UTIL_CL_LOBKEYFORMAT_FIELD ;
          }
          // repl size
          else if ( ossStrcmp( eleTmp.fieldName(), CAT_CATALOG_W_NAME ) == 0 )
          {
-            PD_CHECK( NumberInt == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CATALOG_W_NAME, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( NumberInt == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_CATALOG_W_NAME, eleTmp.type() ) ;
             clInfo._replSize = eleTmp.numberInt() ;
             if ( 1 <= clInfo._replSize &&
                  clInfo._replSize <= CLS_REPLSET_MAX_NODE_SIZE )
@@ -5432,9 +5655,7 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDWARNING,
-                       "Invalid repl size: %d",
-                       clInfo._replSize ) ;
+               PD_LOG_MSG( PDERROR, "Invalid repl size: %d", clInfo._replSize ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
@@ -5444,77 +5665,73 @@ namespace engine
          // ensure sharding index
          else if ( ossStrcmp( eleTmp.fieldName(), CAT_ENSURE_SHDINDEX ) == 0 )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error", CAT_ENSURE_SHDINDEX,
-                      eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error", CAT_ENSURE_SHDINDEX,
+                              eleTmp.type() ) ;
             clInfo._enSureShardIndex = eleTmp.Bool() ;
             fieldMask |= UTIL_CL_ENSURESHDIDX_FIELD ;
          }
          // sharding type
          else if ( ossStrcmp( eleTmp.fieldName(), CAT_SHARDING_TYPE ) == 0 )
          {
-            PD_CHECK( String == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error", CAT_SHARDING_TYPE,
-                      eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( String == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error", CAT_SHARDING_TYPE,
+                              eleTmp.type() ) ;
 
             // check string value
             clInfo._pShardingType = eleTmp.valuestr() ;
-            PD_CHECK( 0 == ossStrcmp( clInfo._pShardingType,
-                                      CAT_SHARDING_TYPE_HASH ) ||
-                      0 == ossStrcmp( clInfo._pShardingType,
-                                      CAT_SHARDING_TYPE_RANGE ),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] value [%s] should be [%s/%s]",
-                      CAT_SHARDING_TYPE, clInfo._pShardingType,
-                      CAT_SHARDING_TYPE_HASH, CAT_SHARDING_TYPE_RANGE ) ;
+            PD_LOG_MSG_CHECK( 0 == ossStrcmp( clInfo._pShardingType,
+                                              CAT_SHARDING_TYPE_HASH ) ||
+                              0 == ossStrcmp( clInfo._pShardingType,
+                                              CAT_SHARDING_TYPE_RANGE ),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] value [%s] should be [%s/%s]",
+                              CAT_SHARDING_TYPE, clInfo._pShardingType,
+                              CAT_SHARDING_TYPE_HASH, CAT_SHARDING_TYPE_RANGE ) ;
             fieldMask |= UTIL_CL_SHDTYPE_FIELD ;
 
-            clInfo._isHash = ( 0 == ossStrcmp( clInfo._pShardingType,
-                                               CAT_SHARDING_TYPE_HASH ) ) ;
+            clInfo._isHash = ( 0 == ossStrcmp( clInfo._pShardingType, CAT_SHARDING_TYPE_HASH ) ) ;
          }
          // sharding partition
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_SHARDING_PARTITION ) == 0 )
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_SHARDING_PARTITION ) == 0 )
          {
-            PD_CHECK( NumberInt == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_SHARDING_PARTITION, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( NumberInt == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_SHARDING_PARTITION, eleTmp.type() ) ;
             clInfo._shardPartition = eleTmp.numberInt() ;
             // must be the power of 2
-            PD_CHECK( ossIsPowerOf2( (UINT32)clInfo._shardPartition ),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] value must be power of 2",
-                      CAT_SHARDING_PARTITION ) ;
-            PD_CHECK( clInfo._shardPartition >= CAT_SHARDING_PARTITION_MIN &&
-                      clInfo._shardPartition <= CAT_SHARDING_PARTITION_MAX,
-                      SDB_INVALIDARG, error, PDWARNING, "Field[%s] value[%d] "
-                      "should between in[%d, %d]", CAT_SHARDING_PARTITION,
-                      clInfo._shardPartition, CAT_SHARDING_PARTITION_MIN,
-                      CAT_SHARDING_PARTITION_MAX ) ;
+            PD_LOG_MSG_CHECK( ossIsPowerOf2( (UINT32)clInfo._shardPartition ),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] value must be power of 2",
+                              CAT_SHARDING_PARTITION ) ;
+            PD_LOG_MSG_CHECK( clInfo._shardPartition >= CAT_SHARDING_PARTITION_MIN &&
+                              clInfo._shardPartition <= CAT_SHARDING_PARTITION_MAX,
+                              SDB_INVALIDARG, error, PDERROR, "Field[%s] value[%d] "
+                              "should between in[%d, %d]", CAT_SHARDING_PARTITION,
+                              clInfo._shardPartition, CAT_SHARDING_PARTITION_MIN,
+                              CAT_SHARDING_PARTITION_MAX ) ;
             fieldMask |= UTIL_CL_PARTITION_FIELD ;
          }
          // compression flag
-         else if ( ossStrcmp ( eleTmp.fieldName(),
-                               CAT_COMPRESSED ) == 0 )
+         else if ( ossStrcmp ( eleTmp.fieldName(), CAT_COMPRESSED ) == 0 )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_COMPRESSED, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_COMPRESSED, eleTmp.type() ) ;
             clInfo._isCompressed = eleTmp.boolean() ;
             fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
          }
          // main-collection flag
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_IS_MAINCL ) == 0 )
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_IS_MAINCL ) == 0 )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_IS_MAINCL, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_IS_MAINCL, eleTmp.type() ) ;
             clInfo._isMainCL = eleTmp.boolean() ;
             fieldMask |= UTIL_CL_ISMAINCL_FIELD ;
             if ( !( fieldMask & UTIL_CL_SHDTYPE_FIELD ) )
@@ -5524,80 +5741,102 @@ namespace engine
             }
          }
          // strictDataMode flag
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_STRICTDATAMODE ) == 0 )
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_STRICTDATAMODE ) == 0 )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_STRICTDATAMODE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_STRICTDATAMODE, eleTmp.type() ) ;
             clInfo._strictDataMode = eleTmp.boolean() ;
             fieldMask |= UTIL_CL_STRICTDATAMODE_FIELD ;
          }
          // group specified
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
-                                   CAT_GROUP_NAME ) )
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_GROUP_NAME ) )
          {
-            PD_CHECK( String == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_GROUP_NAME, eleTmp.type() ) ;
-            if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
-                                     CAT_ASSIGNGROUP_FOLLOW ) )
+            if ( String == eleTmp.type() )
             {
-               clInfo._assignType = ASSIGN_FOLLOW ;
+               if ( 0 == ossStrcasecmp( eleTmp.valuestr(), CAT_ASSIGNGROUP_FOLLOW ) )
+               {
+                  clInfo._assignType = ASSIGN_FOLLOW ;
+               }
+               else if ( 0 == ossStrcasecmp( eleTmp.valuestr(), CAT_ASSIGNGROUP_RANDOM ) )
+               {
+                  clInfo._assignType = ASSIGN_RANDOM ;
+               }
+               else
+               {
+                  clInfo._vecGpSpecified.push_back( eleTmp.valuestr() ) ;
+               }
             }
-            else if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
-                                          CAT_ASSIGNGROUP_RANDOM ) )
+            else if ( Array == eleTmp.type() )
             {
-               clInfo._assignType = ASSIGN_RANDOM ;
+               BSONObjIterator tmpItr( eleTmp.embeddedObject() ) ;
+               while( tmpItr.more() )
+               {
+                  BSONElement eleSub = tmpItr.next() ;
+                  /// eleSub must be string
+                  PD_LOG_MSG_CHECK( String == eleSub.type(), SDB_INVALIDARG, error, PDERROR,
+                                    "Field [%s] 's array element must be string", CAT_GROUP_NAME ) ;
+                  clInfo._vecGpSpecified.push_back( eleSub.valuestr() ) ;
+               }
             }
             else
             {
-               clInfo._gpSpecified = eleTmp.valuestr() ;
+               PD_LOG_MSG( PDERROR, "Field [%s] type [%d] error", CAT_GROUP_NAME, eleTmp.type() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
             }
          }
          // auto split
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
-                                   CAT_DOMAIN_AUTO_SPLIT ) )
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_DOMAIN_AUTO_SPLIT ) )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_DOMAIN_AUTO_SPLIT, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_DOMAIN_AUTO_SPLIT, eleTmp.type() ) ;
             clInfo._autoSplit = eleTmp.Bool() ;
             fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
          }
-         // auto rebalance
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
-                                   CAT_DOMAIN_AUTO_REBALANCE ) )
+         // SplitGroupStart
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_SPLITGROUP_START ) )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_DOMAIN_AUTO_REBALANCE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( NumberInt == eleTmp.type(), SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] type[%d] error", FIELD_NAME_SPLITGROUP_START,
+                              eleTmp.type() ) ;
+
+            PD_LOG_MSG_CHECK( eleTmp.numberInt() >= -1, SDB_INVALIDARG, error, PDERROR,
+                              "Field[%s] value error", FIELD_NAME_SPLITGROUP_START,
+                              eleTmp.toString().c_str() ) ;
+
+            clInfo._splitGroupStart = eleTmp.numberInt() ;
+         }
+         // auto rebalance
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_DOMAIN_AUTO_REBALANCE ) )
+         {
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_DOMAIN_AUTO_REBALANCE, eleTmp.type() ) ;
             clInfo._autoRebalance = eleTmp.Bool() ;
             fieldMask |= UTIL_CL_AUTOREBALANCE_FIELD ;
          }
          // auto index id
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
-                                   CAT_AUTO_INDEX_ID ) )
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_AUTO_INDEX_ID ) )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_AUTO_INDEX_ID, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_AUTO_INDEX_ID, eleTmp.type() ) ;
             clInfo._autoIndexId = eleTmp.Bool() ;
             fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
          }
          // compression type
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
-                                   CAT_COMPRESSIONTYPE ) )
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_COMPRESSIONTYPE ) )
          {
-            PD_CHECK( String == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_COMPRESSIONTYPE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( String == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_COMPRESSIONTYPE, eleTmp.type() ) ;
             if ( 0 == ossStrcmp( eleTmp.valuestr(), CAT_COMPRESSOR_LZW ) )
             {
                clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
@@ -5608,11 +5847,11 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDWARNING,
-                       "Invalid Compression Type. Field[%s] value[%s] should "
-                       "be [%s|%s] or leave empty",
-                       CAT_COMPRESSIONTYPE, eleTmp.valuestr(),
-                       CAT_COMPRESSOR_LZW, CAT_COMPRESSOR_SNAPPY );
+               PD_LOG_MSG( PDERROR,
+                           "Invalid Compression Type. Field[%s] value[%s] should "
+                           "be [%s|%s] or leave empty",
+                           CAT_COMPRESSIONTYPE, eleTmp.valuestr(),
+                           CAT_COMPRESSOR_LZW, CAT_COMPRESSOR_SNAPPY );
                rc = SDB_INVALIDARG ;
                goto error ;
             }
@@ -5621,41 +5860,41 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CAPPED_NAME ) )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CAPPED_NAME, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_CAPPED_NAME, eleTmp.type() ) ;
             clInfo._capped = eleTmp.boolean() ;
             fieldMask |= UTIL_CL_CAPPED_FIELD ;
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_RECNUM ) )
          {
-            PD_CHECK( NumberLong == eleTmp.type()
-                      || NumberInt == eleTmp.type()
-                      || NumberDouble == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_MAX_RECNUM, eleTmp.type() ) ;
-            PD_CHECK( eleTmp.numberLong() >= 0,
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Invalid Max[ %lld ] when creating capped collection",
-                      eleTmp.numberLong() ) ;
+            PD_LOG_MSG_CHECK( NumberLong == eleTmp.type() ||
+                              NumberInt == eleTmp.type() ||
+                              NumberDouble == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_CL_MAX_RECNUM, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( eleTmp.numberLong() >= 0,
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Invalid Max[ %lld ] when creating capped collection",
+                              eleTmp.numberLong() ) ;
             clInfo._maxRecNum = eleTmp.numberLong() ;
             fieldMask |= UTIL_CL_MAXREC_FIELD ;
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_SIZE ) )
          {
-            PD_CHECK( NumberLong == eleTmp.type()
-                      || NumberInt == eleTmp.type()
-                      || NumberDouble == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_MAX_SIZE, eleTmp.type() ) ;
-            PD_CHECK( eleTmp.numberLong() > 0 &&
-                      eleTmp.numberLong() <= DMS_CAP_CL_SIZE,
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Invalid Size[ %lld ] when creating capped collection",
-                      eleTmp.numberLong() ) ;
+            PD_LOG_MSG_CHECK( NumberLong == eleTmp.type() ||
+                              NumberInt == eleTmp.type() ||
+                              NumberDouble == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_CL_MAX_SIZE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( eleTmp.numberLong() > 0 &&
+                              eleTmp.numberLong() <= DMS_CAP_CL_SIZE,
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Invalid Size[ %lld ] when creating capped collection",
+                              eleTmp.numberLong() ) ;
             // Always align the size upper to 32MB.
             clInfo._maxSize = ossRoundUpToMultipleX( eleTmp.numberLong() << 20,
                                                      DMS_MAX_CL_SIZE_ALIGN_SIZE ) ;
@@ -5663,55 +5902,27 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_OVERWRITE ) )
          {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_OVERWRITE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( Bool == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_CL_OVERWRITE, eleTmp.type() ) ;
             clInfo._overwrite = eleTmp.Bool() ;
             fieldMask |= UTIL_CL_OVERWRITE_FIELD ;
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_AUTOINCREMENT ) )
          {
-            PD_CHECK( Object == eleTmp.type() || Array == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_AUTOINCREMENT, eleTmp.type() ) ;
-            if ( Object == eleTmp.type() )
-            {
-               BSONObj options ;
-               options = eleTmp.Obj() ;
-               rc = clsAutoIncItem::validAutoIncOption( options ) ;
-               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
-               rc = catValidSequenceOption( options ) ;
-               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
-            }
-            else if( Array == eleTmp.type() )
-            {
-               BSONObjIterator it( eleTmp.embeddedObject() ) ;
-               while ( it.more() )
-               {
-                  BSONElement ele ;
-                  BSONObj options ;
-                  ele = it.next() ;
-                  PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error,
-                            PDWARNING, "AutoIncrement[%s] definition is invalid",
-                            eleTmp.String().c_str() ) ;
-                  options = ele.Obj() ;
-                  rc = clsAutoIncItem::validAutoIncOption( options ) ;
-                  PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
-                  rc = catValidSequenceOption( options ) ;
-                  PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
-               }
-            }
-            clInfo._autoIncFields = BSON( CAT_AUTOINCREMENT <<
-                                          boCollection.getField( CAT_AUTOINCREMENT ) ) ;
+            PD_LOG_MSG_CHECK( Object == eleTmp.type() || Array == eleTmp.type(),
+                              SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] type [%d] error",
+                              CAT_AUTOINCREMENT, eleTmp.type() ) ;
+            clInfo._autoIncFields = BSON( CAT_AUTOINCREMENT << eleTmp ) ;
             fieldMask |= UTIL_CL_AUTOINC_FIELD ;
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_DATASOURCE ) )
          {
-            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
-                      PDWARNING, "Field [%s] type [%d] error",
-                      FIELD_NAME_DATASOURCE, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] type [%d] error",
+                              FIELD_NAME_DATASOURCE, eleTmp.type() ) ;
             BOOLEAN exist = FALSE ;
             BSONObj obj ;
             const CHAR *dsName = eleTmp.valuestrsafe() ;
@@ -5719,167 +5930,37 @@ namespace engine
                                           pmdGetThreadEDUCB() ) ;
             PD_RC_CHECK( rc, PDERROR, "Check data source[%s] existence "
                          "failed[%d]", dsName, rc ) ;
-            PD_CHECK( exist, SDB_CAT_DATASOURCE_NOTEXIST, error, PDERROR,
-                      "Data source[%s] dose not exist", dsName ) ;
+            PD_LOG_MSG_CHECK( exist, SDB_CAT_DATASOURCE_NOTEXIST, error, PDERROR,
+                              "Data source[%s] dose not exist", dsName ) ;
             clInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
+            fieldMask |= UTIL_CL_DATASOURCE_FIELD ;
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_MAPPING ) )
          {
-            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
-                      PDWARNING, "Field [%s] type [%d] error",
-                      FIELD_NAME_MAPPING, eleTmp.type() ) ;
+            PD_LOG_MSG_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] type [%d] error",
+                              FIELD_NAME_MAPPING, eleTmp.type() ) ;
             origMapping = eleTmp.valuestr() ;
             PD_CHECK( ossStrlen(origMapping) > 0, SDB_INVALIDARG, error,
                       PDERROR, "Mapping value is invalid" ) ;
          }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFMODE ) ||
+                   0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFOBJ ) ||
+                   0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFFROM ) )
+         {
+            /// ignore
+         }
          else
          {
-            PD_RC_CHECK ( SDB_INVALIDARG, PDWARNING,
-                          "Unexpected field[%s] in create collection command",
-                          eleTmp.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Unexpected field[%s] in create collection command",
+                        eleTmp.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
-      }
-
-      if ( clInfo._isMainCL )
-      {
-         PD_CHECK ( clInfo._isSharding,
-                    SDB_NO_SHARDINGKEY, error, PDWARNING,
-                    "main-collection must have ShardingKey!" );
-         PD_CHECK ( !clInfo._isHash,
-                    SDB_INVALID_MAIN_CL_TYPE, error, PDWARNING,
-                    "the sharding-type of main-collection must be range!" );
-
-         PD_CHECK( !( UTIL_CL_AUTOIDXID_FIELD & fieldMask ),
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "can not set auto-index-id on main collection" ) ;
-         PD_CHECK( !( ( UTIL_CL_CAPPED_FIELD & fieldMask ) ||
-                      ( UTIL_CL_MAXREC_FIELD & fieldMask ) ||
-                      ( UTIL_CL_MAXSIZE_FIELD & fieldMask ) ||
-                      ( UTIL_CL_OVERWRITE_FIELD & fieldMask ) ),
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "can not set Capped|Max|Size on main collection" ) ;
-      }
-
-      if ( clInfo._autoSplit || clInfo._autoRebalance )
-      {
-         PD_CHECK ( clInfo._isSharding,
-                    SDB_NO_SHARDINGKEY, error, PDWARNING,
-                    "can not do split or rebalance with out ShardingKey!" );
-
-         PD_CHECK ( NULL == clInfo._gpSpecified,
-                    SDB_INVALIDARG, error, PDWARNING,
-                    "can not do split or rebalance with out more than one group" );
-
-         PD_CHECK( clInfo._isHash,
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "auto options only can be set when shard type is hash" ) ;
-      }
-
-      if ( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ||
-           fieldMask & UTIL_CL_SHDTYPE_FIELD ||
-           fieldMask & UTIL_CL_PARTITION_FIELD )
-      {
-         PD_CHECK( fieldMask & UTIL_CL_SHDKEY_FIELD,
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "these arguments are legal only when sharding key is specified." ) ;
       }
 
       PD_CHECK( clInfo._pCLName, SDB_INVALIDARG, error, PDWARNING,
                 "Collection name not set" ) ;
-
-      if ( clInfo._isCompressed &&
-           !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
-      {
-         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
-      }
-
-      if ( !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
-           ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
-      {
-         clInfo._isCompressed = TRUE ;
-         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
-      }
-
-      if ( !clInfo._isCompressed &&
-           ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "CompressionType can't be set when "
-                     "Compressed is false" ) ;
-         goto error ;
-      }
-
-      if ( clInfo._capped &&
-           !( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ) )
-      {
-         clInfo._enSureShardIndex = FALSE ;
-      }
-
-      if ( clInfo._capped &&
-           !( fieldMask & UTIL_CL_AUTOIDXID_FIELD ) )
-      {
-         clInfo._autoIndexId = FALSE ;
-         fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
-      }
-
-      if ( !clInfo._capped &&
-           !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
-           !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
-      {
-         clInfo._isCompressed = TRUE ;
-         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
-         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
-      }
-
-      if ( clInfo._capped )
-      {
-         if ( clInfo._isCompressed )
-         {
-            PD_LOG( PDWARNING,
-                    "Compression is not allowed on capped collection." ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( ( clInfo._isSharding && clInfo._enSureShardIndex ) ||
-              clInfo._autoIndexId )
-         {
-            PD_LOG( PDWARNING,
-                    "Index is not allowed to be created on capped collection, "
-                    "including $id index and $shard index.") ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( 0 == clInfo._maxSize )
-         {
-            PD_LOG( PDWARNING,
-                    "Field[%s] must always be used when Capped is true",
-                    CAT_CL_MAX_SIZE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-      }
-
-      if ( clInfo._lobShardingKeyFormat != NULL )
-      {
-         if ( !clInfo._isMainCL )
-         {
-            PD_LOG( PDWARNING,
-                    "Field[%s] can't be set when collection is not MainCL",
-                    CAT_LOBSHARDINGKEYFORMAT_NAME ) ;
-            rc = SDB_INVALIDARG ;
-         }
-
-         if ( clInfo._shardingKey.nFields() != 1 )
-         {
-            PD_LOG( PDWARNING,
-                    "Field[%s] can't be more than one key when support lob in"
-                    "MainCL",
-                    CAT_SHARDINGKEY_NAME ) ;
-            rc = SDB_INVALIDARG ;
-         }
-      }
 
       if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
       {
@@ -5913,10 +5994,763 @@ namespace engine
          }
       }
 
+      /// check and adjust
+      rc = catCheckCollectionInfo( clInfo, fieldMask ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCHECKANDBUILDCATARECORD, rc ) ;
       return rc ;
    error :
+      goto done ;
+   }
+
+   // build catalogue-info record:
+   // {  Name: "SpaceName.CollectionName", Version: 1,
+   //    ShardingKey: { Key1: 1, Key2: -1 },
+   //    CataInfo:
+   //       [ { GroupID: 1000, LowBound:{ "":MinKey,"":MaxKey }, UpBound:{"":MaxKey,"":MinKey} } ] }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDCATARECORD, "catBuildCatalogRecord" )
+   INT32 catBuildCatalogRecord( _pmdEDUCB *cb,
+                                catCollectionInfo &clInfo,
+                                UINT32 mask, UINT32 attribute,
+                                const CAT_GROUP_LIST &grpIDList,
+                                BSONObj &catRecord,
+                                INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+
+      PD_TRACE_ENTRY ( SDB_CATBUILDCATARECORD ) ;
+
+      BSONObjBuilder builder ;
+      CHAR szAttr[ 100 ] = { 0 } ;
+
+      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      {
+         attribute |= DMS_MB_ATTR_COMPRESSED ;
+      }
+      if ( ( mask & UTIL_CL_AUTOIDXID_FIELD ) && !clInfo._autoIndexId )
+      {
+         attribute |= DMS_MB_ATTR_NOIDINDEX ;
+      }
+      if ( ( mask & UTIL_CL_CAPPED_FIELD ) && clInfo._capped )
+      {
+         attribute |= DMS_MB_ATTR_CAPPED ;
+      }
+      if ( ( mask & UTIL_CL_STRICTDATAMODE_FIELD ) && clInfo._strictDataMode )
+      {
+         attribute |= DMS_MB_ATTR_STRICTDATAMODE ;
+      }
+      mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
+
+      if ( mask & UTIL_CL_NAME_FIELD )
+      {
+         builder.append( CAT_CATALOGNAME_NAME, clInfo._pCLName ) ;
+      }
+
+      builder.append( CAT_CL_UNIQUEID, (INT64)clInfo._clUniqueID ) ;
+
+
+      /// this is not specified by user.
+      builder.append( CAT_CATALOGVERSION_NAME,
+                      0 == clInfo._version ?
+                      CAT_VERSION_BEGIN :
+                      clInfo._version ) ;
+
+      if ( mask & UTIL_CL_REPLSIZE_FIELD )
+      {
+         builder.append( CAT_CATALOG_W_NAME, clInfo._replSize ) ;
+      }
+
+      builder.append( CAT_ATTRIBUTE_NAME, attribute ) ;
+      builder.append( FIELD_NAME_ATTRIBUTE_DESC, szAttr ) ;
+
+      /// only record the options specified by user.
+      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      {
+         builder.append( CAT_COMPRESSIONTYPE, clInfo._compressorType ) ;
+         builder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
+                         utilCompressType2String( clInfo._compressorType ) ) ;
+      }
+      if ( mask & UTIL_CL_SHDKEY_FIELD )
+      {
+         builder.append( CAT_SHARDINGKEY_NAME, clInfo._shardingKey ) ;
+         builder.appendBool( CAT_ENSURE_SHDINDEX, clInfo._enSureShardIndex ) ;
+         builder.append( CAT_SHARDING_TYPE, clInfo._pShardingType ) ;
+         if( clInfo._isHash )
+         {
+            builder.append( CAT_SHARDING_PARTITION, clInfo._shardPartition ) ;
+
+            /// optimize query on hash-sharding only sdb's version >= 1.12
+            /// update version since 1.12.4
+            builder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_CURRENT_VERSION ) ;
+         }
+      }
+      /// add catainfo to record even not specified by user.
+      if ( clInfo._isMainCL )
+      {
+         builder.appendBool( CAT_IS_MAINCL, clInfo._isMainCL );
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         sub.done() ;
+      }
+      else if ( !clInfo._vecCataInfo.empty() )
+      {
+         BSONArrayBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         for ( UINT32 i = 0 ; i < clInfo._vecCataInfo.size() ; ++i )
+         {
+            BSONObjBuilder itemSub( sub.subobjStart() ) ;
+            itemSub.appendElements( clInfo._vecCataInfo[i] ) ;
+            itemSub.done() ;
+         }
+         sub.done() ;
+      }
+      else if ( grpIDList.size() > 1 )
+      {
+         // cata info build
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         INT32 itemID = 0 ;
+         UINT32 totalBound = (UINT32) clInfo._shardPartition ;
+         UINT32 grpSize = grpIDList.size() ;
+         UINT32 avgBound = totalBound / grpSize ;
+         UINT32 modMark = grpSize - ( totalBound % grpSize ) ;
+         UINT32 beginBound = CAT_HASH_LOW_BOUND ;
+         UINT32 endBound = beginBound + avgBound ;
+
+         PD_LOG_MSG_CHECK( clInfo._isSharding && clInfo._isHash,
+                           SDB_INVALIDARG, error, PDERROR,
+                           "AutoSplit or multi-groups only on hash sharding" ) ;
+
+         if ( totalBound < grpSize )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG( PDERROR, "Partition(%u) can not less than group number(%u)",
+                        totalBound, grpSize ) ;
+            goto error;
+         }
+
+         for ( CAT_GROUP_LIST::const_iterator iterGrp = grpIDList.begin() ;
+               iterGrp != grpIDList.end();
+               ++iterGrp )
+         {
+            UINT32 grpID = *iterGrp ;
+            const CHAR *grpName = pCatCB->groupID2Name( grpID ) ;
+            BSONObj lowBound, upBound ;
+
+            if ( (UINT32)itemID >= modMark )
+            {
+               ++endBound ;
+            }
+
+            BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(itemID) ) ) ;
+            cataItemBd.append ( FIELD_NAME_ID, itemID ) ;
+            cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
+            cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
+
+            rc = catBuildHashBound( lowBound, upBound, beginBound, endBound ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to build cata info bound, rc: %d",
+                         rc ) ;
+
+            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
+            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
+
+            cataItemBd.done () ;
+
+            beginBound = endBound ;
+            endBound = endBound + avgBound ;
+            ++ itemID ;
+         }
+         sub.done () ;
+      }
+      else
+      {
+         // cata info build
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(0) ) ) ;
+         pmdKRCB *krcb = pmdGetKRCB() ;
+         sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+         UINT32 grpID = CAT_INVALID_GROUPID ;
+         std::string grpName ;
+
+         if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
+         {
+            PD_CHECK( grpIDList.size() == 1,
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Must has only one group specified" ) ;
+            grpID = grpIDList[0] ;
+         }
+         else
+         {
+            grpID = SDB_DSID_2_GROUPID( clInfo._dsUID ) ;
+         }
+
+         cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
+
+         /// Get SYS groups for SYS collections
+         grpName = pCatCB->groupID2Name( grpID ) ;
+         cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
+
+         if ( clInfo._isSharding )
+         {
+            // add LowBound and UpBound
+            BSONObj lowBound, upBound ;
+
+            if ( !clInfo._isHash )
+            {
+               Ordering order = Ordering::make( clInfo._shardingKey ) ;
+               rc = catBuildInitRangeBound ( clInfo._shardingKey, order ,
+                                             lowBound, upBound ) ;
+            }
+            else
+            {
+               rc = catBuildInitHashBound( lowBound, upBound,
+                                           clInfo._shardPartition ) ;
+            }
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to build cata info bound, rc: %d",
+                         rc ) ;
+
+            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
+            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
+         }
+         cataItemBd.done () ;
+         sub.done () ;
+      }
+
+      if ( mask & UTIL_CL_AUTOSPLIT_FIELD )
+      {
+         builder.appendBool ( CAT_DOMAIN_AUTO_SPLIT, clInfo._autoSplit ) ;
+      }
+
+      if ( mask & UTIL_CL_AUTOREBALANCE_FIELD )
+      {
+         builder.appendBool ( CAT_DOMAIN_AUTO_REBALANCE, clInfo._autoRebalance ) ;
+      }
+
+      if ( mask & UTIL_CL_MAXREC_FIELD )
+      {
+         builder.append( CAT_CL_MAX_RECNUM, (INT64)clInfo._maxRecNum ) ;
+      }
+
+      if ( mask & UTIL_CL_MAXSIZE_FIELD )
+      {
+         builder.append( CAT_CL_MAX_SIZE, (INT64)clInfo._maxSize ) ;
+      }
+
+      if ( mask & UTIL_CL_OVERWRITE_FIELD )
+      {
+         builder.appendBool( CAT_CL_OVERWRITE, clInfo._overwrite ) ;
+      }
+
+      if ( mask & UTIL_CL_AUTOINC_FIELD )
+      {
+         BSONElement ele ;
+         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+
+         clUniqueID = clInfo._clUniqueID ;
+         ele = clInfo._autoIncFields.getField( CAT_AUTOINCREMENT ) ;
+         if ( Object == ele.type() )
+         {
+            rc = catBuildCatalogAutoIncField( cb, clInfo, ele.Obj(),
+                                              clUniqueID, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build autoinc field, rc: %d",
+                         rc ) ;
+         }
+         else if( Array == ele.type() )
+         {
+            BSONObjIterator it( ele.embeddedObject() ) ;
+            while ( it.more() )
+            {
+               rc = catBuildCatalogAutoIncField( cb, clInfo, it.next().Obj(),
+                                                 clUniqueID, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get global ID for field, "
+                            "rc: %d", rc ) ;
+            }
+         }
+         builder.appendElements( clInfo._autoIncSet.toBson() ) ;
+      }
+
+      if ( mask & UTIL_CL_LOBKEYFORMAT_FIELD )
+      {
+         builder.append( CAT_LOBSHARDINGKEYFORMAT_NAME,
+                         clInfo._lobShardingKeyFormat ) ;
+      }
+
+      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+      {
+         builder.append( FIELD_NAME_DATASOURCE_ID, clInfo._dsUID ) ;
+         if ( ossStrlen( clInfo._fullMapping ) > 0 )
+         {
+            builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
+         }
+      }
+
+      {
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         builder.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+         builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+      }
+
+      catRecord = builder.obj () ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATBUILDCATARECORD, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   static INT32 _catParseCatalogInfoElement( const BSONElement &e,
+                                             catCollectionInfo &clInfo,
+                                             BOOLEAN checkValid )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj objFirstBound ;
+      BSONObj objLastBound ;
+
+      SET_UINT32 setGrps ;
+
+      BSONObjIterator itr( e.embeddedObject() ) ;
+      while( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+
+         if ( Object == e.type() )
+         {
+            clsCatalogItem tmpItem( TRUE, clInfo._isMainCL ) ;
+            rc = tmpItem.updateItem( e.embeddedObject(), clInfo._isSharding, clInfo._isHash ) ;
+            if ( SDB_OK == rc )
+            {
+               clInfo._vecCataInfo.push_back( tmpItem.toBson() ) ;
+               /// main collection has no group
+               if ( !clInfo._isMainCL && 0 == setGrps.count( tmpItem.getGroupID() ) )
+               {
+                  clInfo._vecCataInfoGrpID.push_back( tmpItem.getGroupID() ) ;
+                  setGrps.insert( tmpItem.getGroupID() ) ;
+               }
+
+               if ( clInfo._isSharding )
+               {
+                  if ( objFirstBound.isEmpty() )
+                  {
+                     objFirstBound = tmpItem.getLowBound() ;
+                  }
+
+                  if ( !objLastBound.isEmpty() && checkValid && !clInfo._isMainCL )
+                  {
+                     if ( 0 != objLastBound.woCompare( tmpItem.getLowBound() ) )
+                     {
+                        PD_LOG_MSG( PDERROR, "Catalog info bound is not continuous" ) ;
+                        rc = SDB_INVALIDARG ;
+                        goto error ;
+                     }
+                  }
+                  objLastBound = tmpItem.getUpBound() ;
+               }
+            }
+            else if ( checkValid )
+            {
+               PD_LOG_MSG( PDERROR, "Catalog info is invalid, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         else if ( checkValid )
+         {
+            PD_LOG_MSG( PDERROR, "Catalog info is invalid" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      /// check
+      if ( clInfo._isSharding && !clInfo._isMainCL && checkValid )
+      {
+         if ( clInfo._isHash )
+         {
+            if ( 0 != objFirstBound.firstElement().numberInt() )
+            {
+               PD_LOG_MSG( PDERROR, "Catalog info's begin partition is invalid(%d), should be 0",
+                           objFirstBound.firstElement().numberInt() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( clInfo._shardPartition != objLastBound.firstElement().numberInt() )
+            {
+               PD_LOG_MSG( PDERROR, "Catalog info's end partition is invalid(%d), should be %d",
+                           objLastBound.firstElement().numberInt(),
+                           clInfo._shardPartition ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         else
+         {
+            BSONObj lowBound ;
+            BSONObj upBound ;
+            Ordering order = Ordering::make( clInfo._shardingKey ) ;
+
+            rc = catBuildInitRangeBound( clInfo._shardingKey, order, lowBound, upBound ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+
+            if ( 0 != objFirstBound.woCompare( lowBound ) )
+            {
+               PD_LOG_MSG( PDERROR, "Catalog info's begin bound is invalid(%s), should be %s",
+                           objFirstBound.toPoolString().c_str(),
+                           lowBound.toPoolString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( 0 != objLastBound.woCompare( upBound ) )
+            {
+               PD_LOG_MSG( PDERROR, "Catalog info's end bound is invalid(%s), should be %s",
+                           objLastBound.toPoolString().c_str(),
+                           upBound.toPoolString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+      }
+      else if ( !clInfo._isSharding && checkValid )
+      {
+         if ( 1 != clInfo._vecCataInfoGrpID.size() )
+         {
+            PD_LOG_MSG( PDERROR, "Catalog info is invalid(catalog item more than 1 in "
+                        "unshard collection)" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catCatalogRecordToInfo( _pmdEDUCB *cb,
+                                 const BSONObj &catalogRecord,
+                                 catCollectionInfo &clInfo,
+                                 UINT32 &mask,
+                                 BOOLEAN checkValid )
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement eErr ;
+      BSONElement eCataInfo ;
+
+      BSONObjIterator itr( catalogRecord ) ;
+      while( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+
+         if ( 0 == ossStrcmp( e.fieldName(), CAT_ATTRIBUTE_NAME ) )
+         {
+            UINT32 attr = e.numberInt() ;
+            if ( attr & DMS_MB_ATTR_COMPRESSED )
+            {
+               clInfo._isCompressed = TRUE ;
+               mask |= UTIL_CL_COMPRESSED_FIELD ;
+            }
+            if ( attr & DMS_MB_ATTR_NOIDINDEX )
+            {
+               clInfo._autoIndexId = FALSE ;
+               mask |= UTIL_CL_AUTOIDXID_FIELD ;
+            }
+            if ( attr & DMS_MB_ATTR_CAPPED )
+            {
+               clInfo._capped = TRUE ;
+               mask |= UTIL_CL_CAPPED_FIELD ;
+            }
+            if ( attr & DMS_MB_ATTR_STRICTDATAMODE )
+            {
+               clInfo._strictDataMode = TRUE ;
+               mask |= UTIL_CL_STRICTDATAMODE_FIELD ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_CATALOG_W_NAME ) )
+         {
+            if ( ( e.numberInt() >= 1 && e.numberInt() <= CLS_REPLSET_MAX_NODE_SIZE ) ||
+                 -1 == e.numberInt() )
+            {
+               clInfo._replSize = e.numberInt() ;
+               mask |= UTIL_CL_REPLSIZE_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_COMPRESSIONTYPE ) )
+         {
+            if ( NumberInt == e.type() &&
+                 ( UTIL_COMPRESSOR_LZW == e.numberInt() ||
+                   UTIL_COMPRESSOR_SNAPPY == e.numberInt() ) )
+            {
+               clInfo._compressorType = (UTIL_COMPRESSOR_TYPE)e.numberInt() ;
+               mask |= UTIL_CL_COMPRESSTYPE_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_SHARDINGKEY_NAME ) )
+         {
+            if ( Object == e.type() )
+            {
+               clInfo._shardingKey = e.embeddedObject() ;
+               clInfo._isSharding = TRUE ;
+               mask |= UTIL_CL_SHDKEY_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_ENSURE_SHDINDEX ) )
+         {
+            if ( Bool == e.type() )
+            {
+               clInfo._enSureShardIndex = e.Bool() ;
+               mask |= UTIL_CL_ENSURESHDIDX_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_SHARDING_TYPE ) )
+         {
+            if ( String == e.type() &&
+                 ( 0 == ossStrcmp( e.valuestr(), CAT_SHARDING_TYPE_HASH ) ||
+                   0 == ossStrcmp( e.valuestr(), CAT_SHARDING_TYPE_RANGE ) ) )
+            {
+               clInfo._pShardingType = e.valuestr() ;
+               mask |= UTIL_CL_SHDTYPE_FIELD ;
+
+               if ( 0 == ossStrcmp( e.valuestr(), CAT_SHARDING_TYPE_HASH ) )
+               {
+                  clInfo._isHash = TRUE ;
+               }
+               else
+               {
+                  clInfo._isHash = FALSE ;
+               }
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_SHARDING_PARTITION ) )
+         {
+            if ( ossIsPowerOf2( (UINT32)e.numberInt() ) &&
+                 e.numberInt() >= CAT_SHARDING_PARTITION_MIN &&
+                 e.numberInt() <= CAT_SHARDING_PARTITION_MAX )
+            {
+               clInfo._shardPartition = e.numberInt() ;
+               mask |= UTIL_CL_PARTITION_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_IS_MAINCL ) )
+         {
+            if ( Bool == e.type() )
+            {
+               clInfo._isMainCL = e.Bool() ;
+               mask |= UTIL_CL_ISMAINCL_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_DOMAIN_AUTO_SPLIT ) )
+         {
+            if ( Bool == e.type() )
+            {
+               clInfo._autoSplit = e.Bool() ;
+               mask |= UTIL_CL_AUTOSPLIT_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_DOMAIN_AUTO_REBALANCE ) )
+         {
+            if ( Bool == e.type() )
+            {
+               clInfo._autoRebalance = e.Bool() ;
+               mask |= UTIL_CL_AUTOREBALANCE_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_CL_MAX_RECNUM ) )
+         {
+            if ( e.numberLong() >= 0 )
+            {
+               clInfo._maxRecNum = e.numberLong() ;
+               mask |= UTIL_CL_MAXREC_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_CL_MAX_SIZE ) )
+         {
+            if ( e.numberLong() > 0 && e.numberLong() <= DMS_CAP_CL_SIZE )
+            {
+               clInfo._maxSize = ossRoundUpToMultipleX( e.numberLong() << 20,
+                                                        DMS_MAX_CL_SIZE_ALIGN_SIZE ) ;
+               mask |= UTIL_CL_MAXSIZE_FIELD  ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_CL_OVERWRITE ) )
+         {
+            if ( Bool == e.type() )
+            {
+               clInfo._overwrite = e.Bool() ;
+               mask |= UTIL_CL_OVERWRITE_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_LOBSHARDINGKEYFORMAT_NAME ) )
+         {
+            if ( String == e.type() )
+            {
+               clInfo._lobShardingKeyFormat = e.valuestr() ;
+               mask |= UTIL_CL_LOBKEYFORMAT_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_DATASOURCE_ID ) )
+         {
+            clInfo._dsUID = e.numberInt() ;
+            mask |= UTIL_CL_DATASOURCE_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_MAPPING ) )
+         {
+            if ( String == e.type() && 0 != *( e.valuestr() ) )
+            {
+               ossStrncpy( clInfo._fullMapping, e.valuestr(), DMS_COLLECTION_FULL_NAME_SZ ) ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_AUTOINCREMENT ) )
+         {
+            if ( e.isABSONObj() )
+            {
+               clInfo._autoIncFields = BSON( CAT_AUTOINCREMENT << e ) ;
+               mask |= UTIL_CL_AUTOINC_FIELD ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), CAT_CATALOGINFO_NAME ) )
+         {
+            if ( Array == e.type() )
+            {
+               eCataInfo = e ;
+            }
+            else if ( checkValid )
+            {
+               eErr = e ;
+               break ;
+            }
+         }
+      }
+
+      if ( !eErr.eoo() )
+      {
+         PD_LOG_MSG( PDERROR, "Param[%s] is invalid", eErr.toPoolString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( checkValid )
+      {
+         rc = catCheckCollectionInfo( clInfo, mask ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         /// check ds exist
+         if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+         {
+            BOOLEAN exist = FALSE ;
+            BSONObj obj ;
+            rc = catCheckDataSourceExist( clInfo._dsUID, exist, obj, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check data source[%d] existence "
+                         "failed[%d]", clInfo._dsUID, rc ) ;
+            PD_CHECK( exist, SDB_CAT_DATASOURCE_NOTEXIST, error, PDERROR,
+                      "Data source[%d] dose not exist", clInfo._dsUID ) ;
+         }
+      }
+
+      /// parse catalog info
+      if ( !eCataInfo.eoo() )
+      {
+         rc = _catParseCatalogInfoElement( eCataInfo, clInfo, checkValid ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -6039,293 +6873,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATBUILDCATAAUTOINCFLD, rc ) ;
       return rc ;
    error:
-      goto done ;
-   }
-
-   // build catalogue-info record:
-   // {  Name: "SpaceName.CollectionName", Version: 1,
-   //    ShardingKey: { Key1: 1, Key2: -1 },
-   //    CataInfo:
-   //       [ { GroupID: 1000, LowBound:{ "":MinKey,"":MaxKey }, UpBound:{"":MaxKey,"":MinKey} } ] }
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDCATARECORD, "catBuildCatalogRecord" )
-   INT32 catBuildCatalogRecord( _pmdEDUCB *cb,
-                                catCollectionInfo &clInfo,
-                                UINT32 mask, UINT32 attribute,
-                                const std::vector<UINT32> &grpIDLst,
-                                const std::map<std::string, UINT32> &splitLst,
-                                BSONObj &catRecord,
-                                INT16 w )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATBUILDCATARECORD ) ;
-
-      BSONObjBuilder builder ;
-      CHAR szAttr[ 100 ] = { 0 } ;
-
-      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
-      {
-         attribute |= DMS_MB_ATTR_COMPRESSED ;
-      }
-      if ( ( mask & UTIL_CL_AUTOIDXID_FIELD ) && !clInfo._autoIndexId )
-      {
-         attribute |= DMS_MB_ATTR_NOIDINDEX ;
-      }
-      if ( ( mask & UTIL_CL_CAPPED_FIELD ) && clInfo._capped )
-      {
-         attribute |= DMS_MB_ATTR_CAPPED ;
-      }
-      if ( ( mask & UTIL_CL_STRICTDATAMODE_FIELD ) && clInfo._strictDataMode )
-      {
-         attribute |= DMS_MB_ATTR_STRICTDATAMODE ;
-      }
-      mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
-
-      if ( mask & UTIL_CL_NAME_FIELD )
-      {
-         builder.append( CAT_CATALOGNAME_NAME, clInfo._pCLName ) ;
-      }
-
-      builder.append( CAT_CL_UNIQUEID, (INT64)clInfo._clUniqueID ) ;
-
-
-      /// this is not specified by user.
-      builder.append( CAT_CATALOGVERSION_NAME,
-                      0 == clInfo._version ?
-                      CAT_VERSION_BEGIN :
-                      clInfo._version ) ;
-
-      if ( mask & UTIL_CL_REPLSIZE_FIELD )
-      {
-         builder.append( CAT_CATALOG_W_NAME, clInfo._replSize ) ;
-      }
-
-      builder.append( CAT_ATTRIBUTE_NAME, attribute ) ;
-      builder.append( FIELD_NAME_ATTRIBUTE_DESC, szAttr ) ;
-
-      /// only record the options specified by user.
-      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
-      {
-         builder.append( CAT_COMPRESSIONTYPE, clInfo._compressorType ) ;
-         builder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
-                         utilCompressType2String( clInfo._compressorType ) ) ;
-      }
-      if ( mask & UTIL_CL_SHDKEY_FIELD )
-      {
-         builder.append( CAT_SHARDINGKEY_NAME, clInfo._shardingKey ) ;
-         builder.appendBool( CAT_ENSURE_SHDINDEX, clInfo._enSureShardIndex ) ;
-         builder.append( CAT_SHARDING_TYPE, clInfo._pShardingType ) ;
-         if( clInfo._isHash )
-         {
-            builder.append( CAT_SHARDING_PARTITION, clInfo._shardPartition ) ;
-
-            /// optimize query on hash-sharding only sdb's version >= 1.12
-            /// update version since 1.12.4
-            builder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_CURRENT_VERSION ) ;
-         }
-      }
-      /// add catainfo to record even not specified by user.
-      if ( clInfo._isMainCL )
-      {
-         builder.appendBool( CAT_IS_MAINCL, clInfo._isMainCL );
-         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
-         sub.done() ;
-      }
-      else if ( clInfo._autoSplit && !splitLst.empty() )
-      {
-         // cata info build
-         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
-         INT32 itemID = 0 ;
-         UINT32 totalBound = (UINT32) clInfo._shardPartition ;
-         UINT32 grpSize = splitLst.size() ;
-         UINT32 avgBound = totalBound / grpSize ;
-         UINT32 modMark = grpSize - ( totalBound % grpSize ) ;
-         UINT32 beginBound = CAT_HASH_LOW_BOUND ;
-         UINT32 endBound = beginBound + avgBound ;
-
-         PD_CHECK ( clInfo._isSharding && clInfo._isHash,
-                    SDB_INVALIDARG, error, PDWARNING,
-                    "AutoSplit only on hash sharding" ) ;
-
-         if (totalBound < grpSize )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG_MSG(PDERROR, "Partition can not less than group number of domain."
-                   "partition = %d, group number = %d", totalBound, grpSize);
-            goto error;
-         }
-
-         for ( std::map<std::string, UINT32>::const_iterator iterGrp = splitLst.begin();
-               iterGrp != splitLst.end();
-               ++iterGrp )
-         {
-            UINT32 grpID = iterGrp->second ;
-            const std::string &grpName = iterGrp->first ;
-            BSONObj lowBound, upBound ;
-
-            if ( (UINT32)itemID >= modMark )
-            {
-               ++endBound ;
-            }
-
-            BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(itemID) ) ) ;
-            cataItemBd.append ( FIELD_NAME_ID, itemID ) ;
-            cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
-            cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
-
-            rc = catBuildHashBound( lowBound, upBound, beginBound, endBound ) ;
-            PD_RC_CHECK( rc, PDWARNING,
-                         "Failed to build cata info bound, rc: %d",
-                         rc ) ;
-
-            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
-            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
-
-            cataItemBd.done () ;
-
-            beginBound = endBound ;
-            endBound = endBound + avgBound ;
-            ++ itemID ;
-         }
-         sub.done () ;
-      }
-      else
-      {
-         // cata info build
-         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
-         BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(0) ) ) ;
-         pmdKRCB *krcb = pmdGetKRCB() ;
-         sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
-         UINT32 grpID = CAT_INVALID_GROUPID ;
-         std::string grpName ;
-
-         if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
-         {
-            PD_CHECK( grpIDLst.size() == 1,
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Must has only one group specified" ) ;
-            grpID = grpIDLst[0] ;
-         }
-         else
-         {
-            grpID = SDB_DSID_2_GROUPID( clInfo._dsUID ) ;
-         }
-
-         cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
-
-         /// Get SYS groups for SYS collections
-         grpName = pCatCB->groupID2Name( grpID ) ;
-         cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
-
-         if ( clInfo._isSharding )
-         {
-            // add LowBound and UpBound
-            BSONObj lowBound, upBound ;
-
-            if ( !clInfo._isHash )
-            {
-               Ordering order = Ordering::make( clInfo._shardingKey ) ;
-               rc = catBuildInitRangeBound ( clInfo._shardingKey, order ,
-                                             lowBound, upBound ) ;
-            }
-            else
-            {
-               rc = catBuildInitHashBound( lowBound, upBound,
-                                           clInfo._shardPartition ) ;
-            }
-            PD_RC_CHECK( rc, PDWARNING,
-                         "Failed to build cata info bound, rc: %d",
-                         rc ) ;
-
-            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
-            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
-         }
-         cataItemBd.done () ;
-         sub.done () ;
-      }
-
-      if ( mask & UTIL_CL_AUTOSPLIT_FIELD )
-      {
-         builder.appendBool ( CAT_DOMAIN_AUTO_SPLIT, clInfo._autoSplit ) ;
-      }
-
-      if ( mask & UTIL_CL_AUTOREBALANCE_FIELD )
-      {
-         builder.appendBool ( CAT_DOMAIN_AUTO_REBALANCE, clInfo._autoRebalance ) ;
-      }
-
-      if ( mask & UTIL_CL_MAXREC_FIELD )
-      {
-         builder.append( CAT_CL_MAX_RECNUM, (INT64)clInfo._maxRecNum ) ;
-      }
-
-      if ( mask & UTIL_CL_MAXSIZE_FIELD )
-      {
-         builder.append( CAT_CL_MAX_SIZE, (INT64)clInfo._maxSize ) ;
-      }
-
-      if ( mask & UTIL_CL_OVERWRITE_FIELD )
-      {
-         builder.appendBool( CAT_CL_OVERWRITE, clInfo._overwrite ) ;
-      }
-
-      if ( mask & UTIL_CL_AUTOINC_FIELD )
-      {
-         BSONElement ele ;
-         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
-
-         clUniqueID = clInfo._clUniqueID ;
-         ele = clInfo._autoIncFields.getField( CAT_AUTOINCREMENT ) ;
-         if ( Object == ele.type() )
-         {
-            rc = catBuildCatalogAutoIncField( cb, clInfo, ele.Obj(),
-                                              clUniqueID, w ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to build autoinc field, rc: %d",
-                         rc ) ;
-         }
-         else if( Array == ele.type() )
-         {
-            BSONObjIterator it( ele.embeddedObject() ) ;
-            while ( it.more() )
-            {
-               rc = catBuildCatalogAutoIncField( cb, clInfo, it.next().Obj(),
-                                                 clUniqueID, w ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to get global ID for field, "
-                            "rc: %d", rc ) ;
-            }
-         }
-         builder.appendElements( clInfo._autoIncSet.toBson() ) ;
-      }
-
-      if ( mask & UTIL_CL_LOBKEYFORMAT_FIELD )
-      {
-         builder.append( CAT_LOBSHARDINGKEYFORMAT_NAME,
-                         clInfo._lobShardingKeyFormat ) ;
-      }
-
-      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
-      {
-         builder.append( FIELD_NAME_DATASOURCE_ID, clInfo._dsUID ) ;
-         if ( ossStrlen( clInfo._fullMapping ) > 0 )
-         {
-            builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
-         }
-      }
-
-      {
-         UINT64 currentTime = ossGetCurrentMilliseconds() ;
-         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-         ossMillisecondsToString( currentTime, timestamp ) ;
-         builder.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
-         builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
-      }
-
-      catRecord = builder.obj () ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATBUILDCATARECORD, rc ) ;
-      return rc ;
-   error :
       goto done ;
    }
 
@@ -6874,6 +7421,55 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKDATASRUOCEEXIST_UID, "catCheckDataSourceExist" )
+   INT32 catCheckDataSourceExist( UTIL_DS_UID dsUID,
+                                  BOOLEAN &exist,
+                                  BSONObj &obj,
+                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCHECKDATASRUOCEEXIST_UID ) ;
+
+      exist = FALSE ;
+
+      try
+      {
+         BSONObj matcher, dummy ;
+         matcher = BSON( FIELD_NAME_ID << (INT32)dsUID ) ;
+         rc = catGetOneObj( CAT_DATASOURCE_COLLECTION, dummy, matcher,
+                            dummy, cb, obj ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            exist = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK == rc )
+         {
+            exist = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to get metadata of data source[%llu], "
+                    "rc: %d", dsUID, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get metadata of data source, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKDATASRUOCEEXIST_UID, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKPUREMAPPINGCS, "catCheckPureMappingCS" )
    INT32 catCheckPureMappingCS( const CHAR *csName,
                                 pmdEDUCB *cb,
@@ -6975,10 +7571,8 @@ namespace engine
          if ( UTIL_INVALID_DS_UID != dsID )
          {
             UINT32 mask = UTIL_CL_NAME_FIELD ;
-            const CHAR *csMapping =
-                  csMetaData.getStringField( FIELD_NAME_MAPPING ) ;
+            const CHAR *csMapping = csMetaData.getStringField( FIELD_NAME_MAPPING ) ;
             vector<UINT32> grpList ;
-            map<string, UINT32> splitList ;
 
             SDB_ASSERT( csMapping, "cs mapping is NULL" ) ;
             catCollectionInfo clInfo ;
@@ -6992,8 +7586,7 @@ namespace engine
             clInfo._dsUID = dsID ;
             clInfo._version = CATALOG_INVALID_VERSION ;
 
-            rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpList,
-                                        splitList, catalog, 1 ) ;
+            rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpList, catalog, 1 ) ;
             PD_RC_CHECK( rc, PDERROR, "Build catalogue record for collection"
                                       "[%s] failed[%d]", clFullName, rc ) ;
          }

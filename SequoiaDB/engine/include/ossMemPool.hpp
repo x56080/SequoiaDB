@@ -186,6 +186,7 @@ typedef ossPoolVector<INT64>              VEC_INT64 ;
 typedef ossPoolVector<BOOLEAN>            VEC_BOOLEAN ;
 typedef ossPoolVector<std::string>        VEC_STRING ;
 typedef ossPoolVector<ossPoolString>      VEC_POOLSTR ;
+typedef ossPoolVector<const CHAR*>        VEC_POOLCHARSTR ;
 
 /*
  * Deque

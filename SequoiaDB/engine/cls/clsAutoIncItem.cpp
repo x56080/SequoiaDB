@@ -212,7 +212,7 @@ namespace engine
          {
             if ( String != e.type() )
             {
-               PD_LOG( PDERROR, "Field[%s] in obj[%s] must be OID",
+               PD_LOG( PDERROR, "Field[%s] in obj[%s] must be string",
                        CAT_AUTOINC_GENERATED, obj.toString().c_str() ) ;
                rc = SDB_SYS ;
                goto error ;

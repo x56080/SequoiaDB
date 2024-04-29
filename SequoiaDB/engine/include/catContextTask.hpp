@@ -49,7 +49,6 @@ namespace engine
 {
    class _SDB_DMSCB ;
    typedef _SDB_DMSCB SDB_DMSCB;
-   typedef std::vector< UINT32 > CAT_GROUP_LIST ;
 
    /*
     * _catCtxTaskBase define
