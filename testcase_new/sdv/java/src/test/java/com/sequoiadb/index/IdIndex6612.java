@@ -127,7 +127,7 @@ public class IdIndex6612 extends SdbTestBase {
     }
 
     public void createCL() {
-        String clOptions = "{ShardingKey:{\"_id\":1},ShardingType:'range',Partition:1024,"
+        String clOptions = "{ShardingKey:{\"_id\":1},ShardingType:'range',"
                 + "ReplSize:0,Compressed:true,AutoIndexId:false,Group:'"
                 + srcGroupName + "'}";
         BSONObject options = ( BSONObject ) JSON.parse( clOptions );

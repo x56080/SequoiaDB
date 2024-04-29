@@ -80,7 +80,6 @@ public class CreateMainCl28 extends SdbTestBase {
         BSONObject opt = new BasicBSONObject();
         opt.put( "time", 1 );
         options.put( "ShardingKey", opt );
-        options.put( "Partition", 1024 );
         options.put( "ReplSize", 1 );
         options.put( "Compressed", false );
         options.put( "EnsureShardingIndex", true );
