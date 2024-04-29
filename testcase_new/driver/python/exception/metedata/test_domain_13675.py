@@ -39,7 +39,8 @@ class DomainException13675(testlib.SdbTestBase):
          act_domains = testlib.get_all_records_noid(cursor)
          
          expect_domain = {'Name': domain_name}
-         self.assertIn(expect_domain, act_domains)
+         for item in act_domains:
+            self.assertIn(expect_domain, item)
             
       except SDBBaseError as e:
          self.fail("check domain fail: " + str(e))

@@ -517,6 +517,8 @@ public class IndexUtils {
 
             List< String > expGroupNames = getCLGroupNames( db, csName,
                     clName );
+            Collections.sort( groupNames );
+            Collections.sort( expGroupNames );
             Assert.assertEquals( groupNames, expGroupNames,
                     "check group error!task=" + taskInfo );
         }
