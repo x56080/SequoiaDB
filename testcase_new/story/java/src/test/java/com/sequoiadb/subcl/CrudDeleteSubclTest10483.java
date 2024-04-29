@@ -182,7 +182,7 @@ public class CrudDeleteSubclTest10483 extends SdbTestBase {
                     "{Group:'" + replicaGroupNames.get( 1 )
                             + "',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true}",
                     "{Group:'" + replicaGroupNames.get( 0 )
-                            + "',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true,Partition:16}" };
+                            + "',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true}" };
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
             maincl = cs.createCollection( mainclName,
                     ( BSONObject ) JSON.parse( mainclOptions ) );

@@ -81,7 +81,6 @@ public class CreateMainCl27 extends SdbTestBase {
         opt.put( "time", 1 );
         options.put( "ShardingKey", opt );
         options.put( "ShardingType", "range" );
-        options.put( "Partition", 2048 );
         options.put( "ReplSize", 0 );
         options.put( "Compressed", true );
         options.put( "CompressionType", "lzw" );

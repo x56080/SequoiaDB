@@ -58,7 +58,7 @@ TEST_F( clTest12660, mainCl12660 )
 
    // create main cl
    BSONObj option = BSON( "ShardingKey" << BSON( "a" << 1 ) << "ShardingType" << "range" << 
-                          "IsMainCL" << true << "Partition" << 1024 ) ;
+                          "IsMainCL" << true ) ;
    rc = cs.createCollection( mainClName, option, mainCl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create main cl " << mainClName ;
 
