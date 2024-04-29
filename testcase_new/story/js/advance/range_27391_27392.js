@@ -47,7 +47,7 @@ function test ()
       }
    } );
    var expResult = [{ a: 1, b: 1 }, { a: 3, b: 3 }];
-   commCompareResults( cursor, expResult );
+   commCompareResults( cursor.sort( sortBy( 'a' )), expResult.sort( sortBy( 'a' ) ) );
 
    // 指定hint不指定sort批量范围查
    var cursor = maincl.find().hint( {
