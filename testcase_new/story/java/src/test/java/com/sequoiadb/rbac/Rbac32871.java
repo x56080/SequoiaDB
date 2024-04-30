@@ -86,24 +86,21 @@ public class Rbac32871 extends SdbTestBase {
                 ( BSONObject ) JSON.parse( "{Roles:['" + roleName + "']}" ) );
         try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
                 password )) {
-
             ThreadExecutor es = new ThreadExecutor();
             es.addWorker( new dbOperator( userSdb ) );
             es.addWorker( new removeRole( roleName ) );
             es.run();
-
-            try {
-                userSdb.close();
-                userSdb = new Sequoiadb( SdbTestBase.coordUrl, user, password );
-                DBCollection userCL = userSdb.getCollectionSpace( csName )
+        }
+        try ( Sequoiadb userSdb = new Sequoiadb( SdbTestBase.coordUrl, user,
+                password )) {
+            DBCollection userCL = userSdb.getCollectionSpace( csName )
                         .getCollection( clName );
-                userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
-                Assert.fail( "should throw exception" );
-            } catch ( BaseException e ) {
-                if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
+            userCL.insertRecord( new BasicBSONObject( "a", 1 ) );
+            Assert.fail( "should throw exception" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_NO_PRIVILEGES
                         .getErrorCode() ) {
-                    throw e;
-                }
+                 throw e;
             }
         }
     }
