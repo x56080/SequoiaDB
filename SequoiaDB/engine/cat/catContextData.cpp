@@ -2480,7 +2480,6 @@ namespace engine
       SET_UINT32 groupsOfDomain ;
 
       BOOLEAN isSysDomain = domainObj.isEmpty() ;
-      UINT32  tmpGrpID = CAT_INVALID_GROUPID ;
 
       SET_UINT32  setGroupID ;
 
