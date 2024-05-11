@@ -1110,7 +1110,7 @@ namespace engine
             // if has some other attach in, wait next
             if ( _dataBucket[ unitID ]->isAttached() )
             {
-               _latchBucket[ unitID ]->release() ;
+               bucketLock.release() ;
                continue ;
             }
             _idleUnitCount.dec() ;
