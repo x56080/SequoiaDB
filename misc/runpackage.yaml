@@ -70,16 +70,6 @@ preInstallAction:
       cmd: '${SYS_TMP_DIR}/generate_version_file.sh'
       scope: upgrade 
       enable: true
-    - name: createDir
-      cmd: '${SYS_TMP_DIR}/service_control.sh'
-      parameters:
-        - name: createDir
-        - name: userName
-          value: '${SYS_USERNAME}'
-        - name: groupName
-          value: '${SYS_GROUPNAME}'
-      scope: all
-      enable: true
 installCheck:
   enable: true
   actions:
@@ -132,6 +122,17 @@ postInstallAction:
           value: '${SYS_INSTALL_DIR}/bin'
       scope: all
       enable: true
+    - name: createDir
+      cmd: '${SYS_TMP_DIR}/service_control.sh'
+      parameters:
+        - name: createDir
+        - name: userName
+          value: '${SYS_USERNAME}'
+        - name: groupName
+          value: '${SYS_GROUPNAME}'
+      scope: all
+      enable: true
+
     - name: startService
       cmd: '${SYS_TMP_DIR}/service_control.sh'
       parameters:
