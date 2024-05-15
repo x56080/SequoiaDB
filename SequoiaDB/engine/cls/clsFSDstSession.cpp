@@ -1053,8 +1053,8 @@ namespace engine
       }
       else if ( msg->packet != _packet )
       {
-         PD_LOG( PDDEBUG, "Session[%s]: ignore msg, invalid packetid: %d, "
-                 "local:%d", sessionName(), msg->packet, _packet ) ;
+         PD_LOG( PDDEBUG, "Session[%s]: ignore msg, invalid packetid: %lld, "
+                 "local:%lld", sessionName(), msg->packet, _packet ) ;
          goto done ;
       }
 
