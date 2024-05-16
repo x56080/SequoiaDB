@@ -280,6 +280,7 @@ namespace engine
    #define DMS_MB_ATTR_NOIDINDEX          0x00000002
    #define DMS_MB_ATTR_CAPPED             0x00000004
    #define DMS_MB_ATTR_STRICTDATAMODE     0x00000008
+   #define DMS_MB_ATTR_NOTRANS            0x00000010
 
    /*
       DMS TOOL FUNCTIONS:

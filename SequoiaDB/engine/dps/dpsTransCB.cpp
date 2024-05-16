@@ -1442,18 +1442,21 @@ namespace engine
    }
 
    BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                        UINT16 collectionID,
-                                        const dmsRecordID *recordID )
+                                       UINT16 collectionID,
+                                       const dmsRecordID *recordID,
+                                       INT8 *pHoldingMode,
+                                       UINT32 *pRefCount )
    {
       BOOLEAN result = FALSE ;
       INT8 holdingMode = DPS_TRANSLOCK_MAX ;
       UINT32 refCount = 0 ;
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+
       if ( !_isOn )
       {
-         return FALSE ;
+         result = FALSE ;
+         goto done ;
       }
-
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
 
       result = _transLockMgr->isHolding( eduCB->getTransExecutor(), lockId,
                                          holdingMode, refCount ) ;
@@ -1461,11 +1464,26 @@ namespace engine
       {
          if ( holdingMode == DPS_TRANSLOCK_X || holdingMode == DPS_TRANSLOCK_S )
          {
-            return TRUE ;
+            result = TRUE ;
+            goto done ;
          }
       }
 
-      return FALSE ;
+      result = FALSE ;
+
+   done:
+      if ( result )
+      {
+         if ( pHoldingMode )
+         {
+            *pHoldingMode = holdingMode ;
+         }
+         if ( pRefCount )
+         {
+            *pRefCount = refCount ;
+         }
+      }
+      return result ;
    }
 
    BOOLEAN dpsTransCB::hasWait( UINT32 logicCSID, UINT16 collectionID,

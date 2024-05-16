@@ -553,6 +553,13 @@ namespace engine
       const CHAR * clShortName = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
 
+      const rtnAlterTask * task = NULL ;
+      PD_CHECK( 1 == _alterJob->getAlterTasks().size(), SDB_OPTION_NOT_SUPPORT,
+                error, PDERROR, "Failed to execute alter job: "
+                "should have only one task" ) ;
+
+      task = _alterJob->getAlterTasks().front() ;
+
       rc = rtnResolveCollectionNameAndLock( collection, _dmsCB, &_su,
                                             &clShortName, suID ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -563,14 +570,31 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get mb context with exclusive lock, "
                    "rc: %d", rc ) ;
 
-      if ( NULL != getDPSCB() )
+      if ( task->testFlags( RTN_ALTER_TASK_TRANS_LOCK ) &&
+           _su->data()->isTransSupport( _mbContext ) &&
+           NULL != cb &&
+           cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
+         INT8 holdingMode = DPS_TRANSLOCK_MAX ;
 
-         /*
-         Modified by Xujianhui: Alter collection don't need trans lock
+         if ( DPS_INVALID_TRANS_ID != cb->getTransID() &&
+              _transCB->transIsHolding( cb,
+                                        _su->LogicalCSID(),
+                                        _mbContext->mbID(),
+                                        NULL,
+                                        &holdingMode ) &&
+              holdingMode != DPS_TRANSLOCK_S )
+         {
+            // Use this code to follow the behavior of master (using Z lock)
+            rc = SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST ;
+            goto error ;
+         }
 
-         rc = _transCB->transLockTryS( cb, _su->LogicalCSID(),
+         // need to get S lock of collection to avoid transactions have
+         // inserted/updated/deleted records on the same collection,
+         rc = _transCB->transLockTryS( cb,
+                                       _su->LogicalCSID(),
                                        _mbContext->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction-lock of "
@@ -585,7 +609,6 @@ namespace engine
                       lockConflict._tid,
                       lockConflict._lockID.toString().c_str(),
                       lockModeToString( lockConflict._lockType ) ) ;
-         */
 
          _logicalCSID = _su->LogicalCSID() ;
          _mbID = _mbContext->mbID() ;
@@ -608,11 +631,7 @@ namespace engine
       if ( NULL != cb && DMS_INVALID_LOGICCSID != _logicalCSID &&
            DMS_INVALID_MBID != _mbID )
       {
-         /*
-         Modified by Xujianhui: Alter collection don't need trans lock
-
          _transCB->transLockRelease( cb, _logicalCSID, _mbID ) ;
-         */
          _logicalCSID = DMS_INVALID_LOGICCSID ;
          _mbID = DMS_INVALID_MBID ;
       }

@@ -591,6 +591,17 @@ namespace engine
          }
       }
 
+      // no trans
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
+      {
+         rc = su->setCollectionNoTrans( collectionShortName,
+                                        localTask->isNoTrans(),
+                                        mbContext,
+                                        cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set no trans "
+                      "on collection [%s], rc: %d", collection, rc ) ;
+      }
+
    done :
       PD_TRACE_EXITRC( SDB__RTNALTERCLSETATTR, rc ) ;
       return rc ;

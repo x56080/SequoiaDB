@@ -476,7 +476,9 @@ namespace engine
 
       BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                               UINT16 collectionID,
-                              const dmsRecordID *recordID ) ;
+                              const dmsRecordID *recordID,
+                              INT8 *pHoldingMode = NULL,
+                              UINT32 *pRefCount = NULL ) ;
 
       BOOLEAN hasWait( UINT32 logicCSID, UINT16 collectionID,
                        const dmsRecordID *recordID) ;

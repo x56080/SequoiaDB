@@ -111,6 +111,7 @@
 #define FIELD_NAME_COMPRESSED                "Compressed"
 #define FIELD_NAME_COMPRESSIONTYPE           "CompressionType"
 #define FIELD_NAME_STRICTDATAMODE            "StrictDataMode"
+#define FIELD_NAME_NOTRANS                   "NoTrans"
 #define FIELD_NAME_COMPRESSIONTYPE_DESC      "CompressionTypeDesc"
 #define FIELD_NAME_REPARECHECK               "RepairCheck"
 #define VALUE_NAME_SNAPPY                    "snappy"

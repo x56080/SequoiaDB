@@ -825,7 +825,7 @@ namespace engine
          if ( 0 == ossStrncmp ( indexName, indexCB.getName(),
                                 IXM_INDEX_NAME_SIZE ) )
          {
-            if ( _pDataSu->isTransSupport() && NULL != cb
+            if ( _pDataSu->isTransSupport( context ) && NULL != cb
                  && ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName )
                       || indexCB.isGlobal() ) )
             {
@@ -1260,7 +1260,7 @@ namespace engine
          // create old version index tree if needed
          // NOTE: alter command will not pass dpsCB to write DPS log, so we can
          //       not simply check dpsCB here
-         if ( ( _pDataSu->isTransSupport() ) &&
+         if ( ( _pDataSu->isTransSupport( context ) ) &&
               ( NULL != dpscb || forceTransCallback ) )
          {
             // invoke callback function

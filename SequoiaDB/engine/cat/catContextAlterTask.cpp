@@ -657,6 +657,19 @@ namespace engine
                    FIELD_NAME_REPARECHECK, cataSet.name(), rc ) ;
       }
 
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) &&
+           localTask->isNoTrans() )
+      {
+         PD_CHECK( !cataSet.isMainCL(),
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "Failed to check attribute [%s]: collection [%s] is "
+                   "main-colleciton", CAT_NOTRANS, _dataName.c_str() ) ;
+         PD_CHECK( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ),
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "Failed to check attribute [%s]: collection [%s] is capped",
+                   CAT_NOTRANS, _dataName.c_str() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKSETATTR, rc ) ;
       return rc ;
@@ -1361,6 +1374,18 @@ namespace engine
          else
          {
             OSS_BIT_SET( attribute, DMS_MB_ATTR_NOIDINDEX ) ;
+         }
+      }
+
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
+      {
+         if ( localTask->isNoTrans() )
+         {
+            OSS_BIT_SET( attribute, DMS_MB_ATTR_NOTRANS ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_NOTRANS ) ;
          }
       }
 
