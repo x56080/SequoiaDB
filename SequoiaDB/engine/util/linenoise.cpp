@@ -2016,14 +2016,14 @@ static CharacterDispatch escLeftBracket1SemicolonDispatch = {
    1, "5", escLeftBracket1SemicolonRoutines
 } ;
 
-// ESC O H ( or ESC [ 1 ~ )
+// ESC O H ( or ESC [ 1 ~ ) or ESC [ H
 static int homeKeyRoutine( struct linenoiseState *l, char c )
 {
    linenoiseEditMoveHome( l ) ;
    return 0 ;
 }
 
-// ESC O F ( or ESC [ 4 ~ )
+// ESC O F ( or ESC [ 4 ~ ) or ESC [ F
 static int endKeyRoutine( struct linenoiseState *l, char c )
 {
    linenoiseEditMoveEnd( l ) ;
@@ -2141,6 +2141,8 @@ static CharacterDispatchRoutine escLeftBracketRoutines[] = {
    downArrowKeyRoutine,
    rightArrowKeyRoutine,
    leftArrowKeyRoutine,
+   endKeyRoutine,
+   homeKeyRoutine,
    escLeftBracket1Routine,
    escLeftBracket3Routine,
    escLeftBracket4Routine
@@ -2148,7 +2150,7 @@ static CharacterDispatchRoutine escLeftBracketRoutines[] = {
 
 static CharacterDispatch escLeftBracketDispatch =
 {
-   7, "ABCD134", escLeftBracketRoutines
+   9, "ABCDFH134", escLeftBracketRoutines
 } ;
 
 // ESC dispatch
