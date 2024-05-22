@@ -1451,7 +1451,9 @@ namespace engine
      _notArray( FALSE ),
      _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
-     _matchedIndexFields( 0 ),
+     _matchedPrefixFields( 0 ),
+     _sortMatchedIndexFields( 0 ),
+     _predicateSize( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1476,7 +1478,9 @@ namespace engine
      _notArray( FALSE ),
      _readIndexOnly( FALSE ),
      _matchedFields( 0 ),
-     _matchedIndexFields( 0 ),
+     _matchedPrefixFields( 0 ),
+     _sortMatchedIndexFields( 0 ),
+     _predicateSize( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1507,6 +1511,9 @@ namespace engine
      _indexCover( node._indexCover ),
      _readIndexOnly( node._readIndexOnly ),
      _matchedFields( node._matchedFields ),
+     _matchedPrefixFields( node._matchedPrefixFields ),
+     _sortMatchedIndexFields( node._sortMatchedIndexFields ),
+     _predicateSize( node._predicateSize ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( node._scanSelectivity ),
@@ -1595,7 +1602,7 @@ namespace engine
          case OPT_PLAN_SORTED_IDX_REQUIRED :
          {
             // Must be sorted index
-            if ( _sorted && _matchedIndexFields > 0 )
+            if ( _sorted && _sortMatchedIndexFields > 0 )
             {
                _isCandidate = TRUE ;
             }
@@ -1604,7 +1611,7 @@ namespace engine
          case OPT_PLAN_IDX_PREFERRED :
          {
             // Either be sorted or matched predicates
-            if ( ( _sorted && _matchedIndexFields > 0 )  || _matchedFields > 0 )
+            if ( ( _sorted && _sortMatchedIndexFields > 0 )  || _matchedPrefixFields > 0 )
             {
                _isCandidate = TRUE ;
             }
@@ -1614,9 +1621,9 @@ namespace engine
          {
             // Either be sorted, or can read index only, or scan selectivity
             // smaller than threshold
-            if ( ( _readIndexOnly && _matchedFields > 0 ) ||
+            if ( ( _readIndexOnly && _matchedPrefixFields > 0 ) ||
                  ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
-                 ( _sorted && ( _matchedFields > 0 || _matchedIndexFields > 0 ) ) )
+                 ( _sorted && ( _matchedPrefixFields > 0 || _sortMatchedIndexFields > 0 ) ) )
             {
                _isCandidate = TRUE ;
             }
@@ -1838,6 +1845,7 @@ namespace engine
              matchedFields = 0,
              matchedOrders = 0 ;
       INT32  matchOrderPredicatesBeginPos = -1 ;
+      INT32  unmatchPreicatePos = -1 ;
       const BSONObj &keyPattern = indexStat->getKeyPattern() ;
       UINT32 keyNum = (UINT32)keyPattern.nFields() ;
 
@@ -1970,6 +1978,11 @@ namespace engine
             isCurSingleEqual = FALSE ;
             isCurAllEqual = FALSE ;
             needCalcScanSel = FALSE ;
+
+            if ( -1 == unmatchPreicatePos )
+            {
+               unmatchPreicatePos = matchedFields ;
+            }
          }
          else
          {
@@ -2059,6 +2072,7 @@ namespace engine
             // round by unique index
             if ( isAllEqual && indexStat->isUniqux() )
             {
+               /// for $in multi values( $in:[1,2,3...] )
                FLOAT64 uniqSelectivity =
                      OPT_ROUND_SELECTIVITY(
                            OSS_MIN( OPT_PRED_EQ_UNIQ_DEF_SELECTIVITY,
@@ -2127,6 +2141,12 @@ namespace engine
                {
                   // if the predicate is equal, it can be considered as order
                   // matched
+
+                  if ( -1 == matchOrderPredicatesBeginPos )
+                  {
+                     matchOrderPredicatesBeginPos = (INT32)matchedOrders ;
+                  }
+
                   ++ matchedOrders ;
                   ++ iterOrder ;
                }
@@ -2164,8 +2184,10 @@ namespace engine
 
       _matchedFields = matchedFields ;
       _matchedOrders = matchedOrders ;
-      _matchedIndexFields = ( matchOrderPredicatesBeginPos >= 0 ) ?
-                            matchOrderPredicatesBeginPos : matchedOrders ;
+      _matchedPrefixFields = ( unmatchPreicatePos >= 0 ) ? unmatchPreicatePos : matchedFields ;
+      _sortMatchedIndexFields = ( matchOrderPredicatesBeginPos >= 0 ) ?
+                                matchOrderPredicatesBeginPos : matchedOrders ;
+      _predicateSize = predicates.size() ;
 
       _predSelectivity = OPT_ROUND_SELECTIVITY( predSelectivity ) ;
       _scanSelectivity = OPT_ROUND_SELECTIVITY( scanSelectivity ) ;
