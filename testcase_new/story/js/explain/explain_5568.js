@@ -76,7 +76,7 @@ function checkResult ( rc )
    if( Query !== expQuery || IXBound !== expIXBound
       || NeedMatch !== expNeedMatch )
    {
-      throw new Error( "checkResult" + "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]", "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
+      throw new Error( "checkResult" + "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]" + "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
    }
 
 }

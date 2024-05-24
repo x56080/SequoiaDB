@@ -845,9 +845,10 @@ namespace engine
             // - selectivity <= 10%
             // - sorted index
             return ( _isCandidate ) &&
-                   ( ( _readIndexOnly && _matchedFields > 0 ) ||
+                   ( ( _readIndexOnly && _matchedPrefixFields > 0 ) ||
                      ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
-                     ( _sorted ) ) ;
+                     ( _sorted && ( _matchedPrefixFields > 0 ||
+                                    ( _sortMatchedIndexFields > 0 && 0 == _predicateSize ) ) ) ) ;
          }
 
       public :
@@ -926,11 +927,17 @@ namespace engine
          // indicates can read index only
          BOOLEAN           _readIndexOnly ;
 
-         // Number of matched fields in index
+         // Number of matched fields in index with predicate
          UINT32            _matchedFields ;
 
+         // Number of matched fields( with prefix same ) in index with predicate
+         UINT32            _matchedPrefixFields ;
+
          // Number of matched index fields
-         UINT32            _matchedIndexFields ;
+         UINT32            _sortMatchedIndexFields ;
+
+         // predicate size
+         UINT32            _predicateSize ;
 
          // Information of index
          dmsExtentID       _indexExtID ;

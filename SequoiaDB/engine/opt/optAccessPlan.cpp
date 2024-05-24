@@ -771,8 +771,7 @@ namespace engine
                   {
                      bestPath.setPath( ixScanPath, TRUE ) ;
                   }
-                  if ( OPT_PLAN_DEFAULT_PRIORITY == priority ||
-                       ixScanPath.isGoodCandidate() )
+                  if ( ixScanPath.isGoodCandidate() )
                   {
                      candidateSearchedCount ++ ;
                   }
@@ -832,8 +831,7 @@ namespace engine
                {
                   bestPath.setPath( ixScanPath, TRUE ) ;
                }
-               if ( OPT_PLAN_DEFAULT_PRIORITY == priority ||
-                    ixScanPath.isGoodCandidate() )
+               if ( ixScanPath.isGoodCandidate() )
                {
                   candidateSearchedCount ++ ;
                }
