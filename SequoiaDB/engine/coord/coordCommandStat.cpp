@@ -734,9 +734,121 @@ namespace engine
       goto done ;
    }
 
+   /**
+      This class can evenly select a subset from samples.
+   */
+   class _coordSampleFilter
+   {
+   public:
+      _coordSampleFilter() : _stepLength(0), _restInput(0) {}
+
+      _coordSampleFilter( UINT64 totalIn, UINT64 totalOut )
+      {
+         SDB_ASSERT(totalIn >= totalOut, "Filter acquires input more than output") ;
+         if ( totalIn > totalOut )
+         {
+            _stepLength = ((FLOAT64) totalIn) / totalOut ;
+         }
+         else
+         {
+            _stepLength = 0 ;
+         }
+         _restInput = 0 ;
+      }
+
+      FLOAT64 filterRaito()
+      {
+         if ( _stepLength < 1 )
+         {
+            return 1.0 ;
+         }
+         else
+         {
+            return 1.0 / _stepLength ;
+         }
+      }
+
+      /**
+         Take an example, if we want to pick 3 of 10, and the 10 is divided into batches,
+         such as 2 * 5 or 5 * 2. The result would be:
+
+         2 * 5:
+         |----------|----|-----|
+         | batch no | in | out |
+         |----------|----|-----|
+         | 1        | 5  | 1   |
+         | 2        | 5  | 2   |
+         | total:   | 10 | 3   |
+         |----------|----|-----|
+
+         5 * 2:
+         |----------|----|-----|
+         | batch no | in | out |
+         |----------|----|-----|
+         | 1        | 2  | 0   |
+         | 2        | 2  | 1   |
+         | 3        | 2  | 0   |
+         | 4        | 2  | 1   |
+         | 5        | 2  | 1   |
+         | total:   | 10 | 3   |
+         |----------|----|-----|
+
+         This function is calculating the output of each batch(every size).
+      */
+      UINT64 filter( UINT64 in )
+      {
+         UINT64 output = 0 ;
+         FLOAT64 input = in + _restInput ;
+
+         if ( 0 == _stepLength || in == 0 )
+         {
+            output = in ;
+            goto done ;
+         }
+
+         if ( fabs( input - _stepLength ) < OSS_EPSILON )
+         {
+            _restInput = 0 ;
+            output = 1 ;
+         }
+         else if ( input < _stepLength )
+         {
+            _restInput = input ;
+            output = 0 ;
+         }
+         else
+         {
+            UINT64 stepCount = input / _stepLength ;
+            output = stepCount ;
+            _restInput = ( input - ( _stepLength * stepCount ) ) ;
+            if ( fabs( _restInput - _stepLength ) < OSS_EPSILON )
+            {
+               output += 1 ;
+               _restInput = 0 ;
+            }
+            else if ( fabs( _restInput ) < OSS_EPSILON )
+            {
+               _restInput = 0 ;
+            }
+         }
+
+      done:
+         return output ;
+      }
+
+   private:
+      FLOAT64 _stepLength ;
+      // 0 =< _restInput < _stepLength
+      // _restInput tracks the precision that less than 1 step
+      FLOAT64 _restInput ;
+   } ;
+
    /*
       Assistant structure to handle index statistics aggregation.
    */
+   // < subClName, < sampleRecords, totalRecords > >
+   typedef ossPoolMap< ossPoolString, std::pair<UINT64, UINT64 > > _coordSampleRatioMap ;
+
    class _coordIndexStat : public utilPooledObject
    {
       public:
@@ -748,6 +860,18 @@ namespace engine
 
          static INT32 merge( ossPoolVector< _coordIndexStat > &vec,
                              _coordIndexStat &result ) ;
+
+         static INT32 _updateSampleRatio(
+                const _coordIndexStat &stat,
+                _coordSampleRatioMap &subClSampleRatioMap ) ;
+
+         static INT32 _uniformSubClSampleRatio(
+                const _coordSampleRatioMap &subClSampleRatioMap,
+                ossPoolVector< _coordIndexStat > &vec ) ;
+
+         static INT32 _makeSubClSampleFilter(
+               const _coordSampleRatioMap &subClSampleRatioMap,
+               ossPoolMap< ossPoolString, _coordSampleFilter > &subClFilterMap ) ;
 
       public:
          _coordIndexStat() ;
@@ -764,6 +888,23 @@ namespace engine
          {
             return ( _index[0] != 0 ) ;
          }
+
+         const CHAR *getCollection() const
+         {
+            return _collection ;
+         }
+
+         UINT64 getSampleRecords() const
+         {
+            return _sampleRecords ;
+         }
+
+         UINT64 getTotalRecords() const
+         {
+            return _totalRecords ;
+         }
+
+         INT32 selectSample( _coordSampleFilter &filter ) ;
 
       private:
          // 10000 is a reference to the maximum of MCV size of data node
@@ -1404,6 +1545,50 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordIndexStat::selectSample( _coordSampleFilter &filter )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( fabs( filter.filterRaito() - 1.0 ) < OSS_EPSILON ) // 100% pass
+      {
+         goto done ;
+      }
+
+      try
+      {
+         _coordMCVList::iterator it = _mcvList.begin() ;
+         while ( it != _mcvList.end() )
+         {
+            UINT32 oldFracRec = it->second ;
+            UINT32 newFracRec = filter.filter( oldFracRec ) ;
+
+            it->second = newFracRec ;
+            _sampleRecords -= (oldFracRec - newFracRec) ;
+            _mcvSampleRecords = _sampleRecords ;
+
+            if ( 0 == newFracRec )
+            {
+               it = _mcvList.erase( it ) ;
+               --_mcvListSize ;
+            }
+            else
+            {
+               ++it ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /**
       If MCV is too big, find out the elements with top fraction to
       cut away the low fraction elements later. We only maintain the top N
@@ -1585,6 +1770,141 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordIndexStat::_updateSampleRatio(
+         const _coordIndexStat &stat,
+         _coordSampleRatioMap &subClSampleRatioMap )
+   {
+      INT32 rc = SDB_OK;
+      try
+      {
+         _coordSampleRatioMap::iterator it =
+               subClSampleRatioMap.find( stat.getCollection() ) ;
+         if ( it == subClSampleRatioMap.end() )
+         {
+            subClSampleRatioMap[ stat.getCollection() ] =
+                  std::pair<UINT64, UINT64>( stat.getSampleRecords(),
+                                             stat.getTotalRecords() ) ;
+         }
+         else
+         {
+            it->second.first += stat.getSampleRecords() ;
+            it->second.second += stat.getTotalRecords() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      Make sample filters for all sub collections with the min sample ratio
+      of all sub collections, so that all them have the same sample ratio
+   */
+   INT32 _coordIndexStat::_makeSubClSampleFilter(
+         const _coordSampleRatioMap &subClSampleRatioMap,
+         ossPoolMap< ossPoolString, _coordSampleFilter > &subClFilterMap )
+   {
+      INT32 rc = SDB_OK;
+      if ( subClSampleRatioMap.empty() )
+      {
+         goto done ;
+      }
+      try
+      {
+         FLOAT64 medianSampleRatio = 1.0 ;
+         UINT32 medianIndex = 0;
+         ossPoolVector<FLOAT64> vec2sort ;
+         _coordSampleRatioMap::const_iterator it ;
+         vec2sort.reserve( subClSampleRatioMap.size() ) ;
+
+         for ( it = subClSampleRatioMap.begin() ;
+               it != subClSampleRatioMap.end() ;
+               ++it )
+         {
+            const UINT64 &sampleRecords = it->second.first ;
+            const UINT64 &totalRecords = it->second.second ;
+            FLOAT64 currSampleRatio = ((FLOAT64) sampleRecords) / totalRecords ;
+            vec2sort.push_back( currSampleRatio ) ;
+         }
+
+         std::sort( vec2sort.begin(), vec2sort.end() ) ;
+         // choose the smaller if even numbers
+         medianIndex = ( ( vec2sort.size() + 1 ) / 2 ) - 1 ;
+         medianSampleRatio = vec2sort[ medianIndex ] ;
+
+         for ( it = subClSampleRatioMap.begin() ;
+               it != subClSampleRatioMap.end() ;
+               ++it )
+         {
+            const UINT64 &sampleRecords = it->second.first ;
+            const UINT64 &totalRecords = it->second.second ;
+            UINT64 idealRecords = totalRecords * medianSampleRatio ;
+            if ( sampleRecords > idealRecords )
+            {
+               subClFilterMap[ it->first ] =
+                     _coordSampleFilter( sampleRecords, idealRecords ) ;
+            }
+            else
+            {
+               // If idealRecords more than sampleRecords,
+               // there's nothing we can do, so just let it be.
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      Since each sub collection is individually sampled, every sub collections
+      may have the different sample ratio, which distorting main collection
+      access plan. This function is filtering a part sample of the higher
+      sample ratio collection, to uniform the their sample ratio.
+   */
+   INT32 _coordIndexStat::_uniformSubClSampleRatio(
+         const _coordSampleRatioMap &subClSampleRatioMap,
+         ossPoolVector< _coordIndexStat > &vec )
+   {
+      INT32 rc = SDB_OK;
+      ossPoolMap< ossPoolString, _coordSampleFilter > subClFilterMap ;
+      ossPoolMap< ossPoolString, _coordSampleFilter >::iterator it ;
+
+      rc = _makeSubClSampleFilter( subClSampleRatioMap, subClFilterMap ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                  "Failed to balance sub cl sample records, rc: %d", rc ) ;
+
+      for ( UINT32 i = 0 ; i < vec.size() ; ++i )
+      {
+         it = subClFilterMap.find( vec[ i ].getCollection() ) ;
+         if ( it != subClFilterMap.end() )
+         {
+            rc = vec[ i ].selectSample( it->second ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                        "Failed to balance sub cl sample records, rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_INDEX_STAT_GENRESULT, "_coordCMDGetIndexStat::generateResult" )
    INT32 _coordCMDGetIndexStat::generateResult( rtnContext *pContext,
                                                 pmdEDUCB *cb )
@@ -1598,6 +1918,7 @@ namespace engine
       UINT32 resCount = 0 ;
       UINT32 currCount = 0 ;
       ossPoolVector< _coordIndexStat > vec ;
+      _coordSampleRatioMap subClSampleRatioMap ;
 
       try
       {
@@ -1622,6 +1943,12 @@ namespace engine
             rc = stat.fromBSON( boTmp ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to initialize statistics "
                          "from BSON, rc: %d", rc ) ;
+            if ( _cataPtr->isMainCL() )
+            {
+               rc = _coordIndexStat::_updateSampleRatio( stat, subClSampleRatioMap ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update sample statistics "
+                           "of sub collection, rc: %d", rc ) ;
+            }
             ++currCount ;
          }
       }
@@ -1635,6 +1962,13 @@ namespace engine
       if ( 0 == currCount ) // Nothing was returned.
       {
          goto done ;
+      }
+
+      if ( _cataPtr->isMainCL() )
+      {
+         rc = _coordIndexStat::_uniformSubClSampleRatio( subClSampleRatioMap, vec ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                     "Failed to compress samples, rc: %d", rc ) ;
       }
 
       rc = _coordIndexStat::merge( vec, resStat ) ;
