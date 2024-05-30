@@ -873,6 +873,10 @@ namespace engine
                const _coordSampleRatioMap &subClSampleRatioMap,
                ossPoolMap< ossPoolString, _coordSampleFilter > &subClFilterMap ) ;
 
+         static INT32 _filterIfOutOfLimit(
+               const UINT64 totalSampleRecords,
+               ossPoolVector< _coordIndexStat > &vec ) ;
+
       public:
          _coordIndexStat() ;
 
@@ -1380,13 +1384,11 @@ namespace engine
             {
                continue ;
             }
-            // Here set a limit to prevent the cost from becoming too expensive.
-            if ( result._mcvSampleRecords > statMCVLimit )
-            {
-               pList->clear() ;
-               vec[ i ]._mcvSampleRecords = 0 ;
-               continue ;
-            }
+
+            // Since we have _coordIndexStat::_filterIfOutOfLimit(),
+            // size should never be greater than limit.
+            SDB_ASSERT( result._mcvSampleRecords <= statMCVLimit,
+                        "MCV size shouldn't be out of limit") ;
 
             it = pList->begin() ;
             _coordListItPair p( pList, it ) ;
@@ -1804,8 +1806,14 @@ namespace engine
    }
 
    /**
-      Make sample filters for all sub collections with the min sample ratio
-      of all sub collections, so that all them have the same sample ratio
+      Make sample filters for all sub collections with the median sample ratio
+      of all sub collections, to flatten the global sample ratio. The sub
+      collections with too much samples( higher sample ratio ) would be filtered
+      part of sample. But the collections with too few samples, there are nothing
+      we can do and just let it be. The median is better than the minimum in
+      being representative.
+
+      And reduce the total sample records if it is out of statmcvlimit.
    */
    INT32 _coordIndexStat::_makeSubClSampleFilter(
          const _coordSampleRatioMap &subClSampleRatioMap,
@@ -1821,9 +1829,14 @@ namespace engine
          FLOAT64 medianSampleRatio = 1.0 ;
          UINT32 medianIndex = 0;
          ossPoolVector<FLOAT64> vec2sort ;
-         _coordSampleRatioMap::const_iterator it ;
          vec2sort.reserve( subClSampleRatioMap.size() ) ;
 
+         _coordSampleRatioMap::const_iterator it ;
+         UINT64 newTotalSampleRecords = 0 ;
+         UINT32 statMCVLimit = pmdGetKRCB()->getOptionCB()->getStatMCVLimit() ;
+         _coordSampleFilter totalSampleFilter ;
+
+         // Find out the median sample ratio of all sub cl
          for ( it = subClSampleRatioMap.begin() ;
                it != subClSampleRatioMap.end() ;
                ++it )
@@ -1839,23 +1852,39 @@ namespace engine
          medianIndex = ( ( vec2sort.size() + 1 ) / 2 ) - 1 ;
          medianSampleRatio = vec2sort[ medianIndex ] ;
 
+         // Count the new total sample records after flattening sample ratio
          for ( it = subClSampleRatioMap.begin() ;
                it != subClSampleRatioMap.end() ;
                ++it )
          {
-            const UINT64 &sampleRecords = it->second.first ;
+            const UINT64 &oldSampleRecords = it->second.first ;
             const UINT64 &totalRecords = it->second.second ;
+
             UINT64 idealRecords = totalRecords * medianSampleRatio ;
-            if ( sampleRecords > idealRecords )
-            {
-               subClFilterMap[ it->first ] =
-                     _coordSampleFilter( sampleRecords, idealRecords ) ;
-            }
-            else
-            {
-               // If idealRecords more than sampleRecords,
-               // there's nothing we can do, so just let it be.
-            }
+            UINT64 newSampleRecords = OSS_MIN( oldSampleRecords, idealRecords ) ;
+            newTotalSampleRecords += newSampleRecords ;
+         }
+
+         if ( newTotalSampleRecords > statMCVLimit )
+         {
+            totalSampleFilter = _coordSampleFilter( newTotalSampleRecords,
+                                                    statMCVLimit ) ;
+         }
+
+         // Calculate the final sample records of each sub cl
+         for ( it = subClSampleRatioMap.begin() ;
+               it != subClSampleRatioMap.end() ;
+               ++it )
+         {
+            const UINT64 &oldSampleRecords = it->second.first ;
+            const UINT64 &totalRecords = it->second.second ;
+
+            UINT64 idealRecords = totalRecords * medianSampleRatio ;
+            UINT64 newSampleRecords = OSS_MIN( oldSampleRecords, idealRecords ) ;
+            newSampleRecords = totalSampleFilter.filter( newSampleRecords ) ;
+
+            subClFilterMap[ it->first ] =
+                  _coordSampleFilter( oldSampleRecords, newSampleRecords ) ;
          }
       }
       catch ( std::exception &e )
@@ -1905,6 +1934,28 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordIndexStat::_filterIfOutOfLimit( const UINT64 totalSampleRecords,
+                                               ossPoolVector< _coordIndexStat > &vec )
+   {
+      INT32 rc = SDB_OK;
+      UINT32 statMCVLimit = pmdGetKRCB()->getOptionCB()->getStatMCVLimit() ;
+
+      if ( totalSampleRecords > statMCVLimit )
+      {
+         _coordSampleFilter totalSampleFilter( totalSampleRecords, statMCVLimit ) ;
+         for ( UINT32 i = 0 ; i < vec.size() ; ++i )
+         {
+            rc = vec[ i ].selectSample( totalSampleFilter ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to select sample to reduce MCV size, rc: %d", rc ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_INDEX_STAT_GENRESULT, "_coordCMDGetIndexStat::generateResult" )
    INT32 _coordCMDGetIndexStat::generateResult( rtnContext *pContext,
                                                 pmdEDUCB *cb )
@@ -1919,6 +1970,7 @@ namespace engine
       UINT32 currCount = 0 ;
       ossPoolVector< _coordIndexStat > vec ;
       _coordSampleRatioMap subClSampleRatioMap ;
+      UINT64 totalSampleRecords = 0 ;
 
       try
       {
@@ -1949,6 +2001,7 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to update sample statistics "
                            "of sub collection, rc: %d", rc ) ;
             }
+            totalSampleRecords += stat.getSampleRecords() ;
             ++currCount ;
          }
       }
@@ -1968,7 +2021,13 @@ namespace engine
       {
          rc = _coordIndexStat::_uniformSubClSampleRatio( subClSampleRatioMap, vec ) ;
          PD_RC_CHECK( rc, PDERROR,
-                     "Failed to compress samples, rc: %d", rc ) ;
+                     "Failed to flatten sub cl sample ratio, rc: %d", rc ) ;
+      }
+      else
+      {
+         rc = _coordIndexStat::_filterIfOutOfLimit( totalSampleRecords, vec ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                     "Failed to reduce MCV size down to limit, rc: %d", rc ) ;
       }
 
       rc = _coordIndexStat::merge( vec, resStat ) ;
