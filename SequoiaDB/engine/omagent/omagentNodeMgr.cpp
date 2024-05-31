@@ -510,11 +510,14 @@ namespace engine
 
       INT32 restartCount      = sdbGetOMAgentOptions()->getRestartCount() ;
       INT32 restartInterval   = sdbGetOMAgentOptions()->getRestartInterval() ;
+      UINT32 validTimeThreshold = sdbGetOMAgentOptions()->getValidTimeThreshold() ;
 
       MAP_DB_PROCESS_IT it = _mapDBProcess.begin() ;
       while ( it != _mapDBProcess.end() )
       {
          INT32 rc = SDB_OK ;
+         BOOLEAN upToRestartLimit = FALSE ;
+
          CHAR cfgFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          if ( isLock )
          {
@@ -538,11 +541,16 @@ namespace engine
          }
          isLock = TRUE ;
 
-         if ( OSS_INVALID_PID != pInfo->_pid &&
-              ossIsProcessRunning( pInfo->_pid ) )
+         if ( OSS_INVALID_PID != pInfo->_pid && ossIsProcessRunning( pInfo->_pid ) )
          {
             pInfo->_status = OMNODE_RUNNING ;
-            pInfo->_startTime.clear() ;
+
+            /// check last start is valid
+            if ( !pInfo->_startTime.empty() &&
+                 pmdGetTickSpanTime( pInfo->_startTime.back() ) / OSS_ONE_SEC > validTimeThreshold ) 
+            {
+               pInfo->_startTime.clear() ;
+            }
             continue ;
          }
 
@@ -571,23 +579,6 @@ namespace engine
             continue ;
          }
 
-         if ( 0 == restartCount || ( restartCount > 0 &&
-              pInfo->_startTime.size() > (UINT32)restartCount ) )
-         {
-            // the process has been start many times and all failed.
-            continue ;
-         }
-
-         if ( restartInterval > 0 && pInfo->_startTime.size() > 0 )
-         {
-            if ( ( time( NULL ) - pInfo->_startTime.back() ) / 60 <
-                 restartInterval )
-            {
-               // does not meet the interval
-               continue ;
-            }
-         }
-
          // clear some time-info
          if ( pInfo->_startTime.size() > 0 )
          {
@@ -602,6 +593,22 @@ namespace engine
             }
          }
 
+         if ( 0 == restartCount || ( restartCount > 0 &&
+              pInfo->_startTime.size() >= (UINT32)restartCount ) )
+         {
+            // the process has been start many times and all failed
+            upToRestartLimit = TRUE ;
+         }
+
+         if ( restartInterval > 0 && pInfo->_startTime.size() > 0 )
+         {
+            if ( pmdGetTickSpanTime( pInfo->_startTime.back() ) / 60000 < (UINT64)restartInterval )
+            {
+               // does not meet the interval
+               continue ;
+            }
+         }
+
          if ( OMNODE_RESTART != pInfo->_status )
          {
             pInfo->_status = OMNODE_NORMAL ;
@@ -613,8 +620,10 @@ namespace engine
          if ( OMNODE_CRASH == pInfo->_status ||
               OMNODE_RESTART == pInfo->_status )
          {
+            BOOLEAN enableWatch = sdbGetOMAgentOptions()->isEnableWatch() ;
+
             // if enableWatch is TRUE, start node
-            if ( sdbGetOMAgentOptions()->isEnableWatch() )
+            if ( enableWatch && !upToRestartLimit )
             {
                // if enable watch, clear state of _isDetected
                if ( pInfo->_isDetected )
@@ -632,10 +641,12 @@ namespace engine
             {
                // if the process is detected the first time, write log
                pInfo->_isDetected = TRUE ;
-               PD_LOG( PDEVENT, "Detect Sequoiadb node[svcname = %s] %s",
+               PD_LOG( PDEVENT, "Detect Sequoiadb node[svcname = %s] %s, But, %s",
                        pSvcName,
                        OMNODE_CRASH == pInfo->_status ?
-                       "crashed" : "start failed" ) ;
+                       "crashed" : "start failed",
+                       !enableWatch ? "Disabled restart in config" :
+                                      "Restart failed up to limit" ) ;
             }
          }
       }
@@ -790,8 +801,7 @@ namespace engine
       const CHAR *pLocalCfgDir = sdbGetOMAgentOptions()->getLocalCfgPath() ;
       CHAR  cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       dbProcessInfo *pInfo = NULL ;
-      time_t now ;
-      time( &now ) ;
+      UINT64 curTick = pmdGetDBTick() ;
 
       rc = utilBuildFullPath( pLocalCfgDir, svcname, OSS_MAX_PATHSIZE,
                               cfgPath ) ;
@@ -835,7 +845,7 @@ namespace engine
 
       if ( NODE_START_MONITOR == type )
       {
-         pInfo->_startTime.push_back( now ) ;
+         pInfo->_startTime.push_back( curTick ) ;
       }
 
       // start node

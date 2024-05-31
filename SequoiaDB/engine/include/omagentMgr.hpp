@@ -85,6 +85,7 @@ namespace engine
          BOOLEAN     isGeneralAgent() const { return _isGeneralAgent && !_useStandAlone ; }
          BOOLEAN     isEnableWatch() const { return _enableWatch ; }
          PDLEVEL     getDiagLevel() const ;
+         UINT32      getValidTimeThreshold() const { return _validTimeThreshold ; }
 
          vector< _pmdAddrPair > omAddrs() const
          {
@@ -133,6 +134,8 @@ namespace engine
          BOOLEAN                    _isGeneralAgent ;
          // enable watch sequoiadb node, default TRUE
          BOOLEAN                    _enableWatch ;
+         // use for check restart succeed
+         UINT32                     _validTimeThreshold ;
 
          CHAR                       _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _localCfgPath[ OSS_MAX_PATHSIZE + 1 ] ;

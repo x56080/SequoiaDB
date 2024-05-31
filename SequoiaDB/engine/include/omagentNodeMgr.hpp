@@ -71,7 +71,7 @@ namespace engine
    {
       OSSPID               _pid ;
       OMNODE_STATUS        _status ;
-      deque< time_t >      _startTime ;
+      deque< UINT64 >      _startTime ;
       INT32                _errNum ;
       BOOLEAN              _isDetected ;
       _dbProcessInfo()

@@ -21,6 +21,7 @@ sdbcm 操作
   | DiagLevel             | 指定诊断日志打印级别，SequoiaDB 中诊断日志从 0~5 分别代表：SEVERE、ERROR、EVENT、WARNING、INFO、DEBUG；如果不指定，则默认为 WARNING | DiagLevel=3 |
   | AutoStart             | sdbcm 启动时是否自动拉起其他节点进程，如果不指定则默认为 false，即不自动拉起其他节点进程    | AutoStart=TRUE |
   | EnableWatch           | 是否监控节点，即是否重启异常节点，如果不指定则默认为TRUE，即监控节点 | EnableWatch=TRUE |
+  | ValidTimeThreshold    | 检测被监控节点异常重启是否成功的时间阈值，单位：秒，默认值：120  | ValidTimeThreshold=120 |
 
 - 启动 sdbcm
 
