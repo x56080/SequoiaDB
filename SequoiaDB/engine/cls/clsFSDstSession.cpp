@@ -42,6 +42,7 @@
 #include "clsUtil.hpp"
 #include "clsSyncManager.hpp"
 #include "pmdStartup.hpp"
+#include "pmdStatusHistoryLogger.hpp"
 #include "msgMessage.hpp"
 #include "clsCleanupJob.hpp"
 #include "dpsLogRecord.hpp"
@@ -2168,6 +2169,7 @@ namespace engine
       {
          PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
       }
+      pmdGetStatusHstLogger()->log() ;
       sdbGetReplCB()->getFaultEvent()->signalAll( SDB_CLS_FULL_SYNC ) ;
 
       // not use trans lock
@@ -2206,6 +2208,11 @@ namespace engine
       else
       {
          PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+      }
+
+      if ( pmdGetStartup().isOK() )
+      {
+         pmdGetStatusHstLogger()->log() ;
       }
 
       _disconnect() ;

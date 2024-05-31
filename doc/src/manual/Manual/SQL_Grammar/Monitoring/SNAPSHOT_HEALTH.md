@@ -50,6 +50,7 @@ $SNAPSHOT_HEALTH
 | FTStatus | string | 容错状态，取值如下：<br>"NOSPC"：磁盘空间不足<br>"DEADSYNC"：节点数据不同步 <br>"SLOWNODE"：节点数据同步过慢<br>"TRANSERR"：节点事务异常 |
 | StartHistory         | array     | 节点启动历史（只取最新的十条记录）                              |
 | AbnormalHistory      | array     | 节点异常后启动历史（只取最新的十条记录）                        |
+| AbnormalHistory      | array     | 节点异常后启动历史（只取最新的十条记录）                        |
 | DiffLSNWithPrimary   | int64     | 与主节点的 LSN 差异                                             |
 
 > **Note：**  
@@ -131,6 +132,14 @@ $SNAPSHOT_HEALTH
     "2019-05-31-09.37.59.581769"
   ],
   "AbnormalHistory": [],
+  "StatusHistory": [
+    {
+      "PID": 27336,
+      "Time": "2019-05-31-09.38.27.276178",
+      "IsPrimary": true,
+      "Status": "Normal"
+    }
+  ],
   "DiffLSNWithPrimary": 0
 }
 ```

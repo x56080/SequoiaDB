@@ -175,6 +175,7 @@
 #define FIELD_NAME_BUILD                     "Build"
 #define FIELD_NAME_SESSIONID                 "SessionID"
 #define FIELD_NAME_TID                       "TID"
+#define FIELD_NAME_PID                       "PID"
 #define FIELD_NAME_WAITER_TID                "WaiterTID"
 #define FIELD_NAME_WAITER_EDU                "WaiterEDU"
 #define FIELD_NAME_CLIENTINFO                "ClientInfo"
@@ -283,6 +284,7 @@
 #define FIELD_NAME_FILEDESP                  "FileDesp"
 #define FIELD_NAME_ABNORMALHST               "AbnormalHistory"
 #define FIELD_NAME_STARTHST                  "StartHistory"
+#define FIELD_NAME_STATUSHST                 "StatusHistory"
 #define FIELD_NAME_DIFFLSNPRIMARY            "DiffLSNWithPrimary"
 #define FIELD_NAME_DATABASEPATH              "DatabasePath"
 #define FIELD_NAME_TOTALSPACE                "TotalSpace"
@@ -708,6 +710,7 @@
 
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"
+#define FIELD_NAME_TIME                      "Time"
 
 /// strategy field begin
 #define FIELD_NAME_NICE                      "Nice"

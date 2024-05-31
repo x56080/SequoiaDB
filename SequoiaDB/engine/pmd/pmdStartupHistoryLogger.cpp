@@ -181,7 +181,6 @@ namespace engine
          rc = SDB_SYS ;
          PD_RC_CHECK ( rc, PDERROR, "File size is too large[%s], rc: %d",
                        _file.getPath().c_str(), rc ) ;
-         goto error ;
       }
 
       // read all string
@@ -245,64 +244,73 @@ namespace engine
       INT64 popSize = 0 ;
       string writeBuf ;
 
-      rc = _file.getFileSize( fileSize ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to get size of file[%s], rc: %d",
-                    _file.getPath().c_str(), rc ) ;
-
-      /// if file isn't large enough, do nothing
-      if ( fileSize < PMD_STARTUP_LOGSIZE_MAX )
+      try
       {
-         goto done ;
-      }
-
-      /// if file is too large, just truncate it
-      if ( fileSize > PMD_STARTUP_FILESIZE_LIMIT )
-      {
-         rc = _file.truncate( PMD_STARTUP_LOG_HEADER_SIZE );
-         PD_RC_CHECK ( rc, PDERROR, "Failed to pop logs from file[%s], rc: %d",
+         rc = _file.getFileSize( fileSize ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to get size of file[%s], rc: %d",
                        _file.getPath().c_str(), rc ) ;
-         goto done ;
-      }
 
-      /// pop half logs
-      readBuf = ( CHAR* )SDB_OSS_MALLOC( fileSize + 1 ) ;
-      if ( !readBuf )
+         /// if file isn't large enough, do nothing
+         if ( fileSize < PMD_STARTUP_LOGSIZE_MAX )
+         {
+            goto done ;
+         }
+
+         /// if file is too large, just truncate it
+         if ( fileSize > PMD_STARTUP_FILESIZE_LIMIT )
+         {
+            rc = _file.truncate( PMD_STARTUP_LOG_HEADER_SIZE );
+            PD_RC_CHECK ( rc, PDERROR, "Failed to truncate file[%s], rc: %d",
+                          _file.getPath().c_str(), rc ) ;
+            goto done ;
+         }
+
+         /// pop half logs
+         readBuf = ( CHAR* )SDB_OSS_MALLOC( fileSize + 1 ) ;
+         if ( !readBuf )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ossMemset( readBuf, 0, fileSize + 1 ) ;
+         rc = _file.readN( readBuf, fileSize, readSize ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to read file[%s], rc: %d",
+                       _file.getPath().c_str(), rc ) ;
+
+         splited = utilStrSplit( readBuf, OSS_NEWLINE ) ;
+         if ( splited.empty() )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         popSize = splited.size() / 2 ;
+         splited.erase( splited.begin(), splited.begin() + 1 + popSize ) ;
+
+         for ( vector<string>::const_iterator i = splited.begin();
+               i != splited.end();
+               ++i )
+         {
+            writeBuf += *i ;
+            writeBuf += OSS_NEWLINE ;
+         }
+
+         rc = _file.truncate( PMD_STARTUP_LOG_HEADER_SIZE );
+         PD_RC_CHECK ( rc, PDERROR, "Failed to truncate file[%s], rc: %d",
+                       _file.getPath().c_str(), rc ) ;
+
+         rc = _file.seek( 0, OSS_SEEK_END ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to seek file[%s], rc: %d",
+                       _file.getPath().c_str(), rc ) ;
+         rc = _file.writeN( writeBuf.c_str(), ossStrlen( writeBuf.c_str() ) ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to write start info into file[%s], "
+                       "rc: %d", _file.getPath().c_str(), rc ) ;
+      }
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
-      ossMemset( readBuf, 0, fileSize + 1 ) ;
-      rc = _file.readN( readBuf, fileSize, readSize ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to read file[%s], rc: %d",
-                    _file.getPath().c_str(), rc ) ;
-
-      splited = utilStrSplit( readBuf, OSS_NEWLINE ) ;
-      if ( splited.empty() )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      popSize = splited.size() / 2 ;
-      splited.erase( splited.begin(), splited.begin() + 1 + popSize ) ;
-
-      for ( vector<string>::const_iterator i = splited.begin();
-            i != splited.end();
-            ++i )
-      {
-         writeBuf += *i ;
-         writeBuf += OSS_NEWLINE ;
-      }
-
-      rc = _file.truncate( PMD_STARTUP_LOG_HEADER_SIZE );
-      PD_RC_CHECK ( rc, PDERROR, "Failed to pop logs from file[%s], rc: %d",
-                    _file.getPath().c_str(), rc ) ;
-
-      rc = _file.seek( 0, OSS_SEEK_END ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to seek file[%s], rc: %d",
-                    _file.getPath().c_str(), rc ) ;
-      rc = _file.writeN( writeBuf.c_str(), ossStrlen( writeBuf.c_str() ) ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to write start info into file[%s], "
-                    "rc: %d", _file.getPath().c_str(), rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__PMDSTARTHSTLOG__CLREARLY, rc ) ;
@@ -319,22 +327,31 @@ namespace engine
       pmdStartupLog log ;
       string strLog ;
 
-      // build log
-      log._type = pmdGetStartup().getStartType() ;
-      log._pid = ossGetCurrentProcessID() ;
-      ossGetCurrentTime( log._time ) ;
-      strLog = log.toString() ;
+      try
+      {
+         // build log
+         log._type = pmdGetStartup().getStartType() ;
+         log._pid = ossGetCurrentProcessID() ;
+         ossGetCurrentTime( log._time ) ;
+         strLog = log.toString() ;
 
-      // write to file
-      rc = _file.seek( 0, OSS_SEEK_END ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to write seek file[%s], "
-                    "rc: %d", _file.getPath().c_str(), rc ) ;
-      rc = _file.writeN( strLog.c_str(), strLog.length() ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to write start info into file[%s], "
-                    "rc: %d", _file.getPath().c_str(), rc ) ;
+         // write to file
+         rc = _file.seek( 0, OSS_SEEK_END ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to write seek file[%s], "
+                       "rc: %d", _file.getPath().c_str(), rc ) ;
+         rc = _file.writeN( strLog.c_str(), strLog.length() ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to write start info into file[%s], "
+                       "rc: %d", _file.getPath().c_str(), rc ) ;
 
-      // add this log to buffer
-      _buffer.push_back( log ) ;
+         // add this log to buffer
+         _buffer.push_back( log ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC( SDB__PMDSTARTHSTLOG__LOG, rc ) ;

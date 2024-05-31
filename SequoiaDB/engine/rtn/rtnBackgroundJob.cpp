@@ -39,6 +39,7 @@
 #include "dmsStorageUnit.hpp"
 #include "dmsStorageLoadExtent.hpp"
 #include "rtnRecover.hpp"
+#include "pmdStatusHistoryLogger.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
@@ -917,8 +918,14 @@ namespace engine
 
       rtnDBRebuilder rebuilder ;
       PMD_SET_DB_STATUS( SDB_DB_REBUILDING ) ;
+      pmdGetStatusHstLogger()->log() ;
       rc = rebuilder.doOpr( eduCB() ) ;
       PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+
+      if ( pmdGetStartup().isOK() )
+      {
+         pmdGetStatusHstLogger()->log() ;
+      }
 
       if ( rc )
       {
