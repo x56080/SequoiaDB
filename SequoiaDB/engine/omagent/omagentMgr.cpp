@@ -49,6 +49,8 @@ namespace engine
    #define OMAGENT_ALONE_ALIVE_TIMEOUT_DFT            ( 300 ) // secs
    #define OMAGENT_IMMEDIATELY_TIMEOUT                ( 1 )
 
+   #define OMAGENT_OPTION_VALIDTIME_THRESHOLD_DFT     ( 120 ) // secs
+
    /*
       _omAgentOptions implement
    */
@@ -61,6 +63,7 @@ namespace engine
       _autoStart           = FALSE ;
       _isGeneralAgent      = FALSE ;
       _enableWatch         = TRUE ;
+      _validTimeThreshold  = OMAGENT_OPTION_VALIDTIME_THRESHOLD_DFT ;
       _diagLevel           = PDWARNING ;
 
       ossMemset( _cfgFileName, 0, sizeof( _cfgFileName ) ) ;
@@ -135,6 +138,8 @@ namespace engine
          "Is general agent" )
          ( SDBCM_ENABLE_WATCH, po::value<string>(),
          "restart sequoiadb node when sequoiadb node crash" )
+         ( SDBCM_VALIDTIME_THRESHOLD, po::value<UINT32>(),
+         "Time threshold for detecting process restart effectiveness" )
       PMD_ADD_PARAM_OPTIONS_END
 
       if ( !pRootPath )
@@ -274,6 +279,9 @@ namespace engine
       // --EnableWatch
       rdxBooleanS( pEX, SDBCM_ENABLE_WATCH, _enableWatch, FALSE, PMD_CFG_CHANGE_RUN,
                    _enableWatch ) ;
+      // --ValidTimeThreshold
+      rdxUInt( pEX, SDBCM_VALIDTIME_THRESHOLD, _validTimeThreshold, FALSE, PMD_CFG_CHANGE_RUN,
+               _validTimeThreshold ) ;
 
       //  end map configs }}
 
@@ -698,6 +706,10 @@ namespace engine
       // active node manager
       rc = _nodeMgr.active() ;
       PD_RC_CHECK( rc, PDERROR, "Active node manager failed, rc: %d", rc ) ;
+
+      // start time sync edu
+      rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Start sync clock edu failed, rc: %d", rc ) ;
 
       // 1. start om manager edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
