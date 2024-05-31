@@ -98,6 +98,7 @@ pmdFiles = [
       "pmd/pmdOptionsMgr.cpp",
       "pmd/pmdStartup.cpp",
       "pmd/pmdStartupHistoryLogger.cpp",
+      "pmd/pmdStatusHistoryLogger.cpp",
       "pmd/pmdBackgroundJob.cpp",
       "pmd/pmdDpsTransRollback.cpp",
       "pmd/pmdLoadWorker.cpp",

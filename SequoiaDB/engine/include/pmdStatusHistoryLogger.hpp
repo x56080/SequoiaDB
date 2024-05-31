@@ -16,9 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = pmdStartupHistoryLogger.hpp
+   Source File Name = pmdStatusHistoryLogger.hpp
 
-   Descriptive Name = pmd start-up history logger
+   Descriptive Name = pmd status history logger
 
    Dependencies: N/A
 
@@ -27,14 +27,14 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== ======== ==============================================
-          01/01/2018  Ting YU  Initial Draft
+          05/30/2024  XJH  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 
-#ifndef PMD_STARTUPHISTORYLOGGER_HPP_
-#define PMD_STARTUPHISTORYLOGGER_HPP_
+#ifndef PMD_STATUSHISTORYLOGGER_HPP_
+#define PMD_STATUSHISTORYLOGGER_HPP_
 
 #include <vector>
 #include "ossFile.hpp"
@@ -42,86 +42,91 @@
 #include "ossTypes.hpp"
 #include "ossMemPool.hpp"
 #include "ossLatch.hpp"
-#include "pmdStartup.hpp"
 
-#define PMD_STARTUPHST_FILE_NAME ".SEQUOIADB_STARTUP_HISTORY"
+#define PMD_STATUSHST_FILE_NAME  ".SEQUOIADB_STATUS_HISTORY"
 
 namespace engine
 {
    /*
-      _pmdStartupHistoryLogger define
-      start-up history logger
+      _pmdStatusHistoryLogger define
+      status history logger
    */
-   #define PMD_STARTUP_LOG_LEN_MAX     ( 64 )
-   #define PMD_STARTUP_LOG_HEADER      "pid, startTime, startType, version"OSS_NEWLINE
-   #define PMD_STARTUP_LOG_HEADER_SIZE ( sizeof( PMD_STARTUP_LOG_HEADER ) - 1 )
-   #define PMD_STARTUP_LOG_FIELD_NUM   ( 4 )
-   #define PMD_STARTUP_FILESIZE_LIMIT  ( 2000 * 1024 )
-   #define PMD_STARTUP_LOGSIZE_MAX     ( 400 * 1024 )
+   #define PMD_STATUS_LOG_LEN_MAX      ( 64 )
+   #define PMD_STATUS_LOG_HEADER       "pid, time, isPrimary, status"OSS_NEWLINE
+   #define PMD_STATUS_LOG_HEADER_SIZE  ( sizeof( PMD_STATUS_LOG_HEADER ) - 1 )
+   #define PMD_STATUS_LOG_FIELD_NUM    ( 4 )
+   #define PMD_STATUS_FILESIZE_LIMIT   ( 2000 * 1024 )
+   #define PMD_STATUS_LOGSIZE_MAX      ( 400 * 1024 )
+   #define PMD_STATUS_LOGITEM_MAX      ( 5000 )
 
-   struct _pmdStartupLog
+   struct _pmdStatusLog
    {
       OSSPID            _pid ;
       ossTimestamp      _time ;
-      SDB_START_TYPE    _type ;
-      CHAR              _dbVersion[32] ;
+      UINT32            _primary ;
+      CHAR              _status[32] ;
 
-      _pmdStartupLog() ;
+      _pmdStatusLog() ;
 
-      _pmdStartupLog( OSSPID pid, ossTimestamp time, SDB_START_TYPE type ) ;
+      _pmdStatusLog( OSSPID pid, ossTimestamp time, UINT32 primary, const CHAR *pStatus ) ;
 
       string toString()
       {
          CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-         CHAR strLog[ PMD_STARTUP_LOG_LEN_MAX ] = { 0 } ;
+         CHAR strLog[ PMD_STATUS_LOG_LEN_MAX ] = { 0 } ;
 
          ossTimestampToString( _time, strTime ) ;
 
-         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%s,%s"OSS_NEWLINE,
+         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%d,%s"OSS_NEWLINE,
                       _pid,
                       strTime,
-                      pmdGetStartTypeStr( _type ),
-                      _dbVersion ) ;
+                      _primary,
+                      _status ) ;
          return strLog ;
       }
    } ;
-   typedef _pmdStartupLog pmdStartupLog ;
+   typedef _pmdStatusLog pmdStatusLog ;
 
-   BOOLEAN pmdStr2StartupLog( const string& str, pmdStartupLog& log ) ;
+   BOOLEAN pmdStr2StatusLog( const string& str, pmdStatusLog& log ) ;
 
-   typedef ossPoolVector< pmdStartupLog > PMD_STARTUP_LOG_LIST ;
+   typedef ossPoolVector< pmdStatusLog >  PMD_STATUS_LOG_LIST ;
 
    /*
-      _pmdStartupHistoryLogger define
+      _pmdStatusHistoryLogger define
     */
-   class _pmdStartupHistoryLogger : public SDBObject
+   class _pmdStatusHistoryLogger : public SDBObject
    {
       public:
-         _pmdStartupHistoryLogger () ;
-         ~_pmdStartupHistoryLogger () ;
+         _pmdStatusHistoryLogger () ;
+         ~_pmdStatusHistoryLogger () ;
 
          INT32 init() ;
          INT32 clearAll() ;
-         INT32 getLatestLogs( UINT32 num, PMD_STARTUP_LOG_LIST &vecLogs );
+         INT32 getLatestLogs( UINT32 num, PMD_STATUS_LOG_LIST &vecLogs );
+
+         INT32 log() ;
 
       protected:
          INT32 _clearEarlyLogs() ;
          INT32 _loadLogs() ;
-         INT32 _log() ;
+
+         INT32 _openFile() ;
+         INT32 _checkAndClearLogs() ;
 
       private:
          ossSpinSLatch _loggerLock ;
          ossFile _file ;
-         PMD_STARTUP_LOG_LIST _buffer ;
+         PMD_STATUS_LOG_LIST _buffer ;
          BOOLEAN _initOk ;
          CHAR _fileName[ OSS_MAX_PATHSIZE + 1 ] ;
+         pmdStatusLog _lastLog ;
    };
 
-   typedef _pmdStartupHistoryLogger pmdStartupHistoryLogger ;
+   typedef _pmdStatusHistoryLogger pmdStatusHistoryLogger ;
 
-   pmdStartupHistoryLogger* pmdGetStartupHstLogger () ;
+   pmdStatusHistoryLogger* pmdGetStatusHstLogger () ;
 
 }
 
-#endif //PMD_STARTUPHISTORYLOGGER_HPP_
+#endif //PMD_STATUSHISTORYLOGGER_HPP_
 

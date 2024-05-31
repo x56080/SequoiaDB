@@ -62,6 +62,7 @@
 #include "pmdEnv.hpp"
 #include "utilEnvCheck.hpp"
 #include "pmdStartupHistoryLogger.hpp"
+#include "pmdStatusHistoryLogger.hpp"
 #include "utilMemListPool.hpp"
 #include "dpsUtil.hpp"
 #include "msgDef.h"
@@ -515,13 +516,14 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get logs from start-up history "
                    "logger, rc = %d", rc ) ;
 
+      try
       {
          vector<string> startHst, abnormalHst;
+         CHAR time[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          PMD_STARTUP_LOG_LIST::iterator i ;
          for ( i = startLogs.begin(); i != startLogs.end(); ++i )
          {
             pmdStartupLog log = *i ;
-            CHAR time[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
             ossTimestampToString( log._time, time ) ;
 
             startHst.push_back( string( time ) ) ;
@@ -533,9 +535,65 @@ namespace engine
          ob.append( FIELD_NAME_STARTHST,    startHst ) ;
          ob.append( FIELD_NAME_ABNORMALHST, abnormalHst ) ;
       }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_MONAPPENDSTARTINFO, rc ) ;
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 monAppendStatusInfo( BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      PMD_STATUS_LOG_LIST statusLogs ;
+      UINT32 logNum = 10 ;
+
+      rc = pmdGetStatusHstLogger()->getLatestLogs( logNum, statusLogs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logs from status history "
+                   "logger, rc = %d", rc ) ;
+
+      try
+      {
+         BSONArrayBuilder subStatus( ob.subarrayStart( FIELD_NAME_STATUSHST ) ) ;
+         PMD_STATUS_LOG_LIST::iterator i ;
+         CHAR time[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         // CHAR logText[ PMD_STATUS_LOG_LEN_MAX * 2 ] = { 0 } ;
+         for ( i = statusLogs.begin(); i != statusLogs.end(); ++i )
+         {
+            pmdStatusLog &log = *i ;
+            ossTimestampToString( log._time, time ) ;
+
+            BSONObjBuilder sub( subStatus.subobjStart() ) ;
+            sub.append( FIELD_NAME_PID, (INT32)log._pid ) ;
+            sub.append( FIELD_NAME_TIME, time ) ;
+            sub.appendBool( FIELD_NAME_IS_PRIMARY, 0 == log._primary ? false : true ) ;
+            sub.append( FIELD_NAME_STATUS, log._status ) ;
+            sub.done() ;
+
+            /*
+            ossSnprintf( logText, sizeof( logText ) - 1, "%d, %s, %s:%d, %s:%s",
+                         log._pid, time, FIELD_NAME_IS_PRIMARY, log._primary,
+                         FIELD_NAME_STATUS, log._status ) ;
+            subStatus.append( logText ) ;
+            */
+         }
+         subStatus.done() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
       return rc;
    error:
       goto done;
@@ -1002,6 +1060,7 @@ namespace engine
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
       pmdStartupHistoryLogger *startLogger = pmdGetStartupHstLogger() ;
+      pmdStatusHistoryLogger *statusLogger = pmdGetStatusHstLogger() ;
       SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
 
       switch ( type )
@@ -1013,6 +1072,7 @@ namespace engine
             mgr->resetIOService() ;
             pmdResetErrNum () ;
             startLogger->clearAll() ;
+            statusLogger->clearAll() ;
             krcb->getSvcTaskMgr()->reset() ;
             sdbGetClsCB()->resetDumpSchedInfo() ;
             dmsCB->clearAllCRUDCB() ;
@@ -1046,6 +1106,7 @@ namespace engine
          {
             pmdResetErrNum () ;
             startLogger->clearAll() ;
+            statusLogger->clearAll() ;
             break ;
          }
          case CMD_SNAPSHOT_SVCTASKS :
@@ -4589,6 +4650,8 @@ namespace engine
          monAppendFileDesp( ob ) ;
 
          monAppendStartInfo( ob ) ;
+
+         monAppendStatusInfo( ob ) ;
 
          monAppendDiffLSN( ob ) ;
 

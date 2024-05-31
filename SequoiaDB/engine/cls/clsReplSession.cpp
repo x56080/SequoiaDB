@@ -35,6 +35,7 @@
 #include "rtn.hpp"
 #include "rtnRecover.hpp"
 #include "pmdStartup.hpp"
+#include "pmdStatusHistoryLogger.hpp"
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
@@ -818,6 +819,7 @@ namespace engine
 
          PMD_SET_DB_STATUS( SDB_DB_REBUILDING ) ;
          pClsCB->getReplCB()->getFaultEvent()->signalAll( SDB_RTN_IN_REBUILD ) ;
+         pmdGetStatusHstLogger()->log() ;
 
          /// interrupt writing and transaction EDUs
          eduCB()->getEDUMgr()->interruptWritingAndTransEDUs(
@@ -829,6 +831,12 @@ namespace engine
          /// restore
          pClsCB->getReplCB()->getFaultEvent()->reset() ;
          PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+
+         if ( pmdGetStartup().isOK() )
+         {
+            pmdGetStatusHstLogger()->log() ;
+         }
+
          /// judge is error
          if ( SDB_OK != rc )
          {

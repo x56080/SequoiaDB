@@ -44,6 +44,7 @@
 #include "clsMgr.hpp"
 #include "clsFSSrcSession.hpp"
 #include "pmdStartup.hpp"
+#include "pmdStatusHistoryLogger.hpp"
 #include "msgMessage.hpp"
 #include "pmdController.hpp"
 #include "pdTrace.hpp"
@@ -561,6 +562,11 @@ namespace engine
          /// when we are not primary any more, we should clear
          /// waiting list.
          _sync.cut( 0 ) ;
+      }
+
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         pmdGetStatusHstLogger()->log() ;
       }
    }
 
