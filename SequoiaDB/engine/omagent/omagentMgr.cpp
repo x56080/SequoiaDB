@@ -138,7 +138,7 @@ namespace engine
          "Is general agent" )
          ( SDBCM_ENABLE_WATCH, po::value<string>(),
          "restart sequoiadb node when sequoiadb node crash" )
-         ( SDBCM_VALIDTIME_THRESHOLD, po::value<UINT32>(),
+         ( SDBCM_VALIDTIME_THRESHOLD, po::value<INT32>(),
          "Time threshold for detecting process restart effectiveness" )
       PMD_ADD_PARAM_OPTIONS_END
 
