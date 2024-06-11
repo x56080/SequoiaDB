@@ -41,7 +41,7 @@ public class DatasourceOptions implements Cloneable {
     private int _maxCount = 500;
     private int _keepAliveTimeout = 0 * 60 * 1000; // 0 min
     private int _checkInterval = 1 * 60 * 1000; // 1 min
-    private int _syncCoordInterval = 0; // 0 min
+    private int _syncCoordInterval = 0 * 60 * 1000; // 0 min
     private boolean _validateConnection = false;
     private ConnectStrategy _connectStrategy = ConnectStrategy.SERIAL;
     private List<Object> _preferredInstance = null;
@@ -134,8 +134,11 @@ public class DatasourceOptions implements Cloneable {
     public void setKeepAliveTimeout(int keepAliveTimeout) {
         if (keepAliveTimeout < 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "keepAliveTimeout can't be less than 0");
+        } else if (keepAliveTimeout > 0 && keepAliveTimeout < 10 * 1000) {
+            _keepAliveTimeout = 10 * 1000;
+        } else {
+            _keepAliveTimeout = keepAliveTimeout;
         }
-        _keepAliveTimeout = keepAliveTimeout;
     }
 
     /**
@@ -152,8 +155,11 @@ public class DatasourceOptions implements Cloneable {
     public void setCheckInterval(int checkInterval) {
         if (checkInterval <= 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "checkInterval should be more than 0");
+        } else if ( checkInterval < 2 * 1000) {
+            _checkInterval = 2 * 1000;
+        } else {
+            _checkInterval = checkInterval;
         }
-        _checkInterval = checkInterval;
     }
 
     /**
