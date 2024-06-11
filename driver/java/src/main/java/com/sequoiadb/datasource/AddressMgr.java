@@ -360,7 +360,7 @@ class AddressMgr implements IAddressMgr {
         }
 
         // e.g. guangzhou.nansha and guangzhou.nansha
-        if (location1.equals(location2)) {
+        if (location1.equalsIgnoreCase(location2)) {
             return LocationPriority.HIGH;
         }
 

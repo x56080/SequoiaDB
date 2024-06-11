@@ -168,7 +168,7 @@ public class SequoiadbDatasource {
                     while ((connItem = _strategy.peekConnItemForDeleting()) != null) {
                         Sequoiadb sdb = _idleConnPool.peek(connItem);
                         lastTime = sdb.getLastUseTime();
-                        if (currentTime - lastTime + _preDeleteInterval >= _dsOpt.getKeepAliveTimeout()) {
+                        if (currentTime - lastTime >= _dsOpt.getKeepAliveTimeout() && currentTime - lastTime >= _preDeleteInterval) {
                             connItem = _strategy.pollConnItemForDeleting();
                             sdb = _idleConnPool.poll(connItem);
                             try {
@@ -538,6 +538,7 @@ public class SequoiadbDatasource {
             int previousSyncCoordInterval = _dsOpt.getSyncCoordInterval();
             int previousSyncLocationInterval = _dsOpt.getSyncLocationInterval();
             ConnectStrategy previousStrategy = _dsOpt.getConnectStrategy();
+            String oldOptStr = _dsOpt.toString() ;
 
             // reset options
             try {
@@ -550,7 +551,7 @@ public class SequoiadbDatasource {
                 return;
             }
             log.info(String.format("Sequoiadb datasource has been update datasource config, old %s, " +
-                    "new %s", _dsOpt.toString(), dsOpt.toString()));
+                    "new %s", oldOptStr, dsOpt.toString()));
             // update network block timeout
             _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
             _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
@@ -1437,7 +1438,7 @@ public class SequoiadbDatasource {
         if (0 != _dsOpt.getKeepAliveTimeout()) {
             long lastTime = sdb.getLastUseTime();
             long currentTime = System.currentTimeMillis();
-            if (currentTime - lastTime + _preDeleteInterval >= _dsOpt.getKeepAliveTimeout())
+            if (currentTime - lastTime >= _dsOpt.getKeepAliveTimeout() && currentTime - lastTime >= _preDeleteInterval)
                 return false;
         }
         // check version
