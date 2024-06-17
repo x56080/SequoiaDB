@@ -135,14 +135,7 @@ SDB_SNAP_HEALTH
     "2021-03-29-15.47.59.200280"
   ],
   "AbnormalHistory": [],
-  "StatusHistory": [
-    {
-      "PID": 27336,
-      "Time": "2021-03-29-15.48.21.276178",
-      "IsPrimary": true,
-      "Status": "Normal"
-    }
-  ],
+  "StatusHistory": [],
   "DiffLSNWithPrimary": -1
 }
 ```

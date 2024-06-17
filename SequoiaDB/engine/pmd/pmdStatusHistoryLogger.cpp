@@ -353,6 +353,11 @@ namespace engine
       }
 
    done :
+      if ( readBuf )
+      {
+         SDB_OSS_FREE( readBuf ) ;
+         readBuf = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__PMDSTATUSHSTLOG__CLREARLY, rc ) ;
       return rc ;
    error :
