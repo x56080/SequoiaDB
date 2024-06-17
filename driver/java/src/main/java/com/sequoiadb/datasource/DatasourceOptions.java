@@ -199,8 +199,8 @@ public class DatasourceOptions implements Cloneable {
             throw new BaseException(SDBError.SDB_INVALIDARG, "syncLocationInterval can't be less than 0");
         }
 
-        if ( syncLocationInterval > 0 && syncLocationInterval < 60000) {
-            _syncLocationInterval = 60000;
+        if ( syncLocationInterval > 0 && syncLocationInterval < 1000) {
+            _syncLocationInterval = 1000;
         } else {
             _syncLocationInterval = syncLocationInterval;
         }

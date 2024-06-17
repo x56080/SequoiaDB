@@ -172,7 +172,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         checkSyncLocation( "", 100, false );
 
         // location and inteval are both valid, sync location information
-        checkSyncLocation( location, 100, true );
+        checkSyncLocation( location, 1000, true );
     }
 
     // seqDB-31976:最高亲和性等级为low，查看连接池访问
@@ -231,6 +231,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         ds = createDS( addrLst, "guangzhou.nansha", options );
         List< String > connList = new ArrayList<>();
         connList.add( node1.getNodeName() );
+        connList.add( node2.getNodeName() );
         checkConn( ds, connList );
     }
 
@@ -344,7 +345,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
     public void updateLocationTest31987() throws Exception {
         node1.setLocation( "guangzhou.panyu" );
         node2.setLocation( "guangzhou" );
-        node3.setLocation( "guangzhou.NANSHA" );
+        node3.setLocation( "guangzhou.SHANSHA" );
         node4.setLocation( "shanghai" );
         node5.setLocation( "" );
 
@@ -404,7 +405,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         ds.addCoord( node1.getNodeName() );
         ds.addCoord( node3.getNodeName() );
         // wait SynchronizeAddressTask run
-        Thread.sleep( 1 * 1000 );
+        Thread.sleep( 2 * 1000 );
         List< String > connList2 = new ArrayList<>();
         connList2.add( node1.getNodeName() );
         checkConn( ds, connList2 );
@@ -413,7 +414,7 @@ public class TestHierarchyAccess31976_31998 extends SdbTestBase {
         ds.removeCoord( node1.getNodeName() );
         ds.removeCoord( node2.getNodeName() );
         // wait SynchronizeAddressTask run
-        Thread.sleep( 1 * 1000 );
+        Thread.sleep( 2 * 1000 );
         List< String > connList3 = new ArrayList<>();
         connList3.add( node3.getNodeName() );
         checkConn( ds, connList3 );
