@@ -1843,7 +1843,17 @@ namespace engine
          {
             const UINT64 &sampleRecords = it->second.first ;
             const UINT64 &totalRecords = it->second.second ;
-            FLOAT64 currSampleRatio = ((FLOAT64) sampleRecords) / totalRecords ;
+            FLOAT64 currSampleRatio = 0.0 ;
+            if ( totalRecords > 0 )
+            {
+               currSampleRatio = ((FLOAT64) sampleRecords) / totalRecords ;
+            }
+            else
+            {
+               // If it's a empty cl, consider totalRecords = 1 and
+               // sampleRecords = 1, so that sample ratio is about to 100%
+               currSampleRatio = 1.0 ;
+            }
             vec2sort.push_back( currSampleRatio ) ;
          }
 
