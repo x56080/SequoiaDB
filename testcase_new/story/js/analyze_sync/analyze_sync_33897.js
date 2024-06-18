@@ -86,7 +86,7 @@ function testPlan ( alwaysMainCLPlan )
       var order = { u: 1 };
       var listIndex = subcl.find( query ).sort( order ).hint( { "": "" } ).explain().current().toObj();
       var indexName = listIndex["IndexName"];
-      assert.equal( indexName, "gh", JSON.stringify( listIndex ) );
+      assert.equal( indexName, "l", JSON.stringify( listIndex ) );
    }
 
    // 查询访问计划
@@ -107,16 +107,8 @@ function testPlan ( alwaysMainCLPlan )
    var plan = maincl.find( query ).sort( order ).hint( { "": "" } ).explain().current().toObj();
    for( var i = 0; i < plan["SubCollections"].length; ++i )
    {
-      clName = plan["SubCollections"][i]["Name"];
       indexName = plan["SubCollections"][i]["IndexName"];
-      if( !alwaysMainCLPlan && clName == csName + "." + subCLName2 )
-      {
-         assert.equal( indexName, "l", JSON.stringify( plan ) );
-      }
-      else
-      {
-         assert.equal( indexName, "gh", JSON.stringify( plan ) );
-      }
+      assert.equal( indexName, "l", JSON.stringify( plan ) );
    }
 }
 
