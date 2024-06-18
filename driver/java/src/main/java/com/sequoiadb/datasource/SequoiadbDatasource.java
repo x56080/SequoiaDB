@@ -26,8 +26,6 @@ import com.sequoiadb.log.Log;
 import com.sequoiadb.log.LogFactory;
 import com.sequoiadb.util.Helper;
 
-import javafx.util.Pair;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
