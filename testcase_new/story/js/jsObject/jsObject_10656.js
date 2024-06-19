@@ -16,6 +16,19 @@ SystemTest.prototype.listLoginUsers = function()
 
    var users = this.system.listLoginUsers( { detail: true } ).toArray();
    var info = this.cmd.run( "who | sed 's/  */ /g'" ).split( "\n" );
+   /// remove empty line
+   for ( var i = 0 ; i < info.length ; )
+   {
+      if ( 0 == info[i].length )
+      {
+         info.splice( i, 1 ) ;
+      }
+      else
+      {
+         ++i ;
+      }
+   }
+
    for( var i = 0; i < users.length; i++ )
    {
       var userObj = JSON.parse( users[i] );
@@ -24,25 +37,61 @@ SystemTest.prototype.listLoginUsers = function()
       var username = tmp[0];             // 用户名
       var tty = tmp[1];                  // 登录终端
       var time = tmp[2];                 // 登录时间
+      var addr = "";                     // 登录的主机名或者ip
+      var fromEndPos = - 1 ;
+      var fromBeginPos = -1 ;
+
       for( var j = 3; j < len; j++ )
       {
-         if( tmp[j].indexOf( "(" ) !== -1 )
+         var strlen = tmp[j].length ;
+         if ( strlen == 0 )
+         {
+            continue ;
+         }
+         if( tmp[j][0] == "(" )
+         {
+            fromBeginPos = j ;
+            if ( tmp[j][strlen-1] == ")" )
+            {
+               fromEndPos = j ;
+               addr = tmp[j].slice( 1, strlen - 1 ) ;
+            }
+            else
+            {
+               addr = tmp[j].slice( 1, strlen ) ;
+			}
             break;
+         }
          time += " " + tmp[j];
       }
-      var addr;                          // 登录的主机名或者ip
-      if( tmp[j] === undefined )
+
+      if ( fromBeginPos != -1 && fromEndPos == -1 )
       {
-         addr = "";
-      }
-      else
-      {
-         addr = tmp[j].slice( 1, tmp[j].length - 1 );
+         for ( var j = fromBeginPos + 1 ; j < len ; j++ )
+         {
+            var strlen = tmp[j].length ;
+            if ( 0 == strlen )
+            {
+               continue ;
+            }
+            addr += " " ;
+            if ( tmp[j][strlen-1] == ")" )
+            {
+               fromBeginPos = j ;
+               addr += tmp[j].slice( 0, strlen - 1 ) ;
+               break ;
+            }
+            else
+            {
+               addr += tmp[j] ;
+			}
+         }
       }
 
       if( username !== userObj.user || tty !== userObj.tty || time !== userObj.time || addr !== userObj.from )
       {
-         throw new Error( "userObj: " + JSON.stringify( userObj ) );
+         var parsedStr = "{ User: " + username + ", tty: " + tty + ", time: " + time + ", addr: " + addr + " }" ;
+         throw new Error( "userObj: " + JSON.stringify( userObj ) + ", ParsedInfo: " + parsedStr + ", SourceLine: " + info[i] );
       }
    }
 
