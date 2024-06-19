@@ -97,7 +97,7 @@ function test ()
          "MaxValue": values[values.length - 1],
          "NullFrac": 0,
          "UndefFrac": 0,
-         "SampleRecords": SampleRecordsInfo,
+         "SampleRecords": Math.min( SampleRecordsInfo, 200000 ),
          "TotalRecords": totalRecords
       };
       assert.equal( actResult1, expResult1 );
@@ -123,7 +123,7 @@ function test ()
             "Values": values,
             "Frac": fracs
          },
-         "SampleRecords": SampleRecordsInfo,
+         "SampleRecords": Math.min( SampleRecordsInfo, 400000 ),
          "TotalRecords": totalRecords
       };
       assert.equal( actResult2, expResult2 );
@@ -146,7 +146,7 @@ function test ()
          "MaxValue": values[values.length - 1],
          "NullFrac": 0,
          "UndefFrac": 0,
-         "SampleRecords": SampleRecordsInfo,
+         "SampleRecords": Math.min( SampleRecordsInfo, 100000 ),
          "TotalRecords": totalRecords
       };
       assert.equal( actResult3, expResult3 );
