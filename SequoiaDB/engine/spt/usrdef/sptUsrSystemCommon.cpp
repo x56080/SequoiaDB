@@ -4545,6 +4545,11 @@ namespace engine
       vector<string>      splited ;
       vector< BSONObj >   userVec ;
 
+      const UINT32 _userPos = 0 ;
+      const UINT32 _ttyPos = 1 ;
+      const UINT32 _timeBeginPos = 2 ;
+      const UINT32 _columnMinSize = 4 ;
+
       if ( NULL == buf )
       {
          rc = SDB_INVALIDARG ;
@@ -4558,7 +4563,8 @@ namespace engine
             xxxxxxxxx pts/0        2016-10-11 13:01 (xxx.xxx.xxx.xxx)
          or
             xxxxxxxxx pts/1        Dec  2 11:44     (192.168.10.53)
-
+         or
+            xxxxxxxxx seat0        2024-06-17 16:57 (login screen)
       */
       try
       {
@@ -4620,18 +4626,64 @@ namespace engine
             }
 
             // at least contain 4 col
-            if ( 4 > columns.size() )
+            if ( columns.size() < _columnMinSize )
             {
                continue ;
             }
             else
             {
-               string &ipStr = columns.back() ;
-               if ( ipStr[ ipStr.size() - 1 ] == ')' )
+               UINT32 fromEndPos = columns.size() - 1 ;
+               const string &ipStr = columns[ fromEndPos ] ;
+
+               /// found from
+               if ( ipStr.at( ipStr.size() - 1 ) == ')' )
                {
-                  loginIp = ipStr.substr( 1, ipStr.size() - 2 );
-                  loginTime = columns[ 2 ] ;
-                  for ( UINT32 index = 3; index < columns.size() - 1; index++ )
+                  UINT32 fromBeginPos = fromEndPos ;
+                  while ( fromBeginPos > _timeBeginPos )
+                  {
+                     const string &tmpStr = columns[fromBeginPos] ;
+                     if ( tmpStr.at(0) == '(' )
+                     {
+                        UINT32 tmpLen = ( fromBeginPos == fromEndPos ) ? tmpStr.size() - 2 :
+                                                                         tmpStr.size() - 1 ;
+                        loginIp = tmpStr.substr( 1, tmpLen ) ;
+                        break ;
+                     }
+                     else if ( fromBeginPos == fromEndPos )
+                     {
+                        loginIp = tmpStr.substr( 0, tmpStr.size() - 1 ) ;
+                     }
+                     else
+                     {
+                        loginIp = tmpStr ;
+                     }
+                     --fromBeginPos ;
+                  }
+
+                  if ( fromBeginPos <= _timeBeginPos ) /// not found
+                  {
+                     fromBeginPos = fromEndPos ;
+                     loginIp = loginIp.substr( 0, loginIp.size() - 1 ) ;
+                  }
+
+                  /// build from
+                  for ( UINT32 index = fromBeginPos + 1 ; index <= fromEndPos ; ++index )
+                  {
+                     const string &tmpStr = columns[index] ;
+                     loginIp += " " ;
+                     if ( index == fromEndPos )
+                     {
+                         loginIp += tmpStr.substr( 0, tmpStr.size() - 1 ) ;
+                     }
+                     else
+                     {
+                        loginIp += tmpStr ;
+                     }
+                  }
+
+                  /// build time
+                  loginTime = columns[ _timeBeginPos ] ;
+                  for ( UINT32 index = _timeBeginPos + 1 ; index < fromBeginPos ; index++ )
                   {
                      loginTime += " " + columns[ index ] ;
                   }
@@ -4639,17 +4691,17 @@ namespace engine
                else
                {
                   loginIp = "" ;
-                  loginTime = columns[ 2 ] ;
-                  for( UINT32 index = 3; index < columns.size(); index++ )
+                  loginTime = columns[ _timeBeginPos ] ;
+                  for( UINT32 index = _timeBeginPos + 1 ; index < columns.size(); index++ )
                   {
                      loginTime += " " + columns[ index ] ;
                   }
                }
             }
-            userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_USER, columns[ 0 ] ) ;
+            userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_USER, columns[ _userPos ] ) ;
             userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_TIME, loginTime ) ;
             userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_FROM, loginIp ) ;
-            userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_TTY, columns[ 1 ] ) ;
+            userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_TTY, columns[ _ttyPos ] ) ;
             userVec.push_back( userObjBuilder.obj() ) ;
          }
       }
@@ -4687,12 +4739,12 @@ namespace engine
             }
 
             // at least contain 4 col
-            if ( 4 > columns.size() )
+            if ( columns.size() < _columnMinSize )
             {
                continue ;
             }
             userObjBuilder.append( CMD_USR_SYSTEM_LOGINUSER_USER,
-                                  columns[ 0 ] ) ;
+                                  columns[ _userPos ] ) ;
             userVec.push_back( userObjBuilder.obj() ) ;
          }
       }
