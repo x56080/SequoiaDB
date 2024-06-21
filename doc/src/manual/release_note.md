@@ -8,6 +8,61 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 - 从 3.4.4/3.6/5.0.3 及早期版本滚动升级到 3.4.5/3.6.1/5.0.4 及之后的版本时，从 SQL 引擎执行的 INSERT 操作会存在失败。因此滚动升级的过程中需保证优先完成存储引擎的升级，然后再进行 MySQL/MariaDB 实例的升级。
 - 从 3.4.4/3.6/5.0.3 及早期版本升级到 3.4.5/3.6.1/5.0.4 及之后的版本，如果集群会扩展为 X86 和 ARM 架构混合部署，则在升级前版本上创建的、使用 double 类型字段作为 hash 分区键的集合，需要进行重建，否则可能会出现数据无法正确访问的问题。可通过查询 SDB_SNAP_CATALOG 快照，根据集合使用的 hash 算法版本号（InternalV 字段）判断，对于该版本号小于 4 的集合需要进行处理。
 
+##SequoiaDB version 5.8.3 版本说明##
+
+**接口变更：**
+
+- 存储引擎
+  - sdb shell 新增 runtime-size 参数，动态调整 sdb shell 最大运行内存
+  - sdbcm 新增 ValidTimeThreshold 参数，设置异常节点自动重启间隔时间。如果在间隔时间内，sdbcm 自动重启异常节点次数超过 RestartCount 参数的限制，则 sdbcm 不会再重启该异常节点
+
+**主要特性：**
+
+- 存储引擎
+  - 慢查询新增监控指标:
+     - QueryCataTime：查询编目耗时，单位为毫秒
+     - BlockTime：操作被阻塞的时间，单位为毫秒
+     - QueryCataCount：查询编目的次数
+     - BlockType：阻塞事件类型(如果为空则不显示该字段)，有以下事件类型：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing，NoLogSpace
+     - FileOPTime：节点在文件层操作的耗时（该指标仅在数据节点显示），单位为毫秒
+     - DispatchTimeSpent：消息分发花费时间，单位为毫秒
+     - SortTime：数据排序花费时间，单位为毫秒
+     - HashCode：查询语句的哈希标识，相同哈希标识对应同类型的查询语句 （仅数据节点）
+     - LogOPTime：读写同步日志的耗时，单位为毫秒（仅数据节点）
+     - TransLockWaitCount：锁等待次数（仅数据节点）
+     - LatchWaitCount：闩锁等待次数（仅数据节点）
+  - 慢查询参数 mongroupmask 从开改为关时，会立即清理掉历史的监控信息，优化为保留 5 分钟再清理；
+  - createCL 支持指定创建多个数据组；
+  - createCL/createCS 支持克降模式；
+  - 健康快照支持显示节点切主信息；
+
+**性能优化：**
+
+- 存储引擎
+  - 优化查询快照和事务快照性能
+  - 优化索引统计信息子表采样率
+
+- SQL 引擎
+  - 增加统计信息缓存，优化获取统计信息性能
+
+**工具优化：**
+
+- 存储引擎
+  - 修复容灾脚本在多个安装路径各不相同的机器上执行失败的问题
+
+**解决重要Bug：**
+
+- 存储引擎
+  - 修复查询快照死锁问题
+  - 修复 transactionon 为 false 时，执行事务相关快照导致节点 coredump 问题
+  - 修复访问计划索引评估出错的问题
+  - 修复事务操作中会话快照和查询快照 LastOpInfo 字段值为空的问题
+
+- SQL 引擎
+  - 修复对不存在的库进行授权，实例组同步报错的问题
+  - 修复 refresh 操作无法获取全部索引统计信息的问题
+  - 修复对不存在的库执行 analyze 操作导致回放线程卡住的问题
+
 ##SequoiaDB version 5.8.2 版本说明##
 
 **接口变更：**
