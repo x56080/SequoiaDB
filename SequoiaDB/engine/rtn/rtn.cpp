@@ -2845,8 +2845,12 @@ namespace engine
             {
                BSONObj tmpNodeMatcher ;
                BSONObj tmpNewMatcher ;
-               BSONArrayBuilder subMatcher(
-                  matcherBuilder.subarrayStart( ele.fieldName() ) ) ;
+               INT32 curMatcherLen = matcherBuilder.bb().len() ;
+               INT32 curNodeLen = nodesCondBuilder.bb().len() ;
+               INT32 curMatcherReserved = matcherBuilder.bb().getReserveBytes() ;
+               INT32 curNodeReserved = nodesCondBuilder.bb().getReserveBytes() ;
+               BSONArrayBuilder subMatcher( matcherBuilder.subarrayStart( ele.fieldName() ) ) ;
+               BSONArrayBuilder subNodeMatcher( nodesCondBuilder.subarrayStart( ele.fieldName() ) ) ;
 
                BSONObjIterator subItr( ele.embeddedObject() ) ;
                while ( subItr.more() )
@@ -2869,11 +2873,38 @@ namespace engine
                      PD_RC_CHECK( rc, PDERROR, "Parse matcher[%s] failed",
                                   query.toString().c_str() ) ;
 
-                     subMatcher.append( tmpNewMatcher ) ;
-                     nodesCondBuilder.appendElements( tmpNodeMatcher ) ;
+                     if ( !tmpNewMatcher.isEmpty() )
+                     {
+                        subMatcher.append( tmpNewMatcher ) ;
+                     }
+                     if ( !tmpNodeMatcher.isEmpty() )
+                     {
+                        subNodeMatcher.append( tmpNodeMatcher ) ;
+                     }
                   }
                } /// end while
-               subMatcher.done() ;
+
+               if ( subMatcher.isEmpty() )
+               {
+                  subMatcher.abandon() ;
+                  matcherBuilder.bb().setlen( curMatcherLen ) ;
+                  matcherBuilder.bb().setReserveBytes( curMatcherReserved ) ;
+               }
+               else
+               {
+                  subMatcher.done() ;
+               }
+
+               if ( subNodeMatcher.isEmpty() )
+               {
+                  subNodeMatcher.abandon() ;
+                  nodesCondBuilder.bb().setlen( curNodeLen ) ;
+                  nodesCondBuilder.bb().setReserveBytes( curNodeReserved ) ;
+               }
+               else
+               {
+                  subNodeMatcher.done() ;
+               }
             }
             else if ( !ignoreNodeParam && (
                       0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPID ) ||

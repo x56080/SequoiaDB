@@ -399,6 +399,8 @@ namespace engine
          if ( Array == e.type() &&
               0 == ossStrcmp( e.fieldName(), "$and" ) )
          {
+            INT32 curBBLen = builder.bb().len() ;
+            INT32 curReserved = builder.bb().getReserveBytes() ;
             BSONArrayBuilder sub( builder.subarrayStart( e.fieldName() ) ) ;
             BSONObj tmpNew ;
             BSONObjIterator tmpItr( e.embeddedObject() ) ;
@@ -438,7 +440,16 @@ namespace engine
                   }
                }
             }
-            sub.done() ;
+            if ( sub.isEmpty() )
+            {
+               sub.abandon() ;
+               builder.bb().setlen( curBBLen ) ;
+               builder.bb().setReserveBytes( curReserved ) ;
+            }
+            else
+            {
+               sub.done() ;
+            }
          } /// end $and
          else if ( ( mask & COORD_CTRL_MASK_GLOBAL ) &&
                    0 == ossStrcasecmp( e.fieldName(), FIELD_NAME_GLOBAL ) )
@@ -456,6 +467,7 @@ namespace engine
             }
             else
             {
+               builder.append( e ) ;
                rc = SDB_OK ;
             }
          }
@@ -518,6 +530,7 @@ namespace engine
             }
             else
             {
+               builder.append( e ) ;
                rc = SDB_OK ;
             }
          }
@@ -573,6 +586,7 @@ namespace engine
             }
             else
             {
+               builder.append( e ) ;
                rc = SDB_OK ;
             }
             tmpVecStr.clear() ;
@@ -612,6 +626,7 @@ namespace engine
             }
             else
             {
+               builder.append( e ) ;
                rc = SDB_OK ;
             }
          }
@@ -658,6 +673,8 @@ namespace engine
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
+            INT32 curBBLen = builder.bb().len() ;
+            INT32 curReserved = builder.bb().getReserveBytes() ;
             BSONArrayBuilder sub( builder.subarrayStart( ele.fieldName() ) ) ;
             BSONObj tmpNew ;
             BSONObjIterator tmpItr( ele.embeddedObject() ) ;
@@ -697,7 +714,16 @@ namespace engine
                   }
                }
             }
-            sub.done() ;
+            if ( sub.isEmpty() )
+            {
+               sub.abandon() ;
+               builder.bb().setlen( curBBLen ) ;
+               builder.bb().setReserveBytes( curReserved ) ;
+            }
+            else
+            {
+               sub.done() ;
+            }
          } /// end $and
          // group id
          else if ( 0 == ossStrcasecmp( ele.fieldName(), CAT_GROUPID_NAME ) )
@@ -713,6 +739,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -734,6 +761,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -783,6 +811,8 @@ namespace engine
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
+            INT32 curBBLen = builder.bb().len() ;
+            INT32 curReserved = builder.bb().getReserveBytes() ;
             BSONArrayBuilder sub( builder.subarrayStart( ele.fieldName() ) ) ;
             BSONObj tmpNew ;
             BSONObjIterator tmpItr( ele.embeddedObject() ) ;
@@ -824,7 +854,16 @@ namespace engine
                   }
                }
             }
-            sub.done() ;
+            if ( sub.isEmpty() )
+            {
+               sub.abandon() ;
+               builder.bb().setlen( curBBLen ) ;
+               builder.bb().setReserveBytes( curReserved ) ;
+            }
+            else
+            {
+               sub.done() ;
+            }
          } /// end $and
          else if ( 0 == ossStrcasecmp( ele.fieldName(), CAT_NODEID_NAME ) )
          {
@@ -840,6 +879,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -857,6 +897,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -877,6 +918,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -901,6 +943,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
@@ -926,6 +969,7 @@ namespace engine
             }
             else
             {
+               builder.append( ele ) ;
                rc = SDB_OK ;
             }
          }
