@@ -1256,7 +1256,7 @@ namespace engine
       }
       else
       {
-         rc = MSG_GET_INNER_REPLY_RC( pMsg ) ;
+         rc = pdError( MSG_GET_INNER_REPLY_RC( pMsg ) ) ;
       }
 
    done:

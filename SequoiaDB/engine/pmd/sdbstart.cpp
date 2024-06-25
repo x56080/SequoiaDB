@@ -54,6 +54,7 @@
 #include "omagentDef.hpp"
 #include "ossIO.hpp"
 #include "ossCmdRunner.hpp"
+#include "pmdEnv.hpp"
 
 #include <vector>
 #include <string>
@@ -115,6 +116,13 @@ namespace engine
    void displayArg ( po::options_description &desc )
    {
       std::cout << desc << std::endl ;
+   }
+
+   static BOOLEAN s_exit = FALSE ;
+
+   void pmdOnQuit()
+   {
+      s_exit = TRUE ;
    }
 
    BOOLEAN serviceExists ( const CHAR *pServiceName,
@@ -349,7 +357,7 @@ namespace engine
    {
       INT32 timeout = UTIL_WAIT_NODE_TIMEOUT ;
 
-      while ( timeout > 0 )
+      while ( timeout > 0 && !s_exit )
       {
          --timeout ;
 
@@ -370,6 +378,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 tmpRC = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_SDBSTART_MAIN ) ;
+      CHAR dialogPath[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       CHAR rootPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR enginePathName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
@@ -452,21 +461,22 @@ namespace engine
 
       /// 5.dialog path and file
       rc = utilBuildFullPath( rootPath, SDBCM_LOG_PATH,
-                              OSS_MAX_PATHSIZE, dialogFile ) ;
+                              OSS_MAX_PATHSIZE, dialogPath ) ;
       if ( rc )
       {
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
-      rc = ossMkdir( dialogFile ) ;
+      rc = ossMkdir( dialogPath ) ;
       if ( rc && SDB_FE != rc )
       {
          ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
-                    dialogFile, rc ) ;
+                    dialogPath, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
       }
+      ossStrcpy( dialogFile, dialogPath ) ;
       rc = engine::utilCatPath( dialogFile, OSS_MAX_PATHSIZE,
                                 SDBSTART_LOG_FILE_NAME ) ;
       if ( rc )
@@ -488,6 +498,10 @@ namespace engine
                  "current terminal" ) ;
       }
 #endif
+      // handlers and init global mem
+      rc = pmdEnableSignalEvent( dialogPath, (PMD_ON_QUIT_FUNC)pmdOnQuit ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
+
       if ( configs.size() == 0 )
       {
          utilNodeInfo info ;
