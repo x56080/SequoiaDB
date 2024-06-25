@@ -887,6 +887,9 @@ namespace engine
       rtnContextCoord *pTmpContext = NULL ;
       BOOLEAN needReset = FALSE ;
       BSONObj mergedSelect ;
+      BOOLEAN locationStrict = TRUE ;
+
+      pdLogShield rcShield ;
 
       /// 1. extrace msg
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
@@ -930,11 +933,24 @@ namespace engine
          }
       }
 
+      if ( ppContext && FILTER_ID_MATCHER == ctrlParam._filterID )
+      {
+         locationStrict = FALSE ;
+         rcShield.addRC( SDB_CLS_GRP_NOT_EXIST ) ;
+      }
+
       if ( !pFilterObj->isEmpty() )
       {
          rc = coordParseGroupList( _pResource, cb, *pFilterObj,
                                    groupLst, &newFilterObj,
-                                   ppContext ? FALSE : TRUE ) ;
+                                   locationStrict ) ;
+         if ( !locationStrict && SDB_CLS_GRP_NOT_EXIST == rc )
+         {
+            /// ignore error
+            rc = SDB_OK ;
+            groupLst.clear() ;
+            hasNodeOrGroupFilter = TRUE ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to parse groups, rc: %d", rc  ) ;
          if ( !pFilterObj->equal( newFilterObj ) )
          {
@@ -973,17 +989,30 @@ namespace engine
       }
 
    parseNode:
+      if ( !locationStrict )
+      {
+         rcShield.addRC( SDB_CLS_GRP_NOT_EXIST ) ;
+      }
       /// 5. parse nodes
       rc = coordGetGroupNodes( _pResource, cb, *pFilterObj,
                                ctrlParam._emptyFilterSel,
-                               ( 0 == groupLst.size() ? ( hasParseRetry ?
-                                 expectGrpLst : allGroupLst ) : groupLst ),
+                               ( ( !hasNodeOrGroupFilter && 0 == groupLst.size() ) ?
+                                       ( hasParseRetry ? expectGrpLst : allGroupLst ) :
+                                       groupLst ),
                                sendNodes, &newFilterObj,
-                               ppContext ? FALSE : TRUE ) ;
+                               locationStrict ) ;
+      if ( !locationStrict && SDB_CLS_GRP_NOT_EXIST == rc )
+      {
+         /// ignore error
+         rc = SDB_OK ;
+         sendNodes.clear() ;
+      }
+      rcShield.clearRC() ;
+
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
       if ( sendNodes.size() == 0 && !hasParseRetry )
       {
-         if ( !ppContext )
+         if ( locationStrict )
          {
             PD_LOG( PDWARNING, "No specific nodes[%s]",
                     pFilterObj->toString().c_str() ) ;

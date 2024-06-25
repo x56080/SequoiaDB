@@ -379,8 +379,8 @@ namespace engine
          }
          else
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Groupid and groupName are all not assigned" ) ;
+            rc = SDB_CLS_GRP_NOT_EXIST ;
+            PD_LOG( PDERROR, "Groupid and groupName are both not assigned" ) ;
             goto error ;
          }
       }

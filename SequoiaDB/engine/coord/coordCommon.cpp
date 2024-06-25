@@ -1061,7 +1061,7 @@ namespace engine
          }
          else
          {
-            PD_LOG_MSG( PDERROR, "Invalid node name: %s", pNodeName ) ;
+            PD_LOG_MSG( PDWARNING, "Invalid node name: %s", pNodeName ) ;
          }
       }
 
