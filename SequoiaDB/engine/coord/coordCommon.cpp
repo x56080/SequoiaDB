@@ -121,6 +121,7 @@ namespace engine
       /// a:[1,2,3]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
+         rc = SDB_OK ;
          BSONObjIterator it( e.embeddedObject() ) ;
          while ( it.more() )
          {
@@ -198,6 +199,7 @@ namespace engine
       /// a:["xxx", "yyy", "zzz"]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
+         rc = SDB_OK ;
          BSONObjIterator it( e.embeddedObject() ) ;
          while ( it.more() )
          {
