@@ -873,7 +873,7 @@ namespace engine
       BSONObj mergedSelect ;
       BOOLEAN locationStrict = TRUE ;
 
-      pdLogShield rcShield ;
+      pdLogRCShield rcShield ;
 
       /// 1. extrace msg
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
