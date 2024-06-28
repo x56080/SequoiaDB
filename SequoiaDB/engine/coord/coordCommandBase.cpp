@@ -936,7 +936,7 @@ namespace engine
             hasNodeOrGroupFilter = TRUE ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to parse groups, rc: %d", rc  ) ;
-         if ( pFilterObj->objdata() != newFilterObj.objdata() && !groupLst.empty() )
+         if ( pFilterObj->objdata() != newFilterObj.objdata() && ( !locationStrict || !groupLst.empty() ) )
          {
             hasNodeOrGroupFilter = TRUE ;
 
