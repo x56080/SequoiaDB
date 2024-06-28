@@ -13,11 +13,11 @@ function test ()
    //指定不存在的InstanceID
    var matcher = { InstanceID: 250, RawData: true, GroupName: groupName };
    var expResult = [];
-   checkInstanceID( db, matcher, expResult, -155 );
+   checkInstanceID( db, matcher, expResult );
 
    var matcher = { instanceid: 250, RawData: true, GroupName: groupName };
    var expResult = [];
-   checkInstanceID( db, matcher, expResult, -155 );
+   checkInstanceID( db, matcher, expResult );
 
    //指定存在的InstanceID
    var matcher = { InstanceID: 100, RawData: true, GroupName: groupName };
