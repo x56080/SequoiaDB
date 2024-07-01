@@ -134,7 +134,7 @@ namespace engine
 
       void     setErrInfo( const utilWriteResult *pResult ) ;
 
-      ossPoolString        getIdxName() const ;
+      const ossPoolString& getIdxName() const ;
       BSONObj              getIdxKeyPattern() const ;
       BSONObj              getIdxValue() const ;
       BSONObj              getCurID() const ;

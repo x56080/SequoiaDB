@@ -272,7 +272,7 @@ namespace engine
       return FALSE ;
    }
 
-   ossPoolString utilWriteResult::getIdxName() const
+   const ossPoolString& utilWriteResult::getIdxName() const
    {
       return _idxName ;
    }
