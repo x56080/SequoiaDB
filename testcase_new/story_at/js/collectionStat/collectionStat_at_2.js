@@ -46,15 +46,27 @@ function test(){
   mainCL.attachCL( COMMCSNAME + "." + subCLName1, { "LowBound": { "a": 0 }, "UpBound": { "a": 100000 } } );
   mainCL.attachCL( COMMCSNAME + "." + subCLName2, { "LowBound": { "a": 100000 }, "UpBound": { "a": 200000 } } );
 
+  var sampleDft = 200 ;
+  var pageDft = 1 ;
+  var sizeDft = 80000 ;
+  var avgAgrDft = 10 ;
+  var recSize = 36 ;
+  var pageRec = Math.ceil( 65536 / ( Math.floor(36*1.12) + 16 ) ) ;
+
+  var cl1Cnt = getCollectionGroupCnt( db, COMMCSNAME + "." + subCLName1 ) ;
+  var cl2Cnt = getCollectionGroupCnt( db, COMMCSNAME + "." + subCLName2 ) ;
+  var mainCnt = cl1Cnt + cl2Cnt ;
+
+  println( "cl1Cnt: " + cl1Cnt + ", cl2Cnt: " + cl2Cnt + ", mainCnt: " + mainCnt + ", pageRec: " + pageRec ) ;
   // 1.查看统计信息默认值
   // 1.1 连接子表1查询统计信息
-  checkCollectionStat( subCL1, subCLName1, 1, true, false, 10, 200, 200, 1, 80000 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, true, false, avgAgrDft, sampleDft*cl1Cnt, sampleDft*cl1Cnt, pageDft*cl1Cnt, sizeDft*cl1Cnt ) ;
 
   // 1.2 连接子表2查询统计信息
-  checkCollectionStat( subCL2, subCLName2, 1, true, false, 10, 400, 400, 2, 160000 ) ;
+  checkCollectionStat( subCL2, subCLName2, 1, true, false, avgAgrDft, sampleDft*cl2Cnt, sampleDft*cl2Cnt, pageDft*cl2Cnt, sizeDft*cl2Cnt ) ;
 
   // 1.3 连接主表查询统计信息
-  checkCollectionStat( mainCL, mainCLName, 1, true, false, 10, 600, 600, 3, 240000 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, true, false, avgAgrDft, sampleDft*mainCnt, sampleDft*mainCnt, pageDft*mainCnt, sizeDft*mainCnt ) ;
 
   // 2.主表插入数据，做analyze，寻找主表/子表的统计信息
   var data = [] ;
@@ -65,13 +77,13 @@ function test(){
   db.analyze( { "Collection": COMMCSNAME + "." + mainCLName } );
 
   // 2.1 连接子表1查询统计信息
-  checkCollectionStat( subCL1, subCLName1, 1, false, false, 10, 200, 300, 1, 10800 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, false, false, avgAgrDft, sampleDft*cl1Cnt, 300, Math.ceil(Math.ceil(300/cl1Cnt)/pageRec)*cl1Cnt, recSize*300 ) ;
 
   // 2.2 连接子表2查询统计信息
-  checkCollectionStat( subCL2, subCLName2, 1, false, false, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( subCL2, subCLName2, 1, false, false, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 2.3 连接主表查询统计信息
-  checkCollectionStat( mainCL, mainCLName, 1, false, false, 10, 200, 300, 1, 10800 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, false, false, avgAgrDft, sampleDft*cl1Cnt, 300, Math.ceil(Math.ceil(300/cl1Cnt)/pageRec)*cl1Cnt, recSize*300 ) ;
 
   // 3.验证过期的情况
   // 3.1 插入数据使子表subcl1过期(即使主表部分过期)
@@ -82,24 +94,24 @@ function test(){
   mainCL.insert( data ) ;
 
   // 3.1.1 连接子表1查询统计信息
-  checkCollectionStat( subCL1, subCLName1, 1, false, true, 10, 200, 300, 1, 10800 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, false, true, avgAgrDft, sampleDft*cl1Cnt, 300, Math.ceil(Math.ceil(300/cl1Cnt)/pageRec)*cl1Cnt, recSize*300 ) ;
 
   // 3.1.2 连接子表2查询统计信息
-  checkCollectionStat( subCL2, subCLName2, 1, false, false, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( subCL2, subCLName2, 1, false, false, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 3.1.3 连接主表查询统计信息
-  checkCollectionStat( mainCL, mainCLName, 1, false, true, 10, 200, 300, 1, 10800 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, false, true, avgAgrDft, sampleDft*cl1Cnt, 300, Math.ceil(Math.ceil(300/cl1Cnt)/pageRec)*cl1Cnt, recSize*300 ) ;
 
   // 3.2 analyze,查看集合统计信息的实际值
   db.analyze( { "Collection": COMMCSNAME + "." + mainCLName } );
   // 3.2.1 连接子表1查询统计信息
-  checkCollectionStat( subCL1, subCLName1, 1, false, false, 10, 200, 100300, 86, 3610800 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, false, false, avgAgrDft, sampleDft*cl1Cnt, 100300, Math.ceil(Math.ceil(100300/cl1Cnt)/pageRec)*cl1Cnt, recSize*100300 ) ;
 
   // 3.2.2 连接子表2查询统计信息
-  checkCollectionStat( subCL2, subCLName2, 1, false, false, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( subCL2, subCLName2, 1, false, false, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 3.2.3 连接主表查询统计信息
-  checkCollectionStat( mainCL, mainCLName, 1, false, false, 10, 200, 100300, 86, 3610800 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, false, false, avgAgrDft, sampleDft*cl1Cnt, 100300, Math.ceil(Math.ceil(100300/cl1Cnt)/pageRec)*cl1Cnt, recSize*100300 ) ;
 
   // 3.3 向主表插入数据使主表mainCL全部过期
   mainCL.truncate() ;
@@ -110,22 +122,22 @@ function test(){
   }
   mainCL.insert( data ) ;
   // 3.3.1 连接子表1查询统计信息
-  checkCollectionStat( subCL1, subCLName1, 1, false, true, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, false, true, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 3.3.2 连接子表2查询统计信息
-  checkCollectionStat( subCL2, subCLName2, 1, false, true, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( subCL2, subCLName2, 1, false, true, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 3.3.3 连接主表查询统计信息
-  checkCollectionStat( mainCL, mainCLName, 1, false, true, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, false, true, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 4. 做truncate
   // 4.1 子表做truncate
   db.analyze( { "Collection": COMMCSNAME + "." + mainCLName } );
   subCL1.truncate() ;
-  checkCollectionStat( subCL1, subCLName1, 1, true, false, 10, 200, 200, 1, 80000 ) ;
-  checkCollectionStat( mainCL, mainCLName, 1, true, false, 10, 600, 100200, 87, 3680000 ) ;
+  checkCollectionStat( subCL1, subCLName1, 1, true, false, avgAgrDft, sampleDft*cl1Cnt, sampleDft*cl1Cnt, pageDft*cl1Cnt, sizeDft*cl1Cnt ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, true, false, avgAgrDft, sampleDft*mainCnt, 100000+sampleDft*cl1Cnt, pageDft*cl1Cnt+Math.ceil(Math.ceil(100000/cl2Cnt)/pageRec)*cl2Cnt, recSize*100000+sizeDft ) ;
 
   // 4.2 主表做truncate
   mainCL.truncate() ;
-  checkCollectionStat( mainCL, mainCLName, 1, true, false, 10, 600, 600, 3, 240000 ) ;
+  checkCollectionStat( mainCL, mainCLName, 1, true, false, avgAgrDft, sampleDft*mainCnt, sampleDft*mainCnt, pageDft*mainCnt, sizeDft*mainCnt ) ;
 }

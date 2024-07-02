@@ -31,33 +31,43 @@
  **************************************************************************************************/
 testConf.skipStandAlone = true ;
 testConf.skipOneGroup = true ;
-testConf.clOpt = { ShardingKey: { no:1 }, AutoSplit: true }
+testConf.clOpt = { ShardingKey: { a:1 }, AutoSplit: true }
 testConf.clName = COMMCLNAME + "_collectionStat_3"
 main( test );
 
 function test( testPara ){
+  var sampleDft = 200 ;
+  var pageDft = 1 ;
+  var sizeDft = 80000 ;
+  var avgAgrDft = 10 ;
+  var recSize = 36 ;
+  var pageRec = Math.ceil( 65536 / ( Math.floor(36*1.12) + 16 ) ) ;
+  var clCnt = getCollectionGroupCnt( db, COMMCSNAME + "." + testConf.clName ) ;
+  
+  println( "clCnt: " + clCnt + ", pageRec: " + pageRec ) ;
+
   // 未做analyze，显示集合统计信息默认值
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, 10, 400, 400, 2, 160000 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, avgAgrDft, sampleDft*clCnt, sampleDft*clCnt, pageDft*clCnt, sizeDft*clCnt ) ;
 
   // 做analyze之后，显示集合统计信息的实际值
   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName } ) ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // 向集合中插入记录，使集合统计信息部分过期
   var data = [] ;
   for( var i = 0; i < 100000; i++ ){
-    data.push({a:1,b:1});
+    data.push({a:i,b:1});
   }
   testPara.testCL.insert( data ) ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, true, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, true, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // analyze，更新缓存中的集合统计信息
   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName } ) ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, 10, 200, 100000, 86, 3600000 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, avgAgrDft, sampleDft*clCnt, 100000, Math.ceil(Math.ceil(100000/clCnt)/pageRec)*clCnt, recSize*100000 ) ;
 
   // truncate，清空缓存中的集合统计信息
   testPara.testCL.truncate() ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, 10, 400, 400, 2, 160000 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, avgAgrDft, sampleDft*clCnt, sampleDft*clCnt, pageDft*clCnt, sizeDft*clCnt ) ;
 
   // 向集合中插入记录，使集合统计信息全部过期
   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName } ) ;
@@ -66,13 +76,13 @@ function test( testPara ){
     data.push({a:i,b:1});
   }
   testPara.testCL.insert( data ) ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, true, 10, 0, 0, 0, 0 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, true, avgAgrDft, 0, 0, 0, 0 ) ;
 
   // analyze，更新缓存中的集合统计信息
   db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName } ) ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, 10, 200, 100000, 86, 3600000 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, false, false, avgAgrDft, sampleDft*clCnt, 100000, Math.ceil(Math.ceil(100000/clCnt)/pageRec)*clCnt, recSize*100000 ) ;
 
   // truncate，清空缓存中的集合统计信息
   testPara.testCL.truncate() ;
-  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, 10, 400, 400, 2, 160000 ) ;
+  checkCollectionStat( testPara.testCL, testConf.clName, 1, true, false, avgAgrDft, sampleDft*clCnt, sampleDft*clCnt, pageDft*clCnt, sizeDft*clCnt ) ;
 }

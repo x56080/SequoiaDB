@@ -19,3 +19,14 @@ function checkCollectionStat( cl, clName, version, IsDefault, IsExpired, AvgNumF
       throw new Error( "\nExpected:\n" + JSON.stringify( expResult ) + "\nactual:\n" + JSON.stringify( actResult ) );
    }
 }
+
+function getCollectionGroupCnt( db, clName ) {
+   var sql = " select count(T.CataInfo.GroupID) as GroupCnt from ( select * from $SNAPSHOT_CATA where Name = \"" + clName + "\" split by CataInfo ) as T group by T.GroupID" ;
+   var cursor = db.exec( sql ) ;
+   var obj ;
+   var cnt = 0 ;
+   while ( obj = cursor.next() ) {
+      cnt = obj.toObj()["GroupCnt"] ;
+   }
+   return cnt ;
+}
