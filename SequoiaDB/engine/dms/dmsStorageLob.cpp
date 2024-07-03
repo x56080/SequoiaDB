@@ -2650,14 +2650,16 @@ namespace engine
       }
 
       startPageID = segment2Extent( segmentID, 0 ) ;
-      rcTmp = _data.freeCache( startPageID, _data.segmentPages() ) ;
-      if ( rcTmp != SDB_OK )
+      if ( startPageID != DMS_INVALID_EXTENT )
       {
-         PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
-                 "rc: %d", segmentID, rcTmp ) ;
-         rc = rcTmp ;
+         rcTmp = _data.freeCache( startPageID, segmentPages() ) ;
+         if ( rcTmp != SDB_OK )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
+                  "rc: %d", segmentID, rcTmp ) ;
+            rc = rcTmp ;
+         }
       }
-
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_FREECACHE, rc ) ;
       return rc ;
    }

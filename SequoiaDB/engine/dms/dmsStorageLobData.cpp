@@ -1242,7 +1242,11 @@ namespace engine
       }
 
       offset = getSeek( startPageID, 0 ) ;
-      length = pageNum * _pageSz ;
+      length = ( ( SINT64 ) pageNum ) * _pageSz ;
+      if ( offset + length > _fileSz )
+      {
+         length = _fileSz - offset ;
+      }
       rc = ossFadvise( &_file, offset, length, POSIX_FADV_DONTNEED ) ;
       if ( rc != SDB_OK )
       {
