@@ -51,7 +51,7 @@ function test(){
   var sizeDft = 80000 ;
   var avgAgrDft = 10 ;
   var recSize = 36 ;
-  var pageRec = Math.ceil( 65536 / ( Math.floor(36*1.12) + 16 ) ) ;
+  var pageRec = Math.ceil( 65536 / ( Math.floor(recSize*1.12) + 16 ) ) ;
 
   var cl1Cnt = getCollectionGroupCnt( db, COMMCSNAME + "." + subCLName1 ) ;
   var cl2Cnt = getCollectionGroupCnt( db, COMMCSNAME + "." + subCLName2 ) ;
