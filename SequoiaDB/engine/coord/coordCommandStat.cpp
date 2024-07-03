@@ -842,6 +842,18 @@ namespace engine
       }
 
    private:
+      /**
+         The first 2 are halves, the first 4 are quarters, the
+         first 8 are eighths...
+         e.g.:
+         len: 8
+         | seq | offset |
+         | --- | ------ |
+         | 0   | 0      |
+         | 1   | 4      |
+         | 2   | 6      |
+         | 3   | 2      |
+      */
       double _seq2Offset( double len, UINT32 seq )
       {
          double offset ;
@@ -859,6 +871,8 @@ namespace engine
             UINT32 subSeq = seq / 2 ;
             if ( seq % 2 == 0 )
             {
+               // Here adds subLen (not in else switch) to ensure
+               // the scenario with odd length has a expected result.
                offset = subLen + _seq2Offset( subLen, subSeq ) ;
             }
             else
