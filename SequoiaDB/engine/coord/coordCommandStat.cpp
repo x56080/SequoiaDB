@@ -742,18 +742,23 @@ namespace engine
    public:
       _coordSampleFilter() : _stepLength(0), _restInput(0) {}
 
-      _coordSampleFilter( UINT64 totalIn, UINT64 totalOut )
+      /**
+         seq: sequence number, the seed to make different start offset
+      */
+      _coordSampleFilter( UINT64 totalIn, UINT64 totalOut, UINT32 seq = 0 )
       {
          SDB_ASSERT(totalIn >= totalOut, "Filter acquires input more than output") ;
          if ( totalIn > totalOut )
          {
             _stepLength = ((FLOAT64) totalIn) / totalOut ;
+            seq %= (UINT32) _stepLength ;
+            _restInput = _seq2Offset( _stepLength, seq ) ;
          }
          else
          {
             _stepLength = 0 ;
+            _restInput = 0 ;
          }
-         _restInput = 0 ;
       }
 
       FLOAT64 filterRaito()
@@ -834,6 +839,34 @@ namespace engine
 
       done:
          return output ;
+      }
+
+   private:
+      double _seq2Offset( double len, UINT32 seq )
+      {
+         double offset ;
+         if ( 0 == seq )
+         {
+            offset = 0 ;
+         }
+         else if ( 1 == seq )
+         {
+            offset = len / 2 ;
+         }
+         else
+         {
+            double subLen = len / 2 ;
+            UINT32 subSeq = seq / 2 ;
+            if ( seq % 2 == 0 )
+            {
+               offset = subLen + _seq2Offset( subLen, subSeq ) ;
+            }
+            else
+            {
+               offset = _seq2Offset( subLen, subSeq ) ;
+            }
+         }
+         return offset ;
       }
 
    private:
@@ -1835,6 +1868,7 @@ namespace engine
          UINT64 newTotalSampleRecords = 0 ;
          UINT32 statMCVLimit = pmdGetKRCB()->getOptionCB()->getStatMCVLimit() ;
          _coordSampleFilter totalSampleFilter ;
+         UINT32 seq = 0 ;
 
          // Find out the median sample ratio of all sub cl
          for ( it = subClSampleRatioMap.begin() ;
@@ -1894,7 +1928,7 @@ namespace engine
             newSampleRecords = totalSampleFilter.filter( newSampleRecords ) ;
 
             subClFilterMap[ it->first ] =
-                  _coordSampleFilter( oldSampleRecords, newSampleRecords ) ;
+                  _coordSampleFilter( oldSampleRecords, newSampleRecords, seq++ ) ;
          }
       }
       catch ( std::exception &e )
