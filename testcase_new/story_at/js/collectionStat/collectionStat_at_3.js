@@ -41,7 +41,7 @@ function test( testPara ){
   var sizeDft = 80000 ;
   var avgAgrDft = 10 ;
   var recSize = 36 ;
-  var pageRec = Math.ceil( 65536 / ( Math.floor(36*1.12) + 16 ) ) ;
+  var pageRec = Math.ceil( 65536 / ( Math.floor(recSize*1.12) + 16 ) ) ;
   var clCnt = getCollectionGroupCnt( db, COMMCSNAME + "." + testConf.clName ) ;
   
   println( "clCnt: " + clCnt + ", pageRec: " + pageRec ) ;
