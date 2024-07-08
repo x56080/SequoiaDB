@@ -76,7 +76,7 @@ installCheck:
   actions:
     # freeDiskSpace/umask/hostName/etcHosts action provided by package framwork
     # check freeDiskSpace have enough space for install sequoadb
-    - { name: freeDiskSpace, parameters: [ { name: size, value: 1.3GB } ], scope: all, enable: true }
+    - { name: freeDiskSpace, parameters: [ { name: size, value: 10GB } ], scope: all, enable: true }
     # check whether umask is 0022
     - { name: umask, parameters: [ { name: mode, value: 0022 } ], scope: all, enable: true }
     # check whether host name is configured
