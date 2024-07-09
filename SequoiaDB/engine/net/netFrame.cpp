@@ -842,7 +842,7 @@ namespace engine
 
             if ( spanTime > 3 * _beatInterval )
             {
-               PD_LOG( PDWARNING, "Heartbeat span time[%u] is more than "
+               PD_LOG( PDWARNING, "Heartbeat span time[%llu] is more than "
                        "interval time[%u], the thread maybe blocked by "
                        "some operations", spanTime, _beatInterval ) ;
             }
@@ -855,7 +855,7 @@ namespace engine
 
             if ( passiveSpanTime > 3 * _beatPassiveInterval )
             {
-               PD_LOG( PDWARNING, "Heartbeat passive span time[%u] is more than "
+               PD_LOG( PDWARNING, "Heartbeat passive span time[%llu] is more than "
                        "passive interval time[%u], the thread maybe blocked by "
                        "some operations", passiveSpanTime, _beatPassiveInterval ) ;
             }

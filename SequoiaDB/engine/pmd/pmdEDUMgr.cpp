@@ -2577,7 +2577,7 @@ namespace engine
                while ( -1 != ( contextID = cb->contextPeek() ) )
                {
                   pCtxMgr->contextDelete( contextID, NULL ) ;
-                  PD_LOG ( PDWARNING, "EDU[%lld,%s] context[%d] leaked",
+                  PD_LOG ( PDWARNING, "EDU[%lld,%s] context[%lld] leaked",
                            myEDUID, getEDUName( eduType ), contextID ) ;
                }
             }

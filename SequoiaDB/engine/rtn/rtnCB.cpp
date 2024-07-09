@@ -480,7 +480,6 @@ namespace engine
             {
                cb->setMonQueryCB( monQueryCB ) ;
                hasSetCBMon = TRUE ;
-               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
             }
             else if ( ( NULL == cb ) ||
                       ( cb->getMonQueryCB() != monQueryCB ) )
@@ -496,6 +495,7 @@ namespace engine
          {
             cb->setMonQueryCB( NULL ) ;
             hasSetCBMon = FALSE ;
+            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
          }
 
          PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "

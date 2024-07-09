@@ -82,6 +82,9 @@ namespace engine
          virtual void   attachCB( _pmdEDUCB *cb ) ;
          virtual void   detachCB( _pmdEDUCB *cb ) ;
 
+         virtual INT32 getMaxProcMsgTime() const { return 2 ; }
+         virtual INT32 getMaxProcEventTime() const { return 2 ; }
+
          UINT32         setTimer( UINT32 milliSec ) ;
          void           killTimer( UINT32 timerID ) ;
 

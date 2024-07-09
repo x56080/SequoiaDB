@@ -271,7 +271,16 @@ void _monClassContainer::_processPendingObj()
          monClass &obj = *it ;
          it = _activeList.erase(it) ;
          _numPendingArchive.dec() ;
-         _archivedList.push_back(obj) ;
+
+         try
+         {
+            _archivedList.push_back(obj) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            SDB_OSS_DEL &obj ;
+         }
       }
       else if ( TRUE == it->isPendingDelete() )
       {
