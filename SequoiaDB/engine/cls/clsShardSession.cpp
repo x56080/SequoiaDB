@@ -2683,7 +2683,24 @@ namespace engine
                   contextNum, pContextIDs[0] ) ;
       } */
 
-      rc = rtnKillContexts ( contextNum, pContextIDs, _pEDUCB, _pRtnCB ) ;
+      for ( INT32 i = 0 ; i < contextNum ; i++ )
+      {
+         rtnContext *pContext = NULL ;
+         pContext = _pRtnCB->contextFind( pContextIDs[i], eduCB() ) ;
+         if ( !pContext )
+         {
+            /// if the context not exist
+            continue ;
+         }
+
+         /// set mon query to eduCB
+         if ( NULL == eduCB()->getMonQueryCB() )
+         {
+            eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
+         }
+
+         _pRtnCB->contextDelete ( pContextIDs[i], eduCB() ) ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__ONKILLCTXREQMSG, rc ) ;
