@@ -448,7 +448,6 @@ namespace engine
       {
          INT32 bufRef = pContext->getReference() ;
          INT64 ctxRef = pContext.refCount() ;
-         BOOLEAN hasSetCBMon = FALSE ;
 
          // wait for pre-fetching
          pContext->waitForPrefetch() ;
@@ -476,13 +475,8 @@ namespace engine
             // Which also means the original query this context
             // belongs to ends unexpectedly.
             // We need to clean the monQuery.
-            if ( cb && NULL == cb->getMonQueryCB() )
-            {
-               cb->setMonQueryCB( monQueryCB ) ;
-               hasSetCBMon = TRUE ;
-            }
-            else if ( ( NULL == cb ) ||
-                      ( cb->getMonQueryCB() != monQueryCB ) )
+            if ( ( NULL == cb ) ||
+                 ( cb->getMonQueryCB() != monQueryCB ) )
             {
                pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
             }
@@ -490,13 +484,6 @@ namespace engine
             pContext->setMonQueryCB( NULL ) ;
          }
          pContext.release() ;
-
-         if ( hasSetCBMon )
-         {
-            cb->setMonQueryCB( NULL ) ;
-            hasSetCBMon = FALSE ;
-            pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
-         }
 
          PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "
                  "buffer reference: %d)", contextID, ctxRef, bufRef ) ;
@@ -573,10 +560,9 @@ namespace engine
          rtnContext *pContext = it->second.get() ;
 
          if ( pContext &&
-              pContext->needTimeout() &&
               pContext->isOpened() &&
-              pmdGetTickSpanTime( pContext->getLastProcessTick() ) >
-                                                         contextTimeoutMS )
+              pContext->needTimeout() && 1 == it->second.refCount() &&
+              pmdGetTickSpanTime( pContext->getLastProcessTick() ) > contextTimeoutMS )
          {
             try
             {

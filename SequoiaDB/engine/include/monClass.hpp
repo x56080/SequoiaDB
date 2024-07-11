@@ -448,7 +448,8 @@ enum MON_QUERY_TICK_TYPE
    MON_TICK_SYNCWAIT,
    MON_TICK_SORT,
 
-   MON_TICK_MAX
+   MON_TICK_MAX,
+   MON_TICK_REF
 } ;
 
 #define MON_QUERY_TICK_SZ              ( 14 )
@@ -875,19 +876,61 @@ private:
 
    BOOLEAN _pushTickType( INT8 tickType )
    {
-      if ( _queryTickLen < MON_QUERY_TICK_SZ )
+      BOOLEAN hasPush = FALSE ;
+      INT8 curTickType = _getCurTickType() ;
+
+      if ( tickType > MON_TICK_MAX )
+      {
+         /// can not allow user push tick type with MON_TICK_REF
+         tickType = MON_TICK_MAX ; 
+      }
+
+      /// when same tickType, use ref
+      if ( _isMonTickValid( curTickType ) && curTickType == tickType )
+      {
+         INT16 *pRef = _getOrMakeTickRef( TRUE ) ;
+         if ( pRef )
+         {
+            ++(*pRef) ;
+            hasPush = TRUE ;
+            SDB_ASSERT( *pRef > 0, "Ref is invalid" ) ;
+         }
+      }
+
+      if ( !hasPush && _queryTickLen < MON_QUERY_TICK_SZ )
       {
          _queryTickPos = ( _queryTickPos + 1 ) % MON_QUERY_TICK_SZ ;
          _queryTickType[ _queryTickPos ] = tickType ;
          ++_queryTickLen ;
-         return TRUE ;
+         hasPush = TRUE ;
       }
-      return FALSE ;
+
+      return hasPush ;
    }
 
    BOOLEAN _popTickType( INT8 &tickType )
    {
-      if ( _queryTickLen > 0 )
+      BOOLEAN hasPop = FALSE ;
+      INT16 *pRef = _getOrMakeTickRef( FALSE ) ;
+
+      if ( pRef )
+      {
+         SDB_ASSERT( *pRef > 0, "Ref is invalid" ) ;
+
+         if ( *pRef > 0 )
+         {
+            --(*pRef) ;
+            tickType = _getCurTickType() ;
+            hasPop = TRUE ;
+         }
+
+         if ( *pRef <= 0 )
+         {
+            _popRef() ;
+         }
+      }
+
+      if ( !hasPop && _queryTickLen > 0 )
       {
          tickType = _queryTickType[ _queryTickPos ] ;
          if ( 0 == _queryTickPos )
@@ -899,6 +942,46 @@ private:
             --_queryTickPos ;
          }
          --_queryTickLen ;
+         hasPop = TRUE ;
+      }
+
+      return hasPop ;
+   }
+
+   INT16* _getOrMakeTickRef( BOOLEAN allowMake )
+   {
+      INT16 *pRef = NULL ;
+
+      if ( _queryTickLen > 0 )
+      {
+         /// get
+         if ( MON_TICK_REF == _queryTickType[ _queryTickPos ] &&
+              _queryTickLen > (INT8)( sizeof(INT16) + 1 ) )
+         {
+            pRef = (INT16*)(&_queryTickType[ _queryTickPos-sizeof(INT16) ]) ;
+         }
+         /// create
+         else if ( allowMake && _queryTickLen + sizeof(INT16) < MON_QUERY_TICK_SZ )
+         {
+            _queryTickPos = ( _queryTickPos + sizeof(INT16) + 1 ) % MON_QUERY_TICK_SZ ;
+            _queryTickType[ _queryTickPos ] = MON_TICK_REF ;
+            _queryTickLen += ( sizeof(INT16) + 1 ) ;
+
+            pRef = (INT16*)(&_queryTickType[ _queryTickPos-sizeof(INT16) ]) ;
+            *pRef = 0 ;
+         }
+      }
+
+      return pRef ;
+   }
+
+   BOOLEAN _popRef()
+   {
+      if ( _queryTickLen > (INT8)( sizeof(INT16) + 1 ) &&
+           MON_TICK_REF == _queryTickType[ _queryTickPos ] )
+      {
+         _queryTickPos -= ( sizeof( INT16 ) + 1 ) ;
+         _queryTickLen -= ( sizeof( INT16 ) + 1 ) ;
          return TRUE ;
       }
       return FALSE ;
@@ -908,6 +991,11 @@ private:
    {
       if ( _queryTickLen > 0 )
       {
+         if ( MON_TICK_REF == _queryTickType[ _queryTickPos ] &&
+              _queryTickLen > (INT8)( sizeof(INT16) + 1 ) )
+         {
+            return _queryTickType[ _queryTickPos - sizeof(INT16) - 1 ] ;
+         }
          return _queryTickType[ _queryTickPos ] ;
       }
       return MON_TICK_NONE ;

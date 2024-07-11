@@ -1212,6 +1212,7 @@ namespace engine
                getSession()->sessionName() ) ;
 
       INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
       INT32 contextNum = 0 ;
       const INT64 *pContextIDs = NULL ;
 
@@ -1232,7 +1233,32 @@ namespace engine
                   contextNum, pContextIDs[0] ) ;
       } */
 
-      rc = rtnKillContexts ( contextNum, pContextIDs, eduCB(), _pRTNCB ) ;
+      for ( INT32 i = 0 ; i < contextNum ; i++ )
+      {
+         rtnContextPtr pContext ;
+         rcTmp = _pRTNCB->contextFind( pContextIDs[i], pContext, eduCB() ) ;
+         if ( SDB_RTN_CONTEXT_NOTEXIST == rcTmp )
+         {
+            /// if the context not exist
+            continue ;
+         }
+         else if ( rcTmp )
+         {
+            rc = rc ? rc : rcTmp ;
+            continue ;
+         }
+
+         /// set mon query to eduCB
+         if ( NULL == eduCB()->getMonQueryCB() )
+         {
+            eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
+         }
+
+         /// release of context delete
+         pContext.release() ;
+
+         _pRTNCB->contextDelete ( pContextIDs[i], eduCB() ) ;
+      }
 
    done:
       return rc ;
@@ -1948,10 +1974,6 @@ namespace engine
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
-
-      // shield to avoid calling check urgent event during
-      // communicating messages with other nodes
-      pmdUrgentEventShield _shield( eduCB() ) ;
 
       if ( MSG_AUTH_VERIFY_REQ == opCode || MSG_AUTH_VERIFY1_REQ == opCode )
       {

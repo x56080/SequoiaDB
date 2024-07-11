@@ -1320,6 +1320,15 @@ namespace engine
                ++replyNum ;
             }
             _mapPendingSubSession.clear() ;
+
+            if ( _sessionChange )
+            {
+               // when in recursive processing, it will generate pending items,
+               // which need to be recalculated.
+               totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
+               _sessionChange = FALSE ;
+            }
+
             continue ;
          }
 
