@@ -748,7 +748,12 @@ namespace engine
       _coordSampleFilter( UINT64 totalIn, UINT64 totalOut, UINT32 seq = 0 )
       {
          SDB_ASSERT(totalIn >= totalOut, "Filter acquires input more than output") ;
-         if ( totalIn > totalOut )
+         if ( 0 == totalOut )
+         {
+            _stepLength = OSS_UINT64_MAX ;
+            _restInput = 0 ;
+         }
+         else if ( totalIn > totalOut )
          {
             _stepLength = ((FLOAT64) totalIn) / totalOut ;
             seq %= (UINT32) _stepLength ;
