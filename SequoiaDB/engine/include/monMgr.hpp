@@ -183,9 +183,10 @@ public:
     */
    template <class T> void dumpList ( ossPoolVector<T> & cachedMonClassList,
                                       MON_CLASS_TYPE classType,
-                                      MON_CLASS_LIST_TYPE listType)
+                                      MON_CLASS_LIST_TYPE listType,
+                                      IExecutor *cb = NULL )
    {
-      _monClass[classType]->dumpList(cachedMonClassList, listType) ;
+      _monClass[classType]->dumpList(cachedMonClassList, listType, cb) ;
    }
 
    /**

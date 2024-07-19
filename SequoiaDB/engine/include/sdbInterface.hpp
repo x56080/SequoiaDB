@@ -537,6 +537,22 @@ namespace engine
    IExecutor *sdbGetThreadExecutor() ;
 
    /*
+      _IExecutorEventHandler define
+   */
+   class _IExecutorEventHandler
+   {
+      public:
+         _IExecutorEventHandler() {}
+         virtual ~_IExecutorEventHandler() {}
+
+      public:
+         virtual INT32  onRecieve( const UINT32 &handle,
+                                   const MsgHeader *header,
+                                   const CHAR *pMsg ) = 0 ;
+   } ;
+   typedef _IExecutorEventHandler IExecutorEventHandler ;
+
+   /*
       _IIOService define
    */
    class _IIOService

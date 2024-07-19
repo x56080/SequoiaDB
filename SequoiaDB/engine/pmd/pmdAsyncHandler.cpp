@@ -406,7 +406,30 @@ namespace engine
       }
 
       newHeader = ( MsgHeader * )newMsg ;
-      _postMainMsg( handle, newHeader, memType ) ;
+
+      try
+      {
+         _postMainMsg( handle, newHeader, memType ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+
+         /// release memory
+         pmdEDUEvent event( PMD_EDU_EVENT_MSG, memType, newMsg ) ;
+         pmdEduEventRelease( event, NULL ) ;
+
+         rc = _pSessionMgr->onErrorHanding( rc, header, handle, 0, NULL ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else
+         {
+            goto done ;
+         }
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__PMDMSGHND_HNDMAINMSG, rc );

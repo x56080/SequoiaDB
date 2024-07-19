@@ -1664,13 +1664,15 @@ public:
       }
    }
 
+   #define MON_DUMP_CHECK_STEP               ( 2000 )
+
    /*
     * dump correspond monClass object this container has depends on the input listType.
     * @param cachedMonClassList target list we are going to populate
     * @param listType the type of list to read
     */
    template<class T>
-   void dumpList( ossPoolVector<T> &cachedMonClassList, MON_CLASS_LIST_TYPE listType)
+   void dumpList( ossPoolVector<T> &cachedMonClassList, MON_CLASS_LIST_TYPE listType, IExecutor *cb)
    {
       BOOLEAN _hasArchiveLatch = FALSE ;
       iterator itr ;
@@ -1679,6 +1681,8 @@ public:
       {
          try
          {
+            UINT32 stepCount = 0 ;
+
             if ( listType == MON_CLASS_ARCHIVED_LIST )
             {
                this->getArchiveLatch( SHARED ) ;
@@ -1688,6 +1692,14 @@ public:
             itr = begin(listType) ;
             while ( itr != end(listType) )
             {
+               if ( ++stepCount > MON_DUMP_CHECK_STEP )
+               {
+                  stepCount = 0 ;
+                  if ( cb && cb->isInterrupted( TRUE ) )
+                  {
+                     break ;
+                  }
+               }
                // 1. We skip any pending deletes
                // 2. Skip if this is a pending archive and we are only interested in$
                //    the active list$

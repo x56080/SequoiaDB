@@ -51,6 +51,9 @@ namespace engine
 {
    #define COORD_WAIT_EDU_ATTACH_TIMEOUT ( 60 * OSS_ONE_SEC )
    #define COORD_INVALID_TIMERID         (0)
+
+   #define COORD_EVENT_TIMEOUT           ( 900 * OSS_ONE_SEC )
+
    /*
    note: _CoordCB implement
    */
@@ -64,6 +67,7 @@ namespace engine
     _pAgent( NULL ),
     _shardServiceID ( MSG_ROUTE_SHARD_SERVCIE ),
     _regTimerID ( COORD_INVALID_TIMERID ),
+    _clearEventTimerID( COORD_INVALID_TIMERID ),
     _pDmsCB( NULL ),
     _pDpsCB( NULL ),
     _pRtnCB( NULL ),
@@ -72,6 +76,11 @@ namespace engine
    {
       _shdServiceName[0]  = 0 ;
       _selfNodeID.value   = MSG_INVALID_ROUTEID ;
+
+      _curHandle = NET_INVALID_HANDLE ;
+      _curTID = 0 ;
+      _curReqID = 0 ;
+
       _inPacketLevel = 0 ;
       _pendingContextID = -1 ;
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
@@ -123,7 +132,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      _pMsgHandler = SDB_OSS_NEW pmdRemoteMsgHandler( &_remoteSessionMgr ) ;
+      _pMsgHandler = SDB_OSS_NEW pmdRemoteMsgHandler( &_remoteSessionMgr, this ) ;
       if ( !_pMsgHandler )
       {
          PD_LOG( PDERROR, "Failed to alloc memory for message handler" ) ;
@@ -261,6 +270,14 @@ namespace engine
          _sendRegisterMsg () ;
       }
 
+      _clearEventTimerID = setTimer( 60 * OSS_ONE_SEC ) ;
+      if ( NET_INVALID_TIMER_ID == _clearEventTimerID )
+      {
+         PD_LOG( PDERROR, "Register timer failed" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       // 5. start om strategy sync job
       rc = coordStartOmStrategyJob( NULL ) ;
       if ( rc )
@@ -287,6 +304,19 @@ namespace engine
    {
       _dsMgr.deactive() ;
 
+      /// kill timer
+      if ( NET_INVALID_TIMER_ID != _clearEventTimerID )
+      {
+         killTimer( _clearEventTimerID ) ;
+         _clearEventTimerID = NET_INVALID_TIMER_ID ;
+      }
+
+      if ( NET_INVALID_TIMER_ID != _regTimerID )
+      {
+         killTimer( _regTimerID ) ;
+         _regTimerID = NET_INVALID_TIMER_ID ;
+      }
+
       if ( _pAgent )
       {
          // 1. unreg net from controller
@@ -305,6 +335,9 @@ namespace engine
       _remoteSessionMgr.fini() ;
       _resource.fini() ;
       _dsMgr.fini() ;
+
+      _contextLst.clear() ;
+      _eventMap.clear() ;
 
       if ( _pAgent )
       {
@@ -389,12 +422,149 @@ namespace engine
       }
    }
 
+   INT32 _CoordCB::onRecieve( const UINT32 &handle, const MsgHeader *header,const CHAR *pMsg )
+   {
+      if ( MSG_BS_INTERRUPTE == header->opCode ||
+           MSG_BS_DISCONNECT == header->opCode ||
+           MSG_COM_REMOTE_DISC == header->opCode ||
+           MSG_BS_INTERRUPTE_SELF == header->opCode )
+      {
+         UINT64 key = 0 ;
+         eventInfo eInfo ;
+
+         eInfo._requestID = header->requestID ;
+         eInfo._dbTick = pmdGetDBTick() ;
+         eInfo._eventType = header->opCode ;
+
+         ossScopedLock lock( &_contextLatch ) ;
+
+         if ( MSG_COM_REMOTE_DISC == header->opCode )
+         {
+            _delEventByHandle( handle ) ;
+            key = ossPack32To64( handle, OSS_SINT32_MAX ) ;
+
+            if ( _pEDUCB && _curHandle == handle && _curReqID <= header->requestID )
+            {
+               _pEDUCB->interrupt() ;
+            }
+         }
+         else
+         {
+            key = ossPack32To64( handle, header->TID ) ;
+
+            if ( _pEDUCB && _curHandle == handle && _curTID == header->TID &&
+                 _curReqID <= header->requestID )
+            {
+               _pEDUCB->interrupt() ;
+            }
+         }
+
+         /// push to event map
+         try
+         {
+            _eventMap[ key ] = eInfo ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+            /// ignore error
+         }
+      }
+
+      return SDB_OK ;
+   }
+
+   void _CoordCB::_delEventByHandle( const UINT32 &handle )
+   {
+      UINT32 hi = 0 ;
+      UINT32 lo = 0 ;
+      EVENT_MAP::iterator it = _eventMap.lower_bound( ossPack32To64( handle, 0 )  ) ;
+      while( it != _eventMap.end() )
+      {
+         ossUnpack32From64( it->first, hi, lo ) ;
+         if ( hi != handle )
+         {
+            break ;
+         }
+         _eventMap.erase( it++ ) ;
+      }
+   }
+
+   void _CoordCB::_delEventExpired()
+   {
+      EVENT_MAP::iterator it = _eventMap.begin() ;
+      while( it != _eventMap.end() )
+      {
+         const eventInfo &eInfo = it->second ;
+
+         if ( pmdGetTickSpanTime( eInfo._dbTick ) > COORD_EVENT_TIMEOUT )
+         {
+            _eventMap.erase( it++ ) ;
+         }
+         else
+         {
+            ++it ;
+         }
+      }
+   }
+
+   INT32 _CoordCB::_checkEvent( const UINT32 &handle, MsgHeader *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+      EVENT_MAP::iterator it ;
+
+      ossScopedLock lock( &_contextLatch ) ;
+
+      /// first check by handle
+      it = _eventMap.find( ossPack32To64( handle, OSS_SINT32_MAX ) ) ;
+      if ( it != _eventMap.end() )
+      {
+         const eventInfo &eInfo = it->second ;
+         if ( pMsg->requestID <= eInfo._requestID )
+         {
+            PD_LOG( PDWARNING, "Check message(Handle:%u, OPCode:%d, TID:%u, ReqID:%llu) expired "
+                    "by event(Type:%d, ReqID:%llu)", handle, pMsg->opCode, pMsg->TID,
+                    pMsg->requestID, eInfo._eventType, eInfo._requestID ) ;
+
+            rc = SDB_COORD_REMOTE_DISC ;
+            _needReply = FALSE ;
+
+            goto done ;
+         }
+      }
+
+      /// the check by TID
+      it = _eventMap.find( ossPack32To64( handle, pMsg->TID ) ) ;
+      if ( it != _eventMap.end() )
+      {
+         const eventInfo &eInfo = it->second ;
+         if ( pMsg->requestID <= eInfo._requestID )
+         {
+            PD_LOG( PDWARNING, "Check message(Handle:%u, OPCode:%d, TID:%u, ReqID:%llu) interrupt "
+                    "by event(Type:%d, ReqID:%llu)", handle, pMsg->opCode, pMsg->TID,
+                    pMsg->requestID, eInfo._eventType, eInfo._requestID ) ;
+
+            rc = SDB_APP_INTERRUPT ;
+
+            goto done ;
+         }
+      }
+
+   done:
+      return rc ;
+   }
+
    void _CoordCB::onTimer( UINT64 timerID, UINT32 interval )
    {
       //Judge the timer is myself, if not, dispatch to sub object
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
+      }
+      else if ( timerID == _clearEventTimerID )
+      {
+         ossScopedLock lock( &_contextLatch ) ;
+         _delEventExpired() ;
       }
       else
       {
@@ -683,7 +853,7 @@ retry :
       return rc ;
    }
 
-   void _CoordCB::_onMsgBegin( MsgHeader *pMsg )
+   void _CoordCB::_onMsgBegin( NET_HANDLE handle, MsgHeader *pMsg )
    {
       // set reply header ( except flags, length )
       _replyHeader.numReturned          = 0 ;
@@ -713,10 +883,23 @@ retry :
 
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
       _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
+
+      {
+         ossScopedLock lock( &_contextLatch ) ;
+         _curHandle = handle ;
+         _curTID = pMsg->TID ;
+         _curReqID = pMsg->requestID ;
+      }
    }
 
    void _CoordCB::_onMsgEnd( )
    {
+      {
+         ossScopedLock lock( &_contextLatch ) ;
+         _curHandle = NET_INVALID_HANDLE ;
+         _curTID = 0 ;
+         _curReqID = 0 ;
+      }
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
    }
 
@@ -735,17 +918,17 @@ retry :
       }
       else
       {
-         _onMsgBegin( pMsg ) ;
+         _onMsgBegin( handle, pMsg ) ;
          switch ( pMsg->opCode )
          {
             case MSG_BS_QUERY_REQ:
-               rc = _processQueryMsg( pMsg, buffObj, contextID );
+               rc = _processQueryMsg( handle, pMsg, buffObj, contextID );
                break;
             case MSG_BS_GETMORE_REQ :
-               rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
+               rc = _processGetMoreMsg( handle, pMsg, buffObj, contextID ) ;
                break ;
             case MSG_BS_ADVANCE_REQ :
-               rc = _processAdvanceMsg( pMsg, buffObj, contextID ) ;
+               rc = _processAdvanceMsg( handle, pMsg, buffObj, contextID ) ;
                break ;
             case MSG_BS_KILL_CONTEXT_REQ:
                rc = _processKillContext( pMsg ) ;
@@ -843,7 +1026,8 @@ retry :
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__GETMOREMSG, "_CoordCB::_processGetMoreMsg" )
-   INT32 _CoordCB::_processGetMoreMsg ( MsgHeader *pMsg,
+   INT32 _CoordCB::_processGetMoreMsg ( const NET_HANDLE &handle,
+                                        MsgHeader *pMsg,
                                         rtnContextBuf &buffObj,
                                         INT64 &contextID )
    {
@@ -851,10 +1035,17 @@ retry :
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       BOOLEAN rtnDel   = TRUE ;
+      rtnContextPtr pContext ;
 
       /// extract msg
       rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract GETMORE msg failed[rc:%d]", rc ) ;
+
+      rc = _checkEvent( handle, pMsg ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       /// execute get more
       MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), pMsg->opCode,
@@ -871,6 +1062,15 @@ retry :
          }
          goto error ;
       }
+      else if ( SDB_OK == _pRtnCB->contextFind( contextID, pContext ) &&
+                pContext->eof() &&
+                pContext->needCloseOnEOF() )
+      {
+         // early close to save get-more round-trips
+         pContext.release() ;
+         _delContextByID( contextID, TRUE ) ;
+         contextID = -1 ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB__COORDCB__GETMOREMSG, rc ) ;
@@ -881,7 +1081,8 @@ retry :
       goto done ;
    }
 
-   INT32 _CoordCB::_processAdvanceMsg ( MsgHeader *pMsg,
+   INT32 _CoordCB::_processAdvanceMsg ( const NET_HANDLE &handle,
+                                        MsgHeader *pMsg,
                                         rtnContextBuf &buffObj,
                                         INT64 &contextID )
    {
@@ -895,6 +1096,12 @@ retry :
       rc = msgExtractAdvanceMsg( (const CHAR*)pMsg, &tmpContextID, &pOption,
                                  &pBackData, &backDataSize ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract Advance msg failed[rc:%d]", rc ) ;
+
+      rc = _checkEvent( handle, pMsg ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       try
       {
@@ -999,7 +1206,8 @@ retry :
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__COORDCB__QUERYMSG, "_CoordCB::_processQueryMsg" )
-   INT32 _CoordCB::_processQueryMsg( MsgHeader *pMsg,
+   INT32 _CoordCB::_processQueryMsg( const NET_HANDLE &handle,
+                                     MsgHeader *pMsg,
                                      rtnContextBuf &buffObj,
                                      INT64 &contextID )
    {
@@ -1035,6 +1243,13 @@ retry :
                  pMsg->routeID.columns.groupID, pMsg->routeID.columns.nodeID,
                  pMsg->routeID.columns.serviceID ) ;
          rc = SDB_RTN_CMD_NO_NODE_AUTH ;
+         goto error ;
+      }
+
+      /// check by event
+      rc = _checkEvent( handle, pMsg ) ;
+      if ( rc )
+      {
          goto error ;
       }
 
@@ -1122,6 +1337,7 @@ retry :
       }
       else
       {
+         rtnContextPtr pContext ;
          rc = rtnRunCommand( pCommand, CMD_SPACE_SERVICE_SHARD, _pEDUCB,
                              _pDmsCB, _pRtnCB, _pDpsCB, w, &contextID ) ;
          if ( pCommand->hasBuff() )
@@ -1130,6 +1346,38 @@ retry :
          }
          PD_RC_CHECK ( rc, PDERROR, "Run command[%s] failed, rc: %d",
                        pCommand->name(), rc ) ;
+
+         if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+                ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
+              ( ( pContext ) ||
+                ( -1 != contextID &&
+                  SDB_OK == _pRtnCB->contextFind( contextID, pContext ) ) ) )
+         {
+            if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
+            {
+               pContext->enableCloseOnEOF() ;
+            }
+            if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+                 0 == buffObj.recordNum() )
+            {
+               rc = pContext->getMore( -1, buffObj, _pEDUCB ) ;
+               if ( rc || pContext->eof() )
+               {
+                  _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
+                  contextID = -1 ;
+               }
+
+               if ( SDB_DMS_EOC == rc )
+               {
+                  rc = SDB_OK ;
+               }
+               else if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to query with return data, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+         }
       }
 
    done :
