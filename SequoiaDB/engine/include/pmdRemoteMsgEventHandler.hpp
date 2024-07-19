@@ -41,6 +41,7 @@ namespace engine
 {
    class _pmdRemoteSessionMgr ;
    class _pmdEDUCB ;
+   class _IExecutorEventHandler ;
 
    /*
       _pmdRemoteMsgHandler define
@@ -48,7 +49,8 @@ namespace engine
    class _pmdRemoteMsgHandler : public _netMsgHandler
    {
       public:
-         _pmdRemoteMsgHandler( _pmdRemoteSessionMgr *pRSManager ) ;
+         _pmdRemoteMsgHandler( _pmdRemoteSessionMgr *pRSManager,
+                               _IExecutorEventHandler *pExeHandler = NULL ) ;
          virtual ~_pmdRemoteMsgHandler() ;
 
          void  attach( _pmdEDUCB *cb ) ;
@@ -69,6 +71,7 @@ namespace engine
       protected:
          _pmdRemoteSessionMgr                *_pRSManager ;
          _pmdEDUCB                           *_pMainCB ;
+         _IExecutorEventHandler              *_pExeHandler ;
 
    } ;
    typedef _pmdRemoteMsgHandler pmdRemoteMsgHandler ;

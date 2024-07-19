@@ -47,10 +47,12 @@ namespace engine
    /*
       _pmdRemoteMsgHandler implement
    */
-   _pmdRemoteMsgHandler::_pmdRemoteMsgHandler( _pmdRemoteSessionMgr *pRSManager )
+   _pmdRemoteMsgHandler::_pmdRemoteMsgHandler( _pmdRemoteSessionMgr *pRSManager,
+                                               IExecutorEventHandler *pExeHandler )
    {
       _pRSManager       = pRSManager ;
       _pMainCB          = NULL ;
+      _pExeHandler      = pExeHandler ;
    }
 
    _pmdRemoteMsgHandler::~_pmdRemoteMsgHandler()
@@ -102,6 +104,11 @@ namespace engine
       if ( 0 == header->TID || ! IS_REPLY_TYPE( header->opCode ) )
       {
          rc = _postMsg( handle, header, msg ) ;
+         if ( rc )
+         {
+            rc = SDB_NET_BROKEN_MSG ;
+            goto error ;
+         }
       }
       // session msg
       else
@@ -195,6 +202,15 @@ namespace engine
          ossMemcpy( pNewMsg, msg, header->messageLength ) ;
       }
       pNewMsg[ header->messageLength ] = 0 ;
+
+      if ( _pExeHandler )
+      {
+         rc = _pExeHandler->onRecieve( handle, (MsgHeader*)pNewMsg, pNewMsg ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       // push event
       _pMainCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,

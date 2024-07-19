@@ -60,11 +60,28 @@ namespace engine
    /*
       _CoordCB define
    */
-   class _CoordCB : public _pmdObjBase, public _IControlBlock
+   class _CoordCB : public _pmdObjBase, public _IControlBlock, public _IExecutorEventHandler
    {
       DECLARE_OBJ_MSG_MAP()
 
       typedef ossPoolMap< SINT64, UINT64>    CONTEXT_LIST ;
+
+      typedef struct _eventInfo
+      {
+         UINT64      _requestID ;
+         UINT64      _dbTick ;
+         SINT32      _eventType ;
+
+         _eventInfo()
+         {
+            _requestID = 0 ;
+            _dbTick    = 0 ;
+            _eventType = 0 ;
+         }
+      } eventInfo ;
+
+      //  Key: UINT64( Handle, TID) -> eventInfo
+      typedef ossPoolMap< UINT64, eventInfo> EVENT_MAP ;
 
       public:
          _CoordCB() ;
@@ -93,6 +110,11 @@ namespace engine
          pmdRemoteSessionMgr* getRSManager() ;
          coordDataSourceMgr*  getDSManager() ;
 
+      public:
+         virtual INT32  onRecieve( const UINT32 &handle,
+                                   const MsgHeader *header,
+                                   const CHAR *pMsg ) ;
+
       protected:
          virtual void onTimer ( UINT64 timerID, UINT32 interval ) ;
          INT32 _reply ( const NET_HANDLE &handle,
@@ -102,13 +124,15 @@ namespace engine
          INT32 _sendRegisterMsg () ;
          INT32 _onCatRegisterRes ( NET_HANDLE handle, MsgHeader *pMsg ) ;
          INT32 _defaultMsgFunc( NET_HANDLE handle, MsgHeader *pMsg ) ;
-         void _onMsgBegin( MsgHeader *pMsg ) ;
-         void _onMsgEnd() ;
+         void  _onMsgBegin( NET_HANDLE handle, MsgHeader *pMsg ) ;
+         void  _onMsgEnd() ;
          INT32 _processMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-         INT32 _processGetMoreMsg ( MsgHeader *pMsg,
+         INT32 _processGetMoreMsg ( const NET_HANDLE &handle,
+                                    MsgHeader *pMsg,
                                     rtnContextBuf &buffObj,
                                     INT64 &contextID ) ;
-         INT32 _processAdvanceMsg ( MsgHeader *pMsg,
+         INT32 _processAdvanceMsg ( const NET_HANDLE &handle,
+                                    MsgHeader *pMsg,
                                     rtnContextBuf &buffObj,
                                     INT64 &contextID ) ;
          INT32 _processKillContext( MsgHeader *pMsg ) ;
@@ -117,7 +141,8 @@ namespace engine
          INT32 _processMsgReq( MsgHeader *pMsg ) ;
          INT32 _filterQueryCmd( _rtnCommand *pCommand,
                                 MsgHeader *pMsg ) ;
-         INT32 _processQueryMsg( MsgHeader *pMsg,
+         INT32 _processQueryMsg( const NET_HANDLE &handle,
+                                 MsgHeader *pMsg,
                                  rtnContextBuf &buffObj,
                                  INT64 &contextID ) ;
          INT32 _processSessionInit( MsgHeader *pMsg ) ;
@@ -137,6 +162,10 @@ namespace engine
          INT32 _processUpdateGrpInfo () ;
          INT32 _processCatGrpChgNty () ;
 
+         void  _delEventByHandle( const UINT32 &handle ) ;
+         void  _delEventExpired() ;
+         INT32 _checkEvent( const UINT32 &handle, MsgHeader *pMsg ) ;
+
       private:
 
          coordResource                 _resource ;
@@ -153,6 +182,7 @@ namespace engine
          _MsgRouteID                   _selfNodeID ;
 
          UINT64                        _regTimerID ;
+         UINT64                        _clearEventTimerID ;
 
          ossEvent                      _attachEvent ;
 
@@ -166,6 +196,11 @@ namespace engine
 
          ossSpinXLatch                 _contextLatch ;
          CONTEXT_LIST                  _contextLst;
+
+         EVENT_MAP                     _eventMap ;
+         UINT32                        _curHandle ;
+         UINT32                        _curTID ;
+         UINT64                        _curReqID ;
 
          MsgOpReply                    _replyHeader ;
          BOOLEAN                       _needReply ;

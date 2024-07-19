@@ -5565,11 +5565,17 @@ namespace engine
 
       if ( _viewArchive )
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ARCHIVED_LIST, cb ) ;
       }
       else
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ACTIVE_LIST, cb ) ;
+      }
+
+      if ( cb->isInterrupted( TRUE ) )
+      {
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
       }
 
       _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;
