@@ -7918,7 +7918,6 @@ namespace engine
            !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
       {
          clInfo._isCompressed = TRUE ;
-         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
          clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
       }
 
@@ -8608,7 +8607,7 @@ namespace engine
       BSONObjBuilder builder ;
       CHAR szAttr[ 100 ] = { 0 } ;
 
-      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      if ( clInfo._isCompressed )
       {
          attribute |= DMS_MB_ATTR_COMPRESSED ;
       }
@@ -8659,7 +8658,7 @@ namespace engine
       builder.append( FIELD_NAME_ATTRIBUTE_DESC, szAttr ) ;
 
       /// only record the options specified by user.
-      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      if ( clInfo._isCompressed )
       {
          builder.append( CAT_COMPRESSIONTYPE, clInfo._compressorType ) ;
          builder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
@@ -9049,6 +9048,12 @@ namespace engine
                clInfo._isCompressed = TRUE ;
                mask |= UTIL_CL_COMPRESSED_FIELD ;
             }
+            else
+            {
+               clInfo._isCompressed = FALSE ;
+               mask |= UTIL_CL_COMPRESSED_FIELD ;
+            }
+
             if ( attr & DMS_MB_ATTR_NOIDINDEX )
             {
                clInfo._autoIndexId = FALSE ;

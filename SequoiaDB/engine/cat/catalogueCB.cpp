@@ -1671,8 +1671,9 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING,
-                    "Failed to send reply message [%d], rc: %d",
-                    pReply->header.opCode, rc ) ;
+                    "Failed to send reply message [(%d)%d], rc: %d",
+                    IS_REPLY_TYPE(pReply->header.opCode),
+                    GET_REQUEST_TYPE(pReply->header.opCode), rc ) ;
          }
       }
       PD_TRACE_EXITRC( SDB_CATALOGCB_SENDREPLY, rc ) ;
