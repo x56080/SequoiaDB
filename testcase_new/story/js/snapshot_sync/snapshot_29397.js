@@ -27,6 +27,8 @@ function test ( testPara )
       // SDB_SNAP_QUERY
       var ret = sdb.snapshot( SDB_SNAP_QUERIES );
       var queryID = ret.current().toObj()["QueryID"];
+      queryID = getNewQueryID(queryID);
+
       ret = sdb.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
       if( !ret.next() )
       {
