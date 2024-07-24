@@ -5791,9 +5791,11 @@ namespace engine
                   BSONElement eleSub = tmpItr.next() ;
                   /// eleSub must be string
                   PD_LOG_MSG_CHECK( String == eleSub.type(), SDB_INVALIDARG, error, PDERROR,
-                                    "Field [%s] 's array element must be string", CAT_GROUP_NAME ) ;
+                                    "Field[%s] 's array element must be string", CAT_GROUP_NAME ) ;
                   clInfo._vecGpSpecified.push_back( eleSub.valuestr() ) ;
                }
+               PD_LOG_MSG_CHECK( !clInfo._vecGpSpecified.empty(), SDB_INVALIDARG, error, PDERROR,
+                                 "Field[%s] can't be empty array", CAT_GROUP_NAME ) ;
             }
             else
             {
@@ -6199,6 +6201,11 @@ namespace engine
          else
          {
             grpID = SDB_DSID_2_GROUPID( clInfo._dsUID ) ;
+         }
+
+         if ( clInfo._isSharding )
+         {
+            cataItemBd.append( FIELD_NAME_ID, 0 ) ;
          }
 
          cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
