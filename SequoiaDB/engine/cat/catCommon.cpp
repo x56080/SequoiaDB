@@ -8449,13 +8449,6 @@ namespace engine
          }
       }
 
-      /// check and adjust
-      rc = catCheckCollectionInfo( clInfo, fieldMask ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCHECKANDBUILDCATARECORD, rc ) ;
       return rc ;
@@ -9240,8 +9233,7 @@ namespace engine
          {
             if ( e.numberLong() > 0 && e.numberLong() <= DMS_CAP_CL_SIZE )
             {
-               clInfo._maxSize = ossRoundUpToMultipleX( e.numberLong() << 20,
-                                                        DMS_MAX_CL_SIZE_ALIGN_SIZE ) ;
+               clInfo._maxSize = e.numberLong() ;
                mask |= UTIL_CL_MAXSIZE_FIELD  ;
             }
             else if ( checkValid )

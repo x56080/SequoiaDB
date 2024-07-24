@@ -1505,23 +1505,24 @@ namespace engine
       {
          _clInfo._capped = _refCLInfo._capped ;
          _fieldMask |= UTIL_CL_CAPPED_FIELD ;
+      }
 
+      if ( !(_fieldMask & UTIL_CL_MAXREC_FIELD) && (_refFieldMask & UTIL_CL_MAXREC_FIELD) )
+      {
          _clInfo._maxRecNum = _refCLInfo._maxRecNum ;
-         _clInfo._maxSize = _refCLInfo._maxSize ;
-         _clInfo._overwrite = _refCLInfo._overwrite ;
+         _fieldMask |= UTIL_CL_MAXREC_FIELD ;
+      }
 
-         if ( _refFieldMask & UTIL_CL_MAXREC_FIELD )
-         {
-            _fieldMask |= UTIL_CL_MAXREC_FIELD ;
-         }
-         if ( _refFieldMask & UTIL_CL_MAXSIZE_FIELD )
-         {
-            _fieldMask |= UTIL_CL_MAXSIZE_FIELD ;
-         }
-         if ( _refFieldMask & UTIL_CL_OVERWRITE_FIELD )
-         {
-            _fieldMask |= UTIL_CL_OVERWRITE_FIELD ;
-         }
+      if ( !(_fieldMask & UTIL_CL_MAXSIZE_FIELD) && (_refFieldMask & UTIL_CL_MAXSIZE_FIELD) )
+      {
+         _clInfo._maxSize = _refCLInfo._maxSize ;
+         _fieldMask |= UTIL_CL_MAXSIZE_FIELD ;
+      }
+
+      if ( !(_fieldMask & UTIL_CL_OVERWRITE_FIELD) && (_refFieldMask & UTIL_CL_OVERWRITE_FIELD) )
+      {
+         _clInfo._overwrite = _refCLInfo._overwrite ;
+         _fieldMask |= UTIL_CL_OVERWRITE_FIELD ;
       }
 
       if ( !(_fieldMask & UTIL_CL_STRICTDATAMODE_FIELD) &&
@@ -1769,19 +1770,27 @@ namespace engine
             INT32 type = eleType.numberInt() ;
             if ( ( DMS_STORAGE_NORMAL == type ) && _clInfo._capped )
             {
-               PD_LOG( PDERROR, "Capped colleciton can only be created on "
-                       "Capped collection space" ) ;
+               PD_LOG_MSG( PDERROR, "Capped colleciton can only be created on "
+                           "capped collection space" ) ;
                rc = SDB_OPERATION_INCOMPATIBLE ;
                goto error ;
             }
-            // If the user create a collection on a Capped CS, without specify
-            // "Capped" for collection, it's also OK.
+
             if ( ( DMS_STORAGE_CAPPED == type ) && !_clInfo._capped )
             {
-               _clInfo._capped = TRUE ;
-               _fieldMask |= UTIL_CL_CAPPED_FIELD ;
+               PD_LOG_MSG( PDERROR, "Can't create non-capped collection on capped "
+                           "collection space" ) ;
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               goto error ;
             }
          }
+      }
+
+      /// check and adjust
+      rc = catCheckCollectionInfo( _clInfo, _fieldMask ) ;
+      if ( rc )
+      {
+         goto error ;
       }
 
       // Get last history version of collection name

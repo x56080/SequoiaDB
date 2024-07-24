@@ -601,14 +601,24 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
+         void setInfoByCataInfo( utilCLUniqueID clUniqueID,
+                                 UINT32 attribute,
+                                 BOOLEAN ensureShardingIndex,
+                                 UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID,
+                                 const BSONObj extOptions = BSONObj() ) ;
+
          void setCLUniqueID( utilCLUniqueID clUniqueID ) ;
 
       private:
-         void _clean( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB ) ;
+         void  _clean( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB ) ;
+         void  _fixParams() ;
+
       protected:
+         UINT32                  _fieldMask ;
          const CHAR              *_collectionName ;
          BSONObj                 _shardingKey ;
          UINT32                  _attributes ;
+         BOOLEAN                 _ensureShardingIndex ;
          utilCLUniqueID          _clUniqueID ;
          UTIL_COMPRESSOR_TYPE    _compressorType ;
          BSONObj                 _extOptions ; // Store options accorrding to attributes.

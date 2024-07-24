@@ -2500,8 +2500,65 @@ namespace engine
 
             if ( CMD_CREATE_COLLECTION == pCommand->type() )
             {
+               UINT32 attribute = 0 ;
+               UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
+               BOOLEAN ensureShardingIndex = FALSE ;
+               BSONObj extOptions ;
+               clsCatalogSet *set = NULL ;
+
+               do
+               {
+                  _pCatAgent->lock_r() ;
+                  set = _pCatAgent->collectionSet( pCommand->collectionFullName(), clUniqueID ) ;
+                  if ( NULL == set )
+                  {
+                     _pCatAgent->release_r() ;
+
+                     rc = _pShdMgr->syncUpdateCatalog( clUniqueID, pCommand->collectionFullName() ) ;
+                     if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Session[%s] Update collection[%s]'s "
+                                "catalog info failed, rc: %d", sessionName(),
+                                pCommand->collectionFullName(), rc ) ;
+                        goto error ;
+                     }
+                  }
+                  else
+                  {
+                     break ;
+                  }
+               } while( SDB_OK == rc ) ;
+
+               /// get catalog info
+               attribute = set->getAttribute() ;
+               compType = set->getCompressType() ;
+               ensureShardingIndex = set->ensureShardingIndex() ;
+
+               if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED ) )
+               {
+                  try
+                  {
+                     BSONObjBuilder builder( 100 ) ;
+                     builder.append( FIELD_NAME_SIZE, set->getMaxSize() ) ;
+                     builder.append( FIELD_NAME_MAX, set->getMaxRecNum() ) ;
+                     builder.appendBool( FIELD_NAME_OVERWRITE, set->getOverWrite() ) ;
+                     extOptions = builder.obj() ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     /// release
+                     _pCatAgent->release_r() ;
+                     PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                     rc = ossException2RC( &e ) ;
+                     goto error ;
+                  }
+               }
+               /// release
+               _pCatAgent->release_r() ;
+
                _rtnCreateCollection *pCrtCL = (_rtnCreateCollection*)pCommand ;
-               pCrtCL->setCLUniqueID( clUniqueID ) ;
+               pCrtCL->setInfoByCataInfo( clUniqueID, attribute, ensureShardingIndex,
+                                          compType, extOptions ) ;
             }
          }
          else
