@@ -7404,7 +7404,7 @@ namespace engine
                     0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_ID ) ||
                     0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_VERSION ) ||
                     0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_INITIAL ) ||
-                    0 == ossStrcmp( e.fieldName(), CAT_SEQUENCE_CLUID ) )
+                    0 == ossStrcmp( e.fieldName(), FIELD_NAME_CL_UNIQUEID ) )
                {
                   /// skip
                   continue ;
