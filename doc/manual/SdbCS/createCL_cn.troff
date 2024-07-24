@@ -145,16 +145,12 @@ Group（ \f[I]string\f[] or \f[I]sting array\f[] ）：所属复制组
 \f[C]Group:[\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .RE
 .IP \[bu] 2
-SplitGroupStart（ \f[I]number\f[] ）：起始分区组的位置
+SplitGroupStart（ \f[I]number\f[] ）：起始分区组的位置，默认为 \-1
 .RS 2
 .IP \[bu] 2
 \-1表示随机计算
-\[bu] .RS 2
-.RS
-.PP
-=0 表示从指定位置计算，该值超出数据组的个数将会自动取余计算
-.RE
-.RE
+.IP \[bu] 2
+大于等于 0 表示从指定位置计算，该值超出数据组的个数将会自动取余计算
 .RE
 .IP \[bu] 2
 AutoIndexId（ \f[I]boolean\f[] ）：是否根据字段 _id
@@ -244,7 +240,7 @@ RefFrom（ \f[I]string\f[] ）：引用的集合名
 自动获取引用集合名的属性和分区信息。
 .RE
 .IP \[bu] 2
-RefMode（ \f[I]number\f[] ）：引用模式
+RefMode（ \f[I]number\f[] ）：引用模式，默认为 0
 .RS 2
 .IP \[bu] 2
 0：重新计算分区（仅对 hash 分区生效，对 range 分区则等同效果 1）

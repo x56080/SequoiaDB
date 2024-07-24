@@ -1658,11 +1658,24 @@ namespace engine
             // since there's always only one element in non-sharded collection,
             // we just need to get the very first element in map and get it's
             // group id
-            obj = BSON ( CAT_CATALOGINFO_NAME <<
-                         BSON_ARRAY ( BSON ( CAT_CATALOGGROUPID_NAME <<
-                                      _mapItems.begin()->second->getGroupID() )
-                         )
-                       ) ;
+            if ( !_saveName )
+            {
+               obj = BSON ( CAT_CATALOGINFO_NAME <<
+                            BSON_ARRAY ( BSON ( CAT_CATALOGGROUPID_NAME <<
+                                         _mapItems.begin()->second->getGroupID() )
+                            )
+                          ) ;
+            }
+            else
+            {
+               obj = BSON ( CAT_CATALOGINFO_NAME <<
+                            BSON_ARRAY ( BSON ( CAT_CATALOGGROUPID_NAME <<
+                                         _mapItems.begin()->second->getGroupID() <<
+                                                CAT_GROUPNAME_NAME <<
+                                         _mapItems.begin()->second->getGroupName() )
+                            )
+                          ) ;
+            }
          }
          catch ( std::exception &e )
          {

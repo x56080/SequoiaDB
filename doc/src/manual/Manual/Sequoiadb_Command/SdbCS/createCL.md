@@ -104,10 +104,10 @@ SdbCS
 
         格式：`Group: "group1"` 或 `Group:['group1', 'group2']`
 
-    - SplitGroupStart（ *number* ）：起始分区组的位置
+    - SplitGroupStart（ *number* ）：起始分区组的位置，默认为 -1
 
         - -1表示随机计算
-        - >=0 表示从指定位置计算，该值超出数据组的个数将会自动取余计算
+        - 大于等于 0 表示从指定位置计算，该值超出数据组的个数将会自动取余计算
 
     - AutoIndexId（ *boolean* ）：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
 
@@ -165,7 +165,7 @@ SdbCS
 
         自动获取引用集合名的属性和分区信息。
 
-    - RefMode（ *number* ）：引用模式
+    - RefMode（ *number* ）：引用模式，默认为 0
 
         - 0：重新计算分区（仅对 hash 分区生效，对 range 分区则等同效果 1）
         - 1：重新调整数据组的顺序

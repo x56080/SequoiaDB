@@ -169,17 +169,13 @@ Format: \f[C]Group: "group1"\f[] or
 .RE
 .IP \[bu] 2
 SplitGroupStart ( \f[I]number\f[] ): The position of the starting partition
-group
+group, and the default is \-1
 .RS 2
 .IP \[bu] 2
 \-1 indicates random computation
-\[bu] .RS 2
-.RS
-.PP
-=0 indicates computation from a specified position; if this value exceeds the
-number of data groups, it will automatically wrap around
-.RE
-.RE
+.IP \[bu] 2
+grater than or equal 0 indicates computation from a specified position; if this
+value exceeds the number of data groups, it will automatically wrap around
 .RE
 .IP \[bu] 2
 AutoIndexId ( \f[I]boolean\f[] ): Whether to automatically create a unique index
@@ -282,7 +278,7 @@ Automatically obtain the properties and partition information of the referenced
 collection.
 .RE
 .IP \[bu] 2
-RefMode ( \f[I]number\f[] ): The referenced mode
+RefMode ( \f[I]number\f[] ): The referenced mode, and the default is 0
 .RS 2
 .IP \[bu] 2
 0: Recompute partitions (only effective for hash sharding; equivalent to effect

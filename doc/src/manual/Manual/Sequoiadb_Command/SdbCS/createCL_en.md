@@ -104,10 +104,10 @@ This function is used to create a collection in the specified collection space. 
 
         Format: `Group: "group1"` or `Group:['group1', 'group2']`
 
-    - SplitGroupStart ( *number* ): The position of the starting partition group
+    - SplitGroupStart ( *number* ): The position of the starting partition group, and the default is -1
 
         - -1 indicates random computation
-        - >=0 indicates computation from a specified position; if this value exceeds the number of data groups, it will automatically wrap around
+        - grater than or equal 0 indicates computation from a specified position; if this value exceeds the number of data groups, it will automatically wrap around
 
     - AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", automatically created.
  
@@ -165,7 +165,7 @@ This function is used to create a collection in the specified collection space. 
 
         Automatically obtain the properties and partition information of the referenced collection.
 
-    - RefMode ( *number* ): The referenced mode
+    - RefMode ( *number* ): The referenced mode, and the default is 0
 
         - 0: Recompute partitions (only effective for hash sharding; equivalent to effect 1 for range sharding).
         - 1: Rearrange the order of data groups.
