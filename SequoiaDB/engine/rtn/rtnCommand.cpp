@@ -50,6 +50,7 @@
 #include "rtnAlter.hpp"
 #include "aggrDef.hpp"
 #include "utilCompressor.hpp"
+#include "utilArguments.hpp"
 #include "msgMessageFormat.hpp"
 
 #if defined (_DEBUG)
@@ -519,8 +520,10 @@ namespace engine
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateCollection)
    _rtnCreateCollection::_rtnCreateCollection ()
-   :_collectionName ( NULL ),
+   :_fieldMask( 0 ),
+    _collectionName ( NULL ),
     _attributes( 0 ),
+    _ensureShardingIndex( FALSE ),
     _clUniqueID( UTIL_CLUNIQUEID_LOCAL ),
     _compressorType( UTIL_COMPRESSOR_INVALID )
    {
@@ -545,6 +548,68 @@ namespace engine
       return TRUE ;
    }
 
+   void _rtnCreateCollection::_fixParams()
+   {
+      BOOLEAN isCapped = FALSE ;
+      BOOLEAN isCompressed = FALSE ;
+
+      if ( _attributes & DMS_MB_ATTR_CAPPED )
+      {
+         isCapped = TRUE ;
+      }
+      if ( _attributes & DMS_MB_ATTR_COMPRESSED )
+      {
+         isCompressed = TRUE ;
+      }
+
+      /// no config EnsureShardingIndex
+      if ( !( _fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ) && !isCapped )
+      {
+         _ensureShardingIndex = TRUE ;
+      }
+
+      if ( !_ensureShardingIndex )
+      {
+         _shardingKey = BSONObj() ;
+      }
+
+      /// compress
+      if ( isCompressed && UTIL_COMPRESSOR_INVALID == _compressorType )
+      {
+         _compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+      else if ( !isCompressed )
+      {
+         _compressorType = UTIL_COMPRESSOR_INVALID ;
+      }
+
+      /// no config AutoIndexId
+      if ( !( _fieldMask & UTIL_CL_AUTOIDXID_FIELD ) && isCapped )
+      {
+         _attributes |= DMS_MB_ATTR_NOIDINDEX ;
+      }
+   }
+
+   void _rtnCreateCollection::setInfoByCataInfo( utilCLUniqueID clUniqueID,
+                                                 UINT32 attribute,
+                                                 BOOLEAN ensureShardingIndex,
+                                                 UTIL_COMPRESSOR_TYPE compType,
+                                                 const BSONObj extOptions )
+   {
+      _clUniqueID = clUniqueID ;
+      _attributes = attribute ;
+      _ensureShardingIndex = ensureShardingIndex ;
+      _compressorType = compType ;
+      _extOptions = extOptions ;
+
+      _fieldMask |= ( UTIL_CL_AUTOIDXID_FIELD | UTIL_CL_ENSURESHDIDX_FIELD ) ;
+   }
+
+   void _rtnCreateCollection::setCLUniqueID( utilCLUniqueID clUniqueID )
+   {
+      _clUniqueID = clUniqueID ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECL_INIT, "_rtnCreateCollection::init" )
    INT32 _rtnCreateCollection::init( INT32 flags, INT64 numToSkip,
                                      INT64 numToReturn,
@@ -554,89 +619,89 @@ namespace engine
                                      const CHAR * pHintBuff)
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN enSureShardIdx = TRUE ;
+      PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
+
       BOOLEAN isCompressed = FALSE ;
-      BOOLEAN hasCompressed = TRUE ;
-      BOOLEAN hasCompressType = TRUE ;
       BOOLEAN strictDataMode = FALSE ;
       BOOLEAN noTrans = FALSE ;
       BOOLEAN autoIndexId = TRUE ;
       BOOLEAN capped = FALSE ;
       const CHAR *compressionType = NULL ;
-      PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
+
       BSONObj matcher ( pMatcherBuff ) ;
       BSONElement ele ;
 
-      rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
-                                 &_collectionName ) ;
+      rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_collectionName ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to extract %s field for collection "
-                  "creation, rc = %d", FIELD_NAME_NAME, rc ) ;
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_NAME, matcher.toPoolString().c_str(), rc ) ;
          goto error ;
       }
+      _fieldMask |= UTIL_CL_NAME_FIELD ;
 
-      // capped, should be extracted before EnsureShardingKey and AutoIndexId
+      // check Capped, should be extracted before EnsureShardingKey and AutoIndexId
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
+      if ( SDB_OK == rc )
       {
-         rc = SDB_OK ;
-         capped = FALSE ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Field[%s] value error in obj[%s]",
-                   FIELD_NAME_CAPPED, matcher.toString().c_str() ) ;
-
-      // ensure sharding key
-      rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENSURE_SHDINDEX,
-                                 enSureShardIdx ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_OK ;
+         _fieldMask |= UTIL_CL_CAPPED_FIELD ;
          if ( capped )
          {
-            enSureShardIdx = FALSE ;
-         }
-         else
-         {
-            enSureShardIdx = TRUE ;
+            _attributes |= DMS_MB_ATTR_CAPPED ;
          }
       }
-      PD_RC_CHECK( rc, PDERROR, "Field[%s] value is error in obj[%s]",
-                   FIELD_NAME_ENSURE_SHDINDEX, matcher.toString().c_str() ) ;
-      // if we want to create sharding key index, let's do it
-      if ( enSureShardIdx )
+      else if ( SDB_FIELD_NOT_EXIST != rc )
       {
-         rc = rtnGetObjElement ( matcher, FIELD_NAME_SHARDINGKEY,
-                                 _shardingKey ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            rc = SDB_OK ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Field[%s] value is error in obj[%s]",
-                      FIELD_NAME_SHARDINGKEY,
-                      matcher.toString().c_str() ) ;
-      }
-
-      // check compress
-      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
-                                  isCompressed ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         hasCompressed = FALSE ;
-      }
-      rc = rtnGetStringElement( matcher, FIELD_NAME_COMPRESSIONTYPE,
-                                &compressionType ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         hasCompressType = FALSE ;
-      }
-      else if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get CompressionType, rc: %d", rc ) ;
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_CAPPED, matcher.toPoolString().c_str(), rc ) ;
          goto error ;
       }
-      else
+
+      // check EnsureShardingIndex
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENSURE_SHDINDEX, _ensureShardingIndex ) ;
+      if ( SDB_OK == rc )
       {
+         _fieldMask |= UTIL_CL_ENSURESHDIDX_FIELD ;
+      }
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_ENSURE_SHDINDEX, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      // check ShardingKey
+      rc = rtnGetObjElement ( matcher, FIELD_NAME_SHARDINGKEY, _shardingKey ) ;
+      if ( SDB_OK == rc )
+      {
+         _fieldMask |= UTIL_CL_SHDKEY_FIELD ;
+      }
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_SHARDINGKEY, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      // check Compressed
+      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED, isCompressed ) ;
+      if ( SDB_OK == rc )
+      {
+         _fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+      }
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_COMPRESSED, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      // check CompressionType
+      rc = rtnGetStringElement( matcher, FIELD_NAME_COMPRESSIONTYPE, &compressionType ) ;
+      if ( SDB_OK == rc )
+      {
+         _fieldMask |= UTIL_CL_COMPRESSTYPE_FIELD ;
+
          if ( 0 == ossStrcmp( compressionType, VALUE_NAME_LZW ) )
          {
             _compressorType = UTIL_COMPRESSOR_LZW ;
@@ -647,60 +712,95 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDERROR, "Compression type[%s] is invalid",
-                    compressionType ) ;
+            PD_LOG_MSG( PDERROR, "Compression type[%s] is invalid", compressionType ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
       }
-
-      if ( isCompressed && !hasCompressType )
+      else if ( SDB_FIELD_NOT_EXIST != rc )
       {
-         _compressorType = UTIL_COMPRESSOR_LZW ;
-      }
-      if ( !hasCompressed && hasCompressType )
-      {
-         isCompressed = TRUE ;
-      }
-      if ( !isCompressed && hasCompressType )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR,
-                 "CompressionType can't be set when Compressed is false" ) ;
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_COMPRESSIONTYPE, matcher.toPoolString().c_str(), rc ) ;
          goto error ;
       }
-      if ( !capped && !hasCompressed && !hasCompressType )
+
+      if ( !( _fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
+            ( _fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         isCompressed = TRUE ;
+      }
+      if ( !capped &&
+           !( _fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
+           !( _fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
       {
          isCompressed = TRUE ;
          _compressorType = UTIL_COMPRESSOR_LZW ;
       }
+
+      if ( !isCompressed && ( _fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR,
+                     "CompressionType can't be set when Compressed is false" ) ;
+         goto error ;
+      }
+
       if ( isCompressed )
       {
          _attributes |= DMS_MB_ATTR_COMPRESSED ;
       }
 
-      // check strictDataMode
-      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
-                                  strictDataMode ) ;
-      if ( SDB_OK == rc && strictDataMode )
+      // check StrictDataMode
+      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE, strictDataMode ) ;
+      if ( SDB_OK == rc )
       {
-         _attributes |= DMS_MB_ATTR_STRICTDATAMODE ;
+         _fieldMask |= UTIL_CL_STRICTDATAMODE_FIELD ;
+         if ( strictDataMode )
+         {
+            _attributes |= DMS_MB_ATTR_STRICTDATAMODE ;
+         }
+      }
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_STRICTDATAMODE, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
       }
 
+      /// check NoTrans
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_NOTRANS, noTrans ) ;
-      if ( SDB_OK == rc && noTrans )
+      if ( SDB_OK == rc )
       {
-         _attributes |= DMS_MB_ATTR_NOTRANS ;
+         _fieldMask |= UTIL_CL_NOTRANS_FIELD ;
+         if ( noTrans )
+         {
+            _attributes |= DMS_MB_ATTR_NOTRANS ;
+         }
+      }
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_NOTRANS, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
       }
 
-      /// auto index id
-      rc = rtnGetBooleanElement( matcher, FIELD_NAME_AUTO_INDEX_ID,
-                                 autoIndexId ) ;
-      if ( SDB_OK == rc && !autoIndexId )
+      /// check AutoIndexId
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_AUTO_INDEX_ID, autoIndexId ) ;
+      if ( SDB_OK == rc )
       {
-         _attributes |= DMS_MB_ATTR_NOIDINDEX ;
+         _fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
+         if ( !autoIndexId )
+         {
+            _attributes |= DMS_MB_ATTR_NOIDINDEX ;
+         }
       }
-      if ( SDB_FIELD_NOT_EXIST == rc && capped )
+      else if ( SDB_FIELD_NOT_EXIST != rc )
+      {
+         PD_LOG_MSG ( PDERROR, "Failed to get field[%s] from obj[%s], rc: %d",
+                      FIELD_NAME_AUTO_INDEX_ID, matcher.toPoolString().c_str(), rc ) ;
+         goto error ;
+      }
+      else if ( capped )
       {
          autoIndexId = FALSE ;
          _attributes |= DMS_MB_ATTR_NOIDINDEX ;
@@ -715,44 +815,43 @@ namespace engine
 
          if ( isCompressed )
          {
-            PD_LOG( PDWARNING,
-                    "Compression is not allowed on capped collection." ) ;
+            PD_LOG_MSG( PDWARNING, "Compression is not allowed on capped collection." ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
 
-         if ( ( !_shardingKey.isEmpty() && enSureShardIdx ) ||
-              autoIndexId )
+         if ( ( !_shardingKey.isEmpty() && _ensureShardingIndex ) || autoIndexId )
          {
-            PD_LOG( PDWARNING,
-                    "Index is not allowed to be created on capped collection, "
-                    "including $id index and $shard index.") ;
+            PD_LOG_MSG( PDWARNING,
+                        "Index is not allowed to be created on capped collection, "
+                        "including $id index and $shard index.") ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
 
-         _attributes |= DMS_MB_ATTR_CAPPED ;
          rc = rtnGetNumberLongElement( matcher, FIELD_NAME_SIZE, maxSize ) ;
          if ( rc )
          {
             if ( SDB_FIELD_NOT_EXIST == rc )
             {
-               PD_LOG( PDERROR, "Field[%s] must always be used when Capped is "
-                       "true in obj[%s]",
-                       FIELD_NAME_SIZE, matcher.toString().c_str() ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] must always be used when Capped is "
+                           "true in obj[%s]",
+                           FIELD_NAME_SIZE, matcher.toPoolString().c_str() ) ;
                rc = SDB_INVALIDARG ;
             }
             else
             {
-               PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                       FIELD_NAME_SIZE, matcher.toString().c_str() ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] value is error in obj[%s]",
+                           FIELD_NAME_SIZE, matcher.toPoolString().c_str() ) ;
             }
             goto error ;
          }
+         _fieldMask |= UTIL_CL_MAXSIZE_FIELD ;
+
          if ( maxSize <= 0 || maxSize > DMS_CAP_CL_SIZE )
          {
-            PD_LOG( PDERROR, "Invalid Size[ %lld ] when creating capped "
-                    "collection", maxSize ) ;
+            PD_LOG_MSG( PDERROR, "Invalid Size[ %lld ] when creating capped "
+                        "collection", maxSize ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -765,13 +864,15 @@ namespace engine
          if ( SDB_OK != rc && SDB_FIELD_NOT_EXIST != rc )
          {
             PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                    FIELD_NAME_MAX, matcher.toString().c_str() ) ;
+                    FIELD_NAME_MAX, matcher.toPoolString().c_str() ) ;
             goto error ;
          }
+         _fieldMask |= UTIL_CL_MAXREC_FIELD ;
+
          if ( maxRecNum < 0 )
          {
-            PD_LOG( PDERROR, "Invalid Max[ %lld ] when creating capped "
-                    "collection", maxRecNum ) ;
+            PD_LOG_MSG( PDERROR, "Invalid Max[ %lld ] when creating capped "
+                        "collection", maxRecNum ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -780,8 +881,8 @@ namespace engine
          rc = rtnGetBooleanElement( matcher, FIELD_NAME_OVERWRITE, overwrite ) ;
          if ( SDB_OK != rc && SDB_FIELD_NOT_EXIST != rc )
          {
-            PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                    FIELD_NAME_OVERWRITE, matcher.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] value is error in obj[%s]",
+                        FIELD_NAME_OVERWRITE, matcher.toPoolString().c_str() ) ;
             goto error ;
          }
          builder.appendBool( FIELD_NAME_OVERWRITE, overwrite ) ;
@@ -790,9 +891,9 @@ namespace engine
       }
 
       if ( pmdGetDBRole() == SDB_ROLE_STANDALONE &&
-           matcher.hasField( FIELD_NAME_AUTOINCREMENT ) ) {
-         PD_LOG( PDERROR,
-                 "AutoIncrement is not supported in standalone mode" ) ;
+           matcher.hasField( FIELD_NAME_AUTOINCREMENT ) )
+      {
+         PD_LOG_MSG( PDERROR, "AutoIncrement is not supported in standalone mode" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -851,11 +952,6 @@ namespace engine
    error:
       _clean( cb, dmsCB, dpsCB ) ;
       goto done ;
-   }
-
-   void _rtnCreateCollection::setCLUniqueID( utilCLUniqueID clUniqueID )
-   {
-      _clUniqueID = clUniqueID ;
    }
 
    // Clean when error happened.
