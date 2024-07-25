@@ -612,6 +612,7 @@ namespace engine
       private:
          void  _clean( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB ) ;
          void  _fixParams() ;
+         INT32 _parseRefInfo( const BSONObj &matcher ) ;
 
       protected:
          UINT32                  _fieldMask ;

@@ -627,6 +627,51 @@ namespace engine
       _clUniqueID = clUniqueID ;
    }
 
+   INT32 _rtnCreateCollection::_parseRefInfo( const BSONObj &matcher )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement eRefObj = matcher.getField( FIELD_NAME_REFOBJ ) ;
+         BSONElement eRefFrom = matcher.getField( FIELD_NAME_REFFROM ) ;
+         BSONElement eRefMode = matcher.getField( FIELD_NAME_REFMODE ) ;
+
+         if ( !eRefObj.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is not supported in standalone mode",
+                        FIELD_NAME_REFOBJ ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( !eRefFrom.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is not supported in standalone mode",
+                        FIELD_NAME_REFFROM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( !eRefMode.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is not supported in standalone mode",
+                        FIELD_NAME_REFMODE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECL_INIT, "_rtnCreateCollection::init" )
    INT32 _rtnCreateCollection::init( INT32 flags, INT64 numToSkip,
                                      INT64 numToReturn,
@@ -848,6 +893,11 @@ namespace engine
             goto error ;
          }
 
+         // no-trans is not supported yet
+         PD_LOG_MSG_CHECK( !noTrans,
+                           SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                           "can not set no-trans on capped collection" ) ;
+
          rc = rtnGetNumberLongElement( matcher, FIELD_NAME_SIZE, maxSize ) ;
          if ( rc )
          {
@@ -909,12 +959,22 @@ namespace engine
          _extOptions = builder.obj() ;
       }
 
-      if ( pmdGetDBRole() == SDB_ROLE_STANDALONE &&
-           matcher.hasField( FIELD_NAME_AUTOINCREMENT ) )
+      if ( pmdGetDBRole() == SDB_ROLE_STANDALONE )
       {
-         PD_LOG_MSG( PDERROR, "AutoIncrement is not supported in standalone mode" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         if ( matcher.hasField( FIELD_NAME_AUTOINCREMENT ) )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is not supported in standalone mode",
+                        FIELD_NAME_AUTOINCREMENT ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         /// parse RefFrom or RefObj
+         rc = _parseRefInfo( matcher ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
       // get indexes info

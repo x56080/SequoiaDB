@@ -69,8 +69,6 @@ namespace engine
    #define CLS_FS_COMP_TYPE               "comptype"
    #define CLS_FS_EXT_OPTION              "extoption"
    #define CLS_FS_IDIDX_DEF               "idIdxDef"
-   #define CLS_FS_CL_MAX_SIZE             "maxsize"
-   #define CLS_FS_CL_MAX_RECNUM           "maxrecnum"
    #define CLS_FS_COMP_DICT               "compdict"
 
    #define CLS_FS_SYNC_SPEED( syncSize, timeSpent ) \
