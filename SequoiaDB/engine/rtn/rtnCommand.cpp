@@ -919,6 +919,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_DOIT ) ;
 
+      _fixParams() ;
+
       rc = rtnCreateCollectionCommand ( _collectionName, _shardingKey,
                                         _attributes, cb, dmsCB, dpsCB,
                                         _clUniqueID, _compressorType, 0, FALSE,
