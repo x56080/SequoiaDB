@@ -221,6 +221,7 @@ namespace engine
          CLS_FS_STATUS        _status ;
          UINT32               _current ;
          UINT32               _timeout ;
+         UINT32               _hardTimeout ;
          UINT32               _recvTimeout ;
          BOOLEAN              _quit ;
          UINT64               _requestID ;
