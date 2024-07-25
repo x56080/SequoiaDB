@@ -64,6 +64,7 @@ namespace engine
 #define CLS_SYNC_MAX_TIME                 (5)         // second
 #define CLS_FS_SRC_MAX_NO_MSG_TIME        (3600000)   // 1 hour
 #define CLS_FS_DISABLE_EXTDATA_TIME       (10000)
+#define CLS_FS_MAX_RESEND_TIMES           (5)
 
 #define CLS_IS_LOB_LOG( type )\
         ( LOG_TYPE_LOB_WRITE == ( type ) || \
@@ -92,6 +93,7 @@ namespace engine
       _query = NULL ;
       _queryLen = 0 ;
       _packetID = -1 ;
+      _resendCnt = 0 ;
       _canResend= TRUE ;
       _dataType = CLS_FS_NOTIFY_TYPE_DOC ;
       _quit = FALSE ;
@@ -1501,15 +1503,25 @@ namespace engine
       /// resend last msg.
       else if ( msg->packet == _packetID && _canResend )
       {
+         if ( _resendCnt++ > CLS_FS_MAX_RESEND_TIMES )
+         {
+            PD_LOG( PDWARNING, "Session[%s]: msg[packet:%lld, type:%d] has re-sent up to "
+                    "limit times, disconnect session", sessionName(),
+                    msg->packet, msg->type ) ;
+            _disconnect() ;
+            goto done ;
+         }
+
          PD_LOG( PDWARNING, "Session[%s]: msg was delayed or lost. resend "
-                 "packet. [packet:%lld][type:%d]", sessionName(),
-                 msg->packet, msg->type ) ;
+                 "packet. [packet:%lld, type:%d, resend times:%u]", sessionName(),
+                 msg->packet, msg->type, _resendCnt-1 ) ;
          _resend( handle, msg ) ;
          goto done ;
       }
 
       _packetID = msg->packet ;
       _canResend= TRUE ;
+      _resendCnt = 0 ;
 
       if ( CLS_FS_NOTIFY_TYPE_DOC == msg->type )
       {

@@ -63,9 +63,26 @@ namespace engine
 
    #define CHECK_REQUEST_ID(Header,id) \
       do { \
+         if ( Header.requestID < id ) \
+         { \
+            _hardTimeout <<= 1 ; \
+            PD_LOG( PDWARNING, "Increase resend timeout to %u(millsecs)", _hardTimeout ) ; \
+         } \
+         else if ( CLS_FS_TIMEOUT != _hardTimeout ) \
+         { \
+            if ( _hardTimeout > ( CLS_FS_TIMEOUT << 2 ) ) \
+            { \
+               _hardTimeout >>= 2 ; \
+            } \
+            else \
+            { \
+               _hardTimeout = CLS_FS_TIMEOUT ; \
+            } \
+            PD_LOG( PDWARNING, "Decrease resend timeout to %u(millsecs)", _hardTimeout ) ; \
+         }\
          if ( Header.requestID != id ) \
          { \
-            PD_LOG ( PDINFO, "RequestID[%lld] is not expected[%lld], ignored", \
+            PD_LOG ( PDWARNING, "RequestID[%lld] is not expected[%lld], ignored", \
                      Header.requestID, id ) ; \
             goto done ; \
          } \
@@ -91,6 +108,7 @@ namespace engine
       _status = CLS_FS_STATUS_BEGIN ;
       _current = 0 ;
       _timeout = CLS_FS_TIMEOUT ;
+      _hardTimeout = CLS_FS_TIMEOUT ;
       _recvTimeout = 0 ;
       _quit = FALSE ;
       _requestID = 0 ;
@@ -122,7 +140,7 @@ namespace engine
 
       _timeout += interval ;
       _selector.timeout( interval ) ;
-      if ( _timeout < CLS_FS_TIMEOUT )
+      if ( _timeout < _hardTimeout )
       {
          goto done ;
       }
@@ -1054,7 +1072,7 @@ namespace engine
       }
       else if ( msg->packet != _packet )
       {
-         PD_LOG( PDDEBUG, "Session[%s]: ignore msg, invalid packetid: %lld, "
+         PD_LOG( PDWARNING, "Session[%s]: ignore msg, invalid packetid: %lld, "
                  "local:%lld", sessionName(), msg->packet, _packet ) ;
          goto done ;
       }
@@ -3118,9 +3136,10 @@ namespace engine
       {
          // get the last log
          _notify ( CLS_FS_NOTIFY_TYPE_LOG ) ;
-         if ( CLS_FS_TIMEOUT > CLS_FS_END_SYNC_TIMEOUT )
+         if ( _hardTimeout > CLS_FS_END_SYNC_TIMEOUT )
          {
-            _timeout = CLS_FS_TIMEOUT - CLS_FS_END_SYNC_TIMEOUT ;
+            UINT32 multi = OSS_MAX( 1, _hardTimeout / CLS_FS_TIMEOUT ) ;
+            _timeout = ( CLS_FS_TIMEOUT - CLS_FS_END_SYNC_TIMEOUT ) * multi ;
          }
       }
       else if ( STEP_POST_SYNC == _step )
