@@ -1556,13 +1556,6 @@ namespace engine
       _clInfo._vecCataInfoGrpID = _refCLInfo._vecCataInfoGrpID ;
       _clInfo._refMode = _refCLInfo._refMode ;
 
-      /// when merged, need check again
-      rc = catCheckCollectionInfo( _clInfo, _fieldMask ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
    done:
       return rc ;
    error:
