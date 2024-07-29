@@ -1973,16 +1973,15 @@ namespace engine
          _fieldMask |= UTIL_CL_AUTOINC_FIELD ;
       }
 
+      if ( !(_fieldMask & UTIL_CL_NOTRANS_FIELD) && (_refFieldMask & UTIL_CL_NOTRANS_FIELD) )
+      {
+         _clInfo._noTrans = _refCLInfo._noTrans ;
+         _fieldMask |= UTIL_CL_NOTRANS_FIELD ;
+      }
+
       _clInfo._vecCataInfo = _refCLInfo._vecCataInfo ;
       _clInfo._vecCataInfoGrpID = _refCLInfo._vecCataInfoGrpID ;
       _clInfo._refMode = _refCLInfo._refMode ;
-
-      /// when merged, need check again
-      rc = catCheckCollectionInfo( _clInfo, _fieldMask ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
 
    done:
       return rc ;
