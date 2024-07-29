@@ -6503,6 +6503,11 @@ namespace engine
                clInfo._strictDataMode = TRUE ;
                mask |= UTIL_CL_STRICTDATAMODE_FIELD ;
             }
+            if ( attr & DMS_MB_ATTR_NOTRANS )
+            {
+               clInfo._noTrans = TRUE ;
+               mask |= UTIL_CL_NOTRANS_FIELD ;
+            }
          }
          else if ( 0 == ossStrcmp( e.fieldName(), CAT_CATALOG_W_NAME ) )
          {
