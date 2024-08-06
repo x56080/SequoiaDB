@@ -4284,7 +4284,7 @@ error :
 
 /* SdbAnalyzeForeignTable collects statistics for the given foreign table
  */
-// 获取sdb某一特定表所需要的page数和表的样例数据获取函数( 以便pg预算sql耗时 )
+// 鑾峰彇sdb鏌愪竴鐗瑰畾琛ㄦ墍闇�瑕佺殑page鏁板拰琛ㄧ殑鏍蜂緥鏁版嵁鑾峰彇鍑芥暟( 浠ヤ究pg棰勭畻sql鑰楁椂 )
 static bool SdbAnalyzeForeignTable (
       Relation relation,
       AcquireSampleRowsFunc *acquireSampleRowsFunc,
@@ -4815,6 +4815,7 @@ static void SdbFdwXactCallback( XactEvent event, void *arg )
 {
    //INT32 tmp = GetCurrentTransactionNestLevel() ;
    INT32 count             = 0 ;
+   INT32 rc                = 0 ;
    SdbConnectionPool *pool = sdbGetConnectionPool(  ) ;
    for( count = 0 ; count < pool->numConnections ; ++count )
    {
@@ -4829,7 +4830,12 @@ static void SdbFdwXactCallback( XactEvent event, void *arg )
          if ( 1 == conn->isTransactionOn && conn->transLevel > 0 )
          {
             elog( DEBUG1, "trans commit[%s]", conn->connName ) ;
-            sdbTransactionCommit( conn->hConnection ) ;
+            rc = sdbTransactionCommit( conn->hConnection ) ;
+            if ( SDB_OK != rc )
+            {
+               ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ),
+                                 errmsg( "sdbTransactionCommit failed:rc = %d", rc ) ) ) ;
+            }
             conn->transLevel = 0 ;
          }
 
