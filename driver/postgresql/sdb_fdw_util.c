@@ -1,4 +1,3 @@
-
 #include "client.h"
 #include "msgDef.h"
 #include "postgres.h"
@@ -1020,7 +1019,11 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       SdbConnection *tmpConnection = &pool->connList[count] ;
       if ( strcmp( tmpConnection->connName, connName->data ) == 0 )
       {
-         // return pool->connList[count].hConnection ;
+         if ( 1 == tmpConnection->isTransactionOn && tmpConnection->transLevel > 0 )
+         {
+            return tmpConnection->hConnection ;
+         }
+
          BOOLEAN result = FALSE ;
          sdbIsValid( tmpConnection->hConnection, &result ) ;
          if ( !result )
