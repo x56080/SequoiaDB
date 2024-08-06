@@ -1057,6 +1057,17 @@ namespace engine
       rc = adjustRC ;
       if ( SDB_OK != rc )
       {
+         if ( SDB_SEQUENCE_VALUE_USED == rc )
+         {
+            PD_LOG( PDWARNING,
+                    "Expect value[%lld] in sequence[%s] has already been acquired "
+                    "by coord, rc=%d", _expectValue, seq.getName().c_str(), rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to adjust sequence[%s], rc=%d",
+                    seq.getName().c_str(), rc ) ;
+         }
          goto error ;
       }
 
@@ -1315,8 +1326,6 @@ namespace engine
       rc = func( this, *cache, eduCB, w ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
          // if rc==SDB_SEQUENCE_NOT_EXIST, we should delete the cache
          // here we get SLOCK, so we need to get XLOCK to delete the cache
          // check the ID consistency when delete cache
@@ -1413,8 +1422,6 @@ namespace engine
       rc = func( this, *cache, eduCB, w ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to process sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
          if ( SDB_SEQUENCE_NOT_EXIST == rc )
          {
             // remove cache if sequence not exist
