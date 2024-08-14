@@ -1900,14 +1900,14 @@ namespace engine
             if ( totalRecords > 0 )
             {
                currSampleRatio = ((FLOAT64) sampleRecords) / totalRecords ;
+               vec2sort.push_back( currSampleRatio ) ;
             }
-            else
-            {
-               // If it's a empty cl, consider totalRecords = 1 and
-               // sampleRecords = 1, so that sample ratio is about to 100%
-               currSampleRatio = 1.0 ;
-            }
-            vec2sort.push_back( currSampleRatio ) ;
+         }
+
+         if ( vec2sort.empty() )
+         {
+            // all sub collections are empty, done
+            goto done ;
          }
 
          std::sort( vec2sort.begin(), vec2sort.end() ) ;
