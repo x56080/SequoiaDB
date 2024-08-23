@@ -2031,6 +2031,12 @@ namespace engine
 
          if ( DMS_INVALID_EXTENT != foundPage )
          {
+            SDB_ASSERT( _pStatMgr, "should not be null" ) ;
+            if ( NULL != _pStatMgr )
+            {
+               // update totalPageAllocate counter
+               _pStatMgr->incPageAllocate( numPages ) ;
+            }
             break ;
          }
 
@@ -2067,12 +2073,6 @@ namespace engine
             {
                PD_LOG ( PDERROR, "Failed to extend storage unit, rc=%d", rc );
                goto error ;
-            }
-            SDB_ASSERT( _pStatMgr, "should not be null" ) ;
-            if ( NULL != _pStatMgr )
-            {
-               // update totalPageAllocate counter
-               _pStatMgr->incPageAllocate( numPages ) ;
             }
             PD_RC_CHECK( rc1, PDERROR, "Failed to resume context[%s], rc: %d",
                          context->toString().c_str(), rc1 ) ;

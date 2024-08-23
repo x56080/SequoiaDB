@@ -775,7 +775,7 @@ namespace engine
          else
          {
             _clsSharingStatus primary ;
-            DPS_LSN beginLSN, currentLSN,expectLSN, primaryLSN ;
+            DPS_LSN beginLSN, currentLSN,expectLSN, primaryLSN, completeLSN ;
 
             // get self lsn
             dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, NULL ) ;
@@ -784,11 +784,15 @@ namespace engine
             if ( replcb->getPrimaryInfo( primary ) )
             {
                primaryLSN = primary.beat.endLsn ;
-               if ( primaryLSN.version == expectLSN.version )
+
+               completeLSN = replcb->getBucket()->fastCompleteLSN() ;
+               if ( completeLSN.invalid() )
                {
-                  diffOffset = primaryLSN.offset - expectLSN.offset ;
-                  diffOffset = diffOffset < 0 ? 0 : diffOffset ;
+                  completeLSN = expectLSN ;
                }
+
+               diffOffset = primaryLSN.offset - completeLSN.offset ;
+               diffOffset = diffOffset < 0 ? 0 : diffOffset ;
             }
          }
       }
