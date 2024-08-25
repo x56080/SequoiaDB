@@ -39,6 +39,8 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "pmdDef.hpp"
+#include "ossMemPool.hpp"
+#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -215,10 +217,43 @@ namespace engine
    typedef _ftSampleWindow ftSampleWindow ;
 
    /*
+      _ftShieldItem define
+   */
+   struct _ftShieldItem
+   {
+      UINT32   _shieldMask ;
+      INT32    _shieldTime ;
+      UINT64   _dbTick ;
+
+      _ftShieldItem()
+      {
+         _shieldMask = 0 ;
+         _shieldTime = 0 ;
+         _dbTick = 0 ;
+      }
+
+      bool operator== ( const _ftShieldItem &right ) const
+      {
+         if ( _shieldMask == right._shieldMask &&
+              _shieldTime == right._shieldTime &&
+              _dbTick == right._dbTick )
+         {
+            return TRUE ;
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN isInShield( UINT32 mask, UINT64 dbTick ) const ;
+   } ;
+   typedef _ftShieldItem ftShieldItem ;
+
+   /*
       _pmdFTMgr define
    */
    class _pmdFTMgr : public SDBObject
    {
+      typedef ossPoolList< ftShieldItem >       LIST_SHIELD_ITEM ;
+
       public:
          _pmdFTMgr() ;
          ~_pmdFTMgr() ;
@@ -258,12 +293,17 @@ namespace engine
          void     holdStatus( UINT32 status ) ;
          void     unholdStatus( UINT32 status ) ;
 
+         BOOLEAN  registerShield( const ftShieldItem &shieldItem ) ;
+         BOOLEAN  unregShield( const ftShieldItem &shieldItem ) ;
+
       protected:
          ftSampleWndItem*  _sample( UINT64 dbTick ) ;
          UINT32            _confirm( ftSampleWndItem *current ) ;
 
          UINT64            _sumPrevnLsnDiff( ftSampleWndItem *pItem,
                                              UINT32 count ) ;
+
+         BOOLEAN           _isInShield( UINT32 mask, UINT64 dbTick ) ;
 
       private:
          ftSampleWindow _sampleWnd ;
@@ -284,6 +324,9 @@ namespace engine
          UINT32         _confirmedStat ;
          UINT32         _heldMask ;
          INT32          _indoubtErr ;
+
+         LIST_SHIELD_ITEM     _lstShield ;
+         ossSpinSLatch        _shieldLatch ;
    } ;
    typedef _pmdFTMgr pmdFTMgr ;
 
@@ -292,6 +335,30 @@ namespace engine
    */
    void  ftReportErr( INT32 err, BOOLEAN isWrite = TRUE ) ;
    void  ftReportErr( PMD_FT_ERR_TYPE errType ) ;
+
+   /*
+      _pmdFTShield define
+   */
+   class _pmdFTShield
+   {
+      public:
+         /*
+            @ shieldTime: ms, 0 for no shield, < 0 for always shield
+         */
+         _pmdFTShield( INT32 shieldTime,
+                       UINT32 shieldMask = PMD_FT_MASK_DEADSYNC | PMD_FT_MASK_SLOWNODE,
+                       BOOLEAN shieldImmediately = TRUE ) ;
+         ~_pmdFTShield() ;
+
+         BOOLEAN shield() ;
+         void    unShield() ;
+         BOOLEAN isShield() const { return _hasReg ; }
+
+      private:
+         ftShieldItem      _item ;
+         BOOLEAN           _hasReg ;
+   } ;
+   typedef _pmdFTShield pmdFTShield ;
 
 }
 

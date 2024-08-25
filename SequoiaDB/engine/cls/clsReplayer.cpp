@@ -835,6 +835,12 @@ namespace engine
       dpsTransCB *transCB = sdbGetTransCB() ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       BOOLEAN startedRollback = FALSE ;
+      UINT32 shieldTime = 0 ;
+
+      if ( _isReplSync )
+      {
+         shieldTime = pmdGetOptionCB()->syncwaitTimeout() * ( OSS_ONE_SEC / 2 ) ;
+      }
 
       if ( !_dpsCB )
       {
@@ -1097,6 +1103,9 @@ namespace engine
             const CHAR *cs = NULL ;
             BSONObj boOptions ;
             dmsDropCSOptions options ;
+
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CSDel( (CHAR *)recordHeader,
                                   &cs, &boOptions ) ;
             if ( SDB_OK != rc )
@@ -1206,6 +1215,9 @@ namespace engine
             const CHAR *cl = NULL ;
             BSONObj boOptions ;
             dmsDropCLOptions options ;
+
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CLDel( (CHAR *)recordHeader,
                                    &cl,
                                    &boOptions ) ;
@@ -1317,6 +1329,11 @@ namespace engine
          {
             const CHAR *oldName = NULL ;
             const CHAR *newName = NULL ;
+
+#ifdef _WINDOWS
+            pmdFTShield ftShield( shieldTime ) ;
+#endif
+
             rc = dpsRecord2CSRename( (const CHAR *)recordHeader,
                                      &oldName,
                                      &newName ) ;
@@ -1375,6 +1392,9 @@ namespace engine
             const CHAR *clname = NULL ;
             BSONObj boOptions ;
             dmsTruncCLOptions options ;
+
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname,
                                     &boOptions ) ;
             if ( SDB_OK != rc )
@@ -1611,6 +1631,8 @@ namespace engine
             RTN_ALTER_OBJECT_TYPE objectType = RTN_ALTER_INVALID_OBJECT ;
             BSONObj alterObject ;
 
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2Alter( (CHAR *)recordHeader, &objectName,
                                   (INT32 &)objectType, alterObject ) ;
             if ( SDB_OK != rc )
@@ -1662,6 +1684,8 @@ namespace engine
          {
             BSONObj boOptions ;
             dmsReturnOptions options ;
+
+            pmdFTShield ftShield( shieldTime ) ;
 
             rc = dpsRecord2Return( (CHAR *)recordHeader, &( boOptions ) ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get return options from "

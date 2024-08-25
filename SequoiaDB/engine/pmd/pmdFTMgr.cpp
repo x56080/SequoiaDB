@@ -205,6 +205,32 @@ namespace engine
    }
 
    /*
+      _ftShieldItem implement
+   */
+   BOOLEAN _ftShieldItem::isInShield( UINT32 mask, UINT64 dbTick ) const
+   {
+      if ( _shieldMask & mask )
+      {
+         if ( _shieldTime < 0 )
+         {
+            return TRUE ;
+         }
+         else if ( 0 == _shieldTime )
+         {
+            return FALSE ;
+         }
+
+         UINT64 endTime = pmdDBTickSpan2Time( _dbTick ) + _shieldTime ;
+         if ( pmdDBTickSpan2Time( dbTick ) < endTime )
+         {
+            return TRUE ;
+         }
+      }
+
+      return FALSE ;
+   }
+
+   /*
       _pmdFTMgr implement
    */
    _pmdFTMgr::_pmdFTMgr()
@@ -250,6 +276,9 @@ namespace engine
 
    void _pmdFTMgr::fini()
    {
+      ossScopedLock lock( &_shieldLatch, EXCLUSIVE ) ;
+      SDB_ASSERT( _lstShield.empty(), "Shield queue shoud be empty" ) ;
+      _lstShield.clear() ;
    }
 
    void _pmdFTMgr::setMask( UINT32 ftmask )
@@ -474,7 +503,8 @@ namespace engine
       /// slow node
       if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) )
       {
-         if ( lsnDiff >= _slowNodeThreshold )
+         if ( lsnDiff >= _slowNodeThreshold &&
+              !_isInShield( PMD_FT_MASK_SLOWNODE, dbTick ) )
          {
             /// When is fullsync, keep the same with last
             if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
@@ -536,7 +566,8 @@ namespace engine
          {
             if ( completeLsn == pPrevItem->_sys._completeLsn &&
                  ( 0 < lsnDiff ||
-                   completeLsn < expectLsn.offset ) )
+                   completeLsn < expectLsn.offset ) &&
+                 !_isInShield( PMD_FT_MASK_DEADSYNC, dbTick ) )
             {
                /// When is FullSync and countInc is no-zero, and no error
                /// means is not deadsync
@@ -574,7 +605,8 @@ namespace engine
          {
             // Once we have error transactions and no succeed transactions
             // we will report transaction risk
-            if ( transErrInc > 0 && 0 == transSucInc )
+            if ( transErrInc > 0 && 0 == transSucInc &&
+                 !_isInShield( PMD_FT_MASK_TRANSERR, dbTick ) )
             {
                _sampleWnd.reportRisk( FT_RISK_TRANSERR ) ;
                PD_LOG( PDINFO, "Report risk( FT_RISK_TRANS ), Expr: "
@@ -589,6 +621,13 @@ namespace engine
       {
          if ( 0 != pPrevItem->_time )
          {
+            if ( pPrevItem->_err[ FT_ERR_NOSPC ]._count > 0 &&
+                 _isInShield( PMD_FT_MASK_NOSPC, dbTick ) )
+            {
+               /// clear prevItem
+               pPrevItem->_err[ FT_ERR_NOSPC ].reset() ;
+            }
+
             if ( completeLsn > pPrevItem->_sys._completeLsn )
             {
                pPrevItem->_err[ FT_ERR_NONE ]._count = countInc ;
@@ -869,6 +908,69 @@ namespace engine
       OSS_BIT_CLEAR( _heldMask, status ) ;
    }
 
+   BOOLEAN _pmdFTMgr::registerShield( const ftShieldItem & shieldItem )
+   {
+      BOOLEAN ret = TRUE ;
+      ossScopedLock lock( &_shieldLatch, EXCLUSIVE ) ;
+
+      try
+      {
+         _lstShield.push_back( shieldItem ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s, shield queue size: %llu",
+                 e.what(), _lstShield.size() ) ;
+         ret = FALSE ;
+      }
+      return ret ;
+   }
+
+   BOOLEAN _pmdFTMgr::unregShield( const ftShieldItem &shieldItem )
+   {
+      BOOLEAN ret = FALSE ;
+      LIST_SHIELD_ITEM::iterator it ;
+
+      ossScopedLock lock( &_shieldLatch, EXCLUSIVE ) ;
+
+      it = _lstShield.begin() ;
+      while ( it != _lstShield.end() )
+      {
+         const ftShieldItem &tmpItem = *it ;
+         if ( tmpItem == shieldItem )
+         {
+            _lstShield.erase( it ) ;
+            ret = TRUE ;
+            break ;
+         }
+         ++it ;
+      }
+
+      return ret ;
+   }
+
+   BOOLEAN _pmdFTMgr::_isInShield( UINT32 mask, UINT64 dbTick )
+   {
+      BOOLEAN ret = FALSE ;
+      LIST_SHIELD_ITEM::iterator it ;
+
+      ossScopedLock lock( &_shieldLatch, SHARED ) ;
+
+      it = _lstShield.begin() ;
+      while ( it != _lstShield.end() )
+      {
+         const ftShieldItem &tmpItem = *it ;
+         if ( tmpItem.isInShield( mask, dbTick ) )
+         {
+            ret = TRUE ;
+            break ;
+         }
+         ++it ;
+      }
+
+      return ret ;
+   }
+
    /*
       Tool function
    */
@@ -895,6 +997,57 @@ namespace engine
          {
             pMgr->reportErr( errType ) ;
          }
+      }
+   }
+
+   /*
+      _pmdFTShield implement
+   */
+   _pmdFTShield::_pmdFTShield( INT32 shieldTime, UINT32 shieldMask, BOOLEAN shieldImmediately )
+   {
+      _item._shieldMask = shieldMask ;
+      _item._shieldTime = shieldTime ;
+      _hasReg = FALSE ;
+
+      if ( shieldImmediately )
+      {
+         shield() ;
+      }
+   }
+
+   _pmdFTShield::~_pmdFTShield()
+   {
+      unShield() ;
+   }
+
+   BOOLEAN _pmdFTShield::shield()
+   {
+      if ( _hasReg )
+      {
+         unShield() ;
+      }
+
+      if ( 0 != _item._shieldTime && 0 != _item._shieldMask )
+      {
+         pmdFTMgr *pMgr = pmdGetKRCB()->getFTMgr() ;
+         if ( pMgr )
+         {
+            _item._dbTick = pmdGetDBTick() ;
+            _hasReg = pMgr->registerShield( _item ) ;
+         }
+      }
+
+      return _hasReg ;
+   }
+
+   void _pmdFTShield::unShield()
+   {
+      pmdFTMgr *pMgr = pmdGetKRCB()->getFTMgr() ;
+      if ( _hasReg )
+      {
+         BOOLEAN ret = pMgr->unregShield( _item ) ;
+         SDB_ASSERT( ret, "Unreg FT shield failed" ) ;
+         _hasReg = FALSE ;
       }
    }
 

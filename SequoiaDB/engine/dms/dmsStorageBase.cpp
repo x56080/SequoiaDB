@@ -43,6 +43,7 @@
 #include "dmsTrace.hpp"
 #include "utilStr.hpp"
 #include "pmdEnv.hpp"
+#include "pmdFTMgr.hpp"
 
 using namespace bson ;
 
@@ -1220,9 +1221,12 @@ namespace engine
       // close
       closeStorage() ;
 
-      rc = ossDelete( _fullPathName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove storeage unit file: %s, "
-                   "rc: %d", _fullPathName, rc ) ;
+      {
+         pmdFTShield ftShield( -1 ) ;
+         rc = ossDelete( _fullPathName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove storeage unit file: %s, "
+                      "rc: %d", _fullPathName, rc ) ;
+      }
 
       PD_LOG( PDEVENT, "Remove storage unit file[%s] succeed", _fullPathName ) ;
       _fullPathName[ 0 ] = 0 ;
