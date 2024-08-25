@@ -40,6 +40,7 @@
 #include "dmsLobDirectOutBuffer.hpp"
 #include "dmsTrace.hpp"
 #include "pdTrace.hpp"
+#include "pmdFTMgr.hpp"
 
 namespace engine
 {
@@ -940,12 +941,15 @@ namespace engine
          goto error ;
       }
 
-      rc = ossDelete( _fullPath ) ;
-      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to remove file:%s, rc:%d",
-                 _fullPath, rc ) ;
-         goto error ;
+         pmdFTShield ftShield( -1 ) ;
+         rc = ossDelete( _fullPath ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to remove file:%s, rc:%d",
+                    _fullPath, rc ) ;
+            goto error ;
+         }
       }
 
       PD_LOG( PDEVENT, "remove file:%s", _fullPath ) ;

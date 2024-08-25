@@ -808,6 +808,12 @@ namespace engine
       dpsTransCB *transCB = sdbGetTransCB() ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       BOOLEAN startedRollback = FALSE ;
+      UINT32 shieldTime = 0 ;
+
+      if ( _isReplSync )
+      {
+         shieldTime = pmdGetOptionCB()->syncwaitTimeout() * ( OSS_ONE_SEC / 2 ) ;
+      }
 
       if ( !_dpsCB )
       {
@@ -1065,6 +1071,9 @@ namespace engine
          case LOG_TYPE_CS_DELETE :
          {
             const CHAR *cs = NULL ;
+
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CSDel( (CHAR *)recordHeader,
                                   &cs ) ;
             if ( SDB_OK != rc )
@@ -1141,6 +1150,9 @@ namespace engine
          case LOG_TYPE_CL_DELETE :
          {
             const CHAR *cl = NULL ;
+
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CLDel( (CHAR *)recordHeader,
                                    &cl ) ;
             rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB ) ;
@@ -1213,6 +1225,11 @@ namespace engine
          {
             const CHAR *oldName = NULL ;
             const CHAR *newName = NULL ;
+
+#ifdef _WINDOWS
+            pmdFTShield ftShield( shieldTime ) ;
+#endif
+
             rc = dpsRecord2CSRename( (const CHAR *)recordHeader,
                                      &oldName,
                                      &newName ) ;
@@ -1268,6 +1285,9 @@ namespace engine
          case LOG_TYPE_CL_TRUNC :
          {
             const CHAR *clname = NULL ;
+            
+            pmdFTShield ftShield( shieldTime ) ;
+
             rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname ) ;
             if ( SDB_OK != rc )
             {
@@ -1487,6 +1507,8 @@ namespace engine
             const CHAR * objectName = NULL ;
             RTN_ALTER_OBJECT_TYPE objectType = RTN_ALTER_INVALID_OBJECT ;
             BSONObj alterObject ;
+
+            pmdFTShield ftShield( shieldTime ) ;
 
             rc = dpsRecord2Alter( (CHAR *)recordHeader, &objectName,
                                   (INT32 &)objectType, alterObject ) ;
