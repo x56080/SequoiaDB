@@ -384,6 +384,7 @@ namespace engine
       _clShortName   = NULL ;
       _hitEnd = FALSE ;
       ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
+      ossMemset( _csName, 0, sizeof( _csName ) ) ;
    }
 
    _rtnContextDelCL::~_rtnContextDelCL()
@@ -402,12 +403,11 @@ namespace engine
       IDmsExtDataHandler *extHandler = NULL ;
 
       CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
-      CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
 
       // resolve collection name
       rc = rtnResolveCollectionName( pCollectionName,
                                      ossStrlen( pCollectionName ),
-                                     szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                     _csName, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCLName, DMS_COLLECTION_NAME_SZ ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name"
                    "(collection:%s, rc: %d)", pCollectionName, rc ) ;
@@ -415,16 +415,15 @@ namespace engine
       // save collection name
       ossStrncpy( _collectionName, pCollectionName,
                   DMS_COLLECTION_FULL_NAME_SZ ) ;
-      _clShortName = _collectionName + ossStrlen( szCSName ) + 1 ;
-
+      _clShortName = _collectionName + ossStrlen( _csName ) + 1 ;
 
       {
          // acquire CS lock to avoid drop CS
-         dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
+         dmsCSMutexScope csLock( _pDmsCB, _csName ) ;
 
-         rc = _pDmsCB->nameToSUAndLock( szCSName, suID, &_su ) ;
+         rc = _pDmsCB->nameToSUAndLock( _csName, suID, &_su ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed lock collection space [%s], rc: %d",
-                      szCSName, rc ) ;
+                      _csName, rc ) ;
       }
 
       rc = _su->data()->getMBContext( &_mbContext, _clShortName,
@@ -552,6 +551,7 @@ namespace engine
    INT32 _rtnContextDelCL::_prepareData( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN tryDropCS = FALSE ;
       SDB_RTNCB * pRtnCB = pmdGetKRCB()->getRTNCB() ;
       clsCB * pClsCB = pmdGetKRCB()->getClsCB() ;
       clsTaskMgr * pTaskMgr = pClsCB->getTaskMgr() ;
@@ -574,27 +574,37 @@ namespace engine
                                           DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
       }
 
-      // drop collection
-      rc = _su->data()->dropCollection ( _clShortName, cb, getDPSCB(),
-                                         TRUE, _mbContext, &_options ) ;
+      rc = _tryDropCollectionspace( cb, tryDropCS ) ;
       if ( rc )
       {
-         // Ignore SDB_DMS_NOTEXIST, which means the CL mignt be deleted already
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            PD_LOG ( PDWARNING, "Collection %s doesn't exist, ignored in drop "
-                     "collection, rc: %d", _collectionName, rc ) ;
-            rc = SDB_OK ;
-         }
-         else
-         {
-            PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
-                     _collectionName, rc ) ;
-            goto error ;
-         }
+         goto error ;
       }
 
-      _hasDropped = TRUE ;
+      if ( !tryDropCS )
+      {
+         // drop collection
+         rc = _su->data()->dropCollection ( _clShortName, cb, getDPSCB(),
+                                            TRUE, _mbContext, &_options ) ;
+         if ( rc )
+         {
+            // Ignore SDB_DMS_NOTEXIST, which means the CL mignt be deleted already
+            if ( SDB_DMS_NOTEXIST == rc )
+            {
+               PD_LOG ( PDWARNING, "Collection %s doesn't exist, ignored in drop "
+                        "collection, rc: %d", _collectionName, rc ) ;
+               rc = SDB_OK ;
+            }
+            else
+            {
+               PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
+                        _collectionName, rc ) ;
+               goto error ;
+            }
+         }
+
+         _hasDropped = TRUE ;
+         PD_LOG( PDEVENT, "Drop collection[%s] succeed", _collectionName ) ;
+      }
 
       pTaskStatMgr->dropCL( _collectionName ) ;
       _clean( cb ) ;
@@ -618,7 +628,6 @@ namespace engine
                        pTaskMgr->dumpTasks().c_str() ) ;
                waitCnt = 0 ;
             }
-
          }
       }
 
@@ -636,7 +645,7 @@ namespace engine
          << ",HasDropped:" << _hasDropped ;
    }
 
-   void _rtnContextDelCL::_clean( _pmdEDUCB *cb )
+   void _rtnContextDelCL::_clean( _pmdEDUCB *cb, BOOLEAN withClose )
    {
       INT32 rcTmp = SDB_OK;
       IDmsExtDataHandler *extHandler = NULL ;
@@ -681,24 +690,83 @@ namespace engine
       // unlock su
       if ( _pDmsCB && _su )
       {
-         string csname = _su->CSName() ;
          _pDmsCB->suUnlock ( _su->CSID() ) ;
          _su = NULL ;
 
          if ( _hasDropped )
          {
             // ignore errors
-            _pDmsCB->dropEmptyCollectionSpace( csname.c_str(),
-                                               cb, getDPSCB() ) ;
+            _pDmsCB->dropEmptyCollectionSpace( _csName, cb, getDPSCB() ) ;
          }
       }
 
-      if ( _gotDmsCBWrite )
+      if ( withClose )
       {
-         _pDmsCB->writeDown( cb ) ;
-         _gotDmsCBWrite = FALSE ;
+         if ( _gotDmsCBWrite )
+         {
+            _pDmsCB->writeDown( cb ) ;
+            _gotDmsCBWrite = FALSE ;
+         }
+         _isOpened = FALSE ;
       }
-      _isOpened = FALSE ;
+   }
+
+   INT32 _rtnContextDelCL::_tryDropCollectionspace( _pmdEDUCB *cb, BOOLEAN &succeed )
+   {
+      INT32 rc = SDB_OK ;
+
+      succeed = FALSE ;
+
+      if ( !_su || !_mbContext || !_pDmsCB  )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( _su->data()->getCollectionNum() > 1 ||
+           _options._recycleItem.isValid() )
+      {
+         goto done ;
+      }
+
+      /// release lock
+      _clean( cb, FALSE ) ;
+
+      /// drop collectionspace
+      rc = _pDmsCB->dropEmptyCollectionSpace( _csName, cb, getDPSCB(), _clShortName ) ;
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDEVENT, "Drop collectionspace[%s] instead of drop collection[%s] succeed",
+                 _csName, _collectionName ) ;
+         _hasDropped = TRUE ;
+         succeed = TRUE ;
+      }
+      else if ( SDB_DMS_CS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+         succeed = TRUE ;
+      }
+      else
+      {
+         if ( SDB_DMS_CS_NOT_EMPTY != rc )
+         {
+            PD_LOG( PDWARNING, "Drop collectionspace[%s] instead of drop collection[%s] "
+                    "failed, rc: %d", _csName, _collectionName, rc ) ;
+            /// not goto error
+         }
+
+         CHAR szCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossStrncpy( szCLName, _collectionName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+
+         /// restore lock
+         rc = _tryLock( szCLName, NULL, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock(rc=%d)", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    RTN_CTX_AUTO_REGISTER(_rtnContextDelMainCL, RTN_CONTEXT_DELMAINCL, "DELMAINCL")
@@ -1882,6 +1950,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to rename collection from [%s] to [%s], rc: %d",
                    _clShortName, _newCLShortName, rc ) ;
+
+      PD_LOG( PDEVENT, "Rename collection[%s] to [%s] succeed",
+              _clFullName, _newCLFullName ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCTXRENAMECL__DORENAME, rc ) ;

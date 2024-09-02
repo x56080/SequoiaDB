@@ -359,14 +359,14 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
                       "rc: %d", originName, rc ) ;
 
-         PD_LOG( PDDEBUG, "Start to block collection [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "Start to block collection [%s] block ID [%llu]",
                  originName, blockID ) ;
 
          rc = _freezingWindow->registerCL( recycleName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
                       "rc: %d", recycleName, rc ) ;
 
-         PD_LOG( PDDEBUG, "Start to block collection [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "Start to block collection [%s] block ID [%llu]",
                  recycleName, blockID ) ;
 
          {
@@ -421,10 +421,10 @@ namespace engine
       if ( NULL != _freezingWindow )
       {
          _freezingWindow->unregisterCL( originName, opID ) ;
-         PD_LOG( PDDEBUG, "End to block collection [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "End to block collection [%s] block ID [%llu]",
                  originName, opID ) ;
          _freezingWindow->unregisterCL( recycleName, opID ) ;
-         PD_LOG( PDDEBUG, "End to block collection [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "End to block collection [%s] block ID [%llu]",
                  recycleName, opID ) ;
       }
 
@@ -451,14 +451,14 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to register origin name [%s], "
                       "rc: %d", originName, rc ) ;
 
-         PD_LOG( PDDEBUG, "Start to block collection space [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "Start to block collection space [%s] block ID [%llu]",
                  originName, blockID ) ;
 
          rc = _freezingWindow->registerCS( recycleName, blockID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register recycle name [%s], "
                       "rc: %d", recycleName, rc ) ;
 
-         PD_LOG( PDDEBUG, "Start to block collection space [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "Start to block collection space [%s] block ID [%llu]",
                  recycleName, blockID ) ;
 
          {
@@ -511,10 +511,10 @@ namespace engine
       if ( NULL != _freezingWindow )
       {
          _freezingWindow->unregisterCS( originName, opID ) ;
-         PD_LOG( PDDEBUG, "End to block collection space [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "End to block collection space [%s] block ID [%llu]",
                  originName, opID ) ;
          _freezingWindow->unregisterCS( recycleName, opID ) ;
-         PD_LOG( PDDEBUG, "End to block collection space [%s] block ID [%llu]",
+         PD_LOG( PDEVENT, "End to block collection space [%s] block ID [%llu]",
                  recycleName, opID ) ;
       }
 
@@ -1544,6 +1544,10 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       dmsStorageUnit *su = NULL ;
       BOOLEAN itemDeleted = FALSE ;
+      BOOLEAN hasDropedCS = FALSE ;
+
+      CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ]  = { 0 } ;
+      INT32 tmpRC = SDB_OK ;
 
       rc = _dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
@@ -1559,13 +1563,46 @@ namespace engine
 
       if ( NULL != su )
       {
-         INT32 tmpRC = SDB_OK ;
-
-         CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ]  = { 0 } ;
-
          ossStrncpy( szSpace, su->CSName(), DMS_COLLECTION_SPACE_NAME_SZ ) ;
          szSpace[ DMS_COLLECTION_SPACE_NAME_SZ ] = '\0' ;
 
+         _dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+         su = NULL ;
+
+         /// drop cs instead of drop cl
+         tmpRC = _dmsCB->dropEmptyCollectionSpace( szSpace, cb, _dpsCB, recycleName ) ;
+         if ( SDB_OK == tmpRC )
+         {
+            PD_LOG( PDEVENT, "Drop collectionspace[%s] instead of drop collection[%s.%s] succeed",
+                    szSpace, szSpace, recycleName ) ;
+            hasDropedCS = TRUE ;
+         }
+         else if ( SDB_DMS_CS_NOTEXIST == tmpRC )
+         {
+            tmpRC = SDB_OK ;
+         }
+         else
+         {
+            if ( SDB_DMS_CS_NOT_EMPTY != tmpRC )
+            {
+               PD_LOG( PDWARNING, "Drop collectionspace[%s] instead of drop collection[%s.%s] "
+                       "failed, rc: %d", szSpace, szSpace, recycleName, tmpRC ) ;
+               /// not goto error
+            }
+
+            rc = _dmsCB->idToSUAndLock( csUniqueID, suID, &su ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock collection space, rc: %d",
+                         rc ) ;
+         }
+      }
+
+      if ( NULL != su )
+      {
          rc = su->data()->dropCollection( recycleName, cb, _dpsCB ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
@@ -1581,26 +1618,30 @@ namespace engine
 
          // try drop empty collection space
          tmpRC = _dmsCB->dropEmptyCollectionSpace( szSpace, cb, _dpsCB ) ;
-         if ( SDB_OK == tmpRC &&
-              0 == ossStrncmp( szSpace,
-                               UTIL_RECYCLE_PREFIX,
-                               UTIL_RECYCLE_PREFIX_SZ ) )
+         if ( SDB_OK == tmpRC )
          {
-            // if dropped by me, safe to remove recycle items inside this
-            // collection space
-            tmpRC = _deleteItemsInCS( (utilCSUniqueID)( item.getOriginID() ),
-                                      TRUE, cb, w ) ;
-            if ( SDB_OK == tmpRC )
-            {
-               itemDeleted = TRUE ;
-            }
-            else
-            {
-               // don't go to error, will try to delete the collection item
-               PD_LOG( PDWARNING, "Failed to delete recycle item "
-                       "[origin %s, recycle %s], rc: %d", originName,
-                       recycleName, tmpRC ) ;
-            }
+            hasDropedCS = TRUE ;
+         }
+      }
+
+      if ( hasDropedCS &&
+           0 == ossStrncmp( szSpace,
+                            UTIL_RECYCLE_PREFIX,
+                            UTIL_RECYCLE_PREFIX_SZ ) )
+      {
+         // if dropped by me, safe to remove recycle items inside this
+         // collection space
+         tmpRC = _deleteItemsInCS( csUniqueID, TRUE, cb, w ) ;
+         if ( SDB_OK == tmpRC )
+         {
+            itemDeleted = TRUE ;
+         }
+         else
+         {
+            // don't go to error, will try to delete the collection item
+            PD_LOG( PDWARNING, "Failed to delete recycle item "
+                    "[origin %s, recycle %s] by collectionspace, rc: %d", originName,
+                    recycleName, tmpRC ) ;
          }
       }
 

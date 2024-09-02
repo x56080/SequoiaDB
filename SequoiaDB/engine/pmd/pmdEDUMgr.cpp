@@ -1310,7 +1310,7 @@ namespace engine
 
          idleLowSize = calIdleLowSize( &runSize, &idleSize,
                                        &sysSize, &maxPool ) ;
-         if ( idleSize < idleLowSize )
+         if ( idleSize <= idleLowSize )
          {
             goto done ;
          }
@@ -2471,6 +2471,7 @@ namespace engine
       pmdEPFactory &factory      = pmdGetEPFactory() ;
       const pmdEPItem *pItem     = NULL ;
       UINT32 idleTime            = 0 ;
+      UINT32 usedCount           = 0 ;
 
       EDUID       myEDUID        = cb->getID() ;
       INT32       eduType        = cb->getType() ;
@@ -2521,6 +2522,8 @@ namespace engine
          {
             PD_LOG( PDINFO, "Resume thread[%d] for EDU[ID:%lld, Type:%s]",
                     ossGetCurrentThreadID(), myEDUID, getEDUName( eduType ) ) ;
+
+            ++usedCount ;
 
             pItem = factory.getItem( eduType ) ;
             if ( !pItem || !pItem->_pFunc )
@@ -2620,8 +2623,9 @@ namespace engine
       }
 
       PD_LOG ( PDEVENT, "Terminating thread[%d] for EDU[ID:%lld, Type:%s, "
-               "Name: %s]", ossGetCurrentThreadID(), myEDUID,
-               getEDUName( eduType ), eduName ) ;
+               "Name: %s], UsedCount:%u, IdleTime:%u(s)",
+               ossGetCurrentThreadID(), myEDUID, getEDUName( eduType ), eduName,
+               usedCount, ( idleTime / OSS_ONE_SEC ) ) ;
 
       PD_TRACE_EXITRC ( SDB_PMDEDUENTPNT, rc );
       return rc ;

@@ -151,13 +151,16 @@ namespace engine
 
       INT32 _releaseLock( _pmdEDUCB *cb );
 
-      void _clean( _pmdEDUCB *cb );
+      INT32 _tryDropCollectionspace( _pmdEDUCB *cb, BOOLEAN &succeed ) ;
+
+      void  _clean( _pmdEDUCB *cb, BOOLEAN withClose = TRUE );
 
    private:
       _SDB_DMSCB           *_pDmsCB;
       _clsCatalogAgent     *_pCatAgent;
       dpsTransCB           *_pTransCB;
       CHAR                 _collectionName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      CHAR                 _csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
       const CHAR           *_clShortName ;
       BOOLEAN              _gotDmsCBWrite ;
       BOOLEAN              _hasLock ;
