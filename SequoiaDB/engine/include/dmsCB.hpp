@@ -316,7 +316,8 @@ namespace engine
 
       INT32 _delCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB, BOOLEAN removeFile,
-                                  BOOLEAN onlyEmpty ) ;
+                                  BOOLEAN onlyEmpty,
+                                  const CHAR *pExceptShortCLName = NULL ) ;
 
       INT32 _delCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB,
@@ -386,7 +387,8 @@ namespace engine
       INT32 dropCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
       INT32 dropEmptyCollectionSpace( const CHAR *pName, _pmdEDUCB *cb,
-                                      SDB_DPSCB *dpsCB ) ;
+                                      SDB_DPSCB *dpsCB,
+                                      const CHAR *pExceptShortCLName = NULL ) ;
       INT32 unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb ) ;
 
       INT32 renameCollectionSpace( const CHAR *pName,

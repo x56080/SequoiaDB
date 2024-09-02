@@ -1923,7 +1923,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DELCS, "_SDB_DMSCB::_delCollectionSpace" )
    INT32 _SDB_DMSCB::_delCollectionSpace( const CHAR * pName, _pmdEDUCB * cb,
                                           SDB_DPSCB * dpsCB, BOOLEAN removeFile,
-                                          BOOLEAN onlyEmpty )
+                                          BOOLEAN onlyEmpty,
+                                          const CHAR *pExceptShortCLName )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__SDB_DMSCB_DELCS ) ;
@@ -1945,10 +1946,19 @@ namespace engine
       SDB_ASSERT ( pCSCB->_su, "su can't be null" ) ;
 
       // check cs is empty or not
-      if ( onlyEmpty && 0 != pCSCB->_su->data()->getCollectionNum() )
+      if ( onlyEmpty )
       {
-         rc = SDB_DMS_CS_NOT_EMPTY ;
-         goto error ;
+         UINT16 tmpMBID = DMS_INVALID_MBID ;
+         if ( pCSCB->_su->data()->getCollectionNum() > 1 ||
+              ( 1 == pCSCB->_su->data()->getCollectionNum() &&
+                ( !pExceptShortCLName ||
+                  SDB_OK != pCSCB->_su->data()->findCollection( pExceptShortCLName,
+                                                                tmpMBID,
+                                                                NULL ) ) ) )
+         {
+            rc = SDB_DMS_CS_NOT_EMPTY ;
+            goto error ;
+         }
       }
 
       // lock transaction, standalone need lock trans here
@@ -1985,12 +1995,21 @@ namespace engine
       }
 
       // re-check cs is empty or not in lock
-      if ( onlyEmpty && 0 != pCSCB->_su->data()->getCollectionNum() )
+      if ( onlyEmpty )
       {
-         // it is not empty after phase 1, cancel deleting
-         _delCollectionSpaceP1Cancel( pName, cb, dpsCB ) ;
-         rc = SDB_DMS_CS_NOT_EMPTY ;
-         goto error ;
+         UINT16 tmpMBID = DMS_INVALID_MBID ;
+         if ( pCSCB->_su->data()->getCollectionNum() > 1 ||
+              ( 1 == pCSCB->_su->data()->getCollectionNum() &&
+                ( !pExceptShortCLName ||
+                  SDB_OK != pCSCB->_su->data()->findCollection( pExceptShortCLName,
+                                                                tmpMBID,
+                                                                NULL ) ) ) )
+         {
+            // it is not empty after phase 1, cancel deleting
+            _delCollectionSpaceP1Cancel( pName, cb, dpsCB ) ;
+            rc = SDB_DMS_CS_NOT_EMPTY ;
+            goto error ;
+         }
       }
 
       // drop phase 2
@@ -2030,10 +2049,11 @@ namespace engine
 
    INT32 _SDB_DMSCB::dropEmptyCollectionSpace( const CHAR *pName,
                                                _pmdEDUCB *cb,
-                                               SDB_DPSCB *dpsCB )
+                                               SDB_DPSCB *dpsCB,
+                                               const CHAR *pExceptShortCLName )
    {
       aquireCSMutex( pName ) ;
-      INT32 rc = _delCollectionSpace( pName, cb, dpsCB, TRUE, TRUE ) ;
+      INT32 rc = _delCollectionSpace( pName, cb, dpsCB, TRUE, TRUE, pExceptShortCLName ) ;
       releaseCSMutex( pName ) ;
       if ( SDB_LOCK_FAILED == rc )
       {

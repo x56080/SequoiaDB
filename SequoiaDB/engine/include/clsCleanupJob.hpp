@@ -88,6 +88,8 @@ namespace engine
          INT32 _filterDel( const _dmsLobInfoOnPage &page,
                            BOOLEAN &need2Remove ) ;
 
+         INT32 _dropCollection( BOOLEAN *pDropped = NULL ) ;
+
       protected:
          std::string          _clFullName ;
          BSONObj              _splitKeyObj ;
@@ -95,6 +97,7 @@ namespace engine
          BOOLEAN              _hasShardingIndex ;
          BOOLEAN              _isHashSharding ;
          utilCLUniqueID       _clUniqueID ;
+         const CHAR           *_pShortName ;
 
          std::string          _name ;
 

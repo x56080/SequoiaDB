@@ -62,6 +62,12 @@ namespace engine
       _isHashSharding = isHashSharding ;
       _clUniqueID = clUniqueID ;
 
+      _pShortName = ossStrchr( _clFullName.c_str(), '.' ) ;
+      if ( _pShortName )
+      {
+         _pShortName += 1 ;
+      }
+
       _dpsCB = dpsCB ;
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
 
@@ -159,7 +165,6 @@ namespace engine
       // need to update catalog
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCLNJOB_DOIT );
-      clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       shardCB *pShardCB = sdbGetShardCB() ;
       catAgent *catAgent = pShardCB->getCataAgent() ;
       _clsCatalogSet* catSet = NULL ;
@@ -246,30 +251,13 @@ namespace engine
       // drop collection
       if ( dropCollection )
       {
-         pTaskMgr->lockReg( SHARED ) ;
-         if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
+         BOOLEAN dropped = FALSE ;
+
+         _dropCollection( &dropped ) ;
+         if ( dropped )
          {
-            // delete the collection
-            rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(),
-                                           _dmsCB, _dpsCB ) ;
-            PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d", name(),
-                     _clFullName.c_str(), rc ) ;
-            if ( SDB_DMS_CS_NOTEXIST == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
-            {
-               // drop empty collectionspace, ignore errors
-               _dmsCB->dropEmptyCollectionSpace(
-                        dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                        eduCB(), _dpsCB ) ;
-               rc = SDB_OK ;
-            }
-            pTaskMgr->releaseReg( SHARED ) ;
             goto done ;
          }
-         pTaskMgr->releaseReg( SHARED ) ;
       }
 
       if ( !needClean )
@@ -307,7 +295,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to clean lob data:%d", rc ) ;
       }
-
 
    done:
       eduCB()->writingDB( FALSE ) ;
@@ -443,32 +430,7 @@ namespace engine
             rc = _filterDel( page, need2Remove ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
-               clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-               pTaskMgr->lockReg( SHARED ) ;
-               if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
-               {
-                  // delete the collection
-                  rc = rtnDropCollectionCommand( _clFullName.c_str(),
-                                                 eduCB(), _dmsCB, _dpsCB ) ;
-                  PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
-                           name(), _clFullName.c_str(), rc ) ;
-                  if ( SDB_DMS_CS_NOTEXIST == rc )
-                  {
-                     rc = SDB_OK ;
-                  }
-                  else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
-                  {
-                     // drop empty collectionspace, ignore errors
-                     _dmsCB->dropEmptyCollectionSpace(
-                              dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                              eduCB(), _dpsCB ) ;
-                     rc = SDB_OK ;
-                  }
-                  pTaskMgr->releaseReg( SHARED ) ;
-                  goto done ;
-               }
-               pTaskMgr->releaseReg( SHARED ) ;
-
+               rc = _dropCollection() ;
                break ;
             }
             else if ( rc )
@@ -578,32 +540,7 @@ namespace engine
          if ( SDB_DMS_NOTEXIST == _filterDel( buffObj.data(), buffObj.size(),
                                               cleanType, groupID ) )
          {
-            clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-            pTaskMgr->lockReg( SHARED ) ;
-            if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
-            {
-               // delete the collection
-               rc = rtnDropCollectionCommand( fullName, eduCB(), _dmsCB,
-                                              _dpsCB ) ;
-               PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
-                        name(), fullName, rc ) ;
-               if ( SDB_DMS_CS_NOTEXIST == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
-               {
-                  // drop empty collectionspace, ignore errors
-                  _dmsCB->dropEmptyCollectionSpace(
-                           dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                           eduCB(), _dpsCB ) ;
-                  rc = SDB_OK ;
-               }
-               pTaskMgr->releaseReg( SHARED ) ;
-               goto done ;
-            }
-            pTaskMgr->releaseReg( SHARED ) ;
-
+            rc = _dropCollection() ;
             break ;
          }
       }
@@ -788,6 +725,68 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _clsCleanupJob::_dropCollection( BOOLEAN *pDropped )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN dropped = FALSE ;
+      clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+
+      pTaskMgr->lockReg( SHARED ) ;
+      if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
+      {
+         string csName = dmsGetCSNameFromFullName( _clFullName ) ;
+         // first drop collectionspace instead of drop collection
+         rc = _dmsCB->dropEmptyCollectionSpace( csName.c_str(), eduCB(), _dpsCB, _pShortName ) ;
+         if ( SDB_OK == rc )
+         {
+            dropped = TRUE ;
+            PD_LOG ( PDEVENT, "Job[%s] drop the collectionspace[%s] instead of "
+                     "drop collection[%s] succeed", name(), csName.c_str(),
+                     _clFullName.c_str() ) ;
+         }
+         else if ( SDB_DMS_CS_NOTEXIST == rc )
+         {
+            rc = SDB_OK ;
+            dropped = TRUE ;
+         }
+         else
+         {
+            if ( SDB_DMS_CS_NOT_EMPTY != rc )
+            {
+               PD_LOG( PDWARNING, "Job[%s] drop the collectionspace[%s] instead of "
+                       "drop collection[%s] failed, rc: %d", name(), csName.c_str(),
+                       _clFullName.c_str(), rc ) ;
+               /// not got error
+            }
+
+            // delete the collection
+            rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(), _dmsCB, _dpsCB ) ;
+            PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc: %d", name(),
+                     _clFullName.c_str(), rc ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+               dropped = TRUE ;
+            }
+            else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+            {
+               // drop empty collectionspace, ignore errors
+               _dmsCB->dropEmptyCollectionSpace( csName.c_str(), eduCB(), _dpsCB ) ;
+               rc = SDB_OK ;
+               dropped = TRUE ;
+            }
+         }
+      }
+      pTaskMgr->releaseReg( SHARED ) ;
+
+      if ( pDropped )
+      {
+         *pDropped = dropped ;
+      }
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STRARTCLNJOB, "startCleanupJob" )
