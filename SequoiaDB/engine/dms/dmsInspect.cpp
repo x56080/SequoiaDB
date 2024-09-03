@@ -597,9 +597,18 @@ namespace engine
       }
 
    exit :
-      len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Metadata Management Extent Done "
-                           "without Error"OSS_NEWLINE ) ;
+      if ( 0 == localErr )
+      {
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Inspect Metadata Management Extent Done "
+                              "without Error" OSS_NEWLINE ) ;
+      }
+      else
+      {
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Inspect Metadata Management Extent Done "
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
+      }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
 
