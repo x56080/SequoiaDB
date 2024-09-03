@@ -65,7 +65,9 @@ namespace bson {
 
     inline OpTime BSONElement::_opTime() const {
       if(type() == bson::Date || type() == Timestamp)
-        return OpTime(*reinterpret_cast< const unsigned long long* >(value()));
+      {
+         return OpTime(*reinterpret_cast< const unsigned long long* >(value()));
+      }
       return OpTime();
     }
 
