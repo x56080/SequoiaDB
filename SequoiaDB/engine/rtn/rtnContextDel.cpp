@@ -706,7 +706,7 @@ namespace engine
          ossStrncpy( szCLName, _collectionName, DMS_COLLECTION_FULL_NAME_SZ ) ;
 
          /// restore lock
-         rc = _tryLock( szCLName, NULL, cb ) ;
+         rc = _tryLock( szCLName, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock(rc=%d)", rc ) ;
       }
 
