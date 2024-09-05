@@ -1597,7 +1597,7 @@ namespace engine
                }
                tidVec.push_back( tid ) ;
             }
-            else if( arg.isObject( 3 ) )
+            else if( arg.isArray( 3 ) )
             {
                BSONObj tidObj ;
                rc = arg.getBsonobj( 3, tidObj ) ;
@@ -1694,8 +1694,8 @@ namespace engine
       rc = arg.getString( 0, fileName ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "FileName must be config" ) ;
-         goto error ;
+         /// ignore
+         rc = SDB_OK ;
       }
       else if( SDB_OK != rc )
       {

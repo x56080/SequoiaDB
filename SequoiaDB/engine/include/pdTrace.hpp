@@ -43,7 +43,6 @@
 #include "ossAtomic.hpp"
 #include "sdbInterface.hpp"
 #include "ossIO.hpp"
-#include <list>
 #include <vector>
 
 #ifdef SDB_ENGINE
@@ -407,6 +406,56 @@ struct _pdAllocPair
 typedef _pdAllocPair pdAllocPair ;
 
 /*
+   _pdBreakPointRunItem define
+*/
+struct _pdBreakPointRunItem
+{
+   engine::IExecutor    *_pExe ;
+   UINT64               _funcCode ;
+   ossTimestamp         _breakTime ;
+
+   _pdBreakPointRunItem()
+   {
+      _pExe = NULL ;
+      _funcCode = 0 ;
+   }
+} ;
+typedef _pdBreakPointRunItem pdBreakPointRunItem ;
+typedef std::vector< pdBreakPointRunItem >   VEC_BREAKPOINT_RUNITEM ;
+
+/*
+   _pdBreakPointMonItem define
+*/
+struct _pdBreakPointMonItem
+{
+   UINT32               _tid ;
+   UINT64               _funcCode ;
+   ossTimestamp         _breakTime ;
+
+   _pdBreakPointMonItem()
+   {
+      _tid = 0 ;
+      _funcCode = 0 ;
+   }
+
+   _pdBreakPointMonItem( const pdBreakPointRunItem &item )
+   {
+      if ( item._pExe )
+      {
+         _tid = item._pExe->getTID() ;
+      }
+      else
+      {
+         _tid = 0 ;
+      }
+      _funcCode = item._funcCode ;
+      _breakTime = item._breakTime ;
+   }
+} ;
+typedef _pdBreakPointMonItem pdBreakPointMonItem ;
+typedef std::vector< pdBreakPointMonItem >   VEC_BREAKPOINT_MONITEM ;
+
+/*
    _pdTraceCB define
 */
 class _pdTraceCB : public SDBObject
@@ -440,7 +489,7 @@ public:
    void           destroy () ; // stop trace and destroy memory
 
    void           resumePausedEDUs() ;
-   void           addPausedEDU( engine::IExecutor *cb ) ;
+   BOOLEAN        addPausedEDU( engine::IExecutor *cb, UINT64 funcCode ) ;
    void           pause ( UINT64 funcCode ) ;
 
    const UINT64*  getBPList() const { return _bpList ; }
@@ -454,6 +503,8 @@ public:
 
    UINT32         getFunctionNameNum() const { return _functionMonitoredNum ; }
    const UINT32*  getFunctionName() const { return _monitoredFunctionNamesId; }
+
+   UINT32         getBPRuntime( VEC_BREAKPOINT_MONITEM &vecBPs ) ;
 
    BOOLEAN        isWrapped() ;
 
@@ -622,8 +673,8 @@ private :
    UINT64   _bpList [ PD_TRACE_MAX_BP_NUM ] ; // break point list
 
 #if defined (SDB_ENGINE)
-   ossSpinXLatch                 _pmdEDUCBLatch ;     // paused EDU latch
-   std::list<engine::IExecutor*> _pmdEDUCBList ;      // EDU CB list that pause
+   ossSpinXLatch                    _pmdEDUCBLatch ;     // paused EDU latch
+   VEC_BREAKPOINT_RUNITEM           _pmdEDUCBList ;      // EDU CB list that pause
 #endif // SDB_ENGINE
 
 } ;
@@ -920,5 +971,19 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
    get global pdtrace cb
 */
 pdTraceCB* sdbGetPDTraceCB () ;
+
+/*
+   _pdTraceBPShield define
+*/
+class _pdTraceBPShield
+{
+   public:
+      _pdTraceBPShield() ;
+      ~_pdTraceBPShield() ;
+
+      void doNothing() {}
+} ;
+typedef _pdTraceBPShield pdTraceBPShield ;
+
 
 #endif // PDTRACE_HPP__

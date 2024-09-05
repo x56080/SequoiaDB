@@ -437,6 +437,13 @@ namespace engine
    void pmdSleepInstance( OSS_HANDPARMS )
    {
 #if defined( SDB_ENGINE )
+      if ( sdbGetPDTraceCB()->isStarted() )
+      {
+         sdbGetPDTraceCB()->removeAllBreakPoint() ;
+         ossSleepsecs( 1 ) ;
+         sdbGetPDTraceCB()->resumePausedEDUs() ;
+      }
+
       if ( !pmdGetOptionCB()->isSleepEnabled() )
       {
          return ;

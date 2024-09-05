@@ -3587,6 +3587,8 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTART_DOIT ) ;
+      pdTraceBPShield bpShield ;
+      bpShield.doNothing() ;
       rc = sdbGetPDTraceCB()->start ( (UINT64)_size, _mask, &_breakpoint, &_tid,
                                       &_functionNameId, &_threadType ) ;
       PD_TRACE_EXITRC ( SDB__RTNTRACESTART_DOIT, rc ) ;
@@ -3629,6 +3631,9 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTRACERESUME_DOIT ) ;
+      pdTraceBPShield bpShield ;
+      bpShield.doNothing() ;
+
       pdTraceCB *pdTraceCB = sdbGetPDTraceCB() ;
       pdTraceCB->removeAllBreakPoint () ;
       // sleep for a second so that break point removal information is broadcast
@@ -3703,6 +3708,9 @@ error:
       CHAR filePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR *ptr = NULL ;
+
+      pdTraceBPShield bpShield ;
+      bpShield.doNothing() ;
 
       if ( _pDumpFileName && ossStrlen( _pDumpFileName ) > 0 &&
            traceCB->getSize() > 0 )
@@ -3826,6 +3834,10 @@ error:
       PD_TRACE_ENTRY ( SDB__RTNTRACESTATUS_DOIT ) ;
       rtnContextDump *context = NULL ;
       *pContextID = -1 ;
+
+      pdTraceBPShield bpShield ;
+      bpShield.doNothing() ;
+
       // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                *pContextID, cb ) ;

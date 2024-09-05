@@ -1115,7 +1115,13 @@ Sdb.prototype.traceOff = function()
    var argumentsSize = arguments.length ;
    var traceInfo ;
 
-   if( 1 == argumentsSize )
+   if ( 0 == argumentsSize )
+   {
+      setLastErrMsg( "FileName must be configured" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if( argumentsSize >= 1 )
    {
       if( "string" != typeof( arguments[0] ) )
       {
@@ -1124,7 +1130,7 @@ Sdb.prototype.traceOff = function()
       }
    }
 
-   if( 2 == argumentsSize )
+   if( argumentsSize >= 2 )
    {
       if( "boolean" != typeof( arguments[1] ) )
       {
@@ -1132,13 +1138,19 @@ Sdb.prototype.traceOff = function()
          throw SDB_INVALIDARG ;
       }
 
-      if( arguments[1] )
+      if( arguments[1] && arguments[0].length > 0 )
       {
          traceInfo     = this._getTraceInfo() ;
          path          = traceInfo.TMP_PATH ;
          cmPort        = traceInfo.CM_PORT ;
          traceHostname = traceInfo.TRACE_HOSTNAME ;
       }
+   }
+
+   if ( argumentsSize > 3 )
+   {
+      setLastErrMsg( "traceOff support only two parameters" ) ;
+	  throw SDB_INVALIDARG ;
    }
 
    if( "" != path )
@@ -1206,7 +1218,14 @@ Sdb.prototype.traceOff = function()
    }
    else
    {
-      this._traceOff( arguments[0] ) ;
+      if ( argumentsSize > 0 )
+      {
+         this._traceOff( arguments[0] ) ;
+      }
+      else
+      {
+         this._traceOff() ;
+      }
    }
 }
 

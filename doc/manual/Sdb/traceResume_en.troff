@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-traceResume \- Resume the breakpoint tracking program.
+traceResume \- Cancel the breakpoint and blocking.
 .SH SYNOPSIS
 .PP
 \f[B]\f[I]db.traceResume()\f[]\f[]
@@ -13,10 +13,10 @@ traceResume \- Resume the breakpoint tracking program.
 Sdb
 .SH DESCRIPTION
 .PP
-Turn on the database engine program tracking while db.traceOn() specifies a
-breakpoint.
-When the tracked module was blocked because of the breakpoint, db.traceResume()
-can wake up the module which was tracked and blocked.
+Cancel the breakpoints in the database engine tracking program, and wake up the
+threads blocked by breakpoints.
+.PP
+Equivalent to \f[C]kill \-37 <PID>\f[].
 .SH PARAMETERS
 .PP
 None

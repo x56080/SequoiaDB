@@ -41,7 +41,7 @@ dumpFile
 T}@T{
 string
 T}@T{
-\-\-\-
+\-
 T}@T{
 二进制文件的文
 T}@T{
@@ -60,7 +60,7 @@ T{
 T}@T{
 isDumpLocal
 T}@T{
-bool
+boolean
 T}@T{
 false
 T}@T{
@@ -87,18 +87,14 @@ T}
 .TE
 .RS
 .PP
-Note：
-.RE
-.RS
+\f[B]Note：\f[]
 .IP "1." 3
-参数 dumpFile
+参数 \f[C]dumpFile\f[]
 可以填写为空字符串，表示关闭数据库引擎跟踪功能，但是不导出二进制文件。如果指定文件为相对路径则存放于相应节点的数据目录中的
 \f[C]diagpath\f[] 目录中；
-.RE
-.RS
 .IP "2." 3
-traceOff 生成的文件会默认保存在被监控节点所在的主机上。如果参数 isDumpLocal
-设置为 true，文件会保存在客户端本地。
+\f[C]traceOff\f[] 生成的文件会默认保存在被监控节点所在的主机上。如果参数
+\f[C]isDumpLocal\f[] 设置为 true，文件会保存在客户端本地。
 .RE
 .SH 返回值
 .PP

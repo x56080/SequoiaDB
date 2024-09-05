@@ -4,7 +4,7 @@
 .hy
 .SH 名称
 .PP
-traceResume \- 重新开启断点跟踪程序
+traceResume \- 取消断点阻塞
 .SH 语法
 .PP
 \f[B]db.traceResume()\f[]
@@ -13,9 +13,9 @@ traceResume \- 重新开启断点跟踪程序
 Sdb
 .SH 描述
 .PP
-该函数用于重新开启断点跟踪程序。 db.traceOn()
-指定断点开启数据库引擎程序跟踪功能，当被跟踪的模块遇到断点被阻塞，
-db.traceResume() 可以唤醒被跟踪的模块。
+该函数用于关闭断点，并唤醒被阻塞的线程。
+.PP
+和 \f[C]kill \-37 <PID>\f[] 效果相同。
 .SH 参数
 .PP
 无
