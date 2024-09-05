@@ -57,34 +57,34 @@ v2.0 及以上版本
 
 * 开启数据库引擎程序跟踪的功能
 
-  ```lang-javascript
-  > db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
-  ```
+    ```lang-javascript
+    > db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
+    ```
 
 * 查看当前程序跟踪的状态：
 
-  ```lang-javascript
-  > db.traceStatus()
-  {
-     "TraceStarted": true,
-     "Wrapped": false,
-     "Size": 104857600,
-     "FreeSize": 104857600,
-     "PadSize": 0,
-     "Mask": [
-       "dms"
-     ],
-     "BreakPoint": [],
-     "Threads": [],
-     "ThreadTypes": [
-       "RestListener"
-     ],
-     "FunctionNames": [
-       "_dmsStorageUnit::insertRecord"
-     ],
-     "BreakPointRuns": []
-  }
-  ```
+    ```lang-javascript
+    > db.traceStatus()
+    {
+       "TraceStarted": true,
+       "Wrapped": false,
+       "Size": 104857600,
+       "FreeSize": 104857600,
+       "PadSize": 0,
+       "Mask": [
+         "dms"
+       ],
+       "BreakPoint": [],
+       "Threads": [],
+       "ThreadTypes": [
+          "RestListener"
+       ],
+       "FunctionNames": [
+         "_dmsStorageUnit::insertRecord"
+       ],
+       "BreakPointRuns": []
+    }
+    ```
 
 [^_^]:
     本文使用的所有引用及链接
