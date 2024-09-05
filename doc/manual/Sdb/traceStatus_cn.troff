@@ -69,7 +69,7 @@ Wrapped
 T}@T{
 boolean
 T}@T{
-跟踪文件是否翻
+跟踪内存是否翻
 T}
 T{
 T}@T{
@@ -96,7 +96,7 @@ Size
 T}@T{
 int64
 T}@T{
-跟踪文件大小
+跟踪内存总大小
 T}
 T{
 4
@@ -112,7 +112,7 @@ T{
 T}@T{
 Mask
 T}@T{
-string
+string array
 T}@T{
 所跟踪的模块，
 T}
@@ -139,7 +139,7 @@ T{
 T}@T{
 BreakPoint
 T}@T{
-string
+string array
 T}@T{
 所跟踪的函数断
 T}
@@ -154,7 +154,7 @@ T{
 T}@T{
 Threads
 T}@T{
-int32
+int32 array
 T}@T{
 线程号
 T}
@@ -163,7 +163,7 @@ T{
 T}@T{
 ThreadTypes
 T}@T{
-string
+string array
 T}@T{
 线程类型，类型
 T}
@@ -190,9 +190,62 @@ T{
 T}@T{
 FunctionNames
 T}@T{
-string
+string array
 T}@T{
 所跟踪的函数名
+T}
+T{
+10
+T}@T{
+BreakPointRuns
+T}@T{
+object array
+T}@T{
+断点的运行信息
+T}
+.TE
+.IP \[bu] 2
+BreakPointRuns 中对象字段如下：
+.PP
+.TS
+tab(@);
+l l l l.
+T{
+0
+T}@T{
+参数名
+T}@T{
+类型
+T}@T{
+描述
+T}
+_
+T{
+1
+T}@T{
+TID
+T}@T{
+int32
+T}@T{
+线程ID
+T}
+T{
+2
+T}@T{
+BreakPoint
+T}@T{
+string
+T}@T{
+所在断点的函数
+T}
+T{
+3
+T}@T{
+Time
+T}@T{
+string
+T}@T{
+进入断点的时间
 T}
 .TE
 .PP
@@ -200,46 +253,16 @@ T}
 .SH 错误
 .PP
 当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
-获取[错误码][error_code]。更多错误处理可以参考常见错误处理指南。
+获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
 v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 开启数据库引擎程序跟踪的功能
-.RS 2
-.IP
-.nf
-\f[C]
-> db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
-\f[]
-.fi
-.RE
+.PP
+\f[C]lang\-javascript   > db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )\f[]
 .IP \[bu] 2
 查看当前程序跟踪的状态：
-.RS 2
-.IP
-.nf
-\f[C]
-> db.traceStatus()
-{
-  "TraceStarted": true,
-  "Wrapped": false,
-  "Size": 104857600,
-  "FreeSize": 104857600,
-  "PadSize": 0,
-  "Mask": [
-    "dms"
-  ],
-  "BreakPoint": [],
-  "Threads": [],
-  "ThreadTypes": [
-    "RestListener"
-  ],
-  "FunctionNames": [
-    "_dmsStorageUnit::insertRecord"
-  ]
-}
-\f[]
-.fi
-.RE
+.PP
+\f[C]lang\-javascript   > db.traceStatus()   {      "TraceStarted": true,      "Wrapped": false,      "Size": 104857600,      "FreeSize": 104857600,      "PadSize": 0,      "Mask": [        "dms"      ],      "BreakPoint": [],      "Threads": [],      "ThreadTypes": [        "RestListener"      ],      "FunctionNames": [        "_dmsStorageUnit::insertRecord"      ],      "BreakPointRuns": []   }\f[]

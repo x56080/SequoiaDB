@@ -1,7 +1,7 @@
 
 ##NAME##
 
-traceResume - Resume the breakpoint tracking program.
+traceResume - Cancel the breakpoint and blocking.
 
 ##SYNOPSIS##
 
@@ -13,7 +13,9 @@ Sdb
 
 ##DESCRIPTION##
 
-Turn on the database engine program tracking while db.traceOn() specifies a breakpoint. When the tracked module was blocked because of the breakpoint, db.traceResume() can wake up the module which was tracked and blocked. 
+Cancel the breakpoints in the database engine tracking program, and wake up the threads blocked by breakpoints.
+
+Equivalent to `kill -37 <PID>`.
 
 ##PARAMETERS##
 

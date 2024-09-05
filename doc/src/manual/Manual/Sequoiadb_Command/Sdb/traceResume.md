@@ -1,6 +1,6 @@
 ##名称##
 
-traceResume - 重新开启断点跟踪程序
+traceResume - 取消断点阻塞
 
 ##语法##
 
@@ -12,7 +12,9 @@ Sdb
 
 ##描述##
 
-该函数用于重新开启断点跟踪程序。 db.traceOn() 指定断点开启数据库引擎程序跟踪功能，当被跟踪的模块遇到断点被阻塞， db.traceResume() 可以唤醒被跟踪的模块。
+该函数用于关闭断点，并唤醒被阻塞的线程。
+
+和 `kill -37 <PID>` 效果相同。
 
 ##参数##
 
@@ -36,29 +38,29 @@ v2.0 及以上版本
 
 * 连接数据节点 20000，开启数据库引擎程序跟踪的功能
 
-	```lang-javascript
-	> var data = new Sdb( "localhost", 20000 )
-	> data.traceOn( 1000, "dms", "_dmsStorageUnit::insertRecord" )
-	```
+  ```lang-javascript
+  > var data = new Sdb( "localhost", 20000 )
+  > data.traceOn( 1000, "dms", "_dmsStorageUnit::insertRecord" )
+  ```
 
 * 连接到协调节点 50000， sample.employee 集合落在数据节点 20000 上，执行插入操作，操作会被阻塞无法完成
   
-	```lang-javascript
-	> var db = new Sdb( "localhost", 50000 )
-	> db.sample.employee.insert( { _id: 1, name: "a" } )
-	```
+  ```lang-javascript
+  > var db = new Sdb( "localhost", 50000 )
+  > db.sample.employee.insert( { _id: 1, name: "a" } )
+  ```
 
 * 重新开启断点跟踪程序，插入操作执行成功，并返回结果
 
-	```lang-javascript
-	> data.traceResume()
-	```
+  ```lang-javascript
+  > data.traceResume()
+  ```
 
 * 查看当前断点跟踪程序的状态可参考[traceStatus()](manual/Manual/Sequoiadb_Command/Sdb/traceStatus.md)
 
-	```lang-javascript
-	> data.traceStatus()
-	```
+  ```lang-javascript
+  > data.traceStatus()
+  ```
 
 [^_^]:
      本文使用的所有引用及链接

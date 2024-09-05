@@ -54,6 +54,27 @@ using namespace engine ;
 
 BOOLEAN g_isTraceStarted = FALSE ;
 
+static OSS_THREAD_LOCAL INT32 s_shieldTraceBreak = 0 ;
+
+BOOLEAN pdCurIsShieldTraceBreak()
+{
+   return s_shieldTraceBreak > 0 ? TRUE : FALSE ;
+}
+
+/*
+   _pdTraceBPShield implement
+*/
+
+_pdTraceBPShield::_pdTraceBPShield()
+{
+   ++s_shieldTraceBreak ;
+}
+
+_pdTraceBPShield::~_pdTraceBPShield()
+{
+   --s_shieldTraceBreak ;
+}
+
 // extract high 32 bit as function component mask, and OR with
 // cb->_componentMask, if the result is 0 that means the component is not what
 // we want
@@ -170,7 +191,7 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
       hasStarted = FALSE ;
 
 #if defined (SDB_ENGINE)
-      if ( pdCB->getBPNum() > 0 )
+      if ( pdCB->getBPNum() > 0 && !pdCurIsShieldTraceBreak() )
       {
          pdCB->pause( code ) ;
       }
@@ -676,7 +697,7 @@ BOOLEAN _pdTraceCB::isTraceFile( const CHAR* filePath )
    }
 
    /// check eye TRACECB_EYE_CATCHER
-   if ( 0 != ossStrcmp( pHeader, TRACECB_EYE_CATCHER ) )
+   if ( 0 != ossStrncmp( pHeader, TRACECB_EYE_CATCHER, TRACECB_EYE_CATCHER_SIZE ) )
    {
       PD_LOG( PDERROR, "Invalid eye catcher" ) ;
       rc = SDB_PD_TRACE_FILE_INVALID ;
@@ -981,28 +1002,89 @@ void _pdTraceCB::_reset ()
    resumePausedEDUs() ;
 }
 
-void _pdTraceCB::addPausedEDU( engine::IExecutor *cb )
+BOOLEAN _pdTraceCB::addPausedEDU( engine::IExecutor *cb, UINT64 funcCode )
 {
+   BOOLEAN ret = TRUE ;
 #ifdef SDB_ENGINE
    _pmdEDUCBLatch.get() ;
-   _pmdEDUCBList.push_back ( cb ) ;
+   try
+   {
+      pdBreakPointRunItem item ;
+      item._pExe = cb ;
+      item._funcCode = funcCode ;
+      ossGetCurrentTime( item._breakTime ) ;
+
+      _pmdEDUCBList.push_back( item ) ;
+   }
+   catch( std::exception &e )
+   {
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      /// ignore error
+      ret = FALSE ;
+   }
    _pmdEDUCBLatch.release () ;
 #endif // SDB_ENGINE
+   return ret ;
 }
 
 void _pdTraceCB::resumePausedEDUs ()
 {
 #ifdef SDB_ENGINE
+   VEC_BREAKPOINT_RUNITEM::iterator it ;
    _pmdEDUCBLatch.get() ;
    pmdEDUEvent event( PMD_EDU_EVENT_BP_RESUME ) ;
-   while ( !_pmdEDUCBList.empty() )
+   it = _pmdEDUCBList.begin() ;
+   while ( it != _pmdEDUCBList.end() )
    {
-      pmdEDUCB *cb = ( pmdEDUCB* )_pmdEDUCBList.front() ;
+      pmdEDUCB *cb = ( pmdEDUCB* )( (*it)._pExe ) ;
       cb->postEvent( event ) ;
-      _pmdEDUCBList.pop_front() ;
+      ++it ;
    }
+   _pmdEDUCBList.clear() ;
    _pmdEDUCBLatch.release() ;
 #endif // SDB_ENGINE
+}
+
+UINT32 _pdTraceCB::getBPRuntime( VEC_BREAKPOINT_MONITEM & vecBPs )
+{
+   vecBPs.clear() ;
+
+#ifdef SDB_ENGINE
+   VEC_BREAKPOINT_RUNITEM::iterator it ;
+   _pmdEDUCBLatch.get() ;
+
+   if ( !_pmdEDUCBList.empty() )
+   {
+      try
+      {
+         vecBPs.reserve( _pmdEDUCBList.size() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         /// ignore
+      }
+
+      try
+      {
+         it = _pmdEDUCBList.begin() ;
+         while( it != _pmdEDUCBList.end() )
+         {
+            vecBPs.push_back( pdBreakPointMonItem( *it ) ) ;
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         /// ignore
+      }
+   }
+
+   _pmdEDUCBLatch.release () ;
+#endif // SDB_ENGINE
+
+   return vecBPs.size() ;
 }
 
 void _pdTraceCB::pause( UINT64 funcCode )
@@ -1018,9 +1100,10 @@ void _pdTraceCB::pause( UINT64 funcCode )
       if ( _bpList[i] == funcCode )
       {
          // put EDU into pause status
-         addPausedEDU( educb ) ;
-
-         educb->waitEvent( engine::PMD_EDU_EVENT_BP_RESUME, event, -1 ) ;
+         if ( addPausedEDU( educb, funcCode ) )
+         {
+            educb->waitEvent( engine::PMD_EDU_EVENT_BP_RESUME, event, -1 ) ;
+         }
          break ;
       } // if ( _bpList[i] == funcCode )
    } // for ( i = 0; i < _numBP; ++i )

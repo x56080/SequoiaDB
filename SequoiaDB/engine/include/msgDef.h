@@ -409,6 +409,7 @@
 #define FIELD_NAME_RETURN                    "Return"
 #define FIELD_NAME_COMPONENTS                "Components"
 #define FIELD_NAME_BREAKPOINTS               "BreakPoint"
+#define FIELD_NAME_BREAKPOINT_RUNS           "BreakPointRuns"
 #define FIELD_NAME_THREADS                   "Threads"
 #define FIELD_NAME_FUNCTIONNAMES             "FunctionNames"
 #define FIELD_NAME_THREADTYPES               "ThreadTypes"

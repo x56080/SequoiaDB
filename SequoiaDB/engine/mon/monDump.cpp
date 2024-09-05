@@ -1226,6 +1226,25 @@ namespace engine
                                        ( functionNameList[ i ] ) ) ;
             }
             functionNameArr.done() ;
+
+            BSONArrayBuilder bpRunsArr( builder.subarrayStart( FIELD_NAME_BREAKPOINT_RUNS ) ) ;
+            VEC_BREAKPOINT_MONITEM vecBPs ;
+            CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+
+            traceCB->getBPRuntime( vecBPs ) ;
+            VEC_BREAKPOINT_MONITEM::iterator it = vecBPs.begin() ;
+            while( it != vecBPs.end() )
+            {
+               BSONObjBuilder bpItemBD( bpRunsArr.subobjStart() ) ;
+               pdBreakPointMonItem item = *it ;
+               bpItemBD.append( FIELD_NAME_TID, item._tid ) ;
+               bpItemBD.append( FIELD_NAME_BREAKPOINTS, pdGetTraceFunction( item._funcCode ) ) ;
+               ossTimestampToString( item._breakTime, strTime ) ;
+               bpItemBD.append( FIELD_NAME_TIME, strTime ) ;
+               bpItemBD.done() ;
+               ++it ;
+            }
+            bpRunsArr.done() ;
          }
          obj = builder.obj() ;
          rc = context->monAppend( obj ) ;
