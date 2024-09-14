@@ -72,6 +72,7 @@ namespace engine
       dmsExtentID    _indexLID ;
       BSONObj        _indexDef ;
       CHAR           _extDataName[ DMS_MAX_EXT_NAME_SIZE + 1 ] ;
+      utilIdxUniqueID _idxUniqID ;
 
       _monIndex()
       {
@@ -80,6 +81,7 @@ namespace engine
          _scanExtLID = -1 ;
          _indexLID = -1 ;
          ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
+         _idxUniqID = UTIL_UNIQUEID_NULL ;
       }
 
       OSS_INLINE const CHAR *getIndexName () const

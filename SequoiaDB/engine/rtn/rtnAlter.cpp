@@ -71,6 +71,31 @@ namespace engine
 
       const CHAR * collectionShortName = mb->_collectionName ;
 
+      monIndex idIndex ;
+      BOOLEAN needToChangeUniqueID = FALSE ;
+
+      if ( pWriteDpsLog )
+      {
+         *pWriteDpsLog = TRUE ;
+      }
+
+      rc = su->getIndex( mbContext, IXM_ID_KEY_NAME, idIndex ) ;
+      if ( SDB_OK == rc )
+      {
+         if ( UTIL_UNIQUEID_NULL != idxUniqueID &&
+              idIndex._idxUniqID != idxUniqueID )
+         {
+            needToChangeUniqueID = TRUE ;
+         }
+      }
+      else if ( SDB_IXM_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+         needToChangeUniqueID = TRUE ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
+                   "rc: %d", IXM_ID_KEY_NAME, collection, rc ) ;
+
       // alter will write DPS log itself, no need to pass dpsCB down
       rc = su->createIndex( collectionShortName,
                             ixmGetIDIndexDefine( idxUniqueID ), cb,
@@ -81,7 +106,7 @@ namespace engine
          rc = SDB_OK ;
          if ( pWriteDpsLog )
          {
-            *pWriteDpsLog = FALSE ;
+            *pWriteDpsLog = needToChangeUniqueID ;
          }
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection [%s], "
@@ -115,6 +140,11 @@ namespace engine
 
       const CHAR * collectionShortName = mb->_collectionName ;
 
+      if ( pWriteDpsLog )
+      {
+         *pWriteDpsLog = TRUE ;
+      }
+
       // alter will write DPS log itself, no need to pass dpsCB down
       rc = su->dropIndex( collectionShortName, IXM_ID_KEY_NAME, cb, NULL,
                           TRUE, mbContext ) ;
@@ -146,7 +176,8 @@ namespace engine
                                      _dpsLogWrapper * dpsCB,
                                      _dmsMBContext * mbContext,
                                      _dmsStorageUnit * su,
-                                     utilWriteResult *pResult )
+                                     utilWriteResult *pResult,
+                                     BOOLEAN * pWriteDpsLog = NULL )
    {
       INT32 rc = SDB_OK ;
 
@@ -164,6 +195,13 @@ namespace engine
       BOOLEAN createIndex = TRUE ;
       monIndex shardIndex ;
       const BSONObj & shardingKey = argument.getShardingKey() ;
+
+      BOOLEAN needToChangeUniqueID = FALSE ;
+
+      if ( pWriteDpsLog )
+      {
+         *pWriteDpsLog = TRUE ;
+      }
 
       rc = su->getIndex( mbContext, IXM_SHARD_KEY_NAME, shardIndex ) ;
       if ( SDB_OK == rc )
@@ -184,10 +222,20 @@ namespace engine
             dropIndex = TRUE ;
             createIndex = TRUE ;
          }
+
+         if ( createIndex )
+         {
+            if ( UTIL_UNIQUEID_NULL != idxUniqueID &&
+                 shardIndex._idxUniqID != idxUniqueID )
+            {
+               needToChangeUniqueID = TRUE ;
+            }
+         }
       }
       else if ( SDB_IXM_NOTEXIST == rc )
       {
          rc = SDB_OK ;
+         needToChangeUniqueID = TRUE ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
                    "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
@@ -200,6 +248,10 @@ namespace engine
          if ( SDB_IXM_NOTEXIST == rc )
          {
             rc = SDB_OK ;
+            if ( pWriteDpsLog )
+            {
+               *pWriteDpsLog = FALSE ;
+            }
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s],"
                       " rc: %d", collection, rc ) ;
@@ -222,6 +274,10 @@ namespace engine
          {
             /// sharding key index already exists.
             rc = SDB_OK ;
+            if ( pWriteDpsLog )
+            {
+               *pWriteDpsLog = needToChangeUniqueID ;
+            }
             goto done ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to create %s index on "
@@ -521,7 +577,8 @@ namespace engine
                                     _dmsStorageUnit * su,
                                     _SDB_DMSCB * dmsCB,
                                     DMS_FILE_TYPE & dpsType,
-                                    utilWriteResult *pResult )
+                                    utilWriteResult *pResult,
+                                    BOOLEAN * pWriteDpsLog = NULL )
    {
       INT32 rc = SDB_OK ;
 
@@ -533,6 +590,7 @@ namespace engine
 
       const CHAR * collectionShortName = mbContext->mb()->_collectionName ;
       const rtnCLSetAttributeTask * localTask = NULL ;
+      BOOLEAN mustWriteDpsLog = FALSE ;
 
       localTask = dynamic_cast<const rtnCLSetAttributeTask *>( task ) ;
       PD_CHECK( NULL != localTask, SDB_INVALIDARG, error, PDERROR,
@@ -540,6 +598,11 @@ namespace engine
 
       PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
                 "Failed to get mbContext: should be exclusive locked" ) ;
+
+      if ( pWriteDpsLog )
+      {
+         *pWriteDpsLog = TRUE ;
+      }
 
       // $id index
       if ( localTask->testArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) )
@@ -550,13 +613,13 @@ namespace engine
             rc = _rtnCreateIDIndex( collection,
                                     alterInfo->getIdxUniqueID( collection,
                                                                IXM_ID_KEY_NAME ),
-                                    0, cb, dpsCB, mbContext, su, pResult ) ;
+                                    0, cb, dpsCB, mbContext, su, pResult, pWriteDpsLog ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection "
                          "[%s], rc: %d", collection, rc ) ;
          }
          else
          {
-            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su ) ;
+            rc = _rtnDropIDIndex( collection, cb, dpsCB, mbContext, su, pWriteDpsLog ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection "
                          "[%s], rc: %d", collection, rc ) ;
          }
@@ -572,7 +635,7 @@ namespace engine
                                          alterInfo->getIdxUniqueID( collection,
                                                                     IXM_SHARD_KEY_NAME ),
                                          cb, dpsCB,
-                                         mbContext, su, pResult ) ;
+                                         mbContext, su, pResult, pWriteDpsLog ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set sharding on collection [%s], "
                       "rc: %d", collection, rc ) ;
       }
@@ -580,6 +643,8 @@ namespace engine
       // Compress
       if ( localTask->containCompressArgument() )
       {
+         mustWriteDpsLog = TRUE ;
+
          const rtnCLCompressArgument & compressArgument =
                                              localTask->getCompressArgument() ;
          rc = _rtnCollectionSetCompress( collectionShortName, compressArgument,
@@ -591,6 +656,8 @@ namespace engine
       // Ext options
       if ( localTask->containExtOptionArgument() )
       {
+         mustWriteDpsLog = TRUE ;
+
          rc = _rtnCollectionSetExtOptions( collectionShortName,
                                            localTask->getExtOptionArgument(),
                                            cb, mbContext, su ) ;
@@ -608,6 +675,8 @@ namespace engine
       // Strict data mode
       if ( localTask->testArgumentMask( UTIL_CL_STRICTDATAMODE_FIELD ) )
       {
+         mustWriteDpsLog = TRUE ;
+
          rc = su->setCollectionStrictDataMode( collectionShortName,
                                                localTask->isStrictDataMode(),
                                                mbContext ) ;
@@ -618,6 +687,8 @@ namespace engine
       // no trans
       if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
       {
+         mustWriteDpsLog = TRUE ;
+
          rc = su->setCollectionNoTrans( collectionShortName,
                                         localTask->isNoTrans(),
                                         mbContext,
@@ -627,6 +698,10 @@ namespace engine
       }
 
    done :
+      if ( mustWriteDpsLog && pWriteDpsLog )
+      {
+         *pWriteDpsLog = TRUE ;
+      }
       PD_TRACE_EXITRC( SDB__RTNALTERCLSETATTR, rc ) ;
       return rc ;
 
@@ -1055,7 +1130,7 @@ namespace engine
                                             alterInfo->getIdxUniqueID( collection,
                                                                        IXM_SHARD_KEY_NAME ),
                                             cb, dpsCB, mbContext, su,
-                                            pResult ) ;
+                                            pResult, &writeDpsLog ) ;
             break ;
          }
          case RTN_ALTER_CL_DISABLE_SHARDING :
@@ -1064,7 +1139,7 @@ namespace engine
             rtnCLShardingArgument argument ;
             argument.setEnsureShardingIndex( FALSE ) ;
             rc = _rtnCollectionSetSharding( collection, argument, 0, cb, dpsCB,
-                                            mbContext, su, pResult ) ;
+                                            mbContext, su, pResult, &writeDpsLog ) ;
             break ;
          }
          case RTN_ALTER_CL_ENABLE_COMPRESS :
@@ -1088,7 +1163,7 @@ namespace engine
          {
             rc = _rtnAlterCLSetAttributes( collection, task, alterInfo, cb,
                                            dpsCB, mbContext, su, dmsCB, dpsType,
-                                           pResult ) ;
+                                           pResult, &writeDpsLog ) ;
             break ;
          }
          case RTN_ALTER_CL_CREATE_AUTOINC_FLD :

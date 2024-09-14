@@ -502,7 +502,7 @@ namespace engine
             shardingKey = arg.getShardingKey().getOwned() ;
             const BSONObj &curShardKey = cataSet.getShardingKey() ;
 
-            if ( !curShardKey.isEmpty() )
+            if ( !curShardKey.isEmpty() && 0 != shardingKey.woCompare(curShardKey) )
             {
                _dropShardIdx = TRUE ;
             }
@@ -549,7 +549,7 @@ namespace engine
                shardingKey = arg.getShardingKey().getOwned() ; ;
                const BSONObj &curShardKey = cataSet.getShardingKey() ;
 
-               if ( !curShardKey.isEmpty() )
+               if ( !curShardKey.isEmpty() && 0 != shardingKey.woCompare(curShardKey) )
                {
                   _dropShardIdx = TRUE ;
                }

@@ -4353,6 +4353,7 @@ namespace engine
             resultIndex._scanExtLID = indexCB.scanExtLID () ;
             resultIndex._indexLID = indexCB.getLogicalID () ;
             resultIndex._version = indexCB.version () ;
+            resultIndex._idxUniqID = indexCB.getUniqueID() ;
             // copy the index def to it's owned buffer
             try
             {
