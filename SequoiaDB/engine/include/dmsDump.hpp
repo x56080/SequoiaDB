@@ -51,7 +51,7 @@
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 
-#include <deque>
+#include <set>
 
 using namespace bson ;
 using namespace std ;
@@ -97,7 +97,9 @@ namespace engine
                                  UINT32 inSize,
                                  CHAR * outBuf,
                                  UINT32 outSize,
-                                 UINT32 pageNum ) ;
+                                 UINT32 pageNum,
+                                 UINT32 &usedPages,
+                                 SINT32 &hwmPages ) ;
 
          static UINT32 dumpMME ( void * inBuf,
                                  UINT32 inSize,
@@ -207,7 +209,7 @@ namespace engine
                                          UINT32 outSize,
                                          CHAR * addrPrefix,
                                          UINT32 options,
-                                         deque<dmsExtentID> &childExtents,
+                                         set<dmsExtentID> &childExtents,
                                          BOOLEAN dumpIndexKey = FALSE ) ;
 
          static UINT32 dumpIndexExtentHeader ( void * inBuf,
@@ -242,18 +244,19 @@ namespace engine
                                         UINT32 options);
 
          static UINT32 dumpDmsLobData( CHAR *inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options);
+                                       UINT32 inSize,
+                                       CHAR * outBuf,
+                                       UINT32 outSize,
+                                       CHAR * addrPrefix,
+                                       UINT32 options );
 
-         static UINT32 dumpDmsLobDataMapBlk( dmsLobDataMapBlk *blk,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options,
-                                        UINT32 pageSize);
+         static UINT32 dumpDmsLobDataMapBlk( UINT32 pageID,
+                                             dmsLobDataMapBlk *blk,
+                                             CHAR * outBuf,
+                                             UINT32 outSize,
+                                             CHAR * addrPrefix,
+                                             UINT32 options,
+                                             UINT32 pageSize);
       private:
          static UINT32 _dumpExtentHeaderComm( const dmsExtent *extent,
                                               CHAR *outBuf, UINT32 outSize ) ;

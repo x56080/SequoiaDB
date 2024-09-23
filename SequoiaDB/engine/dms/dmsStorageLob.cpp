@@ -107,6 +107,13 @@ namespace engine
       _vecBucketLacth.clear() ;
    }
 
+   UINT32 _dmsStorageLob::getBucketID( const _dmsLobDataMapBlk &blk )
+   {
+      UINT32 hashCode = 0 ;
+      DMS_LOB_GET_HASH_FROM_BLK( &blk, hashCode ) ;
+      return _getBucket( hashCode ) ;
+   }
+
    void _dmsStorageLob::syncMemToMmap ()
    {
       if ( _dmsData && _data.isOpened() )

@@ -2336,6 +2336,7 @@ namespace engine
          {
             _commitFlag = 0 ;
             _dmsHeader->_commitFlag = 0 ;
+            _dmsHeader->_updateTime = ossGetCurrentMilliseconds() ;
             /// flush header
             flushHeader( _syncDeep ) ;
          }
@@ -2383,6 +2384,7 @@ namespace engine
                   }
                   _dmsHeader->_commitLsn = lastLSN ;
                   _dmsHeader->_commitTime = lastTime ;
+                  _dmsHeader->_updateTime = lastTime ;
                   /// flush header
                   rc = flushHeader( sync ) ;
                }
