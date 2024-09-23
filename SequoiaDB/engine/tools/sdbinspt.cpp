@@ -6260,7 +6260,7 @@ INT32 main ( INT32 argc, CHAR **argv )
       }
 
       dumpAndShowPrintf( OSS_NEWLINE ) ;
-      dumpAndShowPrintf( "++++++++  Result Information  ++++++++" OSS_NEWLINE ) ;
+      dumpAndShowPrintf( "++++++++  Result report  ++++++++" OSS_NEWLINE ) ;
       dumpAndShowPrintf( "  Start Time             : %s" OSS_NEWLINE, szStartTime ) ;
       dumpAndShowPrintf( "  End Time               : %s" OSS_NEWLINE, szEndTime ) ;
 
