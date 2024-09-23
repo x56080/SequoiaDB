@@ -6279,6 +6279,10 @@ INT32 main ( INT32 argc, CHAR **argv )
       {
          dumpAndShowPrintf( "  Total Errors           : %u" OSS_NEWLINE, gStat._totalErr ) ;
       }
+      else
+      {
+         dumpAndShowPrintf( "  Total Errors           : -" OSS_NEWLINE ) ;
+      }
       dumpAndShowPrintf( "  Output File Num        : %u" OSS_NEWLINE, gOutputFileIndex + 1 ) ;
       dumpAndShowPrintf( "  Total Data File Num    : %u" OSS_NEWLINE, gStat._totalDataFileNum ) ;
       dumpAndShowPrintf( "  Total Index File Num   : %u" OSS_NEWLINE, gStat._totalIndexFileNum ) ;
