@@ -2858,7 +2858,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT_DMPINXEXT2LOG );
       // 1MB buffer should be enough for output
       INT32 indexExtentDumpBufferSize = 1024 * 1024 ;
-      std::deque<dmsExtentID> childExtents ;
+      std::set<dmsExtentID> childExtents ;
       CHAR *pBuffer = (CHAR*)SDB_OSS_MALLOC ( indexExtentDumpBufferSize ) ;
       PD_CHECK ( pBuffer, SDB_OOM, error, PDERROR,
                  "Failed to allocate memory for dump buffer" ) ;

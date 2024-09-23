@@ -97,6 +97,8 @@ namespace engine
       _dmsStorageLobData* getLobData() { return &_data ; }
       utilCacheUnit* getCacheUnit() { return _pCacheUnit ; }
 
+      static UINT32 getBucketID( const _dmsLobDataMapBlk &blk ) ;
+
    public:
       INT32 open( const CHAR *path,
                   const CHAR *metaPath,
@@ -266,7 +268,7 @@ namespace engine
       virtual void   _onRestore() ;
 
    private:
-      OSS_INLINE UINT32 _getBucket( UINT32 hash )
+      OSS_INLINE static UINT32 _getBucket( UINT32 hash )
       {
          return hash & DMS_BUCKETS_MODULO ;
       }

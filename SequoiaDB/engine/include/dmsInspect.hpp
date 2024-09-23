@@ -51,7 +51,7 @@
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 
-#include <deque>
+#include <set>
 
 using namespace bson ;
 using namespace std ;
@@ -88,8 +88,10 @@ namespace engine
                                     UINT32 outSize,
                                     const CHAR *expBuffer,
                                     UINT32 pageNum,
+                                    UINT32 &usedNum,
                                     SINT32 &hwmPages,
-                                    SINT32 &err ) ;
+                                    SINT32 &err,
+                                    SINT32 expSMEHWMPages = -1 ) ;
 
          static UINT32 inspectMME ( void * inBuf,
                                     UINT32 inSize,
@@ -132,6 +134,7 @@ namespace engine
                                            CHAR * outBuf,
                                            UINT32 outSize,
                                            INT32 currentRecordID,
+                                           dmsExtentID extentID,
                                            dmsOffset &nextRecord,
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
@@ -167,7 +170,9 @@ namespace engine
                                             CHAR * outBuf,
                                             UINT32 outSize,
                                             UINT32 keyOffset,
-                                            SINT32 &err ) ;
+                                            const ixmRecordID &ixmRID,
+                                            SINT32 &err,
+                                            BufBuilder *pBuilder = NULL ) ;
 
          static UINT32 inspectIndexExtentHeader ( void * inBuf,
                                                   UINT32 inSize,
@@ -188,6 +193,8 @@ namespace engine
                                                UINT32 inSize,
                                                CHAR * outBuf,
                                                UINT32 outSize,
+                                               UINT16 indexID,
+                                               dmsExtentID extentID,
                                                UINT16 collectionID,
                                                dmsExtentID &root,
                                                SINT32 &err ) ;
@@ -199,11 +206,16 @@ namespace engine
                                             UINT32 outSize,
                                             UINT16 collectionID,
                                             dmsExtentID extentID,
-                                            deque<dmsExtentID> &childExtents,
-                                            SINT32 &err ) ;
+                                            UINT32 curLevel,
+                                            set<UINT64> &childExtents, /// UINT64( extent, level )
+                                            UINT32 &keyNodes,
+                                            UINT32 &delKeyNodes,
+                                            SINT32 &err,
+                                            BufBuilder *pBuilder = NULL ) ;
 
          static INT32 inspectNormalExtent( CHAR *inBuf, UINT32 inSize,
                                            CHAR *outBuf, UINT32 outSize,
+                                           dmsExtentID extentID,
                                            UINT16 collectionID,
                                            dmsCompressorEntry *compressorEntry,
                                            UINT64 &recordNum,
@@ -215,6 +227,7 @@ namespace engine
 
          static INT32 inspectCappedExtent( CHAR *inBuf, UINT32 inSize,
                                            CHAR *outBuf, UINT32 outSize,
+                                           dmsExtentID extentID,
                                            UINT16 collectionID,
                                            dmsCompressorEntry *compressorEntry,
                                            UINT64 &recordNum,
@@ -245,10 +258,13 @@ namespace engine
                                           UINT32 outSize, 
                                           SINT32 &err);
 
-         static UINT32 inspectDmsLobDataMapBlk( dmsLobDataMapBlk *blk, 
-                                                CHAR * outBuf, 
-                                                UINT32 outSize, 
-                                                UINT16 clId, 
+         static UINT32 inspectDmsLobDataMapBlk( dmsLobDataMapBlk *blk,
+                                                CHAR * outBuf,
+                                                UINT32 outSize,
+                                                UINT32 pageID,
+                                                UINT32 pageSize,
+                                                UINT32 lobdPageSize,
+                                                UINT16 clId,
                                                 SINT32 &err ) ;
                 
    } ;
