@@ -46,6 +46,7 @@
 #include "utilResult.hpp"
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
+#include "dmsIndexChangeWatcher.hpp"
 
 using namespace bson ;
 
@@ -150,6 +151,7 @@ namespace engine
 
          dmsPageMapUnit*   getPageMapUnit() ;
          dmsPageMap*       getPageMap( UINT16 mbID ) ;
+         dmsIndexChangeWatcher* getIndexChangeWatcher() ;
 
       public:
          // reserve a signal page
@@ -370,6 +372,7 @@ namespace engine
          _dmsStorageData         *_pDataSu ;
          dmsPageMapUnit          _mbPageInfo ;
          INT32                   _idxKeySizeMax ; // max size of index key value
+         dmsIndexChangeWatcher   _indexChangeWatcher ;
 
       friend class _dmsIndexBuilder ;
    };

@@ -100,6 +100,11 @@ namespace engine
       return _mbPageInfo.getMap( mbID ) ;
    }
 
+   dmsIndexChangeWatcher* _dmsStorageIndex::getIndexChangeWatcher()
+   {
+      return &_indexChangeWatcher ;
+   }
+
    UINT64 _dmsStorageIndex::_dataOffset()
    {
       return ( DMS_SME_OFFSET + DMS_SME_SZ ) ;
@@ -2845,6 +2850,14 @@ namespace engine
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
                           "rc: %d", PD_SECURE_OBJ( newObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
+
+            if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
+            {
+               rc = _indexChangeWatcher.notifyRecordChanged( &indexCB, extLID, rid ) ;
+               PD_RC_CHECK ( rc, PDERROR, "Failed to notify index(%s) building session "
+                           "that the record has been changed, rc: %d",
+                           indexCB.getName(), rc ) ;
+            }
          }
       }
 
@@ -3265,6 +3278,14 @@ namespace engine
                         "rc: %d", PD_SECURE_OBJ( inputObj ),
                         indexCB.getDef().toString().c_str(), rc ) ;
                goto error ;
+            }
+
+            if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() )
+            {
+               rc = _indexChangeWatcher.notifyRecordChanged( &indexCB, extLID, rid ) ;
+               PD_RC_CHECK ( rc, PDERROR, "Failed to notify index(%s) building session "
+                           "that the record has been changed, rc: %d",
+                           indexCB.getName(), rc ) ;
             }
          }
       }
