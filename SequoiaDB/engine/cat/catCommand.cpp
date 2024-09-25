@@ -2382,7 +2382,7 @@ namespace engine
                 _boIdx.toString().c_str(), rc ) ;
 
       PD_CHECK( _isEnforced, SDB_INVALIDARG, error, PDERROR,
-                "Global index's enfored must be true:index=%s,rc=%d",
+                "Global index's enforced must be true:index=%s,rc=%d",
                 _boIdx.toString().c_str(), rc ) ;
 
       clUID = _pCataSet->clUniqueID() ;

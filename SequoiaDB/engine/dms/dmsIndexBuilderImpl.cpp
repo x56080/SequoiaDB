@@ -197,6 +197,8 @@ namespace engine
    INT32 _dmsIndexSortingBuilder::_fillSorter()
    {
       INT32 rc = SDB_OK ;
+      dmsExtentID startExtID = _indexCB->scanExtLID() ;
+      dmsExtentID endExtID = DMS_INVALID_EXTENT ;
 
       for(;;)
       {
@@ -223,6 +225,13 @@ namespace engine
                     "bufSize=%lld, usedBufSize=%lld, total=%lld", _bufSize,
                     _sorter->usedBufferSize(), _sorter->bufferSize() ) ;
             goto done ;
+         }
+
+         rc = _mbLockAndCheck( SHARED ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+            goto error ;
          }
 
          rc = _beforeExtent() ;
@@ -284,6 +293,14 @@ namespace engine
             goto error ;
          }
 
+         endExtID = _indexCB->scanExtLID() ;
+         rc = _suIndex->getIndexChangeWatcher()->setWatchWindow( _indexOID,
+                                                                 startExtID,
+                                                                 endExtID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set building index watch window, "
+                     "rc: %d", rc ) ;
+
+         _mbContext->mbUnlock() ;
       }
 
    done:
@@ -297,6 +314,7 @@ namespace engine
    {
       #define _KEYS_PER_BATCH 10000
       INT32 rc = SDB_OK ;
+      dmsIndexChangeWatcher* pWatcher = _suIndex->getIndexChangeWatcher() ;
 
       for (;;)
       {
@@ -309,11 +327,21 @@ namespace engine
             goto error ;
          }
 
+         rc = _checkIndexAfterLock( SHARED ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
          for ( INT32 i = 0 ; i < _KEYS_PER_BATCH ; i++ )
          {
             rc = _sorter->fetch( key, recordID ) ;
             if ( SDB_OK == rc )
             {
+               if ( pWatcher->isRecordChanged( _indexOID, recordID ) )
+               {
+                  continue ;
+               }
                rc = _insertKey( key, recordID, ordering ) ;
                if ( SDB_OK != rc )
                {
@@ -326,10 +354,20 @@ namespace engine
             }
             else
             {
-               rc = SDB_OK ;
-               goto done ;
+               rc = pWatcher->reset( _indexOID ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               else
+               {
+                  rc = SDB_OK ;
+                  goto done ;
+               }
             }
          }
+
+         _mbContext->mbUnlock() ;
 
          // check if scanner is interrupted
          rc = _checkInterrupt() ;
@@ -340,6 +378,7 @@ namespace engine
       }
 
    done:
+      _mbContext->mbUnlock() ;
       return rc ;
    error:
       goto done ;
@@ -348,6 +387,7 @@ namespace engine
    INT32 _dmsIndexSortingBuilder::_build()
    {
       INT32 rc = SDB_OK ;
+      INT32 tmpRC = SDB_OK ;
 
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
 
@@ -365,12 +405,6 @@ namespace engine
          }
 
          rc = _sorter->reset() ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-
-         rc = _checkIndexAfterLock( SHARED ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -415,16 +449,14 @@ namespace engine
          {
             goto error ;
          }
-
-         _mbContext->mbUnlock() ;
-
-         // TODO: sleep lms to let others have more opportunities
-         // to get the write lock. THIS is only a temporary solution,
-         // we need a fairer lock to solve this problem
-         ossSleep(1) ;
       }
 
    done:
+      tmpRC = _suIndex->getIndexChangeWatcher()->reset( _indexOID ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         PD_LOG( PDERROR, "Failed to reset index change watcher, rc: %d", tmpRC ) ;
+      }
       if ( _pIdxStatus )
       {
          _pIdxStatus->resetOpInfo() ;
