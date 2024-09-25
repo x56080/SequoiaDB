@@ -38,6 +38,7 @@ function test ()
    }
    cl.insert( recArray );
    db.updateConf( { ftconfirmperiod: 6 }, { GroupName: groupName } );
+   commCheckLSN( db, groupName );
 
    var master = null;
    var slave = null;
