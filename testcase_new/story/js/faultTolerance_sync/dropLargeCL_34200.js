@@ -54,6 +54,7 @@ function test ()
       },
       { GroupName: groupName }
    );
+   commCheckLSN( db, groupName );
 
    var master = null;
    var slave = null;
