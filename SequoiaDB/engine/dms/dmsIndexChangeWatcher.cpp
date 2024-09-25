@@ -113,7 +113,7 @@ namespace engine
          if ( it != _windowMap.end() )
          {
             _WatchWindow &window = it->second ;
-            if ( window._start < extLID && extLID <= window._end )
+            if ( window._start <= extLID && extLID <= window._end )
             {
                OID_RID_PAIR value( oid, rid ) ;
                _idSet.insert( value ) ;

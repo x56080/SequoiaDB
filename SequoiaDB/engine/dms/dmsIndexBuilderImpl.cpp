@@ -197,7 +197,7 @@ namespace engine
    INT32 _dmsIndexSortingBuilder::_fillSorter()
    {
       INT32 rc = SDB_OK ;
-      dmsExtentID startExtID = _indexCB->scanExtLID() ;
+      dmsExtentID startExtID = DMS_INVALID_EXTENT ;
       dmsExtentID endExtID = DMS_INVALID_EXTENT ;
 
       for(;;)
@@ -293,6 +293,10 @@ namespace engine
             goto error ;
          }
 
+         if ( DMS_INVALID_EXTENT == startExtID )
+         {
+            startExtID = _indexCB->scanExtLID() ;
+         }
          endExtID = _indexCB->scanExtLID() ;
          rc = _suIndex->getIndexChangeWatcher()->setWatchWindow( _indexOID,
                                                                  startExtID,
