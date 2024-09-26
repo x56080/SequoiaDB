@@ -168,7 +168,8 @@ namespace engine
                               BOOLEAN needResize,
                               OSSHANDLE *pHandle,
                               BOOLEAN addShellPrefix,
-                              BOOLEAN dupOut )
+                              BOOLEAN dupOut,
+                              BOOLEAN saveResult )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( NULL != cmd, "can not be null" ) ;
@@ -193,6 +194,11 @@ namespace engine
       if ( !needResize )
       {
          flags |= OSS_EXEC_NORESIZEARGV ;
+      }
+
+      if ( saveResult )
+      {
+         flags |= OSS_EXEC_SAVECHLDRESULT ;
       }
 
       res.exitcode = 0 ;
