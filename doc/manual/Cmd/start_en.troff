@@ -45,7 +45,7 @@ T}@T{
 T}@T{
 Shell command name
 T}@T{
-Required
+yes
 T}
 T{
 2
@@ -54,24 +54,37 @@ args
 T}@T{
 string
 T}@T{
-NULL
+""
 T}@T{
-Command parameter
+command parameter
 T}@T{
-Not
+not
 T}
 T{
 3
 T}@T{
+timeout
+T}@T{
+int
+T}@T{
+100
+T}@T{
+set timeout
+T}@T{
+not
+T}
+T{
+4
+T}@T{
 useShell
 T}@T{
-number
+int
 T}@T{
 1
 T}@T{
 whether to use /bin/sh
 T}@T{
-Not
+not
 T}
 T{
 T}@T{
@@ -97,19 +110,6 @@ T}@T{
 T}@T{
 use /bin/sh.
 T}@T{
-T}
-T{
-4
-T}@T{
-timeout
-T}@T{
-number
-T}@T{
-0
-T}@T{
-Set timeout
-T}@T{
-Not
 T}
 .TE
 .SH RETURN VALUE

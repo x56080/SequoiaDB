@@ -20,8 +20,8 @@ Cmd
 | -------- | -------- | ------ | --------------- | -------- |
 | cmd      | string   | ---    | Shell 命令名称  | 是       |
 | args     | string   | 空     | 命令参数        | 否       |
-| useShell | number   | 1      | 是否使用 /bin/sh 解析执行命令，默认使用 | 否       |
-| timeout  | number   | 0      | 设置超时时间    | 否       |
+| timeout  | int      | 100    | 设置超时时间    | 否       |
+| useShell | int      | 1      | 是否使用 /bin/sh 解析执行命令，默认使用 | 否       |
 
 ##返回值##
 
