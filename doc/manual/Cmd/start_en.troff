@@ -114,7 +114,7 @@ T}
 .TE
 .SH RETURN VALUE
 .PP
-On success, return the tid of the command execution.
+On success, return the pid of the command execution.
 .PP
 On error, exception will be thrown.
 .SH ERRORS
