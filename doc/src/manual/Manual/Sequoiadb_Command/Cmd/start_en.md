@@ -1,4 +1,3 @@
-
 ##NAME##
 
 start - Execute the command.
@@ -27,7 +26,7 @@ Execute the Shell command in the background.
 
 ##RETURN VALUE##
 
-On success, return the tid of the command execution.
+On success, return the pid of the command execution.
 
 On error, exception will be thrown.
 
