@@ -2202,7 +2202,7 @@ Cmd.prototype.run = function( cmd, args, timeout, useShell ) {
    return retStr ;
 }
 
-Cmd.prototype.start = function( cmd, args, useShell, timeout ) {
+Cmd.prototype.start = function( cmd, args, timeout, useShell ) {
    var retPid ;
 
    // check argument
@@ -2235,11 +2235,11 @@ Cmd.prototype.start = function( cmd, args, useShell, timeout ) {
 
    if ( 3 > arguments.length )
    {
-      useShell = 1 ;
+      timeout = 100 ;
    }
    if ( 4 > arguments.length )
    {
-      timeout = 100 ;
+      useShell = 1 ;
    }
 
    if ( undefined != this._remote )
@@ -2268,7 +2268,7 @@ Cmd.prototype.start = function( cmd, args, useShell, timeout ) {
    }
    else
    {
-      retPid = this._start( cmd, args, useShell, timeout ) ;
+      retPid = this._start( cmd, args, timeout, useShell ) ;
    }
    return retPid ;
 }
