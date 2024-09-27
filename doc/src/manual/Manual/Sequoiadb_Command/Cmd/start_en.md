@@ -19,8 +19,8 @@ Execute the Shell command in the background.
 | Name     | Type     | Default | Description        | Required or not |
 | -------- | -------- | ------- | ------------------ | --------------- |
 | cmd      | string   | ---     | Shell command name | yes             |
-| args     | string   | NULL    | command parameter  | not             |
-| timeout  | int      | 0       | set timeout        | not             |
+| args     | string   | ""      | command parameter  | not             |
+| timeout  | int      | 100     | set timeout        | not             |
 | useShell | int      | 1       | whether to use /bin/sh to parse and execute the command. Default use /bin/sh.  | not             |
 
 

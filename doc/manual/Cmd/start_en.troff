@@ -54,7 +54,7 @@ args
 T}@T{
 string
 T}@T{
-NULL
+""
 T}@T{
 command parameter
 T}@T{
@@ -67,7 +67,7 @@ timeout
 T}@T{
 int
 T}@T{
-0
+100
 T}@T{
 set timeout
 T}@T{
