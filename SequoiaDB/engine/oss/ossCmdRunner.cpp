@@ -213,7 +213,50 @@ namespace engine
       }
       else
       {
-         vecArgs = boost::program_options::split_unix( cmd ) ;
+         string strCmd ;
+         UINT32 inQuote = 0 ; // 1: '', 2: ""
+         CHAR lastCh = '\0' ;
+         const CHAR *pTmp = cmd ;
+
+         while( *pTmp )
+         {
+            if ( '\'' == *pTmp && '\\' != lastCh )
+            {
+               if ( 0 == inQuote )
+               {
+                  inQuote = 1 ;
+               }
+               else if ( 1 == inQuote )
+               {
+                  inQuote = 0 ;
+               }
+               else
+               {
+                  strCmd += "\\" ;
+               }
+            }
+            else if ( '"' == *pTmp && '\\' != lastCh )
+            {
+               if ( 0 == inQuote )
+               {
+                  inQuote = 2 ;
+               }
+               else if ( 2 == inQuote )
+               {
+                  inQuote = 0 ;
+               }
+               else
+               {
+                  strCmd += "\\" ;
+               }
+            }
+
+            strCmd += *pTmp ;
+            lastCh = *pTmp ;
+            ++pTmp ;
+         }
+
+         vecArgs = boost::program_options::split_unix( strCmd ) ;
          for ( UINT32 i = 0 ; i < vecArgs.size() ; ++i )
          {
             argv.push_back( vecArgs[ i ].c_str() ) ;
