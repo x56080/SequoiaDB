@@ -215,12 +215,12 @@ namespace engine
       {
          string strCmd ;
          UINT32 inQuote = 0 ; // 1: '', 2: ""
-         CHAR lastCh = '\0' ;
+         BOOLEAN inEscape = FALSE ;
          const CHAR *pTmp = cmd ;
 
          while( *pTmp )
          {
-            if ( '\'' == *pTmp && '\\' != lastCh )
+            if ( '\'' == *pTmp && !inEscape )
             {
                if ( 0 == inQuote )
                {
@@ -235,7 +235,7 @@ namespace engine
                   strCmd += "\\" ;
                }
             }
-            else if ( '"' == *pTmp && '\\' != lastCh )
+            else if ( '"' == *pTmp && !inEscape )
             {
                if ( 0 == inQuote )
                {
@@ -252,7 +252,14 @@ namespace engine
             }
 
             strCmd += *pTmp ;
-            lastCh = *pTmp ;
+            if ( '\\' == *pTmp && !inEscape )
+            {
+               inEscape = TRUE ;
+            }
+            else
+            {
+               inEscape = FALSE ;
+            }
             ++pTmp ;
          }
 
