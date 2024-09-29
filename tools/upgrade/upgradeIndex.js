@@ -70,7 +70,7 @@ if ( typeof( cipherfile ) !== "undefined" )
    }
    TOKEN = token ;
 }
-else 
+else
 {
    if ( typeof( password ) === "undefined" )
    {
@@ -136,6 +136,40 @@ var SUBCLUNIT_LIST = [] ;
 var UPGRADE_MAINCLUNIT_LIST = [] ;
 var USER = null ;
 
+var IS_OLD_VERSION_DB = false ;   // under 3.6 and 5.8
+
+const UPGRADE_INDEX_TMP_CS_NAME = "upgrade_index_tmp_cs" ;
+const DATA_INDEX_INFO_TMP_CL_NAME = "data_index_info" ;
+
+function clearUpgradeIndexTmpTables()
+{
+   try
+   {
+      db.dropCS( UPGRADE_INDEX_TMP_CS_NAME ) ;
+   }
+   catch( e )
+   {
+      if ( e != -34 )
+      {
+         println( "Failed to drop upgrade index tmp tables, rc: " + e ) ;
+         throw e ;
+      }
+   }
+}
+
+function initUpgradeIndexTmpTables()
+{
+   try
+   {
+      db.createCS( UPGRADE_INDEX_TMP_CS_NAME ).createCL( DATA_INDEX_INFO_TMP_CL_NAME ) ;
+   }
+   catch( e )
+   {
+      println( "Failed to create upgrade index tmp tables, rc: " + e ) ;
+      throw e ;
+   }
+}
+
 try
 {
    if ( CIPHER_FILE == "" )
@@ -158,12 +192,15 @@ try
 }
 catch( e )
 {
-   println( "Failed to connect coord[" + HOSTNAME + ":" + SVCNAME + 
+   println( "Failed to connect coord[" + HOSTNAME + ":" + SVCNAME +
             "], username[" + USERNAME + "], error[" + e + "]" ) ;
    throw new Error() ;
 }
+
 try
 {
+   clearUpgradeIndexTmpTables();
+
    check() ;
    NONEED_UPGRADE_FMT.print() ;
    CAN_UPGRADE_FMT.print() ;
@@ -183,6 +220,8 @@ try
 
    SUGGEST_FMT.print() ;
    TOTAL_FMT.print() ;
+
+   clearUpgradeIndexTmpTables() ;
 }
 catch( e )
 {
@@ -266,7 +305,7 @@ function getCollectionInfo( clusterCLList, mainCLList, localCLList )
       {
          // it is data source collection, just ignore it
          continue ;
-      }   
+      }
       if ( rcObj.IsMainCL )
       {
          // it is main collection
@@ -346,6 +385,97 @@ function getCollectionInfo( clusterCLList, mainCLList, localCLList )
    }
 }
 
+function isOldVersion( clName )
+{
+   var csName      = clName.split( "." )[0] ;
+   var clShortName = clName.split( "." )[1] ;
+   var collection  = db.getCS( csName ).getCL( clShortName ) ;
+   var isoldversion = false ;
+
+   try
+   {
+      collection.snapshotIndexes() ;
+   }
+   catch( e )
+   {
+      if ( e != -6 )
+      {
+         println( "Unexpected error, rc: " + e ) ;
+         throw e ;
+      }
+      isoldversion = true ;
+   }
+
+   return isoldversion ;
+}
+
+function generateSnapshotIndexesInfo( clusterCLList )
+{
+   try
+   {
+      var batchRecords = [] ;
+      var tmpCL = db.getCS(UPGRADE_INDEX_TMP_CS_NAME).getCL(DATA_INDEX_INFO_TMP_CL_NAME) ;
+
+      for ( var i in clusterCLList )
+      {
+         var clFullName = clusterCLList[i].Collection ;
+         var csName = clFullName.split( "." )[0] ;
+         var clShortName = clFullName.split( "." )[1] ;
+         var collection  = db.getCS( csName ).getCL( clShortName ) ;
+         var groupNameList = clusterCLList[i].GroupNameList ;
+
+         for ( var i in groupNameList )
+         {
+            var groupName = groupNameList[i] ;
+            var nodeNameList = GROUP_NODES_MAP.get( groupName ) ;
+
+            for ( var j in nodeNameList )
+            {
+               var nodeName = nodeNameList[j] ;
+               var arr = nodeName.split( ":" ) ;
+               var hostname = arr[0] ;
+               var svcname = arr[1] ;
+               var dataDB = new Sdb( hostname, svcname, USER ) ;
+
+               var collection = dataDB.getCS( csName ).getCL( clShortName ) ;
+
+               var rc = collection.listIndexes() ;
+               while ( rc.next() )
+               {
+                  var rcObj = rc.current().toObj() ;
+                  var def = rcObj.IndexDef ;
+                  if ( def == undefined )
+                  {
+                     continue ;
+                  }
+                  rcObj.NodeName = nodeName ;
+                  rcObj.GroupName = groupName ;
+                  rcObj.ClFullName = clFullName ;
+                  batchRecords.push( rcObj ) ;
+
+                  if ( batchRecords.length > 1000 )
+                  {
+                     tmpCL.insert( batchRecords ) ;
+                     batchRecords = [] ;
+                  }
+               }
+               dataDB.close() ;
+            }
+         }
+      }
+
+      if ( batchRecords.length > 0 )
+      {
+         tmpCL.insert( batchRecords ) ;
+      }
+   }
+   catch( e )
+   {
+      println( "Failed to generate snapshot indexes info, rc: " + e ) ;
+      throw e ;
+   }
+}
+
 function check()
 {
    getNodeInfo() ;
@@ -373,10 +503,16 @@ function check()
 
    getCollectionInfo( clusterCLList, mainCLList, localCLList ) ;
 
+   IS_OLD_VERSION_DB = isOldVersion( clusterCLList[0].Collection ) ;
+
+   initUpgradeIndexTmpTables() ;
+
+   generateSnapshotIndexesInfo( clusterCLList ) ;
+
    for ( var i in clusterCLList )
    {
       var cl = clusterCLList[i] ;
-      checkClusterCL( cl.Collection, cl.GroupNameList, cl.AutoIndexId, 
+      checkClusterCL( cl.Collection, cl.GroupNameList, cl.AutoIndexId,
                       cl.EnsureShardingIndex, cl.MainCLName ) ;
    }
 
@@ -393,7 +529,7 @@ function check()
    }
 }
 
-function checkClusterCL( clName, groupNameList, autoIdxId, ensureShardingIdx, 
+function checkClusterCL( clName, groupNameList, autoIdxId, ensureShardingIdx,
                          mainCLName )
 {
    var csName      = clName.split( "." )[0] ;
@@ -413,18 +549,11 @@ function checkClusterCL( clName, groupNameList, autoIdxId, ensureShardingIdx,
       cataObjList.push( { GroupName: groupName, NodeNameList: nodeList } ) ;
    }
 
-   var clUnit = new ClusterCLUnit( clName, cataObjList, autoIdxId, 
+   var clUnit = new ClusterCLUnit( clName, cataObjList, autoIdxId,
                                    ensureShardingIdx, mainCLName ) ;
 
-   // loop indexes in catalog
-   var rc = collection.listIndexes() ;
-   while ( rc.next() )
-   {
-      var rcObj = rc.current().toObj() ;
-      clUnit.addByCatalog( rcObj.IndexDef ) ;
-   }
-
    // loop indexes in all data nodes
+   var rc ;
    var lastDef = {} ;
    var lastGroupName = "" ;
    var hasLast = false ;
@@ -433,17 +562,42 @@ function checkClusterCL( clName, groupNameList, autoIdxId, ensureShardingIdx,
                            //   { NodeName: "hostname1:11810", UniqueID: 123 },
                            //   ...
                            // ]
-   // get indexes from data, sort by IndexDef and GroupName
-   var rc = collection.snapshotIndexes( { RawData: true }, {},
-                                        { "IndexDef.name": 1,
-                                          "IndexDef.key": 1,
-                                          "IndexDef.unique": 1,
-                                          "IndexDef.dropDups": 1,
-                                          "IndexDef.enforced": 1,
-                                          "IndexDef.NotNull": 1,
-                                          "IndexDef.NotArray": 1,
-                                          "IndexDef.Global": 1,
-                                          "GroupName": 1 } ) ;
+
+   if ( !IS_OLD_VERSION_DB )
+   {
+      // loop indexes in catalog
+      rc = collection.listIndexes() ;
+      while ( rc.next() )
+      {
+         var rcObj = rc.current().toObj() ;
+         clUnit.addByCatalog( rcObj.IndexDef ) ;
+      }
+
+      // get indexes from data, sort by IndexDef and GroupName
+      rc = collection.snapshotIndexes( { RawData: true }, {},
+                                          { "IndexDef.name": 1,
+                                             "IndexDef.key": 1,
+                                             "IndexDef.unique": 1,
+                                             "IndexDef.dropDups": 1,
+                                             "IndexDef.enforced": 1,
+                                             "IndexDef.NotNull": 1,
+                                             "IndexDef.NotArray": 1,
+                                             "IndexDef.Global": 1,
+                                             "GroupName": 1 } ) ;
+   }
+   else
+   {
+      var cl = db.getCS( UPGRADE_INDEX_TMP_CS_NAME ).getCL( DATA_INDEX_INFO_TMP_CL_NAME ) ;
+      rc = cl.find( { "ClFullName": clName } ).sort( { "IndexDef.name": 1,
+                                                       "IndexDef.key": 1,
+                                                       "IndexDef.unique": 1,
+                                                       "IndexDef.dropDups": 1,
+                                                       "IndexDef.enforced": 1,
+                                                       "IndexDef.NotNull": 1,
+                                                       "IndexDef.NotArray": 1,
+                                                       "IndexDef.Global": 1,
+                                                       "GroupName": 1 } ) ;
+   }
    while ( rc.next() )
    {
       var rcObj = rc.current().toObj() ;
@@ -517,7 +671,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
       return ;
    }
 
-   // find the sub-collections, and find the sub-collections with 
+   // find the sub-collections, and find the sub-collections with
    // least number of indexes
    var subCLUnitList = [] ;
    var posOfLeastIdxCL = 0 ;
@@ -527,7 +681,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
       if ( clUnit.mainCLName() == clName )
       {
          subCLUnitList.push( clUnit ) ;
-         if ( clUnit.idxUnitList.length < 
+         if ( clUnit.idxUnitList.length <
               subCLUnitList[posOfLeastIdxCL].idxUnitList.length )
          {
             // mark the position of the sub-collection with least
@@ -550,14 +704,17 @@ function checkMainCL( clName, shardingKey, subCLNameList )
 
    var mainCLUnit = new MainCLUnit( clName, shardingKey ) ;
 
-   // loop indexes in catalog
-   var csName      = clName.split( "." )[0] ;
-   var clShortName = clName.split( "." )[1] ;
-   var collection  = db.getCS( csName ).getCL( clShortName ) ;
-   var rc = collection.listIndexes() ;
-   while ( rc.next() )
+   if ( !IS_OLD_VERSION_DB )
    {
-      mainCLUnit.addByCatalog( rc.current().toObj().IndexDef ) ;
+      // loop indexes in catalog
+      var csName      = clName.split( "." )[0] ;
+      var clShortName = clName.split( "." )[1] ;
+      var collection  = db.getCS( csName ).getCL( clShortName ) ;
+      var rc = collection.listIndexes() ;
+      while ( rc.next() )
+      {
+         mainCLUnit.addByCatalog( rc.current().toObj().IndexDef ) ;
+      }
    }
 
    // loop the sub-collection's every indexes
@@ -567,7 +724,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
       var idxUnit = leastIdxCLUnit.idxUnitList[i] ;
       var idxDef = idxUnit.getIdxDef() ;
       var allSubCLHas = true ;
-      
+
       if ( idxUnit.getIdxName() == '$id' || idxUnit.getIdxName()  == '$shard' )
       {
          // main-collection doesn't have system index
@@ -579,7 +736,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
          // only check consistent index and index can be upgrade to consistent
          continue ;
       }
-      
+
       // loop every sub-collection, find the same index
       for ( var j in subCLUnitList )
       {
@@ -594,7 +751,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
          {
             var idxUnit1 = clUnit.idxUnitList[k] ;
             if ( ( idxUnit1.getUpgradeType() == IDX_TYPE_CAN_UPGRADE ||
-                   idxUnit1.getUpgradeType() == IDX_TYPE_CONSISTENT ) && 
+                   idxUnit1.getUpgradeType() == IDX_TYPE_CONSISTENT ) &&
                  idxUnit1.is( idxDef ) )
             {
                foundOut = true ;
@@ -626,7 +783,7 @@ function checkMainCL( clName, shardingKey, subCLNameList )
                                getIdxAttrDesc( def ),
                                "Consistent" ) ;
       }
-      
+
       UPGRADE_MAINCLUNIT_LIST.push( mainCLUnit ) ;
    }
    // format: no need to upgrade index
@@ -856,7 +1013,7 @@ function upgradeIdx( clName, idxDef )
    UPGRADE_RESULT_FMT.push( clName, idxDef.name, errCode ) ;
 }
 
-function isEqualIdx( def1, def2 ) 
+function isEqualIdx( def1, def2 )
 {
    delete def1._id ;
    delete def2._id ;
@@ -864,15 +1021,15 @@ function isEqualIdx( def1, def2 )
    delete def2.UniqueID ;
    delete def1.CreateTime ;  // v5.0.3 has this field
    delete def2.CreateTime ;  // v5.0.3 has this field
-   delete def1.RebuildTime ; // v5.0.3 has this field   
-   delete def2.RebuildTime ; // v5.0.3 has this field   
+   delete def1.RebuildTime ; // v5.0.3 has this field
+   delete def2.RebuildTime ; // v5.0.3 has this field
    delete def1.Standalone ;
    delete def2.Standalone ;
    return isEqual( def1, def2 )
 }
 
 function isConflictIdx( def1, def2 )
-{ 
+{
    if ( isEqual( def1.name, def2.name ) )
    {
       return true ;
@@ -1649,7 +1806,7 @@ function IndexUnit( idxDef, isInCata, groupObjList )
          return IDX_TYPE_CAN_UPGRADE ;
       }
       else
-      { 
+      {
          return IDX_TYPE_MISSING ;
       }
    }
@@ -1702,7 +1859,7 @@ function compareIndexDef( def1, def2 )
 //   { GroupName: "group1", NodeNameList: [ "hostname1:11810", ... ] },
 //   ...
 // ]
-function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx, 
+function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx,
                         mainclName )
 {
    this._clName = clName ;
@@ -1847,7 +2004,7 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx,
                this._canUpgradeCnt++ ;
                break ;
             case IDX_TYPE_MISSING:
-               // If index1 {name:'a1',key:{a:1}} is missing, but index2 
+               // If index1 {name:'a1',key:{a:1}} is missing, but index2
                // {name:'a2',key:{a:1},unique:true} exists, so index1 is conflict
                var conflictUnitList = [] ;
                conflictUnitList.push( this.idxUnitList[i] ) ;// push myself to print myself first
@@ -1856,7 +2013,7 @@ function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx,
                   for ( var j in this.idxUnitList )
                   {
                      if ( j != i && this.idxUnitList[j].getIdxDef().unique &&
-                          isEqual( idxUnit.getIdxKey(), 
+                          isEqual( idxUnit.getIdxKey(),
                                    this.idxUnitList[j].getIdxKey() ) )
                      {
                         idxUnit.setConflict() ;
