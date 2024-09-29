@@ -194,6 +194,23 @@ SystemTest.prototype.init = function()
    }
 }
 
+SystemTest.prototype.getFileContent = function( filepath )
+{
+    var file ;
+    var content = "" ;
+    if ( this.isLocal )
+    {
+        file = new File( filepath, 0700, SDB_FILE_READONLY ) ;
+    }
+    else
+    {
+        file = this.remote.getFile( filepath, 0700, SDB_FILE_READONLY ) ;
+    }
+    content = file.read() ;
+    file.close() ;
+    return content ;
+}
+
 SystemTest.prototype.release = function()
 {
    if( this.remote !== undefined )

@@ -56,7 +56,6 @@
 #define OSS_EXEC_SSAVE                 2 // sync process, return result
 #define OSS_EXEC_NORESIZEARGV          4 // not resize buffer for argv for rename
 #define OSS_EXEC_NODETACHED            8 // not detached
-#define OSS_EXEC_SAVECHLDRESULT        16 // save result code when sig handler wait child exit
 
 // define term code
 #define OSS_EXIT_NORMAL 0
