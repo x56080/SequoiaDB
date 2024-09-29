@@ -77,7 +77,9 @@ class _ossProcessResultSite
       void pushResult( UINT32 pid, const ossResultCode &result )
       {
          /// call in signal's callback, so can't malloc memory
-         if ( pid != 0 )
+         if ( pid != 0 &&
+              ( OSS_EXIT_NORMAL != result.termcode ||
+                0 != result.exitcode ) )
          {
             ossScopedLock lock( &_latch ) ;
             _pid[ _curIndex ] = pid ;
@@ -632,25 +634,6 @@ error :
    goto done ;
 }
 
-#define OSS_SIGCHLD_WAIT_DELAY_TIME       ( 200 )     /// ms
-
-/// signal handler
-void _ossSigCHLDHandler( INT32 signum )
-{
-   INT32 rc = SDB_OK ;
-   ossResultCode result ;
-   OSSPID pid = OSS_INVALID_PID ;
-
-   ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
-   while( ( rc = ossWaitChild( OSS_INVALID_PID, result, FALSE, &pid ) == SDB_OK &&
-          OSS_INVALID_PID != pid ) )
-   {
-      PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
-              pid, result.termcode, result.exitcode ) ;
-      ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
-   }
-}
-
 /// signal handler( save child's result )
 void _ossSigCHLDsaveResultHandler( INT32 signum )
 {
@@ -658,7 +641,6 @@ void _ossSigCHLDsaveResultHandler( INT32 signum )
    ossResultCode result ;
    OSSPID pid = OSS_INVALID_PID ;
 
-   ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
    while( ( rc = ossWaitChild( OSS_INVALID_PID, result, FALSE, &pid ) == SDB_OK &&
           OSS_INVALID_PID != pid ) )
    {
@@ -667,7 +649,6 @@ void _ossSigCHLDsaveResultHandler( INT32 signum )
 
       PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
               pid, result.termcode, result.exitcode ) ;
-      ossSleep( OSS_SIGCHLD_WAIT_DELAY_TIME ) ;
    }
 }
 
@@ -701,14 +682,7 @@ INT32 ossExec ( const CHAR * program,
    INT32               msgRecvBytes           = 0 ;
 
    // change sigchld action to default
-   if( OSS_EXEC_SAVECHLDRESULT & flag )
-   {
-      ignore.sa_handler = _ossSigCHLDsaveResultHandler ;
-   }
-   else
-   {
-      ignore.sa_handler = _ossSigCHLDHandler ;
-   }
+   ignore.sa_handler = _ossSigCHLDsaveResultHandler ;
    sigemptyset ( &ignore.sa_mask ) ;
    ignore.sa_flags = 0 ;
    sysRC = sigaction ( SIGCHLD, &ignore, &savechild ) ;

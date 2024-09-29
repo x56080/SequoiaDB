@@ -22,7 +22,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
          dir = "/proc/sys";
       else
          dir = "/proc/sys/" + type[i];
-      var result = toolGetConfigs( this.cmd, dir );
+      var result = toolGetConfigs( this.cmd, dir, this );
       for( var k in result )
       {
          // 排除随机生成或动态变化的字段
@@ -42,7 +42,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
 }
 
 // 获取系统配置信息，从/proc/sys目录下的文件中获取
-function toolGetConfigs ( cmd, dir )
+function toolGetConfigs ( cmd, dir, sysTest )
 {
    var configObj = {};
    try
@@ -75,7 +75,8 @@ function toolGetConfigs ( cmd, dir )
       }
       try
       {
-         var fileContent = cmd.run( "cat " + filename ).split( "\n" );
+         //var fileContent = cmd.run( "cat " + filename ).split( "\n" );
+         var fileContent = sysTest.getFileContent( filename ).split( "\n" ) ;
       }
       catch( e )
       {
