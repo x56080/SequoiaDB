@@ -1030,7 +1030,9 @@ BOOLEAN _pdTraceCB::addPausedEDU( engine::IExecutor *cb, UINT64 funcCode )
 void _pdTraceCB::resumePausedEDUs ()
 {
 #ifdef SDB_ENGINE
+   ossSignalShield shield ;
    VEC_BREAKPOINT_RUNITEM::iterator it ;
+   shield.doNothing() ;
    _pmdEDUCBLatch.get() ;
    pmdEDUEvent event( PMD_EDU_EVENT_BP_RESUME ) ;
    it = _pmdEDUCBList.begin() ;

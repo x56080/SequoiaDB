@@ -472,6 +472,13 @@ namespace engine
    void pmdSleepInstance( OSS_HANDPARMS )
    {
 #if defined( SDB_ENGINE )
+      // check whether the current is shielding signal
+      if ( ossGetSignalShieldFlag() )
+      {
+         ossGetPendingSignal() = signum ;
+         return ;
+      }
+
       if ( sdbGetPDTraceCB()->isStarted() )
       {
          sdbGetPDTraceCB()->removeAllBreakPoint() ;
@@ -495,12 +502,7 @@ namespace engine
          pmdGetKRCB()->setKeepSleep( FALSE ) ;
       }
 
-      // get signal shiled here to prevent the current thread is interrupt
-      // as this may cause dead latch if this interface is called inside a
-      // signal handler since the EDU list latch will be hold here
       {
-         ossSignalShield sigShield ;
-         sigShield.doNothing() ;
          pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
          pMgr->killByThreadID( OSS_FREEZE_SIGNAL_INTERNAL ) ;
       }
