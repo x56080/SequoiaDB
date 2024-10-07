@@ -61,6 +61,9 @@
 #if defined (_LINUX)
 
 #define OSS_MAX_PROCESS_RESULT_LEN           ( 1024 )
+#define OSS_POPRESULT_WAITINTERVAL           ( 2 )
+#define OSS_POPRESULT_MAX_WAITTIME           ( 200 )
+
 /*
    _ossProcessResult define
 */
@@ -72,76 +75,178 @@ class _ossProcessResultSite
          ossMemset( (void*)_pid, 0, sizeof( _pid ) ) ;
          ossMemset( (void*)_result, 0, sizeof( _result ) ) ;
          _curIndex = 0 ;
+         _inCnt = 0 ;
+      }
+
+      UINT32 prevPos( UINT32 pos ) const
+      {
+         if ( 0 == pos )
+         {
+            return OSS_MAX_PROCESS_RESULT_LEN - 1 ;
+         }
+         return --pos ;
+      }
+
+      UINT32 nextPos( UINT32 pos ) const
+      {
+         ++pos ;
+         if ( pos >= OSS_MAX_PROCESS_RESULT_LEN )
+         {
+            pos = 0 ;
+         }
+         return pos ;
+      }
+
+      void attachIn()
+      {
+         ossSignalShield shield ;
+         ossScopedLock lock( &_latch ) ;
+         shield.doNothing() ;
+         ++_inCnt ;
+      }
+
+      void attachOut()
+      {
+         ossSignalShield shield ;
+         ossScopedLock lock( &_latch ) ;
+         shield.doNothing() ;
+         --_inCnt ;
       }
 
       void pushResult( UINT32 pid, const ossResultCode &result )
       {
          /// call in signal's callback, so can't malloc memory
-         if ( pid != 0 &&
-              ( OSS_EXIT_NORMAL != result.termcode ||
-                0 != result.exitcode ) )
+         if ( pid != 0 )
          {
+            ossSignalShield shield ;
             ossScopedLock lock( &_latch ) ;
-            _pid[ _curIndex ] = pid ;
-            _result[ _curIndex ] = result ;
-            ++_curIndex ;
-            if ( _curIndex >= OSS_MAX_PROCESS_RESULT_LEN )
+            shield.doNothing() ;
+
+            /// first pop the last
+            _popResult( pid, NULL ) ;
+            /// then push the result
+            if ( OSS_EXIT_NORMAL != result.termcode || 0 != result.exitcode )
             {
-               _curIndex = 0 ;
+               _pid[ _curIndex ] = pid ;
+               _result[ _curIndex ] = result ;
+               _curIndex = nextPos( _curIndex ) ;
             }
          }
       }
 
-      BOOLEAN  popResult( UINT32 pid, ossResultCode &result )
+      BOOLEAN  popResult( UINT32 pid, ossResultCode &result, BOOLEAN needWait = FALSE )
       {
-         BOOLEAN found = FALSE ;
-
+         BOOLEAN ret = FALSE ;
          if ( pid != 0 )
          {
-            ossScopedLock lock( &_latch ) ;
+            UINT32 waitTime = 0 ;
+            ossSignalShield shield ;
+            shield.doNothing() ;
 
-            for ( UINT32 i = 0 ; i < OSS_MAX_PROCESS_RESULT_LEN ; ++i )
+            while( TRUE )
             {
-               if ( pid == _pid[ i ] )
-               {
-                  result = _result[ i ] ;
-                  found = TRUE ;
-                  /// clear it
-                  _pid[ i ] = 0 ;
-                  /// move
-                  UINT32 prevPos = ( 0 == _curIndex ) ? OSS_MAX_PROCESS_RESULT_LEN - 1 :
-                                                        _curIndex - 1 ;
-                  if ( i == prevPos )
-                  {
-                     _pid[ _curIndex ] = 0 ;
-                     _curIndex = prevPos ;
-                  }
-                  else if ( 0 != _pid[ prevPos ] )
-                  {
-                     _pid[ i ] = _pid[ prevPos ] ;
-                     _result[ i ] = _result[ prevPos ] ;
-                     _pid[ _curIndex ] = 0 ;
-                     _curIndex = prevPos ;
-                  }
+               ossScopedLock lock( &_latch ) ;
+               ret = _popResult( pid, &result ) ;
 
+               if ( !ret && needWait && _inCnt > 0 && waitTime < OSS_POPRESULT_MAX_WAITTIME )
+               {
+                  lock.release() ;
+                  ossSleep( OSS_POPRESULT_WAITINTERVAL ) ;
+                  waitTime += OSS_POPRESULT_WAITINTERVAL ;
+               }
+               else
+               {
                   break ;
                }
             }
          }
+         return ret ;
+      }
 
-         return found ;
+   private:
+      INT32    _findPos( UINT32 pid ) const
+      {
+         BOOLEAN found = FALSE ;
+         UINT32 index = prevPos( _curIndex ) ;
+         for ( UINT32 i = 0 ; i < OSS_MAX_PROCESS_RESULT_LEN ; ++i, index = prevPos( index ) )
+         {
+            if ( pid == _pid[ index ] )
+            {
+               found = TRUE ;
+               break ;
+            }
+            else if ( 0 == _pid[ index ] )
+            {
+               break ;
+            }
+         }
+         return found ? (INT32)index : -1 ;
+      }
+
+      BOOLEAN  _popResult( UINT32 pid, ossResultCode *pResult )
+      {
+         INT32 pos = -1 ;
+         if ( pid != 0 )
+         {
+            pos = _findPos( pid ) ;
+            if ( -1 != pos )
+            {
+               /// found
+               if ( pResult )
+               {
+                  *pResult = _result[ pos ] ;
+               }
+               /// clear it
+               _pid[ pos ] = 0 ;
+               /// move
+               UINT32 prevCur = prevPos( _curIndex ) ;
+               if ( (UINT32)pos == prevCur )
+               {
+                  _pid[ _curIndex ] = 0 ;
+                  _curIndex = prevCur ;
+               }
+               else if ( 0 != _pid[ prevCur ] )
+               {
+                  _pid[ pos ] = _pid[ prevCur ] ;
+                  _result[ pos ] = _result[ prevCur ] ;
+                  _pid[ _curIndex ] = 0 ;
+                  _curIndex = prevCur ;
+               }
+            }
+         }
+         return -1 != pos ? TRUE : FALSE ;
       }
 
    private:
       UINT32         _pid[ OSS_MAX_PROCESS_RESULT_LEN ] ;
       ossResultCode  _result[ OSS_MAX_PROCESS_RESULT_LEN ] ;
       UINT32         _curIndex ;
+      UINT32         _inCnt ;
       ossSpinXLatch  _latch ;
 } ;
 typedef _ossProcessResultSite ossProcessResultSite ;
 
 /// define static var
 static ossProcessResultSite s_processResultSite ;
+
+/*
+   _ossProcessResutScope define
+*/
+class _ossProcessResutScope
+{
+   public:
+      _ossProcessResutScope()
+      {
+         s_processResultSite.attachIn() ;
+      }
+
+      ~_ossProcessResutScope()
+      {
+         s_processResultSite.attachOut() ;
+      }
+} ;
+typedef _ossProcessResutScope ossProcessResutScope ;
+
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSISPROCRUNNING, "ossIsProcessRunning" )
 BOOLEAN ossIsProcessRunning ( OSSPID pid )
@@ -237,7 +342,7 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block, OSSPID *p
       // child already terminated
       if ( ENOENT == err || ECHILD == err )
       {
-         if ( ! s_processResultSite.popResult( pid, result ) )
+         if ( ! s_processResultSite.popResult( pid, result, TRUE ) )
          {
             result.termcode = OSS_EXIT_NORMAL ;
             result.exitcode = 0 ;
@@ -641,14 +746,31 @@ void _ossSigCHLDsaveResultHandler( INT32 signum )
    ossResultCode result ;
    OSSPID pid = OSS_INVALID_PID ;
 
+   if ( ossGetSignalShieldFlag() )
+   {
+      ossGetPendingSignal() = signum ;
+      return ;
+   }
+
+   ossProcessResutScope resultScope ;
+   SDB_UNUSED( resultScope ) ;
+
    while( ( rc = ossWaitChild( OSS_INVALID_PID, result, FALSE, &pid ) == SDB_OK &&
           OSS_INVALID_PID != pid ) )
    {
-      /// save result
+      /// then save result
       s_processResultSite.pushResult( pid, result ) ;
 
-      PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
-              pid, result.termcode, result.exitcode ) ;
+      if ( OSS_EXIT_NORMAL == result.termcode && 0 == result.exitcode )
+      {
+         PD_LOG( PDINFO, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
+                 pid, result.termcode, result.exitcode ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Wait child process(%d) exit(TermCode:%d, ExitCode:%d)",
+                 pid, result.termcode, result.exitcode ) ;
+      }
    }
 }
 

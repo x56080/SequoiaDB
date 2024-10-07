@@ -2254,7 +2254,10 @@ namespace engine
 
       try
       {
+         ossSignalShield sigShield ;
          ossScopedLock lock( &_latch, SHARED ) ;
+
+         sigShield.doNothing() ;
 
          for ( it = _mapRuns.begin() ; it != _mapRuns.end() ; ++it )
          {
