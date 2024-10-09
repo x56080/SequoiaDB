@@ -295,9 +295,9 @@ namespace engine
 
          if ( DMS_INVALID_EXTENT == startExtID )
          {
-            startExtID = _indexCB->scanExtLID() ;
+            startExtID = _extent->_logicID ;
          }
-         endExtID = _indexCB->scanExtLID() ;
+         endExtID = _extent->_logicID ;
          rc = _suIndex->getIndexChangeWatcher()->setWatchWindow( _indexOID,
                                                                  startExtID,
                                                                  endExtID ) ;
