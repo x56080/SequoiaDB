@@ -831,15 +831,15 @@ namespace engine
 
          if ( 0 == calcAuditVer && 0 != curAuditVersion )
          {
-            calcAuditVer = 0xFF ;
+            calcAuditVer = 0x7F ;
          }
          if ( 0 == calcTransVer && 0 != curTransVer )
          {
-            calcTransVer = 0xFFFF ;
+            calcTransVer = 0x7FFF ;
          }
          if ( 0 == calcShieldVer && 0 != curShieldLogVer )
          {
-            calcShieldVer = 0xFF ;
+            calcShieldVer = 0x7F ;
          }
 
          curVersion = ( (UINT32)calcAuditVer << 24 ) |
