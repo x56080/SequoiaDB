@@ -821,7 +821,30 @@ namespace engine
          UINT32 curAuditVersion = pdGetCurAuditVersion() ;
          UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
          UINT32 curShieldLogVer = pdGetCurShieldLogVersion() ;
-         UINT32 curVersion = curAuditVersion + curTransVer + curShieldLogVer ;
+         /*
+            |  1 byte audit ver |  2 byte trans ver | 1 byte shield ver |
+         */
+         UINT8  calcAuditVer = curAuditVersion ;
+         UINT16 calcTransVer = curTransVer ;
+         UINT8  calcShieldVer = curShieldLogVer ;
+         UINT32 curVersion = 0 ;
+
+         if ( 0 == calcAuditVer && 0 != curAuditVersion )
+         {
+            calcAuditVer = 0xFF ;
+         }
+         if ( 0 == calcTransVer && 0 != curTransVer )
+         {
+            calcTransVer = 0xFFFF ;
+         }
+         if ( 0 == calcShieldVer && 0 != curShieldLogVer )
+         {
+            calcShieldVer = 0xFF ;
+         }
+
+         curVersion = ( (UINT32)calcAuditVer << 24 ) |
+                      ( (UINT32)calcTransVer << 8 ) |
+                      ( (UINT32)calcShieldVer ) ;
 
          if ( 0 != curVersion && curVersion != nodeSiteVer )
          {
