@@ -816,7 +816,23 @@ namespace engine
       {
          UINT32 curAuditVersion = pdGetCurAuditVersion() ;
          UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
-         UINT32 curVersion = curAuditVersion + curTransVer ;
+         /*
+            |  2 byte audit ver |  2 byte trans ver |
+         */
+         UINT16 calcAuditVer = curAuditVersion ;
+         UINT16 calcTransVer = curTransVer ;
+         UINT32 curVersion = 0 ;
+
+         if ( 0 == calcAuditVer && 0 != curAuditVersion )
+         {
+            calcAuditVer = 0x7FFF ;
+         }
+         if ( 0 == calcTransVer && 0 != curTransVer )
+         {
+            calcTransVer = 0x7FFF ;
+         }
+
+         curVersion = ( (UINT32)calcAuditVer << 16 ) | ( (UINT32)calcTransVer ) ;
 
          if ( 0 != curVersion && curVersion != nodeSiteVer )
          {
