@@ -774,12 +774,14 @@ namespace engine
             {
                _oorTimes.inc() ;
             }
-
-            /// set curOOL and maxOOL
-            INT64 tmpCurOOLSize = _curOOLSize.add( realSize ) ;
-            if ( tmpCurOOLSize + realSize > _maxOOLSize )
+            else
             {
-               _maxOOLSize = tmpCurOOLSize + realSize ;
+               /// set curOOL and maxOOL
+               INT64 tmpCurOOLSize = _curOOLSize.add( realSize ) ;
+               if ( tmpCurOOLSize + realSize > _maxOOLSize )
+               {
+                  _maxOOLSize = tmpCurOOLSize + realSize ;
+               }
             }
          }
       }
@@ -991,10 +993,13 @@ namespace engine
          SDB_OSS_FREE( realPtr ) ;
 
          /// dec curOOL
-         INT64 before = _curOOLSize.sub( userSize + UTIL_MEM_TOTAL_FILL_LEN ) ;
-         if ( before < (INT64)(userSize + UTIL_MEM_TOTAL_FILL_LEN) )
+         if ( userSize + UTIL_MEM_TOTAL_FILL_LEN <= UTIL_MEM_ELEMENT_64K )
          {
-            _curOOLSize.swapGreaterThan( 0 ) ;
+            INT64 before = _curOOLSize.sub( userSize + UTIL_MEM_TOTAL_FILL_LEN ) ;
+            if ( before < (INT64)(userSize + UTIL_MEM_TOTAL_FILL_LEN) )
+            {
+               _curOOLSize.swapGreaterThan( 0 ) ;
+            }
          }
       }
       else if ( type >= MEMBLOCKPOOL_TYPE_32 && type < MEMBLOCKPOOL_TYPE_MAX )
