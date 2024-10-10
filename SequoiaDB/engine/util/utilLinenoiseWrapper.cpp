@@ -128,6 +128,7 @@ INT32 _linenoiseCmdBuilder::addCmd( const CHAR * cmd )
       _pRoot->nameSize = ossStrlen ( cmd ) ;
       _pRoot->next = NULL ;
       _pRoot->sub = NULL ;
+      _pRoot->leafCnt = 1 ;
       _pRoot->leaf = TRUE ;
       _pRoot->parent = NULL ;
    }
@@ -159,12 +160,29 @@ INT32 _linenoiseCmdBuilder::delCmd( const CHAR * cmd )
    if ( !node || sameNum != node->nameSize || !node->leaf )
    {
       // not found
-      rc = SDB_OK ;
       goto done ;
    }
-   else if ( node->next )
+
+   if ( node->leafCnt >= 1 )
    {
-      rc = SDB_OK ;
+      node->leafCnt -= 1 ;
+
+      if ( 0 == node->leafCnt )
+      {
+         node->leaf = FALSE ;
+      }
+      else
+      {
+         goto done ;
+      }
+   }
+   else
+   {
+      SDB_ASSERT( FALSE, "Invalid leafCnt" ) ;
+   }
+
+   if ( node->next )
+   {
       goto done ;
    }
    else if ( node == _pRoot )
@@ -220,6 +238,7 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
          newNode->nameSize = ossStrlen(cmd) ;
          newNode->next = NULL ;
          newNode->sub = NULL ;
+         newNode->leafCnt = 1 ;
          newNode->leaf = TRUE ;
 
          node->sub = newNode ;
@@ -236,11 +255,12 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
       {
          if ( !node->leaf )
          {
+            node->leafCnt = 1 ;
             node->leaf = TRUE ;
          }
          else
          {
-            rc = SDB_SYS ; //already exist
+            node->leafCnt += 1 ;
          }
       }
       else if ( !node->next )
@@ -250,6 +270,7 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
          newNode->nameSize = ossStrlen(&cmd[sameNum]) ;
          newNode->next = NULL ;
          newNode->sub = NULL ;
+         newNode->leafCnt = 1 ;
          newNode->leaf = TRUE ;
 
          node->next = newNode ;
@@ -273,6 +294,7 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
       }
       newNode->sub = NULL ;
       newNode->leaf = node->leaf ;
+      newNode->leafCnt = node->leafCnt ;
 
       node->next = newNode ;
       newNode->parent = node ;
@@ -284,12 +306,14 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
       if ( sameNum != ossStrlen ( cmd ) )
       {
          node->leaf = FALSE ;
+         node->leafCnt = 0 ;
 
          rc = _insert ( newNode, &cmd[sameNum] ) ;
       }
       else
       {
          node->leaf = TRUE ;
+         node->leafCnt = 1 ;
       }
    }
    PD_TRACE_EXITRC ( SDB__LINENOISECMDBLD__INSERT, rc );
@@ -494,6 +518,17 @@ void lineComplete( const char *buf, linenoiseCompletions *lc )
    PD_TRACE_EXIT ( SDB_LINECOMPLETE );
 }
 
+void linenoiseHistoryCallback( const char *cmd, HISTORY_CHANGETYPE type )
+{
+   if ( HISTORY_ADD == type )
+   {
+      g_lnBuilder.addCmd( cmd ) ;
+   }
+   else if ( HISTORY_RM == type )
+   {
+      g_lnBuilder.delCmd( cmd ) ;
+   }
+}
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CANCONTINUENXTLINE, "canContinueNextLine" )
 BOOLEAN canContinueNextLine ( const CHAR * str )
@@ -642,22 +677,10 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB_HISTORYCLEAR, "historyClear" )
 BOOLEAN historyClear ( void )
 {
-   BOOLEAN  ret   = FALSE ;
-   INT32 i = 0 ;
-   const CHAR *firstHistory = NULL ;
+   BOOLEAN ret = TRUE ;
    PD_TRACE_ENTRY ( SDB_HISTORYCLEAR );
-   // clear the history used for completions
-   for ( i=0; i<history_len; i++ )
-   {
-         firstHistory = linenoiseHistoryGet( i ) ;
-         if ( firstHistory )
-         {
-               g_lnBuilder.delCmd( firstHistory ) ;
-         }
-   }
    // clear the history in linenoise
    linenoiseHistoryClear() ;
-   ret = TRUE ;
    PD_TRACE_EXITRC ( SDB_HISTORYCLEAR, ret );
    return ret ;
 }
@@ -675,7 +698,6 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
    BOOLEAN        firstline   = TRUE ;
    char *         line        = NULL ;
    BOOLEAN        ret         = TRUE ;
-   static std::string firstCmd = "" ;
 
    SDB_ASSERT ( cmd , "invalid argument" ) ;
    SDB_ASSERT ( prompt, "invalid argument" ) ;
@@ -724,23 +746,6 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
       }
 
       boost::algorithm::trim ( input ) ;
-      if ( input.size() > 0 )
-      {
-         const CHAR *firstHistory = linenoiseHistoryGet( 0 ) ;
-         if ( firstHistory )
-         {
-            if ( 0 != ossStrcmp( firstCmd.c_str(), firstHistory ) )
-            {
-               g_lnBuilder.delCmd( firstCmd.c_str() ) ;
-               firstCmd = "" ;
-            }
-         }
-
-         if ( firstCmd.empty() && linenoiseHistoryGet( 0 ) )
-         {
-            firstCmd = linenoiseHistoryGet( 0 ) ;
-         }
-      }
       *cmd = ossStrdup ( input.c_str() ) ;
    }
    catch ( bad_alloc & )

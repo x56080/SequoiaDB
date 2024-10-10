@@ -48,9 +48,18 @@ typedef struct linenoiseCompletions {
   char *fill ;
 } linenoiseCompletions;
 
-typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
-void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
+typedef void (linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
+void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn);
 void linenoiseAddCompletion(linenoiseCompletions *, const char *);
+
+enum HISTORY_CHANGETYPE
+{
+   HISTORY_ADD = 1,
+   HISTORY_RM
+} ;
+typedef void (linenoiseHistoryChangeCallback)(const char *, HISTORY_CHANGETYPE) ;
+void linenoiseSetHistoryCallback(linenoiseHistoryChangeCallback *fn);
+void linenoiseHistoryNotify(const char *cmd, HISTORY_CHANGETYPE type);
 
 char *linenoise(const char *prompt);
 int linenoiseHistoryAdd(const char *line);
