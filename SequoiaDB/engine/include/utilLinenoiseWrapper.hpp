@@ -48,6 +48,7 @@ struct _linenoiseCmd : public SDBObject
 {
    std::string    cmdName ;
    UINT32         nameSize ;
+   UINT32         leafCnt ;
    BOOLEAN        leaf ;
    _linenoiseCmd  *sub ;
    _linenoiseCmd  *next ;
@@ -102,6 +103,7 @@ linenoiseCmdBuilder* getLinenoiseCmdBuilder() ;
 #define g_lnBuilder (*getLinenoiseCmdBuilder())
 
 void lineComplete( const char *buf, linenoiseCompletions *lc ) ;
+void linenoiseHistoryCallback( const char *cmd, HISTORY_CHANGETYPE type ) ;
 
 BOOLEAN canContinueNextLine ( const CHAR * str ) ;
 
