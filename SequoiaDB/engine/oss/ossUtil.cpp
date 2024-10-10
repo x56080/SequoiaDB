@@ -1391,12 +1391,6 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk space"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
 
-   // get disk name
-   if ( NULL == fsName )
-   {
-      goto done ;
-   }
-
    // get percentage of disk load in space
    if ( 0 != totalBytes )
    {
@@ -1408,6 +1402,12 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    else
    {
       loadPercent = 0 ;
+   }
+
+   // get disk name
+   if ( NULL == fsName )
+   {
+      goto done ;
    }
 
    success = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE + 1 ) ;
@@ -1442,7 +1442,23 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
    availBytes = vfs.f_bsize * vfs.f_bavail ;
-   
+
+   // get percentage of disk load in space
+   // f_blocks means total space, f_bfree means free space in disk
+   // f_bavail means free space excluded system reserved space
+   // so total available space should be total space excluded system reserved space
+   totalAvailale = totalBytes - freeBytes + availBytes ;
+   if ( 0 != totalAvailale )
+   {
+      loadPercent = 1 + 100 * ( totalBytes - freeBytes ) /
+                    totalAvailale ;
+      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+   }
+   else
+   {
+      loadPercent = 0 ;
+   }
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -1465,23 +1481,6 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    {
       retcode = ossGetLastError() ;
       goto error ;
-   }
-
-   // 2.3 get percentage of disk load in space
-   // f_blocks means total space, f_bfree means free space in disk
-   // f_bavail means free space excluded system reserved space
-   // so total available space should be total space excluded system reserved space
-   totalAvailale = totalBytes - freeBytes + availBytes ;
-   if ( 0 != totalAvailale )
-   {
-      loadPercent = 1 + 100 * ( totalBytes - freeBytes ) /
-                    totalAvailale ;
-      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-   }
-   else
-   {
-      loadPercent = 0 ;
    }
 
    while ( NULL != ( me = getmntent_r ( fp, &dummy,
