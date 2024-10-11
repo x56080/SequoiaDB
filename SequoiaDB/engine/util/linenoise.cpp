@@ -1796,6 +1796,7 @@ int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
    char search_prompt[ LINENOISE_MAX_LINE ] = {0} ;
    int search_len = 0 ;
    int search_pos = history_len - 1 - l->history_index ;
+   int save_pos = search_pos ;
    int search_dir = -1 ;
    char * prompt = NULL ;
    int has_match = 1 ;
@@ -1862,7 +1863,7 @@ int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
             {
                search_buf[ --search_len ] = 0 ;
                /// reset search info
-               search_pos = history_len - 1 - l->history_index ;
+               search_pos = save_pos ;
                search_dir = -1 ;
             }
             else
@@ -1916,6 +1917,7 @@ int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
          {
             // exit searching and return current line
             // but in escape sequence
+            l->pos= l->len ;
             refreshLine( l ) ;
             free( buf ) ;
             return ESC == c ? -2 : 0 ;
@@ -1926,8 +1928,6 @@ int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
             l->remove_col = true ;
             l->pos = l->len ;
             refreshLine( l ) ;
-            history_len-- ;
-            free( history[ history_len ] );
             free( buf ) ;
             return (int)l->len ;
          }
@@ -1952,6 +1952,7 @@ int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
          case CTRL_Z :
          {
             // exit searching and return current line
+            l->pos = l->len ;
             refreshLine( l ) ;
             free( buf ) ;
             return 0 ;
@@ -2223,6 +2224,7 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
 {
     PD_TRACE_ENTRY ( SDB_LNEDIT );
     int ret = 0;
+    int addline = 0;
     struct linenoiseState l;
 
     /* Populate the linenoise state that we pass to functions implementing
@@ -2253,7 +2255,7 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
 
     /* The latest history entry is always our current buffer, that
      * initially is just an empty string. */
-    linenoiseHistoryAdd("");
+    addline = linenoiseHistoryAdd("");
 
 #ifdef _WIN32
     if(!WriteConsole(hOut, prompt, l.plen, &foo, NULL ) )
@@ -2283,9 +2285,14 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
         // 1. [~0 ...
         // 2. OA ...
 
+        if ( insideEseSeq && NULL == strchr( escDispatch.chars, c ) )
+        {
+           insideEseSeq = false ;
+        }
+
         if( insideEseSeq )
         {
-            int r = doDispatch( &l, c, escDispatch ) ;
+            int r = doDispatch( &l, c, escDispatch) ;
             if ( r == -1 )
             {
                 ret = l.len ;
@@ -2321,8 +2328,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             // remove colour
             l.remove_col = true ;
             refreshLine( &l ) ;
-            history_len--;
-            free(history[history_len]);
             ret = (int)l.len;
             goto done;
         case CTRL_C:  /* ctrl-c */
@@ -2343,8 +2348,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             }
             else
             {
-                history_len--;
-                free(history[history_len]);
                 ret = -1;
                 goto error;
             }
@@ -2361,8 +2364,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             }
             else
             {
-                history_len--;
-                free(history[history_len]);
                 ret = -1;
                 goto error;
             }
@@ -2447,7 +2448,7 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
            else if ( res == -2 )
            {
               // escape
-              insideEseSeq = 1 ;
+              insideEseSeq = true ;
            }
            break ;
         }
@@ -2469,10 +2470,15 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             }
             break;
         }
-
     }
     ret = l.len;
 done:
+    if ( addline && history_len > 0 )
+    {
+       history_len-- ;
+       linenoiseHistoryNotify( history[ history_len ], HISTORY_RM ) ;
+       free( history[ history_len ] );
+    }
     PD_TRACE_EXIT ( SDB_LNEDIT );
     return ret;
 error:
@@ -2676,7 +2682,7 @@ error:
 int linenoiseHistoryAdd(const char *line)
 {
     PD_TRACE_ENTRY ( SDB_LNHISTORYADD );
-    char *linecopy;
+    char *linecopy = NULL ;
     int ret = 0;
     if (history_max_len == 0)
     {
