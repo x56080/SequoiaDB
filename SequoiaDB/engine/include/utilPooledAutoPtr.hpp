@@ -150,7 +150,7 @@ namespace engine
 
       public:
          T*          get() const { return _ptr ; }
-         INT64       refCount() const { return _pRef ? *_pRef : 0 ; }
+         INT64       refCount() const { return _pRef ? ossFetchAndAdd64( _pRef, 0 ) : 0 ; }
          void        release() ;
 
          template < typename U >

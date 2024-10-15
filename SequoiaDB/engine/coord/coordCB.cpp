@@ -1428,7 +1428,7 @@ retry :
    INT32 _CoordCB::_processDisconnectMsg( const NET_HANDLE & handle,
                                           MsgHeader * header )
    {
-      PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
+      PD_LOG( PDINFO, "Recieve disconnect msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
       // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;

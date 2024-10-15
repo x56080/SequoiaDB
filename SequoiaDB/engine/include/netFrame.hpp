@@ -417,6 +417,8 @@ namespace engine
 
          INT32 removeTimer( UINT32 timerid ) ;
 
+         BOOLEAN isTimerExist( UINT32 timerID ) ;
+
          void  close( const _MsgRouteID &id ) ;
 
          void  close( const NET_HANDLE &handle, MsgRouteID *pID = NULL ) ;
@@ -438,6 +440,9 @@ namespace engine
          void  makeStat( UINT32 timeout ) ;
          void  setNetStartThreadFunc( NET_START_THREAD_FUNC pFunc ) ;
 
+         NET_HANDLE allocateHandler() ;
+         UINT32     allocateTimerID() ;
+
          OSS_INLINE UINT32 getProtocolMask() const
          {
             return _protocolMask ;
@@ -451,11 +456,6 @@ namespace engine
          OSS_INLINE BOOLEAN listeningTCP() const
          {
             return OSS_BIT_TEST( _protocolMask, NET_FRAME_MASK_TCP ) ;
-         }
-
-         OSS_INLINE NET_HANDLE allocateHandler()
-         {
-            return (NET_HANDLE)( _handle.inc() ) ;
          }
 
          OSS_INLINE void setAsyncSend( BOOLEAN asyncSend ){ _asyncSend = asyncSend ; }
@@ -519,7 +519,9 @@ namespace engine
          monSpinSLatch                    _mtx ;
          boost::asio::ip::tcp::acceptor   _acceptor ;
          _ossAtomic32                     _handle ;
-         UINT32                           _timerID;
+         _ossAtomic32                     _timerID;
+         BOOLEAN                          _needCheckNetExist ;
+         BOOLEAN                          _needCheckTimerExist ;
          ossAtomicSigned64                _netOut;
          ossAtomicSigned64                _netIn;
 

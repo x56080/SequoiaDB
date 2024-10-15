@@ -472,7 +472,7 @@ namespace engine
    INT32 catMainController::_processDisconnectMsg( const NET_HANDLE & handle,
                                                    MsgHeader * header )
    {
-      PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
+      PD_LOG( PDINFO, "Recieve disconnect msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
       // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
@@ -1585,8 +1585,10 @@ namespace engine
          }
          if ( rc != SDB_OK )
          {
-            PD_LOG ( PDERROR, "failed to send the message(routeID=%lld)",
-                     pMsgHeader->routeID.value ) ;
+            PD_LOG ( PDERROR, "Failed to send the message(handle:%u, routeID:%u.%u.%u), rc: %d",
+                     handle, pMsgHeader->routeID.columns.groupID,
+                     pMsgHeader->routeID.columns.nodeID,
+                     pMsgHeader->routeID.columns.serviceID, rc ) ;
          }
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_QUERYREQUEST, rc ) ;
@@ -1754,11 +1756,12 @@ namespace engine
       if ( rc && SDB_UNKNOWN_MESSAGE != rc )
       {
          PD_LOG( PDWARNING, "Process msg[opCode:(%d)%d, len: %d, tid: %d, "
-                 "reqID: %lld, nodeID: %u.%u.%u] failed, rc: %d",
+                 "reqID: %lld, nodeID: %u.%u.%u, handle: %u] failed, rc: %d",
                  IS_REPLY_TYPE(pMsg->opCode), GET_REQUEST_TYPE(pMsg->opCode),
                  pMsg->messageLength, pMsg->TID, pMsg->requestID,
                  pMsg->routeID.columns.groupID, pMsg->routeID.columns.nodeID,
-                 pMsg->routeID.columns.serviceID, rc ) ;
+                 pMsg->routeID.columns.serviceID,
+                 handle, rc ) ;
       }
 
       return rc ;
