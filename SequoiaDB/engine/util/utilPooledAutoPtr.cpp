@@ -219,7 +219,7 @@ namespace engine
 
    INT64 _utilPooledAutoPtr::refCount() const
    {
-      return _pRef ? *_pRef : 0 ;
+      return _pRef ? ossFetchAndAdd64( _pRef, 0 ) : 0 ;
    }
 
    void _utilPooledAutoPtr::release()

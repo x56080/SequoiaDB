@@ -91,13 +91,22 @@ namespace engine
       try
       {
          ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
-         _setHandle.insert( handle ) ;
+         if ( !_setHandle.insert( handle ).second )
+         {
+            /// handle already exist
+            rc = SDB_NET_INVALID_HANDLE ;
+         }
       }
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Failed to insert handle set, occur exception: %s",
                  e.what() ) ;
          rc = ossException2RC( &e ) ;
+      }
+
+      if ( SDB_NET_INVALID_HANDLE == rc )
+      {
+         PD_LOG( PDWARNING, "Handle(%u) is already exist", handle ) ;
       }
 
       return rc ;

@@ -2397,6 +2397,11 @@ namespace engine
             _groupSel.selDone() ;
             break ;
          }
+         else if ( SDB_QUIESCED == rc )
+         {
+            /// don't to select other node
+            goto error ;
+         }
 
          /// save old node id
          oldNodeID.value = nodeID.value ;

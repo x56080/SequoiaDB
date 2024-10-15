@@ -56,6 +56,9 @@ namespace engine
    #define NET_IOPS_MIN_VALUE             ( 500 )
    #define NET_IOPS_THRESHOLD             ( 5000 )
 
+   #define NET_ID_RETRY_TIMES             ( 1000000 )
+   #define NET_ID_CHECK_THRESHOLD         ( 4000000000 )
+
    /*
      _netEHSegment implement
    */
@@ -111,20 +114,20 @@ namespace engine
       UINT32 retries = 0 ;
    retry:
       {
-      ossScopedLock lock( &_mtx, SHARED ) ;
-      if ( _vecEH.size() >= _capacity || retries == 2 )
-      {
-         if ( _vecEH.size() == 0 )
+         ossScopedLock lock( &_mtx, SHARED ) ;
+         if ( _vecEH.size() >= _capacity || retries == 2 )
          {
-            PD_LOG( PDSEVERE, "cannot create any net event handler" ) ;
-            rc = SDB_OOM ;
-            goto error ;
+            if ( _vecEH.size() == 0 )
+            {
+               PD_LOG( PDSEVERE, "cannot create any net event handler" ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
+            else
+            {
+               eh = _vecEH[_index.inc() % _vecEH.size()] ;
+            }
          }
-         else
-         {
-            eh = _vecEH[_index.inc() % _vecEH.size()] ;
-         }
-      }
       }
 
       if ( NULL == eh.get() )
@@ -151,7 +154,6 @@ namespace engine
 
    done:
       return rc ;
-
    error:
       goto done ;
    }
@@ -168,9 +170,8 @@ namespace engine
       if ( _vecEH.size() < _capacity )
       {
          /// create a new socket
-         NET_EH tmpEH = netEventHandler::createShared(
-                                  _pFrame->_getEvSuit( TRUE ),
-                                  (NET_HANDLE)( _pFrame->_handle.inc() ) ) ;
+         NET_EH tmpEH = netEventHandler::createShared( _pFrame->_getEvSuit( TRUE ),
+                                                       _pFrame->allocateHandler() ) ;
          if ( NULL == tmpEH.get() )
          {
             PD_LOG( PDERROR, "Allocate netEventHandler failed" ) ;
@@ -275,7 +276,9 @@ namespace engine
      _mtx( MON_LATCH_NETFRAME_MTX ),
      _acceptor( _mainSuitPtr->getIOService() ),
      _handle( beginID ),
-     _timerID( NET_INVALID_TIMER_ID ),
+     _timerID( NET_INVALID_TIMER_ID + 1 ),
+     _needCheckNetExist( FALSE ),
+     _needCheckTimerExist( FALSE ),
      _netOut( 0 ),
      _netIn( 0 ),
      _restartTimer( this ),
@@ -639,6 +642,66 @@ namespace engine
       }
 
       PD_TRACE_EXIT ( SDB__NETFRAME_MAKESTAT ) ;
+   }
+
+   NET_HANDLE _netFrame::allocateHandler()
+   {
+      NET_HANDLE hID = NET_INVALID_HANDLE ;
+      UINT32 retryTimes = 0 ;
+
+      while( retryTimes++ < NET_ID_RETRY_TIMES )
+      {
+         hID = (NET_HANDLE)( _handle.inc() ) ;
+
+         if ( NET_INVALID_HANDLE == hID )
+         {
+            PD_LOG( PDEVENT, "Net handle undergo rotation" ) ;
+            continue ;
+         }
+         else if ( hID > NET_ID_CHECK_THRESHOLD && !_needCheckNetExist )
+         {
+            PD_LOG( PDEVENT, "Enable checking net handle existing when allocating" ) ;
+            _needCheckNetExist = TRUE ;
+         }
+         else if ( _needCheckNetExist && (BOOLEAN)(getEventHandle( hID )) )
+         {
+            /// already exist
+            continue ;
+         }
+         break ;
+      }
+
+      return hID ;
+   }
+
+   UINT32 _netFrame::allocateTimerID()
+   {
+      UINT32 timerID = NET_INVALID_TIMER_ID ;
+      UINT32 retryTimes = 0 ;
+
+      while( retryTimes++ < NET_ID_RETRY_TIMES )
+      {
+         timerID = _timerID.inc() ;
+
+         if ( NET_INVALID_TIMER_ID == timerID )
+         {
+            PD_LOG( PDEVENT, "Timer ID undergo rotation" ) ;
+            continue ;
+         }
+         else if ( timerID > NET_ID_CHECK_THRESHOLD && !_needCheckTimerExist )
+         {
+            PD_LOG( PDEVENT, "Enable checking timer id existing when allocating" ) ;
+            _needCheckTimerExist = TRUE ;
+         }
+         else if ( _needCheckTimerExist && isTimerExist( timerID ) )
+         {
+            /// already exist
+            continue ;
+         }
+         break ;
+      }
+
+      return timerID ;
    }
 
    void _netFrame::setBeatInfo( UINT32 beatTimeout, UINT32 beatInteval )
@@ -1092,8 +1155,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNNCCONN );
 
-      NET_EH eh = netEventHandler::createShared(
-                     _getEvSuit( TRUE ), (NET_HANDLE)( _handle.inc() ) ) ;
+      NET_EH eh = netEventHandler::createShared( _getEvSuit( TRUE ), allocateHandler() ) ;
       if ( NULL == eh.get() )
       {
          PD_LOG ( PDERROR, "Failed to malloc mem" ) ;
@@ -1269,13 +1331,13 @@ namespace engine
                 "Suite service of net frame is stopped" ) ;
 
       {
-      ossScopedLock lock( &_mtx, SHARED ) ;
-      itr = _route.find(id.value) ;
-      if ( itr != _route.end() )
-      {
-         // if we found the netEHSegment in the route table, just use it
-         ptr = itr->second ;
-      }
+         ossScopedLock lock( &_mtx, SHARED ) ;
+         itr = _route.find(id.value) ;
+         if ( itr != _route.end() )
+         {
+            // if we found the netEHSegment in the route table, just use it
+            ptr = itr->second ;
+         }
       }
 
       if ( NULL == ptr.get() )
@@ -2048,13 +2110,13 @@ namespace engine
       netEHSegPtr ptr ;
 
       {
-      ossScopedLock lock( &_mtx, SHARED ) ;
-      routeItr = _route.find( id.value ) ;
-      // check if the entry with corresponding id exists
-      if ( routeItr != _route.end() )
-      {
-         ptr = routeItr->second ;
-      }
+         ossScopedLock lock( &_mtx, SHARED ) ;
+         routeItr = _route.find( id.value ) ;
+         // check if the entry with corresponding id exists
+         if ( routeItr != _route.end() )
+         {
+            ptr = routeItr->second ;
+         }
       }
 
       if ( NULL != ptr.get() )
@@ -2168,13 +2230,13 @@ namespace engine
       UINT64 routeID = MSG_INVALID_ROUTEID ;
 
       {
-      ossScopedLock lock( &_mtx, SHARED ) ;
-      itr = _opposite.find( handle ) ;
-      if ( _opposite.end() != itr )
-      {
-         itr->second->close() ;
-         routeID = itr->second->id().value ;
-      }
+         ossScopedLock lock( &_mtx, SHARED ) ;
+         itr = _opposite.find( handle ) ;
+         if ( _opposite.end() != itr )
+         {
+            itr->second->close() ;
+            routeID = itr->second->id().value ;
+         }
       }
 
       if ( pID )
@@ -2201,9 +2263,9 @@ namespace engine
       timerid = NET_INVALID_TIMER_ID ;
 
       NET_TH timer = netTimer::createShared( millsec,
-                                              ++ _timerID,
-                                              _mainSuitPtr->getIOService(),
-                                              handler ) ;
+                                             allocateTimerID(),
+                                             _mainSuitPtr->getIOService(),
+                                             handler ) ;
       PD_CHECK( NULL != timer.get(), SDB_OOM, error, PDERROR,
                 "Allocate netTimer failed" ) ;
 
@@ -2211,7 +2273,13 @@ namespace engine
       {
          /// lock
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
-         _timers.insert( std::make_pair( timer->id(), timer ) ) ;
+         if ( !_timers.insert( std::make_pair( timer->id(), timer ) ).second )
+         {
+            /// already exist
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "TimerID(%u) is already exist", timer->id() ) ;
+            goto error ;
+         }
       }
       catch ( exception &e )
       {
@@ -2265,6 +2333,14 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB__NETFRAME_REMTIMER, rc ) ;
       return rc ;
+   }
+
+   BOOLEAN _netFrame::isTimerExist( UINT32 timerID )
+   {
+      MAP_TIMMER_IT it ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
+      it = _timers.find( timerID ) ;
+      return it != _timers.end() ? TRUE : FALSE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_HNDMSG, "_netFrame::handleMsg" )
@@ -2350,13 +2426,13 @@ namespace engine
       netEHSegPtr ptr ;
 
       {
-      ossScopedLock lock( &_mtx, SHARED ) ;
-      itr = _route.find(eh->id().value) ;
-      if ( itr != _route.end() )
-      {
-         // if we found the netEHSegment in the route table, just use it
-         ptr = itr->second ;
-      }
+         ossScopedLock lock( &_mtx, SHARED ) ;
+         itr = _route.find(eh->id().value) ;
+         if ( itr != _route.end() )
+         {
+            // if we found the netEHSegment in the route table, just use it
+            ptr = itr->second ;
+         }
       }
 
       if ( NULL == ptr.get() )
@@ -2435,8 +2511,13 @@ namespace engine
             if ( routeItr->second->isEmpty() &&
                  1 == routeItr->second.refCount() )
             {
-               _route.erase( routeItr ) ;
-               removeUDPRouteID.value = eh->id().value ;
+               /// double check empty, becase routeItr->second can add a item between
+               /// isEmpty() and refCount()
+               if ( routeItr->second->isEmpty() )
+               {
+                  _route.erase( routeItr ) ;
+                  removeUDPRouteID.value = eh->id().value ;
+               }
             }
          }
       }
@@ -2475,7 +2556,11 @@ namespace engine
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
          if ( !eh->isSuitStopped() )
          {
-            _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+            if ( ! _opposite.insert( make_pair( eh->handle(), eh ) ).second )
+            {
+               /// already exist
+               rc = SDB_NET_INVALID_HANDLE ;
+            }
          }
          else
          {
@@ -2491,9 +2576,13 @@ namespace engine
          goto error ;
       }
 
+      if ( SDB_NET_INVALID_HANDLE == rc )
+      {
+         PD_LOG( PDWARNING, "Handle(%u) is already exist", eh->handle() ) ;
+      }
+
    done:
       return rc ;
-
    error:
       goto done ;
    }
@@ -2593,8 +2682,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME__ASYNCAPT ) ;
 
       netEventHandler *pEH = NULL ;
-      NET_EH eh = netEventHandler::createShared(
-                        _getEvSuit( TRUE ), (NET_HANDLE)( _handle.inc() ) ) ;
+      NET_EH eh = netEventHandler::createShared( _getEvSuit( TRUE ), allocateHandler() ) ;
       if ( NULL == eh.get() )
       {
          rc = SDB_OOM ;
@@ -2702,8 +2790,13 @@ namespace engine
             if ( routeItr->second->isEmpty() &&
                  1 == routeItr->second.refCount() )
             {
-               _route.erase(routeItr) ;
-               removeUDPRouteID.value = itr->second->id().value ;
+               /// double check empty, becase routeItr->second can add a item between
+               /// isEmpty() and refCount()
+               if ( routeItr->second->isEmpty() )
+               {
+                  _route.erase( routeItr ) ;
+                  removeUDPRouteID.value = itr->second->id().value ;
+               }
             }
          }
       }

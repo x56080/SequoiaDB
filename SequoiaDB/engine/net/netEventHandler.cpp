@@ -103,8 +103,9 @@ namespace engine
          rc = evSuitPtr->addHandle( handle ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Add handle[%d] to evSuit failed, rc: %d",
-                    handle, rc ) ;
+            PD_LOG( PDERROR, "Add handle[%d] to evSuit failed, rc: %d", handle, rc ) ;
+            /// need set NET_TCP_EH to invalid
+            tmpEH->_handle = NET_INVALID_HANDLE ;
          }
          else
          {
