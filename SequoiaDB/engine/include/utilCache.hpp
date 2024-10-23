@@ -92,7 +92,7 @@ namespace engine
       }
    } ;
    typedef _utilCacheBlock                   utilCacheBlock ;
-   typedef vector< utilCacheBlock >          utilCacheBlockSuit ;
+   typedef ossPoolVector< utilCacheBlock >   utilCacheBlockSuit ;
 
    #define UTIL_CACHE_PAGE_DIRTY_FLAG        0x01
    #define UTIL_CACHE_PAGE_INVALID_FLAG      0x02
@@ -532,7 +532,7 @@ namespace engine
          }
          UINT64               _recycleBucket( vector< CHAR* > &slotItem,
                                               utilCacheStat *pStat,
-                                              vector< CHAR* > &freeItem ) ;
+                                              ossPoolVector< CHAR* > &freeItem ) ;
 
          UINT32               _getFreeRatio( UINT64 currentTime ) ;
 
@@ -764,7 +764,7 @@ namespace engine
    */
    class _utilCacheMerge : public SDBObject
    {
-      typedef vector< utilCachePage* >    VEC_PAGE_PTR ;
+      typedef ossPoolVector< utilCachePage* >      VEC_PAGE_PTR ;
 
       public:
          _utilCacheMerge() ;

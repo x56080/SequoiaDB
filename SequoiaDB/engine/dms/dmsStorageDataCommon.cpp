@@ -538,6 +538,11 @@ namespace engine
       return (dmsRecord*)_rw.writePtr( _rid._offset, len ) ;
    }
 
+   void _dmsRecordRW::submit()
+   {
+      _rw.submit() ;
+   }
+
    std::string _dmsRecordRW::toString() const
    {
       std::stringstream ss ;
@@ -1139,7 +1144,7 @@ namespace engine
    {
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _mbStatInfo[i]._commitFlag.init( 1 ) ;
+         _mbStatInfo[i]._commitFlag.compareAndSwap( 0, 1 ) ;
       }
       return SDB_OK ;
    }
@@ -1156,31 +1161,48 @@ namespace engine
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
-              _mbStatInfo[i]._commitFlag.peek() )
+         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
-            tmpLSN = _mbStatInfo[i]._lastLSN.peek() ;
-            tmpCommitFlag = _mbStatInfo[i]._isCrash ? 0 :
-               _mbStatInfo[i]._commitFlag.peek() ;
-
-            if ( tmpLSN != _dmsMME->_mbList[i]._commitLSN ||
-                 tmpCommitFlag != _dmsMME->_mbList[i]._commitFlag )
+            tmpLSN = _mbStatInfo[i]._lastLSN.fetch() ;
+            if ( !_mbStatInfo[i]._commitFlag.compare( 0 ) )
             {
-               _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
-               _dmsMME->_mbList[i]._commitTime = lastTime ;
+               tmpCommitFlag = _mbStatInfo[i]._isCrash ? 0 : _mbStatInfo[i]._commitFlag.fetch() ;
 
-               if ( _mbStatInfo[i]._writePtrCount > 0 && !isClosed() )
+               if ( tmpLSN != _dmsMME->_mbList[i]._commitLSN ||
+                    tmpCommitFlag != _dmsMME->_mbList[i]._commitFlag )
                {
-                  // Don't set _dmsMME->_mbList[i]._commitFlag to 1
-                  // Don't set header commitFlag to 1
-                  // Because the current write op has not completed( _writePtrCount > 0 )
-                  setHeadCommFlgValid = FALSE ;
+                  _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
+                  _dmsMME->_mbList[i]._commitTime = lastTime ;
+
+                  if ( tmpCommitFlag &&
+                       _mbStatInfo[i]._curWriteCount.fetch() > 0 &&
+                       !isClosed() )
+                  {
+                     // Don't set _dmsMME->_mbList[i]._commitFlag to 1
+                     // Don't set header commitFlag to 1
+                     // Because the current write op has not completed( _writePtrCount > 0 )
+                     setHeadCommFlgValid = FALSE ;
+                     _mbStatInfo[i]._commitFlag.swap( 0 ) ;
+                  }
+                  else
+                  {
+                     _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
+                  }
+
+                  /// double check
+                  if ( _mbStatInfo[i]._commitFlag.compare( 0 ) &&
+                       _dmsMME->_mbList[i]._commitFlag )
+                  {
+                     _dmsMME->_mbList[i]._commitFlag = 0 ;
+                     setHeadCommFlgValid = FALSE ;
+                  }
+
+                  needFlush = TRUE ;
                }
-               else
-               {
-                  _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
-               }
-               needFlush = TRUE ;
+            }
+            else
+            {
+               setHeadCommFlgValid = FALSE ;
             }
 
             /// update last lsn
@@ -1240,7 +1262,7 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         ++_mbStatInfo[ collectionID ]._writePtrCount ;
+         _mbStatInfo[ collectionID ]._curWriteCount.inc() ;
       }
    }
 
@@ -1248,7 +1270,7 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         --_mbStatInfo[ collectionID ]._writePtrCount ;
+         _mbStatInfo[ collectionID ]._curWriteCount.dec() ;
       }
    }
 
@@ -2821,13 +2843,13 @@ namespace engine
                                fullName, rc, "RecordNum:%llu, LobNum:%llu",
                                oldRecords, oldLobs ) ;
          rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                       TRUE, DMS_FILE_ALL, &oldCLID ) ;
+                       TRUE, _getAllFileType(), &oldCLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
                       "rc: %d", rc ) ;
       }
       else if ( cb->getLsnCount() > 0 )
       {
-         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
+         context->mbStat()->updateLastLSN( cb->getEndLsn(), _getAllFileType() ) ;
       }
 
    done:
@@ -4872,6 +4894,18 @@ namespace engine
       _onHeaderUpdated( updateTime ) ;
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED ) ;
+   }
+
+   DMS_FILE_TYPE _dmsStorageDataCommon::_getAllFileType() const
+   {
+      DMS_FILE_TYPE fileType = DMS_FILE_DATA | DMS_FILE_IDX ;
+
+      if ( _pLobSU && _pLobSU->isOpened() )
+      {
+         fileType |= DMS_FILE_LOB ;
+      }
+
+      return fileType ;
    }
 
    /*

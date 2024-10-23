@@ -392,7 +392,7 @@ namespace engine
    #define DMS_FILE_DATA   ( 0x00000001 )
    #define DMS_FILE_IDX    ( 0x00000002 )
    #define DMS_FILE_LOB    ( 0x00000004 )
-   #define DMS_FILE_ALL    ( 0xFFFFFFFF )
+   //#define DMS_FILE_ALL    ( 0xFFFFFFFF )
 
    enum DMS_STORAGE_TYPE
    {

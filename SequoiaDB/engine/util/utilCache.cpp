@@ -109,7 +109,11 @@ namespace engine
 
       while( NULL != ( pPage = right.nextBlock( pageSize, pos ) ) )
       {
-         addPage( pPage, pageSize ) ;
+         INT32 rc = addPage( pPage, pageSize ) ;
+         if ( rc )
+         {
+            throw pdGeneralException( rc, "add page failed" ) ;
+         }
       }
    }
 
@@ -203,7 +207,11 @@ namespace engine
 
       while( NULL != ( pPage = rhs.nextBlock( pageSize, pos ) ) )
       {
-         addPage( pPage, pageSize ) ;
+         INT32 rc = addPage( pPage, pageSize ) ;
+         if ( rc )
+         {
+            throw pdGeneralException( rc, "add page failed" ) ;
+         }
       }
       return *this ;
    }
@@ -453,7 +461,16 @@ namespace engine
       }
       else
       {
-         _next.push_back( utilCacheBlock( pPage, size ) ) ;
+         try
+         {
+            _next.push_back( utilCacheBlock( pPage, size ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Push block to vector occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -560,7 +577,16 @@ namespace engine
          pLatch = SDB_OSS_NEW blkLatch() ;
          if ( pLatch )
          {
-            _latch.push_back( pLatch ) ;
+            try
+            {
+               _latch.push_back( pLatch ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
          else
          {
@@ -665,6 +691,7 @@ namespace engine
       UINT32 extendNum = 0 ;
       UINT32 lastSize = 0 ;
       UINT32 exceedSlot = 0 ;
+      BOOLEAN isEmptyItem = ( 0 == item.size() ) ? TRUE : FALSE ;
       blkLatch *pLatch = NULL ;
 
       if ( item.size() >= size )
@@ -688,7 +715,15 @@ namespace engine
          if ( !slotItem.empty() )
          {
             pageSize = _slot2PageSize( beginSlot ) ;
-            item.addPage( slotItem.back(), pageSize ) ;
+
+            rc = item.addPage( slotItem.back(), pageSize ) ;
+            if ( rc )
+            {
+               /// release bucket latch
+               pLatch->release() ;
+               goto error ;
+            }
+
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
@@ -726,7 +761,14 @@ namespace engine
          vector< CHAR* > &slotItem = _slot[ beginSlot ] ;
          while( !slotItem.empty() )
          {
-            item.addPage( slotItem.back(), pageSize ) ;
+            rc = item.addPage( slotItem.back(), pageSize ) ;
+            if ( rc )
+            {
+               /// release bucket lock
+               pLatch->release() ;
+               goto error ;
+            }
+
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
@@ -776,6 +818,11 @@ namespace engine
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_ALLOC, rc ) ;
       return rc ;
    error:
+      if ( isEmptyItem && item.size() > 0 )
+      {
+         /// should release the item
+         release( item ) ;
+      }
       goto done ;
    }
 
@@ -883,6 +930,7 @@ namespace engine
       UINT32 slot = 0 ;
       CHAR *pPage = NULL ;
       UINT32 pageSize = 0 ;
+      UINT32 pushedSize = 0 ;
 
       SDB_ASSERT( !item.isDirty(),  "Page can't be dirty" ) ;
       SDB_ASSERT( !item.isLocked(), "Page can't be locked" ) ;
@@ -895,18 +943,40 @@ namespace engine
          slot = _sizeDown2Slot( pageSize ) ;
          SDB_ASSERT( pageSize == _slot2PageSize( slot ),
                      "PageSize is not invalid" ) ;
-         _latch[ slot ]->get() ;
-         _slot[ slot ].push_back( pPage ) ;
-         /// update the bucket stat
-         utilCacheStat &stat = _getBucketCache( slot ) ;
          UINT32 slotSize = _slot2PageSize( slot ) ;
-         stat._freeSize += slotSize ;
-         stat._releaseSize += slotSize ;
+         BOOLEAN hasPushed = TRUE ;
+         _latch[ slot ]->get() ;
+
+         try
+         {
+            _slot[ slot ].push_back( pPage ) ;
+            /// update the bucket stat
+            utilCacheStat &stat = _getBucketCache( slot ) ;
+            stat._freeSize += slotSize ;
+            stat._releaseSize += slotSize ;
+         }
+         catch( std::exception &e )
+         {
+            hasPushed = FALSE ;
+            /// directly free the page
+            PD_LOG( PDWARNING, "Push page to slot occur exception: %s", e.what() ) ;
+            SDB_OSS_FREE( pPage ) ;
+         }
+
          _latch[ slot ]->release() ;
-         _freeSize.add( slotSize ) ;
-         _releaseSize.add( slotSize ) ;
+
+         if ( hasPushed )
+         {
+            pushedSize += slotSize ;
+            _freeSize.add( slotSize ) ;
+            _releaseSize.add( slotSize ) ;
+         }
       }
-      _releaseEvent.signalAll() ;
+
+      if ( pushedSize > 0 )
+      {
+         _releaseEvent.signalAll() ;
+      }
 
       item.clear() ;
 
@@ -1074,19 +1144,36 @@ namespace engine
          slot = _sizeDown2Slot( blockSize ) ;
          SDB_ASSERT( blockSize == _slot2PageSize( slot ),
                      "BlockSize is not invalid" ) ;
+         UINT32 slotSize = _slot2PageSize( slot ) ;
+         BOOLEAN hasPushed = TRUE ;
 
          _latch[ slot ]->get() ;
-         _slot[ slot ].push_back( pBlock ) ;
-         /// update the bucket stat
-         utilCacheStat &stat = _getBucketCache( slot ) ;
-         UINT32 slotSize = _slot2PageSize( slot ) ;
-         stat._freeSize += slotSize ;
-         stat._releaseSize += slotSize ;
-         _latch[ slot ]->release() ;
-         _freeSize.add( slotSize ) ;
-         _releaseSize.add( slotSize ) ;
 
-         _releaseEvent.signalAll() ;
+         try
+         {
+            _slot[ slot ].push_back( pBlock ) ;
+            /// update the bucket stat
+            utilCacheStat &stat = _getBucketCache( slot ) ;
+            
+            stat._freeSize += slotSize ;
+            stat._releaseSize += slotSize ;
+         }
+         catch( std::exception &e )
+         {
+            hasPushed = FALSE ;
+            /// directly free the block
+            PD_LOG( PDWARNING, "Push block to slot occur exception: %s", e.what() ) ;
+            SDB_OSS_FREE( pBlock ) ;
+         }
+
+         _latch[ slot ]->release() ;
+
+         if ( hasPushed )
+         {
+            _freeSize.add( slotSize ) ;
+            _releaseSize.add( slotSize ) ;
+            _releaseEvent.signalAll() ;
+         }
       }
 
       pBlock = NULL ;
@@ -1159,9 +1246,22 @@ namespace engine
          {
             addNonEmpty = TRUE ;
          }
-         _slot[ slot ].push_back( pPage ) ;
-         _getBucketCache( slot )._totalSize += pageSize ;
-         _getBucketCache( slot )._freeSize += pageSize ;
+
+         try
+         {
+            _slot[ slot ].push_back( pPage ) ;
+            _getBucketCache( slot )._totalSize += pageSize ;
+            _getBucketCache( slot )._freeSize += pageSize ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Push page to slot occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            /// release lock
+            _latch[ slot ]->release() ;
+            goto error ;
+         }
+
          _latch[ slot ]->release() ;
          /// update the meta
          _totalSize.add( pageSize ) ;
@@ -1330,8 +1430,8 @@ namespace engine
       UINT64 tmpTimes = 0 ;
       UINT64 tmpNullTimes = 0 ;
       blkLatch *pLatch = NULL ;
-      vector< CHAR* > freeItem ;
-      vector< CHAR* >::iterator it ;
+      ossPoolVector< CHAR* > freeItem ;
+      ossPoolVector< CHAR* >::iterator it ;
 
       ossTimestamp t ;
       ossGetCurrentTime( t ) ;
@@ -1390,7 +1490,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR__RECYCLEBLK, "_utilCacheMgr::_recycleBucket" )
    UINT64 _utilCacheMgr::_recycleBucket( vector<CHAR *> &slotItem,
                                          utilCacheStat *pStat,
-                                         vector< CHAR* > &freeItem )
+                                         ossPoolVector< CHAR* > &freeItem )
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
 
@@ -1415,10 +1515,17 @@ namespace engine
       for ( UINT32 i = 0 ; i < size ; ++i )
       {
          /// release block memory
-         freeItem.push_back( slotItem.back() ) ;
-         slotItem.pop_back() ;
-
-         recycleSize += pStat->_pageSize ;
+         try
+         {
+            freeItem.push_back( slotItem.back() ) ;
+            slotItem.pop_back() ;
+            recycleSize += pStat->_pageSize ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Push page to free vector occur exception: %s", e.what() ) ;
+            break ;
+         }
 
          if ( slotItem.empty() )
          {
@@ -2336,6 +2443,20 @@ namespace engine
          goto error ;
       }
 
+      if ( hasPin )
+      {
+         try
+         {
+            _vecPages.push_back( pPage ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Push page to vector occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
       pos = pPage->beginBlock() ;
       while( NULL != ( pBuff = pPage->nextBlock( len, pos ) ) )
       {
@@ -2377,11 +2498,6 @@ namespace engine
       }
       ++_pageNum ;
       _lastPageID = pageID ;
-
-      if ( hasPin )
-      {
-         _vecPages.push_back( pPage ) ;
-      }
 
    done:
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_WRITE, rc ) ;
@@ -2511,8 +2627,17 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
-         _vecBucket.push_back( pBucket ) ;
-         ++_bucketSize ;
+         try
+         {
+            _vecBucket.push_back( pBucket ) ;
+            ++_bucketSize ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Push bucket to vector occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
       /// register the unit
@@ -3224,12 +3349,20 @@ namespace engine
                   continue ;
                }
                /// add to tmp map, and sort
-               else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >=
-                         _dirtyTimeout )
+               else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >= _dirtyTimeout )
                {
-                  tmpPage.pin() ;
-                  tmpPages[ it->first ] = &tmpPage ;
-                  ++blkSyncNum ;
+                  try
+                  {
+                     tmpPages[ it->first ] = &tmpPage ;
+                     tmpPage.pin() ;
+                     ++blkSyncNum ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     PD_LOG( PDWARNING, "Push page(%d) to map occur exception: %s",
+                             it->first, e.what() ) ;
+                     break ;
+                  }
 
                   if ( force && blkSyncNum >= UTIL_CACHE_SYNC_BLK_ONCE_NUM )
                   {
