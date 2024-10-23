@@ -324,7 +324,7 @@ namespace engine
    {
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _pDataSu->_mbStatInfo[i]._idxCommitFlag.init( 1 ) ;
+         _pDataSu->_mbStatInfo[i]._idxCommitFlag.compareAndSwap( 0, 1 ) ;
       }
 
       UINT16 pos = 0 ;
@@ -355,6 +355,7 @@ namespace engine
 
             if ( _pDataSu->_mbStatInfo[pos]._idxCommitFlag.compare( 0 ) )
             {
+               /// only interrupt the collection, don't report error
                break ;
             }
             /// unlock
@@ -387,20 +388,35 @@ namespace engine
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) &&
-              _pDataSu->_mbStatInfo[i]._idxCommitFlag.peek() )
+         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
          {
-            tmpLSN = _pDataSu->_mbStatInfo[i]._idxLastLSN.peek() ;
-            tmpCommitFlag = _pDataSu->_mbStatInfo[i]._idxIsCrash ?
-               0 : _pDataSu->_mbStatInfo[i]._idxCommitFlag.peek() ;
-
-            if ( tmpLSN != _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ||
-                 tmpCommitFlag != _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+            tmpLSN = _pDataSu->_mbStatInfo[i]._idxLastLSN.fetch() ;
+            if ( !_pDataSu->_mbStatInfo[i]._idxCommitFlag.compare( 0 ) )
             {
-               _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN = tmpLSN ;
-               _pDataSu->_dmsMME->_mbList[i]._idxCommitTime = lastTime ;
-               _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = tmpCommitFlag ;
-               needFlush = TRUE ;
+               tmpCommitFlag = _pDataSu->_mbStatInfo[i]._idxIsCrash ?
+                  0 : _pDataSu->_mbStatInfo[i]._idxCommitFlag.fetch() ;
+
+               if ( tmpLSN != _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ||
+                    tmpCommitFlag != _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+               {
+                  _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN = tmpLSN ;
+                  _pDataSu->_dmsMME->_mbList[i]._idxCommitTime = lastTime ;
+                  _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = tmpCommitFlag ;
+
+                  /// double check
+                  if ( _pDataSu->_mbStatInfo[i]._idxCommitFlag.compare( 0 ) &&
+                       _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+                  {
+                     _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 0 ;
+                     setHeadCommFlgValid = FALSE ;
+                  }
+
+                  needFlush = TRUE ;
+               }
+            }
+            else
+            {
+               setHeadCommFlgValid = FALSE ;
             }
 
             /// update last lsn
@@ -426,11 +442,9 @@ namespace engine
 
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _pDataSu->_mbStatInfo[ collectionID ]._idxLastWriteTick =
-            pmdGetDBTick() ;
+         _pDataSu->_mbStatInfo[ collectionID ]._idxLastWriteTick = pmdGetDBTick() ;
          if ( !_pDataSu->_mbStatInfo[ collectionID ]._idxIsCrash &&
-              _pDataSu->_mbStatInfo[ collectionID
-              ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
+              _pDataSu->_mbStatInfo[ collectionID ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
          {
             needSync = TRUE ;
             _pDataSu->_dmsMME->_mbList[ collectionID ]._idxCommitFlag = 0 ;
@@ -443,8 +457,7 @@ namespace engine
             _pDataSu->_mbStatInfo[ i ]._idxLastWriteTick = pmdGetDBTick() ;
             if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) &&
                  !_pDataSu->_mbStatInfo[ i ]._idxIsCrash &&
-                 _pDataSu->_mbStatInfo[ i
-                 ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
+                 _pDataSu->_mbStatInfo[ i ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
             {
                needSync = TRUE ;
                _pDataSu->_dmsMME->_mbList[ i ]._idxCommitFlag = 0 ;

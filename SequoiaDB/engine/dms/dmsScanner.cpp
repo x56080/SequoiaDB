@@ -2677,7 +2677,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isHolding = FALSE ;
-      dpsTransRetInfo dpsTxResInfo ;
       dpsTransCB *transCB = sdbGetTransCB() ;
 
       isHolding = transCB->transIsHolding( _pIXScanner->getEDUCB(),

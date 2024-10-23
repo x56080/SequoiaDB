@@ -167,6 +167,9 @@ namespace engine
 
       virtual BOOLEAN isOpened() const { return _data.isOpened() ; }
 
+      virtual void incWritePtrCount( INT32 collectionID ) ;
+      virtual void decWritePtrCount( INT32 collectionID ) ;
+
       INT32 rebuildBME() ;
 
    public:

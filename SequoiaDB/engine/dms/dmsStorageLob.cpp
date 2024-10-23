@@ -39,6 +39,7 @@
 #include "dmsTrace.hpp"
 #include "pdTrace.hpp"
 #include "monClass.hpp"
+#include "utilBitmap.hpp"
 
 namespace engine
 {
@@ -2147,11 +2148,16 @@ namespace engine
    INT32 _dmsStorageLob::_onFlushDirty( BOOLEAN force, BOOLEAN sync )
    {
       INT32 rc = SDB_OK ;
+      _utilStackBitmap<DMS_MME_SLOTS> bitmap ;
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _dmsData->_mbStatInfo[i]._lobCommitFlag.init( 1 ) ;
+         if ( _dmsData->_mbStatInfo[i]._lobCommitFlag.compareAndSwap( 0, 1 ) )
+         {
+            bitmap.setBit( i ) ;
+         }
       }
+
       if ( !isOpened() )
       {
          rc = SDB_INVALIDARG ;
@@ -2169,17 +2175,50 @@ namespace engine
                beginDirtyPages = _pCacheUnit->dirtyPages() ;
                syncPages = _pCacheUnit->syncPages( pmdGetThreadEDUCB(),
                                                    TRUE, FALSE ) ;
-               if ( 0 == syncPages ||
-                    beginDirtyPages < _pCacheUnit->dirtyPages() + syncPages )
+               if ( 0 == syncPages )
                {
+                  break ;
+               }
+               else if ( !force && beginDirtyPages < _pCacheUnit->dirtyPages() + syncPages )
+               {
+                  /// sync page interrupt
+                  rc = SDB_INVALIDARG ;
                   break ;
                }
             }
             _pCacheUnit->unlockPageCleaner() ;
          }
+
          _data.flush() ;
+
+         if ( rc )
+         {
+            for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+            {
+               if ( bitmap.testBit( i ) )
+               {
+                  _dmsData->_mbStatInfo[i]._lobCommitFlag.compareAndSwap( 1, 0 ) ;
+               }
+            }
+         }
       }
       return rc ;
+   }
+
+   void _dmsStorageLob::incWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         _dmsData->_mbStatInfo[ collectionID ]._curLobWriteCount.inc() ;
+      }
+   }
+
+   void _dmsStorageLob::decWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         _dmsData->_mbStatInfo[ collectionID ]._curLobWriteCount.dec() ;
+      }
    }
 
    INT32 _dmsStorageLob::_onMarkHeaderValid( UINT64 &lastLSN,
@@ -2194,20 +2233,47 @@ namespace engine
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) &&
-              _dmsData->_mbStatInfo[i]._lobCommitFlag.peek() )
+         if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) )
          {
-            tmpLSN = _dmsData->_mbStatInfo[i]._lobLastLSN.peek() ;
-            tmpCommitFlag = _dmsData->_mbStatInfo[i]._lobIsCrash ?
-               0 : _dmsData->_mbStatInfo[i]._lobCommitFlag.peek() ;
-
-            if ( tmpLSN != _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ||
-                 tmpCommitFlag != _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+            tmpLSN = _dmsData->_mbStatInfo[i]._lobLastLSN.fetch() ;
+            if ( !_dmsData->_mbStatInfo[i]._lobCommitFlag.compare( 0 ) )
             {
-               _dmsData->_dmsMME->_mbList[i]._lobCommitLSN = tmpLSN ;
-               _dmsData->_dmsMME->_mbList[i]._lobCommitTime = lastTime ;
-               _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
-               needFlush = TRUE ;
+               tmpCommitFlag = _dmsData->_mbStatInfo[i]._lobIsCrash ?
+                  0 : _dmsData->_mbStatInfo[i]._lobCommitFlag.fetch() ;
+
+               if ( tmpLSN != _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ||
+                    tmpCommitFlag != _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+               {
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitLSN = tmpLSN ;
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitTime = lastTime ;
+
+                  if ( tmpCommitFlag &&
+                       _dmsData->_mbStatInfo[i]._curLobWriteCount.fetch() > 0 &&
+                       !isClosed() )
+                  {
+                     /// has some write operator in the collection
+                     setHeadCommFlgValid = FALSE ;
+                     _dmsData->_mbStatInfo[i]._lobCommitFlag.swap( 0 ) ;
+                  }
+                  else
+                  {
+                     _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
+                  }
+
+                  /// double check
+                  if ( _dmsData->_mbStatInfo[i]._lobCommitFlag.compare( 0 ) &&
+                       _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+                  {
+                     _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 0 ;
+                     setHeadCommFlgValid = FALSE ;
+                  }
+
+                  needFlush = TRUE ;
+               }
+            }
+            else
+            {
+               setHeadCommFlgValid = FALSE ;
             }
 
             /// update last lsn
@@ -2233,11 +2299,9 @@ namespace engine
 
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _dmsData->_mbStatInfo[ collectionID ]._lobLastWriteTick =
-            pmdGetDBTick() ;
+         _dmsData->_mbStatInfo[ collectionID ]._lobLastWriteTick = pmdGetDBTick() ;
          if ( !_dmsData->_mbStatInfo[ collectionID ]._lobIsCrash &&
-              _dmsData->_mbStatInfo[ collectionID
-              ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
+              _dmsData->_mbStatInfo[ collectionID ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
          {
             needSync = TRUE ;
             _dmsData->_dmsMME->_mbList[ collectionID ]._lobCommitFlag = 0 ;
@@ -2250,8 +2314,7 @@ namespace engine
             _dmsData->_mbStatInfo[ i ]._lobLastWriteTick = pmdGetDBTick() ;
             if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) &&
                  !_dmsData->_mbStatInfo[ i ]._lobIsCrash &&
-                 _dmsData->_mbStatInfo[ i
-                 ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
+                 _dmsData->_mbStatInfo[ i ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
             {
                needSync = TRUE ;
                _dmsData->_dmsMME->_mbList[ i ]._lobCommitFlag = 0 ;

@@ -87,10 +87,9 @@ namespace engine
       destroy() ;
    }
 
-   INT32 _dmsDirtyList::init( UINT32 capacity )
+   INT32 _dmsDirtyList::init( UINT32 capacity, BOOLEAN canDely )
    {
       INT32 rc = SDB_OK ;
-      UINT32 arrayNum = 0 ;
 
       SDB_ASSERT( capacity > 0 , "Capacity must > 0" ) ;
 
@@ -99,24 +98,62 @@ namespace engine
          cleanAll() ;
          goto done ;
       }
+
       /// first destroy
       destroy() ;
 
-      arrayNum = ( capacity + 7 ) >> 3 ;
-      _pData = ( CHAR* )SDB_OSS_MALLOC( arrayNum ) ;
-      if ( !_pData )
+      if ( !canDely )
       {
-         PD_LOG( PDERROR, "Alloc dirty list failed" ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         rc = _init() ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
-      ossMemset( _pData, 0, arrayNum ) ;
-      _capacity = arrayNum << 3 ;
+      else
+      {
+         _capacity = capacity ;
+      }
 
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _dmsDirtyList::_init()
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 arrayNum = 0 ;
+
+      if ( !_pData && _capacity > 0 )
+      {
+         arrayNum = ( _capacity + 7 ) >> 3 ;
+         _pData = ( CHAR* )SDB_OSS_MALLOC( arrayNum ) ;
+         if ( !_pData )
+         {
+            PD_LOG( PDERROR, "Alloc dirty list failed" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ossMemset( _pData, 0, arrayNum ) ;
+         _capacity = arrayNum << 3 ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _dmsDirtyList::_delayInit()
+   {
+      if ( SDB_OK != _init() )
+      {
+         _fullDirty = TRUE ;
+         return FALSE ;
+      }
+      return TRUE ;
    }
 
    void _dmsDirtyList::destroy()
@@ -130,8 +167,8 @@ namespace engine
       _size = 0 ;
       _fullDirty = FALSE ;
 
-      _dirtyBegin.init( 0x7FFFFFFF ) ;
-      _dirtyEnd.init( 0 ) ;
+      _dirtyBegin = 0x7FFFFFFF ;
+      _dirtyEnd = 0 ;
    }
 
    void _dmsDirtyList::setSize( UINT32 size )
@@ -142,16 +179,21 @@ namespace engine
 
    void _dmsDirtyList::cleanAll()
    {
-      _dirtyBegin.init( 0x7FFFFFFF ) ;
-      _dirtyEnd.init( 0 ) ;
+      ossScopedLock lock( &_mtx ) ;
+
+      _dirtyBegin = 0x7FFFFFFF ;
+      _dirtyEnd = 0 ;
       _fullDirty = FALSE ;
 
-      UINT32 arrayNum = ( _size + 7 ) >> 3 ;
-      for ( UINT32 i = 0 ; i < arrayNum ; ++i )
+      if ( _pData )
       {
-         if ( _pData[ i ] != 0 )
+         UINT32 arrayNum = ( _size + 7 ) >> 3 ;
+         for ( UINT32 i = 0 ; i < arrayNum ; ++i )
          {
-            _pData[ i ] = 0 ;
+            if ( _pData[ i ] != 0 )
+            {
+               _pData[ i ] = 0 ;
+            }
          }
       }
    }
@@ -160,21 +202,26 @@ namespace engine
    {
       INT32 pos = -1 ;
 
-      while ( fromPos < _size )
+      if ( _pData )
       {
-         if ( !_fullDirty && 0 == ( fromPos & 7 ) &&
-              0 == _pData[ fromPos >> 3 ] )
+         ossScopedLock lock( (ossXLatch*)&_mtx ) ;
+
+         while ( fromPos < _size )
          {
-            fromPos += 8 ;
-         }
-         else if ( !isDirty( fromPos ) )
-         {
-            ++fromPos ;
-         }
-         else
-         {
-            pos = fromPos++ ;
-            break ;
+            if ( !_fullDirty && 0 == ( fromPos & 7 ) &&
+                 0 == _pData[ fromPos >> 3 ] )
+            {
+               fromPos += 8 ;
+            }
+            else if ( !_isDirty( fromPos ) )
+            {
+               ++fromPos ;
+            }
+            else
+            {
+               pos = fromPos++ ;
+               break ;
+            }
          }
       }
       return pos ;
@@ -184,14 +231,16 @@ namespace engine
    {
       UINT32 dirtyNum = 0 ;
 
+      ossScopedLock lock( (ossXLatch*)&_mtx ) ;
+
       if ( _fullDirty )
       {
          dirtyNum = _size ;
       }
-      else
+      else if ( _pData )
       {
-         UINT32 beginPos = _dirtyBegin.peek() ;
-         UINT32 endPos = _dirtyEnd.peek() + 1 ;
+         UINT32 beginPos = _dirtyBegin ;
+         UINT32 endPos = _dirtyEnd + 1 ;
 
          while ( beginPos < endPos )
          {
@@ -202,7 +251,7 @@ namespace engine
             }
             else
             {
-               if ( isDirty( beginPos ) )
+               if ( _isDirty( beginPos ) )
                {
                   ++dirtyNum ;
                }
@@ -215,14 +264,16 @@ namespace engine
 
    UINT32 _dmsDirtyList::dirtyGap() const
    {
+      ossScopedLock lock( (ossXLatch*)&_mtx ) ;
+
       if ( _fullDirty )
       {
          return _size ;
       }
       else
       {
-         UINT32 beginPos = _dirtyBegin.peek() ;
-         UINT32 endPos = _dirtyEnd.peek() ;
+         UINT32 beginPos = _dirtyBegin ;
+         UINT32 endPos = _dirtyEnd ;
          if ( beginPos > endPos )
          {
             return 0 ;
@@ -279,11 +330,37 @@ namespace engine
       }
    }
 
+   _dmsExtRW& _dmsExtRW::operator=( const _dmsExtRW &right )
+   {
+      submit() ;
+
+      _extentID = right._extentID ;
+      _collectionID = right._collectionID ;
+      _attr = right._attr ;
+      _hasIncWriteCount = FALSE ;
+      _ptr = right._ptr ;
+      _pBase = right._pBase ;
+
+      if ( right._hasIncWriteCount )
+      {
+         _pBase->incWritePtrCount( _collectionID ) ;
+         _hasIncWriteCount = TRUE ;
+      }
+
+      return *this ;
+   }
+
    _dmsExtRW::~_dmsExtRW()
+   {
+      submit() ;
+   }
+
+   void _dmsExtRW::submit()
    {
       if ( _pBase && isDirty() )
       {
          _pBase->markDirty( _collectionID, _extentID, DMS_CHG_AFTER ) ;
+         _clearDirty() ;
       }
 
       if ( _hasIncWriteCount )
@@ -375,6 +452,11 @@ namespace engine
    void _dmsExtRW::_markDirty()
    {
       _attr |= DMS_RW_ATTR_DIRTY ;
+   }
+
+   void _dmsExtRW::_clearDirty()
+   {
+      OSS_BIT_CLEAR( _attr, DMS_RW_ATTR_DIRTY ) ;
    }
 
    std::string _dmsExtRW::toString() const
@@ -1187,16 +1269,18 @@ namespace engine
 
       if ( ossMmapFile::_opened )
       {
+         BOOLEAN hasFlushData = FALSE ;
          _onClosed() ;
 
          if ( _dirtyList.dirtyNumber() > 0 )
          {
             flushAll( _syncDeep ) ;
+            hasFlushData = TRUE ;
          }
          /// set commit flag valid
          _commitFlag = 1 ;
          /// make header valid
-         _markHeaderValid( _syncDeep, TRUE, TRUE, 0 ) ;
+         _markHeaderValid( _syncDeep, TRUE, hasFlushData, 0 ) ;
          /// close file
          ossMmapFile::close() ;
 
@@ -2347,6 +2431,7 @@ namespace engine
                                              BOOLEAN isAll )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID ) ;
+
       if ( _dmsHeader )
       {
          if ( isAll )
@@ -2407,15 +2492,19 @@ namespace engine
                tmpCommitFlag = _isCrash ? 0 : _commitFlag ;
                if ( hasFlushedData ||
                     tmpCommitFlag != _dmsHeader->_commitFlag ||
-                    lastLSN != _dmsHeader->_commitLsn )
+                    ( (UINT64)~0 != lastLSN && lastLSN != _dmsHeader->_commitLsn ) )
                {
                   if ( setHeadCommFlgValid )
                   {
                      _dmsHeader->_commitFlag = tmpCommitFlag ;
                   }
+                  else
+                  {
+                     _dmsHeader->_commitFlag = 0 ;
+                     _commitFlag = 0 ;
+                  }
                   _dmsHeader->_commitLsn = lastLSN ;
                   _dmsHeader->_commitTime = lastTime ;
-                  _dmsHeader->_updateTime = lastTime ;
                   /// flush header
                   rc = flushHeader( sync ) ;
                }

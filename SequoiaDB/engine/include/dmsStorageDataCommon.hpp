@@ -408,7 +408,6 @@ namespace engine
    struct _dmsMBStatInfo
    {
       UINT64      _totalRecords ;
-      UINT32      _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
       UINT32      _totalLobPages ;
@@ -427,6 +426,7 @@ namespace engine
       UINT64      _totalValidLobSize ;
 
       ossAtomic32 _commitFlag ;
+      ossAtomic32 _curWriteCount ;
       ossAtomic64 _lastLSN ;
       // FIXME: need "atomic" for DPS_TRANS_ID later
       ossAtomic64 _maxGlobTransID ;
@@ -439,6 +439,7 @@ namespace engine
       BOOLEAN     _idxIsCrash ;
 
       ossAtomic32 _lobCommitFlag ;
+      ossAtomic32 _curLobWriteCount ;
       ossAtomic64 _lobLastLSN ;
       UINT64      _lobLastWriteTick ;
       BOOLEAN     _lobIsCrash ;
@@ -468,7 +469,6 @@ namespace engine
       void reset()
       {
          _totalRecords           = 0 ;
-         _writePtrCount          = 0 ;
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
@@ -707,11 +707,13 @@ namespace engine
 
       _dmsMBStatInfo ()
       : _commitFlag( 0 ),
+        _curWriteCount( 0 ),
         _lastLSN( 0 ),
         _maxGlobTransID( 0 ),
         _idxCommitFlag( 0 ),
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
+        _curLobWriteCount( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 )
       {
@@ -997,6 +999,7 @@ namespace engine
          }
 
          std::string       toString() const ;
+         void              submit() ;
 
       private:
          void              _doneAddr() ;
@@ -1483,6 +1486,8 @@ namespace engine
                                 _pmdEDUCB * cb ) ;
 
          void _onMBUpdated( UINT16 mbID ) ;
+
+         DMS_FILE_TYPE _getAllFileType() const ;
 
       private:
          void               _initializeMME () ;

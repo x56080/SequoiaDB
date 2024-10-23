@@ -230,36 +230,72 @@ namespace engine
          _dmsDirtyList() ;
          ~_dmsDirtyList() ;
 
-         INT32    init( UINT32 capacity ) ;
+         INT32    init( UINT32 capacity, BOOLEAN canDely = TRUE ) ;
          void     destroy() ;
          void     setSize( UINT32 size ) ;
 
          void     setDirty( UINT32 pos )
          {
             SDB_ASSERT( pos < _size, "Invalid pos" ) ;
-            _pData[pos >> 3] |= ( 1 << (7 - (pos & 7))) ;
-            _dirtyBegin.swapLesserThan( pos ) ;
-            _dirtyEnd.swapGreaterThan( pos ) ;
+
+            if ( _isDirty( pos ) )
+            {
+               return ;
+            }
+
+            ossScopedLock lock( &_mtx ) ;
+
+            if ( _delayInit() )
+            {
+               _pData[pos >> 3] |= ( 1 << (7 - (pos & 7))) ;
+
+               if ( pos < _dirtyBegin )
+               {
+                  _dirtyBegin = pos ;
+               }
+               if ( pos > _dirtyEnd )
+               {
+                  _dirtyEnd = pos ;
+               }
+            }
          }
 
          void     cleanDirty( UINT32 pos )
          {
             SDB_ASSERT( pos < _size, "Invalid pos" ) ;
-            _pData[pos >> 3] &= ~( 1 << (7 - (pos & 7))) ;
+
+            ossScopedLock lock( &_mtx ) ;
+
+            if ( _pData )
+            {
+               _pData[pos >> 3] &= ~( 1 << (7 - (pos & 7))) ;
+            }
          }
 
          BOOLEAN  isDirty( UINT32 pos ) const
          {
             SDB_ASSERT( pos < _size, "Invalid pos" ) ;
-            if ( _fullDirty )
-            {
-               return TRUE ;
-            }
-            return ( (_pData[pos >> 3] >> (7 - (pos & 7))) & 1 ) ? TRUE : FALSE ;
+
+            ossScopedLock lock( (ossXLatch*)&_mtx ) ;
+
+            return _isDirty( pos ) ;
          }
 
-         void     setFullDirty() { _fullDirty = TRUE ; }
-         BOOLEAN  isFullDirty() const { return _fullDirty ; }
+         void     setFullDirty()
+         {
+            if ( !_fullDirty )
+            {
+               ossScopedLock lock( &_mtx ) ;
+               _fullDirty = TRUE ;
+            }
+         }
+
+         BOOLEAN  isFullDirty() const
+         {
+            ossScopedLock lock( (ossXLatch*)&_mtx ) ;
+
+            return _fullDirty ;
+         }
 
          /// return -1 for no find the pos
          INT32    nextDirtyPos( UINT32 &fromPos ) const ;
@@ -267,14 +303,34 @@ namespace engine
          UINT32   dirtyNumber() const ;
          UINT32   dirtyGap() const ;
 
+      protected:
+         INT32    _init() ;
+         BOOLEAN  _delayInit() ;
+
+         BOOLEAN  _isDirty( UINT32 pos ) const
+         {
+            SDB_ASSERT( pos < _size, "Invalid pos" ) ;
+            if ( _fullDirty )
+            {
+               return TRUE ;
+            }
+            if ( _pData )
+            {
+               return ( (_pData[pos >> 3] >> (7 - (pos & 7))) & 1 ) ? TRUE : FALSE ;
+            }
+            return FALSE ;
+         }
+
       private:
          CHAR     *_pData ;
          UINT32   _capacity ;
          UINT32   _size ;
          BOOLEAN  _fullDirty ;
 
-         ossAtomic32 _dirtyBegin ;
-         ossAtomic32 _dirtyEnd ;
+         UINT32   _dirtyBegin ;
+         UINT32   _dirtyEnd ;
+
+         ossSpinXLatch _mtx ;
    } ;
    typedef _dmsDirtyList dmsDirtyList ;
 
@@ -293,6 +349,8 @@ namespace engine
          _dmsExtRW() ;
          _dmsExtRW( const _dmsExtRW &extRW ) ;
          ~_dmsExtRW() ;
+
+         _dmsExtRW& operator=( const _dmsExtRW &right ) ;
 
          BOOLEAN        isEmpty() const ;
          _dmsExtRW      derive( INT32 extentID ) ;
@@ -331,10 +389,13 @@ namespace engine
 
          BOOLEAN        isDirty() const ;
 
+         void           submit() ;
+
          std::string    toString() const ;
 
       protected:
          void           _markDirty() ;
+         void           _clearDirty() ;
 
       private:
          INT32                _extentID ;
