@@ -505,7 +505,8 @@ namespace engine
 
       ossStrncpy( _suFileName, pSuFileName, DMS_SU_FILENAME_SZ ) ;
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
-      ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
+      _pathNameSize = 0 ;
+      _fullPathName = NULL ;
 
       if ( 0 == ossStrcmp( pInfo->_suName, SDB_DMSTEMP_NAME ) )
       {
@@ -548,6 +549,8 @@ namespace engine
       closeStorage() ;
       _pStorageInfo = NULL ;
       _dirtyList.destroy() ;
+
+      _releasePathName() ;
    }
 
    BOOLEAN _dmsStorageBase::isClosed() const
@@ -920,6 +923,16 @@ namespace engine
       return "" ;
    }
 
+   void _dmsStorageBase::_releasePathName()
+   {
+      if ( _fullPathName )
+      {
+         SDB_OSS_FREE( _fullPathName ) ;
+         _fullPathName = NULL ;
+         _pathNameSize = 0 ;
+      }
+   }
+
    INT32 _dmsStorageBase::openStorage( const CHAR *pPath,
                                        IDataSyncManager *pSyncMgr,
                                        IDataStatManager *pStatMgr,
@@ -952,15 +965,26 @@ namespace engine
       }
       _segmentLatch = sharedMutexPtr( pExtendLatch ) ;
 
+      /// init full path name
+      _releasePathName() ;
+      _pathNameSize = ossStrlen( pPath ) + 1 + DMS_SU_FILENAME_SZ + 1 ;
+      _fullPathName = (CHAR*)SDB_OSS_MALLOC( _pathNameSize ) ;
+      if ( !_fullPathName )
+      {
+         PD_LOG( PDERROR, "Allocate path name(%d) failed", _pathNameSize ) ;
+         rc = SDB_OOM ;
+         _pathNameSize = 0 ;
+         goto error ;
+      }
+      ossMemset( _fullPathName, 0, _pathNameSize ) ;
+
       if ( createNew )
       {
          mode |= OSS_CREATEONLY ;
          _isCrash = FALSE ;
       }
 
-      rc = utilBuildFullPath( pPath, _suFileName, OSS_MAX_PATHSIZE,
-                              _fullPathName ) ;
-
+      rc = utilBuildFullPath( pPath, _suFileName, _pathNameSize, _fullPathName ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Path+filename are too long: %s; %s", pPath,
@@ -1290,7 +1314,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( _fullPathName[0] == 0 )
+      if ( !_fullPathName || _fullPathName[0] == 0 )
       {
          goto done ;
       }
@@ -1321,11 +1345,28 @@ namespace engine
                                          const CHAR *suFileName )
    {
       INT32 rc = SDB_OK ;
-      CHAR tmpPathFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      ossStrcpy( tmpPathFile, _fullPathName ) ;
+      CHAR *pos = NULL ;
+      CHAR *tmpPathFile = NULL ;
 
-      CHAR *pos = ossStrstr( tmpPathFile, _suFileName ) ;
-      if ( !pos )
+      if ( !_dmsHeader || _isClosed || !_fullPathName )
+      {
+         PD_LOG( PDERROR, "File is not open" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      tmpPathFile = ( CHAR* )SDB_THREAD_ALLOC( _pathNameSize ) ;
+      if ( !tmpPathFile )
+      {
+         PD_LOG( PDERROR, "Allocate new path name(%d) failed", _pathNameSize ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      ossMemset( tmpPathFile, 0, _pathNameSize ) ; 
+
+      ossStrcpy( tmpPathFile, _fullPathName ) ;
+      pos = ossStrstr( tmpPathFile, _suFileName ) ;
+      if ( !pos || ossStrlen( pos ) != ossStrlen( _suFileName ) )
       {
          PD_LOG( PDERROR, "File full path[%s] is not include su file[%s]",
                  _fullPathName, _suFileName ) ;
@@ -1333,12 +1374,10 @@ namespace engine
          goto error ;
       }
       *pos = '\0' ;
-      utilCatPath( tmpPathFile, OSS_MAX_PATHSIZE, suFileName ) ;
-
-      if ( !_dmsHeader || _isClosed )
+      rc = utilCatPath( tmpPathFile, _pathNameSize, suFileName ) ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "File is not open" ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Build new full path name failed, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -1401,6 +1440,11 @@ namespace engine
 #endif // _WINDOWS
 
    done:
+      if ( tmpPathFile )
+      {
+         SDB_THREAD_FREE( tmpPathFile ) ;
+         tmpPathFile = NULL ;
+      }
       return rc ;
    error:
       goto done ;
@@ -1440,8 +1484,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( SDB_DMS_INVALID_SU == cause &&
-           _fullPathName[0] != '\0' )
+      if ( SDB_DMS_INVALID_SU == cause && _fullPathName && *_fullPathName )
       {
          rc = dmsRenameInvalidFile( _fullPathName ) ;
          if ( rc )

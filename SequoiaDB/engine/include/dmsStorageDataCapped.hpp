@@ -105,7 +105,7 @@ namespace engine
 
    // Information of the working extent. Working extent is the one which is
    // used for insertion currently.
-   struct _dmsExtentInfo
+   struct _dmsExtentInfo : public SDBObject
    {
       dmsExtentID    _id ;
       INT64          _extLogicID ;
@@ -215,6 +215,9 @@ namespace engine
       OSS_INLINE void _extLidAndOffset2RecLid( dmsExtentID extID,
                                                dmsOffset offset,
                                                INT64 &logicalID ) ;
+
+      virtual INT32 _ensureNewCollection( UINT16 mbID ) ;
+
    private:
       virtual const CHAR* _getEyeCatcher() const ;
       virtual INT32 _onOpened() ;
@@ -413,7 +416,9 @@ namespace engine
       dmsCappedCLOptions *_options[ DMS_MME_SLOTS ] ;
       // The information of the working extents of each collection.
       // Working extent is the one which we are using for inserting record now.
-      dmsExtentInfo _workExtInfo[ DMS_MME_SLOTS ] ;
+      typedef _utilSparseArray<dmsExtentInfo, DMS_MME_SLOTS>   WORKEXTINFO_ARRAY ;
+      WORKEXTINFO_ARRAY _workExtInfo ;
+      //dmsExtentInfo _workExtInfo[ DMS_MME_SLOTS ] ;
       SIZE_REQ_MAP  _sizeReqMap ;
    } ;
    typedef _dmsStorageDataCapped dmsStorageDataCapped ;
@@ -483,7 +488,7 @@ namespace engine
    {
       _updateWorkExtStat( _workExtInfo[ context->mbID() ],
                           recordSize, recordData ) ;
-      _updateCLStat( _mbStatInfo[ context->mbID() ], recordSize, recordData ) ;
+      _updateCLStat( *context->mbStat(), recordSize, recordData ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::spaceEnough( dmsMBContext *context,

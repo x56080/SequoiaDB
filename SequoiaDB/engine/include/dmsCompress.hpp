@@ -57,7 +57,7 @@ namespace engine
     * (2) Dictionary compression is configured, both are valid.
     * (3) Otherwise( snappy ), compressor is valid while dictionary is NULL.
     */
-   class _dmsCompressorEntry
+   class _dmsCompressorEntry : public SDBObject
    {
       friend class _dmsCompressorGuard ;
    public:

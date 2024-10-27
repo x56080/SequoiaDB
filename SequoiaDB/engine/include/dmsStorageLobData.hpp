@@ -222,9 +222,12 @@ namespace engine
 
       INT32 _postOpen( INT32 cause ) ;
 
+      void  _releaseFullPath() ;
+
    private:
-      std::string       _fileName ;
-      CHAR              _fullPath[ OSS_MAX_PATHSIZE + 1 ] ;
+      CHAR              _fileName[ DMS_SU_FILENAME_SZ + 1 ] ;
+      UINT32            _fullPathSize ;
+      CHAR             *_fullPath ;
       OSSFILE           _file ;
       INT64             _fileSz ;
       UINT32            _pageSz ;

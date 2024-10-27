@@ -42,6 +42,7 @@
 #include "dms.hpp"
 #include "ossAtomic.hpp"
 #include "ossMemPool.hpp"
+#include "utilArray.hpp"
 
 namespace engine
 {
@@ -103,13 +104,17 @@ namespace engine
 
          void           clear() ;
 
+         INT32          ensureNewCollection( UINT16 slot ) ;
+
          dmsPageMap*    getMap( UINT16 slot ) ;
 
          dmsPageMap*    beginNonEmpty( UINT16 &slot ) ;
          dmsPageMap*    nextNonEmpty( UINT16 &slot ) ;
 
       private:
-         dmsPageMap                 _mapSlot[ DMS_MME_SLOTS ] ;
+         typedef _utilSparseArray<dmsPageMap, DMS_MME_SLOTS>   PAGEMAP_ARRAY ;
+         PAGEMAP_ARRAY              _mapSlot ;
+         //dmsPageMap                 _mapSlot[ DMS_MME_SLOTS ] ;
          ossAtomic64                _totalSize ;
          ossAtomic32                _nonEmptyNum ;
 
