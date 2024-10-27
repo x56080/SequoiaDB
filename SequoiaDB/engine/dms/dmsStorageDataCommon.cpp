@@ -1015,11 +1015,20 @@ namespace engine
       // load collection names in the SU
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
-         _mbStatInfo[i]._lastWriteTick = ~0 ;
-         _mbStatInfo[i]._commitFlag.init( 1 ) ;
-
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
+            /// ensure new collection resouce
+            rc = _ensureNewCollection( i ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Ensure collection resource in %s failed, rc: %d",
+                       getSuName(), rc ) ;
+               goto error ;
+            }
+
+            _mbStatInfo[i]._lastWriteTick = ~0 ;
+            _mbStatInfo[i]._commitFlag.init( 1 ) ;
+
             _collectionInsert ( _dmsMME->_mbList[i]._collectionName, i,
                                 _dmsMME->_mbList[i]._clUniqueID ) ;
 
@@ -1128,6 +1137,11 @@ namespace engine
             {
                _dmsMME->_mbList[i]._mbOptExtentID = DMS_INVALID_EXTENT ;
             }
+         }
+         else
+         {
+            _mbStatInfo[i]._lastWriteTick = ~0 ;
+            _mbStatInfo[i]._commitFlag.init( 1 ) ;
          }
       }
 
@@ -2364,6 +2378,16 @@ namespace engine
            PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
            rc = SDB_SYS ;
          }
+         goto error ;
+      }
+
+      /// ensure new collection resouce
+      rc = _ensureNewCollection( newCollectionID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Ensure collection resource in %s failed, rc: %d",
+                 getSuName(), rc ) ;
+         newCollectionID = DMS_INVALID_MBID ;
          goto error ;
       }
 
@@ -4139,8 +4163,7 @@ namespace engine
             pRecord->unsetDeleting() ;
 
             ++( pWRExtent->_recCount ) ;
-            _increaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
             context->mbStat()->_totalDataLen += recordData.len() ;
             context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
@@ -4668,8 +4691,7 @@ namespace engine
             pRecord->setDeleting() ;
             // need to dec count
             --( pExtent->_recCount ) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
@@ -5587,6 +5609,49 @@ namespace engine
       }
 
       return fileType ;
+   }
+
+   INT32 _dmsStorageDataCommon::_ensureNewCollection( UINT16 mbID )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _mbStatInfo.allocSlot( mbID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Allocate mbStatInfo for slot(%u) failed, rc: %d",
+                 mbID, rc ) ;
+         goto error ;
+      }
+
+      rc = _mblock.allocSlot( mbID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Allocate mblock for slot(%u) failed, rc: %d",
+                 mbID, rc ) ;
+         goto error ;
+      }
+
+      rc = _compressorEntry.allocSlot( mbID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Allocate compressEntry for slot(%u) failed, rc: %d",
+                 mbID, rc ) ;
+         goto error ;
+      }
+
+      if ( _pIdxSU )
+      {
+         rc = _pIdxSU->getPageMapUnit()->ensureNewCollection( mbID ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

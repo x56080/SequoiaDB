@@ -326,12 +326,15 @@ namespace engine
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;
+
+      void  _releasePath() ;
+
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
       _dmsStorageData               *_dmsData ;
       _dmsStorageLobData            _data ;
-      CHAR                          _path[ OSS_MAX_PATHSIZE + 1 ] ;
-      CHAR                          _metaPath[ OSS_MAX_PATHSIZE + 1 ] ;
+      CHAR                         *_path ;
+      CHAR                         *_metaPath ;
       BOOLEAN                       _needDelayOpen ;
       monSpinXLatch                 _delayOpenLatch ;
 

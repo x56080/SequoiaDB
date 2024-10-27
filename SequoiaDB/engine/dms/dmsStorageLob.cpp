@@ -81,13 +81,13 @@ namespace engine
     _dmsBME( NULL ),
     _dmsData( (dmsStorageData *)pDataSu ),      // TODO: temporary cast
     _data( lobdFileName, info->_enableSparse, info->_directIO ),
+    _path( NULL ),
+    _metaPath( NULL ),
     _delayOpenLatch( MON_LATCH_DMSSTORAGELOB_DELAYOPENLATCH ),
     _pCacheUnit( pCacheUnit ),
     _pSyncMgrTmp( NULL ),
     _pStatMgrTmp( NULL )
    {
-      ossMemset( _path, 0, sizeof( _path ) ) ;
-      ossMemset( _metaPath, 0, sizeof( _metaPath ) ) ;
       _needDelayOpen = FALSE ;
 
       _dmsData->_attachLob( this ) ;
@@ -106,6 +106,23 @@ namespace engine
          SDB_OSS_DEL _vecBucketLacth[ i ] ;
       }
       _vecBucketLacth.clear() ;
+
+      _releasePath() ;
+   }
+
+   void _dmsStorageLob::_releasePath()
+   {
+      if ( _metaPath && _metaPath != _path )
+      {
+         SDB_OSS_FREE( _metaPath ) ;
+      }
+      if ( _path )
+      {
+         SDB_OSS_FREE( _path ) ;
+      }
+
+      _metaPath = NULL ;
+      _path = NULL ;
    }
 
    UINT32 _dmsStorageLob::getBucketID( const _dmsLobDataMapBlk &blk )
@@ -253,8 +270,32 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_OPEN ) ;
 
       // copy path
-      ossStrncpy( _path, path, OSS_MAX_PATHSIZE ) ;
-      ossStrncpy( _metaPath, metaPath, OSS_MAX_PATHSIZE ) ;
+      _releasePath() ;
+
+      _path = ossStrdup( path ) ;
+      if ( !_path )
+      {
+         PD_LOG( PDERROR, "Allocate lob path failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      if ( 0 == ossStrcmp( path, metaPath ) )
+      {
+         /// the same
+         _metaPath = _path ;
+      }
+      else
+      {
+         _metaPath = ossStrdup( metaPath ) ;
+         if ( !_metaPath )
+         {
+            PD_LOG( PDERROR, "Allocate lob meta path failed" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+      }
+
       _pSyncMgrTmp = pSyncMgr ;
       _pStatMgrTmp = pStatMgr ;
 

@@ -59,10 +59,14 @@ namespace engine
     _flags( DMS_LOBD_FLAG_NULL ),
     _segmentSize( 0 )
    {
-      _fileName.assign( fileName ) ;
+      ossStrncpy( _fileName, fileName, DMS_SU_FILENAME_SZ ) ;
+      _fileName[ DMS_SU_FILENAME_SZ ] = 0 ;
+      _fullPathSize = 0 ;
+      _fullPath = NULL ;
+
       _segmentPages = 0 ;
       _segmentPagesSquare = 0 ;
-      ossMemset( _fullPath, 0, sizeof( _fullPath ) ) ;
+
       if ( useDirectIO )
       {
          _flags |= DMS_LOBD_FLAG_DIRECT ;
@@ -76,6 +80,17 @@ namespace engine
    _dmsStorageLobData::~_dmsStorageLobData()
    {
       close() ;
+      _releaseFullPath() ;
+   }
+
+   void _dmsStorageLobData::_releaseFullPath()
+   {
+      if ( _fullPath )
+      {
+         SDB_OSS_FREE( _fullPath ) ;
+         _fullPath = NULL ;
+         _fullPathSize = 0 ;
+      }
    }
 
    void _dmsStorageLobData::enableSparse( BOOLEAN sparse )
@@ -92,7 +107,7 @@ namespace engine
 
    const CHAR* _dmsStorageLobData::getFileName() const
    {
-      return _fileName.c_str() ;
+      return _fileName ;
    }
 
    INT32 _dmsStorageLobData::rename( const CHAR *csName,
@@ -102,21 +117,30 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR *pBuff = NULL ;
       dmsStorageUnitHeader *pHeader = NULL ;
+      CHAR *tmpPathFile = NULL ;
 
       if ( !isOpened() )
       {
-         _fileName = suFileName ;
+         ossStrncpy( _fileName, suFileName, DMS_SU_FILENAME_SZ ) ;
+         _fileName[ DMS_SU_FILENAME_SZ ] = '\0' ;
       }
       else
       {
-         CHAR tmpPathFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+         tmpPathFile = ( CHAR* )SDB_THREAD_ALLOC( _fullPathSize ) ;
+         if ( !tmpPathFile )
+         {
+            PD_LOG( PDERROR, "Allocate new full path(%d) failed", _fullPathSize ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ossMemset( tmpPathFile, 0, _fullPathSize ) ;
          ossStrcpy( tmpPathFile, _fullPath ) ;
 
-         CHAR *pos = ossStrstr( tmpPathFile, _fileName.c_str() ) ;
-         if ( !pos )
+         CHAR *pos = ossStrstr( tmpPathFile, _fileName ) ;
+         if ( !pos || ossStrlen( pos ) != ossStrlen( _fileName ) )
          {
             PD_LOG( PDERROR, "File full path[%s] is not include su file[%s]",
-                    _fullPath, _fileName.c_str() ) ;
+                    _fullPath, _fileName ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -137,7 +161,12 @@ namespace engine
             goto error ;
          }
 
-         utilCatPath( tmpPathFile, OSS_MAX_PATHSIZE, suFileName ) ;
+         rc = utilCatPath( tmpPathFile, _fullPathSize, suFileName ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Build new full path name failed, rc: %d", rc ) ;
+            goto error ;
+         }
 
 #ifdef _WINDOWS
          /// modify header
@@ -161,7 +190,9 @@ namespace engine
             goto error ;
          }
          /// reopen
-         _fileName = suFileName ;
+         ossStrncpy( _fileName, suFileName, DMS_SU_FILENAME_SZ ) ;
+         _fileName[ DMS_SU_FILENAME_SZ ] = '\0' ;
+
          ossStrcpy( _fullPath, tmpPathFile ) ;
          {
             UINT32 mode = OSS_READWRITE | OSS_SHAREREAD ;
@@ -180,7 +211,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                       _fileName.c_str(), rc ) ;
+                       _fileName, rc ) ;
                goto error ;
             }
          }
@@ -194,7 +225,8 @@ namespace engine
             goto error ;
          }
 
-         _fileName = suFileName ;
+         ossStrncpy( _fileName, suFileName, DMS_SU_FILENAME_SZ ) ;
+         _fileName[ DMS_SU_FILENAME_SZ ] = '\0' ;
          ossStrcpy( _fullPath, tmpPathFile ) ;
 
          /// modify header
@@ -214,6 +246,11 @@ namespace engine
       if ( pBuff )
       {
          cb->releaseBuff( pBuff ) ;
+      }
+      if ( tmpPathFile )
+      {
+         SDB_THREAD_FREE( tmpPathFile ) ;
+         tmpPathFile = NULL ;
       }
       return rc ;
    error:
@@ -248,6 +285,18 @@ namespace engine
       _fileSz = 0 ;
       _segmentSize = lobdSegmentSize ;
 
+      _releaseFullPath() ;
+      _fullPathSize = ossStrlen( path ) + 1 + DMS_SU_FILENAME_SZ + 1 ;
+      _fullPath = ( CHAR* )SDB_OSS_MALLOC( _fullPathSize ) ;
+      if ( !_fullPath )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate path name(%d) failed", _fullPathSize ) ;
+         _fullPathSize = 0 ;
+         goto error ;
+      }
+      ossMemset( _fullPath, 0, _fullPathSize ) ;
+
       if ( createNew )
       {
          mode |= OSS_CREATEONLY ;
@@ -258,12 +307,11 @@ namespace engine
          mode |= OSS_DIRECTIO ;
       }
 
-      rc = utilBuildFullPath( path, _fileName.c_str(), OSS_MAX_PATHSIZE,
-                              _fullPath ) ;
+      rc = utilBuildFullPath( path, _fileName, _fullPathSize, _fullPath ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "path + name is too long: %s, %s",
-                  path, _fileName.c_str() ) ;
+                  path, _fileName ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -286,7 +334,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                 _fileName.c_str(), rc ) ;
+                 _fileName, rc ) ;
          goto error ;
       }
 
@@ -294,7 +342,7 @@ namespace engine
       {
          if ( !createNew )
          {
-            PD_LOG ( PDERROR, "lobd file is empty: %s", _fileName.c_str() ) ;
+            PD_LOG ( PDERROR, "lobd file is empty: %s", _fileName ) ;
             rc = SDB_DMS_INVALID_SU ;
             goto error ;
          }
@@ -302,7 +350,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to init file header:%s, rc:%d",
-                    _fileName.c_str(), rc ) ;
+                    _fileName, rc ) ;
             goto error ;
          }
          // then we get the size again to make sure it's what we need
@@ -310,7 +358,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                    _fileName.c_str(), rc ) ;
+                    _fileName, rc ) ;
             goto error ;
          }
       }
@@ -318,7 +366,7 @@ namespace engine
       if ( fileSize < (INT64)sizeof( dmsStorageUnitHeader ) )
       {
          PD_LOG ( PDERROR, "Invalid storage unit size: %s",
-                  _fileName.c_str() ) ;
+                  _fileName ) ;
          PD_LOG ( PDERROR, "Expected more than %d bytes, actually read %lld "
                   "bytes", sizeof( dmsStorageUnitHeader ), fileSize ) ;
          rc = SDB_DMS_INVALID_SU ;
@@ -337,7 +385,7 @@ namespace engine
       if ( 0 != ( _fileSz - sizeof( dmsStorageUnitHeader ) ) % getSegmentSize() )
       {
          PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", _fileSz,
-                  _fileName.c_str() ) ;
+                  _fileName ) ;
 
          /// need to truncate the file
          rightSize = ( ( _fileSz - sizeof( dmsStorageUnitHeader ) ) /
@@ -347,17 +395,17 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
-                    _fileName.c_str(), rightSize, rc ) ;
+                    _fileName, rightSize, rc ) ;
             goto error ;
          }
          PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
-                 _fileName.c_str(), rightSize ) ;
+                 _fileName, rightSize ) ;
          // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &_fileSz ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                     _fileName.c_str(), rc ) ;
+                     _fileName, rc ) ;
             goto error ;
          }
       }
@@ -368,24 +416,24 @@ namespace engine
       if ( _fileSz > rightSize )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
-                 "data size[%llu]", _fileName.c_str(), _fileSz,
+                 "data size[%llu]", _fileName, _fileSz,
                  rightSize ) ;
 
          rc = ossTruncateFile( &_file, rightSize ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Truncate file[%s] to size[%lld] failed, rc: %d",
-                    _fileName.c_str(), rightSize, rc ) ;
+                    _fileName, rightSize, rc ) ;
             goto error ;
          }
          PD_LOG( PDEVENT, "Truncate file[%s] to size[%lld] succeed",
-                 _fileName.c_str(), rightSize ) ;
+                 _fileName, rightSize ) ;
          reGetSize = TRUE ;
       }
       else if ( _fileSz < rightSize )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is less than storage "
-                 "data size[%llu]", _fileName.c_str(), _fileSz,
+                 "data size[%llu]", _fileName, _fileSz,
                  rightSize ) ;
 
          INT64 extentSize = rightSize - _fileSz ;
@@ -394,12 +442,12 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Extend file[%s] to size[%lld] from size[%lld] "
-                    "failed, rc: %d", _fileName.c_str(), rightSize,
+                    "failed, rc: %d", _fileName, rightSize,
                     tmpFileSz, rc ) ;
             goto error ;
          }
          PD_LOG( PDEVENT, "Extend file[%s] to size[%lld] from size[%lld] "
-                 "succeed", _fileName.c_str(), rightSize, tmpFileSz ) ;
+                 "succeed", _fileName, rightSize, tmpFileSz ) ;
          reGetSize = TRUE ;
       }
 
@@ -410,7 +458,7 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                     _fileName.c_str(), rc ) ;
+                     _fileName, rc ) ;
             goto error ;
          }
          reGetSize = FALSE ;
@@ -508,7 +556,7 @@ namespace engine
       if ( writeOffset + t->size > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", t->offset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", t->offset, _fileSz, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -581,7 +629,7 @@ namespace engine
       if ( (INT64)( writeOffset + t->size ) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", offset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", offset, _fileSz, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -659,7 +707,7 @@ namespace engine
       if ( readOffset + t->size > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", readOffset, _fileSz, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -730,7 +778,7 @@ namespace engine
       if ( ( SINT64 )(readOffset + t->size) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", readOffset, _fileSz, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -819,7 +867,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                    _fileName.c_str(), rc ) ;
+                    _fileName, rc ) ;
             goto error ;
          }
 
@@ -828,7 +876,7 @@ namespace engine
               getSegmentSize() != 0 )
          {
             PD_LOG( PDERROR, "invalid file size:%lld, file:%s",
-                    sizeBeforeExtend, _fileName.c_str() ) ;
+                    sizeBeforeExtend, _fileName ) ;
             rc = SDB_SYS ;
             SDB_ASSERT( FALSE, "impossible" ) ;
             goto error ;
@@ -842,7 +890,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "failed to extend file:%s, rc:%d",
-                 _fileName.c_str(), rc ) ;
+                 _fileName, rc ) ;
          goto error ;
       }
 
@@ -853,7 +901,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                    _fileName.c_str(), rc ) ;
+                    _fileName, rc ) ;
             goto error ;
          }
 
@@ -861,7 +909,7 @@ namespace engine
               getSegmentSize() != 0 )
          {
             PD_LOG( PDERROR, "invalid file size:%lld, file:%s",
-                    sizeAfterExtend, _fileName.c_str() ) ;
+                    sizeAfterExtend, _fileName ) ;
             rc = SDB_SYS ;
             SDB_ASSERT( FALSE, "impossible" ) ;
             goto error ;
@@ -928,7 +976,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_REMOVE ) ;
 
-      if ( _fullPath[ 0 ] == 0 )
+      if ( !_fullPath || _fullPath[ 0 ] == 0 )
       {
          goto done ;
       }
@@ -937,7 +985,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to close file:%s, rc:%d",
-                 _fileName.c_str(), rc ) ;
+                 _fileName, rc ) ;
          goto error ;
       }
 
@@ -966,8 +1014,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( SDB_DMS_INVALID_SU == cause &&
-           _fullPath[0] != '\0' )
+      if ( SDB_DMS_INVALID_SU == cause && _fullPath && *_fullPath )
       {
          rc = dmsRenameInvalidFile( _fullPath ) ;
          if ( rc )
@@ -1066,7 +1113,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                 _fileName.c_str(), rc ) ;
+                 _fileName, rc ) ;
          goto error ;
       }
 
@@ -1083,7 +1130,7 @@ namespace engine
          CHAR szTmp[ DMS_HEADER_EYECATCHER_LEN + 1 ] = {0} ;
          ossStrncpy( szTmp, pHeader->_eyeCatcher, DMS_HEADER_EYECATCHER_LEN ) ;
          PD_LOG( PDERROR, "invalid eye catcher:%s, file:%s",
-                 szTmp, _fileName.c_str() ) ;
+                 szTmp, _fileName ) ;
          rc = SDB_INVALID_FILE_TYPE ;
          goto error ;
       }
@@ -1091,7 +1138,7 @@ namespace engine
       if ( pHeader->_version > DMS_LOB_CUR_VERSION )
       {
          PD_LOG( PDERROR, "invalid version of header:%d, file:%s",
-                 pHeader->_version, _fileName.c_str() ) ;
+                 pHeader->_version, _fileName ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;
          goto error ;
       }
@@ -1113,14 +1160,14 @@ namespace engine
          CHAR szTmp[ DMS_SU_NAME_SZ + 1 ] = {0} ;
          ossStrncpy( szTmp, pHeader->_name, DMS_SU_NAME_SZ ) ;
          PD_LOG( PDERROR, "invalid su name:%s in file:%s",
-                 szTmp, _fileName.c_str() ) ;
+                 szTmp, _fileName ) ;
          rc = SDB_SYS ;
       }
 
       if ( info._sequence != pHeader->_sequence )
       {
          PD_LOG( PDERROR, "invalid sequence:%d != %d in file:%s",
-                 pHeader->_sequence, info._sequence, _fileName.c_str() ) ;
+                 pHeader->_sequence, info._sequence, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1128,7 +1175,7 @@ namespace engine
       if ( info._secretValue != pHeader->_secretValue )
       {
          PD_LOG( PDERROR, "invalid secret value: %lld, self: %lld, file:%s",
-                 info._secretValue, pHeader->_secretValue, _fileName.c_str() ) ;
+                 info._secretValue, pHeader->_secretValue, _fileName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1219,7 +1266,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to fsync file[%s], rc:%d",
-                    _fileName.c_str(), rc ) ;
+                    _fileName, rc ) ;
             goto error ;
          }
       }

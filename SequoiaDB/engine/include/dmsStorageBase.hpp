@@ -696,6 +696,8 @@ namespace engine
          BOOLEAN  _canInvalidateDataSegCache( UINT32 segmentID, UINT64 expiredMs ) const ;
          BOOLEAN  _canInvalidateMetaSegCache( UINT64 expiredMs ) const ;
 
+         void     _releasePathName() ;
+
       protected:
          dmsStorageUnitHeader          *_dmsHeader ;     // 64KB
          dmsSpaceManagementExtent      *_dmsSME ;        // 16MB
@@ -743,7 +745,8 @@ namespace engine
          UINT32                        _segmentPages ;
          UINT32                        _segmentPagesSquare ;
          UINT32                        _pageSizeSquare ;
-         CHAR                          _fullPathName[ OSS_MAX_PATHSIZE + 1 ] ;
+         UINT32                        _pathNameSize ;
+         CHAR                         *_fullPathName ;
          BOOLEAN                       _isTempSU ;
          BOOLEAN                       _isSysSU ;
          BOOLEAN                       _blockScanSupport ;

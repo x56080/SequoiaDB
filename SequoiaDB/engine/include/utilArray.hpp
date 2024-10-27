@@ -235,6 +235,181 @@ namespace engine
       UINT32 _bufSize ;
       UINT32 _eleSize ;
    } ;
+
+   template <typename T, UINT32 SIZE, UINT32 stackSize = 1 >
+   class _utilSparseArray : public SDBObject
+   {
+      public:
+         _utilSparseArray()
+         {
+            for ( UINT32 i = 0 ; i < SIZE ; ++i )
+            {
+               _slot[ i ] = NULL ;
+            }
+            for ( UINT32 i = 0 ; i < stackSize ; ++i )
+            {
+               _slotStackFlag[ i ] = 0 ;
+            }
+         }
+
+         ~_utilSparseArray()
+         {
+            _release() ;
+         }
+
+         OSS_INLINE const T &operator[]( UINT32 i ) const
+         {
+            if ( i < SIZE && _slot[ i ] )
+            {
+               return *(_slot[ i ]) ;
+            }
+            else if ( i >= SIZE )
+            {
+               /// out of range
+               SDB_ASSERT( FALSE, "out of the array size" ) ;
+               throw pdGeneralException( SDB_SYS, "out of the array size" ) ;
+            }
+            else
+            {
+               /// not init the slot
+               // SDB_ASSERT( FALSE, "not alloc the slot" ) ;
+               return _slotDefault ;
+            }
+         }
+
+         OSS_INLINE T &operator[]( UINT32 i )
+         {
+            if ( i < SIZE && _slot[ i ] )
+            {
+               return *(_slot[ i ]) ;
+            }
+            else if ( i >= SIZE )
+            {
+               /// out of range
+               SDB_ASSERT( FALSE, "out of the array size" ) ;
+               throw pdGeneralException( SDB_SYS, "out of the array size" ) ;
+            }
+            else
+            {
+               /// not init the slot
+               // SDB_ASSERT( FALSE, "not alloc the slot" ) ;
+               return _slotDefault ;
+            }
+         }
+
+         INT32 allocSlot( UINT32 i )
+         {
+            INT32 rc = SDB_OK ;
+
+            if ( i >= SIZE )
+            {
+               rc = SDB_SYS ;
+               SDB_ASSERT( FALSE, "out of the array size" ) ;
+               goto error ;
+            }
+            else if ( _slot[ i ] )
+            {
+               /// already alloc
+            }
+            else
+            {
+               T *obj = _allocFromStack() ;
+               if ( !obj )
+               {
+                  obj = SDB_OSS_NEW T() ;
+                  if ( !obj )
+                  {
+                     rc = SDB_OOM ;
+                     PD_LOG( PDERROR, "Allocate memory failed, size: %u", sizeof( T ) ) ;
+                     goto error ;
+                  }
+               }
+               _slot[ i ] = obj ;
+            }
+
+         done:
+            return rc ;
+         error:
+            goto done ;
+         }
+
+         void  releaseSlot( UINT32 i )
+         {
+            if ( i >= SIZE )
+            {
+               SDB_ASSERT( FALSE, "out of the array size" ) ;
+            }
+            else if ( !_slot[i] )
+            {
+               /// not alloc
+               SDB_ASSERT( FALSE, "not alloc the slot" ) ;
+            }
+            else
+            {
+               INT32 i = _isInStack( &_slot[i] ) ;
+               if ( -1 == i )
+               {
+                  SDB_OSS_DEL _slot[i] ;
+               }
+               else
+               {
+                  _slotStackFlag[i] = 0 ;
+               }
+               _slot[i] = NULL ;
+            }
+         }
+
+      protected:
+         INT32 _isInStack( const T* slot ) const
+         {
+            for ( UINT32 i = 0 ; i < stackSize ; ++i )
+            {
+               if ( slot == &(_slotStack[i]) )
+               {
+                  return i ;
+               }
+            }
+            return -1 ;
+         }
+
+         void _release()
+         {
+            for ( UINT32 i = 0 ; i < SIZE ; ++i )
+            {
+               if ( _slot[i] && -1 == _isInStack( _slot[i] ) )
+               {
+                  SDB_OSS_DEL _slot[i] ;
+               }
+               _slot[i] = NULL ;
+            }
+
+            for ( UINT32 i = 0 ; i < stackSize ; ++i )
+            {
+               _slotStackFlag[ i ] = 0 ;
+            }
+         }
+
+         T* _allocFromStack()
+         {
+            for ( UINT32 i = 0 ; i < stackSize ; ++i )
+            {
+               if ( 0 == _slotStackFlag[ i ] )
+               {
+                  _slotStackFlag[ i ] = 1 ;
+                  return &_slotStack[ i ] ;
+               }
+            }
+
+            return NULL ;
+         }
+
+      protected:
+         T                 _slotStack[ stackSize ] ;
+         T                 _slotDefault ;
+         T                *_slot[ SIZE ] ;
+         BYTE              _slotStackFlag[ stackSize ] ;
+   };
+
 }
 
 #endif // UTIL_ARRAY_HPP_

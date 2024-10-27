@@ -198,6 +198,26 @@ namespace engine
       }
    }
 
+   INT32 _dmsPageMapUnit::ensureNewCollection( UINT16 slot )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _mapSlot.allocSlot( slot ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Allocate pagemap for slot(%u) failed, rc: %d",
+                 slot, rc ) ;
+         goto error ;
+      }
+
+      _mapSlot[ slot ]._setInfo( &_totalSize, &_nonEmptyNum ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    dmsPageMap* _dmsPageMapUnit::getMap( UINT16 slot )
    {
       if ( slot < DMS_MME_SLOTS )

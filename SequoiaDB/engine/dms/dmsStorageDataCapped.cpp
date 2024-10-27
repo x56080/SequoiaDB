@@ -317,7 +317,7 @@ namespace engine
       SDB_ASSERT( context, "Context should not be NULL" ) ;
       SDB_ASSERT( extAddr, "Extent address should not be NULL" ) ;
 
-      _mbStatInfo[context->mbID()]._totalDataFreeSpace +=
+      context->mbStat()->_totalDataFreeSpace +=
             ( (extAddr->_blockSize) << pageSizeSquareRoot() ) -
             DMS_EXTENT_METADATA_SZ ;
 
@@ -628,8 +628,7 @@ namespace engine
             rc = _updateExtentLID( context->mbID(), extID, extLogicalID ) ;
             PD_RC_CHECK( rc, PDERROR, "Update extent logical id to %d "
                          "failed[ %d ]", extLogicalID, rc ) ;
-            _mbStatInfo[context->mbID()]._totalDataFreeSpace -=
-               offset - DMS_EXTENT_METADATA_SZ ;
+            context->mbStat()->_totalDataFreeSpace -= offset - DMS_EXTENT_METADATA_SZ ;
          }
 
          if ( DMS_INVALID_EXTENT == workExtInfo->getID() ||
@@ -946,16 +945,16 @@ namespace engine
       extent->init( DMS_CAP_EXTENT_PAGE_NUM, mbID, DMS_CAP_EXTENT_SZ ) ;
       extent->_logicID = currExtLID + 1 ;
 
-      _mbStatInfo[mbID]._totalRecords -= extInfo->_recCount ;
-      _mbStatInfo[mbID]._rcTotalRecords.sub( extInfo->_recCount ) ;
-      _mbStatInfo[mbID]._totalDataLen -= totalSize ;
-      _mbStatInfo[mbID]._totalOrgDataLen -= totalSize ;
-      _mbStatInfo[mbID]._totalDataFreeSpace = DMS_CAP_EXTENT_BODY_SZ ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalRecords,
+      context->mbStat()->_totalRecords -= extInfo->_recCount ;
+      context->mbStat()->_rcTotalRecords.sub( extInfo->_recCount ) ;
+      context->mbStat()->_totalDataLen -= totalSize ;
+      context->mbStat()->_totalOrgDataLen -= totalSize ;
+      context->mbStat()->_totalDataFreeSpace = DMS_CAP_EXTENT_BODY_SZ ;
+      SDB_ASSERT( 0 == context->mbStat()->_totalRecords,
                   "Total records should be 0" ) ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalDataLen,
+      SDB_ASSERT( 0 == context->mbStat()->_totalDataLen,
                   "Total data length should be 0" ) ;
-      SDB_ASSERT( 0 == _mbStatInfo[mbID]._totalOrgDataLen,
+      SDB_ASSERT( 0 == context->mbStat()->_totalOrgDataLen,
                   "Total original data length should be 0" ) ;
 
       rc = _attachWorkExt( mbID, extID ) ;
@@ -997,11 +996,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Count record number and size failed[ %d ]",
                    rc ) ;
 
-      _mbStatInfo[mbID]._totalRecords -= recNum ;
-      _mbStatInfo[mbID]._rcTotalRecords.sub( recNum ) ;
-      _mbStatInfo[mbID]._totalDataFreeSpace -= extent->_freeSpace ;
-      _mbStatInfo[mbID]._totalOrgDataLen -= totalSize ;
-      _mbStatInfo[mbID]._totalDataLen -= totalSize ;
+      context->mbStat()->_totalRecords -= recNum ;
+      context->mbStat()->_rcTotalRecords.sub( recNum ) ;
+      context->mbStat()->_totalDataFreeSpace -= extent->_freeSpace ;
+      context->mbStat()->_totalOrgDataLen -= totalSize ;
+      context->mbStat()->_totalDataLen -= totalSize ;
 
       rc = _freeExtent( context, extID ) ;
       PD_RC_CHECK( rc, PDERROR, "Free extent[%d] failed: %d", extID, rc ) ;
@@ -1675,14 +1674,14 @@ namespace engine
                       rc ) ;
          extent->_lastRecordOffset = prevOffset ;
          extent->_freeSpace += totalSize ;
-         _mbStatInfo[ context->mbID() ]._totalDataFreeSpace += totalSize ;
+         context->mbStat()->_totalDataFreeSpace += totalSize ;
       }
 
       extent->_recCount -= recNum ;
-      _mbStatInfo[ context->mbID() ]._totalRecords -= recNum ;
-      _mbStatInfo[ context->mbID() ]._rcTotalRecords.sub( recNum ) ;
-      _mbStatInfo[ context->mbID() ]._totalOrgDataLen -= totalSize ;
-      _mbStatInfo[ context->mbID() ]._totalDataLen -= totalSize ;
+      context->mbStat()->_totalRecords -= recNum ;
+      context->mbStat()->_rcTotalRecords.sub( recNum ) ;
+      context->mbStat()->_totalOrgDataLen -= totalSize ;
+      context->mbStat()->_totalDataLen -= totalSize ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPFROMACTIVEEXTENT, rc ) ;
@@ -2322,7 +2321,7 @@ namespace engine
 #endif /* _DEBUG */
 
       // If the collection is emplty, return directly.
-      if ( 0 == _mbStatInfo[ context->mbID() ]._totalRecords )
+      if ( 0 == context->mbStat()->_totalRecords )
       {
          goto done ;
       }
@@ -2397,7 +2396,7 @@ namespace engine
       while ( number-- > 0 )
       {
          INT64 recordLID = DMS_INVALID_REC_LOGICALID ;
-         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords )
+         if ( 0 == context->mbStat()->_totalRecords )
          {
             // No more records
             goto done ;
@@ -2567,6 +2566,30 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   INT32 _dmsStorageDataCapped::_ensureNewCollection( UINT16 mbID )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _dmsStorageDataCommon::_ensureNewCollection( mbID ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _workExtInfo.allocSlot( mbID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Allocate workExtInfo for slot(%u) failed, rc: %d",
+                 mbID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 }

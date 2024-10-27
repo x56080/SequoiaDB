@@ -97,7 +97,7 @@ namespace engine
 
    coordResource* _CoordCB::getResource()
    {
-      return &_resource ;
+      return sdbGetResourceContainer()->getResource() ;
    }
 
    netRouteAgent* _CoordCB::getRouteAgent()
@@ -222,7 +222,6 @@ namespace engine
       pmdEDUMgr* pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
       CoordVecNodeInfo catalogAddrList ;
-      coordResource *pResource = sdbGetCoordCB()->getResource() ;
 
       // set to primary
       pmdSetPrimary( TRUE ) ;
@@ -286,7 +285,7 @@ namespace engine
       }
 
       // 6. start coordResource MetaCache clean job
-      rc = pResource->active() ;
+      rc = _resource.active() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to active coordResource's job, rc=%d", rc ) ;
@@ -1324,7 +1323,7 @@ retry :
          try
          {
             BSONObj option( pQueryBuff )  ;
-            coordCacheInvalidator assist( getResource() ) ;
+            coordCacheInvalidator assist( &_resource ) ;
             rc = assist.invalidate( option ) ;
             PD_RC_CHECK( rc, PDERROR, "Invalidate cache with option[%s] "
                          "failed[%d]", option.toString().c_str(), rc ) ;

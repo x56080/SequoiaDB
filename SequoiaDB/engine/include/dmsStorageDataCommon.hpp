@@ -405,7 +405,7 @@ namespace engine
    /*
       _dmsMBStatInfo define
    */
-   struct _dmsMBStatInfo
+   struct _dmsMBStatInfo : public SDBObject
    {
       UINT64      _totalRecords ;
       UINT32      _totalDataPages ;
@@ -1489,6 +1489,8 @@ namespace engine
 
          DMS_FILE_TYPE _getAllFileType() const ;
 
+         virtual INT32 _ensureNewCollection( UINT16 mbID ) ;
+
       private:
          void               _initializeMME () ;
 
@@ -1540,8 +1542,15 @@ namespace engine
          // latch for each MB. For normal record SIUD, shared latches are
          // requested exclusive latch on mblock is only when changing
          // metadata (say add an extent into the MB, or create/drop the MB)
-         monSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
-         dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
+         typedef _utilSparseArray<monSpinSLatch, DMS_MME_SLOTS>   MBLOCK_ARRAY ;
+         MBLOCK_ARRAY                        _mblock ;
+
+         //monSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
+         //dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
+
+         typedef _utilSparseArray<dmsMBStatInfo, DMS_MME_SLOTS>   MBSTAT_ARRAY ;
+         MBSTAT_ARRAY                        _mbStatInfo ;
+
          monSpinSLatch                       _metadataLatch ;
          COLNAME_MAP                         _collectionNameMap ;
          COLID_MAP                           _collectionIDMap ;
@@ -1557,7 +1566,10 @@ namespace engine
          _dmsStorageIndex                    *_pIdxSU ;
          _dmsStorageLob                      *_pLobSU ;
 
-         _dmsCompressorEntry                 _compressorEntry[ DMS_MME_SLOTS ] ;
+         typedef _utilSparseArray<_dmsCompressorEntry, DMS_MME_SLOTS>   COMPRESSENTRY_ARRAY ;
+         COMPRESSENTRY_ARRAY                 _compressorEntry ;
+
+         //_dmsCompressorEntry                 _compressorEntry[ DMS_MME_SLOTS ] ;
 
          _IDmsEventHolder                    *_pEventHolder ;
          _IDmsExtDataHandler                 *_pExtDataHandler ;

@@ -44,6 +44,7 @@
 #include "ossRWMutex.hpp"
 #include "ossUtil.hpp"
 #include <vector>
+#include <string>
 
 using namespace std ;
 
@@ -91,7 +92,7 @@ protected:
    OSSFILE  _file ;
    BOOLEAN  _opened ;
    UINT64   _totalLength ;
-   CHAR     _fileName[ OSS_MAX_PATHSIZE + 1 ] ;
+   string   _fileName ;
 
 private:
    engine::ossRWMutex         _rwMutex ;
@@ -180,7 +181,7 @@ public:
    {
       _opened = FALSE ;
       _totalLength = 0 ;
-      ossMemset ( _fileName, 0, sizeof(_fileName) ) ;
+      _fileName.clear() ;
 
       _pSegArray = NULL ;
       _capacity = 0 ;

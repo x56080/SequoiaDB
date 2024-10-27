@@ -529,8 +529,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
-            _mbStatInfo[context->mbID()]._lastCompressRatio =
-                  (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
+            context->mbStat()->_lastCompressRatio =
+               (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
@@ -545,8 +545,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
-            _mbStatInfo[context->mbID()]._lastCompressRatio =
-                  (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
+            context->mbStat()->_lastCompressRatio =
+               (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
@@ -1153,8 +1153,7 @@ namespace engine
          dmsOffset   offset      = extent->_lastRecordOffset ;
          // finally add the record into list
          extent->_recCount++ ;
-         _increaseMBStat( context->mb()->_clUniqueID,
-                          &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+         _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
          // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
@@ -1177,10 +1176,10 @@ namespace engine
          }
       }
 
-      _mbStatInfo[context->mbID()]._lastCompressRatio =
+      context->mbStat()->_lastCompressRatio =
          (UINT8)( recordData.getCompressRatio() * 100 ) ;
-      _mbStatInfo[context->mbID()]._totalOrgDataLen += recordData.orgLen() ;
-      _mbStatInfo[context->mbID()]._totalDataLen += recordData.len() ;
+      context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
+      context->mbStat()->_totalDataLen += recordData.len() ;
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, rc ) ;
@@ -1249,8 +1248,7 @@ namespace engine
          if ( decCount )
          {
             --(pExtent->_recCount) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
          }
       }
       //increase data write counter

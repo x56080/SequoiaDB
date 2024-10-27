@@ -66,7 +66,17 @@ INT32 _ossMmapFile::open ( const CHAR *pFilename,
       PD_LOG ( PDERROR, "Failed to open file, rc: %d", rc ) ;
       goto error ;
    }
-   ossStrncpy ( _fileName, pFilename, OSS_MAX_PATHSIZE ) ;
+
+   try
+   {
+      _fileName = pFilename ;
+   }
+   catch( std::exception &e )
+   {
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error ;
+   }
 
 done :
    PD_TRACE_EXITRC ( SDB__OSSMMF_OPEN, rc );
@@ -433,7 +443,7 @@ INT32 _ossMmapFile::unlink ()
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_UNLINK );
    close() ;
-   rc = ossDelete ( _fileName ) ;
+   rc = ossDelete ( _fileName.c_str() ) ;
    PD_TRACE_EXITRC ( SDB__OSSMMF_UNLINK, rc );
    return rc ;
 }
