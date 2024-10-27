@@ -172,10 +172,6 @@ namespace engine
 
       INT32 rebuildBME() ;
 
-      virtual void incWritePtrCount( INT32 collectionID ) ;
-
-      virtual void decWritePtrCount( INT32 collectionID ) ;
-
    public:
       /// get the segment pages of lobd
       OSS_INLINE UINT32 dataSegmentPages() const ;
