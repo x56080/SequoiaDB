@@ -567,6 +567,7 @@ namespace engine
       _replTimerHandler    = NULL ;
       _replNetRtAgent      = NULL ;
       _shardNetRtAgent     = NULL ;
+      _storageEventHandler = NULL ;
       _shdObj              = NULL ;
       _replObj             = NULL ;
       _pSitePropMgr        = NULL ;
@@ -735,6 +736,14 @@ namespace engine
       rc = _initRemoteSession( _shardNetRtAgent ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init remote session, rc: %d", rc ) ;
 
+      _storageEventHandler = SDB_OSS_NEW _clsStorageEventHandler() ;
+      if ( !_storageEventHandler )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate storage event handler failed" ) ;
+         goto error ;
+      }
+
       _shdObj = SDB_OSS_NEW _clsShardMgr( _shardNetRtAgent ) ;
       if ( !_shdObj )
       {
@@ -839,6 +848,10 @@ namespace engine
 
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( _storageEventHandler ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register storage event handler "
+                      "to DMS, rc: %d", rc ) ;
+
          rc = pmdGetKRCB()->getDMSCB()->regHandler( &_recycleBinMgr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
                       "recycle bin manager to DMS, rc: %d", rc ) ;
@@ -1037,6 +1050,10 @@ namespace engine
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
          pmdGetKRCB()->getDMSCB()->unregHandler( &_recycleBinMgr ) ;
+         if ( _storageEventHandler )
+         {
+            pmdGetKRCB()->getDMSCB()->unregHandler( _storageEventHandler ) ;
+         }
       }
 
       return SDB_OK ;
@@ -1082,6 +1099,7 @@ namespace engine
       SAFE_OSS_DELETE( _pSitePropMgr ) ;
       SAFE_OSS_DELETE( _pResource ) ;
       SAFE_OSS_DELETE( _replNetRtAgent ) ;
+      SAFE_OSS_DELETE( _storageEventHandler ) ;
       SAFE_OSS_DELETE( _replTimerHandler ) ;
       SAFE_OSS_DELETE( _shdTimerHandler ) ;
       SAFE_OSS_DELETE( _replMsgHandlerObj ) ;

@@ -1340,6 +1340,7 @@ namespace engine
       }
       else if ( SDB_OK == rc )
       {
+         groupCount = pSet->groupCount() ;
          if ( 0 == groupCount )
          {
             isExist = FALSE ;

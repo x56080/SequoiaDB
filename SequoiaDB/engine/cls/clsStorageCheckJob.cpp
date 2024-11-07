@@ -45,11 +45,59 @@
 
 namespace engine
 {
+
+   #define DMS_CHECK_ONCE_INTERVAL           ( 100 )
+   #define DMS_CHECK_WAIT_INTERVAL           ( OSS_ONE_SEC * 30 )
+
+   /*
+      _clsStorageEventHandler implement
+   */
+   _clsStorageEventHandler::_clsStorageEventHandler()
+   {
+   }
+
+   _clsStorageEventHandler::~_clsStorageEventHandler()
+   {
+   }
+
+   INT32 _clsStorageEventHandler::onDropCL( SDB_EVENT_OCCUR_TYPE type,
+                                            IDmsEventHolder *pEventHolder,
+                                            IDmsSUCacheHolder *pCacheHolder,
+                                            const dmsEventCLItem &clItem,
+                                            dmsDropCLOptions *options,
+                                            pmdEDUCB *cb,
+                                            SDB_DPSCB *dpsCB )
+   {
+      if ( SDB_EVT_OCCUR_AFTER == type )
+      {
+         dmsEventHolder *holder = dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
+         dmsStorageUnit *su = NULL ;
+
+         if ( holder )
+         {
+            su = holder->getSU() ;
+         }
+
+         if ( su && 0 == su->data()->getCollectionNum() )
+         {
+            SDB_DMSCB *pDmsCB = pmdGetKRCB()->getDMSCB() ;
+            /// ignore error
+            pDmsCB->pushCheckItem( dmsCheckItem( su->CSName(),
+                                                 su->CSUniqueID(),
+                                                 DMS_CHECK_EMPTYCS ) ) ;
+         }
+      }
+
+      return SDB_OK ;
+   }
+
    /*
     *  _clsStorageCheckJob implement
     */
    _clsStorageCheckJob::_clsStorageCheckJob ()
    {
+      _lastCheckCSTick = 0 ;
+      _lastCheckEmptyCSTick = 0 ;
    }
 
    _clsStorageCheckJob::~_clsStorageCheckJob ()
@@ -58,199 +106,668 @@ namespace engine
 
    INT32 _clsStorageCheckJob::doit ()
    {
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      pmdEDUMgr *pEduMgr = krcb->getEDUMgr() ;
       pmdEDUCB *cb = eduCB() ;
-      UINT32 checkInterval = pmdGetKRCB()->getOptionCB()->getDmsChkInterval() ;
+      pmdEDUEvent event ;
 
-      while ( !PMD_IS_DB_DOWN() &&
-              !cb->isForced() )
+      while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
-         pmdKRCB *krcb = pmdGetKRCB() ;
-         pmdEDUMgr *pEduMgr = krcb->getEDUMgr() ;
-         SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
-         shardCB* pShdMgr = sdbGetShardCB() ;
-         pmdEDUEvent event ;
-
-         // If checkInterval is 0 (disable checking), sleep for one hour and
-         // check again whether there is a change
-         UINT32 secInterval = checkInterval > 0 ?
-                              checkInterval * STORAGE_CHECK_UNIT_INTERVAL :
-                              STORAGE_CHECK_UNIT_INTERVAL ;
-
-         MON_CS_LIST csList ;
-
          /*
           * Before any one is found in the queue, the status of this thread is
           * wait. Once found, it will be changed to running.
-          */
+         */
          pEduMgr->waitEDU( cb ) ;
-         cb->waitEvent( event, secInterval ) ;
-         pEduMgr->activateEDU( cb ) ;
+         cb->resetDisconnect() ;
+         cb->waitEvent( event, DMS_CHECK_WAIT_INTERVAL ) ;
 
          // Check stop signal first
-         if ( PMD_IS_DB_DOWN() ||
-              cb->isForced() )
+         if ( cb->isInterrupted() )
+         {
+            continue ;
+         }
+
+         /// set edu active
+         pEduMgr->activateEDU( cb ) ;
+
+         /// check notify item
+         _checkNotifyItem() ;
+
+         /// check empty collectionspaces
+         _checkEmptyCS() ;
+
+         /// check collectionspaces
+         _checkCS() ;
+      }
+
+      return SDB_OK ;
+   }
+
+   void _clsStorageCheckJob::_checkCS()
+   {
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
+      pmdEDUCB *cb = eduCB() ;
+      UINT64 msInterval = krcb->getOptionCB()->getDmsChkInterval() * STORAGE_CHECK_UNIT_INTERVAL ;
+      MON_CSNAME_VEC csVec ;
+      MON_CSNAME_VEC::iterator itCS ;
+
+      if ( 0 == msInterval )
+      {
+         _lastCheckCSTick = pmdGetDBTick() ;
+         goto done ;
+      }
+      else if ( pmdGetTickSpanTime( _lastCheckCSTick ) < msInterval )
+      {
+         goto done ;
+      }
+
+      /// reset check tick
+      _lastCheckCSTick = pmdGetDBTick() ;
+      cb->incEventCount( 1 ) ;
+
+      if ( !krcb->isPrimary() || cb->isInterrupted() )
+      {
+         goto done ;
+      }
+
+      /// dump collectionspace, and check
+      pDmsCB->dumpInfo( csVec, FALSE, FALSE ) ;
+
+      for ( itCS = csVec.begin() ; itCS != csVec.end(); ++itCS )
+      {
+         const monCSName &csItem = *itCS ;
+         INT32 rcTmp = _checkCSItem( csItem, TRUE, msInterval ) ;
+
+         /// check edu stop and primary down
+         if ( SDB_CLS_NOT_PRIMARY == rcTmp || cb->isInterrupted() )
          {
             break ;
          }
 
-         // Get interval(hour) in runtime
-         checkInterval = pmdGetKRCB()->getOptionCB()->getDmsChkInterval() ;
+         /// sleep a time
+         ossSleep( DMS_CHECK_ONCE_INTERVAL ) ;
+      }
 
-         // Only check for primary node when checking enabled (interval > 0)
-         if ( !krcb->isPrimary() ||
-              !pShdMgr ||
-              checkInterval == 0 )
+   done:
+      return ;
+   }
+
+   void _clsStorageCheckJob::_checkEmptyCS()
+   {
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
+      pmdEDUCB *cb = eduCB() ;
+      UINT64 msInterval = krcb->getOptionCB()->getDmsChkInterval() * STORAGE_CHECK_UNIT_INTERVAL / 6 ;
+      MON_CSNAME_VEC csVec ;
+      MON_CSNAME_VEC::iterator itCS ;
+
+      if ( 0 == msInterval )
+      {
+         _lastCheckEmptyCSTick = pmdGetDBTick() ;
+         goto done ;
+      }
+      else if ( pmdGetTickSpanTime( _lastCheckEmptyCSTick ) < msInterval )
+      {
+         goto done ;
+      }
+
+      /// reset check tick
+      _lastCheckEmptyCSTick = pmdGetDBTick() ;
+      cb->incEventCount( 1 ) ;
+
+      if ( !krcb->isPrimary() || cb->isInterrupted() )
+      {
+         goto done ;
+      }
+
+      /// dump collectionspace, and check
+      pDmsCB->dumpInfo( csVec, FALSE, TRUE ) ;
+
+      for ( itCS = csVec.begin() ; itCS != csVec.end(); ++itCS )
+      {
+         const monCSName &csItem = *itCS ;
+         INT32 rcTmp = _checkEmptyCSItem( csItem, FALSE, msInterval ) ;
+
+         /// check edu stop and primary down
+         if ( SDB_CLS_NOT_PRIMARY == rcTmp || cb->isInterrupted() )
          {
-            PD_LOG( PDDEBUG,
-                    "clsStorageCheckJob: job is not enabled, interval: %u",
-                    checkInterval ) ;
+            break ;
+         }
+      }
+
+   done:
+      return ;
+   }
+
+   void _clsStorageCheckJob::_checkNotifyItem()
+   {
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
+      const UINT64 msInterval = 30 * OSS_ONE_SEC ;       /// 30 secs
+      pmdEDUCB *cb = eduCB() ;
+      dmsCheckItem item ;
+
+      if ( cb->isInterrupted() )
+      {
+         goto done ;
+      }
+
+      while( pDmsCB->dispatchCheckItem( item ) )
+      {
+         INT32 rcTmp = SDB_OK ;
+         INT32 checkCataStatus = CLS_CHK_CATA_NONE ;
+
+         /// push back and break
+         if ( pmdGetTickSpanTime( item._dbTick ) < msInterval )
+         {
+            pDmsCB->pushCheckItem( item ) ;
+            break ;
+         }
+         else if ( !krcb->isPrimary() )
+         {
             continue ;
          }
 
-         PD_LOG( PDDEBUG,
-                 "clsStorageCheckJob: start job, interval: %u",
-                 checkInterval ) ;
+         cb->incEventCount( 1 ) ;
 
-         pDmsCB->dumpInfo( csList, FALSE ) ;
-
-         MON_CS_LIST::const_iterator iterCS = csList.begin() ;
-         for ( ; iterCS != csList.end(); ++iterCS )
+         if ( DMS_CHECK_CS == item._type )
          {
-            INT32 rc = SDB_OK ;
+            monCSName csName( item._name, item._csUniqueID ) ;
+            rcTmp = _checkCSItem( csName, TRUE, 0, &checkCataStatus ) ;
+         }
+         else if ( DMS_CHECK_CL == item._type )
+         {
+            rcTmp = _checkCLItem( item._name, item._clUniqueID, &checkCataStatus ) ;
+         }
+         else if ( DMS_CHECK_EMPTYCS == item._type )
+         {
+            monCSName csName( item._name, item._csUniqueID ) ;
+            rcTmp = _checkEmptyCSItem( csName, TRUE, 0 ) ;
 
-            SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
-
-            const _monCollectionSpace &cs = *iterCS ;
-            utilCSUniqueID csUniqueID = cs._csUniqueID ;
-            dmsStorageUnitID suID = DMS_INVALID_SUID ;
-            dmsStorageUnit *su = NULL ;
-            SINT64 contextID = -1 ;
-            rtnContextBuf buffObj ;
-
-            PD_LOG( PDDEBUG,
-                    "clsStorageCheckJob: checking space [%s]",
-                    cs._name ) ;
-
-            // Check stop signal
-            if ( PMD_IS_DB_DOWN() ||
-                 cb->isForced() )
+            if ( SDB_DMS_CS_NOT_EMPTY == rcTmp ||
+                 SDB_LOCK_FAILED == rcTmp ||
+                 SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rcTmp )
             {
-               break ;
+               /// need check the collectionspace is empty again
+               dmsStorageUnitID suID = DMS_INVALID_SUID ;
+               dmsStorageUnit *su = NULL ;
+               if ( SDB_OK == pDmsCB->idToSUAndLock( item._csUniqueID, suID, &su ) )
+               {
+                  if ( su && 0 == su->data()->getCollectionNum() )
+                  {
+                     /// ignore push failed
+                     pDmsCB->pushCheckItem( dmsCheckItem( item._name,
+                                                          item._csUniqueID,
+                                                          DMS_CHECK_EMPTYCS ) ) ;
+                  }
+                  pDmsCB->suUnlock( suID ) ;
+               }
             }
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Unknow notify item(Name: %s, Type: %u)",
+                    item._name, item._type ) ;
+         }
 
-            // only check cs which has valid unique id
-            if ( ! UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-            {
-               continue ;
-            }
+         /// when check with catalog failed, need push and retry next time
+         if ( CLS_CHK_CATA_FAILED == checkCataStatus )
+         {
+            item._dbTick = pmdGetDBTick() ;
+            pDmsCB->pushCheckItem( item ) ;
+         }
 
-            // Lock space first
-            rc = pDmsCB->idToSUAndLock( csUniqueID, suID, &su, SHARED ) ;
+         /// check edu stop
+         if ( cb->isInterrupted() )
+         {
+            break ;
+         }
+      }
 
-            if ( SDB_OK != rc )
-            {
-               if ( DMS_INVALID_SUID != suID )
-               {
-                  pDmsCB->suUnlock( suID, SHARED ) ;
-                  suID = DMS_INVALID_SUID ;
-                  su = NULL ;
-               }
-               PD_LOG( PDDEBUG,
-                       "clsStorageCheckJob: "
-                       "space [%s] might be dropped by another command, rc: %d",
-                       cs._name, rc ) ;
-               continue ;
-            }
+   done:
+      return ;
+   }
 
-            rc = pShdMgr->rGetCSInfo( cs._name, csUniqueID ) ;
+   INT32 _clsStorageCheckJob::_checkCSItem( monCSName csName,
+                                            BOOLEAN checkUniqueID,
+                                            UINT64 noAccessTime,
+                                            INT32 *pCheckCataStatus )
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
+      shardCB  *pShdMgr = krcb->getClsCB()->getShardCB() ;
 
-            pDmsCB->suUnlock( suID, SHARED ) ;
-            suID = DMS_INVALID_SUID ;
-            su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+      SINT64 contextID = -1 ;
+      UINT64 lastAccessDBTick = 0 ;
+      rtnContextBuf buffObj ;
+      rtnContextDelCS::sharePtr pDelContext ;
 
-            if ( SDB_DMS_CS_NOTEXIST != rc )
-            {
-               continue ;
-            }
+      if ( pCheckCataStatus )
+      {
+         *pCheckCataStatus = CLS_CHK_CATA_NONE ;
+      }
 
-            PD_LOG( PDWARNING,
-                    "clsStorageCheckJob: "
-                    "space[name: %s, id: %u] doesn't exist in catalog but exists in "
-                    "storage, remove it from storage",
-                    cs._name, csUniqueID ) ;
+      // only check cs which has valid unique id
+      if ( checkUniqueID && ! UTIL_IS_VALID_CSUNIQUEID( csName._csUniqueID ) )
+      {
+         goto done ;
+      }
 
-            do
-            {
-               rtnContextDelCS::sharePtr pDelContext ;
+      // Lock space first
+      if ( UTIL_IS_VALID_CSUNIQUEID( csName._csUniqueID ) )
+      {
+         rc = pDmsCB->idToSUAndLock( csName._csUniqueID, suID, &su, SHARED ) ;
+      }
+      else
+      {
+         rc = pDmsCB->nameToSUAndLock( csName._csName, suID, &su, SHARED ) ;
+      }
 
-               // Create a DelCS context to drop the collection space
-               rc = pRtnCB->contextNew( RTN_CONTEXT_DELCS,
-                                        pDelContext,
-                                        contextID, cb ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDWARNING,
-                          "clsStorageCheckJob: "
-                          "failed to create DelCS context [%s], rc: %d",
-                          cs._name, rc ) ;
-                  break ;
-               }
+      if ( rc )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s) might be dropped by another command, rc: %d",
+                 csName._csName, rc ) ;
+         goto error ;
+      }
 
-               // Open the context, execute phase 1
-               rc = pDelContext->open( cs._name, NULL, cb ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDWARNING,
-                          "clsStorageCheckJob: failed to "
-                          "open DelCS context[name: %s, id: %u], rc: %d",
-                          cs._name, csUniqueID, rc ) ;
-                  break ;
-               }
+      /// check unique id
+      if ( UTIL_UNIQUEID_NULL != csName._csUniqueID &&
+           csName._csUniqueID != su->CSUniqueID() )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s, %u) unique ID is not the same(%u)",
+                 csName._csName, su->CSUniqueID(), csName._csUniqueID ) ;
+         goto done ;
+      }
 
-               // Now, check the catalog again, if someone re-create the
-               // collection space, kill the context
-               rc = pShdMgr->rGetCSInfo( cs._name, csUniqueID ) ;
-               if ( SDB_DMS_CS_NOTEXIST != rc )
-               {
-                  PD_LOG( PDWARNING,
-                          "clsStorageCheckJob: "
-                          "space [%s] exists in catalog after phase 1, kill "
-                          "the context to restore the files",
-                          cs._name ) ;
-                  break ;
-               }
+      lastAccessDBTick = su->getLastAccessDBTick() ;
+      /// check access time
+      if ( noAccessTime > 0 && pmdGetTickSpanTime( lastAccessDBTick ) < noAccessTime )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s) is accessed in last %llu ms, "
+                 "last access tick: %llu, time span: %llu ms",
+                 csName._csName, noAccessTime, lastAccessDBTick,
+                 pmdGetTickSpanTime( lastAccessDBTick ) ) ;
+         goto done ;
+      }
 
-               // Continue to process the phase 2 of context
-               rc = pDelContext->getMore( -1, buffObj, cb ) ;
-               if ( SDB_DMS_EOC == rc )
-               {
-                  PD_LOG( PDDEBUG,
-                          "clsStorageCheckJob: "
-                          "removed space [%s]",
-                          cs._name ) ;
-               }
-               else if ( SDB_OK != rc )
-               {
-                  // context deleted inside rtnGetMore
-                  PD_LOG( PDWARNING,
-                          "clsStorageCheckJob: "
-                          "failed to execute DelCS context [%s], rc: %d",
-                          cs._name, rc ) ;
-               }
-            } while ( FALSE ) ;
+      /// unlock
+      pDmsCB->suUnlock( suID, SHARED ) ;
+      suID = DMS_INVALID_SUID ;
+      su = NULL ;
 
-            // At last, delete the context
-            if ( -1 != contextID )
-            {
-               pRtnCB->contextDelete( contextID, cb ) ;
-               contextID = -1 ;
-            }
-         } // End for
+      /// check with catalog
+      rc = pShdMgr->rGetCSInfo( csName._csName, csName._csUniqueID ) ;
+      if ( SDB_DMS_CS_NOTEXIST != rc )
+      {
+         if ( pCheckCataStatus )
+         {
+            *pCheckCataStatus = ( SDB_OK == rc ) ? CLS_CHK_CATA_SUC : CLS_CHK_CATA_FAILED ;
+         }
+         rc = SDB_OK ;
+         goto done ;
+      }
 
-         PD_LOG( PDDEBUG, "clsStorageCheckJob: end job" ) ;
+      // Create a DelCS context to drop the collection space
+      rc = pRtnCB->contextNew( RTN_CONTEXT_DELCS,
+                               pDelContext,
+                               contextID, eduCB() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Create DelCS context(Name: %s, UniqueID: %u) failed, rc: %d",
+                 csName._csName, csName._csUniqueID, rc ) ;
+         goto error ;
+      }
 
-      } // End while
-      return SDB_OK ;
+      // Open the context, execute phase 1
+      rc = pDelContext->open( csName._csName, NULL, eduCB() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Open DelCS context(Name: %s, UniqueID: %u) failed, rc: %d",
+                 csName._csName, csName._csUniqueID, rc ) ;
+         goto error ;
+      }
+
+      // Now, check the catalog again, if someone re-create the
+      // collection space, kill the context
+      rc = pShdMgr->rGetCSInfo( csName._csName, csName._csUniqueID ) ;
+      if ( SDB_DMS_CS_NOTEXIST != rc )
+      {
+         if ( pCheckCataStatus )
+         {
+            *pCheckCataStatus = ( SDB_OK == rc ) ? CLS_CHK_CATA_SUC : CLS_CHK_CATA_FAILED ;
+         }
+         rc = SDB_OK ;
+         goto done ;
+      }
+
+      if ( pCheckCataStatus )
+      {
+         *pCheckCataStatus = CLS_CHK_CATA_SUC ;
+      }
+
+      /// re-check primary
+      if ( !krcb->isPrimary() )
+      {
+         /// not primary, can't do drop operator
+         rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+
+      // Continue to process the phase 2 of context
+      rc = pDelContext->getMore( -1, buffObj, eduCB() ) ;
+      if ( SDB_OK == rc || SDB_DMS_EOC == rc )
+      {
+         PD_LOG( PDEVENT, "Drop collection space(Name: %s, ID: %u) succeed, because it's no "
+                 "longer exists in catalog", csName._csName, csName._csUniqueID ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Drop collection space(Name: %s, ID: %u) failed, rc: %d",
+                 csName._csName, csName._csUniqueID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         pDmsCB->suUnlock( suID, SHARED ) ;
+         suID = DMS_INVALID_SUID ;
+         su = NULL ;
+      }
+
+      if ( -1 != contextID )
+      {
+         pRtnCB->contextDelete( contextID, eduCB() ) ;
+         contextID = -1 ;
+      }
+
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsStorageCheckJob::_checkEmptyCSItem( const monCSName &csName,
+                                                 BOOLEAN checkUniqueID,
+                                                 UINT64 noAccessTime )
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *pDpsCB = krcb->getDPSCB() ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+      UINT64 lastAccessDBTick = 0 ;
+
+      // only check cs which has valid unique id
+      if ( checkUniqueID && ! UTIL_IS_VALID_CSUNIQUEID( csName._csUniqueID ) )
+      {
+         goto done ;
+      }
+
+      // Lock space first
+      if ( UTIL_IS_VALID_CSUNIQUEID( csName._csUniqueID ) )
+      {
+         rc = pDmsCB->idToSUAndLock( csName._csUniqueID, suID, &su, SHARED ) ;
+      }
+      else
+      {
+         rc = pDmsCB->nameToSUAndLock( csName._csName, suID, &su, SHARED ) ;
+      }
+
+      if ( rc )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s) might be dropped by another command, rc: %d",
+                 csName._csName, rc ) ;
+         goto error ;
+      }
+
+      /// check unique id
+      if ( csName._csUniqueID != su->CSUniqueID() )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s, %u) unique ID is not the same(%u)",
+                 csName._csName, su->CSUniqueID(), csName._csUniqueID ) ;
+         goto done ;
+      }
+
+      lastAccessDBTick = su->getLastAccessDBTick() ;
+      /// check access time
+      if ( noAccessTime > 0 && pmdGetTickSpanTime( lastAccessDBTick ) < noAccessTime )
+      {
+         PD_LOG( PDDEBUG, "Collection space(%s) is accessed in last %llu ms, "
+                 "last access tick: %llu, time span: %llu ms",
+                 csName._csName, noAccessTime, lastAccessDBTick,
+                 pmdGetTickSpanTime( lastAccessDBTick ) ) ;
+         goto done ;
+      }
+
+      /// unlock
+      pDmsCB->suUnlock( suID, SHARED ) ;
+      suID = DMS_INVALID_SUID ;
+      su = NULL ;
+
+      /// re-check primary
+      if ( !krcb->isPrimary() )
+      {
+         /// not primary, can't do drop operator
+         rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+
+      rc = pDmsCB->dropEmptyCollectionSpace( csName._csName, eduCB(), pDpsCB ) ;
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDEVENT, "Drop empty collection space(Name: %s, ID: %u) succeed",
+                 csName._csName, csName._csUniqueID ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Drop empty collection space(Name: %s, ID: %u) failed, rc: %d",
+                 csName._csName, csName._csUniqueID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         pDmsCB->suUnlock( suID, SHARED ) ;
+         suID = DMS_INVALID_SUID ;
+         su = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsStorageCheckJob::_checkCLItem( const CHAR *clName,
+                                            utilCLUniqueID clUniqueID,
+                                            INT32 *pCheckCataStatus )
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      pmdOptionsCB *optionCB = krcb->getOptionCB() ;
+      SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
+
+      SINT64 contextID = -1 ;
+      rtnContextBuf buffObj ;
+      rtnContextDelCL::sharePtr pDelContext ;
+
+      BOOLEAN exist = FALSE ;
+
+      if ( pCheckCataStatus )
+      {
+         *pCheckCataStatus = CLS_CHK_CATA_NONE ;
+      }
+
+      // only check cl which has valid unique id
+      if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+      {
+         goto done ;
+      }
+
+      /// check with catalog
+      rc = _checkCLExist( clName, clUniqueID, exist ) ;
+      if ( rc )
+      {
+         if ( pCheckCataStatus )
+         {
+            *pCheckCataStatus = CLS_CHK_CATA_FAILED ;
+         }
+         rc = SDB_OK ; /// cat not primary should reset
+         goto done ;
+      }
+      else if ( exist )
+      {
+         goto done ;
+      }
+
+      // Create a DelCL context to drop the collection
+      rc = pRtnCB->contextNew( RTN_CONTEXT_DELCL,
+                               pDelContext,
+                               contextID, eduCB() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Create DelCL context(Name: %s, UniqueID: %llu) failed, rc: %d",
+                 clName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+      // Open the context, execute phase 1
+      rc = pDelContext->open( clName, NULL, eduCB(), optionCB->transReplSize() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Open DelCL context(Name: %s, UniqueID: %llu) failed, rc: %d",
+                 clName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+      // Now, check the catalog again, if someone re-create the collection, kill the context
+      rc = _checkCLExist( clName, clUniqueID, exist ) ;
+      if ( rc )
+      {
+         if ( pCheckCataStatus )
+         {
+            *pCheckCataStatus = CLS_CHK_CATA_FAILED ;
+         }
+         rc = SDB_OK ; /// cat not primary should reset
+         goto done ;
+      }
+      else if ( exist )
+      {
+         goto done ;
+      }
+
+      if ( pCheckCataStatus )
+      {
+         *pCheckCataStatus = CLS_CHK_CATA_SUC ;
+      }
+
+      /// re-check primary
+      if ( !krcb->isPrimary() )
+      {
+         /// not primary, can't do drop operator
+         rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+
+      // Continue to process the phase 2 of context
+      rc = pDelContext->getMore( -1, buffObj, eduCB() ) ;
+      if ( SDB_OK == rc || SDB_DMS_EOC == rc )
+      {
+         PD_LOG( PDEVENT, "Drop collection(Name: %s, ID: %llu) succeed, because it's no "
+                 "longer exists in catalog", clName, clUniqueID ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Drop collection(Name: %s, ID: %llu) failed, rc: %d",
+                 clName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         pRtnCB->contextDelete( contextID, eduCB() ) ;
+         contextID = -1 ;
+      }
+      if ( exist && pCheckCataStatus )
+      {
+         *pCheckCataStatus = CLS_CHK_CATA_SUC ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsStorageCheckJob::_checkCLExist( const CHAR *clName,
+                                             utilCLUniqueID clUniqueID,
+                                             BOOLEAN &exist )
+   {
+      INT32 rc = SDB_OK ;
+      shardCB *pShdMgr = sdbGetShardCB() ;
+      clsCatalogSet *pSet = NULL ;
+      UINT32 groupCount = 0 ;
+      utilCLUniqueID remoteCLUniqueID = UTIL_UNIQUEID_NULL ;
+
+      rc = pShdMgr->syncUpdateCatalog( clUniqueID, clName ) ;
+      if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+      {
+         exist = FALSE ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDWARNING, "Update catalog info(Name: %s, ID: %llu) failed, rc: %d",
+                 clName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+      rc = pShdMgr->getAndLockCataSet( clName, &pSet, FALSE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDINFO, "Get catalog info(Name: %s, ID: %llu) failed, rc: %d",
+                 clName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+      /// check unique id
+      groupCount = pSet->groupCount() ;
+      remoteCLUniqueID = pSet->clUniqueID() ;
+      pShdMgr->unlockCataSet( pSet ) ;
+
+      if ( 0 == groupCount )
+      {
+         /// clear local catalog info
+         pShdMgr->getCataAgent()->lock_w() ;
+         pShdMgr->getCataAgent()->clear( clName ) ;
+         pShdMgr->getCataAgent()->release_w() ;
+      }
+
+      /// the unique id not the same
+      if ( remoteCLUniqueID != clUniqueID )
+      {
+         rc = SDB_DMS_UNIQUEID_CONFLICT ;
+         goto error ;
+      }
+      else if ( 0 == groupCount )
+      {
+         exist = FALSE ;
+      }
+      else
+      {
+         exist = TRUE ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 startStorageCheckJob ( EDUID *pEDUID )

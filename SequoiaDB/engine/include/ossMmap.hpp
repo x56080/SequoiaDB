@@ -60,7 +60,8 @@ public:
       ossValuePtr _ptr ;
       UINT32      _length ;
       UINT64      _offset ;
-      INT64       _lastAccessTick ;
+      UINT64      _lastAccessTick ;
+      UINT64      _lastFreeTick ;
 #if defined (_WINDOWS)
       HANDLE _maphandle ;
 #endif
@@ -69,7 +70,8 @@ public:
          _ptr = ptr ;
          _length = length ;
          _offset = offset ;
-         _lastAccessTick = 0 ;
+         _lastAccessTick = 1 ;
+         _lastFreeTick = 0 ;
 #if defined (_WINDOWS)
          _maphandle = INVALID_HANDLE_VALUE ;
 #endif
@@ -80,7 +82,8 @@ public:
          _ptr = 0 ;
          _length = 0 ;
          _offset = 0 ;
-         _lastAccessTick = 0 ;
+         _lastAccessTick = 1 ;
+         _lastFreeTick = 0 ;
 #if defined (_WINDOWS)
          _maphandle = INVALID_HANDLE_VALUE ;
 #endif
@@ -103,6 +106,7 @@ private:
    ossMmapSegment*            _pTmpArray ;
 
    mutable volatile UINT64    _lastAccessTick ;
+   UINT64                     _lastFreeTick ;
 
    void  _clearSeg() ;
    INT32 _ensureSpace( UINT32 size ) ;
@@ -152,6 +156,12 @@ public:
       if ( _pGetTickFunc )
       {
          _lastAccessTick = (*_pGetTickFunc)() ;
+
+         if ( 0 == _lastAccessTick )
+         {
+            _lastAccessTick = 1 ;
+         }
+
          _pSegArray[ pos ]._lastAccessTick = _lastAccessTick ;
       }
       return tmpPtr ;
@@ -160,11 +170,21 @@ public:
    OSS_INLINE void setGetTickFunc( UINT64 (*pGetTickFunc)() )
    {
       _pGetTickFunc = pGetTickFunc ;
+
+      if ( _pGetTickFunc )
+      {
+         _lastAccessTick = (*_pGetTickFunc)() ;
+
+         if ( 0 == _lastAccessTick )
+         {
+            _lastAccessTick = 1 ;
+         }
+      }
    }
 
-   OSS_INLINE void setFileAccessTick( UINT64 tick )
+   OSS_INLINE void setFileFreeTick( UINT64 tick )
    {
-      _lastAccessTick = tick ;
+      _lastFreeTick = tick ;
    }
 
    OSS_INLINE UINT64 getFileAccessTick() const
@@ -172,9 +192,13 @@ public:
       return _lastAccessTick ;
    }
 
-   void setSegmentAccessTick( UINT32 pos, UINT64 tick ) ;
+   OSS_INLINE UINT64 getFileLastFreeTick() const
+   {
+      return _lastFreeTick ;
+   }
 
    UINT64 getSegmentAccessTick( UINT32 pos ) const ;
+   UINT64 getSegmentFreeTick( UINT32 pos ) const ;
 
 public:
    _ossMmapFile ()
@@ -187,7 +211,8 @@ public:
       _capacity = 0 ;
       _size = 0 ;
       _pTmpArray = NULL ;
-      _lastAccessTick = 0 ;
+      _lastAccessTick = 1 ;
+      _lastFreeTick = 0 ;
       _pGetTickFunc = NULL ;
    }
    virtual ~_ossMmapFile ()

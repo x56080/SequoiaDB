@@ -65,6 +65,7 @@ namespace engine
    class _clsMgr ;
    class _schedTaskAdapterBase ;
    class _schedTaskContanierMgr ;
+   class _clsStorageEventHandler ;
 
    /*
       _innerSessionInfo define
@@ -373,6 +374,8 @@ namespace engine
 
          _netRouteAgent                *_replNetRtAgent ;
          _netRouteAgent                *_shardNetRtAgent ;
+
+         _clsStorageEventHandler       *_storageEventHandler ;
 
          _clsShardMgr                  *_shdObj ;
          _clsReplicateSet              *_replObj ;

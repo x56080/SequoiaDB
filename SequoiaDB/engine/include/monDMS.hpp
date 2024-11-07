@@ -111,7 +111,7 @@ namespace engine
    } ;
 
    typedef class _monIndex monIndex ;
-   typedef vector<monIndex> MON_IDX_LIST ;
+   typedef ossPoolVector<monIndex> MON_IDX_LIST ;
 
    /*
       _detailedInfo define
@@ -322,8 +322,8 @@ namespace engine
 
    typedef class _monCLSimple monCLSimple ;
 
-   typedef ossPoolSet<monCLSimple>  MON_CL_SIM_LIST ;
-   typedef std::vector<monCLSimple> MON_CL_SIM_VEC ;
+   typedef ossPoolSet<monCLSimple>     MON_CL_SIM_LIST ;
+   typedef ossPoolVector<monCLSimple>  MON_CL_SIM_VEC ;
 
    /*
       _monCollection define
@@ -731,11 +731,14 @@ namespace engine
    */
    struct _monCSName
    {
-      CHAR     _csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
+      CHAR              _csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
+      utilCSUniqueID    _csUniqueID ;
 
-      _monCSName( const CHAR *pCSName = NULL )
+      _monCSName( const CHAR *pCSName = NULL,
+                  utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL )
       {
          ossMemset( _csName, 0, sizeof( _csName ) ) ;
+         _csUniqueID = csUniqueID ;
 
          if ( pCSName )
          {
@@ -746,16 +749,18 @@ namespace engine
       _monCSName( const _monCSName &right )
       {
          ossStrcpy( _csName, right._csName ) ;
+         _csUniqueID = right._csUniqueID ;
       }
 
       _monCSName& operator= ( const _monCSName &right )
       {
          ossStrcpy( _csName, right._csName ) ;
+         _csUniqueID = right._csUniqueID ;
          return *this ;
       }
    } ;
    typedef _monCSName monCSName ;
-   typedef std::vector< monCSName >          MON_CSNAME_VEC ;
+   typedef ossPoolVector< monCSName >           MON_CSNAME_VEC ;
 
    class _monRecycleItem : public _utilRecycleItem
    {

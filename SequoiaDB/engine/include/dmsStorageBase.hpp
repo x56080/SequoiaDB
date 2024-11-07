@@ -692,7 +692,7 @@ namespace engine
          INT32    _validateHeader( dmsStorageUnitHeader *pHeader ) ;
          INT32    _preExtendSegment() ;
          INT32    _postOpen( INT32 cause ) ;
-         BOOLEAN  _isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const ;
+         BOOLEAN  _isExpired( UINT64 lastAccessTick, UINT64 lastFreeTick, UINT64 expiredMs ) const ;
          BOOLEAN  _canInvalidateDataSegCache( UINT32 segmentID, UINT64 expiredMs ) const ;
          BOOLEAN  _canInvalidateMetaSegCache( UINT64 expiredMs ) const ;
 

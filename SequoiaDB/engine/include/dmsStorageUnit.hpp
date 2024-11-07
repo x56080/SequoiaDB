@@ -434,9 +434,12 @@ namespace engine
             return _storageInfo._updateTime ;
          }
 
+         UINT64      getLastAccessDBTick( UINT32 type = DMS_SU_ALL ) const ;
+
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
-                             BOOLEAN sys = FALSE ) ;
+                             BOOLEAN sys = FALSE,
+                             BOOLEAN dumpIdx = FALSE ) ;
          INT32    dumpInfo ( monCLSimple &collection,
                              dmsMBContext *context,
                              BOOLEAN dumpIdx = FALSE ) ;
@@ -451,7 +454,8 @@ namespace engine
                              BOOLEAN dumpCL = FALSE,
                              BOOLEAN dumpIdx = FALSE ) ;
          INT32    dumpInfo ( monCollectionSpace &collectionSpace,
-                             BOOLEAN sys = FALSE ) ;
+                             BOOLEAN sys = FALSE,
+                             BOOLEAN dumpIdx = FALSE ) ;
 
          INT32    dumpCLInfo ( const CHAR *collectionName,
                                monCollection &info ) ;
@@ -478,11 +482,9 @@ namespace engine
          // Dump helper functions
          // NOTE: Should be called after mbContext is locked or
          //       metadataLatch is locked
-         INT32    _dumpCLInfo ( monCollection &collection,
-                                UINT16 mbID ) ;
+         INT32    _dumpCLInfo ( monCollection &collection, UINT16 mbID ) ;
 
-         INT32    _dumpCLInfo ( monCLSimple &collection,
-                                UINT16 mbID ) ;
+         INT32    _dumpCLInfo ( monCLSimple &collection, UINT16 mbID ) ;
 
          INT32    _getIndexes ( const dmsMB *mb,
                                 MON_IDX_LIST &resultIndexes,

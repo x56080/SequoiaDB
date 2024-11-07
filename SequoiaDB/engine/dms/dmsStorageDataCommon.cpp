@@ -2753,12 +2753,6 @@ namespace engine
          _onHeaderUpdated() ;
       }
 
-      if ( _pEventHolder )
-      {
-         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
-                                  clItem, options, cb, dpscb ) ;
-      }
-
       // write dps log
       if ( dpscb )
       {
@@ -2771,6 +2765,18 @@ namespace engine
       {
          cb->setDataExInfo( fullName, _logicalCSID, context->clLID(),
                             DMS_INVALID_EXTENT ) ;
+      }
+
+      if ( metalocked )
+      {
+         ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
+         metalocked = FALSE ;
+      }
+
+      if ( _pEventHolder )
+      {
+         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
+                                  clItem, options, cb, dpscb ) ;
       }
 
    done:

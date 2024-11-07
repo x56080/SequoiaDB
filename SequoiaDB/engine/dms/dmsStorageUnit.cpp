@@ -3599,7 +3599,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLSIMLIST, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo( MON_CL_SIM_LIST &clList,
-                                    BOOLEAN sys )
+                                    BOOLEAN sys,
+                                    BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLSIMLIST ) ;
       INT32 rc = SDB_OK ;
@@ -3648,6 +3649,31 @@ namespace engine
          }
       }
 
+      if ( dumpIdx )
+      {
+         // Dump indexes for each collection
+         MON_CL_SIM_LIST::iterator iter = clList.begin() ;
+         while ( iter != clList.end() )
+         {
+            rc = getIndexes( iter->_clname, (MON_IDX_LIST&)(iter->_idxList) ) ;
+            if ( SDB_OOM == rc )
+            {
+               goto error ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               ++ iter ;
+            }
+            else
+            {
+               // Dump index with error, erase this collection from list
+               // The collection may be dropped
+               clList.erase( iter++ ) ;
+               rc = SDB_OK ;
+            }
+         }
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__DMSSU_DUMPINFO_CLSIMLIST, rc ) ;
       return rc ;
@@ -3677,6 +3703,7 @@ namespace engine
       collection.setName( CSName(), context->mb()->_collectionName ) ;
       collection._blockID = context->mbID() ;
       collection._logicalID = context->clLID() ;
+      collection._clUniqueID = context->mb()->_clUniqueID ;
 
       if ( dumpIdx )
       {
@@ -3699,8 +3726,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLLIST, "_dmsStorageUnit::dumpInfo" )
-   INT32 _dmsStorageUnit::dumpInfo ( MON_CL_LIST &clList,
-                                     BOOLEAN sys )
+   INT32 _dmsStorageUnit::dumpInfo ( MON_CL_LIST &clList, BOOLEAN sys )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLLIST ) ;
       INT32 rc = SDB_OK ;
@@ -3803,7 +3829,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CS, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo ( monCollectionSpace &collectionSpace,
-                                     BOOLEAN sys )
+                                     BOOLEAN sys,
+                                     BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CS ) ;
       INT32 rc = SDB_OK ;
@@ -3871,7 +3898,7 @@ namespace engine
       collectionSpace._createTime = getCreateTime() ;
       collectionSpace._updateTime = getUpdateTime() ;
 
-      rc = dumpInfo ( collectionSpace._collections, sys, FALSE ) ;
+      rc = dumpInfo ( collectionSpace._collections, sys, dumpIdx ) ;
 
       PD_TRACE_EXITRC ( SDB__DMSSU_DUMPINFO_CS, rc ) ;
       return rc ;
@@ -4129,6 +4156,37 @@ namespace engine
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
 
+   UINT64 _dmsStorageUnit::getLastAccessDBTick( UINT32 type ) const
+   {
+      UINT64 dbTick = 0 ;
+
+      /// check data
+      if ( ( type & DMS_SU_DATA ) && _pDataSu )
+      {
+          dbTick = _pDataSu->getFileAccessTick() ;
+      }
+      /// check index
+      if ( ( type & DMS_SU_INDEX ) && _pIndexSu )
+      {
+         UINT64 accessTick = _pIndexSu->getFileAccessTick() ;
+         if ( accessTick > dbTick )
+         {
+            dbTick = accessTick ;
+         }
+      }
+      /// check lob
+      if ( ( type & DMS_SU_LOB ) && _pLobSu && _pLobSu->isOpened() )
+      {
+         UINT64 accessTick = _pLobSu->getFileAccessTick() ;
+         if ( accessTick > dbTick )
+         {
+            dbTick = accessTick ;
+         }
+      }
+
+      return dbTick ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CL, "_dmsStorageUnit::_dumpCLInfo" )
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
@@ -4229,8 +4287,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CLSIMPLE, "_dmsStorageUnit::_dumpCLInfo" )
-   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection,
-                                        UINT16 mbID )
+   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
 

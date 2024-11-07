@@ -248,6 +248,18 @@ namespace engine
          }
       }
 
+      dmsDictJob job ;
+      while( dispatchDictJob( job ) )
+      {
+         /// donothing
+      }
+
+      dmsCheckItem item ;
+      while( dispatchCheckItem( item ) )
+      {
+         /// donothing
+      }
+
       return SDB_OK ;
    }
 
@@ -3223,7 +3235,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPCLSIMPLE, "_SDB_DMSCB::dumpInfo" )
    INT32 _SDB_DMSCB::dumpInfo( MON_CL_SIM_LIST &collectionList,
-                               BOOLEAN sys )
+                               BOOLEAN sys,
+                               BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPCLSIMPLE );
       INT32 rc = SDB_OK ;
@@ -3249,7 +3262,7 @@ namespace engine
          {
             continue ;
          }
-         rc = su->dumpInfo ( collectionList, sys ) ;
+         rc = su->dumpInfo ( collectionList, sys, dumpIdx ) ;
          if ( rc )
          {
             goto error ;
@@ -3376,7 +3389,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPINFO2, "_SDB_DMSCB::dumpInfo" )
-   INT32 _SDB_DMSCB::dumpInfo ( MON_CS_LIST &csList, BOOLEAN sys )
+   INT32 _SDB_DMSCB::dumpInfo ( MON_CS_LIST &csList, BOOLEAN sys, BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPINFO2 );
 
@@ -3407,7 +3420,7 @@ namespace engine
             continue ;
          }
          monCollectionSpace cs ;
-         rc = su->dumpInfo ( cs, sys ) ;
+         rc = su->dumpInfo ( cs, sys, dumpIdx ) ;
          try
          {
             csList.insert ( cs ) ;
@@ -3510,8 +3523,9 @@ namespace engine
       PD_TRACE_EXIT ( SDB__SDB_DMSCB_DUMPINFO4 );
    }
 
-   void _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
+   INT32 _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
    {
+      INT32 rc = SDB_OK ;
       ossScopedLock _lock( &_mutex, SHARED ) ;
 
       SDB_DMS_CSCB *cscb      = NULL ;
@@ -3528,9 +3542,64 @@ namespace engine
          {
             continue ;
          }
+
          /// push back
-         vecCS.push_back( monCSName( cscb->_name ) ) ;
+         try
+         {
+            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
       }
+      return rc ;
+   }
+
+   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, BOOLEAN onlyEmpty )
+   {
+      INT32 rc = SDB_OK ;
+      CSCB_MAP_CONST_ITER it ;
+
+      ossScopedLock _lock( &_mutex, SHARED ) ;
+
+      for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
+      {
+         dmsStorageUnit *su = NULL ;
+         dmsStorageUnitID suID = (*it).second ;
+
+         SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
+         if ( !cscb )
+         {
+            continue ;
+         }
+         su = cscb->_su ;
+         SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
+
+         if ( ( !sys && dmsIsSysCSName(su->CSName()) ) ||
+              ( ossStrcmp ( su->CSName(), SDB_DMSTEMP_NAME ) == 0 ) )
+         {
+            continue ;
+         }
+         else if ( onlyEmpty && cscb->_su->data()->getCollectionNum() > 0 )
+         {
+            continue ;
+         }
+
+         /// push back
+         try
+         {
+            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
+      } // for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
+
+      return rc ;
    }
 
    UINT32 _SDB_DMSCB::nullCSUniqueIDCnt() const
@@ -3670,9 +3739,37 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
-   void _SDB_DMSCB::pushDictJob( dmsDictJob job )
+   INT32 _SDB_DMSCB::pushDictJob( const dmsDictJob &job )
    {
-      _dictWaitQue.push( job ) ;
+      try
+      {
+         _dictWaitQue.push( job ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push dict job: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
+   }
+
+   BOOLEAN _SDB_DMSCB::dispatchCheckItem( dmsCheckItem &item )
+   {
+      return _checkItemQue.try_pop( item ) ;
+   }
+
+   INT32 _SDB_DMSCB::pushCheckItem( const dmsCheckItem &item )
+   {
+      try
+      {
+         _checkItemQue.push( item ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push check item: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_AQUIRE_CSMUTEX, "_SDB_DMSCB::aquireCSMutex" )

@@ -857,6 +857,8 @@ namespace engine
 
       if ( _canInvalidateMetaSegCache( expiredMs ) )
       {
+         UINT64 lastAccessTick = getFileAccessTick() ;
+
          for ( i = 0 ; i < _dataSegID ; ++i )
          {
             rcTmp = freeCache( i ) ;
@@ -870,8 +872,7 @@ namespace engine
 
          if ( SDB_OK == rc )
          {
-            // set it to unknown to reduce duplicate invalidation
-            setFileAccessTick( 0 ) ;
+            setFileFreeTick( lastAccessTick ) ;
          }
       }
 
@@ -880,12 +881,7 @@ namespace engine
          if ( _canInvalidateDataSegCache( i, expiredMs ) )
          {
             rcTmp = freeCache( i ) ;
-            if ( SDB_OK == rcTmp )
-            {
-               // set it to unknown to reduce duplicate invalidation
-               setSegmentAccessTick( i, 0 ) ;
-            }
-            else
+            if ( rcTmp )
             {
                PD_LOG( PDWARNING, "Failed to invalidate cache of segment[%d], "
                        "rc: %d", i, rcTmp ) ;
@@ -2581,21 +2577,26 @@ namespace engine
 
    BOOLEAN _dmsStorageBase::_canInvalidateDataSegCache( UINT32 segmentID, UINT64 expiredMs ) const
    {
-      return ( _isExpired( getSegmentAccessTick( segmentID ), expiredMs ) &&
+      return ( _isExpired( getSegmentAccessTick( segmentID ),
+                           getSegmentFreeTick( segmentID),
+                           expiredMs ) &&
                !_dirtyList.isDirty( segmentID - _dataSegID ) ) ;
    }
 
    BOOLEAN _dmsStorageBase::_canInvalidateMetaSegCache( UINT64 expiredMs ) const
    {
-      return ( _isExpired( getFileAccessTick(), expiredMs ) && 0 == _dirtyList.dirtyNumber() ) ;
+      return ( _isExpired( getFileAccessTick(),
+                           getFileLastFreeTick(),
+                           expiredMs ) &&
+               0 == _dirtyList.dirtyNumber() ) ;
    }
 
-   BOOLEAN _dmsStorageBase::_isExpired( UINT64 lastAccessTick, UINT64 expiredMs ) const
+   BOOLEAN _dmsStorageBase::_isExpired( UINT64 lastAccessTick, UINT64 lastFreeTick, UINT64 expiredMs ) const
    {
       // expiredMs == 0 means expired immediately
-      // lastAccessTick == 0 means no new access since last cache invalidation
+      // lastAccessTick == lastFreeTick means no new access since last cache invalidation
       return ( 0 == expiredMs ||
-               ( lastAccessTick != 0 &&
+               ( lastAccessTick != lastFreeTick &&
                  pmdGetTickSpanTime( lastAccessTick ) > expiredMs ) ) ;
    }
 }
