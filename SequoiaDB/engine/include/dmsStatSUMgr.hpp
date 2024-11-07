@@ -155,7 +155,8 @@ namespace engine
                                       pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onDropCL ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                  IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,
                                   const dmsEventCLItem &clItem,
                                   pmdEDUCB *cb,

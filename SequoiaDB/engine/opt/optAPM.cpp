@@ -1628,7 +1628,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPCL, "_optAccessPlanManager::onDropCL" )
-   INT32 _optAccessPlanManager::onDropCL ( IDmsEventHolder *pEventHolder,
+   INT32 _optAccessPlanManager::onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                           IDmsEventHolder *pEventHolder,
                                            IDmsSUCacheHolder *pCacheHolder,
                                            const dmsEventCLItem &clItem,
                                            pmdEDUCB *cb,
@@ -1640,9 +1641,12 @@ namespace engine
 
       SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 
-      if ( pCacheHolder && isInitialized() )
+      if ( SDB_EVT_OCCUR_BEFORE == type )
       {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         if ( pCacheHolder && isInitialized() )
+         {
+            _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPCL, rc ) ;

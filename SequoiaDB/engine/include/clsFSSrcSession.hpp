@@ -244,8 +244,6 @@ namespace engine
                                     MAP_SU_STATUS &validCLs,
                                     INT32 &nomore ) ;
 
-      BOOLEAN _hasExternalData() const ;
-
    private:
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;

@@ -2350,47 +2350,6 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _clsFSSrcSession::_hasExternalData() const
-   {
-      BOOLEAN result = FALSE ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      MON_CS_SIM_LIST csList ;
-
-      dmsCB->dumpInfo( csList, FALSE, TRUE, TRUE ) ;
-      for ( MON_CS_SIM_LIST::iterator csItr = csList.begin();
-            csItr != csList.end(); ++csItr )
-      {
-         for ( MON_CL_SIM_VEC::const_iterator clItr = csItr->_clList.begin();
-               clItr != csItr->_clList.end(); ++clItr )
-         {
-            for ( MON_IDX_LIST::const_iterator idxItr = clItr->_idxList.begin();
-                  idxItr != clItr->_idxList.end(); ++idxItr )
-            {
-               INT32 rcTmp = SDB_OK ;
-               UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
-               rcTmp = idxItr->getIndexType( idxType ) ;
-               if ( rcTmp )
-               {
-                  // Only warning, and process the remaining ones.
-                  PD_LOG( PDERROR, "Get type of index failed[ %d ], cs[ %s ],"
-                                   " cl[ %s ], index[ %s ]",
-                          rcTmp, csItr->_name, clItr->_name,
-                          idxItr->getIndexName() ) ;
-                  continue;
-               }
-               // Only dump text indices in normal status.
-               if ( IXM_EXTENT_TYPE_TEXT == idxType )
-               {
-                  result = TRUE;
-                  goto done ;
-               }
-            }
-         }
-      }
-   done:
-      return result ;
-   }
-
    INT32 _clsFSSrcSession::_extractBeginBody( const BSONObj &obj,
                                               MAP_SU_STATUS &validCLs,
                                               INT32 &nomore,

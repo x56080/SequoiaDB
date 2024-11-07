@@ -59,6 +59,7 @@ namespace engine
       _pDpsCB = pmdGetKRCB()->getDPSCB() ;
       _pCatAgent = pmdGetKRCB()->getClsCB ()->getCatAgent () ;
       _pTransCB = pmdGetKRCB()->getTransCB();
+      _csUniqueID = UTIL_UNIQUEID_NULL ;
       _gotDmsCBWrite = FALSE ;
       _gotLogSize = 0 ;
       _logicCSID = DMS_INVALID_LOGICCSID ;
@@ -81,6 +82,12 @@ namespace engine
                     _name, rcTmp );
          }
          _status = DELCSPHASE_0;
+
+         /// push to check item
+         if ( cb->isInterrupted() && getDPSCB() )
+         {
+            _pDmsCB->pushCheckItem( dmsCheckItem( _name, _csUniqueID, DMS_CHECK_CS ) ) ;
+         }
       }
       _clean( cb );
    }
@@ -280,6 +287,7 @@ namespace engine
                      pCollectionName, rc ) ;
 
          logicCSID = su->LogicalCSID() ;
+         _csUniqueID = su->CSUniqueID() ;
 
          _pDmsCB->suUnlock ( suID ) ;
          suID = DMS_INVALID_CS ;
@@ -357,9 +365,11 @@ namespace engine
       _gotDmsCBWrite = FALSE ;
       _hasLock       = FALSE ;
       _hasDropped    = FALSE ;
+      _status        = DELCLPHASE_0 ;
       _mbContext     = NULL ;
       _su            = NULL ;
       _clShortName   = NULL ;
+      _clUniqueID    = UTIL_UNIQUEID_NULL ;
       _hitEnd = FALSE ;
       ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
       ossMemset( _csName, 0, sizeof( _csName ) ) ;
@@ -369,6 +379,13 @@ namespace engine
    {
       pmdEDUMgr *eduMgr    = pmdGetKRCB()->getEDUMgr() ;
       pmdEDUCB *cb         = eduMgr->getEDUByID( eduID() ) ;
+
+      if ( DELCLPHASE_1 == _status &&
+           cb->isInterrupted() &&
+           getDPSCB() )
+      {
+         _pDmsCB->pushCheckItem( dmsCheckItem( _collectionName, _clUniqueID, DMS_CHECK_CL ) ) ;
+      }
       _clean( cb ) ;
    }
 
@@ -403,14 +420,17 @@ namespace engine
                       _csName, rc ) ;
       }
 
+      rc = _su->data()->getMBContext( &_mbContext, _clShortName,
+                                      EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
+                   "rc: %d", pCollectionName, rc ) ;
+
+      _clUniqueID = _mbContext->mb()->_clUniqueID ;
+
       // lock collection
       if ( getDPSCB() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = _su->data()->getMBContext( &_mbContext, _clShortName,
-                                         EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
-                      "rc: %d", pCollectionName, rc ) ;
 
          rc = _pTransCB->transLockTryX( cb, _su->LogicalCSID(),
                                         _mbContext->mbID(),
@@ -435,14 +455,6 @@ namespace engine
       extHandler = _su->data()->getExtDataHandler() ;
       if ( extHandler )
       {
-         if ( !_mbContext )
-         {
-            rc = _su->data()->getMBContext( &_mbContext, _clShortName,
-                                            EXCLUSIVE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
-                         "rc: %d", pCollectionName, rc ) ;
-         }
-
          rc = extHandler->onDelCL( _su->CSName(), _clShortName, cb ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
@@ -501,7 +513,9 @@ namespace engine
 
       rc = _tryLock( pCollectionName, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock(rc=%d)", rc ) ;
+
       _isOpened = TRUE ;
+      _status = DELCLPHASE_1 ;
 
    done:
       return rc ;
@@ -568,6 +582,7 @@ namespace engine
 
       _clean( cb ) ;
       rc = SDB_DMS_EOC ;
+      _status = DELCLPHASE_0 ;
 
       /// wait all collection's task finished
       cb->writingDB( FALSE ) ;
@@ -820,6 +835,7 @@ namespace engine
 
       ossStrcpy( _name, pCollectionName ) ;
       _isOpened = TRUE;
+
    done:
       return rc;
    error:

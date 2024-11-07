@@ -109,6 +109,9 @@ namespace engine
    */
    #define DMS_CHANGESTATE_WAIT_LOOP   100
 
+   /*
+      _dmsDictJob define
+   */
    struct _dmsDictJob
    {
       dmsStorageUnitID _suID ;
@@ -141,6 +144,62 @@ namespace engine
    } ;
    typedef _dmsDictJob dmsDictJob ;
 
+   #define DMS_CHECK_CS             1
+   #define DMS_CHECK_CL             2
+   #define DMS_CHECK_EMPTYCS        3
+   /*
+      _dmsCheckItem define
+   */
+   struct _dmsCheckItem
+   {
+      CHAR           _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      utilCSUniqueID _csUniqueID ;
+      utilCLUniqueID _clUniqueID ;
+      UINT32         _type ;
+      UINT64         _dbTick ;
+
+      _dmsCheckItem( const CHAR *name = "",
+                     const utilCSUniqueID &csUniqueID = UTIL_UNIQUEID_NULL,
+                     UINT32 type = 0 )
+      {
+         ossMemset( _name, 0, sizeof( _name ) ) ;
+         setItem( name, csUniqueID, type ) ;
+      }
+
+      _dmsCheckItem( const CHAR *name,
+                     const utilCLUniqueID &cLUniqueID,
+                     UINT32 type )
+      {
+         ossMemset( _name, 0, sizeof( _name ) ) ;
+         setItem( name, cLUniqueID, type ) ;
+      }
+
+      void setItem( const CHAR *name, const utilCSUniqueID &csUniqueID, UINT32 type )
+      {
+         ossStrncpy( _name, name, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _name[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+         _csUniqueID = csUniqueID ;
+         _clUniqueID = UTIL_UNIQUEID_NULL ;
+         _type = type ;
+         _dbTick = pmdGetDBTick() ;
+      }
+
+      void setItem( const CHAR *name, const utilCLUniqueID &clUniqueID, UINT32 type )
+      {
+         ossStrncpy( _name, name, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _name[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+         _csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
+         _clUniqueID = clUniqueID ;
+         _type = type ;
+         _dbTick = pmdGetDBTick() ;
+      }
+
+   } ;
+   typedef _dmsCheckItem dmsCheckItem ;
+
+   /*
+      _dmsDataStatMgr define
+   */
    class _dmsDataStatMgr : public _IDataStatManager
    {
    public :
@@ -222,6 +281,7 @@ namespace engine
        * queue.
        */
       ossQueue<dmsDictJob>    _dictWaitQue ;
+      ossQueue<dmsCheckItem>  _checkItemQue ;
 
       monSpinXLatch           _stateMtx;
       ossEvent                _blockEvent ;
@@ -240,6 +300,8 @@ namespace engine
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
 
       dmsPageMappingDispatcher   _pageMapDispatcher ;
+
+      DMS_HANDLER_LIST           _handlers ;
 
    private:
       void  _logCSCBNameMap () ;
@@ -336,8 +398,6 @@ namespace engine
 
       void _nullCSUniqueIDCntDec() ;
 
-      void _registerHandler ( _IDmsEventHandler *pHandler) ;
-
    public:
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
@@ -409,7 +469,8 @@ namespace engine
                                      SDB_DPSCB *dpsCB ) ;
 
       INT32 dumpInfo ( MON_CL_SIM_LIST &collectionList,
-                       BOOLEAN sys = FALSE ) ;
+                       BOOLEAN sys = FALSE,
+                       BOOLEAN dumpIdx = FALSE ) ;
       INT32 dumpInfo ( MON_CS_SIM_LIST &csList,
                        BOOLEAN sys = FALSE,
                        BOOLEAN dumpCL = FALSE,
@@ -418,13 +479,18 @@ namespace engine
       INT32 dumpInfo ( MON_CL_LIST &collectionList,
                        BOOLEAN sys = FALSE ) ;
       INT32 dumpInfo ( MON_CS_LIST &csList,
-                       BOOLEAN sys = FALSE ) ;
+                       BOOLEAN sys = FALSE,
+                       BOOLEAN dumpIdx = FALSE ) ;
       INT32 dumpInfo ( MON_SU_LIST &storageUnitList,
                        BOOLEAN sys = FALSE ) ;
 
+      INT32 dumpInfo( MON_CSNAME_VEC &vecCS,
+                      BOOLEAN sys = FALSE,
+                      BOOLEAN onlyEmpty = FALSE ) ;
+
       void dumpInfo ( INT64 &totalFileSize );
 
-      void dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS ) ;
+      INT32 dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS ) ;
 
       UINT32 nullCSUniqueIDCnt() const ;
 
@@ -454,7 +520,10 @@ namespace engine
                                     SDB_DPSCB *dpsCB ) ;
 
       BOOLEAN dispatchDictJob( dmsDictJob &job ) ;
-      void pushDictJob( dmsDictJob job ) ;
+      INT32 pushDictJob( const dmsDictJob &job ) ;
+
+      BOOLEAN dispatchCheckItem( dmsCheckItem &item ) ;
+      INT32 pushCheckItem( const dmsCheckItem &item ) ;
 
       void setIxmKeySorterCreator( dmsIxmKeySorterCreator* creator ) ;
       dmsIxmKeySorterCreator* getIxmKeySorterCreator() ;
@@ -506,6 +575,9 @@ namespace engine
       void clearAllCRUDCB () ;
       INT32 clearSUCRUDCB ( const CHAR * collectionSpace ) ;
       INT32 clearMBCRUDCB ( const CHAR * collection ) ;
+
+      INT32 regHandler ( _IDmsEventHandler *pHandler ) ;
+      void unregHandler ( _IDmsEventHandler *pHandler ) ;
    } ;
    typedef class _SDB_DMSCB SDB_DMSCB ;
 

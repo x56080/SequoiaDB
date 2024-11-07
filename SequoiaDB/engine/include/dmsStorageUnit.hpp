@@ -172,11 +172,15 @@ namespace engine
 
          virtual ~_dmsEventHolder () ;
 
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) ;
+         virtual void setHandlers ( DMS_HANDLER_LIST *handlers )
+         {
+            _handlers = handlers ;
+         }
 
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregAllHandlers () ;
+         virtual void unsetHandlers ()
+         {
+            _handlers = NULL ;
+         }
 
          virtual INT32 onCreateCS ( UINT32 mask,
                                     pmdEDUCB *cb,
@@ -218,6 +222,7 @@ namespace engine
                                       SDB_DPSCB *dpsCB ) ;
 
          virtual INT32 onDropCL ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
                                   const dmsEventCLItem &clItem,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
@@ -265,19 +270,21 @@ namespace engine
 
          virtual UINT32 getSULID () const ;
 
+         dmsStorageUnit *getSU()
+         {
+            return _su ;
+         }
+
          OSS_INLINE virtual void setCacheHolder ( dmsCacheHolder *pCacheHolder )
          {
             _pCacheHolder = pCacheHolder ;
          }
 
       protected :
-         typedef ossPoolList<_IDmsEventHandler *> HANDLER_LIST ;
-
          dmsStorageUnit *     _su ;
          dmsCacheHolder *     _pCacheHolder ;
-         HANDLER_LIST         _handlers ;
+         DMS_HANDLER_LIST *   _handlers ;
    } ;
-
 
    /*
       _dmsStorageUnit define
@@ -379,9 +386,12 @@ namespace engine
             return _storageInfo._updateTime ;
          }
 
+         UINT64      getLastAccessDBTick( UINT32 type = DMS_SU_ALL ) const ;
+
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
-                             BOOLEAN sys = FALSE ) ;
+                             BOOLEAN sys = FALSE,
+                             BOOLEAN dumpIdx = FALSE ) ;
          INT32    dumpInfo ( monCLSimple &collection,
                              dmsMBContext *context,
                              BOOLEAN dumpIdx = FALSE ) ;
@@ -396,7 +406,8 @@ namespace engine
                              BOOLEAN dumpCL = FALSE,
                              BOOLEAN dumpIdx = FALSE ) ;
          INT32    dumpInfo ( monCollectionSpace &collectionSpace,
-                             BOOLEAN sys = FALSE ) ;
+                             BOOLEAN sys = FALSE,
+                             BOOLEAN dumpIdx = FALSE ) ;
 
          INT32    dumpCLInfo ( const CHAR *collectionName,
                                monCollection &info ) ;
@@ -419,11 +430,9 @@ namespace engine
          // Dump helper functions
          // NOTE: Should be called after mbContext is locked or
          //       metadataLatch is locked
-         INT32    _dumpCLInfo ( monCollection &collection,
-                                UINT16 mbID ) ;
+         INT32    _dumpCLInfo ( monCollection &collection, UINT16 mbID ) ;
 
-         INT32    _dumpCLInfo ( monCLSimple &collection,
-                                UINT16 mbID ) ;
+         INT32    _dumpCLInfo ( monCLSimple &collection, UINT16 mbID ) ;
 
          INT32    _getIndexes ( const dmsMB *mb,
                                 MON_IDX_LIST &resultIndexes ) ;
@@ -579,9 +588,8 @@ namespace engine
       public :
          _IDmsEventHolder * getEventHolder () ;
 
-         void regEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandlers () ;
+         void setEventHandlers ( DMS_HANDLER_LIST *handlers ) ;
+         void unsetEventHandlers () ;
 
          dmsSUCache *getSUCache ( UINT32 type ) ;
 

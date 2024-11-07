@@ -122,6 +122,7 @@ namespace engine
 
    _SDB_DMSCB::~_SDB_DMSCB()
    {
+      SDB_ASSERT( _handlers.empty(), "all handlers should be unregistered" ) ;
       // make sure dms control block is finalized
       fini() ;
    }
@@ -157,13 +158,6 @@ namespace engine
       {
          rc = _statSUMgr.init() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to init stat cb, rc: %d", rc ) ;
-
-         // Register statistics SU manager
-         // which is not registered in loading phase
-         if ( _statSUMgr.initialized() )
-         {
-            _registerHandler( &_statSUMgr ) ;
-         }
       }
 
       rc = _localSUMgr.init() ;
@@ -179,6 +173,13 @@ namespace engine
    INT32 _SDB_DMSCB::active ()
    {
       INT32 rc = SDB_OK ;
+
+      if ( _statSUMgr.initialized() )
+      {
+         rc = regHandler( &_statSUMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "statistics manager to DMS, rc: %d", rc ) ;
+      }
 
       rc = _pageMapDispatcher.active() ;
       if ( rc )
@@ -196,6 +197,10 @@ namespace engine
 
    INT32 _SDB_DMSCB::deactive ()
    {
+      if ( _statSUMgr.initialized() )
+      {
+         unregHandler( &_statSUMgr ) ;
+      }
       return SDB_OK ;
    }
 
@@ -221,6 +226,18 @@ namespace engine
             SDB_OSS_DEL _vecCSMutex[ i ] ;
             _vecCSMutex[ i ] = NULL ;
          }
+      }
+
+      dmsDictJob job ;
+      while( dispatchDictJob( job ) )
+      {
+         /// donothing
+      }
+
+      dmsCheckItem item ;
+      while( dispatchCheckItem( item ) )
+      {
+         /// donothing
       }
 
       return SDB_OK ;
@@ -1876,14 +1893,7 @@ namespace engine
          dpsCB->writeData( info ) ;
       }
 
-      // statistics SU manager might not be initialized
-      // 1. during dmsCB initialization (will be registered later)
-      // 2. in CATALOG node
-      if ( _statSUMgr.initialized() )
-      {
-         su->regEventHandler( &_statSUMgr ) ;
-      }
-      su->regEventHandler( pRtnCB->getAPM() ) ;
+      su->setEventHandlers( &_handlers ) ;
 
       if ( isLocked )
       {
@@ -2582,7 +2592,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPCLSIMPLE, "_SDB_DMSCB::dumpInfo" )
    INT32 _SDB_DMSCB::dumpInfo( MON_CL_SIM_LIST &collectionList,
-                               BOOLEAN sys )
+                               BOOLEAN sys,
+                               BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPCLSIMPLE );
       INT32 rc = SDB_OK ;
@@ -2608,7 +2619,7 @@ namespace engine
          {
             continue ;
          }
-         rc = su->dumpInfo ( collectionList, sys ) ;
+         rc = su->dumpInfo ( collectionList, sys, dumpIdx ) ;
          if ( rc )
          {
             goto error ;
@@ -2735,7 +2746,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPINFO2, "_SDB_DMSCB::dumpInfo" )
-   INT32 _SDB_DMSCB::dumpInfo ( MON_CS_LIST &csList, BOOLEAN sys )
+   INT32 _SDB_DMSCB::dumpInfo ( MON_CS_LIST &csList, BOOLEAN sys, BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPINFO2 );
 
@@ -2766,7 +2777,7 @@ namespace engine
             continue ;
          }
          monCollectionSpace cs ;
-         rc = su->dumpInfo ( cs, sys ) ;
+         rc = su->dumpInfo ( cs, sys, dumpIdx ) ;
          try
          {
             csList.insert ( cs ) ;
@@ -2869,8 +2880,9 @@ namespace engine
       PD_TRACE_EXIT ( SDB__SDB_DMSCB_DUMPINFO4 );
    }
 
-   void _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
+   INT32 _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
    {
+      INT32 rc = SDB_OK ;
       ossScopedLock _lock( &_mutex, SHARED ) ;
 
       SDB_DMS_CSCB *cscb      = NULL ;
@@ -2887,9 +2899,64 @@ namespace engine
          {
             continue ;
          }
+
          /// push back
-         vecCS.push_back( monCSName( cscb->_name ) ) ;
+         try
+         {
+            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
       }
+      return rc ;
+   }
+
+   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, BOOLEAN onlyEmpty )
+   {
+      INT32 rc = SDB_OK ;
+      CSCB_MAP_CONST_ITER it ;
+
+      ossScopedLock _lock( &_mutex, SHARED ) ;
+
+      for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
+      {
+         dmsStorageUnit *su = NULL ;
+         dmsStorageUnitID suID = (*it).second ;
+
+         SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
+         if ( !cscb )
+         {
+            continue ;
+         }
+         su = cscb->_su ;
+         SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
+
+         if ( ( !sys && dmsIsSysCSName(su->CSName()) ) ||
+              ( ossStrcmp ( su->CSName(), SDB_DMSTEMP_NAME ) == 0 ) )
+         {
+            continue ;
+         }
+         else if ( onlyEmpty && cscb->_su->data()->getCollectionNum() > 0 )
+         {
+            continue ;
+         }
+
+         /// push back
+         try
+         {
+            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
+      } // for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
+
+      return rc ;
    }
 
    UINT32 _SDB_DMSCB::nullCSUniqueIDCnt() const
@@ -2906,25 +2973,6 @@ namespace engine
    {
       _nullCSUniqueIDCnt-- ;
    }
-
-   void _SDB_DMSCB::_registerHandler ( _IDmsEventHandler *pHandler)
-   {
-      ossScopedLock lock( &_mutex, SHARED ) ;
-
-      for ( CSCB_ITERATOR iter = _cscbVec.begin() ;
-            iter != _cscbVec.end();
-            ++ iter )
-      {
-         if ( NULL == (*iter) )
-         {
-            continue ;
-         }
-         _dmsStorageUnit * su = (*iter)->_su ;
-         SDB_ASSERT( su, "su is invalid" ) ;
-         su->regEventHandler( pHandler ) ;
-      }
-   }
-
 
    dmsTempSUMgr *_SDB_DMSCB::getTempSUMgr ()
    {
@@ -3048,9 +3096,37 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
-   void _SDB_DMSCB::pushDictJob( dmsDictJob job )
+   INT32 _SDB_DMSCB::pushDictJob( const dmsDictJob &job )
    {
-      _dictWaitQue.push( job ) ;
+      try
+      {
+         _dictWaitQue.push( job ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push dict job: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
+   }
+
+   BOOLEAN _SDB_DMSCB::dispatchCheckItem( dmsCheckItem &item )
+   {
+      return _checkItemQue.try_pop( item ) ;
+   }
+
+   INT32 _SDB_DMSCB::pushCheckItem( const dmsCheckItem &item )
+   {
+      try
+      {
+         _checkItemQue.push( item ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push check item: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_AQUIRE_CSMUTEX, "_SDB_DMSCB::aquireCSMutex" )
@@ -3269,6 +3345,72 @@ namespace engine
 
    error :
       goto done ;
+   }
+
+   INT32 _SDB_DMSCB::regHandler ( _IDmsEventHandler *pHandler )
+   {
+      INT32 rc = SDB_OK ;
+
+      // only main thread can register handler
+      SDB_ASSERT( pmdGetThreadEDUCB() &&
+                  EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                  "Must register in main thread" ) ;
+
+      if ( NULL == pHandler )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers.begin() ;
+            iter != _handlers.end() ;
+            ++ iter )
+      {
+         if ( *iter == pHandler )
+         {
+            goto done ;
+         }
+      }
+
+      try
+      {
+         _handlers.push_back( pHandler ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add handler, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _SDB_DMSCB::unregHandler ( _IDmsEventHandler *pHandler )
+   {
+      // only main thread can unregister handler
+      SDB_ASSERT( pmdGetThreadEDUCB() &&
+                  EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                  "Must register in main thread" ) ;
+
+      if ( NULL == pHandler )
+      {
+         return ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers.begin() ;
+            iter != _handlers.end() ;
+            ++ iter )
+      {
+         if ( *iter == pHandler )
+         {
+            _handlers.erase( iter ) ;
+            break ;
+         }
+      }
    }
 
    /*

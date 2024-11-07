@@ -92,11 +92,12 @@ namespace engine
 
    private:
       delCSPhase           _status;
-      _SDB_DMSCB            *_pDmsCB;
+      _SDB_DMSCB           *_pDmsCB;
       dpsTransCB           *_pTransCB;
       _clsCatalogAgent     *_pCatAgent;
       CHAR                 _name[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ];
       UINT32               _gotLogSize;
+      utilCSUniqueID       _csUniqueID ;
       BOOLEAN              _gotDmsCBWrite;
       UINT32               _logicCSID;
    };
@@ -107,7 +108,14 @@ namespace engine
    */
    class _rtnContextDelCL : public _rtnContextBase
    {
+      enum delCLPhase
+      {
+         DELCLPHASE_0 = 0,
+         DELCLPHASE_1
+      };
+
       DECLARE_RTN_CTX_AUTO_REGISTER()
+
    public:
       _rtnContextDelCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextDelCL();
@@ -147,6 +155,8 @@ namespace engine
       BOOLEAN              _gotDmsCBWrite ;
       BOOLEAN              _hasLock ;
       BOOLEAN              _hasDropped ;
+      delCLPhase           _status ;
+      utilCLUniqueID       _clUniqueID ;
 
       _dmsStorageUnit      *_su ;
       _dmsMBContext        *_mbContext ;

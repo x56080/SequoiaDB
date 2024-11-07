@@ -108,6 +108,9 @@ namespace engine
       {
          SDB_OSS_DEL ( prefRequest ) ;
       }
+
+      _preLoaderList.clear() ;
+
       return SDB_OK ;
    }
 
@@ -126,21 +129,54 @@ namespace engine
       EDUID preLoaderEDU = 0 ;
       pmdKRCB *krcb = pmdGetKRCB () ;
       pmdEDUMgr *eduMgr = krcb->getEDUMgr () ;
+      bpsPreLoadReq *request = NULL ;
 
       // create a new pre-load request
-      bpsPreLoadReq *request = SDB_OSS_NEW bpsPreLoadReq ( DMS_INVALID_CS,
-                                                     ~0, DMS_INVALID_EXTENT ) ;
+      request = SDB_OSS_NEW bpsPreLoadReq ( DMS_INVALID_CS, ~0, DMS_INVALID_EXTENT ) ;
       if ( !request )
       {
          PD_LOG ( PDERROR, "Failed to allocate memory for prefetch request" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
-      _dropBackQueue.push ( request ) ;
-      eduMgr->startEDU ( EDU_TYPE_PREFETCHER, NULL, &preLoaderEDU ) ;
-      _preLoaderList.push_back ( preLoaderEDU ) ;
+
+      try
+      {
+         _dropBackQueue.push ( request ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push request: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      request = NULL ;
+
+      rc = eduMgr->startEDU ( EDU_TYPE_PREFETCHER, NULL, &preLoaderEDU ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Start preload thread failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         _preLoaderList.push_back ( preLoaderEDU ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push edu: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done :
+      if ( request )
+      {
+         SDB_OSS_DEL request ;
+         request = NULL ;
+      }
       return rc ;
    error :
       goto done ;
@@ -159,7 +195,18 @@ namespace engine
       }
 
       *req = request ;
-      _requestQueue.push ( req ) ;
+
+      try
+      {
+         _requestQueue.push ( req ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception when push request: %s", e.what() ) ;
+         SDB_OSS_DEL req ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done :
       return rc ;
@@ -170,9 +217,12 @@ namespace engine
    INT32 _bpsCB::sendPrefechReq( const bpsDataPref & request,
                                  BOOLEAN inPref )
    {
+      INT32 rc = SDB_OK ;
+
       if ( 0 == _maxPrefPool )
       {
-         return SDB_SYS ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
       if ( FALSE == inPref && _idlePrefAgentNum.peek() <= 1 &&
@@ -186,9 +236,21 @@ namespace engine
       }
 
       // push to queque
-      _dataPrefetchQueue.push( request ) ;
+      try
+      {
+         _dataPrefetchQueue.push( request ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when push prefetch request: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
-      return SDB_OK ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

@@ -61,56 +61,10 @@ namespace engine
    {
       SDB_ASSERT( su, "Storage Unit is no valid" ) ;
       _su = su ;
-      unregAllHandlers() ;
    }
 
    _dmsEventHolder::~_dmsEventHolder ()
    {
-      unregAllHandlers() ;
-   }
-
-   void _dmsEventHolder::regHandler ( _IDmsEventHandler *pHandler )
-   {
-      if ( !pHandler )
-      {
-         return ;
-      }
-
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
-            ++ iter )
-      {
-         if ( *iter == pHandler )
-         {
-            return ;
-         }
-      }
-
-      _handlers.push_back( pHandler ) ;
-   }
-
-   void _dmsEventHolder::unregHandler ( _IDmsEventHandler *pHandler )
-   {
-      if ( pHandler )
-      {
-         return ;
-      }
-
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
-            ++ iter )
-      {
-         if ( *iter == pHandler )
-         {
-            _handlers.erase( iter ) ;
-            break ;
-         }
-      }
-   }
-
-   void _dmsEventHolder::unregAllHandlers ()
-   {
-      _handlers.clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCRTCS, "_dmsEventHolder::onCreateCS" )
@@ -126,9 +80,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -162,9 +120,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -198,9 +160,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -236,9 +202,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -273,9 +243,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -313,9 +287,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -354,9 +332,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -395,9 +377,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -421,6 +407,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPCL, "_dmsEventHolder::onDropCL" )
    INT32 _dmsEventHolder::onDropCL ( UINT32 mask,
+                                     SDB_EVENT_OCCUR_TYPE type,
                                      const dmsEventCLItem &clItem,
                                      pmdEDUCB *cb,
                                      SDB_DPSCB *dpsCB )
@@ -435,15 +422,19 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
          if ( pHandler && ( pHandler->getMask() & mask ) )
          {
-            INT32 tmprc = pHandler->onDropCL( this, _pCacheHolder, clItem,
+            INT32 tmprc = pHandler->onDropCL( type, this, _pCacheHolder, clItem,
                                               cb, dpsCB ) ;
             if ( SDB_OK != tmprc )
             {
@@ -476,9 +467,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -517,9 +512,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -559,9 +558,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -600,9 +603,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -641,9 +648,13 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -672,8 +683,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLRSUCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -687,8 +703,8 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLRSUCACHES, rc ) ;
-
       return rc ;
    }
 
@@ -700,8 +716,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLRCLCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -716,8 +737,8 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLRCLCACHES, rc ) ;
-
       return rc ;
    }
 
@@ -728,8 +749,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHGSUCACHES ) ;
 
-      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
-            iter != _handlers.end() ;
+      if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
             ++ iter )
       {
          _IDmsEventHandler *pHandler = (*iter) ;
@@ -743,8 +769,8 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHGSUCACHES, rc ) ;
-
       return rc ;
    }
 
@@ -1160,7 +1186,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU_DESC ) ;
       close() ;
 
-      _eventHolder.unregAllHandlers() ;
       _cacheHolder.deleteAllSUCaches() ;
 
       if ( _pIndexSu )
@@ -2887,7 +2912,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLSIMLIST, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo( MON_CL_SIM_LIST &clList,
-                                    BOOLEAN sys )
+                                    BOOLEAN sys,
+                                    BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLSIMLIST ) ;
       INT32 rc = SDB_OK ;
@@ -2936,6 +2962,31 @@ namespace engine
          }
       }
 
+      if ( dumpIdx )
+      {
+         // Dump indexes for each collection
+         MON_CL_SIM_LIST::iterator iter = clList.begin() ;
+         while ( iter != clList.end() )
+         {
+            rc = getIndexes( iter->_clname, (MON_IDX_LIST&)(iter->_idxList) ) ;
+            if ( SDB_OOM == rc )
+            {
+               goto error ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               ++ iter ;
+            }
+            else
+            {
+               // Dump index with error, erase this collection from list
+               // The collection may be dropped
+               clList.erase( iter++ ) ;
+               rc = SDB_OK ;
+            }
+         }
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__DMSSU_DUMPINFO_CLSIMLIST, rc ) ;
       return rc ;
@@ -2965,6 +3016,7 @@ namespace engine
       collection.setName( CSName(), context->mb()->_collectionName ) ;
       collection._blockID = context->mbID() ;
       collection._logicalID = context->clLID() ;
+      collection._clUniqueID = context->mb()->_clUniqueID ;
 
       if ( dumpIdx )
       {
@@ -2987,8 +3039,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLLIST, "_dmsStorageUnit::dumpInfo" )
-   INT32 _dmsStorageUnit::dumpInfo ( MON_CL_LIST &clList,
-                                     BOOLEAN sys )
+   INT32 _dmsStorageUnit::dumpInfo ( MON_CL_LIST &clList, BOOLEAN sys )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLLIST ) ;
       INT32 rc = SDB_OK ;
@@ -3091,7 +3142,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CS, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo ( monCollectionSpace &collectionSpace,
-                                     BOOLEAN sys )
+                                     BOOLEAN sys,
+                                     BOOLEAN dumpIdx )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CS ) ;
       INT32 rc = SDB_OK ;
@@ -3156,7 +3208,7 @@ namespace engine
       collectionSpace._createTime = getCreateTime() ;
       collectionSpace._updateTime = getUpdateTime() ;
 
-      rc = dumpInfo ( collectionSpace._collections, sys, FALSE ) ;
+      rc = dumpInfo ( collectionSpace._collections, sys, dumpIdx ) ;
 
       PD_TRACE_EXITRC ( SDB__DMSSU_DUMPINFO_CS, rc ) ;
       return rc ;
@@ -3402,6 +3454,37 @@ namespace engine
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
 
+   UINT64 _dmsStorageUnit::getLastAccessDBTick( UINT32 type ) const
+   {
+      UINT64 dbTick = 0 ;
+
+      /// check data
+      if ( ( type & DMS_SU_DATA ) && _pDataSu )
+      {
+          dbTick = _pDataSu->getFileAccessTick() ;
+      }
+      /// check index
+      if ( ( type & DMS_SU_INDEX ) && _pIndexSu )
+      {
+         UINT64 accessTick = _pIndexSu->getFileAccessTick() ;
+         if ( accessTick > dbTick )
+         {
+            dbTick = accessTick ;
+         }
+      }
+      /// check lob
+      if ( ( type & DMS_SU_LOB ) && _pLobSu && _pLobSu->isOpened() )
+      {
+         UINT64 accessTick = _pLobSu->getFileAccessTick() ;
+         if ( accessTick > dbTick )
+         {
+            dbTick = accessTick ;
+         }
+      }
+
+      return dbTick ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CL, "_dmsStorageUnit::_dumpCLInfo" )
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
@@ -3502,8 +3585,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CLSIMPLE, "_dmsStorageUnit::_dumpCLInfo" )
-   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection,
-                                        UINT16 mbID )
+   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
 
@@ -3812,19 +3894,14 @@ namespace engine
       return &_eventHolder ;
    }
 
-   void _dmsStorageUnit::regEventHandler ( _IDmsEventHandler *pHandler )
+   void _dmsStorageUnit::setEventHandlers ( DMS_HANDLER_LIST *handlers )
    {
-      _eventHolder.regHandler( pHandler ) ;
+      _eventHolder.setHandlers( handlers ) ;
    }
 
-   void _dmsStorageUnit::unregEventHandler ( _IDmsEventHandler *pHandler )
+   void _dmsStorageUnit::unsetEventHandlers ()
    {
-      _eventHolder.unregHandler( pHandler ) ;
-   }
-
-   void _dmsStorageUnit::unregEventHandlers ()
-   {
-      _eventHolder.unregAllHandlers() ;
+      _eventHolder.unsetHandlers() ;
    }
 
    dmsSUCache *_dmsStorageUnit::getSUCache ( UINT32 type )

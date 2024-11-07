@@ -141,6 +141,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_accessPlanManager ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "access plan manager to DMS, rc: %d", rc ) ;
+      }
+
       if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
       {

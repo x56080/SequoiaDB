@@ -422,6 +422,7 @@ INT32 _ossMmapFile::freeCache ( UINT32 segmentID )
       goto error ;
    }
 
+   _pSegArray[ segmentID ]._lastFreeTick = _pSegArray[ segmentID ]._lastAccessTick ;
 #if defined (_LINUX)
    madvise ( ( void * ) _pSegArray[ segmentID ]._ptr,
              _pSegArray[ segmentID ]._length,
@@ -522,19 +523,7 @@ error:
    goto done ;
 }
 
-void ossMmapFile::setSegmentAccessTick( UINT32 pos, UINT64 tick )
-{
-   if ( pos < _size )
-   {
-      _pSegArray[ pos ]._lastAccessTick = tick ;
-   }
-   else
-   {
-      SDB_ASSERT( FALSE, "array index is out of bound" ) ;
-   }
-}
-
-UINT64 ossMmapFile::getSegmentAccessTick( UINT32 pos ) const
+UINT64 _ossMmapFile::getSegmentAccessTick( UINT32 pos ) const
 {
    if ( pos < _size )
    {
@@ -546,3 +535,18 @@ UINT64 ossMmapFile::getSegmentAccessTick( UINT32 pos ) const
       return 0 ;
    }
 }
+
+UINT64 _ossMmapFile::getSegmentFreeTick( UINT32 pos ) const
+{
+   if ( pos < _size )
+   {
+      return _pSegArray[ pos ]._lastFreeTick ;
+   }
+   else
+   {
+      SDB_ASSERT( FALSE, "array index is out of bound" ) ;
+      return 0 ;
+   }
+}
+
+

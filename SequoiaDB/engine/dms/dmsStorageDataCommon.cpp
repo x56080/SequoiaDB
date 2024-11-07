@@ -2546,7 +2546,7 @@ namespace engine
          dmsEventCLItem clItem( context->mb()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
-         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, clItem, cb, dpscb ) ;
+         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_BEFORE, clItem, cb, dpscb ) ;
       }
 
       // it is not need to lock that drop temp collection while startup
@@ -2646,6 +2646,21 @@ namespace engine
                        context->clLID(), DMS_INVALID_EXTENT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLDel record to log, rc: "
                       "%d", rc ) ;
+      }
+
+      if ( metalocked )
+      {
+         ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
+         metalocked = FALSE ;
+      }
+
+      if ( _pEventHolder )
+      {
+         dmsEventCLItem clItem( context->mb()->_collectionName,
+                                context->mbID(),
+                                context->clLID() ) ;
+         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
+                                  clItem, cb, dpscb ) ;
       }
 
    done:

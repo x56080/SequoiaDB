@@ -58,6 +58,7 @@ namespace engine
    #define DMS_EVENT_MASK_ALL    0xFFFFFFFF
    #define DMS_EVENT_MASK_STAT   0x00000001
    #define DMS_EVENT_MASK_PLAN   0x00000002
+   #define DMS_EVENT_MASK_CLS    0x00000008
 
    /*
       _dmsEventSUItem define
@@ -213,7 +214,8 @@ namespace engine
             return SDB_OK ;
          }
 
-         OSS_INLINE virtual INT32 onDropCL ( IDmsEventHolder *pEventHolder,
+         OSS_INLINE virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                             IDmsEventHolder *pEventHolder,
                                              IDmsSUCacheHolder *pCacheHolder,
                                              const dmsEventCLItem &clItem,
                                              pmdEDUCB *cb,
@@ -293,6 +295,8 @@ namespace engine
          virtual UINT32 getMask () = 0 ;
    } ;
 
+   typedef ossPoolList<_IDmsEventHandler *> DMS_HANDLER_LIST ;
+
    /*
       _IDmsEventHolder
     */
@@ -303,11 +307,9 @@ namespace engine
 
          virtual ~_IDmsEventHolder () {}
 
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) = 0 ;
+         virtual void setHandlers ( DMS_HANDLER_LIST *handlers ) = 0 ;
 
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) = 0 ;
-
-         virtual void unregAllHandlers () = 0 ;
+         virtual void unsetHandlers () = 0 ;
 
          virtual INT32 onCreateCS ( UINT32 mask,
                                     pmdEDUCB *cb,
@@ -349,6 +351,7 @@ namespace engine
                                       SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual INT32 onDropCL ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
                                   const dmsEventCLItem &clItem,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) = 0 ;
