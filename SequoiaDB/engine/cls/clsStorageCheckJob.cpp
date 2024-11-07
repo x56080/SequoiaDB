@@ -138,6 +138,9 @@ namespace engine
 
          /// check collectionspaces
          _checkCS() ;
+
+         /// release mem
+         cb->shrink() ;
       }
 
       return SDB_OK ;
