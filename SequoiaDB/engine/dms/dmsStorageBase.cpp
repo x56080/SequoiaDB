@@ -528,7 +528,9 @@ namespace engine
       _lastSyncTime       = 0 ;
       _syncEnable         = TRUE ;
 
-      _fsCacheExpiredMs   = 0 ;
+      /// the default can not be 0, because the value set is after load, but
+      /// sync thread may call canInvalidateFSCache() function
+      _fsCacheExpiredMs   = 3600 * OSS_ONE_SEC ;
       setGetTickFunc( pmdGetDBTick ) ;
    }
 
