@@ -2032,6 +2032,7 @@ sequoiadb
 │   ├── spark-sequoiadb_2.11-${SYS_VERSION}.jar
 │   └── spark-sequoiadb_3.0-${SYS_VERSION}.jar
 ├── tools
+│   ├── addr2line
 │   ├── crontask
 │   │   ├── dataRebalance.js
 │   │   ├── readme.txt
@@ -2288,6 +2289,7 @@ sequoiadb
 │   │       └── trustRelpConf.sh
 │   ├── generateJSforcopycluster
 │   │   └── generatJs.js
+│   ├── linux-fincore
 │   ├── ptmallocstats
 │   │   ├── malloc_info.txt
 │   │   ├── ptmalloc_stats.py
