@@ -319,6 +319,40 @@ namespace engine
    {
    }
 
+   ossPoolString _tryParseCS4ListCollections(const BSONObj &query)
+   {
+      ossPoolString csName ;
+      BSONElement e ;
+      BSONObj obj ;
+      BSONElement gtEle ;
+      BSONElement ltEle ;
+      UINT32 len = 0 ;
+
+      e = query.getField( FIELD_NAME_NAME );
+      if ( Object != e.type() )
+      {
+         goto done ;
+      }
+      obj = e.Obj();
+      gtEle = obj.getField( "$gt" );
+      ltEle = obj.getField( "$lt" );
+      if ( String != gtEle.type() || String != ltEle.type() )
+      {
+         goto done ;
+      }
+      len = ossStrlen( gtEle.valuestr() );
+      if ( len < 2 )
+      {
+         goto done ;
+      }
+      if ( 0 == ossStrncmp( gtEle.valuestr(), ltEle.valuestr(), len - 1 ) )
+      {
+         csName = ossPoolString( gtEle.valuestr(), len - 1 );
+      }
+   done:
+      return csName ;
+   }
+
    INT32 checkPrivilegesForListCollections(const BSONObj &query)
    {
       INT32 rc = SDB_OK;
@@ -336,78 +370,58 @@ namespace engine
 
       try
       {
-         if ( query.isEmpty() )
+         // try parsing as SdbCS::listCollections().
+         // if not, treat it as db.list( SDB_LIST_COLLECTIONS )
+         ossPoolString csName ;
+         if ( !query.isEmpty() )
+         {
+            csName = _tryParseCS4ListCollections( query ) ;
+         }
+         if ( !csName.empty() )
+         {
+            boost::shared_ptr< const authAccessControlList > acl;
+            rc = session->getACL( acl );
+            PD_RC_CHECK( rc, PDERROR, "Failed to get acl" );
+            boost::shared_ptr< authResource > res = authResource::forCS( csName );
+            if ( !res )
+            {
+               rc = SDB_OOM;
+               PD_LOG( PDERROR, "Failed to allocate memory" );
+               goto error;
+            }
+            authActionSet actions1;
+            actions1.addAction( ACTION_TYPE_find );
+            authActionSet actions2;
+            actions2.addAction( ACTION_TYPE_getDetail );
+            authActionSet actions3;
+            actions3.addAction( ACTION_TYPE_listCollections );
+            authActionSet actions4;
+            actions4.addAction( ACTION_TYPE_list );
+
+            if ( !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
+                  !acl->isAuthorizedForActionsOnResource( *res, actions2 ) &&
+                  !acl->isAuthorizedForActionsOnResource( *res, actions3 ) &&
+                  !acl->isAuthorizedForActionsOnResource( *authResource::forCluster(),
+                                                         actions4 ) )
+            {
+               rc = SDB_NO_PRIVILEGES;
+               PD_LOG_MSG( PDERROR,
+                           "No privilege to execute command: %s, need at least one in actions "
+                           "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
+                           CMD_NAME_LIST_COLLECTIONS,
+                           authActionTypeSerializer( ACTION_TYPE_find ),
+                           authActionTypeSerializer( ACTION_TYPE_getDetail ),
+                           authActionTypeSerializer( ACTION_TYPE_listCollections ),
+                           csName.c_str(), authActionTypeSerializer( ACTION_TYPE_list ) );
+               goto error;
+            }
+         }
+         else
          {
             authActionSet actions;
             actions.addAction( ACTION_TYPE_list );
             rc = session->checkPrivilegesForActionsOnCluster( actions );
             PD_RC_CHECK( rc, PDERROR, "Failed to check privileges" );
-         }
-         else
-         {
-            BSONElement e = query.getField( FIELD_NAME_NAME );
-            if ( Object != e.type() )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG( PDERROR, "Invalid argument" );
-               goto error;
-            }
-            BSONObj obj = e.Obj();
-            BSONElement gtEle = obj.getField( "$gt" );
-            BSONElement ltEle = obj.getField( "$lt" );
-            if ( String != gtEle.type() || String != ltEle.type() )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG( PDERROR, "Invalid argument" );
-               goto error;
-            }
-            UINT32 len = ossStrlen( gtEle.valuestr() );
-            if ( len < 2 )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG( PDERROR, "Invalid argument" );
-               goto error;
-            }
-            if ( 0 == ossStrncmp( gtEle.valuestr(), ltEle.valuestr(), len - 1 ) )
-            {
-               boost::shared_ptr< const authAccessControlList > acl;
-               rc = session->getACL( acl );
-               PD_RC_CHECK( rc, PDERROR, "Failed to get acl" );
-               ossPoolString csName( gtEle.valuestr(), len - 1 );
-               boost::shared_ptr< authResource > res = authResource::forCS( csName );
-               if ( !res )
-               {
-                  rc = SDB_OOM;
-                  PD_LOG( PDERROR, "Failed to allocate memory" );
-                  goto error;
-               }
-               authActionSet actions1;
-               actions1.addAction( ACTION_TYPE_find );
-               authActionSet actions2;
-               actions2.addAction( ACTION_TYPE_getDetail );
-               authActionSet actions3;
-               actions3.addAction( ACTION_TYPE_listCollections );
-               authActionSet actions4;
-               actions4.addAction( ACTION_TYPE_list );
-
-               if ( !acl->isAuthorizedForActionsOnResource( *res, actions1 ) &&
-                    !acl->isAuthorizedForActionsOnResource( *res, actions2 ) &&
-                    !acl->isAuthorizedForActionsOnResource( *res, actions3 ) &&
-                    !acl->isAuthorizedForActionsOnResource( *authResource::forCluster(),
-                                                            actions4 ) )
-               {
-                  rc = SDB_NO_PRIVILEGES;
-                  PD_LOG_MSG( PDERROR,
-                              "No privilege to execute command: %s, need at least one in actions "
-                              "[%s, %s, %s] on collectionspace [%s] or action [%s] on cluster",
-                              CMD_NAME_LIST_COLLECTIONS,
-                              authActionTypeSerializer( ACTION_TYPE_find ),
-                              authActionTypeSerializer( ACTION_TYPE_getDetail ),
-                              authActionTypeSerializer( ACTION_TYPE_listCollections ),
-                              csName.c_str(), authActionTypeSerializer( ACTION_TYPE_list ) );
-                  goto error;
-               }
-            }
          }
       }
       catch ( std::exception &e )

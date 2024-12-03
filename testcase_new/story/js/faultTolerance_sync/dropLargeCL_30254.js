@@ -17,7 +17,7 @@ function test ()
    var groupName = null;
    for (var i = 0; i < groupsArray.length; i++)
    {
-      if (groupsArray[i].length >= 2)
+      if (groupsArray[i][0].Length >= 2)
       {
          groupName = groupsArray[i][0].GroupName;
          break;
@@ -39,8 +39,8 @@ function test ()
       recArray.push( { a: i, b: i, c: i } );
    }
    cl.insert( recArray );
-   db.updateConf( { ftconfirmperiod: 6 }, { GroupName: groupName } );
    commCheckLSN( db, groupName );
+   db.updateConf( { ftconfirmperiod: 6 }, { GroupName: groupName } );
 
    var master = null;
    var slave = null;
