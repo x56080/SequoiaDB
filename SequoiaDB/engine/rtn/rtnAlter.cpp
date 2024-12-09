@@ -240,6 +240,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
                    "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
 
+      if ( !dropIndex && !argument.isEnsureShardingIndex() && pWriteDpsLog )
+      {
+         *pWriteDpsLog = FALSE ;
+      }
+
       if ( dropIndex )
       {
          // alter will write DPS log itself, no need to pass dpsCB down
@@ -607,7 +612,6 @@ namespace engine
       // $id index
       if ( localTask->testArgumentMask( UTIL_CL_AUTOIDXID_FIELD ) )
       {
-         OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
          if ( localTask->isAutoIndexID() )
          {
             rc = _rtnCreateIDIndex( collection,
@@ -623,12 +627,16 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection "
                          "[%s], rc: %d", collection, rc ) ;
          }
+
+         if ( pWriteDpsLog && (*pWriteDpsLog) )
+         {
+            OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
+         }
       }
 
       // $sharding index
       if ( localTask->testArgumentMask( UTIL_CL_SHDKEY_FIELD ) )
       {
-         OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
          const rtnCLShardingArgument & argument =
                                              localTask->getShardingArgument() ;
          rc = _rtnCollectionSetSharding( collection, argument,
@@ -638,6 +646,11 @@ namespace engine
                                          mbContext, su, pResult, pWriteDpsLog ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set sharding on collection [%s], "
                       "rc: %d", collection, rc ) ;
+
+         if ( pWriteDpsLog && (*pWriteDpsLog) )
+         {
+            OSS_BIT_SET( dpsType, DMS_FILE_IDX ) ;
+         }
       }
 
       // Compress
