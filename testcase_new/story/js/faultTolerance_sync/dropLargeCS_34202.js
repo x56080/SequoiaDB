@@ -61,14 +61,17 @@ function test ()
       master = db.getRG( groupName ).getMaster().connect();
       slave = db.getRG( groupName ).getSlave().connect();
       var option = new SdbTraceOption().breakPoints("ossDelete");
-      var longString = getRandomString( 1024 * 1024 );
+      var longString = getRandomString( 1024 );
       slave.traceOn( 1000, option );
 
       db.dropCS( csName );
 
       for (var i = 0; i < 12; i++)
       {
-         cl2.insert( { a: longString } );
+         for ( var j = 0; j < 1024; j++ )
+         {
+            cl2.insert( { a: longString } );
+         }
          var selector = { NodeName: '', FTStatus: '', CurrentLSN: '', CompleteLSN: '' };
          var snap = master.snapshot( SDB_SNAP_DATABASE, {}, selector );
          println( "master:" );
