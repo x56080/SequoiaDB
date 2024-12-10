@@ -251,8 +251,7 @@ def package_db(opt_mgr, ver):
    dirs = ['bin', 'conf/samples', 'conf/local', 'conf/log', 'doc', 'include', 'java/jdk',
             'lib', 'license', 'packet', 'postgresql', 'python', 'samples', 'tools/server/php',
             'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'web','www', 'spark',
-            'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp', 'tools/script',
-            'tools/expect']
+            'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp', 'tools/script']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
 
@@ -277,12 +276,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'tools/sequoiafs/bin/*'), os.path.join(install_dir, 'tools/sequoiafs/bin'))
    copy_file(os.path.join(ROOT_DIR, 'tools/sdbsupport'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/deploy'), os.path.join(install_dir, 'tools'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/bin'), os.path.join(install_dir, 'tools/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/lib'), os.path.join(install_dir, 'tools/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/shell'), os.path.join(install_dir, 'tools/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/trust'), os.path.join(install_dir, 'tools/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/binutils/bin/*'), os.path.join(install_dir, 'tools'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/linux-ftools/bin/*'), os.path.join(install_dir, 'tools'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/dr_ha'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/ptmallocstats'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/crontask'), os.path.join(install_dir, 'tools'))
@@ -341,15 +335,9 @@ def package_db(opt_mgr, ver):
       os.rename(os.path.join(install_dir, 'license/license_free_zh.txt'), os.path.join(install_dir, 'license/license_zh.txt'))
    if OS_ARCH == 'x86_64':
       remove_file(os.path.join(install_dir, 'tools/expect/bin/expect_arm'))
-      remove_file(os.path.join(install_dir, 'tools/addr2line_arm'))
-      remove_file(os.path.join(install_dir, 'tools/linux-fincore_arm'))
    elif OS_ARCH == 'aarch64':
       remove_file(os.path.join(install_dir, 'tools/expect/bin/expect'))
       os.rename(os.path.join(install_dir, 'tools/expect/bin/expect_arm'), os.path.join(install_dir, 'tools/expect/bin/expect'))
-      remove_file(os.path.join(install_dir, 'tools/addr2line'))
-      os.rename(os.path.join(install_dir, 'tools/addr2line_arm'), os.path.join(install_dir, 'tools/addr2line'))
-      remove_file(os.path.join(install_dir, 'tools/linux-fincore'))
-      os.rename(os.path.join(install_dir, 'tools/linux-fincore_arm'), os.path.join(install_dir, 'tools/linux-fincore'))
 
    chmod(os.path.join(install_dir, 'bin/sdbwsart'), 'u+x')
    chmod(os.path.join(install_dir, 'bin/sdbwstop'), 'u+x')
