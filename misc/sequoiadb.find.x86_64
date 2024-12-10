@@ -4072,5 +4072,3 @@ sequoiadb/web/app/init.js
 sequoiadb/doc/manual/Sdb/invalidateFsCache_cn.troff
 sequoiadb/doc/manual/Sdb/invalidateFsCache_en.troff
 sequoiadb/tools/dr_ha/config.js
-sequoiadb/tools/addr2line
-sequoiadb/tools/linux-fincore
