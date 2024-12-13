@@ -251,7 +251,7 @@ def package_db(opt_mgr, ver):
    dirs = ['bin', 'conf/samples', 'conf/local', 'conf/log', 'doc', 'include', 'java/jdk',
             'lib', 'license', 'packet', 'postgresql', 'python', 'samples', 'tools/server/php',
             'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'web','www', 'spark',
-            'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp', 'tools/script']
+            'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp', 'tools/script', 'tools/expect']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
 
@@ -276,7 +276,12 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'tools/sequoiafs/bin/*'), os.path.join(install_dir, 'tools/sequoiafs/bin'))
    copy_file(os.path.join(ROOT_DIR, 'tools/sdbsupport'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/deploy'), os.path.join(install_dir, 'tools'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect'), os.path.join(install_dir, 'tools'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/bin'), os.path.join(install_dir, 'tools/expect'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/lib'), os.path.join(install_dir, 'tools/expect'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/shell'), os.path.join(install_dir, 'tool
+s/expect'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/trust'), os.path.join(install_dir, 'tool
+s/expect'))
    copy_file(os.path.join(ROOT_DIR, 'tools/dr_ha'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/ptmallocstats'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/crontask'), os.path.join(install_dir, 'tools'))
