@@ -279,10 +279,8 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'tools/deploy'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/expect/bin'), os.path.join(install_dir, 'tools/expect'))
    copy_file(os.path.join(ROOT_DIR, 'tools/expect/lib'), os.path.join(install_dir, 'tools/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/shell'), os.path.join(install_dir, 'tool
-s/expect'))
-   copy_file(os.path.join(ROOT_DIR, 'tools/expect/trust'), os.path.join(install_dir, 'tool
-s/expect'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/shell'), os.path.join(install_dir, 'tools/expect'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/expect/trust'), os.path.join(install_dir, 'tools/expect'))
    copy_file(os.path.join(ROOT_DIR, 'tools/dr_ha'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/ptmallocstats'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/crontask'), os.path.join(install_dir, 'tools'))
