@@ -47,6 +47,8 @@ function startService()
       exit 1
    fi
    # return 127 when didnot have node, so, donot check return code
+   cd $EXEC_PATH
+   test $? -ne 0 && exit 1
    $EXEC_PATH/sdbstart -t all 
 }
 
