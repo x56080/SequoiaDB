@@ -2677,7 +2677,7 @@ namespace engine
       SDB_ASSERT( pCacheHolder, "pCacheHolder is invalid" ) ;
 
       dmsCachedPlanMgr *pCachedPlanMgr =
-                           dynamic_cast<dmsCachedPlanMgr *>(pCacheHolder) ;
+            (dmsCachedPlanMgr *)pCacheHolder->getSUCache( DMS_CACHE_TYPE_PLAN ) ;
       if ( pCachedPlanMgr )
       {
          pCachedPlanMgr->resizeBitmaps( _planCache.getBucketNum() ) ;
