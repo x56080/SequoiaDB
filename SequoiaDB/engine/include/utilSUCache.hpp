@@ -41,6 +41,7 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "utilPooledObject.hpp"
+#include "utilArray.hpp"
 
 namespace engine
 {
@@ -51,7 +52,7 @@ namespace engine
    // Same as DMS_INVALID_MBID
    #define UTIL_SU_INVALID_UNITID ( 65535 )
 
-   template < UINT16 CACHESIZE >
+   template < UINT16 CACHESIZE, UINT16 staticSize >
    class _utilSUCache ;
 
    template < UINT16 CACHESIZE >
@@ -126,24 +127,30 @@ namespace engine
    /*
       _utilSUCache define
     */
-   template < UINT16 CACHESIZE = UTIL_SU_CACHE_DFT_SIZE >
+   template < UINT16 CACHESIZE = UTIL_SU_CACHE_DFT_SIZE, UINT16 staticSize = 16 >
    class _utilSUCache : public SDBObject
    {
       public :
          _utilSUCache ( UINT8 type, UINT8 unitType,
                         _IUtilSUCacheHolder<CACHESIZE> *pHolder = NULL )
          {
+            /// for static assert
+            UINT32 __testArray[ ( CACHESIZE >= staticSize ? 1 : -1 ) ] = { UTIL_SU_CACHE_UNIT_STATUS_EMPTY } ;
+
             _type = type ;
             _unitType = unitType ;
             _pHolder = pHolder ;
+            _unitsEx = NULL ;
+            _unitStatusEx = NULL ;
 
             ossMemset( _units, 0, sizeof( _units ) ) ;
-            setStatus( UTIL_SU_CACHE_UNIT_STATUS_EMPTY ) ;
+            setStatus( __testArray[0] ) ;
          }
 
          virtual ~_utilSUCache ()
          {
             clearCacheUnits() ;
+            _release() ;
          }
 
          OSS_INLINE UINT8 getType () const
@@ -155,7 +162,13 @@ namespace engine
          {
             if ( unitID < CACHESIZE )
             {
-               return _units[ unitID ] ;
+               UINT16 realID = unitID ;
+               utilSUCacheUnit **pUnitArray = _getUnitPtr( unitID, realID ) ;
+
+               if ( pUnitArray )
+               {
+                  return pUnitArray[ realID ] ;
+               }
             }
             return NULL ;
          }
@@ -164,7 +177,13 @@ namespace engine
          {
             if ( unitID < CACHESIZE )
             {
-               return _units[ unitID ] ;
+               UINT16 realID = unitID ;
+               utilSUCacheUnit **pUnitArray = (utilSUCacheUnit **)_getUnitPtr( unitID, realID ) ;
+
+               if ( pUnitArray )
+               {
+                  return pUnitArray[ realID ] ;
+               }
             }
             return NULL ;
          }
@@ -181,6 +200,9 @@ namespace engine
             BOOLEAN added = FALSE ;
 
             UINT16 unitID = UTIL_SU_INVALID_UNITID ;
+            UINT16 realID = UTIL_SU_INVALID_UNITID ;
+            utilSUCacheUnit **pUnitArray = NULL ;
+            UINT8 *pStatusArray = NULL ;
             utilSUCacheUnit *pTmpUnit = NULL ;
 
             if ( NULL ==  pUnit ||
@@ -197,23 +219,29 @@ namespace engine
             }
 
             unitID = pUnit->getUnitID() ;
-            pTmpUnit = getCacheUnit( unitID ) ;
+            pUnitArray = _insureArrayPtr( unitID, realID, &pStatusArray ) ;
+            if ( !pUnitArray )
+            {
+               // Failed to alloc unit array
+               goto done ;
+            }
 
+            pTmpUnit = getCacheUnit( unitID ) ;
             if ( NULL != pTmpUnit )
             {
                if ( ignoreCrtTime ||
                     pTmpUnit->getCreateTime() < pUnit->getCreateTime() )
                {
                   SDB_OSS_DEL pTmpUnit ;
-                  _units[ unitID ] = pUnit ;
-                  _unitStatus[ unitID ] = UTIL_SU_CACHE_UNIT_STATUS_CACHED ;
+                  pUnitArray[ realID ] = pUnit ;
+                  pStatusArray[ realID ] = UTIL_SU_CACHE_UNIT_STATUS_CACHED ;
                   added = TRUE ;
                }
             }
             else if ( unitID < CACHESIZE )
             {
-               _units[ unitID ] = pUnit ;
-               _unitStatus[ unitID ] = UTIL_SU_CACHE_UNIT_STATUS_CACHED ;
+               pUnitArray[ realID ] = pUnit ;
+               pStatusArray[ realID ] = UTIL_SU_CACHE_UNIT_STATUS_CACHED ;
                added = TRUE ;
             }
 
@@ -252,50 +280,74 @@ namespace engine
 
          BOOLEAN removeCacheUnit ( UINT16 unitID, BOOLEAN needDelete )
          {
-            BOOLEAN deleted = FALSE ;
+            BOOLEAN hasDel = FALSE ;
 
             if ( unitID < CACHESIZE )
             {
-               utilSUCacheUnit *pTmpUnit = _units[ unitID ] ;
-               if ( pTmpUnit )
+               UINT16 realID = unitID ;
+               utilSUCacheUnit **pUnitArray = (utilSUCacheUnit**)_getUnitPtr( unitID, realID ) ;
+
+               if ( pUnitArray && pUnitArray[ realID ] )
                {
                   if ( needDelete )
                   {
-                     SDB_OSS_DEL pTmpUnit ;
+                     SDB_OSS_DEL pUnitArray[ realID ] ;
                   }
-                  _units[ unitID ] = NULL ;
-                  deleted = TRUE ;
+                  pUnitArray[ realID ] = NULL ;
+                  hasDel = TRUE ;
                }
-               _unitStatus[ unitID ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
+
+               setStatus( unitID, UTIL_SU_CACHE_UNIT_STATUS_EMPTY ) ;
             }
 
-            return deleted ;
+            return hasDel ;
          }
 
          BOOLEAN clearCacheUnits ()
          {
-            BOOLEAN deleted = FALSE ;
+            BOOLEAN hasDel = FALSE ;
 
-            for ( UINT16 unitID = 0 ; unitID < CACHESIZE ; unitID ++ )
+            for ( UINT16 unitID = 0 ; unitID < staticSize ; ++unitID )
             {
                utilSUCacheUnit *pTmpUnit = _units[ unitID ] ;
                if ( pTmpUnit )
                {
                   SDB_OSS_DEL pTmpUnit ;
                   _units[ unitID ] = NULL ;
-                  deleted = TRUE ;
+                  hasDel = TRUE ;
                }
                _unitStatus[ unitID ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
             }
 
-            return deleted ;
+            if ( _unitsEx )
+            {
+               for ( UINT16 unitID = staticSize ; unitID < CACHESIZE ; ++unitID )
+               {
+                  utilSUCacheUnit *pTmpUnit = _unitsEx[ unitID - staticSize ] ;
+                  if ( pTmpUnit )
+                  {
+                     SDB_OSS_DEL pTmpUnit ;
+                     _unitsEx[ unitID - staticSize ] = NULL ;
+                     hasDel = TRUE ;
+                  }
+                  _unitStatusEx[ unitID - staticSize ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
+               }
+            }
+
+            return hasDel ;
          }
 
          UINT8 getStatus ( UINT16 unitID ) const
          {
             if ( unitID < CACHESIZE )
             {
-               return _unitStatus[ unitID ] ;
+               UINT16 realID = unitID ;
+               const UINT8 *pStatusArray = _getStatusPtr( unitID, realID ) ;
+
+               if ( pStatusArray )
+               {
+                  return pStatusArray[ realID ] ;
+               }
             }
             return UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
          }
@@ -304,7 +356,13 @@ namespace engine
          {
             if ( unitID < CACHESIZE )
             {
-               _unitStatus[ unitID ] = status ;
+               UINT16 realID = unitID ;
+               UINT8 *pStatusArray = NULL ;
+
+               if ( NULL != _insureArrayPtr( unitID, realID, &pStatusArray ) )
+               {
+                  pStatusArray[ realID ] = status ;
+               }
             }
          }
 
@@ -312,16 +370,142 @@ namespace engine
          {
             for ( UINT16 unitID = 0 ; unitID < CACHESIZE ; unitID ++ )
             {
-               _unitStatus[ unitID ] = status ;
+               if ( unitID < staticSize )
+               {
+                  _unitStatus[ unitID ] = status ;
+               }
+               else if ( _unitStatusEx )
+               {
+                  _unitStatusEx[ unitID - staticSize ] = status ;
+               }
             }
          }
 
-      protected :
+      private:
+         utilSUCacheUnit** _getUnitPtr( UINT16 unitID, UINT16 &realID ) const
+         {
+            if ( unitID < staticSize )
+            {
+               realID = unitID ;
+               return (utilSUCacheUnit**)_units ;
+            }
+            else
+            {
+               realID = unitID - staticSize ;
+               return _unitsEx ;
+            }
+         }
+
+         const UINT8* _getStatusPtr( UINT16 unitID, UINT16 &realID ) const
+         {
+            if ( unitID < staticSize )
+            {
+               realID = unitID ;
+               return _unitStatus ;
+            }
+            else
+            {
+               realID = unitID - staticSize ;
+               return _unitStatusEx ;
+            }
+         }
+
+         utilSUCacheUnit** _insureArrayPtr( UINT16 unitID,
+                                            UINT16 &realID,
+                                            UINT8 **ppStatusArray = NULL )
+         {
+            if ( unitID < staticSize )
+            {
+               realID = unitID ;
+
+               if ( ppStatusArray )
+               {
+                  *ppStatusArray = _unitStatus ;
+               }
+               return (utilSUCacheUnit**)_units ;
+            }
+            else
+            {
+               realID = unitID - staticSize ;
+
+               if ( !_unitsEx || !_unitStatusEx )
+               {
+                  ossScopedLock lock( &_latch ) ;
+
+                  /// double check
+                  if ( !_unitsEx )
+                  {
+                     /// allocate
+                     _unitsEx = new (std::nothrow) utilSUCacheUnit*[CACHESIZE-staticSize] ;
+                     if ( !_unitsEx )
+                     {
+                        PD_LOG( PDWARNING, "Allocate cache unit array failed" ) ;
+                        _release() ;
+                        return NULL ;
+                     }
+                     else
+                     {
+                        /// reset
+                        for ( UINT32 i = 0 ; i < CACHESIZE-staticSize ; ++i )
+                        {
+                           _unitsEx[ i ] = NULL ;
+                        }
+                     }
+                  }
+
+                  if ( !_unitStatusEx )
+                  {
+                     /// allocate
+                     _unitStatusEx = new (std::nothrow) UINT8[CACHESIZE-staticSize] ;
+                     if ( !_unitStatusEx )
+                     {
+                        PD_LOG( PDWARNING, "Allocate cache status array failed" ) ;
+                        _release() ;
+                        return NULL ;
+                     }
+                     else
+                     {
+                        /// reset
+                        for ( UINT32 i = 0 ; i < CACHESIZE-staticSize ; ++i )
+                        {
+                           _unitStatusEx[ i ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
+                        }
+                     }
+                  }
+               }
+
+               if ( ppStatusArray )
+               {
+                  *ppStatusArray = _unitStatusEx ;
+               }
+               return _unitsEx ;
+            }
+         }
+
+         void _release()
+         {
+            if ( _unitsEx )
+            {
+               delete [] _unitsEx ;
+               _unitsEx = NULL ;
+            }
+
+            if ( _unitStatusEx )
+            {
+               delete _unitStatusEx ;
+               _unitStatusEx = NULL ;
+            }
+         }
+
+      private :
          UINT8                            _type ;
          UINT8                            _unitType ;
-         utilSUCacheUnit *                _units[ CACHESIZE ] ;
-         UINT8                            _unitStatus[ CACHESIZE ] ;
+         utilSUCacheUnit *                _units[ staticSize ] ;
+         UINT8                            _unitStatus[ staticSize ] ;
+         utilSUCacheUnit **               _unitsEx ;
+         UINT8 *                          _unitStatusEx ;
          _IUtilSUCacheHolder<CACHESIZE> * _pHolder ;
+         ossSpinXLatch                    _latch ;
    } ;
 
    /*

@@ -615,7 +615,7 @@ class _ossMemTrackCB
          UINT64 endTime = 0 ;
          ossTimestamp tm ;
          CHAR beginTimebuff[ OSS_MEM_TRACEDUMP_TM_BUF ] = { 0 } ;
-         CHAR versionTxt[ 100 ] = { 0 } ;
+         CHAR versionTxt[ 200 ] = { 0 } ;
 
          UINT64 trackNum = 0 ;
          UINT64 trackSize = 0 ;

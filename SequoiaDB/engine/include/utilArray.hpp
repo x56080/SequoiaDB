@@ -236,19 +236,24 @@ namespace engine
       UINT32 _eleSize ;
    } ;
 
-   template <typename T, UINT32 SIZE, UINT32 stackSize = 1 >
+   template <typename T, UINT32 SIZE, UINT32 stackSize = 1, UINT32 staticSize = 16 >
    class _utilSparseArray : public SDBObject
    {
       public:
          _utilSparseArray()
          {
-            for ( UINT32 i = 0 ; i < SIZE ; ++i )
+            _pSlotEx = NULL ;
+
+            /// for static assert
+            UINT32 __testArray[ ( SIZE >= staticSize ? 1 : -1 ) ] = { 0 } ;
+
+            for ( UINT32 i = 0 ; i < staticSize ; ++i )
             {
                _slot[ i ] = NULL ;
             }
             for ( UINT32 i = 0 ; i < stackSize ; ++i )
             {
-               _slotStackFlag[ i ] = 0 ;
+               _slotStackFlag[ i ] = __testArray[ 0 ] ;
             }
          }
 
@@ -259,7 +264,7 @@ namespace engine
 
          OSS_INLINE const T &operator[]( UINT32 i ) const
          {
-            if ( i < SIZE && _slot[ i ] )
+            if ( i < staticSize && _slot[ i ] )
             {
                return *(_slot[ i ]) ;
             }
@@ -268,6 +273,10 @@ namespace engine
                /// out of range
                SDB_ASSERT( FALSE, "out of the array size" ) ;
                throw pdGeneralException( SDB_SYS, "out of the array size" ) ;
+            }
+            else if ( i >= staticSize && _pSlotEx && _pSlotEx[ i - staticSize ] )
+            {
+               return *(_pSlotEx[ i - staticSize ]) ;
             }
             else
             {
@@ -279,7 +288,7 @@ namespace engine
 
          OSS_INLINE T &operator[]( UINT32 i )
          {
-            if ( i < SIZE && _slot[ i ] )
+            if ( i < staticSize && _slot[ i ] )
             {
                return *(_slot[ i ]) ;
             }
@@ -288,6 +297,10 @@ namespace engine
                /// out of range
                SDB_ASSERT( FALSE, "out of the array size" ) ;
                throw pdGeneralException( SDB_SYS, "out of the array size" ) ;
+            }
+            else if ( i >= staticSize && _pSlotEx && _pSlotEx[ i - staticSize ] )
+            {
+               return *(_pSlotEx[ i - staticSize ]) ;
             }
             else
             {
@@ -307,13 +320,39 @@ namespace engine
                SDB_ASSERT( FALSE, "out of the array size" ) ;
                goto error ;
             }
-            else if ( _slot[ i ] )
+            else if ( ( i < staticSize && _slot[ i ] ) ||
+                      ( i >= staticSize && _pSlotEx && _pSlotEx[ i - staticSize ] ) )
             {
                /// already alloc
             }
             else
             {
-               T *obj = _allocFromStack() ;
+               T *obj = NULL ;
+
+               if ( i >= staticSize && !_pSlotEx )
+               {
+                  ossScopedLock lock( &_latch ) ;
+
+                  /// double check
+                  if ( !_pSlotEx )
+                  {
+                     _pSlotEx = new (std::nothrow) T* [ SIZE - staticSize ] ;
+                     if ( !_pSlotEx )
+                     {
+                        rc = SDB_OOM ;
+                        PD_LOG( PDERROR, "Allocate slot failed" ) ;
+                        goto error ;
+                     }
+
+                     /// init
+                     for ( UINT32 i = 0 ; i < SIZE - staticSize ; ++i )
+                     {
+                        _pSlotEx[ i ] = NULL ;
+                     }
+                  }
+               }
+
+               obj = _allocFromStack() ;
                if ( !obj )
                {
                   obj = SDB_OSS_NEW T() ;
@@ -324,7 +363,15 @@ namespace engine
                      goto error ;
                   }
                }
-               _slot[ i ] = obj ;
+
+               if ( i < staticSize )
+               {
+                  _slot[ i ] = obj ;
+               }
+               else
+               {
+                  _pSlotEx[ i - staticSize ] = obj ;
+               }
             }
 
          done:
@@ -339,23 +386,38 @@ namespace engine
             {
                SDB_ASSERT( FALSE, "out of the array size" ) ;
             }
-            else if ( !_slot[i] )
+            else if ( ( i < staticSize && !_slot[i] ) ||
+                      ( i >= staticSize && ( !_pSlotEx || !_pSlotEx[ i - staticSize ] ) ) )
             {
                /// not alloc
                SDB_ASSERT( FALSE, "not alloc the slot" ) ;
             }
             else
             {
-               INT32 i = _isInStack( &_slot[i] ) ;
-               if ( -1 == i )
+               INT32 i = -1 ;
+               if ( i < staticSize )
                {
-                  SDB_OSS_DEL _slot[i] ;
+                  i = _isInStack( _slot[i] ) ;
+                  if ( -1 == i )
+                  {
+                     SDB_OSS_DEL _slot[i] ;
+                  }
+                  _slot[i] = NULL ;
                }
                else
                {
+                  i = _isInStack( _pSlotEx[ i - staticSize ] ) ;
+                  if ( -1 == i )
+                  {
+                     SDB_OSS_DEL _pSlotEx[ i - staticSize ] ;
+                  }
+                  _pSlotEx[ i - staticSize ] = NULL ;
+               }
+
+               if ( -1 != i )
+               {
                   _slotStackFlag[i] = 0 ;
                }
-               _slot[i] = NULL ;
             }
          }
 
@@ -376,16 +438,34 @@ namespace engine
          {
             for ( UINT32 i = 0 ; i < SIZE ; ++i )
             {
-               if ( _slot[i] && -1 == _isInStack( _slot[i] ) )
+               if ( i < staticSize )
                {
-                  SDB_OSS_DEL _slot[i] ;
+                  if ( _slot[i] && -1 == _isInStack( _slot[i] ) )
+                  {
+                     SDB_OSS_DEL _slot[i] ;
+                  }
+                  _slot[i] = NULL ;
                }
-               _slot[i] = NULL ;
+               else if ( _pSlotEx )
+               {
+                  if ( _pSlotEx[ i - staticSize ] &&
+                       -1 == _isInStack( _pSlotEx[ i - staticSize ] ) )
+                  {
+                     SDB_OSS_DEL _pSlotEx[ i - staticSize ] ;
+                  }
+                  _pSlotEx[ i - staticSize ] = NULL ;
+               }
             }
 
             for ( UINT32 i = 0 ; i < stackSize ; ++i )
             {
                _slotStackFlag[ i ] = 0 ;
+            }
+
+            if ( _pSlotEx )
+            {
+               delete [] _pSlotEx ;
+               _pSlotEx = NULL ;
             }
          }
 
@@ -406,8 +486,10 @@ namespace engine
       protected:
          T                 _slotStack[ stackSize ] ;
          T                 _slotDefault ;
-         T                *_slot[ SIZE ] ;
+         T                *_slot[ staticSize ] ;
+         T               **_pSlotEx ;
          BYTE              _slotStackFlag[ stackSize ] ;
+         ossSpinXLatch     _latch ;
    };
 
 }
