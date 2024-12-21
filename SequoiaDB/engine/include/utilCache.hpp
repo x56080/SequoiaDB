@@ -338,7 +338,7 @@ namespace engine
    /*
       _utilCacheStat define
    */
-   struct _utilCacheStat
+   struct _utilCacheStat : public SDBObject
    {
       UINT32      _pageSize ;
       UINT64      _totalSize ;
@@ -404,6 +404,41 @@ namespace engine
    #define UTIL_BLOCK_RECYCLE_MAX_TIMEOUT             ( 15000 )
 
    #define UTIL_STAT_WINDOW_SIZE                      ( 10 )
+
+   /*
+      _utilSlotItem define
+   */
+   class _utilSlotItem : public SDBObject
+   {
+      /*
+         _blockNode define
+      */
+      struct _blockNode
+      {
+         _blockNode *_next ;
+         _blockNode *_prev ;
+      } ;
+
+      public:
+         _utilSlotItem() ;
+         ~_utilSlotItem() ;
+
+         UINT64 size() const ;
+         BOOLEAN empty() const ;
+
+         void  pushFront( CHAR *pBlock ) ;
+         CHAR* popFront() ;
+
+         void  pushBack( CHAR *pBlock ) ;
+         CHAR* popBack() ;
+
+      private:
+         _blockNode        *_header ;
+         _blockNode        *_tailer ;
+         UINT64            _size ;
+
+   } ;
+   typedef _utilSlotItem utilSlotItem ;
 
    /*
       _utilCacheMgr define
@@ -528,9 +563,9 @@ namespace engine
          utilCacheStat&       _getBucketCache( UINT32 id )
          {
             SDB_ASSERT( id < UTIL_PAGE_SLOT_SIZE, "Invalid id" ) ;
-            return (*_pStat)[ id ] ;
+            return _pStat[ id ] ;
          }
-         UINT64               _recycleBucket( vector< CHAR* > &slotItem,
+         UINT64               _recycleBucket( utilSlotItem &slotItem,
                                               utilCacheStat *pStat,
                                               ossPoolVector< CHAR* > &freeItem ) ;
 
@@ -544,9 +579,9 @@ namespace engine
          ossAtomic64          _totalUseTimes ;
          ossAtomic32          _nonEmptySlotNum ;
 
-         vector< CHAR* >      _slot[ UTIL_PAGE_SLOT_SIZE ] ;
-         vector< blkLatch* >  _latch ;
-         vector< utilCacheStat >* _pStat ;
+         utilSlotItem         _slot[ UTIL_PAGE_SLOT_SIZE ] ;
+         blkLatch             *_latch ;
+         utilCacheStat        *_pStat ;
          ossEvent             _releaseEvent ;
 
          UINT64               _lastRecycleTime ;
@@ -566,12 +601,13 @@ namespace engine
    /*
       _utilCacheBucket
    */
-   class _utilCacheBucket : public utilPooledObject
+   class _utilCacheBucket : public SDBObject
    {
+      friend class _utilCacheUnit ;
       public:
          typedef ossPoolMap< INT32, utilCachePage >      MAP_BLK_PAGE ;
 
-         _utilCacheBucket( UINT32 blkID ) ;
+         _utilCacheBucket( UINT32 blkID = 0 ) ;
          ~_utilCacheBucket() ;
 
          UINT32            getID() const { return _blkID ; }
@@ -609,6 +645,9 @@ namespace engine
          INT32             lock( OSS_LATCH_MODE mode,
                                  INT32 millisec = -1 ) ;
          void              unlock( OSS_LATCH_MODE mode ) ;
+
+      private:
+         void              _setBucketID( UINT32 blkID ) { _blkID = blkID ; }
 
       private:
          MAP_BLK_PAGE               _pages ;
@@ -812,7 +851,7 @@ namespace engine
    } ;
    typedef _utilCacheMerge utilCacheMerge ;
 
-   #define UTIL_CACHEUNIT_BUCKET_SZ                ( 2048 )
+   #define UTIL_CACHEUNIT_BUCKET_SZ                ( 512 )
    #define UTIL_CACHEUNIT_PAGE_TIMEOUT             ( 2000 ) /// ms
    #define UTIL_CACHEUNIT_DIRTY_TIMEOUT            ( 3000 ) /// ms
    #define UTIL_CACHEUNIT_BG_DIRTY_RATIO           ( 40 )   /// >=40%
@@ -970,7 +1009,7 @@ namespace engine
          UINT32                     _pageSize ;
          UINT32                     _allocTimeout ;
          BOOLEAN                    _wholePage ;
-         vector< utilCacheBucket* > _vecBucket ;
+         utilCacheBucket            *_vecBucket ;
          BOOLEAN                    _closed ;
          BOOLEAN                    _useCache ;
          BOOLEAN                    _hasReg ;

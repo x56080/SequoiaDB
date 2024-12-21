@@ -278,7 +278,7 @@ namespace engine
 
       OSS_INLINE ossSpinSLatch* _getBucketLatch( UINT32 bucketID )
       {
-         return _vecBucketLacth[ bucketID % DMS_BUCKETS_LATCH_SIZE ] ;
+         return &_vecBucketLacth[ bucketID % DMS_BUCKETS_LATCH_SIZE ] ;
       }
 
       INT32 _push2Bucket( UINT32 bucket, DMS_LOB_PAGEID pageId,
@@ -342,7 +342,7 @@ namespace engine
       IDataSyncManager              *_pSyncMgrTmp ;
       IDataStatManager              *_pStatMgrTmp ;
 
-      vector< ossSpinSLatch* >      _vecBucketLacth ;
+      ossSpinSLatch                 *_vecBucketLacth ;
 
       BOOLEAN                       _isRename ;
       UINT32                        _dataSegmentSize ;

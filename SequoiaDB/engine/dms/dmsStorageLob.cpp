@@ -86,7 +86,8 @@ namespace engine
     _delayOpenLatch( MON_LATCH_DMSSTORAGELOB_DELAYOPENLATCH ),
     _pCacheUnit( pCacheUnit ),
     _pSyncMgrTmp( NULL ),
-    _pStatMgrTmp( NULL )
+    _pStatMgrTmp( NULL ),
+    _vecBucketLacth( NULL )
    {
       _needDelayOpen = FALSE ;
 
@@ -101,11 +102,11 @@ namespace engine
       _dmsData = NULL ;
       _dmsBME = NULL ;
 
-      for ( UINT32 i = 0 ; i < _vecBucketLacth.size() ; ++i )
+      if ( _vecBucketLacth )
       {
-         SDB_OSS_DEL _vecBucketLacth[ i ] ;
+         SDB_OSS_DEL [] _vecBucketLacth ;
+         _vecBucketLacth = NULL ;
       }
-      _vecBucketLacth.clear() ;
 
       _releasePath() ;
    }
@@ -449,18 +450,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__OPENLOB ) ;
 
-      ossSpinSLatch *pLatch = NULL ;
       /// create bucket latch
-      for ( UINT32 i = 0 ; i < DMS_BUCKETS_LATCH_SIZE ; ++i )
+      _vecBucketLacth = SDB_OSS_NEW ossSpinSLatch[ DMS_BUCKETS_LATCH_SIZE ] ;
+      if ( !_vecBucketLacth )
       {
-         pLatch = SDB_OSS_NEW ossSpinSLatch ;
-         if ( !pLatch )
-         {
-            PD_LOG( PDERROR, "Create bucket latch[%d] failed", i ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-         _vecBucketLacth.push_back( pLatch ) ;
+         PD_LOG( PDERROR, "Create bucket latch failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
       /// Init cache unit
