@@ -2707,6 +2707,7 @@ void inspectIndexExtents ( OSSFILE &file, UINT32 pageSize,
       localErr = 0 ;
       keyNodes = 0 ;
       delKeyNodes = 0 ;
+      builder.reset() ;
       len = dmsInspect::inspectIndexExtent ( cb, gExtentBuffer, pageSize,
                                              gBuffer, gBufferSize,
                                              collectionID, childID,
