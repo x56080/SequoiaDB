@@ -192,7 +192,7 @@ namespace engine
                else if ( _bitmapSize > bitmap._bitmapSize )
                {
                   // this is larger, check remain bits
-                  INT32 nextBit = _bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
+                  INT32 nextBit = bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
                   nextBit = nextSetBitPos( nextBit ) ;
                   if ( -1 != nextBit )
                   {
@@ -202,7 +202,7 @@ namespace engine
                else if ( _bitmapSize < bitmap._bitmapSize )
                {
                   // other is larger, check remain bits
-                  INT32 nextBit = bitmap._bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
+                  INT32 nextBit = bitmapSize << UTIL_BITMAP_UNIT_LOG2SIZE ;
                   nextBit = bitmap.nextSetBitPos( nextBit ) ;
                   if ( -1 != nextBit )
                   {
