@@ -1617,13 +1617,13 @@ namespace engine
       else if ( NumberDouble != in.type () &&
                 NumberDouble == modm.type() )
       {
-         FLOAT64 v = MTH_MOD( in.numberLong(), modm.numberDouble() ) ;
+         FLOAT64 v = MTH_MOD( (FLOAT64)(in.numberLong()), modm.numberDouble() ) ;
          outBuilder.append( name, v ) ;
       }
       else if ( NumberDouble == in.type () &&
                 NumberDouble != modm.type() )
       {
-         FLOAT64 v = MTH_MOD( in.numberDouble(), modm.numberLong() ) ;
+         FLOAT64 v = MTH_MOD( in.numberDouble(), (FLOAT64)(modm.numberLong()) ) ;
          outBuilder.append( name, v ) ;
       }
       else

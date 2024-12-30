@@ -35,6 +35,8 @@
 #ifndef MTH_DEF_HPP_
 #define MTH_DEF_HPP_
 
+#include "ossTypes.h"
+#include <cmath>
 namespace engine
 {
    #define MTH_S_PREFIX "$"
@@ -96,15 +98,35 @@ namespace engine
    #define MTH_ATTR_IS_PROJECTION( attribute ) \
            ( MTH_ATTR_IS_INCLUDE(attribute) && OSS_BIT_TEST(attribute, MTH_S_ATTR_PROJECTION_BIT))
 
-#ifdef _WINDOWS
-   #define MTH_TRUNC(x)  ( (x)>0 ? floor(x) : ceil(x) )
-   #define MTH_MOD(x,y)\
-        ( (x) - ( MTH_TRUNC((x) / (y)) * (y) ) )
+#if defined( _ARMLIN64 )
+   /*
+   In ARM64 system,
+   the calculations of double values may be optimized, leading to incorrect results.
+   Therefore, we need to add the 'volatile' keyword to prevent the compiler from
+   optimizing the calculations of double values.
+   */
+   template< typename T >
+   T MTH_MOD( T x, T y )
+   {
+   #ifdef _WINDOWS
+      volatile T z = ( (x)>0 ? floor(x) : ceil(x) ) * y ;
+   #else
+      volatile T z = trunc(x/y) * y ;
+   #endif //_WINDOWS
+      volatile T v = x - z ;
+      return v ;
+   }
 #else
-   #define MTH_MOD(x,y)\
-        ( (x) - ( trunc((x) / (y)) * (y) ) )
-#endif //_WINDOWS
+   #ifdef _WINDOWS
+      #define MTH_TRUNC(x)  ( (x)>0 ? floor(x) : ceil(x) )
+      #define MTH_MOD(x,y)\
+         ( (x) - ( MTH_TRUNC((x) / (y)) * (y) ) )
+   #else
+      #define MTH_MOD(x,y)\
+         ( (x) - ( trunc((x) / (y)) * (y) ) )
+   #endif //_WINDOWS
+#endif
+
 }
 
 #endif
-
