@@ -420,7 +420,9 @@ namespace bson {
             static long long maxInt = (int)pow( 2.0 , 30.0 );
             static long long maxDouble = (long long)pow( 2.0 , 40.0 );
             long long x = l > 0 ? -l : l;
-            if ( x > -maxInt )
+            if ( OSS_SINT64_MIN == x )
+                append( fieldName , l );
+            else if ( x > -maxInt )
                 append( fieldName , (int)l );
             else if ( x > -maxDouble )
                 append( fieldName , (double)l );

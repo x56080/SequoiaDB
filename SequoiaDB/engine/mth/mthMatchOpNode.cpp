@@ -4154,7 +4154,7 @@ namespace engine
       else if ( NumberDouble != left.type()
                 && NumberDouble == _mod.type() )
       {
-         FLOAT64 v = MTH_MOD( left.numberLong(),
+         FLOAT64 v = MTH_MOD( (FLOAT64)(left.numberLong()),
                               _mod.numberDouble() ) ;
          result = ( fabs( v - _modResult.numberDouble() ) <= OSS_EPSILON ) ;
       }
@@ -4162,7 +4162,7 @@ namespace engine
                 && NumberDouble != _mod.type())
       {
          FLOAT64 v = MTH_MOD( left.numberDouble(),
-                              _mod.numberLong() ) ;
+                              (FLOAT64)(_mod.numberLong()) ) ;
          result = ( fabs( v - _modResult.numberDouble() ) <= OSS_EPSILON ) ;
       }
       else

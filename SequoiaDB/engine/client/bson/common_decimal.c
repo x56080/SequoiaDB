@@ -14,6 +14,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 *******************************************************************************/
+
+#include "ossFeat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -1843,7 +1845,17 @@ int64_t sdb_decimal_to_long( const bson_decimal *decimal )
    int ndigits = 0 ;
    int weight  = 0 ;
    int i       = 0 ;
+#if defined( _ARMLIN64 )
+   /*
+   In ARM64 system,
+   the calculations of double values may be optimized, leading to incorrect results.
+   Therefore, we need to add the 'volatile' keyword to prevent the compiler from
+   optimizing the calculations of double values.
+   */
+   volatile int64_t val     = 0 ;
+#else
    int64_t val     = 0 ;
+#endif
    int64_t oldval  = 0 ;
    int neg     = 0 ;
    bson_decimal rounded = SDB_DECIMAL_DEFAULT_VALUE ;
