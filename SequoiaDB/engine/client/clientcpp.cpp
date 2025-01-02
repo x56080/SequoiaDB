@@ -123,6 +123,37 @@ do                                                            \
    }                                                          \
 }while( FALSE )
 
+   class _sdbOpInterrupter
+   {
+   public:
+      _sdbOpInterrupter( BOOLEAN *pIsOperationInterrupted,
+                         _sdbImpl *pSdb,
+                         INT32 (_sdbImpl::*interruptFunc)() ):
+         _pIsOperationInterrupted( pIsOperationInterrupted ),
+         _pSdb( pSdb ),
+         _interruptFunc( interruptFunc )
+      {
+         *_pIsOperationInterrupted = FALSE ;
+      }
+      BOOLEAN isInterrupted()
+      {
+         return *_pIsOperationInterrupted ;
+      }
+      INT32 doInterrupt()
+      {
+         INT32 rc = (_pSdb->*_interruptFunc)() ;
+         if ( SDB_OK == rc )
+         {
+            *_pIsOperationInterrupted = FALSE ;
+         }
+         return rc ;
+      }
+   private:
+      BOOLEAN *_pIsOperationInterrupted ;
+      _sdbImpl *_pSdb ;
+      INT32 (_sdbImpl::*_interruptFunc)() ;
+   } ;
+
    static INT32 clientSocketSend ( ossSocket *pSock,
                                    CHAR *pBuffer,
                                    INT32 sendSize )
@@ -148,13 +179,18 @@ do                                                            \
 
    static INT32 clientSocketRecv ( ossSocket *pSock,
                                    CHAR *pBuffer,
-                                   INT32 receiveSize )
+                                   INT32 receiveSize,
+                                   _sdbOpInterrupter *pInterrupter = NULL )
    {
       INT32 rc = SDB_OK ;
       INT32 receivedSize = 0 ;
       INT32 totalReceivedSize = 0 ;
       while ( receiveSize > totalReceivedSize )
       {
+         if ( pInterrupter && pInterrupter->isInterrupted() )
+         {
+            pInterrupter->doInterrupt() ;
+         }
          rc = pSock->recv ( &pBuffer[totalReceivedSize],
                             receiveSize - totalReceivedSize,
                             receivedSize,
@@ -7930,6 +7966,7 @@ do                                                            \
       ossGetCurrentTime(_lastAliveTime) ;
 
       _isOldVersionLobServer = FALSE ;
+      _isOperationInterrupted = FALSE ;
    }
 
    _sdbImpl::~_sdbImpl ()
@@ -9473,6 +9510,8 @@ do                                                            \
       BOOLEAN isNeedDiscWithErr = FALSE ;
       INT32 minReplySize = ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion ) ?
                            sizeof(MsgOpReplyV1) : sizeof(MsgOpReply) ;
+      _sdbOpInterrupter interrupter( &_isOperationInterrupted, this,
+                                     &_sdbImpl::_sendInterruptOpMsg ) ;
 
       if ( !isConnected () )
       {
@@ -9488,7 +9527,8 @@ do                                                            \
       // first let's get message length
       rc = clientSocketRecv ( _sock,
                               (CHAR*)&length,
-                              sizeof(length) ) ;
+                              sizeof(length),
+                              &interrupter ) ;
       if ( rc )
       {
          goto error ;
@@ -9511,7 +9551,8 @@ do                                                            \
       *(SINT32*)(*ppBuffer) = length ;
       rc = clientSocketRecv ( _sock,
                               &(*ppBuffer)[sizeof(realLen)],
-                              realLen - sizeof(realLen) ) ;
+                              realLen - sizeof(realLen),
+                              &interrupter ) ;
       if ( rc )
       {
          goto error ;
@@ -11243,17 +11284,23 @@ do                                                            \
 
    INT32 _sdbImpl::interruptOperation()
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN locked = FALSE ;
+      _isOperationInterrupted = TRUE ;
+      return SDB_OK ;
+   }
 
-      rc = clientBuildInterruptMsg( &_pSendBuffer, &_sendBufferSize, 0,
+   INT32 _sdbImpl::_sendInterruptOpMsg()
+   {
+      INT32 rc = SDB_OK ;
+      CHAR buffer[ sizeof( MsgOpKillAllContexts ) ] = { 0 } ;
+      CHAR *pBuffer = buffer ;
+      INT32 bufferSize = sizeof( buffer ) ;
+
+      rc = clientBuildInterruptMsg( &pBuffer, &bufferSize, 0,
                                     TRUE, _endianConvert ) ;
       if ( rc )
       {
          goto error ;
       }
-      lock () ;
-      locked = TRUE ;
       rc = _send ( _pSendBuffer ) ;
       if ( rc )
       {
@@ -11261,10 +11308,6 @@ do                                                            \
       }
 
    done :
-      if ( locked )
-      {
-         unlock () ;
-      }
       return rc ;
    error :
       goto done ;

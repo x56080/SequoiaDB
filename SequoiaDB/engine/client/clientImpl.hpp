@@ -1397,6 +1397,7 @@ namespace sdbclient
       ossTimestamp             _lastAliveTime ;
 
       BOOLEAN                  _isOldVersionLobServer ;
+      BOOLEAN                  _isOperationInterrupted ;
 
       void _disconnect () ;
       void _removeObjects() ;
@@ -1475,6 +1476,8 @@ namespace sdbclient
                     const string &saltBase64,
                     const string &combineNonceBase64,
                     const string &clientProofBase64 ) ;
+
+      INT32 _sendInterruptOpMsg() ;
 
       friend class _sdbBase ;
       friend class _sdbCollectionSpaceImpl ;

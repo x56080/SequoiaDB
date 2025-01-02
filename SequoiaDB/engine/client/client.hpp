@@ -86,8 +86,8 @@ do                                     \
 // since client and server may not sit in the same network, we need
 // to set this value bigger than engine socket timeout
 // this value is in millisec
-// set to 10 seconds timeout
-#define SDB_CLIENT_SOCKET_TIMEOUT_DFT 10000
+// set to 1 second timeout
+#define SDB_CLIENT_SOCKET_TIMEOUT_DFT 1000
 
 /** class name 'sdbReplicaNode' will be deprecated in version 2.x, use 'sdbNode' instead of it. */
 #define sdbReplicaNode         sdbNode
