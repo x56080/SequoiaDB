@@ -52,6 +52,8 @@ using namespace bson ;
 namespace engine
 {
 
+   #define DMS_TMP_BUFF_SZ          ( 64 )
+
    // create new extent id without parent
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT2, "_ixmExtent::_ixmExtent" )
    _ixmExtent::_ixmExtent ( dmsExtentID extentID, UINT16 mbID,
@@ -84,6 +86,8 @@ namespace engine
                         (pHeader->_totalKeyNodeNum*sizeof(ixmKeyNode))) ;
       pIndexSu->addStatFreeSpace( mbID, pHeader->_totalFreeSize ) ;
 
+      setCompact() ;
+
       PD_TRACE_EXIT ( SDB__IXMEXT2 );
    }
 
@@ -115,12 +119,13 @@ namespace engine
       if ( _extentHead->_eyeCatcher[0] != IXM_EXTENT_EYECATCHER0 ||
            _extentHead->_eyeCatcher[1] != IXM_EXTENT_EYECATCHER1 )
       {
-         PD_LOG ( PDERROR, "Invalid index eye-catcher" ) ;
+         PD_LOG ( PDERROR, "Invalid index extent(%d) eye catcher(%c%c)",
+                  _me, _extentHead->_eyeCatcher[0], _extentHead->_eyeCatcher[1] ) ;
          return FALSE ;
       }
       if ( !(_extentHead->_flag & DMS_MB_FLAG_USED) )
       {
-         PD_LOG ( PDERROR, "Unused extent" ) ;
+         PD_LOG ( PDERROR, "Invalid flag(0x%02x) in extent(%d)", _extentHead->_flag, _me ) ;
          return FALSE ;
       }
       return TRUE ;
@@ -163,6 +168,7 @@ namespace engine
       INT32 high = _extentHead->_totalKeyNodeNum-1 ;
       // get the middle pos
       INT32 middle = (low + high)/2 ;
+
       // loop until high>=low
       while ( low <= high )
       {
@@ -175,11 +181,12 @@ namespace engine
          // the key supposed to exist, otherwise there's some corruption happen
          if ( !keyData )
          {
-            PD_LOG ( PDERROR, "Unable to locate key" ) ;
+            PD_LOG ( PDERROR, "Unable to locate key(%d,%u)", _me, middle ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
          }
+
          // create ixmKey object and let it compare with the input
          ixmKey keyDisk( keyData ) ;
          INT32 result = key.woCompare ( keyDisk, order ) ;
@@ -222,36 +229,7 @@ namespace engine
       // if still unable to find
       pos = low ;
       PD_TRACE1 ( SDB__IXMEXT_FIND, PD_PACK_USHORT(pos) ) ;
-      // sanity check, this is essential even in release build, just in case
-      // index corruption happened on disk
-      if ( pos != _extentHead->_totalKeyNodeNum )
-      {
-         // make sure the requested key is NOT greater than the next key
-         {
-            const CHAR *keyData = getKeyData (pos) ;
-            ixmKey keyDisk( keyData ) ;
-            if ( key.woCompare ( keyDisk, order ) > 0 )
-            {
-               PD_LOG ( PDERROR, "Internal logic error, key compare wrong" ) ;
-               dumpIndexExtentIntoLog () ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-         }
-         // make sure the previous key is NOT greater than the requested key
-         if ( pos > 0 )
-         {
-            const CHAR *keyData = getKeyData( pos-1 ) ;
-            ixmKey keyDisk(keyData) ;
-            if ( keyDisk.woCompare ( key, order ) > 0 )
-            {
-               PD_LOG ( PDERROR, "Internal logic error, key compare wrong" ) ;
-               dumpIndexExtentIntoLog () ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-         }
-      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_FIND, rc );
       return rc ;
@@ -265,8 +243,43 @@ namespace engine
                               ixmIndexCB *indexCB,
                               utilWriteResult *pResult )
    {
-      return _insert ( rid, key, order, dupAllowed, DMS_INVALID_EXTENT,
-                       DMS_INVALID_EXTENT, indexCB, pResult ) ;
+      INT32 rc = SDB_OK ;
+
+      // sanity check
+      INT32 keySize = key.dataSize() ;
+      if ( keySize > _pIndexSu->indexKeySizeMax() )
+      {
+         PD_LOG ( PDERROR, "key size[%d] must be less than or equal to [%d]",
+                  keySize, _pIndexSu->indexKeySizeMax() ) ;
+         rc = SDB_IXM_KEY_TOO_LARGE ;
+         goto error ;
+      }
+      if ( key.dataSize() <= 0 )
+      {
+         PD_LOG ( PDERROR, "key size must be greater than 0" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( indexCB->notNull() && key.hasNullOrUndefined() )
+      {
+         rc = SDB_IXM_KEY_NOTNULL ;
+         PD_LOG ( PDERROR, "Any field of index key cannot be null "
+                  "or does not exist, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _insert ( rid, key, order, dupAllowed, DMS_INVALID_EXTENT,
+                     DMS_INVALID_EXTENT, indexCB, pResult ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // This function is the wrapper for _basicInsert and _split, depends on
@@ -306,10 +319,15 @@ namespace engine
             rc = _split ( pos, rid, key, order, lchild, rchild, indexCB ) ;
             goto done ;
          }
+
          // dump error message if other errCode returned
-         PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+         if ( SDB_IXM_REORG_DONE != rc )
+         {
+            PD_LOG ( PDERROR, "Failed to insert to extent(%d, Pos:%u), rc: %d", _me, pos, rc ) ;
+         }
          goto error ;
       }
+
       // if insert completed in the current extent, let's reset the left and
       // right pointer
       {
@@ -373,7 +391,8 @@ namespace engine
             // rchild to _me
             if ( DMS_INVALID_EXTENT != rchild )
             {
-               _ixmExtent ( rchild, _pIndexSu ).setParent ( _me ) ;
+               _ixmExtent rchildExt( rchild, _pIndexSu ) ;
+               rchildExt.setParent ( _me ) ;
             }
          }
       }
@@ -383,6 +402,7 @@ namespace engine
    error :
       goto done ;
    }
+
    // This function physically insert a key/rid into page. Please note that this
    // function does NOT fix the childs for the adj keys. This operation is
    // performed by insertHere()
@@ -392,13 +412,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__BASICINS );
+
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       UINT16 bytesNeeded = 0 ;
       // first let's validate the pos is same or less than the total number of
       // keys in the extent
       if ( pos > getNumKeyNode () )
       {
-         PD_LOG ( PDERROR, "insert pos out of range" ) ;
+         PD_LOG ( PDERROR, "Invalid position(%u) of extent(%d) for insert, Key node:%u",
+                  pos, _me, getNumKeyNode() ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -415,7 +437,7 @@ namespace engine
          rc = _reorg ( order, pos, TRUE ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "index extent reorg failed with rc : %d", rc ) ;
+            PD_LOG ( PDERROR, "Index extent(%d) reorg failed, rc: %d", _me, rc ) ;
             goto error ;
          }
          SDB_ASSERT ( pos <= getNumKeyNode(), "pos is out of range" ) ;
@@ -450,22 +472,23 @@ namespace engine
          rc = _alloc ( datasize, kn->_keyOffset ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                     key.dataSize() ) ;
+            PD_LOG ( PDERROR, "Failed to allocate %d bytes in index extent(%d), rc: %d",
+                     key.dataSize(), _me, rc ) ;
             goto error ;
          }
          // copy the data into the position
-         ossMemcpy ( ((CHAR*)pHeader) + kn->_keyOffset,
-                      key.data(), datasize ) ;
+         ossMemcpy ( ((CHAR*)pHeader) + kn->_keyOffset, key.data(), datasize ) ;
       }
+
 #if defined (_DEBUG)
-      rc = _validate(MAX, order) ;
+      rc = _validate( MAX, order ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to validate the extent, rc = %d", rc ) ;
          goto error ;
       }
 #endif
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__BASICINS, rc );
       return rc ;
@@ -510,17 +533,17 @@ namespace engine
       rc = _splitPos ( pos, splitPos ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to get split position, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to get split position in extent(%d), rc: %d",
+                  _me, rc ) ;
          goto error ;
       }
-      PD_TRACE2 ( SDB__IXMEXT__SPLIT, PD_PACK_USHORT(pos),
-                  PD_PACK_USHORT(splitPos) ) ;
+      PD_TRACE2 ( SDB__IXMEXT__SPLIT, PD_PACK_USHORT(pos), PD_PACK_USHORT(splitPos) ) ;
+
       // allocate new extent
       rc = indexCB->allocExtent ( newExtentID ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to allocate new extent for index, rc = %d",
-                  rc ) ;
+         PD_LOG ( PDERROR, "Failed to allocate new extent for index, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -534,12 +557,12 @@ namespace engine
          {
             const ixmKeyNode *kn = getKeyNode(i) ;
             rc = newExtent._pushBack ( kn->_rid,
-                                    ixmKey(((const CHAR*)_extentHead)+kn->_keyOffset),
-                                    order, kn->_left, indexCB->getFlag() ) ;
+                                       ixmKey(((const CHAR*)_extentHead)+kn->_keyOffset),
+                                       order, kn->_left, indexCB->getFlag() ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to push back key %d to new extent, "
-                        "rc = %d", (INT32)i, rc ) ;
+               PD_LOG ( PDERROR, "Failed to push back key %d to new extent when split "
+                        "extent(%d), rc: %d", (INT32)i, _me, rc ) ;
                goto error ;
             }
          }
@@ -548,14 +571,14 @@ namespace engine
          newExtent._assignRight ( _extentHead->_right ) ;
 
 #if defined (_DEBUG)
-         rc = newExtent._validate(MAX, order) ;
+         rc = newExtent._validate( MAX, order ) ;
 #else
-         rc = newExtent._validate(MIN, order) ;
+         rc = newExtent._validate( MIN, order ) ;
 #endif
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to validate the new extent, rc = %d",
-                     rc ) ;
+            PD_LOG ( PDERROR, "Failed to validate the new extent(%d), rc: %d",
+                     newExtentID, rc ) ;
             goto error ;
          }
 
@@ -571,39 +594,36 @@ namespace engine
             rc = indexCB->allocExtent ( newRootExtentID ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to allocate new extent for index, "
-                        "rc = %d", rc ) ;
+               PD_LOG ( PDERROR, "Failed to allocate new extent for index, rc: %d", rc ) ;
                goto error ;
             }
 
             // initialize the header for the new extent
-            _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID,
-                                   _pIndexSu ) ;
+            _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID, _pIndexSu ) ;
             fixNewRootIfFailed = TRUE ;
 
             // promote the split key into parent, key._left point to the current
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
-                                        ixmKey(((const CHAR*)_extentHead)+
-                                        splitKey->_keyOffset), order, _me,
-                                        indexCB->getFlag() ) ;
+                                        ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
+                                        order, _me, indexCB->getFlag() ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to promote split key into root, "
-                        "rc = %d", rc ) ;
+               PD_LOG ( PDERROR, "Failed to promote split key(%d, Pos:%u) into root, rc: %d",
+                        _me, splitPos, rc ) ;
                goto error ;
             }
             // the _right is pointing to the splitted node
             rootExtent._assignRight ( newExtentID ) ;
 #if defined (_DEBUG)
-            rc = rootExtent._validate(MAX, order) ;
+            rc = rootExtent._validate( MAX, order ) ;
 #else
-            rc = rootExtent._validate(MIN, order) ;
+            rc = rootExtent._validate( MIN, order ) ;
 #endif
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to validate the new root, rc = %d",
-                        rc ) ;
+               PD_LOG ( PDERROR, "Failed to validate the new root(%d), rc: %d",
+                        newRootExtentID, rc ) ;
                goto error ;
             }
             // set new root page
@@ -620,17 +640,18 @@ namespace engine
             _ixmExtent parentExtent( getParent(), _pIndexSu ) ;
             // do physical insert into it
             rc = parentExtent._insert( splitKey->_rid,
-                       ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
-                       order, TRUE, _me,
-                       newExtentID, indexCB ) ;
+                                       ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
+                                       order, TRUE, _me,
+                                       newExtentID, indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to promote into parent, rc = %d",
-                        rc ) ;
+               PD_LOG ( PDERROR, "Failed to promote split key(%d, Pos:%u) into parent(%d), "
+                        "rc: %d", _me, splitPos, getParent(), rc ) ;
                goto error ;
             }
             newExtentID = DMS_INVALID_EXTENT ;
          }
+
          // now new page and(or) root page are created, and all keys are copied,
          // so we are safe to truncate
          newPos = pos ;
@@ -638,8 +659,7 @@ namespace engine
          rc = _truncate ( splitPos, newPos, order ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to truncate index extent, rc = %d",
-                     rc ) ;
+            PD_LOG ( PDERROR, "Failed to truncate index extent(%d), rc: %d", _me, rc ) ;
             goto error ;
          }
          PD_TRACE1 ( SDB__IXMEXT__SPLIT, PD_PACK_USHORT(newPos) ) ;
@@ -650,13 +670,11 @@ namespace engine
             SDB_ASSERT ( 0xFFFF != newPos, "Invalid newPos" ) ;
             // insert into newPos since _truncate will call _reorg, which will
             // remove unused keys from original extent, which may change newPos
-            rc = insertHere ( newPos, rid, key, order, lchild, rchild,
-                              indexCB ) ;
+            rc = insertHere ( newPos, rid, key, order, lchild, rchild, indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR,
-                        "Failed to insert into splitted left page, rc = %d",
-                        rc ) ;
+               PD_LOG ( PDERROR, "Failed to insert into splitted left page(%d), rc: %d",
+                        _me, rc ) ;
                goto error ;
             }
          }
@@ -667,9 +685,8 @@ namespace engine
                                         rchild, indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR,
-                        "Failed to insert into splitted right page, rc = %d",
-                        rc ) ;
+               PD_LOG ( PDERROR, "Failed to insert into splitted right page(%d), rc: %d",
+                        _me, rc ) ;
                goto error ;
             }
          }
@@ -706,7 +723,7 @@ namespace engine
                                          newPageExtent.getFreeSize() ) ;
 
             // fix parent points for left children
-            _fixParentPtrs( splitPos + 1,
+            _fixParentPtrs( splitPos,
                             splitPos + 1 + newPageExtent.getNumKeyNode() ) ;
 
             // fix parent point of right child
@@ -718,6 +735,7 @@ namespace engine
       }
       goto done ;
    }
+
    // truncate a page and leave totalNodes. Passin a newPos as
    // input/output, for any interested slot that may move its position.
    // For example the original layout looks like
@@ -726,8 +744,7 @@ namespace engine
    // After truncate(4)+reorg, the layout will be like
    // <key1><key2><key3>
    // so <key3> will be at position 2
-   INT32 _ixmExtent::_truncate ( UINT16 totalNodes, UINT16 &newPos,
-                                 const Ordering &order )
+   INT32 _ixmExtent::_truncate ( UINT16 totalNodes, UINT16 &newPos, const Ordering &order )
    {
       if ( totalNodes < getNumKeyNode() )
       {
@@ -742,6 +759,34 @@ namespace engine
       return SDB_OK ;
    }
 
+   void _ixmExtent::_popFront( UINT16 popNodes, const Ordering &order )
+   {
+      if ( popNodes > 0 )
+      {
+         ixmExtentHead *pExtent = _extRW.writePtr<ixmExtentHead>() ;
+
+         /// pop all
+         if ( popNodes >= getNumKeyNode() )
+         {
+            popNodes = pExtent->_totalKeyNodeNum ;
+            pExtent->_totalKeyNodeNum = 0 ;
+         }
+         else
+         {
+            /// copy slot
+            ixmKeyNode *kn = writeKeyNode( 0 ) ;
+            ossMemmove ( (CHAR*)kn, (const CHAR*)getKeyNode( popNodes ),
+                         sizeof(ixmKeyNode)*(pExtent->_totalKeyNodeNum-popNodes) ) ;
+         }
+
+         pExtent->_totalKeyNodeNum -= popNodes ;
+         pExtent->_totalFreeSize += ( sizeof(ixmKeyNode) * popNodes ) ;
+         _pIndexSu->addStatFreeSpace( pExtent->_mbID, sizeof(ixmKeyNode) * popNodes ) ;         
+
+         unsetCompact() ;
+      }
+   }
+
    // calculate the split position
    // pos is the position where we are trying to insert new record
    // splitPos is the returned value for where split should starts
@@ -752,18 +797,21 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLITPOS );
+
       UINT16 rightSize = 0 ;
       UINT16 maxRightSize = 0 ;
       UINT16 totalKeySize = getTotalKeySize() ;
+
       PD_TRACE1 ( SDB__IXMEXT__SPLITPOS, PD_PACK_USHORT(totalKeySize) );
+
       splitPos = 1 ;
       // we should never call this function when there are less than two keys
       // (if that happen, after split and prompt to parent, we'll have empty
       // page
       if ( getNumKeyNode() < IXM_KEY_NODE_NUM_MIN )
       {
-         PD_LOG ( PDERROR, "Only %d elements in the index",
-                  (INT32)getNumKeyNode() ) ;
+         PD_LOG ( PDERROR, "Only %u elements in the index extent(%d)",
+                  getNumKeyNode(), _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -773,11 +821,29 @@ namespace engine
          // if the new key is at end of the page, we do 90%+10% split
          maxRightSize = totalKeySize / 10 ;
       }
+      else if ( 0 == pos )
+      {
+         // if the new key is at begin of the page, we do 10%+90% split
+         maxRightSize = totalKeySize / 10 * 9 ;
+      }
+      else if ( _searchOrderStep( pos, -1, IXM_KEY_ORDER_NUM_THRESHOLD ) >=
+                IXM_KEY_ORDER_NUM_THRESHOLD )
+      {
+         /// like: 11,12, but insert 1,2,3,4... (in order asc)
+         maxRightSize = totalKeySize / 10 ;    /// 90% + 10%
+      }
+      else if ( _searchOrderStep( pos, 1, IXM_KEY_ORDER_NUM_THRESHOLD ) >=
+                IXM_KEY_ORDER_NUM_THRESHOLD )
+      {
+         /// like: 0,1, but insert 10,9,8,7...(in order desc)
+         maxRightSize = totalKeySize / 10 * 9 ;    /// 10% + 90%
+      }
       else
       {
          // otherwise we do half-half split
          maxRightSize = totalKeySize / 2 ;
       }
+
       // calculate starting from right to left, and calculate the size of each
       // key
       for ( INT32 i = _extentHead->_totalKeyNodeNum-1 ; i >= 0 ; --i )
@@ -789,16 +855,79 @@ namespace engine
             break ;
          }
       }
-      if ( splitPos > getNumKeyNode() - 2 )
+
+      /// when the last key, so adjust to prev key
+      if ( splitPos + 2 > getNumKeyNode() )
       {
          splitPos = getNumKeyNode() - 2 ;
       }
+      else if ( 0 == splitPos )
+      {
+         splitPos = 1 ;
+      }
       PD_TRACE1 ( SDB__IXMEXT__SPLITPOS, PD_PACK_USHORT( splitPos ) ) ;
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__SPLITPOS, rc );
       return rc ;
    error :
       goto done ;
+   }
+
+   UINT16 _ixmExtent::_searchOrderStep( UINT16 pos, INT32 direction, UINT16 maxSearch ) const
+   {
+      UINT16 step = 0 ;
+      const ixmKeyNode *kn = NULL ;
+      UINT16 lastOffset = _extentHead->_beginFreeOffset ;
+
+      if ( direction > 0 )
+      {
+         UINT16 numKeyNode = getNumKeyNode() ;
+         if ( pos + 1 == numKeyNode )
+         {
+            /// the last key
+            goto done ;
+         }
+         for ( UINT16 i = pos ; i < numKeyNode ; ++i )
+         {
+            kn = getKeyNode( i ) ;
+            if ( kn->_keyOffset != lastOffset )
+            {
+               break ;
+            }
+            if ( ++step >= maxSearch )
+            {
+               break ;
+            }
+            ixmKey key( getKeyData( i ) ) ;
+            lastOffset += key.dataSize() ;
+         }
+      }
+      else
+      {
+         if ( 0 == pos )
+         {
+            /// the first key
+            goto done ;
+         }
+         for ( INT32 i = pos - 1 ; i >= 0 ; --i )
+         {
+            kn = getKeyNode( (UINT16)i ) ;
+            if ( kn->_keyOffset != lastOffset )
+            {
+               break ;
+            }
+            if ( ++step >= maxSearch )
+            {
+               break ;
+            }
+            ixmKey key( getKeyData( (UINT16)i ) ) ;
+            lastOffset += key.dataSize() ;
+         }
+      }
+
+   done:
+      return step ;
    }
 
    // fix parent pointers for all child pages
@@ -863,32 +992,35 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__PSHBACK );
+
       UINT16 bytesNeeded = key.dataSize() + sizeof(ixmKeyNode) ;
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       ixmKeyNode *kn = NULL ;
       // make sure we are not out of range
       if ( bytesNeeded > _extentHead->_totalFreeSize )
       {
-         PD_LOG ( PDERROR, "Bytes needed should never smaller than "
-                  "_totalFreeSize" ) ;
+         PD_LOG ( PDERROR, "Bytes needed(%u) should never smaller than totalFreeSize(%u) "
+                  "in extent(%d)", bytesNeeded, _extentHead->_totalFreeSize, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
+
       // if we have something in the page, let's make sure the new key is
       // greater than the last key in the page
       if ( getNumKeyNode() )
       {
          ixmKey lastkey ( getKeyData(getNumKeyNode()-1) ) ;
-         if ( lastkey.woCompare(key, order) > 0 )
+         if ( lastkey.woCompare( key, order ) > 0 )
          {
-            PD_LOG ( PDERROR, "New key smaller than the last key during "
-                     "push" ) ;
+            PD_LOG ( PDERROR, "New key smaller than the last key during push in extent(%d)",
+                     _me ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
          }
       }
+
       // allocate space and copy over key
       pHeader->_totalFreeSize -= sizeof(ixmKeyNode) ;
       _pIndexSu->decStatFreeSpace( pHeader->_mbID, sizeof(ixmKeyNode) ) ;
@@ -922,12 +1054,12 @@ namespace engine
       rc = _alloc ( key.dataSize(), kn->_keyOffset ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                  key.dataSize() ) ;
+         PD_LOG ( PDERROR, "Failed to allocate %d bytes in extent(%d), rc: %d",
+                  key.dataSize(), _me, rc ) ;
          goto error ;
       }
-      ossMemcpy ( ((CHAR*)pHeader)+kn->_keyOffset,
-                  key.data(), key.dataSize()) ;
+      ossMemcpy ( ((CHAR*)pHeader)+kn->_keyOffset, key.data(), key.dataSize()) ;
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__PSHBACK, rc );
       return rc ;
@@ -944,7 +1076,8 @@ namespace engine
       if ( _extentHead->_eyeCatcher[0] != IXM_EXTENT_EYECATCHER0 ||
            _extentHead->_eyeCatcher[1] != IXM_EXTENT_EYECATCHER1 )
       {
-         PD_LOG ( PDERROR, "Invalid index extent eye catcher" ) ;
+         PD_LOG ( PDERROR, "Invalid index extent(%d) eye catcher(%c%c)",
+                  _me, _extentHead->_eyeCatcher[0], _extentHead->_eyeCatcher[1] ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -953,23 +1086,25 @@ namespace engine
            _extentHead->_totalKeyNodeNum*sizeof(ixmKeyNode) !=
            _extentHead->_totalFreeSize )
       {
-         PD_LOG ( PDERROR, "Inconsistent free size" ) ;
+         PD_LOG ( PDERROR, "Inconsistent free size in extent(%d), BeginFreeOffset:%u, "
+                  "KeyNodeNum:%u, TotalFreeSize:%u", _me, _extentHead->_beginFreeOffset,
+                  _extentHead->_totalKeyNodeNum, _extentHead->_totalFreeSize ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
       if ( !(_extentHead->_flag & DMS_MB_FLAG_USED) )
       {
-         PD_LOG ( PDERROR, "Invalid flag" ) ;
+         PD_LOG ( PDERROR, "Invalid flag(0x%02x) in extent(%d)", _extentHead->_flag, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      if ( DMS_INVALID_EXTENT != parent
-           && getParent() != parent )
+      if ( DMS_INVALID_EXTENT != parent && getParent() != parent )
       {
-         PD_LOG( PDERROR, "Invalid index extent parent" ) ;
+         PD_LOG( PDERROR, "Invalid index extent(%d) parent(%d != %d)",
+                 _me, getParent(), parent ) ;
          dumpIndexExtentIntoLog() ;
          rc = SDB_SYS ;
          goto error ;
@@ -977,7 +1112,8 @@ namespace engine
 
       if ( getMBID() != indexCB->getMBID() )
       {
-         PD_LOG( PDERROR, "Invalid index extent mb id" ) ;
+         PD_LOG( PDERROR, "Invalid index extent(%d) mb id(%u != %u)",
+                 _me, getMBID(), indexCB->getMBID() ) ;
          dumpIndexExtentIntoLog() ;
          rc = SDB_SYS ;
          goto error ;
@@ -999,18 +1135,21 @@ namespace engine
    // MAX will compare each key to its next in sequence, and make sure all
    // previous keys are smaller or equal to the next
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__VALIDATE, "_ixmExtent::_validate" )
-   INT32 _ixmExtent::_validate ( _ixmExtentValidateLevel level,
-                                 const Ordering &order ) const
+   INT32 _ixmExtent::_validate ( _ixmExtentValidateLevel level, const Ordering &order ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__VALIDATE );
       if ( NONE == level )
+      {
          goto done ;
+      }
+
       // min/mid/max
       if ( _extentHead->_eyeCatcher[0] != IXM_EXTENT_EYECATCHER0 ||
            _extentHead->_eyeCatcher[1] != IXM_EXTENT_EYECATCHER1 )
       {
-         PD_LOG ( PDERROR, "Invalid index extent eye catcher" ) ;
+         PD_LOG ( PDERROR, "Invalid index extent(%d) eye catcher(%c%c)",
+                  _me, _extentHead->_eyeCatcher[0], _extentHead->_eyeCatcher[1] ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -1019,80 +1158,120 @@ namespace engine
            _extentHead->_totalKeyNodeNum*sizeof(ixmKeyNode) !=
            _extentHead->_totalFreeSize )
       {
-         PD_LOG ( PDERROR, "Inconsistent free size" ) ;
+         PD_LOG ( PDERROR, "Inconsistent free size in extent(%d), BeginFreeOffset:%u, "
+                  "KeyNodeNum:%u, TotalFreeSize:%u", _me, _extentHead->_beginFreeOffset,
+                  _extentHead->_totalKeyNodeNum, _extentHead->_totalFreeSize ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
       if ( !(_extentHead->_flag & DMS_MB_FLAG_USED) )
       {
-         PD_LOG ( PDERROR, "Invalid flag" ) ;
+         PD_LOG ( PDERROR, "Invalid flag(0x%02x) in extent(%d)", _extentHead->_flag, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      // mid
-      if ( MID == level )
+      if ( _extentHead->_totalKeyNodeNum > 2 )
       {
-         ixmKey k1 ( getKeyData(0) ) ;
-         ixmKey k2 ( getKeyData(_extentHead->_totalKeyNodeNum-1) ) ;
-         if ( k1.woCompare(k2, order) > 0 )
+         // mid
+         if ( MID == level )
          {
-            PD_LOG ( PDERROR, "First key is greater than the last" ) ;
-            dumpIndexExtentIntoLog () ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-      else if ( MAX == level )
-      {
-         for ( UINT16 i = 0; i < _extentHead->_totalKeyNodeNum-1; i++ )
-         {
-            ixmKey k1 ( getKeyData(i)) ;
-            ixmKey k2 ( getKeyData(i+1)) ;
-            INT32 result = k1.woCompare(k2, order) ;
-            if ( result > 0 )
+            ixmKey k1 ( getKeyData(0) ) ;
+            ixmKey k2 ( getKeyData(_extentHead->_totalKeyNodeNum-1) ) ;
+            if ( k1.woCompare(k2, order) > 0 )
             {
-               PD_LOG ( PDERROR, "%d'th key is greater than its next",
-                        (INT32)i ) ;
+               PD_LOG ( PDERROR, "First key is greater than the last in extent(%d)", _me ) ;
                dumpIndexExtentIntoLog () ;
                rc = SDB_SYS ;
                goto error ;
             }
-            else if ( 0 == result )
+         }
+         else if ( MAX == level )
+         {
+            for ( UINT16 i = 0; i < _extentHead->_totalKeyNodeNum-1; i++ )
             {
-               dmsRecordID rid1 = getKeyNode(i)->_rid ;
-               dmsRecordID rid2 = getKeyNode(i+1)->_rid ;
-               if ( rid1.compare(rid2) >=0 )
+               ixmKey k1 ( getKeyData(i)) ;
+               ixmKey k2 ( getKeyData(i+1)) ;
+               INT32 result = k1.woCompare(k2, order) ;
+               if ( result > 0 )
                {
-                  PD_LOG ( PDERROR, "%d'th key's RID is greater or equal to "
-                           "the next", (INT32)i ) ;
+                  PD_LOG ( PDERROR, "%d'th key is greater than its next in extent(%d)",
+                           (INT32)i, _me ) ;
                   dumpIndexExtentIntoLog () ;
                   rc = SDB_SYS ;
                   goto error ;
                }
-            } //else if ( 0 == result )
-         } //for (
-      } //else if ( MAX == level )
+               else if ( 0 == result )
+               {
+                  dmsRecordID rid1 = getKeyNode(i)->_rid ;
+                  dmsRecordID rid2 = getKeyNode(i+1)->_rid ;
+                  if ( rid1.compare(rid2) >=0 )
+                  {
+                     PD_LOG ( PDERROR, "%d'th key's RID is greater or equal to the next "
+                              "in extent(%d)", (INT32)i, _me ) ;
+                     dumpIndexExtentIntoLog () ;
+                     rc = SDB_SYS ;
+                     goto error ;
+                  }
+               } //else if ( 0 == result )
+            } //for (
+         } //else if ( MAX == level )
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__VALIDATE, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // inline reorg an index page, wrapper for the other _reorg function
    INT32 _ixmExtent::_reorg (const Ordering &order)
    {
       UINT16 dummy = 0xFFFF ;
       return _reorg ( order, dummy, TRUE ) ;
    }
+
+   INT32 _ixmExtent::_ensureSpace( UINT16 size, const Ordering &order, BOOLEAN canReorg,
+                                   BOOLEAN canDelNewPos, UINT16 &newPos, BOOLEAN &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      result = FALSE ;
+
+      if ( getFreeSize() >= size )
+      {
+         result = TRUE ;
+         goto done ;
+      }
+
+      if ( canReorg && !isCompact() )
+      {
+         rc = _reorg( order, newPos, canDelNewPos ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         if ( getFreeSize() >= size )
+         {
+            result = TRUE ;
+            goto done ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // inline reorg an index page, newPos represent the input/output for a key
    // after reorg happened
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__REORG, "_ixmExtent::_reorg" )
-   INT32 _ixmExtent::_reorg (const Ordering &order,
-                             UINT16 &newPos,
-                             BOOLEAN canDelNewPos )
+   INT32 _ixmExtent::_reorg ( const Ordering &order, UINT16 &newPos, BOOLEAN canDelNewPos )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__REORG );
@@ -1101,7 +1280,7 @@ namespace engine
       UINT16 beginFreeOffset = _pageSize-1 ;
       UINT16 totalKeyNodeNum = 0 ;
       UINT16 totalFreeSize = beginFreeOffset - sizeof(ixmExtentHead) ;
-      CHAR   buffer[DMS_PAGE_SIZE_MAX] ;
+      CHAR  *buffer = NULL ;
 
       if ( isCompact() )
       {
@@ -1109,6 +1288,18 @@ namespace engine
       }
 
       pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
+
+      /// alloc mem
+      if ( pHeader->_totalKeyNodeNum > 0 )
+      {
+         buffer = (CHAR*)SDB_THREAD_ALLOC( _pageSize ) ;
+         if ( !buffer )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory(%d) failed, rc: %d", _pageSize, rc ) ;
+            goto error ;
+         }
+      }
 
       // loop through all keys in the page
       for ( UINT16 i = 0 ; i < pHeader->_totalKeyNodeNum ; i++ )
@@ -1145,7 +1336,7 @@ namespace engine
          if ( (INT32)beginFreeOffset - keyDataSize < 0 ||
               (INT32)totalFreeSize - keyDataSize < 0 )
          {
-            PD_LOG ( PDERROR, "key is too large" ) ;
+            PD_LOG ( PDERROR, "key is too large in extent(%d)", _me ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
@@ -1159,10 +1350,8 @@ namespace engine
          // copy the slot
          if ( totalKeyNodeNum != i )
          {
-            ossMemcpy ( ((CHAR*)pHeader) + sizeof(ixmExtentHead) +
-                        totalKeyNodeNum*sizeof(ixmKeyNode),
-                        ((const CHAR*)pHeader) + sizeof(ixmExtentHead) +
-                        i*sizeof(ixmKeyNode),
+            ossMemcpy ( ((CHAR*)pHeader) + sizeof(ixmExtentHead) + totalKeyNodeNum*sizeof(ixmKeyNode),
+                        ((const CHAR*)pHeader) + sizeof(ixmExtentHead) + i*sizeof(ixmKeyNode),
                         sizeof(ixmKeyNode)) ;
          }
          ++totalKeyNodeNum ;
@@ -1186,21 +1375,30 @@ namespace engine
       pHeader->_totalFreeSize = totalFreeSize ;
       _pIndexSu->addStatFreeSpace( pHeader->_mbID,
                                    pHeader->_totalFreeSize ) ;
-      ossMemcpy ( ((CHAR*)pHeader)+beginFreeOffset,
-                  &buffer[beginFreeOffset],
-                  _pageSize - beginFreeOffset ) ;
+      if ( buffer )
+      {
+         ossMemcpy ( ((CHAR*)pHeader)+beginFreeOffset,
+                     &buffer[beginFreeOffset],
+                     _pageSize - beginFreeOffset ) ;
+      }
+
 #if defined (_DEBUG)
-      rc = _validate(MAX, order) ;
+      rc = _validate( MAX, order ) ;
 #else
-      rc = _validate(MIN, order) ;
+      rc = _validate( MIN, order ) ;
 #endif
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to validate the new extent, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to validate the new extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
       setCompact() ;
+
    done :
+      if ( buffer )
+      {
+         SDB_THREAD_FREE( buffer ) ;
+      }
       PD_TRACE_EXITRC ( SDB__IXMEXT__REORG, rc );
       return rc ;
    error :
@@ -1245,36 +1443,12 @@ namespace engine
       // NOTE: check duplicated keys from root
       BOOLEAN dupChecked = FALSE ;
 
-      // sanity check
-      INT32 keySize = key.dataSize() ;
-      if ( keySize > _pIndexSu->indexKeySizeMax() )
-      {
-         PD_LOG ( PDERROR, "key size[%d] must be less than or equal to [%d]",
-                  keySize, _pIndexSu->indexKeySizeMax() ) ;
-         rc = SDB_IXM_KEY_TOO_LARGE ;
-         goto error ;
-      }
-      if ( key.dataSize() <= 0 )
-      {
-         PD_LOG ( PDERROR, "key size must be greater than 0" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( indexCB->notNull() && key.hasNullOrUndefined() )
-      {
-         rc = SDB_IXM_KEY_NOTNULL ;
-         PD_LOG ( PDERROR, "Any field of index key cannot be null "
-                  "or does not exist, rc: %d", rc ) ;
-         goto error ;
-      }
-
    retry :
       // try to locate where the insert should happen
       rc = find ( indexCB, key, rid, order, pos, keyFoundPos, sameFound ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Error happened during find, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Error happened during find in extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
 
@@ -1284,8 +1458,7 @@ namespace engine
          if ( kn->isUnused() )
          {
             rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Page[%d]'s key node[%d] should be used",
-                    _me, pos ) ;
+            PD_LOG( PDERROR, "Key node(%u) in extent(%d) should be used", pos, _me ) ;
             dumpIndexExtentIntoLog() ;
             goto error ;
          }
@@ -1344,8 +1517,7 @@ namespace engine
                dmsRecordID tmpRID ;
                BOOLEAN tmpFound = FALSE ;
 
-               rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID,
-                                 tmpRID ) ;
+               rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID, tmpRID ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to locate key %s to find "
                             "duplicated keys, rc: %d",
                             PD_SECURE_STR( key.toString() ), rc ) ;
@@ -1406,19 +1578,20 @@ namespace engine
                rc = SDB_OK ;
                goto retry ;
             }
-            PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+            PD_LOG ( PDERROR, "Failed to insert in extent(%d), rc: %d", _me, rc ) ;
             goto error ;
          }
       }
       // otherwise let's traverse down
       else
       {
-         rc = _ixmExtent(ch, _pIndexSu)._insert( rid, key, order, dupAllowed,
-                                                 lchild, rchild, indexCB,
-                                                 pResult ) ;
+         _ixmExtent childExtent( ch, _pIndexSu ) ;
+         rc = childExtent._insert( rid, key, order, dupAllowed,lchild, rchild,
+                                   indexCB, pResult ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+            PD_LOG ( PDERROR, "Failed to insert to child(%d, Pos:%u) of extent(%d), rc: %d",
+                     ch, pos, _me, rc ) ;
             goto error ;
          }
       }
@@ -1438,27 +1611,29 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_UNINDEX );
-      BOOLEAN found ;
+      BOOLEAN found = FALSE ;
       ixmRecordID indexrid ;
       result = FALSE ;
 
       rc = _locate ( key, rid, order, indexrid, found, 1, indexCB ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to locate key and rid" ) ;
+         PD_LOG ( PDERROR, "Failed to locate key and rid in extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
       if ( found )
       {
-         rc = ixmExtent( indexrid._extent, _pIndexSu)._delKeyAtPos (
-                         indexrid._slot, order, indexCB ) ;
+         ixmExtent foundExtent( indexrid._extent, _pIndexSu ) ;
+         rc = foundExtent._delKeyAtPos ( indexrid._slot, order, indexCB ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "failed to delete key" ) ;
+            PD_LOG ( PDERROR, "Failed to delete key(%d,%u), rc: %d",
+                     indexrid._extent, indexrid._slot, rc ) ;
             goto error ;
          }
          result = TRUE ;
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_UNINDEX, rc );
       return rc ;
@@ -1474,28 +1649,49 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELKEYATPOS1 );
+
+      UINT16 keyDataSize = 0 ;
       ixmKeyNode *kn = NULL ;
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       if ( pos >= getNumKeyNode() )
       {
-         PD_LOG ( PDERROR, "pos out of range, pos=%d, totalKey=%d",
-                  (INT32)pos, (INT32)getNumKeyNode() ) ;
+         PD_LOG ( PDERROR, "Invalid position(%u) of extent(%d) for deletion, totalKey: %u",
+                  pos, _me, getNumKeyNode() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
       kn = writeKeyNode( pos ) ;
       if ( DMS_INVALID_EXTENT != kn->_left )
       {
-         PD_LOG ( PDERROR, "left pointer must be NULL" ) ;
+         PD_LOG ( PDERROR, "Left pointer must be NULL when physical deletion"
+                  "(Extent:%d, Pos:%u, Left:%d)", _me, pos, kn->_left ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      if ( kn->_keyOffset == pHeader->_beginFreeOffset )
+      {
+         ixmKey key( getKeyData( pos ) ) ;
+         keyDataSize = key.dataSize() ;
+      }
+
       pHeader->_totalFreeSize += sizeof(ixmKeyNode) ;
       _pIndexSu->addStatFreeSpace( pHeader->_mbID, sizeof(ixmKeyNode) ) ;
       pHeader->_totalKeyNodeNum-- ;
       ossMemmove ( (CHAR*)kn, (const CHAR*)getKeyNode(pos+1),
                    sizeof(ixmKeyNode)*(pHeader->_totalKeyNodeNum-pos) ) ;
-      unsetCompact() ;
+
+      if ( keyDataSize > 0 )
+      {
+         pHeader->_beginFreeOffset += keyDataSize ;
+         pHeader->_totalFreeSize += keyDataSize ;
+         _pIndexSu->addStatFreeSpace( pHeader->_mbID, keyDataSize ) ;
+      }
+      else
+      {
+         unsetCompact() ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELKEYATPOS1, rc );
       return rc ;
@@ -1505,17 +1701,17 @@ namespace engine
    // delete a key from page at pos, caller do NOT need to validate left pointer
    // and root
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS2, "_ixmExtent::_delKeyAtPos" )
-   INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos, const Ordering &order,
-                                    ixmIndexCB *indexCB )
+   INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos, const Ordering &order, ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELKEYATPOS2 );
       dmsExtentID left = DMS_INVALID_EXTENT ;
       BOOLEAN result = FALSE ;
+
       if ( pos >= getNumKeyNode() )
       {
-         PD_LOG ( PDERROR, "pos out of range, pos=%d, totalKey=%d",
-                 (INT32)pos, (INT32)getNumKeyNode() ) ;
+         PD_LOG ( PDERROR, "Invalid position(%u) for deletion in extent(%d), totalKey: %u",
+                 pos, _me, getNumKeyNode() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -1528,12 +1724,12 @@ namespace engine
          if ( DMS_INVALID_EXTENT == left &&
               DMS_INVALID_EXTENT == _extentHead->_right )
          {
-            // first let's remove the key since we knows the left pointer is
-            // NULL
+            // first let's remove the key since we knows the left pointer is NULL
             rc = _delKeyAtPos ( pos ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to delete at pos %d", (INT32) pos ) ;
+               PD_LOG ( PDERROR, "Failed to delete at pos %u in extent(%d), rc: %d",
+                        pos, _me, rc ) ;
                goto error ;
             }
             if ( DMS_INVALID_EXTENT != getParent() )
@@ -1544,7 +1740,8 @@ namespace engine
                rc = _mayBalanceWithNeighbors ( order, indexCB, result ) ;
                if ( rc )
                {
-                  PD_LOG ( PDERROR, "Failed to balance with neighbors" ) ;
+                  PD_LOG ( PDERROR, "Failed to balance with neighbors in extent(%d), rc: %d",
+                           _me, rc ) ;
                   goto error ;
                }
                if ( !result )
@@ -1553,8 +1750,8 @@ namespace engine
                   rc = _delExtent ( indexCB ) ;
                   if ( rc )
                   {
-                     PD_LOG ( PDERROR, "Failed to delete extent for the "
-                              "index" ) ;
+                     PD_LOG ( PDERROR, "Failed to delete extent(%d) for the index, rc: %d",
+                              _me, rc ) ;
                      goto error ;
                   }
                }
@@ -1569,7 +1766,8 @@ namespace engine
          rc = _deleteInternalKey ( pos, order, indexCB ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to delete internal key" ) ;
+            PD_LOG ( PDERROR, "Failed to delete internal key(%d,%u), rc: %d",
+                     _me, pos, rc ) ;
             goto error ;
          }
          goto done ;
@@ -1582,13 +1780,15 @@ namespace engine
          rc = _delKeyAtPos ( pos ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to delete at pos %d", (INT32)pos ) ;
+            PD_LOG ( PDERROR, "Failed to delete at pos %u in extent(%d), rc: %d",
+                     pos, _me, rc ) ;
             goto error ;
          }
          rc = _mayBalanceWithNeighbors ( order, indexCB, result ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to balance with neighbors" ) ;
+            PD_LOG ( PDERROR, "Failed to balance with neighbors in extend(%d), rc: %d",
+                     _me, rc ) ;
             goto error ;
          }
       }
@@ -1599,10 +1799,12 @@ namespace engine
          rc = _deleteInternalKey ( pos, order, indexCB ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to delete internal key" ) ;
+            PD_LOG ( PDERROR, "Failed to delete internal key(%d,%u), rc: %d",
+                     _me, pos, rc ) ;
             goto error ;
          }
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELKEYATPOS2, rc );
       return rc ;
@@ -1617,17 +1819,20 @@ namespace engine
                                                 BOOLEAN &result )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__IXMEXT__MAYBLCWITHNGB );
-      result = FALSE ;
-      UINT16 pos ;
-      //BOOLEAN mayBalanceRight ;
-      //BOOLEAN mayBalanceLeft ;
-      // let's return if it's root
+      PD_TRACE_ENTRY ( SDB__IXMEXT__MAYBLCWITHNGB ) ;
 
-      if ( DMS_INVALID_EXTENT == getParent() )
+      UINT16 pos = 0 ;
+      BOOLEAN mayBalanceRight = FALSE ;
+      BOOLEAN mayBalanceLeft = FALSE ;
+
+      result = FALSE ;
+
+      // let's return if it's root or key number grater than IXM_KEY_NODE_BALANCE
+      if ( getNumKeyNode() >= IXM_KEY_NODE_BALANCE || DMS_INVALID_EXTENT == getParent() )
       {
          goto done ;
       }
+      else
       {
          // get the parent extent
          ixmExtent parent( getParent(), _pIndexSu ) ;
@@ -1636,69 +1841,85 @@ namespace engine
          // if we can't find the key, something really bad happened
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+            PD_LOG ( PDERROR, "Unable to find the extent(%d) in it's parent(%d), rc: %d",
+                     _me, getParent(), rc ) ;
             goto error ;
+         }
+
+         // if we are not the _right, and our next slot got child, we may do right balance
+         mayBalanceRight = ( pos < parent.getNumKeyNode() &&
+                             parent.getChildExtentID(pos+1) != DMS_INVALID_EXTENT ) ;
+         // if we are not the first, and our previous slot got child, we may do left balance
+         mayBalanceLeft = ( pos > 0 &&
+                            parent.getChildExtentID(pos-1) != DMS_INVALID_EXTENT ) ;
+
+         // attempt to balance child
+         if ( mayBalanceRight )
+         {
+            // for right balance, we merge pos and pos+1
+            rc = parent._tryBalanceChildren( pos, order, indexCB, 1, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try balance children(Pos:%u) with right "
+                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
+         }
+
+         if ( mayBalanceLeft )
+         {
+            // for left balance, we merge pos-1 and pos
+            rc = parent._tryBalanceChildren ( pos, order, indexCB, -1, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try balance children(Pos:%u) with left "
+                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
+         }
+
+         // attempt to merge child
+         if ( mayBalanceRight )
+         {
+            // for right balance, we merge pos and pos+1
+            rc = parent._doMergeChildren ( pos, order, indexCB, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
+                        pos, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
+         }
+
+         if ( mayBalanceLeft )
+         {
+            // for left balance, we merge pos-1 and pos
+            rc = parent._doMergeChildren ( pos-1, order, indexCB, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
+                        pos-1, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
          }
       }
 
-      // if we are not the _right, and our next slot got child, we may do right
-      // balance
-      /*mayBalanceRight = (pos < parent.getNumKeyNode() &&
-                         parent.getChildExtentID(pos+1) !=
-                            DMS_INVALID_EXTENT ) ;
-      // if we are not the first, and our previous slot got child, we may do
-      // left balance
-      mayBalanceLeft = (pos>0 && parent.getChildExtentID(pos-1) !=
-                            DMS_INVALID_EXTENT ) ;*/
-      /*
-      // attempt to balance child
-      if ( mayBalanceRight )
-      {
-         // for right balance, we merge pos and pos+1
-         rc = parent._tryBalanceChildren ( pos, order, indexCB, result ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to try balance children" ) ;
-            goto error ;
-         }
-         if ( result )
-            goto done ;
-      }
-      if ( mayBalanceLeft )
-      {
-         // for left balance, we merge pos-1 and pos
-         rc = parent._tryBalanceChildren ( pos-1, order, indexCB, result ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to try balance children" ) ;
-            goto error ;
-         }
-         if ( result )
-            goto done ;
-      }
-      // attempt to merge child
-      if ( mayBalanceRight )
-      {
-         // for right balance, we merge pos and pos+1
-         rc = parent._doMergeChildren ( pos, order, indexCB, result ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to try balance children" ) ;
-            goto error ;
-         }
-         goto done ;
-      }
-      if ( mayBalanceLeft )
-      {
-         // for left balance, we merge pos-1 and pos
-         rc = parent._doMergeChildren ( pos-1, order, indexCB, result ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to try balance children" ) ;
-            goto error ;
-         }
-         goto done ;
-      } */
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__MAYBLCWITHNGB, rc );
       return rc ;
@@ -1725,16 +1946,18 @@ namespace engine
          // if we can't find the key, something really bad happened
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+            PD_LOG ( PDERROR, "Unable to find the extent(%d) in it's parent(%d), rc: %d",
+                     _me, getParent(), rc ) ;
             goto error ;
          }
+
          parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
          mbID = _extentHead->_mbID ;
          freeSize = _extentHead->_totalFreeSize ;
          rc = indexCB->freeExtent ( _me ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Unable to free extent" ) ;
+            PD_LOG ( PDERROR, "Unable to free extent(%d), rc: %d", _me, rc ) ;
             goto error ;
          }
          _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
@@ -1749,17 +1972,18 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__FNDCHLDEXT, "_ixmExtent::_findChildExtent" )
-   INT32 _ixmExtent::_findChildExtent ( dmsExtentID childExtent,
-                                        UINT16 &pos ) const
+   INT32 _ixmExtent::_findChildExtent ( dmsExtentID childExtent, UINT16 &pos ) const
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__IXMEXT__FNDCHLDEXT );
+      PD_TRACE_ENTRY ( SDB__IXMEXT__FNDCHLDEXT ) ;
+
       if ( _extentHead->_right == childExtent )
       {
          pos = getNumKeyNode() ;
          goto done ;
       }
-      for ( UINT16 i =0 ; i<getNumKeyNode(); i++ )
+
+      for ( UINT16 i =0 ; i < getNumKeyNode() ; i++ )
       {
          if ( getChildExtentID (i) == childExtent )
          {
@@ -1768,6 +1992,7 @@ namespace engine
          }
       }
       rc = SDB_IXM_KEY_NOTEXIST ;
+
    done :
       PD_TRACE1 ( SDB__IXMEXT__FNDCHLDEXT, PD_PACK_USHORT( pos ) );
       PD_TRACE_EXITRC ( SDB__IXMEXT__FNDCHLDEXT, rc );
@@ -1775,40 +2000,46 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELITNKEY, "_ixmExtent::_deleteInternalKey" )
-   INT32 _ixmExtent::_deleteInternalKey ( UINT16 pos, const Ordering &order,
-                                          ixmIndexCB *indexCB )
+   INT32 _ixmExtent::_deleteInternalKey ( UINT16 pos, const Ordering &order, ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELITNKEY );
       dmsExtentID lchild = getChildExtentID(pos) ;
       dmsExtentID rchild = getChildExtentID(pos+1) ;
       ixmRecordID nextIndexKey ;
-      INT32 direction ;
+      INT32 direction = 1 ;
+
       if ( DMS_INVALID_EXTENT == lchild && DMS_INVALID_EXTENT == rchild )
       {
-         PD_LOG ( PDERROR, "both left/right child are NULL" ) ;
+         PD_LOG ( PDERROR, "Invalid position(%u) in extent(%d), because both left "
+                  "and right child are NULL", pos, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
-      direction = (DMS_INVALID_EXTENT == lchild)?1:-1 ;
+
+      direction = ( DMS_INVALID_EXTENT == lchild ) ? 1 : -1 ;
       nextIndexKey._extent = _me ;
       nextIndexKey._slot = pos ;
       rc = advance ( nextIndexKey, direction ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to find the next index key" ) ;
+         PD_LOG ( PDERROR, "Failed to find the next index key(Extent:%d, Pos:%u), rc: %d",
+                  _me, pos, rc ) ;
          goto error ;
       }
+
       // since we already checked that either lchild or rchild exist,
       // nextIndexKey should never be NULL here
       if ( nextIndexKey.isNull() )
       {
-         PD_LOG ( PDERROR, "advance key shouldn't be NULL" ) ;
+         PD_LOG ( PDERROR, "Advance key shouldn't be NULL in extent(%d, Pos:%u)",
+                  _me, pos ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
+      else
       {
          // now the nextExtent contains the next key
          ixmExtent nextExtent ( nextIndexKey._extent, _pIndexSu ) ;
@@ -1817,10 +2048,8 @@ namespace engine
          // better way could be recursively swap+_deleteInternalKey /
          // _delKeyAtPos)
          if ( !indexCB->unique() &&
-              ( nextExtent.getChildExtentID ( nextIndexKey._slot ) !=
-                      DMS_INVALID_EXTENT ||
-                nextExtent.getChildExtentID ( nextIndexKey._slot+1 ) !=
-                      DMS_INVALID_EXTENT ) )
+              ( nextExtent.getChildExtentID( nextIndexKey._slot ) != DMS_INVALID_EXTENT ||
+                nextExtent.getChildExtentID( nextIndexKey._slot+1 ) != DMS_INVALID_EXTENT ) )
          {
             writeKeyNode(pos)->setUnused() ;
          }
@@ -1829,34 +2058,37 @@ namespace engine
             // if there's no child for the next key, let's replace the next key
             // to the current keynode and remove the next key from its original
             // extent
-            const ixmKeyNode *kn = nextExtent.getKeyNode
-                  ( nextIndexKey._slot ) ;
-            ixmKey nextKey ( nextExtent.getKeyData(nextIndexKey._slot)) ;
+            const ixmKeyNode *kn = nextExtent.getKeyNode( nextIndexKey._slot ) ;
+            ixmKey nextKey( nextExtent.getKeyData(nextIndexKey._slot)) ;
             if ( !kn )
             {
-               PD_LOG ( PDERROR, "Failed to find key node" ) ;
+               PD_LOG ( PDERROR, "Failed to find key node(%d,%u)",
+                        nextIndexKey._extent, nextIndexKey._slot ) ;
                dumpIndexExtentIntoLog () ;
                rc = SDB_SYS ;
                goto error ;
             }
+
             rc = _setInternalKey ( pos, kn->_rid, nextKey, order,
-                                   getChildExtentID ( pos ) ,
-                                   getChildExtentID ( pos+1 ) ,
+                                   getChildExtentID( pos ) ,
+                                   getChildExtentID( pos+1 ),
                                    indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "failed to set internal key" ) ;
+               PD_LOG ( PDERROR, "Failed to set internal key, rc: %d", rc ) ;
                goto error ;
             }
-            rc = nextExtent._delKeyAtPos ( nextIndexKey._slot, order,
-                                           indexCB ) ;
+
+            rc = nextExtent._delKeyAtPos ( nextIndexKey._slot, order, indexCB ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "failed to delete key" ) ;
+               PD_LOG ( PDERROR, "Failed to delete key(%d,%u), rc: %d",
+                        nextIndexKey._extent, nextIndexKey._slot, rc ) ;
                goto error ;
             }
          }
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELITNKEY, rc );
       return rc ;
@@ -1872,20 +2104,24 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_ADVANCE );
-      INT32 adj ;
-      INT32 ko ;
-      dmsExtentID nextDown ;
-      dmsExtentID childExtent ;
-      dmsExtentID parent ;
+
+      INT32 adj = 0 ;
+      INT32 ko = 0 ;
+      dmsExtentID nextDown = DMS_INVALID_EXTENT ;
+      dmsExtentID childExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID parent = DMS_INVALID_EXTENT ;
 
       if ( keyRID._slot >= getNumKeyNode() )
       {
-         PD_LOG ( PDERROR, "key slot is out of range" ) ;
+         PD_LOG ( PDERROR, "Key slot(%u) is out of range in extent(%d), KeyNodeNum:%u",
+                  keyRID._slot, _me, getNumKeyNode() ) ;
          rc = SDB_IXM_KEY_NOTEXIST ;
          goto error ;
       }
-      adj = direction < 0 ? 1:0 ;
+
+      adj = direction < 0 ? 1 : 0 ;
       ko = keyRID._slot + direction ;
+
       // for forward, we get _left for the next key
       // for backward, we get _left for the current key
       nextDown = getChildExtentID((UINT16)(ko+adj)) ;
@@ -1896,15 +2132,16 @@ namespace engine
          // the current element for backward search
          while ( TRUE )
          {
-            ixmExtent childExtent(nextDown, _pIndexSu) ;
+            ixmExtent childExtent( nextDown, _pIndexSu ) ;
             // for forward, we get first element in the child, for backward we
             // get the last element in the child
-            keyRID._slot = direction>0?0:
-                (childExtent.getNumKeyNode()-1) ;
+            keyRID._slot = direction > 0 ? 0 : (childExtent.getNumKeyNode()-1) ;
             // get the _left for the child extent
-            dmsExtentID child = childExtent.getChildExtentID(keyRID._slot+adj) ;
+            dmsExtentID child = childExtent.getChildExtentID( keyRID._slot + adj ) ;
             if ( DMS_INVALID_EXTENT == child )
+            {
                break ;
+            }
             nextDown = child ;
          }
          // after loop, the nextDown should represent the element without _left,
@@ -1913,6 +2150,7 @@ namespace engine
          keyRID._extent = nextDown ;
          goto done ;
       }
+
       // if we don't have _left, let's just check if we are on the key (instead
       // of end of page)
       if ( ko < getNumKeyNode() && ko >= 0 )
@@ -1921,6 +2159,7 @@ namespace engine
          keyRID._extent = _me ;
          goto done ;
       }
+
       // here we are at end of bucket, we should go to parent
       childExtent = _me ;
       parent = getParent() ;
@@ -1928,24 +2167,27 @@ namespace engine
       {
          // we don't continue if getting to root
          if ( DMS_INVALID_EXTENT == parent )
+         {
             break ;
+         }
          ixmExtent parentExtent ( parent, _pIndexSu ) ;
          // in the parent extent, let's see who's _left pointing to the current
          // extent, then that's what we are looking for
-         for ( UINT16 i=0; i<parentExtent.getNumKeyNode(); i++ )
+         for ( UINT16 i = 0 ; i < parentExtent.getNumKeyNode() ; i++ )
          {
-            if ( childExtent == parentExtent.getChildExtentID(i+adj) )
+            if ( childExtent == parentExtent.getChildExtentID( i + adj ) )
             {
                keyRID._slot = i ;
                keyRID._extent = parent ;
                goto done ;
             }
          }
+
          // we should never hit here in forward search, because each _left must
          // have a valid keynode, unless it's at _right node
          if ( direction > 0 && parentExtent._extentHead->_right != childExtent )
          {
-            PD_LOG ( PDERROR,"Invalid tree structure" ) ;
+            PD_LOG ( PDERROR,"Invalid tree structure in extent(%d)", _me ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
@@ -1955,12 +2197,14 @@ namespace engine
       }
       // when we get here, it means there's no other keys avaliable
       keyRID.reset() ;
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_ADVANCE, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // caller must make sure there's no _left for pos
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SETITNKEY, "_ixmExtent::_setInternalKey" )
    INT32 _ixmExtent::_setInternalKey (UINT16 pos, const dmsRecordID &rid,
@@ -1969,38 +2213,306 @@ namespace engine
                                       dmsExtentID rchild, ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__IXMEXT__SETITNKEY );
+      PD_TRACE_ENTRY ( SDB__IXMEXT__SETITNKEY ) ;
+
+      CHAR tmpBuff[ DMS_TMP_BUFF_SZ ] = { 0 } ;
+      CHAR *pBuff = NULL ;
+      ixmKeyNode tmpNode ;
+      BOOLEAN needRestore = FALSE ;
+
+      /// save pos key and key data
+      if ( pos < getNumKeyNode() )
+      {
+         tmpNode = *getKeyNode( pos ) ;
+         ixmKey keyData( getKeyData( pos ) ) ;
+         INT32 keyDataSize = keyData.dataSize() ;
+
+         if ( keyDataSize <= (INT32)sizeof( tmpBuff ) )
+         {
+            pBuff = tmpBuff ;
+         }
+         else
+         {
+            pBuff = ( CHAR* )SDB_THREAD_ALLOC( keyDataSize ) ;
+            if ( !pBuff )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         /// save key data
+         ossMemcpy( pBuff, keyData.data(), keyDataSize ) ;
+      }
+
       setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
       rc = _delKeyAtPos ( pos ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to delete key at pos" ) ;
+         PD_LOG ( PDERROR, "Failed to delete key at pos(%u) in extent(%d), rc: %d",
+                  pos, _me, rc ) ;
          goto error ;
       }
+
       // since _delKeyAtPos moved all following keynodes back to one, we check
       // pos again to get next keynode
       if ( getChildExtentID ( pos ) != rchild )
       {
-         PD_LOG ( PDERROR, "rchild doesn't match" ) ;
+         PD_LOG ( PDERROR, "rchild doesn't match(%d != %d) in extent(%d)",
+                  getChildExtentID ( pos ), rchild, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
+
       // set child extent for the next to lchild
       setChildExtentID ( pos, lchild ) ;
+      needRestore = TRUE ;
+
       rc = insertHere ( pos, rid, key, order, lchild, rchild, indexCB ) ;
       if ( rc )
       {
          // we don't need to worry about SDB_IXM_REORG_DONE because we already
          // set child extent id to lchild, so _reorg should never remove the
          // slot
-         PD_LOG ( PDERROR, "Failed to insert here" ) ;
+         PD_LOG ( PDERROR, "Failed to insert here in extent(%d, Pos:%u), rc: %d",
+                  _me, pos, rc ) ;
          goto error ;
       }
+
    done :
+      if ( pBuff && pBuff != tmpBuff )
+      {
+         SDB_THREAD_FREE( pBuff ) ;
+      }
       PD_TRACE_EXITRC ( SDB__IXMEXT__SETITNKEY, rc );
       return rc ;
    error :
+      if ( needRestore && pBuff )
+      {
+         ixmKey keyData( pBuff ) ;
+         INT32 rcTmp = insertHere( pos, tmpNode._rid, keyData, order, lchild, rchild, indexCB ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDSEVERE, "Rollback key(%u) in extent(%d) failed, rc: %d. "
+                    "Invalidate the index", pos, _me, rcTmp ) ;
+            indexCB->setFlag( IXM_INDEX_FLAG_INVALID ) ;
+         }
+      }
+      goto done ;
+   }
+
+   INT32 _ixmExtent::_tryBalanceChildren( UINT16 pos, const Ordering &order,
+                                          ixmIndexCB *indexCB, INT32 direction,
+                                          BOOLEAN &result)
+   {
+      INT32 rc = SDB_OK ;
+      dmsExtentID childExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID siblingExtent = DMS_INVALID_EXTENT ;
+
+      UINT16 childKeyNum = 0 ;
+      UINT16 siblingKeyNum = 0 ;
+      UINT16 leftPos = direction > 0 ? pos : pos - 1 ;
+
+      UINT16 hasBorrowedNum = 0 ;
+      UINT16 hasBorrowedCur = 0 ;
+
+      if ( leftPos >= getNumKeyNode() )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      childExtent = getChildExtentID( pos ) ;
+      siblingExtent = getChildExtentID( pos + direction ) ;
+
+      if ( DMS_INVALID_EXTENT == childExtent || DMS_INVALID_EXTENT == siblingExtent )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      {
+         _ixmExtent childExt( childExtent, _pIndexSu ) ;
+         _ixmExtent siblingExt( siblingExtent, _pIndexSu ) ;
+
+         childKeyNum = childExt.getNumKeyNode() ;
+         siblingKeyNum = siblingExt.getNumKeyNode() ;
+
+         UINT16 borrowNum = ( childKeyNum + siblingKeyNum ) / 2 ;
+         const ixmKeyNode *kn = NULL ;
+         UINT16 insertPos = 0 ;
+         UINT16 borrowPos = 0 ;
+
+         if ( borrowNum >= IXM_KEY_NODE_BALANCE && borrowNum > childKeyNum )
+         {
+            borrowNum = OSS_MIN( borrowNum - childKeyNum, IXM_KEY_MAX_BORROW ) ;
+         }
+         else
+         {
+            borrowNum = 0 ;
+         }
+
+         if ( 0 == borrowNum )
+         {
+            goto done ;
+         }
+
+         /// first, insert current key
+         insertPos = direction > 0 ? childExt.getNumKeyNode() : 0 ;
+         kn = getKeyNode( leftPos ) ;
+         if ( kn->isUnused() )
+         {
+            /// When the leftPos node is unused, adjust borrowNum to 1 to prevent
+            /// reorg in _basicInsert.
+            /// When reorg occur in inserting sibling key, will del the leftPos node
+            borrowNum = 1 ;
+         }
+
+         rc = childExt._basicInsert( insertPos, kn->_rid,
+                                     ixmKey( getKeyData( leftPos ) ),
+                                     order ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDWARNING, "Failed to insert back key(%d) to extent(%d) from "
+                     "parent(%d), rc: %d", (INT32)leftPos, childExtent, _me, rc ) ;
+            /// ignore error
+            rc = SDB_OK ;
+            goto done ;
+         }
+         ++hasBorrowedCur ;
+
+         /// then, insert sibling key
+         for ( UINT16 i = 0 ; i < borrowNum - 1 ; ++i )
+         {
+            borrowPos = direction > 0 ? i : siblingKeyNum - i - 1 ;
+            insertPos = direction > 0 ? childExt.getNumKeyNode() : 0 ;
+            kn = siblingExt.getKeyNode( borrowPos ) ;
+            ixmKey keyData( siblingExt.getKeyData( borrowPos ) ) ;
+            rc = childExt._basicInsert( insertPos, kn->_rid, keyData, order ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDWARNING, "Failed to insert key(%d) to extent(%d) from sibling(%d), "
+                        "rc: %d", (INT32)borrowPos, childExtent, siblingExtent, rc ) ;
+               /// ignore error
+               rc = SDB_OK ;
+               break ;
+            }
+            ++hasBorrowedNum ;
+
+            if ( kn->isUnused() )
+            {
+               break ;
+            }
+         }
+
+         /// need re-calc, because maybe reorg
+         childKeyNum = childExt.getNumKeyNode() - hasBorrowedNum - hasBorrowedCur ;
+
+         /// swap to cur
+         {
+            borrowPos = direction > 0 ? hasBorrowedNum : siblingKeyNum - hasBorrowedNum - 1 ;
+            ixmKey keyCur( getKeyData( leftPos ) ) ;
+            ixmKey keyBorrow( siblingExt.getKeyData( borrowPos ) ) ;
+
+            /// ensure space
+            if ( keyBorrow.dataSize() > keyCur.dataSize() )
+            {
+               UINT16 incSize = keyBorrow.dataSize() - keyCur.dataSize() ;
+               BOOLEAN result = FALSE ;
+               rc = _ensureSpace( incSize, order, TRUE, FALSE, leftPos, result ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Ensure space(%u) on extent(%d) failed, rc: %d",
+                          incSize, _me, rc ) ;
+                  goto error ;
+               }
+
+               /// no space
+               if ( !result )
+               {
+                  goto done ;
+               }
+            }
+
+            kn = siblingExt.getKeyNode( borrowPos ) ;
+            rc = _setInternalKey ( leftPos, kn->_rid, keyBorrow, order,
+                                   getChildExtentID( leftPos ) ,
+                                   getChildExtentID( leftPos+1 ),
+                                   indexCB ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Set internal key(%u) in extent(%d) failed, rc: %d",
+                       leftPos, _me, rc ) ;
+               goto error ;
+            }
+         }
+
+         /// set child
+         for ( UINT16 i = 0 ; i < hasBorrowedNum ; ++i )
+         {
+            borrowPos = direction > 0 ? i : siblingKeyNum - i - 1 ;
+            insertPos = direction > 0 ? childKeyNum + 1 + i : hasBorrowedNum - i - 1 ;
+            dmsExtentID tmpExtID = siblingExt.getChildExtentID( borrowPos ) ;
+            if ( DMS_INVALID_EXTENT != tmpExtID )
+            {
+               childExt.setChildExtentID( insertPos, tmpExtID ) ;
+            }
+         }
+
+         /// adjust right, and remove has borrowed keys
+         if ( direction > 0 )
+         {
+            dmsExtentID tmpRightID = childExt.getRightExtentID() ;
+            if ( DMS_INVALID_EXTENT != tmpRightID )
+            {
+               childExt.setChildExtentID( childKeyNum, tmpRightID ) ;
+            }
+            dmsExtentID tmpExtID = siblingExt.getChildExtentID( hasBorrowedNum ) ;
+            if ( tmpRightID != tmpExtID )
+            {
+               childExt._assignRight( tmpExtID ) ;
+            }
+            siblingExt._popFront( hasBorrowedNum + 1, order ) ;
+         }
+         else
+         {
+            dmsExtentID tmpRightID = siblingExt.getRightExtentID() ;
+            if ( DMS_INVALID_EXTENT != tmpRightID )
+            {
+               childExt.setChildExtentID( hasBorrowedNum, tmpRightID ) ;
+            }
+            dmsExtentID tmpExtID = siblingExt.getChildExtentID( siblingKeyNum - hasBorrowedNum - 1 ) ;
+            if ( tmpRightID != tmpExtID )
+            {
+               siblingExt._assignRight( tmpExtID ) ;
+            }
+            UINT16 tmpPos = 0xFFFF ;
+            siblingExt._truncate( siblingKeyNum - hasBorrowedNum - 1, tmpPos, order ) ;
+         }
+
+         result = TRUE ;
+         hasBorrowedCur = 0 ;
+         hasBorrowedNum = 0 ;
+      }
+
+   done:
+      /// need restore
+      if ( hasBorrowedCur + hasBorrowedNum > 0 )
+      {
+         _ixmExtent childExt( childExtent, _pIndexSu ) ;
+         if ( direction > 0 )
+         {
+            UINT16 tmpPos = 0xFFFF ;
+            childExt._truncate( childKeyNum, tmpPos, order ) ;
+         }
+         else
+         {
+            childExt._popFront( hasBorrowedCur + hasBorrowedNum, order ) ;
+         }
+      }
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -2008,8 +2520,190 @@ namespace engine
                                         ixmIndexCB *indexCB, BOOLEAN &result )
    {
       INT32 rc = SDB_OK ;
+      dmsExtentID childExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID siblingExtent = DMS_INVALID_EXTENT ;
+
+      UINT16 childKeyNum = 0 ;
+      UINT16 siblingKeyNum = 0 ;
+
+      UINT16 hasMergedNum = 0 ;
+
+      if ( pos >= getNumKeyNode() )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      childExtent = getChildExtentID( pos ) ;
+      siblingExtent = getChildExtentID( pos + 1 ) ;
+
+      if ( DMS_INVALID_EXTENT == childExtent || DMS_INVALID_EXTENT == siblingExtent )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      {
+         _ixmExtent childExt( childExtent, _pIndexSu ) ;
+         _ixmExtent siblingExt( siblingExtent, _pIndexSu ) ;
+
+         childKeyNum = childExt.getNumKeyNode() ;
+         siblingKeyNum = siblingExt.getNumKeyNode() ;
+
+         const ixmKeyNode *kn = NULL ;
+         UINT16 insertPos = 0 ;
+         dmsExtentID tmpExtentID = DMS_INVALID_EXTENT ;
+         dmsExtentID childRightExtID = DMS_INVALID_EXTENT ;
+
+         /// reorg first to prevent deleting merged key nodes that inserted by _basicInsert
+         if ( !childExt.isCompact() )
+         {
+            rc = childExt._reorg( order ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Reorg child extent(%d) failed, rc: %d", childExtent, rc ) ;
+               goto error ;
+            }
+            /// need re-calc, because reorg
+            childKeyNum = childExt.getNumKeyNode() ;
+         }
+
+         /// first, push down cur pos
+         kn = getKeyNode( pos ) ;
+         insertPos = childExt.getNumKeyNode() ;
+         rc = childExt._basicInsert( insertPos, kn->_rid,
+                                     ixmKey( getKeyData( pos ) ),
+                                     order ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDWARNING, "Failed to insert back key(%d) to extent(%d) from "
+                     "parent(%d), rc: %d", (INT32)pos, childExtent, _me, rc ) ;
+            /// ignore error
+            rc = SDB_OK ;
+            goto done ;
+         }
+         ++hasMergedNum ;
+
+         /// then, push down sibling key
+         for ( UINT16 i = 0 ; i < siblingKeyNum ; ++i )
+         {
+            kn = siblingExt.getKeyNode( i ) ;
+            ixmKey keyData( siblingExt.getKeyData( i ) ) ;
+            insertPos = childExt.getNumKeyNode() ;
+            /// skip used key
+            rc = childExt._basicInsert( insertPos, kn->_rid, keyData, order ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDWARNING, "Failed to insert key(%d) to extent(%d) from sibling(%d), "
+                        "rc: %d", (INT32)i, childExtent, siblingExtent, rc ) ;
+               /// ignore error
+               rc = SDB_OK ;
+               goto done ;
+            }
+            ++hasMergedNum ;
+         }
+
+         /// set push down key node child
+         childRightExtID = childExt.getRightExtentID() ;
+         if ( DMS_INVALID_EXTENT != childRightExtID )
+         {
+            childExt.setChildExtentID( childKeyNum, childRightExtID ) ;
+         }
+
+         /// set merge key node child
+         for ( UINT16 i = 0 ; i < hasMergedNum ; ++i )
+         {
+            insertPos = childKeyNum + i + 1 ;
+            tmpExtentID = siblingExt.getChildExtentID( i ) ;
+            if ( DMS_INVALID_EXTENT != tmpExtentID )
+            {
+               childExt.setChildExtentID( insertPos, tmpExtentID ) ;
+            }
+         }
+
+         /// adjust right
+         tmpExtentID = siblingExt.getRightExtentID() ;
+         if ( childRightExtID != tmpExtentID )
+         {
+            childExt._assignRight( tmpExtentID ) ;
+         }
+
+         /// delete sibling page
+         siblingExt._delExtent( indexCB ) ;
+
+         /// update current page
+         setChildExtentID( pos, DMS_INVALID_EXTENT ) ;
+         setChildExtentID( pos+1, childExtent ) ;
+         _delKeyAtPos( pos ) ;
+
+         result = TRUE ;
+         hasMergedNum = 0 ;
+
+         /// is root
+         if ( DMS_INVALID_EXTENT == getParent() )
+         {
+            if ( 0 == getNumKeyNode() )
+            {
+               /// set new root
+               childExt.setParent( DMS_INVALID_EXTENT ) ;
+               indexCB->setRoot( childExtent ) ;
+               /// release old root
+               UINT16 mbID = _extentHead->_mbID ;
+               UINT16 freeSize = _extentHead->_totalFreeSize ;
+               indexCB->freeExtent( _me ) ;
+               _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
+               _pPageMap->rmItem( _me ) ;
+            }
+         }
+         else
+         {
+            /// recusive rebalance
+            BOOLEAN tmpResult = FALSE ;
+            rc = _mayBalanceWithNeighbors( order, indexCB, tmpResult ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Balance current extent(%d) failed, rc: %d", _me, rc ) ;
+               goto error ;
+            }
+
+            /// when current extent is empty
+            /// ( for old, the non-leaf node will has leaf node, so can't rebalance)
+            if ( 0 == getNumKeyNode() )
+            {
+               ixmExtent parent( getParent(), _pIndexSu ) ;
+               UINT16 mbID = _extentHead->_mbID ;
+               UINT16 freeSize = _extentHead->_totalFreeSize ;
+               UINT16 tmpPos = 0 ;
+               rc = parent._findChildExtent ( _me, tmpPos ) ;
+               // if we can't find the key, something really bad happened
+               if ( rc )
+               {
+                  PD_LOG ( PDERROR, "Unable to find the extent(%d) in it's parent(%d), rc: %d",
+                           _me, getParent(), rc ) ;
+                  goto error ;
+               }
+               parent.setChildExtentID ( pos, childExtent ) ;
+               /// release current extent
+               indexCB->freeExtent( _me ) ;
+               _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
+               _pPageMap->rmItem( _me ) ;
+            }
+         }
+      }
+
+   done:
+      if ( hasMergedNum )
+      {
+         /// restore
+         _ixmExtent childExt( childExtent, _pIndexSu ) ;
+         UINT16 tmpPos = 0xFFFF ;
+         childExt._truncate( childKeyNum, tmpPos, order ) ;
+      }
       return rc ;
+   error:
+      goto done ;
    }
+
    INT32 _ixmExtent::locate ( const BSONObj &key, const dmsRecordID &rid,
                               const Ordering &order, ixmRecordID &indexrid,
                               BOOLEAN &found, INT32 direction,
@@ -2032,12 +2726,13 @@ namespace engine
       dmsExtentID childExtent = DMS_INVALID_EXTENT ;
       INT32 keyFoundPos = -1 ;
 
-      rc = find ( indexCB, key, rid, order, pos, keyFoundPos, found ) ;
+      rc = find( indexCB, key, rid, order, pos, keyFoundPos, found ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to find in locate" ) ;
+         PD_LOG ( PDERROR, "Failed to find in extent(%d), rc: %d", rc ) ;
          goto error ;
       }
+
       // if the key and rid exist in this page and not psuedo-deleted
       // then let's just record the extent id and position and return
       if ( found )
@@ -2047,28 +2742,27 @@ namespace engine
          goto done ;
       }
 
-      // when we get here, that means result == FALSE
+      // when we get here, that means found == FALSE
       childExtent = getChildExtentID ( pos ) ;
       if ( DMS_INVALID_EXTENT != childExtent )
       {
          // if we get left pointer, that means we have child page, then let's do
          // _locate recursively
-         rc = ixmExtent(childExtent, _pIndexSu)._locate( key, rid, order,
-                                                         indexrid, found,
-                                                         direction, indexCB ) ;
+         ixmExtent childExt( childExtent, _pIndexSu ) ;
+         rc = childExt._locate( key, rid, order, indexrid, found, direction, indexCB ) ;
          if ( rc )
          {
             // don't have to repeatedly log in interm pages
             goto error ;
          }
          // if child found the key/rid, or if it find a good place for "next",
-         // then we simply return
-         // otherwise jump out if and do other checks
+         // then we simply return, otherwise jump out if and do other checks
          if ( !indexrid.isNull() )
          {
             goto done ;
          }
       }
+
       // check scan direction
       if ( (direction<0 && 0==pos) || (direction>0 && getNumKeyNode()==pos) )
       {
@@ -2077,14 +2771,16 @@ namespace engine
       else
       {
          indexrid._extent = _me ;
-         indexrid._slot = direction<0?pos-1:pos ;
+         indexrid._slot = direction < 0 ? pos-1 : pos ;
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__LOCATE, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // Weather a key exists in the index tree
    // output in result
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
@@ -2102,14 +2798,18 @@ namespace engine
       rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB );
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to locate key" ) ;
+         PD_LOG ( PDERROR, "Failed to locate key in extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
+
       // loop until indexrid is invalid
       while ( TRUE )
       {
          if ( indexrid.isNull() )
+         {
             break ;
+         }
+
          // create extent for indexrid
          ixmExtent extent ( indexrid._extent, _pIndexSu ) ;
          // get the keynode
@@ -2131,7 +2831,8 @@ namespace engine
          rc = extent.advance ( indexrid, 1 ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to advance" ) ;
+            PD_LOG ( PDERROR, "Failed to advance by rid(%d,%u), rc: %d",
+                     indexrid._extent, indexrid._slot, rc ) ;
             goto error ;
          }
       }
@@ -2141,6 +2842,7 @@ namespace engine
    error :
       goto done ;
    }
+
    // in order to avoid parent pointer pointing to itself (from disk
    // corruption), we loop 100 rounds max, usually B tree will never exceed 100
    // levels
@@ -2183,7 +2885,7 @@ namespace engine
       rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to locate key" ) ;
+         PD_LOG ( PDERROR, "Failed to locate key in extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
       // loop until indexrid is invalid
@@ -2203,8 +2905,7 @@ namespace engine
          {
             // compare the on-disk key and the one we are looking for, if they
             // match that means we got exists
-            if ( ixmKey(extent.getKeyData(indexrid._slot)).woCompare (
-                        key, order ) != 0 )
+            if ( ixmKey(extent.getKeyData(indexrid._slot)).woCompare ( key, order ) != 0 )
             {
                // if the key doesn't match, it means we don't have the key in
                // index, so we reset rid to -1,-1
@@ -2219,7 +2920,8 @@ namespace engine
          rc = extent.advance ( indexrid, 1 ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to advance" ) ;
+            PD_LOG ( PDERROR, "Failed to advance by rid(%d,%u), rc: %d",
+                     indexrid._extent, indexrid._slot, rc ) ;
             goto error ;
          }
       }
@@ -2402,7 +3104,9 @@ namespace engine
          ++incItr ;
          INT32 result = curEle.woCompare ( prevEle, FALSE ) ;
          if ( o.descending ( mask ))
+         {
             result = -result ;
+         }
          if ( result )
          {
             retCode = result ;
@@ -2430,7 +3134,9 @@ namespace engine
          ++eleItr ;
          INT32 result = curEle.woCompare ( prevEle, FALSE ) ;
          if ( o.descending ( mask ))
+         {
             result = -result ;
+         }
          if ( result )
          {
             retCode = result ;
@@ -2499,7 +3205,7 @@ namespace engine
          const CHAR *data = getKeyData ( m ) ;
          if ( !data )
          {
-            PD_LOG ( PDERROR, "slot %d doesn't have matching key", m ) ;
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key in extent(%d)", m, _me ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
@@ -2589,7 +3295,7 @@ namespace engine
       data = getKeyData ( z ) ;
       if ( !data )
       {
-         PD_LOG ( PDERROR, "slot %d doesn't have matching key", z ) ;
+         PD_LOG ( PDERROR, "slot %d doesn't have matching key in extent(%d)", z, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -2633,8 +3339,8 @@ namespace engine
                                         cb );
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
-                        childExtentID ) ;
+               PD_LOG ( PDERROR, "Failed to run keyLocate from extent(%d), rc: %d",
+                        childExtentID, rc ) ;
                goto error ;
             }
          }
@@ -2646,7 +3352,7 @@ namespace engine
       data = getKeyData( h-z ) ;
       if ( !data )
       {
-         PD_LOG ( PDERROR, "slot %d doesn't have matching key", z ) ;
+         PD_LOG ( PDERROR, "slot %d doesn't have matching key in extent(%d)", h-z, _me ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
@@ -2687,8 +3393,8 @@ namespace engine
                                         cb );
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
-                        childExtentID ) ;
+               PD_LOG ( PDERROR, "Failed to run keyLocate from extent(%d), rc: %d",
+                        childExtentID, rc ) ;
                goto error ;
             }
          }
@@ -2700,7 +3406,7 @@ namespace engine
                       matchInclusive, o, direction, rid, childExtentID, cb ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to run keyFind from extent %d", _me ) ;
+         PD_LOG ( PDERROR, "Failed to run keyFind from extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
       if ( DMS_INVALID_EXTENT != childExtentID )
@@ -2711,8 +3417,8 @@ namespace engine
                                      cb ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
-                     childExtentID ) ;
+            PD_LOG ( PDERROR, "Failed to run keyLocate from extent(%d), rc: %d",
+                     childExtentID, rc ) ;
             goto error ;
          }
       }
@@ -2752,7 +3458,7 @@ namespace engine
          data = getKeyData( h ) ;
          if ( !data )
          {
-            PD_LOG ( PDERROR, "slot %d doesn't have matching key", h ) ;
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key in extent(%d)", h, _me ) ;
             dumpIndexExtentIntoLog () ;
             rc = SDB_SYS ;
             goto error ;
@@ -2770,7 +3476,7 @@ namespace engine
          data = getKeyData ( l ) ;
          if ( !data )
          {
-            PD_LOG ( PDERROR, "slot %d doesn't have matching key", l ) ;
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key in extent(%d)", l, _me ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -2790,7 +3496,7 @@ namespace engine
                          rid, childExtentID, cb ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to keyFind in extent %d", _me ) ;
+            PD_LOG ( PDERROR, "Failed to keyFind in extent(%d), rc: %d", _me, rc ) ;
             goto error ;
          }
 
@@ -2806,8 +3512,8 @@ namespace engine
                                          matchInclusive, o, direction, cb ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to keyLocate in extent %d",
-                        childExtentID ) ;
+               PD_LOG ( PDERROR, "Failed to keyLocate in child extent(%d), rc: %d",
+                        childExtentID, rc ) ;
                goto error ;
             }
          }
@@ -2825,8 +3531,8 @@ namespace engine
                                         o, direction, cb ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to keyAdvance in extent %d",
-                     parentExtentID ) ;
+            PD_LOG ( PDERROR, "Failed to keyAdvance in parent extent(%d), rc: %d",
+                     parentExtentID, rc ) ;
             goto error ;
          }
       }
@@ -2840,10 +3546,11 @@ namespace engine
                           matchInclusive, o, direction, cb ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to keyLocate in extent %d", _me ) ;
+            PD_LOG ( PDERROR, "Failed to keyLocate in extent(%d), rc: %d", _me, rc ) ;
             goto error ;
          }
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_KEYADVANCE, rc );
       return rc ;
@@ -2856,6 +3563,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_DMPINXEXT2LOG );
+
       // 1MB buffer should be enough for output
       INT32 indexExtentDumpBufferSize = 1024 * 1024 ;
       std::set<dmsExtentID> childExtents ;
@@ -2872,7 +3580,9 @@ namespace engine
                                        TRUE ) ;
       if ( rc > 0 )
       {
-         PD_LOG ( PDERROR, "Index Page Dump:\n%s", pBuffer ) ;
+         PD_LOG ( PDERROR, "Index Page Dump(%d):===>", _me ) ;
+         PD_LOG_RAW ( PDERROR, pBuffer ) ;
+         PD_LOG_RAW( PDERROR, OSS_NEWLINE "<===" OSS_NEWLINE OSS_NEWLINE ) ;
       }
       rc = SDB_OK ;
 

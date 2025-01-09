@@ -150,6 +150,12 @@ namespace engine
 
       dmsExtRW             _extRW ;
 
+      INT32 _ensureSpace( UINT16 size,
+                          const Ordering &order,
+                          BOOLEAN canReorg,
+                          BOOLEAN canDelNewPos,
+                          UINT16  &newPos,
+                          BOOLEAN &result ) ;
       // reorganize the extent
       INT32 _reorg ( const Ordering &order,
                      UINT16 &newPos,
@@ -158,6 +164,8 @@ namespace engine
       INT32 _alloc ( INT32 requestSpace, UINT16 &beginOffset ) ;
 
       INT32 _splitPos ( UINT16 pos, UINT16 &splitPos ) const ;
+
+      UINT16 _searchOrderStep( UINT16 pos, INT32 direction, UINT16 maxSearch ) const ;
 
       // this function physically copy key and rid into extent page
       INT32 _basicInsert ( UINT16 &pos, const dmsRecordID &rid,
@@ -190,18 +198,31 @@ namespace engine
 
       void  _assignRight ( const dmsExtentID right ) ;
 
-      INT32 _truncate ( UINT16 totalNodes,UINT16 &newPos,const Ordering &order);
+      INT32 _truncate ( UINT16 totalNodes, UINT16 &newPos, const Ordering &order );
+      void  _popFront ( UINT16 popNodes, const Ordering &order ) ;
+
       INT32 _insert ( const dmsRecordID &rid, const ixmKey &key,
                       const Ordering &order, BOOLEAN dupAllowed,
                       dmsExtentID lchild, dmsExtentID rchild,
                       ixmIndexCB *indexCB,
                       utilWriteResult *pResult = NULL ) ;
+
       INT32 _delKeyAtPos ( UINT16 pos ) ;
-      INT32 _delKeyAtPos ( UINT16 pos, const Ordering &order,
-                           ixmIndexCB *indexCB ) ;
+      INT32 _delKeyAtPos ( UINT16 pos, const Ordering &order, ixmIndexCB *indexCB ) ;
+
       INT32 _mayBalanceWithNeighbors ( const Ordering &order,
                                        ixmIndexCB *indexCB,
                                        BOOLEAN &result ) ;
+      INT32 _tryBalanceChildren( UINT16 pos,
+                                 const Ordering &order,
+                                 ixmIndexCB *indexCB,
+                                 INT32 direction,     /// 1 for forward, -1 for backword
+                                 BOOLEAN &result ) ;
+      INT32 _doMergeChildren ( UINT16 pos,
+                               const Ordering &order,
+                               ixmIndexCB *indexCB,
+                               BOOLEAN &result ) ;
+
       INT32 _delExtent ( ixmIndexCB *indexCB ) ;
       INT32 _findChildExtent ( dmsExtentID childExtent, UINT16 &pos ) const ;
       INT32 _deleteInternalKey ( UINT16 pos, const Ordering &order,
@@ -210,8 +231,6 @@ namespace engine
                               const ixmKey &key,
                               const Ordering &order, dmsExtentID lchild,
                               dmsExtentID rchild, ixmIndexCB *indexCB ) ;
-      INT32 _doMergeChildren ( UINT16 pos, const Ordering &order,
-                               ixmIndexCB *indexCB, BOOLEAN &result ) ;
       INT32 _locate ( const ixmKey &key, const dmsRecordID &rid,
                       const Ordering &order, ixmRecordID &indexrid,
                       BOOLEAN &found, INT32 direction,
@@ -324,6 +343,10 @@ namespace engine
          }
          return (i==_extentHead->_totalKeyNodeNum)?(_extentHead->_right):
                     (getKeyNode(i)->_left) ;
+      }
+      dmsExtentID getRightExtentID() const
+      {
+         return _extentHead->_right ;
       }
       dmsRecordID getRID ( UINT16 i ) const
       {
