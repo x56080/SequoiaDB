@@ -63,8 +63,8 @@ namespace engine
 
    #define IXM_KEY_SIZE_LIMIT          4096
    #define IXM_KEY_NODE_NUM_MIN        3
-   #define IXM_KEY_NODE_BALANCE        ( IXM_KEY_NODE_NUM_MIN * 4 )
-   #define IXM_KEY_MAX_BORROW          ( IXM_KEY_NODE_NUM_MIN * 16 )
+   #define IXM_KEY_NODE_BALANCE        ( 1 )       /// ( IXM_KEY_NODE_NUM_MIN * 4 )
+   #define IXM_KEY_MAX_BORROW          ( 1 )       /// ( IXM_KEY_NODE_NUM_MIN * 16 )
    #define IXM_KEY_ORDER_NUM_THRESHOLD 20
    #define IXM_INVALID_OFFSET          0
    #define IXM_INDEX_NAME_SIZE         1024

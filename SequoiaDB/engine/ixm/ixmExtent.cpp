@@ -1853,7 +1853,24 @@ namespace engine
          mayBalanceLeft = ( pos > 0 &&
                             parent.getChildExtentID(pos-1) != DMS_INVALID_EXTENT ) ;
 
-         // attempt to balance child
+         // attempt to merge left child
+         if ( mayBalanceLeft )
+         {
+            // for left balance, we merge pos-1 and pos
+            rc = parent._doMergeChildren ( pos-1, order, indexCB, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
+                        pos-1, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
+         }
+
+         // attempt to balance right child
          if ( mayBalanceRight )
          {
             // for right balance, we merge pos and pos+1
@@ -1870,23 +1887,7 @@ namespace engine
             }
          }
 
-         if ( mayBalanceLeft )
-         {
-            // for left balance, we merge pos-1 and pos
-            rc = parent._tryBalanceChildren ( pos, order, indexCB, -1, result ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to try balance children(Pos:%u) with left "
-                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
-               goto error ;
-            }
-            if ( result )
-            {
-               goto done ;
-            }
-         }
-
-         // attempt to merge child
+         // attempt to merge right child
          if ( mayBalanceRight )
          {
             // for right balance, we merge pos and pos+1
@@ -1903,14 +1904,15 @@ namespace engine
             }
          }
 
+         // attempt to balance left child
          if ( mayBalanceLeft )
          {
             // for left balance, we merge pos-1 and pos
-            rc = parent._doMergeChildren ( pos-1, order, indexCB, result ) ;
+            rc = parent._tryBalanceChildren ( pos, order, indexCB, -1, result ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
-                        pos-1, getParent(), rc ) ;
+               PD_LOG ( PDERROR, "Failed to try balance children(Pos:%u) with left "
+                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
                goto error ;
             }
             if ( result )
