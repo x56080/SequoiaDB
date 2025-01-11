@@ -6937,8 +6937,19 @@ namespace engine
                    item.getRecycleName(), rc ) ;
 
       rc = su->dumpRecycleInfo( item ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], rc: %d",
-                   item.getRecycleName(), rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
+         {
+            rc = SDB_DMS_NOTEXIST ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to dump recycle item [%s], rc: %d",
+                    item.getRecycleName(), rc ) ;
+         }
+         goto error ;
+      }
 
    done:
       if ( DMS_INVALID_SUID != suID )
