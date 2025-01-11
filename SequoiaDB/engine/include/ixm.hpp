@@ -403,7 +403,11 @@ namespace engine
       */
       INT32 getKeysFromObject ( const BSONObj &obj,
                                 BSONObjSet &keys,
-                                BOOLEAN *pAllUndefined = NULL ) const ;
+                                BOOLEAN *pAllUndefined = NULL,
+                                BOOLEAN checkValid = FALSE ) const ;
+
+      INT32 checkKeys( const BSONObjSet &keys,
+                       const BSONElement &arrEle ) const ;
 
       /* get the key pattern for this object.
          e.g., { lastname:1, firstname:1 }

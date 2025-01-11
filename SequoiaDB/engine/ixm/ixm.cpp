@@ -43,6 +43,7 @@
 #include "ixmExtent.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -250,24 +251,83 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_GETKEY, "_ixmIndexCB::getKeysFromObject" )
    INT32 _ixmIndexCB::getKeysFromObject ( const BSONObj &obj,
                                           BSONObjSet &keys,
-                                          BOOLEAN *pAllUndefined ) const
+                                          BOOLEAN *pAllUndefined,
+                                          BOOLEAN checkValid ) const
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( _isInitialized,
                    "index details must be initialized first" ) ;
       PD_TRACE_ENTRY ( SDB__IXMINXCB_GETKEY );
+      BSONElement arrEle ;
       ixmIndexKeyGen keyGen(this) ;
-      rc = keyGen.getKeys ( obj, keys, NULL, FALSE, FALSE, pAllUndefined ) ;
+      rc = keyGen.getKeys ( obj, keys, &arrEle, FALSE, FALSE, pAllUndefined ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to generate key from object, rc: %d", rc ) ;
          goto error ;
       }
 
+      if ( checkValid )
+      {
+         rc = checkKeys( keys, arrEle ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object [%s], "
+                      "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMINXCB_GETKEY, rc );
       return rc ;
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_CHECKKEYS, "_ixmIndexCB::checkKeys" )
+   INT32 _ixmIndexCB::checkKeys( const BSONObjSet &keys,
+                                 const BSONElement &arrEle ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__IXMINXCB_CHECKKEYS ) ;
+
+      if ( notArray() )
+      {
+         PD_CHECK( arrEle.eoo(), SDB_IXM_KEY_NOT_SUPPORT_ARRAY, error, PDERROR,
+                   "Failed to check keys, index not support array" ) ;
+      }
+
+      if ( notNull() )
+      {
+         for ( BSONObjSet::const_iterator iter = keys.begin() ;
+               iter != keys.end() ;
+               ++ iter )
+         {
+            try
+            {
+               BSONObjIterator bIter( *iter ) ;
+               while ( bIter.more() )
+               {
+                  BSONElement ele = bIter.next() ;
+                  PD_CHECK( ( Undefined != ele.type() &&
+                              jstNULL != ele.type() ),
+                            SDB_IXM_KEY_NOTNULL, error, PDERROR,
+                            "Failed to check keys, index not support NULL" ) ;
+               }
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to parse object, occur exception %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__IXMINXCB_CHECKKEYS, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 

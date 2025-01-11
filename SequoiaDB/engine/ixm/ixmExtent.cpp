@@ -261,6 +261,7 @@ namespace engine
          goto error ;
       }
 
+#if defined (_DEBUG)
       if ( indexCB->notNull() && key.hasNullOrUndefined() )
       {
          rc = SDB_IXM_KEY_NOTNULL ;
@@ -268,6 +269,7 @@ namespace engine
                   "or does not exist, rc: %d", rc ) ;
          goto error ;
       }
+#endif
 
       rc = _insert ( rid, key, order, dupAllowed, DMS_INVALID_EXTENT,
                      DMS_INVALID_EXTENT, indexCB, pResult ) ;
