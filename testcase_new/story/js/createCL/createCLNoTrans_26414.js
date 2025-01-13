@@ -6,6 +6,7 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26414";
+testConf.clOpt = { ReplSize: -1 } ;
 
 main( test );
 function test ( args )
