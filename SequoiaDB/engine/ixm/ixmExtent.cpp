@@ -1814,7 +1814,6 @@ namespace engine
       goto done ;
    }
 
-   // we should do rebalance and merge in this code, but let's leave it for now
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__MAYBLCWITHNGB, "_ixmExtent::_mayBalanceWithNeighbors" )
    INT32 _ixmExtent::_mayBalanceWithNeighbors ( const Ordering &order,
                                                 ixmIndexCB *indexCB,
