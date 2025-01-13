@@ -326,8 +326,8 @@ namespace engine
                   utilSUCacheUnit *pTmpUnit = _unitsEx[ unitID - staticSize ] ;
                   if ( pTmpUnit )
                   {
-                     SDB_OSS_DEL pTmpUnit ;
                      _unitsEx[ unitID - staticSize ] = NULL ;
+                     SDB_OSS_DEL pTmpUnit ;
                      hasDel = TRUE ;
                   }
                   _unitStatusEx[ unitID - staticSize ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
@@ -430,17 +430,19 @@ namespace engine
 
                if ( !_unitsEx || !_unitStatusEx )
                {
+                  utilSUCacheUnit **pUnitsEx = NULL ;
+                  UINT8 * pUnitStatusEx = NULL ;
+
                   ossScopedLock lock( &_latch ) ;
 
                   /// double check
                   if ( !_unitsEx )
                   {
                      /// allocate
-                     _unitsEx = new (std::nothrow) utilSUCacheUnit*[CACHESIZE-staticSize] ;
-                     if ( !_unitsEx )
+                     pUnitsEx = new (std::nothrow) utilSUCacheUnit*[CACHESIZE-staticSize] ;
+                     if ( !pUnitsEx )
                      {
                         PD_LOG( PDWARNING, "Allocate cache unit array failed" ) ;
-                        _release() ;
                         return NULL ;
                      }
                      else
@@ -448,7 +450,7 @@ namespace engine
                         /// reset
                         for ( UINT32 i = 0 ; i < CACHESIZE-staticSize ; ++i )
                         {
-                           _unitsEx[ i ] = NULL ;
+                           pUnitsEx[ i ] = NULL ;
                         }
                      }
                   }
@@ -456,11 +458,15 @@ namespace engine
                   if ( !_unitStatusEx )
                   {
                      /// allocate
-                     _unitStatusEx = new (std::nothrow) UINT8[CACHESIZE-staticSize] ;
-                     if ( !_unitStatusEx )
+                     pUnitStatusEx = new (std::nothrow) UINT8[CACHESIZE-staticSize] ;
+                     if ( !pUnitStatusEx )
                      {
                         PD_LOG( PDWARNING, "Allocate cache status array failed" ) ;
-                        _release() ;
+                        if ( pUnitsEx )
+                        {
+                           delete [] pUnitsEx ;
+                           pUnitsEx = NULL ;
+                        }
                         return NULL ;
                      }
                      else
@@ -468,9 +474,21 @@ namespace engine
                         /// reset
                         for ( UINT32 i = 0 ; i < CACHESIZE-staticSize ; ++i )
                         {
-                           _unitStatusEx[ i ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
+                           pUnitStatusEx[ i ] = UTIL_SU_CACHE_UNIT_STATUS_EMPTY ;
                         }
                      }
+                  }
+
+                  /// after reset then assign to _unitsEx
+                  if ( pUnitsEx )
+                  {
+                     _unitsEx = pUnitsEx ;
+                  }
+
+                  /// after reset then assign to _unitStatusEx
+                  if ( pUnitStatusEx )
+                  {
+                     _unitStatusEx = pUnitStatusEx ;
                   }
                }
 
