@@ -336,8 +336,8 @@ namespace engine
                   /// double check
                   if ( !_pSlotEx )
                   {
-                     _pSlotEx = new (std::nothrow) T* [ SIZE - staticSize ] ;
-                     if ( !_pSlotEx )
+                     T **pSlotEx = new (std::nothrow) T* [ SIZE - staticSize ] ;
+                     if ( !pSlotEx )
                      {
                         rc = SDB_OOM ;
                         PD_LOG( PDERROR, "Allocate slot failed" ) ;
@@ -347,8 +347,12 @@ namespace engine
                      /// init
                      for ( UINT32 i = 0 ; i < SIZE - staticSize ; ++i )
                      {
-                        _pSlotEx[ i ] = NULL ;
+                        pSlotEx[ i ] = NULL ;
                      }
+
+                     /// when after init, then asiggn to _pSlotEx. Because operator[] use the
+                     /// _pSlotEx without latch
+                     _pSlotEx = pSlotEx ;
                   }
                }
 
@@ -416,6 +420,7 @@ namespace engine
 
                if ( -1 != i )
                {
+                  ossScopedLock lock( &_latch ) ;
                   _slotStackFlag[i] = 0 ;
                }
             }
@@ -471,6 +476,8 @@ namespace engine
 
          T* _allocFromStack()
          {
+            ossScopedLock lock( &_latch ) ;
+
             for ( UINT32 i = 0 ; i < stackSize ; ++i )
             {
                if ( 0 == _slotStackFlag[ i ] )
