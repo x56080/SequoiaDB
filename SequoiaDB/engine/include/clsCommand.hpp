@@ -293,7 +293,8 @@ namespace engine
                                       INT16 w ) = 0 ;
          virtual INT32 _openContext ( _pmdEDUCB * cb,
                                       _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) = 0 ;
+                                      INT64 * pContextID = NULL,
+                                      INT16 w = 1 ) = 0 ;
    } ;
 
    /*
@@ -334,7 +335,8 @@ namespace engine
 
          virtual INT32 _openContext ( _pmdEDUCB * cb,
                                       _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) ;
+                                      INT64 * pContextID = NULL,
+                                      INT16 w = 1 ) ;
    } ;
 
    /*
@@ -377,7 +379,8 @@ namespace engine
 
          virtual INT32 _openContext ( _pmdEDUCB * cb,
                                       _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) ;
+                                      INT64 * pContextID = NULL,
+                                      INT16 w = 1 ) ;
 
       protected:
          utilWriteResult            _writeResult ;

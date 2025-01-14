@@ -1086,6 +1086,10 @@ enum SDB_LOB_MODE
    SDB_LOB_MODE_SHAREREAD  = 0x00000040,
 } ;
 
+#define SDB_DFT_REPLSIZE            ( 2 )
+#define SDB_MIN_REPLSIZE            ( -1 )
+#define SDB_MAX_REPLSIZE            ( 7 )
+
 #define SDB_ANALYZE_MODE_SAMPLE     ( 1 )
 #define SDB_ANALYZE_MODE_FULL       ( 2 )
 #define SDB_ANALYZE_MODE_GENDFT     ( 3 )

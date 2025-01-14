@@ -32,6 +32,7 @@
 *******************************************************************************/
 
 #include "clsShardMgr.hpp"
+#include "clsUtil.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "rtn.hpp"
@@ -329,6 +330,8 @@ namespace engine
          pNetFrame->setMaxSockPerThread( pmdGetOptionCB()->maxSockPerThread() ) ;
          pNetFrame->setMaxThreadNum( pmdGetOptionCB()->maxSockThread() ) ;
       }
+
+      clsUpdateReplsize( pmdGetOptionCB()->getReplSize() ) ;
    }
 
    void _clsShardMgr::ntyPrimaryChange( BOOLEAN primary,

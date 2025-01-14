@@ -56,6 +56,7 @@
 #include "coordRemoteSession.hpp"
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
+#include "clsUtil.hpp"
 
 using namespace bson ;
 
@@ -761,6 +762,8 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+
+      clsUpdateReplsize( pmdGetOptionCB()->getReplSize() ) ;
 
       // 1. init param
       ossStrncpy( _shdServiceName, optCB->shardService(),

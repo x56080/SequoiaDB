@@ -61,6 +61,9 @@ namespace engine
 
    const CHAR*    clsNodeRunStat2String( INT32 stat ) ;
 
+   void clsUpdateReplsize( UINT32 replsize ) ;
+   UINT32 clsGetReplsize() ;
+
 }
 
 #endif //CLSUTIL_HPP_

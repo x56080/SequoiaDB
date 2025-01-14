@@ -103,7 +103,8 @@ namespace engine
    }
 
    INT32 _rtnContextDelCS::open( const CHAR *pCollectionName,
-                                 _pmdEDUCB *cb )
+                                 _pmdEDUCB *cb,
+                                 INT16 w )
    {
       INT32 rc = SDB_OK ;
       dpsMergeInfo info ;
@@ -112,6 +113,9 @@ namespace engine
       SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" );
       PD_CHECK( pCollectionName, SDB_INVALIDARG, error, PDERROR,
                 "pCollectionName is null!" );
+
+      _w = w ;
+
       rc = dmsCheckCSName( pCollectionName );
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name(name:%s)",
                    pCollectionName );
@@ -971,6 +975,7 @@ namespace engine
    INT32 _rtnContextRenameCS::open( const CHAR *pCSName,
                                     const CHAR *pNewCSName,
                                     _pmdEDUCB *cb,
+                                    INT16 w,
                                     BOOLEAN useLocalTask )
    {
       INT32 rc = SDB_OK ;
@@ -990,6 +995,9 @@ namespace engine
                 "new cs name is null!" );
 
       rc = dmsCheckCSName( pCSName );
+      
+      _w = w ;
+
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pCSName );
 
       rc = dmsCheckCSName( pNewCSName );

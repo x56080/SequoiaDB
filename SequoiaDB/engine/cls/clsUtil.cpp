@@ -171,4 +171,18 @@ namespace engine
       return "Unknown" ;
    }
 
+   static UINT32& _clsGetReplsize()
+   {
+      static UINT32 s_replsize = SDB_DFT_REPLSIZE ;
+      return s_replsize ;
+   }
+   void clsUpdateReplsize( UINT32 replsize )
+   {
+      _clsGetReplsize() = replsize ;
+   }
+   UINT32 clsGetReplsize()
+   {
+      return _clsGetReplsize() ;
+   }
+
 }

@@ -2026,6 +2026,8 @@ done:
       ossMemset( _fsCacheExpiredStr, 0, sizeof(_fsCacheExpiredStr) ) ;
       _fsCacheExpiredMs = 0 ;
 
+      _replSize = SDB_DFT_REPLSIZE ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2619,6 +2621,12 @@ done:
       rdxString( pEX, PMD_OPTION_FS_CACHE_EXPIRED, _fsCacheExpiredStr,
                  sizeof (_fsCacheExpiredStr), FALSE, PMD_CFG_CHANGE_RUN,
                  PMD_DFT_FS_CACHE_EXPIRED, TRUE ) ;
+
+      // --replsizes
+      rdxInt( pEX, PMD_OPTION_REPLSIZE, _replSize,
+              FALSE, PMD_CFG_CHANGE_RUN,
+              SDB_DFT_REPLSIZE ) ;
+      rdvMinMax( pEX, _replSize, SDB_MIN_REPLSIZE, SDB_MAX_REPLSIZE ) ;
 
       // end map
 

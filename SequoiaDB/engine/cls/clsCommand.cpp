@@ -919,7 +919,7 @@ namespace engine
          task = alterTasks.front() ;
          if ( task->testFlags( RTN_ALTER_TASK_FLAG_3PHASE ) )
          {
-            rc = _openContext( cb, rtnCB, pContextID ) ;
+            rc = _openContext( cb, rtnCB, pContextID, w ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
                          "collection space, rc: %d", rc ) ;
          }
@@ -1010,7 +1010,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTIONSPACE__OPENCONTEXT, "_rtnAlterCollectionSpace::_openContext" )
    INT32 _rtnAlterCollectionSpace::_openContext ( _pmdEDUCB * cb,
                                                   _SDB_RTNCB * rtnCB,
-                                                  INT64 * pContextID )
+                                                  INT64 * pContextID,
+                                                  INT16 w )
    {
       INT32 rc = SDB_OK ;
 
@@ -1021,7 +1022,7 @@ namespace engine
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
 
-      rc = context->open( (*this), cb, 1 ) ;
+      rc = context->open( (*this), cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
                    "collection space, rc: %d", rc ) ;
 
@@ -1088,7 +1089,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTION__OPENCONTEXT, "_rtnAlterCollection::_openContext" )
    INT32 _rtnAlterCollection::_openContext ( _pmdEDUCB * cb,
                                              _SDB_RTNCB * rtnCB,
-                                             INT64 * pContextID )
+                                             INT64 * pContextID,
+                                             INT16 w )
    {
       INT32 rc = SDB_OK ;
 
@@ -1099,7 +1101,7 @@ namespace engine
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
 
-      rc = context->open( (*this), cb, 1 ) ;
+      rc = context->open( (*this), cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
                    "collection space, rc: %d", rc ) ;
 

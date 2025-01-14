@@ -33,6 +33,7 @@
 
 #include "clsCatalogAgent.hpp"
 #include "msgCatalog.hpp"
+#include "clsUtil.hpp"
 #include "ossUtil.hpp"
 #include "clsShardMgr.hpp"
 #include "pdTrace.hpp"
@@ -712,6 +713,7 @@ namespace engine
       _clUniqueID = clUniqueID ;
       _version = -1 ;
       _w = 1 ;
+      _configFlag = 0 ;
       _next = NULL ;
       _lastItem = NULL ;
       _pOrder = NULL ;
@@ -768,7 +770,7 @@ namespace engine
 
    UINT32 _clsCatalogSet::getW () const
    {
-      return _w ;
+      return ( _configFlag & FLAG_USE_CONFIG_REPLSIZE ) ? clsGetReplsize() : _w ;
    }
 
    const CHAR *_clsCatalogSet::name () const
@@ -1006,6 +1008,8 @@ namespace engine
       _autoIncSet.clear() ;
 
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
+
+      _configFlag = 0 ;
 
       PD_TRACE_EXIT ( SDB__CLSCTSET__CLEAR ) ;
    }
@@ -2010,7 +2014,8 @@ namespace engine
       // if the element does not exist, use default 1
       if ( ele.eoo () )
       {
-         _w = 1 ;
+         _w = clsGetReplsize() ;
+         _configFlag |= FLAG_USE_CONFIG_REPLSIZE ;
       }
       else if ( ele.type() != NumberInt )
       {

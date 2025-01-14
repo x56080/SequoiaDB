@@ -233,6 +233,8 @@ namespace engine
    typedef _utilStringMap<UINT32>                  CLS_SUBCL2ORDER_MAP ;
    typedef _utilMap<UINT32, UINT32>                CLS_ORDER2SUBCLIDX_MAP ;
 
+   #define FLAG_USE_CONFIG_REPLSIZE               0x0001
+
    /*
       _clsCatalogSet define
    */
@@ -440,6 +442,7 @@ namespace engine
       private:
          INT32             _version ;
          UINT32            _w ;
+         SINT16            _configFlag ;
          BSONObj           _shardingKey ;
          UINT16            _shardingType ;
          // AutoSplit: -1 means no specified, 0 means FALSE, 1 means TRUE

@@ -76,7 +76,8 @@ namespace engine
       }
 
       INT32 open( const CHAR *pCollectionName,
-                  _pmdEDUCB *cb );
+                  _pmdEDUCB *cb,
+                  INT16 w = 1 );
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -234,7 +235,9 @@ namespace engine
       }
 
       INT32 open( const CHAR *pCSName, const CHAR *pNewCSName,
-                  _pmdEDUCB *cb, BOOLEAN useLocalTask = TRUE );
+                  _pmdEDUCB *cb,
+                  INT16 w = 1,
+                  BOOLEAN useLocalTask = TRUE ) ;
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
