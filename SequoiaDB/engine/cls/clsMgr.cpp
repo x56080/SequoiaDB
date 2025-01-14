@@ -760,6 +760,9 @@ namespace engine
          goto error ;
       }
 
+      clsUpdateReplsize( pmdGetOptionCB()->getReplSize() ) ;
+      clsUpdateConsistencyStrategy( pmdGetOptionCB()->getConsistencyStrategy() ) ;
+
       // 1. init param
       ossStrncpy( _shdServiceName, optCB->shardService(),
                   OSS_MAX_SERVICENAME ) ;

@@ -409,7 +409,7 @@ namespace engine
       recycleName = _returnOptions._recycleItem.getRecycleName() ;
 
       // from recycle to origin
-      rc = _BASE::open( recycleName, originName, cb ) ;
+      rc = _BASE::open( recycleName, originName, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open internal rename context, "
                    "rc: %d", rc ) ;
 

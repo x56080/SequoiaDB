@@ -739,6 +739,9 @@ namespace engine
          OSS_INLINE const CHAR * getFsCacheExpiredStr() const { return _fsCacheExpiredStr ; }
          OSS_INLINE UINT64 getFsCacheExpiredMs() const { return _fsCacheExpiredMs ; }
 
+         OSS_INLINE const INT32 getReplSize() const { return _replSize ; }
+         OSS_INLINE const SDB_CONSISTENCY_STRATEGY getConsistencyStrategy() const { return _consistencyStrategy ; }
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -908,6 +911,9 @@ namespace engine
 
          CHAR        _fsCacheExpiredStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
          UINT64      _fsCacheExpiredMs ;
+
+         INT32       _replSize ;
+         SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
 
 #ifdef SDB_ENTERPRISE
 

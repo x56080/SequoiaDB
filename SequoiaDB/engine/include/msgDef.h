@@ -1203,6 +1203,10 @@ enum SDB_CONSISTENCY_STRATEGY
    SDB_CONSISTENCY_PRY_LOC_MAJOR,
 } ;
 
+#define SDB_DFT_REPLSIZE            ( 2 )
+#define SDB_MIN_REPLSIZE            ( -1 )
+#define SDB_MAX_REPLSIZE            ( 7 )
+
 #define SDB_ANALYZE_MODE_SAMPLE     ( 1 )
 #define SDB_ANALYZE_MODE_FULL       ( 2 )
 #define SDB_ANALYZE_MODE_GENDFT     ( 3 )

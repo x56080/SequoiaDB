@@ -1644,7 +1644,7 @@ namespace engine
                    "rename collection space[%s] to[%s], rc: %d",
                    csNameInData, csName, rc ) ;
 
-      rc = pCtx->open( csNameInData, csName, _pEDUCB, FALSE, allowOldSYS, allowNewSYS );
+      rc = pCtx->open( csNameInData, csName, _pEDUCB, 1, FALSE, allowOldSYS, allowNewSYS );
       PD_RC_CHECK( rc, PDERROR, "Failed to open context, "
                    "rename collection space[%s] to[%s], rc: %d",
                    csNameInData, csName, rc ) ;
@@ -2615,6 +2615,20 @@ namespace engine
                   goto error ;
                }
             }
+         }
+
+         if ( CMD_DROP_COLLECTIONSPACE == pCommand->type() ||
+              CMD_RENAME_COLLECTIONSPACE == pCommand->type() ||
+              CMD_ALTER_COLLECTIONSPACE == pCommand->type() )
+         {
+            replSize = (INT16)(pmdOptionsCB().getReplSize()) ;
+            rc = _calculateW( &replSize, &clientW, w ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
+               goto error ;
+            }
+            eduCB()->getOperator()->setReplStrategy( pmdOptionsCB().getConsistencyStrategy() ) ;
          }
 
          if ( CMD_LOAD_COLLECTIONSPACE == pCommand->type() )

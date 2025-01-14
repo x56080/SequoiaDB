@@ -103,13 +103,17 @@ namespace engine
 
    INT32 _rtnContextDelCS::open( const CHAR *pCollectionName,
                                  const utilRecycleItem *recycleItem,
-                                 _pmdEDUCB *cb )
+                                 _pmdEDUCB *cb,
+                                 INT16 w )
    {
       INT32 rc = SDB_OK ;
 
       SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" );
       PD_CHECK( pCollectionName, SDB_INVALIDARG, error, PDERROR,
                 "pCollectionName is null!" );
+
+      _w = w ;
+
       rc = dmsCheckCSName( pCollectionName );
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name(name:%s)",
                    pCollectionName );
@@ -1032,6 +1036,7 @@ namespace engine
    INT32 _rtnContextRenameCS::open( const CHAR *pCSName,
                                     const CHAR *pNewCSName,
                                     _pmdEDUCB *cb,
+                                    INT16 w,
                                     BOOLEAN useLocalTask,
                                     BOOLEAN allowOldSYS,
                                     BOOLEAN allowNewSYS )
@@ -1050,6 +1055,8 @@ namespace engine
       SDB_ASSERT( pNewCSName, "new cs name can't be null!" );
       PD_CHECK( pNewCSName, SDB_INVALIDARG, error, PDERROR,
                 "new cs name is null!" );
+
+      _w = w ;
 
       rc = dmsCheckCSName( pCSName, _flagAllowOldSYS() || allowOldSYS ) ;
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pCSName );

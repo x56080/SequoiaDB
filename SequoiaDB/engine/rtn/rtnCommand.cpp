@@ -1558,7 +1558,7 @@ namespace engine
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, "
                       "drop cs failed(rc=%d)", rc );
-         rc = delContext->open( _spaceName, &_recycleItem, cb );
+         rc = delContext->open( _spaceName, &_recycleItem, cb, w );
          PD_RC_CHECK( rc, PDERROR, "Failed to open context, drop cs "
                       "failed(rc=%d)", rc );
       }
@@ -2099,7 +2099,7 @@ namespace engine
                       "Failed to create context, rename cs failed, rc: %d",
                       rc ) ;
 
-         rc = renameContext->open( _oldName, _newName, cb );
+         rc = renameContext->open( _oldName, _newName, cb, w );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to open context, rename cs failed, rc: %d)",
                       rc ) ;
@@ -5336,7 +5336,7 @@ error:
          rc = cb->getSession()->checkPrivilegesForActionsOnResource( res, actions );
          PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d", rc );
       }
-   
+
    done:
       return rc;
    error:
@@ -6063,7 +6063,7 @@ error:
       {
          rtnCB->getUserCacheMgr()->remove( _userName );
       }
-      
+
       PD_TRACE_EXITRC( SDB__RTNCMDINVALIDATEUSERCACHE_DOIT, rc ) ;
       return rc ;
    }

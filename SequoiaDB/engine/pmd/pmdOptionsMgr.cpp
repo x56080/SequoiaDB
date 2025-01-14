@@ -2078,6 +2078,9 @@ done:
       ossMemset( _fsCacheExpiredStr, 0, sizeof(_fsCacheExpiredStr) ) ;
       _fsCacheExpiredMs = 0 ;
 
+      _replSize = SDB_DFT_REPLSIZE ;
+      _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2726,6 +2729,19 @@ done:
       rdxString( pEX, PMD_OPTION_FS_CACHE_EXPIRED, _fsCacheExpiredStr,
                  sizeof (_fsCacheExpiredStr), FALSE, PMD_CFG_CHANGE_RUN,
                  PMD_DFT_FS_CACHE_EXPIRED, TRUE ) ;
+
+      // --replsizes
+      rdxInt( pEX, PMD_OPTION_REPLSIZE, _replSize,
+              FALSE, PMD_CFG_CHANGE_RUN,
+              SDB_DFT_REPLSIZE ) ;
+      rdvMinMax( pEX, _replSize, SDB_MIN_REPLSIZE, SDB_MAX_REPLSIZE ) ;
+
+      // --consistencystrategy
+      rdxInt( pEX, PMD_OPTION_CONSISTENCY_STRATEGY, (INT32&)_consistencyStrategy,
+              FALSE, PMD_CFG_CHANGE_RUN,
+              (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
+      rdvMinMax( pEX, (INT32&)_consistencyStrategy, (INT32)SDB_CONSISTENCY_NODE,
+                 (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
 
       // end map
 

@@ -32,6 +32,7 @@
 *******************************************************************************/
 
 #include "clsCatalogAgent.hpp"
+#include "clsUtil.hpp"
 #include "ossUtil.hpp"
 #include "clsShardMgr.hpp"
 #include "pdTrace.hpp"
@@ -444,6 +445,7 @@ namespace engine
       _version = -1 ;
       _w = 1 ;
       _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+      _configFlag = 0 ;
       _next = NULL ;
       _lastItem = NULL ;
       _pOrder = NULL ;
@@ -500,12 +502,12 @@ namespace engine
 
    UINT32 _clsCatalogSet::getW () const
    {
-      return _w ;
+      return ( _configFlag & FLAG_USE_CONFIG_REPLSIZE ) ? clsGetReplsize() : _w ;
    }
 
    SDB_CONSISTENCY_STRATEGY _clsCatalogSet::getConsistencyStrategy() const
    {
-      return _consistencyStrategy ;
+      return ( _configFlag & FLAG_USE_CONFIG_CONSISTENCY_STRATEGY ) ? clsGetConsistencyStrategy() : _consistencyStrategy ;
    }
 
    const CHAR *_clsCatalogSet::name () const
@@ -743,6 +745,8 @@ namespace engine
       _autoIncSet.clear() ;
 
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
+
+      _configFlag = 0 ;
 
       PD_TRACE_EXIT ( SDB__CLSCTSET__CLEAR ) ;
    }
@@ -1747,7 +1751,8 @@ namespace engine
       // if the element does not exist, use default 1
       if ( ele.eoo () )
       {
-         _w = 1 ;
+         _w = clsGetReplsize() ;
+         _configFlag |= FLAG_USE_CONFIG_REPLSIZE ;
       }
       else if ( ele.type() != NumberInt )
       {
@@ -1766,7 +1771,8 @@ namespace engine
       // if the element does not exist, use default 3
       if ( ele.eoo () )
       {
-         _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+         _consistencyStrategy = clsGetConsistencyStrategy() ;
+         _configFlag |= FLAG_USE_CONFIG_CONSISTENCY_STRATEGY ;
       }
       else if ( ele.type() != NumberInt )
       {
@@ -4433,7 +4439,7 @@ namespace engine
          if ( locationID == itr->second._locationID )
          {
             itr->second._primary.columns.groupID = primaryID.columns.groupID ;
-            itr->second._primary.columns.nodeID = primaryID.columns.nodeID ;        
+            itr->second._primary.columns.nodeID = primaryID.columns.nodeID ;
             break ;
          }
       }

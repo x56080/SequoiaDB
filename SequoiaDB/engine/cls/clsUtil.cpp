@@ -187,4 +187,32 @@ namespace engine
       return "UNKNOWN" ;
    }
 
+   static UINT32& _clsGetReplsize()
+   {
+      static UINT32 s_replsize = SDB_DFT_REPLSIZE ;
+      return s_replsize ;
+   }
+   void clsUpdateReplsize( UINT32 replsize )
+   {
+      _clsGetReplsize() = replsize ;
+   }
+   UINT32 clsGetReplsize()
+   {
+      return _clsGetReplsize() ;
+   }
+
+   static SDB_CONSISTENCY_STRATEGY& _clsGetConsistencyStrategy()
+   {
+      static SDB_CONSISTENCY_STRATEGY s_consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+      return s_consistencyStrategy ;
+   }
+   void clsUpdateConsistencyStrategy( SDB_CONSISTENCY_STRATEGY consistencyStrategy )
+   {
+      _clsGetConsistencyStrategy() = consistencyStrategy ;
+   }
+   SDB_CONSISTENCY_STRATEGY clsGetConsistencyStrategy()
+   {
+      return _clsGetConsistencyStrategy() ;
+   }
+
 }

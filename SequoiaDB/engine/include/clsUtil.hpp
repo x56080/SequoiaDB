@@ -63,6 +63,11 @@ namespace engine
    const CHAR*    clsNodeRunStat2String( INT32 stat ) ;
    const CHAR*    clsFSNotifyType2String( CLS_FS_NOTIFY_TYPE type ) ;
 
+   void clsUpdateReplsize( UINT32 replsize ) ;
+   UINT32 clsGetReplsize() ;
+
+   void clsUpdateConsistencyStrategy( SDB_CONSISTENCY_STRATEGY consistencyStrategy ) ;
+   SDB_CONSISTENCY_STRATEGY clsGetConsistencyStrategy() ;
 }
 
 #endif //CLSUTIL_HPP_
