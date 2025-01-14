@@ -180,7 +180,8 @@ namespace engine
                     rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
                     DMS_COLLECTION_SPACE_NAME_SZ, sequence,
                     DMS_LOB_DATA_SU_EXT_NAME ) ||
-                    SDB_FILE_RENAME_INFO == rtnParseFileName( fileName.c_str() ) )
+                    SDB_FILE_RENAME_INFO == rtnParseFileName( fileName.c_str() ) ||
+                    SDB_FILE_DMSMETA == rtnParseFileName( fileName.c_str() ) )
                {
                   const std::string pathName = dir_iter->path().string() ;
                   rc = ossDelete( pathName.c_str() ) ;

@@ -2535,7 +2535,7 @@ namespace engine
 
       // Check whether the sub-collection and parameters had been
       // already validated
-      if ( mainPlan->checkSavedSubCL( mbContext->mb()->_clUniqueID,
+      if ( mainPlan->checkSavedSubCL( mbContext->mbStat()->_clUniqueID,
                                       parameters ) )
       {
          rc = _bindMainCLPlan( mainPlan, subOptions, su, mbContext,

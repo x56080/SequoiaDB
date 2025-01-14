@@ -84,7 +84,7 @@ namespace engine
       SDB_ASSERT( context, "Context should not be NULL" ) ;
       SDB_ASSERT( extAddr, "Extent address should not be NULL" ) ;
 
-      _mapExtent2DelList( context->mb(), extAddr, extentID ) ;
+      _mapExtent2DelList( context, extAddr, extentID ) ;
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__ONALLOCEXTENT ) ;
    }
@@ -1022,7 +1022,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__MAPEXTENT2DELLIST, "_dmsStorageData::_mapExtent2DelList" )
-   void _dmsStorageData::_mapExtent2DelList( dmsMB *mb, dmsExtent *extAddr,
+   void _dmsStorageData::_mapExtent2DelList( dmsMBContext *context, dmsExtent *extAddr,
                                              SINT32 extentID )
    {
       INT32 extentSize         = 0 ;
@@ -1030,6 +1030,8 @@ namespace engine
       INT32 deleteRecordSize   = 0 ;
       dmsOffset recordOffset   = 0 ;
       INT32 curUseableSpace    = 0 ;
+
+      dmsMB *mb = context->mb() ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__MAPEXTENT2DELLIST ) ;
 
@@ -1039,7 +1041,7 @@ namespace engine
          {
             PD_LOG( PDINFO, "Collection[%s, mbID: %d]'s extent[%d] free "
                     "space[%d] is less than min record size[%d]",
-                    mb->_collectionName, mb->_blockID, extentID,
+                    context->mbStat()->_collectionName, mb->_blockID, extentID,
                     extAddr->_freeSpace, DMS_MIN_RECORD_SZ ) ;
          }
          goto done ;
@@ -1153,7 +1155,7 @@ namespace engine
          dmsOffset   offset      = extent->_lastRecordOffset ;
          // finally add the record into list
          extent->_recCount++ ;
-         _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
+         _increaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
          // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
@@ -1248,7 +1250,7 @@ namespace engine
          if ( decCount )
          {
             --(pExtent->_recCount) ;
-            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
+            _decreaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
          }
       }
       //increase data write counter
@@ -1427,7 +1429,7 @@ namespace engine
                                       dmsExtent *extAddr,
                                       SINT32 extentID )
    {
-      _mapExtent2DelList( context->mb(), extAddr, extentID ) ;
+      _mapExtent2DelList( context, extAddr, extentID ) ;
    }
 
    INT32 _dmsStorageData::dumpExtOptions( dmsMBContext *context,

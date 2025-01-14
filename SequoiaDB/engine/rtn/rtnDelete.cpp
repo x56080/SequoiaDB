@@ -140,9 +140,9 @@ namespace engine
                    "rc: %d", options._fullName, rc ) ;
 
       // Capped collection has no index, but delete is supported.
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX )
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes, DMS_MB_ATTR_NOIDINDEX )
            &&
-           !(OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_CAPPED ) ) )
+           !(OSS_BIT_TEST( mbContext->mbStat()->_attributes, DMS_MB_ATTR_CAPPED ) ) )
       {
          PD_LOG( PDERROR, "can not delete data when autoIndexId is false" ) ;
          rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
@@ -230,10 +230,10 @@ retry:
                _dmsMBContextSubScope subScope( mbContext,
                                                pScanner->getScannerContext() ) ;
                // Capped collection has no index, but delete is supported.
-               if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+               if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX )
                     &&
-                    !(OSS_BIT_TEST( mbContext->mb()->_attributes,
+                    !(OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                                     DMS_MB_ATTR_CAPPED ) ) )
                {
                   PD_LOG( PDERROR, "can not delete data when autoIndexId is "

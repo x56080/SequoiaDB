@@ -822,8 +822,7 @@ namespace engine
          pmdGetStatusHstLogger()->log() ;
 
          /// interrupt writing and transaction EDUs
-         eduCB()->getEDUMgr()->interruptWritingAndTransEDUs(
-                                                         SDB_RTN_IN_REBUILD ) ;
+         eduCB()->getEDUMgr()->interruptWritingAndTransEDUs( SDB_RTN_IN_REBUILD ) ;
          /// disconnect al shard agent
          pClsCB->getShardRouteAgent()->disconnectAll() ;
          /// do rebuild

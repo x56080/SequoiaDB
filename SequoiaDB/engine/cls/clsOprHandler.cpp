@@ -148,7 +148,7 @@ namespace engine
       {
          rc = _init() ;
          PD_RC_CHECK( rc, PDERROR, "Init operation handler for collection[%s] "
-                      "failed[%d]", context->mb()->_collectionName, rc ) ;
+                      "failed[%d]", context->mbStat()->_collectionName, rc ) ;
       }
 
       if ( _clKeygen.isInit() )

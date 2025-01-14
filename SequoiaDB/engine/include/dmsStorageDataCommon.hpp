@@ -421,7 +421,8 @@ namespace engine
       UINT64      _totalOrgDataLen ;
       UINT64      _totalDataLen ;
       UINT32      _startLID ;
-      UINT32      _flag ;
+      UINT16      _hasTruncate ;
+      UINT16      _flag ;
       UINT64      _totalLobSize ;
       UINT64      _totalValidLobSize ;
 
@@ -466,6 +467,25 @@ namespace engine
       // cache of update time
       UINT64      _updateTime ;
 
+      // cache of mb
+      CHAR           _collectionName [ DMS_COLLECTION_NAME_SZ+1 ] ;
+      UINT16         _blockID ;
+      UINT32         _numIndexes ;
+      UINT32         _logicalID ;
+      UINT32         _attributes ;
+      dmsExtentID    _dictExtentID ;
+      UINT8          _dictVersion ;
+      UINT8          _compressorType ;
+
+      UINT32         _commitFlagSync ;
+      UINT64         _commitTime ;
+      UINT32         _idxCommitFlagSync ;
+      UINT64         _idxCommitTime ;
+      UINT32         _lobCommitFlagSync ;
+      UINT64         _lobCommitTime ;
+
+      utilCLUniqueID _clUniqueID ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -482,6 +502,7 @@ namespace engine
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
          _startLID               = DMS_INVALID_CLID ;
+         _hasTruncate            = 0 ;
          _flag                   = 0 ;
          _totalLobSize           = 0 ;
          _totalValidLobSize      = 0 ;
@@ -510,6 +531,71 @@ namespace engine
          _lastSearchRID.reset() ;
          _createTime             = 0 ;
          _updateTime             = 0 ;
+
+         /// cache info
+         ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
+         _blockID = DMS_INVALID_MBID ;
+         _numIndexes = 0 ;
+         _logicalID = DMS_INVALID_CLID ;
+         _attributes = 0 ;
+         _dictExtentID = DMS_INVALID_EXTENT ;
+         _dictVersion = 0 ;
+         _compressorType = UTIL_COMPRESSOR_INVALID ;
+
+         _commitFlagSync = 0 ;
+         _commitTime = 0 ;
+         _idxCommitFlagSync = 0 ;
+         _idxCommitTime = 0 ;
+         _lobCommitFlagSync = 0 ;
+         _lobCommitTime = 0 ;
+
+         _clUniqueID = UTIL_UNIQUEID_NULL ;
+      }
+
+      void setByMB( const dmsMB *mb )
+      {
+         _totalRecords = mb->_totalRecords ;
+         _rcTotalRecords.init( mb->_totalRecords ) ;
+         _totalDataPages = mb->_totalDataPages ;
+         _totalIndexPages = mb->_totalIndexPages ;
+         _totalDataFreeSpace = mb->_totalDataFreeSpace ;
+         _totalIndexFreeSpace = mb->_totalIndexFreeSpace ;
+         _totalLobPages = mb->_totalLobPages ;
+         _totalLobs = mb->_totalLobs ;
+         _lastCompressRatio = mb->_lastCompressRatio ;
+         _totalDataLen = mb->_totalDataLen ;
+         _totalLobSize = mb->_totalLobSize ;
+         _totalValidLobSize = mb->_totalValidLobSize;
+         _totalOrgDataLen = mb->_totalOrgDataLen ;
+         _startLID = mb->_logicalID ;
+         _createTime = mb->_createTime ;
+         _updateTime = mb->_updateTime ;
+         _maxGlobTransID.init( mb->_maxGlobTransID ) ;
+
+         /// cache info
+         ossStrncpy( _collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+         _blockID = mb->_blockID ;
+         _numIndexes = mb->_numIndexes ;
+         _logicalID = mb->_logicalID ;
+         _attributes = mb->_attributes ;
+         _flag = mb->_flag ;
+         _dictExtentID = mb->_dictExtentID ;
+         _dictVersion = mb->_dictVersion ;
+         _compressorType = mb->_compressorType ;
+
+         updateCommitCache( mb ) ;
+
+         _clUniqueID = mb->_clUniqueID ;
+      }
+
+      void updateCommitCache( const dmsMB *mb )
+      {
+         _commitFlagSync = mb->_commitFlag ;
+         _commitTime = mb->_commitTime ;
+         _idxCommitFlagSync = mb->_idxCommitFlag ;
+         _idxCommitTime = mb->_idxCommitTime ;
+         _lobCommitFlagSync = mb->_lobCommitFlag ;
+         _lobCommitTime = mb->_lobCommitTime ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -602,10 +688,12 @@ namespace engine
       }
 
       // reset index hash fields from given index
-      void resetIdxHashFrom( INT32 indexID )
+      void resetIdxHashFrom( INT32 indexID, const dmsMB *mb )
       {
          SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
                      "invalid index ID" ) ;
+         _numIndexes = mb->_numIndexes ;
+
          _clIdxHashBitmap.resetBitmap() ;
          // reset bitmaps after given index ID
          for ( UINT32 i = indexID ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
@@ -808,14 +896,13 @@ namespace engine
       }
 
       // check before lock
-      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+      if ( !DMS_IS_MB_INUSE( _mbStat->_flag ) )
       {
          return SDB_DMS_NOTEXIST ;
       }
-      if ( _clLID != _mb->_logicalID )
+      if ( _clLID != _mbStat->_logicalID )
       {
-         if ( _startLID == _mbStat->_startLID &&
-              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         if ( _startLID == _mbStat->_startLID && _mbStat->_hasTruncate )
          {
             return SDB_DMS_TRUNCATED ;
          }
@@ -831,7 +918,7 @@ namespace engine
          if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
          {
             // collection is recycled by drop or truncate
-            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            if ( _mbStat->_hasTruncate )
             {
                return SDB_DMS_TRUNCATED ;
             }
@@ -864,15 +951,14 @@ namespace engine
       }
 
       // check after lock
-      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+      if ( !DMS_IS_MB_INUSE( _mbStat->_flag ) )
       {
          ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
          return SDB_DMS_NOTEXIST ;
       }
-      if ( _clLID != _mb->_logicalID )
+      if ( _clLID != _mbStat->_logicalID )
       {
-         if ( _startLID == _mbStat->_startLID &&
-              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         if ( _startLID == _mbStat->_startLID && _mbStat->_hasTruncate )
          {
             ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
             return SDB_DMS_TRUNCATED ;
@@ -890,7 +976,7 @@ namespace engine
          if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
          {
             // collection is recycled by drop or truncate
-            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            if ( _mbStat->_hasTruncate )
             {
                ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
                return SDB_DMS_TRUNCATED ;
@@ -1092,7 +1178,7 @@ namespace engine
                                  _IDmsEventHolder *pEventHolder ) ;
          virtual ~_dmsStorageDataCommon () ;
 
-         virtual void  syncMemToMmap() ;
+         virtual void  syncMemToMmap( BOOLEAN *pHasWritten = NULL ) ;
 
          UINT32 logicalID () const { return _logicalCSID ; }
          dmsStorageUnitID CSID () const { return _CSID ; }
@@ -1107,13 +1193,14 @@ namespace engine
                                              utilCLUniqueID clUniqueID,
                                              INT32 lockType = -1 ) ;
 
-         OSS_INLINE INT32  checkMBContext( const CHAR *pName, UINT16 mbID ) ;
          OSS_INLINE void   releaseMBContext( dmsMBContext *&pContext ) ;
 
          OSS_INLINE const dmsMBStatInfo* getMBStatInfo( UINT16 mbID ) const ;
          OSS_INLINE const dmsMB* getMBInfo( UINT16 mbID ) const ;
 
          OSS_INLINE UINT32 getCollectionNum() ;
+
+         INT32 getCollectionMBSlot( ossPoolVector<UINT16> &vecMBSlot ) ;
 
          OSS_INLINE dmsRecordRW record2RW( const dmsRecordID &record,
                                            UINT16 collectionID ) const ;
@@ -1279,6 +1366,8 @@ namespace engine
 
          virtual void decWritePtrCount( INT32 collectionID ) ;
 
+         virtual DMS_FILE_TYPE getFileType() const { return DMS_FILE_DATA ; }
+
          /*
             Caller must hold the mbContext
          */
@@ -1407,7 +1496,7 @@ namespace engine
 
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
-         virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
+         virtual INT32  _onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew ) ;
          virtual void   _onRestore() ;
          virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
 
@@ -1487,6 +1576,21 @@ namespace engine
 
          void _onMBUpdated( UINT16 mbID ) ;
 
+         BOOLEAN _isMBSlotInUse( UINT16 mbID ) const
+         {
+            return _slotBitmap.testBit( mbID ) ;
+         }
+
+         UINT16  _nextUsedMBSlot( UINT16 pos ) const
+         {
+            INT32 slot = _slotBitmap.nextSetBitPos( pos ) ;
+            if ( slot < 0 || slot >= DMS_MME_SLOTS )
+            {
+               return DMS_INVALID_MBID ;
+            }
+            return (UINT16)slot ;
+         }
+
          DMS_FILE_TYPE _getAllFileType() const ;
 
          virtual INT32 _ensureNewCollection( UINT16 mbID ) ;
@@ -1497,6 +1601,13 @@ namespace engine
          OSS_INLINE INT32 _collectionInsert( const CHAR *pName,
                                              UINT16 mbID,
                                              utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
+         OSS_INLINE INT32 _collectionChangeID( utilCLUniqueID orignal,
+                                               utilCLUniqueID dest,
+                                               UINT16 mbID ) ;
+         OSS_INLINE INT32 _collectionChangeName( const CHAR *pOld,
+                                                 const CHAR *pNew,
+                                                 utilCLUniqueID oldID = UTIL_UNIQUEID_NULL,
+                                                 utilCLUniqueID newID = UTIL_UNIQUEID_NULL ) ;
 
          OSS_INLINE UINT16 _collectionNameLookup( const CHAR *pName ) ;
          OSS_INLINE UINT16 _collectionIdLookup( utilCLUniqueID clUniqueID ) ;
@@ -1557,6 +1668,9 @@ namespace engine
          UINT32                              _logicalCSID ;
          dmsStorageUnitID                    _CSID ;
 
+         typedef _utilStackBitmap<DMS_MME_SLOTS>                  MBSLOT_BITMAP ;
+         MBSLOT_BITMAP                       _slotBitmap ;
+
          UINT32                              _mmeSegID ;
          BOOLEAN                             _isCapped ;
 
@@ -1587,6 +1701,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN isInserted = FALSE ;
       CHAR *clNamePtr = ossStrdup( pName ) ;
+
       if ( NULL == clNamePtr )
       {
          rc = SDB_OOM ;
@@ -1596,17 +1711,33 @@ namespace engine
 
       try
       {
-         _collectionNameMap[ clNamePtr ] = mbID ;
+         /// insert name
+         if ( ! _collectionNameMap.insert( COLNAME_MAP::value_type( clNamePtr, mbID ) ).second )
+         {
+            /// already exist
+            rc = SDB_DMS_EXIST ;
+            goto error ;
+         }
+
          isInserted = TRUE ;
+
+         /// insert id
          if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
          {
-            _collectionIDMap[ clUniqueID ] = mbID ;
+            if ( ! _collectionIDMap.insert( COLID_MAP::value_type( clUniqueID, mbID ) ).second )
+            {
+               rc = SDB_DMS_EXIST ;
+               goto error ;
+            }
          }
+
+         /// set bitmap
+         _slotBitmap.setBit( mbID ) ;
       }
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Insert mbid into maps failed, exception:%s, rc:%d.",
+         PD_LOG( PDERROR, "Insert mbid into maps failed, exception: %s, rc: %d",
                  e.what(), rc ) ;
          goto error ;
       }
@@ -1616,11 +1747,161 @@ namespace engine
    error:
       if ( isInserted )
       {
-         _collectionNameMap.erase( pName ) ;
+         _collectionNameMap.erase( clNamePtr ) ;
       }
       SAFE_OSS_FREE( clNamePtr ) ;
       goto done ;
    }
+
+   OSS_INLINE INT32 _dmsStorageDataCommon::_collectionChangeName( const CHAR *pOld,
+                                                                  const CHAR *pNew,
+                                                                  utilCLUniqueID oldID,
+                                                                  utilCLUniqueID newID )
+   {
+      INT32 rc = SDB_OK ;
+      UINT16 mbID = DMS_INVALID_MBID ;
+      const CHAR *pOldItemName = NULL ;
+      BOOLEAN changeID = FALSE ;
+      BOOLEAN hasInsertName = FALSE ;
+      COLNAME_MAP::iterator itOldMap ;
+      CHAR *clNamePtr = ossStrdup( pNew ) ;
+
+      if ( UTIL_UNIQUEID_NULL != newID && oldID != newID )
+      {
+         changeID = TRUE ;
+      }
+
+      if ( NULL == clNamePtr )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate dup string failed." ) ;
+         goto error ;
+      }
+
+      /// find the old
+      itOldMap = _collectionNameMap.find( pOld ) ;
+      if ( itOldMap == _collectionNameMap.end() )
+      {
+         SDB_ASSERT( FALSE, "Collection is not exist" ) ;
+         /// not found
+         rc = SDB_DMS_NOTEXIST ;
+         goto error ;
+      }
+
+      mbID = itOldMap->second ;
+      pOldItemName = itOldMap->first ;
+
+      /// insert new
+      try
+      {
+         if ( ! _collectionNameMap.insert( COLNAME_MAP::value_type( clNamePtr, mbID ) ).second )
+         {
+            rc = SDB_DMS_EXIST ;
+            goto error ;
+         }
+
+         hasInsertName = TRUE ;
+
+         if ( changeID && UTIL_IS_VALID_CLUNIQUEID( newID ) )
+         {
+            if ( ! _collectionIDMap.insert( COLID_MAP::value_type( newID, mbID ) ).second )
+            {
+               rc = SDB_DMS_EXIST ;
+               goto error ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception when insert collection map: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      /// remove old
+      _collectionNameMap.erase( itOldMap ) ;
+      SDB_OSS_FREE( const_cast<CHAR *>( pOldItemName ) ) ;
+
+      if ( changeID )
+      {
+         _collectionIDMap.erase( oldID ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( hasInsertName )
+      {
+         _collectionNameMap.erase( clNamePtr ) ;
+      }
+      SAFE_OSS_FREE( clNamePtr ) ;
+      goto done ;
+   }
+
+   OSS_INLINE INT32 _dmsStorageDataCommon::_collectionChangeID( utilCLUniqueID orignal,
+                                                                utilCLUniqueID dest,
+                                                                UINT16 mbID )
+   {
+      INT32 rc = SDB_OK ;
+      COLID_MAP::iterator itIDMap ;
+
+      /// first find old
+      itIDMap = _collectionIDMap.find( orignal ) ;
+      if ( itIDMap != _collectionIDMap.end() )
+      {
+         UINT16 tmpID = itIDMap->second ;
+
+         if ( DMS_INVALID_MBID == mbID )
+         {
+            mbID = tmpID ;
+         }
+         else if ( mbID != tmpID )
+         {
+            SDB_ASSERT( tmpID == mbID, "MBID must be the same" ) ;
+            PD_LOG( PDERROR, "MBID(%u) is not the same with maps(%u)", mbID, tmpID ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      if ( DMS_INVALID_MBID == mbID )
+      {
+         PD_LOG( PDERROR, "Invalid MBID(%u)", mbID ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( UTIL_IS_VALID_CLUNIQUEID( dest ) )
+      {
+         /// insert new
+         try
+         {
+            if ( ! _collectionIDMap.insert( COLID_MAP::value_type( dest, mbID ) ).second )
+            {
+               rc = SDB_DMS_EXIST ;
+               goto error ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception when insert collection IDMap: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+      /// erase the old
+      if ( itIDMap != _collectionIDMap.end() )
+      {
+         _collectionIDMap.erase( itIDMap ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    OSS_INLINE UINT16 _dmsStorageDataCommon::_collectionNameLookup( const CHAR * pName )
    {
       UINT16 mbID = DMS_INVALID_MBID ;
@@ -1653,6 +1934,8 @@ namespace engine
       COLNAME_MAP_IT it = _collectionNameMap.find( pName ) ;
       if ( _collectionNameMap.end() != it )
       {
+         /// unset bit
+         _slotBitmap.clearBit( it->second ) ;
          const CHAR *tp = (*it).first ;
          _collectionNameMap.erase( it ) ;
          SDB_OSS_FREE( const_cast<CHAR *>(tp) ) ;
@@ -1673,6 +1956,7 @@ namespace engine
       }
       _collectionNameMap.clear() ;
       _collectionIDMap.clear() ;
+      _slotBitmap.resetBitmap() ;
    }
    OSS_INLINE UINT32 _dmsStorageDataCommon::getCollectionNum()
    {
@@ -1736,18 +2020,23 @@ namespace engine
          return SDB_INVALIDARG ;
       }
 
+      dmsMBStatInfo *pMBStat = NULL ;
+      dmsMBContext *pTmpContext = NULL ;
+
       // metadata shared lock
       if ( (UINT32)DMS_INVALID_CLID == clLID ||
            (UINT32)DMS_INVALID_CLID == startLID )
       {
          _metadataLatch.get_shared() ;
+         pMBStat = &( _mbStatInfo[mbID] ) ;
+
          if ( (UINT32)DMS_INVALID_CLID == clLID )
          {
-            clLID = _dmsMME->_mbList[mbID]._logicalID ;
+            clLID = pMBStat->_logicalID ;
          }
          if ( (UINT32)DMS_INVALID_CLID == startLID )
          {
-            startLID = _mbStatInfo[mbID]._startLID ;
+            startLID = pMBStat->_startLID ;
          }
          _metadataLatch.release_shared() ;
       }
@@ -1756,34 +2045,39 @@ namespace engine
       _latchContext.get() ;
       if ( _vecContext.size () > 0 )
       {
-         *pContext = _vecContext.back () ;
+         pTmpContext = _vecContext.back () ;
          _vecContext.pop_back () ;
       }
       else
       {
-         *pContext = SDB_OSS_NEW dmsMBContext ;
+         pTmpContext = SDB_OSS_NEW dmsMBContext ;
       }
       _latchContext.release() ;
 
-      if ( !(*pContext) )
+      if ( !pTmpContext )
       {
          return SDB_OOM ;
       }
-      (*pContext)->_clLID = clLID ;
-      (*pContext)->_startLID = startLID ;
-      (*pContext)->_mbID = mbID ;
-      (*pContext)->_mb = &_dmsMME->_mbList[mbID] ;
-      (*pContext)->_mbStat = &_mbStatInfo[mbID] ;
-      (*pContext)->_latch = &_mblock[mbID] ;
+
+      pTmpContext->_clLID = clLID ;
+      pTmpContext->_startLID = startLID ;
+      pTmpContext->_mbID = mbID ;
+      pTmpContext->_mb = &_dmsMME->_mbList[mbID] ;
+      pTmpContext->_mbStat = &(_mbStatInfo[mbID]) ;
+      pTmpContext->_latch = &_mblock[mbID] ;
+
       if ( SHARED == lockType || EXCLUSIVE == lockType )
       {
-         INT32 rc = (*pContext)->mbLock( lockType ) ;
+         INT32 rc = pTmpContext->mbLock( lockType ) ;
          if ( rc )
          {
-            releaseMBContext( *pContext ) ;
+            releaseMBContext( pTmpContext ) ;
             return rc ;
          }
       }
+
+      *pContext = pTmpContext ;
+
       return SDB_OK ;
    }
 
@@ -1800,8 +2094,9 @@ namespace engine
       mbID = _collectionNameLookup( pName ) ;
       if ( DMS_INVALID_MBID != mbID )
       {
-         clLID = _dmsMME->_mbList[mbID]._logicalID ;
-         startLID = _mbStatInfo[mbID]._startLID ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[mbID] ) ;
+         clLID = pMBStat->_logicalID ;
+         startLID = pMBStat->_startLID ;
       }
       _metadataLatch.release_shared() ;
 
@@ -1825,8 +2120,9 @@ namespace engine
       mbID = _collectionIdLookup( clUniqueID ) ;
       if ( DMS_INVALID_MBID != mbID )
       {
-         clLID = _dmsMME->_mbList[mbID]._logicalID ;
-         startLID = _mbStatInfo[mbID]._startLID ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[mbID] ) ;
+         clLID = pMBStat->_logicalID ;
+         startLID = pMBStat->_startLID ;
       }
       _metadataLatch.release_shared() ;
 
@@ -1915,8 +2211,9 @@ namespace engine
          mbID = _collectionNameLookup( pName ) ;
          if ( DMS_INVALID_MBID != mbID )
          {
-            clLID = _dmsMME->_mbList[ mbID ]._logicalID ;
-            clUniqueID = _dmsMME->_mbList[ mbID ]._clUniqueID ;
+            const dmsMBStatInfo *pMBStat = &( _mbStatInfo[ mbID ] ) ;
+            clLID = pMBStat->_logicalID ;
+            clUniqueID = pMBStat->_clUniqueID ;
          }
          else
          {

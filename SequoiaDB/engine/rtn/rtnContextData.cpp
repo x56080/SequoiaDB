@@ -1250,10 +1250,10 @@ namespace engine
                       blockObj->toString().c_str(), rc ) ;
 
          // Check once again if the block ids given by the user are still valid.
-         rc = su->getSegExtents( mbContext->mb()->_collectionName,
+         rc = su->getSegExtents( mbContext->mbStat()->_collectionName,
                                  segExtents, mbContext ) ;
          PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
-                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
+                      "failed, rc: %d", mbContext->mbStat()->_collectionName, rc ) ;
 
          for ( SEGMENT_VEC_CITR cItr = _segments.begin();
                cItr != _segments.end(); ++cItr )
@@ -1264,7 +1264,7 @@ namespace engine
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
                            "belong to collection %s, rc: %d",
-                           *cItr, mbContext->mb()->_collectionName, rc ) ;
+                           *cItr, mbContext->mbStat()->_collectionName, rc ) ;
                goto error ;
             }
          }
@@ -1313,15 +1313,15 @@ namespace engine
       rc = mbContext->mbLock( SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_QUERY ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                          DMS_MB_ATTR_STRICTDATAMODE ) )
       {
          isStictType = TRUE ;
@@ -1471,15 +1471,15 @@ namespace engine
       rc = mbContext->mbLock( SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_QUERY ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                          DMS_MB_ATTR_STRICTDATAMODE ) )
       {
          strictDataMode = TRUE ;
@@ -1561,7 +1561,7 @@ namespace engine
 
       SDB_ASSERT( NULL != _queryModifier, "_queryModifier can't be null" ) ;
       // check id index
-      if ( OSS_BIT_TEST( _mbContext->mb()->_attributes,
+      if ( OSS_BIT_TEST( _mbContext->mbStat()->_attributes,
                          DMS_MB_ATTR_NOIDINDEX ) )
       {
          PD_LOG( PDERROR, "can not update data when autoIndexId is false" ) ;

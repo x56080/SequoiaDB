@@ -180,7 +180,7 @@ namespace engine
       {
          indexCB.setFlag( IXM_INDEX_FLAG_CREATING );
          rc = _processorMgr->createProcessor( csName,
-                                              mbContext->mb()->_collectionName,
+                                              mbContext->mbStat()->_collectionName,
                                               indexCB.getName(),
                                               indexCB.getExtDataName(),
                                               indexCB.keyPattern(),

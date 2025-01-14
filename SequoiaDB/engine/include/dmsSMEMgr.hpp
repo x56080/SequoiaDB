@@ -45,6 +45,7 @@
 #include "dms.hpp"
 #include "ossLatch.hpp"
 #include "ossRWMutex.hpp"
+#include "dmsMetaFile.hpp"
 #include <list>
 #include <vector>
 
@@ -96,6 +97,8 @@ namespace engine
 
       UINT16 totalFree() ;
 
+      INT32 saveToMeta( DMS_FILE_TYPE fileType, dmsMetaFile *pMetaFile ) ;
+
    private :
       INT32 _releasePages ( dmsExtentID start, UINT16 numPages,
                             BOOLEAN bitSet = TRUE ) ;
@@ -125,7 +128,8 @@ namespace engine
       ~_dmsSMEMgr() ;
 
       INT32 init ( _dmsStorageBase *pStorageBase,
-                   _dmsSpaceManagementExtent *pSME ) ;
+                   _dmsSpaceManagementExtent *pSME,
+                   dmsMetaFile *pMetaFile ) ;
 
       // attempt to reserve numPages pages from smp, if no more pages can be
       // found in existing pages, foundPage is set to DMS_INVALID_EXTENT
@@ -146,8 +150,15 @@ namespace engine
       // segment space.
       INT32 appendPages ( dmsExtentID start, UINT16 numPages ) ;
 
+      INT32 saveToMeta( dmsMetaFile *pMetaFile ) ;
+
       UINT32 segmentNum () ;
       UINT32 totalFree () const ;
+
+   private:
+      INT32    _initByMetaFile( dmsMetaFile *pMetaFile ) ;
+      INT32    _initBySME() ;
+      void     _clear() ;
 
    } ;
    typedef class _dmsSMEMgr dmsSMEMgr ;

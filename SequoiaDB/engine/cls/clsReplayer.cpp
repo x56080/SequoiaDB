@@ -570,7 +570,7 @@ namespace engine
       }
 
       // check unique ID of collection
-      clUniqueID = mbContext->mb()->_clUniqueID ;
+      clUniqueID = mbContext->mbStat()->_clUniqueID ;
       if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
       {
          // do not have unique ID ( not upgrade yet ) or local unique ID,
@@ -593,7 +593,7 @@ namespace engine
       {
          // collection have valid unique ID
          pInfo = pBucket->getOrCreateInfo( fullname,
-                                           mbContext->mb()->_clUniqueID ) ;
+                                           mbContext->mbStat()->_clUniqueID ) ;
          PD_CHECK( NULL != pInfo, SDB_OOM, error, PDERROR,
                    "Failed to get collection parallel information for "
                    "collection [%s]", fullname ) ;
@@ -614,7 +614,7 @@ namespace engine
       }
 
       // check if have $id index
-      noIDIndex = OSS_BIT_TEST( mbContext->mb()->_attributes,
+      noIDIndex = OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                                 DMS_MB_ATTR_NOIDINDEX ) ? TRUE : FALSE ;
 
       su->data()->releaseMBContext( mbContext ) ;

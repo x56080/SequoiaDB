@@ -659,6 +659,7 @@ namespace engine
       SDB_FILE_STARTUP_HST = 11,
       SDB_FILE_RENAME_INFO = 12,
       SDB_FILE_STATUS_HST  = 13,
+      SDB_FILE_DMSMETA     = 14,
       SDB_FILE_UNKNOW      = 255
    } ;
 

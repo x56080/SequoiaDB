@@ -493,7 +493,7 @@ namespace engine
                    _clUniqID, rc ) ;
 
       ossSnprintf( clNameInData, sizeof( clNameInData ),
-                   "%s.%s", su->CSName(), pMBContext->mb()->_collectionName ) ;
+                   "%s.%s", su->CSName(), pMBContext->mbStat()->_collectionName ) ;
 
       if ( 0 == ossStrcmp( clNameInData, _clFullName ) )
       {

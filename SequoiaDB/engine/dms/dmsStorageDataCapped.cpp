@@ -72,6 +72,7 @@ namespace engine
    INT32 _dmsStorageDataCapped::_onOpened()
    {
       INT32 rc = SDB_OK ;
+      UINT16 i = DMS_INVALID_MBID ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONOPENED ) ;
       // Traverse all the collections which are being used, get the collection
       // extend option pointer and the the working extents.
@@ -81,24 +82,22 @@ namespace engine
          goto error ;
       }
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS; ++i )
+      i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
-              ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._mbOptExtentID ) )
+         if ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._mbOptExtentID )
          {
             dmsExtRW extRW = extent2RW( _dmsMME->_mbList[i]._mbOptExtentID,
                                         i ) ;
             extRW.setNothrow( TRUE ) ;
-            const dmsOptExtent *extent =
-               extRW.readPtr<dmsOptExtent>( 0, pageSize()) ;
+            const dmsOptExtent *extent = extRW.readPtr<dmsOptExtent>( 0, pageSize()) ;
             if ( !extent )
             {
                PD_LOG( PDERROR, "Option extent is invalid" ) ;
                rc = SDB_SYS ;
                goto error ;
             }
-            _options[i] =
-               (dmsCappedCLOptions *)((CHAR *)extent + DMS_OPTEXTENT_HEADER_SZ);
+            _options[i] = (dmsCappedCLOptions *)((CHAR *)extent + DMS_OPTEXTENT_HEADER_SZ) ;
 
             // Attach the last extent as the working extent.
             if ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._lastExtentID )
@@ -108,6 +107,8 @@ namespace engine
                             "rc: %d", rc ) ;
             }
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__ONOPENED, rc ) ;
@@ -122,22 +123,36 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONCLOSED ) ;
       dmsExtentInfo *extInfo = NULL ;
+
       // Flush all working extents information to mmap.
-      for ( UINT16 i = 0; i < DMS_MME_SLOTS; ++i )
+      if ( _getHasWritten() )
       {
-         if ( DMS_IS_MB_INUSE( _dmsMME->_mbList[i]._flag ) )
+         UINT16 i = _nextUsedMBSlot( 0 ) ;
+         while ( DMS_INVALID_MBID != i )
          {
             extInfo = getWorkExtInfo( i ) ;
-            if ( DMS_INVALID_EXTENT != extInfo->getID() )
+            dmsExtentID extentID = extInfo->getID() ;
+            if ( DMS_INVALID_EXTENT != extentID )
             {
-               rc = _syncWorkExtInfo( i ) ;
-               if ( rc )
+               dmsExtRW extRW = extent2RW( extentID, i ) ;
+               extRW.setNothrow( TRUE ) ;
+               const dmsExtent *extent = extRW.readPtr<dmsExtent>() ;
+               if ( extent->_recCount != extInfo->_recCount ||
+                    extent->_lastRecordOffset != extInfo->_lastRecordOffset ||
+                    extent->_firstRecordOffset != extInfo->_firstRecordOffset ||
+                    extent->_freeSpace != (INT32)extInfo->_freeSpace )
                {
-                  PD_LOG( PDWARNING, "Failed to sync working extent "
-                          "information for collection[%s], rc: %d",
-                          _dmsMME->_mbList[i]._collectionName, rc ) ;
+                  rc = _syncWorkExtInfo( i ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDWARNING, "Failed to sync working extent "
+                             "information for collection[%s], rc: %d",
+                             _mbStatInfo[i]._collectionName, rc ) ;
+                  }
                }
             }
+
+            i = _nextUsedMBSlot( i + 1 ) ;
          }
       }
 
@@ -151,10 +166,11 @@ namespace engine
    void _dmsStorageDataCapped::_onRestore()
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONRESTORE ) ;
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS; ++i )
+
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
-              ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._lastExtentID ) )
+         if ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._lastExtentID )
          {
             // Attach the last extent as the working extent.
             dmsExtRW extRW = extent2RW( _dmsMME->_mbList[i]._lastExtentID, i ) ;
@@ -174,6 +190,8 @@ namespace engine
                }
             }
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
       dmsStorageDataCommon::_onRestore() ;
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACAPPED__ONRESTORE ) ;
@@ -185,27 +203,28 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONFLUSHDIRTY ) ;
       // For capped collections, flush the working extent information when flush
       // dirty.
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS; ++i )
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE( _dmsMME->_mbList[i]._flag ) )
+         dmsExtentInfo *workExtInfo = getWorkExtInfo( i ) ;
+         dmsExtentID extentID = workExtInfo->_id ;
+         // The working extent is invalid before any records insert into a
+         // new created collection. So only sync when it's valid.
+         if ( DMS_INVALID_EXTENT != extentID )
          {
-            dmsExtentInfo *workExtInfo = getWorkExtInfo( i ) ;
-            dmsExtentID extentID = workExtInfo->_id ;
-            // The working extent is invalid before any records insert into a
-            // new created collection. So only sync when it's valid.
-            if ( DMS_INVALID_EXTENT != extentID )
+            dmsExtRW extRW = extent2RW( extentID, i ) ;
+            extRW.setNothrow( TRUE ) ;
+            const dmsExtent *extent = extRW.readPtr<dmsExtent>() ;
+            if ( extent->_recCount != workExtInfo->_recCount ||
+                 extent->_lastRecordOffset != workExtInfo->_lastRecordOffset ||
+                 extent->_firstRecordOffset != workExtInfo->_firstRecordOffset ||
+                 extent->_freeSpace != (INT32)workExtInfo->_freeSpace )
             {
-               dmsExtRW extRW = extent2RW( extentID, i ) ;
-               extRW.setNothrow( TRUE ) ;
-               const dmsExtent *extent = extRW.readPtr<dmsExtent>() ;
-               if ( extent->_recCount != workExtInfo->_recCount ||
-                    extent->_lastRecordOffset != workExtInfo->_lastRecordOffset
-                    || extent->_freeSpace != (INT32)workExtInfo->_freeSpace )
-               {
-                  _syncWorkExtInfo( i ) ;
-               }
+               _syncWorkExtInfo( i ) ;
             }
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
       dmsStorageDataCommon::_onFlushDirty( force, sync ) ;
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACAPPED__ONFLUSHDIRTY ) ;
@@ -272,6 +291,7 @@ namespace engine
       dmsExtRW optExtRW ;
       dmsCappedCLOptions options ;
       dmsOptExtent *optExtent = NULL ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       rc = _parseExtendOptions( extOption, options ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse options, rc: %d", rc ) ;
@@ -296,9 +316,12 @@ namespace engine
       SDB_ASSERT( _options[collectionID],
                   "Option pointer should not be NULL" ) ;
 
+      pMBStat = &( _mbStatInfo[ collectionID ] ) ;
       // As capped collection dose not support index, always set the index
       // commit flag to true.
       _dmsMME->_mbList[collectionID]._idxCommitFlag = 1 ;
+      pMBStat->_idxCommitFlag.swap( _dmsMME->_mbList[collectionID]._idxCommitFlag ) ;
+      pMBStat->_idxCommitFlagSync = _dmsMME->_mbList[collectionID]._idxCommitFlag ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__ONADDCOLLECTION, rc ) ;
@@ -2310,11 +2333,11 @@ namespace engine
 
 #ifdef _DEBUG
       // Here we use delete access type.
-      if ( !dmsAccessAndFlagCompatiblity( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity( context->mbStat()->_flag,
                                           DMS_ACCESS_TYPE_DELETE ) )
       {
          PD_LOG( PDERROR, "Imcompatible collection mode: %d",
-                 context->mb()->_flag ) ;
+                 context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -2328,7 +2351,7 @@ namespace engine
 
       if ( dpscb )
       {
-         _clFullName( context->mb()->_collectionName, fullName,
+         _clFullName( context->mbStat()->_collectionName, fullName,
                       sizeof(fullName) ) ;
          rc = dpsPop2Record( fullName, firstRID, logicalID,
                              direction, dpsRecord ) ;
@@ -2459,7 +2482,7 @@ namespace engine
       if ( DMS_INVALID_EXTENT == context->mb()->_mbOptExtentID )
       {
          PD_LOG( PDERROR, "Extend option extent id is invalid for "
-                 "collection[%s]", context->mb()->_collectionName ) ;
+                 "collection[%s]", context->mbStat()->_collectionName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -2470,7 +2493,7 @@ namespace engine
       if ( !optExtent )
       {
          PD_LOG( PDERROR, "Extend option extent is invalid for collection[%s]",
-                 context->mb()->_collectionName ) ;
+                 context->mbStat()->_collectionName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -2478,7 +2501,7 @@ namespace engine
       rc = optExtent->getOption( (CHAR **)&options, &optSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Get extend options from extent failed for "
                    "collection[%s], rc: %d",
-                   context->mb()->_collectionName, rc ) ;
+                   context->mbStat()->_collectionName, rc ) ;
       SDB_ASSERT( sizeof( dmsCappedCLOptions ) == optSize,
                   "Option size is not as expected" ) ;
 
@@ -2525,7 +2548,7 @@ namespace engine
                 "Caller should hold mb exclusive lock [%s]",
                 context->toString().c_str() ) ;
 
-      collection = context->mb()->_collectionName ;
+      collection = context->mbStat()->_collectionName ;
       mbID = context->mbID() ;
       optExtentID = context->mb()->_mbOptExtentID ;
 

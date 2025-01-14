@@ -1417,7 +1417,7 @@ namespace engine
       SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
 
       const CHAR *pCSName = pSU->CSName() ;
-      const CHAR *pCLName = mbContext->mb()->_collectionName ;
+      const CHAR *pCLName = mbContext->mbStat()->_collectionName ;
 
       dmsStatSUMgr *pStatSUMgr = dmsCB->getStatSUMgr() ;
       dmsStatCache *pStatCache = NULL ;
@@ -1645,7 +1645,7 @@ namespace engine
       SDB_ASSERT( indexCB, "indexCB is invalid" ) ;
 
       const CHAR *pCSName = pSU->CSName() ;
-      const CHAR *pCLName = mbContext->mb()->_collectionName ;
+      const CHAR *pCLName = mbContext->mbStat()->_collectionName ;
       const CHAR *pIXName = indexCB->getName() ;
 
       dmsStatSUMgr *pStatSUMgr = dmsCB->getStatSUMgr() ;
@@ -1828,7 +1828,7 @@ namespace engine
       SDB_ASSERT( sortArea, "Sort area is invalid" ) ;
 
       const CHAR *pCSName = pSU->CSName() ;
-      const CHAR *pCLName = mbContext->mb()->_collectionName ;
+      const CHAR *pCLName = mbContext->mbStat()->_collectionName ;
       const CHAR *pIXName = indexCB->getName() ;
 
       BSONObj boOrder = _rtnBuildAnalyzeOrder( indexCB->keyPattern() ) ;

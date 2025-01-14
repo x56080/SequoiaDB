@@ -66,11 +66,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( !dmsAccessAndFlagCompatiblity ( _pMBContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( _pMBContext->mbStat()->_flag,
                                            _accessType ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  _pMBContext->mb()->_flag ) ;
+                  _pMBContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
       }
 

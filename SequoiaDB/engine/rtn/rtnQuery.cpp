@@ -668,7 +668,7 @@ namespace engine
 
       /// if collection don't have $id index, can't modify( update or remove )
       if ( options.testFlag( FLG_QUERY_MODIFY ) &&
-           OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX ) )
+           OSS_BIT_TEST( mbContext->mbStat()->_attributes, DMS_MB_ATTR_NOIDINDEX ) )
       {
          PD_LOG( PDERROR, "Can not modify data when autoIndexId is false" ) ;
          rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;

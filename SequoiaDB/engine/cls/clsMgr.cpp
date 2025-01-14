@@ -871,8 +871,7 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to get max dms lsn:rc=%d",
                             rc ) ;
 
-               if ( DPS_INVALID_LSN_OFFSET != maxLSN
-                    && expectLSN.offset < maxLSN )
+               if ( DPS_INVALID_LSN_OFFSET != maxLSN && expectLSN.offset < maxLSN )
                {
                   DPS_LSN newDPSLSN = expectLSN ;
                   // make sure newDPSLSN.offset is 4 byte align

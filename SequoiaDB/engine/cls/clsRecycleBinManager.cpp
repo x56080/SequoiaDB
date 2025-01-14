@@ -738,8 +738,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection from "
                    "[%s] to [%s], rc: %d", clShortName, newName, rc ) ;
 
-      // clear truncate flag, so other mbContext can detect collection truncated
-      DMS_MB_STATINFO_SET_TRUNCATED( mbContext->mbStat()->_flag ) ;
+      // set truncate flag, so other mbContext can detect collection truncated
+      mbContext->mbStat()->_hasTruncate = 1 ;
 
       rc = su->data()->copyCollection( mbContext, clShortName, origUniqueID,
                                        cb ) ;
@@ -964,7 +964,7 @@ namespace engine
                    newName, rc ) ;
 
       // clear truncate flag, so other mbContext can detect collection dropped
-      DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
+      mbContext->mbStat()->_hasTruncate = 0 ;
 
       PD_LOG( PDEVENT, "Recycle drop collection [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;

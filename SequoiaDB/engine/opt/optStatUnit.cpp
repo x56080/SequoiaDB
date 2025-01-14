@@ -858,7 +858,7 @@ namespace engine
       _totalDataPages = mbContext->mbStat()->_totalDataPages ;
       _totalDataSize = mbContext->mbStat()->_totalOrgDataLen ;
 
-      _numIndexes = mbContext->mb()->_numIndexes ;
+      _numIndexes = mbContext->mbStat()->_numIndexes ;
       if ( _numIndexes > 0 )
       {
          _totalIndexPages = mbContext->mbStat()->_totalIndexPages ;

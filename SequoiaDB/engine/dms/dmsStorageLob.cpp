@@ -133,11 +133,11 @@ namespace engine
       return _getBucket( hashCode ) ;
    }
 
-   void _dmsStorageLob::syncMemToMmap ()
+   void _dmsStorageLob::syncMemToMmap ( BOOLEAN *pHasWritten )
    {
       if ( _dmsData && _data.isOpened() )
       {
-         _dmsData->syncMemToMmap() ;
+         _dmsData->syncMemToMmap( pHasWritten ) ;
          _dmsData->flushMME( isSyncDeep() ) ;
       }
    }
@@ -327,19 +327,20 @@ namespace engine
       }
       else
       {
-         for( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+         dmsMBStatInfo *pMBStat = NULL ;
+         UINT16 i = _dmsData->_nextUsedMBSlot( 0 ) ;
+         while ( DMS_INVALID_MBID != i )
          {
-            if ( !DMS_IS_MB_INUSE( _dmsData->_dmsMME->_mbList[i]._flag ) )
-            {
-               continue ;
-            }
-            if ( _dmsData->_mbStatInfo[i]._totalLobs > 0 &&
-                 ( _dmsData->_mbStatInfo[i]._totalLobSize <= 0 ||
-                   _dmsData->_mbStatInfo[i]._totalValidLobSize <= 0 ) )
+            pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+            if ( pMBStat->_totalLobs > 0 &&
+                 ( pMBStat->_totalLobSize <= 0 ||
+                   pMBStat->_totalValidLobSize <= 0 ) )
             {
                needCalcCount = TRUE ;
                break ;
             }
+
+            i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
          }
 
          rc = _openLob( path, metaPath, createNew ) ;
@@ -672,11 +673,11 @@ namespace engine
          goto error ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_INSERT ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -825,11 +826,11 @@ namespace engine
          goto error ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_INSERT ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -1069,7 +1070,7 @@ namespace engine
       }
 
       /// make full name
-      _clFullName( mbContext->mb()->_collectionName, fullName,
+      _clFullName( mbContext->mbStat()->_collectionName, fullName,
                    sizeof( fullName ) ) ;
 
       if ( !mbContext->isMBLock() )
@@ -1150,7 +1151,7 @@ namespace engine
       pageSize = _data.pageSize() ;
 
       /// make full name
-      _clFullName( mbContext->mb()->_collectionName, fullName,
+      _clFullName( mbContext->mbStat()->_collectionName, fullName,
                    sizeof( fullName ) ) ;
 
       if ( NULL != dpscb )
@@ -1531,7 +1532,7 @@ namespace engine
       pageSize = _data.pageSize() ;
 
       /// make full name
-      _clFullName( mbContext->mb()->_collectionName, fullName,
+      _clFullName( mbContext->mbStat()->_collectionName, fullName,
                    sizeof( fullName ) ) ;
 
       /// First to checkSyncControl and reserveLogSpace by a pageSize
@@ -1592,11 +1593,11 @@ namespace engine
          goto error ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_DELETE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -1976,29 +1977,38 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ONCREATE ) ;
       SDB_ASSERT( DMS_BME_OFFSET == curOffSet, "invalid offset" ) ;
-      _dmsBucketsManagementExtent *bme = NULL ;
+      CHAR *pBuffer = NULL ;
+      UINT32 hasWriteSize = 0 ;
 
-      bme = SDB_OSS_NEW _dmsBucketsManagementExtent() ;
-      if ( NULL == bme )
+      SDB_ASSERT( 0 == DMS_BME_SZ % DMS_SEGMENT_SZ2M, "Invalid buffer size" ) ;
+
+      pBuffer = ( CHAR* )SDB_OSS_MALLOC( DMS_SEGMENT_SZ2M ) ;
+      if ( !pBuffer )
       {
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         PD_LOG( PDERROR, "Allocate buffer(%u) failed", DMS_SEGMENT_SZ2M ) ;
          rc = SDB_OOM ;
          goto error ;
       }
+      /// init the buffer
+      ossMemset( pBuffer, DMS_LOB_INVALID_PAGEID, DMS_SEGMENT_SZ2M ) ;
 
-      rc = _writeFile ( file, (const CHAR *)(bme),
-                        sizeof( _dmsBucketsManagementExtent ) ) ;
-      if ( rc )
+      /// write data
+      while( hasWriteSize < DMS_BME_SZ )
       {
-         PD_LOG ( PDERROR, "failed to write new bme to file rc: %d",
-                  rc ) ;
-         goto error ;
+         rc = _writeFile ( file, (const CHAR *)pBuffer, DMS_SEGMENT_SZ2M ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to write new bme buffer to file rc: %d", rc ) ;
+            goto error ;
+         }
+         hasWriteSize += DMS_SEGMENT_SZ2M ;
       }
+
    done:
-      if ( NULL != bme )
+      if ( NULL != pBuffer )
       {
-         SDB_OSS_DEL bme ;
-         bme = NULL ;
+         SDB_OSS_FREE( pBuffer ) ;
+         pBuffer = NULL ;
       }
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ONCREATE, rc ) ;
       return rc ;
@@ -2007,7 +2017,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__ONMAPMETA, "_dmsStorageLob::_onMapMeta" )
-   INT32 _dmsStorageLob::_onMapMeta( UINT64 curOffSet )
+   INT32 _dmsStorageLob::_onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ONMAPMETA ) ;
@@ -2133,45 +2143,46 @@ namespace engine
    INT32 _dmsStorageLob::_onOpened()
    {
       BOOLEAN needFlushMME = FALSE ;
+      UINT16 i = 0 ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+      i = _dmsData->_nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         _dmsData->_mbStatInfo[i]._lobLastWriteTick = ~0 ;
-         _dmsData->_mbStatInfo[i]._lobCommitFlag.init( 1 ) ;
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
 
-         if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) )
+         pMBStat->_lobLastWriteTick = ~0 ;
+         pMBStat->_lobCommitFlag.init( 1 ) ;
+
+         /*
+            Check the collection is valid
+         */
+         if ( !isCrashed() )
          {
-            /*
-               Check the collection is valid
-            */
-            if ( !isCrashed() )
+            if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
             {
-               if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+               /// upgrade from the old version which has no
+               /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
+               /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
+               if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitLSN )
                {
-                  /// upgrade from the old version which has no
-                  /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
-                  /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
-                  if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitLSN )
-                  {
-                     _dmsData->_dmsMME->_mbList[i]._lobCommitLSN =
-                        _pStorageInfo->_curLSNOnStart ;
-                  }
-                  _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 1 ;
-                  needFlushMME = TRUE ;
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitLSN =
+                     _pStorageInfo->_curLSNOnStart ;
                }
-               _dmsData->_mbStatInfo[i]._lobCommitFlag.init( 1 ) ;
+               _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 1 ;
+               pMBStat->_lobCommitFlagSync = _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ;
+               needFlushMME = TRUE ;
             }
-            else
-            {
-               _dmsData->_mbStatInfo[i]._lobCommitFlag.init(
-                  _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ) ;
-            }
-            _dmsData->_mbStatInfo[i]._lobIsCrash =
-               ( 0 == _dmsData->_mbStatInfo[i]._lobCommitFlag.peek() ) ?
-                                      TRUE : FALSE ;
-            _dmsData->_mbStatInfo[i]._lobLastLSN.init(
-               _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ) ;
+            pMBStat->_lobCommitFlag.init( 1 ) ;
          }
+         else
+         {
+            pMBStat->_lobCommitFlag.init( _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ) ;
+         }
+         pMBStat->_lobIsCrash = ( 0 == pMBStat->_lobCommitFlag.peek() ) ? TRUE : FALSE ;
+         pMBStat->_lobLastLSN.init( _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ) ;
+
+         i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
       }
 
       if ( needFlushMME )
@@ -2186,10 +2197,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       _utilStackBitmap<DMS_MME_SLOTS> bitmap ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( _dmsData->_mbStatInfo[i]._lobCommitFlag.compareAndSwap( 0, 1 ) )
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         if ( pMBStat->_lobCommitFlag.compareAndSwap( 0, 1 ) )
          {
             bitmap.setBit( i ) ;
          }
@@ -2234,7 +2247,8 @@ namespace engine
             {
                if ( bitmap.testBit( i ) )
                {
-                  _dmsData->_mbStatInfo[i]._lobCommitFlag.compareAndSwap( 1, 0 ) ;
+                  pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+                  pMBStat->_lobCommitFlag.compareAndSwap( 1, 0 ) ;
                }
             }
          }
@@ -2246,7 +2260,8 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _dmsData->_mbStatInfo[ collectionID ]._curLobWriteCount.inc() ;
+         dmsMBStatInfo *pMBStat = &( _dmsData->_mbStatInfo[ collectionID ] ) ;
+         pMBStat->_curLobWriteCount.inc() ;
       }
    }
 
@@ -2254,7 +2269,8 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _dmsData->_mbStatInfo[ collectionID ]._curLobWriteCount.dec() ;
+         dmsMBStatInfo *pMBStat = &( _dmsData->_mbStatInfo[ collectionID ] ) ;
+         pMBStat->_curLobWriteCount.dec() ;
       }
    }
 
@@ -2267,59 +2283,64 @@ namespace engine
       BOOLEAN needFlush = FALSE ;
       UINT64 tmpLSN = 0 ;
       UINT32 tmpCommitFlag = 0 ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      UINT16 i = _dmsData->_nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) )
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         tmpLSN = pMBStat->_lobLastLSN.fetch() ;
+         if ( !pMBStat->_lobCommitFlag.compare( 0 ) )
          {
-            tmpLSN = _dmsData->_mbStatInfo[i]._lobLastLSN.fetch() ;
-            if ( !_dmsData->_mbStatInfo[i]._lobCommitFlag.compare( 0 ) )
-            {
-               tmpCommitFlag = _dmsData->_mbStatInfo[i]._lobIsCrash ?
-                  0 : _dmsData->_mbStatInfo[i]._lobCommitFlag.fetch() ;
+            tmpCommitFlag = pMBStat->_lobIsCrash ? 0 : pMBStat->_lobCommitFlag.fetch() ;
 
-               if ( tmpLSN != _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ||
-                    tmpCommitFlag != _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+            if ( tmpLSN != _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ||
+                 tmpCommitFlag != _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+            {
+               _dmsData->_dmsMME->_mbList[i]._lobCommitLSN = tmpLSN ;
+               _dmsData->_dmsMME->_mbList[i]._lobCommitTime = lastTime ;
+
+               pMBStat->_lobCommitTime = _dmsData->_dmsMME->_mbList[i]._lobCommitTime ;
+
+               if ( tmpCommitFlag &&
+                    pMBStat->_curLobWriteCount.fetch() > 0 &&
+                    !isClosed() )
                {
-                  _dmsData->_dmsMME->_mbList[i]._lobCommitLSN = tmpLSN ;
-                  _dmsData->_dmsMME->_mbList[i]._lobCommitTime = lastTime ;
-
-                  if ( tmpCommitFlag &&
-                       _dmsData->_mbStatInfo[i]._curLobWriteCount.fetch() > 0 &&
-                       !isClosed() )
-                  {
-                     /// has some write operator in the collection
-                     setHeadCommFlgValid = FALSE ;
-                     _dmsData->_mbStatInfo[i]._lobCommitFlag.swap( 0 ) ;
-                  }
-                  else
-                  {
-                     _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
-                  }
-
-                  /// double check
-                  if ( _dmsData->_mbStatInfo[i]._lobCommitFlag.compare( 0 ) &&
-                       _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
-                  {
-                     _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 0 ;
-                     setHeadCommFlgValid = FALSE ;
-                  }
-
-                  needFlush = TRUE ;
+                  /// has some write operator in the collection
+                  setHeadCommFlgValid = FALSE ;
+                  pMBStat->_lobCommitFlag.swap( 0 ) ;
                }
-            }
-            else
-            {
-               setHeadCommFlgValid = FALSE ;
-            }
+               else
+               {
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
+                  pMBStat->_lobCommitFlagSync = _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ;
+               }
 
-            /// update last lsn
-            if ( (UINT64)~0 == lastLSN ||
-                 ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
-            {
-               lastLSN = tmpLSN ;
+               /// double check
+               if ( pMBStat->_lobCommitFlag.compare( 0 ) &&
+                    _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
+               {
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = 0 ;
+                  pMBStat->_lobCommitFlagSync = _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ;
+                  setHeadCommFlgValid = FALSE ;
+               }
+
+               needFlush = TRUE ;
             }
          }
+         else
+         {
+            setHeadCommFlgValid = FALSE ;
+         }
+
+         /// update last lsn
+         if ( (UINT64)~0 == lastLSN ||
+              ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
+         {
+            lastLSN = tmpLSN ;
+         }
+
+         i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
       }
 
       if ( needFlush )
@@ -2333,29 +2354,36 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needSync = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _dmsData->_mbStatInfo[ collectionID ]._lobLastWriteTick = pmdGetDBTick() ;
-         if ( !_dmsData->_mbStatInfo[ collectionID ]._lobIsCrash &&
-              _dmsData->_mbStatInfo[ collectionID ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
+         pMBStat = &( _dmsData->_mbStatInfo[ collectionID ] ) ;
+         pMBStat->_lobLastWriteTick = pmdGetDBTick() ;
+         if ( !pMBStat->_lobIsCrash &&
+              pMBStat->_lobCommitFlag.compareAndSwap( 1, 0 ) )
          {
             needSync = TRUE ;
             _dmsData->_dmsMME->_mbList[ collectionID ]._lobCommitFlag = 0 ;
+            pMBStat->_lobCommitFlagSync = _dmsData->_dmsMME->_mbList[ collectionID ]._lobCommitFlag ;
          }
       }
       else if ( -1 == collectionID )
       {
-         for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+         UINT16 i = _dmsData->_nextUsedMBSlot( 0 ) ;
+         while( DMS_INVALID_MBID != i )
          {
-            _dmsData->_mbStatInfo[ i ]._lobLastWriteTick = pmdGetDBTick() ;
-            if ( DMS_IS_MB_INUSE ( _dmsData->_dmsMME->_mbList[i]._flag ) &&
-                 !_dmsData->_mbStatInfo[ i ]._lobIsCrash &&
-                 _dmsData->_mbStatInfo[ i ]._lobCommitFlag.compareAndSwap( 1, 0 ) )
+            pMBStat = &( _dmsData->_mbStatInfo[ i ] ) ;
+            pMBStat->_lobLastWriteTick = pmdGetDBTick() ;
+            if ( !pMBStat->_lobIsCrash &&
+                 pMBStat->_lobCommitFlag.compareAndSwap( 1, 0 ) )
             {
                needSync = TRUE ;
                _dmsData->_dmsMME->_mbList[ i ]._lobCommitFlag = 0 ;
+               pMBStat->_lobCommitFlagSync = _dmsData->_dmsMME->_mbList[ i ]._lobCommitFlag ;
             }
+
+            i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
          }
       }
 
@@ -2370,16 +2398,21 @@ namespace engine
    {
       UINT64 oldestWriteTick = ~0 ;
       UINT64 lastWriteTick = 0 ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
-      for ( INT32 i = 0; i < DMS_MME_SLOTS ; i++ )
+      UINT16 i = _dmsData->_nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         lastWriteTick = _dmsData->_mbStatInfo[i]._lobLastWriteTick ;
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         lastWriteTick = pMBStat->_lobLastWriteTick ;
          /// The collection is commit valid, should ignored
-         if ( 0 == _dmsData->_mbStatInfo[i]._lobCommitFlag.peek() &&
+         if ( 0 == pMBStat->_lobCommitFlag.peek() &&
               lastWriteTick < oldestWriteTick )
          {
             oldestWriteTick = lastWriteTick ;
          }
+
+         i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
       }
       return oldestWriteTick ;
    }
@@ -2388,7 +2421,8 @@ namespace engine
    {
       for ( INT32 i = 0; i < DMS_MME_SLOTS ; i++ )
       {
-         _dmsData->_mbStatInfo[i]._lobIsCrash = FALSE ;
+         dmsMBStatInfo *pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         pMBStat->_lobIsCrash = FALSE ;
       }
    }
 
@@ -2542,13 +2576,15 @@ namespace engine
       DMS_LOB_PAGEID current = 0 ;
       INT64 lobPieceLen = 0 ;
       dmsExtRW extRW ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       /// clear all lob count
       for( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _dmsData->_mbStatInfo[i]._totalLobs = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobSize = 0 ;
-         _dmsData->_mbStatInfo[i]._totalValidLobSize = 0 ;
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         pMBStat->_totalLobs = 0 ;
+         pMBStat->_totalLobSize = 0 ;
+         pMBStat->_totalValidLobSize = 0 ;
       }
 
       /// re-count
@@ -2588,16 +2624,18 @@ namespace engine
             /// as _totalValidLobSize.
             if ( DMS_LOB_META_SEQUENCE != blk->_sequence )
             {
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += blk->_dataLen ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += blk->_dataLen ;
+               pMBStat = &( _dmsData->_mbStatInfo[blk->_mbID] ) ;
+               pMBStat->_totalLobSize += blk->_dataLen ;
+               pMBStat->_totalValidLobSize += blk->_dataLen ;
             }
             else
             {
+               pMBStat = &( _dmsData->_mbStatInfo[blk->_mbID] ) ;
                /// dmsLobMate size take the value: 1k.
                lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobs += 1 ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += lobPieceLen ;
-               _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += lobPieceLen ;
+               pMBStat->_totalLobs += 1 ;
+               pMBStat->_totalLobSize += lobPieceLen ;
+               pMBStat->_totalValidLobSize += lobPieceLen ;
             }
          }
          ++current ;
@@ -2629,6 +2667,7 @@ namespace engine
       UINT64 totalValidLobSize = 0 ;
       UINT32 __hash = 0 ;
       UINT32 testBucketNo = 0 ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       /// reset bme
       ossMemset( (void*)_dmsBME, 0xFF, sizeof(dmsBucketsManagementExtent) ) ;
@@ -2636,10 +2675,11 @@ namespace engine
       /// clear all lob count
       for( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _dmsData->_mbStatInfo[i]._totalLobs = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobPages = 0 ;
-         _dmsData->_mbStatInfo[i]._totalLobSize = 0 ;
-         _dmsData->_mbStatInfo[i]._totalValidLobSize = 0 ;
+         pMBStat = &( _dmsData->_mbStatInfo[i] ) ;
+         pMBStat->_totalLobs = 0 ;
+         pMBStat->_totalLobPages = 0 ;
+         pMBStat->_totalLobSize = 0 ;
+         pMBStat->_totalValidLobSize = 0 ;
       }
 
       /// rebuild
@@ -2696,7 +2736,8 @@ namespace engine
                /// Traversing the lobd file to count _totalValidLobSize, the io
                /// overhead is very large. So, directly accumulate blk->_dataLen
                /// as _totalValidLobSize.
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobPages += 1 ;
+               pMBStat = &( _dmsData->_mbStatInfo[blk->_mbID] ) ;
+               pMBStat->_totalLobPages += 1 ;
                if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
                {
                   ++totalLobs ;
@@ -2704,17 +2745,17 @@ namespace engine
                   lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
                   totalLobSize += lobPieceLen ;
                   totalValidLobSize += lobPieceLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobs += 1 ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += lobPieceLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += lobPieceLen ;
+                  pMBStat->_totalLobs += 1 ;
+                  pMBStat->_totalLobSize += lobPieceLen ;
+                  pMBStat->_totalValidLobSize += lobPieceLen ;
                }
                else
                {
                   /// dmsLobMate size take the value: 1k.
                   totalLobSize += blk->_dataLen ;
                   totalValidLobSize += blk->_dataLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalLobSize += blk->_dataLen ;
-                  _dmsData->_mbStatInfo[blk->_mbID]._totalValidLobSize += blk->_dataLen ;
+                  pMBStat->_totalLobSize += blk->_dataLen ;
+                  pMBStat->_totalValidLobSize += blk->_dataLen ;
                }
             }
          }
@@ -3032,7 +3073,7 @@ namespace engine
       }
 
       /// make full name
-      _clFullName( mbContext->mb()->_collectionName, fullName,
+      _clFullName( mbContext->mbStat()->_collectionName, fullName,
                    sizeof( fullName ) ) ;
 
       if ( NULL != dpscb )
@@ -3068,11 +3109,11 @@ namespace engine
          locked = TRUE ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( mbContext->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_TRUNCATE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  mbContext->mb()->_flag ) ;
+                  mbContext->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }

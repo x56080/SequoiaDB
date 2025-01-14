@@ -66,10 +66,7 @@ namespace engine
       SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
       SDB_ASSERT( NULL != cb, "cb is invalid" ) ;
 
-      dmsMB * mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
-
-      const CHAR * collectionShortName = mb->_collectionName ;
+      const CHAR * collectionShortName = mbContext->mbStat()->_collectionName ;
 
       monIndex idIndex ;
       BOOLEAN needToChangeUniqueID = FALSE ;
@@ -135,10 +132,7 @@ namespace engine
       SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
       SDB_ASSERT( NULL != cb, "cb is invalid" ) ;
 
-      dmsMB * mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
-
-      const CHAR * collectionShortName = mb->_collectionName ;
+      const CHAR * collectionShortName = mbContext->mbStat()->_collectionName ;
 
       if ( pWriteDpsLog )
       {
@@ -186,10 +180,7 @@ namespace engine
       SDB_ASSERT( NULL != mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( NULL != su, "su is invalid" ) ;
 
-      dmsMB * mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
-
-      const CHAR * collectionShortName = mb->_collectionName ;
+      const CHAR * collectionShortName = mbContext->mbStat()->_collectionName ;
 
       BOOLEAN dropIndex = FALSE ;
       BOOLEAN createIndex = TRUE ;
@@ -312,7 +303,6 @@ namespace engine
       SDB_ASSERT( NULL != mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( NULL != su, "su is invalid" ) ;
 
-      dmsMB * mb = NULL ;
       MON_IDX_LIST indexes ;
 
       BSONObj shardingKey = argument.getShardingKey() ;
@@ -327,9 +317,6 @@ namespace engine
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Failed to check collection for sharding: "
                 "should be hash sharding for LOB data" ) ;
-
-      mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
 
       rc = su->getIndexes( mbContext, indexes ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -404,17 +391,14 @@ namespace engine
       SDB_ASSERT( NULL != su, "su is invalid" ) ;
       SDB_ASSERT( NULL != dmsCB, "dmsCB is invalid" ) ;
 
-      dmsMB * mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
-
-      rc = su->setCollectionCompressor( mb->_collectionName,
+      rc = su->setCollectionCompressor( mbContext->mbStat()->_collectionName,
                                         compressorType, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set compressor on collection [%s], "
                    "rc: %d", collection, rc ) ;
 
-      if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
-           UTIL_COMPRESSOR_LZW == mb->_compressorType  &&
-           DMS_INVALID_EXTENT == mb->_dictExtentID )
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == mbContext->mbStat()->_compressorType  &&
+           DMS_INVALID_EXTENT == mbContext->mbStat()->_dictExtentID )
       {
          /// Build the dictionary for LZW compression if needed
          dmsCB->pushDictJob( dmsDictJob( su->CSID(),
@@ -449,10 +433,10 @@ namespace engine
          // 1. collection is no compressed
          // 2. altering the compressor type, and old type of collection is
          //    different
-         if ( !OSS_BIT_TEST( mbContext->mb()->_attributes,
+         if ( !OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                              DMS_MB_ATTR_COMPRESSED ) ||
               ( argument.testArgumentMask( UTIL_CL_COMPRESSTYPE_FIELD ) &&
-                mbContext->mb()->_compressorType != argument.getCompressorType()
+                mbContext->mbStat()->_compressorType != argument.getCompressorType()
               ) )
          {
             rc = _rtnCollectionSetCompress( collection,
@@ -494,10 +478,8 @@ namespace engine
       SDB_ASSERT( NULL != su, "su is invalid" ) ;
 
       BSONObj curExtOptions, extOptions ;
-      dmsMB * mb = mbContext->mb() ;
-      SDB_ASSERT( NULL != mb, "mb is invalid" ) ;
 
-      const CHAR * clShortName = mb->_collectionName ;
+      const CHAR * clShortName = mbContext->mbStat()->_collectionName ;
 
       rc = su->getCollectionExtOptions( clShortName, curExtOptions,
                                         mbContext ) ;
@@ -593,7 +575,7 @@ namespace engine
       SDB_ASSERT( NULL != su, "su is invalid" ) ;
       SDB_ASSERT( NULL != dmsCB, "dmsCB is invalid" ) ;
 
-      const CHAR * collectionShortName = mbContext->mb()->_collectionName ;
+      const CHAR * collectionShortName = mbContext->mbStat()->_collectionName ;
       const rtnCLSetAttributeTask * localTask = NULL ;
       BOOLEAN mustWriteDpsLog = FALSE ;
 

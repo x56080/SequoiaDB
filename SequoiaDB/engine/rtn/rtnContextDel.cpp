@@ -448,7 +448,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                    "rc: %d", pCollectionName, rc ) ;
 
-      _clUniqueID = _mbContext->mb()->_clUniqueID ;
+      _clUniqueID = _mbContext->mbStat()->_clUniqueID ;
       _eventItem.init( _clShortName,
                        _su->LogicalCSID(),
                        _mbContext->mbID(),
@@ -459,7 +459,7 @@ namespace engine
       {
          _options._recycleItem.inherit( *recycleItem,
                                         _collectionName,
-                                        _mbContext->mb()->_clUniqueID ) ;
+                                        _mbContext->mbStat()->_clUniqueID ) ;
       }
 
       // lock collection
@@ -2187,7 +2187,7 @@ namespace engine
       {
          _options._recycleItem.inherit( *recycleItem,
                                         _collectionName,
-                                        _mbContext->mb()->_clUniqueID ) ;
+                                        _mbContext->mbStat()->_clUniqueID ) ;
       }
 
       // lock collection

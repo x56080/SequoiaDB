@@ -508,11 +508,11 @@ namespace engine
          rc = _context->mbLock( _mbLockType ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
-      if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( _context->mbStat()->_flag,
                                            _accessType ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  _context->mb()->_flag ) ;
+                  _context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -562,7 +562,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR,
                     "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
-                    _pSu->getSuName(), _context->mb()->_collectionName,
+                    _pSu->getSuName(), _context->mbStat()->_collectionName,
                     _lastExtentID, rc ) ;
             goto error ;
          }
@@ -582,7 +582,7 @@ namespace engine
                rc = SDB_SYS ;
                PD_LOG( PDERROR,
                        "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
-                       _pSu->getSuName(), _context->mb()->_collectionName,
+                       _pSu->getSuName(), _context->mbStat()->_collectionName,
                        _curRID._extent, rc ) ;
                goto error ;
             }
@@ -1869,11 +1869,11 @@ namespace engine
          rc = _context->mbLock( _mbLockType ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
-      if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( _context->mbStat()->_flag,
                                            _accessType ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  _context->mb()->_flag ) ;
+                  _context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -2877,11 +2877,11 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-         if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
+         if ( !dmsAccessAndFlagCompatiblity ( _context->mbStat()->_flag,
                                               _accessType ) )
          {
             PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                     _context->mb()->_flag ) ;
+                     _context->mbStat()->_flag ) ;
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
@@ -2980,7 +2980,7 @@ namespace engine
    {
       dmsExtScannerBase* scanner = NULL ;
 
-      if ( OSS_BIT_TEST( DMS_MB_ATTR_CAPPED, context->mb()->_attributes ) )
+      if ( OSS_BIT_TEST( DMS_MB_ATTR_CAPPED, context->mbStat()->_attributes ) )
       {
          scanner = SDB_OSS_NEW dmsCappedExtScanner( su, context,
                                                     matchRuntime,

@@ -99,6 +99,11 @@ namespace engine
          return _indexDef.getBoolField( IXM_UNIQUE_FIELD ) ;
       }
 
+      OSS_INLINE BOOLEAN isStandalone() const
+      {
+         return _indexDef.getBoolField( IXM_STANDALONE_FIELD ) ;
+      }
+
       OSS_INLINE INT32 getIndexType( UINT16 &type ) const
       {
          return ixmGetIndexType( _indexDef, type ) ;

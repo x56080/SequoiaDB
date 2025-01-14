@@ -504,7 +504,7 @@ namespace engine
       PD_CHECK( _extHandler, SDB_SYS, error, PDERROR,
                 "External data handle is NULL" ) ;
 
-      ossStrncpy( _collectionName, _mbContext->mb()->_collectionName,
+      ossStrncpy( _collectionName, _mbContext->mbStat()->_collectionName,
                   DMS_COLLECTION_NAME_SZ + 1 ) ;
       _idxName.clear() ;
       _idxName.append( _indexCB->getName() ) ;

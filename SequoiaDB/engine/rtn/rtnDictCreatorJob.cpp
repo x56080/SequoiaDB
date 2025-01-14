@@ -237,7 +237,7 @@ namespace engine
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
       const CHAR *csName = sd->getSuName() ;
-      const CHAR *clShortName = context->mb()->_collectionName ;
+      const CHAR *clShortName = context->mbStat()->_collectionName ;
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       ossStrncat( fullName, csName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
       ossStrncat( fullName, ".", 1 ) ;
@@ -303,7 +303,7 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Scanner for collection [%s.%s] need "
                        "interrupt", sd->getSuName(),
-                       context->mb()->_collectionName ) ;
+                       context->mbStat()->_collectionName ) ;
                rc = SDB_DMS_SCANNER_INTERRUPT ;
                goto error ;
             }
@@ -453,8 +453,8 @@ namespace engine
 
       job._lastWriteTick = mbContext->mbStat()->_lastWriteTick ;
 
-      if ( DMS_INVALID_EXTENT != mbContext->mb()->_dictExtentID ||
-           UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
+      if ( DMS_INVALID_EXTENT != mbContext->mbStat()->_dictExtentID ||
+           UTIL_COMPRESSOR_LZW != mbContext->mbStat()->_compressorType )
       {
          goto done ;
       }
@@ -535,7 +535,7 @@ namespace engine
 
       PD_LOG( PDEVENT, "Compression dictionary created succesfully for "
               "collection[%s.%s]. Time: %llums",
-              su->CSName(), mbContext->mb()->_collectionName,
+              su->CSName(), mbContext->mbStat()->_collectionName,
               end.time * 1000 + end.microtm / 1000 -
               (begin.time * 1000 + begin.microtm / 1000) ) ;
 

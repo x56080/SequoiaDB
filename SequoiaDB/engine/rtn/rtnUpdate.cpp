@@ -164,7 +164,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", options.getCLFullName(), rc ) ;
 
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                          DMS_MB_ATTR_NOIDINDEX ) )
       {
          PD_LOG( PDERROR, "can not update data when autoIndexId is false" ) ;
@@ -172,7 +172,7 @@ namespace engine
          goto error ;
       }
 
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                          DMS_MB_ATTR_STRICTDATAMODE ) )
       {
          strictDataMode = TRUE ;
@@ -279,7 +279,7 @@ retry:
                // to avoid pause scanner twice
                _dmsMBContextSubScope subScope( mbContext,
                                                pScanner->getScannerContext() ) ;
-               if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+               if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX ) )
                {
                   PD_LOG( PDERROR, "can not update data when autoIndexId is "

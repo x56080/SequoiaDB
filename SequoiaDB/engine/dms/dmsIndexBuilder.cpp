@@ -634,7 +634,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Scanner for building index [%s] on "
                  "collection [%s.%s] is interrupted", _indexCB->getName(),
-                 _suData->getSuName(), _mbContext->mb()->_collectionName ) ;
+                 _suData->getSuName(), _mbContext->mbStat()->_collectionName ) ;
          rc = SDB_DMS_SCANNER_INTERRUPT ;
          goto error ;
       }
@@ -645,7 +645,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Task for building index [%s] on "
                  "collection [%s.%s] has been canceled", _indexCB->getName(),
-                 _suData->getSuName(), _mbContext->mb()->_collectionName ) ;
+                 _suData->getSuName(), _mbContext->mbStat()->_collectionName ) ;
          rc = SDB_TASK_HAS_CANCELED ;
          goto error ;
       }
@@ -663,7 +663,7 @@ namespace engine
 
       SDB_ASSERT( NULL == _checker, "checker should not be valid" ) ;
       const CHAR *csName = _suData->getSuName() ;
-      const CHAR *clShortName = _mbContext->mb()->_collectionName ;
+      const CHAR *clShortName = _mbContext->mbStat()->_collectionName ;
       rc = sdbGetDMSCB()->createScannerChecker( _suData->logicalID(),
                                                 _mbContext->clLID(),
                                                 csName,

@@ -2130,9 +2130,9 @@ retry:
                    "rc: %d", recycleName, originCLName, rc ) ;
 
       if ( NULL != origMBContext &&
-           OSS_BIT_TEST( origMBContext->mb()->_attributes,
+           OSS_BIT_TEST( origMBContext->mbStat()->_attributes,
                          DMS_MB_ATTR_COMPRESSED ) &&
-           UTIL_COMPRESSOR_LZW == origMBContext->mb()->_compressorType )
+           UTIL_COMPRESSOR_LZW == origMBContext->mbStat()->_compressorType )
       {
          dmsCB->pushDictJob( dmsDictJob( su->CSID(),
                                          su->LogicalCSID(),
@@ -2494,11 +2494,11 @@ retry:
          PD_RC_CHECK( rc, PDERROR, "Failed to get mbContext for collection "
                       "%s, rc: %d", pCollection, rc ) ;
 
-         PD_CHECK( mbContext->mb()->_clUniqueID == clUniqueID,
+         PD_CHECK( mbContext->mbStat()->_clUniqueID == clUniqueID,
                    SDB_DMS_NOTEXIST, error, PDWARNING,
                    "Collection %s with unique ID %llu had been dropped, "
                    "current unique ID is %llu", pCollection,
-                   clUniqueID, mbContext->mb()->_clUniqueID ) ;
+                   clUniqueID, mbContext->mbStat()->_clUniqueID ) ;
       }
 
       rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB,
@@ -2633,7 +2633,6 @@ retry:
       dmsStorageUnit *su               = NULL ;
       const CHAR *pCollectionShortName = NULL ;
       BOOLEAN writable                 = FALSE ;
-      dmsMB *mb                        = NULL ;
       BOOLEAN getContext               = FALSE ;
 
       // Check writable before su lock
@@ -2681,11 +2680,9 @@ retry:
                       "collection %s, rc: %d", pCollection, rc ) ;
       }
 
-      mb = mbContext->mb() ;
-
-      if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
-           UTIL_COMPRESSOR_LZW == mb->_compressorType &&
-           DMS_INVALID_EXTENT == mb->_dictExtentID )
+      if ( OSS_BIT_TEST( mbContext->mbStat()->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == mbContext->mbStat()->_compressorType &&
+           DMS_INVALID_EXTENT == mbContext->mbStat()->_dictExtentID )
       {
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
                              mbContext->mbID(), mbContext->clLID() ) ) ;

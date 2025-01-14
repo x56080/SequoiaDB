@@ -68,8 +68,7 @@ namespace engine
 
       _dmsBucketsManagementExtent()
       {
-         ossMemset( this, 0xff,
-                    sizeof( _dmsBucketsManagementExtent ) ) ;
+         ossMemset( this, DMS_LOB_INVALID_PAGEID, sizeof( _dmsBucketsManagementExtent ) ) ;
       }
    } ;
    typedef struct _dmsBucketsManagementExtent dmsBucketsManagementExtent ;
@@ -92,7 +91,7 @@ namespace engine
                       utilCacheUnit* pCacheUnit ) ;
       virtual ~_dmsStorageLob() ;
 
-      virtual void  syncMemToMmap() ;
+      virtual void  syncMemToMmap( BOOLEAN *pHasWritten = NULL ) ;
 
       _dmsStorageLobData* getLobData() { return &_data ; }
       utilCacheUnit* getCacheUnit() { return _pCacheUnit ; }
@@ -170,6 +169,8 @@ namespace engine
       virtual void incWritePtrCount( INT32 collectionID ) ;
       virtual void decWritePtrCount( INT32 collectionID ) ;
 
+      virtual DMS_FILE_TYPE getFileType() const { return DMS_FILE_LOB ; }
+
       INT32 rebuildBME() ;
 
    public:
@@ -229,7 +230,7 @@ namespace engine
 
    private:
       virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;
-      virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
+      virtual INT32  _onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew ) ;
       virtual UINT32 _getSegmentSize() const ;
       virtual UINT32 _getMetaSizeOfDataSegment() const ;
       virtual UINT32 _getDataSegmentPages() const ;

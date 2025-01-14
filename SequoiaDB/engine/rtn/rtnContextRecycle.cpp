@@ -292,10 +292,10 @@ namespace engine
       // enable compress if needed
       if ( NULL != newMBContext )
       {
-         if ( OSS_BIT_TEST( newMBContext->mb()->_attributes,
+         if ( OSS_BIT_TEST( newMBContext->mbStat()->_attributes,
                             DMS_MB_ATTR_COMPRESSED ) &&
-              UTIL_COMPRESSOR_LZW == newMBContext->mb()->_compressorType &&
-              DMS_INVALID_EXTENT == newMBContext->mb()->_dictExtentID )
+              UTIL_COMPRESSOR_LZW == newMBContext->mbStat()->_compressorType &&
+              DMS_INVALID_EXTENT == newMBContext->mbStat()->_dictExtentID )
          {
             _pDmsCB->pushDictJob( dmsDictJob( _su->CSID(),
                                               _su->LogicalCSID(),
