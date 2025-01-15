@@ -2039,6 +2039,7 @@ sequoiadb
 │   │   ├── sdbtaskctl
 │   │   └── sdbtaskdaemon
 │   ├── deploy
+│   │   ├── mariadb.conf
 │   │   ├── mysql.conf
 │   │   ├── postgresql.conf
 │   │   ├── quickDeploy.js

@@ -3,7 +3,7 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
 
 ##语法规则##
 
-**quickDeploy.sh [--sdb] [--mysql] [--pg] [--cm=Number] [--mysqlPath=String] [--pgPath=String]**
+**quickDeploy.sh [--sdb] [--mysql] [--mariadb] [--pg] [--cm=Number] [--mysqlPath=String] [--mariadbPath=String] [--pgPath=String]**
 
 ##参数说明##
 
@@ -12,15 +12,17 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
 |--help  |    -h   | 获取帮助信息 |
 |--sdb   |    -    | 部署 SequoiaDB 集群 |
 |--mysql |    -    | 部署 MySQL 实例 |
+|--mariadb |    -  | 部署 MariaDB 实例 |
 |--pg    |    -    | 部署 PostgreSQL 实例 |
 |--cm    |    -    | 指定 sdbcm 端口号，默认值为 11790 <br>在多台机器上部署集群时，需确保所有机器的 sdbcm 端口一致 |
 |--mysqlPath| -    | 指定 MySQL 实例组件的安装路径 |
+|--mariadbPath| -  | 指定 MariaDB 实例组件的安装路径 |
 |--pgPath|    -    | 指定 PostgreSQL 实例组件的安装路径 |
 
 > **Note:**
 > 
-> - 当不指定参数 --sdb、--mysql 和 --pg 时，快速部署工具将根据本机的安装情况自动部署 SequoiaDB 集群和 SQL 实例。
-> - 快速部署工具不支持同时部署多个 MySQL 或 PostgreSQL 实例组件。如果本机安装了多个 MySQL 或 PostgreSQL 实例组件，需指定参数 --mysqlPath 或 --pgPath。
+> - 当不指定参数 --sdb、--mysql、--mariadb 和 --pg 时，快速部署工具将根据本机的安装情况自动部署 SequoiaDB 集群和 SQL 实例。
+> - 快速部署工具不支持同时部署多个 MySQL、MariaDB 或 PostgreSQL 实例组件。如果本机安装了多个 MySQL、MariaDB 或 PostgreSQL 实例组件，需指定参数 --mysqlPath、--mariadbPath 或 --pgPath。
 
 ##常见场景##
 
@@ -59,7 +61,7 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
 
 快速部署工具通过配置文件实现集群部署。用户可根据业务需求，修改配置文件以调整集群规模。
 
-配置文件位于目录 `<INSTALL_DIR>\tools\deploy`，其中 `sequoiadb.conf` 用于配置 SequoiaDB 集群，`mysql.conf` 和 `postgresql.conf` 用于配置 SQL 实例。下述以三台机器为例，部署一个三组三副本的集群，并创建多个 MySQL 实例。
+配置文件位于目录 `<INSTALL_DIR>\tools\deploy`，其中 `sequoiadb.conf` 用于配置 SequoiaDB 集群，`mysql.conf`、`mariadb.conf` 和 `postgresql.conf` 用于配置 SQL 实例。下述以三台机器为例，部署一个三组三副本的集群，并创建多个 MySQL 实例。
 
 1. 切换至 SequoiaDB 安装目录
 
