@@ -3006,6 +3006,7 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Collection[%s] mblock failed, rc: %d",
                       pName, rc ) ;
       }
+      oldCLID = context->_clLID ;
 
       clItem.init( pName, _logicalCSID, context->mbID(), context->clLID(),
                    context ) ;
@@ -3109,7 +3110,6 @@ namespace engine
          // change mb metadata
          if ( needChangeCLID )
          {
-            oldCLID = context->_clLID ;
             context->mb()->_logicalID = newCLID ;
             context->mbStat()->_logicalID = context->mb()->_logicalID ;
             context->_clLID           = newCLID ;
