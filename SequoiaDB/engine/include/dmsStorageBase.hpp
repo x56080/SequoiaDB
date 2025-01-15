@@ -54,6 +54,7 @@
 #include "pmdEnv.hpp"
 #include "sdbIPersistence.hpp"
 #include "dmsExtDataHandler.hpp"
+#include "dmsMetaFile.hpp"
 
 #include <string>
 
@@ -95,6 +96,7 @@ namespace engine
 
       DMS_STORAGE_TYPE _type ;
       IDmsExtDataHandler *_extDataHandler ;
+      dmsMetaFile        *_pMetaFile ;
 
       utilCSUniqueID _csUniqueID ;
 
@@ -120,6 +122,7 @@ namespace engine
          _curLSNOnStart  = ~0 ;
          _type = DMS_STORAGE_NORMAL ;
          _extDataHandler = NULL ;
+         _pMetaFile = NULL ;
 
          _csUniqueID     = UTIL_UNIQUEID_NULL ;
 
@@ -505,6 +508,8 @@ namespace engine
          OSS_INLINE UINT32  freePageNum () const ;
          OSS_INLINE INT32   maxSegID () const ;
          OSS_INLINE UINT32  dataStartSegID () const ;
+         OSS_INLINE UINT32  mbHWMID() const { return _MBHWM ; }
+         OSS_INLINE UINT32  numMB() const { return _numMB ; }
          OSS_INLINE BOOLEAN isTempSU () const { return _isTempSU ; }
          OSS_INLINE BOOLEAN isSysSU () const { return _isSysSU ; }
          OSS_INLINE BOOLEAN isBlockScanSupport() const
@@ -564,7 +569,8 @@ namespace engine
          INT32 flushSME( BOOLEAN sync = FALSE ) ;
          INT32 flushMeta( BOOLEAN sync = FALSE,
                           UINT32 *pExceptID = NULL,
-                          UINT32 num = 0 ) ;
+                          UINT32 num = 0,
+                          BOOLEAN *pHasWritten = NULL ) ;
          INT32 flushPages( SINT32 pageID, UINT16 pageNum,
                            BOOLEAN sync = FALSE ) ;
          INT32 flushSegment( UINT32 segmentID, BOOLEAN sync = FALSE ) ;
@@ -574,7 +580,7 @@ namespace engine
                                    BOOLEAN sync = TRUE ) ;
 
          /// virtual interface
-         virtual void  syncMemToMmap () {}
+         virtual void  syncMemToMmap ( BOOLEAN *pHasWritten = NULL ) {}
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
          virtual void incWritePtrCount( INT32 collectionID )
@@ -587,13 +593,15 @@ namespace engine
             return ;
          }
 
+         virtual DMS_FILE_TYPE getFileType() const = 0 ;
+
       private:
          virtual const CHAR*  _getEyeCatcher() const = 0 ;
          virtual UINT64 _dataOffset()  = 0 ;
          virtual UINT32 _curVersion() const = 0 ;
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) = 0 ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) = 0 ;
-         virtual INT32  _onMapMeta( UINT64 curOffSet ) = 0 ;
+         virtual INT32  _onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew ) = 0 ;
          virtual void   _onClosed() {}
          virtual INT32  _onOpened() { return SDB_OK ; }
          virtual UINT32 _extendThreshold() const ;
@@ -654,6 +662,7 @@ namespace engine
                             ( ossGetCurrentMilliseconds() ) :
                             ( updateTime ) ;
                _dmsHeader->_updateTime = updateTime ;
+               _updateTimeCache = _dmsHeader->_updateTime ;
             }
          }
 
@@ -679,6 +688,13 @@ namespace engine
          void     _incWriteRecord() ;
 
          void     _disableBlockScan() ;
+
+         void     _incMBNum( INT32 step ) ;
+
+         UINT32   _fetchAndIncHWMID() ;
+
+         void     _setHasWritten( BOOLEAN hasWritten ) { _hasWriten = hasWritten ; }
+         BOOLEAN  _getHasWritten() const { return _hasWriten ; }
 
       private:
          INT32    _initializeStorageUnit () ;
@@ -725,6 +741,7 @@ namespace engine
          volatile UINT64               _lastWriteTick ;
          volatile UINT32               _writeReordNum ;
          UINT64                        _lastSyncTime ;
+         volatile BOOLEAN              _hasWriten ;
 
          BOOLEAN                       _syncEnable ;
 
@@ -744,6 +761,16 @@ namespace engine
          BOOLEAN                       _isTempSU ;
          BOOLEAN                       _isSysSU ;
          BOOLEAN                       _blockScanSupport ;
+
+         /// header cache, not use header, because header is mmap, will occur disk read
+         UINT32                        _storageUnitSize ;
+         UINT32                        _MBHWM ;
+         UINT32                        _numMB ;
+         UINT32                        _commitFlagCache ;
+         UINT64                        _commitLsnCache ;
+         UINT64                        _commitTimeCache ;
+         UINT64                        _createTimeCache ;
+         UINT64                        _updateTimeCache ;
    } ;
    typedef _dmsStorageBase dmsStorageBase ;
 
@@ -800,11 +827,7 @@ namespace engine
    }
    OSS_INLINE UINT64 _dmsStorageBase::fileSize () const
    {
-      if ( _dmsHeader )
-      {
-         return (UINT64)_dmsHeader->_storageUnitSize << _pageSizeSquare ;
-      }
-      return 0 ;
+      return (UINT64)_storageUnitSize << _pageSizeSquare ;
    }
    OSS_INLINE UINT32 _dmsStorageBase::extent2Segment( dmsExtentID extentID,
                                                       UINT32 * pSegOffset ) const

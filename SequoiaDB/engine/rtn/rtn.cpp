@@ -741,6 +741,10 @@ namespace engine
          {
             fileType = SDB_FILE_LOBD ;
          }
+         else if ( 0 == ossStrcmp( pDotr + 1, DMS_METAFILE_NAME_POSIX ) )
+         {
+            fileType = SDB_FILE_DMSMETA ;
+         }
       }
 
    done:
@@ -756,7 +760,7 @@ namespace engine
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       dmsMBContext *context = NULL ;
-      dmsMB *mb = NULL ;
+      ossPoolVector<UINT16> vecMBSlot ;
 
       rc = dmsCB->nameToSUAndLock( csName, suID, &su ) ;
       if ( rc )
@@ -766,8 +770,11 @@ namespace engine
          goto error ;
       }
 
-      for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
+      su->data()->getCollectionMBSlot( vecMBSlot ) ;
+
+      for ( UINT32 i = 0; i < vecMBSlot.size() ; ++i )
       {
+         UINT16 mbID = vecMBSlot[ i ] ;
          // If the collection does not exist, lock will failed.
          rc = su->data()->getMBContext( &context, mbID,
                                         DMS_INVALID_CLID,
@@ -787,8 +794,6 @@ namespace engine
             }
          }
 
-         mb = context->mb() ;
-
          /*
           * Three conditions should be matched to resume dictionary creating job
           * for a collection:
@@ -800,9 +805,9 @@ namespace engine
           * The in use flag in mb is checked when taking the lock, so no need to
           * check here.
           */
-         if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED )
-              && ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
-              && ( DMS_INVALID_EXTENT == mb->_dictExtentID ) )
+         if ( OSS_BIT_TEST( context->mbStat()->_attributes, DMS_MB_ATTR_COMPRESSED )
+              && ( UTIL_COMPRESSOR_LZW == context->mbStat()->_compressorType )
+              && ( DMS_INVALID_EXTENT == context->mbStat()->_dictExtentID ) )
          {
             dmsCB->pushDictJob( dmsDictJob( su->CSID(), su->LogicalCSID(),
                                 context->mbID(), context->clLID() ) ) ;
@@ -2650,12 +2655,12 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Lock collection[%s.%s] failed[%d]",
-                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+                   dataSu->getSuName(), context->mbStat()->_collectionName, rc ) ;
 
       rc = dataSu->loadDictionary( context, dictionary, dictSize ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Load dictionary for collection[%s.%s] failed[%d]",
-                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+                   dataSu->getSuName(), context->mbStat()->_collectionName, rc ) ;
 
    done:
       if ( context )

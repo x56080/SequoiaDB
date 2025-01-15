@@ -158,7 +158,7 @@ namespace engine
                                  dmsDeletedRecord *pRecord,
                                  BOOLEAN isRecycled ) ;
 
-      void  _mapExtent2DelList ( dmsMB *mb, dmsExtent *extAddr,
+      void  _mapExtent2DelList ( dmsMBContext *context, dmsExtent *extAddr,
                                  SINT32 extentID ) ;
 
       INT32 _freeExtent ( dmsExtentID extentID,

@@ -81,11 +81,11 @@ namespace engine
       _pDataSu = NULL ;
    }
 
-   void _dmsStorageIndex::syncMemToMmap ()
+   void _dmsStorageIndex::syncMemToMmap ( BOOLEAN *pHasWritten )
    {
       if ( _pDataSu )
       {
-         _pDataSu->syncMemToMmap() ;
+         _pDataSu->syncMemToMmap( pHasWritten ) ;
          _pDataSu->flushMME( isSyncDeep() ) ;
       }
    }
@@ -142,7 +142,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _dmsStorageIndex::_onMapMeta( UINT64 curOffSet )
+   INT32 _dmsStorageIndex::_onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew )
    {
       return SDB_OK ;
    }
@@ -151,92 +151,135 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needFlushMME = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
       IDmsExtDataHandler *extHandler = _pDataSu->getExtDataHandler() ;
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+      dmsMBItem mbItem ;
+      UINT16 i = _pDataSu->_nextUsedMBSlot( 0 ) ;
+      while( DMS_INVALID_MBID != i )
       {
-         _pDataSu->_mbStatInfo[i]._idxLastWriteTick = ~0 ;
-         _pDataSu->_mbStatInfo[i]._idxCommitFlag.init( 1 ) ;
+         pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
 
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
+         pMBStat->_idxLastWriteTick = ~0 ;
+         pMBStat->_idxCommitFlag.init( 1 ) ;
+
+         /*
+            Check the collection is valid
+         */
+         if ( !isCrashed() )
          {
-            /*
-               Check the collection is valid
-            */
-            if ( !isCrashed() )
+            if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
             {
-               if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+               /// upgrade from the old version which has no
+               /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
+               /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
+               if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN )
                {
-                  /// upgrade from the old version which has no
-                  /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
-                  /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
-                  if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN )
-                  {
-                     _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN =
-                        _pStorageInfo->_curLSNOnStart ;
-                  }
-                  _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 1 ;
-                  needFlushMME = TRUE ;
+                  _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN = _pStorageInfo->_curLSNOnStart ;
                }
-               _pDataSu->_mbStatInfo[i]._idxCommitFlag.init( 1 ) ;
+               _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 1 ;
+               pMBStat->_idxCommitFlagSync = _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag ;
+               needFlushMME = TRUE ;
             }
-            else
-            {
-               _pDataSu->_mbStatInfo[i]._idxCommitFlag.init(
-                  _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag ) ;
-            }
-            _pDataSu->_mbStatInfo[i]._idxIsCrash =
-               ( 0 == _pDataSu->_mbStatInfo[i]._idxCommitFlag.peek() ) ?
-                                      TRUE : FALSE ;
-            _pDataSu->_mbStatInfo[i]._idxLastLSN.init(
-               _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ) ;
-
-            // analyze the unique index number
-            for ( UINT32 j = 0 ; j < DMS_COLLECTION_MAX_INDEX ; ++j )
-            {
-               if ( DMS_INVALID_EXTENT ==
-                    _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ] )
-               {
-                  break ;
-               }
-               ixmIndexCB indexCB( _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ],
-                                   this, NULL ) ;
-               if ( indexCB.isInitialized() )
-               {
-                  if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                            indexCB.getIndexType() ) )
-                  {
-                     _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
-                     // If there is any text indices, register the external
-                     // data handler, and invoke the onOpenTextIdx method.
-                     if ( !extHandler )
-                     {
-                        SDB_ASSERT( _pStorageInfo->_extDataHandler,
-                                    "External data handler in storage info is "
-                                    "NULL" ) ;
-                        _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
-                        extHandler = _pDataSu->getExtDataHandler() ;
-                     }
-                     if ( extHandler )
-                     {
-                        rc = extHandler->onOpenTextIdx( getSuName(),
-                                                        _pDataSu->_dmsMME->_mbList[i]._collectionName,
-                                                        indexCB ) ;
-                        PD_RC_CHECK( rc, PDERROR, "External on text index open "
-                                     "failed[ %d ]", rc ) ;
-                     }
-                  }
-                  if ( indexCB.unique() )
-                  {
-                     _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
-                  }
-                  if ( indexCB.isGlobal() )
-                  {
-                     _pDataSu->_mbStatInfo[ i ]._globIdxNum ++ ;
-                  }
-               }
-            }
+            pMBStat->_idxCommitFlag.init( 1 ) ;
          }
+         else
+         {
+            pMBStat->_idxCommitFlag.init( _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag ) ;
+         }
+         pMBStat->_idxIsCrash = ( 0 == pMBStat->_idxCommitFlag.peek() ) ? TRUE : FALSE ;
+         pMBStat->_idxLastLSN.init( _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ) ;
+
+         /// fast restore index
+         if ( _pStorageInfo->_pMetaFile->isValid() &&
+              _pStorageInfo->_pMetaFile->getMBItem( i, mbItem ) &&
+              0 == mbItem._textIdxNum )
+         {
+            pMBStat->_uniqueIdxNum = mbItem._uniqueIdxNum ;
+            pMBStat->_globIdxNum = mbItem._globIdxNum ;
+
+            i = _pDataSu->_nextUsedMBSlot( i + 1 ) ;
+            continue ;
+         }
+
+         // analyze the unique index number
+         UINT32 j = 0 ;
+         while ( j < DMS_COLLECTION_MAX_INDEX )
+         {
+            dmsExtentID exID = _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ] ;
+            if ( DMS_INVALID_EXTENT == exID )
+            {
+               break ;
+            }
+
+            ixmIndexCB indexCB( exID, this, NULL ) ;
+            if ( !indexCB.isInitialized() )
+            {
+               PD_LOG( PDWARNING, "Failed to initialize index(%u) for collection(%s.%s), "
+                       "will drop it", j, _pStorageInfo->_suName, pMBStat->_collectionName ) ;
+               // release index control block extent
+               _releaseMetaExtent( exID ) ;
+               // copy back
+               ossMemmove( &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j],
+                           &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j+1],
+                           sizeof(dmsExtentID)*(DMS_COLLECTION_MAX_INDEX-j-1) ) ;
+               _pDataSu->_dmsMME->_mbList[i]._indexExtent[
+                           DMS_COLLECTION_MAX_INDEX-1] = DMS_INVALID_EXTENT ;
+               _pDataSu->_dmsMME->_mbList[i]._numIndexes -- ;
+               needFlushMME = TRUE ;
+               continue ;
+            }
+
+            if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexCB.getIndexType() ) )
+            {
+               pMBStat->_textIdxNum++ ;
+               // If there is any text indices, register the external
+               // data handler, and invoke the onOpenTextIdx method.
+               if ( !extHandler )
+               {
+                  SDB_ASSERT( _pStorageInfo->_extDataHandler,
+                              "External data handler in storage info is "
+                              "NULL" ) ;
+                  _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
+                  extHandler = _pDataSu->getExtDataHandler() ;
+               }
+               if ( extHandler )
+               {
+                  rc = extHandler->onOpenTextIdx( getSuName(),
+                                                  pMBStat->_collectionName,
+                                                  indexCB ) ;
+                  PD_RC_CHECK( rc, PDERROR, "External on text index open "
+                               "failed, rc: %d", rc ) ;
+               }
+            }
+
+            if ( indexCB.unique() )
+            {
+               pMBStat->_uniqueIdxNum++ ;
+            }
+            if ( indexCB.isGlobal() )
+            {
+               pMBStat->_globIdxNum ++ ;
+            }
+            j++ ;
+         }
+
+         /// check index
+         if ( j != _pDataSu->_dmsMME->_mbList[i]._numIndexes )
+         {
+            PD_LOG( PDWARNING, "The index num(%u) in collection(%s.%s)'s metablock is not the "
+                    "same with loaded(%u). Reset it",
+                    _pDataSu->_dmsMME->_mbList[i]._numIndexes,
+                    _pStorageInfo->_suName, pMBStat->_collectionName, j ) ;
+
+            _pDataSu->_dmsMME->_mbList[i]._numIndexes = j ;
+            needFlushMME = TRUE ;
+         }
+
+         /// reset mbstat num index
+         pMBStat->_numIndexes = _pDataSu->_dmsMME->_mbList[i]._numIndexes ;
+
+         i = _pDataSu->_nextUsedMBSlot( i + 1 ) ;
       }
 
       if ( needFlushMME )
@@ -282,19 +325,23 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onFlushDirty( BOOLEAN force, BOOLEAN sync )
    {
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
-      {
-         _pDataSu->_mbStatInfo[i]._idxCommitFlag.compareAndSwap( 0, 1 ) ;
-      }
-
       UINT16 pos = 0 ;
       BOOLEAN locked = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
       dmsPageMap *pPageMap = NULL ;
       dmsPageMap::MAP_PAGES_IT it ;
+
+      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      {
+         pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
+         pMBStat->_idxCommitFlag.compareAndSwap( 0, 1 ) ;
+      }
 
       pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
       while( pPageMap )
       {
+         pMBStat = &( _pDataSu->_mbStatInfo[ pos ] ) ;
+
          while( !pPageMap->isEmpty() )
          {
             /// lock
@@ -313,7 +360,7 @@ namespace engine
                break ;
             }
 
-            if ( _pDataSu->_mbStatInfo[pos]._idxCommitFlag.compare( 0 ) )
+            if ( !force && pMBStat->_idxCommitFlag.compare( 0 ) )
             {
                /// only interrupt the collection, don't report error
                break ;
@@ -345,47 +392,53 @@ namespace engine
       BOOLEAN needFlush = FALSE ;
       UINT64 tmpLSN = 0 ;
       UINT32 tmpCommitFlag = 0 ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      UINT16 i = _pDataSu->_nextUsedMBSlot( 0 ) ;
+      while( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
+         pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
+
+         tmpLSN = pMBStat->_idxLastLSN.fetch() ;
+         if ( !pMBStat->_idxCommitFlag.compare( 0 ) )
          {
-            tmpLSN = _pDataSu->_mbStatInfo[i]._idxLastLSN.fetch() ;
-            if ( !_pDataSu->_mbStatInfo[i]._idxCommitFlag.compare( 0 ) )
-            {
-               tmpCommitFlag = _pDataSu->_mbStatInfo[i]._idxIsCrash ?
-                  0 : _pDataSu->_mbStatInfo[i]._idxCommitFlag.fetch() ;
+            tmpCommitFlag = pMBStat->_idxIsCrash ? 0 : pMBStat->_idxCommitFlag.fetch() ;
 
-               if ( tmpLSN != _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ||
-                    tmpCommitFlag != _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+            if ( tmpLSN != _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ||
+                 tmpCommitFlag != _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
+            {
+               _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN = tmpLSN ;
+               _pDataSu->_dmsMME->_mbList[i]._idxCommitTime = lastTime ;
+               _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = tmpCommitFlag ;
+
+               pMBStat->_idxCommitFlagSync = _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag ;
+               pMBStat->_idxCommitTime = _pDataSu->_dmsMME->_mbList[i]._idxCommitTime ;
+
+               /// double check
+               if ( pMBStat->_idxCommitFlag.compare( 0 ) &&
+                    _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
                {
-                  _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN = tmpLSN ;
-                  _pDataSu->_dmsMME->_mbList[i]._idxCommitTime = lastTime ;
-                  _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = tmpCommitFlag ;
-
-                  /// double check
-                  if ( _pDataSu->_mbStatInfo[i]._idxCommitFlag.compare( 0 ) &&
-                       _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
-                  {
-                     _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 0 ;
-                     setHeadCommFlgValid = FALSE ;
-                  }
-
-                  needFlush = TRUE ;
+                  _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag = 0 ;
+                  pMBStat->_idxCommitFlagSync = _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag ;
+                  setHeadCommFlgValid = FALSE ;
                }
-            }
-            else
-            {
-               setHeadCommFlgValid = FALSE ;
-            }
 
-            /// update last lsn
-            if ( (UINT64)~0 == lastLSN ||
-                 ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
-            {
-               lastLSN = tmpLSN ;
+               needFlush = TRUE ;
             }
          }
+         else
+         {
+            setHeadCommFlgValid = FALSE ;
+         }
+
+         /// update last lsn
+         if ( (UINT64)~0 == lastLSN ||
+              ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
+         {
+            lastLSN = tmpLSN ;
+         }
+
+         i = _pDataSu->_nextUsedMBSlot( i + 1 ) ;
       }
 
       if ( needFlush )
@@ -399,29 +452,38 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needSync = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _pDataSu->_mbStatInfo[ collectionID ]._idxLastWriteTick = pmdGetDBTick() ;
-         if ( !_pDataSu->_mbStatInfo[ collectionID ]._idxIsCrash &&
-              _pDataSu->_mbStatInfo[ collectionID ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
+         pMBStat = &( _pDataSu->_mbStatInfo[ collectionID ] ) ;
+
+         pMBStat->_idxLastWriteTick = pmdGetDBTick() ;
+         if ( !pMBStat->_idxIsCrash &&
+              pMBStat->_idxCommitFlag.compareAndSwap( 1, 0 ) )
          {
             needSync = TRUE ;
             _pDataSu->_dmsMME->_mbList[ collectionID ]._idxCommitFlag = 0 ;
+            pMBStat->_idxCommitFlagSync = _pDataSu->_dmsMME->_mbList[ collectionID ]._idxCommitFlag ;
          }
       }
       else if ( -1 == collectionID )
       {
-         for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+         UINT16 i = _pDataSu->_nextUsedMBSlot( 0 ) ;
+         while( DMS_INVALID_MBID != i )
          {
-            _pDataSu->_mbStatInfo[ i ]._idxLastWriteTick = pmdGetDBTick() ;
-            if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) &&
-                 !_pDataSu->_mbStatInfo[ i ]._idxIsCrash &&
-                 _pDataSu->_mbStatInfo[ i ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
+            pMBStat = &( _pDataSu->_mbStatInfo[ i ] ) ;
+
+            pMBStat->_idxLastWriteTick = pmdGetDBTick() ;
+            if ( !pMBStat->_idxIsCrash &&
+                 pMBStat->_idxCommitFlag.compareAndSwap( 1, 0 ) )
             {
                needSync = TRUE ;
                _pDataSu->_dmsMME->_mbList[ i ]._idxCommitFlag = 0 ;
+               pMBStat->_idxCommitFlagSync = _pDataSu->_dmsMME->_mbList[ i ]._idxCommitFlag ;
             }
+
+            i = _pDataSu->_nextUsedMBSlot( i + 1 ) ;
          }
       }
 
@@ -437,15 +499,20 @@ namespace engine
       UINT64 oldestWriteTick = ~0 ;
       UINT64 lastWriteTick = 0 ;
 
-      for ( INT32 i = 0; i < DMS_MME_SLOTS ; i++ )
+      UINT16 i = _pDataSu->_nextUsedMBSlot( 0 ) ;
+      while( DMS_INVALID_MBID != i )
       {
-         lastWriteTick = _pDataSu->_mbStatInfo[i]._idxLastWriteTick ;
+         dmsMBStatInfo *pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
+
+         lastWriteTick = pMBStat->_idxLastWriteTick ;
          /// The collection is commit valid, should ignored
-         if ( 0 == _pDataSu->_mbStatInfo[i]._idxCommitFlag.peek() &&
+         if ( 0 == pMBStat->_idxCommitFlag.peek() &&
               lastWriteTick < oldestWriteTick )
          {
             oldestWriteTick = lastWriteTick ;
          }
+
+         i = _pDataSu->_nextUsedMBSlot( i + 1 ) ;
       }
       return oldestWriteTick ;
    }
@@ -454,7 +521,8 @@ namespace engine
    {
       for ( INT32 i = 0; i < DMS_MME_SLOTS ; i++ )
       {
-         _pDataSu->_mbStatInfo[i]._idxIsCrash = FALSE ;
+         dmsMBStatInfo *pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
+         pMBStat->_idxIsCrash = FALSE ;
       }
    }
 
@@ -532,6 +600,7 @@ namespace engine
       INT32 rc                = SDB_OK ;
       dmsExtRW extRW ;
       dmsExtent *extAddr      = NULL ;
+      dmsMBStatInfo *pMBStat  = NULL ;
       extentID                = DMS_INVALID_EXTENT ;
 
       rc = _findFreeSpace ( 1, extentID, NULL/*context*/ ) ;
@@ -546,7 +615,8 @@ namespace engine
       extAddr = extRW.writePtr<dmsExtent>() ;
       extAddr->init( 1, mbID, pageSize() ) ;
 
-      _pDataSu->_mbStatInfo[mbID]._totalIndexPages += 1 ;
+      pMBStat = &( _pDataSu->_mbStatInfo[mbID] ) ;
+      pMBStat->_totalIndexPages += 1 ;
 
    done :
       return rc ;
@@ -560,6 +630,7 @@ namespace engine
       INT32 rc                   = SDB_OK ;
       dmsExtRW extRW ;
       const dmsExtent *extAddr   = NULL ;
+      dmsMBStatInfo *pMBStat     = NULL ;
 
       extRW = extent2RW( extentID ) ;
       extRW.setNothrow( TRUE ) ;
@@ -582,12 +653,66 @@ namespace engine
          writeExtent->_flag = DMS_EXTENT_FLAG_FREED ;
       }
 
-      _pDataSu->_mbStatInfo[extAddr->_mbID]._totalIndexPages -= 1 ;
+      pMBStat= &( _pDataSu->_mbStatInfo[extAddr->_mbID] ) ;
+      pMBStat->_totalIndexPages -= 1 ;
       rc = _releaseSpace( extentID, 1 ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to release page, rc = %d", rc ) ;
          goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _dmsStorageIndex::_releaseMetaExtent( dmsExtentID extentID )
+   {
+      INT32 rc                 = SDB_OK ;
+      const dmsExtent *extAddr = NULL ;
+      dmsExtent *writeExtent   = NULL ;
+      dmsMBStatInfo *pMBStat   = NULL ;
+      dmsExtRW extRW ;
+
+      extRW = extent2RW( extentID ) ;
+      extRW.setNothrow( TRUE ) ;
+      extAddr = extRW.readPtr<dmsExtent>() ;
+      if ( !extAddr )
+      {
+         PD_LOG ( PDERROR, "Failed to read extent[%d]", extentID ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( DMS_EXTENT_FLAG_FREED == extAddr->_flag )
+      {
+         // May be releady released, DON'T release again
+         goto done ;
+      }
+      if ( IXM_EXTENT_EYECATCHER0 == extAddr->_eyeCatcher[0] &&
+           IXM_EXTENT_EYECATCHER1 == extAddr->_eyeCatcher[1] )
+      {
+         // It is not my extent, DON'T release it
+         goto done ;
+      }
+
+      writeExtent = extRW.writePtr<dmsExtent>() ;
+      writeExtent->_flag = DMS_EXTENT_FLAG_FREED ;
+
+      pMBStat = &( _pDataSu->_mbStatInfo[extAddr->_mbID] ) ;
+      pMBStat->_totalIndexPages -= 1 ;
+      rc = _releaseSpace( extentID, 1 ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to release extent[%d], rc: %d",
+                  extentID, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDINFO, "Release index control block extent[%d]", extentID ) ;
       }
 
    done :
@@ -640,11 +765,11 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_CRT_INDEX ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -729,11 +854,11 @@ namespace engine
       try
       {
 
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_DROP_INDEX ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -758,7 +883,7 @@ namespace engine
 
             if ( _pDataSu->_pEventHolder )
             {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
+               dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                       context->mbID(),
                                       context->clLID() ) ;
                dmsEventIdxItem idxItem( indexCB.getName(),
@@ -822,11 +947,11 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_DROP_INDEX ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -880,7 +1005,7 @@ namespace engine
 
             if ( _pDataSu->_pEventHolder )
             {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
+               dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                       context->mbID(),
                                       context->clLID() ) ;
                dmsEventIdxItem idxItem( indexCB.getName(),
@@ -1011,14 +1136,14 @@ namespace engine
             goto error ;
          }
 
-         if ( isSys && 0 == ossStrcmp( indexCB.getName(),
-                                       IXM_ID_KEY_NAME ) )
+         if ( isSys && 0 == ossStrcmp( indexCB.getName(), IXM_ID_KEY_NAME ) )
          {
-            OSS_BIT_SET( context->mb()->_attributes,
-                         DMS_MB_ATTR_NOIDINDEX ) ;
+            OSS_BIT_SET( context->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX ) ;
+            /// update cache
+            context->mbStat()->_attributes = context->mb()->_attributes ;
          }
 
-         _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+         _pDataSu->_clFullName( context->mbStat()->_collectionName, fullName,
                                 sizeof(fullName) ) ;
          // reserved log-size
          if ( dpscb )
@@ -1147,7 +1272,10 @@ namespace engine
       }
 
       context->mb()->_numIndexes -- ;
-      context->mbStat()->resetIdxHashFrom( indexID ) ;
+      context->mbStat()->resetIdxHashFrom( indexID, context->mb() ) ;
+      _pStorageInfo->_pMetaFile->invalidateIndexCache( context->mbID(),
+                                                       _pStorageInfo->_suName,
+                                                       context->mbStat()->_collectionName ) ;
 
       // on metadata updated
       _pDataSu->_onMBUpdated( context->mbID() ) ;
@@ -1254,7 +1382,7 @@ namespace engine
          // calc the reserve size
          if ( dpscb )
          {
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+            _pDataSu->_clFullName( context->mbStat()->_collectionName, fullName,
                                    sizeof(fullName) ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, record ) ;
@@ -1316,7 +1444,10 @@ namespace engine
       context->mb()->_indexExtent[indexID] = metaExtentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
-      context->mbStat()->resetIdxHashFrom( indexID ) ;
+      context->mbStat()->resetIdxHashFrom( indexID, context->mb() ) ;
+      _pStorageInfo->_pMetaFile->invalidateIndexCache( context->mbID(),
+                                                       _pStorageInfo->_suName,
+                                                       context->mbStat()->_collectionName ) ;
 
       // on metadata updated
       _pDataSu->_onMBUpdated( context->mbID() ) ;
@@ -1324,7 +1455,7 @@ namespace engine
       // create index callback
       if ( _pDataSu->_pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
@@ -1396,14 +1527,15 @@ namespace engine
       // if it is $oid, set DMS_MB_ATTR_NOIDINDEX with false
       if ( isSys && 0 == ossStrcmp( indexName, IXM_ID_KEY_NAME ) )
       {
-         OSS_BIT_CLEAR( context->mb()->_attributes,
-                        DMS_MB_ATTR_NOIDINDEX ) ;
+         OSS_BIT_CLEAR( context->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX ) ;
+         /// update cache
+         context->mbStat()->_attributes = context->mb()->_attributes ;
       }
 
       // rebuild index callback
       if ( _pDataSu->_pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
@@ -1450,18 +1582,18 @@ namespace engine
          rc = SDB_DMS_MAX_INDEX ;
          PD_LOG( PDERROR, "Max number[%d] of text indexes have been created on "
                           "collection[%s] already", DMS_MAX_TEXT_IDX_NUM,
-                          context->mb()->_collectionName ) ;
+                          context->mbStat()->_collectionName ) ;
          goto error ;
       }
 
       // We need the unique id to generate the capped collection name. Not able
       // to do that if the id is invalid.
-      if ( UTIL_UNIQUEID_NULL == context->mb()->_clUniqueID )
+      if ( UTIL_UNIQUEID_NULL == context->mbStat()->_clUniqueID )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Cannot create text index on collection[%s] as "
                           "its unique id is invalid",
-                          context->mb()->_collectionName ) ;
+                          context->mbStat()->_collectionName ) ;
          goto error ;
       }
 
@@ -1543,7 +1675,7 @@ namespace engine
 
          if ( dpscb )
          {
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+            _pDataSu->_clFullName( context->mbStat()->_collectionName, fullName,
                                    sizeof( fullName ) ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, record ) ;
@@ -1573,7 +1705,10 @@ namespace engine
          context->mb()->_numIndexes++ ;
          context->mb()->_indexHWCount++ ;
          context->mbStat()->_textIdxNum++ ;
-         context->mbStat()->resetIdxHashFrom( indexID ) ;
+         context->mbStat()->resetIdxHashFrom( indexID, context->mb() ) ;
+         _pStorageInfo->_pMetaFile->invalidateIndexCache( context->mbID(),
+                                                          _pStorageInfo->_suName,
+                                                          context->mbStat()->_collectionName ) ;
 
          // on metadata updated
          _pDataSu->_onMBUpdated( context->mbID() ) ;
@@ -1597,7 +1732,7 @@ namespace engine
          // create index callback
          if ( _pDataSu->_pEventHolder )
          {
-            dmsEventCLItem clItem( context->mb()->_collectionName,
+            dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                    context->mbID(),
                                    context->clLID() ) ;
             dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
@@ -1649,7 +1784,7 @@ namespace engine
       // rebuild index callback
       if ( _pDataSu->_pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
@@ -3569,7 +3704,8 @@ namespace engine
    {
       if ( mbID < DMS_MME_SLOTS && _pDataSu )
       {
-         _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace += size ;
+         dmsMBStatInfo *pMBStat = &( _pDataSu->_mbStatInfo[mbID] ) ;
+         pMBStat->_totalIndexFreeSpace += size ;
       }
    }
 
@@ -3577,7 +3713,8 @@ namespace engine
    {
       if ( mbID < DMS_MME_SLOTS && _pDataSu )
       {
-         _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
+         dmsMBStatInfo *pMBStat = &( _pDataSu->_mbStatInfo[mbID] ) ;
+         pMBStat->_totalIndexFreeSpace -= size ;
       }
    }
 }

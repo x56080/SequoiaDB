@@ -2078,11 +2078,11 @@ retry:
          PD_RC_CHECK( rc, PDERROR, "Failed to get mbContext for collection "
                       "%s, rc: %d", pCollection, rc ) ;
 
-         PD_CHECK( mbContext->mb()->_clUniqueID == clUniqueID,
+         PD_CHECK( mbContext->mbStat()->_clUniqueID == clUniqueID,
                    SDB_DMS_NOTEXIST, error, PDWARNING,
                    "Collection %s with unique ID %llu had been dropped, "
                    "current unique ID is %llu", pCollection,
-                   clUniqueID, mbContext->mb()->_clUniqueID ) ;
+                   clUniqueID, mbContext->mbStat()->_clUniqueID ) ;
       }
 
       rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB ) ;
@@ -2202,7 +2202,6 @@ retry:
       const CHAR *pCollectionShortName = NULL ;
       BOOLEAN writable                 = FALSE ;
       dmsMBContext *context            = NULL ;
-      dmsMB *mb                        = NULL ;
 
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
@@ -2235,11 +2234,10 @@ retry:
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get mb context of collection %s, rc: %d",
                    pCollection, rc ) ;
-      mb = context->mb() ;
 
-      if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
-           UTIL_COMPRESSOR_LZW == mb->_compressorType &&
-           DMS_INVALID_EXTENT == mb->_dictExtentID )
+      if ( OSS_BIT_TEST( context->mbStat()->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == context->mbStat()->_compressorType &&
+           DMS_INVALID_EXTENT == context->mbStat()->_dictExtentID )
       {
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
                              context->mbID(), context->clLID() ) ) ;

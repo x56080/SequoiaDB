@@ -1468,7 +1468,7 @@ namespace engine
       _isAutoPlan = subPlan->isAutoGen() ;
 
       _saveSubCL( subPlan->getCLFullName(),
-                  mbContext->mb()->_clUniqueID,
+                  mbContext->mbStat()->_clUniqueID,
                   subPlan->getScore(), parameters ) ;
 
       rc = bindMatchRuntime( planHelper, subPlan ) ;
@@ -1519,7 +1519,7 @@ namespace engine
       if ( result )
       {
          _saveSubCL( plan->getCLFullName(),
-                     mbContext->mb()->_clUniqueID,
+                     mbContext->mbStat()->_clUniqueID,
                      plan->getScore(),
                      parameters ) ;
       }

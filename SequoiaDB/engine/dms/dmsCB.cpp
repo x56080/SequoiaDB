@@ -1811,7 +1811,6 @@ namespace engine
       INT32 lobPageSz = 0 ;
       INT32 type = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB();
-      _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
       utilCSUniqueID csUniqueID = 0 ;
 
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_ADDCS );

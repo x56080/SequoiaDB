@@ -807,7 +807,7 @@ namespace engine
                        pCLName, rc ) ;
                continue ;
             }
-            collectionFlag = mbContext->mb()->_flag ;
+            collectionFlag = mbContext->mbStat()->_flag ;
 
             // unlock collection
 
@@ -841,6 +841,9 @@ namespace engine
                PD_LOG ( PDEVENT, "Start clear load flag" ) ;
                dmsLoadExtent.clearFlagLoad ( mbContext->mb() ) ;
             }
+
+            /// update mbStat flag
+            mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
 
             su->data()->releaseMBContext( mbContext ) ;
          }

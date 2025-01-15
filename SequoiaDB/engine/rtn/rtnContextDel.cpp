@@ -429,7 +429,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                    "rc: %d", pCollectionName, rc ) ;
 
-      _clUniqueID = _mbContext->mb()->_clUniqueID ;
+      _clUniqueID = _mbContext->mbStat()->_clUniqueID ;
 
       // lock collection
       if ( getDPSCB() )
@@ -1919,5 +1919,6 @@ namespace engine
    {
       ss << ",Name:" << _name ;
    }
+
 }
 

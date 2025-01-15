@@ -1295,7 +1295,7 @@ namespace engine
             goto error ;
          }
 
-         clUniqueID = mbContext->mb()->_clUniqueID ;
+         clUniqueID = mbContext->mbStat()->_clUniqueID ;
          csLID = su->LogicalCSID() ;
          mbID = mbContext->mbID() ;
          curCollection = ossPack32To64 ( su->LogicalCSID(),

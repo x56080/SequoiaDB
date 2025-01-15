@@ -277,7 +277,7 @@ namespace engine
       if ( _mb )
       {
          ss << "Name: " ;
-         ss << _mb->_collectionName ;
+         ss << _mbStat->_collectionName ;
          ss << ", " ;
       }
       ss << "ID: " << _mbID ;
@@ -611,112 +611,113 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_SYNCMEMTOMMAP, "_dmsStorageDataCommon::syncMemToMmap" )
-   void _dmsStorageDataCommon::syncMemToMmap ()
+   void _dmsStorageDataCommon::syncMemToMmap ( BOOLEAN *pHasWritten )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_SYNCMEMTOMMAP ) ;
+
+      dmsMBStatInfo *pMBStat = NULL ;
+      dmsMB *pMB = NULL ;
+      BOOLEAN hasWritten = FALSE ;
+
       // write total count to disk
-      for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
+         pMB = &( _dmsMME->_mbList[i] ) ;
+         pMBStat = &( _mbStatInfo[i] ) ;
+
+         if ( DMS_IS_MB_INUSE ( pMB->_flag ) )
          {
-            if ( _dmsMME->_mbList[i]._totalRecords !=
-                 _mbStatInfo[i]._totalRecords )
+            if ( pMB->_totalRecords != pMBStat->_totalRecords )
             {
-               _dmsMME->_mbList[i]._totalRecords =
-                  _mbStatInfo[i]._totalRecords ;
+               pMB->_totalRecords = pMBStat->_totalRecords ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalDataPages !=
-                 _mbStatInfo[i]._totalDataPages )
+            if ( pMB->_totalDataPages != pMBStat->_totalDataPages )
             {
-               _dmsMME->_mbList[i]._totalDataPages =
-                  _mbStatInfo[i]._totalDataPages ;
+               pMB->_totalDataPages = pMBStat->_totalDataPages ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalIndexPages !=
-                 _mbStatInfo[i]._totalIndexPages )
+            if ( pMB->_totalIndexPages != pMBStat->_totalIndexPages )
             {
-               _dmsMME->_mbList[i]._totalIndexPages =
-                  _mbStatInfo[i]._totalIndexPages ;
+               pMB->_totalIndexPages = pMBStat->_totalIndexPages ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalDataFreeSpace !=
-                 _mbStatInfo[i]._totalDataFreeSpace )
+            if ( pMB->_totalDataFreeSpace != pMBStat->_totalDataFreeSpace )
             {
-               _dmsMME->_mbList[i]._totalDataFreeSpace =
-                  _mbStatInfo[i]._totalDataFreeSpace ;
+               pMB->_totalDataFreeSpace = pMBStat->_totalDataFreeSpace ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalIndexFreeSpace !=
-                 _mbStatInfo[i]._totalIndexFreeSpace )
+            if ( pMB->_totalIndexFreeSpace != pMBStat->_totalIndexFreeSpace )
             {
-               _dmsMME->_mbList[i]._totalIndexFreeSpace =
-                  _mbStatInfo[i]._totalIndexFreeSpace ;
+               pMB->_totalIndexFreeSpace = pMBStat->_totalIndexFreeSpace ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalLobPages !=
-                 _mbStatInfo[i]._totalLobPages )
+            if ( pMB->_totalLobPages != pMBStat->_totalLobPages )
             {
-               _dmsMME->_mbList[i]._totalLobPages =
-                  _mbStatInfo[i]._totalLobPages ;
+               pMB->_totalLobPages = pMBStat->_totalLobPages ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalLobs !=
-                 _mbStatInfo[i]._totalLobs )
+            if ( pMB->_totalLobs != pMBStat->_totalLobs )
             {
-               _dmsMME->_mbList[i]._totalLobs =
-                  _mbStatInfo[i]._totalLobs ;
+               pMB->_totalLobs = pMBStat->_totalLobs ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._lastCompressRatio !=
-                 _mbStatInfo[i]._lastCompressRatio )
+            if ( pMB->_lastCompressRatio != pMBStat->_lastCompressRatio )
             {
-               _dmsMME->_mbList[i]._lastCompressRatio =
-                  _mbStatInfo[i]._lastCompressRatio ;
+               pMB->_lastCompressRatio = pMBStat->_lastCompressRatio ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalDataLen !=
-                 _mbStatInfo[i]._totalDataLen )
+            if ( pMB->_totalDataLen != pMBStat->_totalDataLen )
             {
-               _dmsMME->_mbList[i]._totalDataLen =
-                  _mbStatInfo[i]._totalDataLen ;
+               pMB->_totalDataLen = pMBStat->_totalDataLen ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalLobSize !=
-                 _mbStatInfo[i]._totalLobSize )
+            if ( pMB->_totalLobSize != pMBStat->_totalLobSize )
             {
-               _dmsMME->_mbList[i]._totalLobSize =
-                 _mbStatInfo[i]._totalLobSize ;
+               pMB->_totalLobSize = pMBStat->_totalLobSize ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalValidLobSize !=
-                 _mbStatInfo[i]._totalValidLobSize )
+            if ( pMB->_totalValidLobSize != pMBStat->_totalValidLobSize )
             {
-               _dmsMME->_mbList[i]._totalValidLobSize =
-                 _mbStatInfo[i]._totalValidLobSize ;
+               pMB->_totalValidLobSize = pMBStat->_totalValidLobSize ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._totalOrgDataLen !=
-                 _mbStatInfo[i]._totalOrgDataLen )
+            if ( pMB->_totalOrgDataLen != pMBStat->_totalOrgDataLen )
             {
-               _dmsMME->_mbList[i]._totalOrgDataLen =
-                  _mbStatInfo[i]._totalOrgDataLen ;
+               pMB->_totalOrgDataLen = pMBStat->_totalOrgDataLen ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._maxGlobTransID !=
-                 _mbStatInfo[i]._maxGlobTransID.peek() )
+            if ( pMB->_maxGlobTransID != pMBStat->_maxGlobTransID.peek() )
             {
-               _dmsMME->_mbList[i]._maxGlobTransID =
-                  _mbStatInfo[i]._maxGlobTransID.peek() ;
+               pMB->_maxGlobTransID = pMBStat->_maxGlobTransID.peek() ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._commitLSN !=
-                 _mbStatInfo[i]._lastLSN.peek() )
+            if ( pMB->_commitLSN != pMBStat->_lastLSN.peek() )
             {
-               _dmsMME->_mbList[i]._commitLSN =
-                  _mbStatInfo[i]._lastLSN.peek() ;
+               pMB->_commitLSN = pMBStat->_lastLSN.peek() ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._idxCommitLSN !=
-                 _mbStatInfo[i]._idxLastLSN.peek() )
+            if ( pMB->_idxCommitLSN != pMBStat->_idxLastLSN.peek() )
             {
-               _dmsMME->_mbList[i]._idxCommitLSN =
-                  _mbStatInfo[i]._idxLastLSN.peek() ;
+               pMB->_idxCommitLSN = pMBStat->_idxLastLSN.peek() ;
+               hasWritten = TRUE ;
             }
-            if ( _dmsMME->_mbList[i]._lobCommitLSN !=
-                 _mbStatInfo[i]._lobLastLSN.peek() )
+            if ( pMB->_lobCommitLSN != pMBStat->_lobLastLSN.peek() )
             {
-               _dmsMME->_mbList[i]._lobCommitLSN =
-                  _mbStatInfo[i]._lobLastLSN.peek() ;
+               pMB->_lobCommitLSN = pMBStat->_lobLastLSN.peek() ;
+               hasWritten = TRUE ;
             }
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
+
+      if ( pHasWritten && hasWritten )
+      {
+         *pHasWritten = hasWritten ;
+      }
+
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATACOMMON_SYNCMEMTOMMAP ) ;
    }
 
@@ -727,7 +728,7 @@ namespace engine
          return FALSE ;
       }
       else if ( ( NULL != context ) &&
-                ( OSS_BIT_TEST( context->mb()->_attributes,
+                ( OSS_BIT_TEST( context->mbStat()->_attributes,
                                 DMS_MB_ATTR_NOTRANS ) ) )
       {
          return FALSE ;
@@ -833,8 +834,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__INITCOMPRESSORENTRY ) ;
       const dmsDictExtent *dictExtent = NULL ;
       dmsExtentID dictExtID = _dmsMME->_mbList[mbID]._dictExtentID ;
-      UTIL_COMPRESSOR_TYPE type =
-            ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
+      UTIL_COMPRESSOR_TYPE type = ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
       utilCompressor *compressor = NULL ;
 
       dmsCompressorGuard compGuard( &_compressorEntry[mbID], EXCLUSIVE ) ;
@@ -860,9 +860,10 @@ namespace engine
          SDB_ASSERT( compressor, "compressor pointer should not be NULL" ) ;
          if ( !compressor )
          {
+            dmsMBStatInfo *pMBStat = &( _mbStatInfo[mbID] ) ;
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Failed to get compressor for collection[%s], "
-                    "type: %d, rc: %d", _dmsMME->_mbList[mbID]._collectionName,
+                    "type: %d, rc: %d", pMBStat->_collectionName,
                     type, rc ) ;
             goto error ;
          }
@@ -905,8 +906,7 @@ namespace engine
 
       const dmsDictExtent * dictExtent = NULL ;
       dmsExtentID dictExtID = _dmsMME->_mbList[mbID]._dictExtentID ;
-      UTIL_COMPRESSOR_TYPE type =
-            ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
+      UTIL_COMPRESSOR_TYPE type = ( UTIL_COMPRESSOR_TYPE )_dmsMME->_mbList[mbID]._compressorType ;
 
       dmsCompressorGuard compGuard( &_compressorEntry[mbID], EXCLUSIVE ) ;
 
@@ -951,11 +951,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMAPMETA, "_dmsStorageDataCommon::_onMapMeta" )
-   INT32 _dmsStorageDataCommon::_onMapMeta( UINT64 curOffSet )
+   INT32 _dmsStorageDataCommon::_onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN upgradeDictInfo = FALSE ;
+      dmsMB *pMB = NULL ;
+      dmsMBStatInfo *pMBStat = NULL ;
       BOOLEAN needFlush = FALSE ;
+      UINT16 i = DMS_INVALID_MBID ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__ONMAPMETA ) ;
       // MME, 4MB
@@ -967,60 +970,53 @@ namespace engine
          goto error ;
       }
 
+      if ( isCreateNew )
+      {
+         goto done ;
+      }
+
       if ( _dmsHeader->_version < DMS_COMPRESSION_ENABLE_VER )
       {
          upgradeDictInfo = TRUE ;
       }
 
+   retry:
+      // first clear collectionmap
+      _collectionMapCleanup() ;
+
       // load collection names in the SU
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+      i = _pStorageInfo->_pMetaFile->beginMBID() ;
+      while( DMS_INVALID_MBID != i && i < DMS_MME_SLOTS )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
+         pMB = &( _dmsMME->_mbList[i] ) ;
+         pMBStat = &( _mbStatInfo[i] ) ;
+
+         if ( DMS_IS_MB_INUSE ( pMB->_flag ) )
          {
             /// ensure new collection resouce
             rc = _ensureNewCollection( i ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Ensure collection resource in %s failed, rc: %d",
-                       getSuName(), rc ) ;
+               PD_LOG( PDSEVERE, "Ensure collection(%u) resource in %s failed, rc: %d",
+                       i, getSuName(), rc ) ;
                goto error ;
             }
 
-            _mbStatInfo[i]._lastWriteTick = ~0 ;
-            _mbStatInfo[i]._commitFlag.init( 1 ) ;
+            /// when ensure new collection, need reset the pMBStat
+            pMBStat = &( _mbStatInfo[i] ) ;
+            pMBStat->_lastWriteTick = ~0 ;
+            pMBStat->_commitFlag.init( 1 ) ;
 
-            _collectionInsert ( _dmsMME->_mbList[i]._collectionName, i,
-                                _dmsMME->_mbList[i]._clUniqueID ) ;
+            rc = _collectionInsert( pMB->_collectionName, i, pMB->_clUniqueID ) ;
+            if ( rc )
+            {
+               PD_LOG( PDSEVERE, "Failed to insert collection(Slot: %u, Name: %s.%s, ID: %llu) "
+                       "into map, rc: %d", i, getSuName(),
+                       pMB->_collectionName, pMB->_clUniqueID, rc ) ;
+               goto error ;
+            }
 
-            _mbStatInfo[i]._totalRecords = _dmsMME->_mbList[i]._totalRecords ;
-            _mbStatInfo[i]._rcTotalRecords.init( _dmsMME->_mbList[i]._totalRecords ) ;
-            _mbStatInfo[i]._totalDataPages =
-               _dmsMME->_mbList[i]._totalDataPages ;
-            _mbStatInfo[i]._totalIndexPages =
-               _dmsMME->_mbList[i]._totalIndexPages ;
-            _mbStatInfo[i]._totalDataFreeSpace =
-               _dmsMME->_mbList[i]._totalDataFreeSpace ;
-            _mbStatInfo[i]._totalIndexFreeSpace =
-               _dmsMME->_mbList[i]._totalIndexFreeSpace ;
-            _mbStatInfo[i]._totalLobPages =
-               _dmsMME->_mbList[i]._totalLobPages ;
-            _mbStatInfo[i]._totalLobs =
-               _dmsMME->_mbList[i]._totalLobs ;
-            _mbStatInfo[i]._lastCompressRatio =
-               _dmsMME->_mbList[i]._lastCompressRatio ;
-            _mbStatInfo[i]._totalDataLen =
-               _dmsMME->_mbList[i]._totalDataLen ;
-            _mbStatInfo[i]._totalLobSize =
-               _dmsMME->_mbList[i]._totalLobSize ;
-            _mbStatInfo[i]._totalValidLobSize =
-               _dmsMME->_mbList[i]._totalValidLobSize;
-            _mbStatInfo[i]._totalOrgDataLen =
-               _dmsMME->_mbList[i]._totalOrgDataLen ;
-            _mbStatInfo[i]._startLID =
-               _dmsMME->_mbList[i]._logicalID ;
-
-            _mbStatInfo[i]._createTime = _dmsMME->_mbList[i]._createTime ;
-            _mbStatInfo[i]._updateTime = _dmsMME->_mbList[i]._updateTime ;
+            pMBStat->setByMB( pMB ) ;
 
             /*
              * The following branch is for using newer program(SequoiaDB 2.0 or
@@ -1033,9 +1029,10 @@ namespace engine
              * needed, to avoid changing the dictionary related ids every time.
              * That would be done only the first time after upgrading.
              */
-            if ( upgradeDictInfo && ( 0 == _dmsMME->_mbList[i]._dictExtentID ) )
+            if ( upgradeDictInfo && ( 0 == pMB->_dictExtentID ) )
             {
-               _dmsMME->_mbList[i]._dictExtentID = DMS_INVALID_EXTENT ;
+               pMB->_dictExtentID = DMS_INVALID_EXTENT ;
+               pMBStat->_dictExtentID = pMB->_dictExtentID ;
             }
 
             /*
@@ -1044,13 +1041,12 @@ namespace engine
              * compress. So during the upgrading, set the _comrpessorType to 255
              * ( UTIL_COMPRESSOR_INVALID).
              */
-            if ( upgradeDictInfo
-                 && !OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes,
-                                   DMS_MB_ATTR_COMPRESSED )
-                 && ( UTIL_COMPRESSOR_INVALID
-                      != _dmsMME->_mbList[i]._compressorType ) )
+            if ( upgradeDictInfo &&
+                 !OSS_BIT_TEST( pMB->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+                 UTIL_COMPRESSOR_INVALID != pMB->_compressorType )
             {
-               _dmsMME->_mbList[i]._compressorType = UTIL_COMPRESSOR_INVALID ;
+               pMB->_compressorType = UTIL_COMPRESSOR_INVALID ;
+               pMBStat->_compressorType = pMB->_compressorType ;
             }
 
             /*
@@ -1058,34 +1054,29 @@ namespace engine
             */
             if ( !isCrashed() )
             {
-               if ( 0 == _dmsMME->_mbList[i]._commitFlag )
+               if ( 0 == pMB->_commitFlag )
                {
                   /// upgrade from the old version which has no
                   /// _commitLSN/_idxCommitLSN/_lobCommitLSN in mb block,
                   /// so the value of _commitLSN/_idxCommitLSN/_lobCommitLSN is 0
-                  if ( 0 == _dmsMME->_mbList[i]._commitLSN )
+                  if ( 0 == pMB->_commitLSN )
                   {
-                     _dmsMME->_mbList[i]._commitLSN =
-                        _pStorageInfo->_curLSNOnStart ;
+                     pMB->_commitLSN = _pStorageInfo->_curLSNOnStart ;
                   }
-                  _dmsMME->_mbList[i]._commitFlag = 1 ;
+                  pMB->_commitFlag = 1 ;
+                  pMBStat->_commitFlagSync = pMB->_commitFlag ;
                   needFlush = TRUE ;
                }
-               _mbStatInfo[i]._commitFlag.init( 1 ) ;
+               pMBStat->_commitFlag.init( 1 ) ;
             }
             else
             {
-               _mbStatInfo[i]._commitFlag.init( _dmsMME->_mbList[i]._commitFlag ) ;
+               pMBStat->_commitFlag.init( pMB->_commitFlag ) ;
             }
-            _mbStatInfo[i]._isCrash = ( 0 == _mbStatInfo[i]._commitFlag.peek() ) ?
-                                      TRUE : FALSE ;
-
-            // read the max GTID from disk
-            _mbStatInfo[i]._maxGlobTransID.init(
-                                  _dmsMME->_mbList[i]._maxGlobTransID ) ;
+            pMBStat->_isCrash = ( 0 == pMBStat->_commitFlag.peek() ) ? TRUE : FALSE ;
 
             /// lsn
-            _mbStatInfo[i]._lastLSN.init( _dmsMME->_mbList[i]._commitLSN ) ;
+            pMBStat->_lastLSN.init( pMB->_commitLSN ) ;
 
             // _mbOptExtentID is added in version 2.9(acoording data version is
             // 3, refer to DMS_DATASU_CUR_VERSION ) when developping capped
@@ -1093,15 +1084,42 @@ namespace engine
             // to upgrade the existing collections to this default value for
             // those collections which created on cs before this version.
             if ( _dmsHeader->_version < 3 &&
-                 DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._mbOptExtentID )
+                 DMS_INVALID_EXTENT != pMB->_mbOptExtentID )
             {
-               _dmsMME->_mbList[i]._mbOptExtentID = DMS_INVALID_EXTENT ;
+               pMB->_mbOptExtentID = DMS_INVALID_EXTENT ;
             }
+         }
+         else if ( _pStorageInfo->_pMetaFile->isValid() )
+         {
+            PD_LOG( PDWARNING, "The mb slot(%u) is not in use, the meta file of "
+                    "collection space(%s) maybe invalid", i, getSuName() ) ;
+            _pStorageInfo->_pMetaFile->invalidate( TRUE ) ;
+            goto retry ;
          }
          else
          {
-            _mbStatInfo[i]._lastWriteTick = ~0 ;
-            _mbStatInfo[i]._commitFlag.init( 1 ) ;
+            pMBStat->_lastWriteTick = ~0 ;
+            pMBStat->_commitFlag.init( 1 ) ;
+         }
+
+         i = _pStorageInfo->_pMetaFile->nextMBID( i ) ;
+      }
+
+      /// check collection number
+      if ( _dmsHeader->_numMB != _collectionNameMap.size() )
+      {
+         PD_LOG( PDWARNING, "Collection number in header(%u) is not the same with MME(%u)",
+                 _dmsHeader->_numMB, _collectionNameMap.size() ) ;
+
+         if ( _pStorageInfo->_pMetaFile->isValid() )
+         {
+            _pStorageInfo->_pMetaFile->invalidate( TRUE ) ;
+            goto retry ;
+         }
+         else
+         {
+            _dmsHeader->_numMB = _collectionNameMap.size() ;
+            needFlush = TRUE ;
          }
       }
 
@@ -1124,16 +1142,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__ONOPENED ) ;
 
       /* Initialize compressor entries for collections. */
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
+         rc = _initCompressorEntry( i ) ;
+         if ( rc )
          {
-            rc = _initCompressorEntry( i ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to initialize compressor entry for "
-                         "collection: %s, rc = %d",
-                         _dmsMME->_mbList[i]._collectionName, rc ) ;
+            dmsMBStatInfo *pMBStat = &( _mbStatInfo[i] ) ;
+            PD_LOG( PDERROR, "Failed to initialize compressor entry for collection(%s), rc: %d",
+                    pMBStat->_collectionName, rc ) ;
+            goto error ;
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
 
    done:
@@ -1149,7 +1170,27 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__ONCLOSED ) ;
       /// ensure static info will be flushed to file.
       /// do it here first.
-      syncMemToMmap() ;
+
+      if ( _getHasWritten() )
+      {
+         syncMemToMmap() ;
+      }
+
+      /// save meta
+      if ( !_pStorageInfo->_pMetaFile->isValid() )
+      {
+         UINT16 i = _nextUsedMBSlot( 0 ) ;
+         while( DMS_INVALID_MBID != i )
+         {
+            const dmsMBStatInfo *pMBStat = &(_mbStatInfo[ i ]) ;
+            dmsMBItem mbItem( i, pMBStat->_uniqueIdxNum,
+                                 pMBStat->_textIdxNum,
+                                 pMBStat->_globIdxNum ) ;
+            /// ignore error
+            _pStorageInfo->_pMetaFile->addMBItem( mbItem ) ;
+            i = _nextUsedMBSlot( i + 1 ) ;
+         }
+      }
 
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATACOMMON__ONCLOSED ) ;
    }
@@ -1158,7 +1199,8 @@ namespace engine
    {
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         _mbStatInfo[i]._commitFlag.compareAndSwap( 0, 1 ) ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[i] ) ;
+         pMBStat->_commitFlag.compareAndSwap( 0, 1 ) ;
       }
       return SDB_OK ;
    }
@@ -1173,59 +1215,67 @@ namespace engine
       UINT64 tmpLSN = 0 ;
       UINT32 tmpCommitFlag = 0 ;
 
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      dmsMB *pMB = NULL ;
+      dmsMBStatInfo *pMBStat = NULL ;
+
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
+         pMB = &( _dmsMME->_mbList[i] ) ;
+         pMBStat = &( _mbStatInfo[i] ) ;
+
+         tmpLSN = pMBStat->_lastLSN.fetch() ;
+         if ( !pMBStat->_commitFlag.compare( 0 ) )
          {
-            tmpLSN = _mbStatInfo[i]._lastLSN.fetch() ;
-            if ( !_mbStatInfo[i]._commitFlag.compare( 0 ) )
-            {
-               tmpCommitFlag = _mbStatInfo[i]._isCrash ? 0 : _mbStatInfo[i]._commitFlag.fetch() ;
+            tmpCommitFlag = pMBStat->_isCrash ? 0 : pMBStat->_commitFlag.fetch() ;
 
-               if ( tmpLSN != _dmsMME->_mbList[i]._commitLSN ||
-                    tmpCommitFlag != _dmsMME->_mbList[i]._commitFlag )
+            if ( tmpLSN != pMB->_commitLSN ||
+                 tmpCommitFlag != pMB->_commitFlag )
+            {
+               pMB->_commitLSN = tmpLSN ;
+               pMB->_commitTime = lastTime ;
+               pMBStat->_commitTime = pMB->_commitTime ;
+
+               if ( tmpCommitFlag &&
+                    pMBStat->_curWriteCount.fetch() > 0 &&
+                    !isClosed() )
                {
-                  _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
-                  _dmsMME->_mbList[i]._commitTime = lastTime ;
-
-                  if ( tmpCommitFlag &&
-                       _mbStatInfo[i]._curWriteCount.fetch() > 0 &&
-                       !isClosed() )
-                  {
-                     // Don't set _dmsMME->_mbList[i]._commitFlag to 1
-                     // Don't set header commitFlag to 1
-                     // Because the current write op has not completed( _writePtrCount > 0 )
-                     setHeadCommFlgValid = FALSE ;
-                     _mbStatInfo[i]._commitFlag.swap( 0 ) ;
-                  }
-                  else
-                  {
-                     _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
-                  }
-
-                  /// double check
-                  if ( _mbStatInfo[i]._commitFlag.compare( 0 ) &&
-                       _dmsMME->_mbList[i]._commitFlag )
-                  {
-                     _dmsMME->_mbList[i]._commitFlag = 0 ;
-                     setHeadCommFlgValid = FALSE ;
-                  }
-
-                  needFlush = TRUE ;
+                  // Don't set pMB->_commitFlag to 1
+                  // Don't set header commitFlag to 1
+                  // Because the current write op has not completed( _writePtrCount > 0 )
+                  setHeadCommFlgValid = FALSE ;
+                  pMBStat->_commitFlag.swap( 0 ) ;
                }
-            }
-            else
-            {
-               setHeadCommFlgValid = FALSE ;
-            }
+               else
+               {
+                  pMB->_commitFlag = tmpCommitFlag ;
+                  pMBStat->_commitFlagSync = pMB->_commitFlag ;
+               }
 
-            /// update last lsn
-            if ( (UINT64)~0 == lastLSN ||
-                 ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
-            {
-               lastLSN = tmpLSN ;
+               /// double check
+               if ( pMBStat->_commitFlag.compare( 0 ) && pMB->_commitFlag )
+               {
+                  pMB->_commitFlag = 0 ;
+                  pMBStat->_commitFlagSync = pMB->_commitFlag ;
+                  setHeadCommFlgValid = FALSE ;
+               }
+
+               needFlush = TRUE ;
             }
          }
+         else
+         {
+            setHeadCommFlgValid = FALSE ;
+         }
+
+         /// update last lsn
+         if ( (UINT64)~0 == lastLSN ||
+              ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
+         {
+            lastLSN = tmpLSN ;
+         }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
 
       if ( needFlush )
@@ -1239,29 +1289,41 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needSync = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
+      dmsMB *pMB = NULL ;
 
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _mbStatInfo[ collectionID ]._lastWriteTick = pmdGetDBTick() ;
-         if ( !_mbStatInfo[ collectionID ]._isCrash &&
-              _mbStatInfo[ collectionID ]._commitFlag.compareAndSwap( 1, 0 ) )
+         pMB = &( _dmsMME->_mbList[ collectionID ] ) ;
+         pMBStat = &( _mbStatInfo[ collectionID ] ) ;
+
+         pMBStat->_lastWriteTick = pmdGetDBTick() ;
+         if ( !pMBStat->_isCrash &&
+              pMBStat->_commitFlag.compareAndSwap( 1, 0 ) )
          {
             needSync = TRUE ;
-            _dmsMME->_mbList[ collectionID ]._commitFlag = 0 ;
+            pMB->_commitFlag = 0 ;
+            pMBStat->_commitFlagSync = pMB->_commitFlag ;
          }
       }
       else if ( -1 == collectionID )
       {
-         for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+         UINT16 i = _nextUsedMBSlot( 0 ) ;
+         while ( DMS_INVALID_MBID != i )
          {
-            _mbStatInfo[ i ]._lastWriteTick = pmdGetDBTick() ;
-            if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
-                 !_mbStatInfo[ i ]._isCrash &&
-                 _mbStatInfo[ i ]._commitFlag.compareAndSwap( 1, 0 ) )
+            pMB = &( _dmsMME->_mbList[ i ] ) ;
+            pMBStat = &( _mbStatInfo[ i ] ) ;
+
+            pMBStat->_lastWriteTick = pmdGetDBTick() ;
+            if ( !pMBStat->_isCrash &&
+                 pMBStat->_commitFlag.compareAndSwap( 1, 0 ) )
             {
                needSync = TRUE ;
-               _dmsMME->_mbList[ i ]._commitFlag = 0 ;
+               pMB->_commitFlag = 0 ;
+               pMBStat->_commitFlagSync = pMB->_commitFlag ;
             }
+
+            i = _nextUsedMBSlot( i + 1 ) ;
          }
       }
 
@@ -1276,7 +1338,8 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _mbStatInfo[ collectionID ]._curWriteCount.inc() ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[ collectionID ] ) ;
+         pMBStat->_curWriteCount.inc() ;
       }
    }
 
@@ -1284,7 +1347,8 @@ namespace engine
    {
       if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
       {
-         _mbStatInfo[ collectionID ]._curWriteCount.dec() ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[ collectionID ] ) ;
+         pMBStat->_curWriteCount.dec() ;
       }
    }
 
@@ -1293,15 +1357,19 @@ namespace engine
       UINT64 oldestWriteTick = ~0 ;
       UINT64 lastWriteTick = 0 ;
 
-      for ( INT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+      UINT16 i = _nextUsedMBSlot( 0 ) ;
+      while ( DMS_INVALID_MBID != i )
       {
-         lastWriteTick = _mbStatInfo[i]._lastWriteTick ;
+         const dmsMBStatInfo *pMBStat = &( _mbStatInfo[i] ) ;
+         lastWriteTick = pMBStat->_lastWriteTick ;
          /// The collection is commit valid, should ignored
-         if ( 0 == _mbStatInfo[i]._commitFlag.peek() &&
+         if ( 0 == pMBStat->_commitFlag.peek() &&
               lastWriteTick < oldestWriteTick )
          {
             oldestWriteTick = lastWriteTick ;
          }
+
+         i = _nextUsedMBSlot( i + 1 ) ;
       }
       return oldestWriteTick ;
    }
@@ -1310,7 +1378,8 @@ namespace engine
    {
       for ( INT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
-         _mbStatInfo[i]._isCrash = FALSE ;
+         dmsMBStatInfo *pMBStat = &( _mbStatInfo[i] ) ;
+         pMBStat->_isCrash = FALSE ;
       }
    }
 
@@ -1785,6 +1854,10 @@ namespace engine
          _releaseSpace( context->mb()->_dictExtentID, dictExt->_blockSize ) ;
          context->mb()->_dictExtentID = DMS_INVALID_EXTENT ;
          context->mb()->_dictVersion = 0 ;
+
+         /// update mbStat
+         context->mbStat()->_dictExtentID = context->mb()->_dictExtentID ;
+         context->mbStat()->_dictVersion = context->mb()->_dictVersion ;
       }
 
       context->mbStat()->_totalDataFreeSpace = 0 ;
@@ -2174,6 +2247,34 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsStorageDataCommon::getCollectionMBSlot( ossPoolVector< UINT16 > &vecMBSlot )
+   {
+      INT32 rc = SDB_OK ;
+
+      ossScopedLock lock( &_metadataLatch, SHARED ) ;
+
+      try
+      {
+         COLNAME_MAP::iterator it = _collectionNameMap.begin() ;
+         while( it != _collectionNameMap.end() )
+         {
+            vecMBSlot.push_back( it->second ) ;
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_ADDCOLLECTION, "_dmsStorageDataCommon::addCollection" )
    INT32 _dmsStorageDataCommon::addCollection( const CHAR * pName,
                                                UINT16 * collectionID,
@@ -2198,6 +2299,7 @@ namespace engine
       UINT32 logicalID        = DMS_INVALID_CLID ;
       BOOLEAN metalocked      = FALSE ;
       dmsMB *mb               = NULL ;
+      dmsMBStatInfo *pMBStat  = NULL ;
       SDB_DPSCB *dropDps      = NULL ;
       dmsMBContext *context   = NULL ;
 
@@ -2264,7 +2366,8 @@ namespace engine
          tmpMbID = _collectionIdLookup ( clUniqueID ) ;
          if ( DMS_INVALID_MBID != tmpMbID )
          {
-            const CHAR* clname = _dmsMME->_mbList[tmpMbID]._collectionName ;
+            pMBStat = &( _mbStatInfo[tmpMbID] ) ;
+            const CHAR* clname = pMBStat->_collectionName ;
             rc = SDB_DMS_UNIQUEID_CONFLICT ;
             PD_LOG ( PDERROR,
                      "CL unique id[%llu] already exists[name: %s.%s], rc: %d",
@@ -2310,26 +2413,31 @@ namespace engine
       rc = _collectionInsert( pName, newCollectionID, clUniqueID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG(PDERROR, "Failed to insert collectionID into map, rc:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to insert collectionID into map, rc: %d", rc ) ;
          newCollectionID = DMS_INVALID_MBID ;
          goto error ;
       }
 
       // set mb meta data and header data
-      logicalID = _dmsHeader->_MBHWM++ ;
-      mb = &_dmsMME->_mbList[newCollectionID] ;
+      logicalID = _fetchAndIncHWMID() ;
+      mb = &(_dmsMME->_mbList[newCollectionID]) ;
+      pMBStat = &(_mbStatInfo[ newCollectionID ]) ;
+
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
       mb->_createTime = ossGetCurrentMilliseconds() ;
       mb->_updateTime = mb->_createTime ;
-      _mbStatInfo[ newCollectionID ].reset() ;
-      _mbStatInfo[ newCollectionID ]._startLID = logicalID ;
-      _mbStatInfo[ newCollectionID ]._createTime = mb->_createTime ;
-      _mbStatInfo[ newCollectionID ]._updateTime = mb->_updateTime ;
+
+      pMBStat->reset() ;
+      pMBStat->setByMB( mb ) ;
       _compressorEntry[ newCollectionID ].reset() ;
 
-      _dmsHeader->_numMB++ ;
+      _incMBNum( 1 ) ;
       _onHeaderUpdated() ;
+      _pStorageInfo->_pMetaFile->invalidate() ;
+      _pStorageInfo->_pMetaFile->invalidateIndexCache( newCollectionID,
+                                                       _pStorageInfo->_suName,
+                                                       pName ) ;
 
       if ( isBlockScanSupport() )
       {
@@ -2423,7 +2531,7 @@ namespace engine
 
       if ( _pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          _pEventHolder->onCreateCL( DMS_EVENT_MASK_ALL, clItem, cb, dpscb ) ;
@@ -2532,21 +2640,13 @@ namespace engine
                       pName, rc ) ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_TRUNCATE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
-      }
-
-      if ( _pEventHolder )
-      {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
-                                context->mbID(),
-                                context->clLID() ) ;
-         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_BEFORE, clItem, cb, dpscb ) ;
       }
 
       // it is not need to lock that drop temp collection while startup
@@ -2572,6 +2672,14 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
+      if ( _pEventHolder )
+      {
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
+                                context->mbID(),
+                                context->clLID() ) ;
+         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_BEFORE, clItem, cb, dpscb ) ;
+      }
+
       // drop all index
       rc = _pIdxSU->dropAllIndexes( context, cb, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop index for collection[%s], "
@@ -2595,7 +2703,10 @@ namespace engine
       // change mb meta data
       DMS_SET_MB_DROPPED( context->mb()->_flag ) ;
       context->mb()->_logicalID-- ;
-      DMS_MB_STATINFO_CLEAR_TRUNCATED( context->mbStat()->_flag ) ;
+      // update mbStat
+      context->mbStat()->_flag = context->mb()->_flag ;
+      context->mbStat()->_logicalID = context->mb()->_logicalID ;
+      context->mbStat()->_hasTruncate = 0 ;
 
       if ( DMS_INVALID_EXTENT != context->mb()->_mbExExtentID )
       {
@@ -2636,8 +2747,14 @@ namespace engine
       metalocked = TRUE ;
       _collectionRemove( pName, clUniqueID ) ;
       DMS_SET_MB_FREE( context->mb()->_flag ) ;
-      _dmsHeader->_numMB-- ;
+      /// update mbStat
+      context->mbStat()->_flag = context->mb()->_flag ;
+      _incMBNum( -1 ) ;
       _onHeaderUpdated() ;
+      _pStorageInfo->_pMetaFile->invalidate() ;
+      _pStorageInfo->_pMetaFile->invalidateIndexCache( context->mbID(),
+                                                       _pStorageInfo->_suName,
+                                                       context->mbStat()->_collectionName ) ;
 
       // write dps log
       if ( dpscb )
@@ -2656,7 +2773,7 @@ namespace engine
 
       if ( _pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
+         dmsEventCLItem clItem( context->mbStat()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
@@ -2759,11 +2876,11 @@ namespace engine
                       pName, rc ) ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_TRUNCATE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -2790,19 +2907,6 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
-      // pause mb lock and change metadata
-      if ( needChangeCLID )
-      {
-         context->pause() ;
-         ossLatch( &_metadataLatch, EXCLUSIVE ) ;
-         newCLID = _dmsHeader->_MBHWM++ ;
-         ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
-         // resume context lock
-         rc = context->resume() ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d",
-                      rc ) ;
-      }
-
       oldRecords = context->mbStat()->_totalRecords ;
       oldLobs = context->mbStat()->_totalLobs ;
 
@@ -2812,7 +2916,7 @@ namespace engine
          if ( handler )
          {
             rc = handler->onTruncateCL( getSuName(),
-                                        context->mb()->_collectionName,
+                                        context->mbStat()->_collectionName,
                                         cb, needChangeCLID ) ;
             PD_RC_CHECK( rc, PDERROR, "External operation on truncate "
                          "collection failed, rc: %d", rc ) ;
@@ -2824,6 +2928,14 @@ namespace engine
             goto error ;
          }
       }
+
+      if ( needChangeCLID )
+      {
+         // use atomic increment to avoid lock on meta data
+         newCLID = _fetchAndIncHWMID() ;
+      }
+      oldRecords = context->mbStat()->_totalRecords ;
+      oldLobs = context->mbStat()->_totalLobs ;
 
       rc = _pIdxSU->truncateIndexes( context, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
@@ -2850,14 +2962,15 @@ namespace engine
                       pName, rc ) ;
       }
 
+      oldCLID = context->_clLID ;
       // change mb metadata
       if ( needChangeCLID )
       {
-         oldCLID = context->_clLID ;
          context->mb()->_logicalID = newCLID ;
+         context->mbStat()->_logicalID = context->mb()->_logicalID ;
          context->_clLID           = newCLID ;
       }
-      DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
+      context->mbStat()->_hasTruncate = 1 ;
 
       if ( handler )
       {
@@ -2959,8 +3072,10 @@ namespace engine
                                                   utilCSUniqueID csUniqueID,
                                                   BOOLEAN isLoadCS )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
       BOOLEAN hasChanged = FALSE ;
+      dmsMBStatInfo *pMBStat = NULL ;
 
       ossScopedLock lock( &_metadataLatch, EXCLUSIVE ) ;
 
@@ -3002,28 +3117,39 @@ namespace engine
          {
             continue ;
          }
+
+         rc = _collectionChangeID( orgClUniqueID, newClUniqueID, mbID ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Change collection(Slot: %u, Name: %s.%s, ID: %llu) unique id to "
+                    "%llu failed, rc: %d", mbID, getSuName(), clName.c_str(), orgClUniqueID,
+                    newClUniqueID, rc ) ;
+            goto error ;
+         }
+
          hasChanged = TRUE ;
 
+         pMBStat = &( _mbStatInfo[mbID] ) ;
          // set new unique id
          _dmsMME->_mbList[mbID]._clUniqueID = newClUniqueID ;
-
-         _collectionRemove ( clName.c_str(), orgClUniqueID ) ;
-         _collectionInsert ( clName.c_str(), mbID, newClUniqueID ) ;
+         pMBStat->_clUniqueID = _dmsMME->_mbList[mbID]._clUniqueID ;
 
          PD_LOG( PDEVENT,
                  "Change cl[%s.%s] unique id from [%llu] to [%llu]",
-                 _dmsHeader->_name, clName.c_str(),
+                 getSuName(), clName.c_str(),
                  orgClUniqueID, newClUniqueID ) ;
-
       }
 
+   done:
       if ( hasChanged )
       {
          flushMME( isSyncDeep() ) ;
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION, "_dmsStorageDataCommon::renameCollection" )
@@ -3043,6 +3169,8 @@ namespace engine
       BOOLEAN isTransLocked   = FALSE ;
       UINT16  mbID            = DMS_INVALID_MBID ;
       UINT32  clLID           = DMS_INVALID_CLID ;
+      dmsMBStatInfo *pMBStat  = NULL ;
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
       PD_TRACE2 ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION,
                   PD_PACK_STRING ( oldName ),
@@ -3119,13 +3247,29 @@ namespace engine
                                    "rc: %d", rc ) ;
       }
 
-      _collectionRemove ( oldName ) ;
-      _collectionInsert ( newName, mbID ) ;
+      clUniqueID = _dmsMME->_mbList[ mbID ]._clUniqueID ;
+      rc = _collectionChangeName( oldName, newName, _dmsMME->_mbList[ mbID ]._clUniqueID,
+                                  clUniqueID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to change collection(Slot: %u, Name: %s.%s, ID: %llu) to "
+                 "(Name: %s, ID: %llu), rc: %d", mbID, getSuName(), oldName,
+                 _dmsMME->_mbList[ mbID ]._clUniqueID, newName, clUniqueID, rc ) ;
+         goto error ;
+      }
+
+      pMBStat = &( _mbStatInfo[ mbID ] ) ;
+      /// update mb info
       ossMemset ( _dmsMME->_mbList[mbID]._collectionName, 0,
                   DMS_COLLECTION_NAME_SZ ) ;
       ossStrncpy ( _dmsMME->_mbList[mbID]._collectionName, newName,
                    DMS_COLLECTION_NAME_SZ ) ;
-      clLID = _dmsMME->_mbList[mbID]._logicalID ;
+
+      ossMemset ( pMBStat->_collectionName, 0, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncpy ( pMBStat->_collectionName, _dmsMME->_mbList[mbID]._collectionName,
+                   DMS_COLLECTION_NAME_SZ ) ;
+
+      clLID = pMBStat->_logicalID ;
 
       // on metadata updated
       _onMBUpdated( mbID ) ;
@@ -3196,7 +3340,8 @@ namespace engine
       {
          if ( pClUniqueID )
          {
-            *pClUniqueID = _dmsMME->_mbList[ collectionID ]._clUniqueID ;
+            dmsMBStatInfo *pMBStat = &( _mbStatInfo[ collectionID ] ) ;
+            *pClUniqueID = pMBStat->_clUniqueID ;
          }
       }
 
@@ -3400,11 +3545,10 @@ namespace engine
          // calc log reserve
          if ( dpscb )
          {
-            _clFullName( context->mb()->_collectionName, fullName,
-                         sizeof(fullName) ) ;
+            _clFullName( context->mbStat()->_collectionName, fullName, sizeof(fullName) ) ;
 
             if ( ( !cb->isInTransRollback() ) &&
-                 ( !OSS_BIT_TEST( context->mb()->_attributes,
+                 ( !OSS_BIT_TEST( context->mbStat()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX ) ) &&
                  ( context->mbStat()->_uniqueIdxNum > 1 ) )
             {
@@ -3460,16 +3604,16 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // then make sure the collection compatiblity
-         if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+         if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                               DMS_ACCESS_TYPE_INSERT ) )
          {
             PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                     context->mb()->_flag ) ;
+                     context->mbStat()->_flag ) ;
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
          else if ( isTransSupport( context ) &&
-                   OSS_BIT_TEST( context->mb()->_attributes,
+                   OSS_BIT_TEST( context->mbStat()->_attributes,
                                  DMS_MB_ATTR_NOIDINDEX ) &&
                    cb->isTransaction() &&
                    !cb->isInTransRollback() )
@@ -3488,7 +3632,7 @@ namespace engine
             {
                rc = handler->prepare( DMS_EXTOPR_TYPE_INSERT,
                                       getSuName(),
-                                      context->mb()->_collectionName,
+                                      context->mbStat()->_collectionName,
                                       NULL, &insertObj, NULL, cb ) ;
                PD_RC_CHECK( rc, PDERROR, "External operation check failed, "
                             "rc: %d", rc ) ;
@@ -3513,7 +3657,7 @@ namespace engine
             pRecord->unsetDeleting() ;
 
             ++( pWRExtent->_recCount ) ;
-            _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
+            _increaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
             context->mbStat()->_totalDataLen += recordData.len() ;
             context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
@@ -3521,7 +3665,7 @@ namespace engine
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
                     "in collection [%s.%s] to rollback transaction [%s]",
                     foundRID._extent, foundRID._offset,
-                    getSuName(), context->mb()->_collectionName,
+                    getSuName(), context->mbStat()->_collectionName,
                     dpsTransIDToString(
                           DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
 #endif
@@ -3757,11 +3901,11 @@ namespace engine
       }
 
 #ifdef _DEBUG
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+      if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                            DMS_ACCESS_TYPE_DELETE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
+                  context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
@@ -3878,7 +4022,7 @@ namespace engine
                   {
                      rc = handler->prepare( DMS_EXTOPR_TYPE_DELETE,
                                             getSuName(),
-                                            context->mb()->_collectionName, NULL,
+                                            context->mbStat()->_collectionName, NULL,
                                             &delObject, NULL, cb ) ;
                      PD_RC_CHECK( rc, PDERROR, "External operation check failed, "
                                   "rc: %d", rc ) ;
@@ -3903,8 +4047,7 @@ namespace engine
                      }
                   }
 
-                  _clFullName( context->mb()->_collectionName, fullName,
-                               sizeof(fullName) ) ;
+                  _clFullName( context->mbStat()->_collectionName, fullName, sizeof(fullName) ) ;
 
                   if ( ( !cb->isInTransRollback() ) &&
                        ( context->mbStat()->_uniqueIdxNum > 1 ) )
@@ -4029,7 +4172,7 @@ namespace engine
             pRecord->setDeleting() ;
             // need to dec count
             --( pExtent->_recCount ) ;
-            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(), cb ) ;
+            _decreaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
@@ -4175,11 +4318,11 @@ namespace engine
          pRecord = recordRW.readPtr() ;
 
 #ifdef _DEBUG
-         if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+         if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                               DMS_ACCESS_TYPE_UPDATE ) )
          {
             PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                     context->mb()->_flag ) ;
+                     context->mbStat()->_flag ) ;
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
@@ -4284,7 +4427,7 @@ namespace engine
                {
                   rc = handler->prepare( DMS_EXTOPR_TYPE_UPDATE,
                                          getSuName(),
-                                         context->mb()->_collectionName, NULL,
+                                         context->mbStat()->_collectionName, NULL,
                                          &obj, &newobj, cb ) ;
                   PD_RC_CHECK( rc, PDERROR, "External operation check failed, "
                                "rc: %d", rc ) ;
@@ -4293,8 +4436,7 @@ namespace engine
 
             if ( NULL != dpscb )
             {
-               _clFullName( context->mb()->_collectionName, fullName,
-                            sizeof(fullName) ) ;
+               _clFullName( context->mbStat()->_collectionName, fullName, sizeof(fullName) ) ;
 
                if ( ( !cb->isInTransRollback() ) &&
                     ( context->mbStat()->_uniqueIdxNum > 1 ) )
@@ -4526,11 +4668,11 @@ namespace engine
 
       try
       {
-         if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+         if ( !dmsAccessAndFlagCompatiblity ( context->mbStat()->_flag,
                                               DMS_ACCESS_TYPE_FETCH ) )
          {
             PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                     context->mb()->_flag ) ;
+                     context->mbStat()->_flag ) ;
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
@@ -4607,11 +4749,10 @@ namespace engine
 
       UINT16 mbID = context->mbID() ;
 
-      if ( OSS_BIT_TEST( context->mb()->_attributes,
+      if ( OSS_BIT_TEST( context->mbStat()->_attributes,
                          DMS_MB_ATTR_COMPRESSED ) )
       {
-         UTIL_COMPRESSOR_TYPE type =
-            (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
+         UTIL_COMPRESSOR_TYPE type = (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
 
          /// only set when snappy
          if ( UTIL_COMPRESSOR_SNAPPY == type )
@@ -4656,8 +4797,7 @@ namespace engine
       dmsMB *mb = context->mb() ;
       dmsExtentID dictExtID = DMS_INVALID_EXTENT ;
       dmsDictExtent *dictExtent = NULL ;
-      dmsCompressorEntry *compressorEntry =
-         &_compressorEntry[ context->mbID() ] ;
+      dmsCompressorEntry *compressorEntry = &_compressorEntry[ context->mbID() ] ;
 
       SDB_ASSERT( context, "MB context is NULL" ) ;
       SDB_ASSERT( dictionary && dictLen > 0, "Dictionary is NULL" ) ;
@@ -4674,18 +4814,18 @@ namespace engine
          goto error ;
       }
 
-      if ( !dmsAccessAndFlagCompatiblity( mb->_flag,
+      if ( !dmsAccessAndFlagCompatiblity( context->mbStat()->_flag,
                                           DMS_ACCESS_TYPE_CRT_DICT ) )
       {
-         PD_LOG( PDERROR, "Incompatible collection mode: %d", mb->_flag ) ;
+         PD_LOG( PDERROR, "Incompatible collection mode: %d", context->mbStat()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
 
-      if ( !OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) )
+      if ( !OSS_BIT_TEST( context->mbStat()->_attributes, DMS_MB_ATTR_COMPRESSED ) )
       {
          PD_LOG( PDERROR, "Compression is not enabled for collection[%s]",
-                 mb->_collectionName ) ;
+                 context->mbStat()->_collectionName ) ;
          rc = SDB_OPERATION_INCOMPATIBLE ;
          goto error ;
       }
@@ -4693,7 +4833,7 @@ namespace engine
       if ( UTIL_COMPRESSOR_LZW != mb->_compressorType )
       {
          PD_LOG( PDERROR, "Compression type of collection[%s] is not lzw",
-                 mb->_collectionName ) ;
+                 context->mbStat()->_collectionName ) ;
          rc = SDB_OPERATION_INCOMPATIBLE ;
          goto error ;
       }
@@ -4701,7 +4841,7 @@ namespace engine
       if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
       {
          PD_LOG( PDERROR, "Collection[%s] has valid compression dictionary and "
-                 "force load is false", mb->_collectionName ) ;
+                 "force load is false", context->mbStat()->_collectionName ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -4742,6 +4882,10 @@ namespace engine
       mb->_dictExtentID = dictExtID ;
       mb->_dictVersion = UTIL_LZW_DICT_VERSION ;
 
+      /// update mbStat
+      context->mbStat()->_dictExtentID = mb->_dictExtentID ;
+      context->mbStat()->_dictVersion = mb->_dictVersion ;
+
       // on metadata updated
       _onMBUpdated( context->mbID() ) ;
 
@@ -4749,8 +4893,7 @@ namespace engine
       flushMME( isSyncDeep() ) ;
 
       {
-         UTIL_COMPRESSOR_TYPE type  =
-               (UTIL_COMPRESSOR_TYPE)mb->_compressorType ;
+         UTIL_COMPRESSOR_TYPE type  = (UTIL_COMPRESSOR_TYPE)mb->_compressorType ;
          dmsCompressorGuard guard( compressorEntry, EXCLUSIVE ) ;
          compressorEntry->setCompressor( getCompressorByType( type ) ) ;
          compressorEntry->setDictionary(
@@ -4922,10 +5065,11 @@ namespace engine
 
       SDB_ASSERT( mbID < DMS_MME_SLOTS, "mb ID is invalid" ) ;
 
+      dmsMBStatInfo *pMBStat = &( _mbStatInfo[ mbID ] ) ;
       UINT64 updateTime = ossGetCurrentMilliseconds() ;
 
       _dmsMME->_mbList[ mbID ]._updateTime = updateTime ;
-      _mbStatInfo[ mbID ]._updateTime = updateTime ;
+      pMBStat->_updateTime = updateTime ;
 
       // update on storage unit
       _onHeaderUpdated( updateTime ) ;

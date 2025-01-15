@@ -437,6 +437,35 @@ namespace engine
       return _totalFree ;
    }
 
+   INT32 _dmsSegmentSpace::saveToMeta( DMS_FILE_TYPE fileType, dmsMetaFile *pMetaFile )
+   {
+      INT32 rc = SDB_OK ;
+      list<_dmsSegmentNode>::iterator it ;
+      UINT32 start = 0 ;
+      UINT32 size = 0 ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      for ( it = _freeSpaceList.begin(); it != _freeSpaceList.end(); ++it )
+      {
+         // get the node
+         _dmsSegmentNode &node = (*it) ;
+         start = DMS_SEGMENT_NODE_GETSTART( node ) + _startExtent ;
+         size = DMS_SEGMENT_NODE_GETSIZE( node ) ;
+
+         rc = pMetaFile->addSMEItem( fileType, ossPack32To64( start, size ) ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _dmsSMEMgr : implement
    */
@@ -449,30 +478,75 @@ namespace engine
 
    _dmsSMEMgr::~_dmsSMEMgr ()
    {
+      _clear() ;
+
+      _pStorageBase = NULL ;
+      _pSME = NULL ;
+   }
+
+   void _dmsSMEMgr::_clear()
+   {
       vector<dmsSegmentSpace*>::iterator it ;
       for ( it = _segments.begin(); it != _segments.end(); ++it )
       {
          SDB_OSS_DEL ( *it ) ;
       }
       _segments.clear() ;
-      _pStorageBase = NULL ;
-      _pSME = NULL ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_INIT, "_dmsSMEMgr::init" )
    INT32 _dmsSMEMgr::init ( _dmsStorageBase *pStorageBase,
-                            _dmsSpaceManagementExtent *pSME )
+                            _dmsSpaceManagementExtent *pSME,
+                            dmsMetaFile *pMetaFile )
    {
+      INT32 rc          = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB__DMSSMEMGR_INIT ) ;
 
-      INT32 rc          = SDB_OK ;
       _pageSize         = pStorageBase->pageSize() ;
       _pStorageBase     = pStorageBase ;
       _pSME             = pSME ;
 
-      UINT32 segmentPages       = pStorageBase->segmentPages() ;
-      UINT32 segmentPagesSqure  = pStorageBase->segmentPagesSquareRoot() ;
-      UINT32 totalDataPages     = pStorageBase->pageNum() ;
+      if ( pMetaFile->isValid() )
+      {
+         rc = _initByMetaFile( pMetaFile ) ;
+         if ( SDB_OK == rc )
+         {
+            goto done ;
+         }
+         else if ( SDB_SYS != rc && SDB_CORRUPTED_RECORD != rc )
+         {
+            goto error ;
+         }
+
+         /// invlidate meta
+         pMetaFile->invalidate( TRUE ) ;
+         _clear() ;
+      }
+
+      rc = _initBySME() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_INIT, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR__INIT_BYSME, "_dmsSMEMgr::_initBySME" )
+   INT32 _dmsSMEMgr::_initBySME()
+   {
+      INT32 rc          = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR__INIT_BYSME ) ;
+
+      UINT32 segmentPages       = _pStorageBase->segmentPages() ;
+      UINT32 segmentPagesSqure  = _pStorageBase->segmentPagesSquareRoot() ;
+      UINT32 totalDataPages     = _pStorageBase->pageNum() ;
       UINT32 initPages          = 0 ;
       UINT32 releaseBegin       = 0 ;
       BOOLEAN inUse             = FALSE ;
@@ -525,7 +599,7 @@ namespace engine
             releaseBegin = i ;
          }
 
-         if ( DMS_SME_FREE != pSME->getBitMask( i ) && !inUse )
+         if ( DMS_SME_FREE != _pSME->getBitMask( i ) && !inUse )
          {
             rc = newspace->releasePages( releaseBegin, i - releaseBegin,
                                          FALSE ) ;
@@ -537,7 +611,7 @@ namespace engine
             _totalFree.add( i - releaseBegin ) ;
             inUse = TRUE ;
          }
-         else if ( DMS_SME_FREE == pSME->getBitMask( i ) && inUse )
+         else if ( DMS_SME_FREE == _pSME->getBitMask( i ) && inUse )
          {
             inUse = FALSE ;
             releaseBegin = i ;
@@ -545,7 +619,7 @@ namespace engine
       }
 
       // check whether we are still in free state at the end
-      if ( i > 0 && DMS_SME_FREE == pSME->getBitMask( i - 1 ) )
+      if ( i > 0 && DMS_SME_FREE == _pSME->getBitMask( i - 1 ) )
       {
          rc = newspace->releasePages ( releaseBegin, i - releaseBegin, FALSE ) ;
          if ( rc )
@@ -557,7 +631,84 @@ namespace engine
       }
 
    done :
-      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_INIT, rc );
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR__INIT_BYSME, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR__INIT_BYMETAFILE, "_dmsSMEMgr::_initByMetaFile" )
+   INT32 _dmsSMEMgr::_initByMetaFile( dmsMetaFile *pMetaFile )
+   {
+      INT32 rc          = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR__INIT_BYMETAFILE ) ;
+
+      UINT32 segmentPages       = _pStorageBase->segmentPages() ;
+      UINT32 totalDataPages     = _pStorageBase->pageNum() ;
+      UINT32 initPages          = 0 ;
+      dmsSegmentSpace *newspace = NULL ;
+
+      UINT32 i                  = 0 ;
+      UINT64 smeItem = pMetaFile->beginSMEItem( _pStorageBase->getFileType() ) ;
+      UINT32 start = 0 ;
+      UINT32 len = 0 ;
+
+      while ( i < totalDataPages )
+      {
+         /// the new space
+         initPages = ( ( totalDataPages - i ) >= segmentPages ) ?
+                        segmentPages : ( totalDataPages - i ) ;
+         newspace = SDB_OSS_NEW dmsSegmentSpace( i, initPages, segmentPages, this ) ;
+         if ( NULL == newspace )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate memory" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         try
+         {
+            _segments.push_back( newspace ) ;
+         }
+         catch ( std::exception &e )
+         {
+            SDB_OSS_DEL newspace ;
+            newspace = NULL ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+
+         /// check sme item
+         ossUnpack32From64( smeItem, start, len ) ;
+         while ( (UINT64)~0 != smeItem && start >= i && start < i + segmentPages )
+         {
+            rc = newspace->releasePages( start, len, FALSE ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to release pages, rc = %d", rc ) ;
+               goto error ;
+            }
+            _totalFree.add( len ) ;
+
+            smeItem = pMetaFile->nextSMEItem( _pStorageBase->getFileType(), smeItem ) ;
+            ossUnpack32From64( smeItem, start, len ) ;
+         }
+
+         i += initPages ;
+      }
+
+      if ( (UINT64)~0 != smeItem )
+      {
+         /// has some space out of range, maybe the meta is invalid
+         PD_LOG( PDWARNING, "SME item(%u,%u) is out of max segment sme(%u,%u), maybe the meta "
+                 "file is corrupted", start, len, i, segmentPages ) ;
+         rc = SDB_CORRUPTED_RECORD ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR__INIT_BYMETAFILE, rc );
       return rc ;
    error :
       goto done ;
@@ -785,6 +936,43 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSMEMGR_APPENDPAGES, rc );
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 _dmsSMEMgr::saveToMeta( dmsMetaFile *pMetaFile )
+   {
+      INT32 rc = SDB_OK ;
+
+      ossScopedRWLock lock( &_mutex, SHARED ) ;
+
+      if ( pMetaFile->isValid() )
+      {
+         /// the file is valid, no need save
+         goto done ;
+      }
+
+      if ( !_pStorageBase )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      for ( UINT32 i = 0 ; i < _segments.size() ; ++i )
+      {
+         rc = _segments[i]->saveToMeta( _pStorageBase->getFileType(), pMetaFile ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         if ( ! pMetaFile->checkSize() )
+         {
+            break ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

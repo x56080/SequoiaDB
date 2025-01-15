@@ -434,10 +434,10 @@ namespace engine
 
          INT32    _dumpCLInfo ( monCLSimple &collection, UINT16 mbID ) ;
 
-         INT32    _getIndexes ( const dmsMB *mb,
+         INT32    _getIndexes ( dmsMBContext *context,
                                 MON_IDX_LIST &resultIndexes ) ;
 
-         INT32    _getIndex ( const dmsMB *mb,
+         INT32    _getIndex ( dmsMBContext *context,
                               const CHAR *pIndexName,
                               monIndex &resultIndex ) ;
 
@@ -610,6 +610,7 @@ namespace engine
                                  DMS_STORAGE_TYPE &type ) ;
 
       private :
+         dmsMetaFile                         *_pMetaFile ;
          dmsStorageDataCommon                *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;
          dmsStorageInfo                      _storageInfo ;

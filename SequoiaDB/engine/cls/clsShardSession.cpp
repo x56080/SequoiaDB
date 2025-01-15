@@ -1568,7 +1568,7 @@ namespace engine
 
       ossStrncpy( csNameInData, su->CSName(), DMS_COLLECTION_SPACE_NAME_SZ ) ;
       ossStrncpy( clNameInData,
-                  pMBContext->mb()->_collectionName,
+                  pMBContext->mbStat()->_collectionName,
                   DMS_COLLECTION_NAME_SZ ) ;
 
       su->data()->releaseMBContext( pMBContext ) ;

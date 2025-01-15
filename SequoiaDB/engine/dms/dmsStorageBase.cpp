@@ -536,11 +536,21 @@ namespace engine
       _lastWriteTick      = 0 ;
       _writeReordNum      = 0 ;
       _lastSyncTime       = 0 ;
+      _hasWriten          = FALSE ;
       _syncEnable         = TRUE ;
 
       /// the default can not be 0, because the value set is after load, but
       /// sync thread may call canInvalidateFSCache() function
-      _fsCacheExpiredMs   = 3600 * OSS_ONE_SEC ;
+      _fsCacheExpiredMs   = (UINT64)~0 ;
+      _storageUnitSize    = 0 ;
+      _MBHWM              = 0 ;
+      _numMB              = 0 ;
+      _commitFlagCache    = 0 ;
+      _commitLsnCache     = (UINT64)~0 ;
+      _commitTimeCache    = 0 ;
+      _createTimeCache    = 0 ;
+      _updateTimeCache    = 0 ;
+
       setGetTickFunc( pmdGetDBTick ) ;
    }
 
@@ -616,47 +626,27 @@ namespace engine
 
    UINT32 _dmsStorageBase::getCommitFlag() const
    {
-      if ( _dmsHeader )
-      {
-         return _dmsHeader->_commitFlag ;
-      }
-      return 1 ;
+      return _commitFlagCache ;
    }
 
    UINT64 _dmsStorageBase::getCommitLSN() const
    {
-      if ( _dmsHeader )
-      {
-         return _dmsHeader->_commitLsn ;
-      }
-      return 0 ;
+      return _commitLsnCache ;
    }
 
    UINT64 _dmsStorageBase::getCommitTime() const
    {
-      if ( _dmsHeader )
-      {
-         return _dmsHeader->_commitTime ;
-      }
-      return 0 ;
+      return _commitTimeCache ;
    }
 
    UINT64 _dmsStorageBase::getCreateTime() const
    {
-      if ( _dmsHeader )
-      {
-         return _dmsHeader->_createTime ;
-      }
-      return 0 ;
+      return _createTimeCache ;
    }
 
    UINT64 _dmsStorageBase::getUpdateTime() const
    {
-      if ( _dmsHeader )
-      {
-         return _dmsHeader->_updateTime ;
-      }
-      return 0 ;
+      return _updateTimeCache ;
    }
 
    void _dmsStorageBase::restoreForCrash()
@@ -680,6 +670,7 @@ namespace engine
       _isCrash = TRUE ;
       _commitFlag = 0 ;
       _dmsHeader->_commitFlag = 0 ;
+      _commitFlagCache = _dmsHeader->_commitFlag ;
 
       /// flush header
       flushHeader( TRUE ) ;
@@ -696,7 +687,7 @@ namespace engine
    {
       force = FALSE ;
 
-      if ( !_syncEnable )
+      if ( isClosed() || !_syncEnable )
       {
          return FALSE ;
       }
@@ -706,7 +697,7 @@ namespace engine
          return TRUE ;
       }
 
-      if ( 0 != _commitFlag && _dirtyList.dirtyNumber() <= 0 )
+      if ( 0 != _commitFlag && !_getHasWritten() && _dirtyList.dirtyNumber() <= 0 )
       {
          return FALSE ;
       }
@@ -782,6 +773,10 @@ namespace engine
       {
          goto done ;
       }
+      else if ( _commitFlag && !_getHasWritten() && 0 == _dirtyList.dirtyNumber() )
+      {
+         goto done ;
+      }
 
       ossGetCurrentTime( t ) ;
       _lastSyncTime = t.time * 1000 + t.microtm / 1000 ;
@@ -791,6 +786,7 @@ namespace engine
       /// then check commitFlag, when valid, need to reflush header
       _commitFlag = 1 ;
       _forceSync = FALSE ;
+      _hasWriten = FALSE ;
 
       if ( _dirtyList.isFullDirty() )
       {
@@ -821,6 +817,8 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_SYNC, rc ) ;
       return rc ;
    error:
+      /// when failed, set _hasWriten
+      _setHasWritten( TRUE ) ;
       goto done ;
    }
 
@@ -829,7 +827,11 @@ namespace engine
       BOOLEAN rs = FALSE ;
       UINT32 i = 0 ;
 
-      if ( (UINT64)~0 == _fsCacheExpiredMs )
+      if ( isClosed() )
+      {
+         goto done ;
+      }
+      else if ( (UINT64)~0 == _fsCacheExpiredMs )
       {
          goto done ;
       }
@@ -1017,6 +1019,9 @@ namespace engine
       // is it a brand new file
       if ( 0 == fileSize )
       {
+         /// invalidate meta file
+         _pStorageInfo->_pMetaFile->invalidate( TRUE ) ;
+
          // if it's a brand new file but we don't ask for creating new storage
          // unit, then we exit with invalid su error
          if ( !createNew )
@@ -1097,6 +1102,12 @@ namespace engine
          CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          ossTimestampToString( commitTm, strTime ) ;
 
+         if ( _isCrash )
+         {
+            /// invalidate meta file
+            _pStorageInfo->_pMetaFile->invalidate( TRUE ) ;
+         }
+
          PD_LOG( PDEVENT, "Storage file[%s] is %s[%u], CommitLSN: %lld, "
                  "CommitTime: %s[%llu]", _suFileName,
                  ( _isCrash ? "Invalid" : "Valid" ), _commitFlag,
@@ -1109,6 +1120,13 @@ namespace engine
          _dmsHeader->_updateTime = _dmsHeader->_createTime ;
       }
 
+      /// update header cache
+      _commitFlagCache = _dmsHeader->_commitFlag ;
+      _commitLsnCache = _dmsHeader->_commitLsn ;
+      _commitTimeCache = _dmsHeader->_commitTime ;
+      _createTimeCache = _dmsHeader->_createTime ;
+      _updateTimeCache = _dmsHeader->_updateTime ;
+
       // SME, 16MB
       rc = map ( DMS_SME_OFFSET, DMS_SME_SZ, (void**)&_dmsSME ) ;
       if ( rc )
@@ -1120,16 +1138,18 @@ namespace engine
       // initialize SME Manager, which is used to do fast-lookup and release
       // for extents. Note _pageSize is initialized in _validateHeader, so
       // we are safe to use page size here
-      rc = _smeMgr.init ( this, _dmsSME ) ;
+      rc = _smeMgr.init ( this, _dmsSME, _pStorageInfo->_pMetaFile ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to initialize SME, rc = %d", rc ) ;
          goto error ;
       }
 
-      rc = _onMapMeta( (UINT64)( DMS_SME_OFFSET + DMS_SME_SZ ) ) ;
+      rc = _onMapMeta( (UINT64)( DMS_SME_OFFSET + DMS_SME_SZ ), createNew ) ;
       PD_RC_CHECK( rc, PDERROR, "map file[%s] meta failed, rc: %d",
                    _suFileName, rc ) ;
+      /// set _numMB
+      _numMB = _dmsHeader->_numMB ;
 
       // make sure the file size is multiple of segments
       if ( !_checkFileSizeValidBySegment( fileSize, rightSize ) )
@@ -1288,6 +1308,12 @@ namespace engine
       if ( ossMmapFile::_opened )
       {
          BOOLEAN hasFlushData = FALSE ;
+
+         if ( !_commitFlag || _dirtyList.dirtyNumber() > 0 )
+         {
+            _setHasWritten( TRUE ) ;
+         }
+
          _onClosed() ;
 
          if ( _dirtyList.dirtyNumber() > 0 )
@@ -1298,14 +1324,21 @@ namespace engine
          /// set commit flag valid
          _commitFlag = 1 ;
          /// make header valid
-         _markHeaderValid( _syncDeep, TRUE, hasFlushData, 0 ) ;
+         if ( _getHasWritten() || hasFlushData )
+         {
+            _markHeaderValid( _syncDeep, TRUE, hasFlushData, 0 ) ;
+         }
          /// close file
          ossMmapFile::close() ;
+
+         /// save meta file, ignore error
+         _smeMgr.saveToMeta( _pStorageInfo->_pMetaFile ) ;
 
          _dmsHeader = NULL ;
          _dmsSME = NULL ;
       }
       _maxSegID = -1 ;
+      _hasWriten = FALSE ;
    }
 
    INT32 _dmsStorageBase::removeStorage()
@@ -1392,6 +1425,9 @@ namespace engine
          IDataStatManager *pStatMgr = _pStatMgr ;
          /// close
          closeStorage() ;
+         /// force invalid meta
+         _pStorageInfo->_pMetaFile->invalidate( TRUE ) ;
+         _pStorageInfo->_pMetaFile->invalidateAllIndexCache() ;
 
          /// rename
          rc = ossRenamePath( _fullPathName, tmpPathFile ) ;
@@ -1527,6 +1563,10 @@ namespace engine
    INT32 _dmsStorageBase::_initializeStorageUnit ()
    {
       INT32   rc        = SDB_OK ;
+      CHAR *pBuffer     = NULL ;
+      const UINT32 buffSize = 2 * 1024 * 1024 ;    /// 2MB
+      UINT32 hasWriteSize = 0 ;
+
       _dmsHeader        = NULL ;
       _dmsSME           = NULL ;
 
@@ -1563,41 +1603,46 @@ namespace engine
       SDB_OSS_DEL _dmsHeader ;
       _dmsHeader = NULL ;
 
-      // then SME
-      _dmsSME = SDB_OSS_NEW dmsSpaceManagementExtent ;
-      if ( !_dmsSME )
+      SDB_ASSERT( 0 == DMS_SME_SZ % buffSize, "Invalid buffer size" ) ;
+
+      pBuffer = ( CHAR* )SDB_OSS_MALLOC( buffSize ) ;
+      if ( !pBuffer )
       {
-         PD_LOG ( PDSEVERE, "Failed to allocate memory to for dmsSME" ) ;
-         PD_LOG ( PDSEVERE, "Requested memory: %d bytes", DMS_SME_SZ ) ;
          rc = SDB_OOM ;
+         PD_LOG( PDSEVERE, "Failed to allocate sme buffer(%u)", buffSize ) ;
          goto error ;
       }
 
-      rc = _writeFile ( &_file, (CHAR *)_dmsSME, DMS_SME_SZ ) ;
-      if ( rc )
+      /// reset
+      ossMemset( pBuffer, DMS_SME_FREE, buffSize ) ;
+
+      while( hasWriteSize < DMS_SME_SZ )
       {
-         PD_LOG ( PDERROR, "Failed to write to file duirng SU init, rc: %d",
-                  rc ) ;
-         goto error ;
+         rc = _writeFile ( &_file, pBuffer, buffSize ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to write to file duirng SU init, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+         hasWriteSize += buffSize ;
       }
-      SDB_OSS_DEL _dmsSME ;
-      _dmsSME = NULL ;
 
       rc = _onCreate( &_file, (UINT64)( DMS_HEADER_SZ + DMS_SME_SZ )  ) ;
       PD_RC_CHECK( rc, PDERROR, "create storage unit failed, rc: %d", rc ) ;
 
    done :
+      if ( pBuffer )
+      {
+         SDB_OSS_FREE( pBuffer ) ;
+         pBuffer = NULL ;
+      }
       return rc ;
    error :
       if (_dmsHeader)
       {
          SDB_OSS_DEL _dmsHeader ;
          _dmsHeader = NULL ;
-      }
-      if (_dmsSME)
-      {
-         SDB_OSS_DEL _dmsSME ;
-         _dmsSME = NULL ;
       }
       goto done ;
    }
@@ -1778,7 +1823,9 @@ namespace engine
       {
          _pStorageInfo->_lobdPageSize =  pHeader->_lobdPageSize ;
       }
+      _storageUnitSize = pHeader->_storageUnitSize ;
       _pageNum = pHeader->_pageNum ;
+      _MBHWM = pHeader->_MBHWM ;
       _segmentPages = _getSegmentSize() >> _pageSizeSquare ;
 
       if ( !ossIsPowerOf2( _segmentPages, &_segmentPagesSquare ) )
@@ -2049,6 +2096,7 @@ namespace engine
             // If not, FreeSize calculated by snapshot cs may be
             // larger than TotalSize.
             _dmsHeader->_storageUnitSize += incPages ;
+            _storageUnitSize = _dmsHeader->_storageUnitSize ;
             // add pages to a new segmentSpace
             rc = _smeMgr.depositPages( (dmsExtentID)beginExtentID, incPages ) ;
          }
@@ -2080,12 +2128,14 @@ namespace engine
                incPages = freePages ;
             }
             _dmsHeader->_storageUnitSize += incPages ;
+            _storageUnitSize = _dmsHeader->_storageUnitSize ;
             // append pages to the last segmentSpace
             rc = _smeMgr.appendPages( (dmsExtentID)beginExtentID, incPages ) ;
          }
          if ( rc )
          {
             _dmsHeader->_storageUnitSize -= incPages ;
+            _storageUnitSize = _dmsHeader->_storageUnitSize ;
             PD_LOG ( PDSEVERE, "Failed to deposit pages[%d] into SMEMgr, "
                      "segmentPages: %d, _storageUnitSize: %llu, "
                      "_pageNum: %llu, rc = %d",
@@ -2148,6 +2198,9 @@ namespace engine
       INT32 rc1               = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
+
+      /// first invalidate the meta file
+      _pStorageInfo->_pMetaFile->invalidate() ;
 
       while ( TRUE )
       {
@@ -2252,6 +2305,10 @@ namespace engine
    INT32 _dmsStorageBase::_releaseSpace( SINT32 pageStart, UINT16 numPages )
    {
       INT32 rc = SDB_OK ;
+
+      /// first invalidate the meta file
+      _pStorageInfo->_pMetaFile->invalidate() ;
+
       rc = _smeMgr.releasePages( pageStart, numPages ) ;
       if ( SDB_OK == rc )
       {
@@ -2280,13 +2337,13 @@ namespace engine
       return _ossMmapFile::flush( 1, sync ) ;
    }
 
-   INT32 _dmsStorageBase::flushMeta( BOOLEAN sync, UINT32 *pExceptID,
-                                     UINT32 num )
+   INT32 _dmsStorageBase::flushMeta( BOOLEAN sync, UINT32 *pExceptID, UINT32 num,
+                                     BOOLEAN *pHasWritten )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
 
-      syncMemToMmap() ;
+      syncMemToMmap( pHasWritten ) ;
 
       for ( UINT32 i = 0 ; i < _dataSegID ; ++i )
       {
@@ -2356,9 +2413,11 @@ namespace engine
    INT32 _dmsStorageBase::flushAll( BOOLEAN sync )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasWritten = FALSE ;
+
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_FLUSHALL ) ;
 
-      syncMemToMmap() ;
+      syncMemToMmap( &hasWritten ) ;
 
       rc = _onFlushDirty( TRUE, sync ) ;
       if ( rc )
@@ -2375,6 +2434,10 @@ namespace engine
       }
 
    done:
+      if ( hasWritten || rc )
+      {
+         _setHasWritten( TRUE ) ;
+      }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE_FLUSHALL, rc ) ;
       return rc ;
    }
@@ -2390,9 +2453,10 @@ namespace engine
       UINT32 numbers = 0 ;
       INT32 segmentID = 0 ;
       UINT32 fromPos = 0 ;
+      BOOLEAN hasWritten = FALSE ;
 
       /// first flush meta
-      rc = flushMeta( sync ) ;
+      rc = flushMeta( sync, NULL, 0, &hasWritten ) ;
       if ( rc )
       {
          goto done ;
@@ -2432,6 +2496,10 @@ namespace engine
       {
          *pNum = numbers ;
       }
+      if ( hasWritten || numbers > 0 )
+      {
+         _setHasWritten( TRUE ) ;
+      }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE_FLUSHDIRTYSEGS, rc ) ;
       return rc ;
    }
@@ -2441,6 +2509,8 @@ namespace engine
                                              BOOLEAN isAll )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID ) ;
+
+      _setHasWritten( TRUE ) ;
 
       if ( _dmsHeader )
       {
@@ -2463,6 +2533,9 @@ namespace engine
             _commitFlag = 0 ;
             _dmsHeader->_commitFlag = 0 ;
             _dmsHeader->_updateTime = ossGetCurrentMilliseconds() ;
+
+            _commitFlagCache = _dmsHeader->_commitFlag ;
+            _updateTimeCache = _dmsHeader->_updateTime ;
             /// flush header
             flushHeader( _syncDeep ) ;
          }
@@ -2496,8 +2569,7 @@ namespace engine
             ossScopedLock lock( &_commitLatch ) ;
             if ( _commitFlag || force )
             {
-               _onMarkHeaderValid( lastLSN, sync, lastTime,
-                                   setHeadCommFlgValid ) ;
+               _onMarkHeaderValid( lastLSN, sync, lastTime, setHeadCommFlgValid ) ;
 
                tmpCommitFlag = _isCrash ? 0 : _commitFlag ;
                if ( hasFlushedData ||
@@ -2513,8 +2585,16 @@ namespace engine
                      _dmsHeader->_commitFlag = 0 ;
                      _commitFlag = 0 ;
                   }
+
                   _dmsHeader->_commitLsn = lastLSN ;
                   _dmsHeader->_commitTime = lastTime ;
+
+                  _commitFlagCache = _dmsHeader->_commitFlag ;
+                  _commitLsnCache = _dmsHeader->_commitLsn ;
+                  _commitTimeCache = _dmsHeader->_commitTime ;
+
+                  _setHasWritten( TRUE ) ;
+
                   /// flush header
                   rc = flushHeader( sync ) ;
                }
@@ -2534,6 +2614,19 @@ namespace engine
    void _dmsStorageBase::_disableBlockScan()
    {
       _blockScanSupport = FALSE ;
+   }
+
+   UINT32 _dmsStorageBase::_fetchAndIncHWMID()
+   {
+      UINT32 logicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
+      ossFetchAndIncrement32( &_MBHWM ) ;
+      return logicalID ;
+   }
+
+   void _dmsStorageBase::_incMBNum( INT32 step )
+   {
+      _dmsHeader->_numMB =  _dmsHeader->_numMB + step ;
+      _numMB = _dmsHeader->_numMB ;
    }
 
    void _dmsStorageBase::_calcExtendInfo( const UINT64 fileSize,

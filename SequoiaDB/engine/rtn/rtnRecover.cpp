@@ -101,7 +101,7 @@ namespace engine
       const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
       time_t timestamp = time( NULL ) ;
       CHAR timeBuffer[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { '\0' } ;
-      CHAR filePrefix[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
+      CHAR filePrefix[ RTN_RBDK_FILE_PREFIX + 1 ] = { '\0' } ;
       UINT32 prefix = 0 ;
 
       // file name: <cs.cl>_<unique ID>_<timestamp>.dup.<file ID>
@@ -111,16 +111,14 @@ namespace engine
       utilAscTime( timestamp, timeBuffer, OSS_TIMESTAMP_STRING_LEN ) ;
 
       // cut collection name when it is too long
-      ossStrncpy( filePrefix, clFullName,
-                  RTN_RBDK_FILE_PREFIX - ossStrlen( dbPath ) ) ;
+      ossStrncpy( filePrefix, clFullName, RTN_RBDK_FILE_PREFIX ) ;
       prefix = ossStrlen( filePrefix ) ;
       // construct file name prefix
-      ossSnprintf( filePrefix + prefix, OSS_MAX_PATHSIZE - prefix + 1,
+      ossSnprintf( filePrefix + prefix, RTN_RBDK_FILE_PREFIX - prefix,
                    "_%llu_%s.dup", clUniqueID, timeBuffer ) ;
 
       // construct file name with DB path
-      utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
-                         filePrefix, OSS_MAX_PATHSIZE, _dkFilePath ) ;
+      utilBuildFullPath( dbPath, filePrefix, OSS_MAX_PATHSIZE, _dkFilePath ) ;
 
       _dkFilePrefixLen = ossStrlen( _dkFilePath ) ;
    }
@@ -243,7 +241,7 @@ namespace engine
 
          // append file ID
          ossSnprintf( _dkFilePath + _dkFilePrefixLen,
-                      OSS_MAX_PATHSIZE - _dkFilePrefixLen + 1,
+                      OSS_MAX_PATHSIZE - _dkFilePrefixLen,
                       ".%u", _fileID ++ ) ;
 
          // open new file
@@ -548,6 +546,7 @@ namespace engine
                  "to rebuild", _clFullName.c_str() ) ;
          /// change to rebuild
          DMS_SET_MB_OFFLINE_REORG_REBUILD( mbContext->mb()->_flag ) ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       }
 
       if ( 0 == ruInfo->_idxCommitFlag )
@@ -567,6 +566,7 @@ namespace engine
                  "to rebuild", _clFullName.c_str() ) ;
          /// Change to normal
          DMS_SET_MB_NORMAL( mbContext->mb()->_flag ) ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
          _pSU->data()->flushMeta( TRUE ) ;
       }
 
@@ -933,7 +933,7 @@ namespace engine
          }
          /// Wrong compressed flag
          if ( pRecord->isCompressed() &&
-              !OSS_BIT_TEST( mbContext->mb()->_attributes,
+              !OSS_BIT_TEST( mbContext->mbStat()->_attributes,
                              DMS_MB_ATTR_COMPRESSED ) )
          {
             // Skip the corrupted record in below cases:
@@ -1135,6 +1135,7 @@ namespace engine
          /// shadow copy
          DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
          PD_LOG( PDEVENT, "Begin shadow copy phase" ) ;
 
          rc = _exportByExtents( cb, mbContext, &regSU ) ;
@@ -1153,6 +1154,7 @@ namespace engine
          /// truncate
          DMS_SET_MB_OFFLINE_REORG_TRUNCATE( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
          phase = DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ;
       }
 
@@ -1176,6 +1178,7 @@ namespace engine
          /// copyback
          DMS_SET_MB_OFFLINE_REORG_COPY_BACK( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
          phase = DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK ;
 
          if ( !regSU.isOpened() )
@@ -1202,6 +1205,7 @@ namespace engine
          /// change to rebuild
          DMS_SET_MB_OFFLINE_REORG_REBUILD( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
          phase = DMS_MB_FLAG_OFFLINE_REORG_REBUILD ;
 
          /// when change to rebuild, can't clean reorg file
@@ -1217,6 +1221,8 @@ namespace engine
          mbContext->mbStat()->_idxCommitFlag.init( 0 ) ;
          mbContext->mbStat()->_idxIsCrash = TRUE ;
          mbContext->mb()->_idxCommitFlag = 0 ;
+
+         mbContext->mbStat()->updateCommitCache( mbContext->mb() ) ;
 
          /// flush meta
          _pSU->data()->flushMeta( TRUE ) ;
@@ -1242,6 +1248,7 @@ namespace engine
       {
          DMS_SET_MB_NORMAL(flag) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       }
       goto done ;
    }
@@ -1263,7 +1270,7 @@ namespace engine
          PD_LOG( PDEVENT, "Start rebuild phase" ) ;
 
          rtnRBDupKeyProcessor dkProcessor( _clFullName.c_str(),
-                                           mbContext->mb()->_clUniqueID ) ;
+                                           mbContext->mbStat()->_clUniqueID ) ;
 
          rc = _pSU->index()->rebuildIndexes( mbContext, cb,
                                              SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
@@ -1291,6 +1298,7 @@ namespace engine
          /// Change status
          DMS_SET_MB_NORMAL( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
 
          mbContext->mb()->_idxCommitFlag = 1 ;
          mbContext->mb()->_idxCommitLSN = (UINT64)~0 ;
@@ -1298,7 +1306,9 @@ namespace engine
          mbContext->mbStat()->_idxLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
          mbContext->mbStat()->_idxIsCrash = FALSE ;
 
-         _indexNum = mbContext->mb()->_numIndexes ;
+         mbContext->mbStat()->updateCommitCache( mbContext->mb() ) ;
+
+         _indexNum = mbContext->mbStat()->_numIndexes ;
 
          _pSU->data()->flushMeta( TRUE ) ;
       }
@@ -1318,6 +1328,8 @@ namespace engine
       mbContext->mbStat()->_lobCommitFlag.init( 1 ) ;
       mbContext->mbStat()->_lobLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
       mbContext->mbStat()->_lobIsCrash = FALSE ;
+
+      mbContext->mbStat()->updateCommitCache( mbContext->mb() ) ;
 
       _totalLob = mbContext->mbStat()->_totalLobs ;
 
@@ -1349,6 +1361,7 @@ namespace engine
             /// we can recover directly
             DMS_SET_MB_NORMAL( flag ) ;
             mbContext->mb()->_flag = flag ;
+            mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
             goto done ;
          }
 
@@ -1469,6 +1482,7 @@ namespace engine
       /// shadow copy
       DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ;
       mbContext->mb()->_flag = flag ;
+      mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       PD_LOG( PDEVENT, "Begin shadow copy phase" ) ;
 
       if ( -1 != contextID )
@@ -1538,6 +1552,7 @@ namespace engine
       /// shadow copy
       DMS_SET_MB_OFFLINE_REORG_TRUNCATE( flag ) ;
       mbContext->mb()->_flag = flag ;
+      mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       phase = DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ;
 
       regSU.close() ;
@@ -1561,6 +1576,7 @@ namespace engine
          regSU.cleanup() ;
          DMS_SET_MB_NORMAL( flag ) ;
          mbContext->mb()->_flag = flag ;
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       }
       goto done ;
    }
@@ -1598,7 +1614,6 @@ namespace engine
          rc = _rebuild( cb, context, ruInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Rebuild collection[%s] failed, rc: %d",
                       _clFullName.c_str(), rc ) ;
-
       }
 
    done:
@@ -1788,6 +1803,8 @@ namespace engine
       context->mbStat()->_totalRecords = _totalRecord ;
       context->mbStat()->_rcTotalRecords.init( _totalRecord ) ;
 
+      context->mbStat()->updateCommitCache( context->mb() ) ;
+
       _pSU->data()->flushMeta( TRUE ) ;
 
       return SDB_OK ;
@@ -1802,6 +1819,8 @@ namespace engine
       context->mbStat()->_lobCommitFlag.init( 1 ) ;
       context->mbStat()->_lobLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
       context->mbStat()->_lobIsCrash = FALSE ;
+
+      context->mbStat()->updateCommitCache( context->mb() ) ;
 
       _totalLob = context->mbStat()->_totalLobs ;
 
@@ -1961,8 +1980,10 @@ namespace engine
 
    INT32 _rtnRecoverUnit::init( dmsStorageUnit *pSu )
    {
+      INT32 rc = SDB_OK ;
       dmsStorageDataCommon    *pData   = NULL ;
-      dmsStorageLob     *pLob    = NULL ;
+      dmsStorageLob           *pLob    = NULL ;
+      ossPoolVector<UINT16> vecMBSlot ;
 
       _pSU = pSu ;
 
@@ -1972,17 +1993,25 @@ namespace engine
       rtnRUInfo info ;
       string clFullName ;
 
+      rc = pData->getCollectionMBSlot( vecMBSlot ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get collection slots(%s) failed, rc: %d",
+                 pSu->CSName(), rc ) ;
+         goto error ;
+      }
+
       /// analyse the file
-      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      for ( UINT16 i = 0 ; i < vecMBSlot.size() ; ++i )
       {
          DPS_LSN_OFFSET tmpMaxlLsn = DPS_INVALID_LSN_OFFSET ;
-         const dmsMB *mb = pData->getMBInfo( i ) ;
-         if ( DMS_IS_MB_INUSE ( mb->_flag ) )
+         dmsMBStatInfo *mbStat = const_cast<dmsMBStatInfo*>( pData->getMBStatInfo( vecMBSlot[ i ] ) ) ;
+         if ( DMS_IS_MB_INUSE ( mbStat->_flag ) )
          {
-            info._dataCommitFlag = mb->_commitFlag ;
-            info._dataCommitLSN = mb->_commitLSN ;
-            info._idxCommitFlag = mb->_idxCommitFlag ;
-            info._idxCommitLSN = mb->_idxCommitLSN ;
+            info._dataCommitFlag = mbStat->_commitFlagSync ;
+            info._dataCommitLSN = mbStat->_lastLSN.fetch() ;
+            info._idxCommitFlag = mbStat->_idxCommitFlagSync ;
+            info._idxCommitLSN = mbStat->_idxLastLSN.fetch() ;
             if ( !pLob->isOpened() )
             {
                info._lobCommitFlag = 1 ;
@@ -1990,24 +2019,32 @@ namespace engine
             }
             else
             {
-               info._lobCommitFlag = mb->_lobCommitFlag ;
-               info._lobCommitLSN = mb->_lobCommitLSN ;
+               info._lobCommitFlag = mbStat->_lobCommitFlagSync ;
+               info._lobCommitLSN = mbStat->_lobLastLSN.fetch() ;
             }
-            ossStrncpy( info._clName, mb->_collectionName,
+            ossStrncpy( info._clName, mbStat->_collectionName,
                         DMS_COLLECTION_NAME_SZ ) ;
             info._clName[ DMS_COLLECTION_NAME_SZ ] = 0 ;
 
-            clFullName = _pSU->CSName() ;
-            clFullName += "." ;
-            clFullName += mb->_collectionName ;
-            /// add to map
-            _clStatus[ clFullName ] = info ;
+            try
+            {
+               clFullName = _pSU->CSName() ;
+               clFullName += "." ;
+               clFullName += info._clName ;
+               /// add to map
+               _clStatus[ clFullName ] = info ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
 
             tmpMaxlLsn = info.maxLSN() ;
             if ( DPS_INVALID_LSN_OFFSET != tmpMaxlLsn )
             {
-               if ( DPS_INVALID_LSN_OFFSET == _maxLsn ||
-                    _maxLsn < tmpMaxlLsn )
+               if ( DPS_INVALID_LSN_OFFSET == _maxLsn || _maxLsn < tmpMaxlLsn )
                {
                   _maxLsn = tmpMaxlLsn ;
                }
@@ -2016,8 +2053,7 @@ namespace engine
             tmpMaxlLsn = info.maxValidLSN() ;
             if ( DPS_INVALID_LSN_OFFSET != tmpMaxlLsn )
             {
-               if ( DPS_INVALID_LSN_OFFSET == _maxValidLsn
-                    || _maxValidLsn < tmpMaxlLsn )
+               if ( DPS_INVALID_LSN_OFFSET == _maxValidLsn || _maxValidLsn < tmpMaxlLsn )
                {
                   _maxValidLsn = tmpMaxlLsn ;
                }
@@ -2032,7 +2068,10 @@ namespace engine
          }
       }
 
-      return SDB_OK ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    void _rtnRecoverUnit::release()
@@ -2329,8 +2368,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s]'s mblock, "
                       "rc: %d", statusIter->first.c_str(), rc ) ;
 
-         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_commitLSN
-              || pContext->mb()->_commitLSN > dpsMaxLSN )
+         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_commitLSN ||
+              pContext->mb()->_commitLSN > dpsMaxLSN )
          {
             UINT64 oldCommitLSN = pContext->mb()->_commitLSN ;
             pContext->mbStat()->_lastLSN.init( dpsMaxLSN ) ;
@@ -2342,8 +2381,8 @@ namespace engine
             needFlush = TRUE ;
          }
 
-         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_idxCommitLSN
-              || pContext->mb()->_idxCommitLSN > dpsMaxLSN )
+         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_idxCommitLSN ||
+              pContext->mb()->_idxCommitLSN > dpsMaxLSN )
          {
             UINT64 oldCommitLSN = pContext->mb()->_idxCommitLSN ;
             pContext->mbStat()->_idxLastLSN.init( dpsMaxLSN ) ;
@@ -2355,10 +2394,10 @@ namespace engine
             needFlush = TRUE ;
          }
 
-         if ( 0 != su->data()->getHeader()->_createLobs
-              && pContext->mb()->_totalLobPages > 0
-              && ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_lobCommitLSN
-                   || pContext->mb()->_lobCommitLSN > dpsMaxLSN ) )
+         if ( 0 != su->data()->getHeader()->_createLobs &&
+              pContext->mb()->_totalLobPages > 0 &&
+              ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_lobCommitLSN ||
+                pContext->mb()->_lobCommitLSN > dpsMaxLSN ) )
          {
             UINT64 oldCommitLSN = pContext->mb()->_lobCommitLSN ;
             pContext->mbStat()->_lobLastLSN.init( dpsMaxLSN ) ;
@@ -2526,6 +2565,8 @@ namespace engine
             continue ;
          }
 
+         rtnRecoverUnit recoverUnit ;
+
          dmsStorageUnitID suID = DMS_INVALID_SUID ;
          dmsStorageUnit *su = NULL ;
          rc = dmsCB->nameToSUAndLock( csInfo._name, suID, &su ) ;
@@ -2536,8 +2577,13 @@ namespace engine
             goto error ;
          }
 
-         rtnRecoverUnit recoverUnit ;
-         recoverUnit.init( su ) ;
+         rc = recoverUnit.init( su ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Init recover unit(%s) failed, rc: %d",
+                    csInfo._name, rc ) ;
+            goto error ;
+         }
 
          if ( DPS_INVALID_LSN_OFFSET == maxLsn ||
               maxLsn < recoverUnit.getMaxLsn() )

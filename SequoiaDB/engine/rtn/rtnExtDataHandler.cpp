@@ -286,7 +286,7 @@ namespace engine
          goto error ;
       }
 
-      clUniqueID = context->mb()->_clUniqueID ;
+      clUniqueID = context->mbStat()->_clUniqueID ;
       if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
       {
          rc = SDB_INVALIDARG ;

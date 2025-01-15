@@ -441,7 +441,7 @@ namespace engine
          goto error ;
       }
 
-      clFlag = mbContext->mb()->_flag ;
+      clFlag = mbContext->mbStat()->_flag ;
 
       if ( DMS_IS_MB_DROPPED( clFlag ) )
       {
@@ -565,6 +565,9 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to lock collection, rc=%d", rc ) ;
          }
+
+         /// sync mbStat flag
+         mbContext->mbStat()->_flag = mbContext->mb()->_flag ;
       }
 
       // send the success message to client

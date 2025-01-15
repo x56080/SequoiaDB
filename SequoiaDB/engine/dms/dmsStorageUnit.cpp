@@ -1129,7 +1129,8 @@ namespace engine
                                       INT32 lobPageSize,
                                       DMS_STORAGE_TYPE type,
                                       IDmsExtDataHandler *extDataHandler )
-   :_pDataSu( NULL ),
+   :_pMetaFile( NULL ),
+    _pDataSu( NULL ),
     _pIndexSu( NULL ),
     _pLobSu( NULL ),
     _pMgr( pMgr ),
@@ -1209,6 +1210,11 @@ namespace engine
          SDB_OSS_DEL _pDataSu ;
          _pDataSu = NULL ;
       }
+      if ( _pMetaFile )
+      {
+         SDB_OSS_DEL _pMetaFile ;
+         _pMetaFile = NULL ;
+      }
       PD_TRACE_EXIT ( SDB__DMSSU_DESC ) ;
    }
 
@@ -1235,6 +1241,15 @@ namespace engine
       rc = _createStorageObjs() ;
       PD_RC_CHECK( rc, PDERROR, "Create storage objects for storage unit[ %s ] "
                    "failed[ %d ]", _storageInfo._suName, rc ) ;
+
+      /// open meta file
+      rc = _pMetaFile->init( pDataPath, CSName() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Open storage(%s) meta file failed, rc: %d",
+                 CSName(), rc ) ;
+         goto error ;
+      }
 
       // open data
       rc = _pDataSu->openStorage( pDataPath, pSyncMgr, pStatMgr, createNew ) ;
@@ -1300,6 +1315,7 @@ namespace engine
             PD_LOG( PDWARNING, "Failed to remove cs data file[%s] in "
                     "rollback, rc: %d", _pDataSu->getSuFileName(), rcTmp ) ;
          }
+         _pMetaFile->remove() ;
       }
       goto done ;
    rmboth:
@@ -1337,6 +1353,10 @@ namespace engine
       if ( _pDataSu )
       {
          _pDataSu->closeStorage() ;
+      }
+      if ( _pMetaFile )
+      {
+         _pMetaFile->writeDone( CSName() ) ;
       }
       PD_TRACE_EXIT ( SDB__DMSSU_CLOSE ) ;
    }
@@ -1377,6 +1397,11 @@ namespace engine
                       "data file, rc: %d", CSName(), rc ) ;
       }
 
+      if ( _pMetaFile )
+      {
+         _pMetaFile->remove() ;
+      }
+
       PD_LOG( PDEVENT, "Remove collection space[%s] files succeed", CSName() ) ;
 
    done:
@@ -1395,10 +1420,19 @@ namespace engine
       CHAR dataFileName[DMS_SU_FILENAME_SZ + 1] = {0} ;
       CHAR idxFileName[DMS_SU_FILENAME_SZ + 1] = {0} ;
 
-      if ( !_pDataSu || !_pIndexSu || !_pLobSu || !_pCacheUnit )
+      if ( !_pDataSu || !_pIndexSu || !_pLobSu || !_pCacheUnit || !_pMetaFile )
       {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Alloc memory failed, rc:%d", rc ) ;
+         goto error ;
+      }
+
+      /// meta rename
+      rc = _pMetaFile->rename( pNewName ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Rename storage(%s) meta file failed, rc: %d",
+                 CSName(), rc ) ;
          goto error ;
       }
 
@@ -1413,13 +1447,15 @@ namespace engine
       rc = _pDataSu->renameStorage( pNewName, dataFileName ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Rename storage data failed, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Rename storage(%s) data failed, rc: %d",
+                 CSName(), rc ) ;
          goto error ;
       }
       rc = _pIndexSu->renameStorage( pNewName, idxFileName ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Rename storage index failed, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Rename storage(%s) index failed, rc: %d",
+                 CSName(), rc ) ;
          goto error ;
       }
 
@@ -1436,7 +1472,8 @@ namespace engine
       rc = _pLobSu->rename( pNewName, dataFileName, idxFileName ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Rename storage lob failed, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Rename storage(%s) lob failed, rc: %d",
+                 CSName(), rc ) ;
          goto error ;
       }
 
@@ -2011,7 +2048,7 @@ namespace engine
          // no need collection IS lock to protect CL against being dropped
          // since we already have mblatch S
          if ( !cb->getTransExecutor()->getMBTotalRecords(
-                                                context->mb()->_clUniqueID,
+                                                context->mbStat()->_clUniqueID,
                                                 (UINT64 &)recordNum ) )
          {
             recordNum =
@@ -2057,7 +2094,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Lock collection failed, rc: %d", rc ) ;
       }
 
-      flag = context->mb()->_flag ;
+      flag = context->mbStat()->_flag ;
 
    done :
       if ( getContext && context )
@@ -2093,7 +2130,11 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Lock collection failed, rc: %d", rc ) ;
       }
 
-      context->mb()->_flag = flag ;
+      if ( context->mbStat()->_flag != flag )
+      {
+         context->mb()->_flag = flag ;
+         context->mbStat()->_flag = context->mb()->_flag ;
+      }
 
    done :
       if ( getContext && context )
@@ -2130,7 +2171,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Lock collection failed, rc: %d", rc ) ;
       }
 
-      attributes = context->mb()->_attributes ;
+      attributes = context->mbStat()->_attributes ;
 
    done :
       if ( getContext && context )
@@ -2167,7 +2208,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Lock collection failed, rc: %d", rc ) ;
       }
 
-      context->mb()->_attributes = newAttributes ;
+      if ( context->mbStat()->_attributes != newAttributes )
+      {
+         context->mb()->_attributes = newAttributes ;
+         /// update cache
+         context->mbStat()->_attributes = context->mb()->_attributes ;
+      }
 
    done :
       if ( getContext && context )
@@ -2204,6 +2250,7 @@ namespace engine
       }
 
       compType = (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
+
    done:
       if ( getContext && context )
       {
@@ -2241,7 +2288,8 @@ namespace engine
                       pName, rc ) ;
       }
 
-      compType = (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
+      context->mb()->_compressorType = (UINT8)compType ;
+      context->mbStat()->_compressorType = context->mb()->_compressorType ;
 
    done:
       if ( getContext && context )
@@ -2289,6 +2337,9 @@ namespace engine
       {
          OSS_BIT_CLEAR( context->mb()->_attributes, attributeMask ) ;
       }
+
+      /// update cache
+      context->mbStat()->_attributes = context->mb()->_attributes ;
 
       // on metadata updated
       _pDataSu->_onMBUpdated( context->mbID() ) ;
@@ -2449,7 +2500,7 @@ namespace engine
          // Old version collection
          if ( mbStat->_totalRecords > 0 )
          {
-            if ( mb->_compressorType == UTIL_COMPRESSOR_LZW )
+            if ( mbStat->_compressorType == UTIL_COMPRESSOR_LZW )
             {
                // Should have no dictionary
                PD_CHECK( mb->_dictExtentID == DMS_INVALID_EXTENT,
@@ -2538,6 +2589,10 @@ namespace engine
       {
          OSS_BIT_SET( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) ;
       }
+
+      /// update cache
+      mbStat->_attributes = mb->_attributes ;
+      mbStat->_compressorType = mb->_compressorType ;
 
       // on metadata updated
       _pDataSu->_onMBUpdated( context->mbID() ) ;
@@ -2677,7 +2732,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Invalid meta extent id: %d, collection name: %s",
                  context->mb()->_mbExExtentID,
-                 context->mb()->_collectionName ) ;
+                 context->mbStat()->_collectionName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -2746,7 +2801,7 @@ namespace engine
          lockContext = TRUE ;
       }
 
-      rc = _getIndexes( context->mb(), resultIndexes ) ;
+      rc = _getIndexes( context, resultIndexes ) ;
       PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc ) ;
 
    done :
@@ -2811,7 +2866,7 @@ namespace engine
          lockContext = TRUE ;
       }
 
-      rc = _getIndex( context->mb(), pIndexName, resultIndex ) ;
+      rc = _getIndex( context, pIndexName, resultIndex ) ;
 
    done :
       if ( lockContext )
@@ -3013,10 +3068,10 @@ namespace engine
          lockContext = TRUE ;
       }
 
-      collection.setName( CSName(), context->mb()->_collectionName ) ;
+      collection.setName( CSName(), context->mbStat()->_collectionName ) ;
       collection._blockID = context->mbID() ;
       collection._logicalID = context->clLID() ;
-      collection._clUniqueID = context->mb()->_clUniqueID ;
+      collection._clUniqueID = context->mbStat()->_clUniqueID ;
 
       if ( dumpIdx )
       {
@@ -3097,8 +3152,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_SU, "_dmsStorageUnit::dumpInfo" )
    void _dmsStorageUnit::dumpInfo ( monStorageUnit &storageUnit )
    {
-      const dmsStorageUnitHeader *dataHeader = _pDataSu->getHeader() ;
-
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_SU ) ;
 
       storageUnit.setName( CSName() ) ;
@@ -3106,8 +3159,8 @@ namespace engine
       storageUnit._pageSize = getPageSize() ;
       storageUnit._lobPageSize = getLobPageSize() ;
       storageUnit._sequence = CSSequence() ;
-      storageUnit._numCollections = dataHeader->_numMB ;
-      storageUnit._collectionHWM = dataHeader->_MBHWM ;
+      storageUnit._numCollections = _pDataSu->numMB() ;
+      storageUnit._collectionHWM = _pDataSu->mbHWMID() ;
       storageUnit._size = totalSize() ;
       storageUnit._CSID = CSID() ;
       storageUnit._logicalCSID = LogicalCSID() ;
@@ -3243,7 +3296,6 @@ namespace engine
    INT64 _dmsStorageUnit::totalSize( UINT32 type ) const
    {
       INT64 totalSize = 0 ;
-      const dmsStorageUnitHeader *dataHeader = NULL ;
       PD_TRACE_ENTRY ( SDB__DMSSU_TOTALSIZE ) ;
 
       if ( !_pDataSu || !_pIndexSu || !_pLobSu )
@@ -3253,25 +3305,19 @@ namespace engine
 
       if ( type & DMS_SU_DATA )
       {
-         dataHeader = _pDataSu->getHeader() ;
-         totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
-                        _pDataSu->pageSizeSquareRoot() ) ;
+         totalSize += _pDataSu->fileSize() ;
       }
       if ( type & DMS_SU_INDEX )
       {
-         dataHeader = _pIndexSu->getHeader() ;
-         totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
-                        _pDataSu->pageSizeSquareRoot() ) ;
+         totalSize += _pIndexSu->fileSize() ;
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
-         totalSize +=
-            ( _pLobSu->getLobData()->getFileSz() - DMS_HEADER_SZ ) ;
+         totalSize += ( _pLobSu->getLobData()->getFileSz() - DMS_HEADER_SZ ) ;
       }
       if ( ( type & DMS_SU_LOB_META ) && _pLobSu->isOpened() )
       {
-         totalSize += ( (INT64)( _pLobSu->getHeader()->_storageUnitSize ) <<
-                        _pLobSu->pageSizeSquareRoot() ) ;
+         totalSize += _pLobSu->fileSize() ;
       }
 
    done:
@@ -3285,7 +3331,6 @@ namespace engine
    INT64 _dmsStorageUnit::totalDataPages( UINT32 type ) const
    {
       INT64 totalDataPages = 0 ;
-      const dmsStorageUnitHeader *dataHeader = NULL ;
       PD_TRACE_ENTRY ( SDB__DMSSU_TOTALDATAPAGES ) ;
 
       if ( !_pDataSu || !_pIndexSu || !_pLobSu )
@@ -3295,17 +3340,15 @@ namespace engine
 
       if ( type & DMS_SU_DATA )
       {
-         dataHeader = _pDataSu->getHeader() ;
-         totalDataPages += dataHeader->_pageNum ;
+         totalDataPages += _pDataSu->pageNum() ;
       }
       if ( type & DMS_SU_INDEX )
       {
-         dataHeader = _pIndexSu->getHeader() ;
-         totalDataPages += dataHeader->_pageNum ;
+         totalDataPages += _pIndexSu->pageNum() ;
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
-         totalDataPages += _pLobSu->getHeader()->_pageNum ;
+         totalDataPages += _pLobSu->pageNum() ;
       }
 
    done:
@@ -3493,29 +3536,27 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
-      const dmsMB *mb = NULL ;
-      const dmsMBStatInfo *mbStat = NULL ;
+      dmsMBStatInfo *mbStat = NULL ;
 
       PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u]", mbID ) ;
 
-      mb = _pDataSu->getMBInfo( mbID ) ;
-      mbStat = _pDataSu->getMBStatInfo( mbID ) ;
+      mbStat = const_cast<dmsMBStatInfo*>( _pDataSu->getMBStatInfo( mbID ) ) ;
       lobCapacity = totalSize( DMS_SU_LOB ) ;
 
-      PD_CHECK( DMS_IS_MB_INUSE ( mb->_flag ), SDB_INVALIDARG, error, PDERROR,
+      PD_CHECK( DMS_IS_MB_INUSE ( mbStat->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
 
-      collection.setName( CSName(), mb->_collectionName ) ;
-      collection._clUniqueID = mb->_clUniqueID ;
+      collection.setName( CSName(), mbStat->_collectionName ) ;
+      collection._clUniqueID = mbStat->_clUniqueID ;
 
       try
       {
          detailedInfo &info = collection.addDetails( CSSequence(),
-                                                     mb->_numIndexes,
-                                                     mb->_blockID,
-                                                     mb->_flag,
-                                                     mb->_logicalID,
+                                                     mbStat->_numIndexes,
+                                                     mbStat->_blockID,
+                                                     mbStat->_flag,
+                                                     mbStat->_logicalID,
                                                      mbStat->_totalRecords,
                                                      mbStat->_totalDataPages,
                                                      mbStat->_totalIndexPages,
@@ -3523,10 +3564,10 @@ namespace engine
                                                      mbStat->_totalDataFreeSpace,
                                                      mbStat->_totalIndexFreeSpace ) ;
 
-         info._attribute = mb->_attributes ;
-         info._dictCreated = mb->_dictExtentID != DMS_INVALID_EXTENT ? 1 : 0 ;
-         info._compressType = mb->_compressorType ;
-         info._dictVersion = mb->_dictVersion ;
+         info._attribute = mbStat->_attributes ;
+         info._dictCreated = mbStat->_dictExtentID != DMS_INVALID_EXTENT ? 1 : 0 ;
+         info._compressType = mbStat->_compressorType ;
+         info._dictVersion = mbStat->_dictVersion ;
 
          info._totalLobs = mbStat->_totalLobs ;
          info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
@@ -3551,12 +3592,12 @@ namespace engine
          info._currCompressRatio = mbStat->_lastCompressRatio ;
 
          /// sync info
-         info._dataCommitLSN = mb->_commitLSN ;
-         info._idxCommitLSN = mb->_idxCommitLSN ;
-         info._lobCommitLSN = mb->_lobCommitLSN ;
-         info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
-         info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
-         info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;
+         info._dataCommitLSN = mbStat->_lastLSN.fetch() ;
+         info._idxCommitLSN = mbStat->_idxLastLSN.fetch() ;
+         info._lobCommitLSN = mbStat->_lobLastLSN.fetch() ;
+         info._dataIsValid = mbStat->_commitFlagSync ;
+         info._idxIsValid = mbStat->_idxCommitFlagSync ;
+         info._lobIsValid = mbStat->_lobCommitFlagSync ;
 
          info._createTime = mbStat->_createTime ;
          info._updateTime = mbStat->_updateTime ;
@@ -3591,20 +3632,20 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CLSIMPLE ) ;
 
-      const dmsMB *mb = NULL ;
+      const dmsMBStatInfo *mbStat = NULL ;
 
       PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u]", mbID ) ;
 
-      mb = _pDataSu->getMBInfo( mbID ) ;
+      mbStat = _pDataSu->getMBStatInfo( mbID ) ;
 
-      PD_CHECK( DMS_IS_MB_INUSE( mb->_flag ), SDB_INVALIDARG, error, PDERROR,
+      PD_CHECK( DMS_IS_MB_INUSE( mbStat->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
 
-      collection.setName( CSName(), mb->_collectionName ) ;
-      collection._blockID = mb->_blockID ;
-      collection._logicalID = mb->_logicalID ;
-      collection._clUniqueID = mb->_clUniqueID ;
+      collection.setName( CSName(), mbStat->_collectionName ) ;
+      collection._blockID = mbStat->_blockID ;
+      collection._logicalID = mbStat->_logicalID ;
+      collection._clUniqueID = mbStat->_clUniqueID ;
 
    done :
       PD_TRACE_EXITRC( SDB__DMSSU__DUMPCLINFO_CLSIMPLE, rc ) ;
@@ -3614,19 +3655,68 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__GETINDEXES, "_dmsStorageUnit::_getIndexes" )
-   INT32 _dmsStorageUnit::_getIndexes ( const dmsMB *mb,
+   INT32 _dmsStorageUnit::_getIndexes ( dmsMBContext *context,
                                         MON_IDX_LIST &resultIndexes )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSU__GETINDEXES ) ;
       UINT32 indexID = 0 ;
+      const dmsMB *mb = context->mb() ;
+
       SDB_ASSERT( mb, "mb is invalid" ) ;
+
+      MON_IDX_LIST cacheIndex ;
+      BOOLEAN isCacheValid = FALSE ;
+      BOOLEAN shoudCache = TRUE ;
+
+      rc = _pMetaFile->getIndexCache( context->mbID(), cacheIndex, isCacheValid ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get index cache from collection(%s.%s) failed, rc: %d",
+                 CSName(), context->mbStat()->_collectionName, rc ) ;
+         goto error ;
+      }
+
+      /// from cache
+      if ( isCacheValid )
+      {
+         for ( indexID = 0 ; indexID < cacheIndex.size() ; ++indexID )
+         {
+            monIndex &indexItem = cacheIndex[ indexID ] ;
+
+            try
+            {
+               // add
+               resultIndexes.push_back ( indexItem ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Build index information occur exception: %s",
+                       e.what() ) ;
+               goto error ;
+            }
+         }
+
+         goto done ;
+      }
+
+      /// read from indexCB
+      cacheIndex.clear() ;
 
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
          if ( DMS_INVALID_EXTENT == mb->_indexExtent[indexID] )
          {
             break ;
+         }
+
+         ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
+         if ( !indexCB.isInitialized() )
+         {
+            shoudCache = FALSE ;
+            PD_LOG( PDERROR, "Failed to initialize index[%u], indexID" ) ;
+            continue ;
          }
 
          try
@@ -3639,15 +3729,24 @@ namespace engine
             indexItem._indexLID = indexCB.getLogicalID () ;
             indexItem._version = indexCB.version () ;
             // copy the index def to it's owned buffer
-            indexItem._indexDef = indexCB.getDef().copy () ;
-            if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                      indexCB.getIndexType() )
-                 && IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
+            indexItem._indexDef = indexCB.getDef().getOwned() ;
+
+            if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexCB.getIndexType() ) &&
+                 IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
             {
-               SDB_ASSERT( indexCB.getExtDataName(),
-                           "External data name is NULL") ;
-               ossStrncpy( indexItem._extDataName, indexCB.getExtDataName(),
-                           DMS_MAX_EXT_NAME_SIZE + 1 ) ;
+               SDB_ASSERT( indexCB.getExtDataName(), "External data name is NULL") ;
+               ossStrncpy( indexItem._extDataName, indexCB.getExtDataName(), DMS_MAX_EXT_NAME_SIZE ) ;
+            }
+
+            if ( IXM_INDEX_FLAG_NORMAL != indexCB.getFlag() )
+            {
+               /// don't cache
+               shoudCache = FALSE ;
+            }
+
+            if ( shoudCache )
+            {
+               cacheIndex.push_back( indexItem ) ;
             }
 
             // add
@@ -3662,6 +3761,18 @@ namespace engine
          }
       }
 
+      /// process cache
+      if ( shoudCache )
+      {
+         if ( SDB_OK == _pMetaFile->pushIndexCache( context->mbID(), cacheIndex ) )
+         {
+            PD_LOG( PDEVENT, "Cached indexes(%u) for collection(%s.%s, MBID:%u) succeed",
+                    cacheIndex.size(), CSName(), context->mbStat()->_collectionName,
+                    context->mbID() ) ;
+         }
+         /// ignore error
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__GETINDEXES, rc ) ;
       return rc ;
@@ -3670,7 +3781,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__GETINDEX, "_dmsStorageUnit::_getIndex" )
-   INT32 _dmsStorageUnit::_getIndex ( const dmsMB *mb,
+   INT32 _dmsStorageUnit::_getIndex ( dmsMBContext *context,
                                       const CHAR *pIndexName,
                                       monIndex &resultIndex )
    {
@@ -3679,41 +3790,66 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSSU__GETINDEX ) ;
 
+      const dmsMB *mb = context->mb() ;
+      BOOLEAN isCacheValid = FALSE ;
+
       SDB_ASSERT( mb, "mb can't be NULL" ) ;
       SDB_ASSERT( pIndexName, "Index name can't be NULL" ) ;
 
-      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      /// from cache
+      if ( SDB_OK == _pMetaFile->getIndexCache( context->mbID(),
+                                                pIndexName,
+                                                resultIndex,
+                                                isCacheValid ) &&
+          isCacheValid )
       {
-         if ( DMS_INVALID_EXTENT == mb->_indexExtent[indexID] )
+         rc = SDB_OK ;
+      }
+      /// read from indexCB
+      else
+      {
+         for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
          {
-            break ;
-         }
+            if ( DMS_INVALID_EXTENT == mb->_indexExtent[indexID] )
+            {
+               break ;
+            }
 
-         ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
-         if ( 0 == ossStrcmp( indexCB.getName(), pIndexName ) )
-         {
-            resultIndex._indexFlag = indexCB.getFlag () ;
-            resultIndex._scanExtLID = indexCB.scanExtLID () ;
-            resultIndex._indexLID = indexCB.getLogicalID () ;
-            resultIndex._version = indexCB.version () ;
-            // copy the index def to it's owned buffer
-            try
+            ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
+            if ( indexCB.isInitialized() &&
+                 0 == ossStrcmp( indexCB.getName(), pIndexName ) )
             {
-               resultIndex._indexDef = indexCB.getDef().copy () ;
-               rc = SDB_OK ;
+               resultIndex._indexFlag = indexCB.getFlag () ;
+               resultIndex._scanExtLID = indexCB.scanExtLID () ;
+               resultIndex._indexLID = indexCB.getLogicalID () ;
+               resultIndex._version = indexCB.version () ;
+
+               if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexCB.getIndexType() ) &&
+                    IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
+               {
+                  SDB_ASSERT( indexCB.getExtDataName(), "External data name is NULL") ;
+                  ossStrncpy( resultIndex._extDataName, indexCB.getExtDataName(),
+                              DMS_MAX_EXT_NAME_SIZE ) ;
+               }
+
+               // copy the index def to it's owned buffer
+               try
+               {
+                  resultIndex._indexDef = indexCB.getDef().getOwned () ;
+                  rc = SDB_OK ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Copy index define occur exception: %s",
+                          e.what() ) ;
+                  rc = SDB_OOM ;
+               }
+               break ;
             }
-            catch( std::exception &e )
-            {
-               PD_LOG( PDERROR, "Copy index define occur exception: %s",
-                       e.what() ) ;
-               rc = SDB_OOM ;
-            }
-            break ;
          }
       }
 
       PD_TRACE_EXITRC ( SDB__DMSSU__GETINDEX, rc ) ;
-
       return rc ;
    }
 
@@ -3932,9 +4068,10 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
+         if ( _pDataSu->_isMBSlotInUse( i ) )
          {
-            _pDataSu->_mbStatInfo[ i ]._crudCB.resetOnce() ;
+            dmsMBStatInfo *pMBStat = &( _pDataSu->_mbStatInfo[ i ] ) ;
+            pMBStat->_crudCB.resetOnce() ;
          }
       }
 
@@ -3984,6 +4121,16 @@ namespace engine
       ossSnprintf( idxFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
                    _storageInfo._suName, _storageInfo._sequence,
                    DMS_INDEX_SU_EXT_NAME ) ;
+
+      _pMetaFile = SDB_OSS_NEW dmsMetaFile() ;
+      if ( !_pMetaFile )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Create storage(%s) meta file object failed, rc: %d",
+                 CSName(), rc ) ;
+         goto error ;
+      }
+      _storageInfo._pMetaFile = _pMetaFile ;
 
       _pDataSu = getDMSStorageDataFactory()->createProduct( _storageInfo._type,
                                                             dataFileName,
@@ -4062,6 +4209,12 @@ namespace engine
       {
          SDB_OSS_DEL _pDataSu ;
          _pDataSu = NULL ;
+      }
+      if ( _pMetaFile )
+      {
+         SDB_OSS_DEL _pMetaFile ;
+         _pMetaFile = NULL ;
+         _storageInfo._pMetaFile = NULL ;
       }
       goto done ;
    }

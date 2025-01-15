@@ -147,7 +147,8 @@ namespace engine
                             _dmsStorageDataCommon *pDataSu ) ;
          ~_dmsStorageIndex () ;
 
-         virtual void  syncMemToMmap() ;
+         virtual void  syncMemToMmap( BOOLEAN *pHasWritten = NULL ) ;
+         virtual DMS_FILE_TYPE getFileType() const { return DMS_FILE_IDX ; }
 
          dmsPageMapUnit*   getPageMapUnit() ;
          dmsPageMap*       getPageMap( UINT16 mbID ) ;
@@ -340,13 +341,15 @@ namespace engine
          BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
                                       const ixmIdxHashBitmap &idxHashBitmap ) ;
 
+         INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
+
       private:
          virtual UINT64 _dataOffset() ;
          virtual const CHAR* _getEyeCatcher() const ;
          virtual UINT32 _curVersion() const ;
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;
-         virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
+         virtual INT32  _onMapMeta( UINT64 curOffSet, BOOLEAN isCreateNew ) ;
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
 

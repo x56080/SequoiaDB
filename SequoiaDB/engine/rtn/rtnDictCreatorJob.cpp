@@ -425,8 +425,8 @@ namespace engine
 
       job._lastWriteTick = mbContext->mbStat()->_lastWriteTick ;
 
-      if ( DMS_INVALID_EXTENT != mbContext->mb()->_dictExtentID ||
-           UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
+      if ( DMS_INVALID_EXTENT != mbContext->mbStat()->_dictExtentID ||
+           UTIL_COMPRESSOR_LZW != mbContext->mbStat()->_compressorType )
       {
          goto done ;
       }
@@ -507,7 +507,7 @@ namespace engine
 
       PD_LOG( PDEVENT, "Compression dictionary created succesfully for "
               "collection[%s.%s]. Time: %llums",
-              su->CSName(), mbContext->mb()->_collectionName,
+              su->CSName(), mbContext->mbStat()->_collectionName,
               end.time * 1000 + end.microtm / 1000 -
               (begin.time * 1000 + begin.microtm / 1000) ) ;
 

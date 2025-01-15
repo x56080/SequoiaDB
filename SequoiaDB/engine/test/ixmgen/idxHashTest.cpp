@@ -179,6 +179,7 @@ TEST( idxHashTest, test_base )
 TEST( idxHashTest, test_drop_index )
 {
    dmsMBStatInfo mbStatInfo ;
+   dmsMB mb ;
    mbStatInfo.setIdxHash( 0, "_id" ) ;
    mbStatInfo.setIdxHash( 1, "a" ) ;
    mbStatInfo.setIdxHash( 1, "b" ) ;
@@ -230,7 +231,7 @@ TEST( idxHashTest, test_drop_index )
    }
 
    // unset index 1
-   mbStatInfo.resetIdxHashFrom( 2 ) ;
+   mbStatInfo.resetIdxHashFrom( 2, &mb ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEmpty() ) ;
    ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
@@ -256,6 +257,7 @@ TEST( idxHashTest, test_drop_index )
 TEST( idxHashTest, test_add_index )
 {
    dmsMBStatInfo mbStatInfo ;
+   dmsMB mb ;
    mbStatInfo.setIdxHash( 0, "_id" ) ;
    mbStatInfo.setIdxHash( 1, "a" ) ;
    mbStatInfo.setIdxHash( 1, "b" ) ;
@@ -296,7 +298,7 @@ TEST( idxHashTest, test_add_index )
    }
 
    // set index 2
-   mbStatInfo.resetIdxHashFrom( 2 ) ;
+   mbStatInfo.resetIdxHashFrom( 2, &mb ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEmpty() ) ;
    ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
