@@ -82,6 +82,7 @@ public class Faulttolerance29886 extends SdbTestBase {
         config.put( "ftconfirmperiod", 3 );
         config.put( "ftslownodethreshold", 1 );
         config.put( "ftslownodeincrement", 1 );
+        config.put( "replsize", 1 );
         sdb.updateConfig( config, null );
 
         GroupWrapper gwp = groupMgr.getGroupByName( groupNames.get( 0 ) );
@@ -124,6 +125,7 @@ public class Faulttolerance29886 extends SdbTestBase {
             config.put( "ftconfirmperiod", 1 );
             config.put( "ftslownodethreshold", 1 );
             config.put( "ftslownodeincrement", 1 );
+            config.put( "replsize", 1 ) ;
             sdb.deleteConfig( config, new BasicBSONObject() );
             sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
 
