@@ -1,12 +1,12 @@
 
-quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，可以通过命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL。
+quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，可以通过命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-MariaDB/SequoiaSQL-PostgreSQL。
 
-SequoiaDB 集群支持部署在多台主机上，SequoiaSQL-MySQ/SequoiaSQL-PostgreSQL 仅支持部署在单台主机。
+SequoiaDB 集群支持部署在多台主机上，SequoiaSQL-MySQL/SequoiaSQL-MariaDB/SequoiaSQL-PostgreSQL 仅支持部署在单台主机。
  
 运行需求
 ----
 
-运行 quickDeploy.sh 命令的用户必须是安装 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 时指定的用户。
+运行 quickDeploy.sh 命令的用户必须是安装 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-MariaDB/SequoiaSQL-PostgreSQL 时指定的用户。
 
 语法规则
 ----
@@ -28,11 +28,15 @@ quickDeploy.sh [ options ] ...
 
 - **--mysql**  
 
- 部署 SequoiaSQL-MySQL
-  
+ 部署 SequoiaSQL-MySQL 实例
+
+- **--mariadb**  
+
+ 部署 SequoiaSQL-MariaDB 实例
+
 - **--pg**  
 
- 部署 SequoiaSQL-PostgreSQL
+ 部署 SequoiaSQL-PostgreSQL 实例
   
 - **--cm \<sdbcm port\>**  
 
@@ -43,7 +47,13 @@ quickDeploy.sh [ options ] ...
  quickDeploy.sh 只支持部署一个 SequoiaSQL-MySQL。当机器上装有多个 SequoiaSQL-MySQL 时，指定一个 SequoiaSQL-MySQL 的安装路径。
 
   需要配合 --mysql 使用
-  
+
+- **--mariadbPath \<mariadb installation path\>**  
+
+ quickDeploy.sh 只支持部署一个 SequoiaSQL-MariaDB。当机器上装有多个 SequoiaSQL-MariaDB 时，指定一个 SequoiaSQL-MariaDB 的安装路径。
+
+  需要配合 --mariadb 使用
+
 - **--pgPath \<pg installation path\>**  
 
  quickDeploy.sh 只支持部署一个 SequoiaSQL-PostgreSQL。当机器上装有多个 SequoiaSQL-PostgreSQL 时，指定一个 SequoiaSQL-PostgreSQL 的安装路径。
@@ -52,7 +62,7 @@ quickDeploy.sh [ options ] ...
 
 > **Note:**
 > 
-> 当不指定 --sdb/--mysql/--pg 参数时，quickDeploy.sh 会自动确认本机是否安装了 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL，已安装了的会自动部署。
+> 当不指定 --sdb/--mysql/--mariadb/--pg 参数时，quickDeploy.sh 会自动确认本机是否安装了 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-MariaDB/SequoiaSQL-PostgreSQL，已安装了的会自动部署。
 
 默认部署
 ----
@@ -112,6 +122,23 @@ quickDeploy.sh [ options ] ...
    
    ************ Deploy SequoiaSQL-MySQL *****************
    Create instance: [name: myinst, port: 3306]
+   ```
+
+- **SequoiaSQL-MariaDB**
+
+   SequoiaSQL-MariaDB 默认部署 myinst 实例，并连接到 `tools/deploy/sequoiadb.conf` 中的第一个协调节点。
+
+   ```lang-bash
+   $ ./quickDeploy.sh --mariadb
+   ```
+
+   输出信息如下：
+
+   ```lang-text
+   Execute command: /opt/sequoiadb_yt/tools/deploy/./../../bin/sdb -f /opt/sequoiadb_yt/tools/deploy/./quickDeploy.js -e 'var mariadb=true;'
+   
+   ************ Deploy SequoiaSQL-MariaDB *****************
+   Create instance: [name: myinst, port: 6101]
    ```
 
 - **SequoiaSQL-PostgreSQL**
@@ -186,7 +213,7 @@ quickDeploy.sh [ options ] ...
 修改协调节点地址
 ---
 
-SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式，不同的配置参数以逗号分隔。配置文件中的 coordAddr 参数默认配置为 - ，会取 `tools/deploy/sequoiadb.conf` 中第一个 coord 的地址。
+SequoiaSQL-MySQL/SequoiaSQL-MariaDB/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式，不同的配置参数以逗号分隔。配置文件中的 coordAddr 参数默认配置为 - ，会取 `tools/deploy/sequoiadb.conf` 中第一个 coord 的地址。
 
 - **SequoiaSQL-MySQL**
 
@@ -214,6 +241,34 @@ SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式
      ```lang-text
      instanceName,port,databaseDir,coordAddr
      myinst,3306,[installPath]/database/3306,[localhost:50000,localhost:11810]
+     ```
+
+- **SequoiaSQL-MariaDB**
+
+  - 指定具体的 coordAddr，格式为 `localhost:50000`
+
+     ```lang-bash
+     $ vim tools/deploy/mariadb.conf 
+     ```
+
+     修改配置为：
+
+     ```lang-text
+     instanceName,port,databaseDir,coordAddr
+     myinst,6101,[installPath]/database/6101,localhost:50000
+     ```
+
+  - 指定多个协调节点地址，格式为 `[localhost:50000,localhost:11810]`
+
+     ```lang-bash
+     $ vim tools/deploy/mariadb.conf 
+     ```
+  
+     修改配置为：
+
+     ```lang-text
+     instanceName,port,databaseDir,coordAddr
+     myinst,6101,[installPath]/database/6101,[localhost:50000,localhost:11810]
      ```
 
 - **SequoiaSQL-PostgreSQL**
@@ -261,6 +316,22 @@ SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式
    instanceName,port,databaseDir,coordAddr
    myinst,3306,[installPath]/database/3306,-
    myinst1,3307,[installPath]/database/3307,-
+   ```
+
+- **SequoiaSQL-MariaDB**
+
+   配置两个实例 myinst/myinst1，端口号分别为 6101/6102
+
+   ```lang-bash
+   $ vim tools/deploy/mariadb.conf 
+   ```
+
+   修改配置为：
+ 
+   ```lang-text
+   instanceName,port,databaseDir,coordAddr
+   myinst,6101,[installPath]/database/6101,-
+   myinst1,6102,[installPath]/database/6102,-
    ```
 
 - **SequoiaSQL-PostgreSQL**

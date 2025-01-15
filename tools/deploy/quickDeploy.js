@@ -3,6 +3,7 @@
 
 @input:        sdb:        Boolean
                mysql:      Boolean
+               mariadb:    Boolean
                pg:         Boolean
                cm:         Number, default: 11790
                mysqlPath:  String, mysql install path. Use it when you have
@@ -21,11 +22,13 @@ var USER_SET_DEPLOY = true ;
 // check parameter
 if ( typeof( sdb ) === "undefined" &&
      typeof( mysql ) === "undefined" &&
-     typeof( pg ) === "undefined" )
+     typeof( pg ) === "undefined" &&
+     typeof( mariadb ) === "undefined" )
 {
    var sdb = true ;
    var mysql = true ;
    var pg = true ;
+   var mariadb = true;
    USER_SET_DEPLOY = false ;
 }
 
@@ -45,6 +48,15 @@ if ( typeof( mysql ) === "undefined" )
 else if( mysql.constructor !== Boolean )
 {
    throw "Invalid para[mysql], should be Boolean" ;
+}
+
+if ( typeof( mariadb ) === "undefined" )
+{
+   var mariadb = false ;
+}
+else if( mariadb.constructor !== Boolean )
+{
+   throw "Invalid para[mariadb], should be Boolean" ;
 }
 
 if ( typeof( pg ) === "undefined" )
@@ -81,6 +93,22 @@ else
    }
 }
 
+if ( typeof( mariadbPath ) === "undefined" )
+{
+   var mariadbPath = "" ;
+}
+else if( mariadbPath.constructor !== String )
+{
+   throw "Invalid para[mariadbPath], should be String" ;
+}
+else
+{
+   if ( !mariadb )
+   {
+      throw "Para[mariadbPath] can be set only when [mariadb] is specified" ;
+   }
+}
+
 if ( typeof( pgPath ) === "undefined" )
 {
    var pgPath = "" ;
@@ -100,11 +128,13 @@ else
 // set global variable
 var DEPLOY_SEQUOIADB       = sdb ;
 var DEPLOY_MYSQL           = mysql ;
+var DEPLOY_MARIADB         = mariadb ;
 var DEPLOY_POSTGRESQL      = pg ;
 var LOCAL_CM_PORT          = cm ;
 var TMP_COORD_SVC          = 18800 ;
 var MY_HOSTNAME            = System.getHostName() ;
 var MYSQL_INSTALL_PATH     = mysqlPath ;
+var MARIADB_INSTALL_PATH   = mariadbPath ;
 var PG_INSTALL_PATH        = pgPath ;
 var TMP_COORD_INSTALL_PATH = "" ;
 
@@ -117,6 +147,8 @@ const FIELD_SEQUOIADB_COORD_CONF = "SEQUOIADB_COORD_CONF" ;
 const FIELD_SEQUOIADB_DATA_CONF  = "SEQUOIADB_DATA_CONF" ;
 const FIELD_MYSQL_INSTALL_PATH   = "MYSQL_INSTALL_PATH" ;
 const FIELD_MYSQL_INSTANCE_CONF  = "MYSQL_INSTANCE_CONF" ;
+const FIELD_MARIADB_INSTALL_PATH = "MARIADB_INSTALL_PATH" ;
+const FIELD_MARIADB_INSTANCE_CONF= "MARIADB_INSTANCE_CONF" ;
 const FIELD_PG_INSTALL_PATH      = "PG_INSTALL_PATH" ;
 const FIELD_PG_INSTANCE_CONF     = "PG_INSTANCE_CONF" ;
 
@@ -127,6 +159,7 @@ function main()
 {
    var nodesConf ;
    var mysqlInfo ;
+   var mariadbInfo ;
    var pgInfo ;
 
    if ( DEPLOY_SEQUOIADB )
@@ -136,6 +169,10 @@ function main()
    if ( DEPLOY_MYSQL )
    {
       mysqlInfo = checkMysql() ;
+   }
+   if ( DEPLOY_MARIADB )
+   {
+      mariadbInfo = checkMariadb() ;
    }
    if ( DEPLOY_POSTGRESQL )
    {
@@ -149,6 +186,10 @@ function main()
    if ( DEPLOY_MYSQL && mysqlInfo !== undefined )
    {
       deployMysql( mysqlInfo ) ;
+   }
+   if ( DEPLOY_MARIADB && mariadbInfo !== undefined )
+   {
+      deployMariadb( mariadbInfo ) ;
    }
    if ( DEPLOY_POSTGRESQL && pgInfo !== undefined )
    {
@@ -205,7 +246,7 @@ function iniFile2Obj( fileName )
 /**
  * Get installation information, eg: user, installPath
  *
- * @param  dbType           database type, mysql or pg
+ * @param  dbType           database type, mysql, mariadb or pg
  * @param  ignoreNotInstall Ignore error if installation not exist
  * @param  installPath      install path
  * @return jsonObj          installation info, eg:
@@ -230,13 +271,19 @@ function getSqlInstallInfo( dbType, ignoreNotInstall, installPath )
       dbTypeStr   = "SequoiaSQL-PostgreSQL" ;
       paraStr     = "--pg and --pgPath" ;
    }
+   else if ( dbType == "mariadb" )
+   {
+      systemFile  = "sequoiasql-mariadb" ;
+      dbTypeStr   = "SequoiaSQL-MariaDB" ;
+      paraStr     = "--mariadb and --mariadbPath" ;
+   }
    else if ( dbType != "mysql" )
    {
       println( "Invalid type[" + dbType + "]!") ;
       throw "ERROR" ;
    }
 
-   // find all /etc/default/sequoiasql-mysql[i]
+   // find all /etc/default/sequoiasql-mysql[i] or /etc/default/sequoiasql-mariadb[i]
    var foundOut = false ;
    var bsonArr = File.find( { mode: 'n',
                               value: '"' + systemFile + '*"',
@@ -258,7 +305,7 @@ function getSqlInstallInfo( dbType, ignoreNotInstall, installPath )
       throw "ERROR" ;
    }
 
-   // loop every /etc/default/sequoiasql-mysql[i]
+   // loop every /etc/default/sequoiasql-mysql[i] or /etc/default/sequoiasql-mariadb[i]
    var infoObj = {} ;
    while ( bsonArr.more() )
    {
@@ -483,6 +530,10 @@ function getSqlConf( dbType, installedPath )
    if ( dbType == "mysql" )
    {
       confFile = "mysql.conf" ;
+   }
+   else if ( dbType == "mariadb" )
+   {
+      confFile = "mariadb.conf" ;
    }
    else if ( dbType == "pg" )
    {
@@ -1624,6 +1675,64 @@ function checkMysql()
 }
 
 /**
+ * Check and return mariadb info: mariadb installation path and
+ *                                mariadb instance configuration
+ *                                include instance name, port, databaseDir and
+ *                                coordAddr
+ * @param  null
+ * @return jsonObj                mariadb info
+ * {
+ *   "MARIADB_INSTALL_PATH":  "/opt/sequoiasql/mariadb",
+ *   "MARIADB_INSTANCE_CONF":
+ *   [
+ *      [ myinst1,6101,/opt/sequoiasql/mariadb/database/6101,u-fjiab:11810 ],
+ *      [ myinst2,6102,/opt/sequoiasql/mariadb/database/6102,u-fjiab:11810 ],
+ *      ...
+ *   ]
+ * }
+ */
+ function checkMariadb()
+ {
+    var mariadbInfo = {} ;
+    var ignoreNotInstall = !USER_SET_DEPLOY ;
+ 
+    // check it has installation or not
+    var installInfo = getSqlInstallInfo( "mariadb", ignoreNotInstall,
+                                         MARIADB_INSTALL_PATH ) ;
+    if ( installInfo == undefined && ignoreNotInstall )
+    {
+       if( USER_SET_DEPLOY == true )
+       {
+          println("sequoiasql-mariadb does not exist, please install ");
+       }
+       return ;
+    }
+    var installedPath = installInfo.INSTALL_DIR ;
+    mariadbInfo[FIELD_MARIADB_INSTALL_PATH] = installedPath ;
+ 
+    // check user
+    checkUser( "mariadb", installInfo ) ;
+ 
+    // get configure
+    var allConf = getSqlConf( "mariadb", installedPath ) ;
+ 
+    // check mariadb instance conf
+    for ( var i in allConf )
+    {
+       var instanceConf = allConf[i] ;
+       var port = instanceConf[1] ;
+       var databaseDir = instanceConf[2] ;
+       checkPort( port, MY_HOSTNAME ) ;
+       checkFilePath( databaseDir, MY_HOSTNAME, false ) ;
+    }
+ 
+    mariadbInfo[FIELD_MARIADB_INSTANCE_CONF] = allConf ;
+ 
+    return mariadbInfo ;
+ }
+ 
+
+/**
  * Check and return pg info: pg installation path and pg instance configuration
  *                           include instance name, port, databaseDir and
  *                           coordAddr
@@ -1720,6 +1829,79 @@ function deployMysql( mysqlInfo )
          // add instance
          var command = sqlCtl + " addinst " + instanceName + " -D " +
                        databaseDir + " -p " + port ;
+                       
+         cmd.run( command ) ;
+      }
+      catch( e )
+      {
+         var rc = cmd.getLastRet() ;
+         if ( rc == 8 ) // 8: instance exist
+         {
+            newInst = false ;
+         }
+         else
+         {
+            println( cmd.getLastOut() ) ;
+            throw e ;
+         }
+      }
+
+      try
+      {
+         // set coord address
+         var coordSetting = "sequoiadb_conn_addr=\"" + coordAddr + "\"" ;
+         var file = new File( databaseDir + "/auto.cnf" ) ;
+         var content = file.read() ;
+         content = content.replace( /sequoiadb_conn_addr=(.*)/g, coordSetting ) ;
+         content = content.replace( /#sequoiadb_conn_addr/g, "sequoiadb_conn_addr" ) ;
+         content = content.replace( /# sequoiadb_conn_addr/g, "sequoiadb_conn_addr" ) ;
+         if ( content.indexOf( "sequoiadb_conn_addr=" ) == -1 )
+         {
+            content = content.replace( /\[mysqld\]/g,
+                                       "[mysqld]\n" + coordSetting ) ;
+         }
+         file.seek( 0 ) ;
+         file.write( content ) ;
+
+         // restart instance to make the configuration take effect
+         var command = sqlCtl + " restart " + instanceName ;
+         cmd.run( command ) ;
+      }
+      catch( e )
+      {
+         println( cmd.getLastOut() ) ;
+         throw e ;
+      }
+
+      println( "Create instance: [name: " + instanceName + ", port: " + port +
+               "]" ) ;
+   }
+}
+
+function deployMariadb( mariadbInfo )
+{
+   println( "\n************ Deploy SequoiaSQL-MariaDB *****************" ) ;
+   var installedPath = mariadbInfo[FIELD_MARIADB_INSTALL_PATH] ;
+   var allConf = mariadbInfo[FIELD_MARIADB_INSTANCE_CONF] ;
+   var sqlCtl = installedPath + "/bin/sdb_sql_ctl" ;
+   var cmd = new Cmd() ;
+
+   // create instance
+   for ( var i in allConf )
+   {
+      var instanceConf = allConf[i] ;
+      var instanceName = instanceConf[0] ;
+      var port = instanceConf[1] ;
+      var databaseDir = instanceConf[2] ;
+      var coordAddr = instanceConf[3] ;
+      var newInst = true ;
+
+      try
+      {
+         // add instance
+         var command = sqlCtl + " addinst " + instanceName + " -D " +
+                       databaseDir + " -p " + port ;
+                       
          cmd.run( command ) ;
       }
       catch( e )
