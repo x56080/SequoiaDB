@@ -2685,7 +2685,7 @@ namespace engine
                            _me, getParent(), rc ) ;
                   goto error ;
                }
-               parent.setChildExtentID ( pos, childExtent ) ;
+               parent.setChildExtentID ( tmpPos, childExtent ) ;
                /// release current extent
                indexCB->freeExtent( _me ) ;
                _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
