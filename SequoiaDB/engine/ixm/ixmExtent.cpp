@@ -1874,7 +1874,7 @@ namespace engine
          // attempt to balance right child
          if ( mayBalanceRight )
          {
-            // for right balance, we merge pos and pos+1
+            // for right balance, we balance pos and pos+1
             rc = parent._tryBalanceChildren( pos, order, indexCB, 1, result ) ;
             if ( rc )
             {
@@ -1908,7 +1908,7 @@ namespace engine
          // attempt to balance left child
          if ( mayBalanceLeft )
          {
-            // for left balance, we merge pos-1 and pos
+            // for left balance, we balance pos-1 and pos
             rc = parent._tryBalanceChildren ( pos, order, indexCB, -1, result ) ;
             if ( rc )
             {
@@ -2614,7 +2614,7 @@ namespace engine
          }
 
          /// set merge key node child
-         for ( UINT16 i = 0 ; i < hasMergedNum ; ++i )
+         for ( UINT16 i = 0 ; i < hasMergedNum - 1 ; ++i )
          {
             insertPos = childKeyNum + i + 1 ;
             tmpExtentID = siblingExt.getChildExtentID( i ) ;
