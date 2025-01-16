@@ -1923,6 +1923,9 @@ namespace engine
       // now other normal applications still able to access metadata in
       // read-only mode
 
+      /// masking ft
+      pmdFTShield ftShield( -1, PMD_FT_MASK_DEADSYNC ) ;
+
       // get file size for map or rollback
       rc = ossGetFileSize ( &_file, (INT64 *)&fileSize ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get file size, rc = %d", rc ) ;
