@@ -808,6 +808,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_EXTEND ) ;
+
+      /// masking ft
+      pmdFTShield ftShield( -1, PMD_FT_MASK_DEADSYNC ) ;
+
       do
       {
          rc = _extend( len ) ;
@@ -829,8 +833,8 @@ namespace engine
          {
             break ;
          }
-
       } while (  TRUE ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_EXTEND, rc ) ;
       return rc ;
