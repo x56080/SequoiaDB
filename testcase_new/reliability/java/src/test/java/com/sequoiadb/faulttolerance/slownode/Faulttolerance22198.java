@@ -66,7 +66,7 @@ public class Faulttolerance22198 extends SdbTestBase {
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         DBCollection dbcl = cs.createCollection( clName2,
-                new BasicBSONObject( "Group", groupName ) );
+                new BasicBSONObject( "Group", groupName ).append( "ReplSize", 1 ) );
 
         int recordNum = 500000;
         FaultToleranceUtils.insertData( dbcl, recordNum );
