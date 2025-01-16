@@ -82,6 +82,7 @@ public class Faulttolerance22202 extends SdbTestBase {
         config.put( "ftconfirmperiod", 3 );
         config.put( "ftslownodethreshold", 1 );
         config.put( "ftslownodeincrement", 1 );
+        config.put( "replsize", 1 );
         sdb.updateConfig( config,
                 new BasicBSONObject( "GroupName", groupName ) );
 
@@ -131,6 +132,7 @@ public class Faulttolerance22202 extends SdbTestBase {
             config.put( "ftconfirmperiod", 1 );
             config.put( "ftslownodethreshold", 1 );
             config.put( "ftslownodeincrement", 1 );
+            config.put( "replsize", 1 );
             sdb.deleteConfig( config, new BasicBSONObject() );
             sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
 

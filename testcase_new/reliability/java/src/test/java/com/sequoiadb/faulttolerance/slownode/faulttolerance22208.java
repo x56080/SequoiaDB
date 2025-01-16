@@ -244,6 +244,7 @@ public class faulttolerance22208 extends SdbTestBase {
         configs.put( "ftslownodethreshold", 1 );
         configs.put( "ftslownodeincrement", 1 );
         configs.put( "ftfusingtimeout", 10 );
+        configs.put( "replsize", 1 );
         options.put( "GroupName", groupName );
         sdb.updateConfig( configs, options );
     }
@@ -255,6 +256,7 @@ public class faulttolerance22208 extends SdbTestBase {
         configs.put( "ftlevel", 1 );
         configs.put( "ftslownodethreshold", 1 );
         configs.put( "ftslownodeincrement", 1 );
+        configs.put( "replsize", 1 );
         options.put( "GroupName", groupName );
         sdb.deleteConfig( configs, options );
         sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ),
