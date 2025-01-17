@@ -2440,7 +2440,7 @@ namespace engine
               CMD_RENAME_COLLECTIONSPACE == pCommand->type() ||
               CMD_ALTER_COLLECTIONSPACE == pCommand->type() )
          {
-            replSize = (INT16)(pmdOptionsCB().getReplSize()) ;
+            replSize = (INT16)(pmdGetOptionCB()->getReplSize()) ;
             rc = _calculateW( &replSize, &clientW, w ) ;
             if ( SDB_OK != rc )
             {
