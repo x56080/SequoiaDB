@@ -8,6 +8,7 @@ import os,sys
 import platform
 import shutil
 import argparse
+import time
 import paramiko
 import glob
 import tarfile
@@ -92,7 +93,7 @@ class OptionsMgr:
    def get_compile_args(self):
       compile_args = []
       compile_args.append('-j {}'.format(self.args.job))
-      
+
       if self.args.enterprise:
          compile_args.append('--enterprise')
 
@@ -118,7 +119,7 @@ class OptionsMgr:
 
    def get_enterprise(self):
       return self.args.enterprise
-   
+
    def get_hybrid(self):
       return self.args.hybrid
 
@@ -173,6 +174,19 @@ class RemoteMgr():
       err_exit(rs, 'Run command {} fail in {}, remote compile fail'.format(build_cmd, REMOTE_HOST))
       print_log('Finish remote compile')
 
+   def scp_remote_file(self, src_file_path, des_file_path):
+      maxRetryTime = 5
+      retryTime = 0
+      while retryTime<maxRetryTime:
+         try:
+            self.scp.get(src_file_path, des_file_path)
+            return
+         except BaseException:
+            retryTime += 1
+            print_log('scp from remote computer failed. Now sleep 5s and try again')
+            time.sleep(5)
+      raise BaseException("scp from remote computer failed")
+
    def get_remote_file(self):
       print_log('Begine scp from remote computer')
       ex_module_file = os.path.join(ROOT_DIR, 'ex_module')
@@ -184,7 +198,7 @@ class RemoteMgr():
          os.remove(ex_module_tar_file)
       # scp file to the local and uncompress
       remote_scp_file = os.path.join(self.db_path, 'ex_module.tar.gz')
-      self.scp.get(remote_scp_file, ROOT_DIR)
+      self.scp_remote_file(remote_scp_file, ROOT_DIR)
       tar = tarfile.open(ex_module_tar_file, 'r:gz')
       tar.extractall(path = ROOT_DIR)
       tar.close()
@@ -451,7 +465,7 @@ def package_all_driver(opt_mgr, ver):
    # c&cpp contail special character, use shutil to copy
    shutil.copytree(os.path.join(ROOT_DIR, 'client/include'), os.path.join(install_dir, 'C&CPP/include'))
    shutil.copytree(os.path.join(ROOT_DIR, 'client/lib'), os.path.join(install_dir, 'C&CPP/lib'))
-   
+
    tar_name = 'sequoiadb-driver-{}-linux_{}.tar.gz'.format(ver.get_version(), OS_ARCH)
    tar = tarfile.open(os.path.join(opt_mgr.get_install_dir(), tar_name), 'w:gz')
    tar.add(install_dir, arcname = os.path.basename(install_dir))
@@ -471,7 +485,7 @@ def package_driver(opt_mgr, ver):
       tar.add(os.path.join(driver_dir, dir), file_name)
       tar.close()
    print_log('Finish package each driver')
-   
+
 def package_doc(opt_mgr):
    print_log('Begine package doc')
    # copy into install dir, not need to package
