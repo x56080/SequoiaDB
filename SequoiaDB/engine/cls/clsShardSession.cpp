@@ -2621,14 +2621,14 @@ namespace engine
               CMD_RENAME_COLLECTIONSPACE == pCommand->type() ||
               CMD_ALTER_COLLECTIONSPACE == pCommand->type() )
          {
-            replSize = (INT16)(pmdOptionsCB().getReplSize()) ;
+            replSize = (INT16)(pmdGetOptionCB()->getReplSize()) ;
             rc = _calculateW( &replSize, &clientW, w ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
                goto error ;
             }
-            eduCB()->getOperator()->setReplStrategy( pmdOptionsCB().getConsistencyStrategy() ) ;
+            eduCB()->getOperator()->setReplStrategy( pmdGetOptionCB()->getConsistencyStrategy() ) ;
          }
 
          if ( CMD_LOAD_COLLECTIONSPACE == pCommand->type() )
