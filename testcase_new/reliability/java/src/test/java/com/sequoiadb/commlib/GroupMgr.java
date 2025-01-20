@@ -40,7 +40,7 @@ public class GroupMgr {
 
     /**
      * 刷新 SDB 连接
-     * 
+     *
      * @param sdb
      */
     public void setSdb( Sequoiadb sdb ) {
@@ -470,7 +470,7 @@ public class GroupMgr {
         boolean printAndThrowAllException = false;
         do {
             ret = true;
-            printAndThrowAllException = false;
+            printAndThrowAllException = true;
             if ( System.currentTimeMillis() - timestamp > timeOutSecond
                     * 1000 ) {
                 printAndThrowAllException = true;
