@@ -199,6 +199,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       dmsExtentID startExtID = DMS_INVALID_EXTENT ;
       dmsExtentID endExtID = DMS_INVALID_EXTENT ;
+      UINT64 lastSleepTick = pmdGetDBTick() ;
+      UINT64 currentTick = 0 ;
 
       for(;;)
       {
@@ -305,6 +307,16 @@ namespace engine
                      "rc: %d", rc ) ;
 
          _mbContext->mbUnlock() ;
+
+         // When lock immediately after unlock, this thread has a great advantage
+         // to regain the lock. So sleep to allow other threads compete the lock
+         currentTick = pmdGetDBTick() ;
+         if ( pmdDBTickSpan2Time( currentTick - lastSleepTick ) >=
+              LOCK_SLEEP_INTERVAL_MS )
+         {
+            ossSleep( 1 ) ;
+            lastSleepTick = currentTick ;
+         }
       }
 
    done:
@@ -319,6 +331,8 @@ namespace engine
       #define _KEYS_PER_BATCH 10000
       INT32 rc = SDB_OK ;
       dmsIndexChangeWatcher* pWatcher = _suIndex->getIndexChangeWatcher() ;
+      UINT64 lastSleepTick = pmdGetDBTick() ;
+      UINT64 currentTick = 0 ;
 
       for (;;)
       {
@@ -378,6 +392,16 @@ namespace engine
          if ( SDB_OK != rc )
          {
             goto error ;
+         }
+
+         // When lock immediately after unlock, this thread has a great advantage
+         // to regain the lock. So sleep to allow other threads compete the lock
+         currentTick = pmdGetDBTick() ;
+         if ( pmdDBTickSpan2Time( currentTick - lastSleepTick ) >=
+              LOCK_SLEEP_INTERVAL_MS )
+         {
+            ossSleep( 1 ) ;
+            lastSleepTick = currentTick ;
          }
       }
 

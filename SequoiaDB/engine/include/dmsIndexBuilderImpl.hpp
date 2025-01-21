@@ -77,6 +77,9 @@ namespace engine
       ~_dmsIndexSortingBuilder() ;
 
    private:
+      static const UINT64 LOCK_SLEEP_INTERVAL_MS = 1000 ;
+
+   private:
       INT32 _init() ;
       INT32 _fillSorter() ;
       INT32 _insertKeys( const Ordering& ordering ) ;
