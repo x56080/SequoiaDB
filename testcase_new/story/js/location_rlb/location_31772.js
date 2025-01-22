@@ -20,11 +20,15 @@ function test ()
    var rg = db.getRG( dataGroupName );
    var slaveNode = rg.getSlave();
 
-   // 给节点设置Location
-   slaveNode.setLocation( location1 );
+   println( slaveNode ) ;
+
+   commCheckBusinessStatus( db ) ;
 
    try
    {
+      // 给节点设置Location
+      slaveNode.setLocation( location1 );
+
       // 备节点所在Location启动Critical模式
       var minKeepTime = 10;
       var maxKeepTime = 20;
