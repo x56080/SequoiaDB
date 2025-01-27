@@ -11301,7 +11301,7 @@ do                                                            \
       {
          goto error ;
       }
-      rc = _send ( _pSendBuffer ) ;
+      rc = _send ( pBuffer ) ;
       if ( rc )
       {
          goto error ;
