@@ -345,7 +345,7 @@ namespace engine
    #define EDU_BLOCK_DMS_STR                 "DMSBlock"
    #define EDU_BLOCK_PRIMARY_STR             "WaitPrimary"
    #define EDU_BLOCK_TRANSROLLBACK_STR       "WaitTransRollback"
-   #define EDU_BLOCK_REELECT_STR             "WaitRelect"
+   #define EDU_BLOCK_REELECT_STR             "WaitReelect"
    #define EDU_BLOCK_SYNCWAIT_STR            "WaitSync"
    #define EDU_BLOCK_SYNCCONTROL_STR         "SyncControl"
    #define EDU_BLOCK_WAITREPLY_STR           "WaitReply"
