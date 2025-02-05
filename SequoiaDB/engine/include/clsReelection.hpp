@@ -41,6 +41,8 @@ namespace engine
    class _clsVoteMachine ;
    class _clsSyncManager ;
 
+   #define CLS_WAIT_REELECT_TIMEOUT          (600)    /// second
+
    class _clsReelection : public SDBObject
    {
    public:
@@ -55,7 +57,7 @@ namespace engine
                  pmdEDUCB *cb,
                  UINT16 destID = 0 ) ;
 
-      INT32 wait( pmdEDUCB *cb ) ;
+      INT32 wait( pmdEDUCB *cb, UINT32 timeout = CLS_WAIT_REELECT_TIMEOUT ) ;
 
       void  signal() ;
 

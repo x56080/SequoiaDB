@@ -6950,7 +6950,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKPRIMARYSTATUS, "_clsShdSession::_checkPrimary" )
-   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout )
+   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout, BOOLEAN waitReelect )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYSTATUS ) ;
@@ -6966,7 +6966,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _pReplSet->primaryCheck( _pEDUCB ) ;
+         rc = _pReplSet->primaryCheck( _pEDUCB, waitReelect ) ;
          if ( SDB_OK == rc )
          {
             break ;
@@ -7130,10 +7130,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYWHENREAD ) ;
-      rc = _checkPrimaryStatus() ;
+      rc = _checkPrimaryStatus( 0, FALSE ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDINFO, "failed to check primary status:%d", rc ) ;
+         PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
          goto error ;
       }
    done:
@@ -7151,7 +7151,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKSECONDARYWHENREAD ) ;
 
       /// no wait
-      rc = _checkPrimaryStatus( 0 ) ;
+      rc = _checkPrimaryStatus( 0, FALSE ) ;
       // check return code
       if ( SDB_OK == rc )
       {

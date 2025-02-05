@@ -67,12 +67,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_WAIT, "_clsReelection::wait" )
-   INT32 _clsReelection::wait( pmdEDUCB *cb )
+   INT32 _clsReelection::wait( pmdEDUCB *cb, UINT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_WAIT ) ;
       UINT32 timePassed = 0 ;
-      UINT32 timeout = 600 ;
 
       if ( CLS_REELECTION_LEVEL_NONE != _level )
       {
@@ -208,7 +207,7 @@ namespace engine
       rc = _stepDown( timePassed, seconds, isLocation, cb ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to step down, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -416,6 +415,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasBlock = FALSE ;
+      INT64   onceTime = 0 ; /// second
+      BOOLEAN isFirst = TRUE ;
 
       while ( timePassed <= timeout )
       {
@@ -425,25 +426,40 @@ namespace engine
             goto error ;
          }
 
-         rc = _event.wait( OSS_ONE_SEC ) ;
+         if ( isFirst || timePassed >= timeout )
+         {
+            onceTime = 0 ;
+            isFirst = FALSE ;
+         }
+         else
+         {
+            onceTime = 1 ;
+         }
+
+         rc = _event.wait( onceTime * OSS_ONE_SEC ) ;
          if ( SDB_OK == rc )
          {
             break ;
          }
          else if ( SDB_TIMEOUT == rc )
          {
+            timePassed += onceTime ;
+            if ( timePassed >= timeout )
+            {
+               goto error ;
+            }
+
             if ( !hasBlock && canSetBlock )
             {
                cb->setBlock( EDU_BLOCK_REELECT, "Waiting for reelect" ) ;
                hasBlock = TRUE ;
             }
             rc = SDB_OK ;
-            ++timePassed ;
             continue ;
          }
          else
          {
-            PD_LOG( PDERROR, "failed to wait:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to wait, rc: %d", rc ) ;
             goto error ;
          }
       }
