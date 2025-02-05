@@ -79,6 +79,8 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
+   #define CLS_WAIT_REELECT_TIMEOUT             (600)    /// second
+
    #define CLS_REELECT_COMMAND_TIMEOUT_DFT      30
 
    // Temporary weight, use for reelect / fault tolerant

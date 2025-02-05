@@ -395,7 +395,7 @@ namespace engine
          INT32 _resetSnapshotMainCL ( _rtnCommand * command ) ;
 
          INT32 _checkPrimaryStatus( UINT32 timeout = SHD_NOTPRIMARY_WAITTIME,
-                                    BOOLEAN waitReelect = TRUE ) ;
+                                    INT32 waitReelectSec = CLS_WAIT_REELECT_TIMEOUT ) ;
 
          INT32 _checkRollbackStatus() ;
 

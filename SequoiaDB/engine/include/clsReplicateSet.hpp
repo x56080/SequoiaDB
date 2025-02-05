@@ -482,7 +482,7 @@ namespace engine
          INT32 stepUp( UINT32 seconds,
                        pmdEDUCB *cb ) ;
 
-         INT32 primaryCheck( pmdEDUCB *cb, BOOLEAN waitRelect ) ;
+         INT32 primaryCheck( pmdEDUCB *cb, INT32 waitReelectSec ) ;
          INT32 replSizeCheck( INT16 w, INT16 &finalW, _pmdEDUCB *cb,
                               BOOLEAN isAfterData = FALSE ) ;
 

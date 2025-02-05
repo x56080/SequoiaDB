@@ -2942,17 +2942,24 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_PRIMARYCHECK, "_clsReplicateSet::primaryCheck" )
-   INT32 _clsReplicateSet::primaryCheck( pmdEDUCB *cb, BOOLEAN waitRelect )
+   INT32 _clsReplicateSet::primaryCheck( pmdEDUCB *cb, INT32 waitReelectSec )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_PRIMARYCHECK ) ;
 
-      if ( waitRelect )
+      if ( waitReelectSec >= 0 )
       {
-         rc = _reelection.wait( cb ) ;
+         rc = _reelection.wait( cb, waitReelectSec ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to wait reelect, rc: %d", rc ) ;
+            if ( SDB_TIMEOUT == rc && 0 == waitReelectSec )
+            {
+               PD_LOG( PDDEBUG, "Failed to wait reelect, rc: %d", rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to wait reelect, rc: %d", rc ) ;
+            }
             goto error ;
          }
       }
