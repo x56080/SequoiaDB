@@ -53,9 +53,7 @@ namespace engine
     _mode( SDB_LOB_MODE_READ ),
     _flags( 0 ),
     _isMainShd( FALSE ),
-    _w( 1 ),
     _version( 0 ),
-    _dpsCB( NULL ),
     _closeWithException( TRUE ),
     _buf( NULL ),
     _bufLen( 0 ),
@@ -88,8 +86,8 @@ namespace engine
          else if ( SDB_LOB_MODE_REMOVE == _mode && _isMainShd )
          {
             rtnQueryAndInvalidateLob( _getRealCLName(),
-                                      _oid, cb, _w,
-                                      _dpsCB, _meta,
+                                      _oid, cb, 1,
+                                      _pDpsCB, _meta,
                                       _su, _mbContext ) ;
          }
          else
@@ -172,8 +170,8 @@ namespace engine
          goto error ;
       }
 
-      _w = w ;
-      _dpsCB = dpsCB ;
+      setWriteInfo( dpsCB, w ) ;
+
       _version = version ;
       _flags = flag ;
 
@@ -252,7 +250,7 @@ namespace engine
          rc = rtnWriteOrUpdateLob( _getRealCLName(),
                                    _oid, sequence,
                                    offset, len, data, cb,
-                                   _w, _dpsCB, _su, _mbContext,
+                                   1, _pDpsCB, _su, _mbContext,
                                    &updated ) ;
       }
       else
@@ -260,12 +258,12 @@ namespace engine
          rc = rtnWriteLob( _getRealCLName(),
                            _oid, sequence,
                            offset, len, data, cb,
-                           _w, _dpsCB, _su, _mbContext ) ;
+                           1, _pDpsCB, _su, _mbContext ) ;
       }
 
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to write lob, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -449,7 +447,7 @@ namespace engine
          rc = rtnUpdateLob( _getRealCLName(),
                             _oid, sequence,
                             offset, len, data, cb,
-                            _w, _dpsCB, _su, _mbContext ) ;
+                            1, _pDpsCB, _su, _mbContext ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to update lob:%d", rc ) ;
@@ -480,7 +478,7 @@ namespace engine
          rc = rtnUpdateLob( _getRealCLName(),
                             _oid, sequence,
                             offset, len, data, cb,
-                            _w, _dpsCB, _su, _mbContext ) ;
+                            1, _pDpsCB, _su, _mbContext ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to update lob:%d", rc ) ;
@@ -1159,16 +1157,16 @@ namespace engine
       rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       rc = rtnRemoveLobPiece( _getRealCLName(),
-                                _oid, sequence, cb,
-                                _w, _dpsCB, _su, _mbContext ) ;
+                              _oid, sequence, cb,
+                              1, _pDpsCB, _su, _mbContext ) ;
       if ( rc )
       {
          goto error ;
       }
-done:
+   done:
       return rc ;
-error:
-   goto done ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_LOCK, "_rtnContextShdOfLob::lock" )
@@ -1285,6 +1283,9 @@ error:
          _su = NULL ;
       }
 
+      /// sync and ignore error
+      waitSync( cb ) ;
+
       PD_TRACE_EXIT( SDB__RTNCONTEXTSHDOFLOB_CLOSE ) ;
       return SDB_OK ;
    }
@@ -1306,7 +1307,7 @@ error:
 
          rc = rtnRemoveLobPiece( _getRealCLName(),
                                  _oid, *itr, cb,
-                                 _w, _dpsCB, _su, _mbContext, TRUE ) ;
+                                 1, _pDpsCB, _su, _mbContext, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove piece[%d] of lob, rc:%d",
