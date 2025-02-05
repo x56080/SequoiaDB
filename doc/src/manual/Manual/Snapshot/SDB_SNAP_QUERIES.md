@@ -1,4 +1,3 @@
-
 查询快照可以列出数据库中正在进行的查询信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，查询耗时超过 [monslowquerythreshold][configuration] 参数所规定阈值的历史查询信息会被缓存。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史查询信息。
 
 >**Note:**
@@ -39,7 +38,7 @@ SDB_SNAP_QUERIES
 | SessionID              | int32    | 查询所属会话ID                                      |
 | ClientInfo             | bson     | 连接到 SequoiaDB 引擎执行该查询的客户端信息         |
 | RelatedNode            | bson array | 处理该查询时，经该协调节点发送到的远程节点集(如果为空则不显示该字段)   |
-| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing, NoLogSpace   |
+| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitReelect, SyncControl, WaitFusing, NoLogSpace   |
 | LastOpInfo             | string   | 查询语句内容                                        |
 
 **ClientInfo 字段中信息**
@@ -96,7 +95,7 @@ SDB_SNAP_QUERIES
 | TransLockWaitCount     | int32    | 锁等待次数                                                         |
 | LatchWaitCount         | int32    | 闩锁等待次数                                                       |
 | RelatedNode            | bson array | 本节点操作执行过程中发送消息到的远程节点(如果为空则不显示该字段) |
-| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing, NoLogSpace   |
+| BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitReelect, SyncControl, WaitFusing, NoLogSpace   |
 | LastOpInfo             | string   | 查询语句内容                                                       |
 
 ## 示例
