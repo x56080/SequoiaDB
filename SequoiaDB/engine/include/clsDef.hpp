@@ -76,6 +76,8 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
+   #define CLS_WAIT_REELECT_TIMEOUT             (600)    /// second
+
    enum CLS_SYNC_STATUS
    {
       CLS_SYNC_STATUS_NONE = 0,

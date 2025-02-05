@@ -6444,7 +6444,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKPRIMARYSTATUS, "_clsShdSession::_checkPrimary" )
-   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout, BOOLEAN waitReelect )
+   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout, INT32 waitReelectSec )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYSTATUS ) ;
@@ -6453,7 +6453,7 @@ namespace engine
 
       while( TRUE )
       {
-         rc = _pReplSet->primaryCheck( _pEDUCB, waitReelect ) ;
+         rc = _pReplSet->primaryCheck( _pEDUCB, waitReelectSec ) ;
          if ( SDB_OK == rc )
          {
             break ;
@@ -6619,8 +6619,13 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYWHENREAD ) ;
       if ( flag & reqFlag )
       {
-         rc = _checkPrimaryStatus( 0, FALSE ) ;
-         if ( SDB_OK != rc )
+         rc = _checkPrimaryStatus( 0, 0 ) ;
+         if ( SDB_TIMEOUT == rc )
+         {
+            /// this node is reelect
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK != rc )
          {
             PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
             goto error ;
@@ -6643,7 +6648,7 @@ namespace engine
       if ( flag & reqFlag )
       {
          /// no wait
-         rc = _checkPrimaryStatus( 0, FALSE ) ;
+         rc = _checkPrimaryStatus( 0, -1 ) ;
          // check return code
          if ( SDB_OK == rc && _pReplSet->groupSize() > 1 )
          {

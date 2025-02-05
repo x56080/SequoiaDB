@@ -41,8 +41,6 @@ namespace engine
    class _clsVoteMachine ;
    class _clsSyncManager ;
 
-   #define CLS_WAIT_REELECT_TIMEOUT          (600)    /// second
-
    class _clsReelection : public SDBObject
    {
    public:
