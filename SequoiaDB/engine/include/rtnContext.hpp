@@ -360,8 +360,11 @@ namespace engine
 
          /// write info( some context will write data, drop collection, etc..)
          void           setWriteInfo( SDB_DPSCB *dpsCB, INT16 w ) ;
+         void           updateW( INT16 orgW, INT16 w ) ;
          SDB_DPSCB*     getDPSCB() { return _pDpsCB ; }
          INT16          getW() const { return _w ; }
+         INT16          getOrgW() const { return _orgW ; }
+         INT32          waitSync( _pmdEDUCB *cb ) ;
 
          void           setTransContext( BOOLEAN transCtx ) ;
          BOOLEAN        isTransContext() const ;
@@ -380,6 +383,10 @@ namespace engine
          void _setGlobalID( const MsgGlobalID &globalID )
          {
             _globalID = globalID ;
+         }
+         void _setOrgW( INT16 w )
+         {
+            _orgW = w ;
          }
 
       // prefetch
@@ -606,6 +613,7 @@ namespace engine
 
          SDB_DPSCB               *_pDpsCB ;
          INT16                   _w ;
+         INT16                   _orgW ;
 
          // Enable performance monitor
          BOOLEAN                 _enableMonContext ;

@@ -138,11 +138,6 @@ namespace engine
          return _version ;
       }
 
-      INT16 getW() const
-      {
-         return _w ;
-      }
-
       const bson::OID &getOID() const
       {
          return _oid ;
@@ -191,17 +186,15 @@ namespace engine
       INT32                _mode ;
       INT32                _flags ;
       BOOLEAN              _isMainShd ;
-      SINT16               _w ;
       SINT32               _version ;
       _dmsLobMeta          _meta ;
-      SDB_DPSCB*           _dpsCB ;
       BOOLEAN              _closeWithException ;
       CHAR*                _buf ;
       UINT32               _bufLen ;
       const CHAR*          _pData ;
       UINT32               _dataLen ;
       INT64                _offset ;
-      ossPoolSet<UINT32>  _written ;
+      ossPoolSet<UINT32>   _written ;
       _rtnLobPiecesInfo    _lobPieces ;
       _rtnLobAccessInfo*   _accessInfo ;
 

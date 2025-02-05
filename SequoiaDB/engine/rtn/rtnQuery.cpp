@@ -129,14 +129,10 @@ namespace engine
       }
 
       /// wait for sync
-      if ( pContext->isWrite() && pContext->getDPSCB() && pContext->getW() > 1 )
-      {
-         cb->setOrgReplSize( pContext->getW() ) ;
-         // For now we don't report error, since the user will not be able to
-         // due with the situation, in which case primary node is done but the
-         // secondary nodes are not synchronized
-         pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
-      }
+      // For now we don't report error, since the user will not be able to
+      // due with the situation, in which case primary node is done but the
+      // secondary nodes are not synchronized
+      pContext->waitSync( cb ) ;
 
       if ( SDB_DMS_EOC == rc )
       {

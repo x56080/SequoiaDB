@@ -453,15 +453,7 @@ namespace engine
          pContext->waitForPrefetch() ;
 
          /// wait for sync
-         if ( pContext->isWrite() && pContext->getDPSCB() &&
-              pContext->getW() > 1 )
-         {
-            if ( NULL != cb )
-            {
-               cb->setOrgReplSize( pContext->getW() ) ;
-            }
-            pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
-         }
+         pContext->waitSync( cb ) ;
 
          monClassQuery *monQueryCB = pContext->getMonQueryCB() ;
          if ( NULL != monQueryCB )
@@ -769,6 +761,7 @@ namespace engine
       }
 
       context->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
+      context->_setOrgW( pEDUCB->getOrgReplSize() ) ;
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",

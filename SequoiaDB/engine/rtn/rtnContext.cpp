@@ -510,6 +510,7 @@ namespace engine
       _countOnly           = FALSE ;
       _pDpsCB              = NULL ;
       _w                   = 1 ;
+      _orgW                = 1 ;
 
       _canPrepareMore      = FALSE ;
       _prepareMoreDataLimit = RTN_CTX_PREPARE_MORE_DATA_INIT ;
@@ -570,6 +571,30 @@ namespace engine
    {
       _pDpsCB  = dpsCB ;
       _w       = w ;
+   }
+
+   void _rtnContextBase::updateW( INT16 orgW, INT16 w )
+   {
+      _orgW = orgW ;
+      _w = w ;
+   }
+
+   INT32 _rtnContextBase::waitSync( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( cb && isWrite() && getDPSCB() && getW() > 1 )
+      {
+         cb->setOrgReplSize( getOrgW() ) ;
+         rc = getDPSCB()->completeOpr( cb, getW() ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Wait context(ID:%lld, Name:%s) repl-sync(OrgW:%d, w:%d) "
+                    "failed, rc: %d", _contextID, name(), getOrgW(), getW(), rc ) ;
+         }
+      }
+
+      return rc ;
    }
 
    void _rtnContextBase::setTransContext( BOOLEAN transCtx )
