@@ -2131,7 +2131,7 @@ namespace engine
             rc = _calculateW( &replSize, &clientW, w ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to calculate w, rc: %d", rc ) ;
                goto error ;
             }
          }
@@ -2299,7 +2299,7 @@ namespace engine
             rc = _checkWriteStatus() ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDWARNING, "failed to check write status:%d", rc ) ;
+               PD_LOG( PDWARNING, "Failed to check write status, rc: %d", rc ) ;
                goto error ;
             }
 
@@ -4934,7 +4934,7 @@ namespace engine
          rc = _checkWriteStatus() ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDWARNING, "failed to check write status:%d", rc ) ;
+            PD_LOG( PDWARNING, "Failed to check write status, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -4943,7 +4943,7 @@ namespace engine
          rc = _checkPrimaryWhenRead( FLG_LOBREAD_PRIMARY, header->flags ) ;
          if ( rc )
          {
-            PD_LOG( PDWARNING, "failed to check read status:%d", rc ) ;
+            PD_LOG( PDWARNING, "Failed to check read status, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -5511,7 +5511,7 @@ namespace engine
       rc = _checkPrimaryWhenRead(FLG_LOBREAD_PRIMARY,  header->flags ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDWARNING, "failed to check read status:%d", rc ) ;
+         PD_LOG( PDWARNING, "Failed to check read status, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -5983,7 +5983,7 @@ namespace engine
       rc = _checkPrimaryWhenRead(FLG_LOBREAD_PRIMARY,  header->flags ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDWARNING, "failed to check read status:%d", rc ) ;
+         PD_LOG( PDWARNING, "Failed to check read status, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -6444,7 +6444,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKPRIMARYSTATUS, "_clsShdSession::_checkPrimary" )
-   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout )
+   INT32 _clsShdSession::_checkPrimaryStatus( UINT32 timeout, BOOLEAN waitReelect )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYSTATUS ) ;
@@ -6453,7 +6453,7 @@ namespace engine
 
       while( TRUE )
       {
-         rc = _pReplSet->primaryCheck( _pEDUCB ) ;
+         rc = _pReplSet->primaryCheck( _pEDUCB, waitReelect ) ;
          if ( SDB_OK == rc )
          {
             break ;
@@ -6619,10 +6619,10 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYWHENREAD ) ;
       if ( flag & reqFlag )
       {
-         rc = _checkPrimaryStatus() ;
+         rc = _checkPrimaryStatus( 0, FALSE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDINFO, "failed to check primary status:%d", rc ) ;
+            PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -6643,7 +6643,7 @@ namespace engine
       if ( flag & reqFlag )
       {
          /// no wait
-         rc = _checkPrimaryStatus( 0 ) ;
+         rc = _checkPrimaryStatus( 0, FALSE ) ;
          // check return code
          if ( SDB_OK == rc && _pReplSet->groupSize() > 1 )
          {
