@@ -37,6 +37,7 @@
 #include "pmdAsyncSession.hpp"
 #include "rtn.hpp"
 #include "rtnInsertModifier.hpp"
+#include "clsDef.hpp"
 
 using namespace bson ;
 
