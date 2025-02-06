@@ -67,7 +67,7 @@ namespace engine
    public:
       dmsRBSOffset()
       {
-         _clID = DMS_INVALID_CLID ;
+         _clID = DMS_INVALID_MBID ;
          _logicalID = -1 ;
       }
  
@@ -86,7 +86,7 @@ namespace engine
       OSS_INLINE BOOLEAN isValid() const
       {
          BOOLEAN rv = TRUE ;
-         if ( _clID == DMS_INVALID_CLID || _logicalID == -1 )
+         if ( _clID == DMS_INVALID_MBID || _logicalID == -1 )
          { 
             rv = FALSE ;
          }
