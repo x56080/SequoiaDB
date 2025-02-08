@@ -222,6 +222,11 @@ namespace engine
       if ( isControl )
       {
          _startCtrlJob = FALSE ;
+
+         if ( pmdIsQuitApp() )
+         {
+            _ntyEvent.signalAll( SDB_APP_FORCED ) ;
+         }
       }
       _checkAndStartJob( FALSE ) ;
 
@@ -298,7 +303,16 @@ namespace engine
       {
          if ( isControlJob() )
          {
-            _pDispatcher->getEmptyEvent()->wait( DMS_MAPPING_JOB_INTERVAL ) ;
+            timeout = 0 ;
+
+            while ( timeout < DMS_MAPPING_JOB_INTERVAL && !eduCB()->isForced() )
+            {
+               if ( SDB_OK == _pDispatcher->getEmptyEvent()->wait( 200 ) )
+               {
+                  break ;
+               }
+               timeout += 200 ;
+            }
             _pDispatcher->prepare() ;
             eduCB()->incEventCount( 1 ) ;
          }

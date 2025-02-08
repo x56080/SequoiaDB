@@ -34,6 +34,7 @@
 #include "catGTSMsgJob.hpp"
 #include "catGTSMsgHandler.hpp"
 #include "pmdEDUMgr.hpp"
+#include "pmdEnv.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "pd.hpp"
@@ -80,16 +81,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 timeout = 0 ;
-      INT32 POP_WAIT_TIME = 5 * OSS_ONE_SEC ;
-      UINT64 checkTime = 0 ;
+      INT32 POP_WAIT_TIME = OSS_ONE_SEC ;
+      UINT64 checkDBTick = pmdGetDBTick() ;
       PD_TRACE_ENTRY( SDB_GTS_MSG_JOB_DOIT ) ;
       pmdEDUMgr* eduMgr = eduCB()->getEDUMgr() ;
-
-      if ( isController() )
-      {
-         POP_WAIT_TIME = OSS_ONE_SEC ;
-         checkTime = ossGetCurrentMilliseconds() ;
-      }
 
       eduMgr->activateEDU( eduCB() ) ;
 
@@ -101,12 +96,11 @@ namespace engine
          if ( isController() )
          {
             // limit check load interval by checkTime
-            UINT64 currentTime = ossGetCurrentMilliseconds() ;
-            if ( currentTime - checkTime >= OSS_ONE_SEC ||
-                 currentTime < checkTime )
+            UINT64 currentDBTick = pmdGetDBTick() ;
+            if ( pmdDBTickSpan2Time( currentDBTick - checkDBTick ) >= OSS_ONE_SEC )
             {
                _msgHandler->checkLoad() ;
-               checkTime = currentTime ;
+               checkDBTick = currentDBTick ;
             }
          }
 

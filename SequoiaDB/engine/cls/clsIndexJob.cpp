@@ -950,10 +950,20 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN() && pmdIsPrimary() && !cb->isForced() )
       {
+         UINT32 timeout = 0 ;
          /// Before any one is found in the queue, the status of this thread is
          /// wait. Once found, it will be changed to running.
          pEduMgr->waitEDU( cb->getID() ) ;
-         event->wait( CLS_REPORT_TASK_INFO_INTERVAL ) ;
+
+         while( timeout < CLS_REPORT_TASK_INFO_INTERVAL && !cb->isForced() )
+         {
+            if ( SDB_OK == event->wait( 200 ) )
+            {
+               break ;
+            }
+            timeout += 200 ;
+         }
+
          pEduMgr->activateEDU( cb ) ;
          event->reset() ;
          needStartTaskCheck = FALSE ;
