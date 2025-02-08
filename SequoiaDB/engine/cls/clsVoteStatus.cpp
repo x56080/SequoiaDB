@@ -62,6 +62,11 @@ namespace engine
 
    }
 
+   void _clsVoteStatus::setImmediatelyTime()
+   {
+      _timeout() = CLS_VOTE_CS_TIME ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTSTUS__LAU, "_clsVoteStatus::_launch" )
    INT32 _clsVoteStatus::_launch( const CLS_ELECTION_ROUND &round )
    {

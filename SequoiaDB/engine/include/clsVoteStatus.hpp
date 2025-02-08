@@ -78,6 +78,8 @@ namespace engine
 
       virtual const CHAR *name() const { return "" ;}
 
+      virtual void setImmediatelyTime() ;
+
    public:
       OSS_INLINE const INT32 &id()
       {

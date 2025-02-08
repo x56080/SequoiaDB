@@ -438,7 +438,7 @@ namespace engine
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnReelect)
    _rtnReelect::_rtnReelect()
-   :_timeout( 30 ),
+   :_timeout( CLS_REELECT_COMMAND_TIMEOUT_DFT ),
     _level( CLS_REELECTION_LEVEL_3 )
    {
       _nodeID = 0 ;

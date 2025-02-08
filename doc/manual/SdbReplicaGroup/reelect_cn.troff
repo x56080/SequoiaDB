@@ -16,129 +16,52 @@ SdbReplicaGroup
 .PP
 在当前复制组中重新选举。
 .SH 参数
+.IP \[bu] 2
+options（ \f[I]object，选填\f[] ）
+.RS 2
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-参数名
-T}@T{
-参数类型
-T}@T{
-描述
-T}@T{
-是否必填
-T}
-_
-T{
-1
-T}@T{
-options
-T}@T{
-Json 对象
-T}@T{
-可选项，详见如
-T}@T{
-否
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-下option选项说明。
-T}@T{
-T}
-.TE
+通过参数 options 可以设置主节点的匹配条件：
+.IP \[bu] 2
+Seconds（ \f[I]number\f[] ）：选举的超时时间，默认值为 30，单位为秒
+.RS 2
 .PP
-options 参数详细说明如下：
+格式：\f[C]Seconds: 30\f[]
+.RE
+.IP \[bu] 2
+NodeID（ \f[I]number\f[] ）：期望当选主节点的节点 ID
+.RS 2
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-参数名
-T}@T{
-参数类型
-T}@T{
-描述
-T}@T{
-默认值
-T}
-_
-T{
-1
-T}@T{
-Seconds
-T}@T{
-int
-T}@T{
-重新选举需要在
-T}@T{
-30
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-多少秒内完成。
-T}@T{
-T}
-T{
-2
-T}@T{
-NodeID
-T}@T{
-int
-T}@T{
-期望当选主节点
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-的节点ID
-T}@T{
-T}
-T{
-3
-T}@T{
-HostName
-T}@T{
-string
-T}@T{
-期望当选主节点
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-的主机名
-T}@T{
-T}
-T{
-4
-T}@T{
-ServiceName
-T}@T{
-string
-T}@T{
-期望当选主节点
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-的服务名
-T}@T{
-T}
-.TE
+格式：\f[C]NodeID: 1000\f[]
+.RE
+.IP \[bu] 2
+HostName（ \f[I]string\f[] ）：期望当选主节点的主机名
+.RS 2
+.PP
+如果指定了参数 NodeID，该参数不生效。
+.PP
+格式：\f[C]HostName: "hostname"\f[]
+.RE
+.IP \[bu] 2
+ServiceName（ \f[I]string\f[] ）：期望当选主节点的服务名
+.RS 2
+.PP
+如果指定了参数 NodeID，该参数不生效。
+.PP
+格式：\f[C]ServiceName: "11820"\f[]
+.RE
+.IP \[bu] 2
+Level（ \f[I]number\f[] ）：重选举等待级别，取值：[1,3]，缺省为 3
+.RS 2
+.IP \[bu] 2
+1: 等待当前写操作结束，并阻塞后续写操作
+.IP \[bu] 2
+2: 等待写游标(大对象操作)结束
+.IP \[bu] 2
+3: 等待事务结束
+.PP
+格式：\f[C]Level: 3\f[]
+.RE
+.RE
 .RS
 .PP
 \f[B]Note:\f[]

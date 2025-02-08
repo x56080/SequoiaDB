@@ -40,12 +40,14 @@ namespace engine
 {
    class _clsVoteMachine ;
    class _clsSyncManager ;
+   class _netRouteAgent ;
 
    class _clsReelection : public SDBObject
    {
    public:
       _clsReelection( _clsVoteMachine *vote,
-                      _clsSyncManager *syncMgr ) ;
+                      _clsSyncManager *syncMgr,
+                      _netRouteAgent *pAgent ) ;
       ~_clsReelection() ;
 
    public:
@@ -61,6 +63,7 @@ namespace engine
    private:
       INT32 _wait4AllWriteDone( UINT32 &timePassed,
                                 UINT32 timeout,
+                                CLS_REELECTION_LEVEL lvl,
                                 pmdEDUCB *cb ) ;
 
       INT32 _wait4Replica( UINT32 &timePassed,
@@ -80,6 +83,7 @@ namespace engine
    private:
       _clsVoteMachine *_vote ;
       _clsSyncManager *_syncMgr ;
+      _netRouteAgent  *_pAgent ;
       volatile UINT32 _level ;
       ossEvent _event ;
    } ;

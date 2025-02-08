@@ -16,18 +16,37 @@ SdbReplicaGroup
 
 ##参数##
 
-| 参数名  | 参数类型  | 描述       | 是否必填 |
-| ------- | ----------| ---------- | -------- |
-| options | Json 对象 | 可选项，详见如下option选项说明。 | 否       |
+- options（ *object，选填* ）
 
-options 参数详细说明如下：
+    通过参数 options 可以设置主节点的匹配条件：
 
-| 参数名   | 参数类型 | 描述                        | 默认值 |
-| ---------| -------- | --------------------------- | ------ |
-| Seconds  | int      | 重新选举需要在多少秒内完成。| 30     |
-| NodeID   | int      | 期望当选主节点的节点ID      |        |
-| HostName | string   | 期望当选主节点的主机名      |        |
-| ServiceName | string | 期望当选主节点的服务名     |        |
+    - Seconds（ *number* ）：选举的超时时间，默认值为 30，单位为秒
+
+        格式：`Seconds: 30`
+
+    - NodeID（ *number* ）：期望当选主节点的节点 ID
+
+        格式：`NodeID: 1000`
+
+    - HostName（ *string* ）：期望当选主节点的主机名
+
+        如果指定了参数 NodeID，该参数不生效。
+
+        格式：`HostName: "hostname"`
+
+    - ServiceName（ *string* ）：期望当选主节点的服务名
+
+        如果指定了参数 NodeID，该参数不生效。
+
+        格式：`ServiceName: "11820"`
+
+    - Level（ *number* ）：重选举等待级别，取值：[1,3]，缺省为 3
+
+        - 1: 等待当前写操作结束，并阻塞后续写操作
+        - 2: 等待写游标(大对象操作)结束
+        - 3: 等待事务结束
+
+        格式：`Level: 3`
 
 > **Note:**  
 >

@@ -6715,7 +6715,7 @@ namespace engine
       rc = _checkReplStatus() ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to check status of repl-set:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to check status of repl-set, rc: %d", rc ) ;
          goto error ;
       }
 

@@ -17,17 +17,37 @@ Reelect the master node in the replica group.
 
 ##PARAMETERS##
 
-* `options` ( *json object*)
+- options ( *object, optional* )
 
-    Parameter collection, can be the following options:
+    Set the matching conditions of the primary node through the parameter "options":
 
-    1. `Seconds` ( *int* ): Reelection start in how many seconds.
+    - Seconds ( *number* ): Election timeout, the default value is 30, the unit is second.
 
-    2. `NodeID` ( *int* ): Node ID of the expected primary node.
+        Format: `Seconds: 30`
 
-    3. `HostName` ( *string* ): Host name of the expected primary node.
+    - NodeID ( *number* ): The node ID of the desired primary node.
 
-    4. `ServiceName` ( *string* ): Service name of the expected primary node.
+        Format: `NodeID: 1000`
+
+    - HostName ( *string* ): The hostname of the desired primary node.
+
+        If the parameter "NodeID" is specified, this parameter will not take effect.
+
+        Format: `HostName: "hostname"`
+
+    - ServiceName ( *string* ): The service name of the desired primary node.
+
+        If the parameter "NodeID" is specified, this parameter will not take effect.
+
+        Format: `ServiceName: "11820"`
+
+    - Level ( *number* ): Reelect waiting level, value range: [1,3]. Default is 3.
+
+        - 1: Wait for the current write operations to complete and block subsequent write operations.
+        - 2: Wait for write contexts(lob) to complete.
+        - 3: Wait for transactions to complete.
+
+        Format: `Level: 3`
 
 **Note:**
 

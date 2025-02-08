@@ -96,6 +96,7 @@ namespace engine
       INT32 init() ;
 
       void  clear() ;
+      void  setImmediatelyTime() ;
 
       INT32 handleInput( const MsgHeader *header ) ;
 

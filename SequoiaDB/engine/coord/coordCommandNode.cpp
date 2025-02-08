@@ -2829,6 +2829,15 @@ namespace engine
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;
 
+      /// can't in transaction
+      if ( cb->isTransaction() )
+      {
+         rc = SDB_OPERATION_CONFLICT ;
+         PD_LOG_MSG( PDERROR, "Operation(%s) in transaction is not supported",
+                     getName() ) ;
+         goto error ;
+      }
+
       try
       {
          BSONObj options( pQuery ) ;
@@ -2876,7 +2885,10 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 != nodeID.value )
+      // Notify to destination node
+      // No need to notify to dest node when ( 3.4.13, 5.8.4, 5.12 ) and above.
+      // This for compatible with old versions
+      if ( MSG_INVALID_ROUTEID != nodeID.value )
       {
          nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
          _notifyReelect2Dest( nodeID.value, cb ) ;

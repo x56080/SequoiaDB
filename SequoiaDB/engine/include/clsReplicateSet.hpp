@@ -394,7 +394,7 @@ namespace engine
                         pmdEDUCB *cb,
                         UINT16 destID = 0 ) ;
 
-         void reelectionDone() ;
+         void reelectionDone( BOOLEAN change2Primary = FALSE ) ;
 
          /// this func is used to support command "forceStepUp".
          INT32 stepUp( UINT32 seconds,

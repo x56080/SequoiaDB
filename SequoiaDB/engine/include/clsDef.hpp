@@ -78,6 +78,8 @@ namespace engine
 
    #define CLS_WAIT_REELECT_TIMEOUT             (600)    /// second
 
+   #define CLS_REELECT_COMMAND_TIMEOUT_DFT      (30)     /// second
+
    enum CLS_SYNC_STATUS
    {
       CLS_SYNC_STATUS_NONE = 0,
@@ -523,8 +525,10 @@ namespace engine
    enum CLS_REELECTION_LEVEL
    {
       CLS_REELECTION_LEVEL_NONE = 0,
-      CLS_REELECTION_LEVEL_1 = 1,
-      CLS_REELECTION_LEVEL_3 = 3,  /// wait for at least one replication catch up
+      /// all the level, will wait for at least one replication catch up
+      CLS_REELECTION_LEVEL_1 = 1,   /// wait current write operations
+      CLS_REELECTION_LEVEL_2 = 2,   /// wait write context(lob) operations
+      CLS_REELECTION_LEVEL_3 = 3,   /// wait transactions
       CLS_REELECTION_LEVEL_MAX
    } ;
 

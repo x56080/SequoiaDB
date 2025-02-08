@@ -133,7 +133,7 @@ namespace engine
       pmdSetPrimary( TRUE ) ; // set global primary
       _info()->mtx.release_w() ;
 
-      sdbGetReplCB()->reelectionDone() ;
+      sdbGetReplCB()->reelectionDone( TRUE ) ;
 
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
