@@ -124,6 +124,11 @@ namespace engine
       if ( isControl )
       {
          _startCtrlJob = FALSE ;
+
+         if ( pmdIsQuitApp() )
+         {
+            _wakeUpEvent.signalAll( SDB_APP_FORCED ) ;
+         }
       }
       _checkAndStartJob( FALSE ) ;
 
@@ -385,7 +390,15 @@ namespace engine
             }
             if ( !hasEvent )
             {
-               _pMgr->getNtyEvent()->wait( PMD_SYNC_JOB_INTERVAL ) ;
+               timeout = 0 ;
+               while ( timeout < PMD_SYNC_JOB_INTERVAL && !eduCB()->isForced() )
+               {
+                  if ( SDB_OK == _pMgr->getNtyEvent()->wait( 200 ) )
+                  {
+                     break ;
+                  }
+                  timeout += 200 ;
+               }
             }
          }
          else

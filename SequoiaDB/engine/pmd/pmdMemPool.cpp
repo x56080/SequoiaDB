@@ -96,6 +96,11 @@ namespace engine
       if ( isControl )
       {
          _startCtrlJob = FALSE ;
+
+         if ( pmdIsQuitApp() )
+         {
+            _wakeUpEvent.signalAll( SDB_APP_FORCED ) ;
+         }
       }
       _checkAndStartJob( FALSE ) ;
 
