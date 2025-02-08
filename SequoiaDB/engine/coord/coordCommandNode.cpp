@@ -2823,6 +2823,15 @@ namespace engine
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;
 
+      /// can't in transaction
+      if ( !_allowInTransaction() && cb->isTransaction() )
+      {
+         rc = SDB_OPERATION_CONFLICT ;
+         PD_LOG_MSG( PDERROR, "Operation(%s) in transaction is not supported",
+                     getName() ) ;
+         goto error ;
+      }
+
       // Parse option and build reelect msg
       try
       {
@@ -2857,6 +2866,8 @@ namespace engine
       }
 
       // Notify to destination node
+      // No need to notify to dest node when ( 3.4.13, 5.8.4, 5.12 ) and above.
+      // This for compatible with old versions
       if ( MSG_INVALID_ROUTEID != nodeID.value )
       {
          nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;

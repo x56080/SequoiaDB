@@ -7247,7 +7247,7 @@ namespace engine
 
       if ( SDB_OK != preCheckRC )
       {
-         PD_LOG( PDWARNING, "failed to check node status: %d", preCheckRC ) ;
+         PD_LOG( PDWARNING, "Failed to check node status, rc: %d", preCheckRC ) ;
          // Don't goto error before cl version was checked.
          // Because when cl version was old, this data group may be irrelevant,
          // and the node status will be irrelevant, too.
@@ -7259,7 +7259,7 @@ namespace engine
       rc = _checkReplStatus() ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to check status of repl-set:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to check status of repl-set, rc: %d", rc ) ;
          goto error ;
       }
 

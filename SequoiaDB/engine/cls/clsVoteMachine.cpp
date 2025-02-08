@@ -158,6 +158,14 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSVTMH_CLEAR ) ;
    }
 
+   void _clsVoteMachine::setImmediatelyTime()
+   {
+      if ( _current )
+      {
+         _current->setImmediatelyTime() ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTMH_HDINPUT, "_clsVoteMachine::handleInput" )
    INT32 _clsVoteMachine::handleInput( const MsgHeader *header )
    {

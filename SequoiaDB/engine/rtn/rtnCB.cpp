@@ -584,7 +584,25 @@ namespace engine
                                          EDUID filterEDUID,
                                          UINT64 blockID )
    {
+      UINT32 count = 0 ;
+      return _dumpWritingContext( &contextProcessList, count, filterEDUID, blockID ) ;
+   }
+
+   UINT32 _SDB_RTNCB::getWritingContextNum( EDUID filterEDUID, UINT64 blockID )
+   {
+      UINT32 count = 0 ;
+      _dumpWritingContext( NULL, count, filterEDUID, blockID ) ;
+      return count ;
+   }
+
+   INT32 _SDB_RTNCB::_dumpWritingContext( RTN_CTX_PROCESS_LIST *pContextProcessList,
+                                          UINT32 &count,
+                                          EDUID filterEDUID,
+                                          UINT64 blockID )
+   {
       INT32 rc = SDB_OK ;
+
+      count = 0 ;
 
       FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
       {
@@ -613,21 +631,26 @@ namespace engine
                }
                else
                {
-                  try
+                  ++count ;
+
+                  if ( pContextProcessList )
                   {
-                     rtnCtxProcessInfo info ;
-                     info._opID = pContext->getOpID() ;
-                     info._ctxID = pContext->contextID() ;
-                     info._eduID = pContext->eduID() ;
-                     info._processName.assign( processName ) ;
-                     contextProcessList.push_back( info ) ;
-                  }
-                  catch ( exception &e )
-                  {
-                     PD_LOG( PDERROR, "Failed to save context, "
-                             "occur exception %s", e.what() ) ;
-                     rc = ossException2RC( &e ) ;
-                     goto error ;
+                     try
+                     {
+                        rtnCtxProcessInfo info ;
+                        info._opID = pContext->getOpID() ;
+                        info._ctxID = pContext->contextID() ;
+                        info._eduID = pContext->eduID() ;
+                        info._processName.assign( processName ) ;
+                        pContextProcessList->push_back( info ) ;
+                     }
+                     catch ( exception &e )
+                     {
+                        PD_LOG( PDERROR, "Failed to save context, "
+                                "occur exception %s", e.what() ) ;
+                        rc = ossException2RC( &e ) ;
+                        goto error ;
+                     }
                   }
                }
             }

@@ -39,15 +39,19 @@
 #include "pmd.hpp"
 #include "dpsLogWrapper.hpp"
 #include "clsMgr.hpp"
+#include "dpsTransCB.hpp"
+#include "rtnCB.hpp"
 
 namespace engine
 {
    _clsReelection::_clsReelection( _clsVoteMachine *vote,
                                    _clsSyncManager *syncMgr,
-                                   _clsGroupInfo *info )
+                                   _clsGroupInfo *info,
+                                   _netRouteAgent *pAgent )
    :_vote( vote ),
     _syncMgr( syncMgr ),
     _info( info ),
+    _pAgent( pAgent ),
     _level( CLS_REELECTION_LEVEL_NONE ),
     _blockSync( FALSE )
    {
@@ -75,12 +79,25 @@ namespace engine
 
       if ( CLS_REELECTION_LEVEL_NONE != _level )
       {
+         if ( _level >= CLS_REELECTION_LEVEL_3 && cb->isTransaction() )
+         {
+            /// don't block transaction
+            goto done ;
+         }
+
+         if ( _level >= CLS_REELECTION_LEVEL_2 && -1 != cb->getCurrentContextID() )
+         {
+            /// don't block write context
+            goto done ;
+         }
+
          rc = _wait( timePassed, timeout, cb, TRUE ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
       }
+
    done:
       PD_TRACE_EXITRC( SDB__CLSREELECTION_WAIT, rc ) ;
       return rc ;
@@ -104,15 +121,17 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
       UINT32 timePassed = 0 ;
       BOOLEAN resetEvent = FALSE ;
+      BOOLEAN needNtyEnd = FALSE ;
+      MsgClsReelectNotify notifyMsg ;
 
       // Save location tag to prevent local location changing during exexuting this function
       BOOLEAN isLocation = _isLocation() ;
 
-      if ( CLS_REELECTION_LEVEL_1 != lvl &&
-           CLS_REELECTION_LEVEL_3 != lvl )
+      if ( lvl <= CLS_REELECTION_LEVEL_NONE || lvl >= CLS_REELECTION_LEVEL_MAX )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "invalid reelection level:%d", lvl ) ;
+         PD_LOG_MSG( PDERROR, "Invalid reelection level(%d), should be range [%d, %d]",
+                     lvl,CLS_REELECTION_LEVEL_NONE + 1, CLS_REELECTION_LEVEL_MAX - 1 ) ;
          goto error ;
       }
 
@@ -155,14 +174,14 @@ namespace engine
 
       if ( !ossCompareAndSwap32( &_level, CLS_REELECTION_LEVEL_NONE, lvl ) )
       {
-         PD_LOG( PDERROR, "can not do reelection when last"
-                 " reelection is not done" ) ;
+         PD_LOG_MSG( PDERROR, "Can not do reelection when last reelection is not done" ) ;
          rc = SDB_OPERATION_CONFLICT ;
          goto error ;
       }
 
       _event.reset() ;
       resetEvent = TRUE ;
+      needNtyEnd = TRUE ;
 
       // Disable synchronize, this doesn't effect replica gruop's primary
       _syncMgr->disableSync() ;
@@ -170,38 +189,56 @@ namespace engine
 
       if ( isLocation )
       {
-         rc = wait4SyncDone( timePassed, seconds ) ;
+         rc = _wait4SyncDone( timePassed, seconds, lvl ) ;
       }
       else
       {
-         rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
+         rc = _wait4AllWriteDone( timePassed, seconds, lvl, cb ) ;
       }
-      if ( SDB_OK != rc )
+      if ( rc )
       {
-         PD_LOG( PDERROR, "reelection is out of time" ) ;
-         rc = SDB_TIMEOUT ;
          goto error ;
       }
 
       /// we need at least one replication done.
       /// otherwise this node will still be the primary.
-      /// WARNING: do not compare with _level.
-      if ( CLS_REELECTION_LEVEL_1 < lvl )
+      if ( isLocation )
       {
-         if ( isLocation )
+         rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
+      }
+      else
+      {
+         rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+      }
+      if ( rc )
+      {
+         goto error ;   
+      }
+
+      if ( 0 != destID )
+      {
+         MsgRouteID routeID = pmdGetNodeID() ;
+
+         /// notify dest node reelect begin
+         notifyMsg.isLocation = isLocation ? 1 : 0 ;
+         notifyMsg.type = CLS_REELECT_NOTIFY_BEGIN ;
+         notifyMsg.timeout = ( timePassed + 10 < (UINT32)seconds ) ?
+            ( seconds - timePassed + 5 ) * OSS_ONE_SEC : 10 * OSS_ONE_SEC ;
+
+         routeID.columns.nodeID = destID ;
+         routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+
+         rc = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+         if ( rc )
          {
-            rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
+            PD_LOG_MSG( PDERROR, "Send reelect notify-begin to node(%u) failed, rc: %d",
+                        destID, rc ) ;
+            goto error ;
          }
          else
          {
-            rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+            ossSleep( 300 ) ;
          }
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "reelection is out of time" ) ;
-            rc = SDB_TIMEOUT ;
-            goto error ;   
-         }   
       }
 
       rc = _stepDown( timePassed, seconds, isLocation, cb ) ;
@@ -212,6 +249,24 @@ namespace engine
       }
 
    done:
+      if ( 0 != destID && needNtyEnd )
+      {
+         /// notify dest node reelect done
+         MsgRouteID routeID = pmdGetNodeID() ;
+         /// notify dest node reelect done
+         notifyMsg.isLocation = isLocation ? 1 : 0 ;
+         notifyMsg.type = CLS_REELECT_NOTIFY_END ;
+         notifyMsg.timeout = 0 ;
+         routeID.columns.nodeID = destID ;
+         routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+         INT32 rcTmp = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDWARNING, "Send reelect notify-end to node(%u) failed, rc: %d",
+                    destID, rcTmp ) ;
+            /// ignore error
+         }
+      }
       if ( resetEvent )
       {
          signal() ;
@@ -230,11 +285,21 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4ALLWRITEDONE, "_clsReelection::_wait4AllWriteDone" )
    INT32 _clsReelection::_wait4AllWriteDone( UINT32 &timePassed,
                                              UINT32 timeout,
+                                             CLS_REELECTION_LEVEL lvl,
                                              pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4ALLWRITEDONE ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      BOOLEAN waitTrans = lvl >= CLS_REELECTION_LEVEL_3 ? TRUE : FALSE ;
+      BOOLEAN waitContext = lvl >= CLS_REELECTION_LEVEL_2 ? TRUE : FALSE ;
+      BOOLEAN waitEdu = lvl >= CLS_REELECTION_LEVEL_1 ? TRUE : FALSE ;
+
+      UINT32 waitTimes = 0 ;
+      UINT32 needWait = 0 ;
 
       while ( timePassed < timeout )
       {
@@ -244,16 +309,73 @@ namespace engine
             goto error ;
          }
 
-         // NOTE: uncommitted transactions need rollback
-         if ( !eduMgr->hasWritingEDU( -1, 0, EDU_BLOCK_REELECT ) )
+         needWait = 0 ;
+
+         /// wait transactions
+         if ( waitTrans )
          {
-            rc = SDB_OK ;
-            break ;
+            UINT32 selfTrans = cb->isTransaction() ? 1 : 0 ;
+            /// get trans edu, and except self
+            if ( transCB->getTransCBSize() > selfTrans )
+            {
+               needWait = 1 ;
+            }
          }
 
-         ossSleepsecs( 1 ) ;
-         ++timePassed ;
-         rc = SDB_TIMEOUT ;
+         /// wait write context operations
+         if ( waitContext && 0 == needWait )
+         {
+            /// except self
+            if ( rtnCB->getWritingContextNum( cb->getID() ) > 0 )
+            {
+               needWait = 2 ;
+            }
+         }
+
+         /// wait current write operations
+         if ( waitEdu && 0 == needWait )
+         {
+            if ( eduMgr->hasWritingEDU( -1, 0, EDU_BLOCK_REELECT ) )
+            {
+               needWait = 3 ;
+            }
+         }
+
+         if ( 0 != needWait )
+         {
+            ossSleep( 100 ) ;
+            ++waitTimes ;
+
+            if ( waitTimes >= 10 )
+            {
+               ++timePassed ;
+               waitTimes = 0 ;
+            }
+
+            if ( timePassed >= timeout )
+            {
+               rc = SDB_TIMEOUT ;
+
+               if ( 1 == needWait )
+               {
+                  PD_LOG_MSG( PDERROR, "Wait for transactions timeout" ) ;
+               }
+               else if ( 2 == needWait )
+               {
+                  PD_LOG_MSG( PDERROR, "Wait for write context(lob) operations timeout" ) ;
+               }
+               else
+               {
+                  PD_LOG_MSG( PDERROR, "Wait for write operations timeout" ) ;
+               }
+
+               goto error ;
+            }
+         }
+         else
+         {
+            break ;
+         }
       }
 
    done:
@@ -263,9 +385,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC, "_clsReelection::wait4SyncDone" )
-   INT32 _clsReelection::wait4SyncDone( UINT32 &timePassed,
-                                        UINT32 timeout )
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC, "_clsReelection::_wait4SyncDone" )
+   INT32 _clsReelection::_wait4SyncDone( UINT32 &timePassed,
+                                         UINT32 timeout,
+                                         CLS_REELECTION_LEVEL lvl )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC ) ;
@@ -280,6 +403,7 @@ namespace engine
 
          ++timePassed ;
          rc = SDB_TIMEOUT ;
+         PD_LOG_MSG( PDERROR, "Wait for repl-sync done timeout" ) ;
       }
 
       PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC, rc ) ;
@@ -295,6 +419,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
       DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->getCurrentLsn() ;
+      UINT32 waitTimes = 0 ;
+
       while ( timePassed < timeout )
       {
          if ( cb->isInterrupted() )
@@ -308,13 +434,30 @@ namespace engine
             break ;
          }
 
-         ossSleepsecs( 1 ) ;
-         ++timePassed ;
+         ossSleep( 100 ) ;
+         ++waitTimes ;
+
+         if ( waitTimes >= 10 )
+         {
+            ++timePassed ;
+            waitTimes = 0 ;
+         }
       }
 
       if ( timeout <= timePassed )
       {
          rc = SDB_TIMEOUT ;
+
+         if ( 0 == destID )
+         {
+            PD_LOG_MSG( PDERROR, "Wait a replica-node for lsn(%lld) timeout", lsn.offset ) ;
+         }
+         else
+         {
+            PD_LOG_MSG( PDERROR, "Wait the replica-node(%u) for lsn(%lld) timeout",
+                        destID, lsn.offset ) ;
+         }
+
          goto error ;
       } 
 
@@ -335,6 +478,7 @@ namespace engine
 
       map<UINT64, _clsSharingStatus>::const_iterator itr ;
       DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
+      UINT32 waitTimes = 0 ;
 
       while ( timePassed < timeout )
       {
@@ -360,13 +504,30 @@ namespace engine
          {
             break ;
          }
-         ossSleepsecs( 1 ) ;
-         ++timePassed ;
+         ossSleep( 100 ) ;
+         ++waitTimes ;
+
+         if ( waitTimes >= 10 )
+         {
+            ++timePassed ;
+            waitTimes = 0 ;
+         }
       }
 
       if ( timeout <= timePassed )
       {
          rc = SDB_TIMEOUT ;
+
+         if ( 0 == destID )
+         {
+            PD_LOG_MSG( PDERROR, "Wait a replica-node for lsn(%lld) timeout", lsn.offset ) ;
+         }
+         else
+         {
+            PD_LOG_MSG( PDERROR, "Wait the replica-node(%u) for lsn(%lld) timeout",
+                        destID, lsn.offset ) ;
+         }
+
          goto error ;
       }
 
@@ -392,7 +553,7 @@ namespace engine
                                 PMD_EDU_MEM_NONE, NULL, isLocation ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;
+         PD_LOG_MSG( PDERROR, "Failed to post event to repl cb, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -417,6 +578,7 @@ namespace engine
       BOOLEAN hasBlock = FALSE ;
       INT64   onceTime = 0 ; /// second
       BOOLEAN isFirst = TRUE ;
+      UINT32  waitTimes = 0 ;
 
       while ( timePassed <= timeout )
       {
@@ -433,19 +595,29 @@ namespace engine
          }
          else
          {
-            onceTime = 1 ;
+            onceTime = 100 ;
          }
 
-         rc = _event.wait( onceTime * OSS_ONE_SEC ) ;
+         rc = _event.wait( onceTime ) ;
          if ( SDB_OK == rc )
          {
             break ;
          }
          else if ( SDB_TIMEOUT == rc )
          {
-            timePassed += onceTime ;
+            if ( onceTime > 0 )
+            {
+               ++waitTimes ;
+               if ( waitTimes >= 10 )
+               {
+                  ++timePassed ;
+                  waitTimes = 0 ;
+               }
+            }
+
             if ( timePassed >= timeout )
             {
+               PD_LOG_MSG( PDERROR, "Wait reelect new primary timeout", rc ) ;
                goto error ;
             }
 
@@ -459,7 +631,7 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDERROR, "Failed to wait, rc: %d", rc ) ;
+            PD_LOG_MSG( PDERROR, "Failed to wait reelect, rc: %d", rc ) ;
             goto error ;
          }
       }

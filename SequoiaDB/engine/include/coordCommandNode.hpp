@@ -602,6 +602,8 @@ namespace engine
                               pmdEDUCB *cb,
                               rtnContextBuf *buf ) = 0 ;
 
+      virtual BOOLEAN _allowInTransaction() const = 0 ;
+
    protected:
       CoordGroupInfoPtr _groupInfoPtr ;
       BOOLEAN           _updatedGrpInfo ;
@@ -633,6 +635,9 @@ namespace engine
       virtual INT32 _reelect( MsgHeader *pMsg,
                               pmdEDUCB *cb,
                               rtnContextBuf *buf ) ;
+
+      virtual BOOLEAN _allowInTransaction() const { return FALSE ; }
+
    } ;
    typedef _coordCMDReelectGroup coordCMDReelectGroup ;
 
@@ -664,6 +669,8 @@ namespace engine
       virtual INT32 _reelect( MsgHeader *pMsg,
                               pmdEDUCB *cb,
                               rtnContextBuf *buf ) ;
+
+      virtual BOOLEAN _allowInTransaction() const { return TRUE ; }
 
    private:
       const CHAR* _location ;

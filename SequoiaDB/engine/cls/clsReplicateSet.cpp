@@ -65,6 +65,7 @@ namespace engine
       ON_MSG( MSG_CAT_PAIMARY_CHANGE_RES, handleMsg )
       ON_MSG( MSG_CLS_GINFO_UPDATED, handleMsg )
       ON_MSG( MSG_CLS_NODE_STATUS_NOTIFY, handleMsg )
+      ON_MSG( MSG_CLS_REELECT_NOTIFY, handleMsg )
       ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
       ON_EVENT( PMD_EDU_EVENT_STEP_UP, handleEvent )
       ON_EVENT( PMD_EDU_EVENT_UPDATE_GRPMODE, handleEvent )
@@ -113,8 +114,8 @@ namespace engine
      _logger( NULL ),
      _pFTMgr( NULL ),
      _sync( _agent, &_info, &_locationInfo ),
-     _reelection( &_vote, &_sync, &_info ),
-     _locationReelection( &_locationVote, &_sync, &_locationInfo ),
+     _reelection( &_vote, &_sync, &_info, _agent ),
+     _locationReelection( &_locationVote, &_sync, &_locationInfo, _agent ),
      _clsCB( NULL ),
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
@@ -1634,6 +1635,30 @@ namespace engine
             }
             break ;
          }
+         case MSG_CLS_REELECT_NOTIFY :
+         {
+            MsgClsReelectNotify *pNty = ( MsgClsReelectNotify* )msg ;
+
+            if ( CLS_REELECT_NOTIFY_BEGIN == pNty->type )
+            {
+               _clsVoteMachine *vote = voteMachine( pNty->isLocation ? TRUE : FALSE ) ;
+               vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, pNty->timeout ) ;
+               vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+
+               /// broadcast to other nodes
+               _sharingBeat() ;
+               _beatTime = 0 ;
+            }
+            else if ( pNty->isLocation )
+            {
+               locationReelectionDone() ;
+            }
+            else
+            {
+               reelectionDone() ;
+            }
+            break ;
+         }
          default :
          {
             PD_LOG( PDWARNING, "unknown msg: %s", msg2String( msg ).c_str() ) ;
@@ -1979,6 +2004,13 @@ namespace engine
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
                          "shutdown" : "unknown" ) ) ;
                _info.primary.value = MSG_INVALID_ROUTEID ;
+
+               /// when self is in slice, force to secondary
+               if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) ||
+                    _vote.isStatus( CLS_ELECTION_STATUS_VOTE ) )
+               {
+                  _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+               }
             }
             else
             {
@@ -2019,6 +2051,13 @@ namespace engine
                        _locationInfo.primary.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
                _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
+
+               /// when self is in slice, force to secondary
+               if ( _locationVote.isStatus( CLS_ELECTION_STATUS_SILENCE ) ||
+                    _locationVote.isStatus( CLS_ELECTION_STATUS_VOTE ) )
+               {
+                  _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
+               }
             }
             else
             {
@@ -2205,8 +2244,9 @@ namespace engine
                }
 
                // if find new primary node, should to wake up reelection
-               if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
-                    _vote.isShadowTimeout() )
+               if ( CLS_ELECTION_WEIGHT_MIN == _vote.getShadowWeight() ||
+                    ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
+                      _vote.isShadowTimeout() ) )
                {
                   reelectionDone() ;
                }
@@ -2215,12 +2255,22 @@ namespace engine
             {
                if ( _info.primary.value == beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Replica Group Vote: primary node[%u] is down",
+                  PD_LOG( PDEVENT, "Replica Group Vote: primary node[%u] down to secondary",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _info.mtx.lock_w() ;
                   _info.primary.value = MSG_INVALID_ROUTEID ;
                   _info.mtx.release_w() ;
+
+                  if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) ||
+                       _vote.isStatus( CLS_ELECTION_STATUS_VOTE ) )
+                  {
+                     _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+                  }
+                  if ( CLS_ELECTION_WEIGHT_MIN != _vote.getShadowWeight() )
+                  {
+                     _vote.setImmediatelyTime() ;
+                  }
                }
             }
          }
@@ -2277,8 +2327,9 @@ namespace engine
                }
 
                // New primary node is found, other node should step down
-               if ( CLS_ELECTION_WEIGHT_USR_MIN != _locationVote.getShadowWeight() &&
-                    _locationVote.isShadowTimeout() )
+               if ( CLS_ELECTION_WEIGHT_MIN == _locationVote.getShadowWeight() ||
+                    ( CLS_ELECTION_WEIGHT_USR_MIN != _locationVote.getShadowWeight() &&
+                      _locationVote.isShadowTimeout() ) )
                {
                   locationReelectionDone() ;
                }
@@ -2304,12 +2355,22 @@ namespace engine
                // Local node is not primary, need to update the primary
                else if ( _locationInfo.primary.value == beat.identity.value )
                {
-                  PD_LOG( PDEVENT, "Location Set Vote: primary node[%u] is down",
+                  PD_LOG( PDEVENT, "Location Set Vote: primary node[%u] down to secondary",
                           beat.identity.columns.nodeID ) ;
                   _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                   _locationInfo.mtx.lock_w() ;
                   _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
                   _locationInfo.mtx.release_w() ;
+
+                  if ( _locationVote.isStatus( CLS_ELECTION_STATUS_SILENCE ) ||
+                       _locationVote.isStatus( CLS_ELECTION_STATUS_VOTE ) )
+                  {
+                     _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
+                  }
+                  if ( CLS_ELECTION_WEIGHT_MIN != _locationVote.getShadowWeight() )
+                  {
+                     _locationVote.setImmediatelyTime() ;
+                  }
                }
             }
          }
@@ -2676,11 +2737,18 @@ namespace engine
       goto done ;
    }
 
-   void _clsReplicateSet::reelectionDone()
+   void _clsReplicateSet::reelectionDone( BOOLEAN change2Primary )
    {
       _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
       _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
       _reelection.signal() ;
+
+      if ( change2Primary )
+      {
+         /// broadcast to other nodes
+         _sharingBeat() ;
+         _beatTime = 0 ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_LOCATIONREELECT, "_clsReplicateSet::locationReelect" )
@@ -2711,11 +2779,18 @@ namespace engine
       goto done ;
    }
 
-   void _clsReplicateSet::locationReelectionDone()
+   void _clsReplicateSet::locationReelectionDone( BOOLEAN change2Primary )
    {
       _locationVote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
       _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
       _locationReelection.signal() ;
+
+      if ( change2Primary )
+      {
+         /// broadcast to other nodes
+         _sharingBeat() ;
+         _beatTime = 0 ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPDOWN, "_clsReplicateSet::_handleStepDown" )
@@ -2735,6 +2810,10 @@ namespace engine
       }
       vote->setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
       vote->force( CLS_ELECTION_STATUS_SEC ) ;
+
+      /// broadcast to other nodes at now
+      _sharingBeat() ;
+      _beatTime = 0 ;
 
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPDOWN, rc ) ;
       return rc ;

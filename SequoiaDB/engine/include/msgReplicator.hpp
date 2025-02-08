@@ -550,6 +550,34 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef _MsgClsNodeStatusNotify MsgClsNodeStatusNotify ;
 
+   enum CLS_REELECT_NOTIFY_TYPE
+   {
+      CLS_REELECT_NOTIFY_BEGIN = 1,
+      CLS_REELECT_NOTIFY_END
+   } ;
+
+   class _MsgClsReelectNotify : public SDBObject
+   {
+   public:
+      _MsgHeader header ;
+      INT32      isLocation ;
+      INT32      type ; /// CLS_REELECT_NOTIFY_TYPE
+      UINT32     timeout ; /// ms
+
+      _MsgClsReelectNotify()
+      {
+         header.messageLength = sizeof( _MsgClsReelectNotify ) ;
+         header.opCode = MSG_CLS_REELECT_NOTIFY ;
+         header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.TID = 0 ;
+         header.requestID = 0 ;
+         isLocation = 0 ;
+         type = CLS_REELECT_NOTIFY_BEGIN ;
+         timeout = 0 ;
+      }
+   } ;
+   typedef _MsgClsReelectNotify MsgClsReelectNotify ;
+
    class _MsgClsTransCheckReq : public SDBObject
    {
       public:

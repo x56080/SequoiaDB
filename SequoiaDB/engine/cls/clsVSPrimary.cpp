@@ -175,7 +175,7 @@ namespace engine
          pmdSetPrimary( TRUE ) ; // set global primary
          _info()->mtx.release_w() ;
 
-         sdbGetReplCB()->reelectionDone() ;
+         sdbGetReplCB()->reelectionDone( TRUE ) ;
 
          PD_LOG ( PDEVENT, "%s Vote: change to primary", getScopeName() ) ;
 
@@ -192,7 +192,7 @@ namespace engine
          pmdSetLocationPrimary( TRUE ) ; // Set location primary in pmdSysInfo
          _info()->mtx.release_w() ;
 
-         sdbGetReplCB()->locationReelectionDone() ;
+         sdbGetReplCB()->locationReelectionDone( TRUE ) ;
 
          PD_LOG ( PDEVENT, "%s Vote: node change to primary", getScopeName() ) ;
       }

@@ -150,6 +150,9 @@ namespace engine
                                 EDUID filterEDUID = PMD_INVALID_EDUID,
                                 UINT64 blockID = 0 ) ;
 
+      UINT32 getWritingContextNum( EDUID filterEDUID = PMD_INVALID_EDUID,
+                                   UINT64 blockID = 0 ) ;
+
       OSS_INLINE INT32 contextNum ()
       {
          return _contextMap.size() ;
@@ -281,6 +284,12 @@ namespace engine
    private:
       void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
       void  _setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext ) ;
+
+      INT32 _dumpWritingContext( RTN_CTX_PROCESS_LIST *pContextProcessList,
+                                 UINT32 &count,
+                                 EDUID filterEDUID = PMD_INVALID_EDUID,
+                                 UINT64 blockID = 0 ) ;
+
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 
