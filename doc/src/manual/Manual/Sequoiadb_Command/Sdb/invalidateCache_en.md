@@ -16,9 +16,19 @@ This function is used to clear the cache of the catalog, data or coord nodes.
 
 ##PARAMETERS##
 
-| Name    | Type   | Description    | Required or Not |
-|---------|--------|----------------|-----------------|
-| options | json   | Specify [command positional parameter][location]. When null, clear the cache of the catalog, data or coord nodes. | Not |
+- options ( *object, optional* )
+
+    - [command positional parameter][location]: Specify the positional parameters for command execution, such as host, node, etc. Default is clearing the cache of the catalog, data and coord nodes.
+
+        Format: `Role: "Coord"` or `GroupName: ["group1", "group2"]`
+
+    - Type ( *string* ): The cache type, such as: `"catalog"`, `"group"`, `datasource` and `strategy`. Default is clearing all types of cache.
+
+        Format: `Type: "catalog"`
+
+    - Name ( *string* or *array* ): The specific object corresponding to each type of cache, such as the "catalog" cache for a specific collection.
+
+        Format: `Name: "cs.cl"`  or `Name: ["cs.cl", "foo.bar"]`
 
 ##RETURN VALUE##
 

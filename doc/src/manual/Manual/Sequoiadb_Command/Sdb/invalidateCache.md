@@ -16,13 +16,19 @@ Sdb
 
 ##参数##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
-| ------ | ------ | ------ | ------ |
-| options | Json对象 | **[命令位置参数](manual/Manual/Sequoiadb_Command/location.md)** | 否 |
+- options ( *object, optional* )
 
-> **Note:**
->
-> 当不指定 options 时，作用域为所有协调节点、所有数据节点、所有编目节点。
+    - [命令位置参数](manual/Manual/Sequoiadb_Command/location.md): 指定命令运行的位置参数，如 主机，节点等。缺省作用域为所有协调节点、所有数据节点、所有编目节点。
+
+        Format: `Role: "Coord"` or `GroupName: ["group1", "group2"]`
+
+    - Type ( *string* ): 缓存类型, 取值: `"catalog"`, `"group"`, `datasource` 和 `strategy`. 缺省清除所有类型缓存。
+
+        Format: `Type: "catalog"`
+
+    - Name ( *string* or *array* ): 对应每种类型缓存具体的对象,如 "catalog" 缓存具体的集合。
+
+        Format: `Name: "cs.cl"`  or `Name: ["cs.cl", "foo.bar"]`
 
 ##返回值##
 
