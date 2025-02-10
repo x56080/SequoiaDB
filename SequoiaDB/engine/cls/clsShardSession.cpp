@@ -6617,20 +6617,28 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKPRIMARYWHENREAD ) ;
+
       if ( flag & reqFlag )
       {
          rc = _checkPrimaryStatus( 0, 0 ) ;
          if ( SDB_TIMEOUT == rc )
          {
-            /// this node is reelect
+            /// this node is in reelect
             rc = SDB_OK ;
          }
-         else if ( SDB_OK != rc )
+         else if ( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            /// re-check with timewait
+            rc = _checkPrimaryStatus( SHD_NOTPRIMARY_WAITTIME, -1 ) ;
+         }
+
+         if ( SDB_OK != rc )
          {
             PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
             goto error ;
          }
       }
+
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CKPRIMARYWHENREAD, rc ) ;
       return rc ;
