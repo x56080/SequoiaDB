@@ -204,7 +204,8 @@ namespace engine
          pUnit = *it ;
 
          if ( pUnit->canSync( force ) ||
-              pUnit->canInvalidateFsCache() )
+              pUnit->canInvalidateFsCache() ||
+              pUnit->canInvalidateCache() )
          {
             _unitList.erase( it ) ;
             /// lock the unit
@@ -248,6 +249,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_CHECKLOAD ) ;
       LIST_UNIT::iterator it ;
       UINT32 readyNum = 0 ;
+      UINT32 readySyncNum = 0 ;
       BOOLEAN force = FALSE ;
 
       ossScopedLock lock( &_unitLatch ) ;
@@ -257,8 +259,12 @@ namespace engine
       {
          IDataSyncBase *pUnit = *it ;
          ++it ;
-         if ( pUnit->canSync( force ) ||
-              pUnit->canInvalidateFsCache() )
+         if ( pUnit->canSync( force ) )
+         {
+            ++readyNum ;
+            ++readySyncNum ;
+         }
+         else if ( pUnit->canInvalidateFsCache() || pUnit->canInvalidateCache() )
          {
             ++readyNum ;
          }
@@ -271,7 +277,7 @@ namespace engine
 
          /// start agent
          while ( _curAgent < PMD_MIN_SYNC_JOB ||
-                 ( readyNum / 10 > _idleAgent &&
+                 ( readySyncNum / 10 > _idleAgent &&
                    _curAgent < _maxSyncJob ) )
          {
             if ( SDB_OK == pmdStartSyncJob( NULL, this,
@@ -387,6 +393,12 @@ namespace engine
                   eduCB()->incEventCount( 1 ) ;
                   hasEvent = TRUE ;
                }
+               if ( _pMgr->getMainUnit()->canInvalidateCache() )
+               {
+                  _pMgr->getMainUnit()->invalidateCache() ;
+                  eduCB()->incEventCount( 1 ) ;
+                  hasEvent = TRUE ;
+               }
             }
             if ( !hasEvent )
             {
@@ -458,6 +470,12 @@ namespace engine
       if ( pUnit->canInvalidateFsCache() )
       {
          pUnit->invalidateFsCache() ;
+         eduCB()->incEventCount( 1 ) ;
+      }
+
+      if ( pUnit->canInvalidateCache() )
+      {
+         pUnit->invalidateCache() ;
          eduCB()->incEventCount( 1 ) ;
       }
 

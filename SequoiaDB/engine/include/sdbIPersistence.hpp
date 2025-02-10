@@ -57,11 +57,13 @@ namespace engine
          virtual BOOLEAN      isClosed() const = 0 ;
          virtual BOOLEAN      canSync( BOOLEAN &force ) const = 0 ;
          virtual BOOLEAN      canInvalidateFsCache() const = 0 ;
+         virtual BOOLEAN      canInvalidateCache() const { return FALSE ; }
 
          virtual INT32        sync( BOOLEAN force,
                                     BOOLEAN sync,
                                     IExecutor* cb ) = 0 ;
          virtual INT32        invalidateFsCache( const UINT64 *pExpiredMs = NULL ) = 0 ;
+         virtual INT32        invalidateCache( UINT64 *pExpiredMs = NULL ) { return SDB_OK ; }
 
          virtual void         lock() = 0 ;
          virtual void         unlock() = 0 ;
