@@ -120,8 +120,7 @@ namespace engine
       {
          goto done ;
       }
-      else if ( 0 == _pStorageInfo->_metaCacheLWM ||
-                dmsGetTotalIndexMemSize()->peek() <= _pStorageInfo->_metaCacheLWM )
+      else if ( dmsGetTotalIndexMemSize()->peek() <= _pStorageInfo->_metaCacheLWM )
       {
          goto done ;
       }
@@ -132,6 +131,10 @@ namespace engine
       if ( 0 == oldestAccessTick )
       {
          goto done ;
+      }
+      else if ( 0 == _pStorageInfo->_metaCacheLWM )
+      {
+         rs = TRUE ;
       }
       else if ( pmdGetTickSpanTime( getFileAccessTick() ) <= DMS_INDEX_ACCESS_HOT_SPAN )
       {
@@ -151,7 +154,11 @@ namespace engine
    {
       UINT64 expiredMS = DMS_INDEX_ACCESS_COLD_SPAN ;
 
-      if ( pExpiredMs )
+      if ( 0 == _pStorageInfo->_metaCacheLWM )
+      {
+         expiredMS = 0 ;
+      }
+      else if ( pExpiredMs )
       {
          expiredMS = *pExpiredMs ;
       }

@@ -279,8 +279,9 @@ namespace engine
       {
          // "extData.extData"
          CHAR cappedCLName[ DMS_MAX_EXT_NAME_SIZE * 2 + 1 + 1 ] = { 0 } ;
+         const CHAR *extDataName = idxInfo.getExtDataName() ;
          ossSnprintf( cappedCLName, sizeof( cappedCLName ), "%s.%s",
-                      idxInfo.getExtDataName(), idxInfo.getExtDataName() ) ;
+                      extDataName, extDataName ) ;
 
          BSONObjBuilder subBuilder( idxBuilder.subobjStart() ) ;
 

@@ -562,13 +562,13 @@ namespace engine
       {
          if ( _pTotalCacheMem )
          {
-            PD_LOG( PDEVENT, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+            PD_LOG( PDINFO, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
                     "succeed. Total index cache mem size: %lld",
                     indexCnt, memSize, csName, clName, mbID, _pTotalCacheMem->fetch() ) ;
          }
          else
          {
-            PD_LOG( PDEVENT, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+            PD_LOG( PDINFO, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
                     "succeed", indexCnt, memSize, csName, clName, mbID ) ;
          }
       }
@@ -756,13 +756,13 @@ namespace engine
       {
          if ( _pTotalCacheMem )
          {
-            PD_LOG( PDEVENT, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+            PD_LOG( PDINFO, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
                     "succeed. Total index cache mem size: %lld",
                     indexes.size(), memSize, csName, clName, mbID, _pTotalCacheMem->fetch() ) ;
          }
          else
          {
-            PD_LOG( PDEVENT, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+            PD_LOG( PDINFO, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
                     "succeed", indexes.size(), memSize, csName, clName, mbID ) ;
          }
       }

@@ -4372,6 +4372,11 @@ namespace engine
       BOOLEAN isCacheValid = FALSE ;
       BOOLEAN shoudCache = TRUE ;
 
+      if ( 0 == _storageInfo._metaCacheLWM )
+      {
+         shoudCache = FALSE ;
+      }
+
       rc = _pMetaFile->getIndexCache( context->mbID(), cacheIndex, isCacheValid ) ;
       if ( rc )
       {
