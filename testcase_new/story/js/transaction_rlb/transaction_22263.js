@@ -21,7 +21,7 @@ function test( testPara )
       var slaveNode = rg.getSlave();
       slaveHostName = slaveNode.getHostName();
       slaveServiceName = slaveNode.getServiceName();
-      rg.reelect({Seconds: 300, HostName: slaveHostName, ServiceName: slaveServiceName });
+      rg.reelect({Seconds: 300, Level: 2, HostName: slaveHostName, ServiceName: slaveServiceName });
    
       try
       {
