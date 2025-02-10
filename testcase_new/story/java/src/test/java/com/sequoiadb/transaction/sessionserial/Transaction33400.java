@@ -135,7 +135,11 @@ public class Transaction33400 extends SdbTestBase {
                     e.printStackTrace();
                 }
                 ReplicaGroup group = sdb.getReplicaGroup( groupNames.get( 0 ) );
-                group.reelect();
+
+                BasicBSONObject options = new BasicBSONObject();
+                options.put( "Seconds", 120 );
+
+                group.reelect( options );
             }
         }
     }
