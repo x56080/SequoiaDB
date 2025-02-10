@@ -293,6 +293,7 @@ namespace engine
             pInfo->_enableSparse = optCB->sparseFile() ;
             pInfo->_cacheMergeSize = optCB->getCacheMergeSize() ;
             pInfo->_pageAllocTimeout = optCB->getPageAllocTimeout() ;
+            pInfo->_metaCacheLWM = (UINT64)optCB->getMetaCacheLWM() << 20 ;
 
             pCache->setAllocTimeout( pInfo->_pageAllocTimeout ) ;
             pCache->updateMerge( pInfo->_directIO, pInfo->_cacheMergeSize ) ;

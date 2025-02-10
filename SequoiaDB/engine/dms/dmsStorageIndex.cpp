@@ -55,6 +55,9 @@ using namespace bson ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
 
+#define DMS_INDEX_ACCESS_HOT_SPAN            ( 24 * 3600LL * OSS_ONE_SEC )          /// 1 days
+#define DMS_INDEX_ACCESS_COLD_SPAN           ( 30 * 24 * 3600LL * OSS_ONE_SEC )     /// 30 days
+
 namespace engine
 {
    static void buildOption( BSONObj &option,
@@ -105,6 +108,61 @@ namespace engine
       _pDataSu->_detach() ;
 
       _pDataSu = NULL ;
+   }
+
+   BOOLEAN _dmsStorageIndex::canInvalidateCache() const
+   {
+      BOOLEAN rs = FALSE ;
+      UINT64 oldestAccessTick = 0 ;
+      UINT64 adjustMem = 0 ;
+
+      if ( isClosed() )
+      {
+         goto done ;
+      }
+      else if ( 0 == _pStorageInfo->_metaCacheLWM ||
+                dmsGetTotalIndexMemSize()->peek() <= _pStorageInfo->_metaCacheLWM )
+      {
+         goto done ;
+      }
+
+      oldestAccessTick = _pStorageInfo->_pMetaFile->getOldestAccessTick() ;
+      adjustMem = _pStorageInfo->_metaCacheLWM >> 2 ;
+
+      if ( 0 == oldestAccessTick )
+      {
+         goto done ;
+      }
+      else if ( pmdGetTickSpanTime( getFileAccessTick() ) <= DMS_INDEX_ACCESS_HOT_SPAN )
+      {
+         rs = TRUE ;
+      }
+      else if ( dmsGetTotalIndexMemSize()->peek() > _pStorageInfo->_metaCacheLWM + adjustMem &&
+                pmdGetTickSpanTime( oldestAccessTick ) >= DMS_INDEX_ACCESS_COLD_SPAN )
+      {
+         rs = TRUE ;
+      }
+
+   done:
+      return rs ;
+   }
+
+   INT32 _dmsStorageIndex::invalidateCache( UINT64 *pExpiredMs )
+   {
+      UINT64 expiredMS = DMS_INDEX_ACCESS_COLD_SPAN ;
+
+      if ( pExpiredMs )
+      {
+         expiredMS = *pExpiredMs ;
+      }
+      else if ( pmdGetTickSpanTime( getFileAccessTick() ) <= DMS_INDEX_ACCESS_HOT_SPAN )
+      {
+         expiredMS = 0 ;
+      }
+
+      _pStorageInfo->_pMetaFile->invalidateOutOfDataCache( expiredMS ) ;
+
+      return SDB_OK ;
    }
 
    void _dmsStorageIndex::syncMemToMmap ( BOOLEAN *pHasWritten )

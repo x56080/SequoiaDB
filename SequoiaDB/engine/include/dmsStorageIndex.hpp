@@ -148,6 +148,9 @@ namespace engine
                             _dmsStorageDataCommon *pDataSu ) ;
          ~_dmsStorageIndex () ;
 
+         virtual BOOLEAN      canInvalidateCache() const ;
+         virtual INT32        invalidateCache( UINT64 *pExpiredMs = NULL ) ;
+
          virtual void  syncMemToMmap( BOOLEAN *pHasWritten = NULL ) ;
          virtual DMS_FILE_TYPE getFileType() const { return DMS_FILE_IDX ; }
 

@@ -1653,6 +1653,7 @@ namespace engine
       _storageInfo._directIO = options->useDirectIOInLob() ;
       _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
       _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
+      _storageInfo._metaCacheLWM = (UINT64)options->getMetaCacheLWM() << 20 ;
       _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
       _storageInfo._curLSNOnStart = pmdGetSyncMgr()->getCompleteLSN() ;
       // make secret value
@@ -4476,12 +4477,8 @@ namespace engine
       /// process cache
       if ( shoudCache )
       {
-         if ( SDB_OK == _pMetaFile->pushIndexCache( context->mbID(), cacheIndex ) )
-         {
-            PD_LOG( PDEVENT, "Cached indexes(%u) for collection(%s.%s, MBID:%u) succeed",
-                    cacheIndex.size(), CSName(), context->mbStat()->_collectionName,
-                    context->mbID() ) ;
-         }
+         _pMetaFile->pushIndexCache( context->mbID(), cacheIndex, CSName(),
+                                     context->mbStat()->_collectionName ) ;
          /// ignore error
       }
 
@@ -4936,7 +4933,7 @@ namespace engine
                    _storageInfo._suName, _storageInfo._sequence,
                    DMS_INDEX_SU_EXT_NAME ) ;
 
-      _pMetaFile = SDB_OSS_NEW dmsMetaFile() ;
+      _pMetaFile = SDB_OSS_NEW dmsMetaFile( dmsGetTotalIndexMemSize() ) ;
       if ( !_pMetaFile )
       {
          rc = SDB_OOM ;

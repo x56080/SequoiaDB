@@ -39,6 +39,7 @@
 
 #include "dmsMetaFile.hpp"
 #include "utilStr.hpp"
+#include "pmdEnv.hpp"
 
 #include "../bson/lib/md5.hpp"
 #include "../bson/lib/md5.h"
@@ -53,11 +54,13 @@ namespace engine
    /*
       _dmsMetaFile implement
    */
-   _dmsMetaFile::_dmsMetaFile()
+   _dmsMetaFile::_dmsMetaFile( ossAtomic64 *pTotalCacheMem )
+   : _cachedIndexCLNum( 0 )
    {
       _invalidateStatus = FALSE ;
       _hasError = FALSE ;
       ossMemset( _szFileName, 0, sizeof( _szFileName ) ) ;
+      _pTotalCacheMem = pTotalCacheMem ;
    }
 
    _dmsMetaFile::~_dmsMetaFile()
@@ -65,6 +68,11 @@ namespace engine
       if ( _file.isOpened() )
       {
          ossClose( _file ) ;
+      }
+
+      if ( !_cachedIndexCLNum.compare( 0 ) )
+      {
+         invalidateAllIndexCache() ;
       }
    }
 
@@ -437,8 +445,43 @@ namespace engine
       return TRUE ;      
    }
 
+   UINT64 _dmsMetaFile::getOldestAccessTick() const
+   {
+      UINT64 accessTick = 0 ;
+      UINT64 itemLastAccessTick = 0 ;
+
+      if ( 0 == _cachedIndexCLNum.peek() )
+      {
+         goto done ;
+      }
+
+      for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      {
+         const dmsCLIndexCache &item = _arrayIndexCache[ i ] ;
+         if ( item._isCached )
+         {
+            itemLastAccessTick = item._lastAccessTick ;
+            if ( 0 == accessTick || accessTick > itemLastAccessTick )
+            {
+               accessTick = itemLastAccessTick ;
+            }
+         }
+      }
+
+   done:
+      return accessTick ;
+   }
+
    void _dmsMetaFile::invalidateAllIndexCache()
    {
+      invalidateOutOfDataCache( 0 ) ;
+   }
+
+   void _dmsMetaFile::invalidateOutOfDataCache( UINT64 expiredMs )
+   {
+      UINT32 indexCnt = 0 ;
+      UINT32 memSize = 0 ;
+
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          dmsCLIndexCache &item = _arrayIndexCache[ i ] ;
@@ -447,9 +490,43 @@ namespace engine
 
          if ( item._isCached )
          {
+            if ( expiredMs > 0 && pmdGetTickSpanTime( item._lastAccessTick ) < expiredMs )
+            {
+               /// not invalidate
+               continue ;
+            }
+
             item._isCached = FALSE ;
+            _cachedIndexCLNum.dec() ;
+
+            indexCnt += item._vecIndex.size() ;
+            memSize += item._memSize ;
          }
+         if ( item._memSize > 0 && _pTotalCacheMem )
+         {
+            _pTotalCacheMem->sub( item._memSize ) ;
+         }
+
          item._vecIndex.clear() ;
+         item._memSize = 0 ;
+      }
+
+      if ( indexCnt > 0 || memSize > 0 )
+      {
+         if ( _pTotalCacheMem )
+         {
+            PD_LOG( PDEVENT, "Clear %s index caches(%u, MemSize: %u) for file(%s) "
+                    "succeed. Total index cache mem size: %lld",
+                    ( 0 == expiredMs ? "all" : "out-of-date" ),
+                    indexCnt, memSize, _szFileName, _pTotalCacheMem->fetch() ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Clear %s index caches(%u, MemSize: %u) for file(%s) "
+                    "succeed",
+                    ( 0 == expiredMs ? "all" : "out-of-date" ),
+                    indexCnt, memSize, _szFileName ) ;
+         }
       }
    }
 
@@ -457,6 +534,7 @@ namespace engine
    {
       BOOLEAN hasInvalidate = FALSE ;
       UINT32 indexCnt = 0 ;
+      UINT32 memSize = 0 ;
 
       if ( mbID < DMS_MME_SLOTS )
       {
@@ -466,16 +544,33 @@ namespace engine
          if ( item._isCached )
          {
             item._isCached = FALSE ;
+            _cachedIndexCLNum.dec() ;
             hasInvalidate = TRUE ;
          }
+         if ( item._memSize > 0 && _pTotalCacheMem )
+         {
+            _pTotalCacheMem->sub( item._memSize ) ;
+         }
+
          indexCnt = item._vecIndex.size() ;
+         memSize = item._memSize ;
          item._vecIndex.clear() ;
+         item._memSize = 0 ;
       }
 
       if ( hasInvalidate && csName && clName && *csName && *clName )
       {
-         PD_LOG( PDEVENT, "Clear index cache(%u) for collection(%s.%s, MBID:%u) succeed",
-                 indexCnt, csName, clName, mbID ) ;
+         if ( _pTotalCacheMem )
+         {
+            PD_LOG( PDEVENT, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+                    "succeed. Total index cache mem size: %lld",
+                    indexCnt, memSize, csName, clName, mbID, _pTotalCacheMem->fetch() ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Clear index cache(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+                    "succeed", indexCnt, memSize, csName, clName, mbID ) ;
+         }
       }
    }
 
@@ -499,6 +594,9 @@ namespace engine
 
          if ( isCacheValid )
          {
+            /// update access tick
+            item._lastAccessTick = pmdGetDBTick() ;
+
             try
             {
                for ( UINT32 i = 0 ; i < item._vecIndex.size() ; ++i )
@@ -543,6 +641,10 @@ namespace engine
          if ( isCacheValid )
          {
             BOOLEAN found = FALSE ;
+
+            /// update access tick
+            item._lastAccessTick = pmdGetDBTick() ;
+
             try
             {
                for ( UINT32 i = 0 ; i < item._vecIndex.size() ; ++i )
@@ -580,9 +682,13 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsMetaFile::pushIndexCache( UINT16 mbID, const MON_IDX_LIST &indexes )
+   INT32 _dmsMetaFile::pushIndexCache( UINT16 mbID,
+                                       const MON_IDX_LIST &indexes,
+                                       const CHAR *csName,
+                                       const CHAR *clName )
    {
       INT32 rc = SDB_OK ;
+      UINT32 memSize = 0 ;
 
       /// alloc slot
       rc = _arrayIndexCache.allocSlot( mbID ) ;
@@ -594,12 +700,23 @@ namespace engine
       else
       {
          dmsCLIndexCache &item = _arrayIndexCache[ mbID ] ;
+         BOOLEAN incNum = FALSE ;
 
          ossScopedLock lock( &item._latch, EXCLUSIVE ) ;
+
+         if ( !item._isCached )
+         {
+            incNum = TRUE ;
+         }
+         if ( item._memSize > 0 && _pTotalCacheMem )
+         {
+            _pTotalCacheMem->sub( item._memSize ) ;
+         }
 
          /// first clear
          item._isCached = FALSE ;
          item._vecIndex.clear() ;
+         item._memSize = 0 ;
 
          /// then push indexes
          try
@@ -608,6 +725,7 @@ namespace engine
             {
                const monIndex &indexItem = indexes[ i ] ;
                item._vecIndex.push_back( indexItem ) ;
+               item._memSize += ( sizeof( monIndex ) + indexItem._indexDef.objsize() ) ;
             }
          }
          catch( std::exception &e )
@@ -615,11 +733,38 @@ namespace engine
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             rc = ossException2RC( &e ) ;
             item._vecIndex.clear() ;
+            item._memSize = 0 ;
             goto error ;
          }
 
          /// set cached
          item._isCached = TRUE ;
+         item._lastAccessTick = pmdGetDBTick() ;
+         memSize = item._memSize ;
+
+         if ( item._memSize > 0 && _pTotalCacheMem )
+         {
+            _pTotalCacheMem->add( item._memSize ) ;
+         }
+         if ( incNum )
+         {
+            _cachedIndexCLNum.inc() ;
+         }
+      }
+
+      if ( csName && clName && *csName && *clName )
+      {
+         if ( _pTotalCacheMem )
+         {
+            PD_LOG( PDEVENT, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+                    "succeed. Total index cache mem size: %lld",
+                    indexes.size(), memSize, csName, clName, mbID, _pTotalCacheMem->fetch() ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Cached indexes(%u, MemSize: %u) for collection(%s.%s, MBID:%u) "
+                    "succeed", indexes.size(), memSize, csName, clName, mbID ) ;
+         }
       }
 
    done:
@@ -1135,6 +1280,15 @@ namespace engine
       }
 
       return hashValue ;
+   }
+
+   /*
+      Global function
+   */
+   ossAtomic64* dmsGetTotalIndexMemSize()
+   {
+      static ossAtomic64 s_totalIndexMemSize( 0 ) ;
+      return &s_totalIndexMemSize ;
    }
 
 }

@@ -45,6 +45,7 @@
 #include "ossIO.hpp"
 #include "ossUtil.hpp"
 #include "ossLatch.hpp"
+#include "ossAtomic.hpp"
 #include "ossMemPool.hpp"
 #include "dms.hpp"
 #include "monDMS.hpp"
@@ -185,11 +186,15 @@ namespace engine
    {
       vector<monIndex>           _vecIndex ;
       BOOLEAN                    _isCached ;
+      UINT32                     _memSize ;
+      UINT64                     _lastAccessTick ;
       ossSpinSLatch              _latch ;
 
       _dmsCLIndexCache()
       {
          _isCached = FALSE ;
+         _memSize = 0 ;
+         _lastAccessTick = 0 ;
       }
    } ;
    typedef _dmsCLIndexCache dmsCLIndexCache ;
@@ -202,7 +207,7 @@ namespace engine
       typedef _utilSparseArray< dmsCLIndexCache, DMS_MME_SLOTS >     ARRAY_INDEXCACHE  ;
 
    public:
-      _dmsMetaFile() ;
+      _dmsMetaFile( ossAtomic64 *pTotalCacheMem = NULL ) ;
       ~_dmsMetaFile() ;
 
    public:
@@ -233,6 +238,7 @@ namespace engine
          Index cache
       */
       void     invalidateAllIndexCache() ;
+      void     invalidateOutOfDataCache( UINT64 expiredMs ) ;
       void     invalidateIndexCache( UINT16 mbID,
                                      const CHAR *csName = NULL,
                                      const CHAR *clName = NULL ) ;
@@ -247,7 +253,11 @@ namespace engine
                               BOOLEAN &isCacheValid ) ;
 
       INT32    pushIndexCache( UINT16 mbID,
-                               const MON_IDX_LIST &indexes ) ;
+                               const MON_IDX_LIST &indexes,
+                               const CHAR *csName = NULL,
+                               const CHAR *clName = NULL ) ;
+
+      UINT64   getOldestAccessTick() const ;
 
    private:
       const SET_UINT64* _getSMEByType( UINT32 fileType ) const ;
@@ -271,11 +281,20 @@ namespace engine
       SET_UINT64         _setLobSME ;
 
       ARRAY_INDEXCACHE  _arrayIndexCache ;
+      ossAtomic32       _cachedIndexCLNum ;
 
-      ossSpinXLatch      _mtx ;
+      ossAtomic64      *_pTotalCacheMem ;
+
+      ossSpinXLatch     _mtx ;
    } ;
 
    typedef _dmsMetaFile dmsMetaFile ;
+
+   /*
+      Global function
+   */
+   ossAtomic64* dmsGetTotalIndexMemSize() ;
+
 }
 
 #endif // DMSMETAFILE_H_

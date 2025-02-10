@@ -90,6 +90,8 @@ namespace engine
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
 
+      UINT64      _metaCacheLWM ;
+
       /// Data is OK
       BOOLEAN     _dataIsOK ;
       UINT64      _curLSNOnStart ;
@@ -117,6 +119,8 @@ namespace engine
          _directIO = FALSE ;
          _cacheMergeSize = 0 ;
          _pageAllocTimeout = 0 ;
+
+         _metaCacheLWM = 0 ;
 
          _dataIsOK       = FALSE ;
          _curLSNOnStart  = ~0 ;
