@@ -4442,7 +4442,6 @@ namespace engine
                  IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
             {
                SDB_ASSERT( indexCB.getExtDataName(), "External data name is NULL") ;
-               ossStrncpy( indexItem._extDataName, indexCB.getExtDataName(), DMS_MAX_EXT_NAME_SIZE ) ;
             }
 
             if ( IXM_INDEX_FLAG_NORMAL != indexCB.getFlag() )
@@ -4542,8 +4541,6 @@ namespace engine
                     IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
                {
                   SDB_ASSERT( indexCB.getExtDataName(), "External data name is NULL") ;
-                  ossStrncpy( resultIndex._extDataName, indexCB.getExtDataName(),
-                              DMS_MAX_EXT_NAME_SIZE ) ;
                }
 
                // copy the index def to it's owned buffer

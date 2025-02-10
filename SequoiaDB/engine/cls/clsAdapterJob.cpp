@@ -280,7 +280,7 @@ namespace engine
          // "extData.extData"
          CHAR cappedCLName[ DMS_MAX_EXT_NAME_SIZE * 2 + 1 + 1 ] = { 0 } ;
          ossSnprintf( cappedCLName, sizeof( cappedCLName ), "%s.%s",
-                      idxInfo._extDataName, idxInfo._extDataName ) ;
+                      idxInfo.getExtDataName(), idxInfo.getExtDataName() ) ;
 
          BSONObjBuilder subBuilder( idxBuilder.subobjStart() ) ;
 
