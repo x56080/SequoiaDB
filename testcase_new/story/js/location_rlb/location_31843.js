@@ -44,6 +44,9 @@ function test ()
    // group 重新选举
    rg.reelect();
 
+   /// wait catalog update
+   sleep( 1000 ) ;
+
    // 获取新的主节点
    var newMasterNode = rg.getMaster();
 

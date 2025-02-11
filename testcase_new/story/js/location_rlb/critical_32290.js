@@ -36,6 +36,8 @@ function test ( args )
    for( var i = 0; i < 3; i++ )
    {
       rg.reelect();
+      /// wait catalog update
+      sleep( 1000 ) ;
       var newMasterNode = rg.getMaster();
       var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
       assert.equal( nodeID, salveNodeID1 );
@@ -53,6 +55,8 @@ function test ( args )
    for( var i = 0; i < 3; i++ )
    {
       rg.reelect();
+      /// wait catalog update
+      sleep( 1000 ) ;
       var newMasterNode = rg.getMaster();
       var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
       assert.equal( nodeID, salveNodeID2 );

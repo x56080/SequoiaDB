@@ -43,6 +43,8 @@ function test ()
 
    // reelent不指定节点进行重选举
    rg.reelect();
+   /// wait catalog update
+   sleep( 1000 ) ;
    var newMasterNode = rg.getMaster();
    assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(),
                  masterNode.getHostName() + ":" + masterNode.getServiceName() );
@@ -54,6 +56,8 @@ function test ()
    db.updateConf( { "weight": 100 }, { "NodeName": slaveNodes[1] } );
 
    rg.reelect();
+   /// wait catalog update
+   sleep( 1000 ) ;
    var newMasterNode = rg.getMaster();
    assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(), slaveNodes[0] );
 
