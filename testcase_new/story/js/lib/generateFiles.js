@@ -78,9 +78,18 @@ function generateFiles ()
       */
       for( var j = 0; j < memFunc.length; j++ )
       {
-         var evalStr = classes[i] + ".prototype." + memFunc[j] + "=function(){try{return tmp" + classes[i] + "." + memFunc[j]
-            + ".apply(this,arguments);}catch(e){throw new Error(e);}};";
-         fileContent += evalStr + "\n";
+         if ( classes[i] == "SdbReplicaGroup" && ( memFunc[j] == "reelect" || memFunc[j] == "reelectLocation" ) )
+         {
+            var evalStr = classes[i] + ".prototype." + memFunc[j] + "=function(){try{ var ret = tmp" + classes[i] + "." + memFunc[j]
+               + ".apply(this,arguments); sleep(1000) ; return ret ; }catch(e){throw new Error(e);}};";
+            fileContent += evalStr + "\n";
+         }
+         else
+         {
+            var evalStr = classes[i] + ".prototype." + memFunc[j] + "=function(){try{return tmp" + classes[i] + "." + memFunc[j]
+               + ".apply(this,arguments);}catch(e){throw new Error(e);}};";
+            fileContent += evalStr + "\n";
+         }
       }
 
       var fileName = classes[i] + ".js";
