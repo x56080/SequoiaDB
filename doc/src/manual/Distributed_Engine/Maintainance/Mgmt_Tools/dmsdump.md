@@ -244,13 +244,13 @@ sdbdmsdump --version | -v
      Total Free Size : 634.72 (MB)
    ```
 
-* 指定数据目录 `/opt/sequoiadb/database/data/11830`，指定操作为“inspect”检测并报告数据损坏信息，输出集合空间 sample 的大对象数据检测结果至 `outputindex.txt` 文件
+* 指定数据目录 `/opt/sequoiadb/database/data/11830`，指定操作为“inspect”检测并报告数据损坏信息，输出集合空间 sample 的大对象数据检测结果至 `outputlob.txt` 文件
 
    ```lang-bash
-   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o outputindex.txt -c sample -a inspect -b true
+   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o outputlob.txt -c sample -a inspect -b true
    ```
 
-   生成结果文件 `outputindex.txt.<num>`，记录集合空间 sample 大对象文件中 Header 段、SME 空间管理段、BME 桶管理段、数据段检测结果，以及该集合空间下所有集合的大对象信息（如数据页个数、大对象总大小等），无损坏则检查结果记录为 "Done Succeed" ，显示内容可能如下：
+   生成结果文件 `outputlob.txt.<num>`，记录集合空间 sample 大对象文件中 Header 段、SME 空间管理段、BME 桶管理段、数据段检测结果，以及该集合空间下所有集合的大对象信息（如数据页个数、大对象总大小等），无损坏则检查结果记录为 "Done Succeed" ，显示内容可能如下：
 
    ```lang-text
    Inspect collection space /opt/sequoiadb/database/data/11830/sample.1.lobm
@@ -305,13 +305,13 @@ sdbdmsdump --version | -v
      Total Free Size : 60.25 (MB)
    ```
 
-* 指定数据文件目录 `/opt/sequoiadb/database/data/11830`，指定集合空间 sample 设定操作数据文件，指定操作为“dump”将数据页格式化并输出至 `outputdump.txt` 文件
+* 指定数据文件目录 `/opt/sequoiadb/database/data/11830`，指定集合空间 sample 设定操作数据文件，指定操作为“dump”将数据页格式化并输出至 `datadump.txt` 文件
 
    ```lang-bash
-   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o outputdump.txt -c sample -a dump -t true
+   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o datadump.txt -c sample -a dump -t true
    ```
 
-   生成结果文件 `outputdump.txt.<num>`，记录集合空间 sample 数据文件中 Header 段、SME 空间管理段、MME 元数据管理段和数据段存储结构信息。
+   生成结果文件 `datadump.txt.<num>`，记录集合空间 sample 数据文件中 Header 段、SME 空间管理段、MME 元数据管理段和数据段存储结构信息。
 
    Header 段记录集合空间名与存储单元头的格式化内容，根据用户选择 verbose，输出可视化的格式化结果（相似内容以“……”省略）
 
@@ -578,13 +578,13 @@ sdbdmsdump --version | -v
    ……
    ``` 
 
-* 指定数据文件目录 `/opt/sequoiadb/database/data/11830`，指定集合空间 sample 设定操作大对象文件，指定操作为“dump”将大对象数据页格式化并输出至 `indexdump.txt` 文件
+* 指定数据文件目录 `/opt/sequoiadb/database/data/11830`，指定集合空间 sample 设定操作大对象文件，指定操作为“dump”将大对象数据页格式化并输出至 `lobdump.txt` 文件
 
    ```lang-bash
-   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o indexdump.txt -c sample -a dump -b true
+   $ sdbdmsdump -d /opt/sequoiadb/database/data/11830 -o lobdump.txt -c sample -a dump -b true
    ```
 
-   生成结果文件 `indexdump.txt.<num>`，记录集合空间 sample 大对象文件中 Header 段、SME 空间管理段、数据段存储结构信息，输出格式化信息和前一个示例中数据文件格式化信息类似，大对象元数据页类似如下（由于数据量较大，相似内容以“……”省略）：
+   生成结果文件 `lobdump.txt.<num>`，记录集合空间 sample 大对象文件中 Header 段、SME 空间管理段、数据段存储结构信息，输出格式化信息和前一个示例中数据文件格式化信息类似，大对象元数据页类似如下（由于数据量较大，相似内容以“……”省略）：
 
    ```lang-text
     Dump Lob Page 1035:
