@@ -8,6 +8,91 @@ SequoiaDB 巨杉数据库是一款金融级分布式数据库，产品引擎采�
 - 从 3.4.4/3.6/5.0.3 及早期版本滚动升级到 3.4.5/3.6.1/5.0.4 及之后的版本时，从 SQL 引擎执行的 INSERT 操作会存在失败。因此滚动升级的过程中需保证优先完成存储引擎的升级，然后再进行 MySQL/MariaDB 实例的升级。
 - 从 3.4.4/3.6/5.0.3 及早期版本升级到 3.4.5/3.6.1/5.0.4 及之后的版本，如果集群会扩展为 X86 和 ARM 架构混合部署，则在升级前版本上创建的、使用 double 类型字段作为 hash 分区键的集合，需要进行重建，否则可能会出现数据无法正确访问的问题。可通过查询 SDB_SNAP_CATALOG 快照，根据集合使用的 hash 算法版本号（InternalV 字段）判断，对于该版本号小于 4 的集合需要进行处理。
 
+##SequoiaDB version 3.4.13 版本说明##
+
+**接口变更：**
+
+- 存储引擎
+  - 重选举支持设置选举级别，阻塞不同的写操作：
+     - Level 1: 等待当前写操作结束，并阻塞后续写操作
+     - Level 2: 等待写游标(大对象操作)结束
+     - Level 3: 等待事务结束
+  - sdbcm 新增 ValidTimeThreshold 参数，设置异常节点自动重启间隔时间。如果在间隔时间内，sdbcm 自动重启异常节点次数超过 RestartCount 参数的限制，则 sdbcm 不会再重启该异常节点；
+  - 快速部署工具支持 MariaDB 快速部署；
+  - 集合 ReplSize 默认值改为 2；
+  - SDB 支持复制日志文件的缓存清理；
+  - 慢查询新增监控指标:
+     - QueryCataTime：查询编目耗时，单位为毫秒
+	 - BlockTime：操作被阻塞的时间，单位为毫秒
+	 - QueryCataCount：查询编目的次数
+	 - BlockType：阻塞事件类型(如果为空则不显示该字段)，有以下事件类型：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitRelect, SyncControl, WaitFusing，NoLogSpace
+	 - FileOPTime：节点在文件层操作的耗时（该指标仅在数据节点显示），单位为毫秒
+	 - DispatchTimeSpent：消息分发花费时间，单位为毫秒
+	 - SortTime：数据排序花费时间，单位为毫秒
+	 - HashCode：查询语句的哈希标识，相同哈希标识对应同类型的查询语句 （仅数据节点）
+	 - LogOPTime：读写同步日志的耗时，单位为毫秒（仅数据节点）
+	 - TransLockWaitCount：锁等待次数（仅数据节点）
+	 - LatchWaitCount：闩锁等待次数（仅数据节点）
+  - 慢查询参数 mongroupmask 从开改为关时，会立即清理掉历史的监控信息，优化为保留 5 分钟再清理；
+  - createCL 支持指定创建多个数据组；
+  - createCL/createCS 支持克降模式；
+  - 健康快照支持显示节点切主信息；
+
+- SQL 引擎
+  - MySQL performance_schema 支持设置皮秒时间精度为纳秒；
+
+**主要特性：**
+
+- 存储引擎
+  - 重选举不阻塞读操作；
+  - 残留和空 CS 自动清理优化；
+
+- SQL 引擎
+  - MySQL 升级至 5.7.44；
+
+**性能优化：**
+
+- 存储引擎
+  - 优化节点启动/停止流程，加速节点启动/停止；
+  - 加载集合空间内存优化；
+  - 当集合空间只有一个集合时，dropCL 优化为 dropCS；
+  - 优化索引统计信息子表采样率；
+
+- SQL 引擎
+
+  NA
+
+**工具优化：**
+
+- 存储引擎
+  - sdbdmsdump 工具优化改进；
+
+- SQL 引擎
+
+  NA
+
+**解决重要Bug：**
+
+- 存储引擎
+  - 修复开启容错，备节点异常时，Lob 写操作无法降级处理的问题；
+  - 修复创建 CS 文件/drop/truncate 产生 DEADSYNC 和 SLOWNODE 的问题；
+  - 修复 ARM 平台上数值转换由于编译器优化导致结果不正确的问题；
+  - 修复索引平衡导致节点 coredump 的问题；
+  - 修复编目节点发送消息报-85错误导致所有协调节点连接卡住的问题；
+  - 修复集合空间 DataCommitted 标记不正确，导致发生非预期的全量同步的问题；
+  - 修复大并发执行快照采集导致协调节点主线程消息队列阻塞的问题；
+  - 修复开启慢查询执行 query 和 killcontext 协调节点 coredump 的问题；
+  - 修复执行内置 SQL 带命令位置参数报错的问题；
+  - 修复 transactionon 为 false 时，执行事务相关快照导致节点 coredump 问题；
+  - 修复访问计划索引评估出错的问题；
+  - 修复等值匹配时访问计划索引选择率不准确的问题；
+  - 修复 C++ 驱动 cl.query() 与 cl.interrupt() 并发执行偶现卡死的问题；
+
+- SQL 引擎
+  - 修复索引读不能正确处理夏令时的问题；
+  - 修复索引统计信息未被正确清除的问题；
+  - 修复 flush tables 导致实例 coredump 的问题；
+
 ##SequoiaDB version 3.4.12 版本说明##
 
 **接口变更：**
