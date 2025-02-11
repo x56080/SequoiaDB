@@ -2946,6 +2946,10 @@ namespace engine
          }
       }
 
+      /// broadcast to othe node
+      _sharingBeat() ;
+      _beatTime = 0 ;
+
       // If this node is primary and not in tmporary mode, we need to start a monitor job
       if ( primaryIsMe() )
       {
