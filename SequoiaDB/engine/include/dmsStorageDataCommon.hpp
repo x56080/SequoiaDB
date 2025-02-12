@@ -1121,6 +1121,8 @@ namespace engine
                                  _IDmsEventHolder *pEventHolder ) ;
          virtual ~_dmsStorageDataCommon () ;
 
+         virtual INT32 saveMeta() ;
+
          virtual void  syncMemToMmap( BOOLEAN *pHasWritten = NULL ) ;
 
          UINT32 logicalID () const { return _logicalCSID ; }

@@ -153,6 +153,7 @@ namespace engine
       UINT64 msInterval = krcb->getOptionCB()->getDmsChkInterval() * STORAGE_CHECK_UNIT_INTERVAL ;
       MON_CSNAME_VEC csVec ;
       MON_CSNAME_VEC::iterator itCS ;
+      dmsNoAccessCSFilter filter( msInterval ) ;
 
       if ( 0 == msInterval )
       {
@@ -174,7 +175,7 @@ namespace engine
       }
 
       /// dump collectionspace, and check
-      pDmsCB->dumpInfo( csVec, FALSE, FALSE ) ;
+      pDmsCB->dumpInfo( csVec, FALSE, &filter ) ;
 
       for ( itCS = csVec.begin() ; itCS != csVec.end(); ++itCS )
       {
@@ -203,6 +204,7 @@ namespace engine
       UINT64 msInterval = krcb->getOptionCB()->getDmsChkInterval() * STORAGE_CHECK_UNIT_INTERVAL / 6 ;
       MON_CSNAME_VEC csVec ;
       MON_CSNAME_VEC::iterator itCS ;
+      _dmsEmptyCSFilter filter ;
 
       if ( 0 == msInterval )
       {
@@ -224,7 +226,7 @@ namespace engine
       }
 
       /// dump collectionspace, and check
-      pDmsCB->dumpInfo( csVec, FALSE, TRUE ) ;
+      pDmsCB->dumpInfo( csVec, FALSE, &filter ) ;
 
       for ( itCS = csVec.begin() ; itCS != csVec.end(); ++itCS )
       {

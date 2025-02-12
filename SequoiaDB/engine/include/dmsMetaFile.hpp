@@ -210,10 +210,13 @@ namespace engine
       _dmsMetaFile( ossAtomic64 *pTotalCacheMem = NULL ) ;
       ~_dmsMetaFile() ;
 
+      void lock() ;
+      void unlock() ;
+
    public:
       INT32 init( const CHAR *parentDir, const CHAR *csName ) ;
       INT32 rename( const CHAR *newCSName ) ;
-      void  invalidate( BOOLEAN force = FALSE ) ;
+      void  invalidate( BOOLEAN force = FALSE, BOOLEAN needLock = TRUE ) ;
       void  remove() ;
 
       BOOLEAN isValid() const ;
@@ -273,7 +276,7 @@ namespace engine
       string             _path ;
       dmsMetaFileHeader  _header ;
       BOOLEAN            _invalidateStatus ;
-      BOOLEAN            _hasError ;
+      INT32              _errorRC ;
 
       ossPoolSet<dmsMBItem> _setMBID ;
       SET_UINT64         _setDataSME ;

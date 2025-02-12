@@ -966,6 +966,7 @@ namespace engine
          }
          if ( ! pMetaFile->checkSize() )
          {
+            rc = SDB_OSS_UP_TO_LIMIT ;
             break ;
          }
       }
