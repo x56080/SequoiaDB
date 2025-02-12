@@ -749,6 +749,15 @@ namespace engine
       _persistLatch.release() ;
    }
 
+   INT32 _dmsStorageBase::saveMeta()
+   {
+      if ( isOpened() )
+      {
+         return _smeMgr.saveToMeta( _pStorageInfo->_pMetaFile ) ;
+      }
+      return SDB_SYS ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SYNC, "_dmsStorageBase::sync" )
    INT32 _dmsStorageBase::sync( BOOLEAN force,
                                 BOOLEAN sync,
@@ -1308,6 +1317,10 @@ namespace engine
       // be sure the sync jos has quit
       lock() ;
       unlock() ;
+
+      // be sure the save meta job has quit
+      _pStorageInfo->_pMetaFile->lock() ;
+      _pStorageInfo->_pMetaFile->unlock() ;
 
       if ( ossMmapFile::_opened )
       {

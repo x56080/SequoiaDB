@@ -462,6 +462,8 @@ namespace engine
          virtual void         lock() ;
          virtual void         unlock() ;
 
+         virtual INT32        saveMeta() ;
+
          void                 setSyncConfig( UINT32 syncInterval,
                                              UINT32 syncRecordNum,
                                              UINT32 syncDirtyRatio ) ;
@@ -583,6 +585,8 @@ namespace engine
          INT32 flushDirtySegments( UINT32 *pNum = NULL,
                                    BOOLEAN force = TRUE,
                                    BOOLEAN sync = TRUE ) ;
+
+         UINT64 getLastWriteTick() const { return _lastWriteTick ; }
 
          /// virtual interface
          virtual void  syncMemToMmap ( BOOLEAN *pHasWritten = NULL ) {}

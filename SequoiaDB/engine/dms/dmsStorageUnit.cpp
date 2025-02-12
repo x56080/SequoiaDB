@@ -4230,6 +4230,37 @@ namespace engine
       return dbTick ;
    }
 
+   UINT64 _dmsStorageUnit::getLastWriteDBTick( UINT32 type ) const
+   {
+      UINT64 dbTick = 0 ;
+
+      /// check data
+      if ( ( type & DMS_SU_DATA ) && _pDataSu )
+      {
+          dbTick = _pDataSu->getLastWriteTick() ;
+      }
+      /// check index
+      if ( ( type & DMS_SU_INDEX ) && _pIndexSu )
+      {
+         UINT64 writeTick = _pIndexSu->getLastWriteTick() ;
+         if ( writeTick > dbTick )
+         {
+            dbTick = writeTick ;
+         }
+      }
+      /// check lob
+      if ( ( type & DMS_SU_LOB ) && _pLobSu && _pLobSu->isOpened() )
+      {
+         UINT64 writeTick = _pLobSu->getLastWriteTick() ;
+         if ( writeTick > dbTick )
+         {
+            dbTick = writeTick ;
+         }
+      }
+
+      return dbTick ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CL, "_dmsStorageUnit::_dumpCLInfo" )
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
@@ -4755,6 +4786,76 @@ namespace engine
       {
          _pDataSu->restoreForCrash() ;
       }
+   }
+
+   INT32 _dmsStorageUnit::saveMeta()
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasLock = FALSE ;
+
+      if ( !_pMetaFile || !_pDataSu || !_pIndexSu || !_pLobSu )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      _pMetaFile->lock() ;
+      hasLock = TRUE ;
+
+      if ( _pMetaFile->isValid() )
+      {
+         /// when meta is valid
+         goto done ;
+      }
+      else if ( !_pMetaFile->checkSize() )
+      {
+         /// don't save meta
+         goto done ;
+      }
+
+      rc = _pDataSu->saveMeta() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _pIndexSu->saveMeta() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( _pLobSu->isOpened() )
+      {
+         rc = _pLobSu->saveMeta() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      rc = _pMetaFile->writeDone( CSName() ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      if ( hasLock )
+      {
+         _pMetaFile->unlock() ;
+      }
+      return rc ;
+   error:
+      if ( hasLock )
+      {
+         if ( _pMetaFile->checkSize() )
+         {
+            /// when check size correct, but occur error, need invalidate
+            _pMetaFile->invalidate( TRUE, FALSE ) ;
+         }
+      }
+      goto done ;
    }
 
    INT32 _dmsStorageUnit::sync( BOOLEAN sync,

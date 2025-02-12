@@ -38,6 +38,7 @@
 
 #include "utilLightJobBase.hpp"
 #include "dms.hpp"
+#include "monDMS.hpp"
 
 namespace engine
 {
@@ -70,6 +71,34 @@ namespace engine
    void dmsStartAsyncDeleteRecord( INT32 csID, UINT16 clID,
                                    UINT32 csLID, UINT32 clLID,
                                    const dmsRecordID &rid) ;
+
+   /*
+      _dmsSaveMetaJob
+   */
+   class _dmsSaveMetaJob : public _utilLightJob
+   {
+      public:
+         _dmsSaveMetaJob() ;
+         virtual ~_dmsSaveMetaJob() ;
+
+         virtual const CHAR*     name() const ;
+         virtual INT32           doit( IExecutor *pExe,
+                                       UTIL_LJOB_DO_RESULT &result,
+                                       UINT64 &sleepTime ) ;
+
+      protected:
+         INT32                   _dumpCS() ;
+
+      protected:
+
+         MON_CSNAME_VEC          _vecCS ;
+         UINT32                  _index ;
+         BOOLEAN                 _dumpOK ;
+
+   } ;
+   typedef _dmsSaveMetaJob dmsSaveMetaJob ;
+
+   INT32 dmsStartSaveMetaJob() ;
 
 }
 

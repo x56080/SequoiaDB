@@ -224,6 +224,51 @@ namespace engine
    typedef _dmsDataStatMgr dmsDataStatMgr ;
 
    /*
+      _dmsFilter define
+   */
+   class _dmsFilter : public SDBObject
+   {
+      public:
+         _dmsFilter() {}
+         virtual ~_dmsFilter() {}
+
+      public:
+         virtual BOOLEAN filter( _dmsStorageUnit *su ) = 0 ;
+   } ;
+   typedef _dmsFilter dmsFilter ;
+
+   /*
+      _dmsEmptyCSFilter define
+   */
+   class _dmsEmptyCSFilter : public _dmsFilter
+   {
+      public:
+         _dmsEmptyCSFilter() {}
+         virtual ~_dmsEmptyCSFilter() {}
+
+      public:
+         virtual BOOLEAN filter( _dmsStorageUnit *su ) ;
+   } ;
+   typedef _dmsEmptyCSFilter dmsEmptyCSFilter ;
+
+   /*
+      _dmsNoAccessCSFilter define
+   */
+   class _dmsNoAccessCSFilter : public _dmsFilter
+   {
+      public:
+         _dmsNoAccessCSFilter( UINT64 noAccessMS ) ;
+         virtual ~_dmsNoAccessCSFilter() {}
+
+      public:
+         virtual BOOLEAN filter( _dmsStorageUnit *su ) ;
+
+      private:
+         UINT64         _noAccessMS ;
+   } ;
+   typedef _dmsNoAccessCSFilter dmsNoAccessCSFilter ;
+
+   /*
       _SDB_DMSCB define
    */
    class _SDB_DMSCB : public _IControlBlock
@@ -519,7 +564,7 @@ namespace engine
 
       INT32 dumpInfo( MON_CSNAME_VEC &vecCS,
                       BOOLEAN sys = FALSE,
-                      BOOLEAN onlyEmpty = FALSE ) ;
+                      dmsFilter *pFilter = NULL ) ;
 
       void dumpInfo ( INT64 &totalFileSize );
 

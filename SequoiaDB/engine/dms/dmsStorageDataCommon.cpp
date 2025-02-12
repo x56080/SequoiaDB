@@ -645,6 +645,49 @@ namespace engine
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATACOMMON_DESC ) ;
    }
 
+   INT32 _dmsStorageDataCommon::saveMeta()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( isOpened() )
+      {
+         /// save meta
+         if ( !_pStorageInfo->_pMetaFile->isValid() )
+         {
+            UINT16 i = _nextUsedMBSlot( 0 ) ;
+            while( DMS_INVALID_MBID != i )
+            {
+               const dmsMBStatInfo *pMBStat = &(_mbStatInfo[ i ]) ;
+               dmsMBItem mbItem( i, pMBStat->_uniqueIdxNum,
+                                    pMBStat->_textIdxNum,
+                                    pMBStat->_globIdxNum ) ;
+               rc = _pStorageInfo->_pMetaFile->addMBItem( mbItem ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               i = _nextUsedMBSlot( i + 1 ) ;
+            }
+         }
+
+         rc = _dmsStorageBase::saveMeta() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_SYNCMEMTOMMAP, "_dmsStorageDataCommon::syncMemToMmap" )
    void _dmsStorageDataCommon::syncMemToMmap ( BOOLEAN *pHasWritten )
    {

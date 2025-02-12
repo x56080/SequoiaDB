@@ -54,6 +54,7 @@
 #include "ossLatch.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
+#include "dmsLightJob.hpp"
 
 #include <list>
 
@@ -85,6 +86,35 @@ namespace engine
    {
       static dmsDefaultScannerChecker s_defaultScannerChecker ;
       return &s_defaultScannerChecker ;
+   }
+
+   /*
+      _dmsEmptyCSFilter implement
+   */
+   BOOLEAN _dmsEmptyCSFilter::filter( _dmsStorageUnit *su )
+   {
+      if ( su->data()->getCollectionNum() > 0 )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
+   }
+
+   /*
+      _dmsNoAccessCSFilter implement
+   */
+   _dmsNoAccessCSFilter::_dmsNoAccessCSFilter( UINT64 noAccessMS )
+   {
+      _noAccessMS = noAccessMS ;
+   }
+
+   BOOLEAN _dmsNoAccessCSFilter::filter( _dmsStorageUnit *su )
+   {
+      if ( _noAccessMS > 0 && pmdGetTickSpanTime( su->getLastAccessDBTick() ) < _noAccessMS )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
    }
 
    /*
@@ -206,6 +236,12 @@ namespace engine
       {
          PD_LOG( PDERROR, "Active page map dispatcher failed, rc: %d",
                  rc ) ;
+         goto error ;
+      }
+
+      rc = dmsStartSaveMetaJob() ;
+      if ( rc )
+      {
          goto error ;
       }
 
@@ -3558,7 +3594,7 @@ namespace engine
       return rc ;
    }
 
-   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, BOOLEAN onlyEmpty )
+   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, dmsFilter *pFilter )
    {
       INT32 rc = SDB_OK ;
       CSCB_MAP_CONST_ITER it ;
@@ -3583,7 +3619,7 @@ namespace engine
          {
             continue ;
          }
-         else if ( onlyEmpty && cscb->_su->data()->getCollectionNum() > 0 )
+         else if ( pFilter && !pFilter->filter( cscb->_su ) )
          {
             continue ;
          }

@@ -58,7 +58,7 @@ namespace engine
    : _cachedIndexCLNum( 0 )
    {
       _invalidateStatus = FALSE ;
-      _hasError = FALSE ;
+      _errorRC = SDB_OK ;
       ossMemset( _szFileName, 0, sizeof( _szFileName ) ) ;
       _pTotalCacheMem = pTotalCacheMem ;
    }
@@ -74,6 +74,16 @@ namespace engine
       {
          invalidateAllIndexCache() ;
       }
+   }
+
+   void _dmsMetaFile::lock()
+   {
+      _mtx.get() ;
+   }
+
+   void _dmsMetaFile::unlock()
+   {
+      _mtx.release() ;
    }
 
    INT32 _dmsMetaFile::init( const CHAR *parentDir, const CHAR *csName )
@@ -164,6 +174,8 @@ namespace engine
       const CHAR *pos = NULL ;
       string newPath ;
 
+      ossScopedLock lock( &_mtx ) ;
+
       CHAR newFileName[ DMS_META_FILE_NAMESIZE + 1 ] = { 0 } ;
       CHAR pathFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
@@ -212,7 +224,7 @@ namespace engine
          goto error ;
       }
 
-      invalidate() ;
+      invalidate( FALSE, FALSE ) ;
 
       /// then set the new path
       ossStrcpy( _szFileName, newFileName ) ;
@@ -224,14 +236,14 @@ namespace engine
       goto done ;
    }
 
-   void _dmsMetaFile::invalidate( BOOLEAN force )
+   void _dmsMetaFile::invalidate( BOOLEAN force, BOOLEAN needLock )
    {
-      if ( !_invalidateStatus || _hasError || force )
+      if ( !_invalidateStatus || SDB_OK != _errorRC || force )
       {
-         ossScopedLock lock( &_mtx ) ;
+         ossScopedLock lock( &_mtx, needLock ) ;
 
          /// double check
-         if ( !_invalidateStatus || _hasError || force )
+         if ( !_invalidateStatus || SDB_OK != _errorRC || force )
          {
             /// remove the file
             ossDelete( _path.c_str() ) ;
@@ -240,7 +252,7 @@ namespace engine
             _clear() ;
             /// reset header
             _header.reset() ;
-            _hasError = FALSE ;
+            _errorRC = SDB_OK ;
             _invalidateStatus = TRUE ;
          }
       }
@@ -353,7 +365,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( !_invalidateStatus )
+      if ( _errorRC )
+      {
+         rc = _errorRC ;
+         goto error ;
+      }
+      else if ( !_invalidateStatus )
       {
          SDB_ASSERT( FALSE, "Should make it invalid first" ) ;
          rc = SDB_SYS ;
@@ -387,7 +404,10 @@ namespace engine
    done:
       return rc ;
    error:
-      _hasError = TRUE ;
+      if ( SDB_OK == _errorRC )
+      {
+         _errorRC = rc ;
+      }
       goto done ;
    }
 
@@ -396,7 +416,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       SET_UINT64 *pSetSME = (SET_UINT64*)_getSMEByType( fileType ) ;
 
-      if ( !_invalidateStatus )
+      if ( _errorRC )
+      {
+         rc = _errorRC ;
+         goto error ;
+      }
+      else if ( !_invalidateStatus )
       {
          SDB_ASSERT( FALSE, "Should make it invalid first" ) ;
          rc = SDB_SYS ;
@@ -423,7 +448,10 @@ namespace engine
    done:
       return rc ;
    error:
-      _hasError = TRUE ;
+      if ( SDB_OK == _errorRC )
+      {
+         _errorRC = rc ;
+      }
       goto done ;
    }
 
@@ -780,10 +808,10 @@ namespace engine
       UINT32 buffSize = 0 ;
       INT64 written = 0 ;
 
-      if ( _hasError )
+      if ( SDB_OK != _errorRC )
       {
          SDB_ASSERT( FALSE, "Has some error, can't write meta file" ) ;
-         rc = SDB_SYS ;
+         rc = _errorRC ;
          goto error ;
       }
       else if ( !_invalidateStatus || _path.empty() )
@@ -1260,6 +1288,7 @@ namespace engine
       pHeader->_checkSum = 0 ;
       *pCheckSum = _calcCheckSum( pData, offset ) ;
       pHeader->_checkSum = *pCheckSum ;
+      _header._checkSum = *pCheckSum ;
 
    done:
       return rc ;

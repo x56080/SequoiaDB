@@ -371,6 +371,7 @@ namespace engine
          dmsStorageIndex   *index() { return _pIndexSu ; }
          dmsStorageLob     *lob() { return _pLobSu ; }
          utilCacheUnit     *cacheUnit() { return _pCacheUnit ; }
+         dmsMetaFile       *metaFile() { return _pMetaFile ; }
 
          INT32       getPageSize() const { return _storageInfo._pageSize ; }
          INT32       getLobPageSize() const { return _storageInfo._lobdPageSize ; }
@@ -405,6 +406,8 @@ namespace engine
          INT64       totalFreeSize( UINT32 type = DMS_SU_ALL ) const ;
          void        getStatInfo( dmsStorageUnitStat &statInfo ) ;
 
+         INT32       saveMeta() ;
+
          INT32       sync( BOOLEAN sync,
                            IExecutor* cb ) ;
 
@@ -435,6 +438,7 @@ namespace engine
          }
 
          UINT64      getLastAccessDBTick( UINT32 type = DMS_SU_ALL ) const ;
+         UINT64      getLastWriteDBTick( UINT32 type = DMS_SU_ALL ) const ;
 
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
