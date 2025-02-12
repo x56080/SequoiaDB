@@ -115,7 +115,7 @@ public class Transaction33399 extends SdbTestBase {
             cursor.close();
         }
 
-        @ExecuteOrder(step = 3)
+        @ExecuteOrder(step = 2)
         private void commit() {
             try {
                 db1.commit();
@@ -146,8 +146,8 @@ public class Transaction33399 extends SdbTestBase {
                 }
                 ReplicaGroup group = sdb.getReplicaGroup( groupNames.get( 0 ) );
 
-                BasicBSONObject options = new BasicBSONObject();
-                options.put( "Seconds", 60 );
+                //BasicBSONObject options = new BasicBSONObject();
+                //options.put( "Seconds", 60 );
 
                 group.reelect( options );
             }
