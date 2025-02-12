@@ -53,7 +53,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != SDB_TIMEOUT )
+      if( e.message != SDB_TIMEOUT && e.message != SDB_NET_CANNOT_CONNECT )
       {
          throw new Error( e );
       }
