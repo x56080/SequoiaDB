@@ -2222,9 +2222,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
-      /// first invalidate the meta file
-      _pStorageInfo->_pMetaFile->invalidate() ;
-
       while ( TRUE )
       {
          totalDataPageNum = _pageNum ;
@@ -2319,6 +2316,9 @@ namespace engine
       }
 
    done:
+      /// invalidate the meta file
+      _pStorageInfo->_pMetaFile->invalidate() ;
+
       PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE__FINDFREESPACE, rc ) ;
       return rc ;
    error:
@@ -2328,9 +2328,6 @@ namespace engine
    INT32 _dmsStorageBase::_releaseSpace( SINT32 pageStart, UINT16 numPages )
    {
       INT32 rc = SDB_OK ;
-
-      /// first invalidate the meta file
-      _pStorageInfo->_pMetaFile->invalidate() ;
 
       rc = _smeMgr.releasePages( pageStart, numPages ) ;
       if ( SDB_OK == rc )
@@ -2342,6 +2339,10 @@ namespace engine
             _pStatMgr->incPageRelease( numPages ) ;
          }
       }
+
+      /// invalidate the meta file
+      _pStorageInfo->_pMetaFile->invalidate() ;
+
       return rc ;
    }
 

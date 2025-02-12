@@ -260,10 +260,16 @@ namespace engine
 
    void _dmsMetaFile::remove()
    {
-      invalidate() ;
       invalidateAllIndexCache() ;
-      /// clear the path
-      _path = "" ;
+
+      {
+         ossScopedLock lock( &_mtx ) ;
+
+         invalidate( FALSE, FALSE ) ;
+         
+         /// clear the path
+         _path = "" ;
+      }
    }
 
    BOOLEAN _dmsMetaFile::isValid() const
