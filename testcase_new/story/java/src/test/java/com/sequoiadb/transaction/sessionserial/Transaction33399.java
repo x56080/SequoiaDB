@@ -147,7 +147,7 @@ public class Transaction33399 extends SdbTestBase {
                 ReplicaGroup group = sdb.getReplicaGroup( groupNames.get( 0 ) );
 
                 BasicBSONObject options = new BasicBSONObject();
-                options.put( "Seconds", 120 );
+                options.put( "Seconds", 60 );
 
                 group.reelect( options );
             }
