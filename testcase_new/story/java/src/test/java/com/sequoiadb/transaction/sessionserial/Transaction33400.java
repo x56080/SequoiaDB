@@ -139,7 +139,7 @@ public class Transaction33400 extends SdbTestBase {
                 //BasicBSONObject options = new BasicBSONObject();
                 //options.put( "Seconds", 60 );
 
-                group.reelect( options );
+                group.reelect();
             }
         }
     }
