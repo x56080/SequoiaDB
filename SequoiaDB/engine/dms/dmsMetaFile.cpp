@@ -545,7 +545,7 @@ namespace engine
          item._memSize = 0 ;
       }
 
-      if ( indexCnt > 0 || memSize > 0 )
+      if ( !pmdIsQuitApp() && ( indexCnt > 0 || memSize > 0 ) )
       {
          if ( _pTotalCacheMem )
          {
