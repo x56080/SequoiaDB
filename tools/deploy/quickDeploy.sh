@@ -11,7 +11,7 @@ function build_help()
    echo "  --cm=Number           set cm port, default: 11790, eg: --cm=11790"
    echo "  --mysqlPath=String    mysql install path. Use it when you have multiple "
    echo "                        installations of SequoiaSQL-MySQL."
-   echo "  --maruadbPath=String  mariadb install path. Use it when you have multiple "
+   echo "  --mariadbPath=String  mariadb install path. Use it when you have multiple "
    echo "                        installations of SequoiaSQL-MariaDB."
    echo "  --pgPath=String       pg install path. Use it when you have multiple "
    echo "                        installations of SequoiaSQL-PostgreSQL."
