@@ -796,7 +796,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
    BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset,
-                                        UINT16 ensureNodeID )
+                                        UINT16 ensureNodeID,
+                                        BOOLEAN onlyInAlive )
    {
       BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
@@ -807,11 +808,16 @@ namespace engine
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
+         if ( onlyInAlive && !_notifyList[i].valid )
+         {
+            continue ;
+         }
+
          /// Found ensureNodeID
          if ( 0 != ensureNodeID &&
               ensureNodeID == _notifyList[i].id.columns.nodeID )
          {
-            if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
+            if ( 0 >= lsn.compareOffset( _notifyList[i].offset ) )
             {
                res = TRUE ;
             }
@@ -821,7 +827,7 @@ namespace engine
             }
             break ;
          }
-         else if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
+         else if ( 0 >= lsn.compareOffset( _notifyList[i].offset ) )
          {
             res = TRUE ;
             if ( 0 == ensureNodeID )

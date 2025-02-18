@@ -41,6 +41,30 @@ according to the election rule.
 .PP
 Format: \f[C]Seconds: 300\f[]
 .RE
+.IP \[bu] 2
+WaitSeconds ( \f[I]number\f[] ): The smooth primary promotion waiting time, in
+seconds, the default value is 0.
+.RS 2
+.PP
+When there is an existing primary node in the data group, the smooth primary
+promotion waiting time must be enabled to allow the original primary node to
+step down as a secondary while this node takes over as the new primary.
+This process functions similarly to re\-election.
+.PP
+Format: \f[C]WaitSeconds: 30\f[]
+.RE
+.IP \[bu] 2
+Enforced ( \f[I]boolean\f[] ): Whether to force primary promotion, the default
+value is false.
+.RS 2
+.PP
+When this node does not meet the conditions for primary promotion (an existing
+primary node is present, this node\[aq]s LSN is not the highest, or the smooth
+primary promotion timeout has occurred), this setting determines whether to
+forcibly promote this node to primary.
+.PP
+Format: \f[C]Enforced: true\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.

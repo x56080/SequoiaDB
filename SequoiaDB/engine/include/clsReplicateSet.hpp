@@ -205,6 +205,21 @@ namespace engine
             return bAlive ;
          }
 
+         OSS_INLINE BOOLEAN atLeastOneBySharingBeat( const DPS_LSN_OFFSET &offset,
+                                                     UINT16 ensureNodeID = 0,
+                                                     BOOLEAN onlyInAlive = TRUE )
+         {
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+            return _info.atLeastOne( offset, ensureNodeID, onlyInAlive ) ;
+         }
+
+         OSS_INLINE DPS_LSN getMaxLsnBySharingBeat( UINT16 *pNodeID,
+                                                    BOOLEAN onlyInAlive = TRUE )
+         {
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+            return _info.getMaxLsn( pNodeID, onlyInAlive ) ;
+         }
+
          OSS_INLINE _clsSyncManager *syncMgr()
          {
             return &_sync ;
@@ -479,8 +494,11 @@ namespace engine
          void locationReelectionDone( BOOLEAN change2Primary = FALSE ) ;
 
          /// this func is used to support command "forceStepUp".
-         INT32 stepUp( UINT32 seconds,
-                       pmdEDUCB *cb ) ;
+         INT32 stepUp( UINT32 keepSeconds, pmdEDUCB *cb,
+                       UINT32 waitSeconds = 0,
+                       BOOLEAN enforced = FALSE ) ;
+
+         INT32 waitReelect( pmdEDUCB *cb, UINT32 timeout ) ;
 
          INT32 primaryCheck( pmdEDUCB *cb, INT32 waitReelectSec ) ;
          INT32 replSizeCheck( INT16 w, INT16 &finalW, _pmdEDUCB *cb,

@@ -124,7 +124,9 @@ namespace engine
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
       /// offset is current offset.
-      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset, UINT16 ensureNodeID = 0 ) ;
+      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
+                          UINT16 ensureNodeID = 0,
+                          BOOLEAN onlyInAlive = TRUE ) ;
 
       BOOLEAN isGroupInfoExpired( CLS_GROUP_VERSION version )
       {

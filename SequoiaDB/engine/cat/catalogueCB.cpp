@@ -90,12 +90,17 @@ namespace engine
             BOOLEAN isDelay = FALSE ;
             INT32 rc = sdbGetCatalogueCB()->primaryCheck( (pmdEDUCB *)pExe,
                                                           FALSE,
-                                                          isDelay ) ;
+                                                          isDelay,
+                                                          TRUE ) ;
             if ( SDB_DPS_TRANS_DOING_ROLLBACK == rc )
             {
                // let's retry after one second
                PD_LOG( PDWARNING, "Failed to check primary during rollback, "
                        "will retry" ) ;
+               result = UTIL_LJOB_DO_CONT ;
+            }
+            else if ( SDB_TIMEOUT == rc )
+            {
                result = UTIL_LJOB_DO_CONT ;
             }
             else if ( SDB_CLS_NOT_PRIMARY == rc )
@@ -180,12 +185,16 @@ namespace engine
             // This is an async task, check primary first
             BOOLEAN isDelay = FALSE ;
             INT32 rc = sdbGetCatalogueCB()->primaryCheck( (pmdEDUCB *)pExe,
-                                                          FALSE, isDelay ) ;
+                                                          FALSE, isDelay, TRUE ) ;
             if ( SDB_DPS_TRANS_DOING_ROLLBACK == rc )
             {
                // let's retry after one second
                PD_LOG( PDINFO, "Check primary during rollback, will retry" ) ;
                sleepTime = CAT_TASK_RETRY_INTERVAL ;
+               result = UTIL_LJOB_DO_CONT ;
+            }
+            else if ( SDB_TIMEOUT == rc )
+            {
                result = UTIL_LJOB_DO_CONT ;
             }
             else if ( SDB_CLS_NOT_PRIMARY == rc )
@@ -280,28 +289,35 @@ namespace engine
    }
 
    INT32 sdbCatalogueCB::primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,
-                                       BOOLEAN &isDelay )
+                                       BOOLEAN &isDelay, BOOLEAN checkReelect )
    {
       pmdKRCB *pKRCB = pmdGetKRCB() ;
       replCB *pRepl = pKRCB->getClsCB()->getReplCB() ;
       INT32 rc = SDB_OK ;
       isDelay = FALSE ;
 
-      if ( pRepl->primaryIsMe() &&
-           ( _isActived || pKRCB->isDBReadonly() ||
-             pKRCB->isDBDeactivated() ) )
+      rc = pRepl->primaryCheck( cb, checkReelect ? 0 : -1 ) ;
+
+      if ( SDB_OK == rc )
       {
-         /// check rollback
-         if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
+         if ( _isActived || pKRCB->isDBReadonly() || pKRCB->isDBDeactivated() )
          {
-            if ( !canDelay || !delayCurOperation() )
+            /// check rollback
+            if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
             {
-               rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+               if ( !canDelay || !delayCurOperation() )
+               {
+                  rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+               }
             }
+            goto done ;
          }
-         goto done ;
+         rc = SDB_CLS_NOT_PRIMARY ;
       }
-      rc = SDB_CLS_NOT_PRIMARY ;
+      else if ( SDB_TIMEOUT != rc && SDB_CLS_NOT_PRIMARY != rc )
+      {
+         goto error ;
+      }
 
       // if know primary exist( and not self ) or no majority size,
       // return at now, otherwise, need to wait some time
@@ -320,6 +336,10 @@ namespace engine
          isDelay = TRUE ;
          rc = SDB_OK ;
          goto done ;
+      }
+      else
+      {
+         goto error ;
       }
 
    done:

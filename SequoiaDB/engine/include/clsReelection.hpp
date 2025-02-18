@@ -42,6 +42,25 @@ namespace engine
    class _clsSyncManager ;
    class _netRouteAgent ;
 
+   enum CLS_REELECTION_STEP
+   {
+      CLS_REELECTION_STEP_NONE = 0,
+      CLS_REELECTION_STEP_WAIT_WRITE,
+      CLS_REELECTION_STEP_WAIT_REPLICA,
+      CLS_REELECTION_STEP_DEST_NOTIFY,
+      CLS_REELECTION_STEP_STEPDOWN,
+      CLS_REELECTION_STEP_WAIT_PRIMARY,
+      CLS_REELECTION_STEP_DONE
+   } ;
+
+   /*
+      Tool functions
+   */
+   const CHAR* clsGetReelectionStepStr( CLS_REELECTION_STEP step ) ;
+
+   /*
+      _clsReelection define
+   */
    class _clsReelection : public SDBObject
    {
    public:
@@ -57,6 +76,12 @@ namespace engine
                  pmdEDUCB *cb,
                  UINT16 destID = 0 ) ;
 
+      INT32 runAsync( CLS_REELECTION_LEVEL lvl,
+                      INT32 waitMS,
+                      UINT16 destID = 0 ) ;
+
+      INT32 onTimer( UINT32 interval ) ;
+
       INT32 wait( pmdEDUCB *cb, UINT32 timeout = CLS_WAIT_REELECT_TIMEOUT ) ;
 
       void  signal() ;
@@ -69,7 +94,8 @@ namespace engine
 
       INT32 _wait4SyncDone( UINT32 &timePassed,
                             UINT32 timeout,
-                            CLS_REELECTION_LEVEL lvl ) ;
+                            CLS_REELECTION_LEVEL lvl,
+                            pmdEDUCB *cb ) ;
 
       INT32 _wait4Replica( UINT32 &timePassed,
                            UINT32 timeout,
@@ -78,6 +104,7 @@ namespace engine
 
       INT32 _wait4ReplicaByBeat( UINT32 &timePassed,
                                  UINT32 timeout,
+                                 pmdEDUCB *cb,
                                  UINT16 destID ) ;
 
       INT32 _stepDown( UINT32 &timePassed,
@@ -90,6 +117,8 @@ namespace engine
                    pmdEDUCB *cb,
                    BOOLEAN canSetBlock ) ;
 
+      INT32 _asyncWait( pmdEDUCB *cb ) ;
+
       OSS_INLINE BOOLEAN _isLocation() const ;
 
    private:
@@ -98,6 +127,12 @@ namespace engine
       _clsGroupInfo   *_info ;
       _netRouteAgent  *_pAgent ;
       volatile UINT32 _level ;
+
+      /// for async
+      CLS_REELECTION_STEP  _step ;
+      UINT32               _waitMS ;
+      UINT16               _destID ;
+
       ossEvent _event ;
 
       BOOLEAN _blockSync ;

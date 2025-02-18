@@ -299,7 +299,7 @@ namespace engine
       if ( writable )
       {
          BOOLEAN isDelay = FALSE ;
-         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
+         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay, writable ) ;
          if ( isDelay )
          {
             goto done ;

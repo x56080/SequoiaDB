@@ -1380,7 +1380,7 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnForceStepUp )
    INT32 _rtnForceStepUp::spaceNode()
    {
-      return CMD_SPACE_NODE_CATA ;
+      return CMD_SPACE_NODE_CATA | CMD_SPACE_NODE_DATA ;
    }
 
    INT32 _rtnForceStepUp::spaceService()
@@ -1401,11 +1401,24 @@ namespace engine
       BSONObj options ;
       try
       {
-         options = BSONObj( pMatcherBuff ).copy() ;
+         options = BSONObj( pMatcherBuff ) ;
+
          BSONElement e = options.getField( FIELD_NAME_FORCE_STEP_UP_TIME ) ;
          if ( e.isNumber() )
          {
-            _seconds = e.Number() ;
+            _keepSeconds = e.numberInt() ;
+         }
+
+         e = options.getField( FIELD_NAME_WAIT_SECONDS ) ;
+         if ( e.isNumber() )
+         {
+            _waitSeconds = e.numberInt() ;
+         }
+
+         e = options.getField( FIELD_NAME_ENFORCED1 ) ;
+         if ( e.isBoolean() )
+         {
+            _enforced = e.boolean() ;
          }
       }
       catch ( std::exception &e )
@@ -1429,10 +1442,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSFORCESTEPUP_DOIT ) ;
       replCB *repl = sdbGetReplCB() ;
-      rc = repl->stepUp( _seconds, cb ) ;
+      rc = repl->stepUp( _keepSeconds, cb, _waitSeconds, _enforced ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to step up:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to step up, rc: %d", rc ) ;
          goto error ;
       }
    done:

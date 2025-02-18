@@ -291,12 +291,35 @@ namespace engine
       replyHeader.startFrom = 0 ;
       replyHeader.header.messageLength = sizeof( MsgCatPrimaryChangeRes ) ;
 
+      /// check reelect
+      if ( pmdGetKRCB()->getClsCB() )
+      {
+         replCB *replCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+         if ( replCB )
+         {
+            /// save trans id
+            UINT64 orgTransID = _pEduCB->getTransID() ;
+            _pEduCB->setTransID( DPS_INVALID_TRANS_ID ) ;
+            /// then wait
+            rc = replCB->waitReelect( _pEduCB, 0 ) ;
+            /// restore trans id
+            _pEduCB->setTransID( orgTransID ) ;
+
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "service in reelect wait but recived primary-change "
+                       "request, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+
       // the msg is send by timer, don't use _pCatCB->primaryCheck()
       if ( !pmdIsPrimary() )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          PD_LOG ( PDWARNING, "service deactive but received primary-change "
-                  "request" );
+                  "request, rc: %d", rc );
          goto error ;
       }
       else if ( pmdGetKRCB()->isDBReadonly() ||
@@ -787,7 +810,7 @@ namespace engine
       if ( writable )
       {
          BOOLEAN isDelay = FALSE ;
-         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
+         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay, TRUE ) ;
          if ( isDelay )
          {
             goto done ;

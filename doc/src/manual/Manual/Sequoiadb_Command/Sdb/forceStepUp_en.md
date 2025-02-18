@@ -30,6 +30,18 @@ Modify the duration of the primary node through the parameter "options":
 
     Format: `Seconds: 300`
 
+- WaitSeconds ( *number* ): The smooth primary promotion waiting time, in seconds, the default value is 0.
+
+    When there is an existing primary node in the data group, the smooth primary promotion waiting time must be enabled to allow the original primary node to step down as a secondary while this node takes over as the new primary. This process functions similarly to re-election.
+
+    Format: `WaitSeconds: 30`
+
+- Enforced ( *boolean* ): Whether to force primary promotion, the default value is false.
+
+    When this node does not meet the conditions for primary promotion (an existing primary node is present, this node's LSN is not the highest, or the smooth primary promotion timeout has occurred), this setting determines whether to forcibly promote this node to primary.
+
+    Format: `Enforced: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, there is no return value.

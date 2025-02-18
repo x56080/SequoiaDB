@@ -169,7 +169,8 @@ namespace engine
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,
-                                BOOLEAN &isDelay ) ;
+                                BOOLEAN &isDelay,
+                                BOOLEAN checkReelect = FALSE ) ;
          UINT16   getPrimaryNode() const { return _primaryID.columns.nodeID ; }
 
          BOOLEAN  isDCActivated() const { return _catDCMgr.isDCActivated() ; }

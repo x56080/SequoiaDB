@@ -30,6 +30,18 @@ options（ *object，选填* ）
 
     格式：`Seconds: 300`
 
+- WaitSeconds（ *number* ）：平滑升主的等待时间，单位为秒，默认值为 0
+
+    当该数据组存在主节点，需要开启平滑升主等待时间，等待原主节点降备，本节点升主，效果等同 reelect。
+
+    格式：`WaitSeconds: 30`
+
+- Enforced（ *boolean* ）：是否强制升主，默认值为 false
+
+    当该节点不满足升主条件（存在主节点、本节点 LSN 不是最大、平滑升主超时）是否强制升主。
+
+    格式：`Enforced: true`
+
 ##返回值##
 
 函数执行成功时，无返回值。

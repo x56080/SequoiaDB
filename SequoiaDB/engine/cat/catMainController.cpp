@@ -1304,7 +1304,7 @@ namespace engine
       if ( pCommand->needCheckPrimary() )
       {
          BOOLEAN isDelay = FALSE ;
-         rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, isDelay ) ;
+         rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, isDelay, pCommand->isWrite() ) ;
          if ( isDelay )
          {
             goto done ;
@@ -1882,7 +1882,7 @@ namespace engine
       reply.numReturned = 0 ;
       reply.startFrom = 0 ;
 
-      rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay ) ;
+      rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay, TRUE ) ;
       if ( bIsDelay )
       {
          goto done ;
@@ -2039,7 +2039,7 @@ namespace engine
       reply.startFrom = 0 ;
 
       // primary check
-      rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay ) ;
+      rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay, TRUE ) ;
       if ( bIsDelay )
       {
          goto done ;

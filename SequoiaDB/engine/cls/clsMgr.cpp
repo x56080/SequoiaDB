@@ -1263,8 +1263,7 @@ namespace engine
          sdbGetDPSCB()->cancelIncVersion() ;
 
          // interrupt writing and transaction EDUs
-         pmdGetKRCB()->getEDUMgr()->interruptWritingAndTransEDUs(
-                                                      SDB_CLS_NOT_PRIMARY ) ;
+         pmdGetKRCB()->getEDUMgr()->interruptWritingAndTransEDUs( SDB_CLS_PRIMARY_DOWN ) ;
       }
 
       // notify sub members

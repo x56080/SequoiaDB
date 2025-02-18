@@ -45,6 +45,8 @@
 #include "pd.hpp"
 #include "dmsCB.hpp"
 #include "rtn.hpp"
+#include "clsMgr.hpp"
+#include "clsReplicateSet.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -54,6 +56,10 @@ namespace engine
    // according to perf test, 2-threads almost has the best performance
    #define GTS_MSG_MAX_JOB                  ( 2 )
    #define GTS_MSG_JOB_TIMEOUT              ( 300 * OSS_ONE_SEC )
+
+   #define GTS_PRIMARY_WAIT_TIME            ( 10 * OSS_ONE_SEC )
+   #define GTS_PRIMARY_REELECT_WAITTIME     ( 10 * OSS_ONE_SEC )
+   #define GTS_WAITTIME_INTERVAL            ( 200 )
 
    struct _catGTSMsg
    {
@@ -68,6 +74,7 @@ namespace engine
       _activeJobNum = 0 ;
       _maxJobNum = GTS_MSG_MAX_JOB ;
       _isControllerStarted = FALSE ;
+      _primaryID.value = MSG_INVALID_ROUTEID ;
    }
 
    _catGTSMsgHandler::~_catGTSMsgHandler()
@@ -336,7 +343,7 @@ namespace engine
          reply.startFrom = 0 ;
          if ( SDB_CLS_NOT_PRIMARY == rc )
          {
-            reply.startFrom = _catCB->getPrimaryNode() ;
+            reply.startFrom = _primaryID.columns.nodeID ;
          }
 
          INT32 tempRc = sendReply( gtsMsg->netHandle, &reply ) ;
@@ -353,11 +360,87 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER_PRIMARY_CHECK, "_catGTSMsgHandler::primaryCheck" )
    INT32 _catGTSMsgHandler::primaryCheck()
    {
-      BOOLEAN isDelay = FALSE ;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER_PRIMARY_CHECK ) ;
-      INT32 rc = _catCB->primaryCheck( pmdGetThreadEDUCB(), FALSE, isDelay ) ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      pmdKRCB *pKRCB = pmdGetKRCB() ;
+      replCB *pRepl = pKRCB->getClsCB()->getReplCB() ;
+      UINT32 waitTime = 0 ;
+      BOOLEAN hasBlock = FALSE ;
+
+      /// wait primary
+      while( TRUE )
+      {
+         rc = pRepl->primaryCheck( cb, GTS_PRIMARY_REELECT_WAITTIME ) ;
+         if ( SDB_OK == rc )
+         {
+            if ( _catCB->isActived() || pKRCB->isDBReadonly() || pKRCB->isDBDeactivated() )
+            {
+               /// check rollback
+               if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
+               {
+                  rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+               }
+               else
+               {
+                  break ;
+               }
+            }
+            rc = SDB_CLS_NOT_PRIMARY ;
+         }
+         else if ( SDB_CLS_NOT_PRIMARY != rc )
+         {
+            goto error ;
+         }
+
+         // if know primary exist( and not self ) or no majority size,
+         // return at now, otherwise, need to wait some time
+         if ( MSG_INVALID_ROUTEID !=
+              ( _primaryID.value = pRepl->getPrimary().value ) &&
+                ! pRepl->primaryIsMe() && pRepl->isSendNormal( _primaryID.value ) )
+         {
+            goto error ;
+         }
+         else if ( ! pRepl->isMajorityAlive() )
+         {
+            goto error ;
+         }
+         else if ( waitTime < GTS_PRIMARY_WAIT_TIME && !cb->isInterrupted() )
+         {
+            INT32 result = SDB_OK ;
+
+            if ( !hasBlock )
+            {
+               cb->setBlock( EDU_BLOCK_PRIMARY, "Waiting for primary" ) ;
+               hasBlock = TRUE ;
+            }
+            rc = pRepl->getFaultEvent()->wait( GTS_WAITTIME_INTERVAL, &result ) ;
+            if ( SDB_OK == rc && SDB_OK != result )
+            {
+               rc = result ;
+               goto error;
+            }
+
+            rc = SDB_OK ;
+            waitTime += GTS_WAITTIME_INTERVAL ;
+            continue ;
+         }
+         else
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+      }
       PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER_PRIMARY_CHECK, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER_SEND_REPLY, "_catGTSMsgHandler::sendReply" )

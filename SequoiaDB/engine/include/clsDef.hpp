@@ -185,6 +185,7 @@ namespace engine
    class _clsGroupBeat : public SDBObject
    {
    public :
+      CHAR                    reserved[8] ;  /// old version is virtual table point
       DPS_LSN                 endLsn ;
       _MsgRouteID             identity ;
       UINT8                   weight ;
@@ -193,7 +194,9 @@ namespace engine
       UINT8                   electionWeight ;
       CHAR                    hashCode[4] ;
       CLS_GROUP_VERSION       version ;
-      CLS_GROUP_ROLE          role ;         // self role
+      UINT8                   role ;         // self role  CLS_GROUP_ROLE
+      UINT8                   isStepUp ;
+      UINT8                   reserved2[2] ;
       CLS_SYNC_STATUS         syncStatus ;
       UINT32                  beatID ;
       CLS_NODE_SERVICE_STATUS serviceStatus ;
@@ -213,10 +216,13 @@ namespace engine
 
       _clsGroupBeat(): version( 0 ),
                        role( CLS_GROUP_ROLE_SECONDARY ),
+                       isStepUp( 0 ),
                        syncStatus( CLS_SYNC_STATUS_NONE ),
                        beatID( CLS_BEATID_INVALID ),
                        serviceStatus( SERVICE_UNKNOWN )
       {
+         ossMemset( reserved, 0, sizeof( reserved ) ) ;
+         ossMemset( reserved2, 0, sizeof( reserved2 ) ) ;
          weight = 0 ;
          beatVersion = CLS_BEAT_VERSION_2 ;
          nodeRunStat = (UINT8)CLS_NODE_RUNNING ;
@@ -229,6 +235,8 @@ namespace engine
          locationRole = CLS_GROUP_ROLE_SECONDARY ;
          locationWeight = 0 ;
       }
+
+      ~_clsGroupBeat() {}
 
       UINT8 getElectionWeight() const
       {
@@ -855,6 +863,92 @@ namespace engine
          }
 
          return num ;
+      }
+
+      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
+                          UINT16 ensureNodeID = 0,
+                          BOOLEAN onlyInAlive = TRUE )
+      {
+         DPS_LSN lsn ;
+         BOOLEAN res = info.empty() ? TRUE : FALSE ;
+         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+
+         lsn.offset = offset ;
+
+         while ( it != info.end() )
+         {
+            _clsSharingStatus *pStatus = &(it->second) ;
+
+            if ( onlyInAlive &&
+                 alives.find( it->first ) == alives.end() )
+            {
+               /// not in alive, ignore
+               ++it ;
+               continue ;
+            }
+
+            if ( 0 != ensureNodeID &&
+                 ensureNodeID == pStatus->beat.identity.columns.nodeID )
+            {
+               if ( 0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
+               {
+                  res = TRUE ;
+               }
+               else
+               {
+                  res = FALSE ;
+               }
+               break ;
+            }
+            else if ( 0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
+            {
+               res = TRUE ;
+               if ( 0 == ensureNodeID )
+               {
+                  break ;
+               }
+            }
+
+            ++it ;
+         }
+
+         return res ;
+      }
+
+      DPS_LSN getMaxLsn( UINT16 *pNodeID, BOOLEAN onlyInAlive = TRUE )
+      {
+         DPS_LSN lsn ;
+         DPS_LSN lsnNode ;
+         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+
+         while( it != info.end() )
+         {
+            _clsSharingStatus *pStatus = &(it->second) ;
+
+            if ( onlyInAlive &&
+                 alives.find( it->first ) == alives.end() )
+            {
+               /// not in alive, ignore
+               ++it ;
+               continue ;
+            }
+
+            lsnNode = pStatus->beat.endLsn ;
+            if ( DPS_INVALID_LSN_OFFSET == lsn.offset ||
+                 lsn.compareOffset( lsnNode ) < 0 )
+            {
+               lsn = lsnNode ;
+
+               if ( pNodeID )
+               {
+                  *pNodeID = pStatus->beat.identity.columns.nodeID ;
+               }
+            }
+
+            ++it ;
+         }
+
+         return lsn ;
       }
    } ;
 

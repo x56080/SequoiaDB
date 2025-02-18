@@ -618,6 +618,7 @@
 #define FIELD_NAME_REELECTION_TIMEOUT        "Seconds"
 #define FIELD_NAME_REELECTION_LEVEL          "Level"
 #define FIELD_NAME_FORCE_STEP_UP_TIME        FIELD_NAME_REELECTION_TIMEOUT
+#define FIELD_NAME_WAIT_SECONDS              "WaitSeconds"
 #define FIELD_NAME_INTERNAL_VERSION          "InternalV"
 #define FIELD_NAME_RTYPE                     "ReturnType"
 #define FIELD_NAME_IX_BOUND                  "IXBound"

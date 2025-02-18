@@ -96,6 +96,8 @@ namespace engine
       INT32                   _activeJobNum ;
       INT32                   _maxJobNum ;
       BOOLEAN                 _isControllerStarted ;
+
+      MsgRouteID              _primaryID ;
    } ;
    typedef _catGTSMsgHandler catGTSMsgHandler ;
 }

@@ -264,6 +264,11 @@ namespace engine
          return _name ;
       }
 
+      virtual BOOLEAN needCheckPrimary() const
+      {
+         return FALSE ;
+      }
+
    private:
       const CHAR *_name ;
 
@@ -332,7 +337,7 @@ namespace engine
    /*
       _catCMDCreateCS define
    */
-   class _catCMDCreateCS : public _catCMDBase
+   class _catCMDCreateCS : public _catWriteCMDBase
    {
       CAT_DECLARE_CMD_AUTO_REGISTER()
    public:
@@ -360,9 +365,6 @@ namespace engine
          return _csInfo._pCSName ;
       }
 
-      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
-      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
-
    private:
       catCSInfo _csInfo ;
    };
@@ -371,7 +373,7 @@ namespace engine
    /*
       catCMDIndex define
    */
-   class _catCMDIndexHelper : public _catCMDBase
+   class _catCMDIndexHelper : public _catWriteCMDBase
    {
    protected:
       typedef ossPoolVector<clsIdxTask*>           VEC_TASKS ;
@@ -441,8 +443,6 @@ namespace engine
       virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb ) ;
 
       virtual const CHAR* name() const { return CMD_NAME_CREATE_INDEX ; }
-      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
-      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
 
    protected:
       INT32 _check( _pmdEDUCB *cb ) ;
@@ -504,8 +504,6 @@ namespace engine
       virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb ) ;
 
       virtual const CHAR* name() const { return CMD_NAME_DROP_INDEX ; }
-      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
-      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
 
    protected:
       virtual INT32 _check( _pmdEDUCB *cb ) ;
@@ -530,7 +528,7 @@ namespace engine
    /*
       catCMDCopyIndex define
    */
-   class _catCMDCopyIndex : public _catCMDBase
+   class _catCMDCopyIndex : public _catWriteCMDBase
    {
       CAT_DECLARE_CMD_AUTO_REGISTER()
    protected:
@@ -554,8 +552,6 @@ namespace engine
 
       virtual const CHAR *name() const { return CMD_NAME_COPY_INDEX ; }
       virtual const CHAR *getProcessName() const { return _pCollection ; }
-      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
-      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
 
    private:
       INT32 _check( _pmdEDUCB *cb ) ;
@@ -589,7 +585,7 @@ namespace engine
    /*
       catCMDReportTaskProgress define
    */
-   class _catCMDReportTaskProgress : public _catCMDBase
+   class _catCMDReportTaskProgress : public _catWriteCMDBase
    {
       CAT_DECLARE_CMD_AUTO_REGISTER()
    public:
@@ -612,7 +608,6 @@ namespace engine
          return CMD_NAME_REPORT_TASK_PROGRESS ;
       }
 
-      virtual BOOLEAN needCheckPrimary() const  { return TRUE ; }
       virtual BOOLEAN needCheckDCStatus() const { return FALSE ; }
 
    private:
