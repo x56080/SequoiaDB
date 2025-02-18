@@ -544,7 +544,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    enum CLS_REELECT_NOTIFY_TYPE
    {
       CLS_REELECT_NOTIFY_BEGIN = 1,
-      CLS_REELECT_NOTIFY_END
+      CLS_REELECT_NOTIFY_END,
+      CLS_REELECT_NOTIFY_STEPDOWN
    } ;
 
    class _MsgClsReelectNotify : public SDBObject
@@ -554,6 +555,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       INT32      isLocation ;
       INT32      type ; /// CLS_REELECT_NOTIFY_TYPE
       UINT32     timeout ; /// ms
+      UINT16     destID ;
 
       _MsgClsReelectNotify()
       {
@@ -565,6 +567,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          isLocation = 0 ;
          type = CLS_REELECT_NOTIFY_BEGIN ;
          timeout = 0 ;
+         destID = 0 ;
       }
    } ;
    typedef _MsgClsReelectNotify MsgClsReelectNotify ;

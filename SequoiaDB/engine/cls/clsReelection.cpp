@@ -44,13 +44,53 @@
 
 namespace engine
 {
+   /*
+      Tool functions implement
+   */
+   const CHAR* clsGetReelectionStepStr( CLS_REELECTION_STEP step )
+   {
+      const CHAR *str = "none" ;
+
+      switch ( step )
+      {
+         case CLS_REELECTION_STEP_WAIT_WRITE :
+            str = "wait write operations" ;
+            break ;
+         case CLS_REELECTION_STEP_WAIT_REPLICA :
+            str = "wait replica sync" ;
+            break ;
+         case CLS_REELECTION_STEP_DEST_NOTIFY :
+            str = "dest node notify" ;
+            break ;
+         case CLS_REELECTION_STEP_STEPDOWN :
+            str  = "step down" ;
+            break ;
+         case CLS_REELECTION_STEP_WAIT_PRIMARY :
+            str = "wait new primary" ;
+            break ;
+         case CLS_REELECTION_STEP_DONE :
+            str = "done" ;
+            break ;
+         default :
+            break ;
+      }
+
+      return str ;
+   }
+
+   /*
+      _clsReelection implement
+   */
    _clsReelection::_clsReelection( _clsVoteMachine *vote,
                                    _clsSyncManager *syncMgr,
                                    _netRouteAgent *pAgent )
    :_vote( vote ),
     _syncMgr( syncMgr ),
     _pAgent( pAgent ),
-    _level( CLS_REELECTION_LEVEL_NONE )
+    _level( CLS_REELECTION_LEVEL_NONE ),
+    _step( CLS_REELECTION_STEP_NONE ),
+    _waitMS( 0 ),
+    _destID( 0 )
    {
       SDB_ASSERT( NULL != _vote &&
                   NULL != _syncMgr, "can not be null" ) ;
@@ -99,6 +139,14 @@ namespace engine
 
    void _clsReelection::signal()
    {
+      if ( CLS_REELECTION_STEP_NONE != _step )
+      {
+         PD_LOG( PDEVENT, "Run async reelect done" ) ;
+      }
+      _step = CLS_REELECTION_STEP_NONE ;
+      _waitMS = 0 ;
+      _destID = 0 ;
+
       _event.signalAll() ;
       ossAtomicExchange32( &_level, CLS_REELECTION_LEVEL_NONE ) ;
    }
@@ -151,6 +199,9 @@ namespace engine
          rc = SDB_OPERATION_CONFLICT ;
          goto error ;
       }
+
+      PD_LOG( PDEVENT, "Run reelect(Level:%d, Seconds:%d, DestID: %u)",
+              (INT32)lvl, seconds, destID ) ;
 
       _event.reset() ;
       resetEvent = TRUE ;
@@ -232,6 +283,199 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsReelection::runAsync( CLS_REELECTION_LEVEL lvl,
+                                   INT32 wiatMS,
+                                   UINT16 destID )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( lvl <= CLS_REELECTION_LEVEL_NONE || lvl >= CLS_REELECTION_LEVEL_MAX )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Invalid reelection level(%d), should be range [%d, %d]",
+                     lvl,CLS_REELECTION_LEVEL_NONE + 1, CLS_REELECTION_LEVEL_MAX - 1 ) ;
+         goto error ;
+      }
+
+      if ( !_vote->primaryIsMe() )
+      {
+         rc = SDB_CLS_NOT_PRIMARY ;
+         PD_LOG( PDERROR, "only primary node can reelect" ) ;
+         goto error ;
+      }
+      // is self
+      else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
+      {
+         // restore
+         _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+         goto done ;
+      }
+
+      if ( !ossCompareAndSwap32( &_level, CLS_REELECTION_LEVEL_NONE, lvl ) )
+      {
+         PD_LOG_MSG( PDERROR, "Can not do reelection when last reelection is not done" ) ;
+         rc = SDB_OPERATION_CONFLICT ;
+         goto error ;
+      }
+
+      PD_LOG( PDEVENT, "Run async reelect(WaitMS:%d, DestID:%u)", wiatMS, destID ) ;
+
+      _step = CLS_REELECTION_STEP_WAIT_WRITE ;
+      _waitMS = wiatMS ;
+      _destID = destID ;
+
+      _event.reset() ;
+
+      onTimer( 0 ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsReelection::onTimer( UINT32 interval )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 timePassed = 0 ;
+      pmdEDUCB *cb = NULL ;
+
+      if ( _waitMS > interval )
+      {
+         _waitMS -= interval ;
+      }
+      else
+      {
+         _waitMS = 0 ;
+      }
+
+      if ( CLS_REELECTION_STEP_NONE == _step )
+      {
+         goto done ;
+      }
+
+      cb = pmdGetThreadEDUCB() ;
+
+      if ( CLS_REELECTION_STEP_WAIT_WRITE == _step )
+      {
+         rc = _wait4AllWriteDone( timePassed, 0, (CLS_REELECTION_LEVEL)_level, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         _step = CLS_REELECTION_STEP_WAIT_REPLICA ;
+         PD_LOG( PDEVENT, "Async reelect: Wait all write done" ) ;
+      }
+
+      if ( CLS_REELECTION_STEP_WAIT_REPLICA == _step )
+      {
+         rc = _wait4Replica( timePassed, 0, cb, _destID ) ;
+         if ( rc )
+         {
+            goto error ;   
+         }
+         _step = CLS_REELECTION_STEP_DEST_NOTIFY ;
+         PD_LOG( PDEVENT, "Async reelect: Wait for replica done" ) ;
+      }
+
+      if ( CLS_REELECTION_STEP_DEST_NOTIFY == _step )
+      {
+         if ( 0 != _destID )
+         {
+            MsgClsReelectNotify notifyMsg ;
+            MsgRouteID routeID = pmdGetNodeID() ;
+            /// notify dest node reelect begin
+            notifyMsg.isLocation = 0 ;
+            notifyMsg.type = CLS_REELECT_NOTIFY_BEGIN ;
+            notifyMsg.timeout = _waitMS + 5 * OSS_ONE_SEC ;
+
+            routeID.columns.nodeID = _destID ;
+            routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+
+            rc = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Send reelect notify-begin to node(%u) failed, rc: %d",
+                           _destID, rc ) ;
+               goto error ;
+            }
+            PD_LOG( PDEVENT, "Async reelect: Notify dest node with reelect-begin done" ) ;
+         }
+         _step = CLS_REELECTION_STEP_STEPDOWN ;
+         /// fot next time
+         goto done ;
+      }
+
+      if ( CLS_REELECTION_STEP_STEPDOWN == _step )
+      {
+         pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+         EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
+
+         rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN,
+                                   PMD_EDU_MEM_NONE, NULL, FALSE ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to post event to repl cb, rc: %d", rc ) ;
+            goto error ;
+         }
+         _step = CLS_REELECTION_STEP_WAIT_PRIMARY ;
+         PD_LOG( PDEVENT, "Async reelect: Post step down done" ) ;
+
+         /// for next time
+         goto done ;
+      }
+
+      if ( CLS_REELECTION_STEP_WAIT_PRIMARY == _step )
+      {
+         rc = _wait( timePassed, 0, cb, FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         _step = CLS_REELECTION_STEP_DONE ;
+         PD_LOG( PDEVENT, "Async reelect: Wait new primary done" ) ;
+      }
+
+   done:
+      if ( CLS_REELECTION_STEP_DONE == _step )
+      {
+         if ( 0 != _destID )
+         {
+            MsgClsReelectNotify notifyMsg ;
+            /// notify dest node reelect done
+            MsgRouteID routeID = pmdGetNodeID() ;
+            /// notify dest node reelect done
+            notifyMsg.isLocation = 0 ;
+            notifyMsg.type = CLS_REELECT_NOTIFY_END ;
+            notifyMsg.timeout = 0 ;
+            routeID.columns.nodeID = _destID ;
+            routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+            INT32 rcTmp = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+            if ( rcTmp )
+            {
+               PD_LOG( PDWARNING, "Send reelect notify-end to node(%u) failed, rc: %d",
+                       _destID, rcTmp ) ;
+               /// ignore error
+            }
+         }
+
+         signal() ;
+      }
+      return rc ;
+   error:
+      if ( SDB_TIMEOUT == rc && _waitMS > 0 )
+      {
+         rc = SDB_OK ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Async reelect: Do step(%d, %s) failed, rc: %d",
+                 _step, clsGetReelectionStepStr( _step ), rc ) ;
+         _step = CLS_REELECTION_STEP_DONE ;
+      }
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4ALLWRITEDONE, "_clsReelection::_wait4AllWriteDone" )
    INT32 _clsReelection::_wait4AllWriteDone( UINT32 &timePassed,
                                              UINT32 timeout,
@@ -251,7 +495,7 @@ namespace engine
       UINT32 waitTimes = 0 ;
       UINT32 needWait = 0 ;
 
-      while ( timePassed < timeout )
+      while ( timePassed <= timeout )
       {
          if ( cb->isInterrupted() )
          {
@@ -293,8 +537,11 @@ namespace engine
 
          if ( 0 != needWait )
          {
-            ossSleep( 100 ) ;
-            ++waitTimes ;
+            if ( timePassed < timeout )
+            {
+               ossSleep( 100 ) ;
+               ++waitTimes ;
+            }
 
             if ( waitTimes >= 10 )
             {
@@ -306,17 +553,20 @@ namespace engine
             {
                rc = SDB_TIMEOUT ;
 
-               if ( 1 == needWait )
+               if ( timeout > 0 )
                {
-                  PD_LOG_MSG( PDERROR, "Wait for transactions timeout" ) ;
-               }
-               else if ( 2 == needWait )
-               {
-                  PD_LOG_MSG( PDERROR, "Wait for write context(lob) operations timeout" ) ;
-               }
-               else
-               {
-                  PD_LOG_MSG( PDERROR, "Wait for write operations timeout" ) ;
+                  if ( 1 == needWait )
+                  {
+                     PD_LOG_MSG( PDERROR, "Wait for transactions timeout" ) ;
+                  }
+                  else if ( 2 == needWait )
+                  {
+                     PD_LOG_MSG( PDERROR, "Wait for write context(lob) operations timeout" ) ;
+                  }
+                  else
+                  {
+                     PD_LOG_MSG( PDERROR, "Wait for write operations timeout" ) ;
+                  }
                }
 
                goto error ;
@@ -343,10 +593,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
-      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->getCurrentLsn() ;
+      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
       UINT32 waitTimes = 0 ;
 
-      while ( timePassed < timeout )
+      while ( timePassed <= timeout )
       {
          if ( cb->isInterrupted() )
          {
@@ -356,11 +606,18 @@ namespace engine
 
          if ( _syncMgr->atLeastOne( lsn.offset, destID ) )
          {
-            break ;
+            goto done ;
          }
 
-         ossSleep( 100 ) ;
-         ++waitTimes ;
+         if ( timePassed < timeout )
+         {
+            ossSleep( 100 ) ;
+            ++waitTimes ;
+         }
+         else
+         {
+            break ;
+         }
 
          if ( waitTimes >= 10 )
          {
@@ -373,14 +630,17 @@ namespace engine
       {
          rc = SDB_TIMEOUT ;
 
-         if ( 0 == destID )
+         if ( timeout > 0 )
          {
-            PD_LOG_MSG( PDERROR, "Wait a replica-node for lsn(%lld) timeout", lsn.offset ) ;
-         }
-         else
-         {
-            PD_LOG_MSG( PDERROR, "Wait the replica-node(%u) for lsn(%lld) timeout",
-                        destID, lsn.offset ) ;
+            if ( 0 == destID )
+            {
+               PD_LOG_MSG( PDERROR, "Wait a replica-node for lsn(%lld) timeout", lsn.offset ) ;
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Wait the replica-node(%u) for lsn(%lld) timeout",
+                           destID, lsn.offset ) ;
+            }
          }
 
          goto error ;
@@ -452,7 +712,7 @@ namespace engine
          rc = _event.wait( onceTime ) ;
          if ( SDB_OK == rc )
          {
-            break ;
+            goto done ;
          }
          else if ( SDB_TIMEOUT == rc )
          {
@@ -468,7 +728,10 @@ namespace engine
 
             if ( timePassed >= timeout )
             {
-               PD_LOG_MSG( PDERROR, "Wait reelect new primary timeout", rc ) ;
+               if ( timeout > 0 )
+               {
+                  PD_LOG_MSG( PDERROR, "Wait reelect new primary timeout" ) ;
+               }
                goto error ;
             }
 

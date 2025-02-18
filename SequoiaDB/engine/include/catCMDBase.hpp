@@ -89,6 +89,8 @@ namespace engine
       // DC status
       virtual BOOLEAN needCheckDCStatus() const = 0 ;
 
+      virtual BOOLEAN isWrite() const = 0 ;
+
       // doit() may generate clsTask to monitor progress. After the task is
       // finished, we may need to update metadata in postDoit().
       virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb )
@@ -147,6 +149,11 @@ namespace engine
       {
          return TRUE ;
       }
+
+      virtual BOOLEAN isWrite() const
+      {
+         return TRUE ;
+      }
    } ;
    typedef _catWriteCMDBase catWriteCMDBase ;
 
@@ -160,12 +167,17 @@ namespace engine
       // primary
       virtual BOOLEAN needCheckPrimary() const
       {
-         return FALSE ;
+         return TRUE ;
       }
 
       // If this command can't be executed when DC is readonly, we need check
       // DC status
       virtual BOOLEAN needCheckDCStatus() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN isWrite() const
       {
          return FALSE ;
       }

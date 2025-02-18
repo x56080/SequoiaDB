@@ -587,10 +587,10 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_1</name> <!-- SDB_CAT_NODE_NOT_FOUND -->
+         <name>SDB_CLS_PRIMARY_DOWN</name> 
          <description>
-            <en>Reserved</en> <!-- Requested node does not exist -->
-            <cn>保留</cn> <!-- 请求节点不存在 -->
+            <en>Primary node down to secondary</en>
+            <cn>主节点降备</cn>
          </description>
       </code>
 

@@ -1377,7 +1377,8 @@ namespace engine
       {
          // primary check
          BOOLEAN isDelay = FALSE ;
-         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
+         rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay,
+                                     _pCatCB->getCatDCMgr()->isWritedCommand() ) ;
          if ( isDelay )
          {
             goto done ;

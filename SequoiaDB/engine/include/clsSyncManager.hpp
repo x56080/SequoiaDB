@@ -119,7 +119,13 @@ namespace engine
 
       /// offset is current offset.
       BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
-                          UINT16 ensureNodeID = 0 ) ;
+                          UINT16 ensureNodeID = 0,
+                          BOOLEAN onlyInAlive = TRUE ) ;
+
+      BOOLEAN isGroupInfoExpired( CLS_GROUP_VERSION version )
+      {
+         return version < _info->version ;
+      }
 
    private:
       INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;

@@ -425,8 +425,8 @@ namespace engine
             /// When i'm primary, wait other node keep the data consistence
             while ( _vote.primaryIsMe() && timeout < _shutdownWaitTimeout )
             {
-               if ( _logger->getCurrentLsn().invalid() ||
-                    _sync.atLeastOne( _logger->getCurrentLsn().offset ) )
+               if ( _logger->expectLsn().invalid() ||
+                    _sync.atLeastOne( _logger->expectLsn().offset ) )
                {
                   PD_LOG( PDEVENT,
                           "Wait other node keep data consistent succeed" ) ;
@@ -814,6 +814,8 @@ namespace engine
          _vote.handleTimeout( interval ) ;
          _sync.handleTimeout( interval ) ;
 
+         _reelection.onTimer( interval ) ;
+
          /// When self is primary NOSPC or TRANSERR, should force to secondary
          if ( _vote.primaryIsMe() && _info.groupSize() > 1 )
          {
@@ -821,7 +823,7 @@ namespace engine
             if ( OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_NOSPC ) ||
                  OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_TRANSERR ) )
             {
-               DPS_LSN lsn = _logger->getCurrentLsn() ;
+               DPS_LSN lsn = _logger->expectLsn() ;
                if ( lsn.invalid() || _sync.atLeastOne( lsn.offset ) )
                {
                   CHAR ftStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
@@ -966,9 +968,13 @@ namespace engine
                _sharingBeat() ;
                _beatTime = 0 ;
             }
-            else
+            else if ( CLS_REELECT_NOTIFY_END == pNty->type )
             {
                reelectionDone() ;
+            }
+            else if ( CLS_REELECT_NOTIFY_STEPDOWN == pNty->type )
+            {
+               _reelection.runAsync( CLS_REELECTION_LEVEL_3, pNty->timeout, pNty->destID ) ;
             }
             break ;
          }
@@ -1088,8 +1094,8 @@ namespace engine
          msg.beat.endLsn = expectLSN ;
          msg.beat.version = _info.version ;
          *(UINT32*)msg.beat.hashCode = _info.getHashCode() ;
-         msg.beat.role = _vote.primaryIsMe() ?
-                         CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
+         msg.beat.isStepUp = _vote.isInStepUp() ? 1 : 0 ;
+         msg.beat.role = _vote.primaryIsMe() ? CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
          msg.beat.beatID = _info.nextBeatID() ;
          msg.header.requestID = msg.beat.beatID ;
          msg.beat.serviceStatus = pmdGetStartup().isOK() ?
@@ -1401,7 +1407,23 @@ namespace engine
             if ( _vote.primaryIsMe() )
             {
                DPS_LSN lsn  = _logger->expectLsn() ;
-               if ( 0 >= lsn.compare( beat.endLsn ) )
+
+               if ( beat.isStepUp && !_vote.isInStepUp() )
+               {
+                  _info.mtx.lock_w() ;
+                  _info.primary = beat.identity ;
+                  _info.mtx.release_w() ;
+                  _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                  PD_LOG( PDEVENT, "vote: Change to silence because remote "
+                          "is in step up. remote lsn[%d:%lld], local lsn[%d:%lld]",
+                          beat.endLsn.version, beat.endLsn.offset,
+                          lsn.version, lsn.offset ) ;
+               }
+               else if ( _vote.isInStepUp() && !beat.isStepUp )
+               {
+                  /// wait remote down to secondary
+               }
+               else if ( 0 >= lsn.compare( beat.endLsn ) )
                {
                   _info.mtx.lock_w() ;
                   _info.primary = beat.identity ;
@@ -1764,58 +1786,201 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPUP ) ;
       PD_LOG(PDEVENT, "force to step up, seconds:%d", seconds ) ;
       _vote.force( CLS_ELECTION_STATUS_PRIMARY,
-                   seconds * 1000 ) ;
+                   seconds * OSS_ONE_SEC ) ;
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPUP, rc ) ;
       return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__STEPUP, "_clsReplicateSet::stepUp" )
-   INT32 _clsReplicateSet::stepUp( UINT32 seconds,
-                                   pmdEDUCB *cb )
+   INT32 _clsReplicateSet::stepUp( UINT32 keepSeconds, pmdEDUCB *cb,
+                                   UINT32 waitSeconds, BOOLEAN enforced )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET__STEPUP ) ;
       DPS_LSN lsn ;
+      DPS_LSN maxLsn ;
+      UINT16  maxLsnNodeID = 0 ;
+
+      UINT64 waitMS = waitSeconds * OSS_ONE_SEC ;
+      UINT64 waitSyncMS = waitMS ;
+      UINT64 hasWaitMS = 0 ;
+
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
+      MsgRouteID primaryID ;
 
-      if ( MSG_INVALID_ROUTEID != getPrimary().value )
-      {
-         PD_LOG( PDERROR, "can not step up when primary node"
-                 " exists" ) ;
-         rc = SDB_CLS_CAN_NOT_STEP_UP ;
-         goto error ;
-      }
-      else if ( !_active )
+      BOOLEAN blockSync = FALSE ;
+      BOOLEAN withSleep = TRUE ;
+
+      if ( !_active )
       {
          rc = SDB_CLS_NODE_INFO_EXPIRED ;
-         PD_LOG( PDERROR, "can not step up before local's node download group info" ) ;
+         PD_LOG_MSG( PDERROR, "Can not step up because local group information not download" ) ;
          goto error ;
       }
 
-      lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
-      if ( _sync.atLeastOne( lsn.offset ) )
+      primaryID = getPrimary() ;
+      if ( MSG_INVALID_ROUTEID != primaryID.value )
       {
-         PD_LOG( PDERROR, "can not step up when other nodes' lsn"
-                 " bigger than local's" ) ;
+         /// when is self
+         if ( pmdGetNodeID().columns.nodeID == primaryID.columns.nodeID )
+         {
+            withSleep = FALSE ;
+            goto postevent ;
+         }
+
+         if ( waitSeconds > 0 )
+         {
+            MsgClsReelectNotify notifyMsg ;
+            /// notify primary node to step down
+            notifyMsg.isLocation = 0 ;
+            notifyMsg.type = CLS_REELECT_NOTIFY_STEPDOWN ;
+            notifyMsg.timeout = waitSeconds * OSS_ONE_SEC ;
+            notifyMsg.destID = pmdGetNodeID().columns.nodeID ;
+
+            rc = _agent->syncSend( primaryID, &(notifyMsg.header) ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Send reelect notify-stepdown to primary node(%u) failed, "
+                           "rc: %d", primaryID.columns.nodeID, rc ) ;
+               goto error ;
+            }
+
+            /// wait self primary
+            while( hasWaitMS < waitMS )
+            {
+               if ( cb->isInterrupted() )
+               {
+                  rc = SDB_APP_INTERRUPT ;
+                  goto error ;
+               }
+
+               if ( _vote.primaryIsMe() )
+               {
+                  withSleep = FALSE ;
+                  goto postevent ;
+               }
+               ossSleep( 100 ) ;
+               hasWaitMS += 100 ;
+            }
+
+            /// timeout
+            if ( !enforced )
+            {
+               rc = SDB_TIMEOUT ;
+               PD_LOG_MSG( PDERROR, "Force step up timeout. Or you can use 'Enforced' param." ) ;
+               goto error ;
+            }
+         }
+         else if ( enforced )
+         {
+            /// not goto error
+         }
+         else
+         {
+            _netRouteNode node ;
+            _agent->route( primaryID, node ) ;
+            PD_LOG_MSG( PDERROR, "Can not step up when primary node(%d, %s:%s) exists. "
+                        "Or you can use 'WaitSeconds' or 'Enforced' param",
+                        primaryID.columns.nodeID,
+                        node._host, node._service[MSG_ROUTE_LOCAL_SERVICE].c_str() ) ;
+            rc = SDB_CLS_CAN_NOT_STEP_UP ;
+            goto error ;
+         }
+      }
+
+      /// when primary not exist
+      if ( waitSyncMS < 600 * OSS_ONE_SEC )
+      {
+         waitSyncMS = 600 * OSS_ONE_SEC ;
+      }
+
+      _sync.disableSync() ;
+      blockSync = TRUE ;
+
+      /// 1. wait sync done
+      while( hasWaitMS < waitSyncMS )
+      {
+         if ( cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         rc = _syncEmptyEvent.wait( OSS_ONE_SEC ) ;
+         if ( SDB_OK == rc )
+         {
+            break ;
+         }
+         hasWaitMS += OSS_ONE_SEC ;
+      }
+
+      /// wait sync bucket
+      while( hasWaitMS < waitSyncMS && _replBucket.maxReplSync() > 0 )
+      {
+         if ( cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         rc = _replBucket.waitEmpty( OSS_ONE_SEC ) ;
+         if ( SDB_OK == rc )
+         {
+            break ;
+         }
+         hasWaitMS += OSS_ONE_SEC ;
+      }
+
+      /// 2. check lsn
+      lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
+      maxLsn = getMaxLsnBySharingBeat( &maxLsnNodeID ) ;
+      if ( maxLsn.compare( lsn ) > 0 && !enforced )
+      {
          rc = SDB_CLS_CAN_NOT_STEP_UP ;
+
+         _netRouteNode node ;
+         MsgRouteID tmpNodeID = pmdGetNodeID() ;
+         tmpNodeID.columns.nodeID = maxLsnNodeID ;
+         tmpNodeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+         _agent->route( tmpNodeID, node ) ;
+         PD_LOG_MSG( PDERROR, "Can not step up when the node(%d, %s:%s)'s lsn bigger "
+                     "than local's. Or you can use 'Enforced' param",
+                     maxLsnNodeID, node._host,
+                     node._service[MSG_ROUTE_LOCAL_SERVICE].c_str() ) ;
          goto error ;
       }
 
+   postevent:
       rc = eduMgr->postEDUPost( eduID,
                                 PMD_EDU_EVENT_STEP_UP,
                                 PMD_EDU_MEM_NONE,
-                                NULL, seconds ) ;
-      if ( SDB_OK != rc )
+                                NULL, keepSeconds ) ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;
+         PD_LOG_MSG( PDERROR, "Failed to post event to repl cb, rc: %d", rc ) ;
          goto error ;
       }
+
+      if ( withSleep )
+      {
+         ossSleep( 300 ) ;
+      }
+
    done:
+      if ( blockSync )
+      {
+         _sync.enableSync() ;
+      }
       PD_TRACE_EXITRC( SDB__CLSREPSET__STEPUP, rc ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _clsReplicateSet::waitReelect( pmdEDUCB *cb, UINT32 timeout )
+   {
+      return _reelection.wait( cb, timeout ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_PRIMARYCHECK, "_clsReplicateSet::primaryCheck" )

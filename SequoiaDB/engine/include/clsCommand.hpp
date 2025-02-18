@@ -200,7 +200,7 @@ namespace engine
 
    public:
       _rtnForceStepUp()
-      :_seconds( 120 )
+      :_keepSeconds( 120 ), _waitSeconds( 0 ), _enforced( FALSE )
       {}
 
       virtual ~_rtnForceStepUp() {}
@@ -220,7 +220,9 @@ namespace engine
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
    private:
-      UINT32 _seconds ;
+      UINT32   _keepSeconds ;
+      UINT32   _waitSeconds ;
+      BOOLEAN  _enforced ;
    } ;
 
    class _clsAlterDC : public _rtnCommand
