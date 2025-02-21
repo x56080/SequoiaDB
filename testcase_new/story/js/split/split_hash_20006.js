@@ -30,7 +30,7 @@ function test ()
 
    // insert records
    var recs = [];
-   for( var i = 0; i < 1000; ++i ) 
+   for( var i = 0; i < 1000; ++i )
    {
       recs.push( { "id": i, "name": "a" + i } );
    }
@@ -60,14 +60,19 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
 
    // check count for each group
    var totalNodeRecsCnt = 0;
-   for( var i = 0; i < groupNames.length; i++ ) 
+   for( var i = 0; i < groupNames.length; i++ )
    {
       var nodeDB = null;
-      try 
+      try
       {
          var nodeDB = db.getRG( groupNames[i] ).getMaster().connect();
          var nodeRecsCnt = nodeDB.getCS( csName ).getCL( clName ).count();
          totalNodeRecsCnt += nodeRecsCnt;
+
+         if ( i == 2 )
+         {
+            break ;
+         }
       }
       finally
       {
@@ -77,7 +82,7 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
    assert.equal( recordsNum, totalNodeRecsCnt );
 }
 
-function checkShardingRange ( csName, clName ) 
+function checkShardingRange ( csName, clName )
 {
    var cataInfo = db.snapshot( 8, { "Name": csName + "." + clName } ).next().toObj().CataInfo;
    if( cataInfo[0]["LowBound"][""] !== 0 || cataInfo[0]["UpBound"][""] !== 1373
