@@ -14,9 +14,6 @@ Sdb
 
 This function is used to forcibly promote the standby node to the primary node in a replication group that is not eligible for election. Before upgrading, make sure that the LSN of the target node is the maximum value in the group. If a node with a smaller LSN is forcibly promoted to master, data will be rolled back. Users can obtain node LSN information through [Node Health Detection Snapshot][SDB_SNAP_HEALTH].
 
->**Note:**
->
-> This function is only supported in catalog replication groups.
 
 ##PARAMETERS##
 
