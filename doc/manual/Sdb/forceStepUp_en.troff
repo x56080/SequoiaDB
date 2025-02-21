@@ -20,12 +20,6 @@ in the group.
 If a node with a smaller LSN is forcibly promoted to master, data will be rolled
 back.
 Users can obtain node LSN information through Node Health Detection Snapshot.
-.RS
-.PP
-\f[B]Note:\f[]
-.PP
-This function is only supported in catalog replication groups.
-.RE
 .SH PARAMETERS
 .PP
 options ( \f[I]object, optional\f[] )
