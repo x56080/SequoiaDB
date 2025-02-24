@@ -10,6 +10,7 @@ Linux 系统配置包括：
 * 调整文件系统挂载参数
 * 关闭 transparent_hugepage
 * 关闭 NUMA
+* 调整磁盘预读参数
 
 > **Note:**
 >
@@ -418,4 +419,42 @@ Linux 系统默认开启 NUMA。NUMA 默认的内存分配策略是优先从进�
 
 如果用户通过修改 grub 配置文件无法禁用 NUMA，可以在开机时根据启动页面介绍进入 BIOS 设置界面关闭 NUMA，保存设置并重启服务器。由于不同品牌的主板或服务器通过 BIOS 禁用 NUMA 的操作方式有所差异，此处不详细介绍操作步骤。
 
+### 调整磁盘预读参数 ###
 
+磁盘预读参数：
+
+- 结构化场景，推荐 1024KB
+- 非结构场景，推荐 512KB
+
+1. 使用 `lsblk` 或者 `fdisk -l` 命令查看磁盘设备名称
+
+2. 查看当前磁盘预读大小（单位：KB），假设磁盘名称是`sda`
+
+   ```lang-bash
+   # cat /sys/block/sda/queue/read_ahead_kb
+   128
+   ```
+
+3. 修改磁盘预读参数，重启机器会失效
+
+   ```lang-bash
+   # echo 1024 > /sys/block/sda/queue/read_ahead_kb
+   ```
+
+4. 修改磁盘预读参数，重启机器仍然生效
+
+   4.1. 修改文件 `/etc/rc.local`
+
+       ```lang-bash
+       # vi /etc/rc.local
+       ```
+
+       >**Note:**
+       >
+       > 不同操作系统需要修改的文件存在差异，用户需根据实际情况获取确切的文件。
+
+   4.2. 在末尾添加如下内容：
+
+       ```lang-bash
+       echo 1024 > /sys/block/sda/queue/read_ahead_kb
+       ```
